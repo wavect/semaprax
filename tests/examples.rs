@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use semaprax::{format, graph, parse, verify};
+use semaprax::{format, graph, hir, parse, verify};
 
 #[test]
 fn every_committed_example_is_canonical_and_verified() {
@@ -22,6 +22,9 @@ fn every_committed_example_is_canonical_and_verified() {
             "{} produced diagnostics: {diagnostics:#?}",
             path.display()
         );
+        hir::resolve(&program).unwrap_or_else(|diagnostics| {
+            panic!("{} did not resolve: {diagnostics:#?}", path.display())
+        });
         assert_eq!(
             format::canonical(&program),
             source,

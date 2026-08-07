@@ -5,23 +5,19 @@ SEMAPRAX v0.2 is a vertical slice through the future compiler. Each layer has a 
 ```text
 .spx source
     |
-lexer -> parser -> typed AST
+lexer -> parser -> parsed AST
                     |
               semantic verifier
-              /      |       \
-          types    effects   contracts
                     |
-             semantic graph
-             /             \
-      agent queries    transactions
-                    |
-              checked lowering
-               /          \
-          sequenced C11   Wasm core
-               |             |
-             Clang       browser host
-               |             |
-        native executable  web package
+             verified meaning
+              /           \
+ current AST graph      resolved HIR
+        |                  /       \
+ semantic graph    sequenced C11  Wasm core
+    /       \             |           |
+ agent queries    tx    Clang     browser host
+                         |           |
+                  native executable  web package
 ```
 
 ## Source projection
@@ -45,6 +41,16 @@ The verifier builds the module symbol table and checks:
 The initial contract lane is progressive: contracts are type-checked at compile time, required to be effect-free, and guarded in generated native and Wasm code. Static proof is a later lane, and its absence is reported honestly in the project status.
 
 Generated arithmetic is checked for overflow, zero division, and the signed division edge case. Failures have stable process exit codes and explicit diagnostics rather than C undefined behavior.
+
+## Resolved HIR groundwork
+
+`hir` is the fail-closed boundary between verified human syntax and future semantic consumers. It resolves resource types and calls through persistent declaration IDs, assigns deterministic structural identities to parameters, locals, expressions, and result values, and represents value references as places. Spans and display names remain diagnostic metadata rather than semantic identity.
+
+The declaration index is the single current source of target-independent type facts: whether a type is copyable, contains resources, is sized, needs destruction, and its name-independent layout key. Generic parameter identities include their owner declaration plus index, and nominal identities include the complete resolved argument tree.
+
+The native and Wasm emitters now consume only validated HIR for semantic lowering; their parsed-AST entry points are compatibility wrappers that resolve first. A centralized HIR validator rejects duplicate/non-canonical identities, invalid declarations and nominal types, lexical-scope violations, inconsistent expression/call types, definite or conditional resource reuse, contract transfers, undeclared or unpermitted effects, effectful contracts, invalid result bindings, and an invalid entrypoint before either backend emits an artifact.
+
+This remains staged groundwork rather than the sole compiler IR: the current verifier and semantic graph still consume parsed AST. They must migrate before aggregate syntax lands. Record fields, variant payloads, partial-place availability, recursive aggregate fact computation, and target-specific aggregate layouts therefore remain RFC 0002 gates.
 
 ## Semantic graph
 

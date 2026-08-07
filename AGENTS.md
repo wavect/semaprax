@@ -17,7 +17,7 @@ For records, variants, generics, matching, `Option`, or `Result`, also read `doc
 ## Repository map
 
 - `src/ast.rs`, `lexer.rs`, `parser.rs`, `format.rs`: human source projection.
-- `src/verify.rs`: type, effect, contract, and ownership semantics.
+- `src/verify.rs`, `src/hir.rs`: checked semantics and the stable-ID resolved representation.
 - `src/graph.rs`, `patch.rs`: agent representation and atomic transactions.
 - `src/codegen.rs`, `wasm.rs`: native C11/Clang and browser/Wasm bootstrap lanes.
 - `tests/`: executable language, graph, transaction, ownership, and backend evidence.
@@ -38,7 +38,7 @@ For records, variants, generics, matching, `Option`, or `Result`, also read `doc
 
 1. Identify affected completion-matrix rows and invariants.
 2. Add a success case and a stable diagnostic regression before or with the implementation.
-3. Update parser, canonical formatter, verifier, semantic graph, native backend, and Wasm backend together when syntax carries runtime meaning.
+3. Update parser, canonical formatter, resolver/HIR, verifier, semantic graph, native backend, and Wasm backend together when syntax carries runtime meaning.
 4. Exercise agent and human projections: canonical round-trip plus graph assertions.
 5. Run `scripts/quality.sh` on Unix, or the commands in `docs/QUALITY-GATES.md` on any host.
 6. Update architecture, roadmap, changelog, and completion evidence honestly.

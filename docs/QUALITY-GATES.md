@@ -41,6 +41,7 @@ The remaining Cargo and `semaprax` commands are shell-neutral.
 | --- | --- |
 | Syntax or AST | Canonical parse-format-parse round trip and malformed-input diagnostic |
 | Types or ownership | Positive test, compile-fail diagnostic code, branch/escape boundary test |
+| Resolved HIR | Stable-ID rename/whitespace invariance, unique lexical/result/place IDs, centralized type-fact/layout assertions, invalid-AST rejection, move/effect/contract revalidation, and malformed-HIR native/Wasm rejection parity |
 | Effects or contracts | Capability/effect rejection and runtime/backend behavior |
 | Graph schema | Exact schema assertion, deterministic revision, bounded context behavior |
 | Public protocol or schema | Compatibility fixture, or explicit version bump with migration and changelog note |

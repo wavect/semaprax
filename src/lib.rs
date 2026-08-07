@@ -9,6 +9,7 @@ pub mod codegen;
 pub mod diagnostic;
 pub mod format;
 pub mod graph;
+pub mod hir;
 pub mod lexer;
 pub mod parser;
 pub mod patch;

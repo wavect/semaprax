@@ -1,9 +1,13 @@
 use std::collections::HashMap;
 use std::path::Path;
 
-use crate::ast::{BinaryOp, Expr, ExprKind, Program, Statement, Type, UnaryOp};
+use crate::ast::{BinaryOp, Program, UnaryOp};
 use crate::diagnostic::{quote_json, Diagnostic};
 use crate::graph;
+use crate::hir::{
+    self, DeclarationId, ResolvedExpr, ResolvedExprKind, ResolvedProgram, ResolvedStatement,
+    ResolvedType, ValueId,
+};
 
 const I32: u8 = 0x7f;
 const I64: u8 = 0x7e;
@@ -17,17 +21,27 @@ struct Signature {
 
 #[derive(Default)]
 struct LocalLayout {
-    declarations: Vec<Type>,
-    lets: HashMap<usize, (u32, Type)>,
+    declarations: Vec<ResolvedType>,
+    lets: HashMap<ValueId, u32>,
 }
 
 pub fn emit_module(program: &Program) -> Result<Vec<u8>, Diagnostic> {
-    if let Some(error) = crate::verify::verify(program)
-        .into_iter()
-        .find(|item| item.severity.is_error())
-    {
-        return Err(error);
-    }
+    let resolved = hir::resolve(program).map_err(|diagnostics| {
+        diagnostics
+            .into_iter()
+            .find(|item| item.severity.is_error())
+            .unwrap_or_else(|| Diagnostic::io("SPX-W100", "HIR resolution failed"))
+    })?;
+    emit_resolved_module(&resolved)
+}
+
+/// Emit a WebAssembly core module from verified, identity-resolved HIR.
+///
+/// Most callers should use [`emit_module`], which resolves and verifies parsed
+/// source first. This entry point exists for semantic consumers that already
+/// hold HIR and keeps all backend lowering independent of source-level names.
+pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagnostic> {
+    hir::validate(program)?;
     let mut types = Vec::<Signature>::new();
     let mut type_indexes = HashMap::<Signature, u32>::new();
     let binary_checked = intern_type(
@@ -62,8 +76,8 @@ pub fn emit_module(program: &Program) -> Result<Vec<u8>, Diagnostic> {
                 .params
                 .iter()
                 .map(|param| wasm_type(&param.ty))
-                .collect(),
-            results: vec![wasm_type(&function.return_type)],
+                .collect::<Result<Vec<_>, _>>()?,
+            results: vec![wasm_type(&function.return_type)?],
         };
         function_types.push(intern_type(signature, &mut types, &mut type_indexes));
     }
@@ -72,12 +86,7 @@ pub fn emit_module(program: &Program) -> Result<Vec<u8>, Diagnostic> {
         .functions
         .iter()
         .enumerate()
-        .map(|(index, function)| (function.name.as_str(), IMPORT_COUNT + index as u32))
-        .collect();
-    let function_returns: HashMap<_, _> = program
-        .functions
-        .iter()
-        .map(|item| (item.name.to_owned(), item.return_type.clone()))
+        .map(|(index, function)| (function.id.clone(), IMPORT_COUNT + index as u32))
         .collect();
 
     let mut module = b"\0asm\x01\0\0\0".to_vec();
@@ -109,8 +118,15 @@ pub fn emit_module(program: &Program) -> Result<Vec<u8>, Diagnostic> {
     let main_index = program
         .functions
         .iter()
-        .position(|function| function.name == "main")
+        .position(|function| function.id == program.entrypoint)
         .ok_or_else(|| Diagnostic::io("SPX-W101", "web target requires a main function"))?;
+    let main = &program.functions[main_index];
+    if !main.params.is_empty() || main.return_type != ResolvedType::I64 {
+        return Err(Diagnostic::io(
+            "SPX-W101",
+            "resolved web entry point must have type `fn main() -> i64`",
+        ));
+    }
     let mut exports = Vec::new();
     write_u32(&mut exports, 1);
     write_name(&mut exports, "semaprax_main");
@@ -123,59 +139,36 @@ pub fn emit_module(program: &Program) -> Result<Vec<u8>, Diagnostic> {
     for function in &program.functions {
         let mut body = Vec::new();
         let result_local = function.params.len() as u32;
-        let variables: HashMap<_, _> = function
+        let mut value_indexes: HashMap<_, _> = function
             .params
             .iter()
             .enumerate()
-            .map(|(index, param)| (param.name.clone(), (index as u32, param.ty.clone())))
+            .map(|(index, param)| (param.id.clone(), index as u32))
             .collect();
         let mut layout = LocalLayout {
             declarations: vec![function.return_type.clone()],
             lets: HashMap::new(),
         };
         for contract in &function.requires {
-            collect_locals(
-                contract,
-                &variables,
-                &function_returns,
-                function.params.len() as u32,
-                &mut layout,
-            )?;
+            collect_locals(contract, function.params.len() as u32, &mut layout)?;
         }
-        collect_locals(
-            &function.body,
-            &variables,
-            &function_returns,
-            function.params.len() as u32,
-            &mut layout,
-        )?;
-        let mut ensure_variables = variables.clone();
-        ensure_variables.insert(
-            "result".to_owned(),
-            (result_local, function.return_type.clone()),
-        );
+        collect_locals(&function.body, function.params.len() as u32, &mut layout)?;
         for contract in &function.ensures {
-            collect_locals(
-                contract,
-                &ensure_variables,
-                &function_returns,
-                function.params.len() as u32,
-                &mut layout,
-            )?;
+            collect_locals(contract, function.params.len() as u32, &mut layout)?;
         }
+        value_indexes.extend(layout.lets.iter().map(|(id, index)| (id.clone(), *index)));
+        value_indexes.insert(function.result_id.clone(), result_local);
         write_u32(&mut body, layout.declarations.len() as u32);
         for ty in &layout.declarations {
             write_u32(&mut body, 1);
-            body.push(wasm_type(ty));
+            body.push(wasm_type(ty)?);
         }
-        let mut variables = variables;
         for contract in &function.requires {
             emit_expr(
                 &mut body,
                 contract,
-                &mut variables,
+                &value_indexes,
                 &function_indexes,
-                &function_returns,
                 &layout,
                 None,
             )?;
@@ -184,9 +177,8 @@ pub fn emit_module(program: &Program) -> Result<Vec<u8>, Diagnostic> {
         emit_expr(
             &mut body,
             &function.body,
-            &mut variables,
+            &value_indexes,
             &function_indexes,
-            &function_returns,
             &layout,
             None,
         )?;
@@ -196,11 +188,10 @@ pub fn emit_module(program: &Program) -> Result<Vec<u8>, Diagnostic> {
             emit_expr(
                 &mut body,
                 contract,
-                &mut variables,
+                &value_indexes,
                 &function_indexes,
-                &function_returns,
                 &layout,
-                Some((result_local, function.return_type.clone())),
+                None,
             )?;
             emit_contract_guard(&mut body);
         }
@@ -256,136 +247,112 @@ pub fn build_web(program: &Program, output: &Path) -> Result<(), Diagnostic> {
 }
 
 fn collect_locals(
-    expr: &Expr,
-    variables: &HashMap<String, (u32, Type)>,
-    function_returns: &HashMap<String, Type>,
+    expr: &ResolvedExpr,
     parameter_count: u32,
     layout: &mut LocalLayout,
 ) -> Result<(), Diagnostic> {
     match &expr.kind {
-        ExprKind::Call { args, .. } => {
+        ResolvedExprKind::Call { args, .. } => {
             for arg in args {
-                collect_locals(arg, variables, function_returns, parameter_count, layout)?;
+                collect_locals(arg, parameter_count, layout)?;
             }
         }
-        ExprKind::Unary { value, .. } => {
-            collect_locals(value, variables, function_returns, parameter_count, layout)?;
+        ResolvedExprKind::Unary { value, .. } => {
+            collect_locals(value, parameter_count, layout)?;
         }
-        ExprKind::Binary { left, right, .. } => {
-            collect_locals(left, variables, function_returns, parameter_count, layout)?;
-            collect_locals(right, variables, function_returns, parameter_count, layout)?;
+        ResolvedExprKind::Binary { left, right, .. } => {
+            collect_locals(left, parameter_count, layout)?;
+            collect_locals(right, parameter_count, layout)?;
         }
-        ExprKind::Block { statements, tail } => {
-            let mut scope = variables.clone();
+        ResolvedExprKind::Block { statements, tail } => {
             for statement in statements {
                 match statement {
-                    Statement::Let {
-                        name, value, span, ..
-                    } => {
-                        collect_locals(value, &scope, function_returns, parameter_count, layout)?;
-                        let ty = expr_type(value, &scope, function_returns, None)?;
+                    ResolvedStatement::Let { binding, value, .. } => {
+                        collect_locals(value, parameter_count, layout)?;
                         let index = parameter_count + layout.declarations.len() as u32;
-                        layout.declarations.push(ty.clone());
-                        layout.lets.insert(span.start, (index, ty.clone()));
-                        scope.insert(name.clone(), (index, ty));
+                        layout.declarations.push(binding.ty.clone());
+                        if layout.lets.insert(binding.id.clone(), index).is_some() {
+                            return Err(Diagnostic::io(
+                                "SPX-W108",
+                                format!("duplicate WebAssembly local identity `{}`", binding.id),
+                            ));
+                        }
                     }
                 }
             }
-            collect_locals(tail, &scope, function_returns, parameter_count, layout)?;
+            collect_locals(tail, parameter_count, layout)?;
         }
-        ExprKind::If {
+        ResolvedExprKind::If {
             condition,
             then_branch,
             else_branch,
         } => {
-            collect_locals(
-                condition,
-                variables,
-                function_returns,
-                parameter_count,
-                layout,
-            )?;
-            collect_locals(
-                then_branch,
-                &variables.clone(),
-                function_returns,
-                parameter_count,
-                layout,
-            )?;
-            collect_locals(
-                else_branch,
-                &variables.clone(),
-                function_returns,
-                parameter_count,
-                layout,
-            )?;
+            collect_locals(condition, parameter_count, layout)?;
+            collect_locals(then_branch, parameter_count, layout)?;
+            collect_locals(else_branch, parameter_count, layout)?;
         }
-        ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Var(_) => {}
+        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
     }
     Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
 fn emit_expr(
     output: &mut Vec<u8>,
-    expr: &Expr,
-    variables: &mut HashMap<String, (u32, Type)>,
-    function_indexes: &HashMap<&str, u32>,
-    function_returns: &HashMap<String, Type>,
+    expr: &ResolvedExpr,
+    value_indexes: &HashMap<ValueId, u32>,
+    function_indexes: &HashMap<DeclarationId, u32>,
     layout: &LocalLayout,
-    result: Option<(u32, Type)>,
+    result: Option<(u32, &str)>,
 ) -> Result<(), Diagnostic> {
     match &expr.kind {
-        ExprKind::Int(value) => {
+        ResolvedExprKind::Int(value) => {
             output.push(0x42);
             write_i64(output, *value);
         }
-        ExprKind::Bool(value) => {
+        ResolvedExprKind::Bool(value) => {
             output.push(0x41);
             write_i64(output, i64::from(*value));
         }
-        ExprKind::Var(name) if name == "result" => {
-            let (index, _) = result
-                .as_ref()
-                .ok_or_else(|| Diagnostic::io("SPX-W102", "result used outside postcondition"))?;
+        ResolvedExprKind::Place(place) => {
+            if !place.projections.is_empty() {
+                return Err(Diagnostic::io(
+                    "SPX-W110",
+                    "aggregate place projections are not supported by the Wasm core backend",
+                ));
+            }
+            let index = value_indexes.get(&place.root).copied().or_else(|| {
+                result.and_then(|(index, result_id)| {
+                    (place.root.as_str() == result_id).then_some(index)
+                })
+            });
+            let index = index.ok_or_else(|| {
+                Diagnostic::io(
+                    "SPX-W103",
+                    format!("unknown value identity `{}`", place.root),
+                )
+            })?;
             output.push(0x20);
-            write_u32(output, *index);
+            write_u32(output, index);
         }
-        ExprKind::Var(name) => {
-            let (index, _) = variables
-                .get(name.as_str())
-                .ok_or_else(|| Diagnostic::io("SPX-W103", format!("unknown local `{name}`")))?;
-            output.push(0x20);
-            write_u32(output, *index);
-        }
-        ExprKind::Call { name, args } => {
+        ResolvedExprKind::Call { callee, args } => {
             for arg in args {
-                emit_expr(
-                    output,
-                    arg,
-                    variables,
-                    function_indexes,
-                    function_returns,
-                    layout,
-                    result.clone(),
-                )?;
+                emit_expr(output, arg, value_indexes, function_indexes, layout, result)?;
             }
             output.push(0x10);
             write_u32(
                 output,
-                *function_indexes.get(name.as_str()).ok_or_else(|| {
-                    Diagnostic::io("SPX-W104", format!("unknown function `{name}`"))
+                *function_indexes.get(callee).ok_or_else(|| {
+                    Diagnostic::io("SPX-W104", format!("unknown function identity `{callee}`"))
                 })?,
             );
         }
-        ExprKind::Unary { op, value } => match op {
+        ResolvedExprKind::Unary { op, value } => match op {
             UnaryOp::Neg => {
                 emit_expr(
                     output,
                     value,
-                    variables,
+                    value_indexes,
                     function_indexes,
-                    function_returns,
                     layout,
                     result,
                 )?;
@@ -396,33 +363,30 @@ fn emit_expr(
                 emit_expr(
                     output,
                     value,
-                    variables,
+                    value_indexes,
                     function_indexes,
-                    function_returns,
                     layout,
                     result,
                 )?;
                 output.push(0x45);
             }
         },
-        ExprKind::Binary { op, left, right } => {
+        ResolvedExprKind::Binary { op, left, right } => {
             emit_expr(
                 output,
                 left,
-                variables,
+                value_indexes,
                 function_indexes,
-                function_returns,
                 layout,
-                result.clone(),
+                result,
             )?;
             if matches!(op, BinaryOp::And | BinaryOp::Or) {
                 emit_short_circuit(
                     output,
                     *op,
                     right,
-                    variables,
+                    value_indexes,
                     function_indexes,
-                    function_returns,
                     layout,
                     result,
                 )?;
@@ -431,11 +395,10 @@ fn emit_expr(
             emit_expr(
                 output,
                 right,
-                variables,
+                value_indexes,
                 function_indexes,
-                function_returns,
                 layout,
-                result.clone(),
+                result,
             )?;
             match op {
                 BinaryOp::Add => call_import(output, 0),
@@ -444,10 +407,9 @@ fn emit_expr(
                 BinaryOp::Div => call_import(output, 3),
                 BinaryOp::Rem => call_import(output, 4),
                 BinaryOp::Eq | BinaryOp::Ne => {
-                    let ty = expr_type(left, variables, function_returns, result.as_ref())?;
-                    output.push(match (ty, op) {
-                        (Type::I64, BinaryOp::Eq) => 0x51,
-                        (Type::I64, BinaryOp::Ne) => 0x52,
+                    output.push(match (&left.ty, op) {
+                        (ResolvedType::I64, BinaryOp::Eq) => 0x51,
+                        (ResolvedType::I64, BinaryOp::Ne) => 0x52,
                         (_, BinaryOp::Eq) => 0x46,
                         (_, BinaryOp::Ne) => 0x47,
                         _ => unreachable!(),
@@ -460,46 +422,39 @@ fn emit_expr(
                 BinaryOp::And | BinaryOp::Or => unreachable!(),
             }
         }
-        ExprKind::Block { statements, tail } => {
-            let saved = variables.clone();
+        ResolvedExprKind::Block { statements, tail } => {
             for statement in statements {
                 match statement {
-                    Statement::Let {
-                        name, value, span, ..
-                    } => {
+                    ResolvedStatement::Let { binding, value, .. } => {
                         emit_expr(
                             output,
                             value,
-                            variables,
+                            value_indexes,
                             function_indexes,
-                            function_returns,
                             layout,
-                            result.clone(),
+                            result,
                         )?;
-                        let (index, ty) = layout.lets.get(&span.start).ok_or_else(|| {
+                        let index = layout.lets.get(&binding.id).ok_or_else(|| {
                             Diagnostic::io(
                                 "SPX-W108",
-                                format!("missing WebAssembly local layout for `{name}`"),
+                                format!("missing WebAssembly local layout for `{}`", binding.id),
                             )
                         })?;
                         output.push(0x21);
                         write_u32(output, *index);
-                        variables.insert(name.clone(), (*index, ty.clone()));
                     }
                 }
             }
             emit_expr(
                 output,
                 tail,
-                variables,
+                value_indexes,
                 function_indexes,
-                function_returns,
                 layout,
                 result,
             )?;
-            *variables = saved;
         }
-        ExprKind::If {
+        ResolvedExprKind::If {
             condition,
             then_branch,
             else_branch,
@@ -507,33 +462,27 @@ fn emit_expr(
             emit_expr(
                 output,
                 condition,
-                variables,
+                value_indexes,
                 function_indexes,
-                function_returns,
                 layout,
-                result.clone(),
+                result,
             )?;
-            let ty = expr_type(then_branch, variables, function_returns, result.as_ref())?;
             output.push(0x04);
-            output.push(wasm_type(&ty));
-            let mut then_variables = variables.clone();
+            output.push(wasm_type(&then_branch.ty)?);
             emit_expr(
                 output,
                 then_branch,
-                &mut then_variables,
+                value_indexes,
                 function_indexes,
-                function_returns,
                 layout,
-                result.clone(),
+                result,
             )?;
             output.push(0x05);
-            let mut else_variables = variables.clone();
             emit_expr(
                 output,
                 else_branch,
-                &mut else_variables,
+                value_indexes,
                 function_indexes,
-                function_returns,
                 layout,
                 result,
             )?;
@@ -543,16 +492,14 @@ fn emit_expr(
     Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
 fn emit_short_circuit(
     output: &mut Vec<u8>,
     op: BinaryOp,
-    right: &Expr,
-    variables: &mut HashMap<String, (u32, Type)>,
-    function_indexes: &HashMap<&str, u32>,
-    function_returns: &HashMap<String, Type>,
+    right: &ResolvedExpr,
+    value_indexes: &HashMap<ValueId, u32>,
+    function_indexes: &HashMap<DeclarationId, u32>,
     layout: &LocalLayout,
-    result: Option<(u32, Type)>,
+    result: Option<(u32, &str)>,
 ) -> Result<(), Diagnostic> {
     output.push(0x04);
     output.push(I32);
@@ -560,9 +507,8 @@ fn emit_short_circuit(
         emit_expr(
             output,
             right,
-            variables,
+            value_indexes,
             function_indexes,
-            function_returns,
             layout,
             result,
         )?;
@@ -574,62 +520,14 @@ fn emit_short_circuit(
         emit_expr(
             output,
             right,
-            variables,
+            value_indexes,
             function_indexes,
-            function_returns,
             layout,
             result,
         )?;
     }
     output.push(0x0b);
     Ok(())
-}
-
-fn expr_type(
-    expr: &Expr,
-    variables: &HashMap<String, (u32, Type)>,
-    functions: &HashMap<String, Type>,
-    result: Option<&(u32, Type)>,
-) -> Result<Type, Diagnostic> {
-    Ok(match &expr.kind {
-        ExprKind::Int(_) => Type::I64,
-        ExprKind::Bool(_) => Type::Bool,
-        ExprKind::Var(name) if name == "result" => result
-            .map(|(_, ty)| ty.clone())
-            .or_else(|| variables.get(name).map(|(_, ty)| ty.clone()))
-            .ok_or_else(|| Diagnostic::io("SPX-W105", "missing result type"))?,
-        ExprKind::Var(name) => variables
-            .get(name.as_str())
-            .map(|(_, ty)| ty.clone())
-            .ok_or_else(|| Diagnostic::io("SPX-W106", format!("unknown local `{name}`")))?,
-        ExprKind::Call { name, .. } => functions
-            .get(name.as_str())
-            .cloned()
-            .ok_or_else(|| Diagnostic::io("SPX-W107", format!("unknown function `{name}`")))?,
-        ExprKind::Unary { op, .. } => match op {
-            UnaryOp::Neg => Type::I64,
-            UnaryOp::Not => Type::Bool,
-        },
-        ExprKind::Binary { op, .. } => match op {
-            BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem => {
-                Type::I64
-            }
-            _ => Type::Bool,
-        },
-        ExprKind::Block { statements, tail } => {
-            let mut scope = variables.clone();
-            for statement in statements {
-                match statement {
-                    Statement::Let { name, value, .. } => {
-                        let ty = expr_type(value, &scope, functions, result)?;
-                        scope.insert(name.clone(), (u32::MAX, ty));
-                    }
-                }
-            }
-            expr_type(tail, &scope, functions, result)?
-        }
-        ExprKind::If { then_branch, .. } => expr_type(then_branch, variables, functions, result)?,
-    })
 }
 
 fn emit_contract_guard(output: &mut Vec<u8>) {
@@ -645,10 +543,17 @@ fn call_import(output: &mut Vec<u8>, index: u32) {
     write_u32(output, index);
 }
 
-fn wasm_type(ty: &Type) -> u8 {
+fn wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
     match ty {
-        Type::I64 => I64,
-        Type::Bool | Type::Resource(_) => I32,
+        ResolvedType::I64 => Ok(I64),
+        ResolvedType::Bool | ResolvedType::Nominal { .. } => Ok(I32),
+        ResolvedType::TypeParameter { .. } => Err(Diagnostic::io(
+            "SPX-W109",
+            format!(
+                "unresolved generic type `{}` cannot be lowered to WebAssembly",
+                ty.identity_key()
+            ),
+        )),
     }
 }
 

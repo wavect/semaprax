@@ -19,6 +19,8 @@ All notable changes to SEMAPRAX are documented here.
 - Made native expression evaluation explicitly left-to-right instead of inheriting C's unspecified call-argument order.
 - Hardened public backends to reject unverified programs with diagnostics instead of panicking.
 - Added repository agent guidance, evidence rules, MSRV/package gates, and a documented Graphify adoption decision.
+- Added a fail-closed resolved HIR with persistent nominal/call identities, deterministic lexical place identities, and centralized type facts/layout keys.
+- Migrated native and Wasm semantic lowering to validated HIR and added malformed-HIR cross-backend rejection parity.
 
 ## 0.1.0 — 2026-08-07
 

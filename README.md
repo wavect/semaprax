@@ -12,11 +12,11 @@ Human source       Atomic semantic patches
        /       |          \
   types     effects     contracts
        \       |          /
-         checked core IR
-                |
-          C11 native lane
-                |
-       verified executable
+       validated stable-ID HIR
+          /             \
+  C11 native lane   Wasm core lane
+          |             |
+ native executable  browser package
 ```
 
 This repository is an executable architectural seed, not a claim that the full language described in the RFC already exists. The prototype deliberately tackles the differentiator first: stable semantic identity, graph-native context, machine diagnostics, capability-aware verification, stale-safe transactions, deterministic lowering, and real native output.
@@ -77,8 +77,9 @@ Implemented today:
 - Resource declarations with explicit `own`, `borrow`, and `shared` function boundaries.
 - Lexical `let` bindings and typed `if/else` expressions.
 - Control-flow-aware move checking with definite and conditional use-after-move diagnostics.
+- A validated stable-ID HIR shared by native and Wasm lowering, with explicit entry, result, binding, expression, and place identities.
 - Checked integer arithmetic in generated programs.
-- Typed `requires` and `ensures` contracts, enforced at native runtime.
+- Typed `requires` and `ensures` contracts, enforced by native and Wasm artifacts.
 - Explicit function effects checked against module capabilities and callers.
 - Persistent declaration identity through `@id`.
 - Deterministic formatting and graph revision hashes.

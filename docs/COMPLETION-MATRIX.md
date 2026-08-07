@@ -12,7 +12,7 @@ Status values:
 
 | Requirement | Status | Current evidence | Completion gate |
 | --- | --- | --- | --- |
-| Agent-native semantic program | Partial | Graph v2 with persistent declaration IDs, revision-scoped structural expression/binding nodes, bounded `context`, and revision-bound rename transactions | Versioned multi-file graph API covers declarations, inferred expression types, ownership state, effects, contracts, targets, tests, packages, generated artifacts, typed repairs, impact, and semantic review |
+| Agent-native semantic program | Partial | Graph v2 with persistent declaration IDs, revision-scoped structural expression/binding nodes, bounded `context`, revision-bound rename transactions, and fail-closed stable-ID HIR resolution | Versioned multi-file graph API covers declarations, inferred expression types, ownership state, effects, contracts, targets, tests, packages, generated artifacts, typed repairs, impact, and semantic review |
 | Human-readable program | Partial | Canonical `.spx` source and formatter | Complete language round-trips deterministically; graph-aware merge/diff, debugger source mapping, and normal Git/editor workflows are verified |
 | Meaning in, verified machine code out | Partial | Typed scalar core, effect checks, runtime contract guards, checked arithmetic, native host executable | All safe-language guarantees survive every backend; native artifacts and portable components pass conformance suites on every supported target |
 | Atomic agent changes | Partial | Single-file stable-ID function/resource renames update calls and ownership type boundaries with stale revision rejection | Typed, transactional multi-file edits support every public semantic operation and either commit fully or leave all source/graph state unchanged |
@@ -25,7 +25,7 @@ Status values:
 | Functions, closures, interfaces, implementations, generics | Partial | Monomorphic named scalar functions | Closures, constraints, coherent implementations, specialization boundaries, and separate compilation verified |
 | `Option` and `Result`; no null or unchecked exceptions | Missing | — | Standard types, propagation syntax, FFI mappings, exhaustive handling, and diagnostics verified |
 | Immutable-by-default values and explicit mutation | Missing | — | Local, field, collection, and cross-task mutation rules verified |
-| Unique ownership and move safety | Partial | Resource types, explicit `own` boundaries, lexical transfers, control-flow joins, definite/conditional move diagnostics, and illegal-transfer rejection | Use-after-move, double-free, invalid transfer, destructors, partial initialization, loops, closures, concurrency, and FFI ownership are compile-time checked |
+| Unique ownership and move safety | Partial | Resource types, explicit `own` boundaries, lexical transfers, control-flow joins, definite/conditional move diagnostics, illegal-transfer rejection, and resolved root-place identities/type facts | Use-after-move, double-free, invalid transfer, destructors, partial initialization, loops, closures, concurrency, and FFI ownership are compile-time checked |
 | Borrowed views and lifetime safety | Partial | Non-consuming `borrow` boundaries and move-after-borrow behavior | Mutable/shared aliasing, escaping borrows, reborrows, slices, and zero-copy FFI pass positive and compile-fail suites |
 | Regions/arenas | Missing | — | Region inference and annotations prevent escape; bulk release and destructor behavior are verified |
 | Shared immutable ARC and opt-in managed zones | Missing | — | Retain/release correctness, cycle policy, escape optimization, and concurrency constraints verified |
@@ -41,8 +41,8 @@ Status values:
 | Requirement | Status | Current evidence | Completion gate |
 | --- | --- | --- | --- |
 | Fast development lane | Missing | — | Cranelift JIT/AOT, incremental affected-node builds, hot reload, and debugger mapping verified |
-| Optimizing native lane | Partial | Host C11/Clang AOT bootstrap | LLVM/MLIR lowering, LTO/PGO, cross-compilation, CPU specialization, debug/release parity, and reproducibility verified |
-| WebAssembly core/components | Partial | Direct Wasm core module, browser ES runtime, checked arithmetic imports, contracts, HTML and capability manifest | Browser/WASI modules and Component Model artifacts, canonical ABI, async/resources, sandboxing, and conformance verified |
+| Optimizing native lane | Partial | Validated stable-ID HIR lowers to sequenced C11/Clang AOT; host artifacts execute in the platform CI matrix | LLVM/MLIR lowering, LTO/PGO, cross-compilation, CPU specialization, debug/release parity, and reproducibility verified |
+| WebAssembly core/components | Partial | Validated stable-ID HIR lowers to a direct Wasm core module with browser ES runtime, checked arithmetic imports, contracts, HTML and capability manifest | Browser/WASI modules and Component Model artifacts, canonical ABI, async/resources, sandboxing, and conformance verified |
 | Embedded and real-time | Missing | — | Bare-metal artifacts, no-runtime/no-allocation/no-blocking profiles, MMIO/volatile/atomics, linker control, and hardware/emulator tests verified |
 | SIMD and GPU | Missing | — | Portable SIMD plus SPIR-V/WebGPU/platform kernels and memory/effect rules verified |
 

@@ -6,9 +6,12 @@
 //! deterministic.  This module deliberately does not enable resource lowering.
 
 mod build;
+mod execute;
+mod replay;
 mod validate;
 
 pub(crate) use build::build_plan;
+pub use execute::{execute_for_conformance, CleanupExecutionError, CleanupScenario};
 pub(crate) use validate::validate_program;
 
 use crate::cleanup::{FieldLivenessShape, LivenessFlagId};

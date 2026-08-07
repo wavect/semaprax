@@ -9,7 +9,7 @@ pub(crate) fn validate_program(program: &ResolvedProgram) -> Result<(), Diagnost
         let expected = build_plan(program, function)?;
         validate_canonical_plan(&function.id, &function.cleanup_plan, &expected)?;
     }
-    Ok(())
+    super::replay::validate_program(program)
 }
 
 fn validate_canonical_plan(

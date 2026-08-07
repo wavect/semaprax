@@ -921,6 +921,16 @@ pub fn analyze(program: &Program) -> Analysis {
 /// breaks identities, lexical scope, or current type rules. A versioned wire
 /// schema for constructing HIR outside the compiler is future work.
 pub fn validate(program: &ResolvedProgram) -> Result<(), Diagnostic> {
+    validate_core(program)?;
+    crate::cleanup::validate_program(program)?;
+    crate::cleanup_plan::validate_program(program)?;
+    Ok(())
+}
+
+/// Validate resolved meaning without consulting attached cleanup metadata.
+/// Independent cleanup-plan replayers use this boundary to avoid circularly
+/// trusting the canonical cleanup-plan builder as their oracle.
+pub(crate) fn validate_core(program: &ResolvedProgram) -> Result<(), Diagnostic> {
     HirValidator::new(program)?.validate()
 }
 
@@ -1288,8 +1298,6 @@ impl<'a> HirValidator<'a> {
         for function in &self.program.functions {
             self.validate_function(function)?;
         }
-        crate::cleanup::validate_program(self.program)?;
-        crate::cleanup_plan::validate_program(self.program)?;
         Ok(())
     }
 

@@ -79,7 +79,8 @@ Implemented today:
 - Control-flow-aware move checking with prefix-aware record-field state and definite or conditional use-after-move diagnostics.
 - Canonical record declarations, construction, and projection in `check`, resolved HIR, and semantic Graph v6; executable targets fail closed until aggregate layout and cleanup execution land.
 - A validated stable-ID HIR shared by native and Wasm lowering, with explicit entry, result, binding, expression, and place identities.
-- A mandatory target-neutral cleanup CFG for every function, independently rebuilt from core HIR and inventory, with storage/leaf liveness, lexical regions, atomic call commits, sticky checked-failure sources, guarded finalization, partial-record ordering, and result publication.
+- A mandatory target-neutral cleanup CFG for every function, independently rebuilt and independently replayed against core HIR/inventory, with exhaustive current-CFG path-state checks plus a scenario-driven reference trace executor.
+- Versioned target-neutral normalized-status and conformance-trace protocols, plus an invocation-local immutable status arena with opaque zero-success/one-based tokens. These are execution-oracle groundwork, not a backend-conformance claim.
 - Checked integer arithmetic in generated programs.
 - Typed `requires` and `ensures` contracts, enforced by native and Wasm artifacts.
 - Explicit function effects checked against module capabilities and callers.
@@ -91,7 +92,7 @@ Implemented today:
 - Native AOT output through a readable C11 lowering and Clang.
 - Direct WebAssembly core output with a generated ES-module runtime, HTML entry point, capability manifest, checked arithmetic, and contract traps.
 
-Not implemented yet: cleanup-plan execution and native/Wasm trace conformance, callable imports/adapters, record machine-code layout/lowering, variants and matching, lifetime and alias analysis, user-facing regions, effect handlers, static contract proofs, Cranelift, LLVM/MLIR IR, WebAssembly Components, packages, concurrency, or cross-platform UI. Resource and record builds fail closed until their remaining safety gates pass.
+Not implemented yet: native/Wasm cleanup-plan execution and trace conformance, recursive reference-call execution, callable imports/adapters, record machine-code layout/lowering, variants and matching, lifetime and alias analysis, user-facing regions, effect handlers, static contract proofs, Cranelift, LLVM/MLIR IR, WebAssembly Components, packages, concurrency, or cross-platform UI. Resource and record builds fail closed until their remaining safety gates pass.
 
 ## Agent protocol
 
@@ -142,7 +143,7 @@ The long-term compiler has two output principles:
 - Native machine code where performance and platform integration matter.
 - WebAssembly Components where portability and capability sandboxing matter.
 
-Read [RFC 0001](docs/RFC-0001.md) for the language system, [RFC 0002](docs/RFC-0002-ALGEBRAIC-DATA.md) for algebraic data and aggregate ownership, and [RFC 0003](docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) for implemented lifecycle source/resolution and the proposed exactly-once cleanup/runtime phases. [The architecture](docs/ARCHITECTURE.md) describes the current implementation, [the quality gates](docs/QUALITY-GATES.md) define executable contribution evidence, [protocol migrations](docs/MIGRATIONS.md) cover agent-facing compatibility, [the roadmap](docs/ROADMAP.md) gives the staged path forward, and the [full-goal completion matrix](docs/COMPLETION-MATRIX.md) records requirement-by-requirement evidence.
+Read [RFC 0001](docs/RFC-0001.md) for the language system, [RFC 0002](docs/RFC-0002-ALGEBRAIC-DATA.md) for algebraic data and aggregate ownership, and [RFC 0003](docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) for implemented lifecycle source/resolution and the proposed exactly-once cleanup/runtime phases. [Conformance trace v1](docs/CONFORMANCE-TRACE-V1.md) fixes the target-neutral status/trace projection without claiming backend execution. [The architecture](docs/ARCHITECTURE.md) describes the current implementation, [the quality gates](docs/QUALITY-GATES.md) define executable contribution evidence, [protocol migrations](docs/MIGRATIONS.md) cover agent-facing compatibility, [the roadmap](docs/ROADMAP.md) gives the staged path forward, and the [full-goal completion matrix](docs/COMPLETION-MATRIX.md) records requirement-by-requirement evidence.
 
 ## Status
 

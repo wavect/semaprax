@@ -93,6 +93,21 @@ Graph v6 embeds the complete plan under each selected function's `cleanup` membe
 
 The canonical source revision algorithm and domain separator are unchanged. The same source can therefore have the same revision in Graph v5 and v6 while the graph payload differs; caches and protocol negotiation must key by `(graph schema, revision)`. A v5 consumer must reject `semaprax.graph.v6`. Exact v6 scalar, control-flow, record, and lifecycle snapshots replace the v5 fixtures.
 
+## Normalized status v1 and conformance trace v1
+
+This release introduces two independent public protocol schemas:
+
+- `semaprax.status.v1` is the target-neutral normalized failure record stored behind a context-local ABI token. It fixes the required `schema`, non-empty `domain_id`, nonzero `code`, `class`, and boolean-or-`"unknown"` `retryable` fields; compiler-owned contract and arithmetic domains have exact versioned codes. Token zero remains success and has no status record. A physical token, arena index, host exception, or opaque diagnostic detail is never part of status JSON.
+- `semaprax.conformance-trace.v1` is the canonical semantic event envelope. It fixes resolved function/invocation identities, ordered cleanup places and projections, ownership transitions, atomic call commits, callable/finalizer import events, frame-local `select_failure`, guarded finalization, result commits, and the terminal result/status outcome. Callable import completion may contain success or normalized failure. Finalizer import completion is a distinct success-only Rust variant even though both project to wire kind `import_end` and are distinguished by `site.kind`.
+
+The exact JSON contract, event field order, status tables, examples, excluded physical fields, and outstanding validation requirements are documented in [Conformance trace v1](CONFORMANCE-TRACE-V1.md).
+
+These are first-version protocols, not an in-place extension of an unversioned wire format. Consumers must inspect `schema` before reading any other semantic field. A status consumer must reject any schema other than `semaprax.status.v1`, an unknown class/retryability representation, an empty domain, or code zero. A trace consumer must reject any schema other than `semaprax.conformance-trace.v1`, every unknown event/site/result/outcome kind, and every required v1 field it cannot validate. In particular, consumers may not ignore `select_failure`, reinterpret a finalizer `import_end` as a fallible callable import, sort event/projection/argument vectors, accept physical target fields, or downgrade an unknown future schema to v1. Producers requiring a new event meaning, field meaning, status mapping, or incompatible encoding must publish a new schema rather than silently changing v1.
+
+Trace data must also be bound out of band to the exact validated program, Graph schema/revision, cleanup plan, and scenario. A source revision alone is insufficient as a cache key because Graph and trace schemas can change without changing canonical source. Cache and negotiation keys must include at least the status schema, trace schema, Graph schema/revision, and scenario identity. A consumer must reject a trace whose referenced semantic IDs do not belong to that bound program and invocation path.
+
+Implementation status is deliberately limited. Public normalized-status types, compiler-owned mappings, a context-local status arena, public trace types, deterministic canonical JSON, independent inventory/HIR coverage and path-state replay, and a scenario-driven single-frame reference executor exist with focused tests. Recursive callee execution, callable-import execution, native trace instrumentation, Wasm trace instrumentation, backend-trace validation, adapter conformance, and native/Wasm trace equality do not exist yet. Resource and record execution remains fail closed; these schemas and the target-neutral oracle are not evidence that cleanup executes on any backend.
+
 ## Rust AST resource declarations to nominal type declarations
 
 The public pre-alpha Rust AST migration from the earlier graph v4 tranche represents both resources and records through `Program::types: Vec<TypeDeclaration>`. `Program::resources` is removed, and `Type::Resource(String)` becomes `Type::Named(String)` because a nominal reference may name either kind. Graph v5 further changes the resource variant as described above.

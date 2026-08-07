@@ -8,6 +8,7 @@ pub mod ast;
 pub mod cleanup;
 pub mod cleanup_plan;
 pub mod codegen;
+pub mod conformance;
 pub mod diagnostic;
 pub mod format;
 pub mod graph;
@@ -15,6 +16,7 @@ pub mod hir;
 pub mod lexer;
 pub mod parser;
 pub mod patch;
+pub mod runtime_status;
 pub mod verify;
 pub mod wasm;
 

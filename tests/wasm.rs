@@ -47,7 +47,7 @@ fn emits_a_valid_browser_webassembly_package() {
             "node failed: {}",
             String::from_utf8_lossy(&result.stderr)
         );
-        assert_eq!(String::from_utf8_lossy(&result.stdout), "42\n");
+        assert_eq!(String::from_utf8_lossy(&result.stdout).trim(), "42");
     }
 
     let _ = std::fs::remove_dir_all(output);

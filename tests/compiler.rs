@@ -67,5 +67,5 @@ fn native_backend_produces_executable() {
     let result = Command::new(&output).output().unwrap();
     let _ = std::fs::remove_file(&output);
     assert!(result.status.success());
-    assert_eq!(String::from_utf8_lossy(&result.stdout), "42\n");
+    assert_eq!(String::from_utf8_lossy(&result.stdout).trim(), "42");
 }

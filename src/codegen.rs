@@ -72,6 +72,16 @@ fn emit_hir_c_with_labels(
             "native record lowering is gated on aggregate cleanup and layout support",
         ));
     }
+    if program
+        .types
+        .iter()
+        .any(|declaration| matches!(&declaration.kind, ResolvedTypeDeclarationKind::Resource))
+    {
+        return Err(Diagnostic::io(
+            "SPX-B104",
+            "native resource lowering requires lifecycle declarations and the verified cleanup ABI",
+        ));
+    }
     let functions = function_index(program)?;
     let mut output = String::from(
         "#include <stdbool.h>\n#include <stdint.h>\n#include <stdio.h>\n#include <stdlib.h>\n\n",

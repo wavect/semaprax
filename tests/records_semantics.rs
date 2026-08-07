@@ -275,6 +275,8 @@ fn main() -> i64 { 0 }
 fn executable_backends_fail_closed_until_record_cleanup_and_layout_land() {
     let source = r#"
 module test.record_backend_gate;
+@id("platform.handle")
+resource Handle;
 @id("geometry.point")
 record Point { @id("geometry.point.x") x: i64, }
 @id("app.main")
@@ -284,4 +286,11 @@ fn main() -> i64 { Point { x: 42 }.x }
     assert!(verify::verify(&program).is_empty());
     assert_eq!(codegen::emit_c(&program).unwrap_err().code, "SPX-B103");
     assert_eq!(wasm::emit_module(&program).unwrap_err().code, "SPX-W110");
+
+    let resolved = hir::resolve(&program).unwrap();
+    assert_eq!(codegen::emit_hir_c(&resolved).unwrap_err().code, "SPX-B103");
+    assert_eq!(
+        wasm::emit_resolved_module(&resolved).unwrap_err().code,
+        "SPX-W110"
+    );
 }

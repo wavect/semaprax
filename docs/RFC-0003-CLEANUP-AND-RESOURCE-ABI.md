@@ -2,7 +2,7 @@
 
 Status: proposed; design only.
 
-This RFC defines the target-neutral destruction, cleanup, and failure contract required before SEMAPRAX may execute records containing resources. It specifies source declarations, resolved meaning, cleanup plans, backend ABIs, and evidence gates. It does **not** claim that any part of this design is implemented. Until the applicable gates pass, native and Wasm backends must continue to reject record-bearing modules rather than emit code with incomplete cleanup.
+This RFC defines the target-neutral destruction, cleanup, and failure contract required before SEMAPRAX may execute resources or records containing resources. It specifies source declarations, resolved meaning, cleanup plans, backend ABIs, and evidence gates. It does **not** claim that any part of this design is implemented. Until the applicable gates pass, native and Wasm backends must continue to reject resource-bearing and record-bearing modules rather than emit code with incomplete cleanup.
 
 ## Scope and non-goals
 
@@ -149,14 +149,14 @@ FieldLivenessShape =
         }],
     }
 
-TransferDestination =
-    Place(Place)
-  | Slot(StorageId)
-  | CallArgument { call: ExpressionId, parameter_index: u32 }
-  | CallerResultOut
+CleanupPlace {
+    storage: StorageId,
+    projections: [StableId], // resolved field declaration IDs
+}
 
-InitializationDestination = Place(Place) | Slot(StorageId)
-OwnershipSource = Place(Place) | Slot(StorageId)
+TransferDestination =
+    CleanupPlace(CleanupPlace)
+  | CallArgument { call: ExpressionId, parameter_index: u32 }
 
 CleanupSlot {
     storage: StorageId,
@@ -166,8 +166,8 @@ CleanupSlot {
 }
 
 CleanupTransition =
-    Initialize { at: ExpressionId, destination: InitializationDestination }
-  | Transfer { at: ExpressionId, source: OwnershipSource, destination: TransferDestination }
+    Initialize { at: ExpressionId, destination: CleanupPlace }
+  | Transfer { at: ExpressionId, source: CleanupPlace, destination: TransferDestination }
 
 CleanupBlock {
     id: BlockId,
@@ -195,7 +195,7 @@ CleanupRegion {
 }
 
 FinalizeAction {
-    source: OwnershipSource,
+    source: CleanupPlace,
     lifecycle_id: StableId,
     guard_flags: [LivenessFlagRef {
         storage: StorageId,
@@ -209,7 +209,10 @@ ExitTarget {
     leaves_regions: [CleanupRegionId],
     finalize_in_order: [FinalizeAction],
     continuation:
-        Block(BlockId) | CommitResult | ReturnFailure | ReturnUnit,
+        Block(BlockId)
+      | CommitResult { source: CleanupPlace }
+      | ReturnFailure
+      | ReturnUnit,
 }
 
 CleanupPlan {
@@ -222,7 +225,7 @@ CleanupPlan {
 }
 ```
 
-`NoDrop` carries no flag. Every `Leaf`, including `drop trivial`, has a distinct liveness flag and lifecycle ID. Record fields are stored in declaration order; `finalize_in_order` explicitly records the reverse-initialization cleanup sequence. Slots are ordered by deterministic semantic initialization order. Transitions are keyed by revision-scoped expression IDs; they may not depend on source spans or backend-generated temporaries. Parameters received as `own` are live on function entry. Borrowed and shared parameters never enter the unique-owner cleanup plan.
+`CleanupPlace` addresses a whole slot or an exact nested field path, so partially initialized temporaries and provisional aggregate results never require a backend to reconstruct field ownership. `NoDrop` carries no flag. Every `Leaf`, including `drop trivial`, has a distinct liveness flag and lifecycle ID. Record fields are stored in declaration order; `finalize_in_order` explicitly records the reverse-initialization cleanup sequence. Slots are ordered by deterministic semantic initialization order. Expression transitions are keyed by revision-scoped expression IDs; they may not depend on source spans or backend-generated temporaries. Parameters received as `own` are live on function entry. Borrowed and shared parameters never enter the unique-owner cleanup plan.
 
 Blocks, edges, lexical cleanup regions, normal scope ends, exceptional exits, and their continuations are all explicit. The plan therefore tells a backend where ownership state changes, which regions an edge leaves, which guarded places to finalize, where cleanup continues, and whether the exit commits a result or returns failure. A backend may optimize a validated plan but must not reconstruct scope or cleanup behavior from AST shape, source spans, C blocks, or Wasm stack layout.
 
@@ -237,7 +240,7 @@ Plan construction follows these rules:
 - Moving one field clears only that field. Siblings remain independently live, while any operation requiring the complete parent remains invalid under RFC 0002 place rules.
 - Nested records recursively expose field liveness. Implementations may use bitsets or equivalent explicit flags, but not payload sentinels.
 
-HIR validation must replay the complete plan against typed control flow and reject duplicate initialization, transfer from a non-live place, conflicting storage, missing cleanup coverage, non-deterministic ordering, invalid field paths, missing or contradictory blocks/edges/regions/exits, and disagreement with ownership facts. `CallerResultOut` may appear only on a `CommitResult` exit after postconditions and every non-result cleanup action; no failure-reachable edge may publish it. `SPX-H006` remains the existing generic malformed-HIR trust-boundary diagnostic; cleanup-plan failures use it with a deterministic cleanup-specific reason and semantic IDs. A malformed plan is a compiler-input error even when source verification previously succeeded.
+HIR validation must replay the complete plan against typed control flow and reject duplicate initialization, transfer from a non-live place, conflicting storage, missing cleanup coverage, non-deterministic ordering, invalid field paths, missing or contradictory blocks/edges/regions/exits, and disagreement with ownership facts. `CommitResult { source }` is a semantic exit action rather than an expression transition: it may occur only after postconditions and every non-result cleanup action, and no failure-reachable edge may execute it. `SPX-H006` remains the existing generic malformed-HIR trust-boundary diagnostic; cleanup-plan failures use it with a deterministic cleanup-specific reason and semantic IDs. A malformed plan is a compiler-input error even when source verification previously succeeded.
 
 ## Conformance trace
 

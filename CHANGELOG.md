@@ -31,6 +31,7 @@ All notable changes to SEMAPRAX are documented here.
 - Fixed canonical formatting of record constructors in contracts and `if` conditions so parse-format-parse remains valid.
 - Hardened semantic resource renames so record initializer expressions cannot be mistaken for type annotations.
 - Published design-only RFC 0003 for exactly-once cleanup, logical resource imports, and a shared native/Wasm status-and-out ABI; executable cleanup remains gated on its conformance evidence.
+- Closed the pre-cleanup backend gap by rejecting bare resource modules with `SPX-B104`/`SPX-W111`; record diagnostics retain precedence when both declaration kinds are present.
 
 ## 0.1.0 — 2026-08-07
 

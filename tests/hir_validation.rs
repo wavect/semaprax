@@ -213,7 +213,7 @@ fn main() -> i64 { 0 }
 }
 
 #[test]
-fn nested_owned_block_results_remain_valid() {
+fn nested_owned_block_results_validate_but_resource_backends_fail_closed() {
     let source = r#"
 module test.hir_nested_block;
 @id("buffer.type")
@@ -233,8 +233,15 @@ fn main() -> i64 { 0 }
     let program = hir::resolve(&ast).unwrap();
 
     hir::validate(&program).unwrap();
-    codegen::emit_hir_c(&program).unwrap();
-    wasm::emit_resolved_module(&program).unwrap();
+    let native_hir = codegen::emit_hir_c(&program).unwrap_err();
+    assert_eq!(native_hir.code, "SPX-B104");
+    assert!(native_hir.message.contains("verified cleanup ABI"));
+    let wasm_hir = wasm::emit_resolved_module(&program).unwrap_err();
+    assert_eq!(wasm_hir.code, "SPX-W111");
+    assert!(wasm_hir.message.contains("verified cleanup ABI"));
+
+    assert_eq!(codegen::emit_c(&ast).unwrap_err().code, "SPX-B104");
+    assert_eq!(wasm::emit_module(&ast).unwrap_err().code, "SPX-W111");
 }
 
 #[test]

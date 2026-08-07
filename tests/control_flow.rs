@@ -39,11 +39,11 @@ fn let_and_if_are_canonical_and_graph_visible() {
     assert_eq!(graph::revision(&program), graph::revision(&reparsed));
     assert!(canonical.contains("let answer = choose(true, 40);"));
     assert!(canonical.contains("if flag"));
-    let graph = graph::to_json(&program);
-    assert!(graph.contains("\"schema\":\"semaprax.graph.v2\""));
+    let graph = graph::to_json(&program).unwrap();
+    assert!(graph.contains("\"schema\":\"semaprax.graph.v3\""));
     assert!(graph.contains("\"kind\":\"let\""));
     assert!(graph.contains("\"kind\":\"if\""));
-    assert!(graph.contains("\"expressions\":\"revision-scoped\""));
+    assert!(graph.contains("\"expressions\":\"revision-scoped-structural\""));
     assert_eq!(
         format!("{graph}\n"),
         include_str!("snapshots/control_flow.graph.json")

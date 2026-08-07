@@ -30,15 +30,17 @@ fn main() -> i64
         format!("base {revision}\nrename math.add to sum\nrequire no-new-effects\n"),
     )
     .unwrap();
-    patch::apply(&source_path, &patch_path).unwrap();
+    let returned_revision = patch::apply(&source_path, &patch_path).unwrap();
     let changed = std::fs::read_to_string(&source_path).unwrap();
     assert!(changed.contains("fn sum("));
     assert!(changed.contains("sum(40, 2)"));
     assert!(changed.contains("@id(\"math.add\")"));
+    let reparsed = parse(&changed, &source_path).unwrap();
+    assert_eq!(returned_revision, graph::revision(&reparsed));
 }
 
 #[test]
-fn stale_patch_changes_nothing() {
+fn legacy_fnv_patch_is_rejected_without_changing_source() {
     let directory = std::env::temp_dir().join(format!("semaprax-stale-{}", std::process::id()));
     std::fs::create_dir_all(&directory).unwrap();
     let source_path = directory.join("module.spx");
@@ -46,6 +48,27 @@ fn stale_patch_changes_nothing() {
     let source = "module stale; @id(\"app.main\") fn main() -> i64 { 42 }\n";
     std::fs::write(&source_path, source).unwrap();
     std::fs::write(&patch_path, "base fnv1a64:0000000000000000\n").unwrap();
+    let error = patch::apply(&source_path, &patch_path).unwrap_err();
+    assert_eq!(error[0].code, "SPX-G409");
+    assert_eq!(std::fs::read_to_string(&source_path).unwrap(), source);
+}
+
+#[test]
+fn stale_sha256_patch_is_rejected_without_changing_source() {
+    let directory = std::env::temp_dir().join(format!("semaprax-stale-sha-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    let source_path = directory.join("module.spx");
+    let patch_path = directory.join("rename.spatch");
+    let source = "module stale_sha; @id(\"app.main\") fn main() -> i64 { 42 }\n";
+    let program = parse(source, &source_path).unwrap();
+    let revision = graph::revision(&program);
+    let mut stale = revision.into_bytes();
+    let last = stale.last_mut().unwrap();
+    *last = if *last == b'0' { b'1' } else { b'0' };
+    let stale = String::from_utf8(stale).unwrap();
+    std::fs::write(&source_path, source).unwrap();
+    std::fs::write(&patch_path, format!("base {stale}\n")).unwrap();
+
     let error = patch::apply(&source_path, &patch_path).unwrap_err();
     assert_eq!(error[0].code, "SPX-G409");
     assert_eq!(std::fs::read_to_string(&source_path).unwrap(), source);

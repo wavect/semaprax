@@ -9,11 +9,9 @@ lexer -> parser -> parsed AST
                     |
               semantic verifier
                     |
-             verified meaning
-              /           \
- current AST graph      resolved HIR
-        |                  /       \
- semantic graph    sequenced C11  Wasm core
+                resolved HIR
+                /    |     \
+ semantic graph  C11 IR  Wasm core
     /       \             |           |
  agent queries    tx    Clang     browser host
                          |           |
@@ -22,13 +20,13 @@ lexer -> parser -> parsed AST
 
 ## Source projection
 
-`lexer` and `parser` accept a deliberately small grammar. `format::canonical` is the single source projection. Graph revisions hash this canonical form rather than incidental whitespace, so formatting-only edits do not invalidate an agent transaction.
+`lexer` and `parser` accept a deliberately small grammar. `format::canonical` is the single source projection. Graph revisions hash this canonical form rather than incidental whitespace, so formatting-only edits do not invalidate an agent transaction. The cross-protocol revision token is `sha256:<64 lowercase hex digits>` over `b"semaprax.graph-revision.v1\0" || canonical_source_utf8`. It is collision-resistant content addressing and stale-base detection, not a signature or MAC.
 
 Declarations should carry an explicit `@id`. Automatic identities are accepted for exploration but produce `SPX-S103`, because a name-derived ID cannot survive a rename.
 
 ## Verification
 
-The verifier builds the module symbol table and checks:
+The public verifier compatibility facade and HIR analysis boundary share one source verifier, preserving the established ordered diagnostics while removing a `hir -> verify` dependency cycle. Warnings-only analysis retains diagnostics and still produces resolved HIR; any source error fails closed before lowering. The verifier builds the module symbol table and checks:
 
 1. Unique names and stable IDs.
 2. Parameter, expression, call, and return types.
@@ -50,13 +48,19 @@ The declaration index is the single current source of target-independent type fa
 
 The native and Wasm emitters now consume only validated HIR for semantic lowering; their parsed-AST entry points are compatibility wrappers that resolve first. A centralized HIR validator rejects duplicate/non-canonical identities, invalid declarations and nominal types, lexical-scope violations, inconsistent expression/call types, definite or conditional resource reuse, contract transfers, undeclared or unpermitted effects, effectful contracts, invalid result bindings, and an invalid entrypoint before either backend emits an artifact.
 
-This remains staged groundwork rather than the sole compiler IR: the current verifier and semantic graph still consume parsed AST. They must migrate before aggregate syntax lands. Record fields, variant payloads, partial-place availability, recursive aggregate fact computation, and target-specific aggregate layouts therefore remain RFC 0002 gates.
+This remains staged groundwork rather than the sole compiler IR: the current verifier still establishes meaning from parsed AST before HIR resolution. The semantic graph and both executable backends consume validated HIR. Record fields, variant payloads, partial-place availability, recursive aggregate fact computation, and target-specific aggregate layouts therefore remain RFC 0002 gates.
 
 ## Semantic graph
 
-`semaprax.graph.v2` contains the canonical revision, module capabilities, persistent declaration nodes, signatures, effects, textual and structural contracts, contract/body call edges, and a structural body graph. Expression and local-binding IDs are deterministic within a graph revision; only public declaration IDs persist across revisions. Bounded context follows calls from preconditions, bodies, and postconditions. The graph currently rebuilds per command. A later daemon will persist indexed revisions and typed expression facts.
+`semaprax.graph.v3` is serialized exclusively from validated resolved HIR. It contains the canonical human-source revision, module capabilities, entrypoint declaration ID, explicit-versus-automatic declaration identity origin, declaration nodes, typed parameter/result/value identities, effects, structural contracts, sorted declaration-ID call dependencies, and the structural body graph. Expressions expose a stable `type_id` and ownership mode; the top-level `type_facts` index supplies resolved type structure, copy/resource/size/drop facts, and deterministic layout keys without repeating them at every expression.
 
-Context slicing starts from a name or stable ID and walks call dependencies to a bounded depth. Callers, type references, tests, and target relationships will become additional typed edges.
+Integer literals are decimal JSON strings rather than JSON numbers, so JavaScript and TypeScript agents preserve every `i64` value exactly. `let` bindings expose one value identity; the enclosing statement does not reuse that ID as a second identity domain.
+
+Expression and value IDs are deterministic but revision-scoped; only explicitly authored declaration IDs are persistent across revisions. Automatic name-derived declaration IDs remain visibly marked unstable. Spans are intentionally absent because canonical source revisions ignore whitespace while spans do not.
+
+Context slicing starts from a display name or exact declaration ID, with exact IDs taking precedence on collisions. It walks declaration-ID call dependencies from preconditions, bodies, and postconditions to a bounded depth and includes only nominal type declarations referenced by selected functions. Every result declares a `module` or `context` view. Context views record root, depth, truncation, and frontier IDs so an omitted dependency is distinguishable from a dangling reference. Callers, tests, packages, targets, and generated artifacts will become additional typed edges.
+
+The public parsed-AST graph functions resolve and validate HIR and return diagnostics on failure. Direct HIR rendering remains internal so a caller cannot attach a forged canonical-source revision to transformed HIR. The graph currently rebuilds per command; a later daemon will persist indexed revisions.
 
 ## Transactions
 
@@ -98,7 +102,7 @@ This is the first ownership IR, not a complete borrow checker. Mutable alias exc
 
 The direct Wasm encoder emits standard WebAssembly core modules without requiring a Rust target installation or an external assembler. User functions compile to typed Wasm functions and `main` is exported as `semaprax_main`. Contracts trap through a host import. Arithmetic lowers to a small generated JavaScript host that performs checked `i64` operations with `BigInt`, preserving the safe arithmetic semantics instead of silently accepting Wasm's wrapping operators.
 
-The web package contains `app.wasm`, `semaprax.js`, `index.html`, `package.json`, and a graph-revision/capability manifest. This is real browser-executable output; it is not yet the UI dialect, DOM renderer, SSR/hydration system, WASI target, or Component Model backend.
+The web package contains `app.wasm`, `semaprax.js`, `index.html`, `package.json`, and a `semaprax.web.v2` graph-revision/capability manifest. This is real browser-executable output; it is not yet the UI dialect, DOM renderer, SSR/hydration system, WASI target, or Component Model backend.
 
 ## Development integrity
 

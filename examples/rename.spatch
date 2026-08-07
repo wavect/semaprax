@@ -1,4 +1,4 @@
-# Replace GRAPH_REVISION with `semaprax graph examples/meaning.spx`'s revision.
+# Replace GRAPH_REVISION with the graph's `sha256:<64-lowercase-hex-digits>` revision.
 base GRAPH_REVISION
 rename math.add to checked_add
 require no-new-effects

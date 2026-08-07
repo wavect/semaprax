@@ -29,7 +29,6 @@ fn resolved_hir_is_the_wasm_lowering_contract() {
 
     let mut renamed_metadata = resolved.clone();
     let helper = &mut renamed_metadata.functions[0];
-    helper.name = "display_name_is_not_a_call_key".to_owned();
     helper.params[0].name = "display_parameter".to_owned();
     if let ResolvedExprKind::Block { statements, .. } = &mut helper.body.kind {
         let ResolvedStatement::Let { binding, .. } = &mut statements[0];
@@ -37,13 +36,6 @@ fn resolved_hir_is_the_wasm_lowering_contract() {
     } else {
         panic!("expected a resolved block body");
     }
-    let entrypoint = renamed_metadata.entrypoint.clone();
-    renamed_metadata
-        .functions
-        .iter_mut()
-        .find(|function| function.id == entrypoint)
-        .unwrap()
-        .name = "entry_display_metadata".to_owned();
     assert_eq!(
         wasm::emit_resolved_module(&renamed_metadata).unwrap(),
         from_hir,

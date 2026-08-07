@@ -21,6 +21,9 @@ All notable changes to SEMAPRAX are documented here.
 - Added repository agent guidance, evidence rules, MSRV/package gates, and a documented Graphify adoption decision.
 - Added a fail-closed resolved HIR with persistent nominal/call identities, deterministic lexical place identities, and centralized type facts/layout keys.
 - Migrated native and Wasm semantic lowering to validated HIR and added malformed-HIR cross-backend rejection parity.
+- Upgraded the semantic graph to v3 backed by validated HIR, with resolved declaration/value/type identities, centralized type facts, explicit identity origin, fail-closed public APIs, and bounded-context frontier metadata.
+- Replaced FNV revision tokens atomically across graphs, semantic patches, CLI output, and `semaprax.web.v2` manifests with domain-separated SHA-256 content addresses.
+- Split source verification behind a compatibility facade and additive HIR analysis API while freezing complete ordered diagnostic JSON behavior.
 
 ## 0.1.0 — 2026-08-07
 

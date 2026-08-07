@@ -48,6 +48,30 @@ fn direct_hir_backends_reject_duplicate_declaration_identities() {
 }
 
 #[test]
+fn direct_hir_backends_reject_function_name_index_disagreement() {
+    let mut program = resolved();
+    program.functions[0].name = "forged_display_name".to_owned();
+
+    assert_both_backends_reject(&program);
+}
+
+#[test]
+fn direct_hir_backends_reject_type_name_index_disagreement() {
+    let source = r#"
+module test.hir_validation_resource_name;
+@id("buffer.type")
+resource Buffer;
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+    let ast = parse(source, Path::new("hir-validation-resource-name.spx")).unwrap();
+    let mut program = hir::resolve(&ast).unwrap();
+    program.types[0].name = "ForgedBuffer".to_owned();
+
+    assert_both_backends_reject(&program);
+}
+
+#[test]
 fn direct_hir_backends_reject_unknown_nominal_types() {
     let mut program = resolved();
     program.functions[0].params[0].ty = ResolvedType::Nominal {

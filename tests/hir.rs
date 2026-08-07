@@ -1,7 +1,8 @@
 use std::path::Path;
 
 use semaprax::hir::{
-    resolve, DeclarationId, OwnershipMode, ResolvedExprKind, ResolvedStatement, ResolvedType,
+    resolve, DeclarationId, IdentityOrigin, OwnershipMode, ResolvedExprKind, ResolvedStatement,
+    ResolvedType,
 };
 use semaprax::parse;
 
@@ -340,4 +341,28 @@ fn main() -> i64 { missing(42) }
     assert!(!diagnostics
         .iter()
         .any(|diagnostic| diagnostic.code.starts_with("SPX-H")));
+}
+
+#[test]
+fn declaration_index_distinguishes_persistent_and_automatic_identities() {
+    let source = r#"
+module test.identity_origin;
+resource Buffer;
+fn main() -> i64 { 42 }
+"#;
+    let ast = parse(source, Path::new("identity-origin.spx")).unwrap();
+    let program = resolve(&ast).unwrap();
+    let resource = program
+        .declarations
+        .declaration(program.declarations.type_id("Buffer").unwrap())
+        .unwrap();
+    let main = program
+        .declarations
+        .declaration(program.declarations.function_id("main").unwrap())
+        .unwrap();
+
+    assert_eq!(resource.identity_origin, IdentityOrigin::Automatic);
+    assert_eq!(main.identity_origin, IdentityOrigin::Automatic);
+    assert!(!resource.identity_origin.is_persistent());
+    assert_eq!(resource.identity_origin.text(), "automatic");
 }

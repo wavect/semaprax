@@ -235,7 +235,7 @@ pub fn build_web(program: &Program, output: &Path) -> Result<(), Diagnostic> {
         )
     })?;
     let manifest = format!(
-        "{{\"schema\":\"semaprax.web.v1\",\"module\":{},\"graph_revision\":{},\"wasm\":\"app.wasm\",\"entry\":\"semaprax_main\",\"capabilities\":{}}}\n",
+        "{{\"schema\":\"semaprax.web.v2\",\"module\":{},\"graph_revision\":{},\"wasm\":\"app.wasm\",\"entry\":\"semaprax_main\",\"capabilities\":{}}}\n",
         quote_json(&program.module),
         quote_json(&graph::revision(program)),
         json_strings(&program.permits)

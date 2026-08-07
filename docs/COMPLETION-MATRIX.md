@@ -12,10 +12,10 @@ Status values:
 
 | Requirement | Status | Current evidence | Completion gate |
 | --- | --- | --- | --- |
-| Agent-native semantic program | Partial | Graph v2 with persistent declaration IDs, revision-scoped structural expression/binding nodes, bounded `context`, revision-bound rename transactions, and fail-closed stable-ID HIR resolution | Versioned multi-file graph API covers declarations, inferred expression types, ownership state, effects, contracts, targets, tests, packages, generated artifacts, typed repairs, impact, and semantic review |
+| Agent-native semantic program | Partial | Graph v3 serializes validated HIR with explicit persistent/automatic identity origin, resolved declaration/value/place/type IDs, expression types and ownership modes, centralized type facts, structured contracts, bounded call/type context with frontier metadata, SHA-256 revision-bound rename transactions, and fail-closed APIs | Versioned multi-file graph API covers flow-sensitive ownership state, callers, targets, tests, packages, generated artifacts, typed repairs, impact, and semantic review |
 | Human-readable program | Partial | Canonical `.spx` source and formatter | Complete language round-trips deterministically; graph-aware merge/diff, debugger source mapping, and normal Git/editor workflows are verified |
 | Meaning in, verified machine code out | Partial | Typed scalar core, effect checks, runtime contract guards, checked arithmetic, native host executable | All safe-language guarantees survive every backend; native artifacts and portable components pass conformance suites on every supported target |
-| Atomic agent changes | Partial | Single-file stable-ID function/resource renames update calls and ownership type boundaries with stale revision rejection | Typed, transactional multi-file edits support every public semantic operation and either commit fully or leave all source/graph state unchanged |
+| Atomic agent changes | Partial | Single-file stable-ID function/resource renames update calls and ownership type boundaries with domain-separated SHA-256 stale/legacy revision rejection | Typed, transactional multi-file edits support every public semantic operation and either commit fully or leave all source/graph state unchanged |
 
 ## Language and safety
 

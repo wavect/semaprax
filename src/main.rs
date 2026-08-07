@@ -42,7 +42,8 @@ fn run(args: Vec<String>) -> Result<(), u8> {
         "graph" => {
             let path = required_path(&args, 1)?;
             let program = checked(&path)?;
-            println!("{}", graph::to_json(&program));
+            let output = graph::to_json(&program).map_err(|errors| report(&errors, false))?;
+            println!("{output}");
             Ok(())
         }
         "context" => {
@@ -57,10 +58,12 @@ fn run(args: Vec<String>) -> Result<(), u8> {
                 .and_then(|pair| pair[1].parse().ok())
                 .unwrap_or(1);
             let program = checked(&path)?;
-            let context = graph::context_json(&program, symbol, depth).ok_or_else(|| {
-                eprintln!("symbol `{symbol}` was not found");
-                1
-            })?;
+            let context = graph::context_json(&program, symbol, depth)
+                .map_err(|errors| report(&errors, false))?
+                .ok_or_else(|| {
+                    eprintln!("symbol `{symbol}` was not found");
+                    1
+                })?;
             println!("{context}");
             Ok(())
         }

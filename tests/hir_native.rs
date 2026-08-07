@@ -20,7 +20,7 @@ fn increment(value: i64) -> i64 { value + 1 }
 fn main() -> i64 { increment(41) }
 "#,
     );
-    let mut after = resolve(
+    let after = resolve(
         r#"
 module test.hir_native;
 @id("math.increment")
@@ -29,14 +29,6 @@ fn renamed(value: i64) -> i64 { value + 1 }
 fn main() -> i64 { renamed(41) }
 "#,
     );
-    let entrypoint = after.entrypoint.clone();
-    after
-        .functions
-        .iter_mut()
-        .find(|function| function.id == entrypoint)
-        .unwrap()
-        .name = "entry_display_metadata".to_owned();
-
     let before_c = codegen::emit_hir_c(&before).unwrap();
     let after_c = codegen::emit_hir_c(&after).unwrap();
     assert_eq!(before_c, after_c);

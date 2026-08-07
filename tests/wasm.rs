@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::process::Command;
 
-use semaprax::{parse, verify, wasm};
+use semaprax::{graph, parse, verify, wasm};
 
 const PROGRAM: &str = r#"
 module test.web;
@@ -34,6 +34,12 @@ fn emits_a_valid_browser_webassembly_package() {
     assert!(output.join("index.html").is_file());
     assert!(output.join("package.json").is_file());
     assert!(output.join("semaprax.manifest.json").is_file());
+    let manifest = std::fs::read_to_string(output.join("semaprax.manifest.json")).unwrap();
+    assert!(manifest.contains("\"schema\":\"semaprax.web.v2\""));
+    assert!(manifest.contains(&format!(
+        "\"graph_revision\":{}",
+        semaprax::diagnostic::quote_json(&graph::revision(&program))
+    )));
 
     if Command::new("node").arg("--version").output().is_ok() {
         let script = Path::new(env!("CARGO_MANIFEST_DIR")).join("scripts/verify-web.mjs");

@@ -79,9 +79,9 @@ fn graph_exposes_resource_and_parameter_ownership() {
     let source = format!("{HEADER}\n{MAIN}");
     let program = parse(&source, Path::new("ownership.spx")).unwrap();
     assert!(verify::verify(&program).is_empty());
-    let json = graph::to_json(&program);
+    let json = graph::to_json(&program).unwrap();
     assert!(json.contains("\"kind\":\"resource\""));
     assert!(json.contains("\"id\":\"buffer.type\""));
-    assert!(json.contains("\"ownership\":\"borrow\""));
-    assert!(json.contains("\"ownership\":\"own\""));
+    assert!(json.contains("\"ownership_mode\":\"borrow\""));
+    assert!(json.contains("\"ownership_mode\":\"own\""));
 }

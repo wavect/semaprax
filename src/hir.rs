@@ -10,7 +10,7 @@ use std::fmt::Write as _;
 
 use crate::ast::{BinaryOp, Expr, ExprKind, ParamMode, Program, Span, Statement, Type, UnaryOp};
 use crate::diagnostic::Diagnostic;
-use crate::verify;
+use crate::source_verify;
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct DeclarationId(String);
@@ -92,11 +92,31 @@ pub enum DeclarationKind {
     Function,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum IdentityOrigin {
+    Explicit,
+    Automatic,
+}
+
+impl IdentityOrigin {
+    pub fn text(self) -> &'static str {
+        match self {
+            Self::Explicit => "explicit",
+            Self::Automatic => "automatic",
+        }
+    }
+
+    pub fn is_persistent(self) -> bool {
+        matches!(self, Self::Explicit)
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Declaration {
     pub id: DeclarationId,
     pub name: String,
     pub kind: DeclarationKind,
+    pub identity_origin: IdentityOrigin,
 }
 
 /// A deterministic, display-name-to-identity index.
@@ -171,6 +191,11 @@ impl DeclarationIndex {
                 resource.name.clone(),
                 DeclarationId::new(resource.stable_id.clone()),
                 DeclarationKind::Resource,
+                if resource.explicit_id {
+                    IdentityOrigin::Explicit
+                } else {
+                    IdentityOrigin::Automatic
+                },
             );
         }
         for function in &program.functions {
@@ -178,19 +203,37 @@ impl DeclarationIndex {
                 function.name.clone(),
                 DeclarationId::new(function.stable_id.clone()),
                 DeclarationKind::Function,
+                if function.explicit_id {
+                    IdentityOrigin::Explicit
+                } else {
+                    IdentityOrigin::Automatic
+                },
             );
         }
         index
     }
 
-    fn insert(&mut self, name: String, id: DeclarationId, kind: DeclarationKind) {
+    fn insert(
+        &mut self,
+        name: String,
+        id: DeclarationId,
+        kind: DeclarationKind,
+        identity_origin: IdentityOrigin,
+    ) {
         let namespace = match kind {
             DeclarationKind::Resource => &mut self.types_by_name,
             DeclarationKind::Function => &mut self.functions_by_name,
         };
         namespace.insert(name.clone(), id.clone());
-        self.declarations
-            .insert(id.clone(), Declaration { id, name, kind });
+        self.declarations.insert(
+            id.clone(),
+            Declaration {
+                id,
+                name,
+                kind,
+                identity_origin,
+            },
+        );
     }
 }
 
@@ -431,21 +474,54 @@ struct ValidationBinding {
 /// Verification errors are returned unchanged. This makes the HIR boundary
 /// fail closed: no backend can accidentally resolve and execute an invalid AST.
 pub fn resolve(program: &Program) -> Result<ResolvedProgram, Vec<Diagnostic>> {
-    let diagnostics = verify::verify(program);
+    let Analysis {
+        diagnostics,
+        resolved,
+    } = analyze(program);
+    resolved.ok_or(diagnostics)
+}
+
+/// The source diagnostics and optional resolved meaning from one analysis.
+///
+/// Warnings do not prevent resolution. Any source error fails closed before the
+/// resolver runs, so invalid source cannot leak internal HIR diagnostics.
+#[derive(Clone, Debug)]
+pub struct Analysis {
+    pub diagnostics: Vec<Diagnostic>,
+    pub resolved: Option<ResolvedProgram>,
+}
+
+/// Verify source once and resolve it when only warnings remain.
+pub fn analyze(program: &Program) -> Analysis {
+    let diagnostics = source_verify::verify(program);
     if diagnostics
         .iter()
         .any(|diagnostic| diagnostic.severity.is_error())
     {
-        return Err(diagnostics);
+        return Analysis {
+            diagnostics,
+            resolved: None,
+        };
     }
 
     let declarations = DeclarationIndex::from_verified(program);
-    Resolver {
+    match (Resolver {
         program,
         declarations,
-    }
+    })
     .resolve()
-    .map_err(|diagnostic| vec![diagnostic])
+    {
+        Ok(resolved) => Analysis {
+            diagnostics,
+            resolved: Some(resolved),
+        },
+        Err(diagnostic) => Analysis {
+            // Preserve `resolve`'s established invariant-failure behavior: an
+            // internal HIR diagnostic replaces otherwise non-fatal warnings.
+            diagnostics: vec![diagnostic],
+            resolved: None,
+        },
+    }
 }
 
 /// Validate an identity-resolved program before a semantic consumer uses it.
@@ -476,15 +552,22 @@ impl<'a> HirValidator<'a> {
                     function.id
                 )));
             }
-            if program
-                .declarations
-                .declaration(&function.id)
-                .is_none_or(|declaration| declaration.kind != DeclarationKind::Function)
-            {
-                return Err(hir_error(format!(
-                    "resolved function `{}` is absent from the declaration index",
-                    function.id
-                )));
+            match program.declarations.declaration(&function.id) {
+                Some(declaration)
+                    if declaration.kind == DeclarationKind::Function
+                        && declaration.name == function.name => {}
+                Some(_) => {
+                    return Err(hir_error(format!(
+                        "resolved function `{}` disagrees with its declaration index entry",
+                        function.id
+                    )));
+                }
+                None => {
+                    return Err(hir_error(format!(
+                        "resolved function `{}` is absent from the declaration index",
+                        function.id
+                    )));
+                }
             }
         }
         Ok(Self {
@@ -516,16 +599,21 @@ impl<'a> HirValidator<'a> {
             return Err(hir_error("duplicate resolved type declaration identity"));
         }
         for declaration in &self.program.types {
-            if self
-                .program
-                .declarations
-                .declaration(&declaration.id)
-                .is_none_or(|item| item.kind != DeclarationKind::Resource)
-            {
-                return Err(hir_error(format!(
-                    "resolved type `{}` is absent from the declaration index",
-                    declaration.id
-                )));
+            match self.program.declarations.declaration(&declaration.id) {
+                Some(item)
+                    if item.kind == DeclarationKind::Resource && item.name == declaration.name => {}
+                Some(_) => {
+                    return Err(hir_error(format!(
+                        "resolved type `{}` disagrees with its declaration index entry",
+                        declaration.id
+                    )));
+                }
+                None => {
+                    return Err(hir_error(format!(
+                        "resolved type `{}` is absent from the declaration index",
+                        declaration.id
+                    )));
+                }
             }
         }
         for declaration in self.program.declarations.declarations() {

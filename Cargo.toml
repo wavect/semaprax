@@ -14,6 +14,9 @@ categories = ["compilers", "development-tools"]
 name = "semaprax"
 path = "src/lib.rs"
 
+[dependencies]
+sha2 = "=0.10.9"
+
 [[bin]]
 name = "semaprax"
 path = "src/main.rs"

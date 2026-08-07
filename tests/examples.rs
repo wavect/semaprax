@@ -42,7 +42,20 @@ fn contract_graph_matches_exact_snapshot() {
     let program = parse(&source, &path).unwrap();
     assert!(verify::verify(&program).is_empty());
     assert_eq!(
-        format!("{}\n", graph::to_json(&program)),
+        format!("{}\n", graph::to_json(&program).unwrap()),
         include_str!("snapshots/meaning.graph.json")
+    );
+}
+
+#[test]
+fn meaning_revision_matches_the_domain_separated_sha256_contract() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let path = root.join("examples/meaning.spx");
+    let source = std::fs::read_to_string(&path).unwrap();
+    let program = parse(&source, &path).unwrap();
+
+    assert_eq!(
+        graph::revision(&program),
+        "sha256:ab81beaac718d4cdaf2c79740391a7280e593dea9178275af7a1bc177f3a44c3"
     );
 }

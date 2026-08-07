@@ -16,6 +16,8 @@ pub mod patch;
 pub mod verify;
 pub mod wasm;
 
+mod source_verify;
+
 use std::path::Path;
 
 use ast::Program;

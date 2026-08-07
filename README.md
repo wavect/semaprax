@@ -82,7 +82,7 @@ Implemented today:
 - Typed `requires` and `ensures` contracts, enforced by native and Wasm artifacts.
 - Explicit function effects checked against module capabilities and callers.
 - Persistent declaration identity through `@id`.
-- Deterministic formatting and graph revision hashes.
+- Deterministic formatting and domain-separated SHA-256 graph revisions.
 - JSON semantic graph with persistent declaration identity, revision-scoped expression structure, and dependency-bounded context slices.
 - JSON-line diagnostics for agent consumption.
 - Atomic semantic rename patches with stale-revision rejection.
@@ -108,7 +108,7 @@ semaprax context examples/meaning.spx app.main --depth 1
 It can then submit a transaction:
 
 ```text
-base fnv1a64:<revision>
+base sha256:<64-lowercase-hex-digits>
 rename math.add to checked_add
 require no-new-effects
 ```

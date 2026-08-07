@@ -43,9 +43,9 @@ The remaining Cargo and `semaprax` commands are shell-neutral.
 | Types or ownership | Positive test, compile-fail diagnostic code, branch/escape boundary test |
 | Resolved HIR | Stable-ID rename/whitespace invariance, unique lexical/result/place IDs, centralized type-fact/layout assertions, invalid-AST rejection, move/effect/contract revalidation, and malformed-HIR native/Wasm rejection parity |
 | Effects or contracts | Capability/effect rejection and runtime/backend behavior |
-| Graph schema | Exact schema assertion, deterministic revision, bounded context behavior |
+| Graph schema | Exact schema assertion/snapshot, canonical SHA-256 known answer, resolved-reference integrity, stable-ID collision behavior, and bounded context frontier behavior |
 | Public protocol or schema | Compatibility fixture, or explicit version bump with migration and changelog note |
-| Semantic patch | Successful atomic edit, stale rejection, failed-edit no-change proof |
+| Semantic patch | Successful atomic edit, returned-revision equality, stale SHA and legacy-token rejection, failed-edit no-change proof |
 | Runtime semantics | Native and Wasm result/trap equivalence, deterministic evaluation order |
 | Backend | Host artifact execution, stable failure behavior, cross-platform CI |
 | Interop or package | Bidirectional conformance fixture, ownership/error mapping, reproducible artifact |

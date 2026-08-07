@@ -77,6 +77,14 @@ or a complete `drop import` plus interface/import contract. Formatting never inv
 
 The SHA-256 algorithm and domain separator are unchanged, but migrated canonical source receives a new revision as expected. A v4 consumer must reject `semaprax.graph.v5`. Exact v5 fixtures cover scalar, control-flow, record, and lifecycle graphs in `tests/snapshots/`.
 
+## Rust HIR cleanup inventory
+
+`ResolvedFunction` now carries a mandatory `cleanup: CleanupInventory`. Direct Rust consumers that construct or transform resolved HIR must preserve the exact inventory or rerun source resolution; `hir::validate`, native lowering, and Wasm lowering reject a missing or stale inventory with `SPX-H006` before any target feature gate.
+
+The inventory schema is `semaprax.cleanup-inventory.v1`. It catalogs canonical storage candidates for owned non-copy parameters, droppable local bindings, owned-producing expression temporaries, and droppable provisional results. Recursive shapes retain declaration-ordered field IDs, and every resource leaf has an exact projected place, lifecycle ID, and distinct liveness-flag identity. Entry state lists only owned droppable parameters. `discovery_index` is deterministic structural discovery order, not runtime initialization or finalization order.
+
+This is a Rust HIR API migration only. Graph remains `semaprax.graph.v5`, and the canonical source revision is unchanged because the inventory is deterministically derived from the same validated meaning. The inventory does not contain CFG edges, path-sensitive liveness, transfers, call commits, status sources, cleanup regions/exits, finalization order, result publication, or a backend trace. Consumers must not treat it as the proposed executable `CleanupPlan`.
+
 ## Rust AST resource declarations to nominal type declarations
 
 The public pre-alpha Rust AST migration from the earlier graph v4 tranche represents both resources and records through `Program::types: Vec<TypeDeclaration>`. `Program::resources` is removed, and `Type::Resource(String)` becomes `Type::Named(String)` because a nominal reference may name either kind. Graph v5 further changes the resource variant as described above.

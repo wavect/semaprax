@@ -8,7 +8,7 @@ Status values:
 - **Partial** — useful implementation exists, but the full gate is not proven.
 - **Missing** — no qualifying implementation exists yet.
 
-[RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) phase 1 has executable source, resolution, HIR-validation, graph, migration, and fail-closed backend evidence. Cleanup plans, resource execution, adapters, and conformance traces remain design-only phases.
+[RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) phase 1 has executable source, resolution, HIR-validation, graph, migration, and fail-closed backend evidence. A mandatory HIR cleanup inventory now catalogs and revalidates droppable storage and nested resource leaves, but it does not prove control-flow liveness or destruction. Cleanup plans, resource execution, adapters, and conformance traces remain design-only phases.
 
 ## Defining product contract
 
@@ -27,7 +27,7 @@ Status values:
 | Functions, closures, interfaces, implementations, generics | Partial | Monomorphic named functions plus declaration-only resource interface/import contracts | Callable imports, closures, constraints, coherent implementations, specialization boundaries, and separate compilation verified |
 | `Option` and `Result`; no null or unchecked exceptions | Missing | — | Standard types, propagation syntax, FFI mappings, exhaustive handling, and diagnostics verified |
 | Immutable-by-default values and explicit mutation | Missing | — | Local, field, collection, and cross-task mutation rules verified |
-| Unique ownership and move safety | Partial | Explicit trivial/imported lifecycle declarations, resolved finalizer ownership/effect/failure contracts, recursive lifecycle-effect checks, resource-containing nominal facts, move/partial-place analysis, hostile-HIR replay, and fail-closed native/Wasm gates | Exactly-once cleanup, double-free prevention, partial initialization, loops, closures, concurrency, and FFI ownership are compile-time/runtime-conformance verified |
+| Unique ownership and move safety | Partial | Explicit trivial/imported lifecycle declarations, resolved finalizer ownership/effect/failure contracts, recursive lifecycle-effect checks, resource-containing nominal facts, move/partial-place analysis, mandatory cleanup storage/leaf inventories, hostile-HIR replay, and fail-closed native/Wasm gates | Exactly-once cleanup, double-free prevention, partial initialization, loops, closures, concurrency, and FFI ownership are compile-time/runtime-conformance verified |
 | Borrowed views and lifetime safety | Partial | Non-consuming `borrow` boundaries and move-after-borrow behavior | Mutable/shared aliasing, escaping borrows, reborrows, slices, and zero-copy FFI pass positive and compile-fail suites |
 | Regions/arenas | Missing | — | Region inference and annotations prevent escape; bulk release and destructor behavior are verified |
 | Shared immutable ARC and opt-in managed zones | Missing | — | Retain/release correctness, cycle policy, escape optimization, and concurrency constraints verified |

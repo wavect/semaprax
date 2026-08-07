@@ -18,6 +18,7 @@ For records, variants, generics, matching, `Option`, or `Result`, also read `doc
 
 - `src/ast.rs`, `lexer.rs`, `parser.rs`, `format.rs`: human source projection.
 - `src/verify.rs`, `src/hir.rs`: checked semantics and the stable-ID resolved representation.
+- `src/cleanup.rs`: mandatory cleanup storage inventory and its independent HIR replay boundary; it is not yet the executable cleanup plan.
 - `src/graph.rs`, `patch.rs`: agent representation and atomic transactions.
 - `src/codegen.rs`, `wasm.rs`: native C11/Clang and browser/Wasm bootstrap lanes.
 - `tests/`: executable language, graph, transaction, ownership, and backend evidence.
@@ -32,6 +33,7 @@ For records, variants, generics, matching, `Option`, or `Result`, also read `doc
 - Failed or stale semantic transactions leave source unchanged.
 - Capabilities are explicit; compiler and generated code gain no ambient authority silently.
 - Ownership errors are compile-time diagnostics, never backend accidents.
+- Cleanup inventory discovery order is structural metadata, never runtime liveness or destruction order.
 - No feature is “implemented” without the completion gate’s executable evidence.
 
 ## Change protocol

@@ -5,6 +5,7 @@
 //! The source projection is for humans. The semantic graph is the agent API.
 
 pub mod ast;
+pub mod cleanup;
 pub mod codegen;
 pub mod diagnostic;
 pub mod format;

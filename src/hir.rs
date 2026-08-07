@@ -12,6 +12,7 @@ use crate::ast::{
     BinaryOp, Expr, ExprKind, ImportFailure, ParamMode, Program, ResourceLifecycleKind, Span,
     Statement, Type, TypeDeclarationKind, UnaryOp,
 };
+use crate::cleanup::CleanupInventory;
 use crate::diagnostic::Diagnostic;
 use crate::source_verify;
 
@@ -716,6 +717,7 @@ pub struct ResolvedFunction {
     pub requires: Vec<ResolvedExpr>,
     pub ensures: Vec<ResolvedExpr>,
     pub body: ResolvedExpr,
+    pub cleanup: CleanupInventory,
     pub span: Span,
 }
 
@@ -1284,6 +1286,7 @@ impl<'a> HirValidator<'a> {
         for function in &self.program.functions {
             self.validate_function(function)?;
         }
+        crate::cleanup::validate_program(self.program)?;
         Ok(())
     }
 
@@ -2516,7 +2519,7 @@ impl Resolver<'_> {
             .iter()
             .map(|function| self.resolve_function(function))
             .collect::<Result<_, _>>()?;
-        let resolved = ResolvedProgram {
+        let mut resolved = ResolvedProgram {
             module: self.program.module.clone(),
             permits: self.program.permits.clone(),
             entrypoint,
@@ -2525,6 +2528,14 @@ impl Resolver<'_> {
             interfaces,
             functions,
         };
+        let inventories = resolved
+            .functions
+            .iter()
+            .map(|function| crate::cleanup::build_inventory(&resolved, function))
+            .collect::<Result<Vec<_>, _>>()?;
+        for (function, inventory) in resolved.functions.iter_mut().zip(inventories) {
+            function.cleanup = inventory;
+        }
         validate(&resolved)?;
         Ok(resolved)
     }
@@ -2638,6 +2649,7 @@ impl Resolver<'_> {
             requires,
             ensures,
             body,
+            cleanup: CleanupInventory::unresolved(),
             span: function.span,
         })
     }

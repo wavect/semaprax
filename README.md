@@ -79,6 +79,7 @@ Implemented today:
 - Control-flow-aware move checking with prefix-aware record-field state and definite or conditional use-after-move diagnostics.
 - Canonical record declarations, construction, and projection in `check`, resolved HIR, and semantic Graph v5; executable targets fail closed until aggregate cleanup/layout lands.
 - A validated stable-ID HIR shared by native and Wasm lowering, with explicit entry, result, binding, expression, and place identities.
+- A mandatory, independently revalidated cleanup inventory for owned parameters, droppable bindings/temporaries, provisional results, and every nested resource leaf; runtime liveness and cleanup ordering remain gated.
 - Checked integer arithmetic in generated programs.
 - Typed `requires` and `ensures` contracts, enforced by native and Wasm artifacts.
 - Explicit function effects checked against module capabilities and callers.
@@ -90,7 +91,7 @@ Implemented today:
 - Native AOT output through a readable C11 lowering and Clang.
 - Direct WebAssembly core output with a generated ES-module runtime, HTML entry point, capability manifest, checked arithmetic, and contract traps.
 
-Not implemented yet: cleanup-plan execution, callable imports/adapters, record machine-code lowering, variants and matching, lifetime and alias analysis, regions, effect handlers, static contract proofs, Cranelift, LLVM/MLIR IR, WebAssembly Components, packages, concurrency, or cross-platform UI. Resource and record builds fail closed until their safety gates pass.
+Not implemented yet: cleanup control-flow plans or execution, status/exit replay, callable imports/adapters, record machine-code lowering, variants and matching, lifetime and alias analysis, regions, effect handlers, static contract proofs, Cranelift, LLVM/MLIR IR, WebAssembly Components, packages, concurrency, or cross-platform UI. Resource and record builds fail closed until their safety gates pass.
 
 ## Agent protocol
 

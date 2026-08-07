@@ -1,7 +1,7 @@
 //! Deterministic semantic graph serialization and bounded context queries.
 //!
 //! Human source supplies the revision. Resolved HIR supplies every semantic
-//! identity and fact in graph v5; spans and display names are metadata only.
+//! identity and fact in graph v6; spans and display names are metadata only.
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fmt::Write;
@@ -31,7 +31,7 @@ pub fn revision(program: &Program) -> String {
     format!("sha256:{:x}", hasher.finalize())
 }
 
-/// Resolve and serialize a parsed program as `semaprax.graph.v5`.
+/// Resolve and serialize a parsed program as `semaprax.graph.v6`.
 ///
 /// Resolution is deliberately part of this public boundary. Invalid source
 /// cannot be mistaken for a checked semantic graph by library callers.
@@ -221,7 +221,7 @@ fn graph_json(
     let mut output = String::new();
     write!(
         output,
-        "{{\"schema\":\"semaprax.graph.v5\",\"revision\":{},\"view\":{},\"identity\":{{\"declarations\":\"explicit-persistent-or-automatic-unstable\",\"values\":\"revision-scoped-structural\",\"expressions\":\"revision-scoped-structural\"}},\"module\":{},\"permits\":{},\"entrypoint\":{},\"type_facts\":[{}],\"nodes\":[",
+        "{{\"schema\":\"semaprax.graph.v6\",\"revision\":{},\"view\":{},\"identity\":{{\"declarations\":\"explicit-persistent-or-automatic-unstable\",\"values\":\"revision-scoped-structural\",\"expressions\":\"revision-scoped-structural\"}},\"module\":{},\"permits\":{},\"entrypoint\":{},\"type_facts\":[{}],\"nodes\":[",
         quote_json(source_revision),
         view_json(view),
         quote_json(&program.module),
@@ -446,13 +446,14 @@ fn graph_json(
             .collect::<Result<Vec<_>, _>>()?
             .join(",");
         let body = expr_json(program, &function.body)?;
+        let cleanup = crate::graph_cleanup::cleanup_plan_json(&function.cleanup_plan);
         let identity_origin = identity_origin(program, &function.id)?;
         let result_ownership = result_ownership(program, &function.return_type)?;
         let calls = calls.into_iter().collect::<Vec<_>>();
 
         write!(
             output,
-            "{{\"id\":{},\"kind\":\"function\",\"name\":{},\"identity_origin\":{},\"persistent\":{},\"params\":[{}],\"result_id\":{},\"result\":{{\"id\":{},\"type_id\":{},\"ownership_mode\":{}}},\"return_type_id\":{},\"effects\":{},\"requires_graph\":[{}],\"ensures_graph\":[{}],\"calls\":{},\"body\":{}}}",
+            "{{\"id\":{},\"kind\":\"function\",\"name\":{},\"identity_origin\":{},\"persistent\":{},\"params\":[{}],\"result_id\":{},\"result\":{{\"id\":{},\"type_id\":{},\"ownership_mode\":{}}},\"return_type_id\":{},\"effects\":{},\"requires_graph\":[{}],\"ensures_graph\":[{}],\"calls\":{},\"body\":{},\"cleanup\":{}}}",
             quote_json(function.id.as_str()),
             quote_json(&function.name),
             quote_json(identity_origin.text()),
@@ -467,7 +468,8 @@ fn graph_json(
             requires,
             ensures,
             string_array(&calls),
-            body
+            body,
+            cleanup
         )
         .expect("writing to a string cannot fail");
     }

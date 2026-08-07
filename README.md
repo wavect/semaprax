@@ -77,21 +77,21 @@ Implemented today:
 - Resources with explicit, persistent trivial/imported lifecycles, declaration-only interface/import contracts, and `own`, `borrow`, and `shared` function boundaries.
 - Lexical `let` bindings and typed `if/else` expressions.
 - Control-flow-aware move checking with prefix-aware record-field state and definite or conditional use-after-move diagnostics.
-- Canonical record declarations, construction, and projection in `check`, resolved HIR, and semantic Graph v5; executable targets fail closed until aggregate cleanup/layout lands.
+- Canonical record declarations, construction, and projection in `check`, resolved HIR, and semantic Graph v6; executable targets fail closed until aggregate layout and cleanup execution land.
 - A validated stable-ID HIR shared by native and Wasm lowering, with explicit entry, result, binding, expression, and place identities.
-- A mandatory, independently revalidated cleanup inventory for owned parameters, droppable bindings/temporaries, provisional results, and every nested resource leaf; runtime liveness and cleanup ordering remain gated.
+- A mandatory target-neutral cleanup CFG for every function, independently rebuilt from core HIR and inventory, with storage/leaf liveness, lexical regions, atomic call commits, sticky checked-failure sources, guarded finalization, partial-record ordering, and result publication.
 - Checked integer arithmetic in generated programs.
 - Typed `requires` and `ensures` contracts, enforced by native and Wasm artifacts.
 - Explicit function effects checked against module capabilities and callers.
 - Persistent declaration identity through `@id`.
 - Deterministic formatting and domain-separated SHA-256 graph revisions.
-- JSON semantic graph with persistent declaration identity, revision-scoped expression structure, and dependency-bounded context slices.
+- JSON semantic Graph v6 with persistent declaration identity, revision-scoped expression structure, complete cleanup plans, and dependency-bounded context slices.
 - JSON-line diagnostics for agent consumption.
 - Atomic semantic rename patches with stale-revision rejection.
 - Native AOT output through a readable C11 lowering and Clang.
 - Direct WebAssembly core output with a generated ES-module runtime, HTML entry point, capability manifest, checked arithmetic, and contract traps.
 
-Not implemented yet: cleanup control-flow plans or execution, status/exit replay, callable imports/adapters, record machine-code lowering, variants and matching, lifetime and alias analysis, regions, effect handlers, static contract proofs, Cranelift, LLVM/MLIR IR, WebAssembly Components, packages, concurrency, or cross-platform UI. Resource and record builds fail closed until their safety gates pass.
+Not implemented yet: cleanup-plan execution and native/Wasm trace conformance, callable imports/adapters, record machine-code layout/lowering, variants and matching, lifetime and alias analysis, user-facing regions, effect handlers, static contract proofs, Cranelift, LLVM/MLIR IR, WebAssembly Components, packages, concurrency, or cross-platform UI. Resource and record builds fail closed until their remaining safety gates pass.
 
 ## Agent protocol
 

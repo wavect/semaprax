@@ -13,6 +13,7 @@ use crate::ast::{
     Statement, Type, TypeDeclarationKind, UnaryOp,
 };
 use crate::cleanup::CleanupInventory;
+use crate::cleanup_plan::CleanupPlan;
 use crate::diagnostic::Diagnostic;
 use crate::source_verify;
 
@@ -718,6 +719,7 @@ pub struct ResolvedFunction {
     pub ensures: Vec<ResolvedExpr>,
     pub body: ResolvedExpr,
     pub cleanup: CleanupInventory,
+    pub cleanup_plan: CleanupPlan,
     pub span: Span,
 }
 
@@ -1287,6 +1289,7 @@ impl<'a> HirValidator<'a> {
             self.validate_function(function)?;
         }
         crate::cleanup::validate_program(self.program)?;
+        crate::cleanup_plan::validate_program(self.program)?;
         Ok(())
     }
 
@@ -2536,6 +2539,14 @@ impl Resolver<'_> {
         for (function, inventory) in resolved.functions.iter_mut().zip(inventories) {
             function.cleanup = inventory;
         }
+        let cleanup_plans = resolved
+            .functions
+            .iter()
+            .map(|function| crate::cleanup_plan::build_plan(&resolved, function))
+            .collect::<Result<Vec<_>, _>>()?;
+        for (function, cleanup_plan) in resolved.functions.iter_mut().zip(cleanup_plans) {
+            function.cleanup_plan = cleanup_plan;
+        }
         validate(&resolved)?;
         Ok(resolved)
     }
@@ -2650,6 +2661,7 @@ impl Resolver<'_> {
             ensures,
             body,
             cleanup: CleanupInventory::unresolved(),
+            cleanup_plan: CleanupPlan::unresolved(),
             span: function.span,
         })
     }

@@ -16,7 +16,7 @@ Status: implemented in this repository.
 
 ## 0.2 — Useful core language
 
-Status: in progress. Resource ownership boundaries and explicit lifecycle/interface contracts, lexical `let`, typed `if/else`, partial-place diagnostics, record syntax/checking, Graph v5, validated stable-ID HIR/type facts, a mandatory cleanup storage inventory, native scalar output, and a browser-loadable scalar Wasm backend are implemented; the remaining gates below are not.
+Status: in progress. Resource ownership boundaries and explicit lifecycle/interface contracts, lexical `let`, typed `if/else`, partial-place diagnostics, record syntax/checking, Graph v6, validated stable-ID HIR/type facts, a mandatory replay-validated cleanup plan, native scalar output, and a browser-loadable scalar Wasm backend are implemented; the remaining gates below are not.
 
 - Records, variants, `Option`, and `Result`.
 - Exhaustive pattern matching.
@@ -29,7 +29,7 @@ Status: in progress. Resource ownership boundaries and explicit lifecycle/interf
 
 Exit criterion: build a non-trivial CLI and edit it entirely through semantic transactions.
 
-The aggregate tranche is specified in [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md). RFC 0003 phase 1 now supplies explicit trivial/imported lifecycle syntax, declaration-only interface/import contracts, source/HIR validation, and Graph v5 lifecycle closure. Resolved functions also carry an independently revalidated inventory of every droppable storage candidate and nested resource leaf. That inventory is not the path-sensitive cleanup plan: atomic call commit, sticky failure status, regions/edges/exits, finalization order, callable imports, adapter bindings, native/Wasm resource execution, aggregate layouts, variants, and matching remain subsequent work; backends fail closed on both records and resources.
+The aggregate tranche is specified in [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md). RFC 0003 phases 1–2 now supply explicit trivial/imported lifecycle syntax, declaration-only interface/import contracts, source/HIR validation, and a target-neutral cleanup plan. Resolved functions carry typed blocks/edges/regions/exits, path-sensitive guarded liveness, atomic call commits, sticky failure sources, partial-record cleanup order, whole-value normalization, and result publication; validation independently rebuilds the plan, and Graph v6 serializes it. Callable imports, status/resource ABI execution, adapter bindings, native/Wasm trace equivalence, aggregate layouts, variants, and matching remain subsequent work; backends fail closed on both records and resources.
 
 ## 0.3 — Ownership and fast development
 

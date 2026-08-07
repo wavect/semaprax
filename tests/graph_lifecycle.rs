@@ -42,7 +42,7 @@ fn main() -> i64 { 0 }
 "#;
 
 #[test]
-fn lifecycle_graph_v5_exposes_contract_and_context_closure() {
+fn lifecycle_graph_v6_exposes_contract_and_context_closure() {
     let program = parse(
         include_str!("../examples/lifecycle.spx"),
         Path::new("lifecycle-graph.spx"),
@@ -53,7 +53,7 @@ fn lifecycle_graph_v5_exposes_contract_and_context_closure() {
         json.trim(),
         include_str!("snapshots/lifecycle.graph.json").trim()
     );
-    assert!(json.contains("\"schema\":\"semaprax.graph.v5\""));
+    assert!(json.contains("\"schema\":\"semaprax.graph.v6\""));
     assert!(json.contains("\"id\":\"platform.token.drop\",\"kind\":\"resource_drop\""));
     assert!(json.contains("\"strategy\":\"imported\",\"import\":\"platform.token.finalize\""));
     assert!(json.contains("\"id\":\"platform.token.host\",\"kind\":\"interface\""));
@@ -84,6 +84,9 @@ fn lifecycle_graph_v5_exposes_contract_and_context_closure() {
     }
     assert!(context.contains(
         "\"failure\":{\"kind\":\"status\",\"domain_id\":\"io.error.v1\",\"normalization\":\"semaprax.status.v1\"}"
+    ));
+    assert!(context.contains(
+        "\"cleanup\":{\"kind\":\"cleanup_plan\",\"schema\":\"semaprax.cleanup-plan.v1\""
     ));
     assert!(!context.contains("\"id\":\"app.main\",\"kind\":\"function\""));
 }

@@ -47,6 +47,7 @@ The remaining Cargo and `semaprax` commands are shell-neutral.
 | Types or ownership | Positive test, compile-fail diagnostic code, prefix/sibling behavior, divergent-branch join, borrow/shared transfer boundary, and hostile-HIR replay |
 | Resolved HIR | Stable-ID rename/whitespace invariance, unique lexical/result/place/field IDs, recursive type-fact/layout assertions, record constructor/projection integrity, invalid-AST rejection, move/effect/contract revalidation, and malformed-HIR native/Wasm rejection parity |
 | Cleanup inventory | Exact recomputation from validated HIR, own-versus-borrow/shared entry evidence, nested field/lifecycle/flag assertions, deterministic storage discovery, and hostile inventory rejection before native/Wasm feature gates |
+| Cleanup plan | Independent canonical rebuild after core-HIR/inventory validation; scalar and owned result commits; every checked/contract failure source; branch/lazy/region exits; caller-owned argument epochs and atomic commit; partial/nested record order; deterministic Graph snapshot; and hostile plan rejection as `SPX-H006` before native/Wasm feature gates |
 | Effects or contracts | Capability/effect rejection and runtime/backend behavior |
 | Graph schema | Exact schema assertion/snapshot, canonical SHA-256 known answer, resolved-reference integrity, stable-ID collision behavior, and bounded context frontier behavior |
 | Public protocol or schema | Compatibility fixture, or explicit version bump with migration and changelog note |

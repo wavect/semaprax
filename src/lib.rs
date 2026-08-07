@@ -6,6 +6,7 @@
 
 pub mod ast;
 pub mod cleanup;
+pub mod cleanup_plan;
 pub mod codegen;
 pub mod diagnostic;
 pub mod format;
@@ -17,6 +18,7 @@ pub mod patch;
 pub mod verify;
 pub mod wasm;
 
+mod graph_cleanup;
 mod source_verify;
 
 use std::path::Path;

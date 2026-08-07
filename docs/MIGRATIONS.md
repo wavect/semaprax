@@ -75,7 +75,7 @@ resource Token {
 
 or a complete `drop import` plus interface/import contract. Formatting never invents `drop trivial`; it is an audited semantic assertion. Native and Wasm builds remain gated with `SPX-B104`/`SPX-W111` because phase 1 resolves lifecycle meaning but does not execute cleanup.
 
-The SHA-256 algorithm and domain separator are unchanged, but migrated canonical source receives a new revision as expected. A v4 consumer must reject `semaprax.graph.v5`. Exact v5 fixtures cover scalar, control-flow, record, and lifecycle graphs in `tests/snapshots/`.
+The SHA-256 algorithm and domain separator are unchanged, but migrated canonical source receives a new revision as expected. A v4 consumer must reject `semaprax.graph.v5`. The former exact v5 fixtures were superseded by the Graph v6 cleanup-plan migration below.
 
 ## Rust HIR cleanup inventory
 
@@ -83,7 +83,15 @@ The SHA-256 algorithm and domain separator are unchanged, but migrated canonical
 
 The inventory schema is `semaprax.cleanup-inventory.v1`. It catalogs canonical storage candidates for owned non-copy parameters, droppable local bindings, owned-producing expression temporaries, and droppable provisional results. Recursive shapes retain declaration-ordered field IDs, and every resource leaf has an exact projected place, lifecycle ID, and distinct liveness-flag identity. Entry state lists only owned droppable parameters. `discovery_index` is deterministic structural discovery order, not runtime initialization or finalization order.
 
-This is a Rust HIR API migration only. Graph remains `semaprax.graph.v5`, and the canonical source revision is unchanged because the inventory is deterministically derived from the same validated meaning. The inventory does not contain CFG edges, path-sensitive liveness, transfers, call commits, status sources, cleanup regions/exits, finalization order, result publication, or a backend trace. Consumers must not treat it as the proposed executable `CleanupPlan`.
+The inventory remains a structural Rust HIR boundary. It does not itself contain CFG edges, path-sensitive liveness, transfers, call commits, status sources, cleanup regions/exits, finalization order, result publication, or a backend trace. Those facts now live in the separately versioned plan below.
+
+## Graph v5 to v6 and Rust HIR cleanup plans
+
+`ResolvedFunction` now also carries mandatory `cleanup_plan: CleanupPlan` using schema `semaprax.cleanup-plan.v1`. Direct Rust consumers that construct or transform resolved HIR must rerun source resolution or preserve the exact canonical plan. Validation first checks core HIR, then rebuilds `CleanupInventory`, then rebuilds the plan without consulting the attached plan; any mismatch is `SPX-H006` before native or Wasm lowering.
+
+Graph v6 embeds the complete plan under each selected function's `cleanup` member. It adds tagged storage/place, recursive liveness shapes, status sources and stable arithmetic codes, transitions, blocks, edges, regions, guarded finalizers, exits, and scalar/owned result commits. Arrays are already in canonical semantic order and consumers must not sort them. Context slices include complete plans for selected functions without unrelated functions.
+
+The canonical source revision algorithm and domain separator are unchanged. The same source can therefore have the same revision in Graph v5 and v6 while the graph payload differs; caches and protocol negotiation must key by `(graph schema, revision)`. A v5 consumer must reject `semaprax.graph.v6`. Exact v6 scalar, control-flow, record, and lifecycle snapshots replace the v5 fixtures.
 
 ## Rust AST resource declarations to nominal type declarations
 
@@ -95,7 +103,7 @@ This migration enables `check`, HIR, `graph`, and `context` for records. `build`
 
 ## Whole-record to prefix-aware ownership
 
-Resource-containing record projections now carry prefix-aware availability instead of conservatively moving the complete root. Moving one owned non-copy field leaves disjoint sibling fields available. Reusing that field or an enclosing parent reports `SPX-O109`; a place moved on only some control-flow paths reports `SPX-O110`. Existing whole-resource moves retain `SPX-O101` and `SPX-O107`. Borrowed or shared projections cannot cross an owned field or parameter boundary and report `SPX-O108`. Validated HIR independently replays the same rules, while Graph v5 continues to expose identities and ownership modes rather than flow-sensitive availability.
+Resource-containing record projections now carry prefix-aware availability instead of conservatively moving the complete root. Moving one owned non-copy field leaves disjoint sibling fields available. Reusing that field or an enclosing parent reports `SPX-O109`; a place moved on only some control-flow paths reports `SPX-O110`. Existing whole-resource moves retain `SPX-O101` and `SPX-O107`. Borrowed or shared projections cannot cross an owned field or parameter boundary and report `SPX-O108`. Validated HIR independently replays the same rules; Graph v6 additionally exposes the resulting cleanup-plan places, flags, transfers, and guarded exits.
 
 ## Revision token FNV-1a64 to SHA-256
 

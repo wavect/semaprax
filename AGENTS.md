@@ -18,7 +18,9 @@ For records, variants, generics, matching, `Option`, or `Result`, also read `doc
 
 - `src/ast.rs`, `lexer.rs`, `parser.rs`, `format.rs`: human source projection.
 - `src/verify.rs`, `src/hir.rs`: checked semantics and the stable-ID resolved representation.
-- `src/cleanup.rs`: mandatory cleanup storage inventory and its independent HIR replay boundary; it is not yet the executable cleanup plan.
+- `src/cleanup.rs`: structural cleanup storage/leaf inventory.
+- `src/cleanup_plan.rs`, `src/cleanup_plan/`: target-neutral cleanup CFG schema, canonical builder, and independent replay gate.
+- `src/graph_cleanup.rs`: deterministic tagged Graph v6 projection of validated cleanup plans.
 - `src/graph.rs`, `patch.rs`: agent representation and atomic transactions.
 - `src/codegen.rs`, `wasm.rs`: native C11/Clang and browser/Wasm bootstrap lanes.
 - `tests/`: executable language, graph, transaction, ownership, and backend evidence.
@@ -34,6 +36,9 @@ For records, variants, generics, matching, `Option`, or `Result`, also read `doc
 - Capabilities are explicit; compiler and generated code gain no ambient authority silently.
 - Ownership errors are compile-time diagnostics, never backend accidents.
 - Cleanup inventory discovery order is structural metadata, never runtime liveness or destruction order.
+- Cleanup-plan vectors are canonical execution order and must never be sorted or repaired by Graph/backends.
+- An owned call stages every argument left-to-right in caller-owned epochs and transfers all of them at one atomic `CallCommit`.
+- Failure selection is sticky; cleanup cannot replace its status, and result publication occurs only after postconditions and non-result cleanup.
 - No feature is “implemented” without the completion gate’s executable evidence.
 
 ## Change protocol

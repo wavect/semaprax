@@ -1,8 +1,8 @@
 # RFC 0003: Exactly-once cleanup and the resource ABI
 
-Status: accepted; phase 1 implemented, phases 2–7 proposed.
+Status: accepted; phases 1–2 implemented, phases 3–7 proposed.
 
-This RFC defines the target-neutral destruction, cleanup, and failure contract required before SEMAPRAX may execute resources or records containing resources. Phase 1 implements canonical lifecycle/interface/import declarations, source verification, resolved HIR validation, Graph v5, migration evidence, and fail-closed backend gates. Resolved HIR also implements a provisional `CleanupInventory` that independently catalogs droppable storage candidates and exact nested resource leaves. Control-flow cleanup plans, imported-call execution, target adapters, status ABIs, conformance traces, and resource/aggregate execution remain proposed. Native and Wasm continue to reject resource-bearing and record-bearing modules.
+This RFC defines the target-neutral destruction, cleanup, and failure contract required before SEMAPRAX may execute resources or records containing resources. Phase 1 implements canonical lifecycle/interface/import declarations and their source/HIR checks. Phase 2 implements a mandatory target-neutral `CleanupPlan` for every resolved function, independently rebuilds it after ordinary HIR and inventory validation, serializes it in Graph v6, and proves its current expression/control-flow surface with focused and hostile-HIR tests. Imported-call execution, target adapters, runtime status ABIs, backend conformance traces, and resource/aggregate execution remain proposed. Native and Wasm continue to reject resource-bearing and record-bearing modules.
 
 ## Scope and non-goals
 
@@ -126,7 +126,7 @@ Finalizer effects are part of the resource's resolved lifecycle contract. Verifi
 
 ## Cleanup plan
 
-The implemented `semaprax.cleanup-inventory.v1` boundary is deliberately smaller than the plan below. Every resolved function carries canonical storage candidates for owned non-copy parameters, droppable bindings, owned-producing expression temporaries, and a droppable provisional result. Recursive declaration-ordered shapes assign one distinct flag/lifecycle pair to every resource leaf, and entry state names only owned droppable parameters. `hir::validate` recomputes the complete inventory after validating ordinary HIR and rejects any disagreement with `SPX-H006` before either backend's unsupported-feature gate. Inventory discovery order is structural metadata; it does not claim path-sensitive liveness, transfer timing, initialization/finalization order, status behavior, or an executable trace. It is not phase 2 completion evidence and is not serialized in Graph v5.
+The implemented `semaprax.cleanup-inventory.v1` boundary remains the independent structural input to the plan builder. Every resolved function carries canonical storage candidates for owned non-copy parameters, droppable bindings, owned-producing expression temporaries, and a droppable provisional result. Recursive declaration-ordered shapes assign one distinct flag/lifecycle pair to every resource leaf, and entry state names only owned droppable parameters. `hir::validate` first validates ordinary HIR, then recomputes the complete inventory, then independently rebuilds and exact-compares `semaprax.cleanup-plan.v1`. Any disagreement is `SPX-H006` before either backend's unsupported-feature gate. Inventory discovery order is structural metadata; executable path liveness, transfer timing, cleanup regions, status selection, finalization order, and result publication belong exclusively to the plan serialized by Graph v6.
 
 Phase 2 requires every resolved function to carry a target-neutral `CleanupPlan`, including scalar functions whose slot inventory is empty. That plan will be verified HIR, not backend analysis reconstructed from syntax.
 
@@ -141,6 +141,11 @@ StatusSourceId {
 StorageId =
     Value(ValueId)
   | Temporary(ExpressionId)
+  | CallArgument {
+        call: ExpressionId,
+        parameter_index: u32,
+        value_expression: ExpressionId,
+    }
   | ProvisionalResult
 
 FieldLivenessShape =
@@ -170,6 +175,10 @@ CleanupSlot {
     storage_index: u32,
     field_liveness_shape: FieldLivenessShape,
 }
+
+CleanupResultSource =
+    Scalar(ExpressionId)
+  | Owned(CleanupPlace)
 
 CleanupEntryState {
     live_owned_parameters: [CleanupPlace],
@@ -233,7 +242,7 @@ ExitTarget {
     finalize_in_order: [FinalizeAction],
     continuation:
         Continue(EdgeId)
-      | CommitResult { source: CleanupPlace }
+      | CommitResult { source: CleanupResultSource }
       | ReturnFailure { source: StatusSourceId }
       | ReturnUnit,
 }
@@ -250,7 +259,9 @@ CleanupPlan {
 }
 ```
 
-`CleanupPlace` addresses a whole slot or an exact nested field path, so partially initialized temporaries and provisional aggregate results never require a backend to reconstruct field ownership. `NoDrop` carries no flag. Every `Leaf`, including `drop trivial`, has one distinct liveness flag and lifecycle ID; a finalizer has exactly one guard, never an ambiguous all/any flag list. Record fields are stored in declaration order; transitions establish actual initialization order on each executable path, and `finalize_in_order` records its reverse explicitly. Slot and flag IDs are contiguous in canonical structural order, but mutually exclusive branches do not pretend to share one runtime initialization sequence. Expression transitions are keyed by revision-scoped expression IDs; they may not depend on source spans or backend-generated temporaries. Entry state seeds every `own` droppable parameter live in signature order without inventing an expression ID. Borrowed and shared parameters never enter the unique-owner cleanup plan.
+`CheckedArithmetic` uses the compiler-owned `semaprax.status.v1` arithmetic cases below. The numeric values are part of cleanup-plan v1 and must match on every backend: `1 add_overflow`, `2 sub_overflow`, `3 mul_overflow`, `4 division_by_zero`, `5 division_overflow`, `6 remainder_by_zero`, `7 remainder_overflow`, and `8 negation_overflow`. Division and remainder test a zero divisor before the signed `i64::MIN / -1` or `i64::MIN % -1` overflow case.
+
+`CleanupPlace` addresses a whole slot or an exact nested field path, so partially initialized temporaries and provisional aggregate results never require a backend to reconstruct field ownership. A scalar result has no cleanup slot, but still has an explicit `Scalar` publication source and success commit. `NoDrop` carries no flag. Every `Leaf`, including `drop trivial`, has one distinct liveness flag and lifecycle ID; a finalizer has exactly one guard, never an ambiguous all/any flag list. Record fields are stored in declaration order; transitions establish actual initialization order on each executable path, and `finalize_in_order` records its reverse explicitly. Slot and flag IDs are contiguous in canonical structural order, but mutually exclusive branches do not pretend to share one runtime initialization sequence. Expression transitions are keyed by revision-scoped expression IDs; they may not depend on source spans or backend-generated temporaries. Entry state seeds every `own` droppable parameter live in signature order without inventing an expression ID. Borrowed and shared parameters never enter the unique-owner cleanup plan.
 
 Blocks, edges, lexical cleanup regions, normal scope ends, exceptional exits, and their continuations are all explicit. The plan therefore tells a backend where ownership state changes, which regions an edge leaves, which guarded places to finalize, where cleanup continues, and whether the exit commits a result or returns failure. A backend may optimize a validated plan but must not reconstruct scope or cleanup behavior from AST shape, source spans, C blocks, or Wasm stack layout.
 
@@ -261,7 +272,9 @@ Plan construction follows these rules:
 - Arguments evaluate left-to-right into caller-owned temporaries. One atomic `CallCommit` contains every and only `own` argument in parameter order and transfers them into callee-owned ABI slots before entry. A failure before that point remains caller cleanup; after it, the callee owns the arguments even when the call reports failure, and the caller must not reacquire them. Backends may not reconstruct the atomic group from unrelated transfer records.
 - A return expression initializes a callee-owned `ProvisionalResult`; it never writes the caller's out-slot directly.
 - Copy operations do not change ownership liveness.
+- In cleanup-plan v1, an unnamed owned temporary that is not transferred remains live until the end of its enclosing lexical cleanup region; v1 does not introduce a separate C++/Rust-style full-expression destruction boundary. Conditional paths retain guarded liveness for such temporaries through their join, so only the path that initialized a leaf finalizes it. A later schema may shorten these lifetimes as an observable optimization only with target-neutral trace evidence.
 - Partial aggregate construction marks each field live only after that field initializes. Failure destroys the live prefix in reverse initialization order.
+- Whole-aggregate ownership boundaries normalize cleanup history. Once an aggregate is fully initialized and is transferred as a whole, committed as a call argument, bound as a complete value, or published as the provisional result, its destination begins a new semantic initialization epoch whose droppable leaves are live in recursive declaration order. Cleanup of that destination is therefore reverse recursive declaration order. This rule does not rewrite an in-progress constructor: failure during construction still cleans only successfully initialized leaves in reverse actual completion order. The normalization is valid while field-finalization order remains non-user-observable; any future feature that exposes that order must revise the cleanup schema rather than infer hidden source history across boundaries.
 - Moving one field clears only that field. Siblings remain independently live, while any operation requiring the complete parent remains invalid under RFC 0002 place rules.
 - Nested records recursively expose field liveness. Implementations may use bitsets or equivalent explicit flags, but not payload sentinels.
 
@@ -404,8 +417,8 @@ Frontend diagnostics point at authored declarations or expressions. HIR/backend 
 
 Each phase is incomplete until its executable evidence passes. An RFC, type definition, generated text, or successful scalar build does not satisfy a phase.
 
-1. **Source and resolution — implemented.** Parse and canonically format both finalization forms with lifecycle IDs and the declaration-only interface/import contract; reject missing, duplicate, malformed, fallible-drop, authority, ownership, consumption, result-initialization, or failure-domain conflicts with stable diagnostics. Resolve lifecycle/interface/import IDs, logical keys, parameter and result ownership, effects/authority, normalized failure contracts, and recursive `needs_drop` facts. Source verification and hostile-HIR replay enforce recursive lifecycle effects. Graph v5 and semantic resource renames preserve lifecycle/import identities and context closure. This phase does not execute imports or cleanup.
-2. **Verified cleanup HIR — inventory sub-boundary implemented, phase incomplete.** The mandatory inventory now generates and independently revalidates deterministic storage candidates, entry-owned parameters, declaration-ordered field shapes, exact projected leaf places, lifecycle IDs, and distinct flags. Phase completion still requires CFG blocks/edges, cleanup regions, scope ends, atomic call commits, canonical sticky status sources, exit targets, path-sensitive liveness, provisional-result publication, finalization order, complete replay for every current expression/failure path, plan snapshots, and adversarial `SPX-H006` evidence.
+1. **Source and resolution — implemented.** Parse and canonically format both finalization forms with lifecycle IDs and the declaration-only interface/import contract; reject missing, duplicate, malformed, fallible-drop, authority, ownership, consumption, result-initialization, or failure-domain conflicts with stable diagnostics. Resolve lifecycle/interface/import IDs, logical keys, parameter and result ownership, effects/authority, normalized failure contracts, and recursive `needs_drop` facts. Source verification and hostile-HIR replay enforce recursive lifecycle effects. Graph v6 and semantic resource renames preserve lifecycle/import identities and context closure. This phase does not execute imports or cleanup.
+2. **Verified cleanup HIR — implemented for the current HIR surface.** Every function carries a deterministic `CleanupPlan` with typed CFG blocks/edges, lexical regions and scope exits, entry liveness, exact leaf flags/lifecycles, left-to-right caller-owned argument epochs, one atomic call commit, checked-operation and contract status sources, sticky failure exits, guarded reverse finalization, partial-record history, whole-value normalization, provisional owned results, and scalar/owned publication commits. Validation rebuilds the plan solely from already-validated core HIR and inventory and rejects any component mismatch with `SPX-H006`; native and Wasm consumers inherit this gate. Graph v6 exact snapshots, deterministic rename evidence, focused semantic tests, and hostile plan mutations cover the boundary. This phase is target-neutral metadata only and does not claim resource execution or backend trace conformance.
 3. **Native scalar-resource execution.** Instrument acquisition, transfer, call and result commits, explicit close, and automatic finalization. Prove exact traces for success, pre/postcondition failure, every checked-arithmetic failure, failed calls, branches, and early returns. Specifically prove that failed postconditions finalize a live provisional result while the caller out-slot stays uninitialized; final success commits only after non-result cleanup; explicit close/import failure consumes exactly once and other resources still finalize; trivial finalizers emit events. Negative fixtures must prove that fallible or trapping finalizer bindings are rejected or fail adapter conformance before publication. Run sanitizers and the cross-platform native CI matrix.
 4. **Wasm scalar-resource execution.** Run the same trace corpus in a real Wasm host. Prove exception-to-status normalization, provisional-result commit, context nonce/bounds validation, nested reentrant frames, per-worker/store isolation, shadow-stack restoration, and byte-for-byte deterministic modules where already required.
 5. **Aggregate cleanup.** Prove partial and nested construction, field moves, sibling survival, aggregate return, failed postconditions, and reverse field cleanup for resource-containing records. Enable record backend lowering only after native/Wasm trace equivalence passes.

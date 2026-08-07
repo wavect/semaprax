@@ -2716,7 +2716,7 @@ fn validate_reachable_acyclic_cfg(function: &ResolvedFunction) -> Result<(), Dia
             }
         }
     }
-    if colors.iter().any(|color| *color == 0) {
+    if colors.contains(&0) {
         return Err(replay_error(
             function,
             "cleanup CFG contains an unreachable block",

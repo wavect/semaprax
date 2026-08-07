@@ -8,6 +8,8 @@ Status values:
 - **Partial** — useful implementation exists, but the full gate is not proven.
 - **Missing** — no qualifying implementation exists yet.
 
+[RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) specifies the proposed exactly-once cleanup and resource ABI required by several gates below. It is design-only and provides no implementation evidence, so it does not change any status in this matrix.
+
 ## Defining product contract
 
 | Requirement | Status | Current evidence | Completion gate |
@@ -21,11 +23,11 @@ Status values:
 
 | Requirement | Status | Current evidence | Completion gate |
 | --- | --- | --- | --- |
-| Records and algebraic variants | Partial | Canonical record declarations/construction/projection, stable field IDs, deterministic field diagnostics, recursive facts/cycle rejection, validated record HIR, and Graph v4; executable backends fail closed | Immutable update, variants, exhaustive matching, prefix-aware ownership, cleanup, target layouts, and native/Wasm execution verified |
+| Records and algebraic variants | Partial | Canonical record declarations/construction/projection, stable field IDs, deterministic field diagnostics, recursive facts/cycle rejection, prefix-aware partial-place ownership, validated record HIR, and Graph v4; executable backends fail closed | Immutable update, variants, exhaustive matching, cleanup, target layouts, and native/Wasm execution verified |
 | Functions, closures, interfaces, implementations, generics | Partial | Monomorphic named scalar functions | Closures, constraints, coherent implementations, specialization boundaries, and separate compilation verified |
 | `Option` and `Result`; no null or unchecked exceptions | Missing | — | Standard types, propagation syntax, FFI mappings, exhaustive handling, and diagnostics verified |
 | Immutable-by-default values and explicit mutation | Missing | — | Local, field, collection, and cross-task mutation rules verified |
-| Unique ownership and move safety | Partial | Resource-containing nominal facts, explicit `own` boundaries, lexical/constructor transfers, control-flow joins, definite/conditional root-move diagnostics, illegal-transfer rejection, and resolved field-place identities; record field transfer conservatively moves the whole root | Prefix-aware partial moves, use-after-move, double-free, invalid transfer, destructors, partial initialization, loops, closures, concurrency, and FFI ownership are compile-time checked |
+| Unique ownership and move safety | Partial | Resource-containing nominal facts, explicit `own` boundaries, lexical/constructor transfers, prefix-aware record field moves, sibling preservation, control-flow joins, definite/conditional place diagnostics, borrowed/shared field-transfer rejection, and hostile-HIR replay | Double-free, invalid transfer, destructors, partial initialization, loops, closures, concurrency, and FFI ownership are compile-time checked |
 | Borrowed views and lifetime safety | Partial | Non-consuming `borrow` boundaries and move-after-borrow behavior | Mutable/shared aliasing, escaping borrows, reborrows, slices, and zero-copy FFI pass positive and compile-fail suites |
 | Regions/arenas | Missing | — | Region inference and annotations prevent escape; bulk release and destructor behavior are verified |
 | Shared immutable ARC and opt-in managed zones | Missing | — | Retain/release correctness, cycle policy, escape optimization, and concurrency constraints verified |

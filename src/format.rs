@@ -54,10 +54,20 @@ pub fn canonical(program: &Program) -> String {
             writeln!(output, "    uses {{ {} }}", function.effects.join(", ")).unwrap();
         }
         for contract in &function.requires {
-            writeln!(output, "    requires {}", expr(contract, 0)).unwrap();
+            writeln!(
+                output,
+                "    requires {}",
+                record_literal_delimited_expr(contract)
+            )
+            .unwrap();
         }
         for contract in &function.ensures {
-            writeln!(output, "    ensures {}", expr(contract, 0)).unwrap();
+            writeln!(
+                output,
+                "    ensures {}",
+                record_literal_delimited_expr(contract)
+            )
+            .unwrap();
         }
         write_function_body(&mut output, &function.body);
     }
@@ -116,7 +126,7 @@ pub fn expr(value: &Expr, parent_precedence: u8) -> String {
             else_branch,
         } => format!(
             "if {} {} else {}",
-            expr(condition, 0),
+            record_literal_delimited_expr(condition),
             expr(then_branch, 0),
             expr(else_branch, 0)
         ),
@@ -145,6 +155,43 @@ pub fn expr(value: &Expr, parent_precedence: u8) -> String {
             };
             format!("{base}.{field}")
         }
+    }
+}
+
+fn record_literal_delimited_expr(value: &Expr) -> String {
+    let rendered = expr(value, 0);
+    if contains_record_construction(value) {
+        format!("({rendered})")
+    } else {
+        rendered
+    }
+}
+
+fn contains_record_construction(value: &Expr) -> bool {
+    match &value.kind {
+        ExprKind::ConstructRecord { .. } => true,
+        ExprKind::Call { args, .. } => args.iter().any(contains_record_construction),
+        ExprKind::Unary { value, .. } | ExprKind::Project { base: value, .. } => {
+            contains_record_construction(value)
+        }
+        ExprKind::Binary { left, right, .. } => {
+            contains_record_construction(left) || contains_record_construction(right)
+        }
+        ExprKind::Block { statements, tail } => {
+            statements.iter().any(|statement| match statement {
+                Statement::Let { value, .. } => contains_record_construction(value),
+            }) || contains_record_construction(tail)
+        }
+        ExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            contains_record_construction(condition)
+                || contains_record_construction(then_branch)
+                || contains_record_construction(else_branch)
+        }
+        ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Var(_) => false,
     }
 }
 

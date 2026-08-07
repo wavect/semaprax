@@ -655,7 +655,7 @@ pub struct Place {
     pub projections: Vec<PlaceProjection>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum PlaceProjection {
     Field(DeclarationId),
     VariantField {
@@ -693,6 +693,8 @@ struct ValidationBinding {
     ty: ResolvedType,
     ownership: OwnershipMode,
     availability: Availability,
+    moved_places: BTreeMap<Vec<PlaceProjection>, Availability>,
+    definitely_partial: BTreeSet<Vec<PlaceProjection>>,
 }
 
 /// Verify and resolve a parsed program into deterministic HIR.
@@ -994,6 +996,8 @@ impl<'a> HirValidator<'a> {
                     ty: param.ty.clone(),
                     ownership: param.ownership,
                     availability: Availability::Available,
+                    moved_places: BTreeMap::new(),
+                    definitely_partial: BTreeSet::new(),
                 },
             );
         }
@@ -1041,6 +1045,8 @@ impl<'a> HirValidator<'a> {
                 ty: function.return_type.clone(),
                 ownership: returned,
                 availability: Availability::Available,
+                moved_places: BTreeMap::new(),
+                definitely_partial: BTreeSet::new(),
             },
         );
         for (index, contract) in function.ensures.iter().enumerate() {
@@ -1088,20 +1094,51 @@ impl<'a> HirValidator<'a> {
                 let binding = scope.get(&place.root).ok_or_else(|| {
                     hir_error(format!("resolved value `{}` is out of scope", place.root))
                 })?;
-                match binding.availability {
-                    Availability::Available => {}
-                    Availability::Moved => {
+                match (place.projections.is_empty(), binding.availability) {
+                    (true, Availability::Available) => {
+                        match Self::place_availability(binding, &[]) {
+                            Availability::Available => {}
+                            Availability::Moved => {
+                                return Err(hir_error(format!(
+                                    "resolved value `{}` is partially moved",
+                                    place.root
+                                )));
+                            }
+                            Availability::MaybeMoved => {
+                                return Err(hir_error(format!(
+                                    "resolved value `{}` may be partially moved",
+                                    place.root
+                                )));
+                            }
+                        }
+                    }
+                    (true, Availability::Moved) => {
                         return Err(hir_error(format!(
                             "resolved value `{}` is used after it was moved",
                             place.root
                         )));
                     }
-                    Availability::MaybeMoved => {
+                    (true, Availability::MaybeMoved) => {
                         return Err(hir_error(format!(
                             "resolved value `{}` may have been moved",
                             place.root
                         )));
                     }
+                    (false, _) => match Self::place_availability(binding, &place.projections) {
+                        Availability::Available => {}
+                        Availability::Moved => {
+                            return Err(hir_error(format!(
+                                "resolved place rooted at `{}` is partially moved",
+                                place.root
+                            )));
+                        }
+                        Availability::MaybeMoved => {
+                            return Err(hir_error(format!(
+                                "resolved place rooted at `{}` may be conditionally moved",
+                                place.root
+                            )));
+                        }
+                    },
                 }
                 self.resolve_place(place, binding)?
             }
@@ -1276,6 +1313,8 @@ impl<'a> HirValidator<'a> {
                                     ty: binding.ty.clone(),
                                     ownership: binding.ownership,
                                     availability: Availability::Available,
+                                    moved_places: BTreeMap::new(),
+                                    definitely_partial: BTreeSet::new(),
                                 },
                             );
                         }
@@ -1527,8 +1566,10 @@ impl<'a> HirValidator<'a> {
                     // transfer cannot affect any still-visible root.
                     return Ok(());
                 };
-                let should_move = self.is_owned_resource(&binding.ty, binding.ownership)?
-                    && binding.availability == Availability::Available;
+                let (place_ty, place_ownership) = self.resolve_place(place, binding)?;
+                let should_move = self.is_owned_resource(&place_ty, place_ownership)?
+                    && Self::place_availability(binding, &place.projections)
+                        == Availability::Available;
                 if should_move {
                     let binding = scope.get_mut(&place.root).ok_or_else(|| {
                         hir_error(format!(
@@ -1536,7 +1577,13 @@ impl<'a> HirValidator<'a> {
                             place.root
                         ))
                     })?;
-                    binding.availability = Availability::Moved;
+                    if place.projections.is_empty() {
+                        binding.availability = Availability::Moved;
+                    } else {
+                        binding
+                            .moved_places
+                            .insert(place.projections.clone(), Availability::Moved);
+                    }
                 }
             }
             ResolvedExprKind::Block { tail, .. } => {
@@ -1575,6 +1622,10 @@ impl<'a> HirValidator<'a> {
         for id in ids {
             if let (Some(target), Some(source)) = (target.get_mut(id), source.get(id)) {
                 target.availability = source.availability;
+                target.moved_places.clone_from(&source.moved_places);
+                target
+                    .definitely_partial
+                    .clone_from(&source.definitely_partial);
             }
         }
     }
@@ -1587,7 +1638,11 @@ impl<'a> HirValidator<'a> {
         for id in ids {
             if let (Some(baseline), Some(conditional)) = (baseline.get_mut(id), conditional.get(id))
             {
+                let moved_places = Self::join_moved_places(baseline, conditional);
+                let definitely_partial = Self::join_definitely_partial(baseline, conditional);
                 baseline.availability = baseline.availability.join(conditional.availability);
+                baseline.moved_places = moved_places;
+                baseline.definitely_partial = definitely_partial;
             }
         }
     }
@@ -1603,8 +1658,92 @@ impl<'a> HirValidator<'a> {
                 (target.get_mut(id), then_scope.get(id), else_scope.get(id))
             {
                 target.availability = then_value.availability.join(else_value.availability);
+                target.moved_places = Self::join_moved_places(then_value, else_value);
+                target.definitely_partial = Self::join_definitely_partial(then_value, else_value);
             }
         }
+    }
+
+    fn place_availability(
+        binding: &ValidationBinding,
+        requested: &[PlaceProjection],
+    ) -> Availability {
+        if binding.availability != Availability::Available {
+            return binding.availability;
+        }
+        let mut maybe_moved = false;
+        for (moved, state) in &binding.moved_places {
+            if path_is_prefix(moved, requested) || path_is_prefix(requested, moved) {
+                if *state == Availability::Moved {
+                    return Availability::Moved;
+                }
+                maybe_moved = true;
+            }
+        }
+        if binding
+            .definitely_partial
+            .iter()
+            .any(|partial| path_is_prefix(requested, partial))
+        {
+            return Availability::Moved;
+        }
+        if maybe_moved {
+            Availability::MaybeMoved
+        } else {
+            Availability::Available
+        }
+    }
+
+    fn join_moved_places(
+        left: &ValidationBinding,
+        right: &ValidationBinding,
+    ) -> BTreeMap<Vec<PlaceProjection>, Availability> {
+        left.moved_places
+            .keys()
+            .chain(right.moved_places.keys())
+            .cloned()
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .filter_map(|path| {
+                let left = left
+                    .moved_places
+                    .get(&path)
+                    .copied()
+                    .unwrap_or(Availability::Available);
+                let right = right
+                    .moved_places
+                    .get(&path)
+                    .copied()
+                    .unwrap_or(Availability::Available);
+                let state = left.join(right);
+                (state != Availability::Available).then_some((path, state))
+            })
+            .collect()
+    }
+
+    fn join_definitely_partial(
+        left: &ValidationBinding,
+        right: &ValidationBinding,
+    ) -> BTreeSet<Vec<PlaceProjection>> {
+        let mut candidates = BTreeSet::new();
+        for path in left
+            .moved_places
+            .keys()
+            .chain(right.moved_places.keys())
+            .chain(left.definitely_partial.iter())
+            .chain(right.definitely_partial.iter())
+        {
+            for length in 0..=path.len() {
+                candidates.insert(path[..length].to_vec());
+            }
+        }
+        candidates
+            .into_iter()
+            .filter(|path| {
+                Self::place_availability(left, path) == Availability::Moved
+                    && Self::place_availability(right, path) == Availability::Moved
+            })
+            .collect()
     }
 
     fn validate_type(&self, ty: &ResolvedType) -> Result<(), Diagnostic> {
@@ -1755,6 +1894,10 @@ impl<'a> HirValidator<'a> {
             )))
         }
     }
+}
+
+fn path_is_prefix<T: PartialEq>(prefix: &[T], path: &[T]) -> bool {
+    prefix.len() <= path.len() && prefix.iter().zip(path).all(|(left, right)| left == right)
 }
 
 fn hir_error(message: impl Into<String>) -> Diagnostic {

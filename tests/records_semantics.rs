@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use semaprax::{codegen, parse, verify, wasm};
+use semaprax::{codegen, hir, parse, verify, wasm};
 
 fn diagnostic_codes(source: &str) -> Vec<&'static str> {
     let program = parse(source, Path::new("records-semantics.spx")).unwrap();
@@ -81,7 +81,7 @@ fn main() -> i64 { 0 }
 }
 
 #[test]
-fn resource_fields_use_a_conservative_whole_record_move_until_partial_places_land() {
+fn moving_a_resource_field_leaves_an_available_sibling_usable() {
     let source = r#"
 module test.record_resource_move;
 @id("buffer.type")
@@ -99,7 +99,176 @@ fn inspect(value: own Envelope) -> i64 { consume(value.payload) + value.code }
 fn main() -> i64 { 0 }
 "#;
 
-    assert!(diagnostic_codes(source).contains(&"SPX-O101"));
+    assert!(diagnostic_codes(source).is_empty());
+}
+
+#[test]
+fn same_field_parent_and_conditional_field_reuse_are_rejected() {
+    let source = r#"
+module test.record_partial_moves;
+@id("buffer.type")
+resource Buffer;
+@id("envelope.type")
+record Envelope {
+    @id("envelope.payload") payload: Buffer,
+    @id("envelope.code") code: i64,
+}
+@id("buffer.consume")
+fn consume(value: own Buffer) -> i64 { 1 }
+@id("envelope.borrow")
+fn borrow_envelope(value: borrow Envelope) -> i64 { value.code }
+@id("envelope.same")
+fn same(value: own Envelope) -> i64 {
+    consume(value.payload) + consume(value.payload)
+}
+@id("envelope.parent")
+fn parent(value: own Envelope) -> i64 {
+    consume(value.payload) + borrow_envelope(value)
+}
+@id("envelope.conditional")
+fn conditional(flag: bool, value: own Envelope) -> i64 {
+    (if flag { consume(value.payload) } else { 0 }) + consume(value.payload)
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+
+    let codes = diagnostic_codes(source);
+    assert_eq!(codes.iter().filter(|code| **code == "SPX-O109").count(), 2);
+    assert_eq!(codes.iter().filter(|code| **code == "SPX-O110").count(), 1);
+    assert!(!codes.contains(&"SPX-O101"));
+    assert!(!codes.contains(&"SPX-O107"));
+}
+
+#[test]
+fn different_branch_field_moves_definitely_invalidate_only_the_parent() {
+    let source = r#"
+module test.record_split_moves;
+@id("buffer.type")
+resource Buffer;
+@id("pair.type")
+record Pair {
+    @id("pair.left") left: Buffer,
+    @id("pair.right") right: Buffer,
+}
+@id("buffer.consume")
+fn consume(value: own Buffer) -> i64 { 1 }
+@id("pair.inspect")
+fn inspect(value: borrow Pair) -> i64 { 1 }
+@id("pair.parent")
+fn parent(flag: bool, value: own Pair) -> i64 {
+    let moved = if flag { consume(value.left) } else { consume(value.right) };
+    moved + inspect(value)
+}
+@id("pair.left_after")
+fn left_after(flag: bool, value: own Pair) -> i64 {
+    let moved = if flag { consume(value.left) } else { consume(value.right) };
+    moved + consume(value.left)
+}
+@id("pair.right_after")
+fn right_after(flag: bool, value: own Pair) -> i64 {
+    let moved = if flag { consume(value.left) } else { consume(value.right) };
+    moved + consume(value.right)
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+
+    let codes = diagnostic_codes(source);
+    assert_eq!(codes.iter().filter(|code| **code == "SPX-O109").count(), 1);
+    assert_eq!(codes.iter().filter(|code| **code == "SPX-O110").count(), 2);
+}
+
+#[test]
+fn lazy_field_moves_join_without_poisoning_sibling_fields() {
+    let source = r#"
+module test.record_lazy_move;
+@id("buffer.type")
+resource Buffer;
+@id("envelope.type")
+record Envelope {
+    @id("envelope.payload") payload: Buffer,
+    @id("envelope.ok") ok: bool,
+}
+@id("buffer.consume")
+fn consume(value: own Buffer) -> bool { true }
+@id("envelope.good")
+fn good(flag: bool, value: own Envelope) -> bool {
+    let moved = flag && consume(value.payload);
+    moved || value.ok
+}
+@id("envelope.bad")
+fn bad(flag: bool, value: own Envelope) -> bool {
+    (flag && consume(value.payload)) || consume(value.payload)
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+
+    assert_eq!(
+        diagnostic_codes(source)
+            .iter()
+            .filter(|code| **code == "SPX-O110")
+            .count(),
+        1
+    );
+}
+
+#[test]
+fn borrowed_and_shared_record_fields_cannot_cross_owned_boundaries() {
+    let source = r#"
+module test.record_borrowed_field_move;
+@id("buffer.type")
+resource Buffer;
+@id("envelope.type")
+record Envelope { @id("envelope.payload") payload: Buffer, }
+@id("buffer.consume")
+fn consume(value: own Buffer) -> i64 { 1 }
+@id("envelope.borrowed")
+fn borrowed(value: borrow Envelope) -> i64 { consume(value.payload) }
+@id("envelope.shared")
+fn shared(value: shared Envelope) -> i64 { consume(value.payload) }
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+
+    assert_eq!(
+        diagnostic_codes(source)
+            .iter()
+            .filter(|code| **code == "SPX-O108")
+            .count(),
+        2
+    );
+}
+
+#[test]
+fn borrowed_resource_record_construction_fails_before_hir_resolution() {
+    let source = r#"
+module test.record_borrowed_constructor;
+@id("handle.type")
+resource Handle;
+@id("envelope.type")
+record Envelope { @id("envelope.handle") handle: Handle, }
+@id("envelope.wrap")
+fn wrap(handle: borrow Handle) -> Envelope { Envelope { handle } }
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+    let program = parse(source, Path::new("borrowed-constructor.spx")).unwrap();
+    let verifier = verify::verify(&program);
+    let analysis = hir::analyze(&program);
+
+    assert_eq!(verifier.len(), 1);
+    assert_eq!(verifier[0].code, "SPX-O108");
+    assert_eq!(
+        verifier.iter().map(|item| item.json()).collect::<Vec<_>>(),
+        analysis
+            .diagnostics
+            .iter()
+            .map(|item| item.json())
+            .collect::<Vec<_>>()
+    );
+    assert!(analysis.resolved.is_none());
 }
 
 #[test]

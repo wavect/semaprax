@@ -11,6 +11,8 @@ struct Binding {
     ty: Type,
     mode: ParamMode,
     availability: Availability,
+    moved_places: HashMap<Vec<String>, Availability>,
+    definitely_partial: HashSet<Vec<String>>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -317,6 +319,8 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                         ty: param.ty.clone(),
                         mode: param.mode,
                         availability: Availability::Available,
+                        moved_places: HashMap::new(),
+                        definitely_partial: HashSet::new(),
                     },
                 )
                 .is_some()
@@ -595,7 +599,31 @@ fn check_expr(
                         )
                         .with_help("move the resource on every path or keep it borrowed"),
                     ),
-                    Availability::Available => {}
+                    Availability::Available => match overlapping_place_state(binding, &[]) {
+                        Availability::Moved => diagnostics.push(
+                            error(
+                                program,
+                                "SPX-O109",
+                                format!("use of partially moved place `{name}`"),
+                                expr.span,
+                            )
+                            .with_help(
+                                "use an available sibling field or avoid moving this place earlier",
+                            ),
+                        ),
+                        Availability::MaybeMoved => diagnostics.push(
+                            error(
+                                program,
+                                "SPX-O110",
+                                format!(
+                                    "place `{name}` may have been moved on another control-flow path"
+                                ),
+                                expr.span,
+                            )
+                            .with_help("move the field on every path or keep it borrowed"),
+                        ),
+                        Availability::Available => {}
+                    },
                 }
                 CheckedValue {
                     ty: binding.ty.clone(),
@@ -854,6 +882,15 @@ fn check_expr(
                                 field.value.span,
                             ));
                         }
+                    } else if types.contains_resource(&declared.ty)
+                        && matches!(actual.mode, ParamMode::Borrow | ParamMode::Shared)
+                    {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-O108",
+                            "cannot move an owned field through a borrowed or shared record",
+                            field.value.span,
+                        ));
                     }
                 }
             }
@@ -879,6 +916,19 @@ fn check_expr(
             })
         }
         ExprKind::Project { base, field, .. } => {
+            if let Some(place) = source_place(expr, variables, types) {
+                check_source_place_availability(
+                    program,
+                    &place,
+                    variables,
+                    expr.span,
+                    diagnostics,
+                );
+                return Some(CheckedValue {
+                    ty: place.ty,
+                    mode: place.mode,
+                });
+            }
             let base_value = check_expr(
                 program,
                 current,
@@ -977,6 +1027,8 @@ fn check_expr(
                                     ty: actual.ty,
                                     mode: actual.mode,
                                     availability: Availability::Available,
+                                    moved_places: HashMap::new(),
+                                    definitely_partial: HashSet::new(),
                                 },
                             );
                         }
@@ -1056,6 +1108,13 @@ fn check_expr(
                         .get(name)
                         .map_or(Availability::Available, |value| value.availability);
                     binding.availability = then_state.join(else_state);
+                    if let (Some(then_binding), Some(else_binding)) =
+                        (then_variables.get(name), else_variables.get(name))
+                    {
+                        binding.moved_places = join_moved_places(then_binding, else_binding);
+                        binding.definitely_partial =
+                            join_definitely_partial(then_binding, else_binding);
+                    }
                 }
             }
             match (then_value, else_value) {
@@ -1110,6 +1169,18 @@ fn check_argument_ownership(
     match param.mode {
         ParamMode::Own => {
             if actual.mode != ParamMode::Own {
+                if matches!(actual.mode, ParamMode::Borrow | ParamMode::Shared)
+                    && source_place(arg, variables, types)
+                        .is_some_and(|place| !place.projections.is_empty())
+                {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-O108",
+                        "cannot move an owned field through a borrowed or shared record",
+                        arg.span,
+                    ));
+                    return;
+                }
                 diagnostics.push(
                     error(
                         program,
@@ -1169,7 +1240,19 @@ fn mark_value_sources_moved(
             }
         }
         ExprKind::Block { tail, .. } => mark_value_sources_moved(tail, variables, types),
-        ExprKind::Project { base, .. } => mark_value_sources_moved(base, variables, types),
+        ExprKind::Project { base, .. } => {
+            if let Some(place) = source_place(expr, variables, types) {
+                if let Some(binding) = variables.get_mut(&place.root) {
+                    if binding.mode == ParamMode::Own {
+                        binding
+                            .moved_places
+                            .insert(place.projections, Availability::Moved);
+                    }
+                }
+            } else {
+                mark_value_sources_moved(base, variables, types);
+            }
+        }
         ExprKind::If {
             then_branch,
             else_branch,
@@ -1189,6 +1272,13 @@ fn mark_value_sources_moved(
                         .get(&name)
                         .map_or(Availability::Available, |value| value.availability);
                     binding.availability = then_state.join(else_state);
+                    if let (Some(then_binding), Some(else_binding)) =
+                        (then_variables.get(&name), else_variables.get(&name))
+                    {
+                        binding.moved_places = join_moved_places(then_binding, else_binding);
+                        binding.definitely_partial =
+                            join_definitely_partial(then_binding, else_binding);
+                    }
                 }
             }
         }
@@ -1204,6 +1294,10 @@ fn merge_moved(
     for name in names {
         if let (Some(target), Some(source)) = (target.get_mut(name), source.get(name)) {
             target.availability = source.availability;
+            target.moved_places.clone_from(&source.moved_places);
+            target
+                .definitely_partial
+                .clone_from(&source.definitely_partial);
         }
     }
 }
@@ -1216,9 +1310,197 @@ fn join_conditional(
     for name in names {
         if let (Some(baseline), Some(conditional)) = (baseline.get_mut(name), conditional.get(name))
         {
+            let moved_places = join_moved_places(baseline, conditional);
+            let definitely_partial = join_definitely_partial(baseline, conditional);
             baseline.availability = baseline.availability.join(conditional.availability);
+            baseline.moved_places = moved_places;
+            baseline.definitely_partial = definitely_partial;
         }
     }
+}
+
+#[derive(Clone)]
+struct SourcePlace {
+    root: String,
+    root_span: Span,
+    projections: Vec<String>,
+    ty: Type,
+    mode: ParamMode,
+}
+
+fn source_place(
+    expr: &Expr,
+    variables: &HashMap<String, Binding>,
+    types: &TypeTable<'_>,
+) -> Option<SourcePlace> {
+    match &expr.kind {
+        ExprKind::Var(name) => {
+            let binding = variables.get(name)?;
+            Some(SourcePlace {
+                root: name.clone(),
+                root_span: expr.span,
+                projections: Vec::new(),
+                ty: binding.ty.clone(),
+                mode: binding.mode,
+            })
+        }
+        ExprKind::Project { base, field, .. } => {
+            let mut place = source_place(base, variables, types)?;
+            let declared = types
+                .record_fields(&place.ty)?
+                .iter()
+                .find(|candidate| candidate.name == *field)?;
+            place.ty = declared.ty.clone();
+            if !types.contains_resource(&place.ty) {
+                place.mode = ParamMode::Value;
+            }
+            place.projections.push(field.clone());
+            Some(place)
+        }
+        _ => None,
+    }
+}
+
+fn check_source_place_availability(
+    program: &Program,
+    place: &SourcePlace,
+    variables: &HashMap<String, Binding>,
+    span: Span,
+    diagnostics: &mut Vec<Diagnostic>,
+) {
+    let Some(binding) = variables.get(&place.root) else {
+        return;
+    };
+    match binding.availability {
+        Availability::Moved => {
+            diagnostics.push(
+                error(
+                    program,
+                    "SPX-O101",
+                    format!("use of resource `{}` after ownership was moved", place.root),
+                    place.root_span,
+                )
+                .with_help("borrow the resource if the callee does not need ownership"),
+            );
+            return;
+        }
+        Availability::MaybeMoved => {
+            diagnostics.push(
+                error(
+                    program,
+                    "SPX-O107",
+                    format!(
+                        "resource `{}` may have been moved on another control-flow path",
+                        place.root
+                    ),
+                    place.root_span,
+                )
+                .with_help("move the resource on every path or keep it borrowed"),
+            );
+            return;
+        }
+        Availability::Available => {}
+    }
+    let state = overlapping_place_state(binding, &place.projections);
+    let display = format!("{}.{}", place.root, place.projections.join("."));
+    match state {
+        Availability::Available => {}
+        Availability::Moved => diagnostics.push(
+            error(
+                program,
+                "SPX-O109",
+                format!("use of partially moved place `{display}`"),
+                span,
+            )
+            .with_help("use an available sibling field or avoid moving this place earlier"),
+        ),
+        Availability::MaybeMoved => diagnostics.push(
+            error(
+                program,
+                "SPX-O110",
+                format!("place `{display}` may have been moved on another control-flow path"),
+                span,
+            )
+            .with_help("move the field on every path or keep it borrowed"),
+        ),
+    }
+}
+
+fn overlapping_place_state(binding: &Binding, requested: &[String]) -> Availability {
+    if binding.availability != Availability::Available {
+        return binding.availability;
+    }
+    let mut maybe_moved = false;
+    for (moved, state) in &binding.moved_places {
+        if path_is_prefix(moved, requested) || path_is_prefix(requested, moved) {
+            if *state == Availability::Moved {
+                return Availability::Moved;
+            }
+            maybe_moved = true;
+        }
+    }
+    if binding
+        .definitely_partial
+        .iter()
+        .any(|partial| path_is_prefix(requested, partial))
+    {
+        return Availability::Moved;
+    }
+    if maybe_moved {
+        Availability::MaybeMoved
+    } else {
+        Availability::Available
+    }
+}
+
+fn path_is_prefix<T: PartialEq>(prefix: &[T], path: &[T]) -> bool {
+    prefix.len() <= path.len() && prefix.iter().zip(path).all(|(left, right)| left == right)
+}
+
+fn join_moved_places(left: &Binding, right: &Binding) -> HashMap<Vec<String>, Availability> {
+    left.moved_places
+        .keys()
+        .chain(right.moved_places.keys())
+        .cloned()
+        .collect::<HashSet<_>>()
+        .into_iter()
+        .filter_map(|path| {
+            let left = left
+                .moved_places
+                .get(&path)
+                .copied()
+                .unwrap_or(Availability::Available);
+            let right = right
+                .moved_places
+                .get(&path)
+                .copied()
+                .unwrap_or(Availability::Available);
+            let state = left.join(right);
+            (state != Availability::Available).then_some((path, state))
+        })
+        .collect()
+}
+
+fn join_definitely_partial(left: &Binding, right: &Binding) -> HashSet<Vec<String>> {
+    let mut candidates = HashSet::new();
+    for path in left
+        .moved_places
+        .keys()
+        .chain(right.moved_places.keys())
+        .chain(left.definitely_partial.iter())
+        .chain(right.definitely_partial.iter())
+    {
+        for length in 0..=path.len() {
+            candidates.insert(path[..length].to_vec());
+        }
+    }
+    candidates
+        .into_iter()
+        .filter(|path| {
+            overlapping_place_state(left, path) == Availability::Moved
+                && overlapping_place_state(right, path) == Availability::Moved
+        })
+        .collect()
 }
 
 #[allow(clippy::too_many_arguments)]

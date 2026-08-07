@@ -29,7 +29,7 @@ Status: in progress. Resource ownership boundaries, lexical `let`, typed `if/els
 
 Exit criterion: build a non-trivial CLI and edit it entirely through semantic transactions.
 
-The aggregate and pattern tranche is specified in [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md). Record declarations, constructors, projections, recursive facts, stable field identities, HIR validation, and Graph v4 are implemented as non-executable groundwork. Prefix-aware place-state analysis, cleanup/drop IR, native/Wasm aggregate layouts, variants, and matching remain subsequent work; backends fail closed on records until those safety gates land.
+The aggregate and pattern tranche is specified in [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md), and the proposed exactly-once cleanup/resource boundary is specified in design-only [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md). Record declarations, constructors, projections, recursive facts, stable field identities, prefix-aware place-state analysis, HIR validation, and Graph v4 are implemented as non-executable groundwork. Cleanup/drop IR, native/Wasm aggregate layouts, variants, and matching remain subsequent work; backends fail closed on records until those safety gates land.
 
 ## 0.3 — Ownership and fast development
 

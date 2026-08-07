@@ -148,3 +148,55 @@ fn main() -> i64
     assert!(changed.contains("-> ByteBuffer"));
     assert!(changed.contains("@id(\"buffer.type\")"));
 }
+
+#[test]
+fn resource_rename_does_not_retarget_record_initializer_values() {
+    let source = r#"module patch.record_resource;
+
+@id("handle.type")
+resource Handle;
+
+@id("wrapper.type")
+record Wrapper {
+    @id("wrapper.handle")
+    handle: Handle,
+}
+
+@id("wrapper.wrap")
+fn wrap(Handle: own Handle, other: own Handle) -> Wrapper
+{
+    Wrapper { handle: Handle }
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    0
+}
+"#;
+    let program = parse(source, Path::new("record-resource.spx")).unwrap();
+    let revision = graph::revision(&program);
+    let directory = std::env::temp_dir().join(format!(
+        "semaprax-record-resource-patch-{}",
+        std::process::id()
+    ));
+    std::fs::create_dir_all(&directory).unwrap();
+    let source_path = directory.join("module.spx");
+    let patch_path = directory.join("rename.spatch");
+    std::fs::write(&source_path, source).unwrap();
+    std::fs::write(
+        &patch_path,
+        format!("base {revision}\nrename handle.type to other\nrequire no-new-effects\n"),
+    )
+    .unwrap();
+
+    patch::apply(&source_path, &patch_path).unwrap();
+    let changed = std::fs::read_to_string(&source_path).unwrap();
+    assert!(changed.contains("resource other;"));
+    assert!(changed.contains("handle: other,"));
+    assert!(changed.contains("Handle: own other, other: own other"));
+    assert!(changed.contains("Wrapper { handle: Handle }"));
+    assert!(!changed.contains("Wrapper { handle: other }"));
+    let reparsed = parse(&changed, &source_path).unwrap();
+    graph::to_json(&reparsed).unwrap();
+}

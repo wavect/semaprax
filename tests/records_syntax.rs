@@ -161,3 +161,26 @@ fn malformed_record_syntax_has_stable_parser_diagnostics() {
         "SPX-P105"
     );
 }
+
+#[test]
+fn canonical_source_preserves_record_constructors_in_contracts_and_if_conditions() {
+    let source = r#"
+module test.record_delimiters;
+@id("box.type")
+record Box { @id("box.value") value: i64, }
+@id("app.main")
+fn main() -> i64
+    requires (Box { value: 1 }.value == 1)
+    ensures (Box { value: result }.value == result)
+{
+    if (Box { value: 1 }.value == 1) { 42 } else { 0 }
+}
+"#;
+    let program = parse(source, Path::new("record-delimiters.spx")).unwrap();
+    let canonical = format::canonical(&program);
+    assert!(canonical.contains("requires (Box { value: 1 }.value == 1)"));
+    assert!(canonical.contains("ensures (Box { value: result }.value == result)"));
+    assert!(canonical.contains("if (Box { value: 1 }.value == 1)"));
+    let reparsed = parse(&canonical, Path::new("record-delimiters-canonical.spx")).unwrap();
+    assert_eq!(format::canonical(&reparsed), canonical);
+}

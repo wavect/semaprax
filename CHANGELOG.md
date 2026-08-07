@@ -27,6 +27,10 @@ All notable changes to SEMAPRAX are documented here.
 - Split source verification behind a compatibility facade and additive HIR analysis API while freezing complete ordered diagnostic JSON behavior.
 - Added canonical record declarations, construction, projection, persistent field identities, deterministic field diagnostics, recursive facts/layout keys, and by-value recursion rejection.
 - Upgraded the semantic graph to v4 with record/field nodes and stable constructor/projection references; native and Wasm record builds fail closed pending aggregate cleanup and layout support.
+- Added prefix-aware ownership for resource-containing record fields, preserving disjoint siblings while rejecting definite and conditional partial-place reuse in both source verification and hostile-HIR replay.
+- Fixed canonical formatting of record constructors in contracts and `if` conditions so parse-format-parse remains valid.
+- Hardened semantic resource renames so record initializer expressions cannot be mistaken for type annotations.
+- Published design-only RFC 0003 for exactly-once cleanup, logical resource imports, and a shared native/Wasm status-and-out ABI; executable cleanup remains gated on its conformance evidence.
 
 ## 0.1.0 — 2026-08-07
 

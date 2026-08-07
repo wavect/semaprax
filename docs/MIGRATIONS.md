@@ -55,6 +55,10 @@ The lexer now tokenizes `.` separately so expression projection is unambiguous. 
 
 This migration enables `check`, HIR, `graph`, and `context` for records. `build` fails closed with `SPX-B103` (native) or `SPX-W110` (Wasm) until aggregate layout and cleanup semantics land.
 
+## Whole-record to prefix-aware ownership
+
+Resource-containing record projections now carry prefix-aware availability instead of conservatively moving the complete root. Moving one owned non-copy field leaves disjoint sibling fields available. Reusing that field or an enclosing parent reports `SPX-O109`; a place moved on only some control-flow paths reports `SPX-O110`. Existing whole-resource moves retain `SPX-O101` and `SPX-O107`. Borrowed or shared projections cannot cross an owned field or parameter boundary and report `SPX-O108`. Validated HIR independently replays the same rules, while Graph v4 continues to expose identities and ownership modes rather than flow-sensitive availability.
+
 ## Revision token FNV-1a64 to SHA-256
 
 Graph v3 and later, semantic patch bases, CLI output, and `semaprax.web.v2` manifests use one algorithm-tagged token:

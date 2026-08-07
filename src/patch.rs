@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 use std::path::Path;
 
-use crate::ast::TypeDeclarationKind;
+use crate::ast::{Type, TypeDeclaration, TypeDeclarationKind};
 use crate::diagnostic::Diagnostic;
 use crate::{format, graph, lexer, parse, verify};
 
@@ -83,9 +83,9 @@ pub fn apply(source_path: &Path, patch_path: &Path) -> Result<String, Vec<Diagno
             }
             continue;
         }
-        if let Some(resource) = before.types.iter().find(|resource| {
-            resource.stable_id == rename.stable_id
-                && matches!(resource.kind, TypeDeclarationKind::Resource)
+        if let Some(resource) = before.types.iter().find(|declaration| {
+            declaration.stable_id == rename.stable_id
+                && matches!(declaration.kind, TypeDeclarationKind::Resource)
         }) {
             if !resource.explicit_id {
                 return Err(vec![Diagnostic::io(
@@ -96,12 +96,8 @@ pub fn apply(source_path: &Path, patch_path: &Path) -> Result<String, Vec<Diagno
                     ),
                 )]);
             }
-            for (index, token) in tokens.iter().enumerate() {
-                if matches!(&token.kind, lexer::TokenKind::Ident(name) if name == &resource.name)
-                    && is_resource_type_position(&tokens, index)
-                {
-                    replacements.push((token.span.start, token.span.end, rename.new_name.clone()));
-                }
+            for (start, end) in resource_type_positions(&before, &tokens, resource) {
+                replacements.push((start, end, rename.new_name.clone()));
             }
             continue;
         }
@@ -205,15 +201,81 @@ fn is_identifier(value: &str) -> bool {
         && chars.all(|character| character == '_' || character.is_ascii_alphanumeric())
 }
 
-fn is_resource_type_position(tokens: &[lexer::Token], index: usize) -> bool {
-    let Some(previous) = index.checked_sub(1).and_then(|value| tokens.get(value)) else {
-        return false;
-    };
-    match &previous.kind {
-        lexer::TokenKind::Colon | lexer::TokenKind::Arrow => true,
-        lexer::TokenKind::Ident(keyword) => {
-            matches!(keyword.as_str(), "resource" | "own" | "borrow" | "shared")
+fn resource_type_positions(
+    program: &crate::ast::Program,
+    tokens: &[lexer::Token],
+    resource: &TypeDeclaration,
+) -> BTreeSet<(usize, usize)> {
+    let mut positions = BTreeSet::from([(resource.name_span.start, resource.name_span.end)]);
+    let resource_type = Type::Named(resource.name.clone());
+
+    for declaration in &program.types {
+        let TypeDeclarationKind::Record { fields } = &declaration.kind else {
+            continue;
+        };
+        for field in fields {
+            if field.ty == resource_type {
+                insert_named_type_token(
+                    &mut positions,
+                    tokens,
+                    field.name_span.end,
+                    field.span.end,
+                    &resource.name,
+                );
+            }
         }
-        _ => false,
+    }
+
+    for function in &program.functions {
+        for param in &function.params {
+            if param.ty != resource_type {
+                continue;
+            }
+            let end = tokens
+                .iter()
+                .find(|token| {
+                    token.span.start >= param.span.end
+                        && matches!(
+                            token.kind,
+                            lexer::TokenKind::Comma | lexer::TokenKind::RParen
+                        )
+                })
+                .map_or(function.body.span.start, |token| token.span.start);
+            insert_named_type_token(&mut positions, tokens, param.span.end, end, &resource.name);
+        }
+
+        if function.return_type == resource_type {
+            if let Some(arrow) = tokens.iter().find(|token| {
+                token.span.start >= function.name_span.end
+                    && token.span.end <= function.body.span.start
+                    && matches!(token.kind, lexer::TokenKind::Arrow)
+            }) {
+                insert_named_type_token(
+                    &mut positions,
+                    tokens,
+                    arrow.span.end,
+                    function.body.span.start,
+                    &resource.name,
+                );
+            }
+        }
+    }
+
+    positions
+}
+
+fn insert_named_type_token(
+    positions: &mut BTreeSet<(usize, usize)>,
+    tokens: &[lexer::Token],
+    start: usize,
+    end: usize,
+    name: &str,
+) {
+    if let Some(token) = tokens.iter().find(|token| {
+        token.span.start >= start
+            && token.span.end <= end
+            && matches!(&token.kind, lexer::TokenKind::Ident(candidate) if candidate == name)
+    }) {
+        positions.insert((token.span.start, token.span.end));
     }
 }

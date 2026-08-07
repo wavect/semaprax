@@ -76,7 +76,7 @@ Implemented today:
 - `i64` and `bool`, typed functions, calls, unary and binary expressions.
 - Resource declarations with explicit `own`, `borrow`, and `shared` function boundaries.
 - Lexical `let` bindings and typed `if/else` expressions.
-- Control-flow-aware move checking with definite and conditional use-after-move diagnostics.
+- Control-flow-aware move checking with prefix-aware record-field state and definite or conditional use-after-move diagnostics.
 - Canonical record declarations, construction, and projection in `check`, resolved HIR, and semantic Graph v4; executable targets fail closed until aggregate cleanup/layout lands.
 - A validated stable-ID HIR shared by native and Wasm lowering, with explicit entry, result, binding, expression, and place identities.
 - Checked integer arithmetic in generated programs.
@@ -90,7 +90,7 @@ Implemented today:
 - Native AOT output through a readable C11 lowering and Clang.
 - Direct WebAssembly core output with a generated ES-module runtime, HTML entry point, capability manifest, checked arithmetic, and contract traps.
 
-Not implemented yet: record machine-code lowering, partial-field moves, variants and matching, lifetime and alias analysis, regions, destructors, effect handlers, static contract proofs, Cranelift, LLVM/MLIR IR, WebAssembly Components, packages, concurrency, or cross-platform UI. Those are design commitments and staged work, not hidden behind mock commands.
+Not implemented yet: record machine-code lowering, variants and matching, lifetime and alias analysis, regions, destructors, effect handlers, static contract proofs, Cranelift, LLVM/MLIR IR, WebAssembly Components, packages, concurrency, or cross-platform UI. Those are design commitments and staged work, not hidden behind mock commands.
 
 ## Agent protocol
 
@@ -141,7 +141,7 @@ The long-term compiler has two output principles:
 - Native machine code where performance and platform integration matter.
 - WebAssembly Components where portability and capability sandboxing matter.
 
-Read [RFC 0001](docs/RFC-0001.md) for the language system, [the architecture](docs/ARCHITECTURE.md) for the current implementation, [the quality gates](docs/QUALITY-GATES.md) for executable contribution evidence, [protocol migrations](docs/MIGRATIONS.md) for agent-facing compatibility, [the roadmap](docs/ROADMAP.md) for the staged path forward, and the [full-goal completion matrix](docs/COMPLETION-MATRIX.md) for requirement-by-requirement evidence.
+Read [RFC 0001](docs/RFC-0001.md) for the language system, [RFC 0002](docs/RFC-0002-ALGEBRAIC-DATA.md) for algebraic data and aggregate ownership, and the design-only [RFC 0003](docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) for exactly-once cleanup and resource ABI requirements. [The architecture](docs/ARCHITECTURE.md) describes the current implementation, [the quality gates](docs/QUALITY-GATES.md) define executable contribution evidence, [protocol migrations](docs/MIGRATIONS.md) cover agent-facing compatibility, [the roadmap](docs/ROADMAP.md) gives the staged path forward, and the [full-goal completion matrix](docs/COMPLETION-MATRIX.md) records requirement-by-requirement evidence.
 
 ## Status
 

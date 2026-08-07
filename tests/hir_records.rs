@@ -4,7 +4,7 @@ use semaprax::hir::{
     self, DeclarationId, DeclarationKind, OwnershipMode, PlaceProjection, ResolvedExprKind,
     ResolvedType, ResolvedTypeDeclarationKind,
 };
-use semaprax::parse;
+use semaprax::{codegen, parse, wasm};
 
 const RECORDS: &str = r#"
 module test.hir_records;
@@ -300,6 +300,111 @@ fn hostile_record_hir_fields_constructors_and_projections_are_rejected() {
     place.projections[1] = PlaceProjection::Field(DeclarationId::new("geometry.line.end"));
     assert_eq!(
         hir::validate(&foreign_projection).unwrap_err().code,
+        "SPX-H006"
+    );
+}
+
+#[test]
+fn hostile_hir_cannot_reuse_a_field_after_forging_an_owned_call() {
+    let source = r#"
+module test.hir_partial_move_replay;
+@id("buffer.type")
+resource Buffer;
+@id("envelope.type")
+record Envelope { @id("envelope.payload") payload: Buffer, }
+@id("buffer.inspect")
+fn inspect(value: borrow Buffer) -> i64 { 1 }
+@id("buffer.consume")
+fn consume(value: own Buffer) -> i64 { 1 }
+@id("envelope.replay")
+fn replay(value: own Envelope) -> i64 {
+    inspect(value.payload) + inspect(value.payload)
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+    let mut program = resolved(source);
+    let replay = program
+        .functions
+        .iter_mut()
+        .find(|function| function.id.as_str() == "envelope.replay")
+        .unwrap();
+    let ResolvedExprKind::Block { tail, .. } = &mut replay.body.kind else {
+        panic!("replay must resolve to a block");
+    };
+    let ResolvedExprKind::Binary { left, .. } = &mut tail.kind else {
+        panic!("replay tail must be binary");
+    };
+    let ResolvedExprKind::Call { callee, .. } = &mut left.kind else {
+        panic!("left operand must be a call");
+    };
+    *callee = DeclarationId::new("buffer.consume");
+
+    assert_eq!(hir::validate(&program).unwrap_err().code, "SPX-H006");
+    assert_eq!(codegen::emit_hir_c(&program).unwrap_err().code, "SPX-H006");
+    assert_eq!(
+        wasm::emit_resolved_module(&program).unwrap_err().code,
+        "SPX-H006"
+    );
+}
+
+#[test]
+fn hostile_hir_tracks_a_definite_parent_move_across_different_branch_fields() {
+    let source = r#"
+module test.hir_split_move_replay;
+@id("buffer.type")
+resource Buffer;
+@id("pair.type")
+record Pair {
+    @id("pair.left") left: Buffer,
+    @id("pair.right") right: Buffer,
+}
+@id("buffer.inspect")
+fn inspect_buffer(value: borrow Buffer) -> i64 { 1 }
+@id("buffer.consume")
+fn consume(value: own Buffer) -> i64 { 1 }
+@id("pair.inspect")
+fn inspect_pair(value: borrow Pair) -> i64 { 1 }
+@id("pair.replay")
+fn replay(flag: bool, value: own Pair) -> i64 {
+    let selected = if flag { inspect_buffer(value.left) } else { inspect_buffer(value.right) };
+    selected + inspect_pair(value)
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+    let mut program = resolved(source);
+    let replay = program
+        .functions
+        .iter_mut()
+        .find(|function| function.id.as_str() == "pair.replay")
+        .unwrap();
+    let ResolvedExprKind::Block { statements, .. } = &mut replay.body.kind else {
+        panic!("replay must resolve to a block");
+    };
+    let hir::ResolvedStatement::Let { value, .. } = &mut statements[0];
+    let ResolvedExprKind::If {
+        then_branch,
+        else_branch,
+        ..
+    } = &mut value.kind
+    else {
+        panic!("selected must resolve to an if expression");
+    };
+    for branch in [then_branch, else_branch] {
+        let ResolvedExprKind::Block { tail, .. } = &mut branch.kind else {
+            panic!("branch must resolve to a block");
+        };
+        let ResolvedExprKind::Call { callee, .. } = &mut tail.kind else {
+            panic!("branch tail must be a call");
+        };
+        *callee = DeclarationId::new("buffer.consume");
+    }
+
+    assert_eq!(hir::validate(&program).unwrap_err().code, "SPX-H006");
+    assert_eq!(codegen::emit_hir_c(&program).unwrap_err().code, "SPX-H006");
+    assert_eq!(
+        wasm::emit_resolved_module(&program).unwrap_err().code,
         "SPX-H006"
     );
 }

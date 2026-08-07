@@ -13,7 +13,7 @@ fn choose(flag: bool, value: i64) -> i64 {
 @id("app.main")
 fn main() -> i64 { choose(true, 41) }
 "#;
-    let replacements = [b'{', b'}', b';', b'=', b'@', b'!', b'(', b')'];
+    let replacements = *b"{};=@!()";
     let mut cases = Vec::new();
     for index in 0..seed.len() {
         for replacement in replacements {

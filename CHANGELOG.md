@@ -11,6 +11,7 @@ All notable changes to SEMAPRAX are documented here.
 - Added a direct WebAssembly core backend and generated browser package.
 - Preserved checked `i64` arithmetic through audited WebAssembly host imports.
 - Added the authoritative full-goal completion matrix.
+- Verified the compiler, native executable, and WebAssembly package on macOS, Linux, and Windows CI runners.
 
 ## 0.1.0 — 2026-08-07
 

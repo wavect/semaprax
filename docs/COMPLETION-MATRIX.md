@@ -69,7 +69,7 @@ Status values:
 | iOS | Missing | — | Native code, Swift host, XCFramework/app project, UIKit/SwiftUI adapter, lifecycle, accessibility, signing metadata, and device/simulator sample verified |
 | Android | Missing | — | Native code, Kotlin host, JNI, AAR/app project, Compose/View adapter, lifecycle, accessibility, manifests, and device/emulator sample verified |
 | macOS | Partial | Host-native command-line executable | Native app bundle, AppKit/SwiftUI host, menus/windows/accessibility, packaging/signing metadata, and sample verified |
-| Windows | Missing | A `windows-latest` native CLI gate has been added but is not evidence until its remote run succeeds | Native executable/app, WinUI host, accessibility, packaging metadata, and Windows CI/sample verified |
+| Windows | Partial | `windows-latest` compiles and tests the compiler, builds and executes `meaning.exe` with result 42, and validates the browser/Wasm package in [CI run 31203270295](https://github.com/wavect/semaprax/actions/runs/31203270295) | Native app, WinUI host, accessibility, packaging metadata, and representative application sample verified |
 | Linux | Partial | Host compilation exercised in CI | Native application, selected UI adapter, accessibility, AppImage/deb/rpm metadata, and sample verified |
 | Edge and server | Partial | Host-native scalar CLI only | Server runtime, async I/O, HTTP/data adapters, native/WASI output, observability, deployment, and load/conformance tests verified |
 | Plugins | Missing | — | Capability-limited Component Model plugins, lifecycle, versioning, resource limits, and hostile-plugin tests verified |

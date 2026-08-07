@@ -3,7 +3,7 @@
 > **The agent-native systems programming language**
 > **Meaning in. Verified machine code out.**
 
-SEMAPRAX is an experimental programming system where source code is the human projection and a stable, queryable semantic graph is the agent interface. The v0.1 prototype accepts a small typed language, verifies its declared meaning, and lowers it to a native executable.
+SEMAPRAX is an experimental programming system where source code is the human projection and a stable, queryable semantic graph is the agent interface. The v0.2 prototype accepts a small typed language, verifies its declared meaning, and lowers it to a native executable or a deployable browser/WebAssembly package.
 
 ```text
 Human source       Atomic semantic patches
@@ -48,7 +48,7 @@ semaprax build examples/meaning.spx -o meaning
 ./meaning
 ```
 
-## The v0.1 language
+## The v0.2 language
 
 ```semaprax
 module examples.meaning;

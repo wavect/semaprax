@@ -1,0 +1,18 @@
+module examples.effects;
+
+permit { clock.read }
+
+@id("clock.logical_tick")
+fn logical_tick(value: i64) -> i64
+    uses { clock.read }
+    ensures result == value + 1
+{
+    value + 1
+}
+
+@id("app.main")
+fn main() -> i64
+    uses { clock.read }
+{
+    logical_tick(41)
+}

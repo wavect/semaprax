@@ -1,0 +1,22 @@
+[package]
+name = "semaprax"
+version = "0.1.0"
+edition = "2021"
+description = "The agent-native systems programming language"
+license = "Apache-2.0"
+repository = "https://github.com/wavect/semaprax"
+readme = "README.md"
+keywords = ["compiler", "agents", "systems-programming", "semantic-graph"]
+categories = ["compilers", "development-tools"]
+
+[lib]
+name = "semaprax"
+path = "src/lib.rs"
+
+[[bin]]
+name = "semaprax"
+path = "src/main.rs"
+
+[profile.release]
+lto = "thin"
+strip = true

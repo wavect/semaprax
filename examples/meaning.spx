@@ -1,0 +1,17 @@
+module examples.meaning;
+
+@id("math.add")
+fn add(left: i64, right: i64) -> i64
+    requires left >= 0
+    requires right >= 0
+    ensures result == left + right
+{
+    left + right
+}
+
+@id("app.main")
+fn main() -> i64
+    ensures result == 42
+{
+    add(19, 23)
+}

@@ -1,0 +1,4 @@
+# Replace GRAPH_REVISION with `semaprax graph examples/meaning.spx`'s revision.
+base GRAPH_REVISION
+rename math.add to checked_add
+require no-new-effects

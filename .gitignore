@@ -1,0 +1,5 @@
+/target/
+/.semaprax/
+*.o
+*.out
+.DS_Store

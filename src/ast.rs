@@ -1,0 +1,164 @@
+use std::fmt;
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct Span {
+    pub start: usize,
+    pub end: usize,
+    pub line: usize,
+    pub column: usize,
+}
+
+impl Span {
+    pub fn merge(self, other: Span) -> Span {
+        Span {
+            start: self.start,
+            end: other.end,
+            line: self.line,
+            column: self.column,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Type {
+    I64,
+    Bool,
+}
+
+impl fmt::Display for Type {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Type::I64 => write!(f, "i64"),
+            Type::Bool => write!(f, "bool"),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Program {
+    pub path: String,
+    pub module: String,
+    pub permits: Vec<String>,
+    pub functions: Vec<Function>,
+}
+
+#[derive(Clone, Debug)]
+pub struct Function {
+    pub stable_id: String,
+    pub explicit_id: bool,
+    pub name: String,
+    pub name_span: Span,
+    pub params: Vec<Param>,
+    pub return_type: Type,
+    pub effects: Vec<String>,
+    pub requires: Vec<Expr>,
+    pub ensures: Vec<Expr>,
+    pub body: Expr,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug)]
+pub struct Param {
+    pub name: String,
+    pub ty: Type,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug)]
+pub struct Expr {
+    pub kind: ExprKind,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug)]
+pub enum ExprKind {
+    Int(i64),
+    Bool(bool),
+    Var(String),
+    Call {
+        name: String,
+        args: Vec<Expr>,
+    },
+    Unary {
+        op: UnaryOp,
+        value: Box<Expr>,
+    },
+    Binary {
+        op: BinaryOp,
+        left: Box<Expr>,
+        right: Box<Expr>,
+    },
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UnaryOp {
+    Neg,
+    Not,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum BinaryOp {
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Rem,
+    Eq,
+    Ne,
+    Lt,
+    Le,
+    Gt,
+    Ge,
+    And,
+    Or,
+}
+
+impl BinaryOp {
+    pub fn precedence(self) -> u8 {
+        match self {
+            BinaryOp::Or => 1,
+            BinaryOp::And => 2,
+            BinaryOp::Eq | BinaryOp::Ne => 3,
+            BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge => 4,
+            BinaryOp::Add | BinaryOp::Sub => 5,
+            BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem => 6,
+        }
+    }
+
+    pub fn text(self) -> &'static str {
+        match self {
+            BinaryOp::Add => "+",
+            BinaryOp::Sub => "-",
+            BinaryOp::Mul => "*",
+            BinaryOp::Div => "/",
+            BinaryOp::Rem => "%",
+            BinaryOp::Eq => "==",
+            BinaryOp::Ne => "!=",
+            BinaryOp::Lt => "<",
+            BinaryOp::Le => "<=",
+            BinaryOp::Gt => ">",
+            BinaryOp::Ge => ">=",
+            BinaryOp::And => "&&",
+            BinaryOp::Or => "||",
+        }
+    }
+}
+
+impl Expr {
+    pub fn visit_calls(&self, visit: &mut impl FnMut(&str, Span)) {
+        match &self.kind {
+            ExprKind::Call { name, args } => {
+                visit(name, self.span);
+                for arg in args {
+                    arg.visit_calls(visit);
+                }
+            }
+            ExprKind::Unary { value, .. } => value.visit_calls(visit),
+            ExprKind::Binary { left, right, .. } => {
+                left.visit_calls(visit);
+                right.visit_calls(visit);
+            }
+            ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Var(_) => {}
+        }
+    }
+}

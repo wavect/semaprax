@@ -12,7 +12,7 @@ Status values:
 
 | Requirement | Status | Current evidence | Completion gate |
 | --- | --- | --- | --- |
-| Agent-native semantic program | Partial | `graph`, `context`, stable declaration IDs, and revision-bound rename transactions | Versioned multi-file graph API covers declarations, types, ownership, effects, contracts, targets, tests, packages, generated artifacts, typed repairs, impact, and semantic review |
+| Agent-native semantic program | Partial | Graph v2 with persistent declaration IDs, revision-scoped structural expression/binding nodes, bounded `context`, and revision-bound rename transactions | Versioned multi-file graph API covers declarations, inferred expression types, ownership state, effects, contracts, targets, tests, packages, generated artifacts, typed repairs, impact, and semantic review |
 | Human-readable program | Partial | Canonical `.spx` source and formatter | Complete language round-trips deterministically; graph-aware merge/diff, debugger source mapping, and normal Git/editor workflows are verified |
 | Meaning in, verified machine code out | Partial | Typed scalar core, effect checks, runtime contract guards, checked arithmetic, native host executable | All safe-language guarantees survive every backend; native artifacts and portable components pass conformance suites on every supported target |
 | Atomic agent changes | Partial | Single-file stable-ID function/resource renames update calls and ownership type boundaries with stale revision rejection | Typed, transactional multi-file edits support every public semantic operation and either commit fully or leave all source/graph state unchanged |
@@ -25,7 +25,7 @@ Status values:
 | Functions, closures, interfaces, implementations, generics | Partial | Monomorphic named scalar functions | Closures, constraints, coherent implementations, specialization boundaries, and separate compilation verified |
 | `Option` and `Result`; no null or unchecked exceptions | Missing | — | Standard types, propagation syntax, FFI mappings, exhaustive handling, and diagnostics verified |
 | Immutable-by-default values and explicit mutation | Missing | — | Local, field, collection, and cross-task mutation rules verified |
-| Unique ownership and move safety | Partial | Resource types, explicit `own` boundaries, straight-line use-after-move and illegal-transfer diagnostics | Use-after-move, double-free, invalid transfer, conditional moves, destructors, and FFI ownership are compile-time checked |
+| Unique ownership and move safety | Partial | Resource types, explicit `own` boundaries, lexical transfers, control-flow joins, definite/conditional move diagnostics, and illegal-transfer rejection | Use-after-move, double-free, invalid transfer, destructors, partial initialization, loops, closures, concurrency, and FFI ownership are compile-time checked |
 | Borrowed views and lifetime safety | Partial | Non-consuming `borrow` boundaries and move-after-borrow behavior | Mutable/shared aliasing, escaping borrows, reborrows, slices, and zero-copy FFI pass positive and compile-fail suites |
 | Regions/arenas | Missing | — | Region inference and annotations prevent escape; bulk release and destructor behavior are verified |
 | Shared immutable ARC and opt-in managed zones | Missing | — | Retain/release correctness, cycle policy, escape optimization, and concurrency constraints verified |
@@ -78,7 +78,7 @@ Status values:
 
 | Requirement | Status | Current evidence | Completion gate |
 | --- | --- | --- | --- |
-| Token-budgeted semantic context | Partial | Dependency-depth context slices | Exact token budgets, contracts/tests/effect/ownership/target filters, relevance guarantees, and large-repository benchmarks verified |
+| Token-budgeted semantic context | Partial | Dependency-depth context slices plus repository agent guidance; Graphify adoption is evidence-gated in ADR 0001 | Exact token budgets, contracts/tests/effect/ownership/target filters, relevance guarantees, and large-repository benchmarks verified |
 | Impact analysis before modification | Missing | — | Call/type/contract/test/schema/migration/target/capability consumers are computed incrementally and verified on real repositories |
 | Typed holes and compiler-generated repairs | Missing | — | Obligations and valid repair operations are machine-readable and proven sound by compile-fail/repair tests |
 | Proof-carrying patches | Missing | — | Patch claims, tests, capability deltas, target expectations, and proof artifacts are independently verified before commit |

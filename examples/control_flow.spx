@@ -1,0 +1,15 @@
+module examples.control_flow;
+
+@id("flow.choose")
+fn choose(flag: bool, base: i64) -> i64
+{
+    let first = base + 1;
+    if flag { let second = first + 1; second } else { 0 }
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    let answer = choose(true, 40);
+    answer
+}

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::path::Path;
 
-use crate::ast::{BinaryOp, Expr, ExprKind, Program, Type, UnaryOp};
+use crate::ast::{BinaryOp, Expr, ExprKind, Program, Statement, Type, UnaryOp};
 use crate::diagnostic::{quote_json, Diagnostic};
 use crate::graph;
 
@@ -15,7 +15,19 @@ struct Signature {
     results: Vec<u8>,
 }
 
+#[derive(Default)]
+struct LocalLayout {
+    declarations: Vec<Type>,
+    lets: HashMap<usize, (u32, Type)>,
+}
+
 pub fn emit_module(program: &Program) -> Result<Vec<u8>, Diagnostic> {
+    if let Some(error) = crate::verify::verify(program)
+        .into_iter()
+        .find(|item| item.severity.is_error())
+    {
+        return Err(error);
+    }
     let mut types = Vec::<Signature>::new();
     let mut type_indexes = HashMap::<Signature, u32>::new();
     let binary_checked = intern_type(
@@ -62,6 +74,11 @@ pub fn emit_module(program: &Program) -> Result<Vec<u8>, Diagnostic> {
         .enumerate()
         .map(|(index, function)| (function.name.as_str(), IMPORT_COUNT + index as u32))
         .collect();
+    let function_returns: HashMap<_, _> = program
+        .functions
+        .iter()
+        .map(|item| (item.name.to_owned(), item.return_type.clone()))
+        .collect();
 
     let mut module = b"\0asm\x01\0\0\0".to_vec();
     let mut type_section = Vec::new();
@@ -105,28 +122,61 @@ pub fn emit_module(program: &Program) -> Result<Vec<u8>, Diagnostic> {
     write_u32(&mut code, program.functions.len() as u32);
     for function in &program.functions {
         let mut body = Vec::new();
-        write_u32(&mut body, 1);
-        write_u32(&mut body, 1);
-        body.push(wasm_type(&function.return_type));
         let result_local = function.params.len() as u32;
         let variables: HashMap<_, _> = function
             .params
             .iter()
             .enumerate()
-            .map(|(index, param)| (param.name.as_str(), (index as u32, param.ty.clone())))
+            .map(|(index, param)| (param.name.clone(), (index as u32, param.ty.clone())))
             .collect();
-        let function_returns: HashMap<_, _> = program
-            .functions
-            .iter()
-            .map(|item| (item.name.as_str(), item.return_type.clone()))
-            .collect();
+        let mut layout = LocalLayout {
+            declarations: vec![function.return_type.clone()],
+            lets: HashMap::new(),
+        };
+        for contract in &function.requires {
+            collect_locals(
+                contract,
+                &variables,
+                &function_returns,
+                function.params.len() as u32,
+                &mut layout,
+            )?;
+        }
+        collect_locals(
+            &function.body,
+            &variables,
+            &function_returns,
+            function.params.len() as u32,
+            &mut layout,
+        )?;
+        let mut ensure_variables = variables.clone();
+        ensure_variables.insert(
+            "result".to_owned(),
+            (result_local, function.return_type.clone()),
+        );
+        for contract in &function.ensures {
+            collect_locals(
+                contract,
+                &ensure_variables,
+                &function_returns,
+                function.params.len() as u32,
+                &mut layout,
+            )?;
+        }
+        write_u32(&mut body, layout.declarations.len() as u32);
+        for ty in &layout.declarations {
+            write_u32(&mut body, 1);
+            body.push(wasm_type(ty));
+        }
+        let mut variables = variables;
         for contract in &function.requires {
             emit_expr(
                 &mut body,
                 contract,
-                &variables,
+                &mut variables,
                 &function_indexes,
                 &function_returns,
+                &layout,
                 None,
             )?;
             emit_contract_guard(&mut body);
@@ -134,9 +184,10 @@ pub fn emit_module(program: &Program) -> Result<Vec<u8>, Diagnostic> {
         emit_expr(
             &mut body,
             &function.body,
-            &variables,
+            &mut variables,
             &function_indexes,
             &function_returns,
+            &layout,
             None,
         )?;
         body.push(0x21);
@@ -145,9 +196,10 @@ pub fn emit_module(program: &Program) -> Result<Vec<u8>, Diagnostic> {
             emit_expr(
                 &mut body,
                 contract,
-                &variables,
+                &mut variables,
                 &function_indexes,
                 &function_returns,
+                &layout,
                 Some((result_local, function.return_type.clone())),
             )?;
             emit_contract_guard(&mut body);
@@ -203,13 +255,84 @@ pub fn build_web(program: &Program, output: &Path) -> Result<(), Diagnostic> {
     Ok(())
 }
 
+fn collect_locals(
+    expr: &Expr,
+    variables: &HashMap<String, (u32, Type)>,
+    function_returns: &HashMap<String, Type>,
+    parameter_count: u32,
+    layout: &mut LocalLayout,
+) -> Result<(), Diagnostic> {
+    match &expr.kind {
+        ExprKind::Call { args, .. } => {
+            for arg in args {
+                collect_locals(arg, variables, function_returns, parameter_count, layout)?;
+            }
+        }
+        ExprKind::Unary { value, .. } => {
+            collect_locals(value, variables, function_returns, parameter_count, layout)?;
+        }
+        ExprKind::Binary { left, right, .. } => {
+            collect_locals(left, variables, function_returns, parameter_count, layout)?;
+            collect_locals(right, variables, function_returns, parameter_count, layout)?;
+        }
+        ExprKind::Block { statements, tail } => {
+            let mut scope = variables.clone();
+            for statement in statements {
+                match statement {
+                    Statement::Let {
+                        name, value, span, ..
+                    } => {
+                        collect_locals(value, &scope, function_returns, parameter_count, layout)?;
+                        let ty = expr_type(value, &scope, function_returns, None)?;
+                        let index = parameter_count + layout.declarations.len() as u32;
+                        layout.declarations.push(ty.clone());
+                        layout.lets.insert(span.start, (index, ty.clone()));
+                        scope.insert(name.clone(), (index, ty));
+                    }
+                }
+            }
+            collect_locals(tail, &scope, function_returns, parameter_count, layout)?;
+        }
+        ExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            collect_locals(
+                condition,
+                variables,
+                function_returns,
+                parameter_count,
+                layout,
+            )?;
+            collect_locals(
+                then_branch,
+                &variables.clone(),
+                function_returns,
+                parameter_count,
+                layout,
+            )?;
+            collect_locals(
+                else_branch,
+                &variables.clone(),
+                function_returns,
+                parameter_count,
+                layout,
+            )?;
+        }
+        ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Var(_) => {}
+    }
+    Ok(())
+}
+
 #[allow(clippy::too_many_arguments)]
 fn emit_expr(
     output: &mut Vec<u8>,
     expr: &Expr,
-    variables: &HashMap<&str, (u32, Type)>,
+    variables: &mut HashMap<String, (u32, Type)>,
     function_indexes: &HashMap<&str, u32>,
-    function_returns: &HashMap<&str, Type>,
+    function_returns: &HashMap<String, Type>,
+    layout: &LocalLayout,
     result: Option<(u32, Type)>,
 ) -> Result<(), Diagnostic> {
     match &expr.kind {
@@ -243,6 +366,7 @@ fn emit_expr(
                     variables,
                     function_indexes,
                     function_returns,
+                    layout,
                     result.clone(),
                 )?;
             }
@@ -262,6 +386,7 @@ fn emit_expr(
                     variables,
                     function_indexes,
                     function_returns,
+                    layout,
                     result,
                 )?;
                 output.push(0x10);
@@ -274,6 +399,7 @@ fn emit_expr(
                     variables,
                     function_indexes,
                     function_returns,
+                    layout,
                     result,
                 )?;
                 output.push(0x45);
@@ -286,6 +412,7 @@ fn emit_expr(
                 variables,
                 function_indexes,
                 function_returns,
+                layout,
                 result.clone(),
             )?;
             if matches!(op, BinaryOp::And | BinaryOp::Or) {
@@ -296,6 +423,7 @@ fn emit_expr(
                     variables,
                     function_indexes,
                     function_returns,
+                    layout,
                     result,
                 )?;
                 return Ok(());
@@ -306,6 +434,7 @@ fn emit_expr(
                 variables,
                 function_indexes,
                 function_returns,
+                layout,
                 result.clone(),
             )?;
             match op {
@@ -331,6 +460,85 @@ fn emit_expr(
                 BinaryOp::And | BinaryOp::Or => unreachable!(),
             }
         }
+        ExprKind::Block { statements, tail } => {
+            let saved = variables.clone();
+            for statement in statements {
+                match statement {
+                    Statement::Let {
+                        name, value, span, ..
+                    } => {
+                        emit_expr(
+                            output,
+                            value,
+                            variables,
+                            function_indexes,
+                            function_returns,
+                            layout,
+                            result.clone(),
+                        )?;
+                        let (index, ty) = layout.lets.get(&span.start).ok_or_else(|| {
+                            Diagnostic::io(
+                                "SPX-W108",
+                                format!("missing WebAssembly local layout for `{name}`"),
+                            )
+                        })?;
+                        output.push(0x21);
+                        write_u32(output, *index);
+                        variables.insert(name.clone(), (*index, ty.clone()));
+                    }
+                }
+            }
+            emit_expr(
+                output,
+                tail,
+                variables,
+                function_indexes,
+                function_returns,
+                layout,
+                result,
+            )?;
+            *variables = saved;
+        }
+        ExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            emit_expr(
+                output,
+                condition,
+                variables,
+                function_indexes,
+                function_returns,
+                layout,
+                result.clone(),
+            )?;
+            let ty = expr_type(then_branch, variables, function_returns, result.as_ref())?;
+            output.push(0x04);
+            output.push(wasm_type(&ty));
+            let mut then_variables = variables.clone();
+            emit_expr(
+                output,
+                then_branch,
+                &mut then_variables,
+                function_indexes,
+                function_returns,
+                layout,
+                result.clone(),
+            )?;
+            output.push(0x05);
+            let mut else_variables = variables.clone();
+            emit_expr(
+                output,
+                else_branch,
+                &mut else_variables,
+                function_indexes,
+                function_returns,
+                layout,
+                result,
+            )?;
+            output.push(0x0b);
+        }
     }
     Ok(())
 }
@@ -340,9 +548,10 @@ fn emit_short_circuit(
     output: &mut Vec<u8>,
     op: BinaryOp,
     right: &Expr,
-    variables: &HashMap<&str, (u32, Type)>,
+    variables: &mut HashMap<String, (u32, Type)>,
     function_indexes: &HashMap<&str, u32>,
-    function_returns: &HashMap<&str, Type>,
+    function_returns: &HashMap<String, Type>,
+    layout: &LocalLayout,
     result: Option<(u32, Type)>,
 ) -> Result<(), Diagnostic> {
     output.push(0x04);
@@ -354,6 +563,7 @@ fn emit_short_circuit(
             variables,
             function_indexes,
             function_returns,
+            layout,
             result,
         )?;
         output.push(0x05);
@@ -367,6 +577,7 @@ fn emit_short_circuit(
             variables,
             function_indexes,
             function_returns,
+            layout,
             result,
         )?;
     }
@@ -376,8 +587,8 @@ fn emit_short_circuit(
 
 fn expr_type(
     expr: &Expr,
-    variables: &HashMap<&str, (u32, Type)>,
-    functions: &HashMap<&str, Type>,
+    variables: &HashMap<String, (u32, Type)>,
+    functions: &HashMap<String, Type>,
     result: Option<&(u32, Type)>,
 ) -> Result<Type, Diagnostic> {
     Ok(match &expr.kind {
@@ -385,6 +596,7 @@ fn expr_type(
         ExprKind::Bool(_) => Type::Bool,
         ExprKind::Var(name) if name == "result" => result
             .map(|(_, ty)| ty.clone())
+            .or_else(|| variables.get(name).map(|(_, ty)| ty.clone()))
             .ok_or_else(|| Diagnostic::io("SPX-W105", "missing result type"))?,
         ExprKind::Var(name) => variables
             .get(name.as_str())
@@ -404,6 +616,19 @@ fn expr_type(
             }
             _ => Type::Bool,
         },
+        ExprKind::Block { statements, tail } => {
+            let mut scope = variables.clone();
+            for statement in statements {
+                match statement {
+                    Statement::Let { name, value, .. } => {
+                        let ty = expr_type(value, &scope, functions, result)?;
+                        scope.insert(name.clone(), (u32::MAX, ty));
+                    }
+                }
+            }
+            expr_type(tail, &scope, functions, result)?
+        }
+        ExprKind::If { then_branch, .. } => expr_type(then_branch, variables, functions, result)?,
     })
 }
 

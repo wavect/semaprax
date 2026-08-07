@@ -1,7 +1,8 @@
 use std::path::Path;
 
 use crate::ast::{
-    BinaryOp, Expr, ExprKind, Function, Param, ParamMode, Program, Resource, Span, Type, UnaryOp,
+    BinaryOp, Expr, ExprKind, Function, Param, ParamMode, Program, Resource, Span, Statement, Type,
+    UnaryOp,
 };
 use crate::diagnostic::Diagnostic;
 use crate::lexer::{lex, Token, TokenKind};
@@ -160,12 +161,8 @@ impl Parser {
                 break;
             }
         }
-        self.expect(&TokenKind::LBrace, "`{` before function body")?;
-        let body = self.expression(0)?;
-        self.take(&TokenKind::Semicolon);
-        let end = self
-            .expect(&TokenKind::RBrace, "`}` after function body")?
-            .span;
+        let body = self.block("function body")?;
+        let end = body.span;
         Ok(Function {
             stable_id,
             explicit_id,
@@ -214,6 +211,7 @@ impl Parser {
                 kind: ExprKind::Bool(value == "true"),
                 span: token.span,
             },
+            TokenKind::Ident(value) if value == "if" => self.if_expression(token.span)?,
             TokenKind::Ident(value) => Expr {
                 kind: ExprKind::Var(value),
                 span: token.span,
@@ -244,6 +242,7 @@ impl Parser {
                     span: token.span.merge(end),
                 }
             }
+            TokenKind::LBrace => self.block_after_open(token.span)?,
             _ => {
                 return Err(
                     Diagnostic::error("SPX-P201", "expected an expression", token.span)
@@ -274,6 +273,61 @@ impl Parser {
             };
         }
         Ok(expression)
+    }
+
+    fn block(&mut self, description: &str) -> Result<Expr, Diagnostic> {
+        let start = self
+            .expect(&TokenKind::LBrace, &format!("`{{` before {description}"))?
+            .span;
+        self.block_after_open(start)
+    }
+
+    fn block_after_open(&mut self, start: Span) -> Result<Expr, Diagnostic> {
+        let mut statements = Vec::new();
+        while self.at_keyword("let") {
+            let statement_start = self.bump().span;
+            let (name, name_span) = self.ident("local binding name")?;
+            self.expect(&TokenKind::Eq, "`=` in local binding")?;
+            let value = self.expression(0)?;
+            let end = self
+                .expect(&TokenKind::Semicolon, "`;` after local binding")?
+                .span;
+            statements.push(Statement::Let {
+                name,
+                name_span,
+                value,
+                span: statement_start.merge(end),
+            });
+        }
+        if self.at(&TokenKind::RBrace) {
+            return Err(self.error_here("SPX-P203", "block requires a final value expression"));
+        }
+        let tail = self.expression(0)?;
+        self.take(&TokenKind::Semicolon);
+        let end = self.expect(&TokenKind::RBrace, "`}` after block")?.span;
+        Ok(Expr {
+            kind: ExprKind::Block {
+                statements,
+                tail: Box::new(tail),
+            },
+            span: start.merge(end),
+        })
+    }
+
+    fn if_expression(&mut self, start: Span) -> Result<Expr, Diagnostic> {
+        let condition = self.expression(0)?;
+        let then_branch = self.block("`if` condition")?;
+        self.keyword("else")?;
+        let else_branch = self.block("`else`")?;
+        let span = start.merge(else_branch.span);
+        Ok(Expr {
+            kind: ExprKind::If {
+                condition: Box::new(condition),
+                then_branch: Box::new(then_branch),
+                else_branch: Box::new(else_branch),
+            },
+            span,
+        })
     }
 
     fn effect_set(&mut self) -> Result<Vec<String>, Diagnostic> {

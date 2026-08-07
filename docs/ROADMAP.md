@@ -16,7 +16,7 @@ Status: implemented in this repository.
 
 ## 0.2 — Useful core language
 
-Status: in progress. Resource ownership boundaries, move diagnostics, and a browser-loadable WebAssembly core backend are implemented; the remaining gates below are not.
+Status: in progress. Resource ownership boundaries, lexical `let`, typed `if/else`, conservative conditional-move diagnostics, structural expression graphs, and a browser-loadable WebAssembly core backend are implemented; the remaining gates below are not.
 
 - Records, variants, `Option`, and `Result`.
 - Exhaustive pattern matching.
@@ -28,6 +28,8 @@ Status: in progress. Resource ownership boundaries, move diagnostics, and a brow
 - Complete ownership/lifetime/region analysis across control flow.
 
 Exit criterion: build a non-trivial CLI and edit it entirely through semantic transactions.
+
+The aggregate and pattern tranche is specified in [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md); its resolved-HIR and place-ownership groundwork precedes public syntax.
 
 ## 0.3 — Ownership and fast development
 

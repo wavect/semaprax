@@ -1,6 +1,6 @@
 # Compiler architecture
 
-SEMAPRAX v0.1 is a vertical slice through the future compiler. Each layer has a narrow contract so the prototype can grow without turning its source syntax into its internal API.
+SEMAPRAX v0.2 is a vertical slice through the future compiler. Each layer has a narrow contract so the prototype can grow without turning its source syntax into its internal API.
 
 ```text
 .spx source
@@ -15,11 +15,13 @@ lexer -> parser -> typed AST
              /             \
       agent queries    transactions
                     |
-              checked C11 IR
-                    |
-                  Clang
-                    |
-             native executable
+              checked lowering
+               /          \
+          sequenced C11   Wasm core
+               |             |
+             Clang       browser host
+               |             |
+        native executable  web package
 ```
 
 ## Source projection
@@ -37,15 +39,16 @@ The verifier builds the module symbol table and checks:
 3. Boolean preconditions and postconditions.
 4. Function effects against module permits.
 5. Transitive effect declarations at each call edge.
-6. The native entry-point shape.
+6. Lexical local scope and conservative ownership joins across branches and lazy boolean paths.
+7. The native entry-point shape.
 
-The initial contract lane is progressive: contracts are type-checked at compile time and guarded in generated native code. Static proof is a later lane, and its absence is reported honestly in the project status.
+The initial contract lane is progressive: contracts are type-checked at compile time, required to be effect-free, and guarded in generated native and Wasm code. Static proof is a later lane, and its absence is reported honestly in the project status.
 
 Generated arithmetic is checked for overflow, zero division, and the signed division edge case. Failures have stable process exit codes and explicit diagnostics rather than C undefined behavior.
 
 ## Semantic graph
 
-`semaprax.graph.v1` contains the canonical revision, module capabilities, stable nodes, signatures, effects, contracts, and call edges. The graph currently rebuilds per command. A later daemon will persist indexed revisions and expression identities.
+`semaprax.graph.v2` contains the canonical revision, module capabilities, persistent declaration nodes, signatures, effects, textual and structural contracts, contract/body call edges, and a structural body graph. Expression and local-binding IDs are deterministic within a graph revision; only public declaration IDs persist across revisions. Bounded context follows calls from preconditions, bodies, and postconditions. The graph currently rebuilds per command. A later daemon will persist indexed revisions and typed expression facts.
 
 Context slicing starts from a name or stable ID and walks call dependencies to a bounded depth. Callers, type references, tests, and target relationships will become additional typed edges.
 
@@ -73,21 +76,27 @@ The protocol will evolve toward structured JSON/CBOR operations with typed paylo
 
 ## Native backend
 
-The v0.1 backend emits readable C11, then invokes Clang. C is an implementation IR, not a promised ecosystem boundary. This gives the prototype real native binaries, easy inspection, sanitizers, and broad host support with almost no backend dependency surface.
+The v0.2 native backend emits readable C11, then invokes Clang. C is an implementation IR, not a promised ecosystem boundary. This gives the prototype real native binaries, easy inspection, sanitizers, and broad host support with almost no backend dependency surface.
+
+The C emitter materializes subexpressions in source order before calls and operators. This is required because C does not define function-argument evaluation order, while SEMAPRAX does. Lazy boolean operators and `if` expressions lower to explicit branches, and generated local names cannot collide with source identifiers.
 
 The planned development backend is Cranelift. The planned optimizing pipeline uses multi-level IR with LLVM, while portable components lower through the WebAssembly Component Model. Backend changes must preserve the graph and verification contracts.
 
 ## Ownership seed
 
-Resource declarations introduce non-copy semantic values. Function parameters state whether they receive ownership, borrow for the duration of a call, or participate in explicit shared ownership. The verifier evaluates the current expression language left-to-right, records moves at owned call boundaries, rejects later uses, and prevents borrowed/shared values from being returned or transferred as owned.
+Resource declarations introduce non-copy semantic values. Function parameters state whether they receive ownership, borrow for the duration of a call, or participate in explicit shared ownership. `let` transfers owned values while preserving borrowed/shared modes. The verifier evaluates left-to-right, records moves at owned boundaries, distinguishes definite from conditional moves, joins ownership state conservatively across `if` and lazy boolean control flow, and prevents borrowed/shared values from being returned or transferred as owned.
 
-This is the first ownership IR, not a complete borrow checker. Control-flow joins, mutable alias exclusion, inferred reborrows, lifetimes, regions, destructors, ARC operations, and FFI ownership remain explicit completion gates.
+This is the first ownership IR, not a complete borrow checker. Mutable alias exclusion, inferred reborrows, lifetime parameters, regions, destructors, ARC operations, and FFI ownership remain explicit completion gates.
 
 ## WebAssembly bootstrap backend
 
 The direct Wasm encoder emits standard WebAssembly core modules without requiring a Rust target installation or an external assembler. User functions compile to typed Wasm functions and `main` is exported as `semaprax_main`. Contracts trap through a host import. Arithmetic lowers to a small generated JavaScript host that performs checked `i64` operations with `BigInt`, preserving the safe arithmetic semantics instead of silently accepting Wasm's wrapping operators.
 
 The web package contains `app.wasm`, `semaprax.js`, `index.html`, `package.json`, and a graph-revision/capability manifest. This is real browser-executable output; it is not yet the UI dialect, DOM renderer, SSR/hydration system, WASI target, or Component Model backend.
+
+## Development integrity
+
+`AGENTS.md` defines the repository invariants and change protocol. `docs/QUALITY-GATES.md` defines baseline and semantic-layer-specific evidence. CI runs formatting, strict linting, tests, release builds, native execution, Wasm instantiation, crate packaging, and the declared Rust minimum version. These gates reduce regressions; they do not turn a partial completion-matrix row into a completed one.
 
 ## Trust boundaries
 

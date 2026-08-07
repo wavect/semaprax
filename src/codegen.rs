@@ -1,12 +1,19 @@
+use std::collections::HashMap;
 use std::fmt::Write;
 use std::path::Path;
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use crate::ast::{BinaryOp, Expr, ExprKind, Program, Type, UnaryOp};
+use crate::ast::{BinaryOp, Expr, ExprKind, Program, Statement, Type, UnaryOp};
 use crate::diagnostic::Diagnostic;
 
-pub fn emit_c(program: &Program) -> String {
+pub fn emit_c(program: &Program) -> Result<String, Diagnostic> {
+    if let Some(error) = crate::verify::verify(program)
+        .into_iter()
+        .find(|item| item.severity.is_error())
+    {
+        return Err(error);
+    }
     let mut output = String::from(
         "#include <stdbool.h>\n#include <stdint.h>\n#include <stdio.h>\n#include <stdlib.h>\n\n",
     );
@@ -38,7 +45,10 @@ pub fn emit_c(program: &Program) -> String {
             if index > 0 {
                 output.push_str(", ");
             }
-            write!(output, "{} {}", c_type(&param.ty), param.name).unwrap();
+            write!(output, "{}", c_type(&param.ty)).unwrap();
+        }
+        if function.params.is_empty() {
+            output.push_str("void");
         }
         output.push_str(");\n");
     }
@@ -55,40 +65,68 @@ pub fn emit_c(program: &Program) -> String {
             if index > 0 {
                 output.push_str(", ");
             }
-            write!(output, "{} {}", c_type(&param.ty), param.name).unwrap();
+            write!(output, "{} spx_param_{}", c_type(&param.ty), param.name).unwrap();
+        }
+        if function.params.is_empty() {
+            output.push_str("void");
         }
         output.push_str(") {\n");
+        let returns = program
+            .functions
+            .iter()
+            .map(|item| (item.name.clone(), item.return_type.clone()))
+            .collect();
+        let variables = function
+            .params
+            .iter()
+            .map(|param| {
+                (
+                    param.name.clone(),
+                    CBinding {
+                        name: format!("spx_param_{}", param.name),
+                        ty: param.ty.clone(),
+                    },
+                )
+            })
+            .collect();
+        let mut emitter = CEmitter::new(&mut output, variables, returns);
         for param in &function.params {
-            writeln!(output, "    (void){};", param.name).unwrap();
+            emitter.line(&format!("(void)spx_param_{};", param.name));
         }
         for contract in &function.requires {
-            writeln!(
-                output,
-                "    if (!({})) spx_contract_fail(\"requires\", \"{}\", \"{}\");",
-                c_expr(contract),
+            let condition = emitter.emit_expr(contract);
+            emitter.line(&format!(
+                "if (!({})) spx_contract_fail(\"requires\", \"{}\", \"{}\");",
+                condition.code,
                 function.name,
                 c_string(&crate::format::expr(contract, 0))
-            )
-            .unwrap();
+            ));
         }
-        writeln!(
-            output,
-            "    {} result = {};",
+        let body = emitter.emit_expr(&function.body);
+        emitter.line(&format!(
+            "{} spx_result = {};",
             c_type(&function.return_type),
-            c_expr(&function.body)
-        )
-        .unwrap();
+            body.code
+        ));
+        emitter.variables.insert(
+            "result".to_owned(),
+            CBinding {
+                name: "spx_result".to_owned(),
+                ty: function.return_type.clone(),
+            },
+        );
         for contract in &function.ensures {
-            writeln!(
-                output,
-                "    if (!({})) spx_contract_fail(\"ensures\", \"{}\", \"{}\");",
-                c_expr(contract),
+            let condition = emitter.emit_expr(contract);
+            emitter.line(&format!(
+                "if (!({})) spx_contract_fail(\"ensures\", \"{}\", \"{}\");",
+                condition.code,
                 function.name,
                 c_string(&crate::format::expr(contract, 0))
-            )
-            .unwrap();
+            ));
         }
-        output.push_str("    return result;\n}\n\n");
+        emitter.line("return spx_result;");
+        drop(emitter);
+        output.push_str("}\n\n");
     }
     if program
         .functions
@@ -102,7 +140,7 @@ pub fn emit_c(program: &Program) -> String {
              return 0;\n}\n",
         );
     }
-    output
+    Ok(output)
 }
 
 pub fn build(program: &Program, output: &Path) -> Result<(), Diagnostic> {
@@ -112,7 +150,7 @@ pub fn build(program: &Program, output: &Path) -> Result<(), Diagnostic> {
         "semaprax-codegen-{}-{build_id}.c",
         std::process::id()
     ));
-    std::fs::write(&c_path, emit_c(program)).map_err(|error| {
+    std::fs::write(&c_path, emit_c(program)?).map_err(|error| {
         Diagnostic::io(
             "SPX-I101",
             format!(
@@ -154,38 +192,255 @@ fn c_type(ty: &Type) -> &'static str {
     }
 }
 
-fn c_expr(expr: &Expr) -> String {
-    match &expr.kind {
-        ExprKind::Int(value) => format!("INT64_C({value})"),
-        ExprKind::Bool(value) => value.to_string(),
-        ExprKind::Var(name) => name.clone(),
-        ExprKind::Call { name, args } => format!(
-            "spx_user_{}({})",
-            name,
-            args.iter().map(c_expr).collect::<Vec<_>>().join(", ")
-        ),
-        ExprKind::Unary {
-            op: UnaryOp::Neg,
-            value,
-        } => format!("spx_rt_neg({})", c_expr(value)),
-        ExprKind::Unary {
-            op: UnaryOp::Not,
-            value,
-        } => format!("(!{})", c_expr(value)),
-        ExprKind::Binary { op, left, right } => {
-            let left = c_expr(left);
-            let right = c_expr(right);
-            match op {
-                BinaryOp::Add => format!("spx_rt_add({left}, {right})"),
-                BinaryOp::Sub => format!("spx_rt_sub({left}, {right})"),
-                BinaryOp::Mul => format!("spx_rt_mul({left}, {right})"),
-                BinaryOp::Div => format!("spx_rt_div({left}, {right})"),
-                BinaryOp::Rem => format!("spx_rt_rem({left}, {right})"),
-                BinaryOp::And => format!("({left} && {right})"),
-                BinaryOp::Or => format!("({left} || {right})"),
-                _ => format!("({left} {} {right})", op.text()),
+#[derive(Clone)]
+struct CBinding {
+    name: String,
+    ty: Type,
+}
+
+struct CValue {
+    code: String,
+    ty: Type,
+}
+
+struct CEmitter<'a> {
+    output: &'a mut String,
+    variables: HashMap<String, CBinding>,
+    returns: HashMap<String, Type>,
+    next_local: usize,
+    indent: usize,
+}
+
+impl<'a> CEmitter<'a> {
+    fn new(
+        output: &'a mut String,
+        variables: HashMap<String, CBinding>,
+        returns: HashMap<String, Type>,
+    ) -> Self {
+        Self {
+            output,
+            variables,
+            returns,
+            next_local: 0,
+            indent: 1,
+        }
+    }
+
+    fn line(&mut self, value: &str) {
+        for _ in 0..self.indent {
+            self.output.push_str("    ");
+        }
+        writeln!(self.output, "{value}").unwrap();
+    }
+
+    fn temporary(&mut self, ty: &Type) -> String {
+        let name = format!("spx_internal_{}", self.next_local);
+        self.next_local += 1;
+        self.line(&format!("{} {name};", c_type(ty)));
+        name
+    }
+
+    fn emit_expr(&mut self, expr: &Expr) -> CValue {
+        match &expr.kind {
+            ExprKind::Int(value) => CValue {
+                code: format!("INT64_C({value})"),
+                ty: Type::I64,
+            },
+            ExprKind::Bool(value) => CValue {
+                code: value.to_string(),
+                ty: Type::Bool,
+            },
+            ExprKind::Var(name) => {
+                let binding = self
+                    .variables
+                    .get(name)
+                    .unwrap_or_else(|| panic!("verified C local `{name}` missing"));
+                CValue {
+                    code: binding.name.clone(),
+                    ty: binding.ty.clone(),
+                }
+            }
+            ExprKind::Call { name, args } => {
+                let args = args
+                    .iter()
+                    .map(|arg| self.emit_expr(arg).code)
+                    .collect::<Vec<_>>();
+                let ty = self.returns[name].clone();
+                let temporary = self.temporary(&ty);
+                self.line(&format!(
+                    "{temporary} = spx_user_{name}({});",
+                    args.join(", ")
+                ));
+                CValue {
+                    code: temporary,
+                    ty,
+                }
+            }
+            ExprKind::Unary { op, value } => {
+                let value = self.emit_expr(value);
+                let ty = match op {
+                    UnaryOp::Neg => Type::I64,
+                    UnaryOp::Not => Type::Bool,
+                };
+                let temporary = self.temporary(&ty);
+                let operation = match op {
+                    UnaryOp::Neg => format!("spx_rt_neg({})", value.code),
+                    UnaryOp::Not => format!("(!{})", value.code),
+                };
+                self.line(&format!("{temporary} = {operation};"));
+                CValue {
+                    code: temporary,
+                    ty,
+                }
+            }
+            ExprKind::Binary { op, left, right } => self.emit_binary(*op, left, right),
+            ExprKind::Block { statements, tail } => {
+                let saved = self.variables.clone();
+                for statement in statements {
+                    match statement {
+                        Statement::Let { name, value, .. } => {
+                            let value = self.emit_expr(value);
+                            let local = format!("spx_local_{}", self.next_local);
+                            self.next_local += 1;
+                            self.line(&format!("{} {local} = {};", c_type(&value.ty), value.code));
+                            self.variables.insert(
+                                name.clone(),
+                                CBinding {
+                                    name: local,
+                                    ty: value.ty,
+                                },
+                            );
+                        }
+                    }
+                }
+                let value = self.emit_expr(tail);
+                self.variables = saved;
+                value
+            }
+            ExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                let condition = self.emit_expr(condition);
+                let ty = self.infer_type(then_branch);
+                let temporary = self.temporary(&ty);
+                self.line(&format!("if ({}) {{", condition.code));
+                self.indent += 1;
+                let then_value = self.emit_expr(then_branch);
+                self.line(&format!("{temporary} = {};", then_value.code));
+                self.indent -= 1;
+                self.line("} else {");
+                self.indent += 1;
+                let else_value = self.emit_expr(else_branch);
+                self.line(&format!("{temporary} = {};", else_value.code));
+                self.indent -= 1;
+                self.line("}");
+                CValue {
+                    code: temporary,
+                    ty,
+                }
             }
         }
+    }
+
+    fn emit_binary(&mut self, op: BinaryOp, left: &Expr, right: &Expr) -> CValue {
+        let left = self.emit_expr(left);
+        if matches!(op, BinaryOp::And | BinaryOp::Or) {
+            let temporary = self.temporary(&Type::Bool);
+            if op == BinaryOp::And {
+                self.line(&format!("if ({}) {{", left.code));
+                self.indent += 1;
+                let right = self.emit_expr(right);
+                self.line(&format!("{temporary} = {};", right.code));
+                self.indent -= 1;
+                self.line("} else {");
+                self.indent += 1;
+                self.line(&format!("{temporary} = false;"));
+            } else {
+                self.line(&format!("if ({}) {{", left.code));
+                self.indent += 1;
+                self.line(&format!("{temporary} = true;"));
+                self.indent -= 1;
+                self.line("} else {");
+                self.indent += 1;
+                let right = self.emit_expr(right);
+                self.line(&format!("{temporary} = {};", right.code));
+            }
+            self.indent -= 1;
+            self.line("}");
+            return CValue {
+                code: temporary,
+                ty: Type::Bool,
+            };
+        }
+        let right = self.emit_expr(right);
+        let ty = match op {
+            BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem => {
+                Type::I64
+            }
+            _ => Type::Bool,
+        };
+        let temporary = self.temporary(&ty);
+        let operation = match op {
+            BinaryOp::Add => format!("spx_rt_add({}, {})", left.code, right.code),
+            BinaryOp::Sub => format!("spx_rt_sub({}, {})", left.code, right.code),
+            BinaryOp::Mul => format!("spx_rt_mul({}, {})", left.code, right.code),
+            BinaryOp::Div => format!("spx_rt_div({}, {})", left.code, right.code),
+            BinaryOp::Rem => format!("spx_rt_rem({}, {})", left.code, right.code),
+            _ => format!("({} {} {})", left.code, op.text(), right.code),
+        };
+        self.line(&format!("{temporary} = {operation};"));
+        CValue {
+            code: temporary,
+            ty,
+        }
+    }
+
+    fn infer_type(&self, expr: &Expr) -> Type {
+        infer_type(expr, &self.variables, &self.returns)
+    }
+}
+
+fn infer_type(
+    expr: &Expr,
+    variables: &HashMap<String, CBinding>,
+    returns: &HashMap<String, Type>,
+) -> Type {
+    match &expr.kind {
+        ExprKind::Int(_) => Type::I64,
+        ExprKind::Bool(_) => Type::Bool,
+        ExprKind::Var(name) => variables[name].ty.clone(),
+        ExprKind::Call { name, .. } => returns[name].clone(),
+        ExprKind::Unary { op, .. } => match op {
+            UnaryOp::Neg => Type::I64,
+            UnaryOp::Not => Type::Bool,
+        },
+        ExprKind::Binary { op, .. } => match op {
+            BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem => {
+                Type::I64
+            }
+            _ => Type::Bool,
+        },
+        ExprKind::Block { statements, tail } => {
+            let mut scope = variables.clone();
+            for statement in statements {
+                match statement {
+                    Statement::Let { name, value, .. } => {
+                        let ty = infer_type(value, &scope, returns);
+                        scope.insert(
+                            name.clone(),
+                            CBinding {
+                                name: String::new(),
+                                ty,
+                            },
+                        );
+                    }
+                }
+            }
+            infer_type(tail, &scope, returns)
+        }
+        ExprKind::If { then_branch, .. } => infer_type(then_branch, variables, returns),
     }
 }
 

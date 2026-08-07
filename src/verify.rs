@@ -1,13 +1,56 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::ast::{BinaryOp, Expr, ExprKind, Function, ParamMode, Program, Span, Type, UnaryOp};
+use crate::ast::{
+    BinaryOp, Expr, ExprKind, Function, ParamMode, Program, Span, Statement, Type, UnaryOp,
+};
 use crate::diagnostic::Diagnostic;
 
 #[derive(Clone, Debug)]
 struct Binding {
     ty: Type,
     mode: ParamMode,
-    moved: bool,
+    availability: Availability,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum Availability {
+    Available,
+    Moved,
+    MaybeMoved,
+}
+
+impl Availability {
+    fn join(self, other: Self) -> Self {
+        if self == other {
+            self
+        } else {
+            Availability::MaybeMoved
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+struct CheckedValue {
+    ty: Type,
+    mode: ParamMode,
+}
+
+impl CheckedValue {
+    fn value(ty: Type) -> Self {
+        Self {
+            ty,
+            mode: ParamMode::Value,
+        }
+    }
+
+    fn returned(ty: Type) -> Self {
+        let mode = if ty.is_resource() {
+            ParamMode::Own
+        } else {
+            ParamMode::Value
+        };
+        Self { ty, mode }
+    }
 }
 
 pub fn verify(program: &Program) -> Vec<Diagnostic> {
@@ -17,7 +60,7 @@ pub fn verify(program: &Program) -> Vec<Diagnostic> {
     let mut resources = HashSet::new();
 
     for resource in &program.resources {
-        if !plain_identifier(&resource.name) {
+        if !source_identifier(&resource.name) {
             diagnostics.push(error(
                 program,
                 "SPX-S106",
@@ -58,7 +101,7 @@ pub fn verify(program: &Program) -> Vec<Diagnostic> {
     }
 
     for function in &program.functions {
-        if !plain_identifier(&function.name) {
+        if !source_identifier(&function.name) {
             diagnostics.push(error(
                 program,
                 "SPX-S104",
@@ -108,7 +151,7 @@ pub fn verify(program: &Program) -> Vec<Diagnostic> {
         );
         let mut variables = HashMap::new();
         for param in &function.params {
-            if !plain_identifier(&param.name) {
+            if !source_identifier(&param.name) {
                 diagnostics.push(error(
                     program,
                     "SPX-S105",
@@ -120,11 +163,11 @@ pub fn verify(program: &Program) -> Vec<Diagnostic> {
             check_ownership_mode(program, function, param, &mut diagnostics);
             if variables
                 .insert(
-                    param.name.as_str(),
+                    param.name.clone(),
                     Binding {
                         ty: param.ty.clone(),
                         mode: param.mode,
-                        moved: false,
+                        availability: Availability::Available,
                     },
                 )
                 .is_some()
@@ -138,6 +181,20 @@ pub fn verify(program: &Program) -> Vec<Diagnostic> {
             }
         }
 
+        let entry_variables = variables.clone();
+        for contract in &function.requires {
+            require_bool(
+                program,
+                function,
+                contract,
+                &entry_variables,
+                &functions,
+                None,
+                &mut diagnostics,
+                "precondition",
+            );
+        }
+
         if let Some(actual) = check_expr(
             program,
             function,
@@ -148,38 +205,34 @@ pub fn verify(program: &Program) -> Vec<Diagnostic> {
             true,
             &mut diagnostics,
         ) {
-            if actual != function.return_type {
+            if actual.ty != function.return_type {
                 diagnostics.push(error(
                     program,
                     "SPX-T103",
                     format!(
-                        "function `{}` returns {actual}, but its signature declares {}",
-                        function.name, function.return_type
+                        "function `{}` returns {}, but its signature declares {}",
+                        function.name, actual.ty, function.return_type
                     ),
                     function.body.span,
                 ));
             }
-            check_resource_return(
-                program,
-                function,
-                &function.body,
-                &variables,
-                &mut diagnostics,
-            );
+            if function.return_type.is_resource() && actual.mode != ParamMode::Own {
+                diagnostics.push(
+                    error(
+                        program,
+                        "SPX-O104",
+                        format!(
+                            "function `{}` cannot return a {} resource as owned",
+                            function.name,
+                            actual.mode.text()
+                        ),
+                        function.body.span,
+                    )
+                    .with_help("return an owned resource or declare a future lifetime-bound view"),
+                );
+            }
         }
 
-        for contract in &function.requires {
-            require_bool(
-                program,
-                function,
-                contract,
-                &variables,
-                &functions,
-                None,
-                &mut diagnostics,
-                "precondition",
-            );
-        }
         for contract in &function.ensures {
             require_bool(
                 program,
@@ -308,29 +361,32 @@ fn check_expr(
     program: &Program,
     current: &Function,
     expr: &Expr,
-    variables: &mut HashMap<&str, Binding>,
+    variables: &mut HashMap<String, Binding>,
     functions: &HashMap<&str, &Function>,
     result_type: Option<&Type>,
     allow_moves: bool,
     diagnostics: &mut Vec<Diagnostic>,
-) -> Option<Type> {
+) -> Option<CheckedValue> {
     match &expr.kind {
-        ExprKind::Int(_) => Some(Type::I64),
-        ExprKind::Bool(_) => Some(Type::Bool),
-        ExprKind::Var(name) if name == "result" => result_type.cloned().or_else(|| {
-            diagnostics.push(error(
-                program,
-                "SPX-T201",
-                "`result` is only available in postconditions",
-                expr.span,
-            ));
-            None
-        }),
+        ExprKind::Int(_) => Some(CheckedValue::value(Type::I64)),
+        ExprKind::Bool(_) => Some(CheckedValue::value(Type::Bool)),
+        ExprKind::Var(name) if name == "result" => result_type
+            .cloned()
+            .map(CheckedValue::returned)
+            .or_else(|| {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T201",
+                    "`result` is only available in postconditions",
+                    expr.span,
+                ));
+                None
+            }),
         ExprKind::Var(name) => variables
             .get(name.as_str())
             .map(|binding| {
-                if binding.moved {
-                    diagnostics.push(
+                match binding.availability {
+                    Availability::Moved => diagnostics.push(
                         error(
                             program,
                             "SPX-O101",
@@ -338,9 +394,24 @@ fn check_expr(
                             expr.span,
                         )
                         .with_help("borrow the resource if the callee does not need ownership"),
-                    );
+                    ),
+                    Availability::MaybeMoved => diagnostics.push(
+                        error(
+                            program,
+                            "SPX-O107",
+                            format!(
+                                "resource `{name}` may have been moved on another control-flow path"
+                            ),
+                            expr.span,
+                        )
+                        .with_help("move the resource on every path or keep it borrowed"),
+                    ),
+                    Availability::Available => {}
                 }
-                binding.ty.clone()
+                CheckedValue {
+                    ty: binding.ty.clone(),
+                    mode: binding.mode,
+                }
             })
             .or_else(|| {
                 diagnostics.push(error(
@@ -352,16 +423,17 @@ fn check_expr(
                 None
             }),
         ExprKind::Call { name, args } => {
-            let Some(target) = functions.get(name.as_str()) else {
+            let target = functions.get(name.as_str()).copied();
+            if target.is_none() {
                 diagnostics.push(error(
                     program,
                     "SPX-T203",
                     format!("unknown function `{name}`"),
                     expr.span,
                 ));
-                return None;
-            };
-            if args.len() != target.params.len() {
+            }
+            if target.is_some_and(|target| args.len() != target.params.len()) {
+                let target = target.expect("checked above");
                 diagnostics.push(error(
                     program,
                     "SPX-T204",
@@ -373,7 +445,7 @@ fn check_expr(
                     expr.span,
                 ));
             }
-            for (arg, param) in args.iter().zip(&target.params) {
+            for (index, arg) in args.iter().enumerate() {
                 let actual = check_expr(
                     program,
                     current,
@@ -384,7 +456,10 @@ fn check_expr(
                     allow_moves,
                     diagnostics,
                 );
-                if actual.as_ref().is_some_and(|actual| actual != &param.ty) {
+                let Some(param) = target.and_then(|target| target.params.get(index)) else {
+                    continue;
+                };
+                if actual.as_ref().is_some_and(|actual| actual.ty != param.ty) {
                     diagnostics.push(error(
                         program,
                         "SPX-T205",
@@ -392,7 +467,7 @@ fn check_expr(
                             "argument `{}` to `{name}` expects {}, received {}",
                             param.name,
                             param.ty,
-                            actual.expect("type checked above")
+                            actual.as_ref().expect("type checked above").ty
                         ),
                         arg.span,
                     ));
@@ -403,12 +478,13 @@ fn check_expr(
                     name,
                     arg,
                     param,
+                    actual.as_ref(),
                     variables,
                     allow_moves,
                     diagnostics,
                 );
             }
-            Some(target.return_type.clone())
+            target.map(|target| CheckedValue::returned(target.return_type.clone()))
         }
         ExprKind::Unary { op, value } => {
             let actual = check_expr(
@@ -425,15 +501,15 @@ fn check_expr(
                 UnaryOp::Neg => Type::I64,
                 UnaryOp::Not => Type::Bool,
             };
-            if actual != expected {
+            if actual.ty != expected {
                 diagnostics.push(error(
                     program,
                     "SPX-T206",
-                    format!("unary operator expects {expected}, received {actual}"),
+                    format!("unary operator expects {expected}, received {}", actual.ty),
                     expr.span,
                 ));
             }
-            Some(expected)
+            Some(CheckedValue::value(expected))
         }
         ExprKind::Binary { op, left, right } => {
             let left_ty = check_expr(
@@ -446,16 +522,33 @@ fn check_expr(
                 allow_moves,
                 diagnostics,
             );
-            let right_ty = check_expr(
-                program,
-                current,
-                right,
-                variables,
-                functions,
-                result_type,
-                allow_moves,
-                diagnostics,
-            );
+            let right_ty = if matches!(op, BinaryOp::And | BinaryOp::Or) {
+                let names = variables.keys().cloned().collect::<Vec<_>>();
+                let mut right_variables = variables.clone();
+                let value = check_expr(
+                    program,
+                    current,
+                    right,
+                    &mut right_variables,
+                    functions,
+                    result_type,
+                    allow_moves,
+                    diagnostics,
+                );
+                join_conditional(variables, &right_variables, &names);
+                value
+            } else {
+                check_expr(
+                    program,
+                    current,
+                    right,
+                    variables,
+                    functions,
+                    result_type,
+                    allow_moves,
+                    diagnostics,
+                )
+            };
             let (expected, output) = match op {
                 BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem => {
                     (Type::I64, Type::I64)
@@ -465,7 +558,11 @@ fn check_expr(
                 }
                 BinaryOp::And | BinaryOp::Or => (Type::Bool, Type::Bool),
                 BinaryOp::Eq | BinaryOp::Ne => {
-                    if left_ty.is_some() && right_ty.is_some() && left_ty != right_ty {
+                    if left_ty.is_some()
+                        && right_ty.is_some()
+                        && left_ty.as_ref().map(|value| &value.ty)
+                            != right_ty.as_ref().map(|value| &value.ty)
+                    {
                         diagnostics.push(error(
                             program,
                             "SPX-T207",
@@ -473,11 +570,11 @@ fn check_expr(
                             expr.span,
                         ));
                     }
-                    return Some(Type::Bool);
+                    return Some(CheckedValue::value(Type::Bool));
                 }
             };
-            if left_ty.as_ref().is_some_and(|ty| ty != &expected)
-                || right_ty.as_ref().is_some_and(|ty| ty != &expected)
+            if left_ty.as_ref().is_some_and(|value| value.ty != expected)
+                || right_ty.as_ref().is_some_and(|value| value.ty != expected)
             {
                 diagnostics.push(error(
                     program,
@@ -486,7 +583,167 @@ fn check_expr(
                     expr.span,
                 ));
             }
-            Some(output)
+            Some(CheckedValue::value(output))
+        }
+        ExprKind::Block { statements, tail } => {
+            let outer_names = variables.keys().cloned().collect::<Vec<_>>();
+            let mut scope = variables.clone();
+            for statement in statements {
+                match statement {
+                    Statement::Let {
+                        name,
+                        name_span,
+                        value,
+                        ..
+                    } => {
+                        if !source_identifier(name) {
+                            diagnostics.push(error(
+                                program,
+                                "SPX-S109",
+                                format!("`{name}` is reserved and cannot name a local binding"),
+                                *name_span,
+                            ));
+                        }
+                        let actual = check_expr(
+                            program,
+                            current,
+                            value,
+                            &mut scope,
+                            functions,
+                            result_type,
+                            allow_moves,
+                            diagnostics,
+                        );
+                        if scope.contains_key(name) {
+                            diagnostics.push(error(
+                                program,
+                                "SPX-T209",
+                                format!("local binding `{name}` shadows an existing value"),
+                                *name_span,
+                            ));
+                            continue;
+                        }
+                        if let Some(actual) = actual {
+                            if actual.ty.is_resource() && actual.mode == ParamMode::Own {
+                                if allow_moves {
+                                    mark_value_sources_moved(value, &mut scope);
+                                } else {
+                                    diagnostics.push(error(
+                                        program,
+                                        "SPX-O105",
+                                        "contract expression cannot transfer an owned resource into a local binding",
+                                        value.span,
+                                    ));
+                                }
+                            }
+                            scope.insert(
+                                name.clone(),
+                                Binding {
+                                    ty: actual.ty,
+                                    mode: actual.mode,
+                                    availability: Availability::Available,
+                                },
+                            );
+                        }
+                    }
+                }
+            }
+            let actual = check_expr(
+                program,
+                current,
+                tail,
+                &mut scope,
+                functions,
+                result_type,
+                allow_moves,
+                diagnostics,
+            );
+            merge_moved(variables, &scope, &outer_names);
+            actual
+        }
+        ExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            if check_expr(
+                program,
+                current,
+                condition,
+                variables,
+                functions,
+                result_type,
+                allow_moves,
+                diagnostics,
+            )
+            .is_some_and(|value| value.ty != Type::Bool)
+            {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T210",
+                    "`if` condition must be bool",
+                    condition.span,
+                ));
+            }
+            let original_names = variables.keys().cloned().collect::<Vec<_>>();
+            let mut then_variables = variables.clone();
+            let mut else_variables = variables.clone();
+            let then_value = check_expr(
+                program,
+                current,
+                then_branch,
+                &mut then_variables,
+                functions,
+                result_type,
+                allow_moves,
+                diagnostics,
+            );
+            let else_value = check_expr(
+                program,
+                current,
+                else_branch,
+                &mut else_variables,
+                functions,
+                result_type,
+                allow_moves,
+                diagnostics,
+            );
+            for name in &original_names {
+                if let Some(binding) = variables.get_mut(name) {
+                    let then_state = then_variables
+                        .get(name)
+                        .map_or(Availability::Available, |value| value.availability);
+                    let else_state = else_variables
+                        .get(name)
+                        .map_or(Availability::Available, |value| value.availability);
+                    binding.availability = then_state.join(else_state);
+                }
+            }
+            match (then_value, else_value) {
+                (Some(then_value), Some(else_value)) => {
+                    if then_value.ty != else_value.ty {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T211",
+                            format!(
+                                "`if` branches return different types: {} and {}",
+                                then_value.ty, else_value.ty
+                            ),
+                            expr.span,
+                        ));
+                    }
+                    if then_value.ty.is_resource() && then_value.mode != else_value.mode {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-O106",
+                            "`if` branches must produce the same resource ownership mode",
+                            expr.span,
+                        ));
+                    }
+                    Some(then_value)
+                }
+                _ => None,
+            }
         }
     }
 }
@@ -498,52 +755,54 @@ fn check_argument_ownership(
     callee: &str,
     arg: &Expr,
     param: &crate::ast::Param,
-    variables: &mut HashMap<&str, Binding>,
+    actual: Option<&CheckedValue>,
+    variables: &mut HashMap<String, Binding>,
     allow_moves: bool,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
-    let ExprKind::Var(name) = &arg.kind else {
+    let Some(actual) = actual else {
         return;
     };
-    let Some(binding) = variables.get_mut(name.as_str()) else {
-        return;
-    };
-    if !binding.ty.is_resource() || binding.moved {
+    if !actual.ty.is_resource() {
         return;
     }
     match param.mode {
         ParamMode::Own => {
-            if binding.mode != ParamMode::Own {
+            if actual.mode != ParamMode::Own {
                 diagnostics.push(
                     error(
                         program,
                         "SPX-O102",
                         format!(
-                            "`{}.{name}` is {}, so `{current_name}` cannot transfer it to `{callee}`",
+                            "argument to `{}.{}` is {}, so `{current_name}` cannot transfer it to `{callee}`",
                             current.name,
-                            binding.mode.text(),
+                            param.name,
+                            actual.mode.text(),
                             current_name = current.name
                         ),
                         arg.span,
                     )
-                    .with_help(format!("change `{name}` to `own {}` at its ownership boundary", binding.ty)),
+                    .with_help(format!(
+                        "provide an owned `{}` value at this ownership boundary",
+                        actual.ty
+                    )),
                 );
             } else if allow_moves {
-                binding.moved = true;
+                mark_value_sources_moved(arg, variables);
             } else {
                 diagnostics.push(error(
                     program,
                     "SPX-O105",
-                    format!("contract expression cannot move resource `{name}` into `{callee}`"),
+                    format!("contract expression cannot transfer a resource into `{callee}`"),
                     arg.span,
                 ));
             }
         }
-        ParamMode::Shared if binding.mode != ParamMode::Shared => diagnostics.push(
+        ParamMode::Shared if actual.mode != ParamMode::Shared => diagnostics.push(
             error(
                 program,
                 "SPX-O103",
-                format!("`{callee}` requires shared ownership of `{name}`"),
+                format!("`{callee}` requires shared resource ownership"),
                 arg.span,
             )
             .with_help("create or receive an explicitly shared resource before this call"),
@@ -552,33 +811,66 @@ fn check_argument_ownership(
     }
 }
 
-fn check_resource_return(
-    program: &Program,
-    function: &Function,
-    body: &Expr,
-    variables: &HashMap<&str, Binding>,
-    diagnostics: &mut Vec<Diagnostic>,
-) {
-    if !function.return_type.is_resource() {
-        return;
-    }
-    if let ExprKind::Var(name) = &body.kind {
-        if let Some(binding) = variables.get(name.as_str()) {
-            if binding.mode != ParamMode::Own {
-                diagnostics.push(
-                    error(
-                        program,
-                        "SPX-O104",
-                        format!(
-                            "function `{}` cannot return {} resource `{name}` as owned",
-                            function.name,
-                            binding.mode.text()
-                        ),
-                        body.span,
-                    )
-                    .with_help("return an owned resource or declare a future lifetime-bound view"),
-                );
+fn mark_value_sources_moved(expr: &Expr, variables: &mut HashMap<String, Binding>) {
+    match &expr.kind {
+        ExprKind::Var(name) => {
+            if let Some(binding) = variables.get_mut(name) {
+                if binding.ty.is_resource()
+                    && binding.mode == ParamMode::Own
+                    && binding.availability == Availability::Available
+                {
+                    binding.availability = Availability::Moved;
+                }
             }
+        }
+        ExprKind::Block { tail, .. } => mark_value_sources_moved(tail, variables),
+        ExprKind::If {
+            then_branch,
+            else_branch,
+            ..
+        } => {
+            let names = variables.keys().cloned().collect::<Vec<_>>();
+            let mut then_variables = variables.clone();
+            let mut else_variables = variables.clone();
+            mark_value_sources_moved(then_branch, &mut then_variables);
+            mark_value_sources_moved(else_branch, &mut else_variables);
+            for name in names {
+                if let Some(binding) = variables.get_mut(&name) {
+                    let then_state = then_variables
+                        .get(&name)
+                        .map_or(Availability::Available, |value| value.availability);
+                    let else_state = else_variables
+                        .get(&name)
+                        .map_or(Availability::Available, |value| value.availability);
+                    binding.availability = then_state.join(else_state);
+                }
+            }
+        }
+        _ => {}
+    }
+}
+
+fn merge_moved(
+    target: &mut HashMap<String, Binding>,
+    source: &HashMap<String, Binding>,
+    names: &[String],
+) {
+    for name in names {
+        if let (Some(target), Some(source)) = (target.get_mut(name), source.get(name)) {
+            target.availability = source.availability;
+        }
+    }
+}
+
+fn join_conditional(
+    baseline: &mut HashMap<String, Binding>,
+    conditional: &HashMap<String, Binding>,
+    names: &[String],
+) {
+    for name in names {
+        if let (Some(baseline), Some(conditional)) = (baseline.get_mut(name), conditional.get(name))
+        {
+            baseline.availability = baseline.availability.join(conditional.availability);
         }
     }
 }
@@ -588,12 +880,31 @@ fn require_bool(
     program: &Program,
     function: &Function,
     contract: &Expr,
-    variables: &HashMap<&str, Binding>,
+    variables: &HashMap<String, Binding>,
     functions: &HashMap<&str, &Function>,
     result_type: Option<&Type>,
     diagnostics: &mut Vec<Diagnostic>,
     kind: &str,
 ) {
+    contract.visit_calls(&mut |callee, span| {
+        if let Some(target) = functions.get(callee) {
+            if !target.effects.is_empty() {
+                diagnostics.push(
+                    error(
+                        program,
+                        "SPX-C102",
+                        format!(
+                            "{kind} on `{}` calls effectful function `{callee}` with effects {{{}}}",
+                            function.name,
+                            target.effects.join(", ")
+                        ),
+                        span,
+                    )
+                    .with_help("contracts must be deterministic and effect-free"),
+                );
+            }
+        }
+    });
     let mut contract_variables = variables.clone();
     if check_expr(
         program,
@@ -605,7 +916,7 @@ fn require_bool(
         false,
         diagnostics,
     )
-    .is_some_and(|ty| ty != Type::Bool)
+    .is_some_and(|value| value.ty != Type::Bool)
     {
         diagnostics.push(error(
             program,
@@ -625,8 +936,28 @@ fn error(
     Diagnostic::error(code, message, span).at_path(&program.path)
 }
 
-fn plain_identifier(value: &str) -> bool {
+fn source_identifier(value: &str) -> bool {
     let mut chars = value.chars();
-    matches!(chars.next(), Some(first) if first == '_' || first.is_ascii_alphabetic())
-        && chars.all(|character| character == '_' || character.is_ascii_alphanumeric())
+    let plain = matches!(chars.next(), Some(first) if first == '_' || first.is_ascii_alphabetic())
+        && chars.all(|character| character == '_' || character.is_ascii_alphanumeric());
+    plain
+        && !matches!(
+            value,
+            "module"
+                | "permit"
+                | "resource"
+                | "fn"
+                | "own"
+                | "borrow"
+                | "shared"
+                | "uses"
+                | "requires"
+                | "ensures"
+                | "let"
+                | "if"
+                | "else"
+                | "true"
+                | "false"
+                | "result"
+        )
 }

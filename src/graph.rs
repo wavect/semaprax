@@ -1,7 +1,7 @@
 use std::collections::{BTreeSet, HashMap, VecDeque};
 use std::fmt::Write;
 
-use crate::ast::Program;
+use crate::ast::{Expr, ExprKind, Program, Statement};
 use crate::diagnostic::quote_json;
 use crate::format;
 
@@ -41,7 +41,7 @@ pub fn context_json(program: &Program, symbol: &str, depth: usize) -> Option<Str
             continue;
         }
         if let Some(function) = by_name.get(name.as_str()) {
-            function.body.visit_calls(&mut |callee, _| {
+            visit_function_calls(function, &mut |callee, _| {
                 if by_name.contains_key(callee) && selected.insert(callee.to_owned()) {
                     queue.push_back((callee.to_owned(), current_depth + 1));
                 }
@@ -55,7 +55,7 @@ fn graph_json(program: &Program, selected: &BTreeSet<String>) -> String {
     let mut output = String::new();
     write!(
         output,
-        "{{\"schema\":\"semaprax.graph.v1\",\"revision\":{},\"module\":{},\"permits\":{},\"nodes\":[",
+        "{{\"schema\":\"semaprax.graph.v2\",\"revision\":{},\"identity\":{{\"declarations\":\"persistent\",\"expressions\":\"revision-scoped\"}},\"module\":{},\"permits\":{},\"nodes\":[",
         quote_json(&revision(program)),
         quote_json(&program.module),
         string_array(&program.permits)
@@ -84,9 +84,7 @@ fn graph_json(program: &Program, selected: &BTreeSet<String>) -> String {
         }
         first = false;
         let mut calls = Vec::new();
-        function
-            .body
-            .visit_calls(&mut |name, _| calls.push(name.to_owned()));
+        visit_function_calls(function, &mut |name, _| calls.push(name.to_owned()));
         let params = function
             .params
             .iter()
@@ -110,22 +108,134 @@ fn graph_json(program: &Program, selected: &BTreeSet<String>) -> String {
             .iter()
             .map(|value| format::expr(value, 0))
             .collect::<Vec<_>>();
+        let requires_graph = function
+            .requires
+            .iter()
+            .enumerate()
+            .map(|(index, value)| {
+                expr_json(value, &format!("{}#requires{index}", function.stable_id))
+            })
+            .collect::<Vec<_>>()
+            .join(",");
+        let ensures_graph = function
+            .ensures
+            .iter()
+            .enumerate()
+            .map(|(index, value)| {
+                expr_json(value, &format!("{}#ensures{index}", function.stable_id))
+            })
+            .collect::<Vec<_>>()
+            .join(",");
+        let body = expr_json(&function.body, &format!("{}#body", function.stable_id));
         write!(
             output,
-            "{{\"id\":{},\"kind\":\"function\",\"name\":{},\"params\":[{}],\"returns\":{},\"effects\":{},\"requires\":{},\"ensures\":{},\"calls\":{}}}",
+            "{{\"id\":{},\"kind\":\"function\",\"name\":{},\"params\":[{}],\"returns\":{},\"effects\":{},\"requires\":{},\"requires_graph\":[{}],\"ensures\":{},\"ensures_graph\":[{}],\"calls\":{},\"body\":{}}}",
             quote_json(&function.stable_id),
             quote_json(&function.name),
             params,
             quote_json(&function.return_type.to_string()),
             string_array(&function.effects),
             string_array(&requires),
+            requires_graph,
             string_array(&ensures),
-            string_array(&calls)
+            ensures_graph,
+            string_array(&calls),
+            body
         )
         .unwrap();
     }
     output.push_str("]}");
     output
+}
+
+fn visit_function_calls(
+    function: &crate::ast::Function,
+    visit: &mut impl FnMut(&str, crate::ast::Span),
+) {
+    for contract in &function.requires {
+        contract.visit_calls(visit);
+    }
+    function.body.visit_calls(visit);
+    for contract in &function.ensures {
+        contract.visit_calls(visit);
+    }
+}
+
+fn expr_json(expr: &Expr, id: &str) -> String {
+    match &expr.kind {
+        ExprKind::Int(value) => format!(
+            "{{\"id\":{},\"kind\":\"int\",\"value\":{value}}}",
+            quote_json(id)
+        ),
+        ExprKind::Bool(value) => format!(
+            "{{\"id\":{},\"kind\":\"bool\",\"value\":{value}}}",
+            quote_json(id)
+        ),
+        ExprKind::Var(name) => format!(
+            "{{\"id\":{},\"kind\":\"value_ref\",\"name\":{}}}",
+            quote_json(id),
+            quote_json(name)
+        ),
+        ExprKind::Call { name, args } => format!(
+            "{{\"id\":{},\"kind\":\"call\",\"callee\":{},\"args\":[{}]}}",
+            quote_json(id),
+            quote_json(name),
+            args.iter()
+                .enumerate()
+                .map(|(index, arg)| expr_json(arg, &format!("{id}.arg{index}")))
+                .collect::<Vec<_>>()
+                .join(",")
+        ),
+        ExprKind::Unary { op, value } => format!(
+            "{{\"id\":{},\"kind\":\"unary\",\"op\":{},\"value\":{}}}",
+            quote_json(id),
+            quote_json(match op {
+                crate::ast::UnaryOp::Neg => "-",
+                crate::ast::UnaryOp::Not => "!",
+            }),
+            expr_json(value, &format!("{id}.value"))
+        ),
+        ExprKind::Binary { op, left, right } => format!(
+            "{{\"id\":{},\"kind\":\"binary\",\"op\":{},\"left\":{},\"right\":{}}}",
+            quote_json(id),
+            quote_json(op.text()),
+            expr_json(left, &format!("{id}.left")),
+            expr_json(right, &format!("{id}.right"))
+        ),
+        ExprKind::Block { statements, tail } => format!(
+            "{{\"id\":{},\"kind\":\"block\",\"statements\":[{}],\"tail\":{}}}",
+            quote_json(id),
+            statements
+                .iter()
+                .enumerate()
+                .map(|(index, statement)| statement_json(statement, &format!("{id}.s{index}")))
+                .collect::<Vec<_>>()
+                .join(","),
+            expr_json(tail, &format!("{id}.tail"))
+        ),
+        ExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => format!(
+            "{{\"id\":{},\"kind\":\"if\",\"condition\":{},\"then\":{},\"else\":{}}}",
+            quote_json(id),
+            expr_json(condition, &format!("{id}.condition")),
+            expr_json(then_branch, &format!("{id}.then")),
+            expr_json(else_branch, &format!("{id}.else"))
+        ),
+    }
+}
+
+fn statement_json(statement: &Statement, id: &str) -> String {
+    match statement {
+        Statement::Let { name, value, .. } => format!(
+            "{{\"id\":{},\"kind\":\"let\",\"name\":{},\"value\":{}}}",
+            quote_json(id),
+            quote_json(name),
+            expr_json(value, &format!("{id}.value"))
+        ),
+    }
 }
 
 fn string_array(values: &[String]) -> String {

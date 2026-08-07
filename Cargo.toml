@@ -2,6 +2,7 @@
 name = "semaprax"
 version = "0.2.0"
 edition = "2021"
+rust-version = "1.85"
 description = "The agent-native systems programming language"
 license = "Apache-2.0"
 repository = "https://github.com/wavect/semaprax"
@@ -20,3 +21,8 @@ path = "src/main.rs"
 [profile.release]
 lto = "thin"
 strip = true
+codegen-units = 1
+overflow-checks = true
+
+[lints.rust]
+unsafe_code = "forbid"

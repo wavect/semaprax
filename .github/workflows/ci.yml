@@ -7,34 +7,72 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
   verify:
     name: Rust ${{ matrix.os }}
+    timeout-minutes: 15
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
         with:
+          toolchain: stable
           components: rustfmt, clippy
-      - run: cargo fmt --check
-      - run: cargo clippy --all-targets --all-features -- -D warnings
-      - run: cargo test --all-targets
-      - run: cargo run -- check examples/meaning.spx
-      - run: cargo run -- check examples/ownership.spx
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      - run: cargo fmt --all --check
+      - run: cargo clippy --locked --all-targets --all-features -- -D warnings
+      - run: cargo test --locked --all-targets
+      - run: cargo test --locked --doc
+      - run: cargo doc --locked --no-deps
+        env:
+          RUSTDOCFLAGS: -D warnings
+      - run: cargo build --locked --release
+      - run: cargo run --locked -- check examples/meaning.spx
+      - run: cargo run --locked -- check examples/ownership.spx
+      - run: cargo run --locked -- check examples/control_flow.spx
+      - run: cargo run --locked -- fmt examples/meaning.spx --check
+      - run: cargo run --locked -- fmt examples/effects.spx --check
+      - run: cargo run --locked -- fmt examples/ownership.spx --check
+      - run: cargo run --locked -- fmt examples/control_flow.spx --check
       - name: Build and run native example (Unix)
         if: runner.os != 'Windows'
         run: |
-          cargo run -- build examples/meaning.spx -o target/meaning
-          test "$(target/meaning)" = "42"
+          cargo run --locked -- build examples/control_flow.spx -o target/control-flow
+          test "$(target/control-flow)" = "42"
       - name: Build and run native example (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          cargo run -- build examples/meaning.spx -o target/meaning.exe
-          $result = & target/meaning.exe
+          cargo run --locked -- build examples/control_flow.spx -o target/control-flow.exe
+          $result = & target/control-flow.exe
           if ($result -ne "42") { throw "expected 42, received $result" }
-      - run: cargo run -- build examples/meaning.spx --target web -o target/meaning-web
-      - run: node scripts/verify-web.mjs target/meaning-web
+      - run: cargo run --locked -- build examples/control_flow.spx --target web -o target/control-flow-web
+      - run: node scripts/verify-web.mjs target/control-flow-web
+      - name: Verify publishable crate
+        if: runner.os == 'Linux'
+        run: cargo package --locked
+
+  msrv:
+    name: Rust 1.85 minimum
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          toolchain: "1.85"
+      - run: cargo check --locked --all-targets
+      - run: cargo test --locked --all-targets

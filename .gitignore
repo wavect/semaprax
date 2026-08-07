@@ -1,5 +1,7 @@
 /target/
 /.semaprax/
+/.graphify-work/
+/graphify-out/
 *.o
 *.out
 .DS_Store

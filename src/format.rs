@@ -1,6 +1,6 @@
 use std::fmt::Write;
 
-use crate::ast::{Expr, ExprKind, Program, UnaryOp};
+use crate::ast::{Expr, ExprKind, Program, Statement, UnaryOp};
 
 pub fn canonical(program: &Program) -> String {
     let mut output = String::new();
@@ -44,9 +44,7 @@ pub fn canonical(program: &Program) -> String {
         for contract in &function.ensures {
             writeln!(output, "    ensures {}", expr(contract, 0)).unwrap();
         }
-        writeln!(output, "{{").unwrap();
-        writeln!(output, "    {}", expr(&function.body, 0)).unwrap();
-        writeln!(output, "}}").unwrap();
+        write_function_body(&mut output, &function.body);
     }
     output
 }
@@ -85,7 +83,46 @@ pub fn expr(value: &Expr, parent_precedence: u8) -> String {
                 rendered
             }
         }
+        ExprKind::Block { statements, tail } => {
+            let mut parts = statements
+                .iter()
+                .map(|statement| match statement {
+                    Statement::Let { name, value, .. } => {
+                        format!("let {name} = {};", expr(value, 0))
+                    }
+                })
+                .collect::<Vec<_>>();
+            parts.push(expr(tail, 0));
+            format!("{{ {} }}", parts.join(" "))
+        }
+        ExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => format!(
+            "if {} {} else {}",
+            expr(condition, 0),
+            expr(then_branch, 0),
+            expr(else_branch, 0)
+        ),
     }
+}
+
+fn write_function_body(output: &mut String, body: &Expr) {
+    writeln!(output, "{{").unwrap();
+    if let ExprKind::Block { statements, tail } = &body.kind {
+        for statement in statements {
+            match statement {
+                Statement::Let { name, value, .. } => {
+                    writeln!(output, "    let {name} = {};", expr(value, 0)).unwrap();
+                }
+            }
+        }
+        writeln!(output, "    {}", expr(tail, 0)).unwrap();
+    } else {
+        writeln!(output, "    {}", expr(body, 0)).unwrap();
+    }
+    writeln!(output, "}}").unwrap();
 }
 
 fn escape_string(value: &str) -> String {

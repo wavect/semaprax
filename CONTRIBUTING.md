@@ -5,14 +5,12 @@ SEMAPRAX values coherent semantics over feature count. Before adding syntax, exp
 ## Development
 
 ```sh
-cargo fmt --check
-cargo clippy --all-targets --all-features -- -D warnings
-cargo test --all-targets
-cargo run -- check examples/meaning.spx
-cargo run -- run examples/meaning.spx
+scripts/quality.sh
 ```
 
-Compiler changes should include a success case, a diagnostic case with a stable code, and an end-to-end case when output behavior changes. Keep generated behavior deterministic. Avoid adding ambient authority or build-time network access.
+On hosts without a POSIX shell, run the baseline commands in [the quality-gate specification](docs/QUALITY-GATES.md). Read [AGENTS.md](AGENTS.md) for repository invariants and the semantic change protocol; it applies equally to human and automated contributors.
+
+Compiler changes should include a success case, a diagnostic case with a stable code, and native/Wasm equivalence when output behavior changes. Keep generated behavior deterministic. Avoid adding ambient authority or build-time network access.
 
 Design changes that affect syntax, the graph schema, transactions, effects, ownership, contracts, or ABI should start as an RFC in `docs/`.
 

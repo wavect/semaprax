@@ -19,22 +19,23 @@ Human source       Atomic semantic patches
        verified executable
 ```
 
-This repository is an executable architectural seed, not a claim that the full language described in the RFC already exists. The prototype deliberately tackles the differentiator first: stable semantic identity, graph-native context, machine diagnostics, capability-aware verification, stale-safe transactions, and reproducible native output.
+This repository is an executable architectural seed, not a claim that the full language described in the RFC already exists. The prototype deliberately tackles the differentiator first: stable semantic identity, graph-native context, machine diagnostics, capability-aware verification, stale-safe transactions, deterministic lowering, and real native output.
 
 ## Try it
 
-Requirements: Rust 1.85+ and Clang.
+Requirements: Rust 1.85+ and Clang. Node.js 22+ is required for the shown browser/Wasm verification command.
 
 ```sh
 cargo run -- check examples/meaning.spx
 cargo run -- graph examples/meaning.spx
 cargo run -- context examples/meaning.spx app.main --depth 1
 cargo run -- run examples/meaning.spx
-cargo run -- build examples/meaning.spx --target web -o target/meaning-web
-node scripts/verify-web.mjs target/meaning-web
+cargo run -- run examples/control_flow.spx
+cargo run -- build examples/control_flow.spx --target web -o target/control-flow-web
+node scripts/verify-web.mjs target/control-flow-web
 ```
 
-The final command compiles and runs a native executable. It prints:
+The native `run` commands compile and execute host binaries; the control-flow example prints:
 
 ```text
 42
@@ -74,13 +75,14 @@ Implemented today:
 
 - `i64` and `bool`, typed functions, calls, unary and binary expressions.
 - Resource declarations with explicit `own`, `borrow`, and `shared` function boundaries.
-- Straight-line move checking that rejects use-after-move and illegal ownership transfer.
+- Lexical `let` bindings and typed `if/else` expressions.
+- Control-flow-aware move checking with definite and conditional use-after-move diagnostics.
 - Checked integer arithmetic in generated programs.
 - Typed `requires` and `ensures` contracts, enforced at native runtime.
 - Explicit function effects checked against module capabilities and callers.
 - Persistent declaration identity through `@id`.
 - Deterministic formatting and graph revision hashes.
-- JSON semantic graph and dependency-bounded context slices.
+- JSON semantic graph with persistent declaration identity, revision-scoped expression structure, and dependency-bounded context slices.
 - JSON-line diagnostics for agent consumption.
 - Atomic semantic rename patches with stale-revision rejection.
 - Native AOT output through a readable C11 lowering and Clang.
@@ -137,7 +139,7 @@ The long-term compiler has two output principles:
 - Native machine code where performance and platform integration matter.
 - WebAssembly Components where portability and capability sandboxing matter.
 
-Read [RFC 0001](docs/RFC-0001.md) for the language system, [the architecture](docs/ARCHITECTURE.md) for the current implementation, [the roadmap](docs/ROADMAP.md) for the staged path forward, and the [full-goal completion matrix](docs/COMPLETION-MATRIX.md) for requirement-by-requirement evidence.
+Read [RFC 0001](docs/RFC-0001.md) for the language system, [the architecture](docs/ARCHITECTURE.md) for the current implementation, [the quality gates](docs/QUALITY-GATES.md) for executable contribution evidence, [protocol migrations](docs/MIGRATIONS.md) for agent-facing compatibility, [the roadmap](docs/ROADMAP.md) for the staged path forward, and the [full-goal completion matrix](docs/COMPLETION-MATRIX.md) for requirement-by-requirement evidence.
 
 ## Status
 

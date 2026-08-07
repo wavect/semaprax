@@ -3,13 +3,28 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 const directory = resolve(process.argv[2] ?? "target/meaning-web");
+const expectation = process.argv[3] ?? "42";
 const { imports } = await import(pathToFileURL(resolve(directory, "semaprax.js")));
 const bytes = await readFile(resolve(directory, "app.wasm"));
 const { instance } = await WebAssembly.instantiate(bytes, imports);
-const result = instance.exports.semaprax_main();
+let result;
+let expectedTrap;
+try {
+  result = instance.exports.semaprax_main();
+} catch (error) {
+  if (!expectation.startsWith("error:")) throw error;
+  expectedTrap = expectation.slice("error:".length);
+  if (!(error instanceof Error) || !error.message.includes(expectedTrap)) {
+    throw new Error(`expected trap containing ${JSON.stringify(expectedTrap)}, received ${error}`);
+  }
+}
 
-if (result !== 42n) {
-  throw new Error(`expected SEMAPRAX main to return 42, received ${result}`);
+if (expectation.startsWith("error:")) {
+  if (result !== undefined) {
+    throw new Error(`expected SEMAPRAX main to trap with ${expectation}, received ${result}`);
+  }
+} else if (result !== BigInt(expectation)) {
+  throw new Error(`expected SEMAPRAX main to return ${expectation}, received ${result}`);
 }
 
 let overflowTrapped = false;
@@ -22,4 +37,4 @@ if (!overflowTrapped) {
   throw new Error("WebAssembly host arithmetic did not reject i64 overflow");
 }
 
-console.log(result.toString());
+console.log(expectedTrap === undefined ? result.toString() : `error:${expectedTrap}`);

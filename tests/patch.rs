@@ -52,6 +52,41 @@ fn stale_patch_changes_nothing() {
 }
 
 #[test]
+fn fresh_but_invalid_patch_changes_nothing() {
+    let source = r#"module patch.collision;
+
+@id("helper.answer")
+fn answer() -> i64
+{
+    42
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    answer()
+}
+"#;
+    let program = parse(source, Path::new("collision.spx")).unwrap();
+    let revision = graph::revision(&program);
+    let directory =
+        std::env::temp_dir().join(format!("semaprax-invalid-patch-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    let source_path = directory.join("module.spx");
+    let patch_path = directory.join("rename.spatch");
+    std::fs::write(&source_path, source).unwrap();
+    std::fs::write(
+        &patch_path,
+        format!("base {revision}\nrename helper.answer to main\n"),
+    )
+    .unwrap();
+
+    let errors = patch::apply(&source_path, &patch_path).unwrap_err();
+    assert!(errors.iter().any(|error| error.code == "SPX-S101"));
+    assert_eq!(std::fs::read_to_string(&source_path).unwrap(), source);
+}
+
+#[test]
 fn semantic_resource_rename_updates_ownership_boundaries() {
     let source = r#"module patch.resource;
 

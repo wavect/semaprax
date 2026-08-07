@@ -136,6 +136,25 @@ pub enum ExprKind {
         left: Box<Expr>,
         right: Box<Expr>,
     },
+    Block {
+        statements: Vec<Statement>,
+        tail: Box<Expr>,
+    },
+    If {
+        condition: Box<Expr>,
+        then_branch: Box<Expr>,
+        else_branch: Box<Expr>,
+    },
+}
+
+#[derive(Clone, Debug)]
+pub enum Statement {
+    Let {
+        name: String,
+        name_span: Span,
+        value: Expr,
+        span: Span,
+    },
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -205,6 +224,23 @@ impl Expr {
             ExprKind::Binary { left, right, .. } => {
                 left.visit_calls(visit);
                 right.visit_calls(visit);
+            }
+            ExprKind::Block { statements, tail } => {
+                for statement in statements {
+                    match statement {
+                        Statement::Let { value, .. } => value.visit_calls(visit),
+                    }
+                }
+                tail.visit_calls(visit);
+            }
+            ExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                condition.visit_calls(visit);
+                then_branch.visit_calls(visit);
+                else_branch.visit_calls(visit);
             }
             ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Var(_) => {}
         }

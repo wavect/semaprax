@@ -21,6 +21,7 @@ pub enum TokenKind {
     Slash,
     Percent,
     Bang,
+    Eq,
     EqEq,
     BangEq,
     Lt,
@@ -112,6 +113,7 @@ impl Lexer<'_> {
             '!' if self.take('=') => TokenKind::BangEq,
             '!' => TokenKind::Bang,
             '=' if self.take('=') => TokenKind::EqEq,
+            '=' => TokenKind::Eq,
             '<' if self.take('=') => TokenKind::Le,
             '<' => TokenKind::Lt,
             '>' if self.take('=') => TokenKind::Ge,
@@ -139,7 +141,7 @@ impl Lexer<'_> {
                 }
                 TokenKind::Ident(self.source[start..self.offset].to_owned())
             }
-            '&' | '|' | '=' => {
+            '&' | '|' => {
                 return Err(self.error(
                     "SPX-P002",
                     format!("unexpected `{character}`; did you mean `{character}{character}`?"),

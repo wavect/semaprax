@@ -1,7 +1,7 @@
 //! Deterministic semantic graph serialization and bounded context queries.
 //!
 //! Human source supplies the revision. Resolved HIR supplies every semantic
-//! identity and fact in graph v3; spans and display names are metadata only.
+//! identity and fact in graph v4; spans and display names are metadata only.
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fmt::Write;
@@ -30,7 +30,7 @@ pub fn revision(program: &Program) -> String {
     format!("sha256:{:x}", hasher.finalize())
 }
 
-/// Resolve and serialize a parsed program as `semaprax.graph.v3`.
+/// Resolve and serialize a parsed program as `semaprax.graph.v4`.
 ///
 /// Resolution is deliberately part of this public boundary. Invalid source
 /// cannot be mistaken for a checked semantic graph by library callers.
@@ -122,6 +122,7 @@ fn context_hir_json(
             collect_function_type_declarations(function, &mut selected_types);
         }
     }
+    close_record_type_declarations(program, &mut selected_types)?;
 
     let mut frontier = BTreeSet::new();
     for function in &program.functions {
@@ -168,7 +169,7 @@ fn graph_json(
     let mut output = String::new();
     write!(
         output,
-        "{{\"schema\":\"semaprax.graph.v3\",\"revision\":{},\"view\":{},\"identity\":{{\"declarations\":\"explicit-persistent-or-automatic-unstable\",\"values\":\"revision-scoped-structural\",\"expressions\":\"revision-scoped-structural\"}},\"module\":{},\"permits\":{},\"entrypoint\":{},\"type_facts\":[{}],\"nodes\":[",
+        "{{\"schema\":\"semaprax.graph.v4\",\"revision\":{},\"view\":{},\"identity\":{{\"declarations\":\"explicit-persistent-or-automatic-unstable\",\"values\":\"revision-scoped-structural\",\"expressions\":\"revision-scoped-structural\"}},\"module\":{},\"permits\":{},\"entrypoint\":{},\"type_facts\":[{}],\"nodes\":[",
         quote_json(source_revision),
         view_json(view),
         quote_json(&program.module),
@@ -192,20 +193,67 @@ fn graph_json(
             arguments: Vec::new(),
         };
         let identity_origin = identity_origin(program, &declaration.id)?;
-        let memory = match declaration.kind {
-            ResolvedTypeDeclarationKind::Resource => "unique",
-        };
-        write!(
-            output,
-            "{{\"id\":{},\"kind\":\"resource\",\"name\":{},\"identity_origin\":{},\"persistent\":{},\"memory\":{},\"type_id\":{}}}",
-            quote_json(declaration.id.as_str()),
-            quote_json(&declaration.name),
-            quote_json(identity_origin.text()),
-            identity_origin.is_persistent(),
-            quote_json(memory),
-            quote_json(&ty.identity_key())
-        )
-        .expect("writing to a string cannot fail");
+        match &declaration.kind {
+            ResolvedTypeDeclarationKind::Resource => {
+                write!(
+                    output,
+                    "{{\"id\":{},\"kind\":\"resource\",\"name\":{},\"identity_origin\":{},\"persistent\":{},\"memory\":\"unique\",\"type_id\":{}}}",
+                    quote_json(declaration.id.as_str()),
+                    quote_json(&declaration.name),
+                    quote_json(identity_origin.text()),
+                    identity_origin.is_persistent(),
+                    quote_json(&ty.identity_key())
+                )
+                .expect("writing to a string cannot fail");
+            }
+            ResolvedTypeDeclarationKind::Record { fields } => {
+                write!(
+                    output,
+                    "{{\"id\":{},\"kind\":\"record\",\"name\":{},\"identity_origin\":{},\"persistent\":{},\"type_id\":{},\"fields\":[{}]}}",
+                    quote_json(declaration.id.as_str()),
+                    quote_json(&declaration.name),
+                    quote_json(identity_origin.text()),
+                    identity_origin.is_persistent(),
+                    quote_json(&ty.identity_key()),
+                    fields
+                        .iter()
+                        .map(|field| quote_json(field.id.as_str()))
+                        .collect::<Vec<_>>()
+                        .join(",")
+                )
+                .expect("writing to a string cannot fail");
+
+                for (index, field) in fields.iter().enumerate() {
+                    let metadata = program
+                        .declarations
+                        .declaration(&field.id)
+                        .ok_or_else(|| graph_reference_error("field", &field.id))?;
+                    if metadata.kind != crate::hir::DeclarationKind::Field
+                        || metadata.owner.as_ref() != Some(&declaration.id)
+                    {
+                        return Err(Diagnostic::io(
+                            "SPX-G003",
+                            format!(
+                                "field `{}` is not indexed under record `{}`",
+                                field.id, declaration.id
+                            ),
+                        ));
+                    }
+                    output.push(',');
+                    write!(
+                        output,
+                        "{{\"id\":{},\"kind\":\"field\",\"name\":{},\"identity_origin\":{},\"persistent\":{},\"owner\":{},\"index\":{index},\"type_id\":{}}}",
+                        quote_json(field.id.as_str()),
+                        quote_json(&field.name),
+                        quote_json(metadata.identity_origin.text()),
+                        metadata.identity_origin.is_persistent(),
+                        quote_json(declaration.id.as_str()),
+                        quote_json(&field.ty.identity_key())
+                    )
+                    .expect("writing to a string cannot fail");
+                }
+            }
+        }
     }
 
     for function in &program.functions {
@@ -338,6 +386,13 @@ fn identity_origin(
         })
 }
 
+fn graph_reference_error(kind: &str, id: &DeclarationId) -> Diagnostic {
+    Diagnostic::io(
+        "SPX-G003",
+        format!("semantic graph contains an unresolved {kind} reference `{id}`"),
+    )
+}
+
 fn visit_function_calls(function: &ResolvedFunction, visit: &mut impl FnMut(&DeclarationId)) {
     for contract in &function.requires {
         visit_expr_calls(contract, visit);
@@ -378,6 +433,12 @@ fn visit_expr_calls(expression: &ResolvedExpr, visit: &mut impl FnMut(&Declarati
             visit_expr_calls(then_branch, visit);
             visit_expr_calls(else_branch, visit);
         }
+        ResolvedExprKind::ConstructRecord { fields, .. } => {
+            for initializer in fields {
+                visit_expr_calls(&initializer.value, visit);
+            }
+        }
+        ResolvedExprKind::Project { base, .. } => visit_expr_calls(base, visit),
     }
 }
 
@@ -434,6 +495,15 @@ fn collect_expr_type_declarations(
             collect_expr_type_declarations(then_branch, declarations);
             collect_expr_type_declarations(else_branch, declarations);
         }
+        ResolvedExprKind::ConstructRecord { record, fields } => {
+            declarations.insert(record.clone());
+            for initializer in fields {
+                collect_expr_type_declarations(&initializer.value, declarations);
+            }
+        }
+        ResolvedExprKind::Project { base, .. } => {
+            collect_expr_type_declarations(base, declarations);
+        }
     }
 }
 
@@ -448,6 +518,36 @@ fn collect_nominal_declarations(ty: &ResolvedType, declarations: &mut BTreeSet<D
             collect_nominal_declarations(argument, declarations);
         }
     }
+}
+
+fn close_record_type_declarations(
+    program: &ResolvedProgram,
+    declarations: &mut BTreeSet<DeclarationId>,
+) -> Result<(), Diagnostic> {
+    let types = program
+        .types
+        .iter()
+        .map(|declaration| (declaration.id.clone(), declaration))
+        .collect::<BTreeMap<_, _>>();
+    let mut queue = declarations.iter().cloned().collect::<VecDeque<_>>();
+    while let Some(id) = queue.pop_front() {
+        let declaration = types
+            .get(&id)
+            .copied()
+            .ok_or_else(|| graph_reference_error("type declaration", &id))?;
+        if let ResolvedTypeDeclarationKind::Record { fields } = &declaration.kind {
+            for field in fields {
+                let mut referenced = BTreeSet::new();
+                collect_nominal_declarations(&field.ty, &mut referenced);
+                for referenced_id in referenced {
+                    if declarations.insert(referenced_id.clone()) {
+                        queue.push_back(referenced_id);
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
 }
 
 fn expr_json(program: &ResolvedProgram, expression: &ResolvedExpr) -> Result<String, Diagnostic> {
@@ -508,6 +608,26 @@ fn expr_json(program: &ResolvedProgram, expression: &ResolvedExpr) -> Result<Str
             expr_json(program, condition)?,
             expr_json(program, then_branch)?,
             expr_json(program, else_branch)?
+        ),
+        ResolvedExprKind::ConstructRecord { record, fields } => format!(
+            "{{{header},\"kind\":\"construct_record\",\"record\":{},\"fields\":[{}]}}",
+            quote_json(record.as_str()),
+            fields
+                .iter()
+                .map(|initializer| {
+                    Ok(format!(
+                        "{{\"field\":{},\"value\":{}}}",
+                        quote_json(initializer.field.as_str()),
+                        expr_json(program, &initializer.value)?
+                    ))
+                })
+                .collect::<Result<Vec<_>, Diagnostic>>()?
+                .join(",")
+        ),
+        ResolvedExprKind::Project { base, field } => format!(
+            "{{{header},\"kind\":\"project\",\"base\":{},\"field\":{}}}",
+            expr_json(program, base)?,
+            quote_json(field.as_str())
         ),
     };
     Ok(output)
@@ -573,6 +693,11 @@ fn type_facts_array(
             },
             &mut types,
         );
+        if let ResolvedTypeDeclarationKind::Record { fields } = &declaration.kind {
+            for field in fields {
+                collect_type(&field.ty, &mut types);
+            }
+        }
     }
     for function in &program.functions {
         if !selected_functions.contains(&function.id) {
@@ -635,6 +760,12 @@ fn collect_expr_types(expression: &ResolvedExpr, types: &mut BTreeMap<String, Re
             collect_expr_types(then_branch, types);
             collect_expr_types(else_branch, types);
         }
+        ResolvedExprKind::ConstructRecord { fields, .. } => {
+            for initializer in fields {
+                collect_expr_types(&initializer.value, types);
+            }
+        }
+        ResolvedExprKind::Project { base, .. } => collect_expr_types(base, types),
     }
 }
 
@@ -732,7 +863,7 @@ fn string_array(values: &[String]) -> String {
 mod tests {
     use std::path::Path;
 
-    use super::{to_hir_json, ResolvedProgram};
+    use super::{to_hir_json, DeclarationId, ResolvedExprKind, ResolvedProgram};
     use crate::{hir, parse};
 
     fn resolved_program() -> ResolvedProgram {
@@ -742,6 +873,17 @@ module test.graph_hir;
 fn main() -> i64 { 42 }
 "#;
         hir::resolve(&parse(source, Path::new("graph-hir.spx")).unwrap()).unwrap()
+    }
+
+    fn resolved_record_program() -> ResolvedProgram {
+        let source = r#"
+module test.graph_record_hir;
+@id("geometry.point")
+record Point { @id("geometry.point.x") x: i64, }
+@id("app.main")
+fn main() -> i64 { Point { x: 42 }.x }
+"#;
+        hir::resolve(&parse(source, Path::new("graph-record-hir.spx")).unwrap()).unwrap()
     }
 
     #[test]
@@ -760,5 +902,27 @@ fn main() -> i64 { 42 }
     fn internal_hir_renderer_preserves_its_trusted_source_revision() {
         let graph = to_hir_json(&resolved_program(), "trusted-source-revision").unwrap();
         assert!(graph.contains("\"revision\":\"trusted-source-revision\""));
+    }
+
+    #[test]
+    fn internal_hir_renderer_rejects_a_foreign_record_field_reference() {
+        let mut program = resolved_record_program();
+        let ResolvedExprKind::Block { tail, .. } = &mut program.functions[0].body.kind else {
+            panic!("function body should be a block");
+        };
+        let ResolvedExprKind::Project { base, .. } = &mut tail.kind else {
+            panic!("function tail should be a temporary projection");
+        };
+        let ResolvedExprKind::ConstructRecord { fields, .. } = &mut base.kind else {
+            panic!("projection base should be a record constructor");
+        };
+        fields[0].field = DeclarationId::new("foreign.field");
+
+        assert_eq!(
+            to_hir_json(&program, "trusted-source-revision")
+                .unwrap_err()
+                .code,
+            "SPX-H006"
+        );
     }
 }

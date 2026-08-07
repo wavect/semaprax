@@ -23,7 +23,7 @@ impl Span {
 pub enum Type {
     I64,
     Bool,
-    Resource(String),
+    Named(String),
 }
 
 impl fmt::Display for Type {
@@ -31,14 +31,14 @@ impl fmt::Display for Type {
         match self {
             Type::I64 => write!(f, "i64"),
             Type::Bool => write!(f, "bool"),
-            Type::Resource(name) => write!(f, "{name}"),
+            Type::Named(name) => write!(f, "{name}"),
         }
     }
 }
 
 impl Type {
-    pub fn is_resource(&self) -> bool {
-        matches!(self, Type::Resource(_))
+    pub fn is_named(&self) -> bool {
+        matches!(self, Type::Named(_))
     }
 }
 
@@ -76,16 +76,33 @@ pub struct Program {
     pub path: String,
     pub module: String,
     pub permits: Vec<String>,
-    pub resources: Vec<Resource>,
+    pub types: Vec<TypeDeclaration>,
     pub functions: Vec<Function>,
 }
 
 #[derive(Clone, Debug)]
-pub struct Resource {
+pub struct TypeDeclaration {
     pub stable_id: String,
     pub explicit_id: bool,
     pub name: String,
     pub name_span: Span,
+    pub kind: TypeDeclarationKind,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug)]
+pub enum TypeDeclarationKind {
+    Resource,
+    Record { fields: Vec<FieldDeclaration> },
+}
+
+#[derive(Clone, Debug)]
+pub struct FieldDeclaration {
+    pub stable_id: String,
+    pub explicit_id: bool,
+    pub name: String,
+    pub name_span: Span,
+    pub ty: Type,
     pub span: Span,
 }
 
@@ -145,6 +162,24 @@ pub enum ExprKind {
         then_branch: Box<Expr>,
         else_branch: Box<Expr>,
     },
+    ConstructRecord {
+        type_name: String,
+        type_span: Span,
+        fields: Vec<FieldInitializer>,
+    },
+    Project {
+        base: Box<Expr>,
+        field: String,
+        field_span: Span,
+    },
+}
+
+#[derive(Clone, Debug)]
+pub struct FieldInitializer {
+    pub name: String,
+    pub name_span: Span,
+    pub value: Expr,
+    pub span: Span,
 }
 
 #[derive(Clone, Debug)]
@@ -242,6 +277,12 @@ impl Expr {
                 then_branch.visit_calls(visit);
                 else_branch.visit_calls(visit);
             }
+            ExprKind::ConstructRecord { fields, .. } => {
+                for field in fields {
+                    field.value.visit_calls(visit);
+                }
+            }
+            ExprKind::Project { base, .. } => base.visit_calls(visit),
             ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Var(_) => {}
         }
     }

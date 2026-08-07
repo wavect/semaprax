@@ -43,10 +43,12 @@ jobs:
       - run: cargo run --locked -- check examples/meaning.spx
       - run: cargo run --locked -- check examples/ownership.spx
       - run: cargo run --locked -- check examples/control_flow.spx
+      - run: cargo run --locked -- check examples/records.spx
       - run: cargo run --locked -- fmt examples/meaning.spx --check
       - run: cargo run --locked -- fmt examples/effects.spx --check
       - run: cargo run --locked -- fmt examples/ownership.spx --check
       - run: cargo run --locked -- fmt examples/control_flow.spx --check
+      - run: cargo run --locked -- fmt examples/records.spx --check
       - name: Build and run native example (Unix)
         if: runner.os != 'Windows'
         run: |

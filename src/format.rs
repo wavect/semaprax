@@ -1,6 +1,6 @@
 use std::fmt::Write;
 
-use crate::ast::{Expr, ExprKind, Program, Statement, UnaryOp};
+use crate::ast::{Expr, ExprKind, Program, Statement, TypeDeclarationKind, UnaryOp};
 
 pub fn canonical(program: &Program) -> String {
     let mut output = String::new();
@@ -8,12 +8,27 @@ pub fn canonical(program: &Program) -> String {
     if !program.permits.is_empty() {
         writeln!(output, "\npermit {{ {} }}", program.permits.join(", ")).unwrap();
     }
-    for resource in &program.resources {
+    for declaration in &program.types {
         writeln!(output).unwrap();
-        if resource.explicit_id {
-            writeln!(output, "@id(\"{}\")", escape_string(&resource.stable_id)).unwrap();
+        if declaration.explicit_id {
+            writeln!(output, "@id(\"{}\")", escape_string(&declaration.stable_id)).unwrap();
         }
-        writeln!(output, "resource {};", resource.name).unwrap();
+        match &declaration.kind {
+            TypeDeclarationKind::Resource => {
+                writeln!(output, "resource {};", declaration.name).unwrap();
+            }
+            TypeDeclarationKind::Record { fields } => {
+                writeln!(output, "record {} {{", declaration.name).unwrap();
+                for field in fields {
+                    if field.explicit_id {
+                        writeln!(output, "    @id(\"{}\")", escape_string(&field.stable_id))
+                            .unwrap();
+                    }
+                    writeln!(output, "    {}: {},", field.name, field.ty).unwrap();
+                }
+                writeln!(output, "}}").unwrap();
+            }
+        }
     }
     for function in &program.functions {
         writeln!(output).unwrap();
@@ -105,6 +120,31 @@ pub fn expr(value: &Expr, parent_precedence: u8) -> String {
             expr(then_branch, 0),
             expr(else_branch, 0)
         ),
+        ExprKind::ConstructRecord {
+            type_name, fields, ..
+        } => {
+            if fields.is_empty() {
+                format!("{type_name} {{}}")
+            } else {
+                format!(
+                    "{type_name} {{ {} }}",
+                    fields
+                        .iter()
+                        .map(|field| format!("{}: {}", field.name, expr(&field.value, 0)))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            }
+        }
+        ExprKind::Project { base, field, .. } => {
+            let base = match &base.kind {
+                ExprKind::Binary { .. } | ExprKind::If { .. } | ExprKind::Block { .. } => {
+                    format!("({})", expr(base, 0))
+                }
+                _ => expr(base, 8),
+            };
+            format!("{base}.{field}")
+        }
     }
 }
 

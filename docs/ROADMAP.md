@@ -16,7 +16,7 @@ Status: implemented in this repository.
 
 ## 0.2 — Useful core language
 
-Status: in progress. Resource ownership boundaries, lexical `let`, typed `if/else`, conservative conditional-move diagnostics, structural expression graphs, a validated stable-ID HIR/type-fact foundation shared by native and Wasm lowering, and a browser-loadable WebAssembly core backend are implemented; the remaining gates below are not.
+Status: in progress. Resource ownership boundaries, lexical `let`, typed `if/else`, conservative conditional-move diagnostics, record syntax/checking/resolved identities/Graph v4, structural expression graphs, a validated stable-ID HIR/type-fact foundation shared by native and Wasm lowering, and a browser-loadable scalar WebAssembly core backend are implemented; the remaining gates below are not.
 
 - Records, variants, `Option`, and `Result`.
 - Exhaustive pattern matching.
@@ -29,7 +29,7 @@ Status: in progress. Resource ownership boundaries, lexical `let`, typed `if/els
 
 Exit criterion: build a non-trivial CLI and edit it entirely through semantic transactions.
 
-The aggregate and pattern tranche is specified in [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md). Its resolved-HIR identity, validation, scalar/root-place groundwork, and shared native/Wasm lowering contract are implemented. HIR must also become the verifier and graph contract before record or variant syntax lands; aggregate place-state analysis remains subsequent work.
+The aggregate and pattern tranche is specified in [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md). Record declarations, constructors, projections, recursive facts, stable field identities, HIR validation, and Graph v4 are implemented as non-executable groundwork. Prefix-aware place-state analysis, cleanup/drop IR, native/Wasm aggregate layouts, variants, and matching remain subsequent work; backends fail closed on records until those safety gates land.
 
 ## 0.3 — Ownership and fast development
 

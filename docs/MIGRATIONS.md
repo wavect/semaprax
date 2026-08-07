@@ -33,9 +33,31 @@ Graph v3 is a breaking migration from parsed syntax to validated resolved HIR:
 
 The `revision` remains derived from the canonical human-readable source projection; graph wire-format changes alone do not alter it. A v2 consumer must reject `semaprax.graph.v3` until it supports the new type/value identity tables and fallible API. Exact v3 module fixtures live in `tests/snapshots/meaning.graph.json` and `tests/snapshots/control_flow.graph.json`.
 
+## Semantic graph v3 to v4
+
+Graph v4 adds the first algebraic-data declarations and expressions:
+
+- record declarations are `record` nodes whose ordered `fields` array contains stable field declaration IDs;
+- every field is a separate `field` node with its stable ID, display name, explicit/automatic identity origin, persistence flag, owner record ID, declaration-order `index`, and resolved `type_id`;
+- record construction expressions use `kind: "construct_record"`, a stable record declaration ID, and source-ordered initializer entries containing stable field IDs and values;
+- projection expressions and place projections use stable field IDs rather than display names;
+- context slices close transitively over nominal record types referenced by selected functions and over the nominal types of their fields;
+- the type-facts table includes every field type required by selected record declarations;
+- validated-HIR and graph reference checks fail closed before an unresolved or foreign record/field reference can be serialized.
+
+The SHA-256 revision contract is unchanged. A v3 consumer must reject `semaprax.graph.v4` until it understands record/field nodes and record expression kinds. Exact v4 fixtures cover scalar programs in `tests/snapshots/meaning.graph.json` and `tests/snapshots/control_flow.graph.json`, and records in `tests/snapshots/records.graph.json`.
+
+## Rust AST resource declarations to nominal type declarations
+
+The public pre-alpha Rust AST now represents both resources and records through `Program::types: Vec<TypeDeclaration>`. `Program::resources` is removed, and `Type::Resource(String)` becomes `Type::Named(String)` because a nominal reference may name either kind. Rust library consumers must migrate exhaustive matches and use `TypeDeclarationKind::{Resource, Record}`.
+
+The lexer now tokenizes `.` separately so expression projection is unambiguous. Module names, capability/effect names, and named types still accept qualified identifiers through parser-specific `IDENT ("." IDENT)*` rules. Canonical formatting expands record initializer shorthand (`Point { x }` becomes `Point { x: x }`) and preserves initializer evaluation order.
+
+This migration enables `check`, HIR, `graph`, and `context` for records. `build` fails closed with `SPX-B103` (native) or `SPX-W110` (Wasm) until aggregate layout and cleanup semantics land.
+
 ## Revision token FNV-1a64 to SHA-256
 
-Graph v3, semantic patch bases, CLI output, and `semaprax.web.v2` manifests use one algorithm-tagged token:
+Graph v3 and later, semantic patch bases, CLI output, and `semaprax.web.v2` manifests use one algorithm-tagged token:
 
 ```text
 sha256:<64 lowercase hexadecimal digits>

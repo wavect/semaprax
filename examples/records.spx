@@ -1,0 +1,25 @@
+module examples.records;
+
+@id("geometry.point")
+record Point {
+    @id("geometry.point.x")
+    x: i64,
+    @id("geometry.point.y")
+    y: i64,
+}
+
+@id("geometry.line")
+record Line {
+    @id("geometry.line.start")
+    start: Point,
+    @id("geometry.line.end")
+    end: Point,
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    let point = Point { y: 22, x: 20 };
+    let line = Line { end: Point { x: 0, y: 0 }, start: point };
+    line.start.x + line.start.y
+}

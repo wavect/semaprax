@@ -8,7 +8,10 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::fmt::Write as _;
 
-use crate::ast::{BinaryOp, Expr, ExprKind, ParamMode, Program, Span, Statement, Type, UnaryOp};
+use crate::ast::{
+    BinaryOp, Expr, ExprKind, ParamMode, Program, Span, Statement, Type, TypeDeclarationKind,
+    UnaryOp,
+};
 use crate::diagnostic::Diagnostic;
 use crate::source_verify;
 
@@ -89,6 +92,8 @@ impl fmt::Display for ExpressionId {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DeclarationKind {
     Resource,
+    Record,
+    Field,
     Function,
 }
 
@@ -117,6 +122,7 @@ pub struct Declaration {
     pub name: String,
     pub kind: DeclarationKind,
     pub identity_origin: IdentityOrigin,
+    pub owner: Option<DeclarationId>,
 }
 
 /// A deterministic, display-name-to-identity index.
@@ -128,6 +134,9 @@ pub struct DeclarationIndex {
     declarations: BTreeMap<DeclarationId, Declaration>,
     types_by_name: BTreeMap<String, DeclarationId>,
     functions_by_name: BTreeMap<String, DeclarationId>,
+    fields_by_owner_name: BTreeMap<(DeclarationId, String), DeclarationId>,
+    record_fields: BTreeMap<DeclarationId, Vec<ResolvedFieldDeclaration>>,
+    type_facts_by_id: BTreeMap<String, TypeFacts>,
 }
 
 impl DeclarationIndex {
@@ -143,6 +152,15 @@ impl DeclarationIndex {
         self.functions_by_name.get(name)
     }
 
+    pub fn field_id(&self, owner: &DeclarationId, name: &str) -> Option<&DeclarationId> {
+        self.fields_by_owner_name
+            .get(&(owner.clone(), name.to_owned()))
+    }
+
+    pub fn record_fields(&self, owner: &DeclarationId) -> Option<&[ResolvedFieldDeclaration]> {
+        self.record_fields.get(owner).map(Vec::as_slice)
+    }
+
     pub fn declarations(&self) -> impl ExactSizeIterator<Item = &Declaration> {
         self.declarations.values()
     }
@@ -152,6 +170,19 @@ impl DeclarationIndex {
     /// `None` is reserved for unresolved type parameters and future malformed
     /// HIR. Every type produced for today's verified language has facts.
     pub fn type_facts(&self, ty: &ResolvedType) -> Option<TypeFacts> {
+        self.type_facts_by_id.get(&ty.identity_key()).cloned()
+    }
+
+    fn compute_type_facts(
+        &self,
+        ty: &ResolvedType,
+        visiting: &mut BTreeSet<DeclarationId>,
+        memo: &mut BTreeMap<String, TypeFacts>,
+    ) -> Option<TypeFacts> {
+        let identity = ty.identity_key();
+        if let Some(facts) = memo.get(&identity) {
+            return Some(facts.clone());
+        }
         match ty {
             ResolvedType::I64 => Some(TypeFacts {
                 copy: true,
@@ -168,30 +199,111 @@ impl DeclarationIndex {
                 layout_key: "scalar:bool".to_owned(),
             }),
             ResolvedType::TypeParameter { .. } => None,
-            ResolvedType::Nominal { declaration, .. } => {
+            ResolvedType::Nominal {
+                declaration,
+                arguments,
+            } => {
                 let declaration = self.declaration(declaration)?;
-                match declaration.kind {
-                    DeclarationKind::Resource => Some(TypeFacts {
+                let facts = match declaration.kind {
+                    DeclarationKind::Resource if arguments.is_empty() => Some(TypeFacts {
                         copy: false,
                         contains_resource: true,
                         sized: true,
                         needs_drop: true,
                         layout_key: format!("resource:{}", ty.identity_key()),
                     }),
-                    DeclarationKind::Function => None,
-                }
+                    DeclarationKind::Record => {
+                        if !arguments.is_empty() || !visiting.insert(declaration.id.clone()) {
+                            return None;
+                        }
+                        let fields = self.record_fields.get(&declaration.id)?;
+                        let mut copy = true;
+                        let mut contains_resource = false;
+                        let mut sized = true;
+                        let mut needs_drop = false;
+                        let mut encoded_fields = String::new();
+                        for field in fields {
+                            let facts = self.compute_type_facts(&field.ty, visiting, memo)?;
+                            copy &= facts.copy;
+                            contains_resource |= facts.contains_resource;
+                            sized &= facts.sized;
+                            needs_drop |= facts.needs_drop;
+                            write!(
+                                encoded_fields,
+                                "{}:{}:{}:{}",
+                                field.id.as_str().len(),
+                                field.id,
+                                facts.layout_key.len(),
+                                facts.layout_key
+                            )
+                            .expect("writing to a string cannot fail");
+                        }
+                        visiting.remove(&declaration.id);
+                        Some(TypeFacts {
+                            copy,
+                            contains_resource,
+                            sized,
+                            needs_drop,
+                            layout_key: format!(
+                                "record:{}:{}:{}:{}",
+                                declaration.id.as_str().len(),
+                                declaration.id,
+                                fields.len(),
+                                encoded_fields
+                            ),
+                        })
+                    }
+                    DeclarationKind::Resource
+                    | DeclarationKind::Field
+                    | DeclarationKind::Function => None,
+                }?;
+                memo.insert(identity, facts.clone());
+                Some(facts)
             }
         }
     }
 
-    fn from_verified(program: &Program) -> Self {
+    fn populate_type_facts(&mut self) -> bool {
+        let mut memo = BTreeMap::new();
+        for ty in [ResolvedType::I64, ResolvedType::Bool] {
+            let Some(facts) = self.compute_type_facts(&ty, &mut BTreeSet::new(), &mut memo) else {
+                return false;
+            };
+            memo.insert(ty.identity_key(), facts);
+        }
+        let declarations = self.types_by_name.values().cloned().collect::<Vec<_>>();
+        for declaration in declarations {
+            let ty = ResolvedType::Nominal {
+                declaration,
+                arguments: Vec::new(),
+            };
+            if self
+                .compute_type_facts(&ty, &mut BTreeSet::new(), &mut memo)
+                .is_none()
+            {
+                return false;
+            }
+        }
+        self.type_facts_by_id = memo;
+        true
+    }
+
+    fn recompute_type_facts(&self, ty: &ResolvedType) -> Option<TypeFacts> {
+        self.compute_type_facts(ty, &mut BTreeSet::new(), &mut BTreeMap::new())
+    }
+
+    fn from_verified(program: &Program) -> Result<Self, Diagnostic> {
         let mut index = Self::default();
-        for resource in &program.resources {
-            index.insert(
-                resource.name.clone(),
-                DeclarationId::new(resource.stable_id.clone()),
-                DeclarationKind::Resource,
-                if resource.explicit_id {
+        for declaration in &program.types {
+            let kind = match declaration.kind {
+                TypeDeclarationKind::Resource => DeclarationKind::Resource,
+                TypeDeclarationKind::Record { .. } => DeclarationKind::Record,
+            };
+            index.insert_top_level(
+                declaration.name.clone(),
+                DeclarationId::new(declaration.stable_id.clone()),
+                kind,
+                if declaration.explicit_id {
                     IdentityOrigin::Explicit
                 } else {
                     IdentityOrigin::Automatic
@@ -199,7 +311,7 @@ impl DeclarationIndex {
             );
         }
         for function in &program.functions {
-            index.insert(
+            index.insert_top_level(
                 function.name.clone(),
                 DeclarationId::new(function.stable_id.clone()),
                 DeclarationKind::Function,
@@ -210,10 +322,61 @@ impl DeclarationIndex {
                 },
             );
         }
-        index
+        for declaration in &program.types {
+            let TypeDeclarationKind::Record { fields } = &declaration.kind else {
+                continue;
+            };
+            let owner = DeclarationId::new(declaration.stable_id.clone());
+            let mut resolved_fields = Vec::with_capacity(fields.len());
+            for (ordinal, field) in fields.iter().enumerate() {
+                let ty = index.resolve_source_type(&field.ty).ok_or_else(|| {
+                    Diagnostic::error(
+                        "SPX-H001",
+                        format!("unresolved field type `{}`", field.ty),
+                        field.span,
+                    )
+                    .at_path(&program.path)
+                })?;
+                let field_index = u32::try_from(ordinal).map_err(|_| {
+                    Diagnostic::error(
+                        "SPX-H006",
+                        format!("record `{}` has too many fields", declaration.name),
+                        declaration.span,
+                    )
+                    .at_path(&program.path)
+                })?;
+                let resolved = ResolvedFieldDeclaration {
+                    id: DeclarationId::new(field.stable_id.clone()),
+                    name: field.name.clone(),
+                    index: field_index,
+                    ty,
+                    span: field.span,
+                };
+                index.insert_field(
+                    owner.clone(),
+                    resolved.clone(),
+                    if field.explicit_id {
+                        IdentityOrigin::Explicit
+                    } else {
+                        IdentityOrigin::Automatic
+                    },
+                );
+                resolved_fields.push(resolved);
+            }
+            index.record_fields.insert(owner, resolved_fields);
+        }
+        if !index.populate_type_facts() {
+            return Err(Diagnostic::error(
+                "SPX-T217",
+                "record declarations contain an illegal by-value recursive layout",
+                Span::default(),
+            )
+            .at_path(&program.path));
+        }
+        Ok(index)
     }
 
-    fn insert(
+    fn insert_top_level(
         &mut self,
         name: String,
         id: DeclarationId,
@@ -221,8 +384,9 @@ impl DeclarationIndex {
         identity_origin: IdentityOrigin,
     ) {
         let namespace = match kind {
-            DeclarationKind::Resource => &mut self.types_by_name,
+            DeclarationKind::Resource | DeclarationKind::Record => &mut self.types_by_name,
             DeclarationKind::Function => &mut self.functions_by_name,
+            DeclarationKind::Field => unreachable!("fields use owner-scoped insertion"),
         };
         namespace.insert(name.clone(), id.clone());
         self.declarations.insert(
@@ -232,8 +396,44 @@ impl DeclarationIndex {
                 name,
                 kind,
                 identity_origin,
+                owner: None,
             },
         );
+    }
+
+    fn insert_field(
+        &mut self,
+        owner: DeclarationId,
+        field: ResolvedFieldDeclaration,
+        identity_origin: IdentityOrigin,
+    ) {
+        self.fields_by_owner_name
+            .insert((owner.clone(), field.name.clone()), field.id.clone());
+        self.declarations.insert(
+            field.id.clone(),
+            Declaration {
+                id: field.id,
+                name: field.name,
+                kind: DeclarationKind::Field,
+                identity_origin,
+                owner: Some(owner),
+            },
+        );
+    }
+
+    fn resolve_source_type(&self, ty: &Type) -> Option<ResolvedType> {
+        match ty {
+            Type::I64 => Some(ResolvedType::I64),
+            Type::Bool => Some(ResolvedType::Bool),
+            Type::Named(name) => {
+                self.type_id(name)
+                    .cloned()
+                    .map(|declaration| ResolvedType::Nominal {
+                        declaration,
+                        arguments: Vec::new(),
+                    })
+            }
+        }
     }
 }
 
@@ -342,6 +542,18 @@ pub struct ResolvedTypeDeclaration {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ResolvedTypeDeclarationKind {
     Resource,
+    Record {
+        fields: Vec<ResolvedFieldDeclaration>,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResolvedFieldDeclaration {
+    pub id: DeclarationId,
+    pub name: String,
+    pub index: u32,
+    pub ty: ResolvedType,
+    pub span: Span,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -412,6 +624,20 @@ pub enum ResolvedExprKind {
         then_branch: Box<ResolvedExpr>,
         else_branch: Box<ResolvedExpr>,
     },
+    ConstructRecord {
+        record: DeclarationId,
+        fields: Vec<ResolvedFieldInitializer>,
+    },
+    Project {
+        base: Box<ResolvedExpr>,
+        field: DeclarationId,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResolvedFieldInitializer {
+    pub field: DeclarationId,
+    pub value: ResolvedExpr,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -504,7 +730,15 @@ pub fn analyze(program: &Program) -> Analysis {
         };
     }
 
-    let declarations = DeclarationIndex::from_verified(program);
+    let declarations = match DeclarationIndex::from_verified(program) {
+        Ok(declarations) => declarations,
+        Err(diagnostic) => {
+            return Analysis {
+                diagnostics: vec![diagnostic],
+                resolved: None,
+            };
+        }
+    };
     match (Resolver {
         program,
         declarations,
@@ -598,10 +832,17 @@ impl<'a> HirValidator<'a> {
         if type_ids.len() != self.program.types.len() {
             return Err(hir_error("duplicate resolved type declaration identity"));
         }
+        let mut field_ids = BTreeSet::new();
         for declaration in &self.program.types {
+            let expected_kind = match &declaration.kind {
+                ResolvedTypeDeclarationKind::Resource => DeclarationKind::Resource,
+                ResolvedTypeDeclarationKind::Record { .. } => DeclarationKind::Record,
+            };
             match self.program.declarations.declaration(&declaration.id) {
                 Some(item)
-                    if item.kind == DeclarationKind::Resource && item.name == declaration.name => {}
+                    if item.kind == expected_kind
+                        && item.name == declaration.name
+                        && item.owner.is_none() => {}
                 Some(_) => {
                     return Err(hir_error(format!(
                         "resolved type `{}` disagrees with its declaration index entry",
@@ -615,12 +856,87 @@ impl<'a> HirValidator<'a> {
                     )));
                 }
             }
+            if let ResolvedTypeDeclarationKind::Record { fields } = &declaration.kind {
+                let indexed = self
+                    .program
+                    .declarations
+                    .record_fields(&declaration.id)
+                    .ok_or_else(|| {
+                        hir_error(format!(
+                            "record `{}` has no indexed field sequence",
+                            declaration.id
+                        ))
+                    })?;
+                if indexed.len() != fields.len() {
+                    return Err(hir_error(format!(
+                        "record `{}` field sequence disagrees with its declaration index",
+                        declaration.id
+                    )));
+                }
+                for (position, (field, indexed_field)) in fields.iter().zip(indexed).enumerate() {
+                    if !field_ids.insert(field.id.clone()) {
+                        return Err(hir_error(format!(
+                            "duplicate resolved field identity `{}`",
+                            field.id
+                        )));
+                    }
+                    if field.id != indexed_field.id
+                        || field.name != indexed_field.name
+                        || usize::try_from(field.index) != Ok(position)
+                        || field.index != indexed_field.index
+                        || field.ty != indexed_field.ty
+                    {
+                        return Err(hir_error(format!(
+                            "field {position} of record `{}` disagrees with its declaration index",
+                            declaration.id
+                        )));
+                    }
+                    match self.program.declarations.declaration(&field.id) {
+                        Some(item)
+                            if item.kind == DeclarationKind::Field
+                                && item.name == field.name
+                                && item.owner.as_ref() == Some(&declaration.id)
+                                && self
+                                    .program
+                                    .declarations
+                                    .field_id(&declaration.id, &field.name)
+                                    == Some(&field.id) => {}
+                        _ => {
+                            return Err(hir_error(format!(
+                                "field `{}` is not indexed under record `{}`",
+                                field.id, declaration.id
+                            )));
+                        }
+                    }
+                    self.validate_type(&field.ty)?;
+                }
+                let record_ty = ResolvedType::Nominal {
+                    declaration: declaration.id.clone(),
+                    arguments: Vec::new(),
+                };
+                let cached = self.program.declarations.type_facts(&record_ty);
+                let recomputed = self.program.declarations.recompute_type_facts(&record_ty);
+                if cached.is_none() || cached != recomputed {
+                    return Err(hir_error(format!(
+                        "record `{}` has invalid or stale recursive type facts",
+                        declaration.id
+                    )));
+                }
+            }
         }
         for declaration in self.program.declarations.declarations() {
             match declaration.kind {
-                DeclarationKind::Resource if !type_ids.contains(&declaration.id) => {
+                DeclarationKind::Resource | DeclarationKind::Record
+                    if !type_ids.contains(&declaration.id) =>
+                {
                     return Err(hir_error(format!(
-                        "resource `{}` has no resolved type declaration",
+                        "type `{}` has no resolved type declaration",
+                        declaration.id
+                    )));
+                }
+                DeclarationKind::Field if !field_ids.contains(&declaration.id) => {
+                    return Err(hir_error(format!(
+                        "field `{}` has no resolved field declaration",
                         declaration.id
                     )));
                 }
@@ -630,7 +946,10 @@ impl<'a> HirValidator<'a> {
                         declaration.id
                     )));
                 }
-                DeclarationKind::Resource | DeclarationKind::Function => {}
+                DeclarationKind::Resource
+                | DeclarationKind::Record
+                | DeclarationKind::Field
+                | DeclarationKind::Function => {}
             }
         }
 
@@ -766,11 +1085,6 @@ impl<'a> HirValidator<'a> {
             ResolvedExprKind::Int(_) => (ResolvedType::I64, OwnershipMode::Value),
             ResolvedExprKind::Bool(_) => (ResolvedType::Bool, OwnershipMode::Value),
             ResolvedExprKind::Place(place) => {
-                if !place.projections.is_empty() {
-                    return Err(hir_error(
-                        "aggregate place projections are not valid in the current HIR",
-                    ));
-                }
                 let binding = scope.get(&place.root).ok_or_else(|| {
                     hir_error(format!("resolved value `{}` is out of scope", place.root))
                 })?;
@@ -789,7 +1103,7 @@ impl<'a> HirValidator<'a> {
                         )));
                     }
                 }
-                (binding.ty.clone(), binding.ownership)
+                self.resolve_place(place, binding)?
             }
             ResolvedExprKind::Call { callee, args } => {
                 let target = self.functions.get(callee).copied().ok_or_else(|| {
@@ -1019,6 +1333,95 @@ impl<'a> HirValidator<'a> {
                 }
                 (then_branch.ty.clone(), then_branch.ownership)
             }
+            ResolvedExprKind::ConstructRecord { record, fields } => {
+                let declaration = self
+                    .program
+                    .declarations
+                    .declaration(record)
+                    .ok_or_else(|| hir_error(format!("record `{record}` is not indexed")))?;
+                if declaration.kind != DeclarationKind::Record {
+                    return Err(hir_error(format!(
+                        "constructor target `{record}` is not a record"
+                    )));
+                }
+                let expected_fields = self
+                    .program
+                    .declarations
+                    .record_fields(record)
+                    .ok_or_else(|| hir_error(format!("record `{record}` has no fields")))?
+                    .to_vec();
+                let mut seen = BTreeSet::new();
+                for (index, initializer) in fields.iter().enumerate() {
+                    let field = expected_fields
+                        .iter()
+                        .find(|field| field.id == initializer.field)
+                        .ok_or_else(|| {
+                            hir_error(format!(
+                                "constructor for `{record}` contains foreign field `{}`",
+                                initializer.field
+                            ))
+                        })?;
+                    if !seen.insert(initializer.field.clone()) {
+                        return Err(hir_error(format!(
+                            "constructor for `{record}` repeats field `{}`",
+                            initializer.field
+                        )));
+                    }
+                    self.validate_expr(
+                        function,
+                        &initializer.value,
+                        scope,
+                        &format!("{path}.field.{index}.value"),
+                        allow_moves,
+                        allowed_effects,
+                    )?;
+                    self.require_type(&initializer.value.ty, &field.ty, "record field")?;
+                    let expected = self.expected_ownership(&field.ty, OwnershipMode::Own)?;
+                    if initializer.value.ownership != expected {
+                        return Err(hir_error(format!(
+                            "field `{}` has incompatible ownership",
+                            initializer.field
+                        )));
+                    }
+                    if expected == OwnershipMode::Own {
+                        if !allow_moves {
+                            return Err(hir_error(
+                                "contract cannot transfer ownership into a record",
+                            ));
+                        }
+                        self.mark_value_sources_moved(&initializer.value, scope)?;
+                    }
+                }
+                if seen.len() != expected_fields.len() {
+                    return Err(hir_error(format!(
+                        "constructor for `{record}` is missing required fields"
+                    )));
+                }
+                let ty = ResolvedType::Nominal {
+                    declaration: record.clone(),
+                    arguments: Vec::new(),
+                };
+                let ownership = self.expected_ownership(&ty, OwnershipMode::Own)?;
+                (ty, ownership)
+            }
+            ResolvedExprKind::Project { base, field } => {
+                if matches!(&base.kind, ResolvedExprKind::Place(_)) {
+                    return Err(hir_error(
+                        "place field projections must use a resolved place path",
+                    ));
+                }
+                self.validate_expr(
+                    function,
+                    base,
+                    scope,
+                    &format!("{path}.base"),
+                    allow_moves,
+                    allowed_effects,
+                )?;
+                let projected = self.field_for_type(&base.ty, field)?.ty.clone();
+                let ownership = self.expected_ownership(&projected, base.ownership)?;
+                (projected, ownership)
+            }
         };
 
         self.require_type(&expression.ty, &ty, "expression")?;
@@ -1029,6 +1432,65 @@ impl<'a> HirValidator<'a> {
             )));
         }
         Ok(())
+    }
+
+    fn resolve_place(
+        &self,
+        place: &Place,
+        binding: &ValidationBinding,
+    ) -> Result<(ResolvedType, OwnershipMode), Diagnostic> {
+        let mut ty = binding.ty.clone();
+        let mut ownership = binding.ownership;
+        for projection in &place.projections {
+            match projection {
+                PlaceProjection::Field(field) => {
+                    ty = self.field_for_type(&ty, field)?.ty.clone();
+                    ownership = self.expected_ownership(&ty, ownership)?;
+                }
+                PlaceProjection::VariantField { .. } => {
+                    return Err(hir_error(
+                        "variant-field projections are not valid before variant HIR lands",
+                    ));
+                }
+            }
+        }
+        Ok((ty, ownership))
+    }
+
+    fn field_for_type<'b>(
+        &'b self,
+        ty: &ResolvedType,
+        field: &DeclarationId,
+    ) -> Result<&'b ResolvedFieldDeclaration, Diagnostic> {
+        let ResolvedType::Nominal {
+            declaration,
+            arguments,
+        } = ty
+        else {
+            return Err(hir_error(format!(
+                "field `{field}` projects from a non-record type"
+            )));
+        };
+        if !arguments.is_empty()
+            || self
+                .program
+                .declarations
+                .declaration(declaration)
+                .is_none_or(|item| item.kind != DeclarationKind::Record)
+        {
+            return Err(hir_error(format!(
+                "field `{field}` projects from a non-record nominal type"
+            )));
+        }
+        self.program
+            .declarations
+            .record_fields(declaration)
+            .and_then(|fields| fields.iter().find(|candidate| candidate.id == *field))
+            .ok_or_else(|| {
+                hir_error(format!(
+                    "field `{field}` does not belong to record `{declaration}`"
+                ))
+            })
     }
 
     fn argument_transfers(&self, param: &ResolvedParam) -> Result<bool, Diagnostic> {
@@ -1092,11 +1554,15 @@ impl<'a> HirValidator<'a> {
                 self.mark_value_sources_moved(else_branch, &mut else_scope)?;
                 Self::join_branches(scope, &then_scope, &else_scope, &ids);
             }
+            ResolvedExprKind::Project { base, .. } => {
+                self.mark_value_sources_moved(base, scope)?;
+            }
             ResolvedExprKind::Int(_)
             | ResolvedExprKind::Bool(_)
             | ResolvedExprKind::Call { .. }
             | ResolvedExprKind::Unary { .. }
-            | ResolvedExprKind::Binary { .. } => {}
+            | ResolvedExprKind::Binary { .. }
+            | ResolvedExprKind::ConstructRecord { .. } => {}
         }
         Ok(())
     }
@@ -1155,15 +1621,20 @@ impl<'a> HirValidator<'a> {
                     .program
                     .declarations
                     .declaration(declaration)
-                    .is_none_or(|item| item.kind != DeclarationKind::Resource)
+                    .is_none_or(|item| {
+                        !matches!(
+                            item.kind,
+                            DeclarationKind::Resource | DeclarationKind::Record
+                        )
+                    })
                 {
                     return Err(hir_error(format!(
-                        "nominal type `{declaration}` is not a resolved resource declaration"
+                        "nominal type `{declaration}` is not a resolved type declaration"
                     )));
                 }
                 if !arguments.is_empty() {
                     return Err(hir_error(format!(
-                        "resource type `{declaration}` does not declare type parameters"
+                        "nominal type `{declaration}` does not declare type parameters"
                     )));
                 }
                 for argument in arguments {
@@ -1310,31 +1781,77 @@ impl Resolver<'_> {
                     Span::default(),
                 )
             })?;
+        self.validate_record_layouts()?;
         let types = self
             .program
-            .resources
+            .types
             .iter()
-            .map(|resource| ResolvedTypeDeclaration {
-                id: DeclarationId::new(resource.stable_id.clone()),
-                name: resource.name.clone(),
-                kind: ResolvedTypeDeclarationKind::Resource,
-                span: resource.span,
+            .map(|declaration| {
+                let id = DeclarationId::new(declaration.stable_id.clone());
+                let kind = match &declaration.kind {
+                    TypeDeclarationKind::Resource => ResolvedTypeDeclarationKind::Resource,
+                    TypeDeclarationKind::Record { .. } => {
+                        let fields = self
+                            .declarations
+                            .record_fields(&id)
+                            .ok_or_else(|| {
+                                self.error(
+                                    "SPX-H006",
+                                    format!("record `{id}` has no resolved fields"),
+                                    declaration.span,
+                                )
+                            })?
+                            .to_vec();
+                        ResolvedTypeDeclarationKind::Record { fields }
+                    }
+                };
+                Ok(ResolvedTypeDeclaration {
+                    id,
+                    name: declaration.name.clone(),
+                    kind,
+                    span: declaration.span,
+                })
             })
-            .collect();
+            .collect::<Result<Vec<_>, Diagnostic>>()?;
         let functions = self
             .program
             .functions
             .iter()
             .map(|function| self.resolve_function(function))
             .collect::<Result<_, _>>()?;
-        Ok(ResolvedProgram {
+        let resolved = ResolvedProgram {
             module: self.program.module.clone(),
             permits: self.program.permits.clone(),
             entrypoint,
             declarations: self.declarations,
             types,
             functions,
-        })
+        };
+        validate(&resolved)?;
+        Ok(resolved)
+    }
+
+    fn validate_record_layouts(&self) -> Result<(), Diagnostic> {
+        for declaration in &self.program.types {
+            if !matches!(&declaration.kind, TypeDeclarationKind::Record { .. }) {
+                continue;
+            }
+            let ty = ResolvedType::Nominal {
+                declaration: DeclarationId::new(declaration.stable_id.clone()),
+                arguments: Vec::new(),
+            };
+            if self.declarations.type_facts(&ty).is_none() {
+                return Err(self.error(
+                    "SPX-T217",
+                    format!(
+                        "record `{}` has an illegal by-value recursive layout",
+                        declaration.name
+                    ),
+                    declaration.span,
+                ));
+            }
+        }
+        Ok(())
     }
 
     fn resolve_function(
@@ -1431,7 +1948,7 @@ impl Resolver<'_> {
         match ty {
             Type::I64 => Ok(ResolvedType::I64),
             Type::Bool => Ok(ResolvedType::Bool),
-            Type::Resource(name) => self
+            Type::Named(name) => self
                 .declarations
                 .type_id(name)
                 .cloned()
@@ -1636,6 +2153,130 @@ impl Resolver<'_> {
                     ownership,
                 )
             }
+            ExprKind::ConstructRecord {
+                type_name, fields, ..
+            } => {
+                let record = self
+                    .declarations
+                    .type_id(type_name)
+                    .cloned()
+                    .ok_or_else(|| {
+                        self.error(
+                            "SPX-H001",
+                            format!("unresolved record `{type_name}`"),
+                            expr.span,
+                        )
+                    })?;
+                if self
+                    .declarations
+                    .declaration(&record)
+                    .is_none_or(|item| item.kind != DeclarationKind::Record)
+                {
+                    return Err(self.error(
+                        "SPX-H001",
+                        format!("constructor target `{type_name}` is not a record"),
+                        expr.span,
+                    ));
+                }
+                let mut resolved_fields = Vec::with_capacity(fields.len());
+                for (index, initializer) in fields.iter().enumerate() {
+                    let field = self
+                        .declarations
+                        .field_id(&record, &initializer.name)
+                        .cloned()
+                        .ok_or_else(|| {
+                            self.error(
+                                "SPX-H001",
+                                format!("unresolved field `{}.{}`", type_name, initializer.name),
+                                initializer.name_span,
+                            )
+                        })?;
+                    let value = self.resolve_expr(
+                        function,
+                        &initializer.value,
+                        bindings,
+                        &format!("{path}.field.{index}.value"),
+                    )?;
+                    resolved_fields.push(ResolvedFieldInitializer { field, value });
+                }
+                let ty = ResolvedType::Nominal {
+                    declaration: record.clone(),
+                    arguments: Vec::new(),
+                };
+                let ownership = self.expression_ownership(&ty, OwnershipMode::Own, expr.span)?;
+                (
+                    ResolvedExprKind::ConstructRecord {
+                        record,
+                        fields: resolved_fields,
+                    },
+                    ty,
+                    ownership,
+                )
+            }
+            ExprKind::Project { base, field, .. } => {
+                let base = self.resolve_expr(function, base, bindings, &format!("{path}.base"))?;
+                let ResolvedType::Nominal {
+                    declaration: record,
+                    arguments,
+                } = &base.ty
+                else {
+                    return Err(self.error(
+                        "SPX-H001",
+                        format!("cannot resolve field `{field}` on a non-record value"),
+                        expr.span,
+                    ));
+                };
+                if !arguments.is_empty()
+                    || self
+                        .declarations
+                        .declaration(record)
+                        .is_none_or(|item| item.kind != DeclarationKind::Record)
+                {
+                    return Err(self.error(
+                        "SPX-H001",
+                        format!("cannot resolve field `{field}` on a non-record value"),
+                        expr.span,
+                    ));
+                }
+                let field_id = self
+                    .declarations
+                    .field_id(record, field)
+                    .cloned()
+                    .ok_or_else(|| {
+                        self.error(
+                            "SPX-H001",
+                            format!("unresolved field `{field}` on record `{record}`"),
+                            expr.span,
+                        )
+                    })?;
+                let field_ty = self
+                    .declarations
+                    .record_fields(record)
+                    .and_then(|fields| fields.iter().find(|item| item.id == field_id))
+                    .map(|field| field.ty.clone())
+                    .ok_or_else(|| {
+                        self.error(
+                            "SPX-H001",
+                            format!("field `{field_id}` has no resolved type"),
+                            expr.span,
+                        )
+                    })?;
+                let ownership = self.expression_ownership(&field_ty, base.ownership, expr.span)?;
+                let kind = match &base.kind {
+                    ResolvedExprKind::Place(place) => {
+                        let mut place = place.clone();
+                        place
+                            .projections
+                            .push(PlaceProjection::Field(field_id.clone()));
+                        ResolvedExprKind::Place(place)
+                    }
+                    _ => ResolvedExprKind::Project {
+                        base: Box::new(base),
+                        field: field_id,
+                    },
+                };
+                (kind, field_ty, ownership)
+            }
         };
         Ok(ResolvedExpr {
             id,
@@ -1675,5 +2316,61 @@ impl Resolver<'_> {
                     span,
                 )
             })
+    }
+}
+
+#[cfg(test)]
+mod record_tests {
+    use std::path::Path;
+
+    use super::{validate, DeclarationId, ResolvedType, ResolvedTypeDeclarationKind};
+    use crate::{hir, parse};
+
+    fn record_program() -> hir::ResolvedProgram {
+        let source = r#"
+module test.hostile_record_hir;
+@id("node.type")
+record Node {
+    @id("node.value")
+    value: i64,
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+        hir::resolve(&parse(source, Path::new("hostile-record-hir.spx")).unwrap()).unwrap()
+    }
+
+    #[test]
+    fn validator_rejects_a_forged_by_value_recursive_record_index() {
+        let mut program = record_program();
+        let recursive = ResolvedType::Nominal {
+            declaration: DeclarationId::new("node.type"),
+            arguments: Vec::new(),
+        };
+        let ResolvedTypeDeclarationKind::Record { fields } = &mut program.types[0].kind else {
+            panic!("Node must be a record");
+        };
+        fields[0].ty = recursive.clone();
+        program
+            .declarations
+            .record_fields
+            .get_mut(&DeclarationId::new("node.type"))
+            .unwrap()[0]
+            .ty = recursive;
+
+        assert_eq!(validate(&program).unwrap_err().code, "SPX-H006");
+    }
+
+    #[test]
+    fn validator_rejects_a_field_owned_by_the_wrong_record() {
+        let mut program = record_program();
+        program
+            .declarations
+            .declarations
+            .get_mut(&DeclarationId::new("node.value"))
+            .unwrap()
+            .owner = Some(DeclarationId::new("forged.owner"));
+
+        assert_eq!(validate(&program).unwrap_err().code, "SPX-H006");
     }
 }

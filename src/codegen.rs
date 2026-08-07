@@ -8,7 +8,8 @@ use crate::ast::{BinaryOp, Program, UnaryOp};
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
     self, DeclarationId, DeclarationKind, ExpressionId, ResolvedExpr, ResolvedExprKind,
-    ResolvedFunction, ResolvedProgram, ResolvedStatement, ResolvedType, ValueId,
+    ResolvedFunction, ResolvedProgram, ResolvedStatement, ResolvedType,
+    ResolvedTypeDeclarationKind, ValueId,
 };
 
 /// Resolve a parsed program fail-closed, then emit its checked native bootstrap IR.
@@ -61,6 +62,16 @@ fn emit_hir_c_with_labels(
     contract_labels: &HashMap<ExpressionId, String>,
 ) -> Result<String, Diagnostic> {
     hir::validate(program)?;
+    if program.types.iter().any(|declaration| {
+        matches!(
+            &declaration.kind,
+            ResolvedTypeDeclarationKind::Record { .. }
+        )
+    }) {
+        return Err(backend_error(
+            "native record lowering is gated on aggregate cleanup and layout support",
+        ));
+    }
     let functions = function_index(program)?;
     let mut output = String::from(
         "#include <stdbool.h>\n#include <stdint.h>\n#include <stdio.h>\n#include <stdlib.h>\n\n",
@@ -565,6 +576,11 @@ impl<'a> CEmitter<'a> {
                     code: temporary,
                     ty: expr.ty.clone(),
                 }
+            }
+            ResolvedExprKind::ConstructRecord { .. } | ResolvedExprKind::Project { .. } => {
+                return Err(backend_error(
+                    "native record expressions require aggregate lowering",
+                ));
             }
         };
         self.require_type(&value.ty, &expr.ty, "expression")?;

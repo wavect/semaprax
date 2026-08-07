@@ -1,6 +1,7 @@
 use std::collections::BTreeSet;
 use std::path::Path;
 
+use crate::ast::TypeDeclarationKind;
 use crate::diagnostic::Diagnostic;
 use crate::{format, graph, lexer, parse, verify};
 
@@ -82,11 +83,10 @@ pub fn apply(source_path: &Path, patch_path: &Path) -> Result<String, Vec<Diagno
             }
             continue;
         }
-        if let Some(resource) = before
-            .resources
-            .iter()
-            .find(|resource| resource.stable_id == rename.stable_id)
-        {
+        if let Some(resource) = before.types.iter().find(|resource| {
+            resource.stable_id == rename.stable_id
+                && matches!(resource.kind, TypeDeclarationKind::Resource)
+        }) {
             if !resource.explicit_id {
                 return Err(vec![Diagnostic::io(
                     "SPX-G104",

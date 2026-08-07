@@ -6,7 +6,7 @@ use crate::diagnostic::{quote_json, Diagnostic};
 use crate::graph;
 use crate::hir::{
     self, DeclarationId, ResolvedExpr, ResolvedExprKind, ResolvedProgram, ResolvedStatement,
-    ResolvedType, ValueId,
+    ResolvedType, ResolvedTypeDeclarationKind, ValueId,
 };
 
 const I32: u8 = 0x7f;
@@ -42,6 +42,17 @@ pub fn emit_module(program: &Program) -> Result<Vec<u8>, Diagnostic> {
 /// hold HIR and keeps all backend lowering independent of source-level names.
 pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagnostic> {
     hir::validate(program)?;
+    if program.types.iter().any(|declaration| {
+        matches!(
+            &declaration.kind,
+            ResolvedTypeDeclarationKind::Record { .. }
+        )
+    }) {
+        return Err(Diagnostic::io(
+            "SPX-W110",
+            "WebAssembly record lowering is gated on linear-memory cleanup and layout support",
+        ));
+    }
     let mut types = Vec::<Signature>::new();
     let mut type_indexes = HashMap::<Signature, u32>::new();
     let binary_checked = intern_type(
@@ -291,6 +302,14 @@ fn collect_locals(
             collect_locals(then_branch, parameter_count, layout)?;
             collect_locals(else_branch, parameter_count, layout)?;
         }
+        ResolvedExprKind::ConstructRecord { fields, .. } => {
+            for field in fields {
+                collect_locals(&field.value, parameter_count, layout)?;
+            }
+        }
+        ResolvedExprKind::Project { base, .. } => {
+            collect_locals(base, parameter_count, layout)?;
+        }
         ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
     }
     Ok(())
@@ -487,6 +506,12 @@ fn emit_expr(
                 result,
             )?;
             output.push(0x0b);
+        }
+        ResolvedExprKind::ConstructRecord { .. } | ResolvedExprKind::Project { .. } => {
+            return Err(Diagnostic::io(
+                "SPX-W110",
+                "record expressions require WebAssembly aggregate lowering",
+            ));
         }
     }
     Ok(())

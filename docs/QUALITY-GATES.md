@@ -17,10 +17,12 @@ cargo package --locked --allow-dirty
 cargo run --locked -- check examples/meaning.spx
 cargo run --locked -- check examples/ownership.spx
 cargo run --locked -- check examples/control_flow.spx
+cargo run --locked -- check examples/records.spx
 cargo run --locked -- fmt examples/meaning.spx --check
 cargo run --locked -- fmt examples/effects.spx --check
 cargo run --locked -- fmt examples/ownership.spx --check
 cargo run --locked -- fmt examples/control_flow.spx --check
+cargo run --locked -- fmt examples/records.spx --check
 ```
 
 `scripts/quality.sh` runs this baseline on Unix. The integration suite also discovers every committed `.spx` example and requires it to verify and exactly equal its canonical projection. CI runs the equivalent matrix on Linux, macOS, and Windows, plus an explicit Rust 1.85 minimum-version check.
@@ -41,7 +43,7 @@ The remaining Cargo and `semaprax` commands are shell-neutral.
 | --- | --- |
 | Syntax or AST | Canonical parse-format-parse round trip and malformed-input diagnostic |
 | Types or ownership | Positive test, compile-fail diagnostic code, branch/escape boundary test |
-| Resolved HIR | Stable-ID rename/whitespace invariance, unique lexical/result/place IDs, centralized type-fact/layout assertions, invalid-AST rejection, move/effect/contract revalidation, and malformed-HIR native/Wasm rejection parity |
+| Resolved HIR | Stable-ID rename/whitespace invariance, unique lexical/result/place/field IDs, recursive type-fact/layout assertions, record constructor/projection integrity, invalid-AST rejection, move/effect/contract revalidation, and malformed-HIR native/Wasm rejection parity |
 | Effects or contracts | Capability/effect rejection and runtime/backend behavior |
 | Graph schema | Exact schema assertion/snapshot, canonical SHA-256 known answer, resolved-reference integrity, stable-ID collision behavior, and bounded context frontier behavior |
 | Public protocol or schema | Compatibility fixture, or explicit version bump with migration and changelog note |

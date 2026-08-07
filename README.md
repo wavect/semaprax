@@ -77,6 +77,7 @@ Implemented today:
 - Resource declarations with explicit `own`, `borrow`, and `shared` function boundaries.
 - Lexical `let` bindings and typed `if/else` expressions.
 - Control-flow-aware move checking with definite and conditional use-after-move diagnostics.
+- Canonical record declarations, construction, and projection in `check`, resolved HIR, and semantic Graph v4; executable targets fail closed until aggregate cleanup/layout lands.
 - A validated stable-ID HIR shared by native and Wasm lowering, with explicit entry, result, binding, expression, and place identities.
 - Checked integer arithmetic in generated programs.
 - Typed `requires` and `ensures` contracts, enforced by native and Wasm artifacts.
@@ -89,7 +90,7 @@ Implemented today:
 - Native AOT output through a readable C11 lowering and Clang.
 - Direct WebAssembly core output with a generated ES-module runtime, HTML entry point, capability manifest, checked arithmetic, and contract traps.
 
-Not implemented yet: lifetime and alias analysis, regions, destructors, records and variants, effect handlers, static contract proofs, Cranelift, LLVM/MLIR IR, WebAssembly Components, packages, concurrency, or cross-platform UI. Those are design commitments and staged work, not hidden behind mock commands.
+Not implemented yet: record machine-code lowering, partial-field moves, variants and matching, lifetime and alias analysis, regions, destructors, effect handlers, static contract proofs, Cranelift, LLVM/MLIR IR, WebAssembly Components, packages, concurrency, or cross-platform UI. Those are design commitments and staged work, not hidden behind mock commands.
 
 ## Agent protocol
 

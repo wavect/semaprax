@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use crate::ast::{
-    BinaryOp, Expr, ExprKind, Function, Param, ParamMode, Program, Resource, Span, Statement, Type,
-    UnaryOp,
+    BinaryOp, Expr, ExprKind, FieldDeclaration, FieldInitializer, Function, Param, ParamMode,
+    Program, Span, Statement, Type, TypeDeclaration, TypeDeclarationKind, UnaryOp,
 };
 use crate::diagnostic::Diagnostic;
 use crate::lexer::{lex, Token, TokenKind};
@@ -25,7 +25,7 @@ impl Parser {
 
     pub fn parse(mut self) -> Result<Program, Diagnostic> {
         self.keyword("module")?;
-        let (module, _) = self.ident("module name")?;
+        let (module, _) = self.qualified_ident("module name")?;
         self.take(&TokenKind::Semicolon);
 
         let permits = if self.at_keyword("permit") {
@@ -35,12 +35,14 @@ impl Parser {
             Vec::new()
         };
 
-        let mut resources = Vec::new();
+        let mut types = Vec::new();
         let mut functions = Vec::new();
         while !self.at(&TokenKind::Eof) {
             let stable_id = self.stable_id_attribute()?;
             if self.at_keyword("resource") {
-                resources.push(self.resource(&module, stable_id)?);
+                types.push(self.resource(&module, stable_id)?);
+            } else if self.at_keyword("record") {
+                types.push(self.record(&module, stable_id)?);
             } else {
                 functions.push(self.function(&module, stable_id)?);
             }
@@ -52,7 +54,7 @@ impl Parser {
             path: self.path,
             module,
             permits,
-            resources,
+            types,
             functions,
         })
     }
@@ -81,7 +83,7 @@ impl Parser {
         &mut self,
         module: &str,
         stable_id: Option<String>,
-    ) -> Result<Resource, Diagnostic> {
+    ) -> Result<TypeDeclaration, Diagnostic> {
         let start = self.keyword("resource")?.span;
         let (name, name_span) = self.ident("resource name")?;
         let explicit_id = stable_id.is_some();
@@ -89,11 +91,59 @@ impl Parser {
         let end = self
             .expect(&TokenKind::Semicolon, "`;` after resource declaration")?
             .span;
-        Ok(Resource {
+        Ok(TypeDeclaration {
             stable_id,
             explicit_id,
             name,
             name_span,
+            kind: TypeDeclarationKind::Resource,
+            span: start.merge(end),
+        })
+    }
+
+    fn record(
+        &mut self,
+        module: &str,
+        stable_id: Option<String>,
+    ) -> Result<TypeDeclaration, Diagnostic> {
+        let start = self.keyword("record")?.span;
+        let (name, name_span) = self.ident("record name")?;
+        let explicit_id = stable_id.is_some();
+        let stable_id = stable_id.unwrap_or_else(|| format!("auto:record:{module}.{name}"));
+        self.expect(&TokenKind::LBrace, "`{` before record fields")?;
+        let mut fields = Vec::new();
+        while !self.at(&TokenKind::RBrace) {
+            if self.at(&TokenKind::Eof) {
+                return Err(self.error_here("SPX-P106", "expected `}` after record fields"));
+            }
+            let field_id = self.stable_id_attribute()?;
+            let (field_name, field_name_span) = self.ident("record field name")?;
+            self.expect(&TokenKind::Colon, "`:` after record field name")?;
+            let ty = self.ty()?;
+            let end = self
+                .expect(&TokenKind::Comma, "`,` after record field")?
+                .span;
+            let field_explicit_id = field_id.is_some();
+            let field_stable_id =
+                field_id.unwrap_or_else(|| format!("auto:field:{stable_id}.{field_name}"));
+            fields.push(FieldDeclaration {
+                stable_id: field_stable_id,
+                explicit_id: field_explicit_id,
+                name: field_name,
+                name_span: field_name_span,
+                ty,
+                span: field_name_span.merge(end),
+            });
+        }
+        let end = self
+            .expect(&TokenKind::RBrace, "`}` after record fields")?
+            .span;
+        Ok(TypeDeclaration {
+            stable_id,
+            explicit_id,
+            name,
+            name_span,
+            kind: TypeDeclarationKind::Record { fields },
             span: start.merge(end),
         })
     }
@@ -153,10 +203,10 @@ impl Parser {
         loop {
             if self.at_keyword("requires") {
                 self.bump();
-                requires.push(self.expression(0)?);
+                requires.push(self.expression_with_record_literals(0, false)?);
             } else if self.at_keyword("ensures") {
                 self.bump();
-                ensures.push(self.expression(0)?);
+                ensures.push(self.expression_with_record_literals(0, false)?);
             } else {
                 break;
             }
@@ -179,14 +229,23 @@ impl Parser {
     }
 
     fn expression(&mut self, minimum_precedence: u8) -> Result<Expr, Diagnostic> {
-        let mut left = self.prefix()?;
+        self.expression_with_record_literals(minimum_precedence, true)
+    }
+
+    fn expression_with_record_literals(
+        &mut self,
+        minimum_precedence: u8,
+        allow_record_literals: bool,
+    ) -> Result<Expr, Diagnostic> {
+        let mut left = self.prefix(allow_record_literals)?;
         while let Some(op) = self.binary_op() {
             let precedence = op.precedence();
             if precedence < minimum_precedence {
                 break;
             }
             self.bump();
-            let right = self.expression(precedence + 1)?;
+            let right =
+                self.expression_with_record_literals(precedence + 1, allow_record_literals)?;
             let span = left.span.merge(right.span);
             left = Expr {
                 kind: ExprKind::Binary {
@@ -200,7 +259,7 @@ impl Parser {
         Ok(left)
     }
 
-    fn prefix(&mut self) -> Result<Expr, Diagnostic> {
+    fn prefix(&mut self, allow_record_literals: bool) -> Result<Expr, Diagnostic> {
         let token = self.bump().clone();
         let mut expression = match token.kind {
             TokenKind::Int(value) => Expr {
@@ -222,7 +281,7 @@ impl Parser {
                 } else {
                     UnaryOp::Not
                 };
-                let value = self.expression(7)?;
+                let value = self.expression_with_record_literals(7, allow_record_literals)?;
                 let span = token.span.merge(value.span);
                 Expr {
                     kind: ExprKind::Unary {
@@ -251,26 +310,92 @@ impl Parser {
             }
         };
 
-        if self.take(&TokenKind::LParen) {
-            let ExprKind::Var(name) = expression.kind else {
-                return Err(self.error_previous("SPX-P202", "only named functions can be called"));
-            };
-            let mut args = Vec::new();
-            if !self.at(&TokenKind::RParen) {
-                loop {
-                    args.push(self.expression(0)?);
+        loop {
+            if allow_record_literals && self.at(&TokenKind::LBrace) {
+                let Some(type_name) = expression_path(&expression) else {
+                    break;
+                };
+                let type_span = expression.span;
+                let start = expression.span;
+                self.bump();
+                let mut fields = Vec::new();
+                while !self.at(&TokenKind::RBrace) {
+                    let (name, name_span) = self.ident("record initializer field name")?;
+                    let value = if self.take(&TokenKind::Colon) {
+                        self.expression(0)?
+                    } else {
+                        Expr {
+                            kind: ExprKind::Var(name.clone()),
+                            span: name_span,
+                        }
+                    };
+                    let field_span = name_span.merge(value.span);
+                    fields.push(FieldInitializer {
+                        name,
+                        name_span,
+                        value,
+                        span: field_span,
+                    });
                     if !self.take(&TokenKind::Comma) {
                         break;
                     }
+                    if self.at(&TokenKind::RBrace) {
+                        break;
+                    }
                 }
+                let end = self
+                    .expect(&TokenKind::RBrace, "`}` after record initializer")?
+                    .span;
+                expression = Expr {
+                    kind: ExprKind::ConstructRecord {
+                        type_name,
+                        type_span,
+                        fields,
+                    },
+                    span: start.merge(end),
+                };
+                continue;
             }
-            let end = self
-                .expect(&TokenKind::RParen, "`)` after call arguments")?
-                .span;
-            expression = Expr {
-                kind: ExprKind::Call { name, args },
-                span: expression.span.merge(end),
-            };
+
+            if self.take(&TokenKind::LParen) {
+                let ExprKind::Var(name) = expression.kind else {
+                    return Err(
+                        self.error_previous("SPX-P202", "only named functions can be called")
+                    );
+                };
+                let mut args = Vec::new();
+                if !self.at(&TokenKind::RParen) {
+                    loop {
+                        args.push(self.expression(0)?);
+                        if !self.take(&TokenKind::Comma) {
+                            break;
+                        }
+                    }
+                }
+                let end = self
+                    .expect(&TokenKind::RParen, "`)` after call arguments")?
+                    .span;
+                expression = Expr {
+                    kind: ExprKind::Call { name, args },
+                    span: expression.span.merge(end),
+                };
+                continue;
+            }
+
+            if self.take(&TokenKind::Dot) {
+                let (field, field_span) = self.ident("field name after `.`")?;
+                let start = expression.span;
+                expression = Expr {
+                    kind: ExprKind::Project {
+                        base: Box::new(expression),
+                        field,
+                        field_span,
+                    },
+                    span: start.merge(field_span),
+                };
+                continue;
+            }
+            break;
         }
         Ok(expression)
     }
@@ -315,7 +440,7 @@ impl Parser {
     }
 
     fn if_expression(&mut self, start: Span) -> Result<Expr, Diagnostic> {
-        let condition = self.expression(0)?;
+        let condition = self.expression_with_record_literals(0, false)?;
         let then_branch = self.block("`if` condition")?;
         self.keyword("else")?;
         let else_branch = self.block("`else`")?;
@@ -335,7 +460,7 @@ impl Parser {
         let mut effects = Vec::new();
         if !self.at(&TokenKind::RBrace) {
             loop {
-                let (effect, _) = self.ident("effect name")?;
+                let (effect, _) = self.qualified_ident("effect name")?;
                 effects.push(effect);
                 if !self.take(&TokenKind::Comma) {
                     break;
@@ -347,11 +472,11 @@ impl Parser {
     }
 
     fn ty(&mut self) -> Result<Type, Diagnostic> {
-        let (name, _) = self.ident("type")?;
+        let (name, _) = self.qualified_ident("type")?;
         match name.as_str() {
             "i64" => Ok(Type::I64),
             "bool" => Ok(Type::Bool),
-            _ => Ok(Type::Resource(name)),
+            _ => Ok(Type::Named(name)),
         }
     }
 
@@ -391,6 +516,18 @@ impl Parser {
                     .at_path(&self.path),
             ),
         }
+    }
+
+    fn qualified_ident(&mut self, description: &str) -> Result<(String, Span), Diagnostic> {
+        let (mut value, start) = self.ident(description)?;
+        let mut span = start;
+        while self.take(&TokenKind::Dot) {
+            let (part, part_span) = self.ident(description)?;
+            value.push('.');
+            value.push_str(&part);
+            span = span.merge(part_span);
+        }
+        Ok((value, span))
     }
 
     fn expect(&mut self, expected: &TokenKind, description: &str) -> Result<Token, Diagnostic> {
@@ -437,5 +574,18 @@ impl Parser {
     fn error_previous(&self, code: &'static str, message: impl Into<String>) -> Diagnostic {
         let index = self.cursor.saturating_sub(1);
         Diagnostic::error(code, message, self.tokens[index].span).at_path(&self.path)
+    }
+}
+
+fn expression_path(expression: &Expr) -> Option<String> {
+    match &expression.kind {
+        ExprKind::Var(name) => Some(name.clone()),
+        ExprKind::Project { base, field, .. } => {
+            let mut path = expression_path(base)?;
+            path.push('.');
+            path.push_str(field);
+            Some(path)
+        }
+        _ => None,
     }
 }

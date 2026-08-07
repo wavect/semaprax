@@ -1,7 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::ast::{
-    BinaryOp, Expr, ExprKind, Function, ParamMode, Program, Span, Statement, Type, UnaryOp,
+    BinaryOp, Expr, ExprKind, FieldDeclaration, Function, ParamMode, Program, Span, Statement,
+    Type, TypeDeclaration, TypeDeclarationKind, UnaryOp,
 };
 use crate::diagnostic::Diagnostic;
 
@@ -43,8 +44,8 @@ impl CheckedValue {
         }
     }
 
-    fn returned(ty: Type) -> Self {
-        let mode = if ty.is_resource() {
+    fn returned(ty: Type, contains_resource: bool) -> Self {
+        let mode = if contains_resource {
             ParamMode::Own
         } else {
             ParamMode::Value
@@ -53,50 +54,198 @@ impl CheckedValue {
     }
 }
 
+struct TypeTable<'a> {
+    declarations: HashMap<&'a str, &'a TypeDeclaration>,
+}
+
+impl<'a> TypeTable<'a> {
+    fn new(program: &'a Program) -> Self {
+        Self {
+            declarations: program
+                .types
+                .iter()
+                .map(|declaration| (declaration.name.as_str(), declaration))
+                .collect(),
+        }
+    }
+
+    fn declaration(&self, name: &str) -> Option<&'a TypeDeclaration> {
+        self.declarations.get(name).copied()
+    }
+
+    fn record_fields(&self, ty: &Type) -> Option<&'a [FieldDeclaration]> {
+        let Type::Named(name) = ty else {
+            return None;
+        };
+        match &self.declaration(name)?.kind {
+            TypeDeclarationKind::Record { fields } => Some(fields),
+            TypeDeclarationKind::Resource => None,
+        }
+    }
+
+    fn contains_resource(&self, ty: &Type) -> bool {
+        self.contains_resource_inner(ty, &mut HashSet::new())
+    }
+
+    fn contains_resource_inner(&self, ty: &Type, visiting: &mut HashSet<String>) -> bool {
+        let Type::Named(name) = ty else {
+            return false;
+        };
+        let Some(declaration) = self.declaration(name) else {
+            return false;
+        };
+        match &declaration.kind {
+            TypeDeclarationKind::Resource => true,
+            TypeDeclarationKind::Record { fields } => {
+                if !visiting.insert(name.clone()) {
+                    return true;
+                }
+                let contains = fields
+                    .iter()
+                    .any(|field| self.contains_resource_inner(&field.ty, visiting));
+                visiting.remove(name);
+                contains
+            }
+        }
+    }
+}
+
 pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
     let mut diagnostics = Vec::new();
     let mut functions = HashMap::new();
     let mut ids = HashSet::new();
-    let mut resources = HashSet::new();
+    let mut type_names = HashSet::new();
 
-    for resource in &program.resources {
-        if !source_identifier(&resource.name) {
+    for declaration in &program.types {
+        if !source_identifier(&declaration.name) {
+            let kind = match declaration.kind {
+                TypeDeclarationKind::Resource => "resource",
+                TypeDeclarationKind::Record { .. } => "record",
+            };
             diagnostics.push(error(
                 program,
                 "SPX-S106",
-                format!("`{}` is not a valid resource identifier", resource.name),
-                resource.name_span,
+                format!("`{}` is not a valid {kind} identifier", declaration.name),
+                declaration.name_span,
             ));
         }
-        if !resources.insert(resource.name.as_str()) {
+        if !type_names.insert(declaration.name.as_str()) {
+            let duplicate = match declaration.kind {
+                TypeDeclarationKind::Resource => "resource",
+                TypeDeclarationKind::Record { .. } => "type",
+            };
             diagnostics.push(error(
                 program,
                 "SPX-S107",
-                format!("duplicate resource `{}`", resource.name),
-                resource.span,
+                format!("duplicate {duplicate} `{}`", declaration.name),
+                declaration.span,
             ));
         }
-        if !ids.insert(resource.stable_id.as_str()) {
+        if !ids.insert(declaration.stable_id.as_str()) {
             diagnostics.push(error(
                 program,
                 "SPX-S102",
-                format!("duplicate stable id `{}`", resource.stable_id),
-                resource.span,
+                format!("duplicate stable id `{}`", declaration.stable_id),
+                declaration.span,
             ));
         }
-        if !resource.explicit_id {
+        if !declaration.explicit_id {
+            let (subject, help) = match declaration.kind {
+                TypeDeclarationKind::Resource => ("resource", "your.namespace.resource"),
+                TypeDeclarationKind::Record { .. } => ("record", "your.namespace.record"),
+            };
             diagnostics.push(
                 Diagnostic::warning(
                     "SPX-S108",
                     format!(
-                        "resource `{}` has an automatic identity that changes when renamed",
-                        resource.name
+                        "{subject} `{}` has an automatic identity that changes when renamed",
+                        declaration.name
                     ),
-                    resource.name_span,
+                    declaration.name_span,
                 )
                 .at_path(&program.path)
-                .with_help("add @id(\"your.namespace.resource\") before the declaration"),
+                .with_help(format!("add @id(\"{help}\") before the declaration")),
             );
+        }
+        if let TypeDeclarationKind::Record { fields } = &declaration.kind {
+            let mut field_names = HashSet::new();
+            let mut field_ids = HashSet::new();
+            for field in fields {
+                if !source_identifier(&field.name) {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-S110",
+                        format!("`{}` is not a valid field identifier", field.name),
+                        field.name_span,
+                    ));
+                }
+                if !field_names.insert(field.name.as_str())
+                    || !field_ids.insert(field.stable_id.as_str())
+                {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-S111",
+                        format!(
+                            "duplicate field `{}` in record `{}`",
+                            field.name, declaration.name
+                        ),
+                        field.span,
+                    ));
+                }
+                if !ids.insert(field.stable_id.as_str()) {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-S102",
+                        format!("duplicate stable id `{}`", field.stable_id),
+                        field.span,
+                    ));
+                }
+                if !field.explicit_id {
+                    diagnostics.push(
+                        Diagnostic::warning(
+                            "SPX-S112",
+                            format!(
+                                "field `{}.{}` has an automatic identity that changes when renamed",
+                                declaration.name, field.name
+                            ),
+                            field.name_span,
+                        )
+                        .at_path(&program.path)
+                        .with_help("add @id(\"your.namespace.record.field\") before the field"),
+                    );
+                }
+            }
+        }
+    }
+
+    let types = TypeTable::new(program);
+    for declaration in &program.types {
+        if let TypeDeclarationKind::Record { fields } = &declaration.kind {
+            for field in fields {
+                check_declared_type(program, &field.ty, field.span, &types, &mut diagnostics);
+            }
+        }
+    }
+    let mut checked_layouts = HashSet::new();
+    for declaration in &program.types {
+        if matches!(declaration.kind, TypeDeclarationKind::Record { .. })
+            && record_layout_is_recursive(
+                declaration.name.as_str(),
+                &types,
+                &mut HashSet::new(),
+                &mut checked_layouts,
+            )
+        {
+            diagnostics.push(error(
+                program,
+                "SPX-T217",
+                format!(
+                    "record `{}` has an illegal recursive by-value layout",
+                    declaration.name
+                ),
+                declaration.span,
+            ));
+            break;
         }
     }
 
@@ -146,7 +295,7 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
             program,
             &function.return_type,
             function.span,
-            &resources,
+            &types,
             &mut diagnostics,
         );
         let mut variables = HashMap::new();
@@ -159,8 +308,8 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                     param.span,
                 ));
             }
-            check_declared_type(program, &param.ty, param.span, &resources, &mut diagnostics);
-            check_ownership_mode(program, function, param, &mut diagnostics);
+            check_declared_type(program, &param.ty, param.span, &types, &mut diagnostics);
+            check_ownership_mode(program, function, param, &types, &mut diagnostics);
             if variables
                 .insert(
                     param.name.clone(),
@@ -189,6 +338,7 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                 contract,
                 &entry_variables,
                 &functions,
+                &types,
                 None,
                 &mut diagnostics,
                 "precondition",
@@ -201,6 +351,7 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
             &function.body,
             &mut variables,
             &functions,
+            &types,
             None,
             true,
             &mut diagnostics,
@@ -216,7 +367,7 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                     function.body.span,
                 ));
             }
-            if function.return_type.is_resource() && actual.mode != ParamMode::Own {
+            if types.contains_resource(&function.return_type) && actual.mode != ParamMode::Own {
                 diagnostics.push(
                     error(
                         program,
@@ -240,6 +391,7 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                 contract,
                 &variables,
                 &functions,
+                &types,
                 Some(&function.return_type),
                 &mut diagnostics,
                 "postcondition",
@@ -301,15 +453,51 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
     diagnostics
 }
 
+fn record_layout_is_recursive(
+    name: &str,
+    types: &TypeTable<'_>,
+    visiting: &mut HashSet<String>,
+    checked: &mut HashSet<String>,
+) -> bool {
+    if checked.contains(name) {
+        return false;
+    }
+    if !visiting.insert(name.to_owned()) {
+        return true;
+    }
+    let recursive = types
+        .declaration(name)
+        .and_then(|declaration| match &declaration.kind {
+            TypeDeclarationKind::Record { fields } => Some(fields),
+            TypeDeclarationKind::Resource => None,
+        })
+        .is_some_and(|fields| {
+            fields.iter().any(|field| {
+                let Type::Named(field_type) = &field.ty else {
+                    return false;
+                };
+                matches!(
+                    types.declaration(field_type).map(|item| &item.kind),
+                    Some(TypeDeclarationKind::Record { .. })
+                ) && record_layout_is_recursive(field_type, types, visiting, checked)
+            })
+        });
+    visiting.remove(name);
+    if !recursive {
+        checked.insert(name.to_owned());
+    }
+    recursive
+}
+
 fn check_declared_type(
     program: &Program,
     ty: &Type,
     span: Span,
-    resources: &HashSet<&str>,
+    types: &TypeTable<'_>,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
-    if let Type::Resource(name) = ty {
-        if !resources.contains(name.as_str()) {
+    if let Type::Named(name) = ty {
+        if types.declaration(name).is_none() {
             diagnostics.push(error(
                 program,
                 "SPX-T001",
@@ -324,9 +512,10 @@ fn check_ownership_mode(
     program: &Program,
     function: &Function,
     param: &crate::ast::Param,
+    types: &TypeTable<'_>,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
-    match (param.ty.is_resource(), param.mode) {
+    match (types.contains_resource(&param.ty), param.mode) {
         (true, ParamMode::Value) => diagnostics.push(
             error(
                 program,
@@ -363,6 +552,7 @@ fn check_expr(
     expr: &Expr,
     variables: &mut HashMap<String, Binding>,
     functions: &HashMap<&str, &Function>,
+    types: &TypeTable<'_>,
     result_type: Option<&Type>,
     allow_moves: bool,
     diagnostics: &mut Vec<Diagnostic>,
@@ -371,8 +561,7 @@ fn check_expr(
         ExprKind::Int(_) => Some(CheckedValue::value(Type::I64)),
         ExprKind::Bool(_) => Some(CheckedValue::value(Type::Bool)),
         ExprKind::Var(name) if name == "result" => result_type
-            .cloned()
-            .map(CheckedValue::returned)
+            .map(|ty| CheckedValue::returned(ty.clone(), types.contains_resource(ty)))
             .or_else(|| {
                 diagnostics.push(error(
                     program,
@@ -452,6 +641,7 @@ fn check_expr(
                     arg,
                     variables,
                     functions,
+                    types,
                     result_type,
                     allow_moves,
                     diagnostics,
@@ -480,11 +670,17 @@ fn check_expr(
                     param,
                     actual.as_ref(),
                     variables,
+                    types,
                     allow_moves,
                     diagnostics,
                 );
             }
-            target.map(|target| CheckedValue::returned(target.return_type.clone()))
+            target.map(|target| {
+                CheckedValue::returned(
+                    target.return_type.clone(),
+                    types.contains_resource(&target.return_type),
+                )
+            })
         }
         ExprKind::Unary { op, value } => {
             let actual = check_expr(
@@ -493,6 +689,7 @@ fn check_expr(
                 value,
                 variables,
                 functions,
+                types,
                 result_type,
                 allow_moves,
                 diagnostics,
@@ -518,6 +715,7 @@ fn check_expr(
                 left,
                 variables,
                 functions,
+                types,
                 result_type,
                 allow_moves,
                 diagnostics,
@@ -531,6 +729,7 @@ fn check_expr(
                     right,
                     &mut right_variables,
                     functions,
+                    types,
                     result_type,
                     allow_moves,
                     diagnostics,
@@ -544,6 +743,7 @@ fn check_expr(
                     right,
                     variables,
                     functions,
+                    types,
                     result_type,
                     allow_moves,
                     diagnostics,
@@ -585,6 +785,139 @@ fn check_expr(
             }
             Some(CheckedValue::value(output))
         }
+        ExprKind::ConstructRecord {
+            type_name, fields, ..
+        } => {
+            let declaration = types.declaration(type_name);
+            let declared_fields = declaration.and_then(|declaration| match &declaration.kind {
+                TypeDeclarationKind::Record { fields } => Some(fields.as_slice()),
+                TypeDeclarationKind::Resource => None,
+            });
+            if declared_fields.is_none() {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T215",
+                    format!("`{type_name}` is not a declared record type"),
+                    expr.span,
+                ));
+            }
+
+            let mut supplied = HashSet::new();
+            for field in fields {
+                let declared = declared_fields.and_then(|declared| {
+                    declared
+                        .iter()
+                        .find(|candidate| candidate.name == field.name)
+                });
+                if !supplied.insert(field.name.as_str()) || declared.is_none() {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T212",
+                        format!(
+                            "unknown or duplicate field `{}` in `{type_name}` construction",
+                            field.name
+                        ),
+                        field.span,
+                    ));
+                }
+                let actual = check_expr(
+                    program,
+                    current,
+                    &field.value,
+                    variables,
+                    functions,
+                    types,
+                    result_type,
+                    allow_moves,
+                    diagnostics,
+                );
+                if let (Some(declared), Some(actual)) = (declared, actual) {
+                    if actual.ty != declared.ty {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T215",
+                            format!(
+                                "field `{}.{}` expects {}, received {}",
+                                type_name, field.name, declared.ty, actual.ty
+                            ),
+                            field.value.span,
+                        ));
+                    }
+                    if types.contains_resource(&declared.ty) && actual.mode == ParamMode::Own {
+                        if allow_moves {
+                            mark_value_sources_moved(&field.value, variables, types);
+                        } else {
+                            diagnostics.push(error(
+                                program,
+                                "SPX-O105",
+                                "contract expression cannot transfer an owned record field",
+                                field.value.span,
+                            ));
+                        }
+                    }
+                }
+            }
+            if let Some(declared_fields) = declared_fields {
+                for field in declared_fields {
+                    if !supplied.contains(field.name.as_str()) {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T213",
+                            format!(
+                                "record `{type_name}` construction is missing field `{}`",
+                                field.name
+                            ),
+                            expr.span,
+                        ));
+                    }
+                }
+            }
+
+            declared_fields.map(|_| {
+                let ty = Type::Named(type_name.clone());
+                CheckedValue::returned(ty.clone(), types.contains_resource(&ty))
+            })
+        }
+        ExprKind::Project { base, field, .. } => {
+            let base_value = check_expr(
+                program,
+                current,
+                base,
+                variables,
+                functions,
+                types,
+                result_type,
+                allow_moves,
+                diagnostics,
+            )?;
+            let Some(fields) = types.record_fields(&base_value.ty) else {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T214",
+                    format!("cannot project field `{field}` from `{}`", base_value.ty),
+                    expr.span,
+                ));
+                return None;
+            };
+            let Some(declared) = fields.iter().find(|candidate| candidate.name == *field) else {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T214",
+                    format!("record `{}` has no field `{field}`", base_value.ty),
+                    expr.span,
+                ));
+                return None;
+            };
+            let mode = if types.contains_resource(&declared.ty) {
+                base_value.mode
+            } else {
+                ParamMode::Value
+            };
+            Some(CheckedValue {
+                ty: declared.ty.clone(),
+                mode,
+            })
+        }
         ExprKind::Block { statements, tail } => {
             let outer_names = variables.keys().cloned().collect::<Vec<_>>();
             let mut scope = variables.clone();
@@ -610,6 +943,7 @@ fn check_expr(
                             value,
                             &mut scope,
                             functions,
+                            types,
                             result_type,
                             allow_moves,
                             diagnostics,
@@ -624,9 +958,10 @@ fn check_expr(
                             continue;
                         }
                         if let Some(actual) = actual {
-                            if actual.ty.is_resource() && actual.mode == ParamMode::Own {
+                            if types.contains_resource(&actual.ty) && actual.mode == ParamMode::Own
+                            {
                                 if allow_moves {
-                                    mark_value_sources_moved(value, &mut scope);
+                                    mark_value_sources_moved(value, &mut scope, types);
                                 } else {
                                     diagnostics.push(error(
                                         program,
@@ -654,6 +989,7 @@ fn check_expr(
                 tail,
                 &mut scope,
                 functions,
+                types,
                 result_type,
                 allow_moves,
                 diagnostics,
@@ -672,6 +1008,7 @@ fn check_expr(
                 condition,
                 variables,
                 functions,
+                types,
                 result_type,
                 allow_moves,
                 diagnostics,
@@ -694,6 +1031,7 @@ fn check_expr(
                 then_branch,
                 &mut then_variables,
                 functions,
+                types,
                 result_type,
                 allow_moves,
                 diagnostics,
@@ -704,6 +1042,7 @@ fn check_expr(
                 else_branch,
                 &mut else_variables,
                 functions,
+                types,
                 result_type,
                 allow_moves,
                 diagnostics,
@@ -732,7 +1071,8 @@ fn check_expr(
                             expr.span,
                         ));
                     }
-                    if then_value.ty.is_resource() && then_value.mode != else_value.mode {
+                    if types.contains_resource(&then_value.ty) && then_value.mode != else_value.mode
+                    {
                         diagnostics.push(error(
                             program,
                             "SPX-O106",
@@ -757,13 +1097,14 @@ fn check_argument_ownership(
     param: &crate::ast::Param,
     actual: Option<&CheckedValue>,
     variables: &mut HashMap<String, Binding>,
+    types: &TypeTable<'_>,
     allow_moves: bool,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
     let Some(actual) = actual else {
         return;
     };
-    if !actual.ty.is_resource() {
+    if !types.contains_resource(&actual.ty) {
         return;
     }
     match param.mode {
@@ -788,7 +1129,7 @@ fn check_argument_ownership(
                     )),
                 );
             } else if allow_moves {
-                mark_value_sources_moved(arg, variables);
+                mark_value_sources_moved(arg, variables, types);
             } else {
                 diagnostics.push(error(
                     program,
@@ -811,11 +1152,15 @@ fn check_argument_ownership(
     }
 }
 
-fn mark_value_sources_moved(expr: &Expr, variables: &mut HashMap<String, Binding>) {
+fn mark_value_sources_moved(
+    expr: &Expr,
+    variables: &mut HashMap<String, Binding>,
+    types: &TypeTable<'_>,
+) {
     match &expr.kind {
         ExprKind::Var(name) => {
             if let Some(binding) = variables.get_mut(name) {
-                if binding.ty.is_resource()
+                if types.contains_resource(&binding.ty)
                     && binding.mode == ParamMode::Own
                     && binding.availability == Availability::Available
                 {
@@ -823,7 +1168,8 @@ fn mark_value_sources_moved(expr: &Expr, variables: &mut HashMap<String, Binding
                 }
             }
         }
-        ExprKind::Block { tail, .. } => mark_value_sources_moved(tail, variables),
+        ExprKind::Block { tail, .. } => mark_value_sources_moved(tail, variables, types),
+        ExprKind::Project { base, .. } => mark_value_sources_moved(base, variables, types),
         ExprKind::If {
             then_branch,
             else_branch,
@@ -832,8 +1178,8 @@ fn mark_value_sources_moved(expr: &Expr, variables: &mut HashMap<String, Binding
             let names = variables.keys().cloned().collect::<Vec<_>>();
             let mut then_variables = variables.clone();
             let mut else_variables = variables.clone();
-            mark_value_sources_moved(then_branch, &mut then_variables);
-            mark_value_sources_moved(else_branch, &mut else_variables);
+            mark_value_sources_moved(then_branch, &mut then_variables, types);
+            mark_value_sources_moved(else_branch, &mut else_variables, types);
             for name in names {
                 if let Some(binding) = variables.get_mut(&name) {
                     let then_state = then_variables
@@ -882,6 +1228,7 @@ fn require_bool(
     contract: &Expr,
     variables: &HashMap<String, Binding>,
     functions: &HashMap<&str, &Function>,
+    types: &TypeTable<'_>,
     result_type: Option<&Type>,
     diagnostics: &mut Vec<Diagnostic>,
     kind: &str,
@@ -912,6 +1259,7 @@ fn require_bool(
         contract,
         &mut contract_variables,
         functions,
+        types,
         result_type,
         false,
         diagnostics,

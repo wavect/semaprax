@@ -12,6 +12,7 @@ pub enum TokenKind {
     LBrace,
     RBrace,
     Colon,
+    Dot,
     Comma,
     Semicolon,
     Arrow,
@@ -102,6 +103,7 @@ impl Lexer<'_> {
             '{' => TokenKind::LBrace,
             '}' => TokenKind::RBrace,
             ':' => TokenKind::Colon,
+            '.' => TokenKind::Dot,
             ',' => TokenKind::Comma,
             ';' => TokenKind::Semicolon,
             '+' => TokenKind::Plus,
@@ -257,5 +259,5 @@ fn is_ident_start(character: char) -> bool {
 }
 
 fn is_ident_continue(character: char) -> bool {
-    character == '_' || character == '.' || character.is_ascii_alphanumeric()
+    character == '_' || character.is_ascii_alphanumeric()
 }

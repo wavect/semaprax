@@ -40,6 +40,63 @@ fn main() -> i64
 }
 
 #[test]
+fn function_rename_does_not_retarget_same_named_interface_import() {
+    let source = r#"module patch.import_collision;
+
+@id("file.type")
+resource File {
+    @id("file.type.drop")
+    drop trivial;
+}
+
+@id("file.host")
+interface FileHost permits {} {
+    @id("file.process")
+    import fn process(file: own File) -> unit
+        effects {}
+        failure infallible
+        consumes file always;
+}
+
+@id("app.process")
+fn process() -> i64
+{
+    42
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    process()
+}
+"#;
+    let program = parse(source, Path::new("function-import-collision.spx")).unwrap();
+    let revision = graph::revision(&program);
+    let directory = std::env::temp_dir().join(format!(
+        "semaprax-function-import-collision-{}",
+        std::process::id()
+    ));
+    std::fs::create_dir_all(&directory).unwrap();
+    let source_path = directory.join("module.spx");
+    let patch_path = directory.join("rename.spatch");
+    std::fs::write(&source_path, source).unwrap();
+    std::fs::write(
+        &patch_path,
+        format!("base {revision}\nrename app.process to execute\n"),
+    )
+    .unwrap();
+
+    patch::apply(&source_path, &patch_path).unwrap();
+    let changed = std::fs::read_to_string(&source_path).unwrap();
+    assert!(changed.contains("import fn process(file: own File)"));
+    assert!(changed.contains("fn execute() -> i64"));
+    assert!(changed.contains("execute()\n}"));
+    assert!(changed.contains("@id(\"file.process\")"));
+    assert!(changed.contains("@id(\"app.process\")"));
+    graph::to_json(&parse(&changed, &source_path).unwrap()).unwrap();
+}
+
+#[test]
 fn legacy_fnv_patch_is_rejected_without_changing_source() {
     let directory = std::env::temp_dir().join(format!("semaprax-stale-{}", std::process::id()));
     std::fs::create_dir_all(&directory).unwrap();
@@ -114,7 +171,10 @@ fn semantic_resource_rename_updates_ownership_boundaries() {
     let source = r#"module patch.resource;
 
 @id("buffer.type")
-resource Buffer;
+resource Buffer {
+    @id("buffer.type.drop")
+    drop trivial;
+}
 
 @id("buffer.consume")
 fn consume(buffer: own Buffer) -> Buffer
@@ -143,7 +203,7 @@ fn main() -> i64
     .unwrap();
     patch::apply(&source_path, &patch_path).unwrap();
     let changed = std::fs::read_to_string(&source_path).unwrap();
-    assert!(changed.contains("resource ByteBuffer;"));
+    assert!(changed.contains("resource ByteBuffer {"));
     assert!(changed.contains("buffer: own ByteBuffer"));
     assert!(changed.contains("-> ByteBuffer"));
     assert!(changed.contains("@id(\"buffer.type\")"));
@@ -154,7 +214,10 @@ fn resource_rename_does_not_retarget_record_initializer_values() {
     let source = r#"module patch.record_resource;
 
 @id("handle.type")
-resource Handle;
+resource Handle {
+    @id("handle.type.drop")
+    drop trivial;
+}
 
 @id("wrapper.type")
 record Wrapper {
@@ -192,11 +255,66 @@ fn main() -> i64
 
     patch::apply(&source_path, &patch_path).unwrap();
     let changed = std::fs::read_to_string(&source_path).unwrap();
-    assert!(changed.contains("resource other;"));
+    assert!(changed.contains("resource other {"));
     assert!(changed.contains("handle: other,"));
     assert!(changed.contains("Handle: own other, other: own other"));
     assert!(changed.contains("Wrapper { handle: Handle }"));
     assert!(!changed.contains("Wrapper { handle: other }"));
     let reparsed = parse(&changed, &source_path).unwrap();
+    graph::to_json(&reparsed).unwrap();
+}
+
+#[test]
+fn resource_rename_updates_import_parameter_without_retargeting_lifecycle_keys() {
+    let source = r#"module patch.lifecycle;
+
+@id("file.type")
+resource File {
+    @id("file.type.drop")
+    drop import "file.finalize";
+}
+
+@id("file.host")
+interface FileHost
+    permits { file.release }
+{
+    @id("file.finalize")
+    import fn finalize(file: own File) -> unit
+        effects { file.release }
+        failure infallible
+        consumes file always;
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    0
+}
+"#;
+    let program = parse(source, Path::new("resource-lifecycle.spx")).unwrap();
+    let revision = graph::revision(&program);
+    let directory = std::env::temp_dir().join(format!(
+        "semaprax-resource-lifecycle-patch-{}",
+        std::process::id()
+    ));
+    std::fs::create_dir_all(&directory).unwrap();
+    let source_path = directory.join("module.spx");
+    let patch_path = directory.join("rename.spatch");
+    std::fs::write(&source_path, source).unwrap();
+    std::fs::write(
+        &patch_path,
+        format!("base {revision}\nrename file.type to Handle\nrequire no-new-effects\n"),
+    )
+    .unwrap();
+
+    let returned = patch::apply(&source_path, &patch_path).unwrap();
+    let changed = std::fs::read_to_string(&source_path).unwrap();
+    assert!(changed.contains("resource Handle {"));
+    assert!(changed.contains("finalize(file: own Handle)"));
+    assert!(changed.contains("@id(\"file.type.drop\")"));
+    assert!(changed.contains("drop import \"file.finalize\";"));
+    assert!(changed.contains("@id(\"file.finalize\")"));
+    let reparsed = parse(&changed, &source_path).unwrap();
+    assert_eq!(returned, graph::revision(&reparsed));
     graph::to_json(&reparsed).unwrap();
 }

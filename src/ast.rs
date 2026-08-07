@@ -77,6 +77,7 @@ pub struct Program {
     pub module: String,
     pub permits: Vec<String>,
     pub types: Vec<TypeDeclaration>,
+    pub interfaces: Vec<InterfaceDeclaration>,
     pub functions: Vec<Function>,
 }
 
@@ -92,8 +93,56 @@ pub struct TypeDeclaration {
 
 #[derive(Clone, Debug)]
 pub enum TypeDeclarationKind {
-    Resource,
-    Record { fields: Vec<FieldDeclaration> },
+    Resource {
+        lifecycles: Vec<ResourceLifecycleDeclaration>,
+    },
+    Record {
+        fields: Vec<FieldDeclaration>,
+    },
+}
+
+#[derive(Clone, Debug)]
+pub struct ResourceLifecycleDeclaration {
+    pub stable_id: Option<String>,
+    pub kind: ResourceLifecycleKind,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug)]
+pub enum ResourceLifecycleKind {
+    Trivial,
+    Imported { import_key: String },
+}
+
+#[derive(Clone, Debug)]
+pub struct InterfaceDeclaration {
+    pub stable_id: String,
+    pub explicit_id: bool,
+    pub name: String,
+    pub name_span: Span,
+    pub permits: Vec<String>,
+    pub imports: Vec<ImportDeclaration>,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug)]
+pub struct ImportDeclaration {
+    pub stable_id: String,
+    pub explicit_id: bool,
+    pub name: String,
+    pub name_span: Span,
+    pub params: Vec<Param>,
+    pub effects: Vec<String>,
+    pub failure: ImportFailure,
+    pub consumes: String,
+    pub consumes_span: Span,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ImportFailure {
+    Infallible,
+    Status { domain_id: String },
 }
 
 #[derive(Clone, Debug)]

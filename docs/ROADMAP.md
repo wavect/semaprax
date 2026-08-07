@@ -16,7 +16,7 @@ Status: implemented in this repository.
 
 ## 0.2 — Useful core language
 
-Status: in progress. Resource ownership boundaries, lexical `let`, typed `if/else`, conservative conditional-move diagnostics, record syntax/checking/resolved identities/Graph v4, structural expression graphs, a validated stable-ID HIR/type-fact foundation shared by native and Wasm lowering, and a browser-loadable scalar WebAssembly core backend are implemented; the remaining gates below are not.
+Status: in progress. Resource ownership boundaries and explicit lifecycle/interface contracts, lexical `let`, typed `if/else`, partial-place diagnostics, record syntax/checking, Graph v5, validated stable-ID HIR/type facts, native scalar output, and a browser-loadable scalar Wasm backend are implemented; the remaining gates below are not.
 
 - Records, variants, `Option`, and `Result`.
 - Exhaustive pattern matching.
@@ -29,7 +29,7 @@ Status: in progress. Resource ownership boundaries, lexical `let`, typed `if/els
 
 Exit criterion: build a non-trivial CLI and edit it entirely through semantic transactions.
 
-The aggregate and pattern tranche is specified in [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md), and the proposed exactly-once cleanup/resource boundary is specified in design-only [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md). Record declarations, constructors, projections, recursive facts, stable field identities, prefix-aware place-state analysis, HIR validation, and Graph v4 are implemented as non-executable groundwork. Cleanup/drop IR, native/Wasm aggregate layouts, variants, and matching remain subsequent work; backends fail closed on both records and resources until those safety gates land.
+The aggregate tranche is specified in [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md). RFC 0003 phase 1 now supplies explicit trivial/imported lifecycle syntax, declaration-only interface/import contracts, source/HIR validation, and Graph v5 lifecycle closure. Cleanup/drop IR, callable imports, adapter bindings, native/Wasm resource execution, aggregate layouts, variants, and matching remain subsequent work; backends fail closed on both records and resources.
 
 ## 0.3 — Ownership and fast development
 

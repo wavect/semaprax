@@ -1,8 +1,9 @@
 use std::path::Path;
 
 use crate::ast::{
-    BinaryOp, Expr, ExprKind, FieldDeclaration, FieldInitializer, Function, Param, ParamMode,
-    Program, Span, Statement, Type, TypeDeclaration, TypeDeclarationKind, UnaryOp,
+    BinaryOp, Expr, ExprKind, FieldDeclaration, FieldInitializer, Function, ImportDeclaration,
+    ImportFailure, InterfaceDeclaration, Param, ParamMode, Program, ResourceLifecycleDeclaration,
+    ResourceLifecycleKind, Span, Statement, Type, TypeDeclaration, TypeDeclarationKind, UnaryOp,
 };
 use crate::diagnostic::Diagnostic;
 use crate::lexer::{lex, Token, TokenKind};
@@ -36,6 +37,7 @@ impl Parser {
         };
 
         let mut types = Vec::new();
+        let mut interfaces = Vec::new();
         let mut functions = Vec::new();
         while !self.at(&TokenKind::Eof) {
             let stable_id = self.stable_id_attribute()?;
@@ -43,6 +45,8 @@ impl Parser {
                 types.push(self.resource(&module, stable_id)?);
             } else if self.at_keyword("record") {
                 types.push(self.record(&module, stable_id)?);
+            } else if self.at_keyword("interface") {
+                interfaces.push(self.interface(&module, stable_id)?);
             } else {
                 functions.push(self.function(&module, stable_id)?);
             }
@@ -55,6 +59,7 @@ impl Parser {
             module,
             permits,
             types,
+            interfaces,
             functions,
         })
     }
@@ -88,15 +93,173 @@ impl Parser {
         let (name, name_span) = self.ident("resource name")?;
         let explicit_id = stable_id.is_some();
         let stable_id = stable_id.unwrap_or_else(|| format!("auto:resource:{module}.{name}"));
-        let end = self
-            .expect(&TokenKind::Semicolon, "`;` after resource declaration")?
-            .span;
+        let (lifecycles, end) = if self.take(&TokenKind::Semicolon) {
+            (Vec::new(), self.tokens[self.cursor.saturating_sub(1)].span)
+        } else {
+            self.expect(&TokenKind::LBrace, "`{` before resource lifecycle")?;
+            let mut lifecycles = Vec::new();
+            while !self.at(&TokenKind::RBrace) {
+                if self.at(&TokenKind::Eof) {
+                    return Err(
+                        self.error_here("SPX-P106", "expected `}` after resource lifecycle")
+                    );
+                }
+                let lifecycle_id = self.stable_id_attribute()?;
+                let lifecycle_start = self.keyword("drop")?.span;
+                let kind = if self.at_keyword("trivial") {
+                    self.bump();
+                    ResourceLifecycleKind::Trivial
+                } else if self.at_keyword("import") {
+                    self.bump();
+                    let import_key = match self.bump().kind.clone() {
+                        TokenKind::String(value) => value,
+                        _ => {
+                            return Err(self.error_previous(
+                                "SPX-P106",
+                                "expected logical import string after `drop import`",
+                            ));
+                        }
+                    };
+                    ResourceLifecycleKind::Imported { import_key }
+                } else {
+                    return Err(
+                        self.error_here("SPX-P106", "expected `trivial` or `import` after `drop`")
+                    );
+                };
+                let lifecycle_end = self
+                    .expect(&TokenKind::Semicolon, "`;` after resource lifecycle")?
+                    .span;
+                lifecycles.push(ResourceLifecycleDeclaration {
+                    stable_id: lifecycle_id,
+                    kind,
+                    span: lifecycle_start.merge(lifecycle_end),
+                });
+            }
+            let end = self
+                .expect(&TokenKind::RBrace, "`}` after resource lifecycle")?
+                .span;
+            (lifecycles, end)
+        };
         Ok(TypeDeclaration {
             stable_id,
             explicit_id,
             name,
             name_span,
-            kind: TypeDeclarationKind::Resource,
+            kind: TypeDeclarationKind::Resource { lifecycles },
+            span: start.merge(end),
+        })
+    }
+
+    fn interface(
+        &mut self,
+        module: &str,
+        stable_id: Option<String>,
+    ) -> Result<InterfaceDeclaration, Diagnostic> {
+        let start = self.keyword("interface")?.span;
+        let (name, name_span) = self.ident("interface name")?;
+        let explicit_id = stable_id.is_some();
+        let stable_id = stable_id.unwrap_or_else(|| format!("auto:interface:{module}.{name}"));
+        self.keyword("permits")?;
+        let permits = self.effect_set()?;
+        self.expect(&TokenKind::LBrace, "`{` before interface imports")?;
+        let mut imports = Vec::new();
+        while !self.at(&TokenKind::RBrace) {
+            if self.at(&TokenKind::Eof) {
+                return Err(self.error_here("SPX-P106", "expected `}` after interface imports"));
+            }
+            let import_id = self.stable_id_attribute()?;
+            let import_start = self.keyword("import")?.span;
+            self.keyword("fn")?;
+            let (import_name, import_name_span) = self.ident("import name")?;
+            self.expect(&TokenKind::LParen, "`(` after import name")?;
+            let mut params = Vec::new();
+            if !self.at(&TokenKind::RParen) {
+                loop {
+                    let (param_name, span) = self.ident("import parameter name")?;
+                    self.expect(&TokenKind::Colon, "`:` after import parameter name")?;
+                    let mode = if self.at_keyword("own") {
+                        self.bump();
+                        ParamMode::Own
+                    } else if self.at_keyword("borrow") {
+                        self.bump();
+                        ParamMode::Borrow
+                    } else if self.at_keyword("shared") {
+                        self.bump();
+                        ParamMode::Shared
+                    } else {
+                        ParamMode::Value
+                    };
+                    let ty = self.ty()?;
+                    params.push(Param {
+                        name: param_name,
+                        mode,
+                        ty,
+                        span,
+                    });
+                    if !self.take(&TokenKind::Comma) {
+                        break;
+                    }
+                }
+            }
+            self.expect(&TokenKind::RParen, "`)` after import parameters")?;
+            self.expect(&TokenKind::Arrow, "`->` before import result")?;
+            self.keyword("unit")?;
+            self.keyword("effects")?;
+            let effects = self.effect_set()?;
+            self.keyword("failure")?;
+            let failure = if self.at_keyword("infallible") {
+                self.bump();
+                ImportFailure::Infallible
+            } else if self.at_keyword("status") {
+                self.bump();
+                let domain_id = match self.bump().kind.clone() {
+                    TokenKind::String(value) => value,
+                    _ => {
+                        return Err(self.error_previous(
+                            "SPX-P106",
+                            "expected status-domain string after `failure status`",
+                        ));
+                    }
+                };
+                ImportFailure::Status { domain_id }
+            } else {
+                return Err(self.error_here(
+                    "SPX-P106",
+                    "expected `infallible` or `status` after `failure`",
+                ));
+            };
+            self.keyword("consumes")?;
+            let (consumes, consumes_span) = self.ident("consumed parameter name")?;
+            self.keyword("always")?;
+            let end = self
+                .expect(&TokenKind::Semicolon, "`;` after import contract")?
+                .span;
+            let import_explicit_id = import_id.is_some();
+            let import_stable_id =
+                import_id.unwrap_or_else(|| format!("auto:import:{stable_id}.{import_name}"));
+            imports.push(ImportDeclaration {
+                stable_id: import_stable_id,
+                explicit_id: import_explicit_id,
+                name: import_name,
+                name_span: import_name_span,
+                params,
+                effects,
+                failure,
+                consumes,
+                consumes_span,
+                span: import_start.merge(end),
+            });
+        }
+        let end = self
+            .expect(&TokenKind::RBrace, "`}` after interface imports")?
+            .span;
+        Ok(InterfaceDeclaration {
+            stable_id,
+            explicit_id,
+            name,
+            name_span,
+            permits,
+            imports,
             span: start.merge(end),
         })
     }

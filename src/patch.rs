@@ -70,22 +70,14 @@ pub fn apply(source_path: &Path, patch_path: &Path) -> Result<String, Vec<Diagno
                     ),
                 )]);
             }
-            for pair in tokens.windows(2) {
-                if matches!(&pair[0].kind, lexer::TokenKind::Ident(name) if name == &function.name)
-                    && matches!(pair[1].kind, lexer::TokenKind::LParen)
-                {
-                    replacements.push((
-                        pair[0].span.start,
-                        pair[0].span.end,
-                        rename.new_name.clone(),
-                    ));
-                }
+            for (start, end) in function_name_positions(&before, &tokens, function) {
+                replacements.push((start, end, rename.new_name.clone()));
             }
             continue;
         }
         if let Some(resource) = before.types.iter().find(|declaration| {
             declaration.stable_id == rename.stable_id
-                && matches!(declaration.kind, TypeDeclarationKind::Resource)
+                && matches!(declaration.kind, TypeDeclarationKind::Resource { .. })
         }) {
             if !resource.explicit_id {
                 return Err(vec![Diagnostic::io(
@@ -201,6 +193,35 @@ fn is_identifier(value: &str) -> bool {
         && chars.all(|character| character == '_' || character.is_ascii_alphanumeric())
 }
 
+fn function_name_positions(
+    program: &crate::ast::Program,
+    tokens: &[lexer::Token],
+    target: &crate::ast::Function,
+) -> BTreeSet<(usize, usize)> {
+    let mut positions = BTreeSet::from([(target.name_span.start, target.name_span.end)]);
+    for function in &program.functions {
+        let mut collect = |callee: &str, span: crate::ast::Span| {
+            if callee != target.name {
+                return;
+            }
+            if let Some(token) = tokens.iter().find(|token| {
+                token.span.start == span.start
+                    && matches!(&token.kind, lexer::TokenKind::Ident(name) if name == callee)
+            }) {
+                positions.insert((token.span.start, token.span.end));
+            }
+        };
+        for contract in &function.requires {
+            contract.visit_calls(&mut collect);
+        }
+        for contract in &function.ensures {
+            contract.visit_calls(&mut collect);
+        }
+        function.body.visit_calls(&mut collect);
+    }
+    positions
+}
+
 fn resource_type_positions(
     program: &crate::ast::Program,
     tokens: &[lexer::Token],
@@ -220,6 +241,34 @@ fn resource_type_positions(
                     tokens,
                     field.name_span.end,
                     field.span.end,
+                    &resource.name,
+                );
+            }
+        }
+    }
+
+    for interface in &program.interfaces {
+        for import in &interface.imports {
+            for param in &import.params {
+                if param.ty != resource_type {
+                    continue;
+                }
+                let end = tokens
+                    .iter()
+                    .find(|token| {
+                        token.span.start >= param.span.end
+                            && token.span.end <= import.span.end
+                            && matches!(
+                                token.kind,
+                                lexer::TokenKind::Comma | lexer::TokenKind::RParen
+                            )
+                    })
+                    .map_or(import.span.end, |token| token.span.start);
+                insert_named_type_token(
+                    &mut positions,
+                    tokens,
+                    param.span.end,
+                    end,
                     &resource.name,
                 );
             }

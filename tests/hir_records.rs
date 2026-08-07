@@ -152,7 +152,10 @@ fn recursive_record_facts_propagate_resources_and_stable_layouts() {
     let source = r#"
 module test.hir_record_facts;
 @id("handle.type")
-resource Handle;
+resource Handle {
+    @id("handle.type.drop")
+    drop trivial;
+}
 @id("packet.inner")
 record Inner {
     @id("packet.inner.handle")
@@ -309,7 +312,10 @@ fn hostile_hir_cannot_reuse_a_field_after_forging_an_owned_call() {
     let source = r#"
 module test.hir_partial_move_replay;
 @id("buffer.type")
-resource Buffer;
+resource Buffer {
+    @id("buffer.type.drop")
+    drop trivial;
+}
 @id("envelope.type")
 record Envelope { @id("envelope.payload") payload: Buffer, }
 @id("buffer.inspect")
@@ -353,7 +359,10 @@ fn hostile_hir_tracks_a_definite_parent_move_across_different_branch_fields() {
     let source = r#"
 module test.hir_split_move_replay;
 @id("buffer.type")
-resource Buffer;
+resource Buffer {
+    @id("buffer.type.drop")
+    drop trivial;
+}
 @id("pair.type")
 record Pair {
     @id("pair.left") left: Buffer,

@@ -40,7 +40,7 @@ fn let_and_if_are_canonical_and_graph_visible() {
     assert!(canonical.contains("let answer = choose(true, 40);"));
     assert!(canonical.contains("if flag"));
     let graph = graph::to_json(&program).unwrap();
-    assert!(graph.contains("\"schema\":\"semaprax.graph.v4\""));
+    assert!(graph.contains("\"schema\":\"semaprax.graph.v5\""));
     assert!(graph.contains("\"kind\":\"let\""));
     assert!(graph.contains("\"kind\":\"if\""));
     assert!(graph.contains("\"expressions\":\"revision-scoped-structural\""));
@@ -231,7 +231,10 @@ fn lexical_ownership_tracks_moves_and_branch_joins() {
     let header = r#"
 module test.lexical_ownership;
 @id("buffer.type")
-resource Buffer;
+resource Buffer {
+    @id("buffer.type.drop")
+    drop trivial;
+}
 @id("buffer.inspect")
 fn inspect(buffer: borrow Buffer) -> i64 { 1 }
 @id("buffer.consume")
@@ -277,7 +280,10 @@ fn preconditions_use_entry_state_and_extra_arguments_are_checked() {
     let source = r#"
 module test.contract_state;
 @id("buffer.type")
-resource Buffer;
+resource Buffer {
+    @id("buffer.type.drop")
+    drop trivial;
+}
 @id("buffer.inspect")
 fn inspect(buffer: borrow Buffer) -> i64 { 1 }
 @id("buffer.consume")

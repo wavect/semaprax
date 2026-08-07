@@ -60,7 +60,10 @@ fn direct_hir_backends_reject_type_name_index_disagreement() {
     let source = r#"
 module test.hir_validation_resource_name;
 @id("buffer.type")
-resource Buffer;
+resource Buffer {
+    @id("buffer.type.drop")
+    drop trivial;
+}
 @id("app.main")
 fn main() -> i64 { 0 }
 "#;
@@ -87,7 +90,10 @@ fn direct_hir_backends_reject_undeclared_generic_arguments() {
     let source = r#"
 module test.hir_validation_resource;
 @id("buffer.type")
-resource Buffer;
+resource Buffer {
+    @id("buffer.type.drop")
+    drop trivial;
+}
 @id("buffer.keep")
 fn keep(value: borrow Buffer) -> i64 { 1 }
 @id("app.main")
@@ -134,7 +140,10 @@ fn same_signature_substitution_cannot_move_one_place_twice() {
     let source = r#"
 module test.hir_double_move;
 @id("buffer.type")
-resource Buffer;
+resource Buffer {
+    @id("buffer.type.drop")
+    drop trivial;
+}
 @id("buffer.inspect")
 fn inspect(value: borrow Buffer) -> i64 { 1 }
 @id("buffer.consume")
@@ -170,7 +179,10 @@ fn conditional_own_substitution_marks_the_place_maybe_moved() {
     let source = r#"
 module test.hir_conditional_move;
 @id("buffer.type")
-resource Buffer;
+resource Buffer {
+    @id("buffer.type.drop")
+    drop trivial;
+}
 @id("buffer.inspect")
 fn inspect(value: borrow Buffer) -> i64 { 1 }
 @id("buffer.consume")
@@ -217,7 +229,10 @@ fn nested_owned_block_results_validate_but_resource_backends_fail_closed() {
     let source = r#"
 module test.hir_nested_block;
 @id("buffer.type")
-resource Buffer;
+resource Buffer {
+    @id("buffer.type.drop")
+    drop trivial;
+}
 @id("buffer.passthrough")
 fn passthrough(value: own Buffer) -> Buffer {
     let outer = {
@@ -249,7 +264,10 @@ fn same_signature_substitution_cannot_transfer_from_a_contract() {
     let source = r#"
 module test.hir_contract_move;
 @id("buffer.type")
-resource Buffer;
+resource Buffer {
+    @id("buffer.type.drop")
+    drop trivial;
+}
 @id("buffer.inspect")
 fn inspect(value: borrow Buffer) -> i64 { 1 }
 @id("buffer.consume")

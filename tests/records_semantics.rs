@@ -85,7 +85,10 @@ fn moving_a_resource_field_leaves_an_available_sibling_usable() {
     let source = r#"
 module test.record_resource_move;
 @id("buffer.type")
-resource Buffer;
+resource Buffer {
+    @id("buffer.type.drop")
+    drop trivial;
+}
 @id("envelope.type")
 record Envelope {
     @id("envelope.payload") payload: Buffer,
@@ -107,7 +110,10 @@ fn same_field_parent_and_conditional_field_reuse_are_rejected() {
     let source = r#"
 module test.record_partial_moves;
 @id("buffer.type")
-resource Buffer;
+resource Buffer {
+    @id("buffer.type.drop")
+    drop trivial;
+}
 @id("envelope.type")
 record Envelope {
     @id("envelope.payload") payload: Buffer,
@@ -145,7 +151,10 @@ fn different_branch_field_moves_definitely_invalidate_only_the_parent() {
     let source = r#"
 module test.record_split_moves;
 @id("buffer.type")
-resource Buffer;
+resource Buffer {
+    @id("buffer.type.drop")
+    drop trivial;
+}
 @id("pair.type")
 record Pair {
     @id("pair.left") left: Buffer,
@@ -184,7 +193,10 @@ fn lazy_field_moves_join_without_poisoning_sibling_fields() {
     let source = r#"
 module test.record_lazy_move;
 @id("buffer.type")
-resource Buffer;
+resource Buffer {
+    @id("buffer.type.drop")
+    drop trivial;
+}
 @id("envelope.type")
 record Envelope {
     @id("envelope.payload") payload: Buffer,
@@ -219,7 +231,10 @@ fn borrowed_and_shared_record_fields_cannot_cross_owned_boundaries() {
     let source = r#"
 module test.record_borrowed_field_move;
 @id("buffer.type")
-resource Buffer;
+resource Buffer {
+    @id("buffer.type.drop")
+    drop trivial;
+}
 @id("envelope.type")
 record Envelope { @id("envelope.payload") payload: Buffer, }
 @id("buffer.consume")
@@ -246,7 +261,10 @@ fn borrowed_resource_record_construction_fails_before_hir_resolution() {
     let source = r#"
 module test.record_borrowed_constructor;
 @id("handle.type")
-resource Handle;
+resource Handle {
+    @id("handle.type.drop")
+    drop trivial;
+}
 @id("envelope.type")
 record Envelope { @id("envelope.handle") handle: Handle, }
 @id("envelope.wrap")
@@ -276,7 +294,10 @@ fn executable_backends_fail_closed_until_record_cleanup_and_layout_land() {
     let source = r#"
 module test.record_backend_gate;
 @id("platform.handle")
-resource Handle;
+resource Handle {
+    @id("platform.handle.drop")
+    drop trivial;
+}
 @id("geometry.point")
 record Point { @id("geometry.point.x") x: i64, }
 @id("app.main")

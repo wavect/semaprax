@@ -18,7 +18,7 @@ fn main() -> i64 { Point { x: 20, y: 22 }.x }
 "#;
 
 #[test]
-fn record_graph_matches_exact_v4_snapshot() {
+fn record_graph_matches_exact_v5_snapshot() {
     let program = parse(RECORD_GRAPH, Path::new("record-graph.spx")).unwrap();
     let json = graph::to_json(&program).unwrap();
     assert_eq!(
@@ -31,7 +31,7 @@ fn record_graph_matches_exact_v4_snapshot() {
 fn record_graph_uses_persistent_field_ids_for_declarations_construction_and_projection() {
     let program = parse(RECORD_GRAPH, Path::new("record-graph.spx")).unwrap();
     let json = graph::to_json(&program).unwrap();
-    assert!(json.contains("\"schema\":\"semaprax.graph.v4\""));
+    assert!(json.contains("\"schema\":\"semaprax.graph.v5\""));
     assert!(json.contains("\"id\":\"geometry.point\",\"kind\":\"record\",\"name\":\"Point\""));
     assert!(json.contains(
         "\"id\":\"geometry.point.x\",\"kind\":\"field\",\"name\":\"x\",\"identity_origin\":\"explicit\",\"persistent\":true,\"owner\":\"geometry.point\",\"index\":0,\"type_id\":\"i64\""

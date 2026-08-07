@@ -1,0 +1,24 @@
+module examples.lifecycle;
+
+@id("platform.token")
+resource Token {
+    @id("platform.token.drop")
+    drop import "platform.token.finalize";
+}
+
+@id("platform.token.host")
+interface TokenHost
+    permits { platform.token.release }
+{
+    @id("platform.token.finalize")
+    import fn finalize(token: own Token) -> unit
+        effects { platform.token.release }
+        failure infallible
+        consumes token always;
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    0
+}

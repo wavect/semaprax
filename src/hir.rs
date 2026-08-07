@@ -9,8 +9,8 @@ use std::fmt;
 use std::fmt::Write as _;
 
 use crate::ast::{
-    BinaryOp, Expr, ExprKind, ParamMode, Program, Span, Statement, Type, TypeDeclarationKind,
-    UnaryOp,
+    BinaryOp, Expr, ExprKind, ImportFailure, ParamMode, Program, ResourceLifecycleKind, Span,
+    Statement, Type, TypeDeclarationKind, UnaryOp,
 };
 use crate::diagnostic::Diagnostic;
 use crate::source_verify;
@@ -92,8 +92,11 @@ impl fmt::Display for ExpressionId {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DeclarationKind {
     Resource,
+    ResourceDrop,
     Record,
     Field,
+    Interface,
+    Import,
     Function,
 }
 
@@ -136,6 +139,7 @@ pub struct DeclarationIndex {
     functions_by_name: BTreeMap<String, DeclarationId>,
     fields_by_owner_name: BTreeMap<(DeclarationId, String), DeclarationId>,
     record_fields: BTreeMap<DeclarationId, Vec<ResolvedFieldDeclaration>>,
+    imports_by_key: BTreeMap<String, DeclarationId>,
     type_facts_by_id: BTreeMap<String, TypeFacts>,
 }
 
@@ -159,6 +163,10 @@ impl DeclarationIndex {
 
     pub fn record_fields(&self, owner: &DeclarationId) -> Option<&[ResolvedFieldDeclaration]> {
         self.record_fields.get(owner).map(Vec::as_slice)
+    }
+
+    pub fn import_id(&self, key: &str) -> Option<&DeclarationId> {
+        self.imports_by_key.get(key)
     }
 
     pub fn declarations(&self) -> impl ExactSizeIterator<Item = &Declaration> {
@@ -254,7 +262,10 @@ impl DeclarationIndex {
                         })
                     }
                     DeclarationKind::Resource
+                    | DeclarationKind::ResourceDrop
                     | DeclarationKind::Field
+                    | DeclarationKind::Interface
+                    | DeclarationKind::Import
                     | DeclarationKind::Function => None,
                 }?;
                 memo.insert(identity, facts.clone());
@@ -296,7 +307,7 @@ impl DeclarationIndex {
         let mut index = Self::default();
         for declaration in &program.types {
             let kind = match declaration.kind {
-                TypeDeclarationKind::Resource => DeclarationKind::Resource,
+                TypeDeclarationKind::Resource { .. } => DeclarationKind::Resource,
                 TypeDeclarationKind::Record { .. } => DeclarationKind::Record,
             };
             index.insert_top_level(
@@ -309,6 +320,46 @@ impl DeclarationIndex {
                     IdentityOrigin::Automatic
                 },
             );
+        }
+        for interface in &program.interfaces {
+            let interface_id = DeclarationId::new(interface.stable_id.clone());
+            index.insert_top_level(
+                interface.name.clone(),
+                interface_id.clone(),
+                DeclarationKind::Interface,
+                IdentityOrigin::Explicit,
+            );
+            for import in &interface.imports {
+                let import_id = DeclarationId::new(import.stable_id.clone());
+                index
+                    .imports_by_key
+                    .insert(import.stable_id.clone(), import_id.clone());
+                index.insert_owned_declaration(
+                    interface_id.clone(),
+                    import.name.clone(),
+                    import_id,
+                    DeclarationKind::Import,
+                    IdentityOrigin::Explicit,
+                );
+            }
+        }
+        for declaration in &program.types {
+            let TypeDeclarationKind::Resource { lifecycles } = &declaration.kind else {
+                continue;
+            };
+            if let [lifecycle] = lifecycles.as_slice() {
+                let lifecycle_id = lifecycle
+                    .stable_id
+                    .as_ref()
+                    .expect("verified lifecycle has an explicit identity");
+                index.insert_owned_declaration(
+                    DeclarationId::new(declaration.stable_id.clone()),
+                    "drop".to_owned(),
+                    DeclarationId::new(lifecycle_id.clone()),
+                    DeclarationKind::ResourceDrop,
+                    IdentityOrigin::Explicit,
+                );
+            }
         }
         for function in &program.functions {
             index.insert_top_level(
@@ -383,12 +434,18 @@ impl DeclarationIndex {
         kind: DeclarationKind,
         identity_origin: IdentityOrigin,
     ) {
-        let namespace = match kind {
-            DeclarationKind::Resource | DeclarationKind::Record => &mut self.types_by_name,
-            DeclarationKind::Function => &mut self.functions_by_name,
-            DeclarationKind::Field => unreachable!("fields use owner-scoped insertion"),
-        };
-        namespace.insert(name.clone(), id.clone());
+        match kind {
+            DeclarationKind::Resource | DeclarationKind::Record => {
+                self.types_by_name.insert(name.clone(), id.clone());
+            }
+            DeclarationKind::Function => {
+                self.functions_by_name.insert(name.clone(), id.clone());
+            }
+            DeclarationKind::Interface => {}
+            DeclarationKind::ResourceDrop | DeclarationKind::Import | DeclarationKind::Field => {
+                unreachable!("owned declarations use owner-scoped insertion")
+            }
+        }
         self.declarations.insert(
             id.clone(),
             Declaration {
@@ -397,6 +454,26 @@ impl DeclarationIndex {
                 kind,
                 identity_origin,
                 owner: None,
+            },
+        );
+    }
+
+    fn insert_owned_declaration(
+        &mut self,
+        owner: DeclarationId,
+        name: String,
+        id: DeclarationId,
+        kind: DeclarationKind,
+        identity_origin: IdentityOrigin,
+    ) {
+        self.declarations.insert(
+            id.clone(),
+            Declaration {
+                id,
+                name,
+                kind,
+                identity_origin,
+                owner: Some(owner),
             },
         );
     }
@@ -528,6 +605,7 @@ pub struct ResolvedProgram {
     pub entrypoint: DeclarationId,
     pub declarations: DeclarationIndex,
     pub types: Vec<ResolvedTypeDeclaration>,
+    pub interfaces: Vec<ResolvedInterface>,
     pub functions: Vec<ResolvedFunction>,
 }
 
@@ -541,9 +619,80 @@ pub struct ResolvedTypeDeclaration {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ResolvedTypeDeclarationKind {
-    Resource,
+    Resource {
+        drop: ResolvedResourceDrop,
+    },
     Record {
         fields: Vec<ResolvedFieldDeclaration>,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResolvedResourceDrop {
+    pub id: DeclarationId,
+    pub kind: ResolvedResourceDropKind,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ResolvedResourceDropKind {
+    Trivial,
+    Imported {
+        import: DeclarationId,
+        import_key: String,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResolvedInterface {
+    pub id: DeclarationId,
+    pub name: String,
+    pub permits: Vec<String>,
+    pub imports: Vec<ResolvedImport>,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResolvedImport {
+    pub id: DeclarationId,
+    pub name: String,
+    pub interface: DeclarationId,
+    pub import_key: String,
+    pub parameters: Vec<ResolvedImportParameter>,
+    pub result: ResolvedImportResult,
+    pub effects: Vec<String>,
+    pub required_authority: Vec<String>,
+    pub failure: ResolvedImportFailure,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResolvedImportParameter {
+    pub name: String,
+    pub ty: ResolvedType,
+    pub ownership: OwnershipMode,
+    pub consumes_on_failure: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResolvedImportResult {
+    pub kind: ResolvedImportResultKind,
+    pub ownership: OwnershipMode,
+    pub producer: &'static str,
+    pub out_slot_initialization: &'static str,
+    pub ownership_transfer: &'static str,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ResolvedImportResultKind {
+    Unit,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ResolvedImportFailure {
+    Infallible,
+    Status {
+        domain_id: String,
+        normalization: &'static str,
     },
 }
 
@@ -834,10 +983,125 @@ impl<'a> HirValidator<'a> {
         if type_ids.len() != self.program.types.len() {
             return Err(hir_error("duplicate resolved type declaration identity"));
         }
+        let mut interface_ids = BTreeSet::new();
+        let mut import_ids = BTreeSet::new();
+        let mut imports = BTreeMap::new();
+        for interface in &self.program.interfaces {
+            if !interface_ids.insert(interface.id.clone()) {
+                return Err(hir_error(format!(
+                    "duplicate resolved interface identity `{}`",
+                    interface.id
+                )));
+            }
+            match self.program.declarations.declaration(&interface.id) {
+                Some(item)
+                    if item.kind == DeclarationKind::Interface
+                        && item.name == interface.name
+                        && item.owner.is_none() => {}
+                _ => {
+                    return Err(hir_error(format!(
+                        "resolved interface `{}` disagrees with its declaration index entry",
+                        interface.id
+                    )));
+                }
+            }
+            let permits = interface.permits.iter().collect::<BTreeSet<_>>();
+            if permits.len() != interface.permits.len() {
+                return Err(hir_error(format!(
+                    "interface `{}` has duplicate permits",
+                    interface.id
+                )));
+            }
+            for import in &interface.imports {
+                if !import_ids.insert(import.id.clone())
+                    || imports.insert(import.id.clone(), import).is_some()
+                {
+                    return Err(hir_error(format!(
+                        "duplicate resolved import identity `{}`",
+                        import.id
+                    )));
+                }
+                if import.interface != interface.id
+                    || self.program.declarations.import_id(&import.import_key) != Some(&import.id)
+                {
+                    return Err(hir_error(format!(
+                        "import `{}` has an invalid owner or logical key",
+                        import.id
+                    )));
+                }
+                match self.program.declarations.declaration(&import.id) {
+                    Some(item)
+                        if item.kind == DeclarationKind::Import
+                            && item.name == import.name
+                            && item.owner.as_ref() == Some(&interface.id) => {}
+                    _ => {
+                        return Err(hir_error(format!(
+                            "resolved import `{}` disagrees with its declaration index entry",
+                            import.id
+                        )));
+                    }
+                }
+                if import.parameters.len() != 1
+                    || import.parameters[0].ownership != OwnershipMode::Own
+                    || !import.parameters[0].consumes_on_failure
+                    || import.result.kind != ResolvedImportResultKind::Unit
+                    || import.result.ownership != OwnershipMode::Value
+                    || import.result.producer != "callee"
+                    || import.result.out_slot_initialization != "success_only"
+                    || import.result.ownership_transfer != "final_zero_status_commit"
+                    || import.required_authority != import.effects
+                {
+                    return Err(hir_error(format!(
+                        "import `{}` has an invalid ownership or result contract",
+                        import.id
+                    )));
+                }
+                self.validate_type(&import.parameters[0].ty)?;
+                let parameter_is_resource = import.parameters[0]
+                    .ty
+                    .nominal_id()
+                    .and_then(|id| self.program.declarations.declaration(id))
+                    .is_some_and(|item| item.kind == DeclarationKind::Resource);
+                let effects = import.effects.iter().collect::<BTreeSet<_>>();
+                let authority = import.required_authority.iter().collect::<BTreeSet<_>>();
+                if !parameter_is_resource
+                    || effects.len() != import.effects.len()
+                    || authority.len() != import.required_authority.len()
+                {
+                    return Err(hir_error(format!(
+                        "import `{}` has a noncanonical resource or authority contract",
+                        import.id
+                    )));
+                }
+                if import
+                    .effects
+                    .iter()
+                    .any(|effect| !permits.contains(effect))
+                {
+                    return Err(hir_error(format!(
+                        "import `{}` exceeds interface `{}` authority",
+                        import.id, interface.id
+                    )));
+                }
+                if let ResolvedImportFailure::Status {
+                    domain_id,
+                    normalization,
+                } = &import.failure
+                {
+                    if domain_id.is_empty() || *normalization != "semaprax.status.v1" {
+                        return Err(hir_error(format!(
+                            "import `{}` has an invalid status contract",
+                            import.id
+                        )));
+                    }
+                }
+            }
+        }
+        let mut resource_drop_ids = BTreeSet::new();
         let mut field_ids = BTreeSet::new();
         for declaration in &self.program.types {
             let expected_kind = match &declaration.kind {
-                ResolvedTypeDeclarationKind::Resource => DeclarationKind::Resource,
+                ResolvedTypeDeclarationKind::Resource { .. } => DeclarationKind::Resource,
                 ResolvedTypeDeclarationKind::Record { .. } => DeclarationKind::Record,
             };
             match self.program.declarations.declaration(&declaration.id) {
@@ -856,6 +1120,47 @@ impl<'a> HirValidator<'a> {
                         "resolved type `{}` is absent from the declaration index",
                         declaration.id
                     )));
+                }
+            }
+            if let ResolvedTypeDeclarationKind::Resource { drop } = &declaration.kind {
+                if !resource_drop_ids.insert(drop.id.clone()) {
+                    return Err(hir_error(format!(
+                        "duplicate resolved resource lifecycle identity `{}`",
+                        drop.id
+                    )));
+                }
+                match self.program.declarations.declaration(&drop.id) {
+                    Some(item)
+                        if item.kind == DeclarationKind::ResourceDrop
+                            && item.name == "drop"
+                            && item.owner.as_ref() == Some(&declaration.id) => {}
+                    _ => {
+                        return Err(hir_error(format!(
+                            "resource `{}` has an invalid lifecycle declaration `{}`",
+                            declaration.id, drop.id
+                        )));
+                    }
+                }
+                if let ResolvedResourceDropKind::Imported { import, import_key } = &drop.kind {
+                    let resolved_import = imports.get(import).ok_or_else(|| {
+                        hir_error(format!(
+                            "resource `{}` lifecycle references unknown import `{import}`",
+                            declaration.id
+                        ))
+                    })?;
+                    let expected_ty = ResolvedType::Nominal {
+                        declaration: declaration.id.clone(),
+                        arguments: Vec::new(),
+                    };
+                    if resolved_import.import_key != *import_key
+                        || resolved_import.parameters[0].ty != expected_ty
+                        || !matches!(resolved_import.failure, ResolvedImportFailure::Infallible)
+                    {
+                        return Err(hir_error(format!(
+                            "resource `{}` lifecycle is incompatible with import `{import}`",
+                            declaration.id
+                        )));
+                    }
                 }
             }
             if let ResolvedTypeDeclarationKind::Record { fields } = &declaration.kind {
@@ -948,9 +1253,30 @@ impl<'a> HirValidator<'a> {
                         declaration.id
                     )));
                 }
+                DeclarationKind::ResourceDrop if !resource_drop_ids.contains(&declaration.id) => {
+                    return Err(hir_error(format!(
+                        "resource lifecycle `{}` has no resolved declaration",
+                        declaration.id
+                    )));
+                }
+                DeclarationKind::Interface if !interface_ids.contains(&declaration.id) => {
+                    return Err(hir_error(format!(
+                        "interface `{}` has no resolved declaration",
+                        declaration.id
+                    )));
+                }
+                DeclarationKind::Import if !import_ids.contains(&declaration.id) => {
+                    return Err(hir_error(format!(
+                        "import `{}` has no resolved declaration",
+                        declaration.id
+                    )));
+                }
                 DeclarationKind::Resource
+                | DeclarationKind::ResourceDrop
                 | DeclarationKind::Record
                 | DeclarationKind::Field
+                | DeclarationKind::Interface
+                | DeclarationKind::Import
                 | DeclarationKind::Function => {}
             }
         }
@@ -978,6 +1304,38 @@ impl<'a> HirValidator<'a> {
             }
         }
         let declared_effects = function.effects.iter().cloned().collect::<BTreeSet<_>>();
+        let mut required_lifecycle_effects = BTreeSet::new();
+        for param in &function.params {
+            if param.ownership == OwnershipMode::Own {
+                required_lifecycle_effects
+                    .extend(resolved_lifecycle_effects(self.program, &param.ty)?);
+            }
+        }
+        required_lifecycle_effects.extend(resolved_lifecycle_effects(
+            self.program,
+            &function.return_type,
+        )?);
+        let mut callees = Vec::new();
+        visit_resolved_calls(&function.body, &mut |callee| callees.push(callee.clone()));
+        for callee in callees {
+            let target = self
+                .functions
+                .get(&callee)
+                .ok_or_else(|| hir_error(format!("function `{callee}` is not indexed")))?;
+            required_lifecycle_effects.extend(resolved_lifecycle_effects(
+                self.program,
+                &target.return_type,
+            )?);
+        }
+        if let Some(effect) = required_lifecycle_effects
+            .iter()
+            .find(|effect| !declared_effects.contains(*effect))
+        {
+            return Err(hir_error(format!(
+                "function `{}` omits lifecycle effect `{effect}`",
+                function.id
+            )));
+        }
         let mut scope = BTreeMap::new();
         for (index, param) in function.params.iter().enumerate() {
             let expected = ValueId::parameter(&function.id, index);
@@ -1900,6 +2258,99 @@ fn path_is_prefix<T: PartialEq>(prefix: &[T], path: &[T]) -> bool {
     prefix.len() <= path.len() && prefix.iter().zip(path).all(|(left, right)| left == right)
 }
 
+fn resolved_lifecycle_effects(
+    program: &ResolvedProgram,
+    ty: &ResolvedType,
+) -> Result<BTreeSet<String>, Diagnostic> {
+    fn collect(
+        program: &ResolvedProgram,
+        ty: &ResolvedType,
+        visiting: &mut BTreeSet<DeclarationId>,
+        effects: &mut BTreeSet<String>,
+    ) -> Result<(), Diagnostic> {
+        let Some(id) = ty.nominal_id() else {
+            return Ok(());
+        };
+        if !visiting.insert(id.clone()) {
+            return Ok(());
+        }
+        let declaration = program
+            .types
+            .iter()
+            .find(|item| item.id == *id)
+            .ok_or_else(|| hir_error(format!("type `{id}` has no lifecycle declaration")))?;
+        match &declaration.kind {
+            ResolvedTypeDeclarationKind::Resource { drop } => {
+                if let ResolvedResourceDropKind::Imported { import, .. } = &drop.kind {
+                    let resolved = program
+                        .interfaces
+                        .iter()
+                        .flat_map(|interface| &interface.imports)
+                        .find(|item| item.id == *import)
+                        .ok_or_else(|| {
+                            hir_error(format!(
+                                "resource `{id}` references missing import `{import}`"
+                            ))
+                        })?;
+                    effects.extend(resolved.effects.iter().cloned());
+                }
+            }
+            ResolvedTypeDeclarationKind::Record { fields } => {
+                for field in fields {
+                    collect(program, &field.ty, visiting, effects)?;
+                }
+            }
+        }
+        visiting.remove(id);
+        Ok(())
+    }
+
+    let mut effects = BTreeSet::new();
+    collect(program, ty, &mut BTreeSet::new(), &mut effects)?;
+    Ok(effects)
+}
+
+fn visit_resolved_calls(expression: &ResolvedExpr, visit: &mut impl FnMut(&DeclarationId)) {
+    match &expression.kind {
+        ResolvedExprKind::Call { callee, args } => {
+            visit(callee);
+            for arg in args {
+                visit_resolved_calls(arg, visit);
+            }
+        }
+        ResolvedExprKind::Unary { value, .. } | ResolvedExprKind::Project { base: value, .. } => {
+            visit_resolved_calls(value, visit)
+        }
+        ResolvedExprKind::Binary { left, right, .. } => {
+            visit_resolved_calls(left, visit);
+            visit_resolved_calls(right, visit);
+        }
+        ResolvedExprKind::Block { statements, tail } => {
+            for statement in statements {
+                match statement {
+                    ResolvedStatement::Let { value, .. } => visit_resolved_calls(value, visit),
+                }
+            }
+            visit_resolved_calls(tail, visit);
+        }
+        ResolvedExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            visit_resolved_calls(condition, visit);
+            visit_resolved_calls(then_branch, visit);
+            visit_resolved_calls(else_branch, visit);
+        }
+        ResolvedExprKind::ConstructRecord { fields, .. } => {
+            for field in fields {
+                visit_resolved_calls(&field.value, visit);
+            }
+        }
+        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
+    }
+}
+
 fn hir_error(message: impl Into<String>) -> Diagnostic {
     Diagnostic::io("SPX-H006", message)
 }
@@ -1932,7 +2383,52 @@ impl Resolver<'_> {
             .map(|declaration| {
                 let id = DeclarationId::new(declaration.stable_id.clone());
                 let kind = match &declaration.kind {
-                    TypeDeclarationKind::Resource => ResolvedTypeDeclarationKind::Resource,
+                    TypeDeclarationKind::Resource { lifecycles } => {
+                        let lifecycle = lifecycles.first().ok_or_else(|| {
+                            self.error(
+                                "SPX-H006",
+                                format!("resource `{id}` has no resolved lifecycle"),
+                                declaration.span,
+                            )
+                        })?;
+                        let lifecycle_id = DeclarationId::new(
+                            lifecycle.stable_id.clone().ok_or_else(|| {
+                                self.error(
+                                    "SPX-H006",
+                                    format!("resource `{id}` lifecycle has no identity"),
+                                    lifecycle.span,
+                                )
+                            })?,
+                        );
+                        let drop_kind = match &lifecycle.kind {
+                            ResourceLifecycleKind::Trivial => ResolvedResourceDropKind::Trivial,
+                            ResourceLifecycleKind::Imported { import_key } => {
+                                let import = self
+                                    .declarations
+                                    .import_id(import_key)
+                                    .cloned()
+                                    .ok_or_else(|| {
+                                        self.error(
+                                            "SPX-H006",
+                                            format!(
+                                                "resource `{id}` lifecycle references unknown import key `{import_key}`"
+                                            ),
+                                            lifecycle.span,
+                                        )
+                                    })?;
+                                ResolvedResourceDropKind::Imported {
+                                    import,
+                                    import_key: import_key.clone(),
+                                }
+                            }
+                        };
+                        ResolvedTypeDeclarationKind::Resource {
+                            drop: ResolvedResourceDrop {
+                                id: lifecycle_id,
+                                kind: drop_kind,
+                            },
+                        }
+                    }
                     TypeDeclarationKind::Record { .. } => {
                         let fields = self
                             .declarations
@@ -1956,6 +2452,64 @@ impl Resolver<'_> {
                 })
             })
             .collect::<Result<Vec<_>, Diagnostic>>()?;
+        let interfaces = self
+            .program
+            .interfaces
+            .iter()
+            .map(|interface| {
+                let interface_id = DeclarationId::new(interface.stable_id.clone());
+                let imports = interface
+                    .imports
+                    .iter()
+                    .map(|import| {
+                        let parameters = import
+                            .params
+                            .iter()
+                            .map(|param| {
+                                Ok(ResolvedImportParameter {
+                                    name: param.name.clone(),
+                                    ty: self.resolve_type(&param.ty, param.span)?,
+                                    ownership: param.mode.into(),
+                                    consumes_on_failure: param.name == import.consumes,
+                                })
+                            })
+                            .collect::<Result<Vec<_>, Diagnostic>>()?;
+                        let failure = match &import.failure {
+                            ImportFailure::Infallible => ResolvedImportFailure::Infallible,
+                            ImportFailure::Status { domain_id } => ResolvedImportFailure::Status {
+                                domain_id: domain_id.clone(),
+                                normalization: "semaprax.status.v1",
+                            },
+                        };
+                        Ok(ResolvedImport {
+                            id: DeclarationId::new(import.stable_id.clone()),
+                            name: import.name.clone(),
+                            interface: interface_id.clone(),
+                            import_key: import.stable_id.clone(),
+                            parameters,
+                            result: ResolvedImportResult {
+                                kind: ResolvedImportResultKind::Unit,
+                                ownership: OwnershipMode::Value,
+                                producer: "callee",
+                                out_slot_initialization: "success_only",
+                                ownership_transfer: "final_zero_status_commit",
+                            },
+                            effects: import.effects.clone(),
+                            required_authority: import.effects.clone(),
+                            failure,
+                            span: import.span,
+                        })
+                    })
+                    .collect::<Result<Vec<_>, Diagnostic>>()?;
+                Ok(ResolvedInterface {
+                    id: interface_id,
+                    name: interface.name.clone(),
+                    permits: interface.permits.clone(),
+                    imports,
+                    span: interface.span,
+                })
+            })
+            .collect::<Result<Vec<_>, Diagnostic>>()?;
         let functions = self
             .program
             .functions
@@ -1968,6 +2522,7 @@ impl Resolver<'_> {
             entrypoint,
             declarations: self.declarations,
             types,
+            interfaces,
             functions,
         };
         validate(&resolved)?;

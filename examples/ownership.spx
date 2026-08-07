@@ -1,7 +1,10 @@
 module examples.ownership;
 
 @id("buffer.type")
-resource Buffer;
+resource Buffer {
+    @id("buffer.type.drop")
+    drop trivial;
+}
 
 @id("buffer.inspect")
 fn inspect(buffer: borrow Buffer) -> i64

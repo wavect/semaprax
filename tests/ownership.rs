@@ -10,7 +10,10 @@ fn diagnostics(source: &str) -> Vec<semaprax::diagnostic::Diagnostic> {
 const HEADER: &str = r#"
 module test.ownership;
 @id("buffer.type")
-resource Buffer;
+resource Buffer {
+    @id("buffer.type.drop")
+    drop trivial;
+}
 @id("buffer.inspect")
 fn inspect(buffer: borrow Buffer) -> i64 { 1 }
 @id("buffer.consume")
@@ -82,6 +85,9 @@ fn graph_exposes_resource_and_parameter_ownership() {
     let json = graph::to_json(&program).unwrap();
     assert!(json.contains("\"kind\":\"resource\""));
     assert!(json.contains("\"id\":\"buffer.type\""));
+    assert!(json.contains("\"drop\":\"buffer.type.drop\""));
+    assert!(json.contains("\"id\":\"buffer.type.drop\",\"kind\":\"resource_drop\""));
+    assert!(json.contains("\"strategy\":\"trivial\""));
     assert!(json.contains("\"ownership_mode\":\"borrow\""));
     assert!(json.contains("\"ownership_mode\":\"own\""));
 }

@@ -10,7 +10,10 @@ const SOURCE: &str = r#"
 module test.hir;
 
 @id("buffer.type")
-resource Buffer;
+resource Buffer {
+    @id("buffer.type.drop")
+    drop trivial;
+}
 
 @id("buffer.consume")
 fn consume(value: own Buffer) -> i64 { 1 }
@@ -142,7 +145,7 @@ fn resource_names_resolve_to_persistent_type_identities() {
 #[test]
 fn type_facts_and_layout_keys_survive_display_name_renames() {
     let renamed = SOURCE
-        .replace("resource Buffer;", "resource Bytes;")
+        .replace("resource Buffer {", "resource Bytes {")
         .replace(
             "fn consume(value: own Buffer)",
             "fn consume(value: own Bytes)",
@@ -347,7 +350,10 @@ fn main() -> i64 { missing(42) }
 fn declaration_index_distinguishes_persistent_and_automatic_identities() {
     let source = r#"
 module test.identity_origin;
-resource Buffer;
+resource Buffer {
+    @id("test.identity_origin.buffer.drop")
+    drop trivial;
+}
 fn main() -> i64 { 42 }
 "#;
     let ast = parse(source, Path::new("identity-origin.spx")).unwrap();

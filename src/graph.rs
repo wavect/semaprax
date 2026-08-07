@@ -1,7 +1,7 @@
 //! Deterministic semantic graph serialization and bounded context queries.
 //!
 //! Human source supplies the revision. Resolved HIR supplies every semantic
-//! identity and fact in graph v4; spans and display names are metadata only.
+//! identity and fact in graph v5; spans and display names are metadata only.
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fmt::Write;
@@ -13,8 +13,9 @@ use crate::diagnostic::{quote_json, Diagnostic};
 use crate::format;
 use crate::hir::{
     self, DeclarationId, IdentityOrigin, OwnershipMode, Place, PlaceProjection, ResolvedExpr,
-    ResolvedExprKind, ResolvedFunction, ResolvedProgram, ResolvedStatement, ResolvedType,
-    ResolvedTypeDeclarationKind, TypeFacts,
+    ResolvedExprKind, ResolvedFunction, ResolvedImportFailure, ResolvedProgram,
+    ResolvedResourceDropKind, ResolvedStatement, ResolvedType, ResolvedTypeDeclarationKind,
+    TypeFacts,
 };
 
 /// Hash the canonical human-readable source projection.
@@ -30,7 +31,7 @@ pub fn revision(program: &Program) -> String {
     format!("sha256:{:x}", hasher.finalize())
 }
 
-/// Resolve and serialize a parsed program as `semaprax.graph.v4`.
+/// Resolve and serialize a parsed program as `semaprax.graph.v5`.
 ///
 /// Resolution is deliberately part of this public boundary. Invalid source
 /// cannot be mistaken for a checked semantic graph by library callers.
@@ -166,16 +167,67 @@ fn graph_json(
     selected_types: &BTreeSet<DeclarationId>,
     view: &GraphView<'_>,
 ) -> Result<String, Diagnostic> {
+    let mut selected_types = selected_types.clone();
+    let mut selected_interfaces = match view {
+        GraphView::Module => program
+            .interfaces
+            .iter()
+            .map(|interface| interface.id.clone())
+            .collect::<BTreeSet<_>>(),
+        GraphView::Context { .. } => BTreeSet::new(),
+    };
+
+    loop {
+        close_record_type_declarations(program, &mut selected_types)?;
+        let referenced_imports = program
+            .types
+            .iter()
+            .filter(|declaration| selected_types.contains(&declaration.id))
+            .filter_map(|declaration| match &declaration.kind {
+                ResolvedTypeDeclarationKind::Resource { drop } => match &drop.kind {
+                    ResolvedResourceDropKind::Imported { import, .. } => Some(import.clone()),
+                    ResolvedResourceDropKind::Trivial => None,
+                },
+                ResolvedTypeDeclarationKind::Record { .. } => None,
+            })
+            .collect::<BTreeSet<_>>();
+        let mut changed = false;
+        for interface in &program.interfaces {
+            if interface
+                .imports
+                .iter()
+                .any(|import| referenced_imports.contains(&import.id))
+            {
+                changed |= selected_interfaces.insert(interface.id.clone());
+            }
+            if !selected_interfaces.contains(&interface.id) {
+                continue;
+            }
+            for import in &interface.imports {
+                for parameter in &import.parameters {
+                    let mut referenced = BTreeSet::new();
+                    collect_nominal_declarations(&parameter.ty, &mut referenced);
+                    for id in referenced {
+                        changed |= selected_types.insert(id);
+                    }
+                }
+            }
+        }
+        if !changed {
+            break;
+        }
+    }
+    close_record_type_declarations(program, &mut selected_types)?;
     let mut output = String::new();
     write!(
         output,
-        "{{\"schema\":\"semaprax.graph.v4\",\"revision\":{},\"view\":{},\"identity\":{{\"declarations\":\"explicit-persistent-or-automatic-unstable\",\"values\":\"revision-scoped-structural\",\"expressions\":\"revision-scoped-structural\"}},\"module\":{},\"permits\":{},\"entrypoint\":{},\"type_facts\":[{}],\"nodes\":[",
+        "{{\"schema\":\"semaprax.graph.v5\",\"revision\":{},\"view\":{},\"identity\":{{\"declarations\":\"explicit-persistent-or-automatic-unstable\",\"values\":\"revision-scoped-structural\",\"expressions\":\"revision-scoped-structural\"}},\"module\":{},\"permits\":{},\"entrypoint\":{},\"type_facts\":[{}],\"nodes\":[",
         quote_json(source_revision),
         view_json(view),
         quote_json(&program.module),
         string_array(&program.permits),
         quote_json(program.entrypoint.as_str()),
-        type_facts_array(program, selected_functions, selected_types)?
+        type_facts_array(program, selected_functions, &selected_types)?
     )
     .expect("writing to a string cannot fail");
 
@@ -192,18 +244,42 @@ fn graph_json(
             declaration: declaration.id.clone(),
             arguments: Vec::new(),
         };
-        let identity_origin = identity_origin(program, &declaration.id)?;
+        let type_origin = identity_origin(program, &declaration.id)?;
         match &declaration.kind {
-            ResolvedTypeDeclarationKind::Resource => {
+            ResolvedTypeDeclarationKind::Resource { drop } => {
                 write!(
                     output,
-                    "{{\"id\":{},\"kind\":\"resource\",\"name\":{},\"identity_origin\":{},\"persistent\":{},\"memory\":\"unique\",\"type_id\":{}}}",
+                    "{{\"id\":{},\"kind\":\"resource\",\"name\":{},\"identity_origin\":{},\"persistent\":{},\"memory\":\"unique\",\"type_id\":{},\"drop\":{}}}",
                     quote_json(declaration.id.as_str()),
                     quote_json(&declaration.name),
-                    quote_json(identity_origin.text()),
-                    identity_origin.is_persistent(),
-                    quote_json(&ty.identity_key())
+                    quote_json(type_origin.text()),
+                    type_origin.is_persistent(),
+                    quote_json(&ty.identity_key()),
+                    quote_json(drop.id.as_str())
                 )
+                .expect("writing to a string cannot fail");
+                let drop_origin = identity_origin(program, &drop.id)?;
+                output.push(',');
+                match &drop.kind {
+                    ResolvedResourceDropKind::Trivial => write!(
+                        output,
+                        "{{\"id\":{},\"kind\":\"resource_drop\",\"owner\":{},\"identity_origin\":{},\"persistent\":{},\"strategy\":\"trivial\"}}",
+                        quote_json(drop.id.as_str()),
+                        quote_json(declaration.id.as_str()),
+                        quote_json(drop_origin.text()),
+                        drop_origin.is_persistent()
+                    ),
+                    ResolvedResourceDropKind::Imported { import, import_key } => write!(
+                        output,
+                        "{{\"id\":{},\"kind\":\"resource_drop\",\"owner\":{},\"identity_origin\":{},\"persistent\":{},\"strategy\":\"imported\",\"import\":{},\"import_key\":{}}}",
+                        quote_json(drop.id.as_str()),
+                        quote_json(declaration.id.as_str()),
+                        quote_json(drop_origin.text()),
+                        drop_origin.is_persistent(),
+                        quote_json(import.as_str()),
+                        quote_json(import_key)
+                    ),
+                }
                 .expect("writing to a string cannot fail");
             }
             ResolvedTypeDeclarationKind::Record { fields } => {
@@ -212,8 +288,8 @@ fn graph_json(
                     "{{\"id\":{},\"kind\":\"record\",\"name\":{},\"identity_origin\":{},\"persistent\":{},\"type_id\":{},\"fields\":[{}]}}",
                     quote_json(declaration.id.as_str()),
                     quote_json(&declaration.name),
-                    quote_json(identity_origin.text()),
-                    identity_origin.is_persistent(),
+                    quote_json(type_origin.text()),
+                    type_origin.is_persistent(),
                     quote_json(&ty.identity_key()),
                     fields
                         .iter()
@@ -253,6 +329,80 @@ fn graph_json(
                     .expect("writing to a string cannot fail");
                 }
             }
+        }
+    }
+
+    for interface in &program.interfaces {
+        if !selected_interfaces.contains(&interface.id) {
+            continue;
+        }
+        if !first {
+            output.push(',');
+        }
+        first = false;
+        let origin = identity_origin(program, &interface.id)?;
+        write!(
+            output,
+            "{{\"id\":{},\"kind\":\"interface\",\"name\":{},\"identity_origin\":{},\"persistent\":{},\"permits\":{},\"imports\":[{}]}}",
+            quote_json(interface.id.as_str()),
+            quote_json(&interface.name),
+            quote_json(origin.text()),
+            origin.is_persistent(),
+            string_array(&interface.permits),
+            interface
+                .imports
+                .iter()
+                .map(|import| quote_json(import.id.as_str()))
+                .collect::<Vec<_>>()
+                .join(",")
+        )
+        .expect("writing to a string cannot fail");
+        for import in &interface.imports {
+            let origin = identity_origin(program, &import.id)?;
+            let parameters = import
+                .parameters
+                .iter()
+                .map(|parameter| {
+                    format!(
+                        "{{\"name\":{},\"type_id\":{},\"ownership_mode\":{},\"consumes_on_failure\":{}}}",
+                        quote_json(&parameter.name),
+                        quote_json(&parameter.ty.identity_key()),
+                        quote_json(ownership_text(parameter.ownership)),
+                        parameter.consumes_on_failure
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(",");
+            let failure = match &import.failure {
+                ResolvedImportFailure::Infallible => "{\"kind\":\"infallible\"}".to_owned(),
+                ResolvedImportFailure::Status {
+                    domain_id,
+                    normalization,
+                } => format!(
+                    "{{\"kind\":\"status\",\"domain_id\":{},\"normalization\":{}}}",
+                    quote_json(domain_id),
+                    quote_json(normalization)
+                ),
+            };
+            output.push(',');
+            write!(
+                output,
+                "{{\"id\":{},\"kind\":\"import\",\"name\":{},\"owner\":{},\"identity_origin\":{},\"persistent\":{},\"import_key\":{},\"parameters\":[{}],\"result\":{{\"type\":\"unit\",\"ownership_mode\":\"value\",\"producer\":{},\"out_slot_initialization\":{},\"ownership_transfer\":{}}},\"effects\":{},\"required_authority\":{},\"failure\":{}}}",
+                quote_json(import.id.as_str()),
+                quote_json(&import.name),
+                quote_json(interface.id.as_str()),
+                quote_json(origin.text()),
+                origin.is_persistent(),
+                quote_json(&import.import_key),
+                parameters,
+                quote_json(import.result.producer),
+                quote_json(import.result.out_slot_initialization),
+                quote_json(import.result.ownership_transfer),
+                string_array(&import.effects),
+                string_array(&import.required_authority),
+                failure
+            )
+            .expect("writing to a string cannot fail");
         }
     }
 

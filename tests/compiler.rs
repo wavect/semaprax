@@ -82,10 +82,10 @@ fn context_slice_follows_calls() {
 }
 
 #[test]
-fn graph_v4_exposes_resolved_identity_types_ownership_and_facts() {
+fn graph_v5_exposes_resolved_identity_types_ownership_and_facts() {
     let program = parse(VALID, Path::new("resolved-graph.spx")).unwrap();
     let json = graph::to_json(&program).unwrap();
-    assert!(json.contains("\"schema\":\"semaprax.graph.v4\""));
+    assert!(json.contains("\"schema\":\"semaprax.graph.v5\""));
     assert!(json.contains("\"entrypoint\":\"app.main\""));
     assert!(json.contains("\"identity_origin\":\"explicit\",\"persistent\":true"));
     assert!(json.contains("\"id\":\"declaration:8:math.add:value:param:1:0\",\"name\":\"a\""));
@@ -136,9 +136,15 @@ fn context_includes_referenced_nominal_types_without_unrelated_resources() {
     let source = r#"
 module test.type_context;
 @id("type.used")
-resource Used;
+resource Used {
+    @id("type.used.drop")
+    drop trivial;
+}
 @id("type.unused")
-resource Unused;
+resource Unused {
+    @id("type.unused.drop")
+    drop trivial;
+}
 @id("used.inspect")
 fn inspect(value: borrow Used) -> i64 { 1 }
 @id("app.main")

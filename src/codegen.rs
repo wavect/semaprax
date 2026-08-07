@@ -72,11 +72,12 @@ fn emit_hir_c_with_labels(
             "native record lowering is gated on aggregate cleanup and layout support",
         ));
     }
-    if program
-        .types
-        .iter()
-        .any(|declaration| matches!(&declaration.kind, ResolvedTypeDeclarationKind::Resource))
-    {
+    if program.types.iter().any(|declaration| {
+        matches!(
+            &declaration.kind,
+            ResolvedTypeDeclarationKind::Resource { .. }
+        )
+    }) {
         return Err(Diagnostic::io(
             "SPX-B104",
             "native resource lowering requires lifecycle declarations and the verified cleanup ABI",

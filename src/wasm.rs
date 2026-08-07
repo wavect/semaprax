@@ -53,11 +53,12 @@ pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagno
             "WebAssembly record lowering is gated on linear-memory cleanup and layout support",
         ));
     }
-    if program
-        .types
-        .iter()
-        .any(|declaration| matches!(&declaration.kind, ResolvedTypeDeclarationKind::Resource))
-    {
+    if program.types.iter().any(|declaration| {
+        matches!(
+            &declaration.kind,
+            ResolvedTypeDeclarationKind::Resource { .. }
+        )
+    }) {
         return Err(Diagnostic::io(
             "SPX-W111",
             "WebAssembly resource lowering requires lifecycle declarations and the verified cleanup ABI",

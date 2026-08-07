@@ -8,13 +8,13 @@ Status values:
 - **Partial** — useful implementation exists, but the full gate is not proven.
 - **Missing** — no qualifying implementation exists yet.
 
-[RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) specifies the proposed exactly-once cleanup and resource ABI required by several gates below. It is design-only and provides no implementation evidence, so it does not change any status in this matrix.
+[RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) phase 1 has executable source, resolution, HIR-validation, graph, migration, and fail-closed backend evidence. Cleanup plans, resource execution, adapters, and conformance traces remain design-only phases.
 
 ## Defining product contract
 
 | Requirement | Status | Current evidence | Completion gate |
 | --- | --- | --- | --- |
-| Agent-native semantic program | Partial | Graph v4 serializes validated HIR with explicit persistent/automatic identity origin, resolved declaration/value/place/type/record/field IDs, expression types and ownership modes, recursive type facts, structured contracts, bounded call/type context with frontier metadata, SHA-256 revision-bound rename transactions, and fail-closed APIs | Versioned multi-file graph API covers flow-sensitive ownership state, callers, targets, tests, packages, generated artifacts, typed repairs, impact, and semantic review |
+| Agent-native semantic program | Partial | Graph v5 serializes validated HIR with lifecycle/interface/import/record/field identities, ownership/authority/failure contracts, expression meaning, recursive type facts, bounded lifecycle/call/type context, SHA-256 revision-bound renames, and fail-closed APIs | Versioned multi-file graph API covers flow-sensitive ownership state, callers, targets, tests, packages, generated artifacts, typed repairs, impact, and semantic review |
 | Human-readable program | Partial | Canonical `.spx` source and formatter | Complete language round-trips deterministically; graph-aware merge/diff, debugger source mapping, and normal Git/editor workflows are verified |
 | Meaning in, verified machine code out | Partial | Typed scalar core, effect checks, runtime contract guards, checked arithmetic, native host executable | All safe-language guarantees survive every backend; native artifacts and portable components pass conformance suites on every supported target |
 | Atomic agent changes | Partial | Single-file stable-ID function/resource renames update calls and ownership type boundaries with domain-separated SHA-256 stale/legacy revision rejection | Typed, transactional multi-file edits support every public semantic operation and either commit fully or leave all source/graph state unchanged |
@@ -23,11 +23,11 @@ Status values:
 
 | Requirement | Status | Current evidence | Completion gate |
 | --- | --- | --- | --- |
-| Records and algebraic variants | Partial | Canonical record declarations/construction/projection, stable field IDs, deterministic field diagnostics, recursive facts/cycle rejection, prefix-aware partial-place ownership, validated record HIR, and Graph v4; executable backends fail closed | Immutable update, variants, exhaustive matching, cleanup, target layouts, and native/Wasm execution verified |
-| Functions, closures, interfaces, implementations, generics | Partial | Monomorphic named scalar functions | Closures, constraints, coherent implementations, specialization boundaries, and separate compilation verified |
+| Records and algebraic variants | Partial | Canonical record declarations/construction/projection, stable field IDs, deterministic field diagnostics, recursive facts/cycle rejection, prefix-aware partial-place ownership, validated record HIR, and Graph v5; executable backends fail closed | Immutable update, variants, exhaustive matching, cleanup, target layouts, and native/Wasm execution verified |
+| Functions, closures, interfaces, implementations, generics | Partial | Monomorphic named functions plus declaration-only resource interface/import contracts | Callable imports, closures, constraints, coherent implementations, specialization boundaries, and separate compilation verified |
 | `Option` and `Result`; no null or unchecked exceptions | Missing | — | Standard types, propagation syntax, FFI mappings, exhaustive handling, and diagnostics verified |
 | Immutable-by-default values and explicit mutation | Missing | — | Local, field, collection, and cross-task mutation rules verified |
-| Unique ownership and move safety | Partial | Resource-containing nominal facts, explicit `own` boundaries, lexical/constructor transfers, prefix-aware record field moves, sibling preservation, control-flow joins, definite/conditional place diagnostics, borrowed/shared field-transfer rejection, hostile-HIR replay, and fail-closed native/Wasm resource gates pending lifecycle cleanup | Double-free, invalid transfer, destructors, partial initialization, loops, closures, concurrency, and FFI ownership are compile-time checked |
+| Unique ownership and move safety | Partial | Explicit trivial/imported lifecycle declarations, resolved finalizer ownership/effect/failure contracts, recursive lifecycle-effect checks, resource-containing nominal facts, move/partial-place analysis, hostile-HIR replay, and fail-closed native/Wasm gates | Exactly-once cleanup, double-free prevention, partial initialization, loops, closures, concurrency, and FFI ownership are compile-time/runtime-conformance verified |
 | Borrowed views and lifetime safety | Partial | Non-consuming `borrow` boundaries and move-after-borrow behavior | Mutable/shared aliasing, escaping borrows, reborrows, slices, and zero-copy FFI pass positive and compile-fail suites |
 | Regions/arenas | Missing | — | Region inference and annotations prevent escape; bulk release and destructor behavior are verified |
 | Shared immutable ARC and opt-in managed zones | Missing | — | Retain/release correctness, cycle policy, escape optimization, and concurrency constraints verified |

@@ -1,8 +1,8 @@
 # RFC 0003: Exactly-once cleanup and the resource ABI
 
-Status: proposed; design only.
+Status: accepted; phase 1 implemented, phases 2–7 proposed.
 
-This RFC defines the target-neutral destruction, cleanup, and failure contract required before SEMAPRAX may execute resources or records containing resources. It specifies source declarations, resolved meaning, cleanup plans, backend ABIs, and evidence gates. It does **not** claim that any part of this design is implemented. Until the applicable gates pass, native and Wasm backends must continue to reject resource-bearing and record-bearing modules rather than emit code with incomplete cleanup.
+This RFC defines the target-neutral destruction, cleanup, and failure contract required before SEMAPRAX may execute resources or records containing resources. Phase 1 implements canonical lifecycle/interface/import declarations, source verification, resolved HIR validation, Graph v5, migration evidence, and fail-closed backend gates. Cleanup plans, imported-call execution, target adapters, status ABIs, conformance traces, and resource/aggregate execution remain proposed. Native and Wasm continue to reject resource-bearing and record-bearing modules.
 
 ## Scope and non-goals
 
@@ -37,7 +37,7 @@ resource File {
 }
 ```
 
-This proposed block form replaces the current pre-alpha `resource Name;` placeholder only when the source-and-resolution phase lands with its migration and diagnostics. This design document does not change the grammar accepted by the current compiler.
+This block form replaces the pre-alpha `resource Name;` placeholder. The legacy form still parses solely so verification can emit `SPX-O112`; canonical formatting never invents a destruction strategy.
 
 The import string is a target-neutral logical key, not a C symbol, JavaScript property path, JNI name, or framework selector. Target adapters bind that key and are verified separately.
 
@@ -53,7 +53,7 @@ resource BorrowedToken {
 
 Every destruction strategy has an explicit persistent lifecycle ID, including `drop trivial`. Omitting a strategy or its ID is an error. `drop trivial` is an audited semantic assertion, not the default and not permission to ignore an owned foreign handle. Canonical formatting preserves the lifecycle ID and renders one destruction declaration in the forms above.
 
-The logical import must be declared by a package interface that supplies its complete authority and failure contract. The syntax below is proposed interface notation rather than implemented grammar:
+The logical import must be declared by a package interface that supplies its complete authority and failure contract. Phase 1 accepts this declaration grammar:
 
 ```semaprax
 @id("io.file.host")
@@ -73,6 +73,8 @@ interface FileHost
         consumes file always;
 }
 ```
+
+Phase 1 implements this declaration-only interface subset. Imports are not callable expressions yet. In the v1 source grammar an import's explicit `@id` is also its target-neutral logical key; resolved HIR stores `import_id` and `import_key` separately so later syntax can decouple them. Phase 1 permits one owned opaque-resource parameter, a unit result, one effects clause, one failure clause, and `consumes <parameter> always`. Required authority equals the declared effects, status normalization is `semaprax.status.v1`, and result publication is success-only at the final-zero-status commit.
 
 Automatic `drop` may reference only an infallible, non-trapping, consuming import with one `own` resource parameter and a unit result. APIs that need to report flush, commit, or close failure expose a separate explicit status-returning import such as the one above; its generated safe wrapper presents `close(file: own File) -> Result<unit, E>` once `Result` is available. The first version requires fallible close to consume the resource on both success and failure; an API that returns ownership after failure must do so explicitly in its result type in a later RFC. General source-defined finalizers, finalizer overloading, user-observable field finalization order, and async finalizers require later RFCs.
 
@@ -364,6 +366,9 @@ The following stable codes are reserved for this tranche:
 - `SPX-O112`: owned resource declaration has no destruction strategy.
 - `SPX-O113`: lifecycle declaration is missing its stable ID, duplicated, fallible, or otherwise incompatible with automatic finalization.
 - `SPX-O114`: safe-profile import or finalizer can trap or unwind instead of satisfying its declared status/finality contract.
+- `SPX-I403`: interface/import declaration has a missing or empty persistent ID, duplicate interface/import name, logical key, permit, or effect, or an empty status domain. Grammar-shape errors remain parser diagnostics.
+- `SPX-I404`: interface/import ownership, authority, consumption, result, or failure contract is internally inconsistent.
+- `SPX-E103`: a function can own a resource but omits an effect required by its automatic lifecycle.
 - `SPX-I401`: target adapter has no binding for a required logical import key.
 - `SPX-I402`: target binding ABI, ownership, effects, or failure contract does not match the resolved import.
 - `SPX-H006`: existing generic malformed-HIR boundary; cleanup inconsistencies carry a deterministic cleanup-specific reason.
@@ -376,7 +381,7 @@ Frontend diagnostics point at authored declarations or expressions. HIR/backend 
 
 Each phase is incomplete until its executable evidence passes. An RFC, type definition, generated text, or successful scalar build does not satisfy a phase.
 
-1. **Source and resolution.** Parse and canonically format both finalization forms with lifecycle IDs and the interface/import contract; reject missing, duplicate, malformed, fallible-drop, authority, ownership, consumption, result-initialization, or failure-domain conflicts with stable diagnostics. Resolve lifecycle/interface/import IDs, logical keys, parameter and result ownership, effects/authority, normalized failure contracts, and recursive `needs_drop` facts. Prove parse-format-parse and stable-ID behavior.
+1. **Source and resolution — implemented.** Parse and canonically format both finalization forms with lifecycle IDs and the declaration-only interface/import contract; reject missing, duplicate, malformed, fallible-drop, authority, ownership, consumption, result-initialization, or failure-domain conflicts with stable diagnostics. Resolve lifecycle/interface/import IDs, logical keys, parameter and result ownership, effects/authority, normalized failure contracts, and recursive `needs_drop` facts. Source verification and hostile-HIR replay enforce recursive lifecycle effects. Graph v5 and semantic resource renames preserve lifecycle/import identities and context closure. This phase does not execute imports or cleanup.
 2. **Verified cleanup HIR.** Generate deterministic slots, field shapes, CFG blocks/edges, cleanup regions, scope ends, exit targets, provisional-result state, and expression-keyed transitions for parameters, locals, temporaries, branches, calls, and partial aggregates. Snapshot complete plans and reject adversarial malformed HIR with cleanup-specific `SPX-H006` reasons.
 3. **Native scalar-resource execution.** Instrument acquisition, transfer, call and result commits, explicit close, and automatic finalization. Prove exact traces for success, pre/postcondition failure, every checked-arithmetic failure, failed calls, branches, and early returns. Specifically prove that failed postconditions finalize a live provisional result while the caller out-slot stays uninitialized; final success commits only after non-result cleanup; explicit close/import failure consumes exactly once and other resources still finalize; trivial finalizers emit events. Negative fixtures must prove that fallible or trapping finalizer bindings are rejected or fail adapter conformance before publication. Run sanitizers and the cross-platform native CI matrix.
 4. **Wasm scalar-resource execution.** Run the same trace corpus in a real Wasm host. Prove exception-to-status normalization, provisional-result commit, context nonce/bounds validation, nested reentrant frames, per-worker/store isolation, shadow-stack restoration, and byte-for-byte deterministic modules where already required.

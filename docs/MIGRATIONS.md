@@ -45,11 +45,41 @@ Graph v4 adds the first algebraic-data declarations and expressions:
 - the type-facts table includes every field type required by selected record declarations;
 - validated-HIR and graph reference checks fail closed before an unresolved or foreign record/field reference can be serialized.
 
-The SHA-256 revision contract is unchanged. A v3 consumer must reject `semaprax.graph.v4` until it understands record/field nodes and record expression kinds. Exact v4 fixtures cover scalar programs in `tests/snapshots/meaning.graph.json` and `tests/snapshots/control_flow.graph.json`, and records in `tests/snapshots/records.graph.json`.
+The SHA-256 revision contract is unchanged. A v3 consumer must reject `semaprax.graph.v4` until it understands record/field nodes and record expression kinds.
+
+## Semantic graph v4 to v5 and explicit resource lifecycles
+
+Graph v5 adds persistent resource-lifecycle, interface, and logical-import declarations. Resource nodes now reference a `resource_drop` node. Imported drop nodes reference an `import` node and target-neutral `import_key`; interface nodes expose their authority ceiling and import IDs; import nodes serialize parameter ownership, consumption on failure, unit-result publication rules, effects, required authority, and normalized failure contracts. Context slices close a referenced resource through its lifecycle, complete owning interface, import signatures, and their nominal types.
+
+The initial source grammar deliberately uses an import's explicit `@id` as its v1 logical import key while resolved HIR stores `import_id` and `import_key` separately. This is a versioned source projection choice, not a permanent conflation of conceptual identity and target binding keys.
+
+Rust API consumers must update exhaustive matches and construction code:
+
+- `Program` adds `interfaces: Vec<InterfaceDeclaration>`;
+- `TypeDeclarationKind::Resource` becomes `Resource { lifecycles: Vec<ResourceLifecycleDeclaration> }`;
+- the parsed AST adds resource lifecycle kind/declaration, interface/import declaration, and import-failure types;
+- `ResolvedProgram` adds resolved interfaces;
+- resolved resource declarations carry `ResolvedResourceDrop` and its strategy;
+- resolved HIR adds interface/import parameter, unit-result publication, authority, and normalized-failure structures;
+- `DeclarationKind` adds `ResourceDrop`, `Interface`, and `Import`.
+
+Legacy `resource Name;` still parses so `check` can report `SPX-O112`, but it is no longer a valid resource declaration. Migration requires an explicit, persistent lifecycle ID and an authored choice:
+
+```semaprax
+@id("token.type")
+resource Token {
+    @id("token.type.drop")
+    drop trivial;
+}
+```
+
+or a complete `drop import` plus interface/import contract. Formatting never invents `drop trivial`; it is an audited semantic assertion. Native and Wasm builds remain gated with `SPX-B104`/`SPX-W111` because phase 1 resolves lifecycle meaning but does not execute cleanup.
+
+The SHA-256 algorithm and domain separator are unchanged, but migrated canonical source receives a new revision as expected. A v4 consumer must reject `semaprax.graph.v5`. Exact v5 fixtures cover scalar, control-flow, record, and lifecycle graphs in `tests/snapshots/`.
 
 ## Rust AST resource declarations to nominal type declarations
 
-The public pre-alpha Rust AST now represents both resources and records through `Program::types: Vec<TypeDeclaration>`. `Program::resources` is removed, and `Type::Resource(String)` becomes `Type::Named(String)` because a nominal reference may name either kind. Rust library consumers must migrate exhaustive matches and use `TypeDeclarationKind::{Resource, Record}`.
+The public pre-alpha Rust AST migration from the earlier graph v4 tranche represents both resources and records through `Program::types: Vec<TypeDeclaration>`. `Program::resources` is removed, and `Type::Resource(String)` becomes `Type::Named(String)` because a nominal reference may name either kind. Graph v5 further changes the resource variant as described above.
 
 The lexer now tokenizes `.` separately so expression projection is unambiguous. Module names, capability/effect names, and named types still accept qualified identifiers through parser-specific `IDENT ("." IDENT)*` rules. Canonical formatting expands record initializer shorthand (`Point { x }` becomes `Point { x: x }`) and preserves initializer evaluation order.
 
@@ -57,7 +87,7 @@ This migration enables `check`, HIR, `graph`, and `context` for records. `build`
 
 ## Whole-record to prefix-aware ownership
 
-Resource-containing record projections now carry prefix-aware availability instead of conservatively moving the complete root. Moving one owned non-copy field leaves disjoint sibling fields available. Reusing that field or an enclosing parent reports `SPX-O109`; a place moved on only some control-flow paths reports `SPX-O110`. Existing whole-resource moves retain `SPX-O101` and `SPX-O107`. Borrowed or shared projections cannot cross an owned field or parameter boundary and report `SPX-O108`. Validated HIR independently replays the same rules, while Graph v4 continues to expose identities and ownership modes rather than flow-sensitive availability.
+Resource-containing record projections now carry prefix-aware availability instead of conservatively moving the complete root. Moving one owned non-copy field leaves disjoint sibling fields available. Reusing that field or an enclosing parent reports `SPX-O109`; a place moved on only some control-flow paths reports `SPX-O110`. Existing whole-resource moves retain `SPX-O101` and `SPX-O107`. Borrowed or shared projections cannot cross an owned field or parameter boundary and report `SPX-O108`. Validated HIR independently replays the same rules, while Graph v5 continues to expose identities and ownership modes rather than flow-sensitive availability.
 
 ## Revision token FNV-1a64 to SHA-256
 

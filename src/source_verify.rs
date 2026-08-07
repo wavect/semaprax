@@ -1,8 +1,9 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 use crate::ast::{
-    BinaryOp, Expr, ExprKind, FieldDeclaration, Function, ParamMode, Program, Span, Statement,
-    Type, TypeDeclaration, TypeDeclarationKind, UnaryOp,
+    BinaryOp, Expr, ExprKind, FieldDeclaration, Function, ImportDeclaration, ImportFailure,
+    InterfaceDeclaration, ParamMode, Program, ResourceLifecycleKind, Span, Statement, Type,
+    TypeDeclaration, TypeDeclarationKind, UnaryOp,
 };
 use crate::diagnostic::Diagnostic;
 
@@ -81,12 +82,19 @@ impl<'a> TypeTable<'a> {
         };
         match &self.declaration(name)?.kind {
             TypeDeclarationKind::Record { fields } => Some(fields),
-            TypeDeclarationKind::Resource => None,
+            TypeDeclarationKind::Resource { .. } => None,
         }
     }
 
     fn contains_resource(&self, ty: &Type) -> bool {
         self.contains_resource_inner(ty, &mut HashSet::new())
+    }
+
+    fn is_opaque_resource(&self, ty: &Type) -> bool {
+        let Type::Named(name) = ty else { return false };
+        self.declaration(name).is_some_and(|declaration| {
+            matches!(declaration.kind, TypeDeclarationKind::Resource { .. })
+        })
     }
 
     fn contains_resource_inner(&self, ty: &Type, visiting: &mut HashSet<String>) -> bool {
@@ -97,7 +105,7 @@ impl<'a> TypeTable<'a> {
             return false;
         };
         match &declaration.kind {
-            TypeDeclarationKind::Resource => true,
+            TypeDeclarationKind::Resource { .. } => true,
             TypeDeclarationKind::Record { fields } => {
                 if !visiting.insert(name.clone()) {
                     return true;
@@ -110,6 +118,51 @@ impl<'a> TypeTable<'a> {
             }
         }
     }
+
+    fn lifecycle_effects(
+        &self,
+        ty: &Type,
+        imports: &HashMap<&str, (&InterfaceDeclaration, &ImportDeclaration)>,
+    ) -> HashSet<String> {
+        let mut effects = HashSet::new();
+        self.lifecycle_effects_inner(ty, imports, &mut HashSet::new(), &mut effects);
+        effects
+    }
+
+    fn lifecycle_effects_inner(
+        &self,
+        ty: &Type,
+        imports: &HashMap<&str, (&InterfaceDeclaration, &ImportDeclaration)>,
+        visiting: &mut HashSet<String>,
+        effects: &mut HashSet<String>,
+    ) {
+        let Type::Named(name) = ty else { return };
+        let Some(declaration) = self.declaration(name) else {
+            return;
+        };
+        if !visiting.insert(name.clone()) {
+            return;
+        }
+        match &declaration.kind {
+            TypeDeclarationKind::Resource { lifecycles } => {
+                if let Some(crate::ast::ResourceLifecycleDeclaration {
+                    kind: ResourceLifecycleKind::Imported { import_key },
+                    ..
+                }) = lifecycles.first()
+                {
+                    if let Some((_, import)) = imports.get(import_key.as_str()) {
+                        effects.extend(import.effects.iter().cloned());
+                    }
+                }
+            }
+            TypeDeclarationKind::Record { fields } => {
+                for field in fields {
+                    self.lifecycle_effects_inner(&field.ty, imports, visiting, effects);
+                }
+            }
+        }
+        visiting.remove(name);
+    }
 }
 
 pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
@@ -121,7 +174,7 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
     for declaration in &program.types {
         if !source_identifier(&declaration.name) {
             let kind = match declaration.kind {
-                TypeDeclarationKind::Resource => "resource",
+                TypeDeclarationKind::Resource { .. } => "resource",
                 TypeDeclarationKind::Record { .. } => "record",
             };
             diagnostics.push(error(
@@ -133,7 +186,7 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
         }
         if !type_names.insert(declaration.name.as_str()) {
             let duplicate = match declaration.kind {
-                TypeDeclarationKind::Resource => "resource",
+                TypeDeclarationKind::Resource { .. } => "resource",
                 TypeDeclarationKind::Record { .. } => "type",
             };
             diagnostics.push(error(
@@ -153,7 +206,7 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
         }
         if !declaration.explicit_id {
             let (subject, help) = match declaration.kind {
-                TypeDeclarationKind::Resource => ("resource", "your.namespace.resource"),
+                TypeDeclarationKind::Resource { .. } => ("resource", "your.namespace.resource"),
                 TypeDeclarationKind::Record { .. } => ("record", "your.namespace.record"),
             };
             diagnostics.push(
@@ -168,6 +221,60 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                 .at_path(&program.path)
                 .with_help(format!("add @id(\"{help}\") before the declaration")),
             );
+        }
+        if let TypeDeclarationKind::Resource { lifecycles } = &declaration.kind {
+            if lifecycles.is_empty() {
+                diagnostics.push(
+                    error(
+                        program,
+                        "SPX-O112",
+                        format!(
+                            "resource `{}` must declare exactly one destruction strategy",
+                            declaration.name
+                        ),
+                        declaration.name_span,
+                    )
+                    .with_help(
+                        "declare an explicitly identified `drop trivial` or `drop import` strategy",
+                    ),
+                );
+            } else if lifecycles.len() > 1 {
+                diagnostics.push(error(
+                    program,
+                    "SPX-O113",
+                    format!(
+                        "resource `{}` declares more than one destruction strategy",
+                        declaration.name
+                    ),
+                    lifecycles[1].span,
+                ));
+            }
+            for lifecycle in lifecycles {
+                match lifecycle.stable_id.as_deref() {
+                    Some(id) if !id.is_empty() => {
+                        if !ids.insert(id) {
+                            diagnostics.push(error(
+                                program,
+                                "SPX-S102",
+                                format!("duplicate stable id `{id}`"),
+                                lifecycle.span,
+                            ));
+                        }
+                    }
+                    _ => diagnostics.push(
+                        error(
+                            program,
+                            "SPX-O113",
+                            format!(
+                                "resource lifecycle `{}.drop` requires an explicit @id",
+                                declaration.name
+                            ),
+                            lifecycle.span,
+                        )
+                        .with_help("add @id(\"your.namespace.resource.drop\") before `drop`"),
+                    ),
+                }
+            }
         }
         if let TypeDeclarationKind::Record { fields } = &declaration.kind {
             let mut field_names = HashSet::new();
@@ -220,7 +327,210 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
         }
     }
 
+    let mut interface_names = HashSet::new();
+    let mut import_keys = HashMap::new();
+    for interface in &program.interfaces {
+        if !source_identifier(&interface.name) {
+            diagnostics.push(error(
+                program,
+                "SPX-I403",
+                format!("`{}` is not a valid interface identifier", interface.name),
+                interface.name_span,
+            ));
+        }
+        if !interface_names.insert(interface.name.as_str()) {
+            diagnostics.push(error(
+                program,
+                "SPX-I403",
+                format!("duplicate interface `{}`", interface.name),
+                interface.span,
+            ));
+        }
+        if !interface.explicit_id || interface.stable_id.is_empty() {
+            diagnostics.push(
+                error(
+                    program,
+                    "SPX-I403",
+                    format!("interface `{}` requires an explicit @id", interface.name),
+                    interface.name_span,
+                )
+                .with_help("add @id(\"your.namespace.interface\") before the interface"),
+            );
+        }
+        if !ids.insert(interface.stable_id.as_str()) {
+            diagnostics.push(error(
+                program,
+                "SPX-S102",
+                format!("duplicate stable id `{}`", interface.stable_id),
+                interface.span,
+            ));
+        }
+        let mut permitted = HashSet::new();
+        for effect in &interface.permits {
+            if !permitted.insert(effect.as_str()) {
+                diagnostics.push(error(
+                    program,
+                    "SPX-I403",
+                    format!(
+                        "interface `{}` declares duplicate permit `{effect}`",
+                        interface.name
+                    ),
+                    interface.span,
+                ));
+            }
+        }
+        let mut import_names = HashSet::new();
+        for import in &interface.imports {
+            if !source_identifier(&import.name) {
+                diagnostics.push(error(
+                    program,
+                    "SPX-I403",
+                    format!("`{}` is not a valid import identifier", import.name),
+                    import.name_span,
+                ));
+            }
+            if !import_names.insert(import.name.as_str()) {
+                diagnostics.push(error(
+                    program,
+                    "SPX-I403",
+                    format!("duplicate import `{}.{}`", interface.name, import.name),
+                    import.span,
+                ));
+            }
+            if !import.explicit_id || import.stable_id.is_empty() {
+                diagnostics.push(
+                    error(
+                        program,
+                        "SPX-I403",
+                        format!(
+                            "import `{}.{}` requires an explicit @id",
+                            interface.name, import.name
+                        ),
+                        import.name_span,
+                    )
+                    .with_help("the v1 import @id is also its target-neutral logical import key"),
+                );
+            }
+            if !ids.insert(import.stable_id.as_str()) {
+                diagnostics.push(error(
+                    program,
+                    "SPX-S102",
+                    format!("duplicate stable id `{}`", import.stable_id),
+                    import.span,
+                ));
+            }
+            if import_keys
+                .insert(import.stable_id.as_str(), (interface, import))
+                .is_some()
+            {
+                diagnostics.push(error(
+                    program,
+                    "SPX-I403",
+                    format!("duplicate logical import key `{}`", import.stable_id),
+                    import.span,
+                ));
+            }
+        }
+    }
+
     let types = TypeTable::new(program);
+    for interface in &program.interfaces {
+        let permits = interface
+            .permits
+            .iter()
+            .map(String::as_str)
+            .collect::<HashSet<_>>();
+        for import in &interface.imports {
+            for param in &import.params {
+                check_declared_type(program, &param.ty, param.span, &types, &mut diagnostics);
+            }
+            let valid_shape = import.params.len() == 1
+                && import.params[0].mode == ParamMode::Own
+                && types.is_opaque_resource(&import.params[0].ty)
+                && import.consumes == import.params[0].name;
+            if !valid_shape {
+                diagnostics.push(error(
+                    program,
+                    "SPX-I404",
+                    format!(
+                        "import `{}.{}` must take one owned resource parameter and consume it always",
+                        interface.name, import.name
+                    ),
+                    import.span,
+                ));
+            }
+            if let ImportFailure::Status { domain_id } = &import.failure {
+                if domain_id.is_empty() {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-I403",
+                        format!(
+                            "import `{}.{}` has an empty failure domain",
+                            interface.name, import.name
+                        ),
+                        import.span,
+                    ));
+                }
+            }
+            let mut effects = HashSet::new();
+            for effect in &import.effects {
+                if !effects.insert(effect.as_str()) {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-I403",
+                        format!(
+                            "import `{}.{}` declares duplicate effect `{effect}`",
+                            interface.name, import.name
+                        ),
+                        import.span,
+                    ));
+                }
+                if !permits.contains(effect.as_str()) {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-I404",
+                        format!(
+                            "import `{}.{}` requires effect `{effect}` outside interface `{}` permits",
+                            interface.name, import.name, interface.name
+                        ),
+                        import.span,
+                    ));
+                }
+            }
+        }
+    }
+    for declaration in &program.types {
+        let TypeDeclarationKind::Resource { lifecycles } = &declaration.kind else {
+            continue;
+        };
+        if let [lifecycle] = lifecycles.as_slice() {
+            if let ResourceLifecycleKind::Imported { import_key } = &lifecycle.kind {
+                let compatible = import_keys
+                    .get(import_key.as_str())
+                    .is_some_and(|(_, import)| {
+                        import.params.len() == 1
+                            && import.params[0].mode == ParamMode::Own
+                            && import.params[0].ty == Type::Named(declaration.name.clone())
+                            && import.consumes == import.params[0].name
+                            && matches!(import.failure, ImportFailure::Infallible)
+                    });
+                if !compatible {
+                    let message = if import_keys.contains_key(import_key.as_str()) {
+                        format!(
+                            "logical import `{import_key}` is incompatible with automatic finalization of `{}`",
+                            declaration.name
+                        )
+                    } else {
+                        format!(
+                            "resource `{}` references unknown logical import `{import_key}`",
+                            declaration.name
+                        )
+                    };
+                    diagnostics.push(error(program, "SPX-O113", message, lifecycle.span));
+                }
+            }
+        }
+    }
     for declaration in &program.types {
         if let TypeDeclarationKind::Record { fields } = &declaration.kind {
             for field in fields {
@@ -403,6 +713,38 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
         }
 
         let declared: HashSet<_> = function.effects.iter().map(String::as_str).collect();
+        let mut required_lifecycle_effects = BTreeSet::new();
+        for param in &function.params {
+            if param.mode == ParamMode::Own {
+                required_lifecycle_effects.extend(types.lifecycle_effects(&param.ty, &import_keys));
+            }
+        }
+        required_lifecycle_effects
+            .extend(types.lifecycle_effects(&function.return_type, &import_keys));
+        function.body.visit_calls(&mut |callee, _| {
+            if let Some(target) = functions.get(callee) {
+                required_lifecycle_effects
+                    .extend(types.lifecycle_effects(&target.return_type, &import_keys));
+            }
+        });
+        for effect in required_lifecycle_effects {
+            if !declared.contains(effect.as_str()) {
+                diagnostics.push(
+                    error(
+                        program,
+                        "SPX-E103",
+                        format!(
+                            "function `{}` can own a resource; automatic finalization requires effect `{effect}`",
+                            function.name
+                        ),
+                        function.span,
+                    )
+                    .with_help(format!(
+                        "add `{effect}` to the function's `uses` set and module permits"
+                    )),
+                );
+            }
+        }
         for effect in &function.effects {
             if !program.permits.iter().any(|permit| permit == effect) {
                 diagnostics.push(error(
@@ -449,7 +791,10 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
             Diagnostic::error(
                 "SPX-T105",
                 "executable module must define `fn main() -> i64`",
-                program.functions[0].span,
+                program
+                    .functions
+                    .first()
+                    .map_or(Span::default(), |function| function.span),
             )
             .at_path(&program.path),
         );
@@ -473,7 +818,7 @@ fn record_layout_is_recursive(
         .declaration(name)
         .and_then(|declaration| match &declaration.kind {
             TypeDeclarationKind::Record { fields } => Some(fields),
-            TypeDeclarationKind::Resource => None,
+            TypeDeclarationKind::Resource { .. } => None,
         })
         .is_some_and(|fields| {
             fields.iter().any(|field| {
@@ -819,7 +1164,7 @@ fn check_expr(
             let declaration = types.declaration(type_name);
             let declared_fields = declaration.and_then(|declaration| match &declaration.kind {
                 TypeDeclarationKind::Record { fields } => Some(fields.as_slice()),
-                TypeDeclarationKind::Resource => None,
+                TypeDeclarationKind::Resource { .. } => None,
             });
             if declared_fields.is_none() {
                 diagnostics.push(error(

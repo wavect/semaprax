@@ -1,6 +1,9 @@
 use std::fmt::Write;
 
-use crate::ast::{Expr, ExprKind, Program, Statement, TypeDeclarationKind, UnaryOp};
+use crate::ast::{
+    Expr, ExprKind, ImportFailure, Program, ResourceLifecycleKind, Statement, TypeDeclarationKind,
+    UnaryOp,
+};
 
 pub fn canonical(program: &Program) -> String {
     let mut output = String::new();
@@ -14,8 +17,27 @@ pub fn canonical(program: &Program) -> String {
             writeln!(output, "@id(\"{}\")", escape_string(&declaration.stable_id)).unwrap();
         }
         match &declaration.kind {
-            TypeDeclarationKind::Resource => {
-                writeln!(output, "resource {};", declaration.name).unwrap();
+            TypeDeclarationKind::Resource { lifecycles } => {
+                if lifecycles.is_empty() {
+                    writeln!(output, "resource {};", declaration.name).unwrap();
+                    continue;
+                }
+                writeln!(output, "resource {} {{", declaration.name).unwrap();
+                for lifecycle in lifecycles {
+                    if let Some(stable_id) = &lifecycle.stable_id {
+                        writeln!(output, "    @id(\"{}\")", escape_string(stable_id)).unwrap();
+                    }
+                    match &lifecycle.kind {
+                        ResourceLifecycleKind::Trivial => {
+                            writeln!(output, "    drop trivial;").unwrap();
+                        }
+                        ResourceLifecycleKind::Imported { import_key } => {
+                            writeln!(output, "    drop import \"{}\";", escape_string(import_key))
+                                .unwrap();
+                        }
+                    }
+                }
+                writeln!(output, "}}").unwrap();
             }
             TypeDeclarationKind::Record { fields } => {
                 writeln!(output, "record {} {{", declaration.name).unwrap();
@@ -29,6 +51,56 @@ pub fn canonical(program: &Program) -> String {
                 writeln!(output, "}}").unwrap();
             }
         }
+    }
+    for interface in &program.interfaces {
+        writeln!(output).unwrap();
+        if interface.explicit_id {
+            writeln!(output, "@id(\"{}\")", escape_string(&interface.stable_id)).unwrap();
+        }
+        writeln!(output, "interface {}", interface.name).unwrap();
+        writeln!(output, "    permits {{ {} }}", interface.permits.join(", ")).unwrap();
+        writeln!(output, "{{").unwrap();
+        for import in &interface.imports {
+            if import.explicit_id {
+                writeln!(output, "    @id(\"{}\")", escape_string(&import.stable_id)).unwrap();
+            }
+            write!(output, "    import fn {}(", import.name).unwrap();
+            for (index, param) in import.params.iter().enumerate() {
+                if index > 0 {
+                    output.push_str(", ");
+                }
+                write!(
+                    output,
+                    "{}: {}{}",
+                    param.name,
+                    param.mode.source_prefix(),
+                    param.ty
+                )
+                .unwrap();
+            }
+            writeln!(output, ") -> unit").unwrap();
+            writeln!(
+                output,
+                "        effects {{ {} }}",
+                import.effects.join(", ")
+            )
+            .unwrap();
+            match &import.failure {
+                ImportFailure::Infallible => {
+                    writeln!(output, "        failure infallible").unwrap();
+                }
+                ImportFailure::Status { domain_id } => {
+                    writeln!(
+                        output,
+                        "        failure status \"{}\"",
+                        escape_string(domain_id)
+                    )
+                    .unwrap();
+                }
+            }
+            writeln!(output, "        consumes {} always;", import.consumes).unwrap();
+        }
+        writeln!(output, "}}").unwrap();
     }
     for function in &program.functions {
         writeln!(output).unwrap();

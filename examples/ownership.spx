@@ -1,0 +1,29 @@
+module examples.ownership;
+
+@id("buffer.type")
+resource Buffer;
+
+@id("buffer.inspect")
+fn inspect(buffer: borrow Buffer) -> i64
+{
+    1
+}
+
+@id("buffer.consume")
+fn consume(buffer: own Buffer) -> i64
+{
+    inspect(buffer)
+}
+
+@id("buffer.pipeline")
+fn pipeline(buffer: own Buffer) -> i64
+    ensures result == 2
+{
+    inspect(buffer) + consume(buffer)
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    42
+}

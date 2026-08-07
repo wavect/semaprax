@@ -77,6 +77,18 @@ The v0.1 backend emits readable C11, then invokes Clang. C is an implementation 
 
 The planned development backend is Cranelift. The planned optimizing pipeline uses multi-level IR with LLVM, while portable components lower through the WebAssembly Component Model. Backend changes must preserve the graph and verification contracts.
 
+## Ownership seed
+
+Resource declarations introduce non-copy semantic values. Function parameters state whether they receive ownership, borrow for the duration of a call, or participate in explicit shared ownership. The verifier evaluates the current expression language left-to-right, records moves at owned call boundaries, rejects later uses, and prevents borrowed/shared values from being returned or transferred as owned.
+
+This is the first ownership IR, not a complete borrow checker. Control-flow joins, mutable alias exclusion, inferred reborrows, lifetimes, regions, destructors, ARC operations, and FFI ownership remain explicit completion gates.
+
+## WebAssembly bootstrap backend
+
+The direct Wasm encoder emits standard WebAssembly core modules without requiring a Rust target installation or an external assembler. User functions compile to typed Wasm functions and `main` is exported as `semaprax_main`. Contracts trap through a host import. Arithmetic lowers to a small generated JavaScript host that performs checked `i64` operations with `BigInt`, preserving the safe arithmetic semantics instead of silently accepting Wasm's wrapping operators.
+
+The web package contains `app.wasm`, `semaprax.js`, `index.html`, `package.json`, and a graph-revision/capability manifest. This is real browser-executable output; it is not yet the UI dialect, DOM renderer, SSR/hydration system, WASI target, or Component Model backend.
+
 ## Trust boundaries
 
 - Source and patch input are untrusted and fully parsed.

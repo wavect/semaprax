@@ -62,6 +62,19 @@ fn graph_json(program: &Program, selected: &BTreeSet<String>) -> String {
     )
     .unwrap();
     let mut first = true;
+    for resource in &program.resources {
+        if !first {
+            output.push(',');
+        }
+        first = false;
+        write!(
+            output,
+            "{{\"id\":{},\"kind\":\"resource\",\"name\":{},\"memory\":\"unique\"}}",
+            quote_json(&resource.stable_id),
+            quote_json(&resource.name)
+        )
+        .unwrap();
+    }
     for function in &program.functions {
         if !selected.contains(function.name.as_str()) {
             continue;
@@ -79,9 +92,10 @@ fn graph_json(program: &Program, selected: &BTreeSet<String>) -> String {
             .iter()
             .map(|param| {
                 format!(
-                    "{{\"name\":{},\"type\":{}}}",
+                    "{{\"name\":{},\"type\":{},\"ownership\":{}}}",
                     quote_json(&param.name),
-                    quote_json(&param.ty.to_string())
+                    quote_json(&param.ty.to_string()),
+                    quote_json(param.mode.text())
                 )
             })
             .collect::<Vec<_>>()

@@ -1,6 +1,8 @@
 use std::path::Path;
 
-use crate::ast::{BinaryOp, Expr, ExprKind, Function, Param, Program, Span, Type, UnaryOp};
+use crate::ast::{
+    BinaryOp, Expr, ExprKind, Function, Param, ParamMode, Program, Resource, Span, Type, UnaryOp,
+};
 use crate::diagnostic::Diagnostic;
 use crate::lexer::{lex, Token, TokenKind};
 
@@ -32,9 +34,15 @@ impl Parser {
             Vec::new()
         };
 
+        let mut resources = Vec::new();
         let mut functions = Vec::new();
         while !self.at(&TokenKind::Eof) {
-            functions.push(self.function(&module)?);
+            let stable_id = self.stable_id_attribute()?;
+            if self.at_keyword("resource") {
+                resources.push(self.resource(&module, stable_id)?);
+            } else {
+                functions.push(self.function(&module, stable_id)?);
+            }
         }
         if functions.is_empty() {
             return Err(self.error_here("SPX-P101", "a module must declare at least one function"));
@@ -43,35 +51,61 @@ impl Parser {
             path: self.path,
             module,
             permits,
+            resources,
             functions,
         })
     }
 
-    fn function(&mut self, module: &str) -> Result<Function, Diagnostic> {
-        let start = self.current().span;
-        let mut explicit_id = false;
-        let stable_id = if self.take(&TokenKind::At) {
-            let (attribute, _) = self.ident("attribute name")?;
-            if attribute != "id" {
-                return Err(self.error_here(
-                    "SPX-P102",
-                    format!("unknown attribute `@{attribute}`; only `@id` is supported"),
-                ));
-            }
-            self.expect(&TokenKind::LParen, "`(` after @id")?;
-            let id = match &self.bump().kind {
-                TokenKind::String(value) => value.clone(),
-                _ => return Err(self.error_previous("SPX-P103", "@id expects a string literal")),
-            };
-            self.expect(&TokenKind::RParen, "`)` after stable id")?;
-            explicit_id = true;
-            Some(id)
-        } else {
-            None
+    fn stable_id_attribute(&mut self) -> Result<Option<String>, Diagnostic> {
+        if !self.take(&TokenKind::At) {
+            return Ok(None);
+        }
+        let (attribute, _) = self.ident("attribute name")?;
+        if attribute != "id" {
+            return Err(self.error_here(
+                "SPX-P102",
+                format!("unknown attribute `@{attribute}`; only `@id` is supported"),
+            ));
+        }
+        self.expect(&TokenKind::LParen, "`(` after @id")?;
+        let id = match &self.bump().kind {
+            TokenKind::String(value) => value.clone(),
+            _ => return Err(self.error_previous("SPX-P103", "@id expects a string literal")),
         };
+        self.expect(&TokenKind::RParen, "`)` after stable id")?;
+        Ok(Some(id))
+    }
 
+    fn resource(
+        &mut self,
+        module: &str,
+        stable_id: Option<String>,
+    ) -> Result<Resource, Diagnostic> {
+        let start = self.keyword("resource")?.span;
+        let (name, name_span) = self.ident("resource name")?;
+        let explicit_id = stable_id.is_some();
+        let stable_id = stable_id.unwrap_or_else(|| format!("auto:resource:{module}.{name}"));
+        let end = self
+            .expect(&TokenKind::Semicolon, "`;` after resource declaration")?
+            .span;
+        Ok(Resource {
+            stable_id,
+            explicit_id,
+            name,
+            name_span,
+            span: start.merge(end),
+        })
+    }
+
+    fn function(
+        &mut self,
+        module: &str,
+        stable_id: Option<String>,
+    ) -> Result<Function, Diagnostic> {
+        let start = self.current().span;
         self.keyword("fn")?;
         let (name, name_span) = self.ident("function name")?;
+        let explicit_id = stable_id.is_some();
         let stable_id = stable_id.unwrap_or_else(|| format!("auto:{module}.{name}"));
         self.expect(&TokenKind::LParen, "`(` after function name")?;
         let mut params = Vec::new();
@@ -79,9 +113,22 @@ impl Parser {
             loop {
                 let (param_name, span) = self.ident("parameter name")?;
                 self.expect(&TokenKind::Colon, "`:` after parameter name")?;
+                let mode = if self.at_keyword("own") {
+                    self.bump();
+                    ParamMode::Own
+                } else if self.at_keyword("borrow") {
+                    self.bump();
+                    ParamMode::Borrow
+                } else if self.at_keyword("shared") {
+                    self.bump();
+                    ParamMode::Shared
+                } else {
+                    ParamMode::Value
+                };
                 let ty = self.ty()?;
                 params.push(Param {
                     name: param_name,
+                    mode,
                     ty,
                     span,
                 });
@@ -246,16 +293,11 @@ impl Parser {
     }
 
     fn ty(&mut self) -> Result<Type, Diagnostic> {
-        let (name, span) = self.ident("type")?;
+        let (name, _) = self.ident("type")?;
         match name.as_str() {
             "i64" => Ok(Type::I64),
             "bool" => Ok(Type::Bool),
-            _ => Err(Diagnostic::error(
-                "SPX-T001",
-                format!("unknown type `{name}`; v0.1 supports i64 and bool"),
-                span,
-            )
-            .at_path(&self.path)),
+            _ => Ok(Type::Resource(name)),
         }
     }
 

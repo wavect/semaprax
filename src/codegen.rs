@@ -29,7 +29,7 @@ pub fn emit_c(program: &Program) -> String {
     for function in &program.functions {
         write!(
             output,
-            "static {} spx_user_{}(",
+            "static __attribute__((unused)) {} spx_user_{}(",
             c_type(&function.return_type),
             function.name
         )
@@ -46,7 +46,7 @@ pub fn emit_c(program: &Program) -> String {
     for function in &program.functions {
         write!(
             output,
-            "static {} spx_user_{}(",
+            "static __attribute__((unused)) {} spx_user_{}(",
             c_type(&function.return_type),
             function.name
         )
@@ -58,6 +58,9 @@ pub fn emit_c(program: &Program) -> String {
             write!(output, "{} {}", c_type(&param.ty), param.name).unwrap();
         }
         output.push_str(") {\n");
+        for param in &function.params {
+            writeln!(output, "    (void){};", param.name).unwrap();
+        }
         for contract in &function.requires {
             writeln!(
                 output,
@@ -147,6 +150,7 @@ fn c_type(ty: &Type) -> &'static str {
     match ty {
         Type::I64 => "int64_t",
         Type::Bool => "bool",
+        Type::Resource(_) => "void *",
     }
 }
 

@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode};
 
 use semaprax::diagnostic::{Diagnostic, Severity};
-use semaprax::{codegen, format, graph, parse, patch, verify};
+use semaprax::{codegen, format, graph, parse, patch, verify, wasm};
 
 fn main() -> ExitCode {
     match run(std::env::args().skip(1).collect()) {
@@ -68,8 +68,20 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             let path = required_path(&args, 1)?;
             let output = output_path(&args, &path);
             let program = checked(&path)?;
-            codegen::build(&program, &output).map_err(|error| report(&[error], false))?;
-            println!("built {}", output.display());
+            match option_value(&args, "--target").unwrap_or("native") {
+                "native" => {
+                    codegen::build(&program, &output).map_err(|error| report(&[error], false))?;
+                    println!("built native executable {}", output.display());
+                }
+                "web" | "wasm" => {
+                    wasm::build_web(&program, &output).map_err(|error| report(&[error], false))?;
+                    println!("built web package {}", output.display());
+                }
+                target => {
+                    eprintln!("unsupported target `{target}`; available: native, web");
+                    return Err(2);
+                }
+            }
             Ok(())
         }
         "run" => {
@@ -167,6 +179,12 @@ fn output_path(args: &[String], input: &Path) -> PathBuf {
         .unwrap_or_else(|| input.with_extension("out"))
 }
 
+fn option_value<'a>(args: &'a [String], option: &str) -> Option<&'a str> {
+    args.windows(2)
+        .find(|pair| pair[0] == option)
+        .map(|pair| pair[1].as_str())
+}
+
 fn report(errors: &[Diagnostic], json: bool) -> u8 {
     report_all(errors, json);
     1
@@ -189,7 +207,7 @@ fn print_help() {
            semaprax check <file> [--json]\n\
            semaprax graph <file>\n\
            semaprax context <file> <symbol|stable-id> [--depth N]\n\
-           semaprax build <file> [-o executable]\n\
+           semaprax build <file> [--target native|web] [-o path]\n\
            semaprax run <file>\n\
            semaprax fmt <file> [--check]\n\
            semaprax patch <file> <patch.spatch>\n\

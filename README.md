@@ -30,6 +30,8 @@ cargo run -- check examples/meaning.spx
 cargo run -- graph examples/meaning.spx
 cargo run -- context examples/meaning.spx app.main --depth 1
 cargo run -- run examples/meaning.spx
+cargo run -- build examples/meaning.spx --target web -o target/meaning-web
+node scripts/verify-web.mjs target/meaning-web
 ```
 
 The final command compiles and runs a native executable. It prints:
@@ -71,6 +73,8 @@ fn main() -> i64
 Implemented today:
 
 - `i64` and `bool`, typed functions, calls, unary and binary expressions.
+- Resource declarations with explicit `own`, `borrow`, and `shared` function boundaries.
+- Straight-line move checking that rejects use-after-move and illegal ownership transfer.
 - Checked integer arithmetic in generated programs.
 - Typed `requires` and `ensures` contracts, enforced at native runtime.
 - Explicit function effects checked against module capabilities and callers.
@@ -80,8 +84,9 @@ Implemented today:
 - JSON-line diagnostics for agent consumption.
 - Atomic semantic rename patches with stale-revision rejection.
 - Native AOT output through a readable C11 lowering and Clang.
+- Direct WebAssembly core output with a generated ES-module runtime, HTML entry point, capability manifest, checked arithmetic, and contract traps.
 
-Not implemented yet: ownership/borrowing, records and variants, effect handlers, static contract proofs, Cranelift, LLVM/MLIR IR, WebAssembly Components, packages, concurrency, or cross-platform UI. Those are design commitments and staged work, not hidden behind mock commands.
+Not implemented yet: lifetime and alias analysis, regions, destructors, records and variants, effect handlers, static contract proofs, Cranelift, LLVM/MLIR IR, WebAssembly Components, packages, concurrency, or cross-platform UI. Those are design commitments and staged work, not hidden behind mock commands.
 
 ## Agent protocol
 
@@ -118,7 +123,7 @@ The patch updates the declaration and verified call sites together. If the graph
 | `check <file> [--json]` | Parse, type-check, verify contracts and effects |
 | `graph <file>` | Emit the revisioned semantic program graph |
 | `context <file> <symbol> [--depth N]` | Emit a dependency-bounded graph slice |
-| `build <file> [-o path]` | Produce a native executable |
+| `build <file> [--target native\|web] [-o path]` | Produce a native executable or deployable browser/Wasm package |
 | `run <file>` | Build and run in one step |
 | `fmt <file> [--check]` | Apply or verify canonical formatting |
 | `patch <file> <patch.spatch>` | Apply an atomic semantic transaction |
@@ -132,7 +137,7 @@ The long-term compiler has two output principles:
 - Native machine code where performance and platform integration matter.
 - WebAssembly Components where portability and capability sandboxing matter.
 
-Read [RFC 0001](docs/RFC-0001.md) for the language system, [the architecture](docs/ARCHITECTURE.md) for the current implementation, and [the roadmap](docs/ROADMAP.md) for the staged path forward.
+Read [RFC 0001](docs/RFC-0001.md) for the language system, [the architecture](docs/ARCHITECTURE.md) for the current implementation, [the roadmap](docs/ROADMAP.md) for the staged path forward, and the [full-goal completion matrix](docs/COMPLETION-MATRIX.md) for requirement-by-requirement evidence.
 
 ## Status
 

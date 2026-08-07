@@ -46,45 +46,69 @@ pub fn apply(source_path: &Path, patch_path: &Path) -> Result<String, Vec<Diagno
 
     let before_effects = effect_set(&before);
     let mut replacements = Vec::new();
+    let tokens =
+        lexer::lex(&source, &source_path.display().to_string()).map_err(|error| vec![error])?;
     for rename in &patch.renames {
         if !is_identifier(&rename.new_name) {
             return Err(vec![Diagnostic::io(
                 "SPX-G103",
-                format!("`{}` is not a valid function name", rename.new_name),
+                format!("`{}` is not a valid symbol name", rename.new_name),
             )]);
         }
-        let Some(function) = before
+        if let Some(function) = before
             .functions
             .iter()
             .find(|function| function.stable_id == rename.stable_id)
-        else {
-            return Err(vec![Diagnostic::io(
-                "SPX-G404",
-                format!("stable id `{}` does not exist", rename.stable_id),
-            )]);
-        };
-        if !function.explicit_id {
-            return Err(vec![Diagnostic::io(
-                "SPX-G104",
-                format!(
-                    "`{}` needs an explicit @id before it can be renamed",
-                    function.name
-                ),
-            )]);
-        }
-        let tokens =
-            lexer::lex(&source, &source_path.display().to_string()).map_err(|error| vec![error])?;
-        for pair in tokens.windows(2) {
-            if matches!(&pair[0].kind, lexer::TokenKind::Ident(name) if name == &function.name)
-                && matches!(pair[1].kind, lexer::TokenKind::LParen)
-            {
-                replacements.push((
-                    pair[0].span.start,
-                    pair[0].span.end,
-                    rename.new_name.clone(),
-                ));
+        {
+            if !function.explicit_id {
+                return Err(vec![Diagnostic::io(
+                    "SPX-G104",
+                    format!(
+                        "`{}` needs an explicit @id before it can be renamed",
+                        function.name
+                    ),
+                )]);
             }
+            for pair in tokens.windows(2) {
+                if matches!(&pair[0].kind, lexer::TokenKind::Ident(name) if name == &function.name)
+                    && matches!(pair[1].kind, lexer::TokenKind::LParen)
+                {
+                    replacements.push((
+                        pair[0].span.start,
+                        pair[0].span.end,
+                        rename.new_name.clone(),
+                    ));
+                }
+            }
+            continue;
         }
+        if let Some(resource) = before
+            .resources
+            .iter()
+            .find(|resource| resource.stable_id == rename.stable_id)
+        {
+            if !resource.explicit_id {
+                return Err(vec![Diagnostic::io(
+                    "SPX-G104",
+                    format!(
+                        "`{}` needs an explicit @id before it can be renamed",
+                        resource.name
+                    ),
+                )]);
+            }
+            for (index, token) in tokens.iter().enumerate() {
+                if matches!(&token.kind, lexer::TokenKind::Ident(name) if name == &resource.name)
+                    && is_resource_type_position(&tokens, index)
+                {
+                    replacements.push((token.span.start, token.span.end, rename.new_name.clone()));
+                }
+            }
+            continue;
+        }
+        return Err(vec![Diagnostic::io(
+            "SPX-G404",
+            format!("stable id `{}` does not exist", rename.stable_id),
+        )]);
     }
     replacements.sort_by_key(|replacement| replacement.0);
     replacements.dedup_by_key(|replacement| (replacement.0, replacement.1));
@@ -179,4 +203,17 @@ fn is_identifier(value: &str) -> bool {
     let mut chars = value.chars();
     matches!(chars.next(), Some(first) if first == '_' || first.is_ascii_alphabetic())
         && chars.all(|character| character == '_' || character.is_ascii_alphanumeric())
+}
+
+fn is_resource_type_position(tokens: &[lexer::Token], index: usize) -> bool {
+    let Some(previous) = index.checked_sub(1).and_then(|value| tokens.get(value)) else {
+        return false;
+    };
+    match &previous.kind {
+        lexer::TokenKind::Colon | lexer::TokenKind::Arrow => true,
+        lexer::TokenKind::Ident(keyword) => {
+            matches!(keyword.as_str(), "resource" | "own" | "borrow" | "shared")
+        }
+        _ => false,
+    }
 }

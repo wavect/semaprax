@@ -13,6 +13,7 @@ pub mod lexer;
 pub mod parser;
 pub mod patch;
 pub mod verify;
+pub mod wasm;
 
 use std::path::Path;
 

@@ -50,3 +50,43 @@ fn stale_patch_changes_nothing() {
     assert_eq!(error[0].code, "SPX-G409");
     assert_eq!(std::fs::read_to_string(&source_path).unwrap(), source);
 }
+
+#[test]
+fn semantic_resource_rename_updates_ownership_boundaries() {
+    let source = r#"module patch.resource;
+
+@id("buffer.type")
+resource Buffer;
+
+@id("buffer.consume")
+fn consume(buffer: own Buffer) -> Buffer
+{
+    buffer
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    42
+}
+"#;
+    let program = parse(source, Path::new("resource.spx")).unwrap();
+    let revision = graph::revision(&program);
+    let directory =
+        std::env::temp_dir().join(format!("semaprax-resource-patch-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    let source_path = directory.join("module.spx");
+    let patch_path = directory.join("rename.spatch");
+    std::fs::write(&source_path, source).unwrap();
+    std::fs::write(
+        &patch_path,
+        format!("base {revision}\nrename buffer.type to ByteBuffer\nrequire no-new-effects\n"),
+    )
+    .unwrap();
+    patch::apply(&source_path, &patch_path).unwrap();
+    let changed = std::fs::read_to_string(&source_path).unwrap();
+    assert!(changed.contains("resource ByteBuffer;"));
+    assert!(changed.contains("buffer: own ByteBuffer"));
+    assert!(changed.contains("-> ByteBuffer"));
+    assert!(changed.contains("@id(\"buffer.type\")"));
+}

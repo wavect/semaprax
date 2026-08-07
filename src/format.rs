@@ -8,6 +8,13 @@ pub fn canonical(program: &Program) -> String {
     if !program.permits.is_empty() {
         writeln!(output, "\npermit {{ {} }}", program.permits.join(", ")).unwrap();
     }
+    for resource in &program.resources {
+        writeln!(output).unwrap();
+        if resource.explicit_id {
+            writeln!(output, "@id(\"{}\")", escape_string(&resource.stable_id)).unwrap();
+        }
+        writeln!(output, "resource {};", resource.name).unwrap();
+    }
     for function in &program.functions {
         writeln!(output).unwrap();
         if function.explicit_id {
@@ -18,7 +25,14 @@ pub fn canonical(program: &Program) -> String {
             if index > 0 {
                 output.push_str(", ");
             }
-            write!(output, "{}: {}", param.name, param.ty).unwrap();
+            write!(
+                output,
+                "{}: {}{}",
+                param.name,
+                param.mode.source_prefix(),
+                param.ty
+            )
+            .unwrap();
         }
         writeln!(output, ") -> {}", function.return_type).unwrap();
         if !function.effects.is_empty() {

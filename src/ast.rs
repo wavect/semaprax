@@ -23,6 +23,7 @@ impl Span {
 pub enum Type {
     I64,
     Bool,
+    Resource(String),
 }
 
 impl fmt::Display for Type {
@@ -30,6 +31,42 @@ impl fmt::Display for Type {
         match self {
             Type::I64 => write!(f, "i64"),
             Type::Bool => write!(f, "bool"),
+            Type::Resource(name) => write!(f, "{name}"),
+        }
+    }
+}
+
+impl Type {
+    pub fn is_resource(&self) -> bool {
+        matches!(self, Type::Resource(_))
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum ParamMode {
+    #[default]
+    Value,
+    Own,
+    Borrow,
+    Shared,
+}
+
+impl ParamMode {
+    pub fn text(self) -> &'static str {
+        match self {
+            ParamMode::Value => "value",
+            ParamMode::Own => "own",
+            ParamMode::Borrow => "borrow",
+            ParamMode::Shared => "shared",
+        }
+    }
+
+    pub fn source_prefix(self) -> &'static str {
+        match self {
+            ParamMode::Value => "",
+            ParamMode::Own => "own ",
+            ParamMode::Borrow => "borrow ",
+            ParamMode::Shared => "shared ",
         }
     }
 }
@@ -39,7 +76,17 @@ pub struct Program {
     pub path: String,
     pub module: String,
     pub permits: Vec<String>,
+    pub resources: Vec<Resource>,
     pub functions: Vec<Function>,
+}
+
+#[derive(Clone, Debug)]
+pub struct Resource {
+    pub stable_id: String,
+    pub explicit_id: bool,
+    pub name: String,
+    pub name_span: Span,
+    pub span: Span,
 }
 
 #[derive(Clone, Debug)]
@@ -60,6 +107,7 @@ pub struct Function {
 #[derive(Clone, Debug)]
 pub struct Param {
     pub name: String,
+    pub mode: ParamMode,
     pub ty: Type,
     pub span: Span,
 }

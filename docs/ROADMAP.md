@@ -16,6 +16,8 @@ Status: implemented in this repository.
 
 ## 0.2 — Useful core language
 
+Status: in progress. Resource ownership boundaries, move diagnostics, and a browser-loadable WebAssembly core backend are implemented; the remaining gates below are not.
+
 - Records, variants, `Option`, and `Result`.
 - Exhaustive pattern matching.
 - Generic functions with constraints.
@@ -23,6 +25,7 @@ Status: implemented in this repository.
 - First-class diagnostic repair operations.
 - Property tests generated from types and contracts.
 - A persistent graph daemon and JSON-RPC agent transport.
+- Complete ownership/lifetime/region analysis across control flow.
 
 Exit criterion: build a non-trivial CLI and edit it entirely through semantic transactions.
 

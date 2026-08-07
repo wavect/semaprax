@@ -12,7 +12,7 @@ jobs:
     name: Rust ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
@@ -23,5 +23,18 @@ jobs:
       - run: cargo clippy --all-targets --all-features -- -D warnings
       - run: cargo test --all-targets
       - run: cargo run -- check examples/meaning.spx
-      - run: cargo run -- build examples/meaning.spx -o target/meaning
-      - run: test "$(target/meaning)" = "42"
+      - run: cargo run -- check examples/ownership.spx
+      - name: Build and run native example (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          cargo run -- build examples/meaning.spx -o target/meaning
+          test "$(target/meaning)" = "42"
+      - name: Build and run native example (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          cargo run -- build examples/meaning.spx -o target/meaning.exe
+          $result = & target/meaning.exe
+          if ($result -ne "42") { throw "expected 42, received $result" }
+      - run: cargo run -- build examples/meaning.spx --target web -o target/meaning-web
+      - run: node scripts/verify-web.mjs target/meaning-web

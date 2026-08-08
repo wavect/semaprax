@@ -15,6 +15,17 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  supply-chain:
+    name: Dependency policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
+        with:
+          command: check advisories bans licenses sources
+          arguments: --all-features --locked
+
   verify:
     name: Rust ${{ matrix.os }}
     timeout-minutes: 15

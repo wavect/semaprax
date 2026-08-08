@@ -1,9 +1,9 @@
 //! Private authenticated capability-token codec for future native adapters.
 //!
 //! The codec is deliberately disconnected from compiler resource preflight and
-//! exports no C API. A trusted runtime must supply high-quality entropy and a
-//! sealed binding context before it can mint a token. OS CSPRNG integration is
-//! a later runtime milestone.
+//! exports no C API. Its only production caller is a private authority that
+//! obtains keying material from the operating system and seals the observed
+//! thread binding. Compiler preflight never constructs either type.
 
 #![cfg_attr(
     not(test),
@@ -17,7 +17,7 @@ const TOKEN_MAGIC: &[u8; 4] = b"SPXC";
 const TOKEN_VERSION: u8 = 1;
 const TOKEN_BODY_BYTES: usize = 32;
 const TOKEN_TAG_BYTES: usize = 32;
-const TOKEN_BYTES: usize = TOKEN_BODY_BYTES + TOKEN_TAG_BYTES;
+pub(super) const TOKEN_BYTES: usize = TOKEN_BODY_BYTES + TOKEN_TAG_BYTES;
 const TOKEN_AUTHENTICATION_DOMAIN: &[u8] = b"semaprax.native-capability-token.v1\0";
 
 type HmacSha256 = Hmac<Sha256>;
@@ -30,11 +30,11 @@ const EPOCH_OFFSET: usize = 8;
 const SLOT_OFFSET: usize = 16;
 const GENERATION_OFFSET: usize = 24;
 
-/// Full-width secret key supplied only by a trusted runtime entropy source.
+/// Full-width secret key supplied only by the private runtime authority.
 ///
 /// This type is intentionally neither `Clone` nor `Debug`. The constructor
-/// checks only the codec's structural minimum (not all zero); entropy quality
-/// remains the trusted runtime's obligation until OS CSPRNG integration lands.
+/// checks only the codec's structural minimum (not all zero); the authority is
+/// responsible for sourcing these bytes directly from the operating system.
 pub(super) struct NativeCapabilitySecret([u8; 32]);
 
 impl NativeCapabilitySecret {

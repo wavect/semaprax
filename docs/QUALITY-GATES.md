@@ -29,6 +29,11 @@ cargo run --locked -- fmt examples/records.spx --check
 
 `scripts/quality.sh` runs this baseline on Unix. The integration suite also discovers every committed `.spx` example and requires it to verify and exactly equal its canonical projection. CI runs the equivalent matrix on Linux, macOS, and Windows, plus an explicit Rust 1.85 minimum-version check.
 
+CI also runs an immutable-SHA-pinned `cargo-deny` policy over the complete locked
+target graph. Advisories, unapproved licenses, duplicate/wildcard versions, Git
+dependencies, and registries other than crates.io are blocking failures;
+`deny.toml` contains no advisory exceptions.
+
 On PowerShell, run the documentation gate as:
 
 ```powershell
@@ -59,10 +64,11 @@ The remaining Cargo and `semaprax` commands are shell-neutral.
 | UI/platform | Accessibility checks, lifecycle/capability tests, representative simulator/device or host evidence |
 | Security boundary | Threat-model delta, hostile input test, no newly ambient capability |
 | Native capability token | Published HMAC KAT, independently reproduced owner and result complete-token goldens, exact length/layout/endian assertions, every-bit, arbitrary-byte, and length-boundary mutation, closed kind/reserved/zero-field parsing, cross-secret/module/adapter/epoch/template/type/lifecycle/thread-policy/thread-binding rejection, owner-versus-result scope, stale/max-generation evidence, pinned audited crypto dependency, and proof that compiler preflight creates no authority |
+| Native capability authority | Exactly pinned OS-random dependency and locked checksum, one exact fill with no fallback/retry, partial-error and every structural-zero rejection, invalid-binding-before-entropy proof, test-only deterministic injection, independently reproduced complete owner/result goldens, every sealed context delta, wrong-thread-first owner/result mint/authentication, same-thread recovery, explicit `Send + Sync` policy, non-formatting credential wrapper, stable error redaction, native OS smoke on every desktop CI host, Rust 1.85, and unchanged private/export/`SPX-B104` boundaries |
 
 The gated native cleanup corpus runs at O0 and O2 everywhere Clang is available. Linux CI additionally sets `SEMAPRAX_REQUIRE_NATIVE_SANITIZERS=1`, which makes separate ASan and UBSan compile/run support mandatory rather than allowing capability-based skips.
 
-Token-codec goldens prove deterministic mechanics only. They do not prove key entropy, runtime unforgeability, replay prevention, module lifetime, or callable resource safety; those claims require their own executable gates before the codec may leave private staging.
+Authority goldens prove deterministic mechanics, and OS smoke proves only that the supported host source was available. Neither proves mathematical uniqueness, key secrecy after memory compromise, replay prevention, fork safety, module lifetime, or callable resource safety; those claims require their own executable gates before private staging can become a public adapter.
 
 ## Evidence strength
 

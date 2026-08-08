@@ -1,7 +1,8 @@
 # Native capability tokens v1
 
-Status: private, disconnected mechanics for a future retained native runtime.
-This is not a public C ABI and does not enable resource execution.
+Status: private, disconnected mechanics plus an OS-backed authority for a
+future retained native runtime. This is not a public C ABI and does not enable
+resource execution.
 
 The codec defines authenticated bearer bytes for two staged capability kinds:
 
@@ -71,6 +72,58 @@ token 5350584301020000080706050403020118171615141312112827262524232221360d7ab6a2
 owner 535058430101000008070605040302011d000000000000001f00000000000000d7cda640f93588c8bf207a6a1c9bbbecd68dfc95f60c73dcc136adac4e9606fb
 ```
 
+## Private native authority
+
+The codec's only production caller is a disconnected private Rust authority.
+Construction validates the immutable physical module, adapter, resource,
+lifecycle, and thread-policy identities before requesting entropy. It then asks
+the exactly pinned `getrandom` 0.4.3 `fill` API for one 72-byte seed:
+
+- 32 bytes for the HMAC secret;
+- 8 bytes interpreted as the little-endian binding epoch;
+- 32 bytes for an opaque binding nonce, encoded as fixed lowercase hexadecimal
+  before it enters the authentication transcript.
+
+The [upstream target table](https://docs.rs/getrandom/0.4.3/getrandom/#supported-targets)
+selects native sources for Linux/Android, Windows, macOS, and iOS without a
+SEMAPRAX feature or custom backend configuration. The dependency's declared
+MSRV is Rust 1.85, exactly matching this crate. Browser/WASI entropy is not
+enabled by this native layer and needs a separate capability contract.
+
+One fill error—including a partially modified destination—returns a stable
+`EntropyUnavailable` category after best-effort temporary-buffer clearing. An
+all-zero secret, zero epoch, or all-zero binding nonce returns
+`InvalidEntropy`. There is no retry and no fallback to time, PID, counters,
+environment, descriptor hashes, or compiled bytes. A successful fill is not a
+mathematical uniqueness proof; exact entropy and context repetition produces
+the same authority and is tested as an explicit nonclaim.
+
+The authority captures `std::thread::current().id()` itself. Every owner/result
+mint and authentication checks the actual current thread before codec parsing
+or claim access. The raw thread ID never enters a token, transcript, error, or
+trace. The authority deliberately remains `Send + Sync` so safe routing code
+can receive a stable `WrongThread` rejection; tests pin that auto-trait policy,
+exercise all four methods on another real thread, prove wrong-thread precedence
+even for malformed credentials, then prove the original thread still works.
+The authority, secret, and credential wrapper are not public. The authority and
+secret are non-`Clone` and non-formatting; the credential wrapper is also
+non-copying and non-formatting. These API properties reduce accidental logging
+but do not make readable bearer bytes linear.
+
+Test-only entropy injection cannot compile into a normal build. Its fixed seed
+has independently reproduced complete authority vectors:
+
+```text
+owner  535058430101000008070605040302011d000000000000001f000000000000000bf252ff0712e1ddbed99617c0de27c8489806ea5af84f08aca9b8e7077fc480
+result 53505843010200000807060504030201250000000000000029000000000000000f8fbb7b2da85b73c36e9fdbb402ea60db4d61acf0f5db0dfc67dabb9d247bc5
+```
+
+The authority suite additionally covers entropy error after a partial test
+fill, every all-zero structural component, invalid binding before any entropy
+request, exact one-fill behavior, secret/epoch/nonce/module/adapter/resource/
+lifecycle/thread-policy/function changes, zero slot/generation mapping, stable
+error redaction, native OS smoke, and catastrophic full-entropy repetition.
+
 The suite also requires RFC 4231 HMAC-SHA256 test case 1 exactly, mutates all
 512 token bits, runs a deterministic arbitrary-byte corpus across lengths zero
 through 128, covers every short length plus an overlong token, both reserved
@@ -79,12 +132,12 @@ expected generations, and maximum `u64` fields.
 
 ## Security boundary and nonclaims
 
-The secret type is private, non-`Clone`, and absent from `Debug`. Its trusted
-constructor rejects an all-zero key but cannot measure entropy. Deterministic
-test keys prove only canonical HMAC mechanics. There is no OS CSPRNG
-integration, entropy-failure path, retained library capability, unique-epoch
-allocator, module pin/unload protocol, fork reseeding, locked memory, or audited
-zeroization. Best-effort key filling on drop is not a memory-erasure guarantee.
+The secret and authority types are private, non-`Clone`, and absent from
+`Debug`. Native OS entropy and its failure path now exist, but there is no
+retained library capability, deterministic uniqueness proof, module pin/unload
+protocol, fork detection/reseeding, locked memory, or audited zeroization.
+Best-effort filling of temporary/key buffers is not a memory-erasure guarantee,
+and HMAC implementation internals may copy key material.
 
 HMAC authenticates bytes; it does not make a copyable bearer token linear or
 prevent replay. Slot liveness, generation retirement, atomic duplicate checks,
@@ -93,8 +146,10 @@ synchronized host-ownership ledger. The current authentication transcript also
 uses a bounded trusted-context allocation; an allocation-free callable
 preflight must stream into the MAC or use preallocated storage.
 
-The compiler only registers this private module. Resource preflight never
-constructs a secret, binding, or token, and no C symbol exposes minting or
-authentication. OS entropy, safe owner acquisition, runtime-owned outcome
-storage, physical finalization, module lifetime, and hostile concurrency must
-all land before a callable adapter can use this codec or `SPX-B104` can change.
+The compiler only registers these private modules. Resource preflight never
+constructs a secret, authority, binding, or token, and no C symbol exposes
+minting or authentication. Safe owner acquisition, a retained module lease,
+runtime-owned outcome storage, synchronized ledger integration, physical
+finalization, fork handling, hostile concurrency, and equivalent Wasm evidence
+must all land before a callable adapter can use this layer or `SPX-B104` can
+change.

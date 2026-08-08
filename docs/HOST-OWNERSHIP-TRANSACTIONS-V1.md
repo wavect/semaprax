@@ -7,9 +7,10 @@ public FFI, does not execute a finalizer, and does not weaken `SPX-B104`. The
 companion [native adapter descriptor](NATIVE-ADAPTER-DESCRIPTOR-V1.md) records
 physical compatibility evidence only; it neither serializes this ledger's
 runtime authority nor makes the transaction callable. The separate
-[native capability-token codec](NATIVE-CAPABILITY-TOKENS-V1.md) fixes future
-bearer-token authentication mechanics but remains disconnected from this
-ledger; only a synchronized registry can make authenticated bytes linear.
+[native capability-token layer](NATIVE-CAPABILITY-TOKENS-V1.md) fixes future
+bearer-token authentication and private OS-entropy/thread-binding mechanics,
+but its authority remains disconnected from this ledger; only a synchronized
+registry can make authenticated bytes linear.
 
 The private native staging lane also derives ownership contracts in
 `src/codegen/native_host_contract.rs`. Derivation accepts a validated program

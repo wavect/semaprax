@@ -1,4 +1,6 @@
 mod native_adapter_abi;
+#[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
+mod native_capability_authority;
 mod native_capability_token;
 mod native_cleanup;
 mod native_cleanup_emit;

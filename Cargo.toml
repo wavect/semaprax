@@ -18,6 +18,9 @@ path = "src/lib.rs"
 hmac = "=0.12.1"
 sha2 = "=0.10.9"
 
+[target.'cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))'.dependencies]
+getrandom = "=0.4.3"
+
 [[bin]]
 name = "semaprax"
 path = "src/main.rs"

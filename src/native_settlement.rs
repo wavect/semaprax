@@ -377,6 +377,548 @@ impl NativeSettlementCertificate {
         })
     }
 
+    /// Prepare the private, linear phase model at the sole authenticated start.
+    ///
+    /// This proof model allocates `Vec` storage and therefore does not establish
+    /// the future provider's post-`CallCommit` allocation-free obligation.
+    pub fn prepare_start_transaction(
+        &self,
+        invocation: NonZeroU64,
+    ) -> Result<NativeSettlementTransaction, SettlementError> {
+        let frame = self.prepare_start_frame(invocation)?;
+        Ok(NativeSettlementTransaction {
+            function: frame.function,
+            recovery_contract: frame.recovery_contract,
+            certificate_fingerprint: frame.certificate_fingerprint,
+            invocation: frame.invocation,
+            checkpoint: frame.checkpoint,
+            resources: frame.resources,
+            phase: SettlementTransactionState::Executing,
+            actions: Vec::new(),
+            next_action: 0,
+            candidate_receipt: None,
+            committed_receipt: None,
+        })
+    }
+
+    /// Advance execution before a decision has been irreversibly selected.
+    pub fn advance_transaction(
+        &self,
+        transaction: &mut NativeSettlementTransaction,
+        action: SettlementProgressAction,
+    ) -> Result<(), SettlementError> {
+        self.authenticate_transaction_or_quarantine(transaction)?;
+        if matches!(
+            transaction.phase,
+            SettlementTransactionState::Quarantined { .. }
+        ) {
+            return Err(SettlementError::TransactionQuarantined);
+        }
+        if !matches!(transaction.phase, SettlementTransactionState::Executing) {
+            let locked = transaction.locked_decision();
+            transaction.quarantine(locked);
+            return Err(SettlementError::InvalidSettlementPhase);
+        }
+        let current = match self.checkpoint(transaction.checkpoint) {
+            Ok(current) => current,
+            Err(error) => {
+                transaction.quarantine(None);
+                return Err(error);
+            }
+        };
+        if transaction.resources != current.resources {
+            transaction.quarantine(None);
+            return Err(SettlementError::FrameStateMismatch);
+        }
+        let mut matches = self
+            .progress_edges
+            .iter()
+            .filter(|edge| edge.from == transaction.checkpoint && edge.action == action);
+        let Some(edge) = matches.next().copied() else {
+            transaction.quarantine(None);
+            return Err(SettlementError::ProgressActionNotAdmitted);
+        };
+        if matches.next().is_some() {
+            transaction.quarantine(None);
+            return Err(SettlementError::NonCanonicalProgressEdge);
+        }
+        let destination = match self.checkpoint(edge.to) {
+            Ok(destination) => destination,
+            Err(error) => {
+                transaction.quarantine(None);
+                return Err(error);
+            }
+        };
+        transaction.checkpoint = edge.to;
+        transaction.resources.clone_from(&destination.resources);
+        Ok(())
+    }
+
+    /// Lock exactly one decision. A repeated identical lock is effect-free;
+    /// any conflict monotonically quarantines the transaction.
+    pub fn lock_transaction_decision(
+        &self,
+        transaction: &mut NativeSettlementTransaction,
+        decision: SettlementDecision,
+    ) -> Result<(), SettlementError> {
+        self.authenticate_transaction_or_quarantine(transaction)?;
+        if matches!(
+            transaction.phase,
+            SettlementTransactionState::Quarantined { .. }
+        ) {
+            return Err(SettlementError::TransactionQuarantined);
+        }
+        validate_decision(decision)?;
+        match transaction.phase {
+            SettlementTransactionState::Executing => {}
+            SettlementTransactionState::DecisionLocked { decision: locked } => {
+                if locked == decision {
+                    return Ok(());
+                }
+                transaction.quarantine(Some(locked));
+                return Err(SettlementError::ConflictingLockedDecision);
+            }
+            SettlementTransactionState::ActionInProgress {
+                decision: locked, ..
+            } => {
+                transaction.quarantine(Some(locked));
+                if locked == decision {
+                    return Err(SettlementError::InvalidSettlementPhase);
+                }
+                return Err(SettlementError::ConflictingLockedDecision);
+            }
+            SettlementTransactionState::ProviderSettled { decision: locked }
+            | SettlementTransactionState::ReceiptCommitted { decision: locked } => {
+                if locked == decision {
+                    return Err(SettlementError::InvalidSettlementPhase);
+                }
+                transaction.quarantine(Some(locked));
+                return Err(SettlementError::ConflictingLockedDecision);
+            }
+            SettlementTransactionState::Quarantined { .. } => unreachable!("checked above"),
+        }
+        let checkpoint = self.checkpoint(transaction.checkpoint)?;
+        if transaction.resources != checkpoint.resources {
+            transaction.quarantine(None);
+            return Err(SettlementError::FrameStateMismatch);
+        }
+        let actions = actions_for(checkpoint, decision)?;
+        transaction.actions = actions;
+        transaction.next_action = 0;
+        transaction.phase = SettlementTransactionState::DecisionLocked { decision };
+        Ok(())
+    }
+
+    /// Convert a host unwind into a sticky decision, or quarantine when an
+    /// in-progress physical finalizer makes completion uncertain.
+    pub fn observe_transaction_unwind(
+        &self,
+        transaction: &mut NativeSettlementTransaction,
+    ) -> Result<SettlementDecision, SettlementError> {
+        self.authenticate_transaction_or_quarantine(transaction)?;
+        if matches!(
+            transaction.phase,
+            SettlementTransactionState::Quarantined { .. }
+        ) {
+            return Err(SettlementError::TransactionQuarantined);
+        }
+        if matches!(
+            transaction.phase,
+            SettlementTransactionState::ActionInProgress { .. }
+        ) {
+            let locked = transaction.locked_decision();
+            transaction.quarantine(locked);
+            return Err(SettlementError::FinalizerCompletionUncertain);
+        }
+        if let Some(decision) = transaction.locked_decision() {
+            return Ok(decision);
+        }
+        let decision = SettlementDecision::Abort(AdapterAbortReason::HostUnwind);
+        self.lock_transaction_decision(transaction, decision)?;
+        Ok(decision)
+    }
+
+    /// Mark the next finalizer as in progress before any physical effect.
+    pub fn begin_next_finalizer(
+        &self,
+        transaction: &mut NativeSettlementTransaction,
+    ) -> Result<SettlementFinalizerTicket, SettlementError> {
+        self.authenticate_transaction_or_quarantine(transaction)?;
+        let decision = match transaction.phase {
+            SettlementTransactionState::DecisionLocked { decision } => decision,
+            SettlementTransactionState::ActionInProgress { decision, .. } => {
+                transaction.quarantine(Some(decision));
+                return Err(SettlementError::FinalizerCompletionUncertain);
+            }
+            SettlementTransactionState::Quarantined { .. } => {
+                return Err(SettlementError::TransactionQuarantined);
+            }
+            _ => return Err(SettlementError::InvalidSettlementPhase),
+        };
+        let action_index = transaction.next_action;
+        let Some(SettlementAction::Finalize { owner_ordinal }) =
+            transaction.actions.get(action_index).copied()
+        else {
+            return Err(SettlementError::FinalizerActionNotPending);
+        };
+        let owner = match usize::try_from(owner_ordinal) {
+            Ok(owner) => owner,
+            Err(_) => {
+                transaction.quarantine(Some(decision));
+                return Err(SettlementError::InvalidStateTransition);
+            }
+        };
+        if owner >= transaction.resources.len() {
+            transaction.quarantine(Some(decision));
+            return Err(SettlementError::InvalidStateTransition);
+        }
+        let state = transaction
+            .resources
+            .get_mut(owner)
+            .expect("owner bound was checked");
+        if !matches!(
+            state,
+            SettlementResourceState::Live | SettlementResourceState::ProvisionalResult
+        ) {
+            transaction.quarantine(Some(decision));
+            return Err(SettlementError::InvalidStateTransition);
+        }
+        *state = SettlementResourceState::Finalizing;
+        transaction.phase = SettlementTransactionState::ActionInProgress {
+            decision,
+            action_index,
+            owner_ordinal,
+        };
+        Ok(SettlementFinalizerTicket {
+            certificate_fingerprint: transaction.certificate_fingerprint,
+            invocation: transaction.invocation,
+            checkpoint: transaction.checkpoint,
+            decision,
+            action_index,
+            owner_ordinal,
+        })
+    }
+
+    /// Record certain completion of the exact in-progress finalizer.
+    pub fn complete_finalizer(
+        &self,
+        transaction: &mut NativeSettlementTransaction,
+        ticket: SettlementFinalizerTicket,
+    ) -> Result<(), SettlementError> {
+        self.authenticate_transaction_or_quarantine(transaction)?;
+        let expected = match transaction.phase {
+            SettlementTransactionState::ActionInProgress {
+                decision,
+                action_index,
+                owner_ordinal,
+            } => (decision, action_index, owner_ordinal),
+            SettlementTransactionState::Quarantined { .. } => {
+                return Err(SettlementError::TransactionQuarantined);
+            }
+            _ => {
+                let locked = transaction.locked_decision();
+                transaction.quarantine(locked);
+                return Err(SettlementError::InvalidSettlementPhase);
+            }
+        };
+        if ticket.certificate_fingerprint != transaction.certificate_fingerprint
+            || ticket.invocation != transaction.invocation
+            || ticket.checkpoint != transaction.checkpoint
+            || (ticket.decision, ticket.action_index, ticket.owner_ordinal) != expected
+        {
+            transaction.quarantine(Some(expected.0));
+            return Err(SettlementError::FinalizerTicketMismatch);
+        }
+        let owner = match usize::try_from(expected.2) {
+            Ok(owner) => owner,
+            Err(_) => {
+                transaction.quarantine(Some(expected.0));
+                return Err(SettlementError::InvalidStateTransition);
+            }
+        };
+        if owner >= transaction.resources.len() {
+            transaction.quarantine(Some(expected.0));
+            return Err(SettlementError::InvalidStateTransition);
+        }
+        let state = transaction
+            .resources
+            .get_mut(owner)
+            .expect("owner bound was checked");
+        if *state != SettlementResourceState::Finalizing {
+            transaction.quarantine(Some(expected.0));
+            return Err(SettlementError::InvalidStateTransition);
+        }
+        *state = SettlementResourceState::Dead;
+        transaction.next_action += 1;
+        transaction.phase = SettlementTransactionState::DecisionLocked {
+            decision: expected.0,
+        };
+        Ok(())
+    }
+
+    /// Quarantine an in-progress finalizer whose physical completion is not
+    /// known. No retry transition exists from quarantine.
+    pub fn mark_finalizer_uncertain(
+        &self,
+        transaction: &mut NativeSettlementTransaction,
+    ) -> Result<(), SettlementError> {
+        self.authenticate_transaction_or_quarantine(transaction)?;
+        if matches!(
+            transaction.phase,
+            SettlementTransactionState::Quarantined { .. }
+        ) {
+            return Err(SettlementError::TransactionQuarantined);
+        }
+        let SettlementTransactionState::ActionInProgress { decision, .. } = transaction.phase
+        else {
+            return Err(SettlementError::InvalidSettlementPhase);
+        };
+        transaction.quarantine(Some(decision));
+        Ok(())
+    }
+
+    /// Turn the final provisional result into provider-side candidate evidence.
+    /// This is not publication in a host ownership ledger.
+    pub fn publish_owned_candidate(
+        &self,
+        transaction: &mut NativeSettlementTransaction,
+    ) -> Result<(), SettlementError> {
+        self.authenticate_transaction_or_quarantine(transaction)?;
+        let decision = match transaction.phase {
+            SettlementTransactionState::DecisionLocked { decision } => decision,
+            SettlementTransactionState::ActionInProgress { decision, .. } => {
+                transaction.quarantine(Some(decision));
+                return Err(SettlementError::FinalizerCompletionUncertain);
+            }
+            SettlementTransactionState::Quarantined { .. } => {
+                return Err(SettlementError::TransactionQuarantined);
+            }
+            _ => return Err(SettlementError::InvalidSettlementPhase),
+        };
+        let Some(SettlementAction::Publish { owner_ordinal }) =
+            transaction.actions.get(transaction.next_action).copied()
+        else {
+            transaction.quarantine(Some(decision));
+            return Err(SettlementError::PublishActionNotPending);
+        };
+        if transaction.next_action + 1 != transaction.actions.len()
+            || transaction.resources.iter().any(|state| {
+                matches!(
+                    state,
+                    SettlementResourceState::Live | SettlementResourceState::Finalizing
+                )
+            })
+        {
+            transaction.quarantine(Some(decision));
+            return Err(SettlementError::InvalidStateTransition);
+        }
+        let owner = match usize::try_from(owner_ordinal) {
+            Ok(owner) => owner,
+            Err(_) => {
+                transaction.quarantine(Some(decision));
+                return Err(SettlementError::InvalidStateTransition);
+            }
+        };
+        if owner >= transaction.resources.len() {
+            transaction.quarantine(Some(decision));
+            return Err(SettlementError::InvalidStateTransition);
+        }
+        let state = transaction
+            .resources
+            .get_mut(owner)
+            .expect("owner bound was checked");
+        if *state != SettlementResourceState::ProvisionalResult {
+            transaction.quarantine(Some(decision));
+            return Err(SettlementError::InvalidStateTransition);
+        }
+        *state = SettlementResourceState::Published;
+        transaction.next_action += 1;
+        Ok(())
+    }
+
+    /// Produce provider candidate evidence only after every action is complete.
+    pub fn finish_provider_settlement(
+        &self,
+        transaction: &mut NativeSettlementTransaction,
+    ) -> Result<SettlementApplication, SettlementError> {
+        self.authenticate_transaction_or_quarantine(transaction)?;
+        let decision = match transaction.phase {
+            SettlementTransactionState::DecisionLocked { decision } => decision,
+            SettlementTransactionState::ActionInProgress { decision, .. } => {
+                transaction.quarantine(Some(decision));
+                return Err(SettlementError::FinalizerCompletionUncertain);
+            }
+            SettlementTransactionState::Quarantined { .. } => {
+                return Err(SettlementError::TransactionQuarantined);
+            }
+            _ => return Err(SettlementError::InvalidSettlementPhase),
+        };
+        if transaction.next_action != transaction.actions.len()
+            || transaction
+                .resources
+                .iter()
+                .any(|state| *state == SettlementResourceState::Finalizing)
+        {
+            transaction.quarantine(Some(decision));
+            return Err(SettlementError::SettlementActionsIncomplete);
+        }
+        let receipt = NativeSettlementReceipt {
+            schema: NATIVE_SETTLEMENT_RECEIPT_V2,
+            function: self.function.clone(),
+            recovery_contract: self.recovery_contract,
+            certificate_fingerprint: self.fingerprint(),
+            invocation: transaction.invocation,
+            checkpoint: transaction.checkpoint,
+            decision,
+            actions: transaction.actions.clone(),
+            dispositions: match terminal_dispositions(&transaction.resources) {
+                Ok(dispositions) => dispositions,
+                Err(error) => {
+                    transaction.quarantine(Some(decision));
+                    return Err(error);
+                }
+            },
+            active_finalizers: 0,
+        };
+        if let Err(error) = self.validate_receipt(transaction.invocation, &receipt) {
+            transaction.quarantine(Some(decision));
+            return Err(error);
+        }
+        transaction.candidate_receipt = Some(receipt.clone());
+        transaction.phase = SettlementTransactionState::ProviderSettled { decision };
+        Ok(SettlementApplication {
+            receipt,
+            performed_actions: Vec::new(),
+        })
+    }
+
+    /// Validate the exact provider candidate as terminal model evidence and
+    /// receipt-commit eligibility. This model has no host authentication or
+    /// ownership-ledger authority.
+    pub fn commit_provider_receipt(
+        &self,
+        transaction: &mut NativeSettlementTransaction,
+        candidate: &NativeSettlementReceipt,
+    ) -> Result<SettlementApplication, SettlementError> {
+        self.authenticate_transaction_or_quarantine(transaction)?;
+        match transaction.phase {
+            SettlementTransactionState::ReceiptCommitted { decision } => {
+                let Some(committed) = transaction.committed_receipt.as_ref() else {
+                    transaction.quarantine(Some(decision));
+                    return Err(SettlementError::FrameStateMismatch);
+                };
+                if candidate == committed && candidate.decision == decision {
+                    return Ok(SettlementApplication {
+                        receipt: committed.clone(),
+                        performed_actions: Vec::new(),
+                    });
+                }
+                transaction.quarantine(Some(decision));
+                Err(SettlementError::ReceiptCommitMismatch)
+            }
+            SettlementTransactionState::ProviderSettled { decision } => {
+                let exact = transaction
+                    .candidate_receipt
+                    .as_ref()
+                    .is_some_and(|receipt| receipt == candidate);
+                if !exact
+                    || self
+                        .validate_receipt(transaction.invocation, candidate)
+                        .is_err()
+                {
+                    transaction.quarantine(Some(decision));
+                    return Err(SettlementError::ReceiptCommitMismatch);
+                }
+                transaction.committed_receipt = Some(candidate.clone());
+                transaction.phase = SettlementTransactionState::ReceiptCommitted { decision };
+                Ok(SettlementApplication {
+                    receipt: candidate.clone(),
+                    performed_actions: Vec::new(),
+                })
+            }
+            SettlementTransactionState::Quarantined { .. } => {
+                Err(SettlementError::TransactionQuarantined)
+            }
+            _ => {
+                let locked = transaction.locked_decision();
+                transaction.quarantine(locked);
+                Err(SettlementError::InvalidSettlementPhase)
+            }
+        }
+    }
+
+    /// Return byte-identical provider candidate evidence for the same decision.
+    /// This does not commit a receipt or represent any action as newly performed.
+    pub fn replay_provider_candidate(
+        &self,
+        transaction: &mut NativeSettlementTransaction,
+        decision: SettlementDecision,
+    ) -> Result<SettlementApplication, SettlementError> {
+        self.authenticate_transaction_or_quarantine(transaction)?;
+        if matches!(
+            transaction.phase,
+            SettlementTransactionState::Quarantined { .. }
+        ) {
+            return Err(SettlementError::TransactionQuarantined);
+        }
+        validate_decision(decision)?;
+        match transaction.phase {
+            SettlementTransactionState::ProviderSettled { decision: locked } => {
+                if locked != decision {
+                    transaction.quarantine(Some(locked));
+                    return Err(SettlementError::ConflictingLockedDecision);
+                }
+                let receipt = transaction.candidate_receipt.as_ref();
+                let Some(receipt) = receipt else {
+                    transaction.quarantine(Some(locked));
+                    return Err(SettlementError::FrameStateMismatch);
+                };
+                Ok(SettlementApplication {
+                    receipt: receipt.clone(),
+                    performed_actions: Vec::new(),
+                })
+            }
+            SettlementTransactionState::Quarantined { .. } => unreachable!("checked above"),
+            _ => Err(SettlementError::InvalidSettlementPhase),
+        }
+    }
+
+    /// Return byte-identical model receipt-commit evidence for the same decision;
+    /// this is not a host-authenticated ledger receipt.
+    /// No provider action is represented as newly performed by this replay.
+    pub fn replay_committed_receipt(
+        &self,
+        transaction: &mut NativeSettlementTransaction,
+        decision: SettlementDecision,
+    ) -> Result<SettlementApplication, SettlementError> {
+        self.authenticate_transaction_or_quarantine(transaction)?;
+        if matches!(
+            transaction.phase,
+            SettlementTransactionState::Quarantined { .. }
+        ) {
+            return Err(SettlementError::TransactionQuarantined);
+        }
+        validate_decision(decision)?;
+        match transaction.phase {
+            SettlementTransactionState::ReceiptCommitted { decision: locked } => {
+                if locked != decision {
+                    transaction.quarantine(Some(locked));
+                    return Err(SettlementError::ConflictingLockedDecision);
+                }
+                let Some(receipt) = transaction.committed_receipt.as_ref() else {
+                    transaction.quarantine(Some(locked));
+                    return Err(SettlementError::FrameStateMismatch);
+                };
+                Ok(SettlementApplication {
+                    receipt: receipt.clone(),
+                    performed_actions: Vec::new(),
+                })
+            }
+            SettlementTransactionState::Quarantined { .. } => unreachable!("checked above"),
+            _ => Err(SettlementError::InvalidSettlementPhase),
+        }
+    }
+
     /// Advance one exact certified progress edge without mutating on failure.
     pub fn advance_frame(
         &self,
@@ -502,6 +1044,156 @@ impl NativeSettlementCertificate {
         Ok(())
     }
 
+    fn authenticate_transaction(
+        &self,
+        transaction: &NativeSettlementTransaction,
+    ) -> Result<(), SettlementError> {
+        if transaction.function != self.function
+            || transaction.recovery_contract != self.recovery_contract
+            || transaction.certificate_fingerprint != self.fingerprint()
+            || transaction.resources.len() != self.resource_count
+        {
+            return Err(SettlementError::FrameBindingMismatch);
+        }
+        self.validate_transaction_state(transaction)
+    }
+
+    fn validate_transaction_state(
+        &self,
+        transaction: &NativeSettlementTransaction,
+    ) -> Result<(), SettlementError> {
+        if matches!(
+            transaction.phase,
+            SettlementTransactionState::Quarantined { .. }
+        ) {
+            return Ok(());
+        }
+        let checkpoint = self.checkpoint(transaction.checkpoint)?;
+        match transaction.phase {
+            SettlementTransactionState::Executing => {
+                if transaction.resources != checkpoint.resources
+                    || !transaction.actions.is_empty()
+                    || transaction.next_action != 0
+                    || transaction.candidate_receipt.is_some()
+                    || transaction.committed_receipt.is_some()
+                {
+                    return Err(SettlementError::FrameStateMismatch);
+                }
+            }
+            SettlementTransactionState::DecisionLocked { decision } => {
+                self.validate_locked_transaction_state(transaction, checkpoint, decision, None)?;
+            }
+            SettlementTransactionState::ActionInProgress {
+                decision,
+                action_index,
+                owner_ordinal,
+            } => {
+                self.validate_locked_transaction_state(
+                    transaction,
+                    checkpoint,
+                    decision,
+                    Some((action_index, owner_ordinal)),
+                )?;
+            }
+            SettlementTransactionState::ProviderSettled { decision } => {
+                self.validate_settled_transaction_state(transaction, checkpoint, decision, false)?;
+            }
+            SettlementTransactionState::ReceiptCommitted { decision } => {
+                self.validate_settled_transaction_state(transaction, checkpoint, decision, true)?;
+            }
+            SettlementTransactionState::Quarantined { .. } => unreachable!("checked above"),
+        }
+        Ok(())
+    }
+
+    fn validate_locked_transaction_state(
+        &self,
+        transaction: &NativeSettlementTransaction,
+        checkpoint: &SettlementCheckpointSpec,
+        decision: SettlementDecision,
+        in_progress: Option<(usize, u32)>,
+    ) -> Result<(), SettlementError> {
+        let expected_actions = actions_for(checkpoint, decision)?;
+        if transaction.actions != expected_actions
+            || transaction.next_action > transaction.actions.len()
+            || transaction.candidate_receipt.is_some()
+            || transaction.committed_receipt.is_some()
+        {
+            return Err(SettlementError::FrameStateMismatch);
+        }
+        let mut expected_resources = checkpoint.resources.clone();
+        apply_actions(
+            &mut expected_resources,
+            &transaction.actions[..transaction.next_action],
+        )?;
+        if let Some((action_index, owner_ordinal)) = in_progress {
+            if action_index != transaction.next_action
+                || transaction.actions.get(action_index)
+                    != Some(&SettlementAction::Finalize { owner_ordinal })
+            {
+                return Err(SettlementError::FrameStateMismatch);
+            }
+            let owner =
+                usize::try_from(owner_ordinal).map_err(|_| SettlementError::FrameStateMismatch)?;
+            let state = expected_resources
+                .get_mut(owner)
+                .ok_or(SettlementError::FrameStateMismatch)?;
+            if !matches!(
+                state,
+                SettlementResourceState::Live | SettlementResourceState::ProvisionalResult
+            ) {
+                return Err(SettlementError::FrameStateMismatch);
+            }
+            *state = SettlementResourceState::Finalizing;
+        }
+        if transaction.resources != expected_resources {
+            return Err(SettlementError::FrameStateMismatch);
+        }
+        Ok(())
+    }
+
+    fn validate_settled_transaction_state(
+        &self,
+        transaction: &NativeSettlementTransaction,
+        checkpoint: &SettlementCheckpointSpec,
+        decision: SettlementDecision,
+        committed: bool,
+    ) -> Result<(), SettlementError> {
+        let expected_actions = actions_for(checkpoint, decision)?;
+        let mut expected_resources = checkpoint.resources.clone();
+        apply_actions(&mut expected_resources, &expected_actions)?;
+        let Some(candidate) = transaction.candidate_receipt.as_ref() else {
+            return Err(SettlementError::FrameStateMismatch);
+        };
+        if transaction.actions != expected_actions
+            || transaction.next_action != expected_actions.len()
+            || transaction.resources != expected_resources
+            || candidate.decision != decision
+            || self
+                .validate_receipt(transaction.invocation, candidate)
+                .is_err()
+        {
+            return Err(SettlementError::FrameStateMismatch);
+        }
+        match (committed, transaction.committed_receipt.as_ref()) {
+            (false, None) => Ok(()),
+            (true, Some(receipt)) if receipt == candidate => Ok(()),
+            _ => Err(SettlementError::FrameStateMismatch),
+        }
+    }
+
+    fn authenticate_transaction_or_quarantine(
+        &self,
+        transaction: &mut NativeSettlementTransaction,
+    ) -> Result<(), SettlementError> {
+        if let Err(error) = self.authenticate_transaction(transaction) {
+            let locked = transaction.locked_decision();
+            transaction.quarantine(locked);
+            return Err(error);
+        }
+        Ok(())
+    }
+
     fn checkpoint(&self, checkpoint: u32) -> Result<&SettlementCheckpointSpec, SettlementError> {
         let index = usize::try_from(checkpoint)
             .ok()
@@ -551,6 +1243,153 @@ impl NativeSettlementFrame {
     #[must_use]
     pub fn is_terminal(&self) -> bool {
         self.terminal.is_some()
+    }
+}
+
+/// Observable phase of the private transaction model. The linear transaction
+/// and finalizer ticket remain opaque and non-formatting.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SettlementTransactionPhase {
+    Executing,
+    DecisionLocked,
+    ActionInProgress {
+        action_index: usize,
+        owner_ordinal: u32,
+    },
+    ProviderSettled,
+    ReceiptCommitted,
+    Quarantined,
+}
+
+#[derive(Eq, PartialEq)]
+enum SettlementTransactionState {
+    Executing,
+    DecisionLocked {
+        decision: SettlementDecision,
+    },
+    ActionInProgress {
+        decision: SettlementDecision,
+        action_index: usize,
+        owner_ordinal: u32,
+    },
+    ProviderSettled {
+        decision: SettlementDecision,
+    },
+    ReceiptCommitted {
+        decision: SettlementDecision,
+    },
+    Quarantined {
+        decision: Option<SettlementDecision>,
+    },
+}
+
+/// Linear proof state for one phase-aware settlement transaction.
+///
+/// `Published` in this type means only that provider-side candidate evidence
+/// is eligible; a future host ledger remains solely responsible for external
+/// ownership publication at receipt commit.
+#[derive(Eq, PartialEq)]
+pub struct NativeSettlementTransaction {
+    function: DeclarationId,
+    recovery_contract: [u8; 32],
+    certificate_fingerprint: [u8; 32],
+    invocation: NonZeroU64,
+    checkpoint: u32,
+    resources: Vec<SettlementResourceState>,
+    phase: SettlementTransactionState,
+    actions: Vec<SettlementAction>,
+    next_action: usize,
+    candidate_receipt: Option<NativeSettlementReceipt>,
+    committed_receipt: Option<NativeSettlementReceipt>,
+}
+
+impl NativeSettlementTransaction {
+    #[must_use]
+    pub const fn invocation(&self) -> NonZeroU64 {
+        self.invocation
+    }
+
+    #[must_use]
+    pub const fn checkpoint(&self) -> u32 {
+        self.checkpoint
+    }
+
+    #[must_use]
+    pub fn resources(&self) -> &[SettlementResourceState] {
+        &self.resources
+    }
+
+    #[must_use]
+    pub const fn phase(&self) -> SettlementTransactionPhase {
+        match self.phase {
+            SettlementTransactionState::Executing => SettlementTransactionPhase::Executing,
+            SettlementTransactionState::DecisionLocked { .. } => {
+                SettlementTransactionPhase::DecisionLocked
+            }
+            SettlementTransactionState::ActionInProgress {
+                action_index,
+                owner_ordinal,
+                ..
+            } => SettlementTransactionPhase::ActionInProgress {
+                action_index,
+                owner_ordinal,
+            },
+            SettlementTransactionState::ProviderSettled { .. } => {
+                SettlementTransactionPhase::ProviderSettled
+            }
+            SettlementTransactionState::ReceiptCommitted { .. } => {
+                SettlementTransactionPhase::ReceiptCommitted
+            }
+            SettlementTransactionState::Quarantined { .. } => {
+                SettlementTransactionPhase::Quarantined
+            }
+        }
+    }
+
+    #[must_use]
+    pub fn candidate_receipt(&self) -> Option<&NativeSettlementReceipt> {
+        self.candidate_receipt.as_ref()
+    }
+
+    #[must_use]
+    pub fn committed_receipt(&self) -> Option<&NativeSettlementReceipt> {
+        self.committed_receipt.as_ref()
+    }
+
+    fn locked_decision(&self) -> Option<SettlementDecision> {
+        match self.phase {
+            SettlementTransactionState::Executing => None,
+            SettlementTransactionState::DecisionLocked { decision }
+            | SettlementTransactionState::ActionInProgress { decision, .. }
+            | SettlementTransactionState::ProviderSettled { decision }
+            | SettlementTransactionState::ReceiptCommitted { decision } => Some(decision),
+            SettlementTransactionState::Quarantined { decision } => decision,
+        }
+    }
+
+    fn quarantine(&mut self, decision: Option<SettlementDecision>) {
+        self.phase = SettlementTransactionState::Quarantined { decision };
+    }
+}
+
+/// Opaque evidence that one exact finalizer was marked `Finalizing` before its
+/// physical effect. It is intentionally non-cloneable and non-formatting.
+#[derive(Eq, PartialEq)]
+pub struct SettlementFinalizerTicket {
+    certificate_fingerprint: [u8; 32],
+    invocation: NonZeroU64,
+    checkpoint: u32,
+    decision: SettlementDecision,
+    action_index: usize,
+    owner_ordinal: u32,
+}
+
+impl SettlementFinalizerTicket {
+    #[must_use]
+    pub const fn action(&self) -> SettlementAction {
+        SettlementAction::Finalize {
+            owner_ordinal: self.owner_ordinal,
+        }
     }
 }
 
@@ -697,6 +1536,15 @@ pub enum SettlementError {
     ReceiptActionMismatch,
     ReceiptDispositionMismatch,
     NotQuiescent,
+    InvalidSettlementPhase,
+    ConflictingLockedDecision,
+    TransactionQuarantined,
+    FinalizerActionNotPending,
+    FinalizerTicketMismatch,
+    FinalizerCompletionUncertain,
+    PublishActionNotPending,
+    SettlementActionsIncomplete,
+    ReceiptCommitMismatch,
 }
 
 impl fmt::Display for SettlementError {
@@ -740,6 +1588,17 @@ impl fmt::Display for SettlementError {
                 "settlement receipt dispositions do not match actions"
             }
             Self::NotQuiescent => "settlement receipt is not quiescent",
+            Self::InvalidSettlementPhase => "settlement transaction phase does not admit action",
+            Self::ConflictingLockedDecision => {
+                "settlement transaction decision conflicts with locked decision"
+            }
+            Self::TransactionQuarantined => "settlement transaction is quarantined",
+            Self::FinalizerActionNotPending => "settlement finalizer action is not next",
+            Self::FinalizerTicketMismatch => "settlement finalizer ticket does not match",
+            Self::FinalizerCompletionUncertain => "settlement finalizer completion is uncertain",
+            Self::PublishActionNotPending => "settlement publication action is not next",
+            Self::SettlementActionsIncomplete => "settlement actions are incomplete",
+            Self::ReceiptCommitMismatch => "settlement receipt commit does not match candidate",
         })
     }
 }
@@ -2000,6 +2859,815 @@ mod tests {
             certify_accept_counterexample,
             Err(SettlementError::InvalidProgressTransition)
         );
+    }
+
+    fn complete_phase_transaction(
+        certificate: &NativeSettlementCertificate,
+        transaction: &mut NativeSettlementTransaction,
+        decision: SettlementDecision,
+    ) -> NativeSettlementReceipt {
+        certificate
+            .lock_transaction_decision(transaction, decision)
+            .unwrap();
+        certificate
+            .lock_transaction_decision(transaction, decision)
+            .unwrap();
+        loop {
+            match transaction.actions.get(transaction.next_action).copied() {
+                Some(SettlementAction::Finalize { owner_ordinal }) => {
+                    let ticket = certificate.begin_next_finalizer(transaction).unwrap();
+                    assert_eq!(
+                        ticket.action(),
+                        SettlementAction::Finalize { owner_ordinal }
+                    );
+                    assert_eq!(
+                        transaction.resources[owner_ordinal as usize],
+                        SettlementResourceState::Finalizing
+                    );
+                    certificate.complete_finalizer(transaction, ticket).unwrap();
+                    assert_eq!(
+                        transaction.resources[owner_ordinal as usize],
+                        SettlementResourceState::Dead
+                    );
+                }
+                Some(SettlementAction::Publish { owner_ordinal }) => {
+                    assert!(transaction.resources.iter().all(|state| {
+                        !matches!(
+                            state,
+                            SettlementResourceState::Live
+                                | SettlementResourceState::Finalizing
+                                | SettlementResourceState::Published
+                        )
+                    }));
+                    certificate.publish_owned_candidate(transaction).unwrap();
+                    assert_eq!(
+                        transaction.resources[owner_ordinal as usize],
+                        SettlementResourceState::Published
+                    );
+                }
+                None => break,
+            }
+        }
+        let candidate = certificate.finish_provider_settlement(transaction).unwrap();
+        assert!(candidate.performed_actions().is_empty());
+        assert_eq!(
+            transaction.phase(),
+            SettlementTransactionPhase::ProviderSettled
+        );
+        let provider_replay = certificate
+            .replay_provider_candidate(transaction, decision)
+            .unwrap();
+        assert_eq!(provider_replay.receipt(), candidate.receipt());
+        assert!(provider_replay.performed_actions().is_empty());
+        let receipt = candidate.receipt().clone();
+        let committed = certificate
+            .commit_provider_receipt(transaction, &receipt)
+            .unwrap();
+        assert_eq!(committed.receipt(), &receipt);
+        assert!(committed.performed_actions().is_empty());
+        assert_eq!(
+            transaction.phase(),
+            SettlementTransactionPhase::ReceiptCommitted
+        );
+        let duplicate = certificate
+            .commit_provider_receipt(transaction, &receipt)
+            .unwrap();
+        assert_eq!(
+            duplicate.receipt().canonical_json(),
+            receipt.canonical_json()
+        );
+        assert!(duplicate.performed_actions().is_empty());
+        let replay = certificate
+            .replay_committed_receipt(transaction, decision)
+            .unwrap();
+        assert_eq!(replay.receipt().canonical_json(), receipt.canonical_json());
+        assert!(replay.performed_actions().is_empty());
+        receipt
+    }
+
+    #[test]
+    fn phase_machine_exhausts_decisions_and_preserves_receipt_kats() {
+        let states = vec![
+            SettlementResourceState::Live,
+            SettlementResourceState::ProvisionalResult,
+            SettlementResourceState::Dead,
+        ];
+        let owned_certificate = certificate(vec![SettlementCheckpointSpec::new(
+            1,
+            states.clone(),
+            Some(SettlementOutcome::OwnedSuccess { owner_ordinal: 1 }),
+            reverse_non_dead(&states),
+            reverse_live(&states),
+        )]);
+        let decisions = [
+            SettlementDecision::Accept(SettlementOutcome::OwnedSuccess { owner_ordinal: 1 }),
+            SettlementDecision::Abort(AdapterAbortReason::PhysicalResult(1)),
+            SettlementDecision::Abort(AdapterAbortReason::PhysicalResult(u32::MAX)),
+            SettlementDecision::Abort(AdapterAbortReason::MalformedResponse),
+            SettlementDecision::Abort(AdapterAbortReason::TraceRejected),
+            SettlementDecision::Abort(AdapterAbortReason::HostUnwind),
+        ];
+        for (index, decision) in decisions.into_iter().enumerate() {
+            let invocation = NonZeroU64::new((index + 1) as u64).unwrap();
+            let mut phased = owned_certificate
+                .prepare_start_transaction(invocation)
+                .unwrap();
+            let phased_receipt =
+                complete_phase_transaction(&owned_certificate, &mut phased, decision);
+
+            let mut legacy = owned_certificate.prepare_start_frame(invocation).unwrap();
+            let legacy_receipt = owned_certificate
+                .settle(&mut legacy, decision)
+                .unwrap()
+                .receipt;
+            assert_eq!(
+                phased_receipt.canonical_json(),
+                legacy_receipt.canonical_json()
+            );
+            assert_eq!(phased_receipt.fingerprint(), legacy_receipt.fingerprint());
+        }
+
+        for outcome in [
+            SettlementOutcome::ScalarSuccess,
+            SettlementOutcome::SemanticFailure,
+        ] {
+            let states = vec![SettlementResourceState::Live, SettlementResourceState::Dead];
+            let certificate = certificate(vec![SettlementCheckpointSpec::new(
+                1,
+                states.clone(),
+                Some(outcome),
+                reverse_non_dead(&states),
+                reverse_live(&states),
+            )]);
+            let decision = SettlementDecision::Accept(outcome);
+            let mut transaction = certificate
+                .prepare_start_transaction(NonZeroU64::new(99).unwrap())
+                .unwrap();
+            complete_phase_transaction(&certificate, &mut transaction, decision);
+        }
+    }
+
+    #[test]
+    fn phase_machine_covers_every_certified_checkpoint_and_abort_reason() {
+        let checkpoints = vec![
+            SettlementCheckpointSpec::new(
+                1,
+                vec![SettlementResourceState::Live; 3],
+                None,
+                vec![2, 1, 0],
+                Vec::new(),
+            ),
+            SettlementCheckpointSpec::new(
+                2,
+                vec![
+                    SettlementResourceState::Live,
+                    SettlementResourceState::Live,
+                    SettlementResourceState::Dead,
+                ],
+                None,
+                vec![1, 0],
+                Vec::new(),
+            ),
+            SettlementCheckpointSpec::new(
+                3,
+                vec![
+                    SettlementResourceState::Live,
+                    SettlementResourceState::ProvisionalResult,
+                    SettlementResourceState::Dead,
+                ],
+                None,
+                vec![1, 0],
+                Vec::new(),
+            ),
+            SettlementCheckpointSpec::new(
+                4,
+                vec![
+                    SettlementResourceState::Live,
+                    SettlementResourceState::ProvisionalResult,
+                    SettlementResourceState::Dead,
+                ],
+                Some(SettlementOutcome::OwnedSuccess { owner_ordinal: 1 }),
+                vec![1, 0],
+                vec![0],
+            ),
+        ];
+        let progress = [
+            SettlementProgressAction::Finalize { owner_ordinal: 2 },
+            SettlementProgressAction::StageOwnedResult { owner_ordinal: 1 },
+            SettlementProgressAction::CertifyOutcome {
+                trace_evidence: [0x39; 32],
+            },
+        ];
+        let certificate = NativeSettlementCertificate::try_new_with_progress(
+            DeclarationId::new("token.phase-corpus"),
+            CONTRACT,
+            3,
+            checkpoints,
+            vec![1],
+            vec![
+                SettlementProgressEdge::new(1, 2, progress[0]),
+                SettlementProgressEdge::new(2, 3, progress[1]),
+                SettlementProgressEdge::new(3, 4, progress[2]),
+            ],
+        )
+        .unwrap();
+        let aborts = [
+            AdapterAbortReason::PhysicalResult(1),
+            AdapterAbortReason::PhysicalResult(u32::MAX),
+            AdapterAbortReason::MalformedResponse,
+            AdapterAbortReason::TraceRejected,
+            AdapterAbortReason::HostUnwind,
+        ];
+        let mut invocation = 1_u64;
+        for checkpoint in 1..=4_u32 {
+            let accepts = (checkpoint == 4).then_some(SettlementDecision::Accept(
+                SettlementOutcome::OwnedSuccess { owner_ordinal: 1 },
+            ));
+            for decision in aborts
+                .into_iter()
+                .map(SettlementDecision::Abort)
+                .chain(accepts)
+            {
+                let mut transaction = certificate
+                    .prepare_start_transaction(NonZeroU64::new(invocation).unwrap())
+                    .unwrap();
+                invocation += 1;
+                for action in progress.iter().take((checkpoint - 1) as usize) {
+                    certificate
+                        .advance_transaction(&mut transaction, *action)
+                        .unwrap();
+                }
+                assert_eq!(transaction.checkpoint(), checkpoint);
+                let receipt = complete_phase_transaction(&certificate, &mut transaction, decision);
+                assert_eq!(receipt.checkpoint(), checkpoint);
+                assert_eq!(receipt.decision(), decision);
+            }
+        }
+    }
+
+    #[test]
+    fn unwind_is_phase_aware_and_finalizer_uncertainty_is_absorbing() {
+        let states = vec![SettlementResourceState::Live];
+        let certificate = certificate(vec![SettlementCheckpointSpec::new(
+            1,
+            states.clone(),
+            Some(SettlementOutcome::ScalarSuccess),
+            reverse_non_dead(&states),
+            reverse_live(&states),
+        )]);
+        let mut before_lock = certificate
+            .prepare_start_transaction(NonZeroU64::new(1).unwrap())
+            .unwrap();
+        let host_unwind = SettlementDecision::Abort(AdapterAbortReason::HostUnwind);
+        assert_eq!(
+            certificate.observe_transaction_unwind(&mut before_lock),
+            Ok(host_unwind)
+        );
+        assert_eq!(
+            before_lock.phase(),
+            SettlementTransactionPhase::DecisionLocked
+        );
+
+        let decision = SettlementDecision::Accept(SettlementOutcome::ScalarSuccess);
+        let mut after_lock = certificate
+            .prepare_start_transaction(NonZeroU64::new(2).unwrap())
+            .unwrap();
+        certificate
+            .lock_transaction_decision(&mut after_lock, decision)
+            .unwrap();
+        assert_eq!(
+            certificate.observe_transaction_unwind(&mut after_lock),
+            Ok(decision)
+        );
+
+        let ticket = certificate.begin_next_finalizer(&mut after_lock).unwrap();
+        assert_eq!(
+            certificate.observe_transaction_unwind(&mut after_lock),
+            Err(SettlementError::FinalizerCompletionUncertain)
+        );
+        assert_eq!(after_lock.phase(), SettlementTransactionPhase::Quarantined);
+        assert_eq!(
+            certificate.complete_finalizer(&mut after_lock, ticket),
+            Err(SettlementError::TransactionQuarantined)
+        );
+        assert_eq!(
+            certificate.observe_transaction_unwind(&mut after_lock),
+            Err(SettlementError::TransactionQuarantined)
+        );
+
+        let mut settled = certificate
+            .prepare_start_transaction(NonZeroU64::new(3).unwrap())
+            .unwrap();
+        certificate
+            .lock_transaction_decision(&mut settled, decision)
+            .unwrap();
+        let ticket = certificate.begin_next_finalizer(&mut settled).unwrap();
+        certificate
+            .complete_finalizer(&mut settled, ticket)
+            .unwrap();
+        let candidate = certificate
+            .finish_provider_settlement(&mut settled)
+            .unwrap();
+        assert_eq!(
+            certificate.observe_transaction_unwind(&mut settled),
+            Ok(decision)
+        );
+        let receipt = candidate.receipt().clone();
+        certificate
+            .commit_provider_receipt(&mut settled, &receipt)
+            .unwrap();
+        assert_eq!(
+            certificate.observe_transaction_unwind(&mut settled),
+            Ok(decision)
+        );
+    }
+
+    #[test]
+    fn conflicts_and_skips_monotonically_quarantine_without_publication() {
+        let states = vec![
+            SettlementResourceState::Live,
+            SettlementResourceState::ProvisionalResult,
+        ];
+        let certificate = certificate(vec![SettlementCheckpointSpec::new(
+            1,
+            states.clone(),
+            Some(SettlementOutcome::OwnedSuccess { owner_ordinal: 1 }),
+            reverse_non_dead(&states),
+            reverse_live(&states),
+        )]);
+        let accept =
+            SettlementDecision::Accept(SettlementOutcome::OwnedSuccess { owner_ordinal: 1 });
+        let abort = SettlementDecision::Abort(AdapterAbortReason::MalformedResponse);
+
+        let mut conflict = certificate
+            .prepare_start_transaction(NonZeroU64::new(1).unwrap())
+            .unwrap();
+        certificate
+            .lock_transaction_decision(&mut conflict, accept)
+            .unwrap();
+        assert_eq!(
+            certificate.lock_transaction_decision(&mut conflict, abort),
+            Err(SettlementError::ConflictingLockedDecision)
+        );
+        assert_eq!(conflict.phase(), SettlementTransactionPhase::Quarantined);
+
+        let mut skipped = certificate
+            .prepare_start_transaction(NonZeroU64::new(2).unwrap())
+            .unwrap();
+        certificate
+            .lock_transaction_decision(&mut skipped, accept)
+            .unwrap();
+        assert_eq!(
+            certificate.publish_owned_candidate(&mut skipped),
+            Err(SettlementError::PublishActionNotPending)
+        );
+        assert_eq!(skipped.phase(), SettlementTransactionPhase::Quarantined);
+        assert!(!skipped
+            .resources()
+            .contains(&SettlementResourceState::Published));
+
+        let mut unfinished = certificate
+            .prepare_start_transaction(NonZeroU64::new(3).unwrap())
+            .unwrap();
+        certificate
+            .lock_transaction_decision(&mut unfinished, abort)
+            .unwrap();
+        assert_eq!(
+            certificate.finish_provider_settlement(&mut unfinished),
+            Err(SettlementError::SettlementActionsIncomplete)
+        );
+        assert_eq!(unfinished.phase(), SettlementTransactionPhase::Quarantined);
+
+        let mut in_progress = certificate
+            .prepare_start_transaction(NonZeroU64::new(4).unwrap())
+            .unwrap();
+        certificate
+            .lock_transaction_decision(&mut in_progress, abort)
+            .unwrap();
+        let _ticket = certificate.begin_next_finalizer(&mut in_progress).unwrap();
+        assert_eq!(
+            certificate.lock_transaction_decision(&mut in_progress, abort),
+            Err(SettlementError::InvalidSettlementPhase)
+        );
+        assert_eq!(in_progress.phase(), SettlementTransactionPhase::Quarantined);
+
+        let terminal_states = vec![SettlementResourceState::Dead];
+        let terminal_certificate = self::certificate(vec![SettlementCheckpointSpec::new(
+            1,
+            terminal_states,
+            Some(SettlementOutcome::ScalarSuccess),
+            Vec::new(),
+            Vec::new(),
+        )]);
+        let terminal_decision = SettlementDecision::Accept(SettlementOutcome::ScalarSuccess);
+        let mut provider_settled = terminal_certificate
+            .prepare_start_transaction(NonZeroU64::new(5).unwrap())
+            .unwrap();
+        terminal_certificate
+            .lock_transaction_decision(&mut provider_settled, terminal_decision)
+            .unwrap();
+        terminal_certificate
+            .finish_provider_settlement(&mut provider_settled)
+            .unwrap();
+        assert_eq!(
+            terminal_certificate.lock_transaction_decision(&mut provider_settled, abort),
+            Err(SettlementError::ConflictingLockedDecision)
+        );
+        assert_eq!(
+            provider_settled.phase(),
+            SettlementTransactionPhase::Quarantined
+        );
+    }
+
+    #[test]
+    fn forged_progress_and_cross_certificate_calls_quarantine_exact_transaction() {
+        let start = SettlementCheckpointSpec::new(
+            1,
+            vec![SettlementResourceState::Live],
+            None,
+            vec![0],
+            Vec::new(),
+        );
+        let end = SettlementCheckpointSpec::new(
+            2,
+            vec![SettlementResourceState::Dead],
+            None,
+            Vec::new(),
+            Vec::new(),
+        );
+        let action = SettlementProgressAction::Finalize { owner_ordinal: 0 };
+        let make_certificate = |function| {
+            NativeSettlementCertificate::try_new_with_progress(
+                DeclarationId::new(function),
+                CONTRACT,
+                1,
+                vec![start.clone(), end.clone()],
+                vec![1],
+                vec![SettlementProgressEdge::new(1, 2, action)],
+            )
+            .unwrap()
+        };
+        let certificate = make_certificate("token.progress-a");
+        let other = make_certificate("token.progress-b");
+
+        let mut forged_action = certificate
+            .prepare_start_transaction(NonZeroU64::new(1).unwrap())
+            .unwrap();
+        assert_eq!(
+            certificate.advance_transaction(
+                &mut forged_action,
+                SettlementProgressAction::StageOwnedResult { owner_ordinal: 0 },
+            ),
+            Err(SettlementError::ProgressActionNotAdmitted)
+        );
+        assert_eq!(
+            forged_action.phase(),
+            SettlementTransactionPhase::Quarantined
+        );
+
+        let mut forged_state = certificate
+            .prepare_start_transaction(NonZeroU64::new(2).unwrap())
+            .unwrap();
+        forged_state.resources[0] = SettlementResourceState::Dead;
+        assert_eq!(
+            certificate.advance_transaction(&mut forged_state, action),
+            Err(SettlementError::FrameStateMismatch)
+        );
+        assert_eq!(
+            forged_state.phase(),
+            SettlementTransactionPhase::Quarantined
+        );
+
+        let mut cross_bound = certificate
+            .prepare_start_transaction(NonZeroU64::new(3).unwrap())
+            .unwrap();
+        assert_eq!(
+            other.lock_transaction_decision(
+                &mut cross_bound,
+                SettlementDecision::Abort(AdapterAbortReason::HostUnwind),
+            ),
+            Err(SettlementError::FrameBindingMismatch)
+        );
+        assert_eq!(cross_bound.phase(), SettlementTransactionPhase::Quarantined);
+        assert_eq!(
+            certificate.observe_transaction_unwind(&mut cross_bound),
+            Err(SettlementError::TransactionQuarantined)
+        );
+    }
+
+    #[test]
+    fn stale_cross_binding_and_duplicate_finalizer_completion_never_retry() {
+        let states = vec![SettlementResourceState::Live];
+        let certificate = certificate(vec![SettlementCheckpointSpec::new(
+            1,
+            states.clone(),
+            None,
+            reverse_non_dead(&states),
+            Vec::new(),
+        )]);
+        let decision = SettlementDecision::Abort(AdapterAbortReason::TraceRejected);
+        let mut first = certificate
+            .prepare_start_transaction(NonZeroU64::new(1).unwrap())
+            .unwrap();
+        let mut second = certificate
+            .prepare_start_transaction(NonZeroU64::new(2).unwrap())
+            .unwrap();
+        certificate
+            .lock_transaction_decision(&mut first, decision)
+            .unwrap();
+        certificate
+            .lock_transaction_decision(&mut second, decision)
+            .unwrap();
+        let first_ticket = certificate.begin_next_finalizer(&mut first).unwrap();
+        let second_ticket = certificate.begin_next_finalizer(&mut second).unwrap();
+        assert_eq!(
+            certificate.complete_finalizer(&mut first, second_ticket),
+            Err(SettlementError::FinalizerTicketMismatch)
+        );
+        assert_eq!(first.phase(), SettlementTransactionPhase::Quarantined);
+        certificate.mark_finalizer_uncertain(&mut second).unwrap();
+        assert_eq!(second.phase(), SettlementTransactionPhase::Quarantined);
+        assert_eq!(
+            certificate.complete_finalizer(&mut first, first_ticket),
+            Err(SettlementError::TransactionQuarantined)
+        );
+
+        let mut duplicate = certificate
+            .prepare_start_transaction(NonZeroU64::new(3).unwrap())
+            .unwrap();
+        certificate
+            .lock_transaction_decision(&mut duplicate, decision)
+            .unwrap();
+        let ticket = certificate.begin_next_finalizer(&mut duplicate).unwrap();
+        let forged_duplicate = SettlementFinalizerTicket {
+            certificate_fingerprint: ticket.certificate_fingerprint,
+            invocation: ticket.invocation,
+            checkpoint: ticket.checkpoint,
+            decision: ticket.decision,
+            action_index: ticket.action_index,
+            owner_ordinal: ticket.owner_ordinal,
+        };
+        certificate
+            .complete_finalizer(&mut duplicate, ticket)
+            .unwrap();
+        assert_eq!(
+            certificate.complete_finalizer(&mut duplicate, forged_duplicate),
+            Err(SettlementError::InvalidSettlementPhase)
+        );
+        assert_eq!(duplicate.phase(), SettlementTransactionPhase::Quarantined);
+    }
+
+    #[test]
+    fn unwind_at_every_finalizer_index_preserves_prefix_current_and_suffix() {
+        let states = vec![SettlementResourceState::Live; 4];
+        let certificate = certificate(vec![SettlementCheckpointSpec::new(
+            1,
+            states.clone(),
+            None,
+            reverse_non_dead(&states),
+            Vec::new(),
+        )]);
+        let decision = SettlementDecision::Abort(AdapterAbortReason::MalformedResponse);
+        for interruption in 0..4_usize {
+            let invocation = NonZeroU64::new((interruption + 1) as u64).unwrap();
+            let mut transaction = certificate.prepare_start_transaction(invocation).unwrap();
+            certificate
+                .lock_transaction_decision(&mut transaction, decision)
+                .unwrap();
+            for _ in 0..interruption {
+                let ticket = certificate.begin_next_finalizer(&mut transaction).unwrap();
+                certificate
+                    .complete_finalizer(&mut transaction, ticket)
+                    .unwrap();
+            }
+            let ticket = certificate.begin_next_finalizer(&mut transaction).unwrap();
+            let current_owner = 3 - interruption;
+            for owner in 0..4_usize {
+                let expected = match owner.cmp(&current_owner) {
+                    std::cmp::Ordering::Greater => SettlementResourceState::Dead,
+                    std::cmp::Ordering::Equal => SettlementResourceState::Finalizing,
+                    std::cmp::Ordering::Less => SettlementResourceState::Live,
+                };
+                assert_eq!(transaction.resources[owner], expected);
+            }
+            let resources_at_uncertainty = transaction.resources.clone();
+            assert_eq!(
+                certificate.observe_transaction_unwind(&mut transaction),
+                Err(SettlementError::FinalizerCompletionUncertain)
+            );
+            assert_eq!(transaction.resources, resources_at_uncertainty);
+            assert_eq!(transaction.phase(), SettlementTransactionPhase::Quarantined);
+
+            let mut legacy = certificate.prepare_start_frame(invocation).unwrap();
+            let receipt = certificate.settle(&mut legacy, decision).unwrap().receipt;
+            assert_eq!(
+                certificate.advance_transaction(
+                    &mut transaction,
+                    SettlementProgressAction::Finalize { owner_ordinal: 0 },
+                ),
+                Err(SettlementError::TransactionQuarantined)
+            );
+            assert_eq!(
+                certificate.lock_transaction_decision(&mut transaction, decision),
+                Err(SettlementError::TransactionQuarantined)
+            );
+            assert!(matches!(
+                certificate.begin_next_finalizer(&mut transaction),
+                Err(SettlementError::TransactionQuarantined)
+            ));
+            assert_eq!(
+                certificate.complete_finalizer(&mut transaction, ticket),
+                Err(SettlementError::TransactionQuarantined)
+            );
+            assert_eq!(
+                certificate.mark_finalizer_uncertain(&mut transaction),
+                Err(SettlementError::TransactionQuarantined)
+            );
+            assert_eq!(
+                certificate.publish_owned_candidate(&mut transaction),
+                Err(SettlementError::TransactionQuarantined)
+            );
+            assert_eq!(
+                certificate.finish_provider_settlement(&mut transaction),
+                Err(SettlementError::TransactionQuarantined)
+            );
+            assert_eq!(
+                certificate.commit_provider_receipt(&mut transaction, &receipt),
+                Err(SettlementError::TransactionQuarantined)
+            );
+            assert_eq!(
+                certificate.replay_provider_candidate(&mut transaction, decision),
+                Err(SettlementError::TransactionQuarantined)
+            );
+            assert_eq!(
+                certificate.replay_committed_receipt(&mut transaction, decision),
+                Err(SettlementError::TransactionQuarantined)
+            );
+            assert_eq!(transaction.resources, resources_at_uncertainty);
+        }
+    }
+
+    #[test]
+    fn hostile_internal_mutations_are_detected_in_every_irreversible_phase() {
+        let states = vec![SettlementResourceState::Live];
+        let certificate = certificate(vec![SettlementCheckpointSpec::new(
+            1,
+            states.clone(),
+            None,
+            reverse_non_dead(&states),
+            Vec::new(),
+        )]);
+        let decision = SettlementDecision::Abort(AdapterAbortReason::TraceRejected);
+
+        let mut locked = certificate
+            .prepare_start_transaction(NonZeroU64::new(1).unwrap())
+            .unwrap();
+        certificate
+            .lock_transaction_decision(&mut locked, decision)
+            .unwrap();
+        locked.next_action = 1;
+        assert_eq!(
+            certificate.lock_transaction_decision(&mut locked, decision),
+            Err(SettlementError::FrameStateMismatch)
+        );
+        assert_eq!(locked.phase(), SettlementTransactionPhase::Quarantined);
+
+        let mut in_progress = certificate
+            .prepare_start_transaction(NonZeroU64::new(2).unwrap())
+            .unwrap();
+        certificate
+            .lock_transaction_decision(&mut in_progress, decision)
+            .unwrap();
+        let _ticket = certificate.begin_next_finalizer(&mut in_progress).unwrap();
+        in_progress.next_action = 1;
+        assert_eq!(
+            certificate.observe_transaction_unwind(&mut in_progress),
+            Err(SettlementError::FrameStateMismatch)
+        );
+        assert_eq!(in_progress.phase(), SettlementTransactionPhase::Quarantined);
+
+        let terminal_certificate = self::certificate(vec![SettlementCheckpointSpec::new(
+            1,
+            vec![SettlementResourceState::Dead],
+            Some(SettlementOutcome::ScalarSuccess),
+            Vec::new(),
+            Vec::new(),
+        )]);
+        let accepted = SettlementDecision::Accept(SettlementOutcome::ScalarSuccess);
+        let mut provider = terminal_certificate
+            .prepare_start_transaction(NonZeroU64::new(3).unwrap())
+            .unwrap();
+        terminal_certificate
+            .lock_transaction_decision(&mut provider, accepted)
+            .unwrap();
+        terminal_certificate
+            .finish_provider_settlement(&mut provider)
+            .unwrap();
+        provider
+            .candidate_receipt
+            .as_mut()
+            .unwrap()
+            .active_finalizers = 1;
+        assert_eq!(
+            terminal_certificate.replay_provider_candidate(&mut provider, accepted),
+            Err(SettlementError::FrameStateMismatch)
+        );
+        assert_eq!(provider.phase(), SettlementTransactionPhase::Quarantined);
+
+        let mut committed = terminal_certificate
+            .prepare_start_transaction(NonZeroU64::new(4).unwrap())
+            .unwrap();
+        complete_phase_transaction(&terminal_certificate, &mut committed, accepted);
+        committed
+            .committed_receipt
+            .as_mut()
+            .unwrap()
+            .recovery_contract[0] ^= 1;
+        assert_eq!(
+            terminal_certificate.replay_committed_receipt(&mut committed, accepted),
+            Err(SettlementError::FrameStateMismatch)
+        );
+        assert_eq!(committed.phase(), SettlementTransactionPhase::Quarantined);
+    }
+
+    #[test]
+    fn receipt_commit_is_exact_and_quarantine_preserves_terminal_evidence() {
+        let states = vec![SettlementResourceState::Dead];
+        let certificate = certificate(vec![SettlementCheckpointSpec::new(
+            1,
+            states,
+            Some(SettlementOutcome::ScalarSuccess),
+            Vec::new(),
+            Vec::new(),
+        )]);
+        let decision = SettlementDecision::Accept(SettlementOutcome::ScalarSuccess);
+        let mut transaction = certificate
+            .prepare_start_transaction(NonZeroU64::new(7).unwrap())
+            .unwrap();
+        certificate
+            .lock_transaction_decision(&mut transaction, decision)
+            .unwrap();
+        let candidate = certificate
+            .finish_provider_settlement(&mut transaction)
+            .unwrap()
+            .receipt;
+        let mut forged = candidate.clone();
+        forged.recovery_contract[0] ^= 1;
+        assert_eq!(
+            certificate.commit_provider_receipt(&mut transaction, &forged),
+            Err(SettlementError::ReceiptCommitMismatch)
+        );
+        assert_eq!(transaction.phase(), SettlementTransactionPhase::Quarantined);
+        assert_eq!(transaction.candidate_receipt(), Some(&candidate));
+
+        let mut committed = certificate
+            .prepare_start_transaction(NonZeroU64::new(8).unwrap())
+            .unwrap();
+        complete_phase_transaction(&certificate, &mut committed, decision);
+        let preserved = committed.committed_receipt().unwrap().canonical_json();
+        assert_eq!(
+            certificate.lock_transaction_decision(
+                &mut committed,
+                SettlementDecision::Abort(AdapterAbortReason::MalformedResponse),
+            ),
+            Err(SettlementError::ConflictingLockedDecision)
+        );
+        assert_eq!(committed.phase(), SettlementTransactionPhase::Quarantined);
+        assert_eq!(
+            committed.committed_receipt().unwrap().canonical_json(),
+            preserved
+        );
+    }
+
+    #[test]
+    fn phase_transactions_are_start_only_and_linear() {
+        let checkpoints = vec![
+            SettlementCheckpointSpec::new(
+                1,
+                vec![SettlementResourceState::Live],
+                None,
+                vec![0],
+                Vec::new(),
+            ),
+            SettlementCheckpointSpec::new(
+                2,
+                vec![SettlementResourceState::Dead],
+                None,
+                Vec::new(),
+                Vec::new(),
+            ),
+        ];
+        let snapshots = certificate(checkpoints);
+        assert!(matches!(
+            snapshots.prepare_start_transaction(NonZeroU64::new(1).unwrap()),
+            Err(SettlementError::InvalidProgressStart)
+        ));
+        assert_not_impl!(NativeSettlementTransaction, Clone);
+        assert_not_impl!(NativeSettlementTransaction, fmt::Debug);
+        assert_not_impl!(NativeSettlementTransaction, fmt::Display);
+        assert_not_impl!(SettlementFinalizerTicket, Clone);
+        assert_not_impl!(SettlementFinalizerTicket, fmt::Debug);
+        assert_not_impl!(SettlementFinalizerTicket, fmt::Display);
     }
 
     #[test]

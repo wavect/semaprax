@@ -240,6 +240,31 @@ No settlement file is added to callable-v2 bundles, no loader or host receives
 v2 settlement authority, ordinary native resource execution remains
 `SPX-B104`, and public callable-v3 admission remains absent.
 
+## Pre-v3 settlement phase model
+
+The hidden `NativeSettlementTransaction` now supplements the atomic proof-model
+`settle` helper with closed `Executing`, `DecisionLocked`,
+`ActionInProgress`, `ProviderSettled`, model `ReceiptCommitted`, and
+`Quarantined` phases. Future callable-v3 consumers must not treat either model
+as one physical commit. The protocol has three ordered irreversible boundaries:
+`CallCommit`, exact `SettlementDecisionCommit`, and host `ReceiptCommit`. A
+host unwind before the decision lock selects
+`Abort(HostUnwind)`; after the lock it resumes the exact decision and may not
+replace `Accept` with `Abort`. Unknown or conflicting phase evidence
+quarantines. An action records `Finalizing` before its effect, and interruption
+there quarantines without retry.
+
+The model/provider `Published` disposition means only that a result was
+selected in candidate evidence. It is not public ledger publication. Candidate
+receipt bytes must be independently validated, exact-instance bound, and
+authenticated by host-only authority before one ledger `ReceiptCommit`.
+Existing certificate-v2, receipt-v2, `SPXNPRF1`, and callable-v2 bytes are
+unchanged by this clarification; none may be reinterpreted as descriptor-v3 or
+physical host authority. The phase model allocates and provides no
+exact-instance reservation, host authentication, ownership ledger,
+allocation-free postcommit guarantee, FFI/provider, loader pin, or physical
+finalizer authority.
+
 ## Private callable settlement proof v1
 
 The compiler and unpublished native host add the private `SPXNPRF1` proof

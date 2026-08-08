@@ -58,6 +58,16 @@ exact v2 call contract and trace certificate to a bounded binary graph, which
 the host parses independently without loading or executing it. No descriptor-v3,
 provider, loader admission, host settlement execution, physical finalizer, or
 public compiler path is wired, so this adds no native runtime evidence to any row.
+The hidden linear phase model now starts from the sole authenticated
+post-`CallCommit` state and exercises exact `SettlementDecisionCommit`,
+provider-candidate, model-`ReceiptCommitted`, and absorbing `Quarantined`
+evidence. Its 29 focused tests cover phase-aware unwind,
+every-finalizer interruption, exact candidate/committed replay, hostile
+cross-binding and state mutation, and preserved evidence. It deliberately
+allocates and grants no exact-instance reservation, host authentication, ledger
+publication, provider/FFI, loader retention, or physical finalizer authority.
+Those physical gates remain required; this adds no native runtime evidence to a
+completion row and leaves `SPX-B104` closed.
 
 The dedicated Linux
 [callable-host sanitizer job](https://github.com/wavect/semaprax/actions/runs/31256134955/job/93099637801)

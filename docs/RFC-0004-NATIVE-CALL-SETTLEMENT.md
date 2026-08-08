@@ -1,6 +1,6 @@
 # RFC 0004: Native call recovery and settlement
 
-- Status: Proposed; private derivation/proof serialization implemented, physical v3 unwired
+- Status: Proposed; private phase model/derivation/proof serialization implemented, physical v3 unwired
 - Version: 0.1
 - Audience: compiler, native code generator, loader, ownership-host, adapter,
   and conformance-test implementers
@@ -16,9 +16,10 @@ physical failure, malformed provider output, and host unwinding converge on one
 bounded cleanup protocol without guessing which physical resources remain live.
 
 The repository contains an internal, target-neutral model of the bounded
-certificate, progress graph, frame, decision, receipt, and idempotent
-settlement operation plus private compiler derivation from validated cleanup
-HIR. The authority-free [settlement-proof v1](NATIVE-CALLABLE-SETTLEMENT-PROOF-V1.md)
+certificate, progress graph, frame, phase-aware transaction, decision,
+candidate/committed receipt evidence, and idempotent settlement operation plus
+private compiler derivation from validated cleanup HIR. The authority-free
+[settlement-proof v1](NATIVE-CALLABLE-SETTLEMENT-PROOF-V1.md)
 format now embeds the exact callable-v2 descriptor and a canonical binary graph;
 an independent host parser validates its bounds, hashes, topology, transitions,
 and cross-artifact bindings. This is not descriptor v3 or a runtime wire. There
@@ -34,6 +35,20 @@ The key rule is:
 > after validating one certified quiescent settlement. If certification cannot
 > be completed, it must poison and quarantine the exact module instance; it
 > must never infer cleanup from a malformed response or retry a finalizer.
+
+Callable v3 has three ordered irreversible boundaries, and none may be
+collapsed into another:
+
+```text
+CallCommit -> SettlementDecisionCommit -> host ReceiptCommit
+```
+
+`CallCommit` transfers the staged owners into the exact call frame.
+`SettlementDecisionCommit` locks one exact accept-or-abort decision for that
+frame. Host `ReceiptCommit` independently validates and authenticates the
+provider's candidate receipt before publishing one ledger outcome. A provider
+terminal disposition, including its internal `Published` state, is evidence
+for that last decision and is never itself public host publication.
 
 ## Relationship to existing contracts
 
@@ -66,12 +81,12 @@ call:
    checkpoint before provider control may return or report failure.
 2. Settlement starts from the exact last certified checkpoint and executes
    only cleanup that remains pending.
-3. Repeating the same settlement request has no additional physical effect and
-   returns the same receipt.
+3. Repeating the same locked settlement decision has no additional physical
+   effect and returns the same candidate receipt.
 4. Conflicting settlement decisions, cross-frame data, stale generations, and
    incomplete or reordered recovery paths fail closed.
-5. A successful receipt proves call-level quiescence before the ownership
-   ledger publishes a result, retires inputs, or permits unload eligibility.
+5. Only a host-validated and host-authenticated receipt may commit one ledger
+   publication, input retirement, or unload-eligibility transition.
 6. All allocation, capacity validation, certificate authentication, invocation
    reservation, and receipt storage occur before ownership commit.
 
@@ -119,8 +134,9 @@ quarantine rather than trigger speculative cleanup.
 
 ## Bounded target-neutral recovery frame
 
-The implemented foundation models a frame prepared from one authenticated
-certificate, one nonzero invocation, and one dense checkpoint. The frame stores
+The implemented foundation models a frame and a separate phase-aware linear
+transaction prepared from one authenticated certificate, one nonzero
+invocation, and one dense checkpoint. They store
 the function identity, nonzero recovery-contract fingerprint, certificate
 fingerprint, invocation, checkpoint ordinal, one owner-level state per resource,
 and an optional cached terminal settlement. It contains no raw pointer, target
@@ -172,9 +188,9 @@ The foundation deliberately uses these five closed states:
 | --- | --- |
 | `Live` | The call owns this admitted input and settlement must finalize it |
 | `ProvisionalResult` | The call owns the one possible unpublished result; accept-owned may publish it, while abort must finalize it |
-| `Finalizing` | A physical finalizer is active; this is transient and never an admissible recovery checkpoint |
+| `Finalizing` | A physical finalizer action has started; this is transient and never an admissible recovery checkpoint |
 | `Dead` | No call-owned value remains in this ordinal |
-| `Published` | The owned result was selected for publication; this is terminal and never an admissible recovery checkpoint |
+| `Published` | Provider/model evidence says that the owned result was selected for publication; this is terminal, never an admissible recovery checkpoint, and not public host publication |
 
 `Dead` is intentionally an owner-level disposition. It does not distinguish
 never initialized, previously finalized, or transferred ownership. The current
@@ -185,13 +201,14 @@ them from `Dead`.
 
 At a recoverable checkpoint, every entry must be `Live`,
 `ProvisionalResult`, or `Dead`, and there may be at most one provisional result.
-`Finalizing` is rejected because a synchronous total automatic finalizer must
-return and record `Dead` before another failure boundary. A trap, unwind,
-`longjmp`, process failure, or non-idempotent side effect during finalization is
-outside the admitted recovery model. The host must quarantine and must not
-retry such a finalizer. `Published` is rejected at checkpoint construction
-because publication is a terminal settlement action, not an executable
-provider claim.
+`Finalizing` is rejected because settlement must record it before entering the
+physical finalizer, and may record `Dead` only after the finalizer returns
+normally. A trap, unwind, `longjmp`, process failure, or uncertain side effect
+while `Finalizing` is therefore not retryable: the host must quarantine the
+exact frame and module instance and preserve the evidence. `Published` is
+rejected at checkpoint construction because it is a terminal provider/model
+selection, not a recoverable provider claim and not authority to mutate the
+public ledger.
 
 The only foundation transitions are:
 
@@ -259,12 +276,41 @@ An `Accept` decision must equal the checkpoint's admitted normal outcome.
 cleanup permutation; malformed output never authorizes the host to discard the
 frame or invent liveness.
 
-The target-neutral `settle` operation authenticates the frame against the
-certificate, revalidates its checkpoint state, derives actions only from the
+### Ordered commit protocol
+
+The physical protocol MUST represent these three ordered boundaries explicitly:
+
+1. `CallCommit` atomically transfers the staged owners to one exact-instance,
+   nonreused frame generation.
+2. `SettlementDecisionCommit` locks one exact decision before the first
+   settlement action. Recommitting the identical decision is idempotent;
+   proposing a different decision poisons and quarantines the frame.
+3. Host `ReceiptCommit` independently parses, replays, validates, and
+   authenticates the provider's candidate receipt, then changes public ledger
+   state at most once. A stale, cross-bound, conflicting, malformed, skipped,
+   duplicated, or reordered candidate quarantines without publication.
+
+Host unwind handling is phase-aware. After `CallCommit` but before a known
+`SettlementDecisionCommit`, the guard selects and locks
+`Abort(HostUnwind)`. After the decision is locked, the guard MUST resume that
+exact decision and MUST NOT replace an in-progress `Accept` with an abort. If
+the host cannot prove which phase or decision was committed, or observes a
+conflicting decision, it must poison and quarantine instead of guessing.
+
+Each finalizer action has its own start/completion boundary. The frame records
+the resource as `Finalizing` before invoking the physical effect and records it
+as `Dead` only after normal return. Unwind or interruption while `Finalizing`
+quarantines the exact instance; neither provider nor host may retry that action.
+Quarantine is terminal protocol evidence, not a settlement decision or a
+receipt commit.
+
+The existing target-neutral `settle` operation authenticates the frame against
+the certificate, revalidates its checkpoint state, derives actions only from the
 selected exact permutation, applies each action to its required state, computes
 terminal dispositions, validates the receipt, and caches the terminal result.
-It returns both the receipt and the actions that a future physical settlement
-provider must perform.
+It returns both a model receipt and the actions that a future physical
+settlement provider must perform. Its atomic proof step is not evidence that a
+physical provider exposes the ordered commit protocol above.
 
 Settlement is idempotent for the same decision. The first call returns the
 certified actions; every later call with the identical decision returns the
@@ -273,14 +319,27 @@ decision on a terminal frame is rejected as `ConflictingTerminalDecision`.
 This is model-level proof that a host can avoid retrying a finalizer. It is not
 yet proof that any physical finalizer ran once.
 
+The private `NativeSettlementTransaction` additionally makes the protocol
+phases executable as `Executing`, `DecisionLocked`, `ActionInProgress`,
+`ProviderSettled`, model `ReceiptCommitted`, and `Quarantined`. It advances only
+from the authenticated start; locks one exact decision; records `Finalizing`
+before returning an opaque linear finalizer ticket; requires exact ticket
+completion before recording `Dead`; and separately caches/replays provider
+candidate and model-committed receipt evidence. Every conflict, cross-binding,
+skipped action, stale ticket, malformed candidate, or uncertain in-progress
+finalizer monotonically quarantines. This Rust model allocates vectors and its
+`ReceiptCommitted` phase proves only validation/commit eligibility: it has no
+exact-instance reservation, host secret, ledger, or physical effect.
+
 Future callable v3 requires separate generated `execute` and `settle`
 operations. After atomic owner commit, every `execute` return—including normal
 success—must lead to one settlement decision and validated receipt. All
 physical buffers and the settlement guard must be prepared before commit.
 Physical `settle` must be allocation-free, non-panicking, non-unwinding,
-non-trapping, and must perform the returned actions exactly once. Host unwind
-after commit must be converted to `Abort(HostUnwind)` by a combined
-frame/lease/ledger guard. None of this provider or host wiring exists yet.
+non-trapping, and must perform the returned actions exactly once. A combined
+frame/lease/ledger guard must apply the phase-aware unwind rule above and retain
+the exact image through every in-progress action and quarantine. None of this
+provider or host wiring exists yet.
 
 ## Settlement certificate
 
@@ -298,7 +357,7 @@ semantic event dictionary and trace-path certificate, and an independently
 implemented host parser must reject every noncanonical byte, identity, count,
 bound, or fingerprint mismatch before commit.
 
-## Quiescence receipt
+## Candidate and committed receipts
 
 The implemented `semaprax.native-settlement-receipt.v2` model binds:
 
@@ -319,6 +378,15 @@ every owner-level disposition is terminal, and no modeled finalizer is active.
 It does not prove that native code performed the action, that callbacks are
 idle, that a loader lease is retained, or that a module may be unmapped.
 
+For callable v3, the provider emits only a **candidate receipt**. Candidate
+bytes, even when structurally valid, have no ledger authority. The host must
+independently bind them to the exact module instance and frame generation,
+replay their decision and ordered actions, require zero active finalizers,
+validate all terminal dispositions and evidence digests, and authenticate the
+accepted receipt with host-only authority. Only the resulting host
+`ReceiptCommit` may publish the selected owner or retire inputs, and identical
+replay returns the already committed ledger result without republishing it.
+
 A future wire receipt must additionally bind the exact physical module
 instance, frame generation, recovery-layout identity, response digest, semantic
 trace digest, adapter-evidence digest, and exact byte capacities. Only the host
@@ -335,9 +403,10 @@ and finalizer pins are gone, and the platform loader policy permits release.
 
 Poisoning is monotonic. It stops new calls and prevents publication or ordinary
 ledger completion for the affected frame. Quarantine retains the exact module
-instance, recovery frame, authority context, and diagnostic receipt storage for
-at least the process lifetime unless a separately proven platform isolation
-mechanism can release them safely.
+instance, recovery frame, authority context, locked-decision and action-phase
+evidence, candidate/diagnostic receipt storage, and every required code or
+finalizer pin for at least the process lifetime unless a separately proven
+platform isolation mechanism can release them safely.
 
 Quarantine deliberately prefers a bounded leak over use-after-free,
 double-finalization, executing unmapped code, or publishing uncertain
@@ -370,9 +439,20 @@ The internal model's focused unit suite currently covers:
 - exact minimum/maximum/work-budget boundaries and fixed certificate/receipt
   known-answer projections;
 - independent receipt-field mutation rejection; and
-- deterministic, domain-separated certificate and receipt projections.
+- deterministic, domain-separated certificate and receipt projections;
+- the complete phase-aware transaction path for every closed decision, every
+  certified checkpoint and abort reason, exact legacy receipt known answers,
+  identical decision/candidate/committed replay, and independent candidate
+  validation before model receipt commit;
+- unwind before decision lock, after each locked decision, at every finalizer
+  index, after provider settlement, and after model receipt commit, including
+  absorbing quarantine with exact resource/evidence preservation; and
+- hostile internal-state, ticket, decision, action-order, receipt, invocation,
+  and certificate-binding mutations across every irreversible phase, plus
+  non-`Clone` and non-formatting transaction/ticket gates.
 
-This evidence proves the bounded owner-level model, not physical settlement.
+These cases are part of the module's 29 focused tests. This evidence proves the
+bounded owner-level and phase-aware model, not physical settlement.
 The private compiler derivation separately proves the current direct-trivial
 corpus against independently validated cleanup HIR and semantic trace paths.
 The private proof envelope adds every-prefix, trailing-data, every-byte,
@@ -382,6 +462,15 @@ certificate but deliberately carries no instance, generation, capability,
 finalizer, frame, action, or receipt authority. Those physical-runtime wires
 still require stale-generation, cross-instance, failure-injection, and
 quiescence evidence.
+
+The pure model now starts from the sole authenticated post-`CallCommit` state
+and exercises `SettlementDecisionCommit`, provider-settled, and
+model-`ReceiptCommitted` evidence phases, phase-aware unwind recovery, and
+persistent `Finalizing` uncertainty. Physical exact-instance reservation and
+quarantine, allocation-free provider execution,
+host receipt authentication, atomic ledger publication, and loader retention
+remain normative v3 requirements below. They must not be inferred from the
+model, atomic `settle` helper, or proof envelope.
 
 ### Generated provider and host
 
@@ -396,6 +485,11 @@ quiescence evidence.
   incomplete, duplicate, skipped, and reordered settlement rejection;
 - panic injection after ledger commit at every host boundary, proving the
   combined frame/lease/ledger guard settles or quarantines without publication;
+- unwind injection before decision lock, after each exact decision lock, during
+  every finalizer, after provider settlement, and around host receipt commit;
+  these cases must prove abort selection only before decision lock, exact
+  decision resumption afterward, no retry from `Finalizing`, and exactly one
+  authenticated ledger publication;
 - draining, active-call, owner/result retention, callback/finalizer pins,
   last-reference release, and unload-eligibility races; and
 - O0/O2 equivalence and strict generated C/C++ warnings.
@@ -417,8 +511,8 @@ quiescence evidence.
 
 ## Implementation sequence
 
-1. Complete the partially implemented target-neutral frame and settlement
-   model gate with boundary, known-answer, and property evidence.
+1. Maintain the implemented target-neutral frame and phase-aware transaction
+   model gate with boundary, known-answer, hostility, and property evidence.
 2. Derive and independently validate the settlement certificate from cleanup
    HIR while callable v3 remains unreachable from compiler preflight.
 3. Serialize the derived proof through one bounded authority-free envelope and
@@ -450,8 +544,9 @@ WebAssembly Components, or ecosystem adapters. It does not turn quarantine into
 successful cleanup and does not recover from interruption inside a finalizer.
 
 As of this revision, the hidden target-neutral owner-state/progress model,
-private compiler derivation, bounded binary proof encoder, and independent
-proof parser are implemented; none of their physical runtime pieces are wired.
+phase-aware linear transaction and its 29 focused tests, private compiler
+derivation, bounded binary proof encoder, and independent proof parser are
+implemented; none of their physical runtime pieces are wired.
 Callable v2
 continues to retire logical ledger state after physical failure without proving
 general physical fallback cleanup or quiescence. Therefore the completion

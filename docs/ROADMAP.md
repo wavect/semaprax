@@ -86,6 +86,18 @@ None of the callable-v3 descriptor, provider, loader admission, host settlement,
 physical-finalizer, or public compiler pieces are wired, so this does not advance
 phase 3 or `SPX-B104`.
 
+Before freezing descriptor-v3 bytes, the hidden settlement model now starts at
+the authenticated post-`CallCommit` boundary and makes one exact
+`SettlementDecisionCommit`, provider settlement, and model `ReceiptCommitted`
+eligibility executable.
+Its 29 focused tests prove pre-decision unwind selects `Abort(HostUnwind)`,
+post-decision unwind resumes the locked decision, every-finalizer interruption
+quarantines without retry, candidate/committed replay is exact, and hostile
+phase mutations preserve evidence. Next, the physical descriptor/provider/host
+must prove exact-instance reservation, allocation-free postcommit operation,
+host-only receipt authentication, and one ledger publication. The pure model
+grants none of that authority and does not open `SPX-B104`.
+
 The dedicated Linux
 [dynamic-provider sanitizer job](https://github.com/wavect/semaprax/actions/runs/31256134955/job/93099637801)
 is green for all 14 O0/O2 generated-provider cases through the host. It linked

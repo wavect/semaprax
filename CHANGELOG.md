@@ -133,6 +133,15 @@ All notable changes to SEMAPRAX are documented here.
   The model deliberately provides no invocation or module-instance reservation,
   physical finalizer authority, descriptor/provider, loader/host, public
   compiler, or backend runtime evidence; `SPX-B104` remains closed.
+- Added a private linear settlement transaction model with closed `Executing`,
+  `DecisionLocked`, `ActionInProgress`, `ProviderSettled`, model
+  `ReceiptCommitted`, and absorbing `Quarantined` phases. Its 29 focused tests
+  cover phase-aware unwind, every-finalizer interruption without retry, exact
+  candidate/committed replay, hostile mutation/cross-binding, and preserved
+  evidence while keeping provider `Published` unauthoritative. The model
+  allocates and grants no exact-instance reservation, host authentication,
+  ledger publication, FFI/provider, or physical-finalizer authority; this
+  changes no v2 bytes or public/runtime gate.
 - Added private callable settlement-proof v1 without consuming the future v3
   ABI version. `SPXNPRF1` embeds the exact unchanged callable-v2 descriptor and
   a canonical pointer-free binary settlement graph under one 64 KiB ceiling.

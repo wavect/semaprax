@@ -132,7 +132,11 @@ The hidden `native_settlement` module and proposed [RFC
 0004](RFC-0004-NATIVE-CALL-SETTLEMENT.md) now make the target-neutral recovery
 state machine executable: bounded dense checkpoints, one all-live start, exact
 typed progress, accept/abort action permutations, idempotent cached receipts,
-terminal owner dispositions, and quiescence validation. A private compiler
+terminal owner dispositions, quiescence validation, and a separate linear
+phase-aware transaction. That transaction exposes only its closed phase,
+records `Finalizing` before issuing a noncopying finalizer ticket, caches
+provider-candidate and model-committed receipt evidence separately, and makes
+conflict or uncertainty an absorbing quarantine. A private compiler
 deriver now constructs this graph from validated cleanup HIR for the current
 direct-trivial owned slice, preserves exact result-staging/finalization timing,
 and binds terminal edges to accepted semantic trace paths. Exhaustive tests
@@ -149,6 +153,23 @@ module-instance or frame-generation binding, physical finalizer authority,
 descriptor-v3 contract, provider, loader admission, host execution, or public
 compiler connection; it is not physical fallback evidence and does not change
 `SPX-B104`.
+
+The hidden phase model now keeps the eligibility evidence for three
+irreversible physical boundaries distinct: `CallCommit`,
+`SettlementDecisionCommit`, and host `ReceiptCommit`. Unwind after
+the call commit but before the decision lock selects `Abort(HostUnwind)`;
+unwind after the lock resumes the exact decision, while an unknown or
+conflicting phase makes the model enter absorbing `Quarantined` while preserving
+its evidence. A physical host must additionally quarantine the exact instance.
+A physical action must record `Finalizing` before entering its effect and may
+record `Dead` only after normal return, so interruption is quarantined and never
+retried. A provider terminal state and candidate receipt are evidence
+only—including its `Published` disposition. Only independent host validation
+plus host-only authentication may commit one public ledger publication. The
+model's `ReceiptCommitted` phase is only exact candidate-validation evidence:
+it allocates and owns no host secret, ledger, exact-instance reservation,
+loader pin, or physical finalizer. The current proof envelope and callable host
+do not wire the physical v3 boundary.
 
 The Windows CI lane now explicitly reruns the generated O0/O2 callable corpus
 and a loader fixture that places a same-name dependency in CWD and legacy

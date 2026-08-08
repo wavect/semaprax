@@ -166,6 +166,17 @@ descriptor, provider, loader admission, host settlement, or physical finalizer
 is wired, so it supplies no native-runtime evidence and does not weaken
 `SPX-B104`.
 
+The hidden phase-aware transaction model now starts from the authenticated
+post-`CallCommit` state and separates one exact `SettlementDecisionCommit`,
+provider-candidate evidence, and model `ReceiptCommitted` eligibility. Before
+the decision lock, host unwind selects
+`Abort(HostUnwind)`; afterward it resumes the locked decision. Conflicts and
+interruption while `Finalizing` quarantine without retry, while exact
+candidate/committed replay preserves evidence. This model allocates and grants
+no exact-instance, host-authentication, ledger-publication, FFI/provider, or
+physical-finalizer authority. Public ownership still requires a future
+host-authenticated `ReceiptCommit`; no public execution path is wired.
+
 An unpublished [native loader quarantine](docs/NATIVE-MODULE-LOADER.md) has
 separately documented unsafe boundaries for descriptor-only admission and exact
 callable-v2 admission. It eagerly resolves one private callable and exposes only

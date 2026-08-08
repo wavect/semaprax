@@ -59,6 +59,8 @@ The remaining Cargo and `semaprax` commands are shell-neutral.
 | UI/platform | Accessibility checks, lifecycle/capability tests, representative simulator/device or host evidence |
 | Security boundary | Threat-model delta, hostile input test, no newly ambient capability |
 
+The gated native cleanup corpus runs at O0 and O2 everywhere Clang is available. Linux CI additionally sets `SEMAPRAX_REQUIRE_NATIVE_SANITIZERS=1`, which makes separate ASan and UBSan compile/run support mandatory rather than allowing capability-based skips.
+
 ## Evidence strength
 
 - A design document proves intent, not implementation.

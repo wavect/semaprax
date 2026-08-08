@@ -1,6 +1,6 @@
 # Conformance trace v1
 
-Status: the public Rust data model, deterministic JSON projection, independent attached-plan replay, scenario-driven single-frame reference executor, and native scalar status/out execution are implemented. Native resource/trace instrumentation, Wasm status/resource/trace instrumentation, recursive reference-callee execution, callable-import execution, adapter execution, backend-trace validation, and backend-conformance claims are not implemented.
+Status: the public Rust data model, deterministic JSON projection, independent attached-plan replay, scenario-driven single-frame reference executor, and native scalar status/out execution are implemented. A gated native cleanup scaffold now emits root-frame events for the admitted direct-trivial-resource slice and passes exact typed/JSON comparison through a bounded binary decoder and validated-HIR materializer at O0/O2 plus sanitizers. Production native resource/expression integration, Wasm status/resource/trace instrumentation, recursive reference-callee execution, callable-import execution, adapter execution, and full backend-conformance claims are not implemented.
 
 This document fixes the current public wire projection defined by `src/conformance.rs`. It complements [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md). The native scalar backend now executes the status/out portion, but no backend emits this semantic trace or claims cleanup conformance yet.
 

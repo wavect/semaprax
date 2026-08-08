@@ -35,6 +35,11 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo clippy --locked --all-targets --all-features -- -D warnings
       - run: cargo test --locked --all-targets
+      - name: Require native cleanup sanitizers (Linux)
+        if: runner.os == 'Linux'
+        env:
+          SEMAPRAX_REQUIRE_NATIVE_SANITIZERS: "1"
+        run: cargo test --locked --lib codegen::native_conformance::first_native_resource_corpus_matches_the_reference_across_codegen_modes -- --exact
       - run: cargo test --locked --doc
       - run: cargo doc --locked --no-deps
         env:

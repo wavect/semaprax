@@ -1,5 +1,11 @@
 mod native_cleanup;
 mod native_cleanup_emit;
+#[cfg(test)]
+mod native_conformance;
+#[cfg(test)]
+mod native_conformance_materialize;
+#[cfg(test)]
+mod native_conformance_wire;
 mod native_resource;
 mod native_runtime;
 mod native_trace;

@@ -79,48 +79,25 @@ fn emit_hir_c_with_labels(
             "native record lowering is gated on aggregate cleanup and layout support",
         ));
     }
-    if program.types.iter().any(|declaration| {
-        matches!(
-            &declaration.kind,
-            ResolvedTypeDeclarationKind::Resource { .. }
-        )
-    }) {
-        return Err(Diagnostic::io(
-            "SPX-B104",
-            "native resource lowering requires lifecycle declarations and the verified cleanup ABI",
-        ));
-    }
+    let resource_abi = native_resource::build_resource_abi(program)?;
     let functions = function_index(program)?;
-    let mut output = String::new();
-    native_runtime::emit_status_runtime(&mut output);
-    output.push_str("#include <stdio.h>\n\n");
-    output.push_str(NATIVE_SCALAR_RUNTIME_C);
-
-    for function in &program.functions {
-        let metadata = functions
-            .get(&function.id)
-            .ok_or_else(|| backend_error(format!("function `{}` is not indexed", function.id)))?;
-        write!(
-            output,
-            "static __attribute__((unused)) spx_status_token {}(struct spx_context *spx_ctx",
-            metadata.symbol,
-        )
-        .expect("writing to a string cannot fail");
-        for param in &function.params {
-            write!(output, ", {}", c_type(program, &param.ty)?)
-                .expect("writing to a string cannot fail");
-        }
-        writeln!(
-            output,
-            ", {} *spx_result_out);",
-            c_type(program, &function.return_type)?
-        )
-        .expect("writing to a string cannot fail");
+    if !resource_abi.resources.is_empty() {
+        let _preflight = preflight_resource_lowering(program, &functions, &resource_abi);
+        return Err(resource_lowering_gate());
     }
-    output.push('\n');
+    let mut output = String::new();
+    emit_native_prelude(&mut output, &resource_abi);
+    emit_function_prototypes(&mut output, program, &functions, &resource_abi)?;
 
     for function in &program.functions {
-        emit_function(&mut output, program, &functions, function, contract_labels)?;
+        emit_function(
+            &mut output,
+            program,
+            &resource_abi,
+            &functions,
+            function,
+            contract_labels,
+        )?;
     }
 
     let main = program
@@ -157,6 +134,79 @@ fn emit_hir_c_with_labels(
     )
     .expect("writing to a string cannot fail");
     Ok(output)
+}
+
+fn emit_native_prelude(output: &mut String, resource_abi: &native_resource::NativeResourceAbi) {
+    native_runtime::emit_status_runtime(output);
+    output.push_str(&resource_abi.declarations);
+    output.push_str("#include <stdio.h>\n\n");
+    output.push_str(NATIVE_SCALAR_RUNTIME_C);
+}
+
+fn emit_function_prototypes(
+    output: &mut String,
+    program: &ResolvedProgram,
+    functions: &HashMap<DeclarationId, CFunction>,
+    resource_abi: &native_resource::NativeResourceAbi,
+) -> Result<(), Diagnostic> {
+    for function in &program.functions {
+        let metadata = functions
+            .get(&function.id)
+            .ok_or_else(|| backend_error(format!("function `{}` is not indexed", function.id)))?;
+        write!(
+            output,
+            "static __attribute__((unused)) spx_status_token {}(struct spx_context *spx_ctx",
+            metadata.symbol,
+        )
+        .expect("writing to a string cannot fail");
+        for param in &function.params {
+            write!(output, ", {}", resource_abi.c_type(program, &param.ty)?)
+                .expect("writing to a string cannot fail");
+        }
+        writeln!(
+            output,
+            ", {} *spx_result_out);",
+            resource_abi.c_type(program, &function.return_type)?
+        )
+        .expect("writing to a string cannot fail");
+    }
+    output.push('\n');
+    Ok(())
+}
+
+fn preflight_resource_lowering(
+    program: &ResolvedProgram,
+    functions: &HashMap<DeclarationId, CFunction>,
+    resource_abi: &native_resource::NativeResourceAbi,
+) -> Result<(), Diagnostic> {
+    let mut first_failure = None;
+    for function in &program.functions {
+        if let Err(diagnostic) = native_cleanup::classify(program, function) {
+            first_failure.get_or_insert(diagnostic);
+        }
+        if let Err(diagnostic) = native_trace::required_event_capacity(program, function) {
+            first_failure.get_or_insert(diagnostic);
+        }
+    }
+
+    // Exercise the same declaration/type/prototype order that the eventual
+    // resource emitter will use, then discard it. No resource artifact may
+    // escape until cleanup execution and trace validation are connected.
+    let mut staged_output = String::new();
+    emit_native_prelude(&mut staged_output, resource_abi);
+    if let Err(diagnostic) =
+        emit_function_prototypes(&mut staged_output, program, functions, resource_abi)
+    {
+        first_failure.get_or_insert(diagnostic);
+    }
+    first_failure.map_or(Ok(()), Err)
+}
+
+fn resource_lowering_gate() -> Diagnostic {
+    Diagnostic::io(
+        "SPX-B104",
+        "native resource lowering requires lifecycle declarations and the verified cleanup ABI",
+    )
 }
 
 const NATIVE_SCALAR_RUNTIME_C: &str = r#"#include <stdlib.h>
@@ -341,6 +391,7 @@ static __attribute__((unused)) int spx_public_failure(
 fn emit_function(
     output: &mut String,
     program: &ResolvedProgram,
+    resource_abi: &native_resource::NativeResourceAbi,
     functions: &HashMap<DeclarationId, CFunction>,
     function: &ResolvedFunction,
     contract_labels: &HashMap<ExpressionId, String>,
@@ -358,14 +409,14 @@ fn emit_function(
         write!(
             output,
             ", {} spx_param_{index}",
-            c_type(program, &param.ty)?
+            resource_abi.c_type(program, &param.ty)?
         )
         .expect("writing to a string cannot fail");
     }
     writeln!(
         output,
         ", {} *spx_result_out) {{",
-        c_type(program, &function.return_type)?
+        resource_abi.c_type(program, &function.return_type)?
     )
     .expect("writing to a string cannot fail");
 
@@ -383,12 +434,12 @@ fn emit_function(
             )
         })
         .collect();
-    let mut emitter = CEmitter::new(output, program, variables, functions);
+    let mut emitter = CEmitter::new(output, program, resource_abi, variables, functions);
     emitter.line("spx_status_token spx_status = SPX_STATUS_SUCCESS;");
     emitter.line("(void)spx_ctx;");
     emitter.line(&format!(
         "{} spx_result = {{0}};",
-        c_type(program, &function.return_type)?
+        resource_abi.c_type(program, &function.return_type)?
     ));
     for index in 0..function.params.len() {
         emitter.line(&format!("(void)spx_param_{index};"));
@@ -546,33 +597,6 @@ fn c_function_symbol(id: &DeclarationId) -> String {
     symbol
 }
 
-fn c_type<'a>(program: &ResolvedProgram, ty: &ResolvedType) -> Result<&'a str, Diagnostic> {
-    match ty {
-        ResolvedType::I64 => Ok("int64_t"),
-        ResolvedType::Bool => Ok("bool"),
-        ResolvedType::Nominal { .. } => {
-            let facts = program.declarations.type_facts(ty).ok_or_else(|| {
-                backend_error(format!(
-                    "semantic facts are unavailable for `{}`",
-                    ty.identity_key()
-                ))
-            })?;
-            if facts.contains_resource && facts.sized {
-                Ok("void *")
-            } else {
-                Err(backend_error(format!(
-                    "native representation is unavailable for `{}`",
-                    ty.identity_key()
-                )))
-            }
-        }
-        ResolvedType::TypeParameter { .. } => Err(backend_error(format!(
-            "native representation is unavailable for `{}`",
-            ty.identity_key()
-        ))),
-    }
-}
-
 #[derive(Clone)]
 struct CBinding {
     name: String,
@@ -587,6 +611,7 @@ struct CValue {
 struct CEmitter<'a> {
     output: &'a mut String,
     program: &'a ResolvedProgram,
+    resource_abi: &'a native_resource::NativeResourceAbi,
     variables: HashMap<ValueId, CBinding>,
     functions: &'a HashMap<DeclarationId, CFunction>,
     next_local: usize,
@@ -597,12 +622,14 @@ impl<'a> CEmitter<'a> {
     fn new(
         output: &'a mut String,
         program: &'a ResolvedProgram,
+        resource_abi: &'a native_resource::NativeResourceAbi,
         variables: HashMap<ValueId, CBinding>,
         functions: &'a HashMap<DeclarationId, CFunction>,
     ) -> Self {
         Self {
             output,
             program,
+            resource_abi,
             variables,
             functions,
             next_local: 0,
@@ -620,7 +647,10 @@ impl<'a> CEmitter<'a> {
     fn temporary(&mut self, ty: &ResolvedType) -> Result<String, Diagnostic> {
         let name = format!("spx_internal_{}", self.next_local);
         self.next_local += 1;
-        self.line(&format!("{} {name};", c_type(self.program, ty)?));
+        self.line(&format!(
+            "{} {name};",
+            self.resource_abi.c_type(self.program, ty)?
+        ));
         Ok(name)
     }
 
@@ -742,7 +772,7 @@ impl<'a> CEmitter<'a> {
                             self.next_local += 1;
                             self.line(&format!(
                                 "{} {local} = {};",
-                                c_type(self.program, &binding.ty)?,
+                                self.resource_abi.c_type(self.program, &binding.ty)?,
                                 value.code
                             ));
                             if self
@@ -897,21 +927,167 @@ fn backend_error(message: impl Into<String>) -> Diagnostic {
 
 fn c_string(value: &str) -> String {
     let mut escaped = String::with_capacity(value.len());
-    for character in value.chars() {
-        match character {
-            '\\' => escaped.push_str("\\\\"),
-            '"' => escaped.push_str("\\\""),
-            '\n' => escaped.push_str("\\n"),
-            '\r' => escaped.push_str("\\r"),
-            '\t' => escaped.push_str("\\t"),
-            value if value.is_control() => {
-                let mut bytes = [0; 4];
-                for byte in value.encode_utf8(&mut bytes).bytes() {
-                    write!(escaped, "\\{byte:03o}").expect("writing to a string cannot fail");
-                }
+    for byte in value.as_bytes() {
+        match *byte {
+            b'\\' => escaped.push_str("\\\\"),
+            b'"' => escaped.push_str("\\\""),
+            b'\n' => escaped.push_str("\\n"),
+            b'\r' => escaped.push_str("\\r"),
+            b'\t' => escaped.push_str("\\t"),
+            b'?' | 0x00..=0x1f | 0x7f..=0xff => {
+                write!(escaped, "\\{byte:03o}").expect("writing to a string cannot fail");
             }
-            value => escaped.push(value),
+            value => escaped.push(char::from(value)),
         }
     }
     escaped
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use crate::{hir, parse};
+
+    use super::*;
+
+    const RESOURCE_SOURCE: &str = r#"module test.native_resource_types;
+
+@id("token.type")
+resource Token {
+    @id("token.drop")
+    drop trivial;
+}
+
+@id("token.identity")
+fn identity(value: own Token) -> Token { value }
+
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+
+    fn resolved_resource_program() -> ResolvedProgram {
+        let parsed = parse(
+            RESOURCE_SOURCE,
+            Path::new("native-resource-type-selection.spx"),
+        )
+        .unwrap();
+        hir::resolve(&parsed).unwrap()
+    }
+
+    #[test]
+    fn direct_resource_parameters_and_results_use_the_stable_wrapper_type() {
+        let program = resolved_resource_program();
+        let resource_abi = native_resource::build_resource_abi(&program).unwrap();
+        let functions = function_index(&program).unwrap();
+        let wrapper = &resource_abi.resources[0].c_type;
+        let mut output = String::new();
+        emit_native_prelude(&mut output, &resource_abi);
+        emit_function_prototypes(&mut output, &program, &functions, &resource_abi).unwrap();
+
+        let identity_symbol = c_function_symbol(&DeclarationId::new("token.identity"));
+        let prototype = output
+            .lines()
+            .find(|line| line.contains(&identity_symbol))
+            .unwrap();
+        assert!(prototype.contains(&format!(
+            "{identity_symbol}(struct spx_context *spx_ctx, {wrapper}, {wrapper} *spx_result_out);"
+        )));
+        assert!(!prototype.contains("void *"));
+        assert!(
+            output
+                .find("/* semaprax.native-resource-abi.v1 */")
+                .unwrap()
+                < output.find(&identity_symbol).unwrap()
+        );
+
+        let mut second = String::new();
+        emit_native_prelude(&mut second, &resource_abi);
+        emit_function_prototypes(&mut second, &program, &functions, &resource_abi).unwrap();
+        assert_eq!(output, second);
+    }
+
+    #[test]
+    fn public_resource_emission_runs_preflight_but_remains_b104_gated() {
+        let parsed = parse(
+            RESOURCE_SOURCE,
+            Path::new("native-resource-public-gate.spx"),
+        )
+        .unwrap();
+        let diagnostic = emit_c(&parsed).unwrap_err();
+        assert_eq!(diagnostic.code, "SPX-B104");
+        assert_eq!(
+            diagnostic.message,
+            "native resource lowering requires lifecycle declarations and the verified cleanup ABI"
+        );
+    }
+
+    #[test]
+    fn c_literals_preserve_utf8_bytes_without_exposing_trigraphs() {
+        static NEXT_FIXTURE: AtomicU64 = AtomicU64::new(0);
+
+        if Command::new("clang").arg("--version").output().is_err() {
+            return;
+        }
+
+        let escaped = c_string("??/λ\n\r\t\\\"\u{7f}");
+        assert_eq!(escaped, "\\077\\077/\\316\\273\\n\\r\\t\\\\\\\"\\177");
+        assert!(!escaped.contains("??"));
+        assert!(escaped.is_ascii());
+
+        let source = format!(
+            "#include <stddef.h>\n\
+             static const unsigned char value[] = \"{escaped}\";\n\
+             static const unsigned char expected[] = {{0x3f, 0x3f, 0x2f, 0xce, 0xbb, 0x0a, 0x0d, 0x09, 0x5c, 0x22, 0x7f, 0x00}};\n\
+             int main(void) {{\n\
+                 if (sizeof(value) != sizeof(expected)) return 1;\n\
+                 for (size_t index = 0; index < sizeof(expected); ++index) {{\n\
+                     if (value[index] != expected[index]) return 2;\n\
+                 }}\n\
+                 return 0;\n\
+             }}\n"
+        );
+        assert!(!source.contains("??"));
+
+        let suffix = NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed);
+        let c_path = std::env::temp_dir().join(format!(
+            "semaprax-c-string-{}-{suffix}.c",
+            std::process::id()
+        ));
+        let binary = std::env::temp_dir().join(format!(
+            "semaprax-c-string-{}-{suffix}{}",
+            std::process::id(),
+            std::env::consts::EXE_SUFFIX
+        ));
+        std::fs::write(&c_path, source).expect("write strict C string fixture");
+        let compiled = Command::new("clang")
+            .args([
+                "-std=c11",
+                "-O2",
+                "-Wall",
+                "-Wextra",
+                "-Werror",
+                "-Wtrigraphs",
+            ])
+            .arg(&c_path)
+            .arg("-o")
+            .arg(&binary)
+            .output()
+            .expect("clang was available during the version probe");
+        let _ = std::fs::remove_file(&c_path);
+        assert!(
+            compiled.status.success(),
+            "strict C11 compilation failed:\n{}",
+            String::from_utf8_lossy(&compiled.stderr)
+        );
+        let run = Command::new(&binary)
+            .output()
+            .expect("run C string fixture");
+        let _ = std::fs::remove_file(&binary);
+        assert!(
+            run.status.success(),
+            "C string fixture exited {}",
+            run.status
+        );
+    }
 }

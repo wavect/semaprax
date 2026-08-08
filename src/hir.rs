@@ -923,6 +923,7 @@ pub fn analyze(program: &Program) -> Analysis {
 /// schema for constructing HIR outside the compiler is future work.
 pub fn validate(program: &ResolvedProgram) -> Result<(), Diagnostic> {
     validate_core(program)?;
+    validate_attached_identity_references(program)?;
     crate::cleanup::validate_program(program)?;
     crate::cleanup_plan::validate_program(program)?;
     Ok(())
@@ -944,6 +945,7 @@ struct HirValidator<'a> {
 
 impl<'a> HirValidator<'a> {
     fn new(program: &'a ResolvedProgram) -> Result<Self, Diagnostic> {
+        validate_nul_free_identities(program)?;
         let mut functions = BTreeMap::new();
         for function in &program.functions {
             if functions.insert(function.id.clone(), function).is_some() {
@@ -1357,6 +1359,7 @@ impl<'a> HirValidator<'a> {
         }
         let mut scope = BTreeMap::new();
         for (index, param) in function.params.iter().enumerate() {
+            reject_nul_identity("resolved value", param.id.as_str())?;
             let expected = ValueId::parameter(&function.id, index);
             if param.id != expected {
                 return Err(hir_error(format!(
@@ -1378,6 +1381,7 @@ impl<'a> HirValidator<'a> {
                 },
             );
         }
+        reject_nul_identity("resolved value", function.result_id.as_str())?;
         if function.result_id != ValueId::result(&function.id) {
             return Err(hir_error(format!(
                 "function `{}` has a non-canonical result identity",
@@ -1450,6 +1454,7 @@ impl<'a> HirValidator<'a> {
         allow_moves: bool,
         allowed_effects: Option<&BTreeSet<String>>,
     ) -> Result<(), Diagnostic> {
+        reject_nul_identity("resolved expression", expression.id.as_str())?;
         if expression.id != ExpressionId::new(function, path) {
             return Err(hir_error(format!(
                 "expression `{}` has a non-canonical identity",
@@ -2263,6 +2268,7 @@ impl<'a> HirValidator<'a> {
     }
 
     fn insert_value(&mut self, id: &ValueId) -> Result<(), Diagnostic> {
+        reject_nul_identity("resolved value", id.as_str())?;
         if self.value_ids.insert(id.clone()) {
             Ok(())
         } else {
@@ -2270,6 +2276,400 @@ impl<'a> HirValidator<'a> {
                 "duplicate resolved value identity `{id}`"
             )))
         }
+    }
+}
+
+fn validate_nul_free_identities(program: &ResolvedProgram) -> Result<(), Diagnostic> {
+    reject_nul_identity("resolved entry point", program.entrypoint.as_str())?;
+
+    for (key, declaration) in &program.declarations.declarations {
+        reject_nul_identity("declaration index key", key.as_str())?;
+        reject_nul_identity(
+            declaration_identity_subject(declaration.kind),
+            declaration.id.as_str(),
+        )?;
+        if let Some(owner) = &declaration.owner {
+            reject_nul_identity("resolved declaration owner", owner.as_str())?;
+        }
+    }
+    for id in program.declarations.types_by_name.values() {
+        reject_nul_identity("resolved type lookup", id.as_str())?;
+    }
+    for id in program.declarations.functions_by_name.values() {
+        reject_nul_identity("resolved function lookup", id.as_str())?;
+    }
+    for ((owner, _), field) in &program.declarations.fields_by_owner_name {
+        reject_nul_identity("resolved field owner lookup", owner.as_str())?;
+        reject_nul_identity("resolved field lookup", field.as_str())?;
+    }
+    for (owner, fields) in &program.declarations.record_fields {
+        reject_nul_identity("resolved record-field owner", owner.as_str())?;
+        for field in fields {
+            reject_nul_identity("resolved field", field.id.as_str())?;
+            audit_resolved_type(&field.ty)?;
+        }
+    }
+    for (key, import) in &program.declarations.imports_by_key {
+        reject_nul_identity("resolved logical import key", key)?;
+        reject_nul_identity("resolved import lookup", import.as_str())?;
+    }
+
+    for declaration in &program.types {
+        let subject = match declaration.kind {
+            ResolvedTypeDeclarationKind::Resource { .. } => "resolved resource",
+            ResolvedTypeDeclarationKind::Record { .. } => "resolved record",
+        };
+        reject_nul_identity(subject, declaration.id.as_str())?;
+        match &declaration.kind {
+            ResolvedTypeDeclarationKind::Resource { drop } => {
+                reject_nul_identity("resolved resource lifecycle", drop.id.as_str())?;
+                if let ResolvedResourceDropKind::Imported { import, import_key } = &drop.kind {
+                    reject_nul_identity("resolved lifecycle import", import.as_str())?;
+                    reject_nul_identity("resolved lifecycle logical import key", import_key)?;
+                }
+            }
+            ResolvedTypeDeclarationKind::Record { fields } => {
+                for field in fields {
+                    reject_nul_identity("resolved field", field.id.as_str())?;
+                    audit_resolved_type(&field.ty)?;
+                }
+            }
+        }
+    }
+    for interface in &program.interfaces {
+        reject_nul_identity("resolved interface", interface.id.as_str())?;
+        for import in &interface.imports {
+            reject_nul_identity("resolved import", import.id.as_str())?;
+            reject_nul_identity("resolved import owner", import.interface.as_str())?;
+            reject_nul_identity("resolved logical import key", &import.import_key)?;
+            for parameter in &import.parameters {
+                audit_resolved_type(&parameter.ty)?;
+            }
+        }
+    }
+    for function in &program.functions {
+        reject_nul_identity("resolved function", function.id.as_str())?;
+        for parameter in &function.params {
+            reject_nul_identity("resolved value", parameter.id.as_str())?;
+            audit_resolved_type(&parameter.ty)?;
+        }
+        reject_nul_identity("resolved value", function.result_id.as_str())?;
+        audit_resolved_type(&function.return_type)?;
+        for expression in function
+            .requires
+            .iter()
+            .chain(std::iter::once(&function.body))
+            .chain(&function.ensures)
+        {
+            audit_resolved_expression(expression)?;
+        }
+    }
+    Ok(())
+}
+
+/// Reject target-neutral attached metadata containing identities that cannot
+/// cross C-string-backed backend and trace boundaries losslessly.
+///
+/// This is intentionally narrower than semantic inventory/plan validation so
+/// independent replayers can call it without trusting either canonical builder.
+pub(crate) fn validate_attached_identity_references(
+    program: &ResolvedProgram,
+) -> Result<(), Diagnostic> {
+    for function in &program.functions {
+        audit_cleanup_inventory(&function.cleanup)?;
+        audit_cleanup_plan(&function.cleanup_plan)?;
+    }
+    Ok(())
+}
+
+fn audit_resolved_type(root: &ResolvedType) -> Result<(), Diagnostic> {
+    let mut pending = vec![root];
+    while let Some(ty) = pending.pop() {
+        match ty {
+            ResolvedType::I64 | ResolvedType::Bool => {}
+            ResolvedType::TypeParameter { owner, .. } => {
+                reject_nul_identity("resolved type-parameter owner", owner.as_str())?;
+            }
+            ResolvedType::Nominal {
+                declaration,
+                arguments,
+            } => {
+                reject_nul_identity("resolved nominal type", declaration.as_str())?;
+                pending.extend(arguments);
+            }
+        }
+    }
+    Ok(())
+}
+
+fn audit_resolved_expression(root: &ResolvedExpr) -> Result<(), Diagnostic> {
+    let mut pending = vec![root];
+    while let Some(expression) = pending.pop() {
+        reject_nul_identity("resolved expression", expression.id.as_str())?;
+        audit_resolved_type(&expression.ty)?;
+        match &expression.kind {
+            ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) => {}
+            ResolvedExprKind::Place(place) => audit_hir_place(place)?,
+            ResolvedExprKind::Call { callee, args } => {
+                reject_nul_identity("resolved call target", callee.as_str())?;
+                pending.extend(args);
+            }
+            ResolvedExprKind::Unary { value, .. } => pending.push(value),
+            ResolvedExprKind::Binary { left, right, .. } => {
+                pending.push(right);
+                pending.push(left);
+            }
+            ResolvedExprKind::Block { statements, tail } => {
+                pending.push(tail);
+                for statement in statements.iter().rev() {
+                    let ResolvedStatement::Let { binding, value, .. } = statement;
+                    reject_nul_identity("resolved value", binding.id.as_str())?;
+                    audit_resolved_type(&binding.ty)?;
+                    pending.push(value);
+                }
+            }
+            ResolvedExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                pending.push(else_branch);
+                pending.push(then_branch);
+                pending.push(condition);
+            }
+            ResolvedExprKind::ConstructRecord { record, fields } => {
+                reject_nul_identity("resolved record constructor", record.as_str())?;
+                for field in fields.iter().rev() {
+                    reject_nul_identity("resolved record initializer field", field.field.as_str())?;
+                    pending.push(&field.value);
+                }
+            }
+            ResolvedExprKind::Project { base, field } => {
+                reject_nul_identity("resolved projected field", field.as_str())?;
+                pending.push(base);
+            }
+        }
+    }
+    Ok(())
+}
+
+fn audit_hir_place(place: &Place) -> Result<(), Diagnostic> {
+    reject_nul_identity("resolved place root", place.root.as_str())?;
+    for projection in &place.projections {
+        match projection {
+            PlaceProjection::Field(field) => {
+                reject_nul_identity("resolved place field", field.as_str())?;
+            }
+            PlaceProjection::VariantField { case, field } => {
+                reject_nul_identity("resolved place variant case", case.as_str())?;
+                reject_nul_identity("resolved place variant field", field.as_str())?;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn audit_field_liveness_shape(root: &crate::cleanup::FieldLivenessShape) -> Result<(), Diagnostic> {
+    let mut pending = vec![root];
+    while let Some(shape) = pending.pop() {
+        match shape {
+            crate::cleanup::FieldLivenessShape::NoDrop => {}
+            crate::cleanup::FieldLivenessShape::Leaf { lifecycle, .. } => {
+                reject_nul_identity("cleanup lifecycle", lifecycle.as_str())?;
+            }
+            crate::cleanup::FieldLivenessShape::Record {
+                declaration,
+                fields,
+            } => {
+                reject_nul_identity("cleanup record", declaration.as_str())?;
+                for field in fields.iter().rev() {
+                    reject_nul_identity("cleanup field", field.field.as_str())?;
+                    pending.push(&field.shape);
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+fn audit_inventory_place(place: &crate::cleanup::CleanupPlace) -> Result<(), Diagnostic> {
+    for projection in &place.projections {
+        reject_nul_identity("cleanup inventory projection", projection.as_str())?;
+    }
+    Ok(())
+}
+
+fn audit_cleanup_inventory(inventory: &CleanupInventory) -> Result<(), Diagnostic> {
+    for slot in &inventory.slots {
+        match &slot.origin {
+            crate::cleanup::CleanupStorageOrigin::Parameter { value, .. }
+            | crate::cleanup::CleanupStorageOrigin::Binding { value }
+            | crate::cleanup::CleanupStorageOrigin::ProvisionalResult { value } => {
+                reject_nul_identity("cleanup inventory value", value.as_str())?;
+            }
+            crate::cleanup::CleanupStorageOrigin::Temporary { expression } => {
+                reject_nul_identity("cleanup inventory expression", expression.as_str())?;
+            }
+        }
+        audit_resolved_type(&slot.ty)?;
+        audit_field_liveness_shape(&slot.shape)?;
+    }
+    for flag in &inventory.flags {
+        audit_inventory_place(&flag.place)?;
+        reject_nul_identity("cleanup inventory lifecycle", flag.lifecycle.as_str())?;
+    }
+    Ok(())
+}
+
+fn audit_plan_storage(storage: &crate::cleanup_plan::StorageId) -> Result<(), Diagnostic> {
+    match storage {
+        crate::cleanup_plan::StorageId::Value(value) => {
+            reject_nul_identity("cleanup-plan value storage", value.as_str())?;
+        }
+        crate::cleanup_plan::StorageId::Temporary(expression) => {
+            reject_nul_identity("cleanup-plan temporary storage", expression.as_str())?;
+        }
+        crate::cleanup_plan::StorageId::CallArgument {
+            call,
+            value_expression,
+            ..
+        } => {
+            reject_nul_identity("cleanup-plan call-argument call", call.as_str())?;
+            reject_nul_identity(
+                "cleanup-plan call-argument value",
+                value_expression.as_str(),
+            )?;
+        }
+        crate::cleanup_plan::StorageId::ProvisionalResult => {}
+    }
+    Ok(())
+}
+
+fn audit_plan_place(place: &crate::cleanup_plan::CleanupPlace) -> Result<(), Diagnostic> {
+    audit_plan_storage(&place.storage)?;
+    for projection in &place.projections {
+        reject_nul_identity("cleanup-plan projection", projection.as_str())?;
+    }
+    Ok(())
+}
+
+fn audit_status_source(source: &crate::cleanup_plan::StatusSourceId) -> Result<(), Diagnostic> {
+    reject_nul_identity("cleanup-plan status expression", source.expression.as_str())
+}
+
+fn audit_result_source(
+    source: &crate::cleanup_plan::CleanupResultSource,
+) -> Result<(), Diagnostic> {
+    match source {
+        crate::cleanup_plan::CleanupResultSource::Scalar { expression } => {
+            reject_nul_identity("cleanup-plan scalar result", expression.as_str())?;
+        }
+        crate::cleanup_plan::CleanupResultSource::Owned { storage } => {
+            audit_plan_place(storage)?;
+        }
+    }
+    Ok(())
+}
+
+fn audit_cleanup_plan(plan: &CleanupPlan) -> Result<(), Diagnostic> {
+    for place in &plan.entry_state.live_owned_parameters {
+        audit_plan_place(place)?;
+    }
+    for slot in &plan.slots {
+        audit_plan_storage(&slot.storage)?;
+        audit_resolved_type(&slot.ty)?;
+        audit_field_liveness_shape(&slot.field_liveness_shape)?;
+    }
+    for source in &plan.status_sources {
+        audit_status_source(&source.id)?;
+        if let crate::cleanup_plan::StatusProducer::PropagatedCall { callee } = &source.producer {
+            reject_nul_identity("cleanup-plan propagated callee", callee.as_str())?;
+        }
+    }
+    for block in &plan.blocks {
+        for transition in &block.transitions {
+            match transition {
+                crate::cleanup_plan::CleanupTransition::Initialize { at, destination } => {
+                    reject_nul_identity("cleanup-plan initialize expression", at.as_str())?;
+                    audit_plan_place(destination)?;
+                }
+                crate::cleanup_plan::CleanupTransition::Transfer {
+                    at,
+                    source,
+                    destination,
+                } => {
+                    reject_nul_identity("cleanup-plan transfer expression", at.as_str())?;
+                    audit_plan_place(source)?;
+                    audit_plan_place(destination)?;
+                }
+                crate::cleanup_plan::CleanupTransition::CallCommit { call, arguments } => {
+                    reject_nul_identity("cleanup-plan committed call", call.as_str())?;
+                    for argument in arguments {
+                        audit_plan_place(&argument.source)?;
+                    }
+                }
+                crate::cleanup_plan::CleanupTransition::SelectFailure { source } => {
+                    audit_status_source(source)?;
+                }
+            }
+        }
+    }
+    for edge in &plan.edges {
+        match &edge.condition {
+            crate::cleanup_plan::EdgeCondition::Always => {}
+            crate::cleanup_plan::EdgeCondition::BooleanResult(expression, _) => {
+                reject_nul_identity("cleanup-plan boolean expression", expression.as_str())?;
+            }
+            crate::cleanup_plan::EdgeCondition::StatusZero(source)
+            | crate::cleanup_plan::EdgeCondition::StatusNonzero(source) => {
+                audit_status_source(source)?;
+            }
+        }
+    }
+    for region in &plan.regions {
+        for storage in &region.slots {
+            audit_plan_storage(storage)?;
+        }
+    }
+    for exit in &plan.exits {
+        for finalizer in &exit.finalize_in_order {
+            audit_plan_place(&finalizer.source)?;
+            reject_nul_identity(
+                "cleanup-plan finalizer lifecycle",
+                finalizer.lifecycle_id.as_str(),
+            )?;
+        }
+        match &exit.continuation {
+            crate::cleanup_plan::ExitContinuation::Continue(_)
+            | crate::cleanup_plan::ExitContinuation::ReturnUnit => {}
+            crate::cleanup_plan::ExitContinuation::CommitResult { source } => {
+                audit_result_source(source)?;
+            }
+            crate::cleanup_plan::ExitContinuation::ReturnFailure { source } => {
+                audit_status_source(source)?;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn declaration_identity_subject(kind: DeclarationKind) -> &'static str {
+    match kind {
+        DeclarationKind::Resource => "resolved resource declaration",
+        DeclarationKind::ResourceDrop => "resolved resource lifecycle declaration",
+        DeclarationKind::Record => "resolved record declaration",
+        DeclarationKind::Field => "resolved field declaration",
+        DeclarationKind::Interface => "resolved interface declaration",
+        DeclarationKind::Import => "resolved import declaration",
+        DeclarationKind::Function => "resolved function declaration",
+    }
+}
+
+fn reject_nul_identity(subject: &str, value: &str) -> Result<(), Diagnostic> {
+    if value.contains('\0') {
+        Err(hir_error(format!("{subject} identity contains NUL")))
+    } else {
+        Ok(())
     }
 }
 
@@ -3073,6 +3473,384 @@ record Node {
 fn main() -> i64 { 0 }
 "#;
         hir::resolve(&parse(source, Path::new("hostile-record-hir.spx")).unwrap()).unwrap()
+    }
+
+    #[cfg(test)]
+    mod identity_nul_tests {
+        use std::path::Path;
+
+        use super::super::{
+            validate, DeclarationId, ExpressionId, ResolvedResourceDropKind,
+            ResolvedTypeDeclarationKind, ValueId,
+        };
+        use crate::{codegen, hir, parse, wasm};
+
+        fn identity_program() -> hir::ResolvedProgram {
+            let source = r#"
+module test.hostile_identity_nul;
+@id("token.type")
+resource Token {
+    @id("token.drop")
+    drop import "host.dispose";
+}
+@id("pair.type")
+record Pair { @id("pair.value") value: i64, }
+@id("host.interface")
+interface Host permits {} {
+    @id("host.dispose")
+    import fn dispose(token: own Token) -> unit
+        effects {}
+        failure infallible
+        consumes token always;
+}
+@id("helper.function")
+fn helper(value: i64) -> i64 { value }
+@id("pair.make")
+fn make_pair(value: i64) -> Pair { Pair { value: value } }
+@id("pair.read")
+fn read_pair(pair: Pair) -> i64 { pair.value }
+@id("pair.read-temporary")
+fn read_temporary() -> i64 { Pair { value: 1 }.value }
+@id("token.discard")
+fn discard(token: own Token) -> i64 { 0 }
+@id("app.main")
+fn main() -> i64 { helper(1) }
+"#;
+            hir::resolve(&parse(source, Path::new("hostile-identity-nul.spx")).unwrap()).unwrap()
+        }
+
+        fn assert_nul_rejected(program: &hir::ResolvedProgram, kind: &str) {
+            let diagnostic = validate(program).unwrap_err();
+            assert_eq!(diagnostic.code, "SPX-H006", "wrong code for {kind}");
+            assert!(
+                diagnostic.message.contains("contains NUL"),
+                "wrong diagnostic for {kind}: {}",
+                diagnostic.message
+            );
+        }
+
+        fn function_index(program: &hir::ResolvedProgram, name: &str) -> usize {
+            program
+                .functions
+                .iter()
+                .position(|function| function.name == name)
+                .unwrap()
+        }
+
+        fn tail(expression: &super::super::ResolvedExpr) -> &super::super::ResolvedExpr {
+            match &expression.kind {
+                super::super::ResolvedExprKind::Block { tail, .. } => tail,
+                _ => expression,
+            }
+        }
+
+        fn tail_mut(
+            expression: &mut super::super::ResolvedExpr,
+        ) -> &mut super::super::ResolvedExpr {
+            if matches!(
+                &expression.kind,
+                super::super::ResolvedExprKind::Block { .. }
+            ) {
+                let super::super::ResolvedExprKind::Block { tail, .. } = &mut expression.kind
+                else {
+                    unreachable!()
+                };
+                tail
+            } else {
+                expression
+            }
+        }
+
+        #[test]
+        fn validator_rejects_nul_in_every_persistent_hir_identity_carrier() {
+            let original = identity_program();
+
+            let mut program = original.clone();
+            program.entrypoint = DeclarationId::new("app.main\0forged");
+            assert_nul_rejected(&program, "entry point");
+
+            let mut program = original.clone();
+            program.types[0].id = DeclarationId::new("token.type\0forged");
+            assert_nul_rejected(&program, "resource");
+
+            let mut program = original.clone();
+            let ResolvedTypeDeclarationKind::Resource { drop } = &mut program.types[0].kind else {
+                panic!("Token must be a resource")
+            };
+            drop.id = DeclarationId::new("token.drop\0forged");
+            assert_nul_rejected(&program, "resource lifecycle");
+
+            let mut program = original.clone();
+            let record = program
+                .types
+                .iter_mut()
+                .find(|declaration| declaration.name == "Pair")
+                .unwrap();
+            record.id = DeclarationId::new("pair.type\0forged");
+            assert_nul_rejected(&program, "record");
+
+            let mut program = original.clone();
+            let record = program
+                .types
+                .iter_mut()
+                .find(|declaration| declaration.name == "Pair")
+                .unwrap();
+            let ResolvedTypeDeclarationKind::Record { fields } = &mut record.kind else {
+                panic!("Pair must be a record")
+            };
+            fields[0].id = DeclarationId::new("pair.value\0forged");
+            assert_nul_rejected(&program, "field");
+
+            let mut program = original.clone();
+            program.interfaces[0].id = DeclarationId::new("host.interface\0forged");
+            assert_nul_rejected(&program, "interface");
+
+            let mut program = original.clone();
+            program.interfaces[0].imports[0].id = DeclarationId::new("host.dispose\0forged");
+            assert_nul_rejected(&program, "import");
+
+            let mut program = original.clone();
+            program.interfaces[0].imports[0].import_key = "host.dispose\0forged".to_owned();
+            assert_nul_rejected(&program, "logical import key");
+
+            let mut program = original;
+            program.functions[0].id = DeclarationId::new("helper.function\0forged");
+            assert_nul_rejected(&program, "function");
+        }
+
+        #[test]
+        fn validator_rejects_nul_in_derived_expression_and_value_identities() {
+            let original = identity_program();
+            let helper_index = original
+                .functions
+                .iter()
+                .position(|function| function.name == "helper")
+                .unwrap();
+
+            let mut program = original.clone();
+            program.functions[helper_index].body.id = ExpressionId("expression\0forged".to_owned());
+            assert_nul_rejected(&program, "expression");
+
+            let mut program = original.clone();
+            program.functions[helper_index].params[0].id = ValueId("value\0forged".to_owned());
+            assert_nul_rejected(&program, "parameter value");
+
+            let mut program = original;
+            program.functions[helper_index].result_id = ValueId("result\0forged".to_owned());
+            assert_nul_rejected(&program, "result value");
+        }
+
+        #[test]
+        fn validator_normalizes_nul_across_core_hir_reference_carriers() {
+            let original = identity_program();
+
+            let mut program = original.clone();
+            let helper = function_index(&program, "helper");
+            program.functions[helper].params[0].ty = super::super::ResolvedType::Nominal {
+                declaration: DeclarationId::new("type\0forged"),
+                arguments: vec![super::super::ResolvedType::TypeParameter {
+                    owner: DeclarationId::new("owner.safe"),
+                    index: 0,
+                }],
+            };
+            assert_nul_rejected(&program, "nominal type declaration");
+
+            let mut program = original.clone();
+            let helper = function_index(&program, "helper");
+            program.functions[helper].params[0].ty = super::super::ResolvedType::TypeParameter {
+                owner: DeclarationId::new("owner\0forged"),
+                index: 0,
+            };
+            assert_nul_rejected(&program, "type-parameter owner");
+
+            let mut program = original.clone();
+            let main = function_index(&program, "main");
+            let super::super::ResolvedExprKind::Call { callee, .. } =
+                &mut tail_mut(&mut program.functions[main].body).kind
+            else {
+                panic!("main must call helper")
+            };
+            *callee = DeclarationId::new("callee\0forged");
+            assert_nul_rejected(&program, "call target");
+
+            let mut program = original.clone();
+            let helper = function_index(&program, "helper");
+            let super::super::ResolvedExprKind::Place(place) =
+                &mut tail_mut(&mut program.functions[helper].body).kind
+            else {
+                panic!("helper must return a place")
+            };
+            place.root = ValueId("place\0forged".to_owned());
+            assert_nul_rejected(&program, "place root");
+
+            let mut program = original.clone();
+            let reader = function_index(&program, "read_pair");
+            let super::super::ResolvedExprKind::Place(place) =
+                &mut tail_mut(&mut program.functions[reader].body).kind
+            else {
+                panic!("record parameter projection must remain a place")
+            };
+            place.projections[0] =
+                super::super::PlaceProjection::Field(DeclarationId::new("field\0forged"));
+            assert_nul_rejected(&program, "place projection");
+
+            let mut program = original.clone();
+            let maker = function_index(&program, "make_pair");
+            let super::super::ResolvedExprKind::ConstructRecord { record, .. } =
+                &mut tail_mut(&mut program.functions[maker].body).kind
+            else {
+                panic!("make_pair must construct a record")
+            };
+            *record = DeclarationId::new("record\0forged");
+            assert_nul_rejected(&program, "record constructor");
+
+            let mut program = original.clone();
+            let maker = function_index(&program, "make_pair");
+            let super::super::ResolvedExprKind::ConstructRecord { fields, .. } =
+                &mut tail_mut(&mut program.functions[maker].body).kind
+            else {
+                panic!("make_pair must construct a record")
+            };
+            fields[0].field = DeclarationId::new("initializer\0forged");
+            assert_nul_rejected(&program, "record initializer field");
+
+            let mut program = original;
+            let reader = function_index(&program, "read_temporary");
+            let super::super::ResolvedExprKind::Project { field, .. } =
+                &mut tail_mut(&mut program.functions[reader].body).kind
+            else {
+                panic!("temporary record projection must remain explicit")
+            };
+            *field = DeclarationId::new("projected\0forged");
+            assert_nul_rejected(&program, "projected field");
+        }
+
+        #[test]
+        fn validator_normalizes_nul_across_cleanup_inventory_and_plan_references() {
+            let original = identity_program();
+            let discard = function_index(&original, "discard");
+
+            let mut program = original.clone();
+            let crate::cleanup::CleanupStorageOrigin::Parameter { value, .. } =
+                &mut program.functions[discard].cleanup.slots[0].origin
+            else {
+                panic!("discard must own parameter storage")
+            };
+            *value = ValueId("inventory\0forged".to_owned());
+            assert_nul_rejected(&program, "inventory value");
+
+            let mut program = original.clone();
+            program.functions[discard].cleanup.flags[0]
+                .place
+                .projections
+                .push(DeclarationId::new("inventory.projection\0forged"));
+            assert_nul_rejected(&program, "inventory projection");
+
+            let mut program = original.clone();
+            program.functions[discard].cleanup_plan.slots[0].storage =
+                crate::cleanup_plan::StorageId::CallArgument {
+                    call: ExpressionId("plan.call\0forged".to_owned()),
+                    parameter_index: 0,
+                    value_expression: ExpressionId("plan.value".to_owned()),
+                };
+            assert_nul_rejected(&program, "plan call-argument storage");
+
+            let mut program = original.clone();
+            program.functions[discard]
+                .cleanup_plan
+                .entry_state
+                .live_owned_parameters[0]
+                .projections
+                .push(DeclarationId::new("plan.projection\0forged"));
+            assert_nul_rejected(&program, "plan place projection");
+
+            let mut program = original.clone();
+            let finalizer = program.functions[discard]
+                .cleanup_plan
+                .exits
+                .iter_mut()
+                .find_map(|exit| exit.finalize_in_order.first_mut())
+                .expect("discard must finalize its parameter");
+            finalizer.lifecycle_id = DeclarationId::new("plan.lifecycle\0forged");
+            assert_nul_rejected(&program, "plan finalizer lifecycle");
+
+            let mut program = original;
+            let main = function_index(&program, "main");
+            let source = program.functions[main]
+                .cleanup_plan
+                .status_sources
+                .iter_mut()
+                .find(|source| {
+                    matches!(
+                        &source.producer,
+                        crate::cleanup_plan::StatusProducer::PropagatedCall { .. }
+                    )
+                })
+                .expect("main call must have a propagated status source");
+            let crate::cleanup_plan::StatusProducer::PropagatedCall { callee } =
+                &mut source.producer
+            else {
+                unreachable!()
+            };
+            *callee = DeclarationId::new("plan.callee\0forged");
+            assert_nul_rejected(&program, "plan propagated callee");
+        }
+
+        #[test]
+        fn native_and_wasm_reject_nul_before_backend_feature_gates() {
+            let mut program = identity_program();
+            let main = function_index(&program, "main");
+            let super::super::ResolvedExprKind::Call { callee, .. } =
+                &mut tail_mut(&mut program.functions[main].body).kind
+            else {
+                panic!("main must call helper")
+            };
+            *callee = DeclarationId::new("helper.function\0forged");
+
+            let native = codegen::emit_hir_c(&program).unwrap_err();
+            assert_eq!(native.code, "SPX-H006");
+            assert!(native.message.contains("contains NUL"));
+
+            let wasm = wasm::emit_resolved_module(&program).unwrap_err();
+            assert_eq!(wasm.code, "SPX-H006");
+            assert!(wasm.message.contains("contains NUL"));
+
+            let mut cleanup_program = identity_program();
+            let discard = function_index(&cleanup_program, "discard");
+            let finalizer = cleanup_program.functions[discard]
+                .cleanup_plan
+                .exits
+                .iter_mut()
+                .find_map(|exit| exit.finalize_in_order.first_mut())
+                .expect("discard must finalize its parameter");
+            finalizer.lifecycle_id = DeclarationId::new("cleanup.lifecycle\0forged");
+
+            let native = codegen::emit_hir_c(&cleanup_program).unwrap_err();
+            assert_eq!(native.code, "SPX-H006");
+            assert!(native.message.contains("contains NUL"));
+
+            let wasm = wasm::emit_resolved_module(&cleanup_program).unwrap_err();
+            assert_eq!(wasm.code, "SPX-H006");
+            assert!(wasm.message.contains("contains NUL"));
+        }
+
+        #[test]
+        fn valid_identity_program_keeps_its_existing_validation_result() {
+            let program = identity_program();
+            validate(&program).unwrap();
+            let helper = function_index(&program, "helper");
+            assert!(matches!(
+                &tail(&program.functions[helper].body).kind,
+                super::super::ResolvedExprKind::Place(_)
+            ));
+            let ResolvedTypeDeclarationKind::Resource { drop } = &program.types[0].kind else {
+                panic!("Token must be a resource")
+            };
+            assert!(matches!(
+                drop.kind,
+                ResolvedResourceDropKind::Imported { .. }
+            ));
+        }
     }
 
     #[test]

@@ -70,6 +70,7 @@ pub(crate) struct NativeCleanupExit<'a> {
 /// order.
 #[derive(Clone, Debug)]
 pub(crate) struct NativeCleanupIndex<'a> {
+    pub(crate) function_id: &'a DeclarationId,
     pub(crate) entry: BlockId,
     pub(crate) slots: Vec<NativeCleanupSlot<'a>>,
     pub(crate) leaves: Vec<NativeCleanupLeaf<'a>>,
@@ -286,6 +287,7 @@ pub(crate) fn classify<'a>(
     }
 
     Ok(NativeCleanupIndex {
+        function_id: &function.id,
         entry: plan.entry,
         slots,
         leaves,
@@ -846,6 +848,8 @@ fn main() -> i64 { 0 }
         ] {
             let first_index = classify(&first, function(&first, id)).unwrap();
             let second_index = classify(&second, function(&second, id)).unwrap();
+            assert_eq!(first_index.function_id.as_str(), id);
+            assert_eq!(second_index.function_id.as_str(), id);
             assert_eq!(first_index.entry, second_index.entry);
             assert_eq!(first_index.slots, second_index.slots);
             assert_eq!(first_index.leaves, second_index.leaves);

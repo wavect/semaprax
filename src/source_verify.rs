@@ -197,7 +197,18 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                 declaration.span,
             ));
         }
-        if !ids.insert(declaration.stable_id.as_str()) {
+        if declaration.stable_id.contains('\0') {
+            let kind = match declaration.kind {
+                TypeDeclarationKind::Resource { .. } => "resource",
+                TypeDeclarationKind::Record { .. } => "record",
+            };
+            diagnostics.push(invalid_stable_id(
+                program,
+                "SPX-S102",
+                format!("{kind} `{}`", declaration.name),
+                declaration.span,
+            ));
+        } else if !ids.insert(declaration.stable_id.as_str()) {
             diagnostics.push(error(
                 program,
                 "SPX-S102",
@@ -251,9 +262,29 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                 ));
             }
             for lifecycle in lifecycles {
+                if let ResourceLifecycleKind::Imported { import_key } = &lifecycle.kind {
+                    if import_key.contains('\0') {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-O113",
+                            format!(
+                                "resource lifecycle `{}.drop` has an invalid logical import key; persistent identities forbid NUL",
+                                declaration.name
+                            ),
+                            lifecycle.span,
+                        ));
+                    }
+                }
                 match lifecycle.stable_id.as_deref() {
                     Some(id) if !id.is_empty() => {
-                        if !ids.insert(id) {
+                        if id.contains('\0') {
+                            diagnostics.push(invalid_stable_id(
+                                program,
+                                "SPX-O113",
+                                format!("resource lifecycle `{}.drop`", declaration.name),
+                                lifecycle.span,
+                            ));
+                        } else if !ids.insert(id) {
                             diagnostics.push(error(
                                 program,
                                 "SPX-S102",
@@ -302,7 +333,14 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                         field.span,
                     ));
                 }
-                if !ids.insert(field.stable_id.as_str()) {
+                if field.stable_id.contains('\0') {
+                    diagnostics.push(invalid_stable_id(
+                        program,
+                        "SPX-S102",
+                        format!("field `{}.{}`", declaration.name, field.name),
+                        field.span,
+                    ));
+                } else if !ids.insert(field.stable_id.as_str()) {
                     diagnostics.push(error(
                         program,
                         "SPX-S102",
@@ -358,7 +396,14 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                 .with_help("add @id(\"your.namespace.interface\") before the interface"),
             );
         }
-        if !ids.insert(interface.stable_id.as_str()) {
+        if interface.stable_id.contains('\0') {
+            diagnostics.push(invalid_stable_id(
+                program,
+                "SPX-I403",
+                format!("interface `{}`", interface.name),
+                interface.span,
+            ));
+        } else if !ids.insert(interface.stable_id.as_str()) {
             diagnostics.push(error(
                 program,
                 "SPX-S102",
@@ -412,7 +457,15 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                     .with_help("the v1 import @id is also its target-neutral logical import key"),
                 );
             }
-            if !ids.insert(import.stable_id.as_str()) {
+            let import_identity_is_valid = !import.stable_id.contains('\0');
+            if !import_identity_is_valid {
+                diagnostics.push(invalid_stable_id(
+                    program,
+                    "SPX-I403",
+                    format!("import `{}.{}`", interface.name, import.name),
+                    import.span,
+                ));
+            } else if !ids.insert(import.stable_id.as_str()) {
                 diagnostics.push(error(
                     program,
                     "SPX-S102",
@@ -420,9 +473,10 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                     import.span,
                 ));
             }
-            if import_keys
-                .insert(import.stable_id.as_str(), (interface, import))
-                .is_some()
+            if import_identity_is_valid
+                && import_keys
+                    .insert(import.stable_id.as_str(), (interface, import))
+                    .is_some()
             {
                 diagnostics.push(error(
                     program,
@@ -509,6 +563,9 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
         };
         if let [lifecycle] = lifecycles.as_slice() {
             if let ResourceLifecycleKind::Imported { import_key } = &lifecycle.kind {
+                if import_key.contains('\0') {
+                    continue;
+                }
                 let compatible = import_keys
                     .get(import_key.as_str())
                     .is_some_and(|(_, import)| {
@@ -582,7 +639,14 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                 function.name_span,
             ));
         }
-        if !ids.insert(function.stable_id.as_str()) {
+        if function.stable_id.contains('\0') {
+            diagnostics.push(invalid_stable_id(
+                program,
+                "SPX-S102",
+                format!("function `{}`", function.name),
+                function.span,
+            ));
+        } else if !ids.insert(function.stable_id.as_str()) {
             diagnostics.push(error(
                 program,
                 "SPX-S102",
@@ -1913,6 +1977,23 @@ fn error(
     span: Span,
 ) -> Diagnostic {
     Diagnostic::error(code, message, span).at_path(&program.path)
+}
+
+fn invalid_stable_id(
+    program: &Program,
+    code: &'static str,
+    subject: impl Into<String>,
+    span: Span,
+) -> Diagnostic {
+    error(
+        program,
+        code,
+        format!(
+            "{} has an invalid stable id; persistent identities forbid NUL",
+            subject.into()
+        ),
+        span,
+    )
 }
 
 fn source_identifier(value: &str) -> bool {

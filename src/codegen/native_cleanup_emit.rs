@@ -21,10 +21,11 @@ use std::fmt::Write as _;
 use crate::cleanup::LivenessFlagId;
 use crate::cleanup_plan::{
     BlockId, CleanupPlace, CleanupResultSource, CleanupTerminator, CleanupTransition,
-    EdgeCondition, ExitContinuation, StatusSourceId, StorageId,
+    ContractPhase, EdgeCondition, ExitContinuation, StatusCase, StatusLane, StatusProducer,
+    StatusSourceId, StorageId,
 };
 use crate::diagnostic::Diagnostic;
-use crate::hir::ExpressionId;
+use crate::hir::{DeclarationId, ExpressionId};
 
 use super::native_cleanup::{NativeCleanupIndex, NativeCleanupLeaf};
 
@@ -37,6 +38,7 @@ use super::native_cleanup::{NativeCleanupIndex, NativeCleanupLeaf};
 /// identifiers and object-like macros cannot cross this boundary.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub(crate) struct NativeCleanupBindings {
+    pub(crate) context: String,
     pub(crate) storage_values: BTreeMap<StorageId, String>,
     pub(crate) boolean_values: BTreeMap<ExpressionId, String>,
     pub(crate) status_tokens: BTreeMap<StatusSourceId, String>,
@@ -48,8 +50,11 @@ pub(crate) struct NativeCleanupBindings {
 /// cleanup plan.
 ///
 /// The fragment assumes storage values, boolean observations, status tokens,
-/// `spx_status_token`, `SPX_STATUS_SUCCESS`, and
+/// the native status/trace runtime types and helpers, and
 /// `spx_runtime_invariant_failure` are declared by the surrounding emitter.
+/// Trace event inputs are canonically zero-initialized before semantic fields
+/// are populated, so private trace-storage ownership fields remain zero until
+/// `spx_trace_push` copies the event into its claimed buffer slot.
 pub(crate) fn emit(
     index: &NativeCleanupIndex<'_>,
     bindings: &NativeCleanupBindings,
@@ -104,18 +109,322 @@ pub(crate) fn emit(
             let flag = flag_symbol(action.guard_flag);
             writeln!(output, "if ({flag}) {{").expect("writing to a string cannot fail");
             writeln!(output, "    {flag} = false;").expect("writing to a string cannot fail");
-            writeln!(
-                output,
-                "    (void)\"semaprax.cleanup.trivial-finalizer:{}\";",
-                c_string(action.lifecycle_id.as_str())
-            )
-            .expect("writing to a string cannot fail");
+            emit_finalize_trace(
+                &mut output,
+                index,
+                bindings,
+                "SPX_TRACE_FINALIZE_BEGIN",
+                &action.source,
+                &action.lifecycle_id,
+                action.guard_flag,
+            )?;
+            emit_finalize_trace(
+                &mut output,
+                index,
+                bindings,
+                "SPX_TRACE_FINALIZE_END",
+                &action.source,
+                &action.lifecycle_id,
+                action.guard_flag,
+            )?;
             output.push_str("}\n");
         }
         emit_continuation(&mut output, index, bindings, indexed.exit)?;
     }
 
     Ok(output)
+}
+
+fn begin_trace_event(
+    output: &mut String,
+    index: &NativeCleanupIndex<'_>,
+    kind: &str,
+) -> Result<(), Diagnostic> {
+    output.push_str("{\n");
+    output.push_str("    struct spx_trace_event spx_cleanup_event = {0};\n");
+    writeln!(output, "    spx_cleanup_event.kind = {kind};")
+        .expect("writing to a string cannot fail");
+    writeln!(
+        output,
+        "    spx_cleanup_event.function_id = \"{}\";",
+        c_string(index.function_id.as_str())
+    )
+    .expect("writing to a string cannot fail");
+    Ok(())
+}
+
+fn end_trace_event(output: &mut String, bindings: &NativeCleanupBindings) {
+    writeln!(
+        output,
+        "    spx_trace_push({}, &spx_cleanup_event);",
+        bindings.context
+    )
+    .expect("writing to a string cannot fail");
+    output.push_str("}\n");
+}
+
+fn emit_trace_place(
+    output: &mut String,
+    field: &str,
+    place: &CleanupPlace,
+) -> Result<(), Diagnostic> {
+    if !place.projections.is_empty() {
+        return Err(cleanup_error(
+            "projected cleanup place reached trace event emission",
+        ));
+    }
+    match &place.storage {
+        StorageId::Value(value) => {
+            writeln!(
+                output,
+                "    spx_cleanup_event.{field}.storage.kind = SPX_TRACE_STORAGE_VALUE;"
+            )
+            .expect("writing to a string cannot fail");
+            writeln!(
+                output,
+                "    spx_cleanup_event.{field}.storage.value_id = \"{}\";",
+                c_string(value.as_str())
+            )
+            .expect("writing to a string cannot fail");
+        }
+        StorageId::Temporary(expression) => {
+            writeln!(
+                output,
+                "    spx_cleanup_event.{field}.storage.kind = SPX_TRACE_STORAGE_TEMPORARY;"
+            )
+            .expect("writing to a string cannot fail");
+            writeln!(
+                output,
+                "    spx_cleanup_event.{field}.storage.expression_id = \"{}\";",
+                c_string(expression.as_str())
+            )
+            .expect("writing to a string cannot fail");
+        }
+        StorageId::ProvisionalResult => {
+            writeln!(
+                output,
+                "    spx_cleanup_event.{field}.storage.kind = SPX_TRACE_STORAGE_PROVISIONAL_RESULT;"
+            )
+            .expect("writing to a string cannot fail");
+        }
+        StorageId::CallArgument { .. } => {
+            return Err(cleanup_error(
+                "call-argument storage reached root-frame trace event emission",
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn emit_transfer_trace(
+    output: &mut String,
+    index: &NativeCleanupIndex<'_>,
+    bindings: &NativeCleanupBindings,
+    at: &ExpressionId,
+    source: &CleanupPlace,
+    destination: &CleanupPlace,
+) -> Result<(), Diagnostic> {
+    begin_trace_event(output, index, "SPX_TRACE_TRANSFER")?;
+    writeln!(
+        output,
+        "    spx_cleanup_event.data.transfer.at_expression_id = \"{}\";",
+        c_string(at.as_str())
+    )
+    .expect("writing to a string cannot fail");
+    emit_trace_place(output, "data.transfer.source", source)?;
+    emit_trace_place(output, "data.transfer.destination", destination)?;
+    end_trace_event(output, bindings);
+    Ok(())
+}
+
+fn emit_select_failure_trace(
+    output: &mut String,
+    index: &NativeCleanupIndex<'_>,
+    bindings: &NativeCleanupBindings,
+    source: &StatusSourceId,
+) -> Result<(), Diagnostic> {
+    let semantic_source = index
+        .status_sources
+        .iter()
+        .find(|candidate| candidate.id == *source)
+        .ok_or_else(|| cleanup_error(format!("unknown trace status source `{source:?}`")))?;
+    if !matches!(
+        (&semantic_source.producer, source.lane),
+        (
+            StatusProducer::ContractFalse { .. },
+            StatusLane::ContractFalse
+        ) | (
+            StatusProducer::CheckedArithmetic { .. },
+            StatusLane::OperationFailure
+        )
+    ) {
+        return Err(cleanup_error(format!(
+            "trace status source `{source:?}` has a producer/lane mismatch or unsupported propagated call"
+        )));
+    }
+    let status = status_binding(bindings, source)?;
+    begin_trace_event(output, index, "SPX_TRACE_SELECT_FAILURE")?;
+    writeln!(
+        output,
+        "    spx_cleanup_event.data.select_failure.source.expression_id = \"{}\";",
+        c_string(source.expression.as_str())
+    )
+    .expect("writing to a string cannot fail");
+    let lane = match source.lane {
+        StatusLane::OperationFailure => "SPX_TRACE_STATUS_OPERATION_FAILURE",
+        StatusLane::ContractFalse => "SPX_TRACE_STATUS_CONTRACT_FALSE",
+    };
+    writeln!(
+        output,
+        "    spx_cleanup_event.data.select_failure.source.lane = {lane};"
+    )
+    .expect("writing to a string cannot fail");
+    writeln!(
+        output,
+        "    const struct spx_normalized_status *spx_cleanup_normalized_status = spx_status_resolve({}, {status});",
+        bindings.context
+    )
+    .expect("writing to a string cannot fail");
+    emit_status_source_check(output, &semantic_source.producer)?;
+    output.push_str(
+        "    spx_cleanup_event.data.select_failure.status.schema = spx_cleanup_normalized_status->schema;\n",
+    );
+    output.push_str(
+        "    spx_cleanup_event.data.select_failure.status.domain_id = spx_cleanup_normalized_status->domain_id;\n",
+    );
+    output.push_str(
+        "    spx_cleanup_event.data.select_failure.status.code = spx_cleanup_normalized_status->code;\n",
+    );
+    output.push_str(
+        "    spx_cleanup_event.data.select_failure.status.status_class = spx_cleanup_normalized_status->status_class;\n",
+    );
+    output.push_str(
+        "    spx_cleanup_event.data.select_failure.status.retryability = spx_cleanup_normalized_status->retryability;\n",
+    );
+    end_trace_event(output, bindings);
+    Ok(())
+}
+
+fn emit_status_source_check(
+    output: &mut String,
+    producer: &StatusProducer,
+) -> Result<(), Diagnostic> {
+    let producer_check = match producer {
+        StatusProducer::ContractFalse { phase, .. } => {
+            let code = match phase {
+                ContractPhase::Requires => "SPX_STATUS_CONTRACT_REQUIRES_FALSE",
+                ContractPhase::Ensures => "SPX_STATUS_CONTRACT_ENSURES_FALSE",
+            };
+            format!(
+                "strcmp(spx_cleanup_normalized_status->domain_id, \"semaprax.contract.v1\") != 0 || spx_cleanup_normalized_status->code != {code} || spx_cleanup_normalized_status->status_class != SPX_STATUS_CLASS_CONTRACT"
+            )
+        }
+        StatusProducer::CheckedArithmetic {
+            normalized_cases, ..
+        } => {
+            if normalized_cases.is_empty() {
+                return Err(cleanup_error(
+                    "checked arithmetic trace source has no normalized cases",
+                ));
+            }
+            let mut code_check = String::new();
+            for (position, case) in normalized_cases.iter().enumerate() {
+                if position != 0 {
+                    code_check.push_str(" && ");
+                }
+                write!(
+                    code_check,
+                    "spx_cleanup_normalized_status->code != {}",
+                    status_case_macro(*case)
+                )
+                .expect("writing to a string cannot fail");
+            }
+            format!(
+                "strcmp(spx_cleanup_normalized_status->domain_id, \"semaprax.arithmetic.v1\") != 0 || ({code_check}) || spx_cleanup_normalized_status->status_class != SPX_STATUS_CLASS_ARITHMETIC"
+            )
+        }
+        StatusProducer::PropagatedCall { callee } => {
+            return Err(cleanup_error(format!(
+                "propagated call status from `{callee}` reached single-frame trace emission"
+            )));
+        }
+    };
+    writeln!(
+        output,
+        "    if (spx_cleanup_normalized_status == NULL || spx_cleanup_normalized_status->schema == NULL || spx_cleanup_normalized_status->domain_id == NULL || strcmp(spx_cleanup_normalized_status->schema, SPX_STATUS_SCHEMA_V1) != 0 || {producer_check} || spx_cleanup_normalized_status->retryability != SPX_RETRYABILITY_FALSE) spx_runtime_invariant_failure(\"cleanup selected status disagrees with its semantic source\");"
+    )
+    .expect("writing to a string cannot fail");
+    Ok(())
+}
+
+fn status_case_macro(case: StatusCase) -> &'static str {
+    match case {
+        StatusCase::AddOverflow => "SPX_STATUS_ARITHMETIC_ADD_OVERFLOW",
+        StatusCase::SubOverflow => "SPX_STATUS_ARITHMETIC_SUB_OVERFLOW",
+        StatusCase::MulOverflow => "SPX_STATUS_ARITHMETIC_MUL_OVERFLOW",
+        StatusCase::DivisionByZero => "SPX_STATUS_ARITHMETIC_DIVISION_BY_ZERO",
+        StatusCase::DivisionOverflow => "SPX_STATUS_ARITHMETIC_DIVISION_OVERFLOW",
+        StatusCase::RemainderByZero => "SPX_STATUS_ARITHMETIC_REMAINDER_BY_ZERO",
+        StatusCase::RemainderOverflow => "SPX_STATUS_ARITHMETIC_REMAINDER_OVERFLOW",
+        StatusCase::NegationOverflow => "SPX_STATUS_ARITHMETIC_NEGATION_OVERFLOW",
+    }
+}
+
+fn emit_finalize_trace(
+    output: &mut String,
+    index: &NativeCleanupIndex<'_>,
+    bindings: &NativeCleanupBindings,
+    kind: &str,
+    source: &CleanupPlace,
+    lifecycle: &DeclarationId,
+    flag: LivenessFlagId,
+) -> Result<(), Diagnostic> {
+    begin_trace_event(output, index, kind)?;
+    emit_trace_place(output, "data.finalize.source", source)?;
+    writeln!(
+        output,
+        "    spx_cleanup_event.data.finalize.lifecycle_id = \"{}\";",
+        c_string(lifecycle.as_str())
+    )
+    .expect("writing to a string cannot fail");
+    writeln!(
+        output,
+        "    spx_cleanup_event.data.finalize.guard_flag = UINT32_C({});",
+        flag.0
+    )
+    .expect("writing to a string cannot fail");
+    end_trace_event(output, bindings);
+    Ok(())
+}
+
+fn emit_result_commit_trace(
+    output: &mut String,
+    index: &NativeCleanupIndex<'_>,
+    bindings: &NativeCleanupBindings,
+    source: &CleanupResultSource,
+) -> Result<(), Diagnostic> {
+    begin_trace_event(output, index, "SPX_TRACE_RESULT_COMMIT")?;
+    match source {
+        CleanupResultSource::Scalar { expression } => {
+            output.push_str(
+                "    spx_cleanup_event.data.result_commit.source.kind = SPX_TRACE_RESULT_SCALAR;\n",
+            );
+            writeln!(
+                output,
+                "    spx_cleanup_event.data.result_commit.source.scalar_expression_id = \"{}\";",
+                c_string(expression.as_str())
+            )
+            .expect("writing to a string cannot fail");
+        }
+        CleanupResultSource::Owned { storage } => {
+            output.push_str(
+                "    spx_cleanup_event.data.result_commit.source.kind = SPX_TRACE_RESULT_OWNED;\n",
+            );
+            emit_trace_place(output, "data.result_commit.source.owned_storage", storage)?;
+        }
+    }
+    end_trace_event(output, bindings);
+    Ok(())
 }
 
 fn emit_transition(
@@ -156,12 +465,7 @@ fn emit_transition(
             writeln!(output, "{source_flag} = false;").expect("writing to a string cannot fail");
             writeln!(output, "{destination_flag} = true;")
                 .expect("writing to a string cannot fail");
-            writeln!(
-                output,
-                "(void)\"semaprax.cleanup.transfer:{}\";",
-                c_string(at.as_str())
-            )
-            .expect("writing to a string cannot fail");
+            emit_transfer_trace(output, index, bindings, at, source, destination)?;
         }
         CleanupTransition::CallCommit { call, .. } => {
             return Err(cleanup_error(format!(
@@ -181,6 +485,7 @@ fn emit_transition(
             .expect("writing to a string cannot fail");
             writeln!(output, "spx_cleanup_selected_status = {status};")
                 .expect("writing to a string cannot fail");
+            emit_select_failure_trace(output, index, bindings, source)?;
         }
     }
     Ok(())
@@ -308,6 +613,7 @@ fn emit_continuation(
                     writeln!(output, "{flag} = false;").expect("writing to a string cannot fail");
                 }
             }
+            emit_result_commit_trace(output, index, bindings, source)?;
             output.push_str("return SPX_STATUS_SUCCESS;\n");
         }
         ExitContinuation::ReturnFailure { source } => {
@@ -486,6 +792,11 @@ fn validate_bindings(
     index: &NativeCleanupIndex<'_>,
     bindings: &NativeCleanupBindings,
 ) -> Result<(), Diagnostic> {
+    if bindings.context != "spx_bind_context" {
+        return Err(cleanup_error(
+            "the trace context binding must be exactly `spx_bind_context`",
+        ));
+    }
     let expected_storage = index
         .slots
         .iter()
@@ -607,14 +918,16 @@ fn validate_bindings(
 }
 
 fn all_binding_identifiers(bindings: &NativeCleanupBindings) -> impl Iterator<Item = &str> {
-    bindings
-        .storage_values
-        .values()
-        .chain(bindings.boolean_values.values())
-        .chain(bindings.status_tokens.values())
-        .chain(bindings.scalar_results.values())
-        .chain(bindings.result_out.iter())
-        .map(String::as_str)
+    std::iter::once(bindings.context.as_str()).chain(
+        bindings
+            .storage_values
+            .values()
+            .chain(bindings.boolean_values.values())
+            .chain(bindings.status_tokens.values())
+            .chain(bindings.scalar_results.values())
+            .chain(bindings.result_out.iter())
+            .map(String::as_str),
+    )
 }
 
 fn require_exact_keys<T: Ord + std::fmt::Debug>(
@@ -784,20 +1097,17 @@ fn is_reserved_binding_identifier(value: &str) -> bool {
 
 fn c_string(value: &str) -> String {
     let mut escaped = String::with_capacity(value.len());
-    for character in value.chars() {
-        match character {
-            '\\' => escaped.push_str("\\\\"),
-            '"' => escaped.push_str("\\\""),
-            '\n' => escaped.push_str("\\n"),
-            '\r' => escaped.push_str("\\r"),
-            '\t' => escaped.push_str("\\t"),
-            value if value.is_control() => {
-                let mut bytes = [0; 4];
-                for byte in value.encode_utf8(&mut bytes).bytes() {
-                    write!(escaped, "\\{byte:03o}").expect("writing to a string cannot fail");
-                }
+    for byte in value.as_bytes() {
+        match *byte {
+            b'\\' => escaped.push_str("\\\\"),
+            b'"' => escaped.push_str("\\\""),
+            b'\n' => escaped.push_str("\\n"),
+            b'\r' => escaped.push_str("\\r"),
+            b'\t' => escaped.push_str("\\t"),
+            b'?' | 0x00..=0x1f | 0x7f..=0xff => {
+                write!(escaped, "\\{byte:03o}").expect("writing to a string cannot fail");
             }
-            value => escaped.push(value),
+            value => escaped.push(char::from(value)),
         }
     }
     escaped
@@ -812,7 +1122,11 @@ fn cleanup_error(message: impl Into<String>) -> Diagnostic {
 
 #[cfg(test)]
 mod tests {
+    use std::fmt::Write as _;
+    use std::io::Write;
     use std::path::Path;
+    use std::process::{Command, Stdio};
+    use std::sync::atomic::{AtomicU64, Ordering};
 
     use crate::cleanup_plan::{CleanupResultSource, ExitContinuation};
     use crate::hir::{self, ResolvedFunction, ResolvedProgram};
@@ -820,6 +1134,8 @@ mod tests {
 
     use super::super::native_cleanup::classify;
     use super::*;
+
+    static NEXT_TEST_BINARY: AtomicU64 = AtomicU64::new(0);
 
     const SOURCE: &str = r#"module test.native_cleanup_emit;
 
@@ -834,6 +1150,9 @@ fn discard(value: own Token) -> i64 { 0 }
 
 @id("token.discard-two")
 fn discard_two(first: own Token, second: own Token) -> i64 { 0 }
+
+@id("token.??/λ")
+fn escaped_discard(value: own Token) -> i64 { 0 }
 
 @id("token.contract-failure")
 fn contract_failure(value: own Token) -> i64 requires false { 0 }
@@ -862,7 +1181,10 @@ fn main() -> i64 { 0 }
     }
 
     fn complete_bindings(index: &NativeCleanupIndex<'_>) -> NativeCleanupBindings {
-        let mut bindings = NativeCleanupBindings::default();
+        let mut bindings = NativeCleanupBindings {
+            context: "spx_bind_context".to_owned(),
+            ..NativeCleanupBindings::default()
+        };
         for slot in &index.slots {
             bindings.storage_values.insert(
                 slot.slot.storage.clone(),
@@ -927,37 +1249,268 @@ fn main() -> i64 { 0 }
             "spx_cleanup_exit_0:\n",
             "if (spx_cleanup_flag_0) {\n",
             "    spx_cleanup_flag_0 = false;\n",
-            "    (void)\"semaprax.cleanup.trivial-finalizer:token.drop\";\n",
+            "{\n",
+            "    struct spx_trace_event spx_cleanup_event = {0};\n",
+            "    spx_cleanup_event.kind = SPX_TRACE_FINALIZE_BEGIN;\n",
+            "    spx_cleanup_event.function_id = \"token.discard\";\n",
+            "    spx_cleanup_event.data.finalize.source.storage.kind = SPX_TRACE_STORAGE_VALUE;\n",
+            "    spx_cleanup_event.data.finalize.source.storage.value_id = \"declaration:13:token.discard:value:param:1:0\";\n",
+            "    spx_cleanup_event.data.finalize.lifecycle_id = \"token.drop\";\n",
+            "    spx_cleanup_event.data.finalize.guard_flag = UINT32_C(0);\n",
+            "    spx_trace_push(spx_bind_context, &spx_cleanup_event);\n",
+            "}\n",
+            "{\n",
+            "    struct spx_trace_event spx_cleanup_event = {0};\n",
+            "    spx_cleanup_event.kind = SPX_TRACE_FINALIZE_END;\n",
+            "    spx_cleanup_event.function_id = \"token.discard\";\n",
+            "    spx_cleanup_event.data.finalize.source.storage.kind = SPX_TRACE_STORAGE_VALUE;\n",
+            "    spx_cleanup_event.data.finalize.source.storage.value_id = \"declaration:13:token.discard:value:param:1:0\";\n",
+            "    spx_cleanup_event.data.finalize.lifecycle_id = \"token.drop\";\n",
+            "    spx_cleanup_event.data.finalize.guard_flag = UINT32_C(0);\n",
+            "    spx_trace_push(spx_bind_context, &spx_cleanup_event);\n",
+            "}\n",
             "}\n",
             "if (spx_cleanup_selected_status != SPX_STATUS_SUCCESS) spx_runtime_invariant_failure(\"cleanup result commit selected failure\");\n",
             "if (spx_cleanup_flag_0) spx_runtime_invariant_failure(\"cleanup scalar result commit retains a live resource\");\n",
             "*spx_bind_result_out = spx_bind_scalar_result;\n",
+            "{\n",
+            "    struct spx_trace_event spx_cleanup_event = {0};\n",
+            "    spx_cleanup_event.kind = SPX_TRACE_RESULT_COMMIT;\n",
+            "    spx_cleanup_event.function_id = \"token.discard\";\n",
+            "    spx_cleanup_event.data.result_commit.source.kind = SPX_TRACE_RESULT_SCALAR;\n",
+            "    spx_cleanup_event.data.result_commit.source.scalar_expression_id = \"declaration:13:token.discard:expression:4:body\";\n",
+            "    spx_trace_push(spx_bind_context, &spx_cleanup_event);\n",
+            "}\n",
             "return SPX_STATUS_SUCCESS;\n",
         );
         assert_eq!(emitted, expected);
     }
 
     #[test]
-    fn reverse_finalizers_clear_each_guard_before_the_marker() {
+    fn c_literals_are_byte_exact_and_never_expose_trigraphs() {
+        let escaped = c_string("safe??/λ\n\r\t\\\"\u{7f}");
+        assert_eq!(escaped, "safe\\077\\077/\\316\\273\\n\\r\\t\\\\\\\"\\177");
+        assert!(!escaped.contains("??"));
+        assert!(escaped.is_ascii());
+
+        let program = program();
+        let index = classify(&program, function(&program, "token.??/λ")).unwrap();
+        assert_eq!(index.function_id.as_str(), "token.??/λ");
+        let emitted = emit(&index, &complete_bindings(&index)).unwrap();
+        assert!(emitted.contains("token.\\077\\077/\\316\\273"));
+        assert!(!emitted.contains("??"));
+        assert!(emitted.is_ascii());
+    }
+
+    #[test]
+    fn emitted_discard_trace_compiles_and_runs_with_strict_c11() {
+        if Command::new("clang").arg("--version").output().is_err() {
+            return;
+        }
+        let program = program();
+        let index = classify(&program, function(&program, "token.discard")).unwrap();
+        let emitted = emit(&index, &complete_bindings(&index)).unwrap();
+        let identity_index = classify(&program, function(&program, "token.identity")).unwrap();
+        let identity_bindings = complete_bindings(&identity_index);
+        let identity = emit(&identity_index, &identity_bindings).unwrap();
+        let mut identity_storage_parameters = String::new();
+        for slot in &identity_index.slots {
+            writeln!(
+                identity_storage_parameters,
+                "uintptr_t {},",
+                identity_bindings.storage_values[&slot.slot.storage]
+            )
+            .expect("writing to a string cannot fail");
+        }
+        let identity_storage_arguments = identity_index
+            .slots
+            .iter()
+            .map(|slot| {
+                if matches!(slot.slot.storage, StorageId::Value(_)) {
+                    "(uintptr_t)UINT32_C(73)".to_owned()
+                } else {
+                    "(uintptr_t)UINT32_C(0)".to_owned()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join(", ");
+        let failure_index =
+            classify(&program, function(&program, "token.contract-failure")).unwrap();
+        let failure = emit(&failure_index, &complete_bindings(&failure_index)).unwrap();
+        let escaped_index = classify(&program, function(&program, "token.??/λ")).unwrap();
+        let escaped = emit(&escaped_index, &complete_bindings(&escaped_index)).unwrap();
+
+        let mut runtime = String::new();
+        super::super::native_runtime::emit_status_runtime(&mut runtime);
+        super::super::native_trace_runtime::emit_trace_runtime(&mut runtime);
+        let source = format!(
+            "{runtime}\n\
+             static __attribute__((noreturn)) void spx_runtime_invariant_failure(const char *message) {{ (void)message; abort(); }}\n\
+             static void spx_test_retain_status_runtime(void) {{\n\
+                 (void)spx_status_resolve;\n\
+                 (void)spx_status_attach_detail;\n\
+                 (void)spx_status_resolve_detail;\n\
+                 (void)spx_status_record_requires_false;\n\
+                 (void)spx_status_record_ensures_false;\n\
+                 (void)spx_status_record_arithmetic;\n\
+             }}\n\
+             static spx_status_token spx_test_discard(\n\
+                 struct spx_context *spx_bind_context,\n\
+                 uintptr_t spx_bind_slot_0,\n\
+                 int64_t *spx_bind_result_out,\n\
+                 int64_t spx_bind_scalar_result\n\
+             ) {{\n\
+                 (void)spx_bind_slot_0;\n\
+             {emitted}\
+             }}\n\
+             static spx_status_token spx_test_identity(\n\
+                 struct spx_context *spx_bind_context,\n\
+             {identity_storage_parameters}\
+                 uintptr_t *spx_bind_result_out\n\
+             ) {{\n\
+             {identity}\
+             }}\n\
+             static spx_status_token spx_test_contract_failure(\n\
+                 struct spx_context *spx_bind_context,\n\
+                 uintptr_t spx_bind_slot_0,\n\
+                 bool spx_bind_bool_0,\n\
+                 spx_status_token spx_bind_status_0,\n\
+                 int64_t *spx_bind_result_out,\n\
+                 int64_t spx_bind_scalar_result\n\
+             ) {{\n\
+                 (void)spx_bind_slot_0;\n\
+             {failure}\
+             }}\n\
+             static spx_status_token spx_test_escaped_discard(\n\
+                 struct spx_context *spx_bind_context,\n\
+                 uintptr_t spx_bind_slot_0,\n\
+                 int64_t *spx_bind_result_out,\n\
+                 int64_t spx_bind_scalar_result\n\
+             ) {{\n\
+                 (void)spx_bind_slot_0;\n\
+             {escaped}\
+             }}\n\
+             int main(void) {{\n\
+                 spx_test_retain_status_runtime();\n\
+                 struct spx_status_entry status_entries[UINT32_C(1)] = {{0}};\n\
+                 struct spx_context context = {{0}};\n\
+                 if (!spx_context_init(&context, UINT64_C(1), status_entries, UINT32_C(1), NULL, NULL, NULL)) return 1;\n\
+                 struct spx_trace_event events[UINT32_C(3)] = {{0}};\n\
+                 struct spx_trace_buffer trace = {{0}};\n\
+                 if (!spx_trace_buffer_init(&trace, events, UINT32_C(3))) return 2;\n\
+                 if (!spx_trace_attach_preflight(&context, &trace, UINT32_C(3))) return 3;\n\
+                 int64_t result = INT64_C(0);\n\
+                 if (spx_test_discard(&context, (uintptr_t)UINT32_C(99), &result, INT64_C(7)) != SPX_STATUS_SUCCESS) return 4;\n\
+                 if (result != INT64_C(7) || trace.length != UINT32_C(3)) return 5;\n\
+                 if (events[0].kind != SPX_TRACE_FINALIZE_BEGIN || events[1].kind != SPX_TRACE_FINALIZE_END || events[2].kind != SPX_TRACE_RESULT_COMMIT) return 6;\n\
+                 if (strcmp(events[0].function_id, \"token.discard\") != 0 || strcmp(events[1].function_id, \"token.discard\") != 0 || strcmp(events[2].function_id, \"token.discard\") != 0) return 7;\n\
+                 if (events[0].data.finalize.source.storage.kind != SPX_TRACE_STORAGE_VALUE || strcmp(events[0].data.finalize.source.storage.value_id, \"declaration:13:token.discard:value:param:1:0\") != 0 || strcmp(events[0].data.finalize.lifecycle_id, \"token.drop\") != 0 || events[0].data.finalize.guard_flag != UINT32_C(0)) return 8;\n\
+                 if (events[2].data.result_commit.source.kind != SPX_TRACE_RESULT_SCALAR || strcmp(events[2].data.result_commit.source.scalar_expression_id, \"declaration:13:token.discard:expression:4:body\") != 0) return 9;\n\
+                 struct spx_status_entry identity_status_entries[UINT32_C(1)] = {{0}};\n\
+                 struct spx_context identity_context = {{0}};\n\
+                 if (!spx_context_init(&identity_context, UINT64_C(2), identity_status_entries, UINT32_C(1), NULL, NULL, NULL)) return 10;\n\
+                 struct spx_trace_event identity_events[UINT32_C(3)] = {{0}};\n\
+                 struct spx_trace_buffer identity_trace = {{0}};\n\
+                 if (!spx_trace_buffer_init(&identity_trace, identity_events, UINT32_C(3)) || !spx_trace_attach_preflight(&identity_context, &identity_trace, UINT32_C(3))) return 11;\n\
+                 uintptr_t owned_result = (uintptr_t)UINT32_C(0);\n\
+                 if (spx_test_identity(&identity_context, {identity_storage_arguments}, &owned_result) != SPX_STATUS_SUCCESS || owned_result != (uintptr_t)UINT32_C(73)) return 12;\n\
+                 if (identity_trace.length != UINT32_C(3) || identity_events[0].kind != SPX_TRACE_TRANSFER || identity_events[1].kind != SPX_TRACE_TRANSFER || identity_events[2].kind != SPX_TRACE_RESULT_COMMIT) return 13;\n\
+                 if (identity_events[0].data.transfer.source.storage.kind != SPX_TRACE_STORAGE_VALUE || identity_events[0].data.transfer.destination.storage.kind != SPX_TRACE_STORAGE_TEMPORARY || identity_events[1].data.transfer.source.storage.kind != SPX_TRACE_STORAGE_TEMPORARY || identity_events[1].data.transfer.destination.storage.kind != SPX_TRACE_STORAGE_PROVISIONAL_RESULT || identity_events[2].data.result_commit.source.kind != SPX_TRACE_RESULT_OWNED || identity_events[2].data.result_commit.source.owned_storage.storage.kind != SPX_TRACE_STORAGE_PROVISIONAL_RESULT) return 14;\n\
+                 struct spx_status_entry failure_status_entries[UINT32_C(1)] = {{0}};\n\
+                 struct spx_context failure_context = {{0}};\n\
+                 if (!spx_context_init(&failure_context, UINT64_C(3), failure_status_entries, UINT32_C(1), NULL, NULL, NULL)) return 15;\n\
+                 spx_status_token contract_status = SPX_STATUS_SUCCESS;\n\
+                 if (!spx_status_record_requires_false(&failure_context, &contract_status)) return 16;\n\
+                 struct spx_trace_event failure_events[UINT32_C(3)] = {{0}};\n\
+                 struct spx_trace_buffer failure_trace = {{0}};\n\
+                 if (!spx_trace_buffer_init(&failure_trace, failure_events, UINT32_C(3)) || !spx_trace_attach_preflight(&failure_context, &failure_trace, UINT32_C(3))) return 17;\n\
+                 int64_t poisoned_result = INT64_C(99);\n\
+                 if (spx_test_contract_failure(&failure_context, (uintptr_t)UINT32_C(88), false, contract_status, &poisoned_result, INT64_C(0)) != contract_status || poisoned_result != INT64_C(99)) return 18;\n\
+                 if (failure_trace.length != UINT32_C(3) || failure_events[0].kind != SPX_TRACE_SELECT_FAILURE || failure_events[1].kind != SPX_TRACE_FINALIZE_BEGIN || failure_events[2].kind != SPX_TRACE_FINALIZE_END) return 19;\n\
+                 if (failure_events[0].data.select_failure.source.lane != SPX_TRACE_STATUS_CONTRACT_FALSE || strcmp(failure_events[0].data.select_failure.status.domain_id, \"semaprax.contract.v1\") != 0 || failure_events[0].data.select_failure.status.code != SPX_STATUS_CONTRACT_REQUIRES_FALSE || failure_events[0].data.select_failure.status.status_class != SPX_TRACE_STATUS_CLASS_CONTRACT) return 20;\n\
+                 struct spx_status_entry escaped_status_entries[UINT32_C(1)] = {{0}};\n\
+                 struct spx_context escaped_context = {{0}};\n\
+                 if (!spx_context_init(&escaped_context, UINT64_C(4), escaped_status_entries, UINT32_C(1), NULL, NULL, NULL)) return 21;\n\
+                 struct spx_trace_event escaped_events[UINT32_C(3)] = {{0}};\n\
+                 struct spx_trace_buffer escaped_trace = {{0}};\n\
+                 if (!spx_trace_buffer_init(&escaped_trace, escaped_events, UINT32_C(3)) || !spx_trace_attach_preflight(&escaped_context, &escaped_trace, UINT32_C(3))) return 22;\n\
+                 int64_t escaped_result = INT64_C(0);\n\
+                 if (spx_test_escaped_discard(&escaped_context, (uintptr_t)UINT32_C(55), &escaped_result, INT64_C(11)) != SPX_STATUS_SUCCESS || escaped_result != INT64_C(11)) return 23;\n\
+                 static const unsigned char expected_function_id[] = {{'t', 'o', 'k', 'e', 'n', '.', 0x3f, 0x3f, '/', 0xce, 0xbb, 0x00}};\n\
+                 if (escaped_trace.length != UINT32_C(3)) return 24;\n\
+                 if (memcmp(escaped_events[0].function_id, expected_function_id, sizeof(expected_function_id)) != 0 || memcmp(escaped_events[1].function_id, expected_function_id, sizeof(expected_function_id)) != 0 || memcmp(escaped_events[2].function_id, expected_function_id, sizeof(expected_function_id)) != 0) return 25;\n\
+                 return 0;\n\
+             }}\n"
+        );
+        let suffix = NEXT_TEST_BINARY.fetch_add(1, Ordering::Relaxed);
+        let binary = std::env::temp_dir().join(format!(
+            "semaprax-native-cleanup-trace-{}-{suffix}{}",
+            std::process::id(),
+            std::env::consts::EXE_SUFFIX
+        ));
+        let mut compiler = Command::new("clang")
+            .args(["-x", "c", "-std=c11", "-O2", "-Wall", "-Wextra", "-Werror"])
+            .arg("-o")
+            .arg(&binary)
+            .arg("-")
+            .stdin(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .expect("clang was available during the version probe");
+        compiler
+            .stdin
+            .take()
+            .expect("clang stdin")
+            .write_all(source.as_bytes())
+            .expect("write C fixture");
+        let compiled = compiler.wait_with_output().expect("wait for clang");
+        assert!(
+            compiled.status.success(),
+            "strict C11 compilation failed:\n{}",
+            String::from_utf8_lossy(&compiled.stderr)
+        );
+        let run = Command::new(&binary)
+            .output()
+            .expect("run cleanup trace fixture");
+        let _ = std::fs::remove_file(&binary);
+        assert!(
+            run.status.success(),
+            "cleanup trace fixture exited {}",
+            run.status
+        );
+    }
+
+    #[test]
+    fn reverse_finalizers_clear_each_guard_before_begin_and_end_events() {
         let program = program();
         let index = classify(&program, function(&program, "token.discard-two")).unwrap();
         let emitted = emit(&index, &complete_bindings(&index)).unwrap();
         let second_clear = emitted.find("spx_cleanup_flag_1 = false;").unwrap();
-        let second_finalize = emitted[second_clear..]
-            .find("semaprax.cleanup.trivial-finalizer:token.drop")
+        let second_begin = emitted[second_clear..]
+            .find("spx_cleanup_event.kind = SPX_TRACE_FINALIZE_BEGIN;")
             .map(|offset| second_clear + offset)
             .unwrap();
-        let first_clear = emitted[second_finalize + 1..]
-            .find("spx_cleanup_flag_0 = false;")
-            .map(|offset| second_finalize + 1 + offset)
+        let second_end = emitted[second_begin..]
+            .find("spx_cleanup_event.kind = SPX_TRACE_FINALIZE_END;")
+            .map(|offset| second_begin + offset)
             .unwrap();
-        let first_finalize = emitted[first_clear..]
-            .find("semaprax.cleanup.trivial-finalizer:token.drop")
+        let first_clear = emitted[second_end + 1..]
+            .find("spx_cleanup_flag_0 = false;")
+            .map(|offset| second_end + 1 + offset)
+            .unwrap();
+        let first_begin = emitted[first_clear..]
+            .find("spx_cleanup_event.kind = SPX_TRACE_FINALIZE_BEGIN;")
             .map(|offset| first_clear + offset)
             .unwrap();
-        assert!(second_clear < second_finalize);
-        assert!(second_finalize < first_clear);
-        assert!(first_clear < first_finalize);
+        let first_end = emitted[first_begin..]
+            .find("spx_cleanup_event.kind = SPX_TRACE_FINALIZE_END;")
+            .map(|offset| first_begin + offset)
+            .unwrap();
+        assert!(second_clear < second_begin);
+        assert!(second_begin < second_end);
+        assert!(second_end < first_clear);
+        assert!(first_clear < first_begin);
+        assert!(first_begin < first_end);
     }
 
     #[test]
@@ -969,6 +1522,14 @@ fn main() -> i64 { 0 }
         let second = emit(&index, &bindings).unwrap();
         assert_eq!(first, second);
         assert!(first.contains("cleanup failure selection is not write-once"));
+        assert!(first.contains("spx_cleanup_event.kind = SPX_TRACE_SELECT_FAILURE;"));
+        assert!(first.contains(
+            "spx_cleanup_event.data.select_failure.source.lane = SPX_TRACE_STATUS_CONTRACT_FALSE;"
+        ));
+        assert!(first.contains("spx_status_resolve(spx_bind_context, spx_bind_status_"));
+        assert!(first.contains(
+            "spx_cleanup_event.data.select_failure.status.domain_id = spx_cleanup_normalized_status->domain_id;"
+        ));
         let terminal_status = first
             .rfind("cleanup failure return changed status")
             .expect("exact failure status assertion");
@@ -1007,6 +1568,14 @@ fn main() -> i64 { 0 }
         emitted
             .find("spx_cleanup_selected_status = spx_bind_status_")
             .expect("sticky failure selection");
+        assert!(emitted.contains(
+            "strcmp(spx_cleanup_normalized_status->domain_id, \"semaprax.arithmetic.v1\") != 0"
+        ));
+        assert!(emitted
+            .contains("spx_cleanup_normalized_status->code != SPX_STATUS_ARITHMETIC_ADD_OVERFLOW"));
+        assert!(emitted.contains(
+            "spx_cleanup_event.data.select_failure.source.lane = SPX_TRACE_STATUS_OPERATION_FAILURE;"
+        ));
         let result_assertion = emitted
             .rfind("cleanup result commit selected failure")
             .expect("success terminal assertion");
@@ -1032,6 +1601,22 @@ fn main() -> i64 { 0 }
             .leaf
             .flag;
         let emitted = emit(&index, &bindings).unwrap();
+
+        assert!(emitted.contains("spx_cleanup_event.kind = SPX_TRACE_TRANSFER;"));
+        assert!(emitted.contains(
+            "spx_cleanup_event.data.transfer.source.storage.kind = SPX_TRACE_STORAGE_VALUE;"
+        ));
+        assert!(emitted.contains(
+            "spx_cleanup_event.data.transfer.destination.storage.kind = SPX_TRACE_STORAGE_PROVISIONAL_RESULT;"
+        ));
+        assert!(emitted.contains("spx_cleanup_event.kind = SPX_TRACE_RESULT_COMMIT;"));
+        assert!(emitted.contains(
+            "spx_cleanup_event.data.result_commit.source.kind = SPX_TRACE_RESULT_OWNED;"
+        ));
+        assert!(emitted.contains(
+            "spx_cleanup_event.data.result_commit.source.owned_storage.storage.kind = SPX_TRACE_STORAGE_PROVISIONAL_RESULT;"
+        ));
+        assert!(!emitted.contains("semaprax.cleanup."));
 
         let status = emitted
             .rfind("cleanup result commit selected failure")
@@ -1130,6 +1715,12 @@ fn main() -> i64 { 0 }
         let diagnostic = emit(&index, &extra).unwrap_err();
         assert_eq!(diagnostic.code, "SPX-B104");
         assert!(diagnostic.message.contains("unexpected storage binding"));
+
+        let mut wrong_context = complete_bindings(&index);
+        wrong_context.context = "spx_bind_other_context".to_owned();
+        let diagnostic = emit(&index, &wrong_context).unwrap_err();
+        assert_eq!(diagnostic.code, "SPX-B104");
+        assert!(diagnostic.message.contains("exactly `spx_bind_context`"));
     }
 
     #[test]

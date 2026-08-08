@@ -33,6 +33,61 @@ pub(super) struct NativeResourceAbi {
     pub(super) lifecycles: Vec<NativeLifecycleDescriptor>,
 }
 
+impl NativeResourceAbi {
+    /// Select the exact C representation for a resolved scalar or direct
+    /// opaque-resource type. Aggregate and generic representations remain
+    /// gated until their target layouts are validated.
+    pub(super) fn c_type<'a>(
+        &'a self,
+        program: &ResolvedProgram,
+        ty: &ResolvedType,
+    ) -> Result<&'a str, Diagnostic> {
+        match ty {
+            ResolvedType::I64 => Ok("int64_t"),
+            ResolvedType::Bool => Ok("bool"),
+            ResolvedType::TypeParameter { .. } => Err(resource_error(format!(
+                "native representation is unavailable for generic type `{}`",
+                ty.identity_key()
+            ))),
+            ResolvedType::Nominal {
+                declaration,
+                arguments,
+            } => {
+                if !arguments.is_empty() {
+                    return Err(resource_error(format!(
+                        "native representation is unavailable for generic nominal type `{}`",
+                        ty.identity_key()
+                    )));
+                }
+                let resolved = program
+                    .types
+                    .iter()
+                    .find(|candidate| candidate.id == *declaration)
+                    .ok_or_else(|| {
+                        resource_error(format!(
+                            "native representation references unknown type `{declaration}`"
+                        ))
+                    })?;
+                match &resolved.kind {
+                    ResolvedTypeDeclarationKind::Record { .. } => Err(resource_error(format!(
+                        "native aggregate representation is unavailable for record `{declaration}`"
+                    ))),
+                    ResolvedTypeDeclarationKind::Resource { .. } => self
+                        .resources
+                        .binary_search_by(|resource| resource.resource_id.cmp(declaration))
+                        .ok()
+                        .map(|index| self.resources[index].c_type.as_str())
+                        .ok_or_else(|| {
+                            resource_error(format!(
+                                "native resource ABI has no wrapper for `{declaration}`"
+                            ))
+                        }),
+                }
+            }
+        }
+    }
+}
+
 /// Stable-ID-derived physical type for one opaque resource declaration.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct NativeResourceDescriptor {
@@ -451,6 +506,72 @@ fn main() -> i64 {{ 0 }}
         assert_eq!(first.declarations, second.declarations);
         assert_eq!(first.resources, second.resources);
         assert_eq!(first.lifecycles, second.lifecycles);
+
+        let file = first
+            .resources
+            .iter()
+            .find(|resource| resource.resource_id.as_str() == "file.type")
+            .unwrap();
+        let token = first
+            .resources
+            .iter()
+            .find(|resource| resource.resource_id.as_str() == "token.type")
+            .unwrap();
+        let file_position = first.declarations.find(&file.c_type).unwrap();
+        let token_position = first.declarations.find(&token.c_type).unwrap();
+        let callback_position = first
+            .lifecycles
+            .iter()
+            .find_map(|lifecycle| match &lifecycle.kind {
+                NativeFinalizerKind::Imported(finalizer) => {
+                    first.declarations.find(&finalizer.callback_type)
+                }
+                NativeFinalizerKind::Trivial => None,
+            })
+            .unwrap();
+        assert!(file_position < token_position);
+        assert!(token_position < callback_position);
+    }
+
+    #[test]
+    fn type_selection_rejects_unknown_record_and_generic_shapes() {
+        let program = resolve(&format!(
+            "{}\n@id(\"record.type\")\nrecord Record {{\n    @id(\"record.value\")\n    value: i64,\n}}\n",
+            source("Token", "FileHost", "finalize")
+        ));
+        let abi = build_resource_abi(&program).unwrap();
+
+        let unknown = ResolvedType::Nominal {
+            declaration: DeclarationId::new("unknown.type"),
+            arguments: Vec::new(),
+        };
+        let record = ResolvedType::Nominal {
+            declaration: DeclarationId::new("record.type"),
+            arguments: Vec::new(),
+        };
+        let generic_nominal = ResolvedType::Nominal {
+            declaration: DeclarationId::new("token.type"),
+            arguments: vec![ResolvedType::I64],
+        };
+        let type_parameter = ResolvedType::TypeParameter {
+            owner: DeclarationId::new("generic.owner"),
+            index: 0,
+        };
+
+        for (ty, expected) in [
+            (unknown, "unknown type"),
+            (record, "record"),
+            (generic_nominal, "generic nominal"),
+            (type_parameter, "generic type"),
+        ] {
+            let diagnostic = abi.c_type(&program, &ty).unwrap_err();
+            assert_eq!(diagnostic.code, "SPX-B104");
+            assert!(
+                diagnostic.message.contains(expected),
+                "unexpected diagnostic: {}",
+                diagnostic.message
+            );
+        }
     }
 
     #[test]

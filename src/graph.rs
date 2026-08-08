@@ -1038,6 +1038,19 @@ fn main() -> i64 { Point { x: 42 }.x }
         hir::resolve(&parse(source, Path::new("graph-record-hir.spx")).unwrap()).unwrap()
     }
 
+    fn resolved_resource_program() -> ResolvedProgram {
+        let source = r#"
+module test.graph_resource_hir;
+@id("token.type")
+resource Token { @id("token.drop") drop trivial; }
+@id("token.discard")
+fn discard(token: own Token) -> i64 { 0 }
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+        hir::resolve(&parse(source, Path::new("graph-resource-hir.spx")).unwrap()).unwrap()
+    }
+
     #[test]
     fn internal_hir_renderer_revalidates_before_serializing() {
         let mut program = resolved_program();
@@ -1048,6 +1061,39 @@ fn main() -> i64 { Point { x: 42 }.x }
                 .code,
             "SPX-H006"
         );
+    }
+
+    #[test]
+    fn internal_hir_renderer_rejects_nul_identity_before_serializing() {
+        let mut program = resolved_program();
+        program.functions[0].body.ty = hir::ResolvedType::Nominal {
+            declaration: hir::DeclarationId::new("type\0forged"),
+            arguments: Vec::new(),
+        };
+        let diagnostic = to_hir_json(&program, "trusted-source-revision").unwrap_err();
+        assert_eq!(diagnostic.code, "SPX-H006");
+        assert!(diagnostic.message.contains("contains NUL"));
+    }
+
+    #[test]
+    fn internal_hir_renderer_rejects_nul_cleanup_reference_before_serializing() {
+        let mut program = resolved_resource_program();
+        let discard = program
+            .functions
+            .iter_mut()
+            .find(|function| function.name == "discard")
+            .unwrap();
+        let finalizer = discard
+            .cleanup_plan
+            .exits
+            .iter_mut()
+            .find_map(|exit| exit.finalize_in_order.first_mut())
+            .expect("discard must finalize its parameter");
+        finalizer.lifecycle_id = hir::DeclarationId::new("token.drop\0forged");
+
+        let diagnostic = to_hir_json(&program, "trusted-source-revision").unwrap_err();
+        assert_eq!(diagnostic.code, "SPX-H006");
+        assert!(diagnostic.message.contains("contains NUL"));
     }
 
     #[test]

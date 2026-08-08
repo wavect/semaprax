@@ -85,6 +85,7 @@ Implemented today:
 - Typed `requires` and `ensures` contracts, enforced by native and Wasm artifacts. Native scalar contracts publish no caller result on failure.
 - Explicit function effects checked against module capabilities and callers.
 - Persistent declaration identity through `@id`.
+- NUL-free persistent semantic identities across source, resolved HIR, cleanup metadata, graph serialization, and native C literals.
 - Deterministic formatting and domain-separated SHA-256 graph revisions.
 - JSON semantic Graph v6 with persistent declaration identity, revision-scoped expression structure, complete cleanup plans, and dependency-bounded context slices.
 - JSON-line diagnostics for agent consumption.
@@ -94,7 +95,7 @@ Implemented today:
 
 Not implemented yet: native resource cleanup-plan execution, any Wasm status/resource ABI execution, backend trace conformance, recursive reference execution in the reference oracle, callable imports/adapters, record machine-code layout/lowering, variants and matching, lifetime and alias analysis, user-facing regions, effect handlers, static contract proofs, Cranelift, LLVM/MLIR IR, WebAssembly Components, packages, concurrency, or cross-platform UI. Resource and record builds fail closed until their remaining safety gates pass.
 
-The native backend contains unreachable preparatory scaffolding for deterministic resource wrapper symbols, bounded cleanup-plan indexing, plan-driven cleanup C, conservative trace-buffer sizing, root-frame semantic event storage, and pre-ownership trace attachment. It deliberately does not weaken `SPX-B104`: resource execution and nested calls remain unavailable until the scaffold is integrated with expression lowering and exact reference-trace comparison passes the required host, sanitizer, and cross-platform gates.
+The native backend contains unreachable preparatory scaffolding for deterministic strongly typed resource wrappers, resource-aware signatures, bounded cleanup-plan indexing, plan-driven cleanup C, conservative trace-buffer sizing, actual root-frame semantic event writes, and pre-ownership trace attachment. It deliberately does not weaken `SPX-B104`: resource execution and nested calls remain unavailable until the scaffold is integrated with expression lowering and exact reference-trace comparison passes the required optimization-level, sanitizer, and cross-platform gates.
 
 ## Agent protocol
 

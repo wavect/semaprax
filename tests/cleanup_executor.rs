@@ -908,3 +908,59 @@ fn executor_replays_every_function_in_the_bound_program() {
             if detail.contains("do not exactly cover typed HIR failure producers")
     ));
 }
+
+#[test]
+fn executor_normalizes_nul_inventory_identity_before_inventory_rebuild() {
+    let mut program = program();
+    let selected = DeclarationId::new("token.discard");
+    let function = program
+        .functions
+        .iter_mut()
+        .find(|function| function.id == selected)
+        .unwrap();
+    function.cleanup.flags[0].lifecycle = DeclarationId::new("token.drop\0forged");
+
+    let error = execute_for_conformance(
+        &program,
+        &selected,
+        CleanupScenario::new("hostile-inventory-nul", Some(TraceResult::I64(0))),
+    )
+    .unwrap_err();
+    let CleanupExecutionError::InvalidProgram(detail) = error else {
+        panic!("expected invalid-program failure")
+    };
+    assert!(detail.contains("error[SPX-H006]: cleanup inventory lifecycle identity contains NUL"));
+    assert!(!detail.contains('\0'));
+}
+
+#[test]
+fn executor_normalizes_nul_plan_identity_before_plan_replay() {
+    let mut program = program();
+    let selected = DeclarationId::new("token.discard");
+    let function = program
+        .functions
+        .iter_mut()
+        .find(|function| function.id == selected)
+        .unwrap();
+    let finalizer = function
+        .cleanup_plan
+        .exits
+        .iter_mut()
+        .find_map(|exit| exit.finalize_in_order.first_mut())
+        .expect("discard must finalize its parameter");
+    finalizer.lifecycle_id = DeclarationId::new("token.drop\0forged");
+
+    let error = execute_for_conformance(
+        &program,
+        &selected,
+        CleanupScenario::new("hostile-plan-nul", Some(TraceResult::I64(0))),
+    )
+    .unwrap_err();
+    let CleanupExecutionError::InvalidProgram(detail) = error else {
+        panic!("expected invalid-program failure")
+    };
+    assert!(
+        detail.contains("error[SPX-H006]: cleanup-plan finalizer lifecycle identity contains NUL")
+    );
+    assert!(!detail.contains('\0'));
+}

@@ -2,6 +2,10 @@
 
 SEMAPRAX is pre-alpha, but agent-facing changes are still explicit. Consumers must inspect the declared schema field rather than assuming every JSON object has the latest shape.
 
+## Persistent identities are NUL-free
+
+Persistent semantic identities and logical import keys may not contain a literal NUL byte. Source validation reports the declaration-specific stable diagnostic before resolution or graph serialization; `\0` remains an unsupported source-string escape. Public consumers of transformed resolved HIR must likewise reject NUL in declaration IDs, types, expressions, places, call/record/field references, and attached cleanup inventory or plan metadata before code generation or serialization. Regenerate or rename any pre-alpha fixture that constructed such an identity directly.
+
 ## Semantic graph v1 to v2
 
 Graph v2 adds:

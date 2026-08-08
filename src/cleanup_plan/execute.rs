@@ -161,6 +161,8 @@ pub fn execute_for_conformance(
 ) -> Result<ConformanceTrace, CleanupExecutionError> {
     hir::validate_core(program)
         .map_err(|diagnostic| CleanupExecutionError::InvalidProgram(diagnostic.to_string()))?;
+    hir::validate_attached_identity_references(program)
+        .map_err(|diagnostic| CleanupExecutionError::InvalidProgram(diagnostic.to_string()))?;
     crate::cleanup::validate_program(program)
         .map_err(|diagnostic| CleanupExecutionError::InvalidProgram(diagnostic.to_string()))?;
     super::replay::validate_program(program)

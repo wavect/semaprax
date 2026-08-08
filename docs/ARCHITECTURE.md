@@ -104,9 +104,12 @@ status, trace, publication, owner rotation, and final logical liveness. This is
 still a private feature, and `SPX-B104` remains closed. After a physical failure
 or malformed response the guard retires committed logical owners as an adapter
 failure, but general canonical fallback cleanup/finalizer trace and physical
-quiescence are not yet proven. A dedicated Linux CI job is configured to load
-ASan/UBSan-instrumented generated providers through the Rust host, but it has no
-green public run yet and does not sanitizer-instrument the Rust host itself.
+quiescence are not yet proven. The dedicated Linux
+[callable-host sanitizer job](https://github.com/wavect/semaprax/actions/runs/31256134955/job/93099637801)
+passed all 14 O0/O2 cases from dynamically loaded ASan/UBSan-instrumented
+generated providers through the Rust host. It supplied the sanitizer runtimes
+without sanitizer-instrumenting the Rust host code itself. The overall workflow
+run remained red because of unrelated Clippy/GCC failures.
 Green public Windows runtime and dependency-collision evidence, Android/iOS
 device or static-link profiles, and ordinary compiler build/preflight emission
 also remain required.

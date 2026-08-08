@@ -229,8 +229,7 @@ static inline bool spx_status_shape_is_valid(
         return false;
     }
     size_t domain_size = 0;
-    return status->retryability >= SPX_RETRYABILITY_UNKNOWN &&
-        status->retryability <= SPX_RETRYABILITY_TRUE &&
+    return status->retryability <= SPX_RETRYABILITY_TRUE &&
         spx_status_domain_size(status->domain_id, &domain_size) &&
         spx_status_domain_is_utf8(status->domain_id, domain_size - 1);
 }
@@ -384,7 +383,6 @@ static inline __attribute__((unused)) bool spx_status_record_adapter(
     if (domain_id == NULL || domain_id[0] == '\0' || code == 0 ||
         status_class < SPX_STATUS_CLASS_IMPORT ||
         status_class > SPX_STATUS_CLASS_ADAPTER ||
-        retryability < SPX_RETRYABILITY_UNKNOWN ||
         retryability > SPX_RETRYABILITY_TRUE) {
         return false;
     }

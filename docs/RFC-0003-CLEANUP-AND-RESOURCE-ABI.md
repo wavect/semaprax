@@ -446,11 +446,15 @@ Each phase is incomplete until its executable evidence passes. An RFC, type defi
    reference semantics. This proves the narrow private execution semantics, not
    the public native boundary. Compiler preflight still constructs no host and
    ordinary native resource builds retain `SPX-B104`. General physical or
-   malformed-response fallback cleanup and quiescence, a green public run of
-   the configured dynamic-provider sanitizer job, Rust-host sanitizer
+   malformed-response fallback cleanup and quiescence, Rust-host sanitizer
    instrumentation, green public Windows runtime/dependency-collision evidence,
    Android/iOS profiles, code provenance, concurrency, and fork recovery remain
    required.
+   The dedicated Linux
+   [dynamic-provider sanitizer job](https://github.com/wavect/semaprax/actions/runs/31256134955/job/93099637801)
+   is green for all 14 O0/O2 generated-provider cases through the host. It did
+   not instrument the Rust host, and unrelated Clippy/GCC failures kept the
+   overall workflow run red; it is not Windows or overall-CI evidence.
    The exact schemas and nonclaims are recorded in [Native adapter
    descriptor v1](NATIVE-ADAPTER-DESCRIPTOR-V1.md), [Native callable ABI
    v2](NATIVE-CALLABLE-ABI-V2.md), [Native capability tokens

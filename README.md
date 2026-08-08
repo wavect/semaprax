@@ -133,10 +133,15 @@ the reference corpus.
 This is still a private gate, not public native resource lowering. A physical
 provider failure or malformed response currently retires committed logical
 owners as an adapter failure, but does not yet prove a general canonical
-fallback cleanup trace or finalizer/quiescence protocol. A Linux job is
-configured to load ASan/UBSan-instrumented generated providers through the
-host, but it has no green public run yet and does not sanitizer-instrument the
-Rust host itself. Confirmed Windows runtime and dependency-collision CI,
+fallback cleanup trace or finalizer/quiescence protocol. The dedicated Linux
+[callable-host sanitizer job](https://github.com/wavect/semaprax/actions/runs/31256134955/job/93099637801)
+is green: all 14 O0/O2 cases ran from dynamically loaded ASan/UBSan-instrumented
+generated providers through the Rust host. That job linked the sanitizer
+runtimes but did not sanitizer-instrument the Rust host code itself, and the
+overall workflow run was not green because unrelated Clippy/GCC failures
+stopped the platform jobs before runtime evidence. The dependency-policy job in
+that run was also green.
+Confirmed Windows runtime and dependency-collision CI,
 Android/iOS device or static-link profiles, and the public compiler
 build/preflight path are also outstanding. `SPX-B104` therefore remains
 unchanged.
@@ -157,8 +162,7 @@ native/reference/Wasm status, cleanup, publication, and semantic-trace equality
 before either backend gate can open. The private generated-callable host and
 real Wasm lane now prove that equality for the authoritative 14 cases, including
 native O0/O2 and logical final liveness. The physical/malformed-response
-fallback, a green public run of the configured dynamic-callable sanitizer job,
-Rust-host sanitizer instrumentation, confirmed Windows runtime/dependency
+fallback, Rust-host sanitizer instrumentation, confirmed Windows runtime/dependency
 isolation, mobile profiles, and the public native compiler gate remain absent.
 The document remains a gate, not a completion claim.
 

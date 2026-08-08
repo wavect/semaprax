@@ -129,12 +129,17 @@ materialization.
 That equality does not make the native resource backend publicly reachable.
 The connected callable path remains feature-gated; ordinary compiler
 build/preflight still returns `SPX-B104`. General physical/malformed-response
-fallback cleanup and quiescence, a green public dynamic-provider sanitizer run
-plus Rust-host sanitizer instrumentation, green public Windows
-runtime/dependency-collision evidence, Android/iOS profiles, recursive callee
+fallback cleanup and quiescence, Rust-host sanitizer instrumentation, green
+public Windows runtime/dependency-collision evidence, Android/iOS profiles, recursive callee
 execution, callable imports, imported finalizers, aggregates, and broader
 control flow remain absent. Native resources, records, and every Wasm resource
 shape outside the documented narrow slice remain fail closed.
+
+The Linux
+[dynamic-provider sanitizer job](https://github.com/wavect/semaprax/actions/runs/31256134955/job/93099637801)
+is green for all 14 O0/O2 ASan+UBSan generated-provider cases through the Rust
+host. It did not instrument the Rust host, and unrelated Clippy/GCC failures
+kept the overall workflow run red; it adds no Windows evidence.
 
 The internal native invocation context and first-slice trace storage are now one-shot objects that require canonical C zero initialization before their initialization functions are called, for example `struct spx_context context = {0};`. This replaces the earlier accepted-but-indeterminate stack declaration form. Generated entry wrappers and repository probes have migrated. Embedders using `SPX_NO_ENTRY_WRAPPER` must zero-initialize context, trace-buffer, and trace-event storage; reinitialization or storage aliasing is rejected to preserve invocation isolation. This runtime scaffold remains private and does not lift native resource execution.
 
@@ -208,10 +213,9 @@ noncanonical fields. The compiler's staged encoder and the unpublished host's
 independent strict parser are cross-tested, including every-byte mutation,
 truncation, and trailing data. The physical ownership host now binds the exact
 v2 getter/callable and uses the strict request/response protocol for the O0/O2
-14-case corpus. Public Windows runtime/dependency-collision confirmation, a
-green public dynamic-provider sanitizer run, Rust-host sanitizer
-instrumentation, mobile profiles, general fallback cleanup/quiescence, and
-public compiler emission remain absent, so this migration does not change
+14-case corpus. Public Windows runtime/dependency-collision confirmation,
+Rust-host sanitizer instrumentation, mobile profiles, general fallback
+cleanup/quiescence, and public compiler emission remain absent, so this migration does not change
 `SPX-B104`.
 
 ## Revision token FNV-1a64 to SHA-256

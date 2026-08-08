@@ -191,6 +191,10 @@ minting or authentication. The unpublished host's unsafe adoption and generated
 callable executor are private physical plumbing evidence, not the public native
 adapter. General postcommit fallback cleanup, physical finalization and
 quiesced unload, code identity, fork handling, hostile concurrency, confirmed
-Windows runtime, mobile profiles, a green public dynamic-provider sanitizer
-run, Rust-host sanitizer instrumentation, and public compiler emission must
-land before `SPX-B104` can change.
+Windows runtime, mobile profiles, Rust-host sanitizer instrumentation, and
+public compiler emission must land before `SPX-B104` can change.
+
+The generated-provider side has green public Linux evidence: the
+[callable-host sanitizer job](https://github.com/wavect/semaprax/actions/runs/31256134955/job/93099637801)
+ran all 14 O0/O2 cases under ASan+UBSan through the host. It did not instrument
+the Rust host, and unrelated Clippy/GCC failures kept the overall run red.

@@ -34,10 +34,16 @@ corpus. Real generated native shared libraries execute through the physical
 ownership host at O0/O2, and native/Node-Wasm both match the exact reference
 trace, outcome, publication, and final logical liveness. Every excluded Wasm
 shape remains `SPX-W111`. Public native resource execution remains blocked by
-fallback cleanup/quiescence generalization, a green public run of the configured
-dynamic-callable sanitizer job plus Rust-host sanitizer instrumentation, green
-public Windows runtime/dependency-collision evidence, Android/iOS profiles, and
+fallback cleanup/quiescence generalization, Rust-host sanitizer instrumentation,
+green public Windows runtime/dependency-collision evidence, Android/iOS profiles, and
 the ordinary compiler build/preflight gate; `SPX-B104` remains closed.
+
+The dedicated Linux
+[callable-host sanitizer job](https://github.com/wavect/semaprax/actions/runs/31256134955/job/93099637801)
+is green for all 14 O0/O2 dynamically loaded ASan/UBSan provider cases. It did
+not instrument the Rust host code. The dependency-policy job was also green,
+but unrelated Clippy/GCC failures stopped platform runtime evidence and kept the
+overall workflow run red; it supplies neither Windows nor overall-CI evidence.
 
 ## Defining product contract
 
@@ -56,7 +62,7 @@ the ordinary compiler build/preflight gate; `SPX-B104` remains closed.
 | Functions, closures, interfaces, implementations, generics | Partial | Monomorphic named functions plus declaration-only resource interface/import contracts | Callable imports, closures, constraints, coherent implementations, specialization boundaries, and separate compilation verified |
 | `Option` and `Result`; no null or unchecked exceptions | Missing | — | Standard types, propagation syntax, FFI mappings, exhaustive handling, and diagnostics verified |
 | Immutable-by-default values and explicit mutation | Missing | — | Local, field, collection, and cross-task mutation rules verified |
-| Unique ownership and move safety | Partial | Explicit trivial/imported lifecycles; move/partial-place analysis; replay-validated cleanup plans; hostile-HIR parity; a private exact-instance native callable host integrating OS-seeded authority, non-mutating ledger plans, atomic owner commit, generation rotation, strict codecs, and a compiler-authenticated trace-path DFA; one narrow Node-executed Wasm slice; and exact reference/native-host-O0/O2/Wasm outcomes, traces, publication, and final logical liveness for all 14 cases | Open the public native gate only after general physical/malformed-response fallback cleanup and quiescence, green dynamic-provider sanitizer and Rust-host instrumentation evidence, and Windows/mobile evidence, then extend exactly-once/double-free proof through loops, closures, concurrency, and FFI ownership |
+| Unique ownership and move safety | Partial | Explicit trivial/imported lifecycles; move/partial-place analysis; replay-validated cleanup plans; hostile-HIR parity; a private exact-instance native callable host integrating OS-seeded authority, non-mutating ledger plans, atomic owner commit, generation rotation, strict codecs, and a compiler-authenticated trace-path DFA; one narrow Node-executed Wasm slice; exact reference/native-host-O0/O2/Wasm outcomes, traces, publication, and final logical liveness for all 14 cases; and a green Linux dynamically loaded generated-provider ASan+UBSan corpus | Open the public native gate only after general physical/malformed-response fallback cleanup and quiescence, Rust-host sanitizer instrumentation, and Windows/mobile evidence, then extend exactly-once/double-free proof through loops, closures, concurrency, and FFI ownership |
 | Borrowed views and lifetime safety | Partial | Non-consuming `borrow` boundaries and move-after-borrow behavior | Mutable/shared aliasing, escaping borrows, reborrows, slices, and zero-copy FFI pass positive and compile-fail suites |
 | Regions/arenas | Missing | — | Region inference and annotations prevent escape; bulk release and destructor behavior are verified |
 | Shared immutable ARC and opt-in managed zones | Missing | — | Retain/release correctness, cycle policy, escape optimization, and concurrency constraints verified |
@@ -72,7 +78,7 @@ the ordinary compiler build/preflight gate; `SPX-B104` remains closed.
 | Requirement | Status | Current evidence | Completion gate |
 | --- | --- | --- | --- |
 | Fast development lane | Missing | — | Cranelift JIT/AOT, incremental affected-node builds, hot reload, and debugger mapping verified |
-| Optimizing native lane | Partial | Validated stable-ID HIR lowers to sequenced C11/Clang AOT; the private callable-v2 lane emits guarded strict C11, exact request/response codecs, dictionary/certificate-bound traces, and executes the 14-case corpus through the real loader/authority/ledger host at O0/O2 | Public cleanup-plan/resource emission, general fallback cleanup/quiescence, a green public dynamic-provider sanitizer run plus Rust-host sanitizer instrumentation, Windows runtime evidence, Android/iOS profiles, LLVM/MLIR lowering, LTO/PGO, cross-compilation, CPU specialization, debug/release parity, and reproducibility verified |
+| Optimizing native lane | Partial | Validated stable-ID HIR lowers to sequenced C11/Clang AOT; the private callable-v2 lane emits guarded strict C11, exact request/response codecs, dictionary/certificate-bound traces, executes the 14-case corpus through the real loader/authority/ledger host at O0/O2, and has green Linux generated-provider ASan+UBSan evidence | Public cleanup-plan/resource emission, general fallback cleanup/quiescence, Rust-host sanitizer instrumentation, Windows runtime evidence, Android/iOS profiles, LLVM/MLIR lowering, LTO/PGO, cross-compilation, CPU specialization, debug/release parity, and reproducibility verified |
 | WebAssembly core/components | Partial | Validated stable-ID HIR lowers to direct Wasm core with browser ES runtime, checked arithmetic, contracts, HTML, `semaprax.web.v3`, and a Node-executed `semaprax.wasm-owned.v1` subset for one direct trivial resource, including same-realm duplicated-host isolation and exact semantic ordinal/reference equality for the shared 14-case corpus | Browser/WASI modules and Component Model artifacts, general canonical resource ABI, async, sandboxing, cross-realm/worker identity, and production native-host/Wasm conformance verified |
 | Embedded and real-time | Missing | — | Bare-metal artifacts, no-runtime/no-allocation/no-blocking profiles, MMIO/volatile/atomics, linker control, and hardware/emulator tests verified |
 | SIMD and GPU | Missing | — | Portable SIMD plus SPIR-V/WebGPU/platform kernels and memory/effect rules verified |

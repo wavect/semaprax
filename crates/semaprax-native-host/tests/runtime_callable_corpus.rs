@@ -24,11 +24,14 @@ fn sanitizers_required() -> bool {
     match std::env::var(REQUIRED_SANITIZERS_ENV) {
         Err(std::env::VarError::NotPresent) => false,
         Ok(value) if value == "1" => {
-            assert!(
-                cfg!(target_os = "linux"),
-                "{REQUIRED_SANITIZERS_ENV}=1 requires the audited Linux Clang host lane"
-            );
-            true
+            #[cfg(target_os = "linux")]
+            {
+                true
+            }
+            #[cfg(not(target_os = "linux"))]
+            {
+                panic!("{REQUIRED_SANITIZERS_ENV}=1 requires the audited Linux Clang host lane")
+            }
         }
         Ok(value) => {
             panic!("{REQUIRED_SANITIZERS_ENV} must be unset or exactly `1`, received `{value}`")

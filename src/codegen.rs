@@ -1623,7 +1623,7 @@ fn main() -> i64 { increment(41) }
         let digest = format!("{:x}", Sha256::digest(generated.as_bytes()));
         assert_eq!(
             digest,
-            "c29ee66e0acd1bb4a936c5307c54172e6617432a279d359c244b5632557ccd2f"
+            "ded095e7c610a44f58ee1b99e3d08906d289e7b20fa465c0d712ca813e0118c9"
         );
     }
 
@@ -1738,6 +1738,52 @@ fn main() -> i64 { increment(41) }
             "integrated provider C11 compilation failed:\n{}",
             String::from_utf8_lossy(&compiled.stderr)
         );
+    }
+
+    #[test]
+    fn callable_v2_production_provider_is_strict_cc_at_o0_and_o2() {
+        if Command::new("cc").arg("--version").output().is_err() {
+            return;
+        }
+        let parsed = parse(
+            CALLABLE_EXECUTION_SOURCE,
+            Path::new("native-callable-strict-cc.spx"),
+        )
+        .unwrap();
+        let program = hir::resolve(&parsed).unwrap();
+        let artifact =
+            emit_native_callable_admission(&program, &DeclarationId::new("token.checked")).unwrap();
+        let fixture = CallableFixture::create();
+        let source = fixture.0.join("provider.c");
+        fs::write(&source, artifact.provider_source()).unwrap();
+
+        for optimization in ["-O0", "-O2"] {
+            let object = fixture.0.join(format!(
+                "provider-{}.o",
+                optimization.trim_start_matches('-').to_ascii_lowercase()
+            ));
+            let compiled = Command::new("cc")
+                .args([
+                    "-std=c11",
+                    "-pedantic-errors",
+                    "-Wall",
+                    "-Wextra",
+                    "-Werror",
+                    optimization,
+                    "-fvisibility=hidden",
+                    "-c",
+                ])
+                .arg(&source)
+                .arg("-o")
+                .arg(&object)
+                .output()
+                .unwrap();
+            assert!(
+                compiled.status.success(),
+                "production provider strict cc compilation failed at {optimization}:\n{}",
+                String::from_utf8_lossy(&compiled.stderr)
+            );
+        }
     }
 
     #[test]
@@ -1998,7 +2044,7 @@ fn main() -> i64 { increment(41) }
                 "{:x}",
                 Sha256::digest(requires.normalized_execution_projection().as_bytes())
             ),
-            "493f04986aca30d0687b6138537fa9d3c3ad509dcb7cb7713aa6f41cd9bfc7e8"
+            "926a0c25682e1fef0e40e2a373650c1cf40d2e6763dfc00d409efc02c5aa82b2"
         );
     }
 

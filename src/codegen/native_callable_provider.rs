@@ -597,8 +597,12 @@ fn emit_callable(
     output.push_str(
         "    if (spx_execution.outcome == SPX_OUTCOME_FAILURE) {\n\
              if (spx_execution.selected_failure_ordinal == UINT32_C(0) || spx_execution.selected_failure_ordinal > SPX_PROVIDER_DICTIONARY_ENTRIES) return SPX_CALL_INTERNAL_FAILURE;\n\
-             bool spx_selected_seen = false; for (uint32_t i = 0; i < spx_execution.event_count; ++i) if (spx_execution.event_ordinals[i] == spx_execution.selected_failure_ordinal) spx_selected_seen = true;\n\
-             if (!spx_selected_seen) return SPX_CALL_INTERNAL_FAILURE; spx_payload_bytes = UINT32_C(4);\n\
+             bool spx_selected_seen = false;\n\
+             for (uint32_t i = 0; i < spx_execution.event_count; ++i) {\n\
+                 if (spx_execution.event_ordinals[i] == spx_execution.selected_failure_ordinal) spx_selected_seen = true;\n\
+             }\n\
+             if (!spx_selected_seen) return SPX_CALL_INTERNAL_FAILURE;\n\
+             spx_payload_bytes = UINT32_C(4);\n\
          } else if (spx_execution.outcome != SPX_OUTCOME_SUCCESS) return SPX_CALL_INTERNAL_FAILURE;\n",
     );
     output.push_str("    uint32_t spx_total = UINT32_C(68) + spx_payload_bytes + UINT32_C(4) * spx_execution.event_count;\n    if (spx_total > response_capacity) return SPX_CALL_INTERNAL_FAILURE;\n");

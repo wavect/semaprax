@@ -358,11 +358,13 @@ trace, outcome, publication, owner rotation, and final logical liveness exactly.
 
 - a general, traceable fallback cleanup/finalizer and quiescence protocol for
   physical provider failure or malformed response after ledger commit;
-- a green public run of the configured Linux job that loads ASan/UBSan-
-  instrumented generated providers through the loader, authority, ledger, and
-  callable host, plus sanitizer instrumentation of the Rust host itself (the
-  configured linker flags make the provider runtimes available but do not
-  instrument Rust code);
+- the public Linux
+  [dynamic-provider sanitizer job](https://github.com/wavect/semaprax/actions/runs/31256134955/job/93099637801)
+  is green for all 14 O0/O2 cases through the loader, authority, ledger, and
+  callable host; sanitizer instrumentation of the Rust host itself remains open
+  because the job's linker flags only make the provider runtimes available and
+  do not instrument Rust code. Unrelated Clippy/GCC failures stopped the
+  platform jobs before runtime evidence and kept the overall workflow run red;
 - a green public Windows CI run of the generated callable corpus plus the
   dependency-collision fixture and hardened search assertions;
 - Android device/runtime admission and an iOS-compatible static-link profile,

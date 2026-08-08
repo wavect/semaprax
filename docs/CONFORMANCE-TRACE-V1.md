@@ -11,9 +11,11 @@ and compiler-owned trace-path certificate before materializing events. Native
 host and Wasm outcomes, publication, logical liveness, and complete traces
 match the reference exactly. Recursive reference-callee execution,
 callable-import execution, public callable-native resource execution, and
-general-shape backend conformance remain unimplemented. A dynamic-provider
-ASan/UBSan CI job is configured but has no green public run yet and does not
-sanitizer-instrument the Rust host itself.
+general-shape backend conformance remain unimplemented. The public Linux
+[dynamic-provider ASan/UBSan job](https://github.com/wavect/semaprax/actions/runs/31256134955/job/93099637801)
+is green for all 14 O0/O2 cases through the Rust host. It does not
+sanitizer-instrument the Rust host code; unrelated Clippy/GCC failures kept the
+overall workflow run red.
 
 This document fixes the current public wire projection defined by `src/conformance.rs`. It complements [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md). The native scalar backend executes the status/out portion. For the admitted owned-resource slice, generated native C and Wasm emit dictionary ordinals that the host materializes into this protocol; the 14-case equality is executable evidence for that slice, not a claim of general or production native resource conformance.
 

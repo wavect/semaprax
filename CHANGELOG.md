@@ -104,10 +104,17 @@ All notable changes to SEMAPRAX are documented here.
 - Made formatting, Clippy, tests, docs, builds, and the Rust 1.85 gate run every
   workspace feature so staged production surfaces cannot escape CI. `SPX-B104`
   remains closed for general physical/malformed-response fallback cleanup and
-  quiescence, a green public run of the configured dynamic-provider ASan/UBSan
-  job, Rust-host sanitizer instrumentation, confirmed Windows
+  quiescence, Rust-host sanitizer instrumentation, confirmed Windows
   runtime/dependency isolation, Android/iOS profiles, and public compiler
   build/preflight emission.
+- Recorded the green public Linux
+  [callable-host sanitizer job](https://github.com/wavect/semaprax/actions/runs/31256134955/job/93099637801):
+  all 14 authoritative O0/O2 cases executed from dynamically loaded
+  ASan/UBSan-instrumented generated providers through the Rust host. The Rust
+  host code itself was not sanitizer-instrumented. The dependency-policy job was
+  also green, but unrelated Clippy/GCC failures stopped the platform jobs before
+  runtime evidence and kept the overall workflow run red; no Windows runtime
+  evidence is inferred from this job.
 - Migrated browser manifests from `semaprax.web.v2` to `semaprax.web.v3`. Version 3 retains module, graph revision, Wasm entry, and capabilities while adding the required `owned_abi` object with schema `semaprax.wasm-owned.v1` and a declaration-ordered function mapping; scalar-only packages use an empty function array. Version-2-only consumers must reject or explicitly migrate rather than inferring ownership ABI metadata.
 
 ## 0.1.0 — 2026-08-07

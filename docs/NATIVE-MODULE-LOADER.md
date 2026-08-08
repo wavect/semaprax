@@ -61,9 +61,14 @@ admits the root-image directory plus default safe directories. Until public CI
 is green, the evidence does not claim a confirmed Windows callable corpus or
 malicious dependency-collision run. It also does not prove
 immediate physical unmapping, same-root-image callable provenance, Windows
-malicious-CWD collision behavior, a green public run of the configured
-ASan/UBSan-instrumented-provider job, sanitizer instrumentation of the Rust
-host, iOS dynamic/static admission, Android device execution,
+malicious-CWD collision behavior, sanitizer instrumentation of the Rust host,
+iOS dynamic/static admission, Android device execution,
 callback/finalizer quiescence, hot reload, fork recovery, signed code admission,
 or callable resource safety. Those remain gates before any public native
 adapter or `SPX-B104` change.
+
+The Linux
+[ASan/UBSan generated-provider job](https://github.com/wavect/semaprax/actions/runs/31256134955/job/93099637801)
+is green for all 14 O0/O2 cases loaded through this quarantine and the Rust
+host. It did not instrument the Rust host, and unrelated Clippy/GCC failures
+kept the overall workflow run red; it is not Windows evidence.

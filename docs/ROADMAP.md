@@ -62,22 +62,28 @@ Node/Wasm.
 This proves the narrow private semantics, not the public native boundary.
 Compiler resource builds retain `SPX-B104` while physical/malformed-response
 fallback cleanup and quiescence remain nongeneralized, the full host path lacks
-green public dynamic-provider sanitizer evidence plus Rust-host sanitizer
-instrumentation, Windows runtime/dependency-collision confirmation
+Rust-host sanitizer instrumentation, Windows runtime/dependency-collision confirmation
 awaits a green public CI run, Android/iOS device or static-link profiles are
 absent, and ordinary compiler build/preflight does not emit the callable.
 Imported lifecycles, calls, aggregates, broader control flow,
 cross-realm/worker identity, aggregate layouts, variants, matching,
 concurrency, and fork recovery remain subsequent work.
 
+The dedicated Linux
+[dynamic-provider sanitizer job](https://github.com/wavect/semaprax/actions/runs/31256134955/job/93099637801)
+is green for all 14 O0/O2 generated-provider cases through the host. It linked
+the sanitizer runtimes without instrumenting Rust host code; unrelated
+Clippy/GCC failures kept the overall workflow run red, so Windows and the full
+platform matrix remain unproven.
+
 The active phase-3 gate is [Owned resource vertical slice
 v1](OWNED-RESOURCE-VERTICAL-V1.md). It requires one production-reachable,
 thread-confined native host and one instance-confined Wasm host to execute the
 same admitted direct-trivial-resource cleanup plan with exact reference-trace
 equivalence. The private host now meets that semantic corpus requirement. The
-remaining public compiler, fallback cleanup/quiescence, sanitizer, Windows CI,
-and mobile-profile requirements keep the gate open, and every broader resource
-or aggregate shape remains closed.
+remaining public compiler, fallback cleanup/quiescence, Rust-host sanitizer
+instrumentation, Windows CI, and mobile-profile requirements keep the gate open,
+and every broader resource or aggregate shape remains closed.
 
 ## 0.3 — Ownership and fast development
 

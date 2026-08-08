@@ -226,8 +226,10 @@ The slice cannot be admitted until all of these pass:
 - real runtime-loaded and callable native fixtures on Linux, macOS, and
   Windows, including exact cleanup traces;
 - real Wasm execution through Node in CI;
-- a green public run of the configured Linux dynamic-callable job, with the
-  generated providers instrumented by ASan/UBSan and loaded through the host;
+- a green public run of the Linux dynamic-callable job, completed by
+  [run 31256134955, job 93099637801](https://github.com/wavect/semaprax/actions/runs/31256134955/job/93099637801),
+  with all 14 O0/O2 cases executing from ASan/UBSan-instrumented generated
+  providers loaded through the host;
 - sanitizer instrumentation of the Rust host itself, not merely linkage of the
   sanitizer runtimes required by the generated providers;
 - compile-fail thread-confinement and non-copying/non-formatting API tests;
@@ -257,8 +259,11 @@ subsequent completion-matrix gates; this slice is the ownership prerequisite,
 not a substitute for them.
 
 It also does not yet prove general physical/malformed-response fallback cleanup
-and quiescence, a green public run of the configured dynamic-provider
-sanitizer job, sanitizer instrumentation of the Rust host itself, a green
+and quiescence, sanitizer instrumentation of the Rust host itself, a green
 public Windows callable/dependency-collision run, Android device admission, an
 iOS static-link profile, or public compiler emission. Those are blockers for
 `SPX-B104`, not implications of the private 14-case success.
+
+The sanitizer job above was green even though unrelated Clippy/GCC failures
+kept its overall workflow run red. It is not evidence for Rust-host
+instrumentation, Windows runtime behavior, or a green overall platform matrix.

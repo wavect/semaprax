@@ -15,6 +15,7 @@ name = "semaprax"
 path = "src/lib.rs"
 
 [dependencies]
+hmac = "=0.12.1"
 sha2 = "=0.10.9"
 
 [[bin]]

@@ -58,8 +58,11 @@ The remaining Cargo and `semaprax` commands are shell-neutral.
 | Interop or package | Bidirectional conformance fixture, ownership/error mapping, reproducible artifact |
 | UI/platform | Accessibility checks, lifecycle/capability tests, representative simulator/device or host evidence |
 | Security boundary | Threat-model delta, hostile input test, no newly ambient capability |
+| Native capability token | Published HMAC KAT, independently reproduced owner and result complete-token goldens, exact length/layout/endian assertions, every-bit, arbitrary-byte, and length-boundary mutation, closed kind/reserved/zero-field parsing, cross-secret/module/adapter/epoch/template/type/lifecycle/thread-policy/thread-binding rejection, owner-versus-result scope, stale/max-generation evidence, pinned audited crypto dependency, and proof that compiler preflight creates no authority |
 
 The gated native cleanup corpus runs at O0 and O2 everywhere Clang is available. Linux CI additionally sets `SEMAPRAX_REQUIRE_NATIVE_SANITIZERS=1`, which makes separate ASan and UBSan compile/run support mandatory rather than allowing capability-based skips.
+
+Token-codec goldens prove deterministic mechanics only. They do not prove key entropy, runtime unforgeability, replay prevention, module lifetime, or callable resource safety; those claims require their own executable gates before the codec may leave private staging.
 
 ## Evidence strength
 

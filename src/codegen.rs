@@ -1,4 +1,5 @@
 mod native_adapter_abi;
+mod native_capability_token;
 mod native_cleanup;
 mod native_cleanup_emit;
 #[cfg(test)]

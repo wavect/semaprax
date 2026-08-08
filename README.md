@@ -177,12 +177,17 @@ production-reachable owned-resource corpus must execute with exact
 native/reference/Wasm status, cleanup, publication, and semantic-trace equality
 before either backend gate can open. The private generated-callable host and
 real Wasm lane now prove that equality for the authoritative 14 cases, including
-native O0/O2 and logical final liveness. A fail-closed pinned-nightly
-[Rust-host ASan lane](docs/RUST-HOST-SANITIZERS.md) is configured but still
-needs a green public run. The physical/malformed-response fallback, mobile
-profiles, and public native execution/admission remain absent. Windows
-callable/dependency isolation and build-only compiler emission are proven by
-the evidence above; ordinary native resource execution retains `SPX-B104`.
+native O0/O2 and logical final liveness. The fail-closed pinned-nightly
+[Rust-host ASan lane](docs/RUST-HOST-SANITIZERS.md) is green in public CI for
+the instrumented Rust host and real callable corpus. The physical/malformed-
+response fallback, mobile profiles, and public native execution/admission
+remain absent. The corrected build-only bundle is green on [Ubuntu
+CI](https://github.com/wavect/semaprax/actions/runs/31259216533/job/93107277094),
+[macOS CI](https://github.com/wavect/semaprax/actions/runs/31259216533/job/93107277081),
+and [Windows CI](https://github.com/wavect/semaprax/actions/runs/31259216533/job/93107277085),
+including Windows callable/dependency isolation. This proves no app-platform
+support or public loading, invocation, adoption, or authority; ordinary native
+resource execution retains `SPX-B104`.
 The document remains a gate, not a completion claim.
 
 ## Agent protocol

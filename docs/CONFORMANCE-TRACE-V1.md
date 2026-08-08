@@ -15,7 +15,10 @@ general-shape backend conformance remain unimplemented. The public Linux
 [dynamic-provider ASan/UBSan job](https://github.com/wavect/semaprax/actions/runs/31256134955/job/93099637801)
 is green for all 14 O0/O2 cases through the Rust host. It does not
 sanitizer-instrument the Rust host code; unrelated Clippy/GCC failures kept the
-overall workflow run red.
+overall workflow run red. The separate pinned-nightly [Rust-host ASan
+job](https://github.com/wavect/semaprax/actions/runs/31259216533/job/93107277065)
+later passed with the Rust host itself instrumented. Rust-host UBSan and general
+backend conformance are not inferred.
 
 This document fixes the current public wire projection defined by `src/conformance.rs`. It complements [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md). The native scalar backend executes the status/out portion. For the admitted owned-resource slice, generated native C and Wasm emit dictionary ordinals that the host materializes into this protocol; the 14-case equality is executable evidence for that slice, not a claim of general or production native resource conformance.
 

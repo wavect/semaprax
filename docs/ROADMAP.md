@@ -61,12 +61,12 @@ Node/Wasm.
 
 This proves the narrow private semantics, not the public native boundary.
 Compiler resource builds retain `SPX-B104` while physical/malformed-response
-fallback cleanup and quiescence remain nongeneralized, the configured
-Rust-host ASan lane still lacks a green public run, and Android/iOS device or
-static-link profiles are absent. The generated callable corpus and same-name
-CWD/legacy-`PATH` dependency-isolation fixture are green on Windows in [run
-31257545008, job
-93103151756](https://github.com/wavect/semaprax/actions/runs/31257545008/job/93103151756).
+fallback cleanup and quiescence remain nongeneralized and Android/iOS device or
+static-link profiles are absent. The pinned-nightly Rust-host ASan lane and the
+full Linux/macOS/Windows matrix are green in [public run
+31259216533](https://github.com/wavect/semaprax/actions/runs/31259216533); the
+Rust-host evidence is the narrower [job
+93107277065](https://github.com/wavect/semaprax/actions/runs/31259216533/job/93107277065).
 The public build-only API/CLI now emits one selected direct-trivial callable-v2
 bundle with deterministic hashed metadata, but it exposes no execution,
 admission, or adoption surface.
@@ -95,9 +95,10 @@ v1](OWNED-RESOURCE-VERTICAL-V1.md). It requires one production-reachable,
 thread-confined native host and one instance-confined Wasm host to execute the
 same admitted direct-trivial-resource cleanup plan with exact reference-trace
 equivalence. The private host now meets that semantic corpus requirement. The
-remaining fallback cleanup/quiescence, Rust-host sanitizer instrumentation,
-public execution/admission, and mobile-profile requirements keep the gate open,
-and every broader resource or aggregate shape remains closed.
+remaining fallback cleanup/quiescence, public execution/admission, and mobile-
+profile requirements keep the gate open, and every broader resource or
+aggregate shape remains closed. Rust-host ASan instrumentation is green in the
+public run cited above.
 
 ## 0.3 — Ownership and fast development
 

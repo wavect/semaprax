@@ -93,7 +93,11 @@ trace certificate, canonical file-hash manifest, and manifest checksum. It
 refuses observed files, directories, and dangling symlinks and stages beside a
 canonical trusted output parent; portable `std` cannot make the final directory
 rename no-replace against an adversarial concurrent parent mutation. The API
-does not load, invoke, adopt, mint authority, or connect callable v3.
+does not load, invoke, adopt, mint authority, or connect callable v3. Exact
+build-only bundle emission is green on [Ubuntu](https://github.com/wavect/semaprax/actions/runs/31259216533/job/93107277094),
+[macOS](https://github.com/wavect/semaprax/actions/runs/31259216533/job/93107277081),
+and [Windows](https://github.com/wavect/semaprax/actions/runs/31259216533/job/93107277085)
+hosted CI; this is not mobile or application-host evidence.
 
 The unpublished `semaprax-native-host` now performs the complete private
 connection. It strictly decodes descriptor v2, authenticates the dictionary and
@@ -119,7 +123,10 @@ quiescence are not yet proven. The dedicated Linux
 passed all 14 O0/O2 cases from dynamically loaded ASan/UBSan-instrumented
 generated providers through the Rust host. It supplied the sanitizer runtimes
 without sanitizer-instrumenting the Rust host code itself. The overall workflow
-run remained red because of unrelated Clippy/GCC failures.
+run remained red because of unrelated Clippy/GCC failures. The distinct pinned-
+nightly [Rust-host ASan job](https://github.com/wavect/semaprax/actions/runs/31259216533/job/93107277065)
+later passed with the Rust host instrumented inside a fully green current hosted-
+CI run; it does not claim Rust-host UBSan or mobile/app-platform coverage.
 
 The hidden `native_settlement` module and proposed [RFC
 0004](RFC-0004-NATIVE-CALL-SETTLEMENT.md) now make the target-neutral recovery

@@ -66,11 +66,11 @@ corpus as an explicit Windows gate. Both passed in [run 31257545008, job
 93103151756](https://github.com/wavect/semaprax/actions/runs/31257545008/job/93103151756).
 The current evidence still does not prove
 immediate physical unmapping, same-root-image callable provenance, Windows
-application-platform completion, sanitizer instrumentation of the Rust host,
-iOS dynamic/static admission, Android device execution,
+application-platform completion, iOS dynamic/static admission, Android device execution,
 callback/finalizer quiescence, hot reload, fork recovery, signed code admission,
 or callable resource safety. Those remain gates before any public native
-adapter or `SPX-B104` change.
+adapter or `SPX-B104` change. Bounded Linux Rust-host ASan evidence is green in
+[public job 93107277065](https://github.com/wavect/semaprax/actions/runs/31259216533/job/93107277065).
 
 The Linux
 [ASan/UBSan generated-provider job](https://github.com/wavect/semaprax/actions/runs/31256134955/job/93099637801)

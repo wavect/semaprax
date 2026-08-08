@@ -232,8 +232,10 @@ The slice cannot be admitted until all of these pass:
   [run 31256134955, job 93099637801](https://github.com/wavect/semaprax/actions/runs/31256134955/job/93099637801),
   with all 14 O0/O2 cases executing from ASan/UBSan-instrumented generated
   providers loaded through the host;
-- sanitizer instrumentation of the Rust host itself, not merely linkage of the
-  sanitizer runtimes required by the generated providers;
+- sanitizer instrumentation of the Rust host itself, completed in [public run
+  31259216533, job
+  93107277065](https://github.com/wavect/semaprax/actions/runs/31259216533/job/93107277065),
+  rather than merely linkage of the runtimes required by generated providers;
 - compile-fail thread-confinement and non-copying/non-formatting API tests;
 - malformed-input and hostile-HIR suites;
 - exhaustion and wraparound suites for module instances, owner slots,
@@ -260,13 +262,15 @@ subsequent completion-matrix gates; this slice is the ownership prerequisite,
 not a substitute for them.
 
 It also does not yet prove general physical/malformed-response fallback cleanup
-and quiescence, sanitizer instrumentation of the Rust host itself, a green
-public Rust-host ASan run, Android device admission, an iOS static-link profile,
-or public native execution/admission. Those are blockers for `SPX-B104`, not
-implications of the private 14-case success or public build-only packaging.
+and quiescence, Android device admission, an iOS static-link profile, or public
+native execution/admission. The Rust host itself is ASan-instrumented in [green
+public job 93107277065](https://github.com/wavect/semaprax/actions/runs/31259216533/job/93107277065).
+The remaining gaps are blockers for `SPX-B104`, not implications of the private
+14-case success or public build-only packaging.
 
-The Linux provider sanitizer job above was green even though unrelated
-Clippy/GCC failures kept its overall workflow run red. It is not evidence for
-Rust-host instrumentation or a green overall platform matrix. The later
-Windows callable/dependency-isolation job is the narrow Windows evidence cited
-elsewhere in this repository.
+The earlier Linux provider sanitizer job was green even though unrelated
+Clippy/GCC failures kept its overall workflow run red. It is not itself evidence
+for Rust-host instrumentation or a green overall platform matrix. Those later
+requirements are separately green in [public run
+31259216533](https://github.com/wavect/semaprax/actions/runs/31259216533), while
+Rust-host UBSan remains unclaimed.

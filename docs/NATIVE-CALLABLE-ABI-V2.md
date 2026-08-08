@@ -362,6 +362,12 @@ integration; safe scalar/owned calls; status and owner-result reconciliation;
 draining; and cross-instance rejection. Real generated shared libraries execute
 all 14 authoritative cases through the host at O0/O2 and match the reference
 trace, outcome, publication, owner rotation, and final logical liveness exactly.
+The public build-only bundle and its exact-inventory tests are green on
+[Ubuntu](https://github.com/wavect/semaprax/actions/runs/31259216533/job/93107277094),
+[macOS](https://github.com/wavect/semaprax/actions/runs/31259216533/job/93107277081),
+and [Windows](https://github.com/wavect/semaprax/actions/runs/31259216533/job/93107277085)
+hosted CI. Those jobs prove packaging only, not loading, invocation, adoption,
+authority, or application-platform support.
 
 `SPX-B104` remains closed until all of these are green together:
 
@@ -370,10 +376,10 @@ trace, outcome, publication, owner rotation, and final logical liveness exactly.
 - the public Linux
   [dynamic-provider sanitizer job](https://github.com/wavect/semaprax/actions/runs/31256134955/job/93099637801)
   is green for all 14 O0/O2 cases through the loader, authority, ledger, and
-  callable host; sanitizer instrumentation of the Rust host itself remains open
-  because the job's linker flags only make the provider runtimes available and
-  do not instrument Rust code. Unrelated Clippy/GCC failures stopped the
-  platform jobs before runtime evidence and kept the overall workflow run red;
+  callable host;
+- the Rust host itself is ASan-instrumented and executes the real callable
+  corpus in [public run 31259216533, job
+  93107277065](https://github.com/wavect/semaprax/actions/runs/31259216533/job/93107277065);
 - the generated callable corpus plus dependency-collision fixture and hardened
   search assertions are green on Windows in [run 31257545008, job
   93103151756](https://github.com/wavect/semaprax/actions/runs/31257545008/job/93103151756);

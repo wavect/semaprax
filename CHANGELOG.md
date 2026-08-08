@@ -104,14 +104,17 @@ All notable changes to SEMAPRAX are documented here.
 - Made formatting, Clippy, tests, docs, builds, and the Rust 1.85 gate run every
   workspace feature so staged production surfaces cannot escape CI. `SPX-B104`
   remains closed for general physical/malformed-response fallback cleanup and
-  quiescence, a green public Rust-host ASan run, Android/iOS profiles, and
-  public native execution/admission.
+  quiescence, Android/iOS profiles, and public native execution/admission.
 - Added a separate fail-closed Linux Rust-host ASan lane pinned to
   `nightly-2026-07-16`: it rebuilds the target standard library, proves active
   Rust instrumentation with both an intentional fault and binary/compiler
-  inspection, and runs the real callable host plus generated corpus. This is
-  configuration and static-test evidence until its first green public run;
-  Rust-host UBSan is not claimed and `SPX-B104` remains closed.
+  inspection, and runs the real callable host plus generated corpus. The exact
+  lane passed in [public run 31259216533, job
+  93107277065](https://github.com/wavect/semaprax/actions/runs/31259216533/job/93107277065),
+  alongside a fully green current hosted-CI matrix for Linux, macOS, Windows,
+  MSRV, dependency policy, and provider sanitizers. This is not mobile or app-
+  platform evidence. Rust-host UBSan is not claimed and `SPX-B104` remains
+  closed.
 - Recorded the green public Linux
   [callable-host sanitizer job](https://github.com/wavect/semaprax/actions/runs/31256134955/job/93099637801):
   all 14 authoritative O0/O2 cases executed from dynamically loaded

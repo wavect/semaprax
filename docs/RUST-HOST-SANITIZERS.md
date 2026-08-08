@@ -1,6 +1,6 @@
 # Rust-host sanitizer evidence
 
-Status: **configured, pending a green public run**.
+Status: **green public Linux Rust-host ASan evidence**.
 
 SEMAPRAX has two intentionally separate Linux sanitizer lanes:
 
@@ -35,7 +35,7 @@ The stable [`tests/rust_host_asan_contract.rs`](../tests/rust_host_asan_contract
 
 ## Evidence boundary and nonclaims
 
-Configuration and static validation are not runtime evidence. This lane must complete successfully in public CI before the completion matrix may call Rust-host ASan evidence green.
+The exact lane passed in [public run 31259216533, job 93107277065](https://github.com/wavect/semaprax/actions/runs/31259216533/job/93107277065). The containing [workflow run](https://github.com/wavect/semaprax/actions/runs/31259216533) was also fully green across the current hosted-CI matrix: Linux, macOS, Windows, Rust 1.85, dependency policy, the stable generated-provider ASan+UBSan lane, and the pinned-nightly Rust-host ASan lane. This is not app-platform or mobile evidence. It records runtime evidence for the bounded Linux contract above; configuration and static validation alone would not be sufficient.
 
 Rust's `-Zsanitizer` interface does not provide an UndefinedBehaviorSanitizer mode. Rust-host UBSan is therefore not claimed; the stable generated-provider lane remains the UBSan evidence. This lane also does not prove absence of memory bugs, Miri coverage, macOS or Windows Rust-host instrumentation, mobile sanitizer profiles, malformed-response fallback cleanup, quiescence, or a recovery protocol. It does not weaken or reopen the public `SPX-B104` resource gate.
 

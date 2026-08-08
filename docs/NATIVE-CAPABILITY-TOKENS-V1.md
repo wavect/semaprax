@@ -192,9 +192,10 @@ no capability and exposes no loader, invocation, or adoption surface. The
 unpublished host's unsafe adoption and generated callable executor are private
 physical plumbing evidence, not the public native adapter. General postcommit
 fallback cleanup, physical finalization and quiesced unload, code identity,
-fork handling, hostile concurrency, mobile profiles, a green public Rust-host
-ASan run, and public native execution/admission must land before `SPX-B104` can
-change.
+fork handling, hostile concurrency, mobile profiles, and public native
+execution/admission must land before `SPX-B104` can change. The bounded Linux
+Rust-host ASan requirement is green in [public job
+93107277065](https://github.com/wavect/semaprax/actions/runs/31259216533/job/93107277065).
 
 The generated-provider side has green public Linux evidence: the
 [callable-host sanitizer job](https://github.com/wavect/semaprax/actions/runs/31256134955/job/93099637801)

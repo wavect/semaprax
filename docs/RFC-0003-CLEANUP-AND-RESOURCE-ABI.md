@@ -447,10 +447,12 @@ Each phase is incomplete until its executable evidence passes. An RFC, type defi
    the public native execution boundary. Public build-only compiler preflight
    and packaging construct no host, and ordinary native resource builds retain
    `SPX-B104`. General physical or malformed-response fallback cleanup and
-   quiescence, Rust-host sanitizer instrumentation, Android/iOS profiles,
-   public execution/admission, code provenance, concurrency, and fork recovery
-   remain required. The narrow callable corpus and dependency-isolation fixture
-   are green on Windows in [run 31257545008, job 93103151756](https://github.com/wavect/semaprax/actions/runs/31257545008/job/93103151756).
+   quiescence, Android/iOS profiles, public execution/admission, code
+   provenance, concurrency, and fork recovery remain required. Rust-host ASan
+   instrumentation is green in [public run 31259216533, job
+   93107277065](https://github.com/wavect/semaprax/actions/runs/31259216533/job/93107277065),
+   whose Windows job also covers the narrow callable corpus and dependency
+   isolation.
    The proposed [native call recovery and settlement contract](RFC-0004-NATIVE-CALL-SETTLEMENT.md)
    specifies bounded linear recovery frames, compiler-certified physical
    checkpoints, idempotent settlement, and authenticated quiescence receipts

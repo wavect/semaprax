@@ -131,11 +131,13 @@ The ordinary compiler now exposes build-only preflight and a deterministic
 hashed shared-library bundle for one explicitly selected direct-trivial owned
 function; loading, invocation, adoption, and authority remain feature-gated,
 and ordinary native execution still returns `SPX-B104`. General
-physical/malformed-response fallback cleanup and quiescence, a green public
-Rust-host ASan run, Android/iOS profiles, recursive callee
-execution, callable imports, imported finalizers, aggregates, and broader
-control flow remain absent. Native resources, records, and every Wasm resource
-shape outside the documented narrow slice remain fail closed.
+physical/malformed-response fallback cleanup and quiescence, Android/iOS
+profiles, recursive callee execution, callable imports, imported finalizers,
+aggregates, and broader control flow remain absent. The bounded Linux Rust-host
+ASan lane is green in [public job
+93107277065](https://github.com/wavect/semaprax/actions/runs/31259216533/job/93107277065).
+Native resources, records, and every Wasm resource shape outside the documented
+narrow slice remain fail closed.
 
 The Linux
 [dynamic-provider sanitizer job](https://github.com/wavect/semaprax/actions/runs/31256134955/job/93099637801)
@@ -217,9 +219,11 @@ truncation, and trailing data. The physical ownership host now binds the exact
 v2 getter/callable and uses the strict request/response protocol for the O0/O2
 14-case corpus. Windows callable/dependency isolation is confirmed in
 [run 31257545008, job 93103151756](https://github.com/wavect/semaprax/actions/runs/31257545008/job/93103151756).
-The configured Rust-host ASan lane's green public run, mobile profiles, general
-fallback cleanup/quiescence, and public native execution/admission remain
-absent, so this migration does not change `SPX-B104`.
+The Rust-host ASan lane is green in [public job
+93107277065](https://github.com/wavect/semaprax/actions/runs/31259216533/job/93107277065).
+Mobile profiles, general fallback cleanup/quiescence, and public native
+execution/admission remain absent, so this migration does not change
+`SPX-B104`.
 
 ## Revision token FNV-1a64 to SHA-256
 

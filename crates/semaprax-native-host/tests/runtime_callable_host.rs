@@ -142,7 +142,7 @@ impl Fixture {
         callable_symbol: String,
         dictionary: SemanticEventDictionary,
         trace_path_certificate: TracePathCertificate,
-        mut provider: String,
+        provider: String,
     ) -> Self {
         let sequence = NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed);
         let directory = std::env::temp_dir().join(format!(
@@ -156,10 +156,14 @@ impl Fixture {
         #[cfg(unix)]
         let unload_marker = directory.join("unloaded.marker");
         #[cfg(unix)]
-        provider.push_str(&format!(
-            "\n#include <stdio.h>\n__attribute__((destructor)) static void spx_callable_host_unload(void) {{ FILE *marker = fopen({}, \"wb\"); if (marker != NULL) {{ fputs(\"unloaded\", marker); fclose(marker); }} }}\n",
-            c_string_literal(&unload_marker)
-        ));
+        let provider = {
+            let mut provider = provider;
+            provider.push_str(&format!(
+                "\n#include <stdio.h>\n__attribute__((destructor)) static void spx_callable_host_unload(void) {{ FILE *marker = fopen({}, \"wb\"); if (marker != NULL) {{ fputs(\"unloaded\", marker); fclose(marker); }} }}\n",
+                c_string_literal(&unload_marker)
+            ));
+            provider
+        };
         fs::write(&source, provider).expect("write callable provider fixture");
 
         let compiler_name = std::env::var_os("CC").unwrap_or_else(|| {
@@ -270,7 +274,7 @@ fn provider_source(
     let response = match behavior {
         ProviderBehavior::PhysicalFailure(code) => format!("return UINT32_C({code});"),
         ProviderBehavior::MalformedResponse => {
-            "if (response_cap > 0) response[0] = UINT8_C(0xff); return UINT32_C(0);".to_owned()
+            "if (response_cap > 0) { response[0] = UINT8_C(0xff); }\nreturn UINT32_C(0);".to_owned()
         }
         ProviderBehavior::SemanticFailure => {
             let ordinal = ordinals

@@ -5,6 +5,15 @@ Status: a private, target-neutral Rust reference model is implemented in
 Wasm, Swift, Kotlin/JNI, and JavaScript adapters must preserve. It is not a
 public FFI, does not execute a finalizer, and does not weaken `SPX-B104`.
 
+The private native staging lane also derives ownership contracts in
+`src/codegen/native_host_contract.rs`. Derivation accepts a validated program
+and exact function ID, rebuilds and compares the resource ABI, reruns cleanup
+classification and value planning, and obtains ordered direct-trivial-resource
+requirements plus scalar/owned result mapping from canonical HIR. Tests cover
+interleaved scalar/resource parameters and returning the second of two
+same-type owners. This derivation is unit-tested groundwork; compiler resource
+preflight does not consume it yet.
+
 ## Why this boundary exists
 
 An `own` argument cannot safely cross an ecosystem boundary through a raw
@@ -79,6 +88,15 @@ resource export can ship, all of the following remain mandatory:
 
 - generated, versioned C ABI/header with fixed-width layouts, visibility and
   calling-convention macros, and hostile packing/link tests;
+- an opaque adapter binding-instance capability and complete ABI fingerprint;
+  the current trivial binding identity is only a logical module-local staging
+  identity and must not authorize hot-reload or cross-library exchange;
+- complete ordered parameter metadata, including scalar ABI shape and explicit
+  parameter index/identity; the ownership ledger currently retains only the
+  ordered resource type/lifecycle requirements and result owner ordinal;
+- wire the compiler-derived contract into resource preflight and then into the
+  generated adapter; focused derivation tests are not gate evidence by
+  themselves;
 - runtime-owned context, status arena, trace storage, provisional result, and
   deep materialization—no caller-provided mutable storage;
 - a binding-instance/module-lifetime capability retained by every live owner;

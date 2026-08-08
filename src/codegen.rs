@@ -6,6 +6,7 @@ mod native_conformance;
 mod native_conformance_materialize;
 #[cfg(test)]
 mod native_conformance_wire;
+mod native_host_contract;
 mod native_resource;
 mod native_runtime;
 mod native_trace;

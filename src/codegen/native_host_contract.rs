@@ -87,6 +87,97 @@ pub(super) struct NativeHostContractTemplate {
     fingerprint: String,
 }
 
+/// Read-only semantic projection consumed by the private physical descriptor
+/// emitter.  The projection has no public constructor: only an already
+/// admitted host template can create it, so descriptor emission cannot accept
+/// foreign signature metadata or independently reclassify HIR.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(super) struct NativeAdapterTemplateProjection {
+    pub(super) module: String,
+    pub(super) module_abi_fingerprint: String,
+    pub(super) function: String,
+    pub(super) parameters: Vec<NativeAdapterParameterProjection>,
+    pub(super) result: NativeAdapterResultProjection,
+    pub(super) function_template_fingerprint: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(super) enum NativeAdapterParameterProjection {
+    Scalar {
+        parameter_index: usize,
+        value_id: ValueId,
+        kind: NativeHostScalarKind,
+    },
+    OwnedResource {
+        parameter_index: usize,
+        value_id: ValueId,
+        owner_ordinal: usize,
+        resource_type: String,
+        lifecycle: String,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(super) enum NativeAdapterResultProjection {
+    ScalarI64,
+    OwnedInput {
+        parameter_index: usize,
+        value_id: ValueId,
+        owner_ordinal: usize,
+    },
+}
+
+pub(super) fn project_for_adapter_abi(
+    template: &NativeHostContractTemplate,
+) -> NativeAdapterTemplateProjection {
+    NativeAdapterTemplateProjection {
+        module: template.module.as_str().to_owned(),
+        module_abi_fingerprint: template.module_abi_fingerprint.clone(),
+        function: template.function.as_str().to_owned(),
+        parameters: template
+            .parameters
+            .iter()
+            .map(|parameter| match parameter {
+                NativeHostParameter::Scalar {
+                    parameter_index,
+                    value_id,
+                    kind,
+                } => NativeAdapterParameterProjection::Scalar {
+                    parameter_index: *parameter_index,
+                    value_id: value_id.clone(),
+                    kind: *kind,
+                },
+                NativeHostParameter::OwnedResource {
+                    parameter_index,
+                    value_id,
+                    owner_ordinal,
+                    resource_type,
+                    lifecycle,
+                } => NativeAdapterParameterProjection::OwnedResource {
+                    parameter_index: *parameter_index,
+                    value_id: value_id.clone(),
+                    owner_ordinal: *owner_ordinal,
+                    resource_type: resource_type.as_str().to_owned(),
+                    lifecycle: lifecycle.as_str().to_owned(),
+                },
+            })
+            .collect(),
+        result: match &template.result {
+            NativeHostResult::ScalarI64 => NativeAdapterResultProjection::ScalarI64,
+            NativeHostResult::OwnedInput {
+                parameter_index,
+                value_id,
+                owner_ordinal,
+            } => NativeAdapterResultProjection::OwnedInput {
+                parameter_index: *parameter_index,
+                value_id: value_id.clone(),
+                owner_ordinal: *owner_ordinal,
+            },
+        },
+        function_template_fingerprint: template.fingerprint.clone(),
+    }
+}
+
 /// Validated binding policy for the current import-free trivial-resource host.
 ///
 /// There is no caller-provided adapter identity. Each trusted binding instance

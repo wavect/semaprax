@@ -3,7 +3,10 @@
 Status: a private, target-neutral Rust reference model is implemented in
 `src/host_ownership.rs`. It fixes the semantic transaction that future native,
 Wasm, Swift, Kotlin/JNI, and JavaScript adapters must preserve. It is not a
-public FFI, does not execute a finalizer, and does not weaken `SPX-B104`.
+public FFI, does not execute a finalizer, and does not weaken `SPX-B104`. The
+companion [native adapter descriptor](NATIVE-ADAPTER-DESCRIPTOR-V1.md) records
+physical compatibility evidence only; it neither serializes this ledger's
+runtime authority nor makes the transaction callable.
 
 The private native staging lane also derives ownership contracts in
 `src/codegen/native_host_contract.rs`. Derivation accepts a validated program
@@ -92,8 +95,10 @@ resource export can ship, all of the following remain mandatory:
   executor; a copied integer payload is not itself ownership authority, but the
   reference model cannot prevent trusted backend code from retaining it;
 
-- generated, versioned C ABI/header with fixed-width layouts, visibility and
-  calling-convention macros, and hostile packing/link tests;
+- retain the private descriptor discovery header/provider as production
+  compatibility evidence, while defining the still-missing callable owner
+  token, rejection/completion, argument, result/out-slot, context, and
+  module-lifetime layouts;
 - turn the private, binding-instance-distinct process-local adapter authority and deterministic
   module/template fingerprints into a versioned physical library capability
   that retains the loaded module and safely rejects hot-reload, unload, and

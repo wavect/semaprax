@@ -1,3 +1,4 @@
+mod native_adapter_abi;
 mod native_cleanup;
 mod native_cleanup_emit;
 #[cfg(test)]
@@ -203,7 +204,22 @@ fn preflight_resource_lowering(
                             &cleanup,
                             &values,
                         ) {
-                            Ok(_host_template) => {
+                            Ok(host_template) => {
+                                match native_adapter_abi::derive(&host_template) {
+                                    Ok(descriptor) => {
+                                        let _descriptor_header =
+                                            native_adapter_abi::emit_header(&descriptor);
+                                        if let Err(diagnostic) = native_adapter_abi::emit_source(
+                                            &descriptor,
+                                            "semaprax_adapter_descriptor.h",
+                                        ) {
+                                            first_failure.get_or_insert(diagnostic);
+                                        }
+                                    }
+                                    Err(diagnostic) => {
+                                        first_failure.get_or_insert(diagnostic);
+                                    }
+                                }
                                 let _declarations = native_value::emit_declarations(&values);
                                 match native_cleanup_emit::emit_with_block_prologues(
                                     &cleanup,

@@ -94,6 +94,13 @@ fn checked(value: own Token, number: i64) -> i64
 @id("token.identity")
 fn identity(value: own Token) -> Token { value }
 
+@id("token.choose-second")
+fn choose_second(first: own Token, count: i64, second: own Token) -> Token
+    requires count >= 0
+{
+    second
+}
+
 @id("token.ensures-false")
 fn ensures_false(value: own Token) -> Token
     ensures false
@@ -189,10 +196,12 @@ fn arithmetic_source(function: &ResolvedFunction) -> StatusSourceId {
 fn cases(program: &ResolvedProgram) -> Vec<Case> {
     let requires = function(program, "token.requires");
     let checked = function(program, "token.checked");
+    let choose_second = function(program, "token.choose-second");
     let ensures = function(program, "token.ensures-false");
     let requires_source = contract_source(requires, ContractPhase::Requires);
     let checked_requires = contract_source(checked, ContractPhase::Requires);
     let checked_arithmetic = arithmetic_source(checked);
+    let choose_second_requires = contract_source(choose_second, ContractPhase::Requires);
     let ensures_source = contract_source(ensures, ContractPhase::Ensures);
 
     vec![
@@ -306,6 +315,58 @@ fn cases(program: &ResolvedProgram) -> Vec<Case> {
                     .id
                     .clone(),
             }),
+        },
+        Case {
+            scenario_id: "choose-second-zero-max",
+            function_id: "token.choose-second",
+            arguments: vec![
+                CaseArgument::Resource(Payload::Zero),
+                CaseArgument::I64(17),
+                CaseArgument::Resource(Payload::Maximum),
+            ],
+            booleans: BTreeMap::from([(choose_second_requires.expression.clone(), true)]),
+            operations: BTreeMap::new(),
+            result: Some(TraceResult::Owned {
+                type_id: program
+                    .types
+                    .iter()
+                    .find(|item| item.id.as_str() == "token.type")
+                    .unwrap()
+                    .id
+                    .clone(),
+            }),
+        },
+        Case {
+            scenario_id: "choose-second-zero-zero",
+            function_id: "token.choose-second",
+            arguments: vec![
+                CaseArgument::Resource(Payload::Zero),
+                CaseArgument::I64(17),
+                CaseArgument::Resource(Payload::Zero),
+            ],
+            booleans: BTreeMap::from([(choose_second_requires.expression.clone(), true)]),
+            operations: BTreeMap::new(),
+            result: Some(TraceResult::Owned {
+                type_id: program
+                    .types
+                    .iter()
+                    .find(|item| item.id.as_str() == "token.type")
+                    .unwrap()
+                    .id
+                    .clone(),
+            }),
+        },
+        Case {
+            scenario_id: "choose-second-requires-false",
+            function_id: "token.choose-second",
+            arguments: vec![
+                CaseArgument::Resource(Payload::Zero),
+                CaseArgument::I64(-1),
+                CaseArgument::Resource(Payload::Maximum),
+            ],
+            booleans: BTreeMap::from([(choose_second_requires.expression.clone(), false)]),
+            operations: BTreeMap::new(),
+            result: None,
         },
         Case {
             scenario_id: "ensures-false",
@@ -472,18 +533,36 @@ fn emit_case(
         }
     }
     let success = matches!(oracle.outcome, TraceOutcome::Success { .. });
-    let owned_result = matches!(function.return_type, ResolvedType::Nominal { .. });
-    let owned_result_input = function
-        .params
-        .iter()
-        .zip(&case.arguments)
-        .enumerate()
-        .find_map(|(position, (parameter, argument))| {
-            (parameter.ty == function.return_type
-                && parameter.ownership == OwnershipMode::Own
-                && matches!(argument, CaseArgument::Resource(_)))
-            .then_some(position)
-        });
+    let owned_result_input = match values.result() {
+        native_value::NativeValueResult::ScalarI64 => {
+            assert_eq!(function.return_type, ResolvedType::I64);
+            None
+        }
+        native_value::NativeValueResult::OwnedInput {
+            parameter_index,
+            parameter,
+            owner_ordinal,
+        } => {
+            let selected = function
+                .params
+                .get(*parameter_index)
+                .expect("owned result evidence selects an existing parameter");
+            assert_eq!(&selected.id, parameter);
+            assert_eq!(selected.ownership, OwnershipMode::Own);
+            assert_eq!(selected.ty, function.return_type);
+            assert!(matches!(
+                case.arguments.get(*parameter_index),
+                Some(CaseArgument::Resource(_))
+            ));
+            let exact_owner_ordinal = function.params[..*parameter_index]
+                .iter()
+                .filter(|candidate| candidate.ownership == OwnershipMode::Own)
+                .count();
+            assert_eq!(exact_owner_ordinal, *owner_ordinal);
+            Some(*parameter_index)
+        }
+    };
+    let owned_result = owned_result_input.is_some();
     if owned_result {
         let position = owned_result_input.expect("owned result lacks its owned argument");
         writeln!(source, "    const uintptr_t spx_case_poison = spx_case_input_{position}.payload == UINTPTR_MAX ? (uintptr_t)UINT32_C(0) : UINTPTR_MAX;").unwrap();
@@ -835,6 +914,7 @@ fn assert_payload_opacity(cases: &[(Case, crate::conformance::ConformanceTrace)]
     for (zero, maximum) in [
         ("discard-zero", "discard-max"),
         ("identity-zero", "identity-max"),
+        ("choose-second-zero-max", "choose-second-zero-zero"),
     ] {
         let zero = trace(zero);
         let maximum = trace(maximum);
@@ -843,6 +923,34 @@ fn assert_payload_opacity(cases: &[(Case, crate::conformance::ConformanceTrace)]
         assert_eq!(zero.events, maximum.events);
         assert_eq!(zero.outcome, maximum.outcome);
     }
+}
+
+#[test]
+fn choose_second_fixture_uses_the_exact_planned_owner() {
+    let program = program();
+    let selected = function(&program, "token.choose-second");
+    let abi = native_resource::build_resource_abi(&program).unwrap();
+    let cleanup = native_cleanup::classify(&program, selected).unwrap();
+    let values = native_value::plan(&program, selected, &cleanup, &abi, &HashMap::new()).unwrap();
+    assert_eq!(
+        values.result(),
+        &native_value::NativeValueResult::OwnedInput {
+            parameter_index: 2,
+            parameter: selected.params[2].id.clone(),
+            owner_ordinal: 1,
+        }
+    );
+
+    let case = cases(&program)
+        .into_iter()
+        .find(|case| case.scenario_id == "choose-second-zero-max")
+        .unwrap();
+    let oracle = execute_for_conformance(&program, &selected.id, case.scenario(901)).unwrap();
+    let source = emit_probe(&program, &[(case, oracle)]);
+    assert!(source.contains(
+        "spx_case_input_2.payload == UINTPTR_MAX ? (uintptr_t)UINT32_C(0) : UINTPTR_MAX"
+    ));
+    assert!(source.contains("spx_case_result.payload != spx_case_input_2.payload"));
 }
 
 fn assert_real_value_lowering(source: &str) {
@@ -915,6 +1023,32 @@ fn first_native_resource_corpus_matches_the_reference_across_codegen_modes() {
         })
         .collect::<Vec<_>>();
     assert_eq!(reverse_flags, [1, 1, 0, 0]);
+
+    let rejected_owned_result = cases
+        .iter()
+        .find(|(case, _)| case.scenario_id == "choose-second-requires-false")
+        .unwrap();
+    assert!(matches!(
+        rejected_owned_result.1.outcome,
+        TraceOutcome::Failure { .. }
+    ));
+    let rejected_cleanup_flags = rejected_owned_result
+        .1
+        .events
+        .iter()
+        .filter_map(|event| match event.event {
+            crate::conformance::TraceEventKind::FinalizeBegin { guard_flag, .. }
+            | crate::conformance::TraceEventKind::FinalizeEnd { guard_flag, .. } => {
+                Some(guard_flag.0)
+            }
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(rejected_cleanup_flags, [1, 1, 0, 0]);
+    assert!(rejected_owned_result.1.events.iter().all(|event| !matches!(
+        event.event,
+        crate::conformance::TraceEventKind::ResultCommit { .. }
+    )));
     assert_payload_opacity(&cases);
     let c_source = emit_probe(&program, &cases);
     assert_real_value_lowering(&c_source);

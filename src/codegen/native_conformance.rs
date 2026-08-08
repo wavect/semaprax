@@ -777,8 +777,13 @@ static bool spx_write_trace(
     const char *owned_result_type
 ) {
     static const unsigned char magic[8] = {'S','P','X','T','R','C','1','\0'};
+#if defined(_WIN32)
+    FILE *file = NULL;
+    if (fopen_s(&file, path, "wb") != 0 || file == NULL) return false;
+#else
     FILE *file = fopen(path, "wb");
     if (file == NULL) return false;
+#endif
     bool ok = spx_write_bytes(file, magic, sizeof(magic)) &&
         spx_write_u32(file, UINT32_C(1)) &&
         spx_write_u32(file, trace->length) &&

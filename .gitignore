@@ -1,4 +1,5 @@
 /target/
+**/target/
 /.semaprax/
 /.graphify-work/
 /graphify-out/

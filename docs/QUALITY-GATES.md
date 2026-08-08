@@ -8,23 +8,23 @@ Run from the repository root:
 
 ```sh
 cargo fmt --all --check
-cargo clippy --locked --all-targets --all-features -- -D warnings
-cargo test --locked --all-targets
-cargo test --locked --doc
-RUSTDOCFLAGS="-D warnings" cargo doc --locked --no-deps
-cargo build --locked --release
-cargo package --locked --allow-dirty
-cargo run --locked -- check examples/meaning.spx
-cargo run --locked -- check examples/ownership.spx
-cargo run --locked -- check examples/lifecycle.spx
-cargo run --locked -- check examples/control_flow.spx
-cargo run --locked -- check examples/records.spx
-cargo run --locked -- fmt examples/meaning.spx --check
-cargo run --locked -- fmt examples/effects.spx --check
-cargo run --locked -- fmt examples/ownership.spx --check
-cargo run --locked -- fmt examples/lifecycle.spx --check
-cargo run --locked -- fmt examples/control_flow.spx --check
-cargo run --locked -- fmt examples/records.spx --check
+cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+cargo test --locked --workspace --all-targets
+cargo test --locked --workspace --doc
+RUSTDOCFLAGS="-D warnings" cargo doc --locked --workspace --no-deps
+cargo build --locked --workspace --release
+cargo package --locked --allow-dirty -p semaprax
+cargo run --locked -p semaprax -- check examples/meaning.spx
+cargo run --locked -p semaprax -- check examples/ownership.spx
+cargo run --locked -p semaprax -- check examples/lifecycle.spx
+cargo run --locked -p semaprax -- check examples/control_flow.spx
+cargo run --locked -p semaprax -- check examples/records.spx
+cargo run --locked -p semaprax -- fmt examples/meaning.spx --check
+cargo run --locked -p semaprax -- fmt examples/effects.spx --check
+cargo run --locked -p semaprax -- fmt examples/ownership.spx --check
+cargo run --locked -p semaprax -- fmt examples/lifecycle.spx --check
+cargo run --locked -p semaprax -- fmt examples/control_flow.spx --check
+cargo run --locked -p semaprax -- fmt examples/records.spx --check
 ```
 
 `scripts/quality.sh` runs this baseline on Unix. The integration suite also discovers every committed `.spx` example and requires it to verify and exactly equal its canonical projection. CI runs the equivalent matrix on Linux, macOS, and Windows, plus an explicit Rust 1.85 minimum-version check.
@@ -66,6 +66,7 @@ The remaining Cargo and `semaprax` commands are shell-neutral.
 | Native capability token | Published HMAC KAT, independently reproduced owner and result complete-token goldens, exact length/layout/endian assertions, every-bit, arbitrary-byte, and length-boundary mutation, closed kind/reserved/zero-field parsing, cross-secret/module/adapter/epoch/template/type/lifecycle/thread-policy/thread-binding rejection, owner-versus-result scope, stale/max-generation evidence, pinned audited crypto dependency, and proof that compiler preflight creates no authority |
 | Native capability authority | Exactly pinned OS-random dependency and locked checksum, one exact fill with no fallback/retry, partial-error and every structural-zero rejection, invalid-binding-or-draining-lease before entropy proof, test-only deterministic injection, independently reproduced complete owner/result goldens, lease-derived physical fingerprint, every sealed context delta, wrong-thread-first owner/result mint/authentication, same-thread recovery, exact-instance wrapper authentication, owner/result lease retention after authority drop, explicit `Send + Sync` policy, non-formatting credential wrapper, stable error redaction, native OS smoke on every desktop CI host, Rust 1.85, and unchanged private/export/`SPX-B104` boundaries |
 | Native module lease topology | Test-only construction; zero fingerprint/process/incarnation rejection; equal-fingerprint instance nonconflation; exact-instance explicit retention; process/incarnation rejection without state change; retain-versus-drain gate; existing-pin survival after drain; authority plus owner/result wrapper retention across drop orders; cross-instance rejection even when token bytes match; exactly-once fake release including concurrent final drops; no retention backedge; deliberate `Send + Sync` and non-`Clone`/non-formatting traits; no production constructor, platform loader, physical-lifetime claim, export, or `SPX-B104` change |
+| Native loader quarantine | Separate unpublished crate; main crate still forbids unsafe; exact dependency pin and workspace supply-chain gate; one documented unsafe constructor; no generic lookup/raw handle/pointer/symbol/manual close; canonical-path, symbol, and descriptor bounds; null and exact-byte checks; logical-admission identity; compile-fail `!Send`, `!Sync`, non-`Clone`, and non-formatting lease checks; real Linux/macOS runtime-loaded positive, rejection, and last-reference fixtures; explicit malicious-code, code-identity, same-image-provenance, immediate-unmapping, hardened-Windows/iOS/Android, quiescence, fork, and public-adapter nonclaims |
 
 The gated native cleanup corpus runs at O0 and O2 everywhere Clang is available. Linux CI additionally sets `SEMAPRAX_REQUIRE_NATIVE_SANITIZERS=1`, which makes separate ASan and UBSan compile/run support mandatory rather than allowing capability-based skips.
 

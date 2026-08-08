@@ -110,9 +110,25 @@ passed all 14 O0/O2 cases from dynamically loaded ASan/UBSan-instrumented
 generated providers through the Rust host. It supplied the sanitizer runtimes
 without sanitizer-instrumenting the Rust host code itself. The overall workflow
 run remained red because of unrelated Clippy/GCC failures.
-Green public Windows runtime and dependency-collision evidence, Android/iOS
-device or static-link profiles, and ordinary compiler build/preflight emission
-also remain required.
+
+The hidden `native_settlement` module and proposed [RFC
+0004](RFC-0004-NATIVE-CALL-SETTLEMENT.md) now make the target-neutral recovery
+state machine executable: bounded dense checkpoints, exact accept/abort action
+permutations, idempotent cached receipts, terminal owner dispositions, and
+quiescence validation. Exhaustive tests cover every valid live/dead/single-
+provisional combination through six owners, accepted outcomes, hostile
+certificate/receipt mutations, deterministic fingerprints, and non-cloneable,
+non-formattable frame API gates. This model has no invocation reservation,
+module-instance or frame-generation binding, physical finalizer authority,
+wire layout, provider, loader, host, or compiler connection; it is not physical
+fallback evidence and does not change `SPX-B104`.
+
+The Windows CI lane now explicitly reruns the generated O0/O2 callable corpus
+and a loader fixture that places a same-name dependency in CWD and legacy
+`PATH`, then removes the root sibling to require fail-closed `LibraryOpen`.
+These committed gates do not become Windows runtime evidence until a green
+public run records them. Android/iOS device or static-link profiles and ordinary
+compiler build/preflight emission also remain required.
 
 ## Record groundwork and backend gate
 

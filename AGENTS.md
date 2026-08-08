@@ -13,6 +13,9 @@ Before changing semantics, read:
 5. `docs/ROADMAP.md` — sequencing, not a reduction of the full objective.
 
 For records, variants, generics, matching, `Option`, or `Result`, also read `docs/RFC-0002-ALGEBRAIC-DATA.md` before editing.
+For native owned-call recovery, physical failure, settlement, or quiescence,
+also read `docs/RFC-0004-NATIVE-CALL-SETTLEMENT.md`; its hidden Rust model is
+proof scaffolding, not a wired native-runtime claim.
 
 ## Repository map
 
@@ -21,6 +24,7 @@ For records, variants, generics, matching, `Option`, or `Result`, also read `doc
 - `src/cleanup.rs`: structural cleanup storage/leaf inventory.
 - `src/cleanup_plan.rs`, `src/cleanup_plan/`: target-neutral cleanup CFG schema, canonical builder, and independent replay gate.
 - `src/trace_path_certificate.rs`: canonical compiler-owned cleanup trace trie-DFA and outcome certificate.
+- `src/native_settlement.rs`: hidden target-neutral callable-v3 settlement model; no loader, host, provider, or public backend wiring.
 - `src/graph_cleanup.rs`: deterministic tagged Graph v6 projection of validated cleanup plans.
 - `src/graph.rs`, `patch.rs`: agent representation and atomic transactions.
 - `src/codegen.rs`, `src/codegen/native_callable_*`, `wasm.rs`: native C11/Clang, private callable-v2, and browser/Wasm lanes.
@@ -41,6 +45,7 @@ For records, variants, generics, matching, `Option`, or `Result`, also read `doc
 - Cleanup-plan vectors are canonical execution order and must never be sorted or repaired by Graph/backends.
 - An owned call stages every argument left-to-right in caller-owned epochs and transfers all of them at one atomic `CallCommit`.
 - Failure selection is sticky; cleanup cannot replace its status, and result publication occurs only after postconditions and non-result cleanup.
+- A settlement-model action is proof data, not permission to perform a physical finalizer; only future exact-instance host admission may own that authority.
 - No feature is “implemented” without the completion gate’s executable evidence.
 
 ## Change protocol

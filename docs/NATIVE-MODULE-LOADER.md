@@ -57,12 +57,17 @@ providers execute the complete 14-case corpus through safe host calls.
 The standalone loader retains narrow bounded-call fixtures, while the
 ownership-host integration exercises generated SEMAPRAX resource code. The
 Windows loader excludes current-directory/legacy-PATH dependency search and
-admits the root-image directory plus default safe directories. Until public CI
-is green, the evidence does not claim a confirmed Windows callable corpus or
-malicious dependency-collision run. It also does not prove
+admits the root-image directory plus default safe directories. A mandatory
+Windows-only fixture now places a same-name malicious dependency in both the
+process current directory and legacy `PATH`: the sibling dependency must win,
+and removing that sibling must fail as `LibraryOpen` rather than falling back
+to the malicious image. CI also names the complete generated O0/O2 callable
+corpus as an explicit Windows gate. Until those committed gates pass in public
+CI, they are implementation intent rather than confirmed Windows runtime
+evidence. The current evidence also does not prove
 immediate physical unmapping, same-root-image callable provenance, Windows
-malicious-CWD collision behavior, sanitizer instrumentation of the Rust host,
-iOS dynamic/static admission, Android device execution,
+dependency isolation on an unobserved host, sanitizer instrumentation of the
+Rust host, iOS dynamic/static admission, Android device execution,
 callback/finalizer quiescence, hot reload, fork recovery, signed code admission,
 or callable resource safety. Those remain gates before any public native
 adapter or `SPX-B104` change.

@@ -115,6 +115,19 @@ All notable changes to SEMAPRAX are documented here.
   also green, but unrelated Clippy/GCC failures stopped the platform jobs before
   runtime evidence and kept the overall workflow run red; no Windows runtime
   evidence is inferred from this job.
+- Added the hidden callable-v3 settlement foundation and proposed RFC 0004: a
+  bounded target-neutral certificate/frame/receipt model with exhaustive owner
+  state enumeration, exact accept/abort cleanup actions, idempotent quiescent
+  receipts, deterministic fingerprints, hostile mutations, and non-cloneable,
+  non-formattable frames. The model deliberately provides no invocation or
+  module-instance reservation, physical finalizer authority, wire/provider,
+  loader/host, compiler, or public backend evidence; `SPX-B104` remains closed.
+- Added a mandatory Windows callable-v2 dependency-isolation fixture. It places
+  a same-name dependency in both CWD and legacy `PATH`, proves the root-image
+  sibling wins for descriptor admission and invocation, then removes that
+  sibling and requires `LibraryOpen` rather than malicious fallback. CI names
+  this fixture and the complete O0/O2 callable corpus explicitly; Windows
+  evidence remains pending until those gates pass in a green public run.
 - Migrated browser manifests from `semaprax.web.v2` to `semaprax.web.v3`. Version 3 retains module, graph revision, Wasm entry, and capabilities while adding the required `owned_abi` object with schema `semaprax.wasm-owned.v1` and a declaration-ordered function mapping; scalar-only packages use an empty function array. Version-2-only consumers must reject or explicitly migrate rather than inferring ownership ABI metadata.
 
 ## 0.1.0 — 2026-08-07

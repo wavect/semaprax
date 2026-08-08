@@ -62,12 +62,22 @@ Node/Wasm.
 This proves the narrow private semantics, not the public native boundary.
 Compiler resource builds retain `SPX-B104` while physical/malformed-response
 fallback cleanup and quiescence remain nongeneralized, the full host path lacks
-Rust-host sanitizer instrumentation, Windows runtime/dependency-collision confirmation
-awaits a green public CI run, Android/iOS device or static-link profiles are
+Rust-host sanitizer instrumentation, and Windows runtime/dependency-collision
+confirmation awaits a green public CI run. The Windows lane now contains an
+explicit generated-callable corpus gate and a same-name CWD/legacy-`PATH`
+collision fixture with a fail-closed missing-sibling assertion; committed tests
+alone are not runtime evidence. Android/iOS device or static-link profiles are
 absent, and ordinary compiler build/preflight does not emit the callable.
 Imported lifecycles, calls, aggregates, broader control flow,
 cross-realm/worker identity, aggregate layouts, variants, matching,
 concurrency, and fork recovery remain subsequent work.
+
+The model-backed, proposed [RFC 0004 native call recovery and settlement
+contract](RFC-0004-NATIVE-CALL-SETTLEMENT.md) specifies the bounded linear
+frame, certified checkpoint, idempotent settlement, receipt, and quiescence
+model proposed for the physical-failure blocker. Only the hidden target-neutral
+model exists; none of its callable-v3 physical runtime pieces are wired, so it
+does not advance phase 3 or `SPX-B104`.
 
 The dedicated Linux
 [dynamic-provider sanitizer job](https://github.com/wavect/semaprax/actions/runs/31256134955/job/93099637801)

@@ -327,6 +327,14 @@ failure and cannot be relabeled as rejection. The current direct-trivial host
 logically abandons the committed ledger transaction, but does not claim that
 this is a general semantic cleanup path for future physical finalizers.
 
+The proposed [native call recovery and settlement RFC](RFC-0004-NATIVE-CALL-SETTLEMENT.md)
+defines the incompatible callable-v3 foundation intended to close this exact
+gap with a host-owned linear frame, certified checkpoints, mandatory idempotent
+settlement, and an authenticated quiescence receipt. Only the hidden
+target-neutral owner-state model exists: v2 does not implement, negotiate, or
+partially inherit that protocol, no physical v3 path is wired, and `SPX-B104`
+remains closed.
+
 ## Trust and lifetime model
 
 Callable admission is an explicit `unsafe` trusted-native-code boundary. Its
@@ -384,10 +392,14 @@ frameworks, or the broader SEMAPRAX goal.
 
 Unix eager local relocation is implemented in the private loader. Windows uses
 `LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS`, excluding
-legacy current-directory/PATH lookup, but a real callable ownership run and a
-malicious dependency-collision fixture are not yet evidence. Android is a
-compile target, not device execution evidence. iOS dynamic loading is not
-claimed and may require a later static-link admission profile. There is no
-present claim of Android/iOS device execution, cross-thread calls, concurrency,
+legacy current-directory/PATH lookup. The repository now has a mandatory
+Windows collision fixture that requires a sibling dependency to beat a
+same-name image in both locations, then requires `LibraryOpen` when only the
+malicious image remains. The Windows CI lane also reruns the complete generated
+O0/O2 callable corpus explicitly. Neither is public Windows runtime evidence
+until a green public run records both gates. Android is a compile target, not
+device execution evidence. iOS dynamic loading is not claimed and may require
+a later static-link admission profile. There is no present claim of
+Android/iOS device execution, cross-thread calls, concurrency,
 callback/finalizer quiescence, fork recovery, hot reload, signed-code admission,
 independent same-root symbol provenance authentication, or public ABI stability.

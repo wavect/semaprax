@@ -450,6 +450,12 @@ Each phase is incomplete until its executable evidence passes. An RFC, type defi
    instrumentation, green public Windows runtime/dependency-collision evidence,
    Android/iOS profiles, code provenance, concurrency, and fork recovery remain
    required.
+   The proposed [native call recovery and settlement contract](RFC-0004-NATIVE-CALL-SETTLEMENT.md)
+   specifies bounded linear recovery frames, compiler-certified physical
+   checkpoints, idempotent settlement, and authenticated quiescence receipts
+   for this gap. Only its hidden target-neutral model exists; it has no wired
+   v3 ABI or native-runtime evidence and does not change this phase or
+   `SPX-B104`.
    The dedicated Linux
    [dynamic-provider sanitizer job](https://github.com/wavect/semaprax/actions/runs/31256134955/job/93099637801)
    is green for all 14 O0/O2 generated-provider cases through the host. It did
@@ -458,7 +464,8 @@ Each phase is incomplete until its executable evidence passes. An RFC, type defi
    The exact schemas and nonclaims are recorded in [Native adapter
    descriptor v1](NATIVE-ADAPTER-DESCRIPTOR-V1.md), [Native callable ABI
    v2](NATIVE-CALLABLE-ABI-V2.md), [Native capability tokens
-   v1](NATIVE-CAPABILITY-TOKENS-V1.md), and [Native module
+   v1](NATIVE-CAPABILITY-TOKENS-V1.md), the proposed [native call recovery and
+   settlement RFC](RFC-0004-NATIVE-CALL-SETTLEMENT.md), and [Native module
    loader](NATIVE-MODULE-LOADER.md).
 4. **Wasm scalar-resource execution — narrow first slice implemented.**
    `semaprax.wasm-owned.v1` executes one exact direct trivial-resource identity

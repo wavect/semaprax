@@ -46,6 +46,13 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
       - run: cargo test --locked --workspace --all-targets --all-features
+      - name: Require Windows callable-v2 dependency isolation
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          clang --version
+          cargo test --locked -p semaprax-native-loader --test runtime_loader_windows windows_callable_dependency_search_excludes_cwd_and_legacy_path -- --exact
+          cargo test --locked -p semaprax-native-host --test runtime_callable_corpus authoritative_corpus_executes_through_generated_callable_host_at_o0_and_o2 -- --exact
       - name: Require native cleanup sanitizers (Linux)
         if: runner.os == 'Linux'
         env:

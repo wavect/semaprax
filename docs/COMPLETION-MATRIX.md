@@ -38,6 +38,12 @@ fallback cleanup/quiescence generalization, Rust-host sanitizer instrumentation,
 green public Windows runtime/dependency-collision evidence, Android/iOS profiles, and
 the ordinary compiler build/preflight gate; `SPX-B104` remains closed.
 
+The proposed [RFC 0004 native call recovery and settlement
+contract](RFC-0004-NATIVE-CALL-SETTLEMENT.md) defines a bounded callable-v3
+frame/checkpoint/settlement/receipt foundation for the physical-failure and
+quiescence gap. Only its hidden target-neutral model is implemented: no v3
+physical runtime component is wired and it adds no native evidence to any row.
+
 The dedicated Linux
 [callable-host sanitizer job](https://github.com/wavect/semaprax/actions/runs/31256134955/job/93099637801)
 is green for all 14 O0/O2 dynamically loaded ASan/UBSan provider cases. It did

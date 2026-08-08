@@ -16,6 +16,9 @@ pub mod hir;
 pub mod lexer;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
 #[doc(hidden)]
+pub mod native_settlement;
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+#[doc(hidden)]
 pub mod owned_resource_corpus;
 pub mod parser;
 pub mod patch;

@@ -130,8 +130,7 @@ impl BoundSettlementProof {
             graph_fingerprint,
             envelope_fingerprint,
         ]
-        .iter()
-        .any(|fingerprint| *fingerprint == [0; 32])
+        .contains(&[0; 32])
         {
             return Err(SettlementProofError::NonCanonical);
         }

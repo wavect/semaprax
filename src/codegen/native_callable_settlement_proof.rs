@@ -661,12 +661,20 @@ mod tests {
         );
 
         let corpus = build_owned_resource_corpus_v1().unwrap();
-        let proof = derive(&corpus.program, &DeclarationId::new("token.discard-two")).unwrap();
-        let v2_len = read_u32(proof.bytes(), 148).unwrap() as usize;
-        let graph_start = 156 + v2_len;
+        let function = DeclarationId::new("token.discard-two");
+        let settlement =
+            native_settlement_derivation::derive_native_settlement(&corpus.program, &function)
+                .unwrap();
+        let graph = encode_graph(
+            settlement.certificate(),
+            [0x51; FINGERPRINT_BYTES],
+            [0x52; FINGERPRINT_BYTES],
+            MAX_PROOF_BYTES,
+        )
+        .unwrap();
         assert_eq!(
-            hex(&Sha256::digest(&proof.bytes()[graph_start..])),
-            "66fc80e1ee89d1c6d95053ce6e8f0e5bc4ac5f6d767d9cf9b864f5281f04992d"
+            hex(&Sha256::digest(&graph)),
+            "a54630347381e7709ccc4ed499056b372557a2ea8aa3f2894720fb5f5357831e"
         );
     }
 }

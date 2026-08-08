@@ -317,6 +317,7 @@ fn build_preflight(
         preflight.trace_path_certificate.as_bytes(),
     )?;
     compile_provider(&staging.path, library_name)?;
+    remove_windows_export_artifact(&staging.path)?;
     require_exact_inventory(
         &staging.path,
         &[
@@ -598,6 +599,29 @@ fn require_exact_inventory(
         )));
     }
     Ok(())
+}
+
+fn remove_windows_export_artifact(directory: &Path) -> Result<(), Diagnostic> {
+    if !cfg!(target_os = "windows") {
+        return Ok(());
+    }
+    let export_path = directory.join("semaprax-native-callable.exp");
+    match fs::symlink_metadata(&export_path) {
+        Ok(metadata) if metadata.file_type().is_symlink() || !metadata.is_file() => {
+            Err(bundle_io_error(
+                "native-callable Windows export side artifact must be one regular file",
+            ))
+        }
+        Ok(_) => fs::remove_file(&export_path).map_err(|error| {
+            bundle_io_error(format!(
+                "cannot remove native-callable Windows export side artifact: {error}"
+            ))
+        }),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(bundle_io_error(format!(
+            "cannot inspect native-callable Windows export side artifact: {error}"
+        ))),
+    }
 }
 
 fn host_library_name() -> Result<&'static str, Diagnostic> {

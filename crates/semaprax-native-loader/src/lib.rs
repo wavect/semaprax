@@ -37,6 +37,13 @@ static NEXT_INSTANCE_ID: AtomicU64 = AtomicU64::new(1);
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct ModuleInstanceId(NonZeroU64);
 
+impl ModuleInstanceId {
+    /// Return the process-local nonzero logical admission identifier.
+    pub const fn get(self) -> u64 {
+        self.0.get()
+    }
+}
+
 /// An opaque strong lease on one exact loaded native module instance.
 ///
 /// This type deliberately does not implement [`Clone`] or [`Debug`]. Call

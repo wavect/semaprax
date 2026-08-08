@@ -11,7 +11,7 @@ keywords = ["compiler", "agents", "systems-programming", "semantic-graph"]
 categories = ["compilers", "development-tools"]
 
 [workspace]
-members = ["crates/semaprax-native-loader"]
+members = ["crates/semaprax-native-host", "crates/semaprax-native-loader"]
 default-members = ["."]
 resolver = "2"
 

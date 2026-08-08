@@ -16,7 +16,7 @@ Status: implemented in this repository.
 
 ## 0.2 — Useful core language
 
-Status: in progress. Resource ownership boundaries and explicit lifecycle/interface contracts, lexical `let`, typed `if/else`, partial-place diagnostics, record syntax/checking, Graph v6, validated stable-ID HIR/type facts, a mandatory replay-validated cleanup plan, versioned normalized-status/trace protocol types, native scalar status/out execution, and a browser-loadable scalar Wasm backend are implemented; the remaining gates below are not.
+Status: in progress. Resource ownership boundaries and explicit lifecycle/interface contracts, lexical `let`, typed `if/else`, partial-place diagnostics, record syntax/checking, Graph v6, validated stable-ID HIR/type facts, a mandatory replay-validated cleanup plan, versioned normalized-status/trace protocol types, native scalar status/out execution, a browser-loadable scalar Wasm backend, and one narrow direct-trivial-resource Wasm owned ABI are implemented; the remaining gates below are not.
 
 - Records, variants, `Option`, and `Result`.
 - Exhaustive pattern matching.
@@ -29,7 +29,15 @@ Status: in progress. Resource ownership boundaries and explicit lifecycle/interf
 
 Exit criterion: build a non-trivial CLI and edit it entirely through semantic transactions.
 
-The aggregate tranche is specified in [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md). RFC 0003 phases 1–2 now supply explicit trivial/imported lifecycle syntax, declaration-only interface/import contracts, source/HIR validation, and a target-neutral cleanup plan. Resolved functions carry typed blocks/edges/regions/exits, path-sensitive guarded liveness, atomic call commits, sticky failure sources, partial-record cleanup order, whole-value normalization, and result publication; validation independently rebuilds the plan, and Graph v6 serializes it. Phase-3 groundwork includes the normalized-status arena, semantic traces, independent inventory/HIR and CFG replay, a single-frame executor, native scalar status/out execution, a private host ledger, physical descriptor, authenticated token codec, ledger-disconnected OS-entropy/actual-thread-bound authority, and a test-only fake-backed exact-instance lease topology retained by its staged credential wrappers. Native resource cleanup/instrumentation, a production OS-loader-backed lease with descriptor/code-identity admission and quiesced unload, owner acquisition, ledger/authority integration, callable imports/adapters, fork/concurrency safety, Wasm status/resource execution, native/Wasm trace equivalence, aggregate layouts, variants, and matching remain subsequent work; backends fail closed on records and resources.
+The aggregate tranche is specified in [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md). RFC 0003 phases 1–2 now supply explicit trivial/imported lifecycle syntax, declaration-only interface/import contracts, source/HIR validation, and a target-neutral cleanup plan. Resolved functions carry typed blocks/edges/regions/exits, guarded liveness, atomic call commits, sticky status sources, cleanup order, and result publication; validation independently rebuilds the plan, and Graph v6 serializes it. Phase-3 now has two unequal target footholds. The unpublished native host physically connects the strict descriptor, real exact loader lease, same-thread authority, ledger, and opaque owners, but its provider has no callable resource symbol, its execution callback is trusted Rust rather than generated native code, Windows lacks a runtime fixture, and compiler builds retain `SPX-B104`. The public Wasm lane executes [one direct trivial-resource subset](WASM-OWNED-ABI-V1.md) under Node with status/out, ownership staging, and same-realm tag coordination across duplicated host evaluations, while imported lifecycles, calls, aggregates, broader control flow, semantic backend traces, and cross-realm/worker identity remain excluded. Callable native execution, Windows hardening/evidence, exact reference/native/Wasm trace equality, aggregate layouts, variants, matching, concurrency, and fork recovery remain subsequent work.
+
+The active phase-3 gate is [Owned resource vertical slice
+v1](OWNED-RESOURCE-VERTICAL-V1.md). It requires one production-reachable,
+thread-confined native host and one instance-confined Wasm host to execute the
+same admitted direct-trivial-resource cleanup plan with exact reference-trace
+equivalence. It deliberately keeps every broader resource and aggregate shape
+closed until its own evidence lands. The current private native host and narrow
+Wasm ABI are material progress toward this gate, not completion of it.
 
 ## 0.3 — Ownership and fast development
 

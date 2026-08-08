@@ -1,8 +1,8 @@
 # Conformance trace v1
 
-Status: the public Rust data model, deterministic JSON projection, independent attached-plan replay, scenario-driven single-frame reference executor, and native scalar status/out execution are implemented. A gated native value/cleanup scaffold now executes real root-frame contracts, comparison, checked addition, scalar/owned publication, and cleanup events for the admitted direct-trivial-resource slice, then passes exact typed/JSON comparison through a bounded binary decoder and validated-HIR materializer at O0/O2 plus sanitizers. A public resource host/ownership boundary, Wasm status/resource/trace instrumentation, recursive reference-callee execution, callable-import execution, adapter execution, and full backend-conformance claims are not implemented.
+Status: the public Rust data model, deterministic JSON projection, independent attached-plan replay, scenario-driven single-frame reference executor, and native scalar status/out execution are implemented. A gated native value/cleanup scaffold executes the admitted direct-trivial-resource corpus and compares exact typed/JSON traces at O0/O2 plus sanitizers. An unpublished physical native host now connects a real loader lease, authority, ledger, and owners but calls no loaded resource symbol and emits no semantic trace. The narrow public `semaprax.wasm-owned.v1` path executes real resource status/cleanup/publication under Node, but its host event log is physical debugging data rather than `semaprax.conformance-trace.v1`. Recursive reference-callee execution, callable-import execution, callable native resource execution, backend trace validation, and full native/reference/Wasm conformance remain unimplemented.
 
-This document fixes the current public wire projection defined by `src/conformance.rs`. It complements [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md). The native scalar backend executes the status/out portion, while the gated native test lane emits this semantic trace for the admitted slice; no production backend claims resource cleanup conformance yet.
+This document fixes the current public wire projection defined by `src/conformance.rs`. It complements [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md). The native scalar backend executes the status/out portion, while the gated native test lane emits this semantic trace for the admitted slice. The narrow Wasm host executes cleanup but does not emit this protocol, so no production backend claims complete resource trace conformance yet.
 
 ## Normalized status
 
@@ -21,6 +21,12 @@ The fields are:
 - `retryable`: JSON `true`, JSON `false`, or the string `"unknown"`.
 
 Opaque diagnostic detail, localized text, backtraces, exceptions, and context-local tokens are not serialized.
+
+The narrow Wasm owned adapter returns a frozen JavaScript object with this same
+field spelling and order, including `domain_id`; its nonzero numeric status
+token remains private to the instance arena. That status-shape agreement is not
+semantic-trace evidence: the adapter's local commit/drop/publish audit events
+contain physical handles and are intentionally excluded from this protocol.
 
 Compiler-owned mappings are fixed:
 
@@ -263,4 +269,4 @@ The public Rust types and canonical serializer are a data protocol, not by thems
 
 Validation must independently replay the attached `CleanupPlan`; it must not call the canonical plan builder or accept equality with another backend as its only oracle. Native and Wasm traces must each match the same independently validated expected trace and then match each other. Backend execution additionally requires the relevant sanitizer, hostile-adapter, context-isolation, and target-matrix evidence from RFC 0003.
 
-The current reference executor satisfies the target-neutral single-frame subset of these gates and models caller result publication explicitly, but it stubs internal-call outcomes, rejects callable imports, and does not validate a backend-produced trace. Replay is exhaustive only for the current acyclic CFG surface and rejects a statically estimated path bound above 65,536 or more than 1,000,000 charged work units with `SPX-H006`; loops require a later symbolic/fixpoint design. Until the remaining gates exist and pass, `semaprax.status.v1` and `semaprax.conformance-trace.v1` plus the reference oracle are not evidence that resource cleanup executes on any target.
+The current reference executor satisfies the target-neutral single-frame subset of these gates and models caller result publication explicitly, but it stubs internal-call outcomes, rejects callable imports, and does not validate a backend-produced trace. Replay is exhaustive only for the current acyclic CFG surface and rejects a statically estimated path bound above 65,536 or more than 1,000,000 charged work units with `SPX-H006`; loops require a later symbolic/fixpoint design. The narrow Wasm slice separately proves execution of its admitted plan shape, and the private physical native host proves ownership plumbing without loaded-code execution; neither is a substitute for an emitted semantic trace. Until the remaining gates exist and pass, the status/trace protocols and reference oracle do not establish full backend resource conformance.

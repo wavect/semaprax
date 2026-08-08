@@ -1,9 +1,10 @@
 # Native capability tokens v1
 
-Status: private, compiler/ledger-disconnected mechanics with an OS-backed
-authority and a test-only fake-backed retained-module lifetime topology. This
-is not a public C ABI, owns no platform loader handle, and does not enable
-resource execution.
+Status: private protocol mechanics. In the publishable compiler they remain
+ledger-disconnected and use only a test fake lease; the separate unpublished
+native host now reuses the audited codec/authority source with a real loader
+lease and ownership ledger. This is not a public C ABI and does not enable a
+callable native resource symbol or open `SPX-B104`.
 
 The codec defines authenticated bearer bytes for two staged capability kinds:
 
@@ -166,13 +167,13 @@ expected generations, and maximum `u64` fields.
 ## Security boundary and nonclaims
 
 The secret and authority types are private, non-`Clone`, and absent from
-`Debug`. Native OS entropy and the fake-pin strong-reference topology now
-exist, but there is no production lease constructor, platform loader handle,
-dynamic loading, descriptor/provider or code-identity admission, physical pin,
-call/callback/finalizer quiescence, unload protocol, fork recovery/reseeding,
-locked memory, or audited zeroization. The process-incarnation checks are
-executable staging; authentic origin and fork integration still belong to the
-future loader boundary.
+`Debug`. The compiler-private staging topology still uses a fake pin. The
+unpublished physical host connects the same protocol to strict descriptor
+decoding, a real exact loader lease, and ledger owner generations, but it has
+no callable provider symbol, code-provenance authentication, callback/finalizer
+quiescence, hardened Windows loading, fork recovery/reseeding, locked memory,
+or audited zeroization. Authentic origin and fork integration remain future
+boundaries.
 Best-effort filling of temporary/key buffers is not a memory-erasure guarantee,
 and HMAC implementation internals may copy key material.
 
@@ -185,8 +186,9 @@ preflight must stream into the MAC or use preallocated storage.
 
 The compiler only registers these private modules. Resource preflight never
 constructs a secret, authority, binding, or token, and no C symbol exposes
-minting or authentication. Safe owner acquisition, a production OS-backed
-module lease, admitted code identity, runtime-owned outcome storage,
-synchronized ledger integration, physical finalization, quiesced unload, fork
-handling, hostile concurrency, and equivalent Wasm evidence must all land
-before a callable adapter can use this layer or `SPX-B104` can change.
+minting or authentication. The unpublished host's unsafe adoption and trusted
+Rust-closure executor are physical plumbing evidence, not the callable adapter:
+generated callable ABI/code identity, runtime-owned outcome storage, physical
+finalization, quiesced unload, fork handling, hostile concurrency, Windows
+runtime evidence, and cross-target conformance must all land before
+`SPX-B104` can change.

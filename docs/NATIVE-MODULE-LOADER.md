@@ -1,7 +1,8 @@
 # Native module loader quarantine
 
-Status: private, workspace-only experiment. It is not used by the compiler,
-the staged capability authority, or any public adapter, and it does not change
+Status: private, workspace-only quarantine. It is used by the unpublished
+`semaprax-native-host` physical ownership stage, but not by compiler preflight,
+generated resource calls, or any public adapter, and it does not change
 `SPX-B104`.
 
 `crates/semaprax-native-loader` isolates the unavoidable unsafe operations for
@@ -32,9 +33,17 @@ Current executable evidence uses a plain generated C provider on Linux and
 macOS. It proves canonical-path and input bounds, exact-byte comparison, missing
 path/symbol rejection, null rejection, logical admission separation, explicit
 lease retention, and release of SEMAPRAX's loader reference after the last
-lease. It does not prove immediate physical unmapping, same-root-image symbol
-provenance on every Unix loader, hardened dependency search, Windows DLL
-loading, iOS dynamic loading, Android device execution, callback or finalizer
-quiescence, hot reload, fork recovery, signed code admission, or callable
-resource safety. Those remain gates before this crate can connect to the
-fake-backed authority topology or a public adapter.
+lease. The unpublished native host additionally proves that this real lease is
+retained by its same-thread authority and every live owner/result credential,
+that equal descriptor bytes from separate opens do not establish instance
+identity, and that draining rejects new work while existing owners keep their
+pins. Those integration fixtures still run only on Linux and macOS.
+
+The loaded provider exposes only the descriptor getter. Neither crate resolves
+or executes a resource function or finalizer symbol, and the host tests use an
+explicit trusted Rust closure in place of generated native code. The evidence
+does not prove immediate physical unmapping, same-root-image callable-symbol
+provenance, hardened dependency search, Windows DLL runtime behavior, iOS
+dynamic loading, Android device execution, callback/finalizer quiescence, hot
+reload, fork recovery, signed code admission, or callable resource safety.
+Those remain gates before any public native adapter or `SPX-B104` change.

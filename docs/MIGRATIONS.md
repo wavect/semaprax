@@ -77,7 +77,7 @@ resource Token {
 }
 ```
 
-or a complete `drop import` plus interface/import contract. Formatting never invents `drop trivial`; it is an audited semantic assertion. Native and Wasm builds remain gated with `SPX-B104`/`SPX-W111` because phase 1 resolves lifecycle meaning but does not execute cleanup.
+or a complete `drop import` plus interface/import contract. Formatting never invents `drop trivial`; it is an audited semantic assertion. Phase 1 by itself did not execute cleanup: native resource builds still retain `SPX-B104`, and Wasm retains `SPX-W111` for every shape outside the later, separately versioned narrow owned ABI.
 
 The SHA-256 algorithm and domain separator are unchanged, but migrated canonical source receives a new revision as expected. A v4 consumer must reject `semaprax.graph.v5`. The former exact v5 fixtures were superseded by the Graph v6 cleanup-plan migration below.
 
@@ -110,7 +110,7 @@ These are first-version protocols, not an in-place extension of an unversioned w
 
 Trace data must also be bound out of band to the exact validated program, Graph schema/revision, cleanup plan, and scenario. A source revision alone is insufficient as a cache key because Graph and trace schemas can change without changing canonical source. Cache and negotiation keys must include at least the status schema, trace schema, Graph schema/revision, and scenario identity. A consumer must reject a trace whose referenced semantic IDs do not belong to that bound program and invocation path.
 
-Implementation status is deliberately limited. Public normalized-status types, compiler-owned mappings, a context-local status arena, public trace types, deterministic canonical JSON, independent inventory/HIR coverage and path-state replay, and a scenario-driven single-frame reference executor exist with focused tests. Recursive callee execution, callable-import execution, native trace instrumentation, Wasm trace instrumentation, backend-trace validation, adapter conformance, and native/Wasm trace equality do not exist yet. Resource and record execution remains fail closed; these schemas and the target-neutral oracle are not evidence that cleanup executes on any backend.
+Implementation status is deliberately limited. Public normalized-status types, compiler-owned mappings, a context-local status arena, public trace types, deterministic canonical JSON, independent inventory/HIR coverage and path-state replay, and a scenario-driven single-frame reference executor exist with focused tests. Native scalar status/out execution and the narrow `semaprax.wasm-owned.v1` adapter produce normalized statuses, but neither resource host emits `semaprax.conformance-trace.v1`. Recursive callee execution, callable-import execution, production native resource trace instrumentation, Wasm semantic trace instrumentation, backend-trace validation, and native/reference/Wasm trace equality do not exist yet. Native resources, records, and every Wasm resource shape outside the documented narrow slice remain fail closed; the schemas and oracle alone are not backend-conformance evidence.
 
 The internal native invocation context and first-slice trace storage are now one-shot objects that require canonical C zero initialization before their initialization functions are called, for example `struct spx_context context = {0};`. This replaces the earlier accepted-but-indeterminate stack declaration form. Generated entry wrappers and repository probes have migrated. Embedders using `SPX_NO_ENTRY_WRAPPER` must zero-initialize context, trace-buffer, and trace-event storage; reinitialization or storage aliasing is rejected to preserve invocation isolation. This runtime scaffold remains private and does not lift native resource execution.
 
@@ -126,9 +126,46 @@ This migration enables `check`, HIR, `graph`, and `context` for records. `build`
 
 Resource-containing record projections now carry prefix-aware availability instead of conservatively moving the complete root. Moving one owned non-copy field leaves disjoint sibling fields available. Reusing that field or an enclosing parent reports `SPX-O109`; a place moved on only some control-flow paths reports `SPX-O110`. Existing whole-resource moves retain `SPX-O101` and `SPX-O107`. Borrowed or shared projections cannot cross an owned field or parameter boundary and report `SPX-O108`. Validated HIR independently replays the same rules; Graph v6 additionally exposes the resulting cleanup-plan places, flags, transfers, and guarded exits.
 
+## Web manifest v2 to v3 and Wasm owned ABI v1
+
+Browser packages now emit `semaprax.web.v3`. The existing `module`,
+`graph_revision`, `wasm`, `entry`, and `capabilities` fields keep their v2
+meanings and canonical order. Version 3 adds one required member:
+
+```json
+{"owned_abi":{"schema":"semaprax.wasm-owned.v1","functions":[]}}
+```
+
+`functions` is in declaration order. Each admitted entry fixes its persistent
+function, resource, and lifecycle IDs; deterministic `semaprax_owned_N` export;
+source-parameter ABI kinds; and exact result kind. Scalar-only packages still
+use web manifest v3 with an empty array. Consumers must not infer an owned ABI
+from Wasm signatures or export spelling, and must reject an unknown
+`owned_abi.schema`, a missing field,
+an unknown parameter/result kind, or a mapping that disagrees with the module.
+A v2-only consumer must reject v3; migration consists of validating the new
+object before instantiation, not silently treating it as optional metadata.
+
+`semaprax.wasm-owned.v1` is narrower than RFC 0003 and the Component Model. It
+admits one direct trivial-resource identity and a restricted direct body. Its
+generated JavaScript facade binds invocation to the exact generated metadata,
+uses branded one-shot trusted-adoption tickets, keeps ownership imports private,
+authenticates the exact generated Wasm bytes with an embedded SHA-256 digest,
+checks canonical argument encodings and aligned result ranges before commit,
+and exposes normalized
+`semaprax.status.v1` records with the canonical `domain_id` field. Unsupported
+resource shapes retain `SPX-W111`. A same-realm `Symbol.for` allocator
+coordinates runtime tags across separately evaluated copies of the generated
+host. The surrounding realm and that reserved global binding are trusted v1
+host state; hostile pre-poisoning, cross-realm, and worker identity isolation
+remain outside v1.
+The full [owned-resource vertical contract](OWNED-RESOURCE-VERTICAL-V1.md),
+semantic conformance traces, Components, imports/finalizers, and cross-target
+equality remain later gates.
+
 ## Revision token FNV-1a64 to SHA-256
 
-Graph v3 and later, semantic patch bases, CLI output, and `semaprax.web.v2` manifests use one algorithm-tagged token:
+Graph v3 and later, semantic patch bases, CLI output, and `semaprax.web.v2`/`semaprax.web.v3` manifests use one algorithm-tagged token:
 
 ```text
 sha256:<64 lowercase hexadecimal digits>

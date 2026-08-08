@@ -109,6 +109,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "semaprax-native-host"
+version = "0.1.0"
+dependencies = [
+ "getrandom",
+ "hmac",
+ "semaprax",
+ "semaprax-native-loader",
+ "sha2",
+]
+
+[[package]]
 name = "semaprax-native-loader"
 version = "0.1.0"
 dependencies = [

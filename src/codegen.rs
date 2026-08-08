@@ -49,6 +49,78 @@ pub fn emit_hir_c(program: &ResolvedProgram) -> Result<String, Diagnostic> {
     emit_hir_c_with_labels(program, &HashMap::new())
 }
 
+/// Doc-hidden public descriptor/provider artifact for one already validated
+/// resource function.
+///
+/// Rust has no workspace-only visibility, so the unpublished native host uses
+/// this deliberately narrow public facade instead of exposing the underlying
+/// planner, descriptor, or ownership internals. This artifact contains no
+/// callable SEMAPRAX entry point and does not alter the public
+/// resource-lowering `SPX-B104` gate.
+#[doc(hidden)]
+pub struct NativeAdapterAdmissionArtifact {
+    descriptor: Vec<u8>,
+    getter_symbol: String,
+    header: String,
+    provider_source: String,
+}
+
+#[doc(hidden)]
+impl NativeAdapterAdmissionArtifact {
+    pub fn descriptor(&self) -> &[u8] {
+        &self.descriptor
+    }
+
+    pub fn getter_symbol(&self) -> &str {
+        &self.getter_symbol
+    }
+
+    pub fn header(&self) -> &str {
+        &self.header
+    }
+
+    pub fn provider_source(&self) -> &str {
+        &self.provider_source
+    }
+}
+
+/// Derive one descriptor-only physical admission artifact from validated HIR.
+///
+/// No loader, capability authority, owner, callable symbol, or runtime payload
+/// is created by this compiler-side operation.
+#[doc(hidden)]
+pub fn emit_native_adapter_admission(
+    program: &ResolvedProgram,
+    function_id: &DeclarationId,
+    header_name: &str,
+) -> Result<NativeAdapterAdmissionArtifact, Diagnostic> {
+    hir::validate(program)?;
+    let resource_abi = native_resource::build_resource_abi(program)?;
+    let function = program
+        .functions
+        .iter()
+        .find(|candidate| &candidate.id == function_id)
+        .ok_or_else(|| backend_error(format!("function `{function_id}` is not in the program")))?;
+    let cleanup = native_cleanup::classify(program, function)?;
+    let values = native_value::plan(program, function, &cleanup, &resource_abi, &HashMap::new())?;
+    let template = native_host_contract::derive_from_admitted(
+        program,
+        function_id,
+        &resource_abi,
+        &cleanup,
+        &values,
+    )?;
+    let descriptor = native_adapter_abi::derive(&template)?;
+    let header = native_adapter_abi::emit_header(&descriptor);
+    let provider_source = native_adapter_abi::emit_source(&descriptor, header_name)?;
+    Ok(NativeAdapterAdmissionArtifact {
+        descriptor: descriptor.bytes,
+        getter_symbol: descriptor.getter_symbol,
+        header,
+        provider_source,
+    })
+}
+
 fn first_backend_diagnostic(diagnostics: Vec<Diagnostic>) -> Diagnostic {
     diagnostics
         .iter()

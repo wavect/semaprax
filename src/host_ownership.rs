@@ -140,6 +140,18 @@ pub(crate) struct HostOwnerToken {
     generation: u64,
 }
 
+impl HostOwnerToken {
+    /// Nonzero ledger slot authenticated by the physical host credential.
+    pub(crate) const fn slot(self) -> u64 {
+        self.slot
+    }
+
+    /// Nonzero generation authenticated by the physical host credential.
+    pub(crate) const fn generation(self) -> u64 {
+        self.generation
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct HostCallRequest {
     contract: HostCallContract,
@@ -225,6 +237,33 @@ pub(crate) struct HostCommittedResource {
 impl HostCommittedResource {
     pub(crate) const fn payload(&self) -> u64 {
         self.payload
+    }
+}
+
+/// Detached linear invocation state for a physical host that must execute
+/// trusted code without holding a borrow of its owner registry.
+///
+/// Construction commits every input atomically. The holder must then call one
+/// matching completion method or [`HostOwnershipRegistry::abandon_prepared`].
+#[must_use = "a prepared host invocation must be completed or abandoned"]
+#[allow(
+    dead_code,
+    reason = "used by the unpublished physical host through audited source inclusion"
+)]
+pub(crate) struct HostPreparedInvocation {
+    sequence: u64,
+    result_slot: Option<u64>,
+    resources: Vec<HostCommittedResource>,
+    payloads: Vec<u64>,
+}
+
+#[allow(
+    dead_code,
+    reason = "used by the unpublished physical host through audited source inclusion"
+)]
+impl HostPreparedInvocation {
+    pub(crate) fn payloads(&self) -> &[u64] {
+        &self.payloads
     }
 }
 
@@ -448,6 +487,85 @@ impl HostOwnershipRegistry {
         }
     }
 
+    /// Validate and atomically commit a scalar call while returning detached
+    /// execution state. No registry borrow needs to remain live while trusted
+    /// adapter code runs.
+    #[allow(
+        dead_code,
+        reason = "used by the unpublished physical host through audited source inclusion"
+    )]
+    pub(crate) fn prepare_scalar(
+        &mut self,
+        request: HostCallRequest,
+    ) -> Result<HostPreparedInvocation, HostBoundaryRejection> {
+        if request.contract.result != HostResultPlan::Scalar {
+            return Err(HostBoundaryRejection::ResultKindMismatch);
+        }
+        self.prepare_call(request)
+    }
+
+    /// Validate and atomically commit an owned-result call while returning
+    /// detached execution state.
+    #[allow(
+        dead_code,
+        reason = "used by the unpublished physical host through audited source inclusion"
+    )]
+    pub(crate) fn prepare_owned(
+        &mut self,
+        request: HostCallRequest,
+    ) -> Result<HostPreparedInvocation, HostBoundaryRejection> {
+        if !matches!(request.contract.result, HostResultPlan::OwnedInput { .. }) {
+            return Err(HostBoundaryRejection::ResultKindMismatch);
+        }
+        self.prepare_call(request)
+    }
+
+    #[allow(
+        dead_code,
+        reason = "used by the unpublished physical host through audited source inclusion"
+    )]
+    pub(crate) fn complete_prepared_scalar(
+        &mut self,
+        invocation: HostPreparedInvocation,
+        result: Result<i64, NormalizedStatus>,
+    ) -> HostCallOutcome {
+        assert!(
+            invocation.result_slot.is_none(),
+            "scalar completion requires a scalar prepared invocation"
+        );
+        match result {
+            Ok(value) => self.finish(invocation.sequence, None, Some(value), None),
+            Err(status) => self.finish(invocation.sequence, None, None, Some(status)),
+        }
+    }
+
+    #[allow(
+        dead_code,
+        reason = "used by the unpublished physical host through audited source inclusion"
+    )]
+    pub(crate) fn complete_prepared_owned(
+        &mut self,
+        invocation: HostPreparedInvocation,
+        result: Result<(), NormalizedStatus>,
+    ) -> HostCallOutcome {
+        let result_slot = invocation
+            .result_slot
+            .expect("owned completion requires an owned prepared invocation");
+        match result {
+            Ok(()) => self.finish(invocation.sequence, Some(result_slot), None, None),
+            Err(status) => self.finish(invocation.sequence, None, None, Some(status)),
+        }
+    }
+
+    /// Consume every committed input after trusted execution unwinds.
+    #[allow(
+        dead_code,
+        reason = "used by the unpublished physical host through audited source inclusion"
+    )]
+    pub(crate) fn abandon_prepared(&mut self, invocation: HostPreparedInvocation) {
+        self.abandon(invocation.sequence);
+    }
+
     pub(crate) fn take_last_abandonment(&mut self) -> Option<NormalizedStatus> {
         if std::mem::take(&mut self.last_abandonment) {
             Some(abandonment_status())
@@ -460,40 +578,19 @@ impl HostOwnershipRegistry {
     /// commit all owners together. No allocation occurs after the first owner
     /// state changes.
     fn begin_call(&mut self, request: HostCallRequest) -> HostCallStart<'_> {
-        if let Err(rejection) = self.preflight(&request) {
-            return HostCallStart::Rejected(rejection);
-        }
-
-        let slots = request
-            .owners
-            .iter()
-            .map(|owner| owner.slot)
-            .collect::<Vec<_>>();
-        let resources = request
-            .owners
-            .iter()
-            .map(|token| HostCommittedResource {
-                payload: self
-                    .lookup(*token)
-                    .expect("preflight proved every owner exists")
-                    .payload,
-            })
-            .collect::<Vec<_>>();
-        let result_slot = match request.contract.result {
-            HostResultPlan::Scalar => None,
-            HostResultPlan::OwnedInput { input_index } => Some(slots[input_index]),
+        let result = request.contract.result;
+        let prepared = match self.prepare_call(request) {
+            Ok(prepared) => prepared,
+            Err(rejection) => return HostCallStart::Rejected(rejection),
         };
-        let sequence = self.next_invocation;
-        self.next_invocation += 1;
-        self.active = Some(ActiveInvocation { sequence, slots });
-        for token in &request.owners {
-            self.owners
-                .get_mut(&token.slot)
-                .expect("preflight proved every owner exists")
-                .state = HostOwnerState::InInvocation(sequence);
-        }
+        let HostPreparedInvocation {
+            sequence,
+            result_slot,
+            resources,
+            payloads: _,
+        } = prepared;
 
-        match request.contract.result {
+        match result {
             HostResultPlan::Scalar => {
                 HostCallStart::Committed(HostCommittedCall::Scalar(HostScalarInvocation {
                     registry: self,
@@ -514,6 +611,54 @@ impl HostOwnershipRegistry {
         }
     }
 
+    /// Validate every fallible condition, allocate both internal and physical
+    /// execution views, and only then mutate owner state.
+    fn prepare_call(
+        &mut self,
+        request: HostCallRequest,
+    ) -> Result<HostPreparedInvocation, HostBoundaryRejection> {
+        self.preflight(&request)?;
+
+        let slots = request
+            .owners
+            .iter()
+            .map(|owner| owner.slot)
+            .collect::<Vec<_>>();
+        let resources = request
+            .owners
+            .iter()
+            .map(|token| HostCommittedResource {
+                payload: self
+                    .lookup(*token)
+                    .expect("preflight proved every owner exists")
+                    .payload,
+            })
+            .collect::<Vec<_>>();
+        let payloads = resources
+            .iter()
+            .map(HostCommittedResource::payload)
+            .collect::<Vec<_>>();
+        let result_slot = match request.contract.result {
+            HostResultPlan::Scalar => None,
+            HostResultPlan::OwnedInput { input_index } => Some(slots[input_index]),
+        };
+        let sequence = self.next_invocation;
+        self.next_invocation += 1;
+        self.active = Some(ActiveInvocation { sequence, slots });
+        for token in &request.owners {
+            self.owners
+                .get_mut(&token.slot)
+                .expect("preflight proved every owner exists")
+                .state = HostOwnerState::InInvocation(sequence);
+        }
+        Ok(HostPreparedInvocation {
+            sequence,
+            result_slot,
+            resources,
+            payloads,
+        })
+    }
+
     pub(crate) fn is_live(&self, token: HostOwnerToken) -> bool {
         self.lookup(token)
             .is_ok_and(|owner| owner.state == HostOwnerState::Live)
@@ -524,6 +669,39 @@ impl HostOwnershipRegistry {
             .ok()
             .filter(|owner| owner.state == HostOwnerState::Live)
             .map(|owner| owner.payload)
+    }
+
+    /// Retire one still-live owner outside an invocation that owns it.
+    ///
+    /// The unpublished physical host calls this from its noncopying owner
+    /// guard. The current admitted slice contains only trivial finalizers, so
+    /// retirement clears logical liveness and returns the opaque payload for
+    /// audit evidence without invoking foreign code.
+    pub(crate) fn retire_owner(
+        &mut self,
+        token: HostOwnerToken,
+    ) -> Result<u64, HostBoundaryRejection> {
+        if self.poisoned {
+            return Err(HostBoundaryRejection::RegistryPoisoned);
+        }
+        let owner = self.lookup(token)?;
+        if owner.state != HostOwnerState::Live {
+            return Err(HostBoundaryRejection::OwnerNotLive);
+        }
+        let owner = self
+            .owners
+            .get_mut(&token.slot)
+            .expect("lookup proved the owner slot exists");
+        owner.state = HostOwnerState::Dead;
+        Ok(owner.payload)
+    }
+
+    /// Number of currently live owner generations, excluding committed calls.
+    pub(crate) fn live_owner_count(&self) -> usize {
+        self.owners
+            .values()
+            .filter(|owner| owner.state == HostOwnerState::Live)
+            .count()
     }
 
     fn preflight(&self, request: &HostCallRequest) -> Result<(), HostBoundaryRejection> {
@@ -1379,5 +1557,25 @@ mod tests {
             HostResultPlan::Scalar,
         );
         assert_eq!(call.function().as_str(), "token.function");
+    }
+
+    #[test]
+    fn out_of_call_retirement_is_exact_and_observable() {
+        let mut registry = HostOwnershipRegistry::try_new().unwrap();
+        let owner = registry
+            .register_adapter_owner(
+                provenance("module.one", "adapter.one", "token.type", "token.drop", 71),
+                0,
+            )
+            .unwrap();
+        assert_ne!(owner.slot(), 0);
+        assert_eq!(owner.generation(), 1);
+        assert_eq!(registry.live_owner_count(), 1);
+        assert_eq!(registry.retire_owner(owner), Ok(0));
+        assert_eq!(registry.live_owner_count(), 0);
+        assert_eq!(
+            registry.retire_owner(owner),
+            Err(HostBoundaryRejection::OwnerNotLive)
+        );
     }
 }

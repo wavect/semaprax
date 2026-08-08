@@ -80,7 +80,7 @@ Implemented today:
 - Canonical record declarations, construction, and projection in `check`, resolved HIR, and semantic Graph v6; executable targets fail closed until aggregate layout and cleanup execution land.
 - A validated stable-ID HIR shared by native and Wasm lowering, with explicit entry, result, binding, expression, and place identities.
 - A mandatory target-neutral cleanup CFG for every function, independently rebuilt and independently replayed against core HIR/inventory, with exhaustive current-CFG path-state checks plus a scenario-driven reference trace executor.
-- Versioned target-neutral normalized-status and conformance-trace protocols, plus invocation-local immutable status arenas with zero-success/one-based tokens. The native scalar backend now uses this status/out convention; backend trace conformance and resource execution remain gated.
+- Versioned target-neutral normalized-status and conformance-trace protocols, plus invocation-local immutable status arenas with zero-success/one-based tokens. The native scalar backend and narrow Wasm owned adapter use the status/out convention; complete semantic backend traces and general/native resource execution remain gated.
 - Checked integer arithmetic in generated programs; native failures use exact normalized arithmetic codes and propagate without terminating an internal SEMAPRAX frame.
 - Typed `requires` and `ensures` contracts, enforced by native and Wasm artifacts. Native scalar contracts publish no caller result on failure.
 - Explicit function effects checked against module capabilities and callers.
@@ -92,16 +92,54 @@ Implemented today:
 - Atomic semantic rename patches with stale-revision rejection.
 - Native AOT output through a readable C11 lowering and Clang.
 - Direct WebAssembly core output with a generated ES-module runtime, HTML entry point, capability manifest, checked arithmetic, and contract traps.
+- A deliberately narrow `semaprax.wasm-owned.v1` Core Wasm path for one direct
+  `drop trivial` resource identity. It executes validated-plan terminal cleanup,
+  normalized status/out publication, and scalar or owned-input results through
+  a generated instance-confined JavaScript host. The host binds its private
+  ownership imports to the exact generated Wasm bytes with SHA-256 and rejects
+  non-canonical ABI arguments; broader shapes remain gated.
 
-Not implemented yet: native resource cleanup-plan execution, any Wasm status/resource ABI execution, public/production backend trace conformance, recursive reference execution in the reference oracle, callable imports/adapters, record machine-code layout/lowering, variants and matching, lifetime and alias analysis, user-facing regions, effect handlers, static contract proofs, Cranelift, LLVM/MLIR IR, WebAssembly Components, packages, concurrency, or cross-platform UI. Resource and record builds fail closed until their remaining safety gates pass.
+Not implemented yet: callable native resource machine-code execution, complete
+native/reference/Wasm trace conformance, the general Wasm resource ABI,
+recursive reference execution, callable imports/adapters, record machine-code
+layout/lowering, variants and matching, lifetime and alias analysis, user-facing
+regions, effect handlers, static contract proofs, Cranelift, LLVM/MLIR IR,
+WebAssembly Components, packages, concurrency, or cross-platform UI. Native
+resource builds retain `SPX-B104`; Wasm admits only the documented narrow slice
+and rejects every excluded resource shape with `SPX-W111`; records remain gated
+with their target-specific diagnostics.
 
-The native backend contains unreachable preparatory scaffolding for deterministic strongly typed resource wrappers, resource-aware signatures, bounded cleanup-plan indexing, plan-driven cleanup C, conservative trace-buffer sizing, actual root-frame semantic event writes, and pre-ownership trace attachment. A typed value planner evaluates the admitted slice's real contracts, comparison, checked addition, scalar results, and owned identity flow at their validated cleanup-CFG blocks. The test-only lane proves exact typed and canonical-JSON equality with the independent executor across O0/O2, ASan, and UBSan, including exact selection and failed-precondition cleanup when two owned inputs have the same resource type. A private host ledger separately proves atomic multi-owner ingress and must-complete scalar/owned publication semantics. Resource preflight also derives and discards a deterministic authority-free host template from that exact admitted proof, then derives and discards a canonical pointer-free [native adapter descriptor](docs/NATIVE-ADAPTER-DESCRIPTOR-V1.md) with explicit wire, target, module, function, parameter, lifecycle, and result identity. The generated host-only provider rejects a C compiler target that disagrees with its encoded physical target; its C11/C++ surface has one dynamically verified immutable descriptor getter and no callable owner API. A private [capability-token layer](docs/NATIVE-CAPABILITY-TOKENS-V1.md) fixes canonical 64-byte owner/result authentication mechanics with a full RustCrypto HMAC-SHA256 tag and an OS-entropy/actual-thread-bound authority. Test-only construction now requires a fake-backed module lease: the authority and every staged owner/result wrapper retain the exact allocation instance, while equal fingerprints and equal bearer bytes cannot cross instances. This proves Rust lifetime topology, not a loaded library. Compiler preflight still creates no authority. None of this weakens `SPX-B104`: public resource execution remains unavailable until safe acquisition, a production loader-owned module handle, descriptor and code-identity admission, runtime-owned storage, finalization, ledger integration, quiesced unload, concurrency, fork handling, and equivalent Wasm evidence realize the complete physical adapter; calls, imports, projections, and broader control flow need their own conformance expansion.
+The native compiler still contains gated cleanup-CFG-driven C and trace
+scaffolding plus an O0/O2/sanitizer conformance lane that compares the admitted
+value corpus with the independent reference executor. Separately, the
+unpublished `semaprax-native-host` crate now connects a strict pointer-free
+[descriptor](docs/NATIVE-ADAPTER-DESCRIPTOR-V1.md), a real exact-instance loader
+lease, the OS-seeded same-thread [capability
+authority](docs/NATIVE-CAPABILITY-TOKENS-V1.md), the ownership ledger, and
+non-copying owner/result wrappers. Its Linux/macOS fixtures prove descriptor
+admission, trusted owner adoption, non-mutating rejection, atomic ledger
+execution, generation rotation, draining, and exact lease retention. That host
+does **not** resolve or call a resource function from the loaded library: the
+library still exports only the descriptor getter, and test execution uses an
+explicit trusted Rust closure. Windows currently supplies compile coverage, not
+a native-host runtime fixture. Compiler preflight does not construct this host,
+and `SPX-B104` remains unchanged.
 
 An unpublished [native loader quarantine](docs/NATIVE-MODULE-LOADER.md) now
 proves one audited unsafe trusted-library/getter/bounded-read edge and opaque
-loader-reference retention with real Linux/macOS fixtures. It is disconnected
-from the compiler and authority, is not a malicious-plugin boundary, and does
-not weaken `SPX-B104`.
+loader-reference retention with real Linux/macOS fixtures. The unpublished
+native host now consumes this lease and retains it through its authority and
+owners, but the loader remains disconnected from compiler emission and every
+public API. It exposes no callable symbol, is not a malicious-plugin boundary,
+and does not weaken `SPX-B104`.
+
+The current critical-path implementation contract is [Owned resource vertical
+slice v1](docs/OWNED-RESOURCE-VERTICAL-V1.md): one deliberately narrow,
+production-reachable owned-resource corpus must execute with exact
+native/reference/Wasm status, cleanup, publication, and semantic-trace equality
+before either backend gate can open. The document is a gate, not a completion
+claim. The narrow Wasm slice and private native host are prerequisites; they do
+not yet satisfy the full cross-target contract.
 
 ## Agent protocol
 

@@ -1,0 +1,21 @@
+[package]
+name = "semaprax-native-host"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+publish = false
+description = "Thread-confined physical native ownership host for SEMAPRAX"
+license = "Apache-2.0"
+repository = "https://github.com/wavect/semaprax"
+
+[dependencies]
+semaprax = { path = "../..", version = "0.2.0" }
+hmac = "=0.12.1"
+sha2 = "=0.10.9"
+
+[target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))'.dependencies]
+getrandom = "=0.4.3"
+semaprax-native-loader = { path = "../semaprax-native-loader", version = "0.1.0" }
+
+[lints.rust]
+unsafe_op_in_unsafe_fn = "deny"

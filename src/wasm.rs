@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::path::Path;
 
+use sha2::{Digest, Sha256};
+
 use crate::ast::{BinaryOp, Program, UnaryOp};
 use crate::diagnostic::{quote_json, Diagnostic};
 use crate::graph;
@@ -9,9 +11,11 @@ use crate::hir::{
     ResolvedType, ResolvedTypeDeclarationKind, ValueId,
 };
 
+mod owned;
+
 const I32: u8 = 0x7f;
 const I64: u8 = 0x7e;
-const IMPORT_COUNT: u32 = 7;
+const SCALAR_IMPORT_COUNT: u32 = 7;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct Signature {
@@ -53,17 +57,12 @@ pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagno
             "WebAssembly record lowering is gated on linear-memory cleanup and layout support",
         ));
     }
-    if program.types.iter().any(|declaration| {
-        matches!(
-            &declaration.kind,
-            ResolvedTypeDeclarationKind::Resource { .. }
-        )
-    }) {
-        return Err(Diagnostic::io(
-            "SPX-W111",
-            "WebAssembly resource lowering requires lifecycle declarations and the verified cleanup ABI",
-        ));
-    }
+    let owned_plans = owned::plan(program)?;
+    let import_count = if owned_plans.is_empty() {
+        SCALAR_IMPORT_COUNT
+    } else {
+        SCALAR_IMPORT_COUNT + owned::IMPORT_NAMES.len() as u32
+    };
     let mut types = Vec::<Signature>::new();
     let mut type_indexes = HashMap::<Signature, u32>::new();
     let binary_checked = intern_type(
@@ -91,6 +90,93 @@ pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagno
         &mut type_indexes,
     );
 
+    let owned_import_types = if owned_plans.is_empty() {
+        None
+    } else {
+        Some([
+            intern_type(
+                Signature {
+                    params: vec![I32],
+                    results: vec![I32],
+                },
+                &mut types,
+                &mut type_indexes,
+            ),
+            intern_type(
+                Signature {
+                    params: vec![I32, I32],
+                    results: vec![I32],
+                },
+                &mut types,
+                &mut type_indexes,
+            ),
+            intern_type(
+                Signature {
+                    params: vec![I32],
+                    results: vec![],
+                },
+                &mut types,
+                &mut type_indexes,
+            ),
+            intern_type(
+                Signature {
+                    params: vec![I32],
+                    results: vec![I32],
+                },
+                &mut types,
+                &mut type_indexes,
+            ),
+            intern_type(
+                Signature {
+                    params: vec![I32],
+                    results: vec![I32],
+                },
+                &mut types,
+                &mut type_indexes,
+            ),
+            intern_type(
+                Signature {
+                    params: vec![I32, I32],
+                    results: vec![],
+                },
+                &mut types,
+                &mut type_indexes,
+            ),
+            intern_type(
+                Signature {
+                    params: vec![I32],
+                    results: vec![],
+                },
+                &mut types,
+                &mut type_indexes,
+            ),
+            intern_type(
+                Signature {
+                    params: vec![I32, I32],
+                    results: vec![I32],
+                },
+                &mut types,
+                &mut type_indexes,
+            ),
+            intern_type(
+                Signature {
+                    params: vec![I32, I32, I32],
+                    results: vec![I32],
+                },
+                &mut types,
+                &mut type_indexes,
+            ),
+            intern_type(
+                Signature {
+                    params: vec![I32],
+                    results: vec![],
+                },
+                &mut types,
+                &mut type_indexes,
+            ),
+        ])
+    };
+
     let mut function_types = Vec::new();
     for function in &program.functions {
         let signature = Signature {
@@ -103,12 +189,19 @@ pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagno
         };
         function_types.push(intern_type(signature, &mut types, &mut type_indexes));
     }
+    let owned_function_types = owned_plans
+        .iter()
+        .map(|plan| {
+            let (params, results) = plan.signature();
+            intern_type(Signature { params, results }, &mut types, &mut type_indexes)
+        })
+        .collect::<Vec<_>>();
 
     let function_indexes: HashMap<_, _> = program
         .functions
         .iter()
         .enumerate()
-        .map(|(index, function)| (function.id.clone(), IMPORT_COUNT + index as u32))
+        .map(|(index, function)| (function.id.clone(), import_count + index as u32))
         .collect();
 
     let mut module = b"\0asm\x01\0\0\0".to_vec();
@@ -122,20 +215,38 @@ pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagno
     section(&mut module, 1, type_section);
 
     let mut imports = Vec::new();
-    write_u32(&mut imports, IMPORT_COUNT);
+    write_u32(&mut imports, import_count);
     for name in ["spx_add", "spx_sub", "spx_mul", "spx_div", "spx_rem"] {
         function_import(&mut imports, "env", name, binary_checked);
     }
     function_import(&mut imports, "env", "spx_neg", unary_checked);
     function_import(&mut imports, "env", "spx_contract_fail", contract_fail);
+    if let Some(type_indexes) = owned_import_types {
+        for (name, type_index) in owned::IMPORT_NAMES.into_iter().zip(type_indexes) {
+            function_import(&mut imports, "env", name, type_index);
+        }
+    }
     section(&mut module, 2, imports);
 
     let mut functions = Vec::new();
-    write_u32(&mut functions, function_types.len() as u32);
+    write_u32(
+        &mut functions,
+        (function_types.len() + owned_function_types.len()) as u32,
+    );
     for type_index in function_types {
         write_u32(&mut functions, type_index);
     }
+    for type_index in owned_function_types {
+        write_u32(&mut functions, type_index);
+    }
     section(&mut module, 3, functions);
+
+    if !owned_plans.is_empty() {
+        let mut memories = Vec::new();
+        write_u32(&mut memories, 1);
+        memories.extend([0x00, 0x01]); // one-page, unbounded memory
+        section(&mut module, 5, memories);
+    }
 
     let main_index = program
         .functions
@@ -150,14 +261,31 @@ pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagno
         ));
     }
     let mut exports = Vec::new();
-    write_u32(&mut exports, 1);
+    write_u32(
+        &mut exports,
+        1 + owned_plans.len() as u32 + u32::from(!owned_plans.is_empty()),
+    );
     write_name(&mut exports, "semaprax_main");
     exports.push(0x00);
-    write_u32(&mut exports, IMPORT_COUNT + main_index as u32);
+    write_u32(&mut exports, import_count + main_index as u32);
+    if !owned_plans.is_empty() {
+        write_name(&mut exports, "memory");
+        exports.push(0x02);
+        write_u32(&mut exports, 0);
+    }
+    let adapter_base = import_count + program.functions.len() as u32;
+    for (ordinal, plan) in owned_plans.iter().enumerate() {
+        write_name(&mut exports, &plan.export);
+        exports.push(0x00);
+        write_u32(&mut exports, adapter_base + ordinal as u32);
+    }
     section(&mut module, 7, exports);
 
     let mut code = Vec::new();
-    write_u32(&mut code, program.functions.len() as u32);
+    write_u32(
+        &mut code,
+        (program.functions.len() + owned_plans.len()) as u32,
+    );
     for function in &program.functions {
         let mut body = Vec::new();
         let result_local = function.params.len() as u32;
@@ -223,24 +351,51 @@ pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagno
         write_u32(&mut code, body.len() as u32);
         code.extend(body);
     }
+    for plan in &owned_plans {
+        let body = plan.emit_body();
+        write_u32(&mut code, body.len() as u32);
+        code.extend(body);
+    }
     section(&mut module, 10, code);
     Ok(module)
 }
 
 pub fn build_web(program: &Program, output: &Path) -> Result<(), Diagnostic> {
+    let resolved = hir::resolve(program).map_err(|diagnostics| {
+        diagnostics
+            .into_iter()
+            .find(|item| item.severity.is_error())
+            .unwrap_or_else(|| Diagnostic::io("SPX-W100", "HIR resolution failed"))
+    })?;
+    let owned_plans = owned::plan(&resolved)?;
     std::fs::create_dir_all(output).map_err(|error| {
         Diagnostic::io(
             "SPX-I301",
             format!("cannot create web output {}: {error}", output.display()),
         )
     })?;
-    std::fs::write(output.join("app.wasm"), emit_module(program)?).map_err(|error| {
+    let wasm_bytes = emit_resolved_module(&resolved)?;
+    std::fs::write(output.join("app.wasm"), &wasm_bytes).map_err(|error| {
         Diagnostic::io(
             "SPX-I302",
             format!("cannot write WebAssembly module: {error}"),
         )
     })?;
-    std::fs::write(output.join("semaprax.js"), browser_runtime()).map_err(|error| {
+    let runtime_exports = owned_plans
+        .iter()
+        .map(owned::OwnedPlan::runtime_json)
+        .collect::<Vec<_>>()
+        .join(",");
+    let runtime = browser_runtime()
+        .replace(
+            "__SEMAPRAX_OWNED_EXPORTS__",
+            &format!("Object.freeze({{{runtime_exports}}})"),
+        )
+        .replace(
+            "__SEMAPRAX_WASM_SHA256__",
+            &format!("{:x}", Sha256::digest(&wasm_bytes)),
+        );
+    std::fs::write(output.join("semaprax.js"), runtime).map_err(|error| {
         Diagnostic::io("SPX-I303", format!("cannot write browser runtime: {error}"))
     })?;
     std::fs::write(output.join("index.html"), browser_html()).map_err(|error| {
@@ -256,11 +411,17 @@ pub fn build_web(program: &Program, output: &Path) -> Result<(), Diagnostic> {
             format!("cannot write web package metadata: {error}"),
         )
     })?;
+    let owned_manifest = owned_plans
+        .iter()
+        .map(|plan| plan.manifest_json(&resolved.functions[plan.function_index]))
+        .collect::<Vec<_>>()
+        .join(",");
     let manifest = format!(
-        "{{\"schema\":\"semaprax.web.v2\",\"module\":{},\"graph_revision\":{},\"wasm\":\"app.wasm\",\"entry\":\"semaprax_main\",\"capabilities\":{}}}\n",
+        "{{\"schema\":\"semaprax.web.v3\",\"module\":{},\"graph_revision\":{},\"wasm\":\"app.wasm\",\"entry\":\"semaprax_main\",\"capabilities\":{},\"owned_abi\":{{\"schema\":\"semaprax.wasm-owned.v1\",\"functions\":[{}]}}}}\n",
         quote_json(&program.module),
         quote_json(&graph::revision(program)),
-        json_strings(&program.permits)
+        json_strings(&program.permits),
+        owned_manifest,
     );
     std::fs::write(output.join("semaprax.manifest.json"), manifest).map_err(|error| {
         Diagnostic::io("SPX-I305", format!("cannot write web manifest: {error}"))
@@ -669,6 +830,64 @@ fn json_strings(values: &[String]) -> String {
 fn browser_runtime() -> &'static str {
     r#"const SPX_MIN = -(1n << 63n);
 const SPX_MAX = (1n << 63n) - 1n;
+const SPX_POISON_I64 = 0x5a5a5a5a5a5a5a5an;
+const SPX_POISON_HANDLE = 0x5a5a5a5a;
+const SPX_MAX_RUNTIME_TAG = 0x7ff;
+const SPX_MAX_SLOT = 0x3ff;
+const SPX_MAX_GENERATION = 0x3ff;
+const SPX_MAX_DYNAMIC_STATUS = 0x7ffffffe;
+const SPX_EXHAUSTED_STATUS = 0x7fffffff;
+const SPX_OWNED_EXPORTS = __SEMAPRAX_OWNED_EXPORTS__;
+const SPX_WASM_SHA256 = "__SEMAPRAX_WASM_SHA256__";
+const SPX_RUNTIME_TAG_ALLOCATOR_KEY = Symbol.for("semaprax.wasm-owned.runtime-tags.v1");
+const spxLocalRuntimeTags = new Set();
+
+function runtimeTagAllocator() {
+  const installed = globalThis[SPX_RUNTIME_TAG_ALLOCATOR_KEY];
+  if (installed !== undefined) {
+    if (typeof installed !== "object" || installed === null || typeof installed.take !== "function") {
+      throw new Error("SEMAPRAX runtime-tag allocator global is invalid");
+    }
+    return installed;
+  }
+  let next = 1;
+  const allocator = Object.freeze({
+    take() {
+      if (next > SPX_MAX_RUNTIME_TAG) {
+        throw new Error("SEMAPRAX owned runtime instance identity space exhausted");
+      }
+      return next++;
+    },
+  });
+  Object.defineProperty(globalThis, SPX_RUNTIME_TAG_ALLOCATOR_KEY, {
+    value: allocator,
+    configurable: false,
+    enumerable: false,
+    writable: false,
+  });
+  return allocator;
+}
+
+async function authenticatedWasmBytes(bytes) {
+  let source;
+  if (bytes instanceof ArrayBuffer) {
+    source = new Uint8Array(bytes);
+  } else if (ArrayBuffer.isView(bytes)) {
+    source = new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  } else {
+    throw new TypeError("SEMAPRAX instantiateBytes requires an ArrayBuffer or typed-array view");
+  }
+  const ownedCopy = new Uint8Array(source);
+  if (globalThis.crypto === undefined || globalThis.crypto.subtle === undefined) {
+    throw new Error("SEMAPRAX Web Crypto SHA-256 support is required");
+  }
+  const digest = new Uint8Array(await globalThis.crypto.subtle.digest("SHA-256", ownedCopy));
+  const actual = Array.from(digest, byte => byte.toString(16).padStart(2, "0")).join("");
+  if (actual !== SPX_WASM_SHA256) {
+    throw new Error("SEMAPRAX WebAssembly artifact authentication failed");
+  }
+  return ownedCopy;
+}
 
 function checked(value, operation) {
   if (value < SPX_MIN || value > SPX_MAX) {
@@ -695,10 +914,332 @@ export const imports = {
   },
 };
 
+function boundedLimit(value, maximum, name) {
+  if (value === undefined) return maximum;
+  if (!Number.isSafeInteger(value) || value < 1 || value > maximum) {
+    throw new RangeError(`invalid SEMAPRAX ${name} limit`);
+  }
+  return value;
+}
+
+function createOwnedRuntime(options = {}) {
+  const maxSlot = boundedLimit(options.maxOwnedSlots, SPX_MAX_SLOT, "owned-slot");
+  const maxDynamicStatus = boundedLimit(options.maxStatusTokens, SPX_MAX_DYNAMIC_STATUS, "status-token");
+  const runtimeTag = runtimeTagAllocator().take();
+  if (!Number.isInteger(runtimeTag) || runtimeTag < 1 || runtimeTag > SPX_MAX_RUNTIME_TAG
+      || spxLocalRuntimeTags.has(runtimeTag)) {
+    throw new Error("SEMAPRAX runtime-tag allocator returned an invalid or repeated identity");
+  }
+  spxLocalRuntimeTags.add(runtimeTag);
+  const context = ((runtimeTag << 20) | 0x5350) | 0;
+  const slots = new Map();
+  const generations = new Map();
+  const freeSlots = [];
+  const statuses = new Map();
+  statuses.set(SPX_EXHAUSTED_STATUS, Object.freeze({
+    schema: "semaprax.status.v1",
+    domain_id: "semaprax.wasm-adapter.v1",
+    code: 5,
+    class: "adapter",
+    retryable: false,
+  }));
+  const events = [];
+  const adoptionTickets = new WeakMap();
+  let nextSlot = 1;
+  let nextStatus = 1;
+  let staging = null;
+  let activeResult = null;
+  let activeStatus = null;
+  let instance = null;
+
+  const recordStatus = (domain, code, classification) => {
+    if (nextStatus > maxDynamicStatus) return SPX_EXHAUSTED_STATUS;
+    const token = nextStatus++;
+    statuses.set(token, Object.freeze({
+      schema: "semaprax.status.v1",
+      domain_id: domain,
+      code,
+      class: classification,
+      retryable: false,
+    }));
+    return token;
+  };
+  const fillStatus = (status, domain, code, classification) => {
+    status.domain_id = domain;
+    status.code = code;
+    status.class = classification;
+    Object.freeze(status);
+  };
+  const adapterFailure = code => {
+    if (staging !== null) {
+      fillStatus(staging.status, "semaprax.wasm-adapter.v1", code, "adapter");
+      staging.retainStatus = true;
+      return staging.statusToken;
+    }
+    if (activeStatus !== null) {
+      fillStatus(activeStatus.status, "semaprax.wasm-adapter.v1", code, "adapter");
+      const token = activeStatus.token;
+      activeStatus = null;
+      return token;
+    }
+    return recordStatus("semaprax.wasm-adapter.v1", code, "adapter");
+  };
+  const requireContext = candidate => candidate === context;
+  const reserveSlot = (value, state) => {
+    let slot;
+    let generation;
+    while (freeSlots.length > 0) {
+      slot = freeSlots.pop();
+      generation = (generations.get(slot) ?? 0) + 1;
+      if (generation <= SPX_MAX_GENERATION) break;
+      slot = undefined;
+    }
+    if (slot === undefined) {
+      if (nextSlot > maxSlot) throw new Error("SEMAPRAX owned handle table exhausted");
+      slot = nextSlot++;
+      generation = 1;
+    }
+    generations.set(slot, generation);
+    const handle = ((runtimeTag << 20) | (generation << 10) | slot) | 0;
+    if (handle === 0 || slots.has(handle)) throw new Error("SEMAPRAX handle allocation invariant");
+    const entry = { slot, generation, value, state };
+    slots.set(handle, entry);
+    return { handle, entry };
+  };
+  const allocate = value => reserveSlot(value, "owned").handle;
+  const release = (handle, expected) => {
+    const entry = slots.get(handle);
+    if (!entry || entry.state !== expected) throw new Error("SEMAPRAX owned runtime invariant");
+    slots.delete(handle);
+    freeSlots.push(entry.slot);
+    return entry;
+  };
+
+  const ownedImports = {
+    spx_owned_begin: candidate => {
+      if (!requireContext(candidate)) return adapterFailure(1);
+      if (staging !== null || activeStatus !== null || activeResult !== null) return adapterFailure(2);
+      if (nextStatus > maxDynamicStatus) return SPX_EXHAUSTED_STATUS;
+      const statusToken = nextStatus++;
+      const status = {
+        schema: "semaprax.status.v1",
+        domain_id: null,
+        code: 0,
+        class: null,
+        retryable: false,
+      };
+      statuses.set(statusToken, status);
+      staging = { handles: [], result: null, statusToken, status, retainStatus: false };
+      return 0;
+    },
+    spx_owned_stage: (candidate, handle) => {
+      if (!requireContext(candidate)) return adapterFailure(1);
+      if (staging === null) return adapterFailure(2);
+      const entry = slots.get(handle);
+      if (!entry || entry.state !== "owned") return adapterFailure(3);
+      if (staging.handles.includes(handle)) return adapterFailure(4);
+      staging.handles.push(handle);
+      return 0;
+    },
+    spx_owned_abort: candidate => {
+      if (!requireContext(candidate)) throw new Error("SEMAPRAX owned abort context invariant");
+      if (staging !== null && staging.result !== null) release(staging.result, "reserved");
+      if (staging !== null && !staging.retainStatus) statuses.delete(staging.statusToken);
+      staging = null;
+    },
+    spx_owned_reserve_result: candidate => {
+      if (!requireContext(candidate)) return adapterFailure(1);
+      if (staging === null || staging.result !== null) return adapterFailure(2);
+      try {
+        staging.result = reserveSlot(undefined, "reserved").handle;
+      } catch (error) {
+        if (error instanceof Error && error.message === "SEMAPRAX owned handle table exhausted") {
+          return adapterFailure(5);
+        }
+        throw error;
+      }
+      return 0;
+    },
+    spx_owned_commit: candidate => {
+      if (!requireContext(candidate)) return adapterFailure(1);
+      if (staging === null) return adapterFailure(2);
+      for (const handle of staging.handles) {
+        const entry = slots.get(handle);
+        if (!entry || entry.state !== "owned") return adapterFailure(3);
+      }
+      for (const handle of staging.handles) slots.get(handle).state = "inflight";
+      activeResult = staging.result;
+      activeStatus = { token: staging.statusToken, status: staging.status };
+      events.push(Object.freeze({ kind: "commit", handles: Object.freeze([...staging.handles]) }));
+      staging = null;
+      return 0;
+    },
+    spx_owned_drop: (candidate, handle) => {
+      if (!requireContext(candidate)) throw new Error("SEMAPRAX owned drop context invariant");
+      release(handle, "inflight");
+      events.push(Object.freeze({ kind: "drop", handle }));
+    },
+    spx_owned_cancel_result: candidate => {
+      if (!requireContext(candidate)) throw new Error("SEMAPRAX owned cancel context invariant");
+      if (activeResult === null) throw new Error("SEMAPRAX result reservation invariant");
+      release(activeResult, "reserved");
+      activeResult = null;
+    },
+    spx_owned_publish: (candidate, handle) => {
+      if (!requireContext(candidate)) throw new Error("SEMAPRAX owned publish context invariant");
+      const entry = release(handle, "inflight");
+      if (activeResult === null) throw new Error("SEMAPRAX result publication reservation invariant");
+      const published = activeResult;
+      const reserved = slots.get(published);
+      if (!reserved || reserved.state !== "reserved") throw new Error("SEMAPRAX reserved result invariant");
+      reserved.value = entry.value;
+      reserved.state = "owned";
+      activeResult = null;
+      events.push(Object.freeze({ kind: "publish", from: handle, to: published }));
+      return published;
+    },
+    spx_status_record: (candidate, classification, code) => {
+      if (!requireContext(candidate)) return adapterFailure(1);
+      const target = staging ?? activeStatus;
+      if (target === null) throw new Error("SEMAPRAX status reservation invariant");
+      let domain;
+      let statusClass;
+      if (classification === 1 || classification === 2) {
+        domain = "semaprax.contract.v1";
+        statusClass = "contract";
+      } else if (classification === 3) {
+        domain = "semaprax.arithmetic.v1";
+        statusClass = "arithmetic";
+      } else if (classification === 4) {
+        domain = "semaprax.wasm-adapter.v1";
+        statusClass = "adapter";
+      } else {
+        throw new Error("SEMAPRAX compiler status classification invariant");
+      }
+      fillStatus(target.status, domain, code, statusClass);
+      const token = target.token ?? target.statusToken;
+      if (staging !== null) staging.retainStatus = true;
+      else activeStatus = null;
+      return token;
+    },
+    spx_owned_success: candidate => {
+      if (!requireContext(candidate)) throw new Error("SEMAPRAX owned success context invariant");
+      if (activeStatus === null || activeResult !== null) throw new Error("SEMAPRAX success reservation invariant");
+      statuses.delete(activeStatus.token);
+      activeStatus = null;
+    },
+  };
+
+  const facade = Object.freeze({
+    prepareTrustedAdoption(value) {
+      const ticket = Object.freeze(Object.create(null));
+      adoptionTickets.set(ticket, { consumed: false, value });
+      return ticket;
+    },
+    adopt(ticket) {
+      const adoption = adoptionTickets.get(ticket);
+      if (adoption === undefined || adoption.consumed) {
+        throw new TypeError("SEMAPRAX adoption ticket is invalid or already consumed");
+      }
+      const handle = allocate(adoption.value);
+      adoption.consumed = true;
+      adoption.value = undefined;
+      return handle;
+    },
+    dispose(handle) {
+      if (!Number.isInteger(handle) || handle === 0) {
+        throw new TypeError("SEMAPRAX owned handle is invalid");
+      }
+      release(handle, "owned");
+      events.push(Object.freeze({ kind: "drop", handle }));
+    },
+    invoke(exportName, args, resultKind) {
+      if (instance === null) throw new Error("SEMAPRAX owned runtime is not bound");
+      if (typeof exportName !== "string") {
+        throw new TypeError("SEMAPRAX owned export name must be a string");
+      }
+      if (!Object.hasOwn(SPX_OWNED_EXPORTS, exportName)) {
+        throw new TypeError(`unknown SEMAPRAX owned export: ${exportName}`);
+      }
+      const contract = SPX_OWNED_EXPORTS[exportName];
+      if (resultKind !== contract.result) {
+        throw new TypeError(`SEMAPRAX owned export ${exportName} requires result kind ${contract.result}`);
+      }
+      if (!Array.isArray(args) || args.length !== contract.parameters.length) {
+        throw new TypeError(`SEMAPRAX owned export ${exportName} argument count mismatch`);
+      }
+      const canonicalArgs = [];
+      for (let index = 0; index < contract.parameters.length; index += 1) {
+        const kind = contract.parameters[index];
+        const value = args[index];
+        const valid = kind === "i64" ? typeof value === "bigint" && value >= SPX_MIN && value <= SPX_MAX
+          : kind === "bool" ? Number.isInteger(value) && (value === 0 || value === 1)
+          : kind === "resource" ? Number.isInteger(value) && value >= 1 && value <= 0x7fffffff
+          : false;
+        if (!valid) throw new TypeError(`SEMAPRAX owned export ${exportName} argument ${index} kind mismatch`);
+        canonicalArgs.push(value);
+      }
+      const fn = instance.exports[exportName];
+      if (typeof fn !== "function") throw new Error(`missing SEMAPRAX owned export: ${exportName}`);
+      const memory = instance.exports.memory;
+      if (!(memory instanceof WebAssembly.Memory)) throw new Error("SEMAPRAX owned memory export is absent");
+      const view = new DataView(memory.buffer);
+      if (resultKind === "i64") view.setBigInt64(0, SPX_POISON_I64, true);
+      else view.setInt32(0, SPX_POISON_HANDLE, true);
+      const callArgs = [context];
+      for (let index = 0; index < canonicalArgs.length; index += 1) {
+        callArgs.push(canonicalArgs[index]);
+      }
+      callArgs.push(0);
+      const statusToken = Reflect.apply(fn, undefined, callArgs);
+      if (statusToken !== 0) {
+        const preserved = resultKind === "i64"
+          ? view.getBigInt64(0, true) === SPX_POISON_I64
+          : view.getInt32(0, true) === SPX_POISON_HANDLE;
+        if (!preserved) throw new Error("SEMAPRAX failure published a poisoned result slot");
+        const status = statuses.get(statusToken);
+        if (!status) throw new Error("SEMAPRAX returned an unknown status token");
+        return Object.freeze({ ok: false, published: false, statusToken, status });
+      }
+      const value = resultKind === "i64" ? view.getBigInt64(0, true) : view.getInt32(0, true);
+      return Object.freeze({ ok: true, published: true, value });
+    },
+    resolveStatus(token) {
+      return statuses.get(token) ?? null;
+    },
+    trace() {
+      return events.map(event => ({ ...event, handles: event.handles ? [...event.handles] : undefined }));
+    },
+    liveHandleCount() {
+      return slots.size;
+    },
+  });
+
+  return Object.freeze({
+    linkImports: Object.freeze({ env: Object.freeze(ownedImports) }),
+    bind(wasmInstance) {
+      if (instance !== null) throw new Error("SEMAPRAX owned runtime already bound");
+      instance = wasmInstance;
+    },
+    facade,
+  });
+}
+
+export async function instantiateBytes(bytes, options = {}) {
+  const authenticatedBytes = await authenticatedWasmBytes(bytes);
+  if (Object.keys(SPX_OWNED_EXPORTS).length === 0) {
+    return Object.freeze(await WebAssembly.instantiate(authenticatedBytes, imports));
+  }
+  const runtime = createOwnedRuntime(options);
+  const linkedImports = { env: { ...imports.env, ...runtime.linkImports.env } };
+  const result = await WebAssembly.instantiate(authenticatedBytes, linkedImports);
+  runtime.bind(result.instance);
+  return Object.freeze({ ...result, owned: runtime.facade });
+}
+
 export async function instantiate(url = new URL("./app.wasm", import.meta.url)) {
   const response = await fetch(url);
-  const bytes = await response.arrayBuffer();
-  return WebAssembly.instantiate(bytes, imports);
+  return instantiateBytes(await response.arrayBuffer());
 }
 "#
 }

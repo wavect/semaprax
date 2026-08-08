@@ -35,7 +35,8 @@ fn emits_a_valid_browser_webassembly_package() {
     assert!(output.join("package.json").is_file());
     assert!(output.join("semaprax.manifest.json").is_file());
     let manifest = std::fs::read_to_string(output.join("semaprax.manifest.json")).unwrap();
-    assert!(manifest.contains("\"schema\":\"semaprax.web.v2\""));
+    assert!(manifest.contains("\"schema\":\"semaprax.web.v3\""));
+    assert!(manifest.contains("\"schema\":\"semaprax.wasm-owned.v1\""));
     assert!(manifest.contains(&format!(
         "\"graph_revision\":{}",
         semaprax::diagnostic::quote_json(&graph::revision(&program))
@@ -54,6 +55,40 @@ fn emits_a_valid_browser_webassembly_package() {
             String::from_utf8_lossy(&result.stderr)
         );
         assert_eq!(String::from_utf8_lossy(&result.stdout).trim(), "42");
+
+        let scalar_stress = output.join("verify-scalar-runtime-tags.mjs");
+        std::fs::write(
+            &scalar_stress,
+            r#"import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import { pathToFileURL } from "node:url";
+import { join } from "node:path";
+const directory = process.argv[2];
+const runtime = await import(pathToFileURL(join(directory, "semaprax.js")));
+const bytes = await readFile(join(directory, "app.wasm"));
+for (let index = 0; index < 2050; index += 1) {
+  const result = await runtime.instantiateBytes(bytes);
+  assert.equal("owned" in result, false);
+  assert.equal(result.instance.exports.semaprax_main(), 42n);
+}
+console.log("scalar-runtime-tags-ok");
+"#,
+        )
+        .unwrap();
+        let stress_result = Command::new("node")
+            .arg(&scalar_stress)
+            .arg(&output)
+            .output()
+            .unwrap();
+        assert!(
+            stress_result.status.success(),
+            "node scalar stress failed: {}",
+            String::from_utf8_lossy(&stress_result.stderr)
+        );
+        assert_eq!(
+            String::from_utf8_lossy(&stress_result.stdout).trim(),
+            "scalar-runtime-tags-ok"
+        );
     }
 
     let _ = std::fs::remove_dir_all(output);

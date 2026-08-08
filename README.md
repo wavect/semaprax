@@ -80,9 +80,9 @@ Implemented today:
 - Canonical record declarations, construction, and projection in `check`, resolved HIR, and semantic Graph v6; executable targets fail closed until aggregate layout and cleanup execution land.
 - A validated stable-ID HIR shared by native and Wasm lowering, with explicit entry, result, binding, expression, and place identities.
 - A mandatory target-neutral cleanup CFG for every function, independently rebuilt and independently replayed against core HIR/inventory, with exhaustive current-CFG path-state checks plus a scenario-driven reference trace executor.
-- Versioned target-neutral normalized-status and conformance-trace protocols, plus an invocation-local immutable status arena with opaque zero-success/one-based tokens. These are execution-oracle groundwork, not a backend-conformance claim.
-- Checked integer arithmetic in generated programs.
-- Typed `requires` and `ensures` contracts, enforced by native and Wasm artifacts.
+- Versioned target-neutral normalized-status and conformance-trace protocols, plus invocation-local immutable status arenas with zero-success/one-based tokens. The native scalar backend now uses this status/out convention; backend trace conformance and resource execution remain gated.
+- Checked integer arithmetic in generated programs; native failures use exact normalized arithmetic codes and propagate without terminating an internal SEMAPRAX frame.
+- Typed `requires` and `ensures` contracts, enforced by native and Wasm artifacts. Native scalar contracts publish no caller result on failure.
 - Explicit function effects checked against module capabilities and callers.
 - Persistent declaration identity through `@id`.
 - Deterministic formatting and domain-separated SHA-256 graph revisions.
@@ -92,7 +92,7 @@ Implemented today:
 - Native AOT output through a readable C11 lowering and Clang.
 - Direct WebAssembly core output with a generated ES-module runtime, HTML entry point, capability manifest, checked arithmetic, and contract traps.
 
-Not implemented yet: native/Wasm cleanup-plan execution and trace conformance, recursive reference-call execution, callable imports/adapters, record machine-code layout/lowering, variants and matching, lifetime and alias analysis, user-facing regions, effect handlers, static contract proofs, Cranelift, LLVM/MLIR IR, WebAssembly Components, packages, concurrency, or cross-platform UI. Resource and record builds fail closed until their remaining safety gates pass.
+Not implemented yet: native resource cleanup-plan execution, any Wasm status/resource ABI execution, backend trace conformance, recursive reference execution in the reference oracle, callable imports/adapters, record machine-code layout/lowering, variants and matching, lifetime and alias analysis, user-facing regions, effect handlers, static contract proofs, Cranelift, LLVM/MLIR IR, WebAssembly Components, packages, concurrency, or cross-platform UI. Resource and record builds fail closed until their remaining safety gates pass.
 
 ## Agent protocol
 

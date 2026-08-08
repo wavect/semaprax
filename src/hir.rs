@@ -14,6 +14,7 @@ use crate::ast::{
 };
 use crate::cleanup::CleanupInventory;
 use crate::cleanup_plan::CleanupPlan;
+use crate::conformance::STATUS_DOMAIN_MAX_BYTES_V1;
 use crate::diagnostic::Diagnostic;
 use crate::source_verify;
 
@@ -1102,7 +1103,11 @@ impl<'a> HirValidator<'a> {
                     normalization,
                 } = &import.failure
                 {
-                    if domain_id.is_empty() || *normalization != "semaprax.status.v1" {
+                    if domain_id.is_empty()
+                        || domain_id.len() > STATUS_DOMAIN_MAX_BYTES_V1
+                        || domain_id.contains('\0')
+                        || *normalization != "semaprax.status.v1"
+                    {
                         return Err(hir_error(format!(
                             "import `{}` has an invalid status contract",
                             import.id

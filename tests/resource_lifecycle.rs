@@ -135,6 +135,44 @@ fn main() -> i64 { 0 }
 }
 
 #[test]
+fn status_v1_domain_byte_bounds_are_enforced_in_source_and_hir() {
+    let source = |domain: &str| {
+        format!(
+            r#"module test.status_domain;
+@id("token")
+resource Token {{ @id("token.drop") drop trivial; }}
+@id("host")
+interface Host permits {{}} {{
+    @id("host.close")
+    import fn close(token: own Token) -> unit
+        effects {{}}
+        failure status "{domain}"
+        consumes token always;
+}}
+@id("app.main")
+fn main() -> i64 {{ 0 }}
+"#
+        )
+    };
+
+    let valid = source(&"é".repeat(127));
+    assert!(codes(&valid).is_empty());
+
+    let oversized = source(&"é".repeat(128));
+    assert!(codes(&oversized).contains(&"SPX-I403"));
+
+    let ast = parse(&valid, Path::new("status-domain.spx")).unwrap();
+    let mut resolved = hir::resolve(&ast).unwrap();
+    let ResolvedImportFailure::Status { domain_id, .. } =
+        &mut resolved.interfaces[0].imports[0].failure
+    else {
+        panic!("expected status failure")
+    };
+    *domain_id = "x".repeat(256);
+    assert_eq!(hir::validate(&resolved).unwrap_err().code, "SPX-H006");
+}
+
+#[test]
 fn malformed_lifecycle_and_interface_grammar_has_stable_parser_codes() {
     let lifecycle = "module bad; @id(\"token\") resource Token { @id(\"token.drop\") drop maybe; } fn main() -> i64 { 0 }";
     assert_eq!(

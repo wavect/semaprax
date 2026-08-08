@@ -1,8 +1,8 @@
 # Conformance trace v1
 
-Status: the public Rust data model, deterministic JSON projection, independent attached-plan replay, and scenario-driven single-frame reference executor are implemented. Recursive callee execution, callable-import execution, native instrumentation, Wasm instrumentation, adapter execution, backend-trace validation, and backend-conformance claims are not implemented.
+Status: the public Rust data model, deterministic JSON projection, independent attached-plan replay, scenario-driven single-frame reference executor, and native scalar status/out execution are implemented. Native resource/trace instrumentation, Wasm status/resource/trace instrumentation, recursive reference-callee execution, callable-import execution, adapter execution, backend-trace validation, and backend-conformance claims are not implemented.
 
-This document fixes the current public wire projection defined by `src/conformance.rs`. It complements [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md); it does not claim that any backend executes the protocol yet.
+This document fixes the current public wire projection defined by `src/conformance.rs`. It complements [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md). The native scalar backend now executes the status/out portion, but no backend emits this semantic trace or claims cleanup conformance yet.
 
 ## Normalized status
 
@@ -15,7 +15,7 @@ This document fixes the current public wire projection defined by `src/conforman
 The fields are:
 
 - `schema`: exactly `semaprax.status.v1`.
-- `domain_id`: a non-empty stable semantic domain identity.
+- `domain_id`: a stable semantic domain identity encoded as 1–255 UTF-8 bytes with no embedded NUL. The bound is measured in bytes, not Unicode scalar values, and is shared by source/HIR validation and every target adapter.
 - `code`: a nonzero unsigned 32-bit domain code. This is not the context-local ABI status token; token zero means success, while no `NormalizedStatus` represents success.
 - `class`: one of `contract`, `arithmetic`, `import`, `explicit_close`, or `adapter`.
 - `retryable`: JSON `true`, JSON `false`, or the string `"unknown"`.

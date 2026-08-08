@@ -8,7 +8,7 @@ Status values:
 - **Partial** — useful implementation exists, but the full gate is not proven.
 - **Missing** — no qualifying implementation exists yet.
 
-[RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) phases 1–2 are implemented. Every resolved function carries an independently rebuilt target-neutral cleanup CFG with storage/leaf liveness, regions, atomic call commits, sticky failure sources, guarded finalization order, and result publication; Graph v6 serializes it. Versioned status/trace types, independent attached-plan coverage/path replay, and a single-frame reference executor are phase-3 groundwork only. Native/Wasm resource execution, recursive reference calls, callable imports, adapters, backend-trace validation, and cross-target conformance remain unimplemented and fail closed.
+[RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) phases 1–2 are implemented. Every resolved function carries an independently rebuilt target-neutral cleanup CFG with storage/leaf liveness, regions, atomic call commits, sticky failure sources, guarded finalization order, and result publication; Graph v6 serializes it. Versioned status/trace types, independent attached-plan coverage/path replay, a single-frame reference executor, and native scalar status/out execution are phase-3 groundwork. Native/Wasm resource execution, Wasm status/out execution, callable imports, adapters, backend-trace validation, and cross-target conformance remain unimplemented and fail closed.
 
 ## Defining product contract
 
@@ -16,7 +16,7 @@ Status values:
 | --- | --- | --- | --- |
 | Agent-native semantic program | Partial | Graph v6 serializes validated HIR plus complete target-neutral cleanup plans with lifecycle/interface/import/record/field identities, ownership/authority/failure contracts, expression meaning, recursive type facts, bounded lifecycle/call/type context, SHA-256 revision-bound renames, and fail-closed APIs | Versioned multi-file graph API covers callers, targets, tests, packages, generated artifacts, typed repairs, impact, and semantic review |
 | Human-readable program | Partial | Canonical `.spx` source and formatter | Complete language round-trips deterministically; graph-aware merge/diff, debugger source mapping, and normal Git/editor workflows are verified |
-| Meaning in, verified machine code out | Partial | Typed scalar core, effect checks, runtime contract guards, checked arithmetic, native host executable | All safe-language guarantees survive every backend; native artifacts and portable components pass conformance suites on every supported target |
+| Meaning in, verified machine code out | Partial | Typed scalar core, effect checks, native status/out contracts and checked arithmetic with exact normalized failure codes, poison-preserving result publication, and native host executable | All safe-language guarantees survive every backend; native artifacts and portable components pass conformance suites on every supported target |
 | Atomic agent changes | Partial | Single-file stable-ID function/resource renames update calls and ownership type boundaries with domain-separated SHA-256 stale/legacy revision rejection | Typed, transactional multi-file edits support every public semantic operation and either commit fully or leave all source/graph state unchanged |
 
 ## Language and safety
@@ -32,7 +32,7 @@ Status values:
 | Regions/arenas | Missing | — | Region inference and annotations prevent escape; bulk release and destructor behavior are verified |
 | Shared immutable ARC and opt-in managed zones | Missing | — | Retain/release correctness, cycle policy, escape optimization, and concurrency constraints verified |
 | Restricted `unsafe` and raw memory | Missing | — | Unsafe boundaries are explicit graph nodes with capability, audit summary, lint, and platform conformance coverage |
-| Checked/wrapping/saturating arithmetic | Partial | Checked `i64` arithmetic in the C/Clang lane | Full numeric family, explicit alternative modes, SIMD behavior, and backend equivalence verified |
+| Checked/wrapping/saturating arithmetic | Partial | Checked `i64` arithmetic in the C/Clang lane returns exact `semaprax.arithmetic.v1` statuses without internal process termination | Full numeric family, explicit alternative modes, SIMD behavior, and backend equivalence verified |
 | Effects and capabilities | Partial | Declared function effects, module permits, and call-edge propagation | Inference, parameterized capabilities, no ambient authority, handlers, dependency summaries, and platform manifests verified |
 | Contracts and progressive verification | Partial | Contract type checking and runtime guards | Static discharge, bounded symbolic/SMT checks, counterexamples, invariants/state machines, property tests, and proof obligations verified |
 | Structured concurrency | Missing | — | Scoped tasks, cancellation, cleanup, `Sendable`/`Shareable`, deterministic scheduler, actors/reducers, and synchronization verified |
@@ -43,7 +43,7 @@ Status values:
 | Requirement | Status | Current evidence | Completion gate |
 | --- | --- | --- | --- |
 | Fast development lane | Missing | — | Cranelift JIT/AOT, incremental affected-node builds, hot reload, and debugger mapping verified |
-| Optimizing native lane | Partial | Validated stable-ID HIR lowers to sequenced C11/Clang AOT; host artifacts execute in the platform CI matrix | LLVM/MLIR lowering, LTO/PGO, cross-compilation, CPU specialization, debug/release parity, and reproducibility verified |
+| Optimizing native lane | Partial | Validated stable-ID HIR lowers to sequenced C11/Clang AOT with invocation-local scalar status/out calls; exact contract/arithmetic failures and no-publication-on-failure execute in a strict native probe, and host artifacts execute in the platform CI matrix | Cleanup-plan/resource execution, backend traces, LLVM/MLIR lowering, LTO/PGO, cross-compilation, CPU specialization, debug/release parity, and reproducibility verified |
 | WebAssembly core/components | Partial | Validated stable-ID HIR lowers to a direct Wasm core module with browser ES runtime, checked arithmetic imports, contracts, HTML and capability manifest | Browser/WASI modules and Component Model artifacts, canonical ABI, async/resources, sandboxing, and conformance verified |
 | Embedded and real-time | Missing | — | Bare-metal artifacts, no-runtime/no-allocation/no-blocking profiles, MMIO/volatile/atomics, linker control, and hardware/emulator tests verified |
 | SIMD and GPU | Missing | — | Portable SIMD plus SPIR-V/WebGPU/platform kernels and memory/effect rules verified |

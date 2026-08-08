@@ -19,6 +19,8 @@ pub const NORMALIZED_STATUS_SCHEMA_V1: &str = "semaprax.status.v1";
 pub const CONFORMANCE_TRACE_SCHEMA_V1: &str = "semaprax.conformance-trace.v1";
 pub const ARITHMETIC_STATUS_DOMAIN_V1: &str = "semaprax.arithmetic.v1";
 pub const CONTRACT_STATUS_DOMAIN_V1: &str = "semaprax.contract.v1";
+/// Maximum UTF-8 byte length of a status-v1 domain identity.
+pub const STATUS_DOMAIN_MAX_BYTES_V1: usize = 255;
 
 pub const CONTRACT_REQUIRES_FALSE_CODE: u32 = 1;
 pub const CONTRACT_ENSURES_FALSE_CODE: u32 = 2;
@@ -82,6 +84,12 @@ impl NormalizedStatus {
         let domain_id = domain_id.into();
         if domain_id.is_empty() {
             return Err(StatusDefinitionError::EmptyDomain);
+        }
+        if domain_id.len() > STATUS_DOMAIN_MAX_BYTES_V1 {
+            return Err(StatusDefinitionError::DomainTooLong);
+        }
+        if domain_id.contains('\0') {
+            return Err(StatusDefinitionError::DomainContainsNul);
         }
         if code == 0 {
             return Err(StatusDefinitionError::ZeroCode);
@@ -147,6 +155,8 @@ impl NormalizedStatus {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum StatusDefinitionError {
     EmptyDomain,
+    DomainTooLong,
+    DomainContainsNul,
     ZeroCode,
     CompilerOwnedClass,
     CompilerOwnedDomain,
@@ -156,6 +166,12 @@ impl fmt::Display for StatusDefinitionError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::EmptyDomain => formatter.write_str("status domain identity cannot be empty"),
+            Self::DomainTooLong => {
+                formatter.write_str("status domain identity cannot exceed 255 UTF-8 bytes")
+            }
+            Self::DomainContainsNul => {
+                formatter.write_str("status domain identity cannot contain NUL")
+            }
             Self::ZeroCode => formatter.write_str("status code zero is reserved for success"),
             Self::CompilerOwnedClass => formatter.write_str(
                 "contract and arithmetic status classes are reserved for compiler-owned mappings",
@@ -677,6 +693,31 @@ fn main() -> i64 { 42 }
             NormalizedStatus::try_new("io.error.v1", 0, StatusClass::Import, Retryability::Unknown,),
             Err(StatusDefinitionError::ZeroCode)
         );
+        assert!(NormalizedStatus::try_new(
+            "a".repeat(STATUS_DOMAIN_MAX_BYTES_V1),
+            1,
+            StatusClass::Import,
+            Retryability::Unknown,
+        )
+        .is_ok());
+        assert_eq!(
+            NormalizedStatus::try_new(
+                "é".repeat(STATUS_DOMAIN_MAX_BYTES_V1 / 2 + 1),
+                1,
+                StatusClass::Import,
+                Retryability::Unknown,
+            ),
+            Err(StatusDefinitionError::DomainTooLong)
+        );
+        assert_eq!(
+            NormalizedStatus::try_new(
+                "io\0error.v1",
+                1,
+                StatusClass::Import,
+                Retryability::Unknown,
+            ),
+            Err(StatusDefinitionError::DomainContainsNul)
+        );
     }
 
     #[test]
@@ -706,6 +747,14 @@ fn main() -> i64 { 42 }
             (
                 StatusDefinitionError::EmptyDomain,
                 "status domain identity cannot be empty",
+            ),
+            (
+                StatusDefinitionError::DomainTooLong,
+                "status domain identity cannot exceed 255 UTF-8 bytes",
+            ),
+            (
+                StatusDefinitionError::DomainContainsNul,
+                "status domain identity cannot contain NUL",
             ),
             (
                 StatusDefinitionError::ZeroCode,

@@ -16,7 +16,7 @@ Status: implemented in this repository.
 
 ## 0.2 — Useful core language
 
-Status: in progress. Resource ownership boundaries and explicit lifecycle/interface contracts, lexical `let`, typed `if/else`, partial-place diagnostics, record syntax/checking, Graph v6, validated stable-ID HIR/type facts, a mandatory replay-validated cleanup plan, versioned normalized-status/trace protocol types, native scalar output, and a browser-loadable scalar Wasm backend are implemented; the remaining gates below are not.
+Status: in progress. Resource ownership boundaries and explicit lifecycle/interface contracts, lexical `let`, typed `if/else`, partial-place diagnostics, record syntax/checking, Graph v6, validated stable-ID HIR/type facts, a mandatory replay-validated cleanup plan, versioned normalized-status/trace protocol types, native scalar status/out execution, and a browser-loadable scalar Wasm backend are implemented; the remaining gates below are not.
 
 - Records, variants, `Option`, and `Result`.
 - Exhaustive pattern matching.
@@ -29,7 +29,7 @@ Status: in progress. Resource ownership boundaries and explicit lifecycle/interf
 
 Exit criterion: build a non-trivial CLI and edit it entirely through semantic transactions.
 
-The aggregate tranche is specified in [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md). RFC 0003 phases 1–2 now supply explicit trivial/imported lifecycle syntax, declaration-only interface/import contracts, source/HIR validation, and a target-neutral cleanup plan. Resolved functions carry typed blocks/edges/regions/exits, path-sensitive guarded liveness, atomic call commits, sticky failure sources, partial-record cleanup order, whole-value normalization, and result publication; validation independently rebuilds the plan, and Graph v6 serializes it. The versioned normalized-status arena, semantic trace projection, independent inventory/HIR coverage replay, exhaustive current-CFG state replay, and single-frame scenario executor are implemented as phase-3 groundwork. Recursive reference calls, callable imports, status/resource backend ABI execution, adapter bindings, backend trace validation, native/Wasm trace equivalence, aggregate layouts, variants, and matching remain subsequent work; backends fail closed on both records and resources.
+The aggregate tranche is specified in [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md). RFC 0003 phases 1–2 now supply explicit trivial/imported lifecycle syntax, declaration-only interface/import contracts, source/HIR validation, and a target-neutral cleanup plan. Resolved functions carry typed blocks/edges/regions/exits, path-sensitive guarded liveness, atomic call commits, sticky failure sources, partial-record cleanup order, whole-value normalization, and result publication; validation independently rebuilds the plan, and Graph v6 serializes it. The versioned normalized-status arena, semantic trace projection, independent inventory/HIR coverage replay, exhaustive current-CFG state replay, single-frame scenario executor, and native scalar status/out execution are implemented as phase-3 groundwork. Native resource cleanup/instrumentation, callable imports, adapter bindings, backend trace validation, Wasm status/resource execution, native/Wasm trace equivalence, aggregate layouts, variants, and matching remain subsequent work; backends fail closed on both records and resources.
 
 ## 0.3 — Ownership and fast development
 

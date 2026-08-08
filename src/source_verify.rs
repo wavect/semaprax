@@ -5,6 +5,7 @@ use crate::ast::{
     InterfaceDeclaration, ParamMode, Program, ResourceLifecycleKind, Span, Statement, Type,
     TypeDeclaration, TypeDeclarationKind, UnaryOp,
 };
+use crate::conformance::STATUS_DOMAIN_MAX_BYTES_V1;
 use crate::diagnostic::Diagnostic;
 
 #[derive(Clone, Debug)]
@@ -460,13 +461,16 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                 ));
             }
             if let ImportFailure::Status { domain_id } = &import.failure {
-                if domain_id.is_empty() {
+                if domain_id.is_empty()
+                    || domain_id.len() > STATUS_DOMAIN_MAX_BYTES_V1
+                    || domain_id.contains('\0')
+                {
                     diagnostics.push(error(
                         program,
                         "SPX-I403",
                         format!(
-                            "import `{}.{}` has an empty failure domain",
-                            interface.name, import.name
+                            "import `{}.{}` has an invalid failure domain; status v1 requires 1..={STATUS_DOMAIN_MAX_BYTES_V1} UTF-8 bytes and forbids NUL",
+                            interface.name, import.name,
                         ),
                         import.span,
                     ));

@@ -1,3 +1,5 @@
+mod native_runtime;
+
 use std::collections::HashMap;
 use std::fmt::Write;
 use std::path::Path;
@@ -84,25 +86,10 @@ fn emit_hir_c_with_labels(
         ));
     }
     let functions = function_index(program)?;
-    let mut output = String::from(
-        "#include <stdbool.h>\n#include <stdint.h>\n#include <stdio.h>\n#include <stdlib.h>\n\n",
-    );
-    output.push_str(
-        "static __attribute__((unused)) void spx_contract_fail(const char *kind, const char *function, const char *expression) {\n\
-         fprintf(stderr, \"SEMAPRAX contract failure: %s in %s: %s\\n\", kind, function, expression);\n\
-         exit(70);\n}\n\n",
-    );
-    output.push_str(
-        "static __attribute__((unused)) void spx_arithmetic_fail(const char *operation) {\n\
-         fprintf(stderr, \"SEMAPRAX checked arithmetic failure: %s\\n\", operation);\n\
-         exit(71);\n}\n\n\
-         static __attribute__((unused)) int64_t spx_rt_add(int64_t a, int64_t b) { int64_t r; if (__builtin_add_overflow(a, b, &r)) spx_arithmetic_fail(\"addition overflow\"); return r; }\n\
-         static __attribute__((unused)) int64_t spx_rt_sub(int64_t a, int64_t b) { int64_t r; if (__builtin_sub_overflow(a, b, &r)) spx_arithmetic_fail(\"subtraction overflow\"); return r; }\n\
-         static __attribute__((unused)) int64_t spx_rt_mul(int64_t a, int64_t b) { int64_t r; if (__builtin_mul_overflow(a, b, &r)) spx_arithmetic_fail(\"multiplication overflow\"); return r; }\n\
-         static __attribute__((unused)) int64_t spx_rt_div(int64_t a, int64_t b) { if (b == 0 || (a == INT64_MIN && b == -1)) spx_arithmetic_fail(\"invalid division\"); return a / b; }\n\
-         static __attribute__((unused)) int64_t spx_rt_rem(int64_t a, int64_t b) { if (b == 0 || (a == INT64_MIN && b == -1)) spx_arithmetic_fail(\"invalid remainder\"); return a % b; }\n\
-         static __attribute__((unused)) int64_t spx_rt_neg(int64_t value) { if (value == INT64_MIN) spx_arithmetic_fail(\"negation overflow\"); return -value; }\n\n",
-    );
+    let mut output = String::new();
+    native_runtime::emit_status_runtime(&mut output);
+    output.push_str("#include <stdio.h>\n\n");
+    output.push_str(NATIVE_SCALAR_RUNTIME_C);
 
     for function in &program.functions {
         let metadata = functions
@@ -110,21 +97,20 @@ fn emit_hir_c_with_labels(
             .ok_or_else(|| backend_error(format!("function `{}` is not indexed", function.id)))?;
         write!(
             output,
-            "static __attribute__((unused)) {} {}(",
-            c_type(program, &function.return_type)?,
-            metadata.symbol
+            "static __attribute__((unused)) spx_status_token {}(struct spx_context *spx_ctx",
+            metadata.symbol,
         )
         .expect("writing to a string cannot fail");
-        for (index, param) in function.params.iter().enumerate() {
-            if index > 0 {
-                output.push_str(", ");
-            }
-            output.push_str(c_type(program, &param.ty)?);
+        for param in &function.params {
+            write!(output, ", {}", c_type(program, &param.ty)?)
+                .expect("writing to a string cannot fail");
         }
-        if function.params.is_empty() {
-            output.push_str("void");
-        }
-        output.push_str(");\n");
+        writeln!(
+            output,
+            ", {} *spx_result_out);",
+            c_type(program, &function.return_type)?
+        )
+        .expect("writing to a string cannot fail");
     }
     output.push('\n');
 
@@ -148,11 +134,204 @@ fn emit_hir_c_with_labels(
         .symbol;
     write!(
         output,
-        "int main(void) {{\n    int64_t result = {symbol}();\n    printf(\"%lld\\n\", (long long)result);\n    return 0;\n}}\n"
+        "#ifndef SPX_NO_ENTRY_WRAPPER\n\
+         int main(void) {{\n\
+             struct spx_status_entry spx_status_entries[UINT32_C(1)];\n\
+             struct spx_context spx_ctx;\n\
+             if (!spx_context_init(&spx_ctx, UINT64_C(1), spx_status_entries, UINT32_C(1), NULL, NULL, NULL)) {{\n\
+                 fputs(\"SEMAPRAX native runtime invariant failure: context initialization\\n\", stderr);\n\
+                 return 72;\n\
+             }}\n\
+             int64_t result;\n\
+             spx_status_token status = {symbol}(&spx_ctx, &result);\n\
+             if (status != SPX_STATUS_SUCCESS) return spx_public_failure(&spx_ctx, status);\n\
+             printf(\"%lld\\n\", (long long)result);\n\
+             return 0;\n\
+         }}\n\
+         #endif\n"
     )
     .expect("writing to a string cannot fail");
     Ok(output)
 }
+
+const NATIVE_SCALAR_RUNTIME_C: &str = r#"#include <stdlib.h>
+
+static __attribute__((noreturn, unused)) void spx_runtime_invariant_failure(
+    const char *message
+) {
+    fprintf(stderr, "SEMAPRAX native runtime invariant failure: %s\n", message);
+    abort();
+}
+
+static __attribute__((unused)) spx_status_token spx_rt_arithmetic_failure(
+    struct spx_context *spx_ctx,
+    uint32_t code,
+    const char *operation
+) {
+    spx_status_token token = SPX_STATUS_SUCCESS;
+    if (!spx_status_record_arithmetic(spx_ctx, code, &token)) {
+        spx_runtime_invariant_failure("status arena exhaustion");
+    }
+    struct spx_status_detail detail = {NULL, NULL, NULL, operation};
+    if (!spx_status_attach_detail(spx_ctx, token, detail)) {
+        spx_runtime_invariant_failure("arithmetic status detail attachment");
+    }
+    return token;
+}
+
+static __attribute__((unused)) spx_status_token spx_rt_contract(
+    struct spx_context *spx_ctx,
+    uint32_t code,
+    const char *kind,
+    const char *function,
+    const char *expression
+) {
+    spx_status_token token = SPX_STATUS_SUCCESS;
+    bool recorded = code == SPX_STATUS_CONTRACT_REQUIRES_FALSE
+        ? spx_status_record_requires_false(spx_ctx, &token)
+        : code == SPX_STATUS_CONTRACT_ENSURES_FALSE
+            ? spx_status_record_ensures_false(spx_ctx, &token)
+            : false;
+    if (!recorded) spx_runtime_invariant_failure("status arena exhaustion");
+    struct spx_status_detail detail = {kind, function, expression, NULL};
+    if (!spx_status_attach_detail(spx_ctx, token, detail)) {
+        spx_runtime_invariant_failure("contract status detail attachment");
+    }
+    return token;
+}
+
+static __attribute__((unused)) spx_status_token spx_rt_add(
+    struct spx_context *spx_ctx, int64_t a, int64_t b, int64_t *result_out
+) {
+    int64_t result;
+    if (__builtin_add_overflow(a, b, &result)) {
+        return spx_rt_arithmetic_failure(
+            spx_ctx, SPX_STATUS_ARITHMETIC_ADD_OVERFLOW, "addition overflow"
+        );
+    }
+    *result_out = result;
+    return SPX_STATUS_SUCCESS;
+}
+
+static __attribute__((unused)) spx_status_token spx_rt_sub(
+    struct spx_context *spx_ctx, int64_t a, int64_t b, int64_t *result_out
+) {
+    int64_t result;
+    if (__builtin_sub_overflow(a, b, &result)) {
+        return spx_rt_arithmetic_failure(
+            spx_ctx, SPX_STATUS_ARITHMETIC_SUB_OVERFLOW, "subtraction overflow"
+        );
+    }
+    *result_out = result;
+    return SPX_STATUS_SUCCESS;
+}
+
+static __attribute__((unused)) spx_status_token spx_rt_mul(
+    struct spx_context *spx_ctx, int64_t a, int64_t b, int64_t *result_out
+) {
+    int64_t result;
+    if (__builtin_mul_overflow(a, b, &result)) {
+        return spx_rt_arithmetic_failure(
+            spx_ctx, SPX_STATUS_ARITHMETIC_MUL_OVERFLOW, "multiplication overflow"
+        );
+    }
+    *result_out = result;
+    return SPX_STATUS_SUCCESS;
+}
+
+static __attribute__((unused)) spx_status_token spx_rt_div(
+    struct spx_context *spx_ctx, int64_t a, int64_t b, int64_t *result_out
+) {
+    if (b == 0) {
+        return spx_rt_arithmetic_failure(
+            spx_ctx, SPX_STATUS_ARITHMETIC_DIVISION_BY_ZERO, "invalid division"
+        );
+    }
+    if (a == INT64_MIN && b == -1) {
+        return spx_rt_arithmetic_failure(
+            spx_ctx, SPX_STATUS_ARITHMETIC_DIVISION_OVERFLOW, "invalid division"
+        );
+    }
+    *result_out = a / b;
+    return SPX_STATUS_SUCCESS;
+}
+
+static __attribute__((unused)) spx_status_token spx_rt_rem(
+    struct spx_context *spx_ctx, int64_t a, int64_t b, int64_t *result_out
+) {
+    if (b == 0) {
+        return spx_rt_arithmetic_failure(
+            spx_ctx, SPX_STATUS_ARITHMETIC_REMAINDER_BY_ZERO, "invalid remainder"
+        );
+    }
+    if (a == INT64_MIN && b == -1) {
+        return spx_rt_arithmetic_failure(
+            spx_ctx, SPX_STATUS_ARITHMETIC_REMAINDER_OVERFLOW, "invalid remainder"
+        );
+    }
+    *result_out = a % b;
+    return SPX_STATUS_SUCCESS;
+}
+
+static __attribute__((unused)) spx_status_token spx_rt_neg(
+    struct spx_context *spx_ctx, int64_t value, int64_t *result_out
+) {
+    if (value == INT64_MIN) {
+        return spx_rt_arithmetic_failure(
+            spx_ctx, SPX_STATUS_ARITHMETIC_NEGATION_OVERFLOW, "negation overflow"
+        );
+    }
+    *result_out = -value;
+    return SPX_STATUS_SUCCESS;
+}
+
+static __attribute__((unused)) int spx_public_failure(
+    const struct spx_context *spx_ctx,
+    spx_status_token token
+) {
+    const struct spx_normalized_status *status = spx_status_resolve(spx_ctx, token);
+    if (status == NULL) {
+        fputs("SEMAPRAX native runtime invariant failure: invalid status token\n", stderr);
+        return 72;
+    }
+    const struct spx_status_detail *detail = spx_status_resolve_detail(spx_ctx, token);
+    if (status->status_class == SPX_STATUS_CLASS_CONTRACT) {
+        if (detail == NULL || detail->failure_kind == NULL ||
+            detail->failure_function == NULL || detail->failure_expression == NULL) {
+            fputs("SEMAPRAX native runtime invariant failure: missing contract detail\n", stderr);
+            return 72;
+        }
+        fprintf(
+            stderr,
+            "SEMAPRAX contract failure: %s in %s: %s\n",
+            detail->failure_kind,
+            detail->failure_function,
+            detail->failure_expression
+        );
+        return 70;
+    }
+    if (status->status_class == SPX_STATUS_CLASS_ARITHMETIC) {
+        if (detail == NULL || detail->failure_operation == NULL) {
+            fputs("SEMAPRAX native runtime invariant failure: missing arithmetic detail\n", stderr);
+            return 72;
+        }
+        fprintf(
+            stderr,
+            "SEMAPRAX checked arithmetic failure: %s\n",
+            detail->failure_operation
+        );
+        return 71;
+    }
+    fprintf(
+        stderr,
+        "SEMAPRAX operation failure: %s/%u\n",
+        status->domain_id,
+        status->code
+    );
+    return 73;
+}
+
+"#;
 
 fn emit_function(
     output: &mut String,
@@ -166,22 +345,24 @@ fn emit_function(
         .ok_or_else(|| backend_error(format!("function `{}` is not indexed", function.id)))?;
     write!(
         output,
-        "static __attribute__((unused)) {} {}(",
-        c_type(program, &function.return_type)?,
+        "static __attribute__((unused)) spx_status_token {}(struct spx_context *spx_ctx",
         metadata.symbol
     )
     .expect("writing to a string cannot fail");
     for (index, param) in function.params.iter().enumerate() {
-        if index > 0 {
-            output.push_str(", ");
-        }
-        write!(output, "{} spx_param_{index}", c_type(program, &param.ty)?)
-            .expect("writing to a string cannot fail");
+        write!(
+            output,
+            ", {} spx_param_{index}",
+            c_type(program, &param.ty)?
+        )
+        .expect("writing to a string cannot fail");
     }
-    if function.params.is_empty() {
-        output.push_str("void");
-    }
-    output.push_str(") {\n");
+    writeln!(
+        output,
+        ", {} *spx_result_out) {{",
+        c_type(program, &function.return_type)?
+    )
+    .expect("writing to a string cannot fail");
 
     let variables = function
         .params
@@ -198,26 +379,32 @@ fn emit_function(
         })
         .collect();
     let mut emitter = CEmitter::new(output, program, variables, functions);
+    emitter.line("spx_status_token spx_status = SPX_STATUS_SUCCESS;");
+    emitter.line("(void)spx_ctx;");
+    emitter.line(&format!(
+        "{} spx_result = {{0}};",
+        c_type(program, &function.return_type)?
+    ));
     for index in 0..function.params.len() {
         emitter.line(&format!("(void)spx_param_{index};"));
     }
     for contract in &function.requires {
         let condition = emitter.emit_expr(contract)?;
         emitter.require_type(&condition.ty, &ResolvedType::Bool, "precondition")?;
+        emitter.line(&format!("if (!({})) {{", condition.code));
+        emitter.indent += 1;
         emitter.line(&format!(
-            "if (!({})) spx_contract_fail(\"requires\", \"{}\", \"{}\");",
-            condition.code,
+            "spx_status = spx_rt_contract(spx_ctx, SPX_STATUS_CONTRACT_REQUIRES_FALSE, \"requires\", \"{}\", \"{}\");",
             c_string(&function.name),
             c_string(contract_label(contract, contract_labels))
         ));
+        emitter.line("goto spx_epilogue;");
+        emitter.indent -= 1;
+        emitter.line("}");
     }
     let body = emitter.emit_expr(&function.body)?;
     emitter.require_type(&body.ty, &function.return_type, "function body")?;
-    emitter.line(&format!(
-        "{} spx_result = {};",
-        c_type(program, &function.return_type)?,
-        body.code
-    ));
+    emitter.line(&format!("spx_result = {};", body.code));
 
     emitter.variables.insert(
         function.result_id.clone(),
@@ -229,15 +416,23 @@ fn emit_function(
     for contract in &function.ensures {
         let condition = emitter.emit_expr(contract)?;
         emitter.require_type(&condition.ty, &ResolvedType::Bool, "postcondition")?;
+        emitter.line(&format!("if (!({})) {{", condition.code));
+        emitter.indent += 1;
         emitter.line(&format!(
-            "if (!({})) spx_contract_fail(\"ensures\", \"{}\", \"{}\");",
-            condition.code,
+            "spx_status = spx_rt_contract(spx_ctx, SPX_STATUS_CONTRACT_ENSURES_FALSE, \"ensures\", \"{}\", \"{}\");",
             c_string(&function.name),
             c_string(contract_label(contract, contract_labels))
         ));
+        emitter.line("goto spx_epilogue;");
+        emitter.indent -= 1;
+        emitter.line("}");
     }
-    emitter.line("return spx_result;");
+    emitter.line("goto spx_epilogue;");
     drop(emitter);
+    output.push_str("spx_epilogue:\n");
+    output.push_str("    if (spx_status != SPX_STATUS_SUCCESS) return spx_status;\n");
+    output.push_str("    *spx_result_out = spx_result;\n");
+    output.push_str("    return SPX_STATUS_SUCCESS;\n");
     output.push_str("}\n\n");
     Ok(())
 }
@@ -493,10 +688,12 @@ impl<'a> CEmitter<'a> {
                 self.require_type(&expr.ty, &target.return_type, "call result")?;
                 let temporary = self.temporary(&target.return_type)?;
                 self.line(&format!(
-                    "{temporary} = {}({});",
+                    "spx_status = {}(spx_ctx{}{}, &{temporary});",
                     target.symbol,
+                    if arguments.is_empty() { "" } else { ", " },
                     arguments.join(", ")
                 ));
+                self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
                 CValue {
                     code: temporary,
                     ty: target.return_type,
@@ -511,11 +708,16 @@ impl<'a> CEmitter<'a> {
                 self.require_type(&value.ty, &operand_type, "unary operand")?;
                 self.require_type(&expr.ty, &ty, "unary result")?;
                 let temporary = self.temporary(&ty)?;
-                let operation = match op {
-                    UnaryOp::Neg => format!("spx_rt_neg({})", value.code),
-                    UnaryOp::Not => format!("(!{})", value.code),
-                };
-                self.line(&format!("{temporary} = {operation};"));
+                match op {
+                    UnaryOp::Neg => {
+                        self.line(&format!(
+                            "spx_status = spx_rt_neg(spx_ctx, {}, &{temporary});",
+                            value.code
+                        ));
+                        self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
+                    }
+                    UnaryOp::Not => self.line(&format!("{temporary} = (!{});", value.code)),
+                }
                 CValue {
                     code: temporary,
                     ty,
@@ -652,15 +854,31 @@ impl<'a> CEmitter<'a> {
         let right = self.emit_expr(right)?;
         self.require_type(&right.ty, &operand_type, "binary right operand")?;
         let temporary = self.temporary(&expected_result)?;
-        let operation = match op {
-            BinaryOp::Add => format!("spx_rt_add({}, {})", left.code, right.code),
-            BinaryOp::Sub => format!("spx_rt_sub({}, {})", left.code, right.code),
-            BinaryOp::Mul => format!("spx_rt_mul({}, {})", left.code, right.code),
-            BinaryOp::Div => format!("spx_rt_div({}, {})", left.code, right.code),
-            BinaryOp::Rem => format!("spx_rt_rem({}, {})", left.code, right.code),
-            _ => format!("({} {} {})", left.code, op.text(), right.code),
-        };
-        self.line(&format!("{temporary} = {operation};"));
+        if matches!(
+            op,
+            BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
+        ) {
+            let helper = match op {
+                BinaryOp::Add => "spx_rt_add",
+                BinaryOp::Sub => "spx_rt_sub",
+                BinaryOp::Mul => "spx_rt_mul",
+                BinaryOp::Div => "spx_rt_div",
+                BinaryOp::Rem => "spx_rt_rem",
+                _ => unreachable!("checked arithmetic operation was matched above"),
+            };
+            self.line(&format!(
+                "spx_status = {helper}(spx_ctx, {}, {}, &{temporary});",
+                left.code, right.code
+            ));
+            self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
+        } else {
+            self.line(&format!(
+                "{temporary} = ({} {} {});",
+                left.code,
+                op.text(),
+                right.code
+            ));
+        }
         Ok(CValue {
             code: temporary,
             ty: expected_result,

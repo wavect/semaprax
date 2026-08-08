@@ -70,6 +70,14 @@ fn compiler_is_available() -> bool {
     Command::new("clang").arg("--version").output().is_ok()
 }
 
+fn native_newline() -> &'static str {
+    if cfg!(windows) {
+        "\r\n"
+    } else {
+        "\n"
+    }
+}
+
 fn compile_and_run_entry_wrapper(source: &str, label: &str) -> std::process::Output {
     let program = parse(source, Path::new("native-entry-wrapper.spx")).unwrap();
     let generated = codegen::emit_c(&program).unwrap();
@@ -121,7 +129,10 @@ fn main() -> i64 requires false { 42 }
     assert!(executed.stdout.is_empty());
     assert_eq!(
         String::from_utf8(executed.stderr).unwrap(),
-        "SEMAPRAX contract failure: requires in main: false\n"
+        format!(
+            "SEMAPRAX contract failure: requires in main: false{}",
+            native_newline()
+        )
     );
 }
 
@@ -144,7 +155,10 @@ fn main() -> i64 { 7 / 0 }
     assert!(executed.stdout.is_empty());
     assert_eq!(
         String::from_utf8(executed.stderr).unwrap(),
-        "SEMAPRAX checked arithmetic failure: invalid division\n"
+        format!(
+            "SEMAPRAX checked arithmetic failure: invalid division{}",
+            native_newline()
+        )
     );
 }
 
@@ -231,7 +245,10 @@ int main(void) {{
     assert!(executed.stdout.is_empty());
     assert_eq!(
         String::from_utf8(executed.stderr).unwrap(),
-        "SEMAPRAX native runtime invariant failure: status arena exhaustion\n"
+        format!(
+            "SEMAPRAX native runtime invariant failure: status arena exhaustion{}",
+            native_newline()
+        )
     );
 }
 

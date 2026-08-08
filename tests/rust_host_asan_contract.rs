@@ -44,8 +44,10 @@ fn rust_host_asan_lane_is_pinned_instrumented_and_fail_closed() {
         "expected_toolchain=\"nightly-2026-07-16\"",
         "expected_rustc_commit=\"d0babd8b6b05ef9bb65d42f928cef4129d64cf65\"",
         "SEMAPRAX_REQUIRE_RUST_HOST_ASAN",
-        "rustup run \"$expected_toolchain\" rustc -vV",
-        "rustup run \"$expected_toolchain\" cargo -vV",
+        "rustc_verbose=\"$(rustup run \"$expected_toolchain\" rustc -vV)\"",
+        "cargo_verbose=\"$(rustup run \"$expected_toolchain\" cargo -vV)\"",
+        "<<<\"$rustc_verbose\"",
+        "<<<\"$cargo_verbose\"",
         "clang-18 --version",
         "#![feature(cfg_sanitize)]",
         "#[cfg(not(sanitize = \"address\"))]",
@@ -73,6 +75,8 @@ fn rust_host_asan_lane_is_pinned_instrumented_and_fail_closed() {
     }
     assert!(!script.contains("|| true"));
     assert!(!script.contains("| head"));
+    assert!(!script.contains("rustc -vV |"));
+    assert!(!script.contains("cargo -vV |"));
     assert!(!script.contains("\nrustc "));
     assert!(!script.contains("\ncargo test"));
     assert!(!script.contains("nm -u \"$probe_binary\""));

@@ -25,15 +25,17 @@ for command_name in rustup clang-18 nm; do
   fi
 done
 
-if ! rustup run "$expected_toolchain" rustc -vV | grep -Eq '^release: .*-nightly$'; then
+rustc_verbose="$(rustup run "$expected_toolchain" rustc -vV)"
+if ! grep -Eq '^release: .*-nightly$' <<<"$rustc_verbose"; then
   echo "Rust-host ASan evidence requires a nightly rustc" >&2
   exit 1
 fi
-if ! rustup run "$expected_toolchain" rustc -vV | grep -q "^commit-hash: $expected_rustc_commit$"; then
+if ! grep -q "^commit-hash: $expected_rustc_commit$" <<<"$rustc_verbose"; then
   echo "Rust-host ASan rustc commit does not match the audited nightly" >&2
   exit 1
 fi
-if ! rustup run "$expected_toolchain" cargo -vV | grep -Eq '^release: .*-nightly$'; then
+cargo_verbose="$(rustup run "$expected_toolchain" cargo -vV)"
+if ! grep -Eq '^release: .*-nightly$' <<<"$cargo_verbose"; then
   echo "Rust-host ASan evidence requires Cargo from the pinned nightly" >&2
   exit 1
 fi

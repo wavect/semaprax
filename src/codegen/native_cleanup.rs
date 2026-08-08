@@ -20,6 +20,7 @@
 )]
 
 use std::collections::BTreeMap;
+use std::sync::Arc;
 
 use crate::ast::BinaryOp;
 use crate::cleanup::{FieldLivenessShape, LivenessFlagId};
@@ -70,16 +71,18 @@ pub(crate) struct NativeCleanupExit<'a> {
 /// order.
 #[derive(Clone, Debug)]
 pub(crate) struct NativeCleanupIndex<'a> {
-    pub(crate) function_id: &'a DeclarationId,
-    pub(crate) entry: BlockId,
-    pub(crate) slots: Vec<NativeCleanupSlot<'a>>,
-    pub(crate) leaves: Vec<NativeCleanupLeaf<'a>>,
-    pub(crate) live_owned_parameters: &'a [CleanupPlace],
-    pub(crate) status_sources: &'a [StatusSource],
-    pub(crate) regions: &'a [crate::cleanup_plan::CleanupRegion],
-    pub(crate) blocks: Vec<NativeCleanupBlock<'a>>,
-    pub(crate) edges: &'a [CleanupEdge],
-    pub(crate) exits: Vec<NativeCleanupExit<'a>>,
+    admission: NativeCleanupAdmission,
+    canonical_function: &'a ResolvedFunction,
+    function_id: &'a DeclarationId,
+    entry: BlockId,
+    slots: Vec<NativeCleanupSlot<'a>>,
+    leaves: Vec<NativeCleanupLeaf<'a>>,
+    live_owned_parameters: &'a [CleanupPlace],
+    status_sources: &'a [StatusSource],
+    regions: &'a [crate::cleanup_plan::CleanupRegion],
+    blocks: Vec<NativeCleanupBlock<'a>>,
+    edges: &'a [CleanupEdge],
+    exits: Vec<NativeCleanupExit<'a>>,
     slot_positions: BTreeMap<StorageId, usize>,
     leaf_positions: BTreeMap<LivenessFlagId, usize>,
     block_positions: BTreeMap<BlockId, usize>,
@@ -87,7 +90,76 @@ pub(crate) struct NativeCleanupIndex<'a> {
     exit_positions: BTreeMap<ExitTargetId, usize>,
 }
 
+/// Private shared proof that cleanup classification admitted one immutable
+/// index. Clones preserve the proof without exposing forgeable numeric state.
+#[derive(Clone, Debug)]
+pub(super) struct NativeCleanupAdmission(Arc<()>);
+
+impl PartialEq for NativeCleanupAdmission {
+    fn eq(&self, other: &Self) -> bool {
+        self.matches(other)
+    }
+}
+
+impl Eq for NativeCleanupAdmission {}
+
+impl NativeCleanupAdmission {
+    pub(super) fn matches(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.0, &other.0)
+    }
+}
+
 impl<'a> NativeCleanupIndex<'a> {
+    /// Prove that this index retains references into this exact canonical HIR
+    /// function, rather than a detached clone with reused stable identities.
+    pub(crate) fn belongs_to(&self, function: &ResolvedFunction) -> bool {
+        std::ptr::eq(self.canonical_function, function)
+    }
+
+    pub(super) fn admission(&self) -> NativeCleanupAdmission {
+        self.admission.clone()
+    }
+
+    pub(crate) fn function_id(&self) -> &DeclarationId {
+        self.function_id
+    }
+
+    pub(crate) fn entry(&self) -> BlockId {
+        self.entry
+    }
+
+    pub(crate) fn slots(&self) -> &[NativeCleanupSlot<'a>] {
+        &self.slots
+    }
+
+    pub(crate) fn leaves(&self) -> &[NativeCleanupLeaf<'a>] {
+        &self.leaves
+    }
+
+    pub(crate) fn live_owned_parameters(&self) -> &[CleanupPlace] {
+        self.live_owned_parameters
+    }
+
+    pub(crate) fn status_sources(&self) -> &[StatusSource] {
+        self.status_sources
+    }
+
+    pub(crate) fn regions(&self) -> &[crate::cleanup_plan::CleanupRegion] {
+        self.regions
+    }
+
+    pub(crate) fn blocks(&self) -> &[NativeCleanupBlock<'a>] {
+        &self.blocks
+    }
+
+    pub(crate) fn edges(&self) -> &[CleanupEdge] {
+        self.edges
+    }
+
+    pub(crate) fn exits(&self) -> &[NativeCleanupExit<'a>] {
+        &self.exits
+    }
+
     pub(crate) fn slot(&self, storage: &StorageId) -> Option<&NativeCleanupSlot<'a>> {
         self.slot_positions
             .get(storage)
@@ -298,6 +370,8 @@ pub(crate) fn classify<'a>(
     }
 
     Ok(NativeCleanupIndex {
+        admission: NativeCleanupAdmission(Arc::new(())),
+        canonical_function: function,
         function_id: &function.id,
         entry: plan.entry,
         slots,

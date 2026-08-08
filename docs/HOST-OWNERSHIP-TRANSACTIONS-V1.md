@@ -7,12 +7,18 @@ public FFI, does not execute a finalizer, and does not weaken `SPX-B104`.
 
 The private native staging lane also derives ownership contracts in
 `src/codegen/native_host_contract.rs`. Derivation accepts a validated program
-and exact function ID, rebuilds and compares the resource ABI, reruns cleanup
-classification and value planning, and obtains ordered direct-trivial-resource
-requirements plus scalar/owned result mapping from canonical HIR. Tests cover
-interleaved scalar/resource parameters and returning the second of two
-same-type owners. This derivation is unit-tested groundwork; compiler resource
-preflight does not consume it yet.
+and exact function ID, rebuilds and compares the resource ABI, and consumes the
+exact cleanup/value evidence already admitted by compiler preflight without
+classifying or planning again. Its deterministic authority-free template fixes
+the complete ordered scalar/resource signature, dense owner ordinals, exact
+scalar/owned result mapping, lifecycle identities, module ABI fingerprint, and
+function-template fingerprint. Private admission capabilities reject detached
+same-ID HIR and mismatched cleanup/value proof objects. Tests cover interleaved
+scalar/resource parameters, returning the second of two same-type owners,
+cross-ABI template binding rejection, and real-thread observation at binding
+and synchronous registry execution. Compiler resource
+preflight derives and discards this Stage A template; no runtime binding or
+public resource artifact is created there.
 
 ## Why this boundary exists
 
@@ -88,19 +94,21 @@ resource export can ship, all of the following remain mandatory:
 
 - generated, versioned C ABI/header with fixed-width layouts, visibility and
   calling-convention macros, and hostile packing/link tests;
-- an opaque adapter binding-instance capability and complete ABI fingerprint;
-  the current trivial binding identity is only a logical module-local staging
-  identity and must not authorize hot-reload or cross-library exchange;
-- complete ordered parameter metadata, including scalar ABI shape and explicit
-  parameter index/identity; the ownership ledger currently retains only the
-  ordered resource type/lifecycle requirements and result owner ordinal;
-- wire the compiler-derived contract into resource preflight and then into the
-  generated adapter; focused derivation tests are not gate evidence by
-  themselves;
+- turn the private, binding-instance-distinct process-local adapter authority and deterministic
+  module/template fingerprints into a versioned physical library capability
+  that retains the loaded module and safely rejects hot-reload, unload, and
+  cross-library exchange;
+- preserve the template's complete ordered scalar/resource metadata through
+  generated headers and physical adapters; the ownership ledger intentionally
+  consumes only ordered resource requirements and the result owner ordinal;
+- carry the compiler-derived template from private resource preflight into the
+  generated adapter; deriving and discarding Stage A remains groundwork, not
+  public gate evidence;
 - runtime-owned context, status arena, trace storage, provisional result, and
   deep materialization—no caller-provided mutable storage;
 - a binding-instance/module-lifetime capability retained by every live owner;
-- real executing-thread identity and an explicit `Send`/sharing policy;
+- map the private Rust `ThreadId` observation to each physical target runtime
+  and define an explicit `Send`/sharing policy;
 - exactly-once physical finalizer execution, guard clearing before callbacks,
   and imported-finalizer capability/failure containment;
 - concurrency, ABA-safe slot reuse, cancellation, reentrancy, unload/reload,

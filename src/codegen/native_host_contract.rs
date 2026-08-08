@@ -2,79 +2,184 @@
 //!
 //! This module is private groundwork. It derives every semantic identity and
 //! ownership requirement from validated HIR plus the validated native resource
-//! ABI. A trusted adapter supplies only its bound thread identity. Public native
-//! resource lowering remains closed behind `SPX-B104`.
+//! ABI. Private Stage B captures binding-instance authority and observes the
+//! real Rust thread internally; compiler preflight creates Stage A only. Public
+//! native resource lowering remains closed behind `SPX-B104`.
 
 #![cfg_attr(
     not(test),
     allow(dead_code, reason = "native resource host entry points remain gated")
 )]
 
-use std::collections::HashMap;
+use std::fmt::Write as _;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::thread::ThreadId;
 
+use sha2::{Digest, Sha256};
+
+use crate::conformance::NormalizedStatus;
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
-    self, DeclarationId, OwnershipMode, ResolvedExprKind, ResolvedProgram,
-    ResolvedResourceDropKind, ResolvedType, ResolvedTypeDeclarationKind,
+    DeclarationId, OwnershipMode, ResolvedProgram, ResolvedResourceDropKind, ResolvedType,
+    ResolvedTypeDeclarationKind, ValueId,
 };
 use crate::host_ownership::{
-    HostBoundaryRejection, HostCallContract, HostIdentity, HostResourceRequirement, HostResultPlan,
+    HostBoundaryRejection, HostBoundaryResult, HostCallContract, HostCallRequest,
+    HostCommittedResource, HostIdentity, HostOwnerToken, HostOwnershipRegistry,
+    HostResourceRequirement, HostResultPlan,
 };
 
+use super::native_cleanup::NativeCleanupIndex;
 use super::native_resource::{NativeFinalizerKind, NativeResourceAbi};
-use super::{native_cleanup, native_resource, native_value};
+use super::native_value::{NativeValuePlan, NativeValueResult};
 
 const MODULE_IDENTITY_DOMAIN: &str = "semaprax.native-host-module.v1";
 const ADAPTER_IDENTITY_DOMAIN: &str = "semaprax.native-host-adapter.v1";
 const FUNCTION_IDENTITY_DOMAIN: &str = "semaprax.native-host-function.v1";
+const BOUND_FUNCTION_IDENTITY_DOMAIN: &str = "semaprax.native-host-bound-function.v1";
 const RESOURCE_IDENTITY_DOMAIN: &str = "semaprax.native-host-resource.v1";
 const LIFECYCLE_IDENTITY_DOMAIN: &str = "semaprax.native-host-lifecycle.v1";
+const TEMPLATE_FINGERPRINT_DOMAIN: &[u8] = b"semaprax.native-host-template.v1\0";
+const MODULE_ABI_FINGERPRINT_DOMAIN: &[u8] = b"semaprax.native-host-module-abi.v1\0";
+
+static NEXT_ADAPTER_BINDING_INSTANCE: AtomicU64 = AtomicU64::new(1);
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum NativeHostScalarKind {
+    I64,
+    Bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(super) enum NativeHostParameter {
+    Scalar {
+        parameter_index: usize,
+        value_id: ValueId,
+        kind: NativeHostScalarKind,
+    },
+    OwnedResource {
+        parameter_index: usize,
+        value_id: ValueId,
+        owner_ordinal: usize,
+        resource_type: HostIdentity,
+        lifecycle: HostIdentity,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(super) enum NativeHostResult {
+    ScalarI64,
+    OwnedInput {
+        parameter_index: usize,
+        value_id: ValueId,
+        owner_ordinal: usize,
+    },
+}
+
+/// Adapter-independent compiler proof for one exact exported function shape.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(super) struct NativeHostContractTemplate {
+    module: HostIdentity,
+    module_abi_fingerprint: String,
+    function: HostIdentity,
+    parameters: Vec<NativeHostParameter>,
+    result: NativeHostResult,
+    fingerprint: String,
+}
 
 /// Validated binding policy for the current import-free trivial-resource host.
 ///
-/// There is no caller-provided adapter identity. Until real adapter manifests
-/// exist, exactly one logical trivial binding is derived from the validated
-/// module and its trusted thread policy.
-#[derive(Clone, Debug, Eq, PartialEq)]
+/// There is no caller-provided adapter identity. Each trusted binding instance
+/// receives a binding-instance-distinct process-local identity scoped to its
+/// validated module ABI.
+#[derive(Debug, Eq, PartialEq)]
 pub(super) struct NativeHostAdapterBinding {
-    module: String,
+    module_abi_fingerprint: String,
     identity: HostIdentity,
-    bound_thread: u64,
+    bound_thread: ThreadId,
+    host_thread_identity: u64,
+}
+
+/// Stage-B authority retained through synchronous registry execution. A bare
+/// logical request is never handed to an adapter that could assert its own
+/// thread or move a validated request elsewhere.
+#[derive(Debug, Eq, PartialEq)]
+pub(super) struct NativeBoundHostContract {
+    contract: HostCallContract,
+    bound_thread: ThreadId,
+    host_thread_identity: u64,
+}
+
+impl NativeBoundHostContract {
+    pub(super) fn execute_scalar<F>(
+        &self,
+        registry: &mut HostOwnershipRegistry,
+        owners: Vec<HostOwnerToken>,
+        execute: F,
+    ) -> HostBoundaryResult
+    where
+        F: FnOnce(&[HostCommittedResource]) -> Result<i64, NormalizedStatus>,
+    {
+        if std::thread::current().id() != self.bound_thread {
+            return HostBoundaryResult::Rejected(HostBoundaryRejection::WrongThread);
+        }
+        registry.execute_scalar(
+            HostCallRequest::new(self.contract.clone(), self.host_thread_identity, owners),
+            execute,
+        )
+    }
+
+    pub(super) fn execute_owned<F>(
+        &self,
+        registry: &mut HostOwnershipRegistry,
+        owners: Vec<HostOwnerToken>,
+        execute: F,
+    ) -> HostBoundaryResult
+    where
+        F: FnOnce(&[HostCommittedResource]) -> Result<(), NormalizedStatus>,
+    {
+        if std::thread::current().id() != self.bound_thread {
+            return HostBoundaryResult::Rejected(HostBoundaryRejection::WrongThread);
+        }
+        registry.execute_owned(
+            HostCallRequest::new(self.contract.clone(), self.host_thread_identity, owners),
+            execute,
+        )
+    }
 }
 
 impl NativeHostAdapterBinding {
-    pub(super) fn for_trivial_slice(
-        program: &ResolvedProgram,
-        bound_thread: u64,
+    pub(super) fn for_current_thread(
+        template: &NativeHostContractTemplate,
     ) -> Result<Self, Diagnostic> {
-        hir::validate(program)?;
-        if bound_thread == 0 {
-            return Err(boundary_error(HostBoundaryRejection::WrongThread));
-        }
+        let instance = NEXT_ADAPTER_BINDING_INSTANCE
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
+                current.checked_add(1)
+            })
+            .map_err(|_| host_error("native adapter binding identities are exhausted"))?;
         Ok(Self {
-            module: program.module.clone(),
-            identity: framed_identity(ADAPTER_IDENTITY_DOMAIN, &program.module)?,
-            bound_thread,
+            module_abi_fingerprint: template.module_abi_fingerprint.clone(),
+            identity: framed_identity(
+                ADAPTER_IDENTITY_DOMAIN,
+                &format!("{}:{instance}", template.module_abi_fingerprint),
+            )?,
+            bound_thread: std::thread::current().id(),
+            host_thread_identity: instance,
         })
     }
 }
 
-/// Derive one immutable host ownership contract from the exact admitted native
-/// value/cleanup slice. Caller-authored type, lifecycle, ownership, or result
-/// metadata never crosses this boundary.
-pub(super) fn derive(
+/// Stage A: derive a deterministic, authority-free template from already
+/// admitted cleanup and value proofs. This performs no classification or value
+/// planning of its own.
+pub(super) fn derive_from_admitted(
     program: &ResolvedProgram,
     function_id: &DeclarationId,
     resource_abi: &NativeResourceAbi,
-    adapter: &NativeHostAdapterBinding,
-) -> Result<HostCallContract, Diagnostic> {
-    hir::validate(program)?;
-    if adapter.module != program.module {
-        return Err(host_error(format!(
-            "adapter binding belongs to module `{}`, not `{}`",
-            adapter.module, program.module
-        )));
-    }
+    cleanup: &NativeCleanupIndex<'_>,
+    values: &NativeValuePlan,
+) -> Result<NativeHostContractTemplate, Diagnostic> {
+    crate::hir::validate(program)?;
     let mut matches = program
         .functions
         .iter()
@@ -87,28 +192,47 @@ pub(super) fn derive(
             "function identity `{function_id}` resolves more than once"
         )));
     }
-
-    let rebuilt_abi = native_resource::build_resource_abi(program)?;
+    let rebuilt_abi = super::native_resource::build_resource_abi(program)?;
     if &rebuilt_abi != resource_abi {
         return Err(host_error(
             "native resource ABI does not exactly match the validated program",
         ));
     }
-
-    let cleanup = native_cleanup::classify(program, function)?;
-    let _values = native_value::plan(program, function, &cleanup, resource_abi, &HashMap::new())?;
-
-    let mut requirements = Vec::new();
-    let mut resource_parameter_ordinals = HashMap::new();
+    if !cleanup.belongs_to(function) || !values.belongs_to(function, cleanup) {
+        return Err(host_error(format!(
+            "admitted cleanup/value proof does not belong to function `{}`",
+            function.id
+        )));
+    }
+    let mut parameters = Vec::with_capacity(function.params.len());
+    let mut owner_ordinal = 0;
     for (parameter_index, parameter) in function.params.iter().enumerate() {
         match &parameter.ty {
-            ResolvedType::I64 | ResolvedType::Bool => {
+            ResolvedType::I64 => {
                 if parameter.ownership != OwnershipMode::Value {
                     return Err(host_error(format!(
                         "scalar parameter {} is not passed by value",
                         parameter_index
                     )));
                 }
+                parameters.push(NativeHostParameter::Scalar {
+                    parameter_index,
+                    value_id: parameter.id.clone(),
+                    kind: NativeHostScalarKind::I64,
+                });
+            }
+            ResolvedType::Bool => {
+                if parameter.ownership != OwnershipMode::Value {
+                    return Err(host_error(format!(
+                        "scalar parameter {} is not passed by value",
+                        parameter_index
+                    )));
+                }
+                parameters.push(NativeHostParameter::Scalar {
+                    parameter_index,
+                    value_id: parameter.id.clone(),
+                    kind: NativeHostScalarKind::Bool,
+                });
             }
             ResolvedType::Nominal {
                 declaration,
@@ -121,17 +245,14 @@ pub(super) fn derive(
                     )));
                 }
                 let lifecycle = direct_trivial_lifecycle(program, resource_abi, declaration)?;
-                let ordinal = requirements.len();
-                if resource_parameter_ordinals
-                    .insert(parameter.id.clone(), ordinal)
-                    .is_some()
-                {
-                    return Err(host_error("resource parameter identity is duplicated"));
-                }
-                requirements.push(HostResourceRequirement::new(
-                    framed_identity(RESOURCE_IDENTITY_DOMAIN, declaration.as_str())?,
-                    framed_identity(LIFECYCLE_IDENTITY_DOMAIN, lifecycle)?,
-                ));
+                parameters.push(NativeHostParameter::OwnedResource {
+                    parameter_index,
+                    value_id: parameter.id.clone(),
+                    owner_ordinal,
+                    resource_type: framed_identity(RESOURCE_IDENTITY_DOMAIN, declaration.as_str())?,
+                    lifecycle: framed_identity(LIFECYCLE_IDENTITY_DOMAIN, lifecycle)?,
+                });
+                owner_ordinal += 1;
             }
             ResolvedType::TypeParameter { .. } => {
                 return Err(host_error(format!(
@@ -142,42 +263,233 @@ pub(super) fn derive(
         }
     }
 
-    let result = match &function.return_type {
-        ResolvedType::I64 => HostResultPlan::Scalar,
-        ResolvedType::Nominal { .. } => {
-            let ResolvedExprKind::Block { tail, .. } = &function.body.kind else {
+    let result = match values.result() {
+        NativeValueResult::ScalarI64 if function.return_type == ResolvedType::I64 => {
+            NativeHostResult::ScalarI64
+        }
+        NativeValueResult::OwnedInput {
+            parameter_index,
+            parameter,
+            owner_ordinal,
+        } => {
+            let Some(NativeHostParameter::OwnedResource {
+                parameter_index: proven_index,
+                value_id,
+                owner_ordinal: proven_ordinal,
+                ..
+            }) = parameters.get(*parameter_index)
+            else {
                 return Err(host_error(
-                    "owned result body is not the canonical root block",
+                    "owned result proof does not select a resource parameter",
                 ));
             };
-            let ResolvedExprKind::Place(place) = &tail.kind else {
-                return Err(host_error("owned result is not an exact input place"));
-            };
-            if !place.projections.is_empty() {
-                return Err(host_error("owned result uses a projected input place"));
+            if proven_index != parameter_index
+                || value_id != parameter
+                || proven_ordinal != owner_ordinal
+            {
+                return Err(host_error(
+                    "owned result proof disagrees with signature metadata",
+                ));
             }
-            let input_index = resource_parameter_ordinals
-                .get(&place.root)
-                .copied()
-                .ok_or_else(|| {
-                    host_error("owned result does not map to an owned resource input")
-                })?;
-            HostResultPlan::OwnedInput { input_index }
+            NativeHostResult::OwnedInput {
+                parameter_index: *parameter_index,
+                value_id: parameter.clone(),
+                owner_ordinal: *owner_ordinal,
+            }
         }
-        ResolvedType::Bool | ResolvedType::TypeParameter { .. } => {
-            return Err(host_error("result type is outside the native host slice"));
+        _ => {
+            return Err(host_error(
+                "value result proof disagrees with function result type",
+            ))
         }
     };
+    let mut template = NativeHostContractTemplate {
+        module: framed_identity(MODULE_IDENTITY_DOMAIN, &program.module)?,
+        module_abi_fingerprint: module_abi_fingerprint(program, resource_abi),
+        function: framed_identity(FUNCTION_IDENTITY_DOMAIN, function.id.as_str())?,
+        parameters,
+        result,
+        fingerprint: String::new(),
+    };
+    template.fingerprint = template_fingerprint(&template);
+    Ok(template)
+}
 
-    HostCallContract::try_new(
-        framed_identity(MODULE_IDENTITY_DOMAIN, &program.module)?,
+/// Stage B: attach one validated adapter instance and observed thread to an
+/// authority-free template.
+pub(super) fn bind(
+    template: &NativeHostContractTemplate,
+    adapter: &NativeHostAdapterBinding,
+) -> Result<NativeBoundHostContract, Diagnostic> {
+    if adapter.module_abi_fingerprint != template.module_abi_fingerprint {
+        return Err(host_error(
+            "adapter binding belongs to a different native module ABI",
+        ));
+    }
+    if std::thread::current().id() != adapter.bound_thread {
+        return Err(boundary_error(HostBoundaryRejection::WrongThread));
+    }
+    let requirements = template
+        .parameters
+        .iter()
+        .filter_map(|parameter| match parameter {
+            NativeHostParameter::Scalar { .. } => None,
+            NativeHostParameter::OwnedResource {
+                resource_type,
+                lifecycle,
+                ..
+            } => Some(HostResourceRequirement::new(
+                resource_type.clone(),
+                lifecycle.clone(),
+            )),
+        })
+        .collect();
+    let result = match template.result {
+        NativeHostResult::ScalarI64 => HostResultPlan::Scalar,
+        NativeHostResult::OwnedInput { owner_ordinal, .. } => HostResultPlan::OwnedInput {
+            input_index: owner_ordinal,
+        },
+    };
+    let contract = HostCallContract::try_new(
+        template.module.clone(),
         adapter.identity.clone(),
-        framed_identity(FUNCTION_IDENTITY_DOMAIN, function.id.as_str())?,
-        adapter.bound_thread,
+        framed_identity(BOUND_FUNCTION_IDENTITY_DOMAIN, &template.fingerprint)?,
+        adapter.host_thread_identity,
         requirements,
         result,
     )
-    .map_err(boundary_error)
+    .map_err(boundary_error)?;
+    Ok(NativeBoundHostContract {
+        contract,
+        bound_thread: adapter.bound_thread,
+        host_thread_identity: adapter.host_thread_identity,
+    })
+}
+
+fn template_fingerprint(template: &NativeHostContractTemplate) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(TEMPLATE_FINGERPRINT_DOMAIN);
+    hash_field(&mut hasher, template.module.as_str());
+    hash_field(&mut hasher, &template.module_abi_fingerprint);
+    hash_field(&mut hasher, template.function.as_str());
+    hasher.update((template.parameters.len() as u64).to_be_bytes());
+    for parameter in &template.parameters {
+        match parameter {
+            NativeHostParameter::Scalar {
+                parameter_index,
+                value_id,
+                kind,
+            } => {
+                hasher.update([1]);
+                hasher.update((*parameter_index as u64).to_be_bytes());
+                hash_field(&mut hasher, value_id.as_str());
+                hasher.update([match kind {
+                    NativeHostScalarKind::I64 => 1,
+                    NativeHostScalarKind::Bool => 2,
+                }]);
+            }
+            NativeHostParameter::OwnedResource {
+                parameter_index,
+                value_id,
+                owner_ordinal,
+                resource_type,
+                lifecycle,
+            } => {
+                hasher.update([2]);
+                hasher.update((*parameter_index as u64).to_be_bytes());
+                hash_field(&mut hasher, value_id.as_str());
+                hasher.update((*owner_ordinal as u64).to_be_bytes());
+                hash_field(&mut hasher, resource_type.as_str());
+                hash_field(&mut hasher, lifecycle.as_str());
+            }
+        }
+    }
+    match &template.result {
+        NativeHostResult::ScalarI64 => hasher.update([1]),
+        NativeHostResult::OwnedInput {
+            parameter_index,
+            value_id,
+            owner_ordinal,
+        } => {
+            hasher.update([2]);
+            hasher.update((*parameter_index as u64).to_be_bytes());
+            hash_field(&mut hasher, value_id.as_str());
+            hasher.update((*owner_ordinal as u64).to_be_bytes());
+        }
+    }
+    let digest = hasher.finalize();
+    let mut encoded = String::with_capacity(digest.len() * 2);
+    for byte in digest {
+        write!(encoded, "{byte:02x}").expect("writing to a string cannot fail");
+    }
+    encoded
+}
+
+fn module_abi_fingerprint(program: &ResolvedProgram, abi: &NativeResourceAbi) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(MODULE_ABI_FINGERPRINT_DOMAIN);
+    hash_field(&mut hasher, crate::host_ownership::HOST_OWNERSHIP_SCHEMA_V1);
+    hash_field(&mut hasher, crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V1);
+    hash_field(&mut hasher, &program.module);
+    hasher.update((abi.resources.len() as u64).to_be_bytes());
+    for resource in &abi.resources {
+        hash_field(&mut hasher, resource.resource_id.as_str());
+        hash_field(&mut hasher, &resource.c_type);
+    }
+    hasher.update((abi.lifecycles.len() as u64).to_be_bytes());
+    for lifecycle in &abi.lifecycles {
+        hash_field(&mut hasher, lifecycle.lifecycle_id.as_str());
+        hash_field(&mut hasher, lifecycle.resource_id.as_str());
+        hash_field(&mut hasher, &lifecycle.resource_c_type);
+        match &lifecycle.kind {
+            NativeFinalizerKind::Trivial => hasher.update([1]),
+            NativeFinalizerKind::Imported(imported) => {
+                hasher.update([2]);
+                hash_field(&mut hasher, imported.import_id.as_str());
+                hash_field(&mut hasher, &imported.import_key);
+                hash_field(&mut hasher, &imported.callback_type);
+                hash_field(&mut hasher, &imported.binding_field);
+            }
+        }
+    }
+    let mut functions = program.functions.iter().collect::<Vec<_>>();
+    functions.sort_by(|left, right| left.id.cmp(&right.id));
+    hasher.update((functions.len() as u64).to_be_bytes());
+    for function in functions {
+        hash_field(&mut hasher, function.id.as_str());
+        hasher.update((function.params.len() as u64).to_be_bytes());
+        for parameter in &function.params {
+            hash_field(&mut hasher, parameter.id.as_str());
+            hasher.update([ownership_tag(parameter.ownership)]);
+            hash_field(&mut hasher, &parameter.ty.identity_key());
+        }
+        hash_field(&mut hasher, &function.return_type.identity_key());
+    }
+    encode_digest(hasher.finalize())
+}
+
+fn ownership_tag(ownership: OwnershipMode) -> u8 {
+    match ownership {
+        OwnershipMode::Value => 1,
+        OwnershipMode::Own => 2,
+        OwnershipMode::Borrow => 3,
+        OwnershipMode::Shared => 4,
+    }
+}
+
+fn encode_digest(digest: impl IntoIterator<Item = u8>) -> String {
+    let digest = digest.into_iter();
+    let (lower, _) = digest.size_hint();
+    let mut encoded = String::with_capacity(lower * 2);
+    for byte in digest {
+        write!(encoded, "{byte:02x}").expect("writing to a string cannot fail");
+    }
+    encoded
+}
+
+fn hash_field(hasher: &mut Sha256, value: &str) {
+    hasher.update((value.len() as u64).to_be_bytes());
+    hasher.update(value.as_bytes());
 }
 
 fn direct_trivial_lifecycle<'a>(
@@ -238,13 +550,15 @@ fn host_error(message: impl Into<String>) -> Diagnostic {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
     use std::path::Path;
 
     use crate::hir::{
-        self, OwnershipMode, ResolvedFunction, ResolvedResourceDropKind, ResolvedType,
+        self, ExpressionId, OwnershipMode, ResolvedFunction, ResolvedResourceDropKind, ResolvedType,
     };
     use crate::parse;
 
+    use super::super::native_resource;
     use super::*;
 
     const SOURCE: &str = r#"module test.native_host_contract;
@@ -264,6 +578,16 @@ fn identity(count: i64, value: own Token) -> Token { value }
 @id("token.choose-second")
 fn choose_second(first: own Token, count: i64, second: own Token) -> Token { second }
 
+@id("token.requires")
+fn requires_guard(value: own Token, allowed: bool) -> i64
+    requires allowed
+{ 0 }
+
+@id("token.checked")
+fn checked(value: own Token, number: i64) -> i64
+    requires number >= 0
+{ number + 1 }
+
 @id("app.main")
 fn main() -> i64 { 0 }
 "#;
@@ -281,35 +605,120 @@ fn main() -> i64 { 0 }
             .unwrap()
     }
 
+    fn admit(
+        program: &ResolvedProgram,
+        function_id: &DeclarationId,
+        abi: &NativeResourceAbi,
+        labels: &HashMap<ExpressionId, String>,
+    ) -> Result<NativeHostContractTemplate, Diagnostic> {
+        hir::validate(program)?;
+        let function = program
+            .functions
+            .iter()
+            .find(|candidate| candidate.id == *function_id)
+            .ok_or_else(|| host_error("test function is missing"))?;
+        let cleanup = super::super::native_cleanup::classify(program, function)?;
+        let values = super::super::native_value::plan(program, function, &cleanup, abi, labels)?;
+        derive_from_admitted(program, function_id, abi, &cleanup, &values)
+    }
+
     #[test]
-    fn contract_is_deterministic_and_uses_resource_parameter_order() {
+    fn template_is_deterministic_and_preserves_complete_signature_order() {
         let program = program();
         let abi = native_resource::build_resource_abi(&program).unwrap();
         let function = function(&program, "token.discard-two");
-        let adapter = NativeHostAdapterBinding::for_trivial_slice(&program, 17).unwrap();
-        let first = derive(&program, &function.id, &abi, &adapter).unwrap();
-        let second = derive(&program, &function.id, &abi, &adapter).unwrap();
+        let first = admit(&program, &function.id, &abi, &HashMap::new()).unwrap();
+        let second = admit(&program, &function.id, &abi, &HashMap::new()).unwrap();
         assert_eq!(first, second);
+        assert_eq!(first.fingerprint.len(), 64);
+        assert_eq!(first.result, NativeHostResult::ScalarI64);
+        assert_eq!(first.parameters.len(), 3);
+        assert!(matches!(
+            &first.parameters[0],
+            NativeHostParameter::OwnedResource {
+                parameter_index: 0,
+                owner_ordinal: 0,
+                value_id,
+                ..
+            } if *value_id == function.params[0].id
+        ));
+        assert!(matches!(
+            &first.parameters[1],
+            NativeHostParameter::Scalar {
+                parameter_index: 1,
+                value_id,
+                kind: NativeHostScalarKind::I64,
+            } if *value_id == function.params[1].id
+        ));
+        assert!(matches!(
+            &first.parameters[2],
+            NativeHostParameter::OwnedResource {
+                parameter_index: 2,
+                owner_ordinal: 1,
+                value_id,
+                ..
+            } if *value_id == function.params[2].id
+        ));
+    }
 
-        let expected = HostCallContract::try_new(
-            framed_identity(MODULE_IDENTITY_DOMAIN, &program.module).unwrap(),
-            framed_identity(ADAPTER_IDENTITY_DOMAIN, &program.module).unwrap(),
-            framed_identity(FUNCTION_IDENTITY_DOMAIN, function.id.as_str()).unwrap(),
-            17,
-            vec![
-                HostResourceRequirement::new(
-                    framed_identity(RESOURCE_IDENTITY_DOMAIN, "token.type").unwrap(),
-                    framed_identity(LIFECYCLE_IDENTITY_DOMAIN, "token.drop").unwrap(),
-                ),
-                HostResourceRequirement::new(
-                    framed_identity(RESOURCE_IDENTITY_DOMAIN, "other.type").unwrap(),
-                    framed_identity(LIFECYCLE_IDENTITY_DOMAIN, "other.drop").unwrap(),
-                ),
-            ],
-            HostResultPlan::Scalar,
+    #[test]
+    fn template_ignores_display_and_whitespace_but_tracks_scalar_abi_shape() {
+        let original = program();
+        let original_abi = native_resource::build_resource_abi(&original).unwrap();
+        let original_function = function(&original, "token.identity");
+        let original_template = admit(
+            &original,
+            &original_function.id,
+            &original_abi,
+            &HashMap::new(),
         )
         .unwrap();
-        assert_eq!(first, expected);
+
+        let renamed_source = format!(
+            "\n{}",
+            SOURCE.replace("fn identity(", "fn renamed_identity(")
+        );
+        let renamed_parsed = parse(
+            &renamed_source,
+            Path::new("native-host-contract-renamed.spx"),
+        )
+        .unwrap();
+        let renamed = hir::resolve(&renamed_parsed).unwrap();
+        let renamed_abi = native_resource::build_resource_abi(&renamed).unwrap();
+        let renamed_function = function(&renamed, "token.identity");
+        let renamed_template = admit(
+            &renamed,
+            &renamed_function.id,
+            &renamed_abi,
+            &HashMap::new(),
+        )
+        .unwrap();
+        assert_eq!(original_template, renamed_template);
+
+        let changed_source = SOURCE.replace(
+            "fn identity(count: i64, value: own Token)",
+            "fn identity(count: bool, value: own Token)",
+        );
+        let changed_parsed = parse(
+            &changed_source,
+            Path::new("native-host-contract-scalar-abi.spx"),
+        )
+        .unwrap();
+        let changed = hir::resolve(&changed_parsed).unwrap();
+        let changed_abi = native_resource::build_resource_abi(&changed).unwrap();
+        let changed_function = function(&changed, "token.identity");
+        let changed_template = admit(
+            &changed,
+            &changed_function.id,
+            &changed_abi,
+            &HashMap::new(),
+        )
+        .unwrap();
+        assert_ne!(original_template.fingerprint, changed_template.fingerprint);
+        assert_ne!(
+            original_template.module_abi_fingerprint,
+            changed_template.module_abi_fingerprint
+        );
     }
 
     #[test]
@@ -317,49 +726,158 @@ fn main() -> i64 { 0 }
         let program = program();
         let abi = native_resource::build_resource_abi(&program).unwrap();
         let function = function(&program, "token.identity");
-        let adapter = NativeHostAdapterBinding::for_trivial_slice(&program, 23).unwrap();
-        let actual = derive(&program, &function.id, &abi, &adapter).unwrap();
-        let expected = HostCallContract::try_new(
-            framed_identity(MODULE_IDENTITY_DOMAIN, &program.module).unwrap(),
-            framed_identity(ADAPTER_IDENTITY_DOMAIN, &program.module).unwrap(),
-            framed_identity(FUNCTION_IDENTITY_DOMAIN, function.id.as_str()).unwrap(),
-            23,
-            vec![HostResourceRequirement::new(
-                framed_identity(RESOURCE_IDENTITY_DOMAIN, "token.type").unwrap(),
-                framed_identity(LIFECYCLE_IDENTITY_DOMAIN, "token.drop").unwrap(),
-            )],
-            HostResultPlan::OwnedInput { input_index: 0 },
-        )
-        .unwrap();
-        assert_eq!(actual, expected);
+        let actual = admit(&program, &function.id, &abi, &HashMap::new()).unwrap();
+        assert_eq!(
+            actual.result,
+            NativeHostResult::OwnedInput {
+                parameter_index: 1,
+                value_id: function.params[1].id.clone(),
+                owner_ordinal: 0,
+            }
+        );
     }
 
     #[test]
     fn owned_result_selects_the_exact_second_same_type_owner() {
         let program = program();
         let abi = native_resource::build_resource_abi(&program).unwrap();
-        let adapter = NativeHostAdapterBinding::for_trivial_slice(&program, 29).unwrap();
         let function = function(&program, "token.choose-second");
-        let actual = derive(&program, &function.id, &abi, &adapter).unwrap();
-        let expected = HostCallContract::try_new(
-            framed_identity(MODULE_IDENTITY_DOMAIN, &program.module).unwrap(),
-            framed_identity(ADAPTER_IDENTITY_DOMAIN, &program.module).unwrap(),
-            framed_identity(FUNCTION_IDENTITY_DOMAIN, function.id.as_str()).unwrap(),
-            29,
-            vec![
-                HostResourceRequirement::new(
-                    framed_identity(RESOURCE_IDENTITY_DOMAIN, "token.type").unwrap(),
-                    framed_identity(LIFECYCLE_IDENTITY_DOMAIN, "token.drop").unwrap(),
-                ),
-                HostResourceRequirement::new(
-                    framed_identity(RESOURCE_IDENTITY_DOMAIN, "token.type").unwrap(),
-                    framed_identity(LIFECYCLE_IDENTITY_DOMAIN, "token.drop").unwrap(),
-                ),
-            ],
-            HostResultPlan::OwnedInput { input_index: 1 },
+        let actual = admit(&program, &function.id, &abi, &HashMap::new()).unwrap();
+        assert_eq!(
+            actual.result,
+            NativeHostResult::OwnedInput {
+                parameter_index: 2,
+                value_id: function.params[2].id.clone(),
+                owner_ordinal: 1,
+            }
+        );
+    }
+
+    #[test]
+    fn contract_labels_flow_through_requires_and_checked_admission() {
+        let program = program();
+        let abi = native_resource::build_resource_abi(&program).unwrap();
+        for id in ["token.requires", "token.checked"] {
+            let function = function(&program, id);
+            let labels =
+                HashMap::from([(function.requires[0].id.clone(), format!("label for {id}"))]);
+            let template = admit(&program, &function.id, &abi, &labels).unwrap();
+            assert_eq!(template.result, NativeHostResult::ScalarI64);
+            assert!(!template.fingerprint.is_empty());
+        }
+    }
+
+    #[test]
+    fn adapter_binding_is_stage_b_authority_and_instances_are_distinct() {
+        let program = program();
+        let abi = native_resource::build_resource_abi(&program).unwrap();
+        let identity_function = function(&program, "token.identity");
+        let template = admit(&program, &identity_function.id, &abi, &HashMap::new()).unwrap();
+        let first = NativeHostAdapterBinding::for_current_thread(&template).unwrap();
+        let second = NativeHostAdapterBinding::for_current_thread(&template).unwrap();
+        let first_contract = bind(&template, &first).unwrap();
+        let second_contract = bind(&template, &second).unwrap();
+        assert_ne!(first_contract, second_contract);
+        let mut wrong_thread_registry = HostOwnershipRegistry::try_new().unwrap();
+        let wrong_request_thread = std::thread::scope(|scope| {
+            scope
+                .spawn(|| {
+                    first_contract.execute_owned(&mut wrong_thread_registry, Vec::new(), |_| {
+                        Ok::<(), NormalizedStatus>(())
+                    })
+                })
+                .join()
+                .unwrap()
+        });
+        assert_eq!(
+            wrong_request_thread,
+            HostBoundaryResult::Rejected(HostBoundaryRejection::WrongThread)
+        );
+        let wrong_thread = std::thread::scope(|scope| {
+            scope
+                .spawn(|| bind(&template, &first).unwrap_err().code)
+                .join()
+                .unwrap()
+        });
+        assert_eq!(wrong_thread, "SPX-B104");
+
+        let changed_source = SOURCE.replace("token.drop", "token.drop.v2");
+        let changed_parsed = parse(
+            &changed_source,
+            Path::new("native-host-contract-changed-abi.spx"),
         )
         .unwrap();
-        assert_eq!(actual, expected);
+        let changed = hir::resolve(&changed_parsed).unwrap();
+        let changed_abi = native_resource::build_resource_abi(&changed).unwrap();
+        let changed_function = function(&changed, "token.identity");
+        let changed_template = admit(
+            &changed,
+            &changed_function.id,
+            &changed_abi,
+            &HashMap::new(),
+        )
+        .unwrap();
+        assert_eq!(
+            bind(&changed_template, &first).unwrap_err().code,
+            "SPX-B104"
+        );
+
+        let scalar_function = function(&program, "token.discard-two");
+        let scalar_template = admit(&program, &scalar_function.id, &abi, &HashMap::new()).unwrap();
+        let scalar_binding =
+            NativeHostAdapterBinding::for_current_thread(&scalar_template).unwrap();
+        let scalar_contract = bind(&scalar_template, &scalar_binding).unwrap();
+        let mut scalar_registry = HostOwnershipRegistry::try_new().unwrap();
+        assert_eq!(
+            scalar_contract.execute_scalar(&mut scalar_registry, Vec::new(), |_| Ok(0)),
+            HostBoundaryResult::Rejected(HostBoundaryRejection::InputCountMismatch)
+        );
+    }
+
+    #[test]
+    fn detached_and_mutated_admission_evidence_cannot_be_mixed() {
+        let original = program();
+        let original_abi = native_resource::build_resource_abi(&original).unwrap();
+        let original_function = function(&original, "token.identity");
+        let cleanup = super::super::native_cleanup::classify(&original, original_function).unwrap();
+        let values = super::super::native_value::plan(
+            &original,
+            original_function,
+            &cleanup,
+            &original_abi,
+            &HashMap::new(),
+        )
+        .unwrap();
+
+        let detached = original.clone();
+        let detached_abi = native_resource::build_resource_abi(&detached).unwrap();
+        assert_eq!(
+            derive_from_admitted(
+                &detached,
+                &function(&detached, "token.identity").id,
+                &detached_abi,
+                &cleanup,
+                &values,
+            )
+            .unwrap_err()
+            .code,
+            "SPX-B104"
+        );
+
+        let mismatched_cleanup =
+            super::super::native_cleanup::classify(&original, original_function).unwrap();
+        assert_eq!(
+            derive_from_admitted(
+                &original,
+                &original_function.id,
+                &original_abi,
+                &mismatched_cleanup,
+                &values,
+            )
+            .unwrap_err()
+            .code,
+            "SPX-B104"
+        );
     }
 
     #[test]
@@ -367,26 +885,25 @@ fn main() -> i64 { 0 }
         let program = program();
         let abi = native_resource::build_resource_abi(&program).unwrap();
         let canonical = function(&program, "token.identity").clone();
-        let adapter = NativeHostAdapterBinding::for_trivial_slice(&program, 31).unwrap();
 
         let mut ownership = program.clone();
         function_mut(&mut ownership, "token.identity").params[1].ownership = OwnershipMode::Borrow;
-        assert!(derive(&ownership, &canonical.id, &abi, &adapter).is_err());
+        assert!(admit(&ownership, &canonical.id, &abi, &HashMap::new()).is_err());
 
         let mut parameter_type = program.clone();
         function_mut(&mut parameter_type, "token.identity").params[1].ty = ResolvedType::I64;
-        assert!(derive(&parameter_type, &canonical.id, &abi, &adapter).is_err());
+        assert!(admit(&parameter_type, &canonical.id, &abi, &HashMap::new()).is_err());
 
         let mut result = program.clone();
         function_mut(&mut result, "token.identity").return_type = ResolvedType::I64;
-        assert!(derive(&result, &canonical.id, &abi, &adapter).is_err());
+        assert!(admit(&result, &canonical.id, &abi, &HashMap::new()).is_err());
 
         assert_eq!(
-            derive(
+            admit(
                 &program,
                 &crate::hir::DeclarationId::new("other.function"),
                 &abi,
-                &adapter,
+                &HashMap::new(),
             )
             .unwrap_err()
             .code,
@@ -413,10 +930,19 @@ fn main() -> i64 { 0 }
             .iter()
             .find(|candidate| candidate.id.as_str() == "token.identity")
             .unwrap();
-        let adapter = NativeHostAdapterBinding::for_trivial_slice(&program(), 37).unwrap();
-        assert!(derive(&hostile, &hostile_function.id, &abi, &adapter).is_err());
+        assert!(admit(&hostile, &hostile_function.id, &abi, &HashMap::new()).is_err());
 
         let clean = program();
+        let clean_function = function(&clean, "token.identity");
+        let clean_cleanup = super::super::native_cleanup::classify(&clean, clean_function).unwrap();
+        let clean_values = super::super::native_value::plan(
+            &clean,
+            clean_function,
+            &clean_cleanup,
+            &native_resource::build_resource_abi(&clean).unwrap(),
+            &HashMap::new(),
+        )
+        .unwrap();
         let mut wrong_abi = native_resource::build_resource_abi(&clean).unwrap();
         wrong_abi.lifecycles[0].kind =
             NativeFinalizerKind::Imported(super::super::native_resource::NativeImportedFinalizer {
@@ -426,11 +952,12 @@ fn main() -> i64 { 0 }
                 binding_field: "hostile_binding".to_owned(),
             });
         assert_eq!(
-            derive(
+            derive_from_admitted(
                 &clean,
-                &function(&clean, "token.identity").id,
+                &clean_function.id,
                 &wrong_abi,
-                &NativeHostAdapterBinding::for_trivial_slice(&clean, 37).unwrap(),
+                &clean_cleanup,
+                &clean_values,
             )
             .unwrap_err()
             .code,
@@ -439,15 +966,9 @@ fn main() -> i64 { 0 }
     }
 
     #[test]
-    fn imported_lifecycle_and_zero_thread_remain_rejected() {
+    fn imported_lifecycle_remains_rejected() {
         let clean_program = program();
         let abi = native_resource::build_resource_abi(&clean_program).unwrap();
-        assert_eq!(
-            NativeHostAdapterBinding::for_trivial_slice(&clean_program, 0)
-                .unwrap_err()
-                .code,
-            "SPX-B104"
-        );
 
         let mut imported = program();
         let token = imported
@@ -467,8 +988,7 @@ fn main() -> i64 { 0 }
             .iter()
             .find(|candidate| candidate.id.as_str() == "token.identity")
             .unwrap();
-        let adapter = NativeHostAdapterBinding::for_trivial_slice(&clean_program, 41).unwrap();
-        assert!(derive(&imported, &function.id, &abi, &adapter).is_err());
+        assert!(admit(&imported, &function.id, &abi, &HashMap::new()).is_err());
     }
 
     fn function_mut<'a>(program: &'a mut ResolvedProgram, id: &str) -> &'a mut ResolvedFunction {

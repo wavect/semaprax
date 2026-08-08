@@ -196,16 +196,31 @@ fn preflight_resource_lowering(
                 match native_value::plan(program, function, &cleanup, resource_abi, contract_labels)
                 {
                     Ok(values) => {
-                        let _declarations = native_value::emit_declarations(&values);
-                        match native_cleanup_emit::emit_with_block_prologues(
+                        match native_host_contract::derive_from_admitted(
+                            program,
+                            &function.id,
+                            resource_abi,
                             &cleanup,
-                            &values.cleanup_bindings,
-                            |block, output| {
-                                output.push_str(&native_value::emit_block_prologue(&values, block));
-                                Ok(())
-                            },
+                            &values,
                         ) {
-                            Ok(_cleanup_body) => {}
+                            Ok(_host_template) => {
+                                let _declarations = native_value::emit_declarations(&values);
+                                match native_cleanup_emit::emit_with_block_prologues(
+                                    &cleanup,
+                                    &values.cleanup_bindings,
+                                    |block, output| {
+                                        output.push_str(&native_value::emit_block_prologue(
+                                            &values, block,
+                                        ));
+                                        Ok(())
+                                    },
+                                ) {
+                                    Ok(_cleanup_body) => {}
+                                    Err(diagnostic) => {
+                                        first_failure.get_or_insert(diagnostic);
+                                    }
+                                }
+                            }
                             Err(diagnostic) => {
                                 first_failure.get_or_insert(diagnostic);
                             }
@@ -996,6 +1011,7 @@ mod tests {
     use std::path::Path;
 
     use crate::{hir, parse};
+    use sha2::{Digest, Sha256};
 
     use super::*;
 
@@ -1021,6 +1037,28 @@ fn main() -> i64 { 0 }
         )
         .unwrap();
         hir::resolve(&parsed).unwrap()
+    }
+
+    #[test]
+    fn scalar_c_output_matches_the_committed_pre_resource_template_baseline() {
+        let parsed = parse(
+            r#"module test.native_scalar_baseline;
+
+@id("math.increment")
+fn increment(value: i64) -> i64 { value + 1 }
+
+@id("app.main")
+fn main() -> i64 { increment(41) }
+"#,
+            Path::new("native-scalar-baseline.spx"),
+        )
+        .unwrap();
+        let generated = emit_c(&parsed).unwrap();
+        let digest = format!("{:x}", Sha256::digest(generated.as_bytes()));
+        assert_eq!(
+            digest,
+            "c29ee66e0acd1bb4a936c5307c54172e6617432a279d359c244b5632557ccd2f"
+        );
     }
 
     #[test]

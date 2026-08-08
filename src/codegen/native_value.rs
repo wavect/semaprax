@@ -26,7 +26,7 @@ use crate::hir::{
     ResolvedResourceDropKind, ResolvedType, ResolvedTypeDeclarationKind, ValueId,
 };
 
-use super::native_cleanup::{NativeCleanupIndex, NativeCleanupSlot};
+use super::native_cleanup::{NativeCleanupAdmission, NativeCleanupIndex, NativeCleanupSlot};
 use super::native_cleanup_emit::NativeCleanupBindings;
 use super::native_resource::NativeResourceAbi;
 use super::native_trace;
@@ -95,13 +95,27 @@ pub(crate) enum NativeValueStep {
     },
 }
 
+/// Result mapping already proven against the exact HIR and cleanup transfers.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) enum NativeValueResult {
+    ScalarI64,
+    OwnedInput {
+        parameter_index: usize,
+        parameter: ValueId,
+        owner_ordinal: usize,
+    },
+}
+
 /// Complete staged value-side input for the cleanup emitter.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct NativeValuePlan {
+    function_id: crate::hir::DeclarationId,
+    cleanup_admission: NativeCleanupAdmission,
     pub(crate) cleanup_bindings: NativeCleanupBindings,
     pub(crate) required_event_capacity: u32,
     pub(crate) declarations: Vec<NativeValueDeclaration>,
     pub(crate) block_steps: BTreeMap<BlockId, Vec<NativeValueStep>>,
+    result: NativeValueResult,
 }
 
 /// Build the exact value plan for the currently exercised single-frame corpus.
@@ -117,7 +131,7 @@ pub(crate) fn plan(
     abi: &NativeResourceAbi,
     contract_labels: &HashMap<ExpressionId, String>,
 ) -> Result<NativeValuePlan, Diagnostic> {
-    if cleanup.function_id != &function.id {
+    if !cleanup.belongs_to(function) {
         return Err(value_error("cleanup index belongs to a different function"));
     }
     validate_signature(program, function, abi)?;
@@ -128,7 +142,7 @@ pub(crate) fn plan(
         cleanup,
         abi,
         contract_labels,
-        current: cleanup.entry,
+        current: cleanup.entry(),
         cleanup_bindings: NativeCleanupBindings {
             context: "spx_bind_context".to_owned(),
             result_out: Some("spx_bind_result_out".to_owned()),
@@ -155,7 +169,7 @@ pub(crate) fn plan(
     }
     let body_value = planner.lower_body_tail(tail)?;
 
-    match &function.return_type {
+    let result = match &function.return_type {
         ResolvedType::I64 => {
             let result = planner.new_scalar(&function.body.id, "int64_t")?;
             planner.push(NativeValueStep::Copy {
@@ -166,15 +180,21 @@ pub(crate) fn plan(
                 .cleanup_bindings
                 .scalar_results
                 .insert(function.body.id.clone(), result);
+            NativeValueResult::ScalarI64
         }
         ResolvedType::Nominal { .. } => {
-            planner.validate_owned_tail(tail)?;
+            let (parameter_index, parameter, owner_ordinal) = planner.validate_owned_tail(tail)?;
             planner.validate_owned_body_transfers(tail)?;
+            NativeValueResult::OwnedInput {
+                parameter_index,
+                parameter,
+                owner_ordinal,
+            }
         }
         ResolvedType::Bool | ResolvedType::TypeParameter { .. } => {
             return Err(value_error("result type is outside the staged corpus"));
         }
-    }
+    };
 
     for (ordinal, contract) in function.ensures.iter().enumerate() {
         if !matches!(contract.kind, ResolvedExprKind::Bool(false)) {
@@ -186,18 +206,38 @@ pub(crate) fn plan(
     }
     planner.validate_success_exit()?;
 
-    if planner.consumed_statuses.len() != cleanup.status_sources.len() {
+    if planner.consumed_statuses.len() != cleanup.status_sources().len() {
         return Err(value_error(
             "cleanup plan contains an unconsumed status source",
         ));
     }
 
     Ok(NativeValuePlan {
+        function_id: function.id.clone(),
+        cleanup_admission: cleanup.admission(),
         cleanup_bindings: planner.cleanup_bindings,
         required_event_capacity: native_trace::required_event_capacity(program, function)?,
         declarations: planner.declarations,
         block_steps: planner.block_steps,
+        result,
     })
+}
+
+impl NativeValuePlan {
+    /// Prove that this value proof shares the private cleanup admission
+    /// capability for this canonical function. The capability never enters a
+    /// template or generated artifact.
+    pub(crate) fn belongs_to(
+        &self,
+        function: &ResolvedFunction,
+        cleanup: &NativeCleanupIndex<'_>,
+    ) -> bool {
+        self.function_id == function.id && self.cleanup_admission.matches(&cleanup.admission())
+    }
+
+    pub(crate) fn result(&self) -> &NativeValueResult {
+        &self.result
+    }
 }
 
 /// Emit deterministic top-of-function declarations. Parameter bindings named
@@ -343,7 +383,7 @@ impl Planner<'_> {
             }
         }
 
-        for indexed in &self.cleanup.slots {
+        for indexed in self.cleanup.slots() {
             let binding = format!("spx_bind_slot_{}", indexed.slot.id.0);
             let initializer = self.storage_initializer(indexed)?;
             self.cleanup_bindings
@@ -408,7 +448,7 @@ impl Planner<'_> {
         };
         let semantic = self
             .cleanup
-            .status_sources
+            .status_sources()
             .iter()
             .find(|candidate| candidate.id == source)
             .ok_or_else(|| value_error("contract has no exact cleanup status source"))?;
@@ -517,7 +557,7 @@ impl Planner<'_> {
                 };
                 let semantic = self
                     .cleanup
-                    .status_sources
+                    .status_sources()
                     .iter()
                     .find(|candidate| candidate.id == source)
                     .ok_or_else(|| value_error("checked add has no exact cleanup status source"))?;
@@ -582,7 +622,10 @@ impl Planner<'_> {
         }
     }
 
-    fn validate_owned_tail(&self, tail: &ResolvedExpr) -> Result<(), Diagnostic> {
+    fn validate_owned_tail(
+        &self,
+        tail: &ResolvedExpr,
+    ) -> Result<(usize, ValueId, usize), Diagnostic> {
         let ResolvedExprKind::Place(place) = &tail.kind else {
             return Err(value_error(
                 "owned result is not an owned-parameter identity",
@@ -597,12 +640,22 @@ impl Planner<'_> {
             .function
             .params
             .iter()
-            .find(|parameter| parameter.id == place.root)
+            .enumerate()
+            .find(|(_, parameter)| parameter.id == place.root)
             .ok_or_else(|| value_error("owned result does not originate from a parameter"))?;
-        if parameter.ownership != OwnershipMode::Own || parameter.ty != self.function.return_type {
+        if parameter.1.ownership != OwnershipMode::Own
+            || parameter.1.ty != self.function.return_type
+        {
             return Err(value_error("owned result parameter has the wrong contract"));
         }
-        Ok(())
+        let owner_ordinal = self.function.params[..parameter.0]
+            .iter()
+            .filter(|candidate| {
+                candidate.ownership == OwnershipMode::Own
+                    && matches!(candidate.ty, ResolvedType::Nominal { .. })
+            })
+            .count();
+        Ok((parameter.0, parameter.1.id.clone(), owner_ordinal))
     }
 
     fn validate_owned_body_transfers(&self, tail: &ResolvedExpr) -> Result<(), Diagnostic> {

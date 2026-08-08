@@ -72,20 +72,20 @@ pub(crate) fn emit_with_block_prologues(
     validate_bindings(index, bindings)?;
 
     let mut output = String::from("/* semaprax.native-cleanup-scaffold.v1 */\n");
-    for leaf in &index.leaves {
+    for leaf in index.leaves() {
         writeln!(output, "bool {} = false;", flag_symbol(leaf.flag))
             .expect("writing to a string cannot fail");
     }
     output.push_str("spx_status_token spx_cleanup_selected_status = SPX_STATUS_SUCCESS;\n");
-    for place in index.live_owned_parameters {
+    for place in index.live_owned_parameters() {
         let leaf = leaf_for_place(index, place)?;
         writeln!(output, "{} = true;", flag_symbol(leaf.flag))
             .expect("writing to a string cannot fail");
     }
-    writeln!(output, "goto {};", block_label(index.entry))
+    writeln!(output, "goto {};", block_label(index.entry()))
         .expect("writing to a string cannot fail");
 
-    for indexed in &index.blocks {
+    for indexed in index.blocks() {
         writeln!(output, "{}:", block_label(indexed.block.id))
             .expect("writing to a string cannot fail");
         emit_block_prologue(indexed.block.id, &mut output)?;
@@ -101,7 +101,7 @@ pub(crate) fn emit_with_block_prologues(
         )?;
     }
 
-    for indexed in &index.exits {
+    for indexed in index.exits() {
         writeln!(output, "{}:", exit_label(indexed.exit.id.0))
             .expect("writing to a string cannot fail");
         for action in indexed.finalizers {
@@ -158,7 +158,7 @@ fn begin_trace_event(
     writeln!(
         output,
         "    spx_cleanup_event.function_id = \"{}\";",
-        c_string(index.function_id.as_str())
+        c_string(index.function_id().as_str())
     )
     .expect("writing to a string cannot fail");
     Ok(())
@@ -255,7 +255,7 @@ fn emit_select_failure_trace(
     source: &StatusSourceId,
 ) -> Result<(), Diagnostic> {
     let semantic_source = index
-        .status_sources
+        .status_sources()
         .iter()
         .find(|candidate| candidate.id == *source)
         .ok_or_else(|| cleanup_error(format!("unknown trace status source `{source:?}`")))?;
@@ -679,7 +679,7 @@ fn bounded_continue_edge<'a>(
         return Err(reject("does not own one unconditional edge"));
     }
     let incoming = index
-        .edges
+        .edges()
         .iter()
         .filter(|candidate| candidate.to == source.block.id)
         .collect::<Vec<_>>();
@@ -698,7 +698,7 @@ fn bounded_continue_edge<'a>(
             return Err(reject("does not leave one contiguous region chain"));
         }
         let region = index
-            .regions
+            .regions()
             .iter()
             .find(|region| region.id == *region_id)
             .ok_or_else(|| reject("references an unknown region"))?;
@@ -715,13 +715,13 @@ fn bounded_continue_edge<'a>(
         .ok_or_else(|| reject("targets an unknown block"))?;
     if target.block.region != parent_region
         || index
-            .edges
+            .edges()
             .iter()
             .filter(|candidate| candidate.to == target.block.id)
             .count()
             != 1
         || index
-            .exits
+            .exits()
             .iter()
             .filter(|candidate| {
                 matches!(candidate.exit.continuation, ExitContinuation::Continue(id) if id == edge_id)
@@ -735,7 +735,7 @@ fn bounded_continue_edge<'a>(
 }
 
 fn emit_assert_all_dead(output: &mut String, index: &NativeCleanupIndex<'_>, message: &str) {
-    for leaf in &index.leaves {
+    for leaf in index.leaves() {
         writeln!(
             output,
             "if ({}) spx_runtime_invariant_failure(\"{message}\");",
@@ -750,7 +750,7 @@ fn emit_assert_only_leaf_live(
     index: &NativeCleanupIndex<'_>,
     live_flag: LivenessFlagId,
 ) {
-    for leaf in &index.leaves {
+    for leaf in index.leaves() {
         let flag = flag_symbol(leaf.flag);
         if leaf.flag == live_flag {
             writeln!(
@@ -809,7 +809,7 @@ fn validate_bindings(
         ));
     }
     let expected_storage = index
-        .slots
+        .slots()
         .iter()
         .map(|slot| slot.slot.storage.clone())
         .collect::<BTreeSet<_>>();
@@ -821,7 +821,7 @@ fn validate_bindings(
 
     let mut expected_booleans = BTreeSet::new();
     let mut expected_statuses = BTreeSet::new();
-    for edge in index.edges {
+    for edge in index.edges() {
         match &edge.condition {
             EdgeCondition::BooleanResult(expression, _) => {
                 expected_booleans.insert(expression.clone());
@@ -834,7 +834,7 @@ fn validate_bindings(
     }
     let mut expected_scalars = BTreeSet::new();
     let mut publishes_result = false;
-    for block in &index.blocks {
+    for block in index.blocks() {
         for transition in block.transitions {
             match transition {
                 CleanupTransition::SelectFailure { source } => {
@@ -849,7 +849,7 @@ fn validate_bindings(
             }
         }
     }
-    for indexed in &index.exits {
+    for indexed in index.exits() {
         match &indexed.exit.continuation {
             ExitContinuation::Continue(edge) => {
                 bounded_continue_edge(index, indexed.exit, *edge)?;
@@ -1196,13 +1196,13 @@ fn main() -> i64 { 0 }
             context: "spx_bind_context".to_owned(),
             ..NativeCleanupBindings::default()
         };
-        for slot in &index.slots {
+        for slot in index.slots() {
             bindings.storage_values.insert(
                 slot.slot.storage.clone(),
                 format!("spx_bind_slot_{}", slot.slot.id.0),
             );
         }
-        for edge in index.edges {
+        for edge in index.edges() {
             match &edge.condition {
                 EdgeCondition::BooleanResult(expression, _) => {
                     let next = bindings.boolean_values.len();
@@ -1221,7 +1221,7 @@ fn main() -> i64 { 0 }
                 EdgeCondition::Always => {}
             }
         }
-        for indexed in &index.exits {
+        for indexed in index.exits() {
             match &indexed.exit.continuation {
                 ExitContinuation::CommitResult { source } => {
                     bindings.result_out = Some("spx_bind_result_out".to_owned());
@@ -1318,12 +1318,12 @@ fn main() -> i64 { 0 }
         assert_eq!(
             visited,
             index
-                .blocks
+                .blocks()
                 .iter()
                 .map(|indexed| indexed.block.id)
                 .collect::<Vec<_>>()
         );
-        for indexed in &index.blocks {
+        for indexed in index.blocks() {
             let block = indexed.block.id;
             assert!(emitted.contains(&format!(
                 "{}:\n/* test block prologue {} */\n",
@@ -1337,7 +1337,7 @@ fn main() -> i64 { 0 }
     fn block_prologue_error_is_propagated_without_visiting_later_blocks() {
         let program = program();
         let index = classify(&program, function(&program, "token.checked")).unwrap();
-        assert!(index.blocks.len() > 1);
+        assert!(index.blocks().len() > 1);
         let mut visited = Vec::new();
         let diagnostic =
             emit_with_block_prologues(&index, &complete_bindings(&index), |block, _| {
@@ -1349,11 +1349,11 @@ fn main() -> i64 { 0 }
             })
             .unwrap_err();
 
-        assert_eq!(visited, vec![index.entry]);
+        assert_eq!(visited, vec![index.entry()]);
         assert_eq!(diagnostic.code, "SPX-TEST");
         assert_eq!(
             diagnostic.message,
-            format!("failed block prologue {}", index.entry.0)
+            format!("failed block prologue {}", index.entry().0)
         );
     }
 
@@ -1366,7 +1366,7 @@ fn main() -> i64 { 0 }
 
         let program = program();
         let index = classify(&program, function(&program, "token.??/λ")).unwrap();
-        assert_eq!(index.function_id.as_str(), "token.??/λ");
+        assert_eq!(index.function_id().as_str(), "token.??/λ");
         let emitted = emit(&index, &complete_bindings(&index)).unwrap();
         assert!(emitted.contains("token.\\077\\077/\\316\\273"));
         assert!(!emitted.contains("??"));
@@ -1385,7 +1385,7 @@ fn main() -> i64 { 0 }
         let identity_bindings = complete_bindings(&identity_index);
         let identity = emit(&identity_index, &identity_bindings).unwrap();
         let mut identity_storage_parameters = String::new();
-        for slot in &identity_index.slots {
+        for slot in identity_index.slots() {
             writeln!(
                 identity_storage_parameters,
                 "uintptr_t {},",
@@ -1394,7 +1394,7 @@ fn main() -> i64 { 0 }
             .expect("writing to a string cannot fail");
         }
         let identity_storage_arguments = identity_index
-            .slots
+            .slots()
             .iter()
             .map(|slot| {
                 if matches!(slot.slot.storage, StorageId::Value(_)) {
@@ -1722,14 +1722,14 @@ fn main() -> i64 { 0 }
         let program = program();
         let index = classify(&program, function(&program, "token.contract-failure")).unwrap();
         let mut exit = index
-            .exits
+            .exits()
             .iter()
             .find(|indexed| matches!(indexed.exit.continuation, ExitContinuation::Continue(_)))
             .expect("compiler contract continuation")
             .exit
             .clone();
         let finalizer = index
-            .exits
+            .exits()
             .iter()
             .flat_map(|indexed| indexed.finalizers)
             .next()
@@ -1744,14 +1744,14 @@ fn main() -> i64 { 0 }
         assert!(output.is_empty());
 
         let mut conditional = index
-            .exits
+            .exits()
             .iter()
             .find(|indexed| matches!(indexed.exit.continuation, ExitContinuation::Continue(_)))
             .expect("compiler contract continuation")
             .exit
             .clone();
         let conditional_edge = index
-            .edges
+            .edges()
             .iter()
             .find(|edge| !matches!(edge.condition, EdgeCondition::Always))
             .expect("contract branch")
@@ -1862,8 +1862,8 @@ fn main() -> i64 { 0 }
     fn initialize_without_a_physical_payload_source_fails_closed() {
         let program = program();
         let index = classify(&program, function(&program, "token.discard")).unwrap();
-        let destination = index.slots[0].leaf.place.clone();
-        let at = match &index.exits[0].exit.continuation {
+        let destination = index.slots()[0].leaf.place.clone();
+        let at = match &index.exits()[0].exit.continuation {
             ExitContinuation::CommitResult {
                 source: CleanupResultSource::Scalar { expression },
             } => expression.clone(),

@@ -21,6 +21,7 @@ pub mod verify;
 pub mod wasm;
 
 mod graph_cleanup;
+mod host_ownership;
 mod source_verify;
 
 use std::path::Path;

@@ -1,6 +1,19 @@
 # Conformance trace v1
 
-Status: the public Rust data model, deterministic JSON projection, independent attached-plan replay, scenario-driven single-frame reference executor, and native scalar status/out execution are implemented. A gated native value/cleanup scaffold executes the admitted direct-trivial-resource corpus and compares exact typed/JSON traces at O0/O2 plus sanitizers. The narrow public `semaprax.wasm-owned.v1` path emits compiler-generated semantic ordinals from real Node/Wasm control flow. Both generated-C and Wasm lanes materialize through the same authenticated dictionary and exactly match the reference trace and outcome over the authoritative 14-case corpus. An unpublished physical native host connects a real loader lease, authority, ledger, and owners but still calls no generated resource symbol and emits no semantic trace. Recursive reference-callee execution, callable-import execution, production callable-native resource execution, and general-shape backend conformance remain unimplemented.
+Status: the public Rust data model, deterministic JSON projection, independent
+attached-plan replay, scenario-driven single-frame reference executor, and
+native scalar status/out execution are implemented. The narrow public
+`semaprax.wasm-owned.v1` path emits compiler-generated semantic ordinals from
+real Node/Wasm control flow. The private generated-C lane now executes the same
+authoritative 14-case corpus through an exact loader lease, authority, ledger,
+and generated callable at O0/O2. Its host authenticates the event dictionary
+and compiler-owned trace-path certificate before materializing events. Native
+host and Wasm outcomes, publication, logical liveness, and complete traces
+match the reference exactly. Recursive reference-callee execution,
+callable-import execution, public callable-native resource execution, and
+general-shape backend conformance remain unimplemented. A dynamic-provider
+ASan/UBSan CI job is configured but has no green public run yet and does not
+sanitizer-instrument the Rust host itself.
 
 This document fixes the current public wire projection defined by `src/conformance.rs`. It complements [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md). The native scalar backend executes the status/out portion. For the admitted owned-resource slice, generated native C and Wasm emit dictionary ordinals that the host materializes into this protocol; the 14-case equality is executable evidence for that slice, not a claim of general or production native resource conformance.
 

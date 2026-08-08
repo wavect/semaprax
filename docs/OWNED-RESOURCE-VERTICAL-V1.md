@@ -5,6 +5,12 @@ resource-execution slice; it does not make the slice implemented. Native
 `SPX-B104` and WebAssembly `SPX-W111` remain mandatory until every admission
 and conformance gate below is executable.
 
+Current private evidence now connects feature-gated compiler emission to the
+real callable-v2 loader/authority/ledger host. It executes the complete 14-case
+corpus from generated O0/O2 shared libraries and exactly matches the reference
+and Node/Wasm outcomes and semantic traces. That closes the former
+former callable-composition gap, but not this public gate.
+
 ## Purpose
 
 The first slice converts the existing validated ownership and cleanup meaning
@@ -60,7 +66,9 @@ secrets, loader paths, and target-specific identities never enter that trace.
 Every fallible allocation, generation advance, result credential or handle
 reservation, status/trace capacity check, and serialization bound check occurs
 before commit. A host exception after commit is an executed adapter failure,
-not a rejection, and still follows the exact cleanup/finalization path.
+not a rejection. The current direct-trivial host retires its committed logical
+ledger state, but a general canonical fallback cleanup/finalizer trace and
+physical quiescence protocol remains required before this contract is complete.
 
 ## Native host
 
@@ -85,14 +93,17 @@ preconditions and structural decoder checks succeed, the returned
 thread-confined host object may expose safe calls; SEMAPRAX v1 does not
 independently authenticate the caller's provenance claim.
 
-Callable providers use a new versioned descriptor and call ABI; descriptor v1
-remains descriptor-only and continues promising no callable owner API. The new
-wire fixes the exact symbol allowlist, parameter/result layouts, alignment,
-aliasing, readable/writable lifetimes, normalized status behavior, unwind
-prohibition, and semantic-versus-physical fingerprints. It requires its own
-migration note and hostile decoder tests before admission.
-Generated C, descriptor-v2 bytes, physical fingerprints, and export symbols
-must be deterministic across clean repeated builds.
+Callable providers use descriptor v2 and a strict call ABI; descriptor v1
+remains descriptor-only and continues promising no callable owner API. The v2
+wire fixes the exact symbol allowlist, parameter/result layouts,
+readable/writable lifetimes, normalized status behavior, unwind prohibition,
+and semantic-versus-physical fingerprints. It independently binds the event
+dictionary and compiler-owned trace-path trie-DFA. Generated C compile-guards
+the authenticated architecture, OS, environment, object format, pointer width,
+and endian profile. Descriptor mutation, strict request/response codec, target
+mismatch, and hostile trace-path tests now fail closed. Generated C,
+descriptor-v2 bytes, fingerprints, certificates, and export symbols remain
+deterministic across repeated derivation.
 
 Initial native owners enter through a separately audited `unsafe` adoption
 boundary. Its caller proves unique ownership, valid type/lifecycle identity,
@@ -180,11 +191,12 @@ For every case, compare the normalized status, publication state, complete
 event sequence, storage/lifecycle identities, and final liveness. Native O0
 and O2, ASan, and UBSan executions must agree exactly.
 
-At least one gate must exercise only production-reachable, non-`cfg(test)`
-surfaces: the public compiler emits the admitted artifact and descriptor, the
-public host admission API loads or instantiates it, and the public call API
-runs the corpus. Private planner or generated-source harnesses are supporting
-evidence only and cannot relax `SPX-B104` or `SPX-W111`.
+The private native corpus now exercises non-`cfg(test)` feature-gated compiler
+and host surfaces: the compiler emits the artifact, the host loads it, and the
+safe call API runs the corpus through its ledger. This is stronger than a
+generated-source harness, but the ordinary public compiler build/preflight path
+still rejects with `SPX-B104`; therefore the production-reachability gate is
+not complete.
 
 ## Hostile boundary gates
 
@@ -214,7 +226,10 @@ The slice cannot be admitted until all of these pass:
 - real runtime-loaded and callable native fixtures on Linux, macOS, and
   Windows, including exact cleanup traces;
 - real Wasm execution through Node in CI;
-- mandatory Linux ASan and UBSan native executions;
+- a green public run of the configured Linux dynamic-callable job, with the
+  generated providers instrumented by ASan/UBSan and loaded through the host;
+- sanitizer instrumentation of the Rust host itself, not merely linkage of the
+  sanitizer runtimes required by the generated providers;
 - compile-fail thread-confinement and non-copying/non-formatting API tests;
 - malformed-input and hostile-HIR suites;
 - exhaustion and wraparound suites for module instances, owner slots,
@@ -226,7 +241,8 @@ The slice cannot be admitted until all of these pass:
   raw-payload adoption are confined to named quarantine crates/modules while
   the compiler crate remains unsafe-free;
 - Rust 1.85, strict workspace Clippy, docs with warnings denied, root package
-  verification, and the complete cargo-deny policy; and
+  verification, and the complete cargo-deny policy, always with every workspace
+  feature enabled; and
 - the existing native, web, and example matrix without weakened tests.
 
 ## Explicit nonclaims
@@ -234,8 +250,15 @@ The slice cannot be admitted until all of these pass:
 This v1 slice does not implement imported finalizers, records, variants,
 `Option`, `Result`, borrowing across FFI, allocation APIs, callbacks, async,
 concurrency, fork recovery, hot reload, independent same-root native symbol
-provenance authentication, hardened Windows dependency loading, signed code
-admission, WebAssembly
+provenance authentication, Windows dependency-collision runtime evidence,
+signed code admission, WebAssembly
 Components, packages, UI, or mobile/desktop application hosts. Those remain
 subsequent completion-matrix gates; this slice is the ownership prerequisite,
 not a substitute for them.
+
+It also does not yet prove general physical/malformed-response fallback cleanup
+and quiescence, a green public run of the configured dynamic-provider
+sanitizer job, sanitizer instrumentation of the Rust host itself, a green
+public Windows callable/dependency-collision run, Android device admission, an
+iOS static-link profile, or public compiler emission. Those are blockers for
+`SPX-B104`, not implications of the private 14-case success.

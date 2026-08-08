@@ -59,13 +59,13 @@ All notable changes to SEMAPRAX are documented here.
 - Split private native host contracts into deterministic authority-free templates and runtime binding. Resource preflight now derives and discards each template from its exact already-admitted cleanup/value evidence without replanning; complete ordered scalar/resource metadata, exact same-type owner results, lifecycle identity, module ABI and function-template fingerprints, mismatched-evidence rejection, binding-instance-distinct process-local authority, cross-ABI binding rejection, and internally observed thread affinity at binding and synchronous registry execution are unit-tested while public execution remains gated.
 - Corrected the native conformance probe to consume the value planner's exact owned-result parameter/owner ordinal instead of choosing the first same-typed input. The sanitizer-backed corpus now proves returning the second of two identical resource types with both distinct and identical opaque payloads, plus reverse cleanup and no result publication when its precondition fails.
 - Added a private descriptor-only physical native ABI stage derived solely from sealed admitted host templates. Its canonical pointer-free wire binds explicit schema, target, semantic/physical module, function, ordered scalar/resource/lifecycle, and exact result identities. A host-only provider compile-guards every encoded target property; strict separate C11/C++ translation units plus a real shared-library/export/dynamic-consumer test verify the deterministic getter as the sole export. Compiler preflight discards every staged artifact, exports no callable owner API, creates no runtime authority, and leaves the exact public `SPX-B104` gate unchanged.
-- Added a disconnected private native capability-token codec with an exact 64-byte canonical envelope and full RustCrypto HMAC-SHA256 tag. Pinned audited crypto, a published RFC 4231 vector, independently reproduced owner/result full-token goldens, every-bit/arbitrary-byte/length/structure hostility, exact function-template result scoping, function-independent owner scoping, cross-context rejection, stale/max-generation checks, and explicit entropy/module-lifetime/linearity nonclaims establish authentication mechanics without creating compiler or runtime authority.
+- Initially added the private native capability-token codec as a disconnected exact 64-byte canonical envelope with a full RustCrypto HMAC-SHA256 tag. Pinned audited crypto, a published RFC 4231 vector, independently reproduced owner/result full-token goldens, every-bit/arbitrary-byte/length/structure hostility, exact function-template result scoping, function-independent owner scoping, cross-context rejection, stale/max-generation checks, and explicit entropy/module-lifetime/linearity nonclaims established the mechanics later connected by the callable host.
 - Added a private OS-backed native capability authority without connecting it to compiler preflight or any export. Exactly pinned `getrandom` 0.4.3 supplies one fail-closed seed for the secret, nonzero random epoch, and opaque thread-binding nonce; kind-specific non-formatting credentials seal immutable module/resource context and reject every operation off the actually captured Rust thread. Test-only deterministic entropy, independently reproduced authority goldens, error/zero/context/thread hostility, MSRV, and desktop OS smoke preserve the public `SPX-B104` gate while module retention, ledger integration, fork safety, and callable ownership remain blocked.
 - Added a private fake-backed `NativeModuleLease` topology and required the native capability authority plus every staged owner/result credential wrapper to retain the exact allocation instance. Tests cover equal-fingerprint instance separation, process-incarnation rejection, one-way draining, lease-derived fingerprints, cross-instance rejection despite equal bearer bytes, drop-order retention, concurrent final release, and absence of retention cycles. There remains no production constructor, platform loader handle, code-identity admission, physical pin/unload protocol, ledger integration, callable export, or change to `SPX-B104`.
-- Added an unpublished `semaprax-native-loader` workspace quarantine around the unavoidable trusted-library load, fixed-getter lookup, and bounded descriptor-read/compare unsafe edge. Its same-thread opaque explicit-retain lease, exact-pinned `libloading` 0.8.9, compile-fail trait checks, workspace-wide gates, and real Linux/macOS fixtures remain disconnected from the compiler, authority, and public adapter. Malicious modules, same-image provenance, hardened Windows loading, physical unmapping, quiescence, and code authenticity remain blockers.
+- Added an unpublished `semaprax-native-loader` workspace quarantine around the unavoidable trusted-library load, fixed-getter lookup, and bounded descriptor-read/compare unsafe edge. At this initial stage its same-thread opaque explicit-retain lease, exact-pinned `libloading` 0.8.9, compile-fail trait checks, workspace-wide gates, and real Linux/macOS fixtures were isolated from the compiler and authority; later entries connect them privately while the public adapter remains gated.
 - Added a blocking, immutable-action-pinned `cargo-deny` CI gate for the complete native/mobile/Wasm dependency graph: RustSec advisories, unapproved licenses, duplicate or wildcard versions, Git dependencies, and registries outside crates.io fail the build with no advisory exceptions.
 - Added a root-frame native trace-storage scaffold with exact compiler-status/event validation and a pre-ownership attachment handshake. Canonically zeroed one-shot contexts, buffers, and event slots use owner/generation checks to reject rebinding, aliasing, double attachment, and capacity underflow before execution.
-- Added the unpublished `semaprax-native-host` physical ownership stage. It strictly decodes the compiler-derived descriptor, retains the exact real loader instance through its same-thread OS-seeded authority and opaque owners, authenticates owner/result credentials, connects the private ownership ledger, preserves owners on precommit rejection, rotates owned results, and gates new work after draining. Linux/macOS real-loader fixtures exercise that plumbing; Windows has compile coverage only. The loaded provider still exposes only its descriptor getter, trusted Rust closures stand in for generated callable code, and compiler resource builds retain `SPX-B104`.
+- Added the unpublished `semaprax-native-host` physical ownership stage. It strictly decodes compiler-derived descriptors, retains the exact real loader instance through its same-thread OS-seeded authority and opaque owners, authenticates owner/result credentials, connects the private ownership ledger, preserves owners on precommit rejection, rotates owned results, and gates new work after draining. The later callable-v2 work below replaces its original trusted-closure execution fixture; compiler resource builds still retain `SPX-B104`.
 - Added the first narrow public `semaprax.wasm-owned.v1` Core Wasm execution path for one direct trivial-resource identity. Generated adapters consume replay-validated terminal cleanup order, stage owner handles atomically, normalize contract/arithmetic/adapter status records, preserve poisoned result storage on failure, rotate owned results, and reject excluded shapes with `SPX-W111`. The generated JavaScript keeps host imports private, binds calls to exact generated metadata and SHA-256-authenticated Wasm bytes, rejects non-canonical ABI arguments, checks result ranges before ownership commit, and uses one-shot trusted adoption tickets; Node tests cover the admitted slice. This is not WebAssembly Component resources or production native-host conformance.
 - Added `semaprax.semantic-event-dictionary.v1`, which assigns deterministic
   nonzero ordinals to exact semantic event shapes. Generated cleanup C and the
@@ -73,25 +73,41 @@ All notable changes to SEMAPRAX are documented here.
   the host-side materializer rejects zero or unknown ordinals without inferring
   or repairing events.
 - Unified the authoritative direct-trivial-resource conformance corpus at 14
-  named scenarios. Native generated C at O0/O2 and real Node/Wasm independently
-  materialize to the exact reference executor trace, normalized outcome, and
-  canonical JSON for zero/max payloads, reverse cleanup, contract and checked
-  failures, scalar publication, owned identity/selection, and failed owned
-  publication. The native evidence remains a test-only harness rather than the
-  production ownership host.
+  named scenarios. Real compiler-generated native shared libraries at O0/O2 now
+  execute through the exact loader/authority/ledger ownership host, while real
+  Node/Wasm executes the same cases. Both materialize to the exact reference
+  trace and normalized outcome for zero/max payloads, reverse cleanup, contract
+  and checked failures, scalar publication, owned identity/selection, and failed
+  owned publication; native also proves result rotation and final logical
+  liveness.
 - Added private callable native descriptor v2, derived from the sealed compiler
-  host template plus execution/cleanup and semantic-dictionary evidence. Its
-  canonical pointer-free wire binds eleven fingerprints, exact symbols,
+  host template plus execution/cleanup, semantic-dictionary, and trace-path
+  evidence. Its canonical pointer-free wire binds twelve fingerprints, exact symbols,
   request/response capacities, complete ordered signature, opaque-`u64` owned
   payload kind, and result mapping. The unpublished host's independent strict
   parser accepts compiler output and rejects every single-byte mutation,
   truncation, and trailing byte.
-- Extended the native loader quarantine with Unix
-  `RTLD_NOW | RTLD_LOCAL`, exact callable-v2 symbol admission, bounded
-  preallocated one-shot byte calls, and exact-instance rejection. This transport
-  fixture is not generated SEMAPRAX resource execution: the physical ownership
-  host still uses a trusted Rust closure, Windows runtime and callable-path
-  sanitizer evidence remain absent, and `SPX-B104` stays closed.
+- Extended the native loader quarantine with Unix `RTLD_NOW | RTLD_LOCAL`, exact
+  callable-v2 symbol admission, bounded preallocated one-shot byte calls, and
+  exact-instance rejection, then connected that transport to the ownership host
+  with strict request/response codecs and allocation-free postcommit decoding.
+- Added `semaprax.trace-path-certificate.v1`: the compiler deterministically
+  compiles every admitted cleanup path into a canonical trie-DFA separately
+  fingerprinted into descriptor v2, symbols, and call contracts. Host admission
+  authenticates it and rejects omitted, duplicated, reordered, or wrong-outcome
+  traces before semantic materialization.
+- Added complete private callable-provider emission with exact physical result
+  and outcome namespaces, owned-payload integrity checks, and compile-time
+  architecture/OS/environment/object/pointer/endian guards. Exact MSVC/GNU
+  source known answers and deliberate target/payload mismatch fixtures fail
+  closed without touching the response.
+- Made formatting, Clippy, tests, docs, builds, and the Rust 1.85 gate run every
+  workspace feature so staged production surfaces cannot escape CI. `SPX-B104`
+  remains closed for general physical/malformed-response fallback cleanup and
+  quiescence, a green public run of the configured dynamic-provider ASan/UBSan
+  job, Rust-host sanitizer instrumentation, confirmed Windows
+  runtime/dependency isolation, Android/iOS profiles, and public compiler
+  build/preflight emission.
 - Migrated browser manifests from `semaprax.web.v2` to `semaprax.web.v3`. Version 3 retains module, graph revision, Wasm entry, and capabilities while adding the required `owned_abi` object with schema `semaprax.wasm-owned.v1` and a declaration-ordered function mapping; scalar-only packages use an empty function array. Version-2-only consumers must reject or explicitly migrate rather than inferring ownership ABI metadata.
 
 ## 0.1.0 — 2026-08-07

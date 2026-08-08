@@ -22,9 +22,12 @@ diagnostics, record syntax/checking, Graph v6, validated stable-ID HIR/type
 facts, a mandatory replay-validated cleanup plan, versioned normalized-status
 and semantic-event-dictionary types, native scalar status/out execution, a
 browser-loadable scalar Wasm backend, and one narrow direct-trivial-resource
-Wasm owned ABI are implemented. The narrow reference/native-generated-C/Wasm
-14-case corpus now has exact semantic trace and outcome equality; the remaining
-production and language gates below are not.
+Wasm owned ABI are implemented. A private generated-callable native host now
+connects the exact loader, authority, ledger, strict codecs, event dictionary,
+and compiler-owned trace-path certificate. That host and the real Wasm lane
+match the reference outcome, complete trace, publication, and final logical
+liveness for all 14 cases at native O0/O2; the remaining public and language
+gates below are not.
 
 - Records, variants, `Option`, and `Result`.
 - Exhaustive pattern matching.
@@ -45,32 +48,36 @@ carry typed blocks/edges/regions/exits, guarded liveness, atomic call commits,
 sticky status sources, cleanup order, and result publication; validation
 independently rebuilds the plan, and Graph v6 serializes it.
 
-Phase 3 now has three deliberately separated evidence layers. The unpublished
-native host physically connects strict descriptor v1, a real exact loader
-lease, same-thread authority, ledger, and opaque owners, but its execution
-callback remains trusted Rust. Private compiler staging derives strict callable
-descriptor v2 from the admitted host template plus execution/cleanup and
-semantic-dictionary evidence; the host independently decodes it, and the loader
-can resolve an exact-instance one-shot byte callable. Those pieces are not
-connected into ownership execution. Separately, generated native C and real
-Node/Wasm execute the same [direct trivial-resource
-subset](WASM-OWNED-ABI-V1.md), emit dictionary-authenticated ordinals, and match
-the reference executor exactly for all 14 authoritative scenarios. This proves
-the narrow semantics, not the production native boundary. Compiler resource
-builds retain `SPX-B104`; Windows lacks the physical-host/callable fixture and
-the callable path lacks sanitizer evidence. Imported lifecycles, calls,
-aggregates, broader control flow, cross-realm/worker identity, Windows
-dependency-collision/runtime evidence, production callable native execution,
-aggregate layouts, variants,
-matching, concurrency, and fork recovery remain subsequent work.
+Phase 3 now composes its formerly separate native evidence layers for the
+private direct-trivial slice. Feature-gated compiler emission produces the
+complete generated provider and descriptor v2; compile-time guards prove the C
+compiler's architecture/OS/environment/object/endian profile or fail closed.
+The host independently authenticates descriptor bytes, strict wire codecs,
+dictionary, and the separately fingerprinted compiler trace-path trie-DFA,
+then invokes the exact loader-instance callable through the same-thread
+authority and atomic ownership ledger. Real generated shared libraries at O0
+and O2 match the reference executor for all 14 scenarios, as does real
+Node/Wasm.
+
+This proves the narrow private semantics, not the public native boundary.
+Compiler resource builds retain `SPX-B104` while physical/malformed-response
+fallback cleanup and quiescence remain nongeneralized, the full host path lacks
+green public dynamic-provider sanitizer evidence plus Rust-host sanitizer
+instrumentation, Windows runtime/dependency-collision confirmation
+awaits a green public CI run, Android/iOS device or static-link profiles are
+absent, and ordinary compiler build/preflight does not emit the callable.
+Imported lifecycles, calls, aggregates, broader control flow,
+cross-realm/worker identity, aggregate layouts, variants, matching,
+concurrency, and fork recovery remain subsequent work.
 
 The active phase-3 gate is [Owned resource vertical slice
 v1](OWNED-RESOURCE-VERTICAL-V1.md). It requires one production-reachable,
 thread-confined native host and one instance-confined Wasm host to execute the
 same admitted direct-trivial-resource cleanup plan with exact reference-trace
-equivalence. It deliberately keeps every broader resource and aggregate shape
-closed until its own evidence lands. The current private native host and narrow
-Wasm ABI are material progress toward this gate, not completion of it.
+equivalence. The private host now meets that semantic corpus requirement. The
+remaining public compiler, fallback cleanup/quiescence, sanitizer, Windows CI,
+and mobile-profile requirements keep the gate open, and every broader resource
+or aggregate shape remains closed.
 
 ## 0.3 — Ownership and fast development
 

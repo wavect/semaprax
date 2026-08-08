@@ -14,10 +14,16 @@ pub mod format;
 pub mod graph;
 pub mod hir;
 pub mod lexer;
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+#[doc(hidden)]
+pub mod owned_resource_corpus;
 pub mod parser;
 pub mod patch;
 pub mod runtime_status;
 pub mod semantic_trace;
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+#[doc(hidden)]
+pub mod trace_path_certificate;
 pub mod verify;
 pub mod wasm;
 

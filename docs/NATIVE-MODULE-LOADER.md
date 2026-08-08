@@ -1,9 +1,9 @@
 # Native module loader quarantine
 
 Status: private, workspace-only quarantine. It is used by the unpublished
-`semaprax-native-host` physical ownership stage, but not by compiler preflight,
-generated resource calls, or any public adapter, and it does not change
-`SPX-B104`.
+`semaprax-native-host` physical ownership stage and its private generated
+callable path, but not by ordinary compiler preflight or any public adapter,
+and it does not change `SPX-B104`.
 
 `crates/semaprax-native-loader` isolates the unavoidable unsafe operations for
 opening a trusted native library, resolving one fixed C descriptor getter,
@@ -43,25 +43,27 @@ eager unresolved-import failure on Unix, one exact resolved echo callable,
 preallocated bounded request/response storage, one-shot invocation, and
 cross-instance prepared-call rejection.
 
-The unpublished native host additionally proves that its real descriptor-v1
+The unpublished native host additionally proves that its real callable-v2
 lease is retained by its same-thread authority and every live owner/result
 credential, that equal descriptor bytes from separate opens do not establish
 instance identity, and that draining rejects new work while existing owners
 keep their pins. The compiler now derives deterministic
 [`SPXNABI2` admission metadata](NATIVE-CALLABLE-ABI-V2.md), and the host has an
 independent strict staged decoder with cross-crate exact acceptance and
-every-byte, truncation, and trailing-data rejection. That v2 decoder, callable
-lease, and ownership host are not connected. These runtime integration fixtures
-still run only on Linux and macOS.
+every-byte, truncation, and trailing-data rejection. The host connects that
+decoder and callable lease to its authority and ledger; real generated O0/O2
+providers execute the complete 14-case corpus through safe host calls.
 
-The callable fixture is a transport echo, not generated SEMAPRAX resource code.
-The physical ownership host still executes an explicit trusted Rust closure and
-does not invoke the resolved callable or a finalizer symbol. The Windows loader
-now excludes current-directory/legacy-PATH dependency search and admits the
-root-image directory plus default safe directories. The evidence does not prove
+The standalone loader retains narrow bounded-call fixtures, while the
+ownership-host integration exercises generated SEMAPRAX resource code. The
+Windows loader excludes current-directory/legacy-PATH dependency search and
+admits the root-image directory plus default safe directories. Until public CI
+is green, the evidence does not claim a confirmed Windows callable corpus or
+malicious dependency-collision run. It also does not prove
 immediate physical unmapping, same-root-image callable provenance, Windows
-malicious-CWD collision behavior, callable-path ASan/UBSan safety, iOS
-dynamic/static admission, Android device execution,
+malicious-CWD collision behavior, a green public run of the configured
+ASan/UBSan-instrumented-provider job, sanitizer instrumentation of the Rust
+host, iOS dynamic/static admission, Android device execution,
 callback/finalizer quiescence, hot reload, fork recovery, signed code admission,
 or callable resource safety. Those remain gates before any public native
 adapter or `SPX-B104` change.

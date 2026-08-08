@@ -421,38 +421,37 @@ Each phase is incomplete until its executable evidence passes. An RFC, type defi
 1. **Source and resolution — implemented.** Parse and canonically format both finalization forms with lifecycle IDs and the declaration-only interface/import contract; reject missing, duplicate, malformed, fallible-drop, authority, ownership, consumption, result-initialization, or failure-domain conflicts with stable diagnostics. Resolve lifecycle/interface/import IDs, logical keys, parameter and result ownership, effects/authority, normalized failure contracts, and recursive `needs_drop` facts. Source verification and hostile-HIR replay enforce recursive lifecycle effects. Graph v6 and semantic resource renames preserve lifecycle/import identities and context closure. This phase does not execute imports or cleanup.
 2. **Verified cleanup HIR — implemented for the current HIR surface.** Every function carries a deterministic `CleanupPlan` with typed CFG blocks/edges, lexical regions and scope exits, entry liveness, exact leaf flags/lifecycles, left-to-right caller-owned argument epochs, one atomic call commit, checked-operation and contract status sources, sticky failure exits, guarded reverse finalization, partial-record history, whole-value normalization, provisional owned results, and scalar/owned publication commits. Validation rebuilds the plan solely from already-validated core HIR and inventory and rejects any component mismatch with `SPX-H006`; native and Wasm consumers inherit this gate. Graph v6 exact snapshots, deterministic rename evidence, focused semantic tests, and hostile plan mutations cover the boundary. This phase is target-neutral metadata only and does not claim resource execution or backend trace conformance.
 3. **Native scalar-resource execution.** Target-neutral groundwork is implemented: versioned normalized status/trace types, context/arena-safe status tokens, independent inventory/HIR coverage and exhaustive current-CFG plan replay, and a scenario-driven single-frame reference executor with explicit result-publication state. The scalar native status/out slice is also implemented: nested generated calls share one context, propagate the original nonzero token, distinguish every compiler-owned contract/arithmetic code, and leave caller output untouched until the postcondition-checked success commit. Unreachable first-slice scaffolding now derives deterministic strongly typed resource wrapper/finalizer symbols, stages resource-aware signatures, indexes direct trivial-resource cleanup without reconstructing it, computes a checked conservative max-path trace capacity, emits guarded plan-driven cleanup fragments and actual root-frame semantic events from the classifier-owned function identity, and attaches one-shot trace storage through an owner/generation-checked pre-ownership capacity gate. Persistent identities are rejected if they contain NUL, generated C literals preserve hostile trigraph-like, UTF-8, and full signed-`i64` values, and every direct cleanup slot/transfer proves exact lifecycle/type coherence. A typed value plan places real Boolean contracts, `i64 >=` comparison, checked addition, scalar result aliases, and owned transfers at the exact validated cleanup blocks without generating control flow. The test-only native conformance lane executes that real planner for discard/reverse cleanup, requires true/false, checked-add success/overflow/precondition failure, owned identity, and failed owned postcondition cases with zero/max payloads. Its versioned length-framed decoder and independent program-bound materializer must match the reference executor as typed values and canonical JSON; O0/O2 outputs are byte-identical, ASan/UBSan are required on Linux CI, undersized capacity fails before ownership, and scalar/owned poison slots prove publication timing. A private `semaprax.host-ownership.v1` reference ledger now separately fixes public-boundary transaction meaning: linked-runtime-unique non-clone registries, generation/provenance tokens, immutable function contracts, atomic multi-owner preflight/commit, and must-complete typed execution scopes distinguish rejection from executed success/failure and rotate an owned result's generation. Unwinding execution consumes the ledger inputs and records an adapter failure. The model contains no raw pointers and is not a public adapter. The scaffold still rejects records, imported lifecycles, projections, generics, calls, source conditionals, lazy Boolean flow, and payload-source-less initialization. The remaining native backend blocker is a real public resource ingress/export that realizes this transaction with runtime-owned storage, physical finalization, ABI/version/layout guarantees, concurrency and module-lifetime safety; no source constructor, callable import, or resource-valued `main` exists today. After that boundary is implemented and proven, extend acquisition, calls/imports, explicit close, every checked-arithmetic case, and broader control flow. Specifically prove explicit close/import failure consumes exactly once and other resources still finalize. Negative fixtures must prove that fallible or trapping finalizer bindings are rejected or fail adapter conformance before publication. Run the cross-platform native CI matrix for every expansion.
-   Private native staging derives an authority-free host template during
-   compiler resource preflight from the exact cleanup/value evidence already
-   admitted for the canonical function. That template fixes complete ordered
-   scalar/resource metadata, lifecycle and result identity, and deterministic
-   module/function fingerprints. Descriptor v1 and its sole immutable getter
-   remain descriptor-only. A separate staged callable descriptor v2 is now
-   compiler-derived from that sealed template plus exact execution/cleanup and
-   semantic-event-dictionary evidence. Its pointer-free wire binds eleven
-   fingerprints, exact getter/callable symbols, capacities, the complete
-   signature, and result mapping. The unpublished host independently decodes the
-   compiler bytes and rejects every single-byte mutation, truncation, and
-   trailing byte.
+   Private native staging derives an authority-free host template from the
+   exact cleanup/value evidence already admitted for the canonical function.
+   Descriptor v1 and its sole immutable getter remain descriptor-only. The
+   feature-gated callable stage derives descriptor v2, a complete guarded C11
+   provider, semantic event dictionary, and compiler-owned trace-path
+   certificate. Its pointer-free wire binds twelve fingerprints, exact
+   getter/callable symbols, capacities, the complete signature, and result
+   mapping. The unpublished host independently decodes the compiler bytes and
+   rejects every single-byte mutation, truncation, and trailing byte.
 
-   The physical host still connects descriptor v1 to a real exact loader lease,
+   The private physical host now connects the exact callable-v2 loader lease,
    same-thread OS-seeded authority, authenticated credentials, synchronized
-   ledger, unsafe trusted adoption, reusable typed precommit rejection,
-   generation rotation, panic containment, and draining in Linux/macOS
-   fixtures. The loader separately supports exact-instance-bound one-shot v2
-   byte calls with eager Unix resolution. These stages are not connected:
-   trusted Rust closures still stand in for generated code, compiler preflight
-   constructs no host, Windows has compile coverage only, the callable path has
-   no sanitizer evidence, and `SPX-B104` remains closed.
+   ledger, unsafe trusted adoption, strict request/response codecs, generated
+   execution, reusable typed precommit rejection, result rotation, and draining.
+   The compiler certificate compiles every replay-valid cleanup path into a
+   canonical trie-DFA; descriptor admission authenticates it separately from
+   the dictionary, and response validation walks it without allocation before
+   materializing events.
 
-   A deterministic semantic event dictionary now bridges backend trace
-   identities without backend inference. Generated native C at O0/O2 and real
-   Node/Wasm emit actual ordinals for the same authoritative 14-case corpus;
-   both materialize to the exact reference trace, normalized outcome, and
-   canonical JSON. This proves the narrow execution semantics, not the
-   production native boundary. Generated callable-host execution, code
-   provenance, runtime-owned physical finalization, Windows execution,
-   callable-path sanitizers, quiescence, concurrency, and fork recovery remain
-   required. The exact schemas and nonclaims are recorded in [Native adapter
+   Real generated shared libraries at O0/O2 execute through that host for all
+   14 authoritative cases and match the reference outcome, complete trace,
+   publication, and final logical liveness; real Node/Wasm matches the same
+   reference semantics. This proves the narrow private execution semantics, not
+   the public native boundary. Compiler preflight still constructs no host and
+   ordinary native resource builds retain `SPX-B104`. General physical or
+   malformed-response fallback cleanup and quiescence, a green public run of
+   the configured dynamic-provider sanitizer job, Rust-host sanitizer
+   instrumentation, green public Windows runtime/dependency-collision evidence,
+   Android/iOS profiles, code provenance, concurrency, and fork recovery remain
+   required.
+   The exact schemas and nonclaims are recorded in [Native adapter
    descriptor v1](NATIVE-ADAPTER-DESCRIPTOR-V1.md), [Native callable ABI
    v2](NATIVE-CALLABLE-ABI-V2.md), [Native capability tokens
    v1](NATIVE-CAPABILITY-TOKENS-V1.md), and [Native module
@@ -463,7 +462,7 @@ Each phase is incomplete until its executable evidence passes. An RFC, type defi
    handles, canonical statuses, exact artifact authentication, checked result
    memory, one-shot trusted adoption, semantic ordinal emission, and fail-closed
    exclusions. Its 14-case trace and outcome corpus matches the target-neutral
-   reference and native generated-C harness exactly. It does not cover
+   reference and native generated-callable host exactly. It does not cover
    imports/finalizers, aggregates, nested/reentrant frames, workers/cross-realm
    isolation, async/shared memory, Components, or a production native-host
    peer. Those gates remain before this phase is complete.

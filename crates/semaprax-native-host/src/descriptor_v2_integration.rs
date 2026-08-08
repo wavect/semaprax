@@ -62,6 +62,10 @@ fn compiler_descriptor_is_accepted_with_exact_signature_and_capacities() {
         descriptor.fingerprints.event_dictionary,
         dictionary_fingerprint
     );
+    assert_eq!(
+        descriptor.fingerprints.trace_path_certificate,
+        artifact.trace_path_certificate().fingerprint()
+    );
     assert_eq!(descriptor.parameters.len(), 3);
     assert!(matches!(descriptor.parameters[0], Parameter::Owned { .. }));
     assert!(matches!(

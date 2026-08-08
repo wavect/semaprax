@@ -150,6 +150,18 @@ impl HostOwnerToken {
     pub(crate) const fn generation(self) -> u64 {
         self.generation
     }
+
+    /// Exact next-generation token expected from owned-result publication.
+    pub(crate) const fn next_generation(self) -> Option<Self> {
+        match self.generation.checked_add(1) {
+            Some(generation) => Some(Self {
+                registry_nonce: self.registry_nonce,
+                slot: self.slot,
+                generation,
+            }),
+            None => None,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -212,6 +224,7 @@ pub(crate) enum HostBoundaryRejection {
     WrongThread,
     InvalidOwnedResult,
     ResultKindMismatch,
+    StalePlan,
 }
 
 enum HostCallStart<'a> {
@@ -257,11 +270,41 @@ pub(crate) struct HostPreparedInvocation {
     payloads: Vec<u64>,
 }
 
+/// Fully allocated, non-mutating detached ingress plan.
+///
+/// The plan is registry- and sequence-bound. A physical host may serialize
+/// payloads and allocate its complete response storage from this value before
+/// [`HostOwnershipRegistry::commit_plan`] changes any owner state.
+#[must_use = "a planned host invocation must be committed or discarded"]
+pub(crate) struct HostPlannedInvocation {
+    registry_nonce: u64,
+    sequence: u64,
+    result_slot: Option<u64>,
+    tokens: Vec<HostOwnerToken>,
+    slots: Vec<u64>,
+    resources: Vec<HostCommittedResource>,
+    payloads: Vec<u64>,
+}
+
+impl HostPlannedInvocation {
+    pub(crate) const fn sequence(&self) -> u64 {
+        self.sequence
+    }
+
+    pub(crate) fn payloads(&self) -> &[u64] {
+        &self.payloads
+    }
+}
+
 #[allow(
     dead_code,
     reason = "used by the unpublished physical host through audited source inclusion"
 )]
 impl HostPreparedInvocation {
+    pub(crate) const fn sequence(&self) -> u64 {
+        self.sequence
+    }
+
     pub(crate) fn payloads(&self) -> &[u64] {
         &self.payloads
     }
@@ -437,6 +480,40 @@ impl HostOwnershipRegistry {
         })
     }
 
+    /// Exactly undo the immediately preceding adapter-owner registration.
+    ///
+    /// This private rollback exists only so the physical host can mint and
+    /// authenticate the capability after it learns the assigned slot without
+    /// stranding a live ledger owner if that fallible step fails. Same-thread
+    /// exclusive access makes intervening registration impossible.
+    pub(crate) fn rollback_adapter_owner(
+        &mut self,
+        token: HostOwnerToken,
+    ) -> Result<(), HostBoundaryRejection> {
+        if self.poisoned || self.active.is_some() {
+            return Err(HostBoundaryRejection::StalePlan);
+        }
+        let expected_next = token
+            .slot
+            .checked_add(1)
+            .ok_or(HostBoundaryRejection::StalePlan)?;
+        if token.registry_nonce != self.nonce || self.next_slot != expected_next {
+            return Err(HostBoundaryRejection::StalePlan);
+        }
+        let owner = self
+            .owners
+            .get(&token.slot)
+            .ok_or(HostBoundaryRejection::StalePlan)?;
+        if owner.generation != token.generation || owner.state != HostOwnerState::Live {
+            return Err(HostBoundaryRejection::StalePlan);
+        }
+        self.owners
+            .remove(&token.slot)
+            .expect("validated rollback owner remains present");
+        self.next_slot = token.slot;
+        Ok(())
+    }
+
     /// Execute a scalar-result call inside a must-complete registry scope.
     ///
     /// If generated execution unwinds, the private completion guard consumes
@@ -520,6 +597,89 @@ impl HostOwnershipRegistry {
         self.prepare_call(request)
     }
 
+    /// Allocate and validate a scalar invocation without consuming any owner.
+    #[allow(
+        dead_code,
+        reason = "used by the unpublished physical host through audited source inclusion"
+    )]
+    pub(crate) fn plan_scalar(
+        &self,
+        request: &HostCallRequest,
+    ) -> Result<HostPlannedInvocation, HostBoundaryRejection> {
+        if request.contract.result != HostResultPlan::Scalar {
+            return Err(HostBoundaryRejection::ResultKindMismatch);
+        }
+        self.plan_call(request)
+    }
+
+    /// Allocate and validate an owned-result invocation without consuming any
+    /// owner.
+    #[allow(
+        dead_code,
+        reason = "used by the unpublished physical host through audited source inclusion"
+    )]
+    pub(crate) fn plan_owned(
+        &self,
+        request: &HostCallRequest,
+    ) -> Result<HostPlannedInvocation, HostBoundaryRejection> {
+        if !matches!(request.contract.result, HostResultPlan::OwnedInput { .. }) {
+            return Err(HostBoundaryRejection::ResultKindMismatch);
+        }
+        self.plan_call(request)
+    }
+
+    /// Atomically commit an already fully allocated ingress plan.
+    ///
+    /// Validation is allocation-free and completes before the first owner
+    /// mutation. A stale or foreign plan is rejected without changing the
+    /// registry.
+    pub(crate) fn commit_plan(
+        &mut self,
+        plan: HostPlannedInvocation,
+    ) -> Result<HostPreparedInvocation, HostBoundaryRejection> {
+        self.validate_plan(&plan)?;
+        let HostPlannedInvocation {
+            registry_nonce: _,
+            sequence,
+            result_slot,
+            tokens,
+            slots,
+            resources,
+            payloads,
+        } = plan;
+
+        self.next_invocation += 1;
+        for token in &tokens {
+            self.owners
+                .get_mut(&token.slot)
+                .expect("plan validation proved every owner exists")
+                .state = HostOwnerState::InInvocation(sequence);
+        }
+        self.active = Some(ActiveInvocation { sequence, slots });
+        Ok(HostPreparedInvocation {
+            sequence,
+            result_slot,
+            resources,
+            payloads,
+        })
+    }
+
+    /// Validate a prospective detached invocation without mutating registry
+    /// state and return the exact sequence that a subsequent matching prepare
+    /// will commit. A same-thread host uses this to finish allocating and
+    /// serializing its physical call before it consumes any owner.
+    #[allow(
+        dead_code,
+        reason = "used by the unpublished physical host through audited source inclusion"
+    )]
+    pub(crate) fn preflight_prepared(
+        &self,
+        request: &HostCallRequest,
+    ) -> Result<u64, HostBoundaryRejection> {
+        self.preflight(request)?;
+        Ok(self.next_invocation)
+    }
+
     #[allow(
         dead_code,
         reason = "used by the unpublished physical host through audited source inclusion"
@@ -527,6 +687,14 @@ impl HostOwnershipRegistry {
     pub(crate) fn complete_prepared_scalar(
         &mut self,
         invocation: HostPreparedInvocation,
+        result: Result<i64, NormalizedStatus>,
+    ) -> HostCallOutcome {
+        self.complete_prepared_scalar_ref(&invocation, result)
+    }
+
+    pub(crate) fn complete_prepared_scalar_ref(
+        &mut self,
+        invocation: &HostPreparedInvocation,
         result: Result<i64, NormalizedStatus>,
     ) -> HostCallOutcome {
         assert!(
@@ -548,6 +716,14 @@ impl HostOwnershipRegistry {
         invocation: HostPreparedInvocation,
         result: Result<(), NormalizedStatus>,
     ) -> HostCallOutcome {
+        self.complete_prepared_owned_ref(&invocation, result)
+    }
+
+    pub(crate) fn complete_prepared_owned_ref(
+        &mut self,
+        invocation: &HostPreparedInvocation,
+        result: Result<(), NormalizedStatus>,
+    ) -> HostCallOutcome {
         let result_slot = invocation
             .result_slot
             .expect("owned completion requires an owned prepared invocation");
@@ -557,21 +733,57 @@ impl HostOwnershipRegistry {
         }
     }
 
+    /// Complete an owned-result invocation only if its exact next-generation
+    /// publication token is still provable before any ledger mutation.
+    ///
+    /// A mismatch leaves the committed invocation active so its RAII holder
+    /// can abandon it without orphaning a live owner.
+    pub(crate) fn complete_prepared_owned_expected_ref(
+        &mut self,
+        invocation: &HostPreparedInvocation,
+        expected_owner: HostOwnerToken,
+    ) -> Result<HostCallOutcome, HostBoundaryRejection> {
+        let result_slot = invocation
+            .result_slot
+            .ok_or(HostBoundaryRejection::ResultKindMismatch)?;
+        self.finish_checked(invocation.sequence, result_slot, expected_owner)
+    }
+
     /// Consume every committed input after trusted execution unwinds.
     #[allow(
         dead_code,
         reason = "used by the unpublished physical host through audited source inclusion"
     )]
     pub(crate) fn abandon_prepared(&mut self, invocation: HostPreparedInvocation) {
+        self.abandon_prepared_ref(&invocation);
+    }
+
+    pub(crate) fn abandon_prepared_ref(&mut self, invocation: &HostPreparedInvocation) {
         self.abandon(invocation.sequence);
     }
 
     pub(crate) fn take_last_abandonment(&mut self) -> Option<NormalizedStatus> {
-        if std::mem::take(&mut self.last_abandonment) {
+        if self.take_last_abandonment_flag() {
             Some(abandonment_status())
         } else {
             None
         }
+    }
+
+    /// Allocation-free acknowledgement used when the physical host prepared
+    /// the normalized adapter status before ownership commit.
+    pub(crate) fn take_last_abandonment_flag(&mut self) -> bool {
+        std::mem::take(&mut self.last_abandonment)
+    }
+
+    /// Construct the canonical abandonment status while the call is still in
+    /// its fallible precommit phase.
+    #[allow(
+        dead_code,
+        reason = "used by the unpublished physical host through audited source inclusion"
+    )]
+    pub(crate) fn prepare_abandonment_status() -> NormalizedStatus {
+        abandonment_status()
     }
 
     /// Validate every fallible condition, allocate execution views, and then
@@ -617,8 +829,16 @@ impl HostOwnershipRegistry {
         &mut self,
         request: HostCallRequest,
     ) -> Result<HostPreparedInvocation, HostBoundaryRejection> {
-        self.preflight(&request)?;
+        let plan = self.plan_call(&request)?;
+        self.commit_plan(plan)
+    }
 
+    fn plan_call(
+        &self,
+        request: &HostCallRequest,
+    ) -> Result<HostPlannedInvocation, HostBoundaryRejection> {
+        self.preflight(request)?;
+        let tokens = request.owners.clone();
         let slots = request
             .owners
             .iter()
@@ -642,21 +862,49 @@ impl HostOwnershipRegistry {
             HostResultPlan::Scalar => None,
             HostResultPlan::OwnedInput { input_index } => Some(slots[input_index]),
         };
-        let sequence = self.next_invocation;
-        self.next_invocation += 1;
-        self.active = Some(ActiveInvocation { sequence, slots });
-        for token in &request.owners {
-            self.owners
-                .get_mut(&token.slot)
-                .expect("preflight proved every owner exists")
-                .state = HostOwnerState::InInvocation(sequence);
-        }
-        Ok(HostPreparedInvocation {
-            sequence,
+        Ok(HostPlannedInvocation {
+            registry_nonce: self.nonce,
+            sequence: self.next_invocation,
             result_slot,
+            tokens,
+            slots,
             resources,
             payloads,
         })
+    }
+
+    fn validate_plan(&self, plan: &HostPlannedInvocation) -> Result<(), HostBoundaryRejection> {
+        if self.poisoned
+            || self.active.is_some()
+            || plan.registry_nonce != self.nonce
+            || plan.sequence != self.next_invocation
+            || plan.tokens.len() != plan.slots.len()
+            || plan.tokens.len() != plan.resources.len()
+            || plan.tokens.len() != plan.payloads.len()
+        {
+            return Err(HostBoundaryRejection::StalePlan);
+        }
+        for index in 0..plan.tokens.len() {
+            let token = plan.tokens[index];
+            if token.slot != plan.slots[index] {
+                return Err(HostBoundaryRejection::StalePlan);
+            }
+            let owner = self
+                .lookup(token)
+                .map_err(|_| HostBoundaryRejection::StalePlan)?;
+            if owner.state != HostOwnerState::Live
+                || owner.payload != plan.payloads[index]
+                || owner.payload != plan.resources[index].payload()
+            {
+                return Err(HostBoundaryRejection::StalePlan);
+            }
+        }
+        if let Some(result_slot) = plan.result_slot {
+            if !plan.slots.contains(&result_slot) {
+                return Err(HostBoundaryRejection::StalePlan);
+            }
+        }
+        Ok(())
     }
 
     pub(crate) fn is_live(&self, token: HostOwnerToken) -> bool {
@@ -772,29 +1020,56 @@ impl HostOwnershipRegistry {
     ) -> HostCallOutcome {
         let active = self
             .active
-            .take()
+            .as_ref()
             .expect("linear invocation capability requires one active call");
         assert_eq!(
             active.sequence, sequence,
             "linear invocation capability is registry-bound"
         );
-
-        let mut published_owner = None;
-        for slot in active.slots {
+        assert!(
+            matches!(
+                (&published_slot, &scalar, &failure),
+                (None, Some(_), None) | (Some(_), None, None) | (None, None, Some(_))
+            ),
+            "typed invocation completion has one exact outcome"
+        );
+        if let Some(slot) = published_slot {
+            assert!(
+                active.slots.contains(&slot),
+                "owned completion publishes one committed input"
+            );
+        }
+        for slot in &active.slots {
             let owner = self
                 .owners
-                .get_mut(&slot)
+                .get(slot)
                 .expect("committed owners cannot disappear");
             assert_eq!(
                 owner.state,
                 HostOwnerState::InInvocation(sequence),
                 "committed owner state is immutable until completion"
             );
+            if Some(*slot) == published_slot {
+                assert!(
+                    owner.generation < u64::MAX,
+                    "owned-result generation overflow was rejected before commit"
+                );
+            }
+        }
+
+        let active = self
+            .active
+            .take()
+            .expect("prevalidated active invocation cannot disappear");
+
+        let mut published_owner = None;
+        for slot in active.slots {
+            let owner = self
+                .owners
+                .get_mut(&slot)
+                .expect("prevalidated committed owner cannot disappear");
             if Some(slot) == published_slot {
-                owner.generation = owner
-                    .generation
-                    .checked_add(1)
-                    .expect("owned-result generation overflow was rejected before commit");
+                owner.generation += 1;
                 owner.state = HostOwnerState::Live;
                 published_owner = Some(HostOwnerToken {
                     registry_nonce: self.nonce,
@@ -807,7 +1082,6 @@ impl HostOwnershipRegistry {
         }
 
         if let Some(status) = failure {
-            debug_assert!(published_slot.is_none() && scalar.is_none());
             return HostCallOutcome::ExecutedFailure(status);
         }
         match (scalar, published_owner) {
@@ -817,8 +1091,58 @@ impl HostOwnershipRegistry {
             (None, Some(owner)) => {
                 HostCallOutcome::ExecutedSuccess(HostPublishedValue::Owner(owner))
             }
-            _ => unreachable!("typed invocation capabilities fix the result shape"),
+            _ => unreachable!("completion outcome was prevalidated before mutation"),
         }
+    }
+
+    fn finish_checked(
+        &mut self,
+        sequence: u64,
+        published_slot: u64,
+        expected_owner: HostOwnerToken,
+    ) -> Result<HostCallOutcome, HostBoundaryRejection> {
+        let active = self
+            .active
+            .as_ref()
+            .ok_or(HostBoundaryRejection::StalePlan)?;
+        if active.sequence != sequence
+            || !active.slots.contains(&published_slot)
+            || expected_owner.registry_nonce != self.nonce
+            || expected_owner.slot != published_slot
+        {
+            return Err(HostBoundaryRejection::StalePlan);
+        }
+        for slot in &active.slots {
+            let owner = self
+                .owners
+                .get(slot)
+                .ok_or(HostBoundaryRejection::StalePlan)?;
+            if owner.state != HostOwnerState::InInvocation(sequence) {
+                return Err(HostBoundaryRejection::StalePlan);
+            }
+            if *slot == published_slot
+                && owner.generation.checked_add(1) != Some(expected_owner.generation)
+            {
+                return Err(HostBoundaryRejection::StalePlan);
+            }
+        }
+
+        let active = self.active.take().ok_or(HostBoundaryRejection::StalePlan)?;
+        for slot in active.slots {
+            let owner = self
+                .owners
+                .get_mut(&slot)
+                .ok_or(HostBoundaryRejection::StalePlan)?;
+            if slot == published_slot {
+                owner.generation = expected_owner.generation;
+                owner.state = HostOwnerState::Live;
+            } else {
+                owner.state = HostOwnerState::Dead;
+            }
+        }
+        Ok(HostCallOutcome::ExecutedSuccess(HostPublishedValue::Owner(
+            expected_owner,
+        )))
     }
 
     fn abandon(&mut self, sequence: u64) {
@@ -1062,6 +1386,235 @@ mod tests {
         }
         assert!(registry.is_live(first));
         assert!(registry.is_live(second));
+    }
+
+    #[test]
+    fn detached_preflight_is_non_mutating_and_predicts_the_committed_sequence() {
+        let mut registry = HostOwnershipRegistry::try_new().unwrap();
+        let owner = registry
+            .register_adapter_owner(
+                provenance("module.one", "adapter.one", "token.type", "token.drop", 17),
+                41,
+            )
+            .unwrap();
+        let request = request(
+            contract(
+                "module.one",
+                "adapter.one",
+                17,
+                vec![requirement("token.type", "token.drop")],
+                HostResultPlan::Scalar,
+            ),
+            17,
+            vec![owner],
+        );
+        let original_owners = registry.owners.clone();
+
+        assert_eq!(registry.preflight_prepared(&request), Ok(1));
+        assert_eq!(registry.preflight_prepared(&request), Ok(1));
+        assert_eq!(registry.owners, original_owners);
+        assert_eq!(registry.next_invocation, 1);
+        assert!(registry.active.is_none());
+
+        let prepared = registry.prepare_scalar(request).unwrap();
+        assert_eq!(prepared.sequence(), 1);
+        assert_eq!(prepared.payloads(), &[41]);
+        assert_eq!(registry.next_invocation, 2);
+        assert!(!registry.is_live(owner));
+
+        assert_eq!(
+            registry.complete_prepared_scalar(prepared, Ok(9)),
+            HostCallOutcome::ExecutedSuccess(HostPublishedValue::Scalar(9))
+        );
+        assert!(!registry.is_live(owner));
+    }
+
+    #[test]
+    fn detached_plan_allocates_without_mutation_then_commits_exact_sequence() {
+        let mut registry = HostOwnershipRegistry::try_new().unwrap();
+        let owner = registry
+            .register_adapter_owner(
+                provenance("module.one", "adapter.one", "token.type", "token.drop", 17),
+                u64::MAX,
+            )
+            .unwrap();
+        let request = request(
+            contract(
+                "module.one",
+                "adapter.one",
+                17,
+                vec![requirement("token.type", "token.drop")],
+                HostResultPlan::Scalar,
+            ),
+            17,
+            vec![owner],
+        );
+        let original_owners = registry.owners.clone();
+        let plan = registry.plan_scalar(&request).unwrap();
+        assert_eq!(plan.sequence(), 1);
+        assert_eq!(plan.payloads(), &[u64::MAX]);
+        assert_eq!(registry.owners, original_owners);
+        assert_eq!(registry.next_invocation, 1);
+        assert!(registry.active.is_none());
+
+        let prepared = registry.commit_plan(plan).unwrap();
+        assert_eq!(prepared.sequence(), 1);
+        assert_eq!(prepared.payloads(), &[u64::MAX]);
+        assert_eq!(registry.next_invocation, 2);
+        assert!(!registry.is_live(owner));
+        assert_eq!(
+            registry.complete_prepared_scalar(prepared, Ok(7)),
+            HostCallOutcome::ExecutedSuccess(HostPublishedValue::Scalar(7))
+        );
+    }
+
+    #[test]
+    fn completion_invariant_panic_retains_prepared_state_for_guard_abandonment() {
+        let mut registry = HostOwnershipRegistry::try_new().unwrap();
+        let owner = registry
+            .register_adapter_owner(
+                provenance("module.one", "adapter.one", "token.type", "token.drop", 17),
+                41,
+            )
+            .unwrap();
+        let request = request(
+            contract(
+                "module.one",
+                "adapter.one",
+                17,
+                vec![requirement("token.type", "token.drop")],
+                HostResultPlan::Scalar,
+            ),
+            17,
+            vec![owner],
+        );
+        let plan = registry.plan_scalar(&request).unwrap();
+        let prepared = registry.commit_plan(plan).unwrap();
+        registry.owners.get_mut(&owner.slot).unwrap().state = HostOwnerState::Live;
+
+        let panicked = catch_unwind(AssertUnwindSafe(|| {
+            registry.complete_prepared_scalar_ref(&prepared, Ok(7));
+        }));
+        assert!(panicked.is_err());
+        assert!(registry.active.is_some());
+
+        registry.abandon_prepared_ref(&prepared);
+        assert!(registry.active.is_none());
+        assert_eq!(
+            registry.owners.get(&owner.slot).unwrap().state,
+            HostOwnerState::Dead
+        );
+        assert!(registry.take_last_abandonment_flag());
+    }
+
+    #[test]
+    fn checked_owned_completion_mismatch_is_non_mutating_and_abandonable() {
+        let mut registry = HostOwnershipRegistry::try_new().unwrap();
+        let owner = registry
+            .register_adapter_owner(
+                provenance("module.one", "adapter.one", "token.type", "token.drop", 17),
+                u64::MAX,
+            )
+            .unwrap();
+        let request = request(
+            contract(
+                "module.one",
+                "adapter.one",
+                17,
+                vec![requirement("token.type", "token.drop")],
+                HostResultPlan::OwnedInput { input_index: 0 },
+            ),
+            17,
+            vec![owner],
+        );
+        let plan = registry.plan_owned(&request).unwrap();
+        let prepared = registry.commit_plan(plan).unwrap();
+        let expected = owner.next_generation().unwrap();
+        let hostile = HostOwnerToken {
+            generation: expected.generation + 1,
+            ..expected
+        };
+
+        let completion = catch_unwind(AssertUnwindSafe(|| {
+            registry.complete_prepared_owned_expected_ref(&prepared, hostile)
+        }));
+        assert_eq!(completion.unwrap(), Err(HostBoundaryRejection::StalePlan));
+        assert!(registry.active.is_some());
+        assert_eq!(
+            registry.owners.get(&owner.slot).unwrap().state,
+            HostOwnerState::InInvocation(prepared.sequence())
+        );
+        assert_eq!(registry.live_owner_count(), 0);
+
+        registry.abandon_prepared_ref(&prepared);
+        assert!(registry.active.is_none());
+        assert_eq!(registry.live_owner_count(), 0);
+        assert_eq!(
+            registry.owners.get(&owner.slot).unwrap().state,
+            HostOwnerState::Dead
+        );
+        assert!(registry.take_last_abandonment_flag());
+    }
+
+    #[test]
+    fn detached_plan_rejects_foreign_or_stale_state_without_mutation() {
+        let mut first = HostOwnershipRegistry::try_new().unwrap();
+        let mut second = HostOwnershipRegistry::try_new().unwrap();
+        let owner = first
+            .register_adapter_owner(
+                provenance("module.one", "adapter.one", "token.type", "token.drop", 17),
+                9,
+            )
+            .unwrap();
+        let request = request(
+            contract(
+                "module.one",
+                "adapter.one",
+                17,
+                vec![requirement("token.type", "token.drop")],
+                HostResultPlan::Scalar,
+            ),
+            17,
+            vec![owner],
+        );
+        let foreign_plan = first.plan_scalar(&request).unwrap();
+        assert_eq!(
+            second.commit_plan(foreign_plan).err(),
+            Some(HostBoundaryRejection::StalePlan)
+        );
+        assert!(first.is_live(owner));
+        assert_eq!(second.next_invocation, 1);
+        assert!(second.active.is_none());
+
+        let stale_plan = first.plan_scalar(&request).unwrap();
+        assert_eq!(first.retire_owner(owner), Ok(9));
+        let before = first.owners.clone();
+        assert_eq!(
+            first.commit_plan(stale_plan).err(),
+            Some(HostBoundaryRejection::StalePlan)
+        );
+        assert_eq!(first.owners, before);
+        assert_eq!(first.next_invocation, 1);
+        assert!(first.active.is_none());
+    }
+
+    #[test]
+    fn adapter_owner_rollback_restores_the_exact_slot_reservation() {
+        let mut registry = HostOwnershipRegistry::try_new().unwrap();
+        let provenance = provenance("module.one", "adapter.one", "token.type", "token.drop", 17);
+        let first = registry
+            .register_adapter_owner(provenance.clone(), 0)
+            .unwrap();
+        assert_eq!(registry.live_owner_count(), 1);
+        registry.rollback_adapter_owner(first).unwrap();
+        assert_eq!(registry.live_owner_count(), 0);
+        assert!(registry.owners.is_empty());
+
+        let replacement = registry
+            .register_adapter_owner(provenance, u64::MAX)
+            .unwrap();
+        assert_eq!(replacement, first);
+        assert_eq!(registry.payload(replacement), Some(u64::MAX));
     }
 
     #[test]

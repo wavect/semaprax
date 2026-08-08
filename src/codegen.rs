@@ -1,5 +1,12 @@
 mod native_adapter_abi;
 mod native_callable_abi;
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+mod native_callable_execution;
+#[cfg_attr(
+    not(test),
+    allow(dead_code, reason = "callable provider remains gated by SPX-B104")
+)]
+mod native_callable_provider;
 #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
 mod native_capability_authority;
 mod native_capability_token;
@@ -128,17 +135,26 @@ pub fn emit_native_adapter_admission(
 /// Feature-gated callable-v2 admission metadata derived only from validated
 /// HIR and exact compiler-emitted runtime/cleanup/dictionary artifacts.
 ///
-/// This does not contain a callable implementation and cannot open the public
-/// native resource gate by itself.
+/// The artifact contains the complete private C11 provider translation unit,
+/// including its generated callable and immutable descriptor getter. It still
+/// cannot open the public native resource gate by itself: loading and adopting
+/// physical resources remain quarantined behind the native host and
+/// `SPX-B104`.
 #[doc(hidden)]
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
 pub struct NativeCallableAdmissionArtifact {
     descriptor: Vec<u8>,
     getter_symbol: String,
     callable_symbol: String,
+    call_contract: [u8; 32],
     max_request_bytes: u32,
     max_response_bytes: u32,
+    provider_source: String,
+    semantic_event_dictionary: crate::semantic_trace::SemanticEventDictionary,
+    trace_path_certificate: crate::trace_path_certificate::TracePathCertificate,
     event_dictionary: String,
+    codec_profile_fingerprint: [u8; 32],
+    normalized_execution_projection: String,
 }
 
 #[doc(hidden)]
@@ -156,6 +172,10 @@ impl NativeCallableAdmissionArtifact {
         &self.callable_symbol
     }
 
+    pub fn call_contract(&self) -> [u8; 32] {
+        self.call_contract
+    }
+
     pub fn max_request_bytes(&self) -> u32 {
         self.max_request_bytes
     }
@@ -164,8 +184,28 @@ impl NativeCallableAdmissionArtifact {
         self.max_response_bytes
     }
 
+    pub fn provider_source(&self) -> &str {
+        &self.provider_source
+    }
+
+    pub fn semantic_event_dictionary(&self) -> &crate::semantic_trace::SemanticEventDictionary {
+        &self.semantic_event_dictionary
+    }
+
+    pub fn trace_path_certificate(&self) -> &crate::trace_path_certificate::TracePathCertificate {
+        &self.trace_path_certificate
+    }
+
     pub fn event_dictionary(&self) -> &str {
         &self.event_dictionary
+    }
+
+    pub fn codec_profile_fingerprint(&self) -> [u8; 32] {
+        self.codec_profile_fingerprint
+    }
+
+    pub fn normalized_execution_projection(&self) -> &str {
+        &self.normalized_execution_projection
     }
 }
 
@@ -173,11 +213,10 @@ impl NativeCallableAdmissionArtifact {
 /// direct-resource function.
 ///
 /// The execution/cleanup fingerprint is computed over the exact deterministic
-/// resource ABI, status/trace/scalar runtimes, declarations, and cleanup
-/// scaffold available in this staged slice. Provider-wrapper and call-wire
-/// codecs remain explicitly outside that fingerprint and must be added before
-/// `SPX-B104` can open. Dictionary facts and maximum trace capacity are
-/// computed internally; callers cannot assert these security-critical facts.
+/// resource ABI, status/trace/scalar runtimes, declarations, cleanup scaffold,
+/// pinned call codec profile, and canonicalized wrapper/direct-hook template.
+/// Dictionary facts and maximum trace capacity are computed internally;
+/// callers cannot assert these security-critical facts.
 #[doc(hidden)]
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
 pub fn emit_native_callable_admission(
@@ -195,6 +234,11 @@ pub fn emit_native_callable_admission(
     let mut values =
         native_value::plan(program, function, &cleanup, &resource_abi, &HashMap::new())?;
     let dictionary = crate::semantic_trace::build_semantic_event_dictionary(program, function_id)?;
+    let trace_path_certificate = crate::trace_path_certificate::build_trace_path_certificate(
+        program,
+        function,
+        &dictionary,
+    )?;
     values.cleanup_bindings.semantic_events = Some(dictionary.clone());
     let declarations = native_value::emit_declarations(&values);
     let cleanup_body = native_cleanup_emit::emit_with_block_prologues(
@@ -209,18 +253,33 @@ pub fn emit_native_callable_admission(
     native_runtime::emit_status_runtime(&mut status_runtime);
     let mut trace_runtime = String::new();
     native_trace_runtime::emit_trace_runtime(&mut trace_runtime);
+    let execution = native_callable_execution::plan(
+        program,
+        function,
+        &cleanup,
+        &values,
+        &resource_abi,
+        &dictionary,
+        declarations.clone(),
+        cleanup_body.clone(),
+    )?;
+    let (normalized_execution_projection, codec_profile_fingerprint) =
+        execution.normalized_projection()?;
     let execution_cleanup_fingerprint = native_callable_execution_cleanup_fingerprint(&[
-        resource_abi.declarations.as_str(),
-        status_runtime.as_str(),
-        trace_runtime.as_str(),
-        NATIVE_SCALAR_RUNTIME_C,
-        declarations.as_str(),
-        cleanup_body.as_str(),
+        resource_abi.declarations.as_bytes(),
+        status_runtime.as_bytes(),
+        trace_runtime.as_bytes(),
+        NATIVE_SCALAR_RUNTIME_C.as_bytes(),
+        declarations.as_bytes(),
+        cleanup_body.as_bytes(),
+        &codec_profile_fingerprint,
+        normalized_execution_projection.as_bytes(),
     ]);
     let event_dictionary = dictionary.canonical_json();
     let semantics = native_callable_abi::NativeCallableSemantics::new(
         execution_cleanup_fingerprint,
         dictionary.fingerprint(),
+        trace_path_certificate.fingerprint(),
         event_dictionary.len(),
         dictionary.entries().len(),
         usize::try_from(values.required_event_capacity)
@@ -234,23 +293,45 @@ pub fn emit_native_callable_admission(
         &values,
     )?;
     let descriptor = native_callable_abi::derive(&template, &semantics)?;
+    let concrete = execution.emit_concrete(&descriptor, &normalized_execution_projection)?;
+    if concrete.codec_profile_fingerprint != codec_profile_fingerprint
+        || concrete.normalized_projection != normalized_execution_projection
+    {
+        return Err(backend_error(
+            "concrete callable provider changed its authenticated codec or execution projection",
+        ));
+    }
+    let mut provider_source = String::new();
+    provider_source.push_str(&status_runtime);
+    provider_source.push_str(&resource_abi.declarations);
+    provider_source.push_str("#include <stdio.h>\n");
+    provider_source.push_str(NATIVE_SCALAR_RUNTIME_C);
+    provider_source.push_str(&trace_runtime);
+    provider_source.push_str(&concrete.source);
+    provider_source.push_str(&native_callable_abi::emit_getter_source(&descriptor));
     Ok(NativeCallableAdmissionArtifact {
         descriptor: descriptor.bytes,
         getter_symbol: descriptor.getter_symbol,
         callable_symbol: descriptor.callable_symbol,
+        call_contract: descriptor.call_contract,
         max_request_bytes: descriptor.max_request_bytes,
         max_response_bytes: descriptor.max_response_bytes,
+        provider_source,
+        semantic_event_dictionary: dictionary,
+        trace_path_certificate,
         event_dictionary,
+        codec_profile_fingerprint,
+        normalized_execution_projection,
     })
 }
 
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
-fn native_callable_execution_cleanup_fingerprint(components: &[&str]) -> [u8; 32] {
+fn native_callable_execution_cleanup_fingerprint(components: &[&[u8]]) -> [u8; 32] {
     let mut hasher = Sha256::new();
     hasher.update(b"semaprax.native-callable-execution-cleanup.v2\0");
-    hasher.update(b"resource-abi;status-runtime;trace-runtime;scalar-runtime;value-declarations;value-cleanup-scaffold;provider-wrapper-and-wire-codecs-must-be-added-before-SPX-B104-opens");
+    hasher.update(b"resource-abi;status-runtime;trace-runtime;scalar-runtime;value-declarations;value-cleanup-scaffold;provider-codec-profile;canonical-wrapper-direct-hook-projection");
     hasher.update((components.len() as u64).to_be_bytes());
-    for fragment in components.iter().map(|component| component.as_bytes()) {
+    for fragment in components {
         hasher.update((fragment.len() as u64).to_be_bytes());
         hasher.update(fragment);
     }
@@ -1249,12 +1330,45 @@ fn c_string(value: &str) -> String {
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
     use std::path::Path;
+    use std::path::PathBuf;
+    use std::process::Command;
+    use std::sync::atomic::{AtomicU64, Ordering};
 
     use crate::{hir, parse};
     use sha2::{Digest, Sha256};
 
     use super::*;
+
+    static NEXT_CALLABLE_FIXTURE: AtomicU64 = AtomicU64::new(0);
+
+    struct CallableFixture(PathBuf);
+
+    impl CallableFixture {
+        fn create() -> Self {
+            let ordinal = NEXT_CALLABLE_FIXTURE.fetch_add(1, Ordering::Relaxed);
+            let path = std::env::temp_dir().join(format!(
+                "semaprax-integrated-callable-{}-{ordinal}",
+                std::process::id()
+            ));
+            fs::create_dir(&path).unwrap();
+            Self(path)
+        }
+    }
+
+    impl Drop for CallableFixture {
+        fn drop(&mut self) {
+            let Ok(metadata) = fs::symlink_metadata(&self.0) else {
+                return;
+            };
+            if metadata.file_type().is_symlink() || metadata.is_file() {
+                let _ = fs::remove_file(&self.0);
+            } else if metadata.is_dir() {
+                let _ = fs::remove_dir_all(&self.0);
+            }
+        }
+    }
 
     const RESOURCE_SOURCE: &str = r#"module test.native_resource_types;
 
@@ -1270,6 +1384,217 @@ fn identity(value: own Token) -> Token { value }
 @id("app.main")
 fn main() -> i64 { 0 }
 "#;
+
+    const CALLABLE_EXECUTION_SOURCE: &str = r#"module test.native_callable_execution;
+
+@id("token.type")
+resource Token {
+    @id("token.drop")
+    drop trivial;
+}
+
+@id("token.discard")
+fn discard(value: own Token) -> i64 { 0 }
+
+@id("token.discard-two")
+fn discard_two(first: own Token, second: own Token) -> i64 { 0 }
+
+@id("token.requires")
+fn requires_guard(value: own Token, allowed: bool) -> i64
+    requires allowed
+{
+    0
+}
+
+@id("token.identity")
+fn identity(value: own Token) -> Token { value }
+
+@id("token.checked")
+fn checked(value: own Token, number: i64) -> i64
+    requires number >= 0
+{
+    number + 1
+}
+
+@id("token.choose-second")
+fn choose_second(first: own Token, count: i64, second: own Token) -> Token
+    requires count >= 0
+{
+    second
+}
+
+@id("token.ensures-false")
+fn ensures_false(value: own Token) -> Token
+    ensures false
+{
+    value
+}
+
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+
+    enum CallableArgument {
+        I64(i64),
+        Bool(bool),
+        Owned { ordinal: u32, payload: u64 },
+    }
+
+    fn push_u32(bytes: &mut Vec<u8>, value: u32) {
+        bytes.extend_from_slice(&value.to_le_bytes());
+    }
+
+    fn push_u64(bytes: &mut Vec<u8>, value: u64) {
+        bytes.extend_from_slice(&value.to_le_bytes());
+    }
+
+    fn callable_request(
+        artifact: &NativeCallableAdmissionArtifact,
+        invocation: u64,
+        arguments: &[CallableArgument],
+    ) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(b"SPXNREQ1");
+        push_u32(&mut bytes, 1);
+        push_u32(&mut bytes, 20);
+        push_u32(&mut bytes, 0);
+        bytes.extend_from_slice(&artifact.call_contract);
+        push_u64(&mut bytes, invocation);
+        push_u32(&mut bytes, arguments.len() as u32);
+        for (index, argument) in arguments.iter().enumerate() {
+            match argument {
+                CallableArgument::I64(value) => {
+                    push_u32(&mut bytes, 1);
+                    push_u32(&mut bytes, index as u32);
+                    bytes.extend_from_slice(&value.to_le_bytes());
+                }
+                CallableArgument::Bool(value) => {
+                    push_u32(&mut bytes, 1);
+                    push_u32(&mut bytes, index as u32);
+                    push_u32(&mut bytes, u32::from(*value));
+                }
+                CallableArgument::Owned { ordinal, payload } => {
+                    push_u32(&mut bytes, 2);
+                    push_u32(&mut bytes, index as u32);
+                    push_u32(&mut bytes, *ordinal);
+                    push_u64(&mut bytes, *payload);
+                }
+            }
+        }
+        let length = u32::try_from(bytes.len()).unwrap();
+        bytes[16..20].copy_from_slice(&length.to_le_bytes());
+        assert_eq!(length, artifact.max_request_bytes);
+        bytes
+    }
+
+    fn c_byte_array(name: &str, bytes: &[u8]) -> String {
+        let mut output = format!("static const uint8_t {name}[] = {{");
+        for byte in bytes {
+            write!(output, "0x{byte:02x},").unwrap();
+        }
+        output.push_str("};\n");
+        output
+    }
+
+    fn provider_harness(
+        artifact: &NativeCallableAdmissionArtifact,
+        requests: &[Vec<u8>],
+    ) -> String {
+        let mut source = artifact.provider_source.clone();
+        for (index, request) in requests.iter().enumerate() {
+            source.push_str(&c_byte_array(&format!("spx_request_{index}"), request));
+        }
+        source.push_str("int main(void) {\n");
+        writeln!(
+            source,
+            "    if (memcmp({}(), \"SPXNABI2\", UINT32_C(8)) != 0) return 90;",
+            artifact.getter_symbol
+        )
+        .unwrap();
+        writeln!(
+            source,
+            "    uint8_t response[UINT32_C({})];",
+            artifact.max_response_bytes
+        )
+        .unwrap();
+        for index in 0..requests.len() {
+            source.push_str("    memset(response, 0xa5, sizeof(response));\n");
+            writeln!(source, "    if ({}(spx_request_{index}, (uint32_t)sizeof(spx_request_{index}), response, (uint32_t)sizeof(response)) != SPX_CALL_COMPLETE) return {};", artifact.callable_symbol, 100 + index).unwrap();
+            writeln!(source, "    uint32_t declared_{index} = spx_load_u32(response + UINT32_C(16)); if (declared_{index} > (uint32_t)sizeof(response) || fwrite(response, UINT32_C(1), declared_{index}, stdout) != declared_{index}) return {};", 120 + index).unwrap();
+        }
+        source.push_str("    return 0;\n}\n");
+        source
+    }
+
+    fn compile_and_run_provider(
+        artifact: &NativeCallableAdmissionArtifact,
+        requests: &[Vec<u8>],
+        optimization: &str,
+        sanitizers: bool,
+    ) -> Vec<u8> {
+        let fixture = CallableFixture::create();
+        let source_path = fixture.0.join("provider.c");
+        let executable = fixture.0.join("provider");
+        fs::write(&source_path, provider_harness(artifact, requests)).unwrap();
+        let mut command = Command::new("clang");
+        command.args([
+            "-std=c11",
+            "-pedantic-errors",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-fvisibility=hidden",
+            optimization,
+        ]);
+        if sanitizers {
+            command.args([
+                "-fsanitize=address,undefined",
+                "-fno-omit-frame-pointer",
+                "-fno-sanitize-recover=all",
+            ]);
+        }
+        let compiled = command
+            .arg(&source_path)
+            .arg("-o")
+            .arg(&executable)
+            .output()
+            .unwrap();
+        assert!(
+            compiled.status.success(),
+            "integrated provider compilation ({optimization}, sanitizers={sanitizers}) failed:\n{}",
+            String::from_utf8_lossy(&compiled.stderr)
+        );
+        let run = Command::new(&executable)
+            .env("ASAN_OPTIONS", "detect_leaks=0:halt_on_error=1")
+            .env("UBSAN_OPTIONS", "halt_on_error=1")
+            .output()
+            .unwrap();
+        assert!(
+            run.status.success(),
+            "integrated provider execution failed with {}:\n{}",
+            run.status,
+            String::from_utf8_lossy(&run.stderr)
+        );
+        run.stdout
+    }
+
+    fn split_responses(bytes: &[u8]) -> Vec<&[u8]> {
+        let mut responses = Vec::new();
+        let mut offset = 0_usize;
+        while offset < bytes.len() {
+            assert!(bytes.len() - offset >= 20);
+            let declared =
+                u32::from_le_bytes(bytes[offset + 16..offset + 20].try_into().unwrap()) as usize;
+            assert!(declared >= 68 && declared <= bytes.len() - offset);
+            responses.push(&bytes[offset..offset + declared]);
+            offset += declared;
+        }
+        responses
+    }
+
+    fn response_word(response: &[u8], offset: usize) -> u32 {
+        u32::from_le_bytes(response[offset..offset + 4].try_into().unwrap())
+    }
 
     fn resolved_resource_program() -> ResolvedProgram {
         let parsed = parse(
@@ -1377,6 +1702,432 @@ fn main() -> i64 { increment(41) }
         .unwrap();
         let public = emit_c(&parsed).unwrap_err();
         assert_eq!(public.code, "SPX-B104");
+    }
+
+    #[test]
+    fn callable_v2_integrated_provider_is_strict_c11() {
+        if Command::new("clang").arg("--version").output().is_err() {
+            return;
+        }
+        let program = resolved_resource_program();
+        let artifact =
+            emit_native_callable_admission(&program, &DeclarationId::new("token.identity"))
+                .unwrap();
+        let fixture = CallableFixture::create();
+        let source = fixture.0.join("provider.c");
+        let object = fixture.0.join("provider.o");
+        fs::write(&source, artifact.provider_source()).unwrap();
+        let compiled = Command::new("clang")
+            .args([
+                "-std=c11",
+                "-pedantic-errors",
+                "-Wall",
+                "-Wextra",
+                "-Werror",
+                "-O2",
+                "-fvisibility=hidden",
+                "-c",
+            ])
+            .arg(&source)
+            .arg("-o")
+            .arg(&object)
+            .output()
+            .unwrap();
+        assert!(
+            compiled.status.success(),
+            "integrated provider C11 compilation failed:\n{}",
+            String::from_utf8_lossy(&compiled.stderr)
+        );
+    }
+
+    #[test]
+    fn callable_v2_wrong_physical_owned_result_fails_without_touching_response() {
+        if Command::new("clang").arg("--version").output().is_err() {
+            return;
+        }
+        let parsed = parse(
+            CALLABLE_EXECUTION_SOURCE,
+            Path::new("native-callable-physical-result-integrity.spx"),
+        )
+        .unwrap();
+        let program = hir::resolve(&parsed).unwrap();
+        let artifact =
+            emit_native_callable_admission(&program, &DeclarationId::new("token.identity"))
+                .unwrap();
+        let request = callable_request(
+            &artifact,
+            201,
+            &[CallableArgument::Owned {
+                ordinal: 0,
+                payload: u64::MAX,
+            }],
+        );
+
+        // Establish that the unmodified provider emits the authenticated owned
+        // result-commit for this exact request.
+        let baseline =
+            compile_and_run_provider(&artifact, std::slice::from_ref(&request), "-O2", false);
+        let baseline = split_responses(&baseline)[0];
+        assert_eq!(response_word(baseline, 60), 1);
+        assert_eq!(response_word(baseline, 68), 2);
+        assert_eq!(response_word(baseline, 72), 0);
+
+        // Model a lowering defect after the verified body has already emitted
+        // its valid semantic trace: corrupt only the physical result payload.
+        // The generated hook must detect the disagreement before the wrapper
+        // writes even one response byte.
+        let marker = "    if (spx_trace.length == UINT32_C(0) ||";
+        assert_eq!(artifact.provider_source().matches(marker).count(), 1);
+        let mut hostile = artifact.provider_source().replacen(
+            marker,
+            "    spx_result.payload ^= (uintptr_t)UINT32_C(1);\n    if (spx_trace.length == UINT32_C(0) ||",
+            1,
+        );
+        hostile.push_str(&c_byte_array("spx_physical_mismatch_request", &request));
+        writeln!(
+            hostile,
+            "static int spx_response_unchanged(const uint8_t *response, size_t length) {{ for (size_t i = 0; i < length; ++i) if (response[i] != UINT8_C(0xa5)) return 0; return 1; }}\nint main(void) {{ uint8_t response[UINT32_C({})]; memset(response, 0xa5, sizeof(response)); uint32_t physical = {}(spx_physical_mismatch_request, (uint32_t)sizeof(spx_physical_mismatch_request), response, (uint32_t)sizeof(response)); if (physical != SPX_CALL_INTERNAL_FAILURE || !spx_response_unchanged(response, sizeof(response))) return 1; return 0; }}",
+            artifact.max_response_bytes,
+            artifact.callable_symbol
+        )
+        .unwrap();
+
+        for optimization in ["-O0", "-O2"] {
+            let fixture = CallableFixture::create();
+            let source = fixture.0.join("provider.c");
+            let executable = fixture.0.join("provider");
+            fs::write(&source, &hostile).unwrap();
+            let compiled = Command::new("clang")
+                .args([
+                    "-std=c11",
+                    "-pedantic-errors",
+                    "-Wall",
+                    "-Wextra",
+                    "-Werror",
+                    "-fvisibility=hidden",
+                    optimization,
+                ])
+                .arg(&source)
+                .arg("-o")
+                .arg(&executable)
+                .output()
+                .unwrap();
+            assert!(
+                compiled.status.success(),
+                "physical-result mismatch fixture compilation ({optimization}) failed:\n{}",
+                String::from_utf8_lossy(&compiled.stderr)
+            );
+            let run = Command::new(&executable).output().unwrap();
+            assert!(
+                run.status.success(),
+                "physical-result mismatch fixture ({optimization}) failed with {}:\n{}",
+                run.status,
+                String::from_utf8_lossy(&run.stderr)
+            );
+        }
+    }
+
+    #[test]
+    fn callable_v2_integrated_scalar_owned_success_failure_are_o0_o2_exact() {
+        let sanitizers_required =
+            std::env::var("SEMAPRAX_REQUIRE_NATIVE_SANITIZERS").is_ok_and(|value| value == "1");
+        if Command::new("clang").arg("--version").output().is_err() {
+            assert!(
+                !sanitizers_required,
+                "clang is required for sanitizer evidence"
+            );
+            return;
+        }
+        let parsed = parse(
+            CALLABLE_EXECUTION_SOURCE,
+            Path::new("native-callable-execution.spx"),
+        )
+        .unwrap();
+        let program = hir::resolve(&parsed).unwrap();
+
+        let requires =
+            emit_native_callable_admission(&program, &DeclarationId::new("token.requires"))
+                .unwrap();
+        let requires_again =
+            emit_native_callable_admission(&program, &DeclarationId::new("token.requires"))
+                .unwrap();
+        assert_eq!(requires.provider_source(), requires_again.provider_source());
+        assert_eq!(
+            requires.semantic_event_dictionary().canonical_json(),
+            requires.event_dictionary()
+        );
+        let requires_requests = vec![
+            callable_request(
+                &requires,
+                101,
+                &[
+                    CallableArgument::Owned {
+                        ordinal: 0,
+                        payload: u64::MAX,
+                    },
+                    CallableArgument::Bool(true),
+                ],
+            ),
+            callable_request(
+                &requires,
+                102,
+                &[
+                    CallableArgument::Owned {
+                        ordinal: 0,
+                        payload: 0,
+                    },
+                    CallableArgument::Bool(false),
+                ],
+            ),
+        ];
+        let requires_o0 = compile_and_run_provider(&requires, &requires_requests, "-O0", false);
+        let requires_o2 = compile_and_run_provider(&requires, &requires_requests, "-O2", false);
+        assert_eq!(requires_o0, requires_o2);
+        let responses = split_responses(&requires_o2);
+        assert_eq!(responses.len(), 2);
+        assert_eq!(&responses[0][..8], b"SPXNRSP1");
+        assert_eq!(response_word(responses[0], 60), 1);
+        assert_eq!(response_word(responses[1], 60), 2);
+        assert_eq!(
+            u64::from_le_bytes(responses[0][52..60].try_into().unwrap()),
+            101
+        );
+        assert_eq!(
+            u64::from_le_bytes(responses[1][52..60].try_into().unwrap()),
+            102
+        );
+        let selected = response_word(responses[1], 68);
+        let failure_events = (0..response_word(responses[1], 64) as usize)
+            .map(|index| response_word(responses[1], 72 + index * 4))
+            .collect::<Vec<_>>();
+        assert!(failure_events.contains(&selected));
+
+        let checked =
+            emit_native_callable_admission(&program, &DeclarationId::new("token.checked")).unwrap();
+        let checked_requests = vec![
+            callable_request(
+                &checked,
+                105,
+                &[
+                    CallableArgument::Owned {
+                        ordinal: 0,
+                        payload: 0,
+                    },
+                    CallableArgument::I64(41),
+                ],
+            ),
+            callable_request(
+                &checked,
+                106,
+                &[
+                    CallableArgument::Owned {
+                        ordinal: 0,
+                        payload: u64::MAX,
+                    },
+                    CallableArgument::I64(i64::MAX),
+                ],
+            ),
+        ];
+        let checked_o0 = compile_and_run_provider(&checked, &checked_requests, "-O0", false);
+        let checked_o2 = compile_and_run_provider(&checked, &checked_requests, "-O2", false);
+        assert_eq!(checked_o0, checked_o2);
+        let checked_responses = split_responses(&checked_o2);
+        assert_eq!(response_word(checked_responses[0], 60), 1);
+        assert_eq!(
+            i64::from_le_bytes(checked_responses[0][72..80].try_into().unwrap()),
+            42
+        );
+        assert_eq!(response_word(checked_responses[1], 60), 2);
+
+        let identity =
+            emit_native_callable_admission(&program, &DeclarationId::new("token.identity"))
+                .unwrap();
+        let identity_requests = vec![callable_request(
+            &identity,
+            103,
+            &[CallableArgument::Owned {
+                ordinal: 0,
+                payload: u64::MAX,
+            }],
+        )];
+        let identity_o0 = compile_and_run_provider(&identity, &identity_requests, "-O0", false);
+        let identity_o2 = compile_and_run_provider(&identity, &identity_requests, "-O2", false);
+        assert_eq!(identity_o0, identity_o2);
+        let response = split_responses(&identity_o2)[0];
+        assert_eq!(response_word(response, 60), 1);
+        assert_eq!(response_word(response, 68), 2);
+        assert_eq!(response_word(response, 72), 0);
+
+        let ensures =
+            emit_native_callable_admission(&program, &DeclarationId::new("token.ensures-false"))
+                .unwrap();
+        let ensures_requests = vec![callable_request(
+            &ensures,
+            104,
+            &[CallableArgument::Owned {
+                ordinal: 0,
+                payload: u64::MAX,
+            }],
+        )];
+        let ensures_o0 = compile_and_run_provider(&ensures, &ensures_requests, "-O0", false);
+        let ensures_o2 = compile_and_run_provider(&ensures, &ensures_requests, "-O2", false);
+        assert_eq!(ensures_o0, ensures_o2);
+        assert_eq!(response_word(split_responses(&ensures_o2)[0], 60), 2);
+
+        if sanitizers_required {
+            assert_eq!(
+                compile_and_run_provider(&requires, &requires_requests, "-O1", true),
+                requires_o2
+            );
+            assert_eq!(
+                compile_and_run_provider(&identity, &identity_requests, "-O1", true),
+                identity_o2
+            );
+            assert_eq!(
+                compile_and_run_provider(&checked, &checked_requests, "-O1", true),
+                checked_o2
+            );
+            assert_eq!(
+                compile_and_run_provider(&ensures, &ensures_requests, "-O1", true),
+                ensures_o2
+            );
+        }
+
+        assert_eq!(
+            format!(
+                "{:x}",
+                Sha256::digest(requires.normalized_execution_projection().as_bytes())
+            ),
+            "493f04986aca30d0687b6138537fa9d3c3ad509dcb7cb7713aa6f41cd9bfc7e8"
+        );
+    }
+
+    #[test]
+    fn callable_v2_shared_library_exports_only_getter_and_callable() {
+        if Command::new("clang").arg("--version").output().is_err()
+            || Command::new("nm").arg("--version").output().is_err()
+        {
+            return;
+        }
+        if !cfg!(any(target_os = "linux", target_os = "macos")) {
+            return;
+        }
+        let parsed = parse(
+            CALLABLE_EXECUTION_SOURCE,
+            Path::new("native-callable-exports.spx"),
+        )
+        .unwrap();
+        let program = hir::resolve(&parsed).unwrap();
+        let artifact =
+            emit_native_callable_admission(&program, &DeclarationId::new("token.identity"))
+                .unwrap();
+        let fixture = CallableFixture::create();
+        let source = fixture.0.join("provider.c");
+        let library = fixture.0.join(if cfg!(target_os = "macos") {
+            "provider.dylib"
+        } else {
+            "provider.so"
+        });
+        fs::write(&source, artifact.provider_source()).unwrap();
+        let mut compile = Command::new("clang");
+        compile.args([
+            "-std=c11",
+            "-pedantic-errors",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-O2",
+            "-fvisibility=hidden",
+        ]);
+        if cfg!(target_os = "macos") {
+            compile.arg("-dynamiclib");
+        } else {
+            compile.args(["-shared", "-fPIC"]);
+        }
+        let compiled = compile
+            .arg(&source)
+            .arg("-o")
+            .arg(&library)
+            .output()
+            .unwrap();
+        assert!(
+            compiled.status.success(),
+            "callable shared-library compilation failed:\n{}",
+            String::from_utf8_lossy(&compiled.stderr)
+        );
+        let symbols = if cfg!(target_os = "macos") {
+            Command::new("nm").args(["-gU"]).arg(&library).output()
+        } else {
+            Command::new("nm")
+                .args(["-D", "--defined-only"])
+                .arg(&library)
+                .output()
+        }
+        .unwrap();
+        assert!(symbols.status.success());
+        let mut actual = String::from_utf8(symbols.stdout)
+            .unwrap()
+            .lines()
+            .filter_map(|line| line.split_whitespace().last())
+            .map(|symbol| {
+                if cfg!(target_os = "macos") {
+                    symbol.strip_prefix('_').unwrap_or(symbol).to_owned()
+                } else {
+                    symbol.to_owned()
+                }
+            })
+            .collect::<Vec<_>>();
+        actual.sort();
+        let mut expected = vec![
+            artifact.callable_symbol().to_owned(),
+            artifact.getter_symbol().to_owned(),
+        ];
+        expected.sort();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn callable_v2_authoritative_fourteen_case_corpus_has_production_providers() {
+        let parsed = parse(
+            CALLABLE_EXECUTION_SOURCE,
+            Path::new("native-callable-authoritative-corpus.spx"),
+        )
+        .unwrap();
+        let program = hir::resolve(&parsed).unwrap();
+        let scenario_functions = [
+            ("discard-zero", "token.discard"),
+            ("discard-max", "token.discard"),
+            ("discard-two-reverse", "token.discard-two"),
+            ("requires-false", "token.requires"),
+            ("requires-true", "token.requires"),
+            ("checked-success", "token.checked"),
+            ("checked-add-overflow", "token.checked"),
+            ("checked-precondition-false", "token.checked"),
+            ("identity-zero", "token.identity"),
+            ("identity-max", "token.identity"),
+            ("choose-second-zero-max", "token.choose-second"),
+            ("choose-second-zero-zero", "token.choose-second"),
+            ("choose-second-requires-false", "token.choose-second"),
+            ("ensures-false", "token.ensures-false"),
+        ];
+        assert_eq!(
+            scenario_functions.map(|(scenario, _)| scenario),
+            crate::semantic_trace::OWNED_RESOURCE_CORPUS_V1_SCENARIOS
+        );
+        for (_, function) in scenario_functions {
+            let artifact =
+                emit_native_callable_admission(&program, &DeclarationId::new(function)).unwrap();
+            assert!(artifact
+                .provider_source()
+                .contains(artifact.callable_symbol()));
+            assert!(artifact
+                .provider_source()
+                .contains(artifact.getter_symbol()));
+            assert_eq!(
+                artifact.semantic_event_dictionary().canonical_json(),
+                artifact.event_dictionary()
+            );
+        }
     }
 
     #[test]

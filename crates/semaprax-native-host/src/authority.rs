@@ -8,7 +8,7 @@ use crate::native_capability_token::{
     authenticate_expected, mint, NativeCapabilityBinding, NativeCapabilityKind,
     NativeCapabilitySecret, NativeCapabilityTokenError, TOKEN_BYTES,
 };
-use semaprax_native_loader::NativeModuleLease;
+use semaprax_native_loader::{ModuleInstanceId, NativeCallableModuleLease, NativeModuleLease};
 
 const SECRET_BYTES: usize = 32;
 const EPOCH_BYTES: usize = 8;
@@ -18,7 +18,7 @@ const THREAD_BINDING_HEX_BYTES: usize = THREAD_NONCE_BYTES * 2;
 
 pub(crate) struct Authority {
     secret: NativeCapabilitySecret,
-    module_lease: NativeModuleLease,
+    module_lease: ExactLeasePin,
     physical_module: [u8; 32],
     adapter_identity: Vec<u8>,
     binding_epoch: u64,
@@ -29,7 +29,49 @@ pub(crate) struct Authority {
 
 pub(crate) struct Credential {
     bytes: [u8; TOKEN_BYTES],
-    module_lease: NativeModuleLease,
+    module_lease: ExactLeasePin,
+}
+
+/// Explicit strong pin on one exact successful loader open.
+///
+/// The enum deliberately has no `Clone` implementation: every additional pin
+/// is visible at the call site through [`Self::retain`]. Both variants remain
+/// thread-confined because their loader leases are thread-confined.
+pub(crate) enum ExactLeasePin {
+    DescriptorV1(NativeModuleLease),
+    CallableV2(NativeCallableModuleLease),
+}
+
+impl ExactLeasePin {
+    pub(crate) const fn descriptor_v1(lease: NativeModuleLease) -> Self {
+        Self::DescriptorV1(lease)
+    }
+
+    pub(crate) const fn callable_v2(lease: NativeCallableModuleLease) -> Self {
+        Self::CallableV2(lease)
+    }
+
+    pub(crate) fn retain(&self) -> Self {
+        match self {
+            Self::DescriptorV1(lease) => Self::DescriptorV1(lease.retain()),
+            Self::CallableV2(lease) => Self::CallableV2(lease.retain()),
+        }
+    }
+
+    pub(crate) fn instance_id(&self) -> ModuleInstanceId {
+        match self {
+            Self::DescriptorV1(lease) => lease.instance_id(),
+            Self::CallableV2(lease) => lease.instance_id(),
+        }
+    }
+
+    pub(crate) fn is_same_instance(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::DescriptorV1(left), Self::DescriptorV1(right)) => left.is_same_instance(right),
+            (Self::CallableV2(left), Self::CallableV2(right)) => left.is_same_instance(right),
+            _ => false,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -44,7 +86,7 @@ pub(crate) enum AuthorityError {
 
 impl Authority {
     pub(crate) fn from_os(
-        module_lease: NativeModuleLease,
+        module_lease: ExactLeasePin,
         physical_module: [u8; 32],
         adapter_identity: &[u8],
     ) -> Result<Self, AuthorityError> {
@@ -252,7 +294,7 @@ impl Authority {
 }
 
 impl Credential {
-    pub(crate) fn instance_id(&self) -> semaprax_native_loader::ModuleInstanceId {
+    pub(crate) fn instance_id(&self) -> ModuleInstanceId {
         self.module_lease.instance_id()
     }
 }

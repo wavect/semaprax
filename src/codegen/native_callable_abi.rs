@@ -44,6 +44,12 @@ const SCALAR_BOOL: u32 = 2;
 const OWNED_PAYLOAD_WIRE_KIND: u32 = 1;
 const RESULT_SCALAR_I64: u32 = 1;
 const RESULT_OWNED_INPUT: u32 = 2;
+pub(super) const RESPONSE_OUTCOME_SUCCESS: u32 = 1;
+pub(super) const RESPONSE_OUTCOME_FAILURE: u32 = 2;
+pub(super) const CALL_RESULT_COMPLETE: u32 = 0;
+pub(super) const CALL_RESULT_INVALID_REQUEST: u32 = 1;
+pub(super) const CALL_RESULT_RESPONSE_CAPACITY: u32 = 2;
+pub(super) const CALL_RESULT_INTERNAL_FAILURE: u32 = 3;
 
 // Request v1: 20-byte envelope, contract fingerprint, invocation id, count.
 const REQUEST_FIXED_BYTES: u32 = 20 + 32 + 8 + 4;
@@ -77,6 +83,7 @@ const CALLABLE_SYMBOL_DOMAIN: &[u8] = b"semaprax.native-callable-entry.v2\0";
 pub(super) struct NativeCallableSemantics {
     execution_cleanup_fingerprint: [u8; FINGERPRINT_BYTES],
     event_dictionary_fingerprint: [u8; FINGERPRINT_BYTES],
+    trace_path_certificate_fingerprint: [u8; FINGERPRINT_BYTES],
     dictionary_bytes: u32,
     dictionary_entries: u32,
     max_event_count: u32,
@@ -86,6 +93,7 @@ impl NativeCallableSemantics {
     pub(super) fn new(
         execution_cleanup_fingerprint: [u8; FINGERPRINT_BYTES],
         event_dictionary_fingerprint: [u8; FINGERPRINT_BYTES],
+        trace_path_certificate_fingerprint: [u8; FINGERPRINT_BYTES],
         dictionary_bytes: usize,
         dictionary_entries: usize,
         max_event_count: usize,
@@ -97,6 +105,10 @@ impl NativeCallableSemantics {
         require_initialized(
             &event_dictionary_fingerprint,
             "event-dictionary fingerprint",
+        )?;
+        require_initialized(
+            &trace_path_certificate_fingerprint,
+            "trace-path certificate fingerprint",
         )?;
         let dictionary_bytes = wire_u32(dictionary_bytes, "event-dictionary byte length")?;
         let dictionary_entries = wire_u32(dictionary_entries, "event-dictionary entry count")?;
@@ -124,6 +136,7 @@ impl NativeCallableSemantics {
         Ok(Self {
             execution_cleanup_fingerprint,
             event_dictionary_fingerprint,
+            trace_path_certificate_fingerprint,
             dictionary_bytes,
             dictionary_entries,
             max_event_count,
@@ -137,6 +150,7 @@ pub(super) struct NativeCallableDescriptor {
     pub(super) bytes: Vec<u8>,
     pub(super) getter_symbol: String,
     pub(super) callable_symbol: String,
+    pub(super) call_contract: [u8; FINGERPRINT_BYTES],
     pub(super) max_request_bytes: u32,
     pub(super) max_response_bytes: u32,
 }
@@ -182,6 +196,30 @@ pub(super) fn derive(
     derive_for_target(template, semantics, &physical_target_tag()?)
 }
 
+/// Emit the immutable descriptor blob and its exact descriptor-v2 getter.
+/// The fragment is appended to the callable provider translation unit after
+/// that unit has defined `SPX_PROVIDER_API` and `SPX_PROVIDER_CALL`.
+pub(super) fn emit_getter_source(descriptor: &NativeCallableDescriptor) -> String {
+    let bytes_symbol = format!("{}_bytes", descriptor.getter_symbol);
+    let mut output = String::new();
+    writeln!(output, "static const uint8_t {bytes_symbol}[] = {{").expect("writing cannot fail");
+    for chunk in descriptor.bytes.chunks(12) {
+        output.push_str("    ");
+        for byte in chunk {
+            write!(output, "0x{byte:02x}, ").expect("writing cannot fail");
+        }
+        output.push('\n');
+    }
+    output.push_str("};\n");
+    writeln!(
+        output,
+        "SPX_PROVIDER_API const uint8_t *SPX_PROVIDER_CALL {}(void) {{ return {bytes_symbol}; }}",
+        descriptor.getter_symbol
+    )
+    .expect("writing cannot fail");
+    output
+}
+
 fn derive_for_target(
     template: &NativeHostContractTemplate,
     semantics: &NativeCallableSemantics,
@@ -221,6 +259,7 @@ fn derive_for_target(
         &function_template,
         &semantics.execution_cleanup_fingerprint,
         &semantics.event_dictionary_fingerprint,
+        &semantics.trace_path_certificate_fingerprint,
         &request_schema,
         &response_schema,
         &call_abi,
@@ -237,6 +276,7 @@ fn derive_for_target(
         &function_template,
         &semantics.execution_cleanup_fingerprint,
         &semantics.event_dictionary_fingerprint,
+        &semantics.trace_path_certificate_fingerprint,
         &request_schema,
         &response_schema,
         &call_abi,
@@ -260,6 +300,7 @@ fn derive_for_target(
         function_template,
         semantics.execution_cleanup_fingerprint,
         semantics.event_dictionary_fingerprint,
+        semantics.trace_path_certificate_fingerprint,
         request_schema,
         response_schema,
         call_abi,
@@ -287,6 +328,7 @@ fn derive_for_target(
         bytes: writer.bytes,
         getter_symbol,
         callable_symbol,
+        call_contract,
         max_request_bytes,
         max_response_bytes,
     })
@@ -496,7 +538,7 @@ fn schema_fingerprint() -> [u8; FINGERPRINT_BYTES] {
     }
     hash_field(
         &mut hasher,
-        b"target;11-fingerprints;module;function;getter;callable;abi;obligations;request-cap;response-cap;max-events;dictionary-bytes;dictionary-entries;ordered-parameters;result",
+        b"target;12-fingerprints;module;function;getter;callable;abi;obligations;request-cap;response-cap;max-events;dictionary-bytes;dictionary-entries;ordered-parameters;result",
     );
     hasher.finalize().into()
 }
@@ -534,6 +576,8 @@ fn response_schema_fingerprint() -> [u8; FINGERPRINT_BYTES] {
         RESPONSE_EVENT_ORDINAL_BYTES,
         RESULT_SCALAR_I64,
         RESULT_OWNED_INPUT,
+        RESPONSE_OUTCOME_SUCCESS,
+        RESPONSE_OUTCOME_FAILURE,
     ] {
         hash_u32(&mut hasher, word);
     }
@@ -549,6 +593,14 @@ fn call_abi_fingerprint() -> [u8; FINGERPRINT_BYTES] {
     hasher.update(CALL_ABI_DOMAIN);
     hash_u32(&mut hasher, CALL_ABI_TAG);
     hash_u32(&mut hasher, CALL_OBLIGATIONS);
+    for result in [
+        CALL_RESULT_COMPLETE,
+        CALL_RESULT_INVALID_REQUEST,
+        CALL_RESULT_RESPONSE_CAPACITY,
+        CALL_RESULT_INTERNAL_FAILURE,
+    ] {
+        hash_u32(&mut hasher, result);
+    }
     hash_field(
         &mut hasher,
         b"extern-C-u32(const-u8-request,u32-request-len,u8-response,u32-response-cap);windows-cdecl;no-unwind;no-longjmp;no-retained-pointers;no-callbacks;one-shot",
@@ -566,6 +618,7 @@ fn call_contract_fingerprint(
     function_template: &[u8; 32],
     execution_cleanup: &[u8; 32],
     event_dictionary: &[u8; 32],
+    trace_path_certificate: &[u8; 32],
     request_schema: &[u8; 32],
     response_schema: &[u8; 32],
     call_abi: &[u8; 32],
@@ -588,6 +641,7 @@ fn call_contract_fingerprint(
         function_template,
         execution_cleanup,
         event_dictionary,
+        trace_path_certificate,
         request_schema,
         response_schema,
         call_abi,
@@ -686,6 +740,7 @@ fn symbol_seed(
     function_template: &[u8; 32],
     execution_cleanup: &[u8; 32],
     event_dictionary: &[u8; 32],
+    trace_path_certificate: &[u8; 32],
     request_schema: &[u8; 32],
     response_schema: &[u8; 32],
     call_abi: &[u8; 32],
@@ -698,6 +753,7 @@ fn symbol_seed(
         function_template,
         execution_cleanup,
         event_dictionary,
+        trace_path_certificate,
         request_schema,
         response_schema,
         call_abi,
@@ -890,7 +946,7 @@ fn main() -> i64 { 0 }
     #[derive(Clone, Debug, Eq, PartialEq)]
     struct ParsedDescriptor {
         target: String,
-        fingerprints: [[u8; 32]; 11],
+        fingerprints: [[u8; 32]; 12],
         module: String,
         function: String,
         getter: String,
@@ -985,7 +1041,7 @@ fn main() -> i64 { 0 }
             return Err("inexact total length".to_owned());
         }
         let target = reader.text()?;
-        let mut fingerprints = [[0_u8; 32]; 11];
+        let mut fingerprints = [[0_u8; 32]; 12];
         for fingerprint in &mut fingerprints {
             *fingerprint = reader.fingerprint()?;
         }
@@ -1084,9 +1140,9 @@ fn main() -> i64 { 0 }
                     &fingerprints[2],
                     module.as_bytes(),
                 )
-            || fingerprints[7] != request_schema_fingerprint()
-            || fingerprints[8] != response_schema_fingerprint()
-            || fingerprints[9] != call_abi_fingerprint()
+            || fingerprints[8] != request_schema_fingerprint()
+            || fingerprints[9] != response_schema_fingerprint()
+            || fingerprints[10] != call_abi_fingerprint()
         {
             return Err("derived fingerprint mismatch".to_owned());
         }
@@ -1099,6 +1155,7 @@ fn main() -> i64 { 0 }
         let semantics = NativeCallableSemantics {
             execution_cleanup_fingerprint: fingerprints[5],
             event_dictionary_fingerprint: fingerprints[6],
+            trace_path_certificate_fingerprint: fingerprints[7],
             dictionary_bytes,
             dictionary_entries,
             max_event_count: max_events,
@@ -1115,6 +1172,7 @@ fn main() -> i64 { 0 }
             &fingerprints[7],
             &fingerprints[8],
             &fingerprints[9],
+            &fingerprints[10],
             &module,
             &function,
             max_request,
@@ -1123,7 +1181,7 @@ fn main() -> i64 { 0 }
             &parameters,
             &result,
         );
-        if fingerprints[10] != expected_contract {
+        if fingerprints[11] != expected_contract {
             return Err("call contract mismatch".to_owned());
         }
         let seed = symbol_seed(
@@ -1135,6 +1193,7 @@ fn main() -> i64 { 0 }
             &fingerprints[8],
             &fingerprints[9],
             &fingerprints[10],
+            &fingerprints[11],
         );
         if getter != exact_symbol(&seed, GETTER_SYMBOL_DOMAIN, "descriptor_v2")
             || callable != exact_symbol(&seed, CALLABLE_SYMBOL_DOMAIN, "call_v2")
@@ -1198,7 +1257,7 @@ fn main() -> i64 { 0 }
     }
 
     fn semantics() -> NativeCallableSemantics {
-        NativeCallableSemantics::new([0x31; 32], [0x57; 32], 409, 7, 19).unwrap()
+        NativeCallableSemantics::new([0x31; 32], [0x57; 32], [0x79; 32], 409, 7, 19).unwrap()
     }
 
     fn descriptor(id: &str) -> NativeCallableDescriptor {
@@ -1240,9 +1299,9 @@ fn main() -> i64 { 0 }
         assert_eq!(parsed.dictionary_bytes, 409);
         assert_eq!(parsed.dictionary_entries, 7);
         assert_eq!(parsed.fingerprints[0], schema_fingerprint());
-        assert_eq!(parsed.fingerprints[7], request_schema_fingerprint());
-        assert_eq!(parsed.fingerprints[8], response_schema_fingerprint());
-        assert_eq!(parsed.fingerprints[9], call_abi_fingerprint());
+        assert_eq!(parsed.fingerprints[8], request_schema_fingerprint());
+        assert_eq!(parsed.fingerprints[9], response_schema_fingerprint());
+        assert_eq!(parsed.fingerprints[10], call_abi_fingerprint());
         assert!(parsed
             .fingerprints
             .iter()
@@ -1334,9 +1393,9 @@ fn main() -> i64 { 0 }
         assert_eq!(
             digest,
             [
-                0x4e, 0x04, 0xe5, 0x09, 0x80, 0x5c, 0x5e, 0xe2, 0x31, 0x4e, 0x06, 0xec, 0x79, 0x6b,
-                0x61, 0xfc, 0xbf, 0x87, 0x96, 0x08, 0x33, 0xf7, 0x53, 0x49, 0x95, 0xfa, 0xd3, 0x22,
-                0xcd, 0xca, 0x3a, 0x47,
+                0xf1, 0xca, 0xe6, 0xdb, 0x42, 0xb7, 0xa5, 0x2d, 0xbb, 0x8f, 0x8f, 0x6c, 0xea, 0xf4,
+                0xde, 0x93, 0x0e, 0xbb, 0xa2, 0xbb, 0x37, 0x55, 0x5d, 0x2c, 0x01, 0x54, 0xb8, 0xeb,
+                0xf5, 0x30, 0x6e, 0xa7,
             ]
         );
     }
@@ -1375,11 +1434,12 @@ fn main() -> i64 { 0 }
     #[test]
     fn semantic_fingerprints_and_dictionary_bounds_fail_closed() {
         for invalid in [
-            NativeCallableSemantics::new([0; 32], [1; 32], 1, 1, 1),
-            NativeCallableSemantics::new([1; 32], [0; 32], 1, 1, 1),
-            NativeCallableSemantics::new([1; 32], [1; 32], 0, 1, 1),
-            NativeCallableSemantics::new([1; 32], [1; 32], 1, 0, 1),
-            NativeCallableSemantics::new([1; 32], [1; 32], 1, 1, 0),
+            NativeCallableSemantics::new([0; 32], [1; 32], [2; 32], 1, 1, 1),
+            NativeCallableSemantics::new([1; 32], [0; 32], [2; 32], 1, 1, 1),
+            NativeCallableSemantics::new([1; 32], [2; 32], [0; 32], 1, 1, 1),
+            NativeCallableSemantics::new([1; 32], [2; 32], [3; 32], 0, 1, 1),
+            NativeCallableSemantics::new([1; 32], [2; 32], [3; 32], 1, 0, 1),
+            NativeCallableSemantics::new([1; 32], [2; 32], [3; 32], 1, 1, 0),
         ] {
             assert!(invalid.is_err());
         }
@@ -1390,6 +1450,7 @@ fn main() -> i64 { 0 }
         let boundary = NativeCallableSemantics::new(
             [1; 32],
             [2; 32],
+            [3; 32],
             MAX_DICTIONARY_BYTES as usize,
             MAX_DICTIONARY_ENTRIES as usize,
             MAX_EVENT_COUNT as usize,
@@ -1413,6 +1474,7 @@ fn main() -> i64 { 0 }
         assert!(NativeCallableSemantics::new(
             [1; 32],
             [2; 32],
+            [3; 32],
             MAX_DICTIONARY_BYTES as usize + 1,
             1,
             1,
@@ -1421,15 +1483,21 @@ fn main() -> i64 { 0 }
         assert!(NativeCallableSemantics::new(
             [1; 32],
             [2; 32],
+            [3; 32],
             1,
             MAX_DICTIONARY_ENTRIES as usize + 1,
             1,
         )
         .is_err());
-        assert!(
-            NativeCallableSemantics::new([1; 32], [2; 32], 1, 1, MAX_EVENT_COUNT as usize + 1,)
-                .is_err()
-        );
+        assert!(NativeCallableSemantics::new(
+            [1; 32],
+            [2; 32],
+            [3; 32],
+            1,
+            1,
+            MAX_EVENT_COUNT as usize + 1,
+        )
+        .is_err());
         assert!(descriptor_length(MAX_DESCRIPTOR_BYTES + 1).is_err());
 
         assert!(response_capacity(

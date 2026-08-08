@@ -10,9 +10,10 @@ runtime authority nor makes the transaction callable. The separate
 [native capability-token layer](NATIVE-CAPABILITY-TOKENS-V1.md) fixes future
 bearer-token authentication and private OS-entropy/thread-binding mechanics,
 plus a test-only fake-backed module-lifetime topology retained by the authority
-and staged credential wrappers. That authority remains disconnected from this
-ledger; raw bearer bytes retain nothing, and only a synchronized registry can
-make authenticated bytes linear.
+and staged credential wrappers. The unpublished callable-v2 host now connects
+that authority to this ledger and the exact loader instance; raw bearer bytes
+still retain nothing, and only the synchronized registry makes authenticated
+bytes linear.
 
 The private native staging lane also derives ownership contracts in
 `src/codegen/native_host_contract.rs`. Derivation accepts a validated program

@@ -80,7 +80,15 @@ Implemented today:
 - Canonical record declarations, construction, and projection in `check`, resolved HIR, and semantic Graph v6; executable targets fail closed until aggregate layout and cleanup execution land.
 - A validated stable-ID HIR shared by native and Wasm lowering, with explicit entry, result, binding, expression, and place identities.
 - A mandatory target-neutral cleanup CFG for every function, independently rebuilt and independently replayed against core HIR/inventory, with exhaustive current-CFG path-state checks plus a scenario-driven reference trace executor.
-- Versioned target-neutral normalized-status, conformance-trace, and semantic-event-dictionary protocols, plus invocation-local immutable status arenas with zero-success/one-based tokens. The native scalar backend and narrow Wasm owned adapter use the status/out convention; generated native C and real Node/Wasm emit authenticated semantic ordinals and exactly match the reference trace/outcome for the authoritative 14-case owned-resource corpus. General and production-native resource conformance remain gated.
+- Versioned target-neutral normalized-status, conformance-trace,
+  semantic-event-dictionary, and trace-path-certificate protocols, plus
+  invocation-local immutable status arenas with zero-success/one-based tokens.
+  The compiler turns each admitted cleanup CFG into a deterministic trie-DFA;
+  the native host authenticates and walks it without allocation before
+  materializing events. Generated callable C loaded through the private native
+  ownership host, the independent reference executor, and real Node/Wasm now
+  agree exactly for the authoritative 14-case owned-resource corpus at native
+  O0 and O2. General and public native resource conformance remain gated.
 - Checked integer arithmetic in generated programs; native failures use exact normalized arithmetic codes and propagate without terminating an internal SEMAPRAX frame.
 - Typed `requires` and `ensures` contracts, enforced by native and Wasm artifacts. Native scalar contracts publish no caller result on failure.
 - Explicit function effects checked against module capabilities and callers.
@@ -99,9 +107,8 @@ Implemented today:
   ownership imports to the exact generated Wasm bytes with SHA-256 and rejects
   non-canonical ABI arguments; broader shapes remain gated.
 
-Not implemented yet: production callable native resource machine-code
-execution through the ownership host, general-shape native/reference/Wasm trace
-conformance, the general Wasm resource ABI,
+Not implemented yet: public native resource build/preflight emission,
+general-shape native/reference/Wasm trace conformance, the general Wasm resource ABI,
 recursive reference execution, callable imports/adapters, record machine-code
 layout/lowering, variants and matching, lifetime and alias analysis, user-facing
 regions, effect handlers, static contract proofs, Cranelift, LLVM/MLIR IR,
@@ -110,40 +117,50 @@ resource builds retain `SPX-B104`; Wasm admits only the documented narrow slice
 and rejects every excluded resource shape with `SPX-W111`; records remain gated
 with their target-specific diagnostics.
 
-The native compiler still contains gated cleanup-CFG-driven C and trace
-scaffolding plus an O0/O2/sanitizer conformance lane that compares the admitted
-value corpus with the independent reference executor. Separately, the
-unpublished `semaprax-native-host` crate now connects a strict pointer-free
-[descriptor](docs/NATIVE-ADAPTER-DESCRIPTOR-V1.md), a real exact-instance loader
-lease, the OS-seeded same-thread [capability
-authority](docs/NATIVE-CAPABILITY-TOKENS-V1.md), the ownership ledger, and
-non-copying owner/result wrappers. Its Linux/macOS fixtures prove descriptor
-admission, trusted owner adoption, non-mutating rejection, atomic ledger
-execution, generation rotation, draining, and exact lease retention. That host
-does **not** resolve or call a generated resource function from the loaded
-library: its v1 fixture exports only the descriptor getter, and test execution
-uses an explicit trusted Rust closure. Windows currently supplies compile
-coverage, not a native-host runtime fixture. Compiler preflight does not
-construct this host, and `SPX-B104` remains unchanged.
+Behind the internal native-host feature, the compiler emits one complete,
+strict-C11 callable provider: generated value/cleanup/status/trace execution,
+strict request/response codecs, compile-time physical-target guards, one exact
+callable, and its immutable descriptor-v2 getter. The unpublished
+`semaprax-native-host` connects that provider to the exact-instance loader
+lease, OS-seeded same-thread [capability
+authority](docs/NATIVE-CAPABILITY-TOKENS-V1.md), non-mutating ledger plan plus
+atomic commit, and non-copying owner/result wrappers. Its safe scalar/owned call
+surface executes all 14 authoritative cases from real generated shared
+libraries at O0/O2, authenticates the event dictionary and trace-path
+certificate, rotates owned results, and proves final logical liveness against
+the reference corpus.
 
-An unpublished [native loader quarantine](docs/NATIVE-MODULE-LOADER.md) now has
+This is still a private gate, not public native resource lowering. A physical
+provider failure or malformed response currently retires committed logical
+owners as an adapter failure, but does not yet prove a general canonical
+fallback cleanup trace or finalizer/quiescence protocol. A Linux job is
+configured to load ASan/UBSan-instrumented generated providers through the
+host, but it has no green public run yet and does not sanitizer-instrument the
+Rust host itself. Confirmed Windows runtime and dependency-collision CI,
+Android/iOS device or static-link profiles, and the public compiler
+build/preflight path are also outstanding. `SPX-B104` therefore remains
+unchanged.
+
+An unpublished [native loader quarantine](docs/NATIVE-MODULE-LOADER.md) has
 separately documented unsafe boundaries for descriptor-only admission and exact
 callable-v2 admission. It eagerly resolves one private callable and exposes only
 instance-bound, preallocated one-shot prepared calls—never a raw handle,
-generic lookup, or callable pointer. The ownership host consumes only the v1
-lease today; callable-v2 transport remains disconnected from host execution and
-public compiler emission. This is not a malicious-plugin boundary and does not
-weaken `SPX-B104`.
+generic lookup, or callable pointer. The ownership host now consumes the v2
+lease and callable transport, but the unsafe caller must still establish trusted
+image and dependency provenance. This is not a malicious-plugin boundary and
+does not weaken `SPX-B104`.
 
 The current critical-path implementation contract is [Owned resource vertical
 slice v1](docs/OWNED-RESOURCE-VERTICAL-V1.md): one deliberately narrow,
 production-reachable owned-resource corpus must execute with exact
 native/reference/Wasm status, cleanup, publication, and semantic-trace equality
-before either backend gate can open. The test-only generated-C lane and real
-Wasm lane now prove that equality for the authoritative 14 cases, but the
-generated callable is not connected to the physical native ownership host and
-the required Windows/callable sanitizer evidence is absent. The document
-remains a gate, not a completion claim.
+before either backend gate can open. The private generated-callable host and
+real Wasm lane now prove that equality for the authoritative 14 cases, including
+native O0/O2 and logical final liveness. The physical/malformed-response
+fallback, a green public run of the configured dynamic-callable sanitizer job,
+Rust-host sanitizer instrumentation, confirmed Windows runtime/dependency
+isolation, mobile profiles, and the public native compiler gate remain absent.
+The document remains a gate, not a completion claim.
 
 ## Agent protocol
 

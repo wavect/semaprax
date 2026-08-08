@@ -3,9 +3,9 @@ set -eu
 
 cargo fmt --all --check
 cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
-cargo test --locked --workspace --all-targets
-cargo test --locked --workspace --doc
-RUSTDOCFLAGS="-D warnings" cargo doc --locked --workspace --no-deps
+cargo test --locked --workspace --all-targets --all-features
+cargo test --locked --workspace --all-features --doc
+RUSTDOCFLAGS="-D warnings" cargo doc --locked --workspace --all-features --no-deps
 cargo build --locked --workspace --release
 cargo package --locked --allow-dirty -p semaprax
 cargo run --locked -p semaprax -- check examples/meaning.spx

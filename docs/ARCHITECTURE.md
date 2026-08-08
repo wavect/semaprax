@@ -55,36 +55,61 @@ This remains staged groundwork rather than the sole compiler IR: the current ver
 
 The target-neutral runtime protocol is split from physical target state. `semaprax.status.v1` contains only a stable `domain_id`, nonzero code, class, and retryability; the invocation-local arena assigns immutable one-based tokens while reserving zero for success and rejects cross-context and same-nonce cross-arena resolution. `semaprax.conformance-trace.v1` records semantic ownership, import, write-once failure selection, finalization, and result publication without pointers, handles, tokens, offsets, or host exceptions. Attached plans are independently checked against inventory and exact typed-HIR control/event coverage, then exhaustively replayed across the current acyclic CFG for ordered liveness, sticky failures, exact region-leave chains, reverse cleanup, and typed whole-result publication. The deterministic single-frame reference executor models an uninitialized/published caller out slot; record results remain rejected until the trace schema can preserve aggregate semantic values. The native scalar C lane shares one caller-supplied context across nested calls, returns exact compiler statuses, and commits its out slot only after postconditions.
 
+For callable-v2 admission, `semaprax.trace-path-certificate.v1` compiles that
+independently replay-validated cleanup CFG into a canonical trie-DFA. Its
+accepting states bind both the exact semantic-ordinal sequence and terminal
+scalar-success, owned-success, or selected-failure outcome. Descriptor v2 binds
+the certificate fingerprint separately from the event-dictionary fingerprint;
+the host authenticates both and performs an allocation-free DFA walk before it
+materializes any semantic events. The dictionary is therefore only the
+vocabulary, never an authorization to omit, duplicate, or reorder cleanup.
+
 For the admitted native resource shape, compiler preflight derives and discards
 an authority-free host template and its canonical pointer-free [native adapter
 descriptor v1](NATIVE-ADAPTER-DESCRIPTOR-V1.md). That descriptor-only provider
 still exports only its immutable getter. A second private compiler stage now
 derives exact [callable descriptor-v2
 metadata](NATIVE-CALLABLE-ABI-V2.md) from the sealed template, generated
-execution/cleanup fingerprint, and deterministic semantic-event dictionary. It
-binds eleven independently domain-separated fingerprints, exact getter and
-callable symbols, request/response capacities, the complete ordered signature,
-and result mapping. The unpublished host independently parses that v2 wire and
-rejects every single-byte mutation, truncation, or trailing byte in cross-crate
-fixtures.
+execution/cleanup fingerprint, deterministic semantic-event dictionary, and
+trace-path certificate. It binds twelve independently domain-separated
+fingerprints, exact getter and callable symbols, request/response capacities,
+the complete ordered signature, and result mapping. The unpublished host
+independently parses that v2 wire and rejects every single-byte mutation,
+truncation, or trailing byte in cross-crate fixtures.
 
-The unpublished `semaprax-native-host` crate performs the real physical v1
-connection that compiler emission still does not: it strictly decodes the
-descriptor, opens and retains one exact loader instance, constructs an OS-seeded
-same-thread [capability authority](NATIVE-CAPABILITY-TOKENS-V1.md),
-authenticates owner/result credentials, and drives the private ownership ledger
-through opaque non-copying owners. Linux/macOS fixtures exercise real loading,
-descriptor admission, typed scalar/owner preflight, trusted adoption, atomic
-rejection/commit, owned generation rotation, draining, and lease-retention
-order. The loader also has a separate exact-instance-bound, one-shot callable-v2
-byte transport with eager Unix resolution, but the host does not connect to it.
-Host execution remains an explicitly unsafe trusted Rust closure, not generated
-native resource machine code. Windows builds the crates but has no equivalent
-runtime fixture, and the callable path has no sanitizer evidence. Compiler
-preflight constructs none of the physical state, and `SPX-B104` remains
-closed. Generated callable execution, Windows dependency-collision runtime
-evidence, callable-path sanitizers, fork/concurrency recovery, and physical unload
-quiescence remain required.
+The feature-gated compiler callable stage emits the complete provider
+translation unit: generated value/cleanup/status/trace execution, strict
+bounded request and response codecs, physical target guards, one descriptor-v2
+getter, and one callable. The target guards fail C compilation when
+architecture, OS, environment, object format, pointer width, or endianness
+cannot be proven; MSVC uses its supported target architecture instead of
+assuming GNU byte-order builtins.
+
+The unpublished `semaprax-native-host` now performs the complete private
+connection. It strictly decodes descriptor v2, authenticates the dictionary and
+trace certificate, opens and retains one exact callable loader instance,
+constructs an OS-seeded same-thread [capability
+authority](NATIVE-CAPABILITY-TOKENS-V1.md), verifies owner/result credentials,
+builds a non-mutating fully allocated ledger plan, and commits all owners once
+before invoking the prepared byte call. The safe scalar and owned APIs decode
+only physical completion, walk the certificate, reconcile success or semantic
+failure, and return authenticated semantic events. Hostile providers cover all
+defined and reserved physical results, malformed response fields, dictionary
+and certificate rejection, draining, reusable precommit rejection, and
+cross-instance confinement.
+
+The authoritative 14-case fixture compiles real generated shared libraries at
+O0 and O2, loads them through this host, and exactly matches reference outcome,
+status, trace, publication, owner rotation, and final logical liveness. This is
+still a private feature, and `SPX-B104` remains closed. After a physical failure
+or malformed response the guard retires committed logical owners as an adapter
+failure, but general canonical fallback cleanup/finalizer trace and physical
+quiescence are not yet proven. A dedicated Linux CI job is configured to load
+ASan/UBSan-instrumented generated providers through the Rust host, but it has no
+green public run yet and does not sanitizer-instrument the Rust host itself.
+Green public Windows runtime and dependency-collision evidence, Android/iOS
+device or static-link profiles, and ordinary compiler build/preflight emission
+also remain required.
 
 ## Record groundwork and backend gate
 
@@ -100,13 +125,12 @@ a shared cleanup plan plus target-neutral reference replay/execution, and the
 native scalar lane has a non-trapping status/out ABI. The deterministic
 `semaprax.semantic-event-dictionary.v1` maps compiler-generated nonzero
 ordinals back to exact semantic events without reconstructing execution.
-Generated native C at O0/O2 and real Node/Wasm both emit actual executed
-ordinals for the same authoritative 14-case direct-trivial-resource corpus;
-each materializes to the exact reference trace, normalized outcome, and
-canonical JSON. This is strong cross-target semantic evidence, but the native
-side remains a test-only generated-C harness rather than the physical ownership
-host described above. Native resource lowering therefore still rejects with
-`SPX-B104`.
+Generated native C at O0/O2 now runs through the physical ownership host, while
+real Node/Wasm runs the same authoritative 14-case direct-trivial-resource
+corpus. Both materialize to the exact reference trace and normalized outcome;
+native additionally verifies publication, owner rotation, and final logical
+liveness through the ledger. Native public resource lowering still rejects
+with `SPX-B104` for the remaining evidence boundaries above.
 
 WebAssembly now has one public but deliberately narrow exception to the former
 blanket resource gate. `semaprax.wasm-owned.v1` admits exactly one direct,
@@ -194,11 +218,11 @@ The web package contains `app.wasm`, `semaprax.js`, `index.html`, `package.json`
 - Generated C is compiled without shell interpolation.
 - Patch writes are revision-bound, verified, and atomic.
 - Native dynamic-library loading is confined to unpublished quarantine crates.
-  The descriptor-v1 lease, authority, and ledger are physically connected; a
-  separate descriptor-v2 parser and exact callable transport are real but not
-  connected to that host. The only callable-v2 runtime provider is a transport
-  fixture, while physical-host execution still crosses an explicitly unsafe
-  trusted-Rust-closure boundary.
+  The private callable-v2 host connects exact descriptor/dictionary/certificate
+  admission, loader lease, authority, ledger, strict wire transport, and
+  compiler-generated execution. Its unsafe admission contract still trusts the
+  selected native image and dependencies; it is not a sandbox or code-identity
+  proof, and the public compiler gate remains closed.
 - `prepareTrustedAdoption` is the Wasm host's explicit trusted assertion that one unique external ownership identity is being transferred. Tickets are one-shot; exact Wasm byte binding keeps the mutating imports private to the generated artifact; canonical arguments, generated export metadata, and the result range are checked before ownership commit.
 - Same-realm Wasm instance tags are coordinated through one host-global allocator. The realm and its reserved binding are trusted host state; hostile pre-poisoning, cross-realm, and worker identity remain outside the implemented guarantee.
 - The compiler currently invokes the host `clang`; sandboxed build execution is roadmap work.

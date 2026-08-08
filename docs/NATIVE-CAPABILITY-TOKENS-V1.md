@@ -1,10 +1,9 @@
 # Native capability tokens v1
 
-Status: private protocol mechanics. In the publishable compiler they remain
-ledger-disconnected and use only a test fake lease; the separate unpublished
-native host now reuses the audited codec/authority source with a real loader
-lease and ownership ledger. This is not a public C ABI and does not enable a
-callable native resource symbol or open `SPX-B104`.
+Status: connected private protocol mechanics. The publishable compiler exposes
+no authority, but the unpublished callable-v2 host uses this audited
+codec/authority with the exact loader lease and synchronized ownership ledger.
+This is not a public C ABI and does not open `SPX-B104`.
 
 The codec defines authenticated bearer bytes for two staged capability kinds:
 
@@ -76,7 +75,8 @@ owner 535058430101000008070605040302011d000000000000001f00000000000000d7cda640f9
 
 ## Private native authority
 
-The codec's only non-test caller is a disconnected private Rust authority.
+The codec's production caller is the private Rust authority used by the
+unpublished physical host.
 Construction requires a module lease, derives the physical-module fingerprint
 from it, and validates the immutable adapter, resource, lifecycle, and
 thread-policy identities before requesting entropy. It then asks
@@ -124,9 +124,9 @@ result 53505843010200000807060504030201250000000000000029000000000000000f8fbb7b2
 ## Retained-module lease topology
 
 Exact module-instance identity is the private `Arc` allocation, not a path,
-fingerprint, descriptor, or bearer-token byte string. Construction exists only
-under tests and substitutes a fake retained pin for the future loader-owned
-handle. The authority owns one lease; every minted owner or provisional-result
+fingerprint, descriptor, or bearer-token byte string. Compiler-side topology
+tests substitute a fake retained pin, while the unpublished host supplies the
+exact callable-v2 loader pin. The authority owns one lease; every minted owner or provisional-result
 credential wrapper explicitly retains the same allocation. Raw 64-byte token
 bytes retain nothing. Authentication checks exact lease-instance identity
 before accepting the wrapper.
@@ -167,11 +167,12 @@ expected generations, and maximum `u64` fields.
 ## Security boundary and nonclaims
 
 The secret and authority types are private, non-`Clone`, and absent from
-`Debug`. The compiler-private staging topology still uses a fake pin. The
-unpublished physical host connects the same protocol to strict descriptor
-decoding, a real exact loader lease, and ledger owner generations, but it has
-no callable provider symbol, code-provenance authentication, callback/finalizer
-quiescence, hardened Windows loading, fork recovery/reseeding, locked memory,
+`Debug`. Compiler-private topology tests still use a fake pin. The unpublished
+physical host connects the same protocol to strict descriptor, dictionary, and
+trace-certificate admission, a real exact callable lease, generated provider
+execution, and ledger owner generations. It still has no independent
+code-provenance authentication, general callback/finalizer quiescence, proven
+Windows dependency-collision runtime, fork recovery/reseeding, locked memory,
 or audited zeroization. Authentic origin and fork integration remain future
 boundaries.
 Best-effort filling of temporary/key buffers is not a memory-erasure guarantee,
@@ -186,9 +187,10 @@ preflight must stream into the MAC or use preallocated storage.
 
 The compiler only registers these private modules. Resource preflight never
 constructs a secret, authority, binding, or token, and no C symbol exposes
-minting or authentication. The unpublished host's unsafe adoption and trusted
-Rust-closure executor are physical plumbing evidence, not the callable adapter:
-generated callable ABI/code identity, runtime-owned outcome storage, physical
-finalization, quiesced unload, fork handling, hostile concurrency, Windows
-runtime evidence, and cross-target conformance must all land before
-`SPX-B104` can change.
+minting or authentication. The unpublished host's unsafe adoption and generated
+callable executor are private physical plumbing evidence, not the public native
+adapter. General postcommit fallback cleanup, physical finalization and
+quiesced unload, code identity, fork handling, hostile concurrency, confirmed
+Windows runtime, mobile profiles, a green public dynamic-provider sanitizer
+run, Rust-host sanitizer instrumentation, and public compiler emission must
+land before `SPX-B104` can change.

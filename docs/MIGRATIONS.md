@@ -116,19 +116,25 @@ types, deterministic canonical JSON, independent inventory/HIR coverage and
 path-state replay, and a scenario-driven single-frame reference executor exist.
 The new `semaprax.semantic-event-dictionary.v1` projection assigns deterministic
 nonzero ordinals to exact event shapes and fingerprints its complete canonical
-JSON. Generated native cleanup C and the real narrow Wasm owned adapter now emit
-actual executed ordinals for the same authoritative 14-case corpus; independent
-materialization proves exact reference/native/Wasm traces, outcomes, and JSON.
-Unknown or zero ordinals fail closed, and consumers may not infer or repair
-events.
+JSON. Generated native callable C and the real narrow Wasm owned adapter emit
+actual executed ordinals for the same authoritative 14-case corpus. The private
+native loader/authority/ledger host now invokes those generated providers at
+O0/O2; independent materialization proves exact reference/native-host/Wasm
+traces and outcomes. Unknown or zero ordinals fail closed, and consumers may not
+infer or repair events. Descriptor v2 additionally binds
+`semaprax.trace-path-certificate.v1`, a canonical compiler-owned trie-DFA that
+authenticates the complete ordinal sequence and terminal outcome before host
+materialization.
 
-That equality does not make the native resource backend production reachable.
-The native generated-C path remains a conformance harness disconnected from the
-physical ownership host. Recursive callee execution, callable-import execution,
-imported finalizers, aggregates, broader control flow, and the production
-native callable-host boundary do not exist yet. Native resources, records, and
-every Wasm resource shape outside the documented narrow slice remain fail
-closed.
+That equality does not make the native resource backend publicly reachable.
+The connected callable path remains feature-gated; ordinary compiler
+build/preflight still returns `SPX-B104`. General physical/malformed-response
+fallback cleanup and quiescence, a green public dynamic-provider sanitizer run
+plus Rust-host sanitizer instrumentation, green public Windows
+runtime/dependency-collision evidence, Android/iOS profiles, recursive callee
+execution, callable imports, imported finalizers, aggregates, and broader
+control flow remain absent. Native resources, records, and every Wasm resource
+shape outside the documented narrow slice remain fail closed.
 
 The internal native invocation context and first-slice trace storage are now one-shot objects that require canonical C zero initialization before their initialization functions are called, for example `struct spx_context context = {0};`. This replaces the earlier accepted-but-indeterminate stack declaration form. Generated entry wrappers and repository probes have migrated. Embedders using `SPX_NO_ENTRY_WRAPPER` must zero-initialize context, trace-buffer, and trace-event storage; reinitialization or storage aliasing is rejected to preserve invocation isolation. This runtime scaffold remains private and does not lift native resource execution.
 
@@ -177,32 +183,36 @@ coordinates runtime tags across separately evaluated copies of the generated
 host. The surrounding realm and that reserved global binding are trusted v1
 host state; hostile pre-poisoning, cross-realm, and worker identity isolation
 remain outside v1.
-The adapter now emits compiler-generated semantic event ordinals and the shared
-14-case suite materializes them to exact reference/native/Wasm traces and
+The adapter emits compiler-generated semantic event ordinals and the shared
+14-case suite materializes them to exact reference/native-host/Wasm traces and
 outcomes. The full [owned-resource vertical
 contract](OWNED-RESOURCE-VERTICAL-V1.md), Components, imports/finalizers,
-broader shapes, and the production native callable-host connection remain later
-gates.
+broader shapes, public compiler emission, and the remaining platform/fallback
+evidence remain later gates.
 
 ## Native adapter descriptor v1 to callable descriptor v2
 
 Native adapter descriptor v1 remains descriptor-only and promises no callable
 owner API. Callable admission uses a separate private `SPXNABI2` wire rather
-than extending or reinterpreting v1. The staged v2 descriptor binds eleven
+than extending or reinterpreting v1. Descriptor v2 binds twelve
 independently domain-separated fingerprints, exact getter and callable symbols,
 the required `0x0f` call profile, request/response/event and dictionary bounds,
 the complete ordered parameter signature, opaque-`u64` owned payload kind,
-and the exact result mapping. The event dictionary itself is not embedded.
+and the exact result mapping. The event dictionary and trace-path certificate
+are not embedded; their independent fingerprints are.
 
 Private consumers must select a decoder from the eight-byte magic before
 loading. They must never pass `SPXNABI1` to callable admission, infer v2 fields
 from a v1 function-template hash, accept unknown obligation bits, or repair
 noncanonical fields. The compiler's staged encoder and the unpublished host's
 independent strict parser are cross-tested, including every-byte mutation,
-truncation, and trailing data. The loader can bind the exact v2 getter and one
-one-shot byte callable, but the physical ownership host does not yet use either
-the v2 call request or response. Windows runtime and callable sanitizer evidence
-also remain absent, so this migration does not change `SPX-B104`.
+truncation, and trailing data. The physical ownership host now binds the exact
+v2 getter/callable and uses the strict request/response protocol for the O0/O2
+14-case corpus. Public Windows runtime/dependency-collision confirmation, a
+green public dynamic-provider sanitizer run, Rust-host sanitizer
+instrumentation, mobile profiles, general fallback cleanup/quiescence, and
+public compiler emission remain absent, so this migration does not change
+`SPX-B104`.
 
 ## Revision token FNV-1a64 to SHA-256
 

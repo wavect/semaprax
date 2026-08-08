@@ -1,12 +1,12 @@
 # Native callable ABI v2
 
-Status: private staged groundwork. The compiler has a canonical descriptor-v2
-deriver and the unpublished native host has an independent strict decoder. The
-loader quarantine accepts the v2 envelope and can eagerly resolve one exact
-byte-wire callable. No production-reachable generated callable is connected to
-the ownership host, and the host does not yet encode, invoke, or decode the
-request/response protocol below. This is not a public or stable ecosystem ABI,
-and it does not open `SPX-B104`.
+Status: connected private implementation. Feature-gated compiler emission
+produces the complete guarded C11 provider, canonical descriptor v2, semantic
+dictionary, and trace-path certificate. The unpublished native host
+independently authenticates them, eagerly loads one exact byte-wire callable,
+and connects strict request/response codecs to its authority and ownership
+ledger. This is not a public or stable ecosystem ABI, and it does not open
+`SPX-B104`.
 
 ## Scope
 
@@ -59,6 +59,7 @@ The canonical pointer-free descriptor is encoded in this exact order:
 | Function-template fingerprint | 32 bytes |
 | Execution/cleanup fingerprint | 32 bytes |
 | Event-dictionary fingerprint | 32 bytes |
+| Trace-path-certificate fingerprint | 32 bytes |
 | Request-schema fingerprint | 32 bytes |
 | Response-schema fingerprint | 32 bytes |
 | Call-ABI fingerprint | 32 bytes |
@@ -78,16 +79,19 @@ The canonical pointer-free descriptor is encoded in this exact order:
 | Parameters | count entries in signature order |
 | Result | one result entry |
 
-The eleven fingerprints are ordered exactly as shown. All must be nonzero. The
+The twelve fingerprints are ordered exactly as shown. All must be nonzero. The
 host recomputes the schema, target, physical-module, request-schema,
 response-schema, call-ABI, and call-contract fingerprints. The
-semantic-module, function-template, execution/cleanup, and event-dictionary
-fingerprints are authenticated compiler inputs; all are bound into the
-recomputed call contract and derived symbols.
+semantic-module, function-template, execution/cleanup, event-dictionary, and
+trace-path-certificate fingerprints are authenticated compiler inputs; all are
+bound into the recomputed call contract and derived symbols.
 
 The physical target binds architecture, operating system, environment, object
-format, pointer width, endianness, and callable convention. Windows uses
-explicit C `__cdecl`; other admitted targets use the platform C convention.
+format, pointer width, endianness, and callable convention. Generated C carries
+matching compile-time guards and fails closed when the C preprocessor cannot
+prove those properties. Windows uses explicit C `__cdecl`; the MSVC endian path
+does not depend on GNU byte-order builtins. Other admitted targets use the
+platform C convention.
 
 The required-obligations word is one indivisible v2 profile. Its only canonical
 value is `0x0f`; it is not a feature-negotiation mask. The call-ABI
@@ -151,6 +155,16 @@ deterministic dense nonzero ordinals in first-occurrence order and contains
 semantic identities only—never payloads, addresses, handles, ledger slots,
 generations, credentials, loader paths, or target identities.
 
+The dictionary is only a vocabulary. The compiler separately compiles every
+valid path of the replay-validated cleanup CFG into
+`semaprax.trace-path-certificate.v1`, a canonical trie-DFA whose accepting
+states bind the exact ordinal sequence and terminal outcome. Descriptor v2
+binds its fingerprint independently. Admission verifies schema, function,
+dictionary fingerprint, certificate fingerprint, state count, and maximum path
+length. Response validation walks this DFA without allocation before event
+materialization, so omitted finalizers, duplicate pairs, reordered transfers,
+selection after cleanup, wrong publication, and incomplete paths fail closed.
+
 Generated code must emit ordinals from its actual executed cleanup control flow.
 The host materializes those ordinals through the exact fingerprint-bound
 dictionary. It may not infer missing events, reorder or repair them, or use a
@@ -175,8 +189,9 @@ uint32_t SPX_CALL spx_callable_symbol(
 `SPX_CALL` is `__cdecl` on Windows and the ordinary C calling convention
 elsewhere. The symbols are distinct, non-empty valid C identifiers, at most
 1,024 bytes, and deterministically derived from the physical-module,
-function-template, execution/cleanup, event-dictionary, request-schema,
-response-schema, call-ABI, and call-contract fingerprints.
+function-template, execution/cleanup, event-dictionary,
+trace-path-certificate, request-schema, response-schema, call-ABI, and call-contract
+fingerprints.
 
 The request and response ranges are non-null, complete, disjoint, and valid only
 for one synchronous call. The callable reads only the request range, writes only
@@ -186,12 +201,17 @@ work. The loader exposes no generic symbol lookup, raw handle, raw pointer, or
 manual close.
 
 The callable's `u32` return is a physical adapter result, not a SEMAPRAX
-normalized status. The response is decoded only when that result denotes a
-completed canonical response under the bound call contract. The numerical
-physical-result namespace is not yet exposed as a public contract. Any
-non-completed result, malformed response, or provider contract violation occurs
-after ownership commit and is an executed adapter failure, never a call
-rejection.
+normalized status. Its private, call-ABI-fingerprinted namespace is exact:
+
+- `0`: one complete canonical response;
+- `1`: invalid request;
+- `2`: incorrect or insufficient response capacity; and
+- `3`: internal provider failure.
+
+Every other value is reserved and invalid. The response is decoded only after
+physical result `0`. Any non-completed result, malformed response, or provider
+contract violation occurs after ownership commit and is an executed adapter
+failure, never a call rejection.
 
 ## Request wire v1
 
@@ -248,10 +268,10 @@ A successful outcome payload starts with the descriptor result tag. Scalar
 success is `u32 result_tag = 1` followed by `i64`; owned success is `u32
 result_tag = 2` followed by the exact published input's `u32 owner_ordinal`.
 A failure outcome payload is the one nonzero `u32` semantic ordinal that
-identifies the selected sticky failure. The outcome discriminant's numeric
-namespace is part of the response-schema fingerprint and remains private until
-the production codec is connected; success and failure must be decoded only by
-that exact codec.
+identifies the selected sticky failure. The private, response-schema-
+fingerprinted outcome namespace is `1 = success` and `2 = semantic failure`;
+zero and every other value are invalid. Success and failure must be decoded
+only by that exact codec.
 
 The event ordinal vector immediately follows the outcome payload. Its order is
 the executed semantic order, and each value must exist in the bound dictionary.
@@ -268,10 +288,10 @@ The following order is security-significant:
 
 1. The private, feature-gated callable-admission derivation validates HIR and
    the attached cleanup plan, admits the complete resource shape, builds the
-   deterministic event dictionary, derives all eleven fingerprints and both
-   symbols, serializes descriptor v2, and independently round-trips the
-   canonical fields. Ordinary compiler preflight still derives and discards
-   descriptor v1 only. Failure emits no v2 artifact.
+   deterministic event dictionary and trace-path certificate, derives all
+   twelve fingerprints and both symbols, serializes descriptor v2, and
+   independently round-trips the canonical fields. Ordinary compiler preflight
+   still derives and discards descriptor v1 only. Failure emits no v2 artifact.
 2. Before loading, the host bounds and strictly parses the expected descriptor,
    checks the current target, recomputable fingerprints, exact `0x0f`
    obligations, capacities, signature/result mappings, symbol derivation, and
@@ -284,22 +304,28 @@ The following order is security-significant:
 4. Before a call, the host checks its thread and draining state, exact lease,
    scalar count and kinds, every owner credential, request/response/event
    capacities, invocation exhaustion, and all serialization bounds. It
-   allocates the complete request and zeroed response and reserves every
-   fallible result before changing ownership.
+   allocates the complete request and response, response-decode/event buffers,
+   normalized failure values, owned-result credentials, and the detached ledger
+   plan before changing ownership.
 5. One ledger transaction consumes every owner in parameter order or none. Safe
    wrappers become consumed only at this atomic ingress commit. Any rejection
    before it leaves the exact wrappers live and reusable; no rejection is
    possible after it.
-6. The host invokes the one-shot prepared call once, validates its physical
-   result and complete response, materializes the exact semantic ordinals, and
-   reconciles the ledger with the result. Success publishes only the admitted
-   result. Semantic or adapter failure finalizes every still-live committed
-   input exactly once and publishes nothing.
+6. The host invokes the one-shot prepared call once. Only physical completion
+   permits strict response decoding; the certificate accepts the complete
+   ordinal path and terminal outcome before semantic materialization. Success
+   publishes only the admitted result, while authenticated semantic failure
+   consumes every committed input and publishes nothing. A physical failure or
+   malformed response becomes an adapter failure and retires the logical ledger
+   state, but the general canonical fallback cleanup/finalizer trace and
+   physical quiescence guarantee remain an explicit `SPX-B104` blocker.
 
 Every allocation, capacity check, generation advance, invocation reservation,
 wire construction, and result reservation belongs before commit. A provider
 failure or malformed response after commit is normalized as executed adapter
-failure and follows the cleanup path; it cannot be relabeled as rejection.
+failure and cannot be relabeled as rejection. The current direct-trivial host
+logically abandons the committed ledger transaction, but does not claim that
+this is a general semantic cleanup path for future physical finalizers.
 
 ## Trust and lifetime model
 
@@ -319,35 +345,32 @@ active operation is quiescent; immediate physical unmapping is not promised.
 
 ## Quality evidence and `SPX-B104`
 
-The current implementation proves private deterministic v2 derivation,
-independent strict parsing and mutation rejection, schema/capacity formulas,
-symbol derivation, the loader's exact v2 envelope admission, eager Unix
-resolution, exact descriptor equality, one-shot bounded byte invocation, and
-cross-instance prepared-call rejection. It does not yet prove execution of
-generated SEMAPRAX resource code through the ownership host.
+The current implementation proves deterministic provider, descriptor,
+dictionary, and certificate derivation; compile-time target guards; independent
+strict parsing and mutation rejection; allocation-free postcommit decoding and
+certificate walking; exact loader-instance admission; atomic ledger
+integration; safe scalar/owned calls; status and owner-result reconciliation;
+draining; and cross-instance rejection. Real generated shared libraries execute
+all 14 authoritative cases through the host at O0/O2 and match the reference
+trace, outcome, publication, owner rotation, and final logical liveness exactly.
 
 `SPX-B104` remains closed until all of these are green together:
 
-- production-reachable compiler emission, generated provider, strict host
-  admission, request encoder, response decoder, callable invocation, ledger
-  reconciliation, finalization, draining, and quiescence;
-- hostile mutation tests for every descriptor/request/response field, tag,
-  count, bound, fingerprint, symbol, ordinal, truncation, trailing byte,
-  exhaustion, and wraparound, with reusable owners after every precommit
-  rejection;
-- exact status, result, complete semantic trace, and final-liveness equality for
-  the full reference/native/Wasm corpus, using actual generated native O0/O2 and
-  Wasm execution rather than a shadow model;
-- real runtime-loaded callable ownership fixtures on Linux, macOS, and Windows,
-  plus mandatory Linux ASan and UBSan runs and hardened Windows dependency
-  search;
-- deterministic clean double-build equality for descriptor bytes, dictionary
-  projection, generated C, symbols, request/response fixtures, and native
-  artifacts;
-- compile-fail confinement/non-copying/non-formatting tests, unsafe-boundary
-  audit, Rust 1.85, formatting, strict workspace Clippy, all tests, docs with
-  warnings denied, package verification, cargo-deny, examples, and the existing
-  platform matrix without weakened gates.
+- a general, traceable fallback cleanup/finalizer and quiescence protocol for
+  physical provider failure or malformed response after ledger commit;
+- a green public run of the configured Linux job that loads ASan/UBSan-
+  instrumented generated providers through the loader, authority, ledger, and
+  callable host, plus sanitizer instrumentation of the Rust host itself (the
+  configured linker flags make the provider runtimes available but do not
+  instrument Rust code);
+- a green public Windows CI run of the generated callable corpus plus the
+  dependency-collision fixture and hardened search assertions;
+- Android device/runtime admission and an iOS-compatible static-link profile,
+  with representative device or simulator evidence;
+- the ordinary public compiler build/preflight path emitting and admitting this
+  exact slice while every excluded shape preserves its stable diagnostic; and
+- the complete all-feature MSRV, formatting, strict Clippy, tests, docs,
+  package, cargo-deny, examples, sanitizer, and platform matrix in public CI.
 
 Only that joint evidence may replace `SPX-B104` for this exact slice. It does
 not open excluded resource shapes or imply completion of records, variants,
@@ -357,11 +380,12 @@ frameworks, or the broader SEMAPRAX goal.
 
 ## Platform nonclaims
 
-Unix eager local relocation is implemented in the private loader. Windows has
-ordinary loading and compile coverage but not hardened DLL search or real
-callable ownership runtime evidence. Android is a compile target, not device
-execution evidence. iOS dynamic loading is not claimed and may require a later
-static-link admission profile. There is no present claim of Android/iOS device
-execution, cross-thread calls, concurrency, callback/finalizer quiescence, fork
-recovery, hot reload, signed-code admission, independent same-root symbol
-provenance authentication, or public ABI stability.
+Unix eager local relocation is implemented in the private loader. Windows uses
+`LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS`, excluding
+legacy current-directory/PATH lookup, but a real callable ownership run and a
+malicious dependency-collision fixture are not yet evidence. Android is a
+compile target, not device execution evidence. iOS dynamic loading is not
+claimed and may require a later static-link admission profile. There is no
+present claim of Android/iOS device execution, cross-thread calls, concurrency,
+callback/finalizer quiescence, fork recovery, hot reload, signed-code admission,
+independent same-root symbol provenance authentication, or public ABI stability.

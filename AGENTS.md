@@ -20,9 +20,11 @@ For records, variants, generics, matching, `Option`, or `Result`, also read `doc
 - `src/verify.rs`, `src/hir.rs`: checked semantics and the stable-ID resolved representation.
 - `src/cleanup.rs`: structural cleanup storage/leaf inventory.
 - `src/cleanup_plan.rs`, `src/cleanup_plan/`: target-neutral cleanup CFG schema, canonical builder, and independent replay gate.
+- `src/trace_path_certificate.rs`: canonical compiler-owned cleanup trace trie-DFA and outcome certificate.
 - `src/graph_cleanup.rs`: deterministic tagged Graph v6 projection of validated cleanup plans.
 - `src/graph.rs`, `patch.rs`: agent representation and atomic transactions.
-- `src/codegen.rs`, `wasm.rs`: native C11/Clang and browser/Wasm bootstrap lanes.
+- `src/codegen.rs`, `src/codegen/native_callable_*`, `wasm.rs`: native C11/Clang, private callable-v2, and browser/Wasm lanes.
+- `crates/semaprax-native-loader`, `crates/semaprax-native-host`: unpublished unsafe loader quarantine and connected callable authority/ledger host.
 - `tests/`: executable language, graph, transaction, ownership, and backend evidence.
 - `examples/`: canonical programs exercised directly in CI.
 

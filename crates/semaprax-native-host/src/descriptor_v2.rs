@@ -51,6 +51,12 @@ const SCALAR_I64: u32 = 1;
 const SCALAR_BOOL: u32 = 2;
 const RESULT_SCALAR_I64: u32 = 1;
 const RESULT_OWNED_INPUT: u32 = 2;
+pub(crate) const RESPONSE_OUTCOME_SUCCESS: u32 = 1;
+pub(crate) const RESPONSE_OUTCOME_FAILURE: u32 = 2;
+pub(crate) const CALL_RESULT_COMPLETE: u32 = 0;
+pub(crate) const CALL_RESULT_INVALID_REQUEST: u32 = 1;
+pub(crate) const CALL_RESULT_RESPONSE_CAPACITY: u32 = 2;
+pub(crate) const CALL_RESULT_INTERNAL_FAILURE: u32 = 3;
 
 const REQUEST_FIXED_BYTES: u32 = 20 + 32 + 8 + 4;
 const REQUEST_I64_BYTES: u32 = 4 + 4 + 8;
@@ -72,6 +78,7 @@ pub(crate) struct Fingerprints {
     pub(crate) function_template: [u8; FINGERPRINT_BYTES],
     pub(crate) execution_cleanup: [u8; FINGERPRINT_BYTES],
     pub(crate) event_dictionary: [u8; FINGERPRINT_BYTES],
+    pub(crate) trace_path_certificate: [u8; FINGERPRINT_BYTES],
     pub(crate) request_schema: [u8; FINGERPRINT_BYTES],
     pub(crate) response_schema: [u8; FINGERPRINT_BYTES],
     pub(crate) call_abi: [u8; FINGERPRINT_BYTES],
@@ -88,6 +95,7 @@ impl Fingerprints {
             &self.function_template,
             &self.execution_cleanup,
             &self.event_dictionary,
+            &self.trace_path_certificate,
             &self.request_schema,
             &self.response_schema,
             &self.call_abi,
@@ -190,6 +198,7 @@ impl Descriptor {
             function_template: reader.fingerprint()?,
             execution_cleanup: reader.fingerprint()?,
             event_dictionary: reader.fingerprint()?,
+            trace_path_certificate: reader.fingerprint()?,
             request_schema: reader.fingerprint()?,
             response_schema: reader.fingerprint()?,
             call_abi: reader.fingerprint()?,
@@ -507,7 +516,7 @@ pub(crate) fn schema_fingerprint() -> [u8; FINGERPRINT_BYTES] {
     }
     hash_field(
         &mut hasher,
-        b"target;11-fingerprints;module;function;getter;callable;abi;obligations;request-cap;response-cap;max-events;dictionary-bytes;dictionary-entries;ordered-parameters;result",
+        b"target;12-fingerprints;module;function;getter;callable;abi;obligations;request-cap;response-cap;max-events;dictionary-bytes;dictionary-entries;ordered-parameters;result",
     );
     hasher.finalize().into()
 }
@@ -567,6 +576,8 @@ pub(crate) fn response_schema_fingerprint() -> [u8; FINGERPRINT_BYTES] {
         RESPONSE_EVENT_ORDINAL_BYTES,
         RESULT_SCALAR_I64,
         RESULT_OWNED_INPUT,
+        RESPONSE_OUTCOME_SUCCESS,
+        RESPONSE_OUTCOME_FAILURE,
     ] {
         hash_u32(&mut hasher, value);
     }
@@ -582,6 +593,14 @@ pub(crate) fn call_abi_fingerprint() -> [u8; FINGERPRINT_BYTES] {
     hasher.update(CALL_ABI_FINGERPRINT_DOMAIN);
     hash_u32(&mut hasher, CALL_ABI_TAG);
     hash_u32(&mut hasher, REQUIRED_OBLIGATIONS);
+    for result in [
+        CALL_RESULT_COMPLETE,
+        CALL_RESULT_INVALID_REQUEST,
+        CALL_RESULT_RESPONSE_CAPACITY,
+        CALL_RESULT_INTERNAL_FAILURE,
+    ] {
+        hash_u32(&mut hasher, result);
+    }
     hash_field(
         &mut hasher,
         b"extern-C-u32(const-u8-request,u32-request-len,u8-response,u32-response-cap);windows-cdecl;no-unwind;no-longjmp;no-retained-pointers;no-callbacks;one-shot",
@@ -655,6 +674,7 @@ fn call_contract_fingerprint(
         &fingerprints.function_template,
         &fingerprints.execution_cleanup,
         &fingerprints.event_dictionary,
+        &fingerprints.trace_path_certificate,
         &fingerprints.request_schema,
         &fingerprints.response_schema,
         &fingerprints.call_abi,
@@ -759,6 +779,7 @@ pub(crate) fn derive_symbols(fingerprints: &Fingerprints) -> (String, String) {
         &fingerprints.function_template,
         &fingerprints.execution_cleanup,
         &fingerprints.event_dictionary,
+        &fingerprints.trace_path_certificate,
         &fingerprints.request_schema,
         &fingerprints.response_schema,
         &fingerprints.call_abi,
@@ -861,6 +882,7 @@ mod tests {
             function_template: [0x32; FINGERPRINT_BYTES],
             execution_cleanup: [0x33; FINGERPRINT_BYTES],
             event_dictionary: [0x34; FINGERPRINT_BYTES],
+            trace_path_certificate: [0x35; FINGERPRINT_BYTES],
             request_schema: request_schema_fingerprint(),
             response_schema: response_schema_fingerprint(),
             call_abi: call_abi_fingerprint(),
@@ -933,6 +955,7 @@ mod tests {
         let execution_cleanup = output.len();
         output.extend_from_slice(&fingerprints.execution_cleanup);
         output.extend_from_slice(&fingerprints.event_dictionary);
+        output.extend_from_slice(&fingerprints.trace_path_certificate);
         output.extend_from_slice(&fingerprints.request_schema);
         output.extend_from_slice(&fingerprints.response_schema);
         output.extend_from_slice(&fingerprints.call_abi);

@@ -5,6 +5,11 @@
 //! the attached cleanup plan in canonical vector order.  Unsupported shapes
 //! fail with `SPX-B104`; callers must not repair or reconstruct cleanup from
 //! HIR when classification fails.
+//!
+//! A `Continue` exit is accepted only for the compiler's canonical checked
+//! success path: it leaves a contiguous chain of empty regions through one
+//! uniquely owned unconditional edge. It cannot finalize, transfer, or cross
+//! a resource-owning region.
 
 #![cfg_attr(
     not(test),
@@ -16,11 +21,12 @@
 
 use std::collections::BTreeMap;
 
+use crate::ast::BinaryOp;
 use crate::cleanup::{FieldLivenessShape, LivenessFlagId};
 use crate::cleanup_plan::{
     BlockId, CleanupBlock, CleanupEdge, CleanupPlace, CleanupResultSource, CleanupSlot,
-    CleanupTerminator, CleanupTransition, EdgeId, ExitContinuation, ExitTarget, ExitTargetId,
-    FinalizeAction, StatusSource, StorageId, CLEANUP_PLAN_SCHEMA_V1,
+    CleanupTerminator, CleanupTransition, EdgeCondition, EdgeId, ExitContinuation, ExitTarget,
+    ExitTargetId, FinalizeAction, StatusSource, StorageId, CLEANUP_PLAN_SCHEMA_V1,
 };
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
@@ -69,6 +75,7 @@ pub(crate) struct NativeCleanupIndex<'a> {
     pub(crate) leaves: Vec<NativeCleanupLeaf<'a>>,
     pub(crate) live_owned_parameters: &'a [CleanupPlace],
     pub(crate) status_sources: &'a [StatusSource],
+    pub(crate) regions: &'a [crate::cleanup_plan::CleanupRegion],
     pub(crate) blocks: Vec<NativeCleanupBlock<'a>>,
     pub(crate) edges: &'a [CleanupEdge],
     pub(crate) exits: Vec<NativeCleanupExit<'a>>,
@@ -269,6 +276,7 @@ pub(crate) fn classify<'a>(
         &exits,
         &exit_positions,
     )?;
+    validate_bounded_continuations(function, plan)?;
 
     if !block_positions.contains_key(&plan.entry) {
         return Err(unsupported(
@@ -283,6 +291,7 @@ pub(crate) fn classify<'a>(
         leaves,
         live_owned_parameters: &plan.entry_state.live_owned_parameters,
         status_sources: &plan.status_sources,
+        regions: &plan.regions,
         blocks,
         edges: &plan.edges,
         exits,
@@ -292,6 +301,102 @@ pub(crate) fn classify<'a>(
         edge_positions,
         exit_positions,
     })
+}
+
+fn validate_bounded_continuations(
+    function: &ResolvedFunction,
+    plan: &crate::cleanup_plan::CleanupPlan,
+) -> Result<(), Diagnostic> {
+    for exit in &plan.exits {
+        let ExitContinuation::Continue(edge_id) = exit.continuation else {
+            continue;
+        };
+        let reject = |detail: &str| {
+            unsupported(
+                function,
+                format!(
+                    "cleanup continuation exit {} {detail}; only the canonical empty-region success continuation is supported",
+                    exit.id.0
+                ),
+            )
+        };
+        if !exit.finalize_in_order.is_empty() {
+            return Err(reject("performs finalization"));
+        }
+        if exit.leaves_regions.is_empty() {
+            return Err(reject("does not leave a region"));
+        }
+        let source = plan
+            .blocks
+            .iter()
+            .find(|block| block.id == exit.from)
+            .ok_or_else(|| reject("has an unknown source block"))?;
+        if !source.transitions.is_empty() || source.terminator != CleanupTerminator::Exit(exit.id) {
+            return Err(reject("changes state before continuing"));
+        }
+        let edge = plan
+            .edges
+            .iter()
+            .find(|edge| edge.id == edge_id)
+            .ok_or_else(|| reject("references an unknown edge"))?;
+        if edge.from != exit.from || !matches!(edge.condition, EdgeCondition::Always) {
+            return Err(reject("does not own one unconditional edge"));
+        }
+
+        let incoming = plan
+            .edges
+            .iter()
+            .filter(|candidate| candidate.to == source.id)
+            .collect::<Vec<_>>();
+        if incoming.len() != 1
+            || !matches!(
+                incoming[0].condition,
+                EdgeCondition::BooleanResult(_, true) | EdgeCondition::StatusZero(_)
+            )
+        {
+            return Err(reject("is not reached by one successful checked branch"));
+        }
+
+        let mut expected_region = Some(source.region);
+        for region_id in &exit.leaves_regions {
+            if expected_region != Some(*region_id) {
+                return Err(reject("does not leave one contiguous region chain"));
+            }
+            let region = plan
+                .regions
+                .iter()
+                .find(|region| region.id == *region_id)
+                .ok_or_else(|| reject("references an unknown region"))?;
+            if !region.slots.is_empty() || region.normal_scope_end != exit.id {
+                return Err(reject("leaves a resource-owning or non-normal region"));
+            }
+            expected_region = region.parent;
+        }
+        let Some(parent_region) = expected_region else {
+            return Err(reject("escapes the root region"));
+        };
+        let target = plan
+            .blocks
+            .iter()
+            .find(|block| block.id == edge.to)
+            .ok_or_else(|| reject("targets an unknown block"))?;
+        if target.region != parent_region {
+            return Err(reject("does not enter the immediate surviving region"));
+        }
+        if plan.edges.iter().filter(|candidate| candidate.to == target.id).count() != 1
+            || plan
+                .exits
+                .iter()
+                .filter(|candidate| {
+                    matches!(candidate.continuation, ExitContinuation::Continue(id) if id == edge_id)
+                })
+                .count()
+                != 1
+        {
+            return Err(reject("does not have a unique continuation target"));
+        }
+    }
+    Ok(())
 }
 
 fn validate_program_types(
@@ -483,7 +588,27 @@ fn validate_expression(
         ResolvedExprKind::Unary { value, .. } => {
             validate_expression(program, function, value)?;
         }
-        ResolvedExprKind::Binary { left, right, .. } => {
+        ResolvedExprKind::Binary { op, left, right } => {
+            if matches!(op, BinaryOp::And | BinaryOp::Or) {
+                return Err(unsupported(
+                    function,
+                    format!(
+                        "does not support lazy boolean expression `{}` in the first native cleanup slice",
+                        expression.id
+                    ),
+                ));
+            }
+            if expression_contains_resource(program, function, left)?
+                || expression_contains_resource(program, function, right)?
+            {
+                return Err(unsupported(
+                    function,
+                    format!(
+                        "does not support resource-valued binary operands in expression `{}`",
+                        expression.id
+                    ),
+                ));
+            }
             validate_expression(program, function, left)?;
             validate_expression(program, function, right)?;
         }
@@ -495,14 +620,14 @@ fn validate_expression(
             }
             validate_expression(program, function, tail)?;
         }
-        ResolvedExprKind::If {
-            condition,
-            then_branch,
-            else_branch,
-        } => {
-            validate_expression(program, function, condition)?;
-            validate_expression(program, function, then_branch)?;
-            validate_expression(program, function, else_branch)?;
+        ResolvedExprKind::If { .. } => {
+            return Err(unsupported(
+                function,
+                format!(
+                    "does not support conditional expression `{}` in the first native cleanup slice",
+                    expression.id
+                ),
+            ));
         }
         ResolvedExprKind::ConstructRecord { .. } | ResolvedExprKind::Project { .. } => {
             return Err(unsupported(
@@ -517,15 +642,38 @@ fn validate_expression(
     Ok(())
 }
 
+fn expression_contains_resource(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    expression: &ResolvedExpr,
+) -> Result<bool, Diagnostic> {
+    program
+        .declarations
+        .type_facts(&expression.ty)
+        .map(|facts| facts.contains_resource)
+        .ok_or_else(|| {
+            unsupported(
+                function,
+                format!(
+                    "cannot resolve type facts for binary operand `{}`",
+                    expression.id
+                ),
+            )
+        })
+}
+
 fn validate_transition(
     function: &ResolvedFunction,
     transition: &CleanupTransition,
     slots: &BTreeMap<StorageId, usize>,
 ) -> Result<(), Diagnostic> {
     match transition {
-        CleanupTransition::Initialize { destination, .. } => {
-            validate_place(function, destination, slots, "initialize destination")
-        }
+        CleanupTransition::Initialize { at, .. } => Err(unsupported(
+            function,
+            format!(
+                "does not support initialize transition `{at}` without a physical payload source"
+            ),
+        )),
         CleanupTransition::Transfer {
             source,
             destination,
@@ -602,11 +750,6 @@ fn validate_control_references(
             }
         }
     }
-    for indexed in exits {
-        if let ExitContinuation::Continue(edge) = indexed.exit.continuation {
-            validate_owned_edge(function, indexed.exit.from, edge, edges, edge_positions)?;
-        }
-    }
     Ok(())
 }
 
@@ -648,7 +791,7 @@ mod tests {
     use std::path::Path;
 
     use crate::cleanup_plan::ExitContinuation;
-    use crate::hir::{self, DeclarationId, ResolvedType};
+    use crate::hir::{self, DeclarationId, OwnershipMode, ResolvedType};
     use crate::parse;
 
     use super::*;
@@ -669,6 +812,9 @@ fn discard_two(first: own Token, second: own Token) -> i64 { 0 }
 
 @id("token.contract-failure")
 fn contract_failure(value: own Token) -> i64 requires false { 0 }
+
+@id("token.checked")
+fn checked(value: own Token, number: i64) -> i64 requires number >= 0 { number + 1 }
 
 @id("app.main")
 fn main() -> i64 { 0 }
@@ -696,6 +842,7 @@ fn main() -> i64 { 0 }
             "token.discard",
             "token.discard-two",
             "token.contract-failure",
+            "token.checked",
         ] {
             let first_index = classify(&first, function(&first, id)).unwrap();
             let second_index = classify(&second, function(&second, id)).unwrap();
@@ -769,6 +916,150 @@ fn main() -> i64 { 0 }
                     .map(|action| action.guard_flag)
                     .eq([LivenessFlagId(0)])
             }));
+
+        let checked = classify(&first, function(&first, "token.checked")).unwrap();
+        assert!(checked
+            .blocks
+            .iter()
+            .any(|block| matches!(block.block.terminator, CleanupTerminator::Branch(_))));
+        assert!(checked.status_sources.iter().any(|source| matches!(
+            source.producer,
+            crate::cleanup_plan::StatusProducer::CheckedArithmetic { .. }
+        )));
+        assert!(checked.status_sources.iter().any(|source| matches!(
+            source.producer,
+            crate::cleanup_plan::StatusProducer::ContractFalse { .. }
+        )));
+    }
+
+    #[test]
+    fn conditional_and_lazy_control_flow_are_rejected_without_reconstruction() {
+        let conditional = resolve(
+            r#"module test.native_cleanup_if;
+@id("token.type") resource Token { @id("token.drop") drop trivial; }
+@id("token.choose") fn choose(value: own Token, condition: bool) -> i64 {
+    if condition { 1 } else { 0 }
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#,
+        );
+        let diagnostic =
+            classify(&conditional, function(&conditional, "token.choose")).unwrap_err();
+        assert_eq!(diagnostic.code, "SPX-B104");
+        assert!(diagnostic.message.contains("conditional expression"));
+
+        let lazy = resolve(
+            r#"module test.native_cleanup_lazy;
+@id("token.type") resource Token { @id("token.drop") drop trivial; }
+@id("token.lazy") fn lazy(value: own Token, condition: bool) -> bool {
+    condition && true
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#,
+        );
+        let diagnostic = classify(&lazy, function(&lazy, "token.lazy")).unwrap_err();
+        assert_eq!(diagnostic.code, "SPX-B104");
+        assert!(diagnostic.message.contains("lazy boolean expression"));
+    }
+
+    #[test]
+    fn resource_valued_binary_operands_are_rejected_even_in_hostile_hir() {
+        let program = resolve(SUPPORTED);
+        let mut hostile = function(&program, "token.discard").clone();
+        let parameter = &hostile.params[0];
+        let operand = ResolvedExpr {
+            id: hostile.body.id.clone(),
+            ty: parameter.ty.clone(),
+            ownership: OwnershipMode::Borrow,
+            kind: ResolvedExprKind::Place(crate::hir::Place {
+                root: parameter.id.clone(),
+                projections: Vec::new(),
+            }),
+            span: hostile.body.span,
+        };
+        hostile.body.ty = ResolvedType::Bool;
+        hostile.body.ownership = OwnershipMode::Value;
+        hostile.body.kind = ResolvedExprKind::Binary {
+            op: BinaryOp::Eq,
+            left: Box::new(operand.clone()),
+            right: Box::new(operand),
+        };
+
+        let diagnostic = classify(&program, &hostile).unwrap_err();
+        assert_eq!(diagnostic.code, "SPX-B104");
+        assert!(diagnostic
+            .message
+            .contains("resource-valued binary operands"));
+    }
+
+    #[test]
+    fn initialize_and_cleanup_bearing_continue_are_rejected_by_the_classifier() {
+        let program = resolve(SUPPORTED);
+        let mut initialize = function(&program, "token.discard").clone();
+        initialize.cleanup_plan.blocks[0]
+            .transitions
+            .push(CleanupTransition::Initialize {
+                at: initialize.body.id.clone(),
+                destination: initialize.cleanup_plan.entry_state.live_owned_parameters[0].clone(),
+            });
+        let diagnostic = classify(&program, &initialize).unwrap_err();
+        assert_eq!(diagnostic.code, "SPX-B104");
+        assert!(diagnostic.message.contains("initialize transition"));
+        assert!(diagnostic.message.contains("physical payload source"));
+
+        let mut continuation = function(&program, "token.contract-failure").clone();
+        let continue_position = continuation
+            .cleanup_plan
+            .exits
+            .iter()
+            .position(|exit| matches!(exit.continuation, ExitContinuation::Continue(_)))
+            .expect("compiler contract continuation");
+        let finalizer = continuation
+            .cleanup_plan
+            .exits
+            .iter()
+            .flat_map(|exit| &exit.finalize_in_order)
+            .next()
+            .expect("terminal cleanup")
+            .clone();
+        continuation.cleanup_plan.exits[continue_position]
+            .finalize_in_order
+            .push(finalizer);
+        let diagnostic = classify(&program, &continuation).unwrap_err();
+        assert_eq!(diagnostic.code, "SPX-B104");
+        assert!(diagnostic.message.contains("performs finalization"));
+        assert!(diagnostic.message.contains("canonical empty-region"));
+
+        let mut conditional = function(&program, "token.contract-failure").clone();
+        let continuation_edge = conditional
+            .cleanup_plan
+            .exits
+            .iter()
+            .find_map(|exit| match exit.continuation {
+                ExitContinuation::Continue(edge) => Some(edge),
+                _ => None,
+            })
+            .expect("compiler contract continuation");
+        let hostile_condition = conditional
+            .cleanup_plan
+            .edges
+            .iter()
+            .find(|edge| !matches!(edge.condition, EdgeCondition::Always))
+            .expect("contract branch")
+            .condition
+            .clone();
+        conditional
+            .cleanup_plan
+            .edges
+            .iter_mut()
+            .find(|edge| edge.id == continuation_edge)
+            .expect("continuation edge")
+            .condition = hostile_condition;
+        let diagnostic = classify(&program, &conditional).unwrap_err();
+        assert_eq!(diagnostic.code, "SPX-B104");
+        assert!(diagnostic
+            .message
+            .contains("does not own one unconditional edge"));
     }
 
     #[test]

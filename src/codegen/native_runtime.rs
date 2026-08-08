@@ -47,6 +47,10 @@ typedef uint32_t spx_retryability;
 #define SPX_RETRYABILITY_FALSE UINT32_C(1)
 #define SPX_RETRYABILITY_TRUE UINT32_C(2)
 
+#define SPX_CONTEXT_ZERO UINT32_C(0)
+#define SPX_CONTEXT_INITIALIZED UINT32_C(0x53505843)
+#define SPX_CONTEXT_TRACE_ATTACHED UINT32_C(0x53505854)
+
 struct spx_normalized_status {
     const char *schema;
     const char *domain_id;
@@ -77,14 +81,33 @@ struct spx_status_arena {
 
 struct spx_import_table;
 struct spx_capability_table;
+struct spx_trace_buffer;
 
 struct spx_context {
+    uint32_t state;
+    uint64_t generation;
     uint64_t invocation_nonce;
     struct spx_status_arena status_arena;
     const struct spx_import_table *imports;
     const struct spx_capability_table *capabilities;
     void *target_state;
+    struct spx_trace_buffer *trace;
+    uint64_t trace_generation;
 };
+
+static inline bool spx_context_is_canonical_zero(
+    const struct spx_context *context
+) {
+    return context != NULL && context->state == SPX_CONTEXT_ZERO &&
+        context->generation == UINT64_C(0) &&
+        context->invocation_nonce == UINT64_C(0) &&
+        context->status_arena.entries == NULL &&
+        context->status_arena.capacity == UINT32_C(0) &&
+        context->status_arena.length == UINT32_C(0) &&
+        context->imports == NULL && context->capabilities == NULL &&
+        context->target_state == NULL && context->trace == NULL &&
+        context->trace_generation == UINT64_C(0);
+}
 
 static inline bool spx_context_init(
     struct spx_context *context,
@@ -95,10 +118,15 @@ static inline bool spx_context_init(
     const struct spx_capability_table *capabilities,
     void *target_state
 ) {
-    if (context == NULL || status_entries == NULL ||
+    /* Context storage is one-shot and must be canonically zero-initialized.
+       Reading an indeterminate C object would itself be undefined behavior. */
+    if (!spx_context_is_canonical_zero(context) ||
+        status_entries == NULL ||
         status_capacity == 0 || status_capacity == UINT32_MAX) {
         return false;
     }
+    context->state = SPX_CONTEXT_INITIALIZED;
+    context->generation = UINT64_C(1);
     context->invocation_nonce = invocation_nonce;
     context->status_arena.entries = status_entries;
     context->status_arena.capacity = status_capacity;
@@ -106,6 +134,8 @@ static inline bool spx_context_init(
     context->imports = imports;
     context->capabilities = capabilities;
     context->target_state = target_state;
+    context->trace = NULL;
+    context->trace_generation = UINT64_C(0);
     return true;
 }
 
@@ -425,6 +455,11 @@ mod tests {
         for marker in [
             "uint64_t invocation_nonce;",
             "struct spx_status_arena status_arena;",
+            "struct spx_trace_buffer *trace;",
+            "context->trace = NULL;",
+            "spx_context_is_canonical_zero(context)",
+            "context->state = SPX_CONTEXT_INITIALIZED;",
+            "context->generation = UINT64_C(1);",
             "arena->length >= arena->capacity",
             "token == SPX_STATUS_SUCCESS",
             "token - UINT32_C(1)",
@@ -458,8 +493,15 @@ mod tests {
             "{STATUS_RUNTIME_C}{}",
             r#"int main(void) {
     struct spx_status_entry first_entries[2];
-    struct spx_context first;
+    struct spx_context first = {0};
     if (!spx_context_init(&first, UINT64_C(11), first_entries, UINT32_C(2), NULL, NULL, NULL)) return 1;
+    if (first.state != SPX_CONTEXT_INITIALIZED || first.generation != UINT64_C(1) ||
+        first.trace != NULL || first.trace_generation != UINT64_C(0)) return 39;
+    if (spx_context_init(
+            &first, UINT64_C(99), first_entries, UINT32_C(2),
+            NULL, NULL, NULL)) return 40;
+    if (first.invocation_nonce != UINT64_C(11) ||
+        first.state != SPX_CONTEXT_INITIALIZED) return 41;
     if (spx_status_resolve(&first, SPX_STATUS_SUCCESS) != NULL) return 2;
 
     spx_status_token token = UINT32_C(99);
@@ -488,7 +530,7 @@ mod tests {
     if (spx_status_resolve(&first, UINT32_C(3)) != NULL) return 11;
 
     struct spx_status_entry second_entries[1];
-    struct spx_context second;
+    struct spx_context second = {0};
     if (!spx_context_init(&second, UINT64_C(11), second_entries, UINT32_C(1), NULL, NULL, NULL)) return 12;
     token = UINT32_C(88);
     if (spx_status_record_adapter(&second, "semaprax.contract.v1", UINT32_C(7), SPX_STATUS_CLASS_IMPORT, SPX_RETRYABILITY_UNKNOWN, &token)) return 13;
@@ -506,7 +548,7 @@ mod tests {
     if (strcmp(first_one->domain_id, "semaprax.contract.v1") != 0) return 20;
     if (strcmp(second_one->domain_id, "host.error.v1") != 0) return 21;
 
-    struct spx_context invalid;
+    struct spx_context invalid = {0};
     struct spx_status_entry invalid_entries[1];
     if (spx_context_init(&invalid, UINT64_C(12), invalid_entries, UINT32_C(0), NULL, NULL, NULL)) return 22;
     if (spx_context_init(&invalid, UINT64_C(12), NULL, UINT32_C(1), NULL, NULL, NULL)) return 23;

@@ -1,7 +1,9 @@
 mod native_cleanup;
+mod native_cleanup_emit;
 mod native_resource;
 mod native_runtime;
 mod native_trace;
+mod native_trace_runtime;
 
 use std::collections::HashMap;
 use std::fmt::Write;
@@ -140,7 +142,7 @@ fn emit_hir_c_with_labels(
         "#ifndef SPX_NO_ENTRY_WRAPPER\n\
          int main(void) {{\n\
              struct spx_status_entry spx_status_entries[UINT32_C(1)];\n\
-             struct spx_context spx_ctx;\n\
+             struct spx_context spx_ctx = {{0}};\n\
              if (!spx_context_init(&spx_ctx, UINT64_C(1), spx_status_entries, UINT32_C(1), NULL, NULL, NULL)) {{\n\
                  fputs(\"SEMAPRAX native runtime invariant failure: context initialization\\n\", stderr);\n\
                  return 72;\n\

@@ -94,7 +94,7 @@ Implemented today:
 
 Not implemented yet: native resource cleanup-plan execution, any Wasm status/resource ABI execution, backend trace conformance, recursive reference execution in the reference oracle, callable imports/adapters, record machine-code layout/lowering, variants and matching, lifetime and alias analysis, user-facing regions, effect handlers, static contract proofs, Cranelift, LLVM/MLIR IR, WebAssembly Components, packages, concurrency, or cross-platform UI. Resource and record builds fail closed until their remaining safety gates pass.
 
-The native backend contains unreachable preparatory scaffolding for deterministic resource wrapper symbols, bounded cleanup-plan indexing, and conservative trace-buffer sizing. It deliberately does not weaken `SPX-B104`: resource execution and nested calls remain unavailable until generated cleanup and exact reference-trace comparison pass the required host, sanitizer, and cross-platform gates.
+The native backend contains unreachable preparatory scaffolding for deterministic resource wrapper symbols, bounded cleanup-plan indexing, plan-driven cleanup C, conservative trace-buffer sizing, root-frame semantic event storage, and pre-ownership trace attachment. It deliberately does not weaken `SPX-B104`: resource execution and nested calls remain unavailable until the scaffold is integrated with expression lowering and exact reference-trace comparison passes the required host, sanitizer, and cross-platform gates.
 
 ## Agent protocol
 

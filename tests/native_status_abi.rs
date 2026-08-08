@@ -179,7 +179,7 @@ fn main() -> i64 requires false { 42 }
         r#"
 int main(void) {{
     struct spx_status_entry entries[UINT32_C(1)];
-    struct spx_context context;
+    struct spx_context context = {{0}};
     if (!spx_context_init(
         &context, UINT64_C(303), entries, UINT32_C(1), NULL, NULL, NULL
     )) return 80;
@@ -266,7 +266,7 @@ typedef spx_status_token (*spx_test_case)(struct spx_context *, int64_t *);
 
 static int spx_test_success(spx_test_case test_case) {{
     struct spx_status_entry records[UINT32_C(2)];
-    struct spx_context context;
+    struct spx_context context = {{0}};
     if (!spx_context_init(
         &context, UINT64_C(101), records, UINT32_C(2), NULL, NULL, NULL
     )) return 10;
@@ -287,7 +287,7 @@ static int spx_test_failure(
     spx_status_class expected_class
 ) {{
     struct spx_status_entry records[UINT32_C(2)];
-    struct spx_context context;
+    struct spx_context context = {{0}};
     if (!spx_context_init(
         &context, UINT64_C(202), records, UINT32_C(2), NULL, NULL, NULL
     )) return 20;

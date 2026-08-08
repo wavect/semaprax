@@ -1501,10 +1501,14 @@ fn main() -> i64 { 0 }
         requests: &[Vec<u8>],
     ) -> String {
         let mut source = artifact.provider_source.clone();
+        source.push_str("#if defined(_WIN32)\n#include <fcntl.h>\n#include <io.h>\n#endif\n");
         for (index, request) in requests.iter().enumerate() {
             source.push_str(&c_byte_array(&format!("spx_request_{index}"), request));
         }
         source.push_str("int main(void) {\n");
+        source.push_str(
+            "#if defined(_WIN32)\n    if (_setmode(_fileno(stdout), _O_BINARY) == -1) return 89;\n#endif\n",
+        );
         writeln!(
             source,
             "    if (memcmp({}(), \"SPXNABI2\", UINT32_C(8)) != 0) return 90;",
@@ -1742,7 +1746,15 @@ fn main() -> i64 { increment(41) }
 
     #[test]
     fn callable_v2_production_provider_is_strict_cc_at_o0_and_o2() {
-        if Command::new("cc").arg("--version").output().is_err() {
+        #[cfg(windows)]
+        let compiler_name = "clang";
+        #[cfg(not(windows))]
+        let compiler_name = "cc";
+        if Command::new(compiler_name)
+            .arg("--version")
+            .output()
+            .is_err()
+        {
             return;
         }
         let parsed = parse(
@@ -1762,7 +1774,7 @@ fn main() -> i64 { increment(41) }
                 "provider-{}.o",
                 optimization.trim_start_matches('-').to_ascii_lowercase()
             ));
-            let compiled = Command::new("cc")
+            let compiled = Command::new(compiler_name)
                 .args([
                     "-std=c11",
                     "-pedantic-errors",
@@ -1780,7 +1792,7 @@ fn main() -> i64 { increment(41) }
                 .unwrap();
             assert!(
                 compiled.status.success(),
-                "production provider strict cc compilation failed at {optimization}:\n{}",
+                "production provider strict {compiler_name} compilation failed at {optimization}:\n{}",
                 String::from_utf8_lossy(&compiled.stderr)
             );
         }

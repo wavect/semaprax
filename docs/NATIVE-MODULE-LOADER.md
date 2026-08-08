@@ -7,14 +7,18 @@ generated resource calls, or any public adapter, and it does not change
 
 `crates/semaprax-native-loader` isolates the unavoidable unsafe operations for
 opening a trusted native library, resolving one fixed C descriptor getter,
-calling it, and reading and comparing an exactly bounded expected byte range. The main
-`semaprax` crate remains `unsafe_code = "forbid"`. The loader is unpublished,
-has one exact-pinned `libloading` dependency, exposes no generic symbol lookup,
-raw handle, pointer, callable symbol, or manual close, and returns only an
-opaque `Arc`-backed lease with explicit retention and exact logical-admission
-identity. Leases are deliberately neither `Send` nor `Sync`, keeping potential
-native terminator execution on the opening thread until a future module
-contract can prove cross-thread teardown safe.
+calling it, and reading and comparing an exactly bounded expected byte range.
+Its separately versioned callable-v2 constructor additionally resolves one
+exact C byte-wire function after descriptor equality. Unix opens use
+`RTLD_NOW | RTLD_LOCAL`, so dependency relocations fail during admission
+rather than at a later first call. The main `semaprax` crate remains
+`unsafe_code = "forbid"`. The loader is unpublished, has one exact-pinned
+`libloading` dependency, exposes no generic symbol lookup, raw handle, raw
+pointer, callable pointer, or manual close, and returns only opaque
+`Arc`-backed leases with explicit retention and exact logical-admission
+identity. Leases are deliberately neither `Send` nor `Sync`, keeping
+potential native terminator execution on the opening thread until a future
+module contract can prove cross-thread teardown safe.
 
 The constructor is intentionally `unsafe`. Loading executes the selected
 image's and dependencies' initializers before descriptor validation and may run
@@ -29,21 +33,35 @@ The unsafe contract therefore also requires the root path, module directory,
 and dependency-search namespace to remain non-adversarially stable throughout
 the load. This is not a sandbox or a malicious-plugin boundary.
 
-Current executable evidence uses a plain generated C provider on Linux and
-macOS. It proves canonical-path and input bounds, exact-byte comparison, missing
-path/symbol rejection, null rejection, logical admission separation, explicit
-lease retention, and release of SEMAPRAX's loader reference after the last
-lease. The unpublished native host additionally proves that this real lease is
-retained by its same-thread authority and every live owner/result credential,
-that equal descriptor bytes from separate opens do not establish instance
-identity, and that draining rejects new work while existing owners keep their
-pins. Those integration fixtures still run only on Linux and macOS.
+Current executable evidence uses plain C fixtures on Linux and macOS. The
+descriptor-only lane proves canonical-path and input bounds, exact-byte
+comparison, missing path/symbol rejection, null rejection, logical-admission
+separation, explicit lease retention, and release of SEMAPRAX's loader reference
+after the last lease. The callable foundation separately proves v1 rejection
+before loading, bounded and distinct getter/callable names, exact v2 bytes,
+eager unresolved-import failure on Unix, one exact resolved echo callable,
+preallocated bounded request/response storage, one-shot invocation, and
+cross-instance prepared-call rejection.
 
-The loaded provider exposes only the descriptor getter. Neither crate resolves
-or executes a resource function or finalizer symbol, and the host tests use an
-explicit trusted Rust closure in place of generated native code. The evidence
-does not prove immediate physical unmapping, same-root-image callable-symbol
-provenance, hardened dependency search, Windows DLL runtime behavior, iOS
-dynamic loading, Android device execution, callback/finalizer quiescence, hot
-reload, fork recovery, signed code admission, or callable resource safety.
-Those remain gates before any public native adapter or `SPX-B104` change.
+The unpublished native host additionally proves that its real descriptor-v1
+lease is retained by its same-thread authority and every live owner/result
+credential, that equal descriptor bytes from separate opens do not establish
+instance identity, and that draining rejects new work while existing owners
+keep their pins. The compiler now derives deterministic
+[`SPXNABI2` admission metadata](NATIVE-CALLABLE-ABI-V2.md), and the host has an
+independent strict staged decoder with cross-crate exact acceptance and
+every-byte, truncation, and trailing-data rejection. That v2 decoder, callable
+lease, and ownership host are not connected. These runtime integration fixtures
+still run only on Linux and macOS.
+
+The callable fixture is a transport echo, not generated SEMAPRAX resource code.
+The physical ownership host still executes an explicit trusted Rust closure and
+does not invoke the resolved callable or a finalizer symbol. The Windows loader
+now excludes current-directory/legacy-PATH dependency search and admits the
+root-image directory plus default safe directories. The evidence does not prove
+immediate physical unmapping, same-root-image callable provenance, Windows
+malicious-CWD collision behavior, callable-path ASan/UBSan safety, iOS
+dynamic/static admission, Android device execution,
+callback/finalizer quiescence, hot reload, fork recovery, signed code admission,
+or callable resource safety. Those remain gates before any public native
+adapter or `SPX-B104` change.

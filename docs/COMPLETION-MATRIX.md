@@ -8,7 +8,35 @@ Status values:
 - **Partial** — useful implementation exists, but the full gate is not proven.
 - **Missing** — no qualifying implementation exists yet.
 
-[RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) phases 1–2 are implemented. Every resolved function carries an independently rebuilt target-neutral cleanup CFG with storage/leaf liveness, regions, atomic call commits, sticky failures, guarded finalization, and result publication; Graph v6 serializes it. Phase-3 evidence now includes status/trace types, independent plan replay, a reference executor, native scalar status/out execution, exact typed native backend-oracle traces, deterministic host templates and [pointer-free descriptors](NATIVE-ADAPTER-DESCRIPTOR-V1.md), authenticated capability mechanics, and a real unpublished native host that connects the descriptor, exact loader lease, same-thread OS-seeded authority, ownership ledger, and opaque owners in Linux/macOS fixtures. That host resolves no callable resource symbol, invokes only an explicitly trusted Rust closure, has no Windows runtime fixture, is not constructed by compiler preflight, and does not open `SPX-B104`. WebAssembly separately implements the narrow [owned ABI v1](WASM-OWNED-ABI-V1.md) for one direct trivial-resource identity with real Node execution; every excluded Wasm shape remains `SPX-W111`. Public native resource execution, semantic backend traces from the Wasm host, callable imports/finalizers, and exact native/reference/Wasm conformance remain unimplemented.
+[RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) phases 1–2 are
+implemented. Every resolved function carries an independently rebuilt
+target-neutral cleanup CFG with storage/leaf liveness, regions, atomic call
+commits, sticky failures, guarded finalization, and result publication; Graph
+v6 serializes it. Phase-3 evidence now includes status/trace types, independent
+plan replay, a reference executor, native scalar status/out execution,
+deterministic host templates and [descriptor-only
+v1](NATIVE-ADAPTER-DESCRIPTOR-V1.md), authenticated capability mechanics, and a
+real unpublished native host that connects the v1 descriptor, exact loader
+lease, same-thread OS-seeded authority, ownership ledger, and opaque owners in
+Linux/macOS fixtures. Private staged [callable descriptor
+v2](NATIVE-CALLABLE-ABI-V2.md) now binds compiler-derived execution/cleanup and
+event-dictionary fingerprints, exact symbols, capacities, signature, and result;
+an independent host parser accepts the compiler bytes and rejects every
+single-byte mutation, truncation, and trailing byte. The loader can bind one
+exact-instance one-shot callable transport, but the ownership host does not use
+it and still invokes only an explicitly trusted Rust closure. It has no Windows
+runtime fixture or callable-path sanitizer evidence, is not constructed by
+compiler preflight, and does not open `SPX-B104`.
+
+WebAssembly separately implements the narrow [owned ABI
+v1](WASM-OWNED-ABI-V1.md) for one direct trivial-resource identity with real
+Node execution. Generated native C and Wasm now emit deterministic
+dictionary-authenticated semantic ordinals for the same authoritative 14-case
+corpus, and both materialize to the exact reference traces and outcomes. The
+native side is still a test-only harness, not the physical ownership host.
+Every excluded Wasm shape remains `SPX-W111`; public native resource execution,
+callable imports/finalizers, Windows callable execution, and the production
+native-host connection remain unimplemented.
 
 ## Defining product contract
 
@@ -27,7 +55,7 @@ Status values:
 | Functions, closures, interfaces, implementations, generics | Partial | Monomorphic named functions plus declaration-only resource interface/import contracts | Callable imports, closures, constraints, coherent implementations, specialization boundaries, and separate compilation verified |
 | `Option` and `Result`; no null or unchecked exceptions | Missing | — | Standard types, propagation syntax, FFI mappings, exhaustive handling, and diagnostics verified |
 | Immutable-by-default values and explicit mutation | Missing | — | Local, field, collection, and cross-task mutation rules verified |
-| Unique ownership and move safety | Partial | Explicit trivial/imported lifecycles; move/partial-place analysis; replay-validated cleanup plans; hostile-HIR parity; a private physical native lease/authority/ledger/owner host without callable loaded code; and one narrow Node-executed direct-trivial-resource Wasm slice with atomic staging, stale/replay rejection, and result rotation | Exactly-once cleanup and double-free prevention execute equivalently on native/Wasm; loops, closures, concurrency, and FFI ownership are compile-time/runtime-conformance verified |
+| Unique ownership and move safety | Partial | Explicit trivial/imported lifecycles; move/partial-place analysis; replay-validated cleanup plans; hostile-HIR parity; a private physical native lease/authority/ledger/owner host not connected to generated callable code; one narrow Node-executed direct-trivial-resource Wasm slice with atomic staging, stale/replay rejection, result rotation, and semantic ordinals; and exact reference/native-test-harness/Wasm traces and outcomes for the authoritative 14-case corpus | Exactly-once cleanup and double-free prevention execute through the real native ownership host and equivalently on native/Wasm; loops, closures, concurrency, and FFI ownership are compile-time/runtime-conformance verified |
 | Borrowed views and lifetime safety | Partial | Non-consuming `borrow` boundaries and move-after-borrow behavior | Mutable/shared aliasing, escaping borrows, reborrows, slices, and zero-copy FFI pass positive and compile-fail suites |
 | Regions/arenas | Missing | — | Region inference and annotations prevent escape; bulk release and destructor behavior are verified |
 | Shared immutable ARC and opt-in managed zones | Missing | — | Retain/release correctness, cycle policy, escape optimization, and concurrency constraints verified |
@@ -43,8 +71,8 @@ Status values:
 | Requirement | Status | Current evidence | Completion gate |
 | --- | --- | --- | --- |
 | Fast development lane | Missing | — | Cranelift JIT/AOT, incremental affected-node builds, hot reload, and debugger mapping verified |
-| Optimizing native lane | Partial | Validated stable-ID HIR lowers to sequenced C11/Clang AOT with invocation-local scalar status/out calls; exact scalar failures execute in the platform matrix; private Linux/macOS fixtures connect real loader/authority/ledger/owner plumbing but call no loaded resource symbol | Cleanup-plan/resource execution, backend traces, Windows physical-host runtime evidence, LLVM/MLIR lowering, LTO/PGO, cross-compilation, CPU specialization, debug/release parity, and reproducibility verified |
-| WebAssembly core/components | Partial | Validated stable-ID HIR lowers to direct Wasm core with browser ES runtime, checked arithmetic, contracts, HTML, `semaprax.web.v3`, and a Node-executed `semaprax.wasm-owned.v1` subset for one direct trivial resource, including same-realm duplicated-host isolation | Browser/WASI modules and Component Model artifacts, general canonical resource ABI, async, sandboxing, cross-realm/worker identity, and native/reference/Wasm conformance verified |
+| Optimizing native lane | Partial | Validated stable-ID HIR lowers to sequenced C11/Clang AOT with invocation-local scalar status/out calls; exact scalar failures execute in the platform matrix; generated O0/O2 cleanup C emits exact semantic ordinals for the shared 14-case reference corpus; private Linux/macOS fixtures connect real loader/authority/ledger/owner plumbing; staged descriptor v2 and exact callable loading exist but are not connected to that host | Production cleanup-plan/resource execution through the callable host, Windows physical-host runtime and callable sanitizer evidence, LLVM/MLIR lowering, LTO/PGO, cross-compilation, CPU specialization, debug/release parity, and reproducibility verified |
+| WebAssembly core/components | Partial | Validated stable-ID HIR lowers to direct Wasm core with browser ES runtime, checked arithmetic, contracts, HTML, `semaprax.web.v3`, and a Node-executed `semaprax.wasm-owned.v1` subset for one direct trivial resource, including same-realm duplicated-host isolation and exact semantic ordinal/reference equality for the shared 14-case corpus | Browser/WASI modules and Component Model artifacts, general canonical resource ABI, async, sandboxing, cross-realm/worker identity, and production native-host/Wasm conformance verified |
 | Embedded and real-time | Missing | — | Bare-metal artifacts, no-runtime/no-allocation/no-blocking profiles, MMIO/volatile/atomics, linker control, and hardware/emulator tests verified |
 | SIMD and GPU | Missing | — | Portable SIMD plus SPIR-V/WebGPU/platform kernels and memory/effect rules verified |
 

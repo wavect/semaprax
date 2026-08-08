@@ -183,6 +183,7 @@ struct spx_trace_event {
     const struct spx_trace_buffer *storage_owner;
     uint64_t storage_generation;
     spx_trace_event_kind kind;
+    uint32_t semantic_ordinal;
     const char *function_id;
     const char *const *invocation_expression_ids;
     uint32_t invocation_count;

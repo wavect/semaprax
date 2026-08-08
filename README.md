@@ -80,7 +80,7 @@ Implemented today:
 - Canonical record declarations, construction, and projection in `check`, resolved HIR, and semantic Graph v6; executable targets fail closed until aggregate layout and cleanup execution land.
 - A validated stable-ID HIR shared by native and Wasm lowering, with explicit entry, result, binding, expression, and place identities.
 - A mandatory target-neutral cleanup CFG for every function, independently rebuilt and independently replayed against core HIR/inventory, with exhaustive current-CFG path-state checks plus a scenario-driven reference trace executor.
-- Versioned target-neutral normalized-status and conformance-trace protocols, plus invocation-local immutable status arenas with zero-success/one-based tokens. The native scalar backend and narrow Wasm owned adapter use the status/out convention; complete semantic backend traces and general/native resource execution remain gated.
+- Versioned target-neutral normalized-status, conformance-trace, and semantic-event-dictionary protocols, plus invocation-local immutable status arenas with zero-success/one-based tokens. The native scalar backend and narrow Wasm owned adapter use the status/out convention; generated native C and real Node/Wasm emit authenticated semantic ordinals and exactly match the reference trace/outcome for the authoritative 14-case owned-resource corpus. General and production-native resource conformance remain gated.
 - Checked integer arithmetic in generated programs; native failures use exact normalized arithmetic codes and propagate without terminating an internal SEMAPRAX frame.
 - Typed `requires` and `ensures` contracts, enforced by native and Wasm artifacts. Native scalar contracts publish no caller result on failure.
 - Explicit function effects checked against module capabilities and callers.
@@ -99,8 +99,9 @@ Implemented today:
   ownership imports to the exact generated Wasm bytes with SHA-256 and rejects
   non-canonical ABI arguments; broader shapes remain gated.
 
-Not implemented yet: callable native resource machine-code execution, complete
-native/reference/Wasm trace conformance, the general Wasm resource ABI,
+Not implemented yet: production callable native resource machine-code
+execution through the ownership host, general-shape native/reference/Wasm trace
+conformance, the general Wasm resource ABI,
 recursive reference execution, callable imports/adapters, record machine-code
 layout/lowering, variants and matching, lifetime and alias analysis, user-facing
 regions, effect handlers, static contract proofs, Cranelift, LLVM/MLIR IR,
@@ -119,27 +120,30 @@ authority](docs/NATIVE-CAPABILITY-TOKENS-V1.md), the ownership ledger, and
 non-copying owner/result wrappers. Its Linux/macOS fixtures prove descriptor
 admission, trusted owner adoption, non-mutating rejection, atomic ledger
 execution, generation rotation, draining, and exact lease retention. That host
-does **not** resolve or call a resource function from the loaded library: the
-library still exports only the descriptor getter, and test execution uses an
-explicit trusted Rust closure. Windows currently supplies compile coverage, not
-a native-host runtime fixture. Compiler preflight does not construct this host,
-and `SPX-B104` remains unchanged.
+does **not** resolve or call a generated resource function from the loaded
+library: its v1 fixture exports only the descriptor getter, and test execution
+uses an explicit trusted Rust closure. Windows currently supplies compile
+coverage, not a native-host runtime fixture. Compiler preflight does not
+construct this host, and `SPX-B104` remains unchanged.
 
-An unpublished [native loader quarantine](docs/NATIVE-MODULE-LOADER.md) now
-proves one audited unsafe trusted-library/getter/bounded-read edge and opaque
-loader-reference retention with real Linux/macOS fixtures. The unpublished
-native host now consumes this lease and retains it through its authority and
-owners, but the loader remains disconnected from compiler emission and every
-public API. It exposes no callable symbol, is not a malicious-plugin boundary,
-and does not weaken `SPX-B104`.
+An unpublished [native loader quarantine](docs/NATIVE-MODULE-LOADER.md) now has
+separately documented unsafe boundaries for descriptor-only admission and exact
+callable-v2 admission. It eagerly resolves one private callable and exposes only
+instance-bound, preallocated one-shot prepared calls—never a raw handle,
+generic lookup, or callable pointer. The ownership host consumes only the v1
+lease today; callable-v2 transport remains disconnected from host execution and
+public compiler emission. This is not a malicious-plugin boundary and does not
+weaken `SPX-B104`.
 
 The current critical-path implementation contract is [Owned resource vertical
 slice v1](docs/OWNED-RESOURCE-VERTICAL-V1.md): one deliberately narrow,
 production-reachable owned-resource corpus must execute with exact
 native/reference/Wasm status, cleanup, publication, and semantic-trace equality
-before either backend gate can open. The document is a gate, not a completion
-claim. The narrow Wasm slice and private native host are prerequisites; they do
-not yet satisfy the full cross-target contract.
+before either backend gate can open. The test-only generated-C lane and real
+Wasm lane now prove that equality for the authoritative 14 cases, but the
+generated callable is not connected to the physical native ownership host and
+the required Windows/callable sanitizer evidence is absent. The document
+remains a gate, not a completion claim.
 
 ## Agent protocol
 

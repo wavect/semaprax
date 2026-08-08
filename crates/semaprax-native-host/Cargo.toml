@@ -9,7 +9,7 @@ license = "Apache-2.0"
 repository = "https://github.com/wavect/semaprax"
 
 [dependencies]
-semaprax = { path = "../..", version = "0.2.0" }
+semaprax = { path = "../..", version = "0.2.0", features = ["unstable-native-host-internal"] }
 hmac = "=0.12.1"
 sha2 = "=0.10.9"
 

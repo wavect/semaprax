@@ -1,4 +1,5 @@
 mod native_adapter_abi;
+mod native_callable_abi;
 #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
 mod native_capability_authority;
 mod native_capability_token;
@@ -24,6 +25,9 @@ use std::fmt::Write;
 use std::path::Path;
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
+
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+use sha2::{Digest as _, Sha256};
 
 use crate::ast::{BinaryOp, Program, UnaryOp};
 use crate::diagnostic::Diagnostic;
@@ -119,6 +123,138 @@ pub fn emit_native_adapter_admission(
         header,
         provider_source,
     })
+}
+
+/// Feature-gated callable-v2 admission metadata derived only from validated
+/// HIR and exact compiler-emitted runtime/cleanup/dictionary artifacts.
+///
+/// This does not contain a callable implementation and cannot open the public
+/// native resource gate by itself.
+#[doc(hidden)]
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+pub struct NativeCallableAdmissionArtifact {
+    descriptor: Vec<u8>,
+    getter_symbol: String,
+    callable_symbol: String,
+    max_request_bytes: u32,
+    max_response_bytes: u32,
+    event_dictionary: String,
+}
+
+#[doc(hidden)]
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+impl NativeCallableAdmissionArtifact {
+    pub fn descriptor(&self) -> &[u8] {
+        &self.descriptor
+    }
+
+    pub fn getter_symbol(&self) -> &str {
+        &self.getter_symbol
+    }
+
+    pub fn callable_symbol(&self) -> &str {
+        &self.callable_symbol
+    }
+
+    pub fn max_request_bytes(&self) -> u32 {
+        self.max_request_bytes
+    }
+
+    pub fn max_response_bytes(&self) -> u32 {
+        self.max_response_bytes
+    }
+
+    pub fn event_dictionary(&self) -> &str {
+        &self.event_dictionary
+    }
+}
+
+/// Derive strict callable-descriptor-v2 admission metadata for one validated
+/// direct-resource function.
+///
+/// The execution/cleanup fingerprint is computed over the exact deterministic
+/// resource ABI, status/trace/scalar runtimes, declarations, and cleanup
+/// scaffold available in this staged slice. Provider-wrapper and call-wire
+/// codecs remain explicitly outside that fingerprint and must be added before
+/// `SPX-B104` can open. Dictionary facts and maximum trace capacity are
+/// computed internally; callers cannot assert these security-critical facts.
+#[doc(hidden)]
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+pub fn emit_native_callable_admission(
+    program: &ResolvedProgram,
+    function_id: &DeclarationId,
+) -> Result<NativeCallableAdmissionArtifact, Diagnostic> {
+    hir::validate(program)?;
+    let resource_abi = native_resource::build_resource_abi(program)?;
+    let function = program
+        .functions
+        .iter()
+        .find(|candidate| &candidate.id == function_id)
+        .ok_or_else(|| backend_error(format!("function `{function_id}` is not in the program")))?;
+    let cleanup = native_cleanup::classify(program, function)?;
+    let mut values =
+        native_value::plan(program, function, &cleanup, &resource_abi, &HashMap::new())?;
+    let dictionary = crate::semantic_trace::build_semantic_event_dictionary(program, function_id)?;
+    values.cleanup_bindings.semantic_events = Some(dictionary.clone());
+    let declarations = native_value::emit_declarations(&values);
+    let cleanup_body = native_cleanup_emit::emit_with_block_prologues(
+        &cleanup,
+        &values.cleanup_bindings,
+        |block, output| {
+            output.push_str(&native_value::emit_block_prologue(&values, block));
+            Ok(())
+        },
+    )?;
+    let mut status_runtime = String::new();
+    native_runtime::emit_status_runtime(&mut status_runtime);
+    let mut trace_runtime = String::new();
+    native_trace_runtime::emit_trace_runtime(&mut trace_runtime);
+    let execution_cleanup_fingerprint = native_callable_execution_cleanup_fingerprint(&[
+        resource_abi.declarations.as_str(),
+        status_runtime.as_str(),
+        trace_runtime.as_str(),
+        NATIVE_SCALAR_RUNTIME_C,
+        declarations.as_str(),
+        cleanup_body.as_str(),
+    ]);
+    let event_dictionary = dictionary.canonical_json();
+    let semantics = native_callable_abi::NativeCallableSemantics::new(
+        execution_cleanup_fingerprint,
+        dictionary.fingerprint(),
+        event_dictionary.len(),
+        dictionary.entries().len(),
+        usize::try_from(values.required_event_capacity)
+            .map_err(|_| backend_error("native event capacity does not fit usize"))?,
+    )?;
+    let template = native_host_contract::derive_from_admitted(
+        program,
+        function_id,
+        &resource_abi,
+        &cleanup,
+        &values,
+    )?;
+    let descriptor = native_callable_abi::derive(&template, &semantics)?;
+    Ok(NativeCallableAdmissionArtifact {
+        descriptor: descriptor.bytes,
+        getter_symbol: descriptor.getter_symbol,
+        callable_symbol: descriptor.callable_symbol,
+        max_request_bytes: descriptor.max_request_bytes,
+        max_response_bytes: descriptor.max_response_bytes,
+        event_dictionary,
+    })
+}
+
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+fn native_callable_execution_cleanup_fingerprint(components: &[&str]) -> [u8; 32] {
+    let mut hasher = Sha256::new();
+    hasher.update(b"semaprax.native-callable-execution-cleanup.v2\0");
+    hasher.update(b"resource-abi;status-runtime;trace-runtime;scalar-runtime;value-declarations;value-cleanup-scaffold;provider-wrapper-and-wire-codecs-must-be-added-before-SPX-B104-opens");
+    hasher.update((components.len() as u64).to_be_bytes());
+    for fragment in components.iter().map(|component| component.as_bytes()) {
+        hasher.update((fragment.len() as u64).to_be_bytes());
+        hasher.update(fragment);
+    }
+    hasher.finalize().into()
 }
 
 fn first_backend_diagnostic(diagnostics: Vec<Diagnostic>) -> Diagnostic {
@@ -273,7 +409,19 @@ fn preflight_resource_lowering(
             Ok(cleanup) => {
                 match native_value::plan(program, function, &cleanup, resource_abi, contract_labels)
                 {
-                    Ok(values) => {
+                    Ok(mut values) => {
+                        match crate::semantic_trace::build_semantic_event_dictionary(
+                            program,
+                            &function.id,
+                        ) {
+                            Ok(dictionary) => {
+                                values.cleanup_bindings.semantic_events = Some(dictionary);
+                            }
+                            Err(diagnostic) => {
+                                first_failure.get_or_insert(diagnostic);
+                                continue;
+                            }
+                        }
                         match native_host_contract::derive_from_admitted(
                             program,
                             &function.id,
@@ -1204,6 +1352,54 @@ fn main() -> i64 { increment(41) }
             diagnostic.message,
             "native resource lowering requires lifecycle declarations and the verified cleanup ABI"
         );
+    }
+
+    #[test]
+    fn callable_v2_admission_is_deterministic_and_does_not_open_b104() {
+        let program = resolved_resource_program();
+        let function = DeclarationId::new("token.identity");
+        let first = emit_native_callable_admission(&program, &function).unwrap();
+        let second = emit_native_callable_admission(&program, &function).unwrap();
+
+        assert_eq!(first.descriptor(), second.descriptor());
+        assert_eq!(first.getter_symbol(), second.getter_symbol());
+        assert_eq!(first.callable_symbol(), second.callable_symbol());
+        assert_ne!(first.getter_symbol(), first.callable_symbol());
+        assert_eq!(&first.descriptor()[..8], b"SPXNABI2");
+        assert_eq!(first.max_request_bytes(), 84);
+        assert!(first.max_response_bytes() > 68);
+        assert!(first.event_dictionary().contains("token.identity"));
+
+        let parsed = parse(
+            RESOURCE_SOURCE,
+            Path::new("native-callable-v2-public-gate.spx"),
+        )
+        .unwrap();
+        let public = emit_c(&parsed).unwrap_err();
+        assert_eq!(public.code, "SPX-B104");
+    }
+
+    #[test]
+    fn callable_v2_admission_changes_with_checked_semantics() {
+        let baseline = resolved_resource_program();
+        let changed_source = RESOURCE_SOURCE.replace(
+            "fn identity(value: own Token) -> Token { value }",
+            "fn identity(value: own Token) -> Token ensures false { value }",
+        );
+        let changed = parse(
+            &changed_source,
+            Path::new("native-callable-v2-semantic-delta.spx"),
+        )
+        .unwrap();
+        let changed = hir::resolve(&changed).unwrap();
+        let function = DeclarationId::new("token.identity");
+        let baseline = emit_native_callable_admission(&baseline, &function).unwrap();
+        let changed = emit_native_callable_admission(&changed, &function).unwrap();
+
+        assert_ne!(baseline.descriptor(), changed.descriptor());
+        assert_ne!(baseline.getter_symbol(), changed.getter_symbol());
+        assert_ne!(baseline.callable_symbol(), changed.callable_symbol());
+        assert_ne!(baseline.event_dictionary(), changed.event_dictionary());
     }
 
     #[test]

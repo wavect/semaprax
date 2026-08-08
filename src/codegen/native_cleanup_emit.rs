@@ -24,8 +24,12 @@ use crate::cleanup_plan::{
     ContractPhase, EdgeCondition, ExitContinuation, StatusCase, StatusLane, StatusProducer,
     StatusSourceId, StorageId,
 };
+use crate::conformance::TraceEventKind;
 use crate::diagnostic::Diagnostic;
 use crate::hir::{DeclarationId, ExpressionId};
+use crate::semantic_trace::{
+    SemanticEventDictionary, SemanticEventEntry, SEMANTIC_EVENT_DICTIONARY_V1,
+};
 
 use super::native_cleanup::{NativeCleanupIndex, NativeCleanupLeaf};
 
@@ -44,6 +48,7 @@ pub(crate) struct NativeCleanupBindings {
     pub(crate) status_tokens: BTreeMap<StatusSourceId, String>,
     pub(crate) scalar_results: BTreeMap<ExpressionId, String>,
     pub(crate) result_out: Option<String>,
+    pub(crate) semantic_events: Option<SemanticEventDictionary>,
 }
 
 /// Emit one deterministic function-body fragment from an already-classified
@@ -150,11 +155,19 @@ fn begin_trace_event(
     output: &mut String,
     index: &NativeCleanupIndex<'_>,
     kind: &str,
+    semantic_ordinal: u32,
 ) -> Result<(), Diagnostic> {
     output.push_str("{\n");
     output.push_str("    struct spx_trace_event spx_cleanup_event = {0};\n");
     writeln!(output, "    spx_cleanup_event.kind = {kind};")
         .expect("writing to a string cannot fail");
+    if semantic_ordinal != 0 {
+        writeln!(
+            output,
+            "    spx_cleanup_event.semantic_ordinal = UINT32_C({semantic_ordinal});"
+        )
+        .expect("writing to a string cannot fail");
+    }
     writeln!(
         output,
         "    spx_cleanup_event.function_id = \"{}\";",
@@ -172,6 +185,57 @@ fn end_trace_event(output: &mut String, bindings: &NativeCleanupBindings) {
     )
     .expect("writing to a string cannot fail");
     output.push_str("}\n");
+}
+
+fn semantic_ordinal_for_event(
+    bindings: &NativeCleanupBindings,
+    index: &NativeCleanupIndex<'_>,
+    event: &TraceEventKind,
+) -> Result<u32, Diagnostic> {
+    semantic_ordinal_matching(
+        bindings,
+        index,
+        |entry| &entry.event == event,
+        "exact semantic event",
+    )
+}
+
+fn semantic_ordinal_matching(
+    bindings: &NativeCleanupBindings,
+    index: &NativeCleanupIndex<'_>,
+    predicate: impl Fn(&SemanticEventEntry) -> bool,
+    description: &str,
+) -> Result<u32, Diagnostic> {
+    let Some(dictionary) = &bindings.semantic_events else {
+        return Ok(0);
+    };
+    if dictionary.schema() != SEMANTIC_EVENT_DICTIONARY_V1
+        || dictionary.function() != index.function_id()
+    {
+        return Err(cleanup_error(format!(
+            "semantic event dictionary identity disagrees with function `{}`",
+            index.function_id()
+        )));
+    }
+    let mut matches = dictionary.entries().iter().filter(|entry| predicate(entry));
+    let Some(entry) = matches.next() else {
+        return Err(cleanup_error(format!(
+            "semantic event dictionary has no {description} for function `{}`",
+            index.function_id()
+        )));
+    };
+    if matches.next().is_some() {
+        return Err(cleanup_error(format!(
+            "semantic event dictionary has ambiguous {description} for function `{}`",
+            index.function_id()
+        )));
+    }
+    if entry.ordinal == 0 {
+        return Err(cleanup_error(
+            "semantic event dictionary contains the reserved zero ordinal",
+        ));
+    }
+    Ok(entry.ordinal)
 }
 
 fn emit_trace_place(
@@ -235,7 +299,13 @@ fn emit_transfer_trace(
     source: &CleanupPlace,
     destination: &CleanupPlace,
 ) -> Result<(), Diagnostic> {
-    begin_trace_event(output, index, "SPX_TRACE_TRANSFER")?;
+    let event = TraceEventKind::Transfer {
+        at: at.clone(),
+        source: source.clone(),
+        destination: destination.clone(),
+    };
+    let semantic_ordinal = semantic_ordinal_for_event(bindings, index, &event)?;
+    begin_trace_event(output, index, "SPX_TRACE_TRANSFER", semantic_ordinal)?;
     writeln!(
         output,
         "    spx_cleanup_event.data.transfer.at_expression_id = \"{}\";",
@@ -274,7 +344,21 @@ fn emit_select_failure_trace(
         )));
     }
     let status = status_binding(bindings, source)?;
-    begin_trace_event(output, index, "SPX_TRACE_SELECT_FAILURE")?;
+    let semantic_ordinal = semantic_ordinal_matching(
+        bindings,
+        index,
+        |entry| {
+            matches!(
+                &entry.event,
+                TraceEventKind::SelectFailure {
+                    source: candidate,
+                    ..
+                } if candidate == source
+            )
+        },
+        "failure selection",
+    )?;
+    begin_trace_event(output, index, "SPX_TRACE_SELECT_FAILURE", semantic_ordinal)?;
     writeln!(
         output,
         "    spx_cleanup_event.data.select_failure.source.expression_id = \"{}\";",
@@ -390,7 +474,33 @@ fn emit_finalize_trace(
     lifecycle: &DeclarationId,
     flag: LivenessFlagId,
 ) -> Result<(), Diagnostic> {
-    begin_trace_event(output, index, kind)?;
+    let semantic_ordinal = semantic_ordinal_matching(
+        bindings,
+        index,
+        |entry| match (&entry.event, kind) {
+            (
+                TraceEventKind::FinalizeBegin {
+                    source: candidate_source,
+                    lifecycle_id,
+                    guard_flag,
+                    ..
+                },
+                "SPX_TRACE_FINALIZE_BEGIN",
+            )
+            | (
+                TraceEventKind::FinalizeEnd {
+                    source: candidate_source,
+                    lifecycle_id,
+                    guard_flag,
+                    ..
+                },
+                "SPX_TRACE_FINALIZE_END",
+            ) => candidate_source == source && lifecycle_id == lifecycle && *guard_flag == flag,
+            _ => false,
+        },
+        "resource finalization",
+    )?;
+    begin_trace_event(output, index, kind, semantic_ordinal)?;
     emit_trace_place(output, "data.finalize.source", source)?;
     writeln!(
         output,
@@ -414,7 +524,11 @@ fn emit_result_commit_trace(
     bindings: &NativeCleanupBindings,
     source: &CleanupResultSource,
 ) -> Result<(), Diagnostic> {
-    begin_trace_event(output, index, "SPX_TRACE_RESULT_COMMIT")?;
+    let event = TraceEventKind::ResultCommit {
+        source: source.clone(),
+    };
+    let semantic_ordinal = semantic_ordinal_for_event(bindings, index, &event)?;
+    begin_trace_event(output, index, "SPX_TRACE_RESULT_COMMIT", semantic_ordinal)?;
     match source {
         CleanupResultSource::Scalar { expression } => {
             output.push_str(
@@ -807,6 +921,16 @@ fn validate_bindings(
         return Err(cleanup_error(
             "the trace context binding must be exactly `spx_bind_context`",
         ));
+    }
+    if let Some(dictionary) = &bindings.semantic_events {
+        if dictionary.schema() != SEMANTIC_EVENT_DICTIONARY_V1
+            || dictionary.function() != index.function_id()
+        {
+            return Err(cleanup_error(format!(
+                "semantic event dictionary identity disagrees with function `{}`",
+                index.function_id()
+            )));
+        }
     }
     let expected_storage = index
         .slots()
@@ -1244,6 +1368,18 @@ fn main() -> i64 { 0 }
         bindings
     }
 
+    fn semantic_bindings(
+        program: &ResolvedProgram,
+        index: &NativeCleanupIndex<'_>,
+    ) -> NativeCleanupBindings {
+        let mut bindings = complete_bindings(index);
+        bindings.semantic_events = Some(
+            crate::semantic_trace::build_semantic_event_dictionary(program, index.function_id())
+                .unwrap(),
+        );
+        bindings
+    }
+
     #[test]
     fn discard_emits_exact_plan_driven_c() {
         let program = program();
@@ -1380,9 +1516,9 @@ fn main() -> i64 { 0 }
         }
         let program = program();
         let index = classify(&program, function(&program, "token.discard")).unwrap();
-        let emitted = emit(&index, &complete_bindings(&index)).unwrap();
+        let emitted = emit(&index, &semantic_bindings(&program, &index)).unwrap();
         let identity_index = classify(&program, function(&program, "token.identity")).unwrap();
-        let identity_bindings = complete_bindings(&identity_index);
+        let identity_bindings = semantic_bindings(&program, &identity_index);
         let identity = emit(&identity_index, &identity_bindings).unwrap();
         let mut identity_storage_parameters = String::new();
         for slot in identity_index.slots() {
@@ -1407,9 +1543,9 @@ fn main() -> i64 { 0 }
             .join(", ");
         let failure_index =
             classify(&program, function(&program, "token.contract-failure")).unwrap();
-        let failure = emit(&failure_index, &complete_bindings(&failure_index)).unwrap();
+        let failure = emit(&failure_index, &semantic_bindings(&program, &failure_index)).unwrap();
         let escaped_index = classify(&program, function(&program, "token.??/λ")).unwrap();
-        let escaped = emit(&escaped_index, &complete_bindings(&escaped_index)).unwrap();
+        let escaped = emit(&escaped_index, &semantic_bindings(&program, &escaped_index)).unwrap();
 
         let mut runtime = String::new();
         super::super::native_runtime::emit_status_runtime(&mut runtime);
@@ -1474,6 +1610,7 @@ fn main() -> i64 { 0 }
                  if (spx_test_discard(&context, (uintptr_t)UINT32_C(99), &result, INT64_C(7)) != SPX_STATUS_SUCCESS) return 4;\n\
                  if (result != INT64_C(7) || trace.length != UINT32_C(3)) return 5;\n\
                  if (events[0].kind != SPX_TRACE_FINALIZE_BEGIN || events[1].kind != SPX_TRACE_FINALIZE_END || events[2].kind != SPX_TRACE_RESULT_COMMIT) return 6;\n\
+                 if (events[0].semantic_ordinal != UINT32_C(1) || events[1].semantic_ordinal != UINT32_C(2) || events[2].semantic_ordinal != UINT32_C(3)) return 26;\n\
                  if (strcmp(events[0].function_id, \"token.discard\") != 0 || strcmp(events[1].function_id, \"token.discard\") != 0 || strcmp(events[2].function_id, \"token.discard\") != 0) return 7;\n\
                  if (events[0].data.finalize.source.storage.kind != SPX_TRACE_STORAGE_VALUE || strcmp(events[0].data.finalize.source.storage.value_id, \"declaration:13:token.discard:value:param:1:0\") != 0 || strcmp(events[0].data.finalize.lifecycle_id, \"token.drop\") != 0 || events[0].data.finalize.guard_flag != UINT32_C(0)) return 8;\n\
                  if (events[2].data.result_commit.source.kind != SPX_TRACE_RESULT_SCALAR || strcmp(events[2].data.result_commit.source.scalar_expression_id, \"declaration:13:token.discard:expression:4:body\") != 0) return 9;\n\
@@ -1486,6 +1623,7 @@ fn main() -> i64 { 0 }
                  uintptr_t owned_result = (uintptr_t)UINT32_C(0);\n\
                  if (spx_test_identity(&identity_context, {identity_storage_arguments}, &owned_result) != SPX_STATUS_SUCCESS || owned_result != (uintptr_t)UINT32_C(73)) return 12;\n\
                  if (identity_trace.length != UINT32_C(3) || identity_events[0].kind != SPX_TRACE_TRANSFER || identity_events[1].kind != SPX_TRACE_TRANSFER || identity_events[2].kind != SPX_TRACE_RESULT_COMMIT) return 13;\n\
+                 if (identity_events[0].semantic_ordinal != UINT32_C(1) || identity_events[1].semantic_ordinal != UINT32_C(2) || identity_events[2].semantic_ordinal != UINT32_C(3)) return 27;\n\
                  if (identity_events[0].data.transfer.source.storage.kind != SPX_TRACE_STORAGE_VALUE || identity_events[0].data.transfer.destination.storage.kind != SPX_TRACE_STORAGE_TEMPORARY || identity_events[1].data.transfer.source.storage.kind != SPX_TRACE_STORAGE_TEMPORARY || identity_events[1].data.transfer.destination.storage.kind != SPX_TRACE_STORAGE_PROVISIONAL_RESULT || identity_events[2].data.result_commit.source.kind != SPX_TRACE_RESULT_OWNED || identity_events[2].data.result_commit.source.owned_storage.storage.kind != SPX_TRACE_STORAGE_PROVISIONAL_RESULT) return 14;\n\
                  struct spx_status_entry failure_status_entries[UINT32_C(1)] = {{0}};\n\
                  struct spx_context failure_context = {{0}};\n\
@@ -1498,6 +1636,7 @@ fn main() -> i64 { 0 }
                  int64_t poisoned_result = INT64_C(99);\n\
                  if (spx_test_contract_failure(&failure_context, (uintptr_t)UINT32_C(88), false, contract_status, &poisoned_result, INT64_C(0)) != contract_status || poisoned_result != INT64_C(99)) return 18;\n\
                  if (failure_trace.length != UINT32_C(3) || failure_events[0].kind != SPX_TRACE_SELECT_FAILURE || failure_events[1].kind != SPX_TRACE_FINALIZE_BEGIN || failure_events[2].kind != SPX_TRACE_FINALIZE_END) return 19;\n\
+                 if (failure_events[0].semantic_ordinal != UINT32_C(1) || failure_events[1].semantic_ordinal != UINT32_C(2) || failure_events[2].semantic_ordinal != UINT32_C(3)) return 28;\n\
                  if (failure_events[0].data.select_failure.source.lane != SPX_TRACE_STATUS_CONTRACT_FALSE || strcmp(failure_events[0].data.select_failure.status.domain_id, \"semaprax.contract.v1\") != 0 || failure_events[0].data.select_failure.status.code != SPX_STATUS_CONTRACT_REQUIRES_FALSE || failure_events[0].data.select_failure.status.status_class != SPX_TRACE_STATUS_CLASS_CONTRACT) return 20;\n\
                  struct spx_status_entry escaped_status_entries[UINT32_C(1)] = {{0}};\n\
                  struct spx_context escaped_context = {{0}};\n\
@@ -1509,6 +1648,7 @@ fn main() -> i64 { 0 }
                  if (spx_test_escaped_discard(&escaped_context, (uintptr_t)UINT32_C(55), &escaped_result, INT64_C(11)) != SPX_STATUS_SUCCESS || escaped_result != INT64_C(11)) return 23;\n\
                  static const unsigned char expected_function_id[] = {{'t', 'o', 'k', 'e', 'n', '.', 0x3f, 0x3f, '/', 0xce, 0xbb, 0x00}};\n\
                  if (escaped_trace.length != UINT32_C(3)) return 24;\n\
+                 if (escaped_events[0].semantic_ordinal != UINT32_C(1) || escaped_events[1].semantic_ordinal != UINT32_C(2) || escaped_events[2].semantic_ordinal != UINT32_C(3)) return 29;\n\
                  if (memcmp(escaped_events[0].function_id, expected_function_id, sizeof(expected_function_id)) != 0 || memcmp(escaped_events[1].function_id, expected_function_id, sizeof(expected_function_id)) != 0 || memcmp(escaped_events[2].function_id, expected_function_id, sizeof(expected_function_id)) != 0) return 25;\n\
                  return 0;\n\
              }}\n"

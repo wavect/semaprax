@@ -110,7 +110,25 @@ These are first-version protocols, not an in-place extension of an unversioned w
 
 Trace data must also be bound out of band to the exact validated program, Graph schema/revision, cleanup plan, and scenario. A source revision alone is insufficient as a cache key because Graph and trace schemas can change without changing canonical source. Cache and negotiation keys must include at least the status schema, trace schema, Graph schema/revision, and scenario identity. A consumer must reject a trace whose referenced semantic IDs do not belong to that bound program and invocation path.
 
-Implementation status is deliberately limited. Public normalized-status types, compiler-owned mappings, a context-local status arena, public trace types, deterministic canonical JSON, independent inventory/HIR coverage and path-state replay, and a scenario-driven single-frame reference executor exist with focused tests. Native scalar status/out execution and the narrow `semaprax.wasm-owned.v1` adapter produce normalized statuses, but neither resource host emits `semaprax.conformance-trace.v1`. Recursive callee execution, callable-import execution, production native resource trace instrumentation, Wasm semantic trace instrumentation, backend-trace validation, and native/reference/Wasm trace equality do not exist yet. Native resources, records, and every Wasm resource shape outside the documented narrow slice remain fail closed; the schemas and oracle alone are not backend-conformance evidence.
+Implementation status remains deliberately bounded. Public normalized-status
+types, compiler-owned mappings, a context-local status arena, public trace
+types, deterministic canonical JSON, independent inventory/HIR coverage and
+path-state replay, and a scenario-driven single-frame reference executor exist.
+The new `semaprax.semantic-event-dictionary.v1` projection assigns deterministic
+nonzero ordinals to exact event shapes and fingerprints its complete canonical
+JSON. Generated native cleanup C and the real narrow Wasm owned adapter now emit
+actual executed ordinals for the same authoritative 14-case corpus; independent
+materialization proves exact reference/native/Wasm traces, outcomes, and JSON.
+Unknown or zero ordinals fail closed, and consumers may not infer or repair
+events.
+
+That equality does not make the native resource backend production reachable.
+The native generated-C path remains a conformance harness disconnected from the
+physical ownership host. Recursive callee execution, callable-import execution,
+imported finalizers, aggregates, broader control flow, and the production
+native callable-host boundary do not exist yet. Native resources, records, and
+every Wasm resource shape outside the documented narrow slice remain fail
+closed.
 
 The internal native invocation context and first-slice trace storage are now one-shot objects that require canonical C zero initialization before their initialization functions are called, for example `struct spx_context context = {0};`. This replaces the earlier accepted-but-indeterminate stack declaration form. Generated entry wrappers and repository probes have migrated. Embedders using `SPX_NO_ENTRY_WRAPPER` must zero-initialize context, trace-buffer, and trace-event storage; reinitialization or storage aliasing is rejected to preserve invocation isolation. This runtime scaffold remains private and does not lift native resource execution.
 
@@ -159,9 +177,32 @@ coordinates runtime tags across separately evaluated copies of the generated
 host. The surrounding realm and that reserved global binding are trusted v1
 host state; hostile pre-poisoning, cross-realm, and worker identity isolation
 remain outside v1.
-The full [owned-resource vertical contract](OWNED-RESOURCE-VERTICAL-V1.md),
-semantic conformance traces, Components, imports/finalizers, and cross-target
-equality remain later gates.
+The adapter now emits compiler-generated semantic event ordinals and the shared
+14-case suite materializes them to exact reference/native/Wasm traces and
+outcomes. The full [owned-resource vertical
+contract](OWNED-RESOURCE-VERTICAL-V1.md), Components, imports/finalizers,
+broader shapes, and the production native callable-host connection remain later
+gates.
+
+## Native adapter descriptor v1 to callable descriptor v2
+
+Native adapter descriptor v1 remains descriptor-only and promises no callable
+owner API. Callable admission uses a separate private `SPXNABI2` wire rather
+than extending or reinterpreting v1. The staged v2 descriptor binds eleven
+independently domain-separated fingerprints, exact getter and callable symbols,
+the required `0x0f` call profile, request/response/event and dictionary bounds,
+the complete ordered parameter signature, opaque-`u64` owned payload kind,
+and the exact result mapping. The event dictionary itself is not embedded.
+
+Private consumers must select a decoder from the eight-byte magic before
+loading. They must never pass `SPXNABI1` to callable admission, infer v2 fields
+from a v1 function-template hash, accept unknown obligation bits, or repair
+noncanonical fields. The compiler's staged encoder and the unpublished host's
+independent strict parser are cross-tested, including every-byte mutation,
+truncation, and trailing data. The loader can bind the exact v2 getter and one
+one-shot byte callable, but the physical ownership host does not yet use either
+the v2 call request or response. Windows runtime and callable sanitizer evidence
+also remain absent, so this migration does not change `SPX-B104`.
 
 ## Revision token FNV-1a64 to SHA-256
 

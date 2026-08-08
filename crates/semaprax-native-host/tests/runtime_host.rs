@@ -9,7 +9,8 @@ use semaprax::codegen::emit_native_adapter_admission;
 use semaprax::conformance::{NormalizedStatus, Retryability, StatusClass};
 use semaprax::hir::{self, DeclarationId};
 use semaprax_native_host::{
-    AdmissionError, CallRejection, DescriptorRejection, NativeHost, OwnedExecution, ScalarExecution,
+    AdmissionError, CallRejection, DescriptorRejection, NativeHost, OwnedExecution,
+    ScalarExecution, ScalarValue,
 };
 use semaprax_native_loader::{OpenError, MAX_DESCRIPTOR_BYTES};
 
@@ -28,6 +29,11 @@ fn discard(value: own Token) -> i64 { 7 }
 @id("token.scalar-mix")
 fn scalar_mix(value: own Token, delta: i64, condition: bool) -> i64 {
     0
+}
+
+@id("token.choose-second")
+fn choose_second(first: own Token, count: i64, second: own Token) -> Token {
+    second
 }
 
 @id("test.main")
@@ -452,25 +458,177 @@ fn captured_owner_drop_during_executor_unwind_is_contained_without_leak() {
 }
 
 #[test]
-fn scalar_bearing_descriptor_is_rejected_before_native_loading() {
+fn scalar_bearing_descriptor_validates_typed_values_before_owner_commit() {
     let fixture = Fixture::build("token.scalar-mix");
-    // SAFETY: Structural host admission rejects the otherwise canonical
-    // compiler descriptor before the native loader can execute foreign code.
-    let error = match unsafe {
-        NativeHost::open_admitted_exact(
-            &fixture.library,
-            fixture.getter_symbol.as_bytes(),
-            &fixture.descriptor,
+    // SAFETY: The fixture is the exact generated descriptor provider.
+    let mut host = unsafe { fixture.open() };
+    // SAFETY: This test creates one exclusive owner for the opaque payload.
+    let owner = unsafe { host.adopt_trusted_owner(0, 71) }.unwrap();
+
+    // SAFETY: The compatibility executor must reject the missing scalars before
+    // it can run this closure or commit the owner.
+    let rejection = match unsafe {
+        host.execute_scalar_with(vec![owner], |_| panic!("missing-scalar executor ran"))
+    } {
+        Ok(_) => panic!("missing scalar arguments were accepted"),
+        Err(rejection) => rejection,
+    };
+    assert_eq!(
+        rejection.rejection(),
+        CallRejection::ScalarInputCountMismatch
+    );
+    let owner = rejection.into_owners().pop().unwrap();
+
+    // SAFETY: A kind mismatch is another precommit rejection and the returned
+    // owner remains the exact reusable credential.
+    let rejection = match unsafe {
+        host.execute_scalar_with_values(
+            vec![owner],
+            vec![ScalarValue::Bool(true), ScalarValue::I64(41)],
+            |_, _| panic!("wrong-kind executor ran"),
         )
     } {
-        Ok(_) => panic!("scalar-bearing owner descriptor was admitted"),
-        Err(error) => error,
+        Ok(_) => panic!("wrong scalar kinds were accepted"),
+        Err(rejection) => rejection,
     };
-    assert!(matches!(
-        error,
-        AdmissionError::Descriptor(DescriptorRejection::UnsupportedShape)
-    ));
-    assert!(!fixture.unload_marker.exists());
+    assert_eq!(rejection.rejection(), CallRejection::ScalarKindMismatch);
+    let owner = rejection.into_owners().pop().unwrap();
+
+    // SAFETY: The closure observes the exact admitted scalar order and does not
+    // retain or reinterpret the opaque owner payload.
+    let execution = expect_scalar_execution(unsafe {
+        host.execute_scalar_with_values(
+            vec![owner],
+            vec![ScalarValue::I64(i64::MIN), ScalarValue::Bool(false)],
+            |payloads, scalars| {
+                assert_eq!(payloads, [71]);
+                assert_eq!(
+                    scalars,
+                    [ScalarValue::I64(i64::MIN), ScalarValue::Bool(false)]
+                );
+                Ok(0)
+            },
+        )
+    });
+    assert_eq!(execution, ScalarExecution::Success(0));
+    assert_eq!(host.live_owner_count(), 0);
+
+    // SAFETY: A second independent owner exercises the other scalar boundary
+    // values through the same exact admitted signature.
+    let owner = unsafe { host.adopt_trusted_owner(0, 72) }.unwrap();
+    let execution = expect_scalar_execution(unsafe {
+        host.execute_scalar_with_values(
+            vec![owner],
+            vec![ScalarValue::I64(i64::MAX), ScalarValue::Bool(true)],
+            |payloads, scalars| {
+                assert_eq!(payloads, [72]);
+                assert_eq!(
+                    scalars,
+                    [ScalarValue::I64(i64::MAX), ScalarValue::Bool(true)]
+                );
+                Ok(1)
+            },
+        )
+    });
+    assert_eq!(execution, ScalarExecution::Success(1));
+    assert_eq!(host.live_owner_count(), 0);
+}
+
+#[test]
+fn scalar_bearing_owned_result_preserves_order_reuse_and_execution_atomicity() {
+    let fixture = Fixture::build("token.choose-second");
+    // SAFETY: The fixture is the exact generated descriptor provider.
+    let mut host = unsafe { fixture.open() };
+    // SAFETY: These are independent exclusive payload owners.
+    let first = unsafe { host.adopt_trusted_owner(0, 81) }.unwrap();
+    // SAFETY: These are independent exclusive payload owners.
+    let second = unsafe { host.adopt_trusted_owner(1, 82) }.unwrap();
+
+    // SAFETY: Missing scalars reject before owner commit.
+    let rejection = match unsafe {
+        host.execute_owned_with_values(vec![first, second], Vec::new(), |_, _| {
+            panic!("missing-scalar executor ran")
+        })
+    } {
+        Ok(_) => panic!("missing scalar was accepted"),
+        Err(rejection) => rejection,
+    };
+    assert_eq!(
+        rejection.rejection(),
+        CallRejection::ScalarInputCountMismatch
+    );
+    let mut owners = rejection.into_owners().into_iter();
+    let first = owners.next().unwrap();
+    let second = owners.next().unwrap();
+    assert!(owners.next().is_none());
+
+    // SAFETY: Wrong scalar kind also rejects without consuming either owner.
+    let rejection = match unsafe {
+        host.execute_owned_with_values(
+            vec![first, second],
+            vec![ScalarValue::Bool(false)],
+            |_, _| panic!("wrong-kind executor ran"),
+        )
+    } {
+        Ok(_) => panic!("wrong scalar kind was accepted"),
+        Err(rejection) => rejection,
+    };
+    assert_eq!(rejection.rejection(), CallRejection::ScalarKindMismatch);
+    let mut owners = rejection.into_owners().into_iter();
+    let first = owners.next().unwrap();
+    let second = owners.next().unwrap();
+    assert!(owners.next().is_none());
+
+    // SAFETY: The closure observes exact signature order and implements the
+    // admitted choose-second result mapping without retaining payloads.
+    let selected = match expect_owned_execution(unsafe {
+        host.execute_owned_with_values(
+            vec![first, second],
+            vec![ScalarValue::I64(i64::MIN)],
+            |payloads, scalars| {
+                assert_eq!(payloads, [81, 82]);
+                assert_eq!(scalars, [ScalarValue::I64(i64::MIN)]);
+                Ok(())
+            },
+        )
+    }) {
+        OwnedExecution::Success(owner) => owner,
+        OwnedExecution::Failure(status) => panic!("unexpected failure: {status:?}"),
+    };
+    assert_eq!(host.live_owner_count(), 1);
+    drop(selected);
+    assert_eq!(host.live_owner_count(), 0);
+
+    // SAFETY: Executed failure happens after commit and consumes both inputs.
+    let first = unsafe { host.adopt_trusted_owner(0, 83) }.unwrap();
+    // SAFETY: These are independent exclusive payload owners.
+    let second = unsafe { host.adopt_trusted_owner(1, 84) }.unwrap();
+    let execution = expect_owned_execution(unsafe {
+        host.execute_owned_with_values(
+            vec![first, second],
+            vec![ScalarValue::I64(i64::MAX)],
+            |payloads, scalars| {
+                assert_eq!(payloads, [83, 84]);
+                assert_eq!(scalars, [ScalarValue::I64(i64::MAX)]);
+                Err(adapter_failure())
+            },
+        )
+    });
+    assert!(matches!(execution, OwnedExecution::Failure(_)));
+    assert_eq!(host.live_owner_count(), 0);
+
+    // SAFETY: A trusted-adapter panic is contained after commit; all inputs
+    // are abandoned and no owned result is published.
+    let first = unsafe { host.adopt_trusted_owner(0, 85) }.unwrap();
+    // SAFETY: These are independent exclusive payload owners.
+    let second = unsafe { host.adopt_trusted_owner(1, 86) }.unwrap();
+    let execution = expect_owned_execution(unsafe {
+        host.execute_owned_with_values(vec![first, second], vec![ScalarValue::I64(0)], |_, _| {
+            panic!("contained scalar-bearing owned panic")
+        })
+    });
+    assert!(matches!(execution, OwnedExecution::Failure(_)));
+    assert_eq!(host.live_owner_count(), 0);
 }
 
 #[test]

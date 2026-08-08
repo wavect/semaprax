@@ -204,7 +204,7 @@ fn cases(program: &ResolvedProgram) -> Vec<Case> {
     let choose_second_requires = contract_source(choose_second, ContractPhase::Requires);
     let ensures_source = contract_source(ensures, ContractPhase::Ensures);
 
-    vec![
+    let cases = vec![
         Case {
             scenario_id: "discard-zero",
             function_id: "token.discard",
@@ -376,7 +376,15 @@ fn cases(program: &ResolvedProgram) -> Vec<Case> {
             operations: BTreeMap::new(),
             result: None,
         },
-    ]
+    ];
+    assert_eq!(
+        cases
+            .iter()
+            .map(|case| case.scenario_id)
+            .collect::<Vec<_>>(),
+        crate::semantic_trace::OWNED_RESOURCE_CORPUS_V1_SCENARIOS
+    );
+    cases
 }
 
 fn emit_probe(
@@ -427,7 +435,10 @@ fn emit_case(
 ) {
     let function = function(program, case.function_id);
     let index = native_cleanup::classify(program, function).unwrap();
-    let values = native_value::plan(program, function, &index, abi, &HashMap::new()).unwrap();
+    let mut values = native_value::plan(program, function, &index, abi, &HashMap::new()).unwrap();
+    let dictionary =
+        crate::semantic_trace::build_semantic_event_dictionary(program, &function.id).unwrap();
+    values.cleanup_bindings.semantic_events = Some(dictionary.clone());
     let capacity = values.required_event_capacity;
     assert!(capacity > 1);
     let declarations = native_value::emit_declarations(&values);
@@ -663,6 +674,16 @@ fn emit_case(
         oracle.events.len()
     )
     .unwrap();
+    for (event_index, event) in oracle.events.iter().enumerate() {
+        let ordinal = dictionary
+            .ordinal_for(&event.event)
+            .expect("reference event must be bound by the generated dictionary");
+        writeln!(
+            source,
+            "    if (spx_events[UINT32_C({event_index})].semantic_ordinal != UINT32_C({ordinal})) return 48;"
+        )
+        .unwrap();
+    }
     let (result_tag, scalar_result, owned_type) = match &function.return_type {
         ResolvedType::I64 => (
             1,

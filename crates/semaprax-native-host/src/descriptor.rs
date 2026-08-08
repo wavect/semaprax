@@ -195,10 +195,14 @@ impl Descriptor {
             })
     }
 
-    pub(crate) fn has_scalar_parameters(&self) -> bool {
+    pub(crate) fn scalar_kinds(&self) -> Vec<ScalarKind> {
         self.parameters
             .iter()
-            .any(|parameter| matches!(parameter, Parameter::Scalar { .. }))
+            .filter_map(|parameter| match parameter {
+                Parameter::Scalar { kind, .. } => Some(*kind),
+                Parameter::Owned { .. } => None,
+            })
+            .collect()
     }
 
     pub(crate) fn owner_requirements(&self) -> Vec<(&str, &str)> {
@@ -472,14 +476,17 @@ fn main() -> i64 { 0 }
     fn compiler_artifacts_round_trip_scalar_and_multi_owner_shapes_exactly() {
         let scalar = artifact("token.scalar-mix");
         let scalar_descriptor = Descriptor::parse(scalar.descriptor()).unwrap();
-        assert!(scalar_descriptor.has_scalar_parameters());
+        assert_eq!(
+            scalar_descriptor.scalar_kinds(),
+            [ScalarKind::I64, ScalarKind::Bool]
+        );
         assert_eq!(scalar_descriptor.parameters.len(), 3);
         assert_eq!(scalar_descriptor.owner_requirements().len(), 1);
         assert_eq!(scalar_descriptor.getter_symbol(), scalar.getter_symbol());
 
         let multi_owner = artifact("token.select-second");
         let multi_owner_descriptor = Descriptor::parse(multi_owner.descriptor()).unwrap();
-        assert!(!multi_owner_descriptor.has_scalar_parameters());
+        assert!(multi_owner_descriptor.scalar_kinds().is_empty());
         assert_eq!(multi_owner_descriptor.owner_requirements().len(), 2);
         assert_eq!(
             multi_owner_descriptor.result,

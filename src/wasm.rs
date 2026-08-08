@@ -174,6 +174,14 @@ pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagno
                 &mut types,
                 &mut type_indexes,
             ),
+            intern_type(
+                Signature {
+                    params: vec![I32, I32, I32],
+                    results: vec![],
+                },
+                &mut types,
+                &mut type_indexes,
+            ),
         ])
     };
 
@@ -950,6 +958,7 @@ function createOwnedRuntime(options = {}) {
   let staging = null;
   let activeResult = null;
   let activeStatus = null;
+  let semanticInvocation = null;
   let instance = null;
 
   const recordStatus = (domain, code, classification) => {
@@ -1117,6 +1126,7 @@ function createOwnedRuntime(options = {}) {
         throw new Error("SEMAPRAX compiler status classification invariant");
       }
       fillStatus(target.status, domain, code, statusClass);
+      events.push(Object.freeze({ kind: "status", domain_id: domain, code, class: statusClass }));
       const token = target.token ?? target.statusToken;
       if (staging !== null) staging.retainStatus = true;
       else activeStatus = null;
@@ -1127,6 +1137,17 @@ function createOwnedRuntime(options = {}) {
       if (activeStatus === null || activeResult !== null) throw new Error("SEMAPRAX success reservation invariant");
       statuses.delete(activeStatus.token);
       activeStatus = null;
+    },
+    spx_semantic_event: (candidate, functionOrdinal, eventOrdinal) => {
+      if (!requireContext(candidate)) throw new Error("SEMAPRAX semantic event context invariant");
+      if (semanticInvocation === null) throw new Error("SEMAPRAX semantic event outside invocation");
+      const contract = semanticInvocation.contract;
+      if (functionOrdinal !== contract.function_ordinal
+          || !contract.valid_ordinals.includes(eventOrdinal)
+          || eventOrdinal === 0) {
+        throw new Error("SEMAPRAX semantic event dictionary invariant");
+      }
+      semanticInvocation.ordinals.push(eventOrdinal);
     },
   };
 
@@ -1191,7 +1212,21 @@ function createOwnedRuntime(options = {}) {
         callArgs.push(canonicalArgs[index]);
       }
       callArgs.push(0);
-      const statusToken = Reflect.apply(fn, undefined, callArgs);
+      semanticInvocation = { contract, ordinals: [] };
+      let statusToken;
+      try {
+        statusToken = Reflect.apply(fn, undefined, callArgs);
+      } catch (error) {
+        semanticInvocation = null;
+        throw error;
+      }
+      const semantic = Object.freeze({
+        schema: contract.dictionary_schema,
+        function: contract.function,
+        dictionary_fingerprint: contract.dictionary_fingerprint,
+        ordinals: Object.freeze([...semanticInvocation.ordinals]),
+      });
+      semanticInvocation = null;
       if (statusToken !== 0) {
         const preserved = resultKind === "i64"
           ? view.getBigInt64(0, true) === SPX_POISON_I64
@@ -1199,10 +1234,10 @@ function createOwnedRuntime(options = {}) {
         if (!preserved) throw new Error("SEMAPRAX failure published a poisoned result slot");
         const status = statuses.get(statusToken);
         if (!status) throw new Error("SEMAPRAX returned an unknown status token");
-        return Object.freeze({ ok: false, published: false, statusToken, status });
+        return Object.freeze({ ok: false, published: false, statusToken, status, semantic });
       }
       const value = resultKind === "i64" ? view.getBigInt64(0, true) : view.getInt32(0, true);
-      return Object.freeze({ ok: true, published: true, value });
+      return Object.freeze({ ok: true, published: true, value, semantic });
     },
     resolveStatus(token) {
       return statuses.get(token) ?? null;

@@ -66,7 +66,32 @@ All notable changes to SEMAPRAX are documented here.
 - Added a blocking, immutable-action-pinned `cargo-deny` CI gate for the complete native/mobile/Wasm dependency graph: RustSec advisories, unapproved licenses, duplicate or wildcard versions, Git dependencies, and registries outside crates.io fail the build with no advisory exceptions.
 - Added a root-frame native trace-storage scaffold with exact compiler-status/event validation and a pre-ownership attachment handshake. Canonically zeroed one-shot contexts, buffers, and event slots use owner/generation checks to reject rebinding, aliasing, double attachment, and capacity underflow before execution.
 - Added the unpublished `semaprax-native-host` physical ownership stage. It strictly decodes the compiler-derived descriptor, retains the exact real loader instance through its same-thread OS-seeded authority and opaque owners, authenticates owner/result credentials, connects the private ownership ledger, preserves owners on precommit rejection, rotates owned results, and gates new work after draining. Linux/macOS real-loader fixtures exercise that plumbing; Windows has compile coverage only. The loaded provider still exposes only its descriptor getter, trusted Rust closures stand in for generated callable code, and compiler resource builds retain `SPX-B104`.
-- Added the first narrow public `semaprax.wasm-owned.v1` Core Wasm execution path for one direct trivial-resource identity. Generated adapters consume replay-validated terminal cleanup order, stage owner handles atomically, normalize contract/arithmetic/adapter status records, preserve poisoned result storage on failure, rotate owned results, and reject excluded shapes with `SPX-W111`. The generated JavaScript keeps host imports private, binds calls to exact generated metadata and SHA-256-authenticated Wasm bytes, rejects non-canonical ABI arguments, checks result ranges before ownership commit, and uses one-shot trusted adoption tickets; Node tests cover the admitted slice. This is not WebAssembly Component resources or full native/reference/Wasm trace conformance.
+- Added the first narrow public `semaprax.wasm-owned.v1` Core Wasm execution path for one direct trivial-resource identity. Generated adapters consume replay-validated terminal cleanup order, stage owner handles atomically, normalize contract/arithmetic/adapter status records, preserve poisoned result storage on failure, rotate owned results, and reject excluded shapes with `SPX-W111`. The generated JavaScript keeps host imports private, binds calls to exact generated metadata and SHA-256-authenticated Wasm bytes, rejects non-canonical ABI arguments, checks result ranges before ownership commit, and uses one-shot trusted adoption tickets; Node tests cover the admitted slice. This is not WebAssembly Component resources or production native-host conformance.
+- Added `semaprax.semantic-event-dictionary.v1`, which assigns deterministic
+  nonzero ordinals to exact semantic event shapes. Generated cleanup C and the
+  real Wasm owned adapter emit those ordinals from their executed control flow;
+  the host-side materializer rejects zero or unknown ordinals without inferring
+  or repairing events.
+- Unified the authoritative direct-trivial-resource conformance corpus at 14
+  named scenarios. Native generated C at O0/O2 and real Node/Wasm independently
+  materialize to the exact reference executor trace, normalized outcome, and
+  canonical JSON for zero/max payloads, reverse cleanup, contract and checked
+  failures, scalar publication, owned identity/selection, and failed owned
+  publication. The native evidence remains a test-only harness rather than the
+  production ownership host.
+- Added private callable native descriptor v2, derived from the sealed compiler
+  host template plus execution/cleanup and semantic-dictionary evidence. Its
+  canonical pointer-free wire binds eleven fingerprints, exact symbols,
+  request/response capacities, complete ordered signature, opaque-`u64` owned
+  payload kind, and result mapping. The unpublished host's independent strict
+  parser accepts compiler output and rejects every single-byte mutation,
+  truncation, and trailing byte.
+- Extended the native loader quarantine with Unix
+  `RTLD_NOW | RTLD_LOCAL`, exact callable-v2 symbol admission, bounded
+  preallocated one-shot byte calls, and exact-instance rejection. This transport
+  fixture is not generated SEMAPRAX resource execution: the physical ownership
+  host still uses a trusted Rust closure, Windows runtime and callable-path
+  sanitizer evidence remain absent, and `SPX-B104` stays closed.
 - Migrated browser manifests from `semaprax.web.v2` to `semaprax.web.v3`. Version 3 retains module, graph revision, Wasm entry, and capabilities while adding the required `owned_abi` object with schema `semaprax.wasm-owned.v1` and a declaration-ordered function mapping; scalar-only packages use an empty function array. Version-2-only consumers must reject or explicitly migrate rather than inferring ownership ABI metadata.
 
 ## 0.1.0 — 2026-08-07

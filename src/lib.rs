@@ -17,6 +17,7 @@ pub mod lexer;
 pub mod parser;
 pub mod patch;
 pub mod runtime_status;
+pub mod semantic_trace;
 pub mod verify;
 pub mod wasm;
 

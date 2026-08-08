@@ -79,8 +79,10 @@ pub(super) enum NativeHostResult {
 /// Adapter-independent compiler proof for one exact exported function shape.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct NativeHostContractTemplate {
+    semantic_module: String,
     module: HostIdentity,
     module_abi_fingerprint: String,
+    semantic_function: String,
     function: HostIdentity,
     parameters: Vec<NativeHostParameter>,
     result: NativeHostResult,
@@ -176,6 +178,15 @@ pub(super) fn project_for_adapter_abi(
         },
         function_template_fingerprint: template.fingerprint.clone(),
     }
+}
+
+pub(super) fn project_for_callable_abi(
+    template: &NativeHostContractTemplate,
+) -> NativeAdapterTemplateProjection {
+    let mut projection = project_for_adapter_abi(template);
+    projection.module.clone_from(&template.semantic_module);
+    projection.function.clone_from(&template.semantic_function);
+    projection
 }
 
 /// Validated binding policy for the current import-free trivial-resource host.
@@ -395,8 +406,10 @@ pub(super) fn derive_from_admitted(
         }
     };
     let mut template = NativeHostContractTemplate {
+        semantic_module: program.module.clone(),
         module: framed_identity(MODULE_IDENTITY_DOMAIN, &program.module)?,
         module_abi_fingerprint: module_abi_fingerprint(program, resource_abi),
+        semantic_function: function.id.as_str().to_owned(),
         function: framed_identity(FUNCTION_IDENTITY_DOMAIN, function.id.as_str())?,
         parameters,
         result,

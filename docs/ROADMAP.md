@@ -16,7 +16,15 @@ Status: implemented in this repository.
 
 ## 0.2 — Useful core language
 
-Status: in progress. Resource ownership boundaries and explicit lifecycle/interface contracts, lexical `let`, typed `if/else`, partial-place diagnostics, record syntax/checking, Graph v6, validated stable-ID HIR/type facts, a mandatory replay-validated cleanup plan, versioned normalized-status/trace protocol types, native scalar status/out execution, a browser-loadable scalar Wasm backend, and one narrow direct-trivial-resource Wasm owned ABI are implemented; the remaining gates below are not.
+Status: in progress. Resource ownership boundaries and explicit
+lifecycle/interface contracts, lexical `let`, typed `if/else`, partial-place
+diagnostics, record syntax/checking, Graph v6, validated stable-ID HIR/type
+facts, a mandatory replay-validated cleanup plan, versioned normalized-status
+and semantic-event-dictionary types, native scalar status/out execution, a
+browser-loadable scalar Wasm backend, and one narrow direct-trivial-resource
+Wasm owned ABI are implemented. The narrow reference/native-generated-C/Wasm
+14-case corpus now has exact semantic trace and outcome equality; the remaining
+production and language gates below are not.
 
 - Records, variants, `Option`, and `Result`.
 - Exhaustive pattern matching.
@@ -29,7 +37,32 @@ Status: in progress. Resource ownership boundaries and explicit lifecycle/interf
 
 Exit criterion: build a non-trivial CLI and edit it entirely through semantic transactions.
 
-The aggregate tranche is specified in [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md). RFC 0003 phases 1–2 now supply explicit trivial/imported lifecycle syntax, declaration-only interface/import contracts, source/HIR validation, and a target-neutral cleanup plan. Resolved functions carry typed blocks/edges/regions/exits, guarded liveness, atomic call commits, sticky status sources, cleanup order, and result publication; validation independently rebuilds the plan, and Graph v6 serializes it. Phase-3 now has two unequal target footholds. The unpublished native host physically connects the strict descriptor, real exact loader lease, same-thread authority, ledger, and opaque owners, but its provider has no callable resource symbol, its execution callback is trusted Rust rather than generated native code, Windows lacks a runtime fixture, and compiler builds retain `SPX-B104`. The public Wasm lane executes [one direct trivial-resource subset](WASM-OWNED-ABI-V1.md) under Node with status/out, ownership staging, and same-realm tag coordination across duplicated host evaluations, while imported lifecycles, calls, aggregates, broader control flow, semantic backend traces, and cross-realm/worker identity remain excluded. Callable native execution, Windows hardening/evidence, exact reference/native/Wasm trace equality, aggregate layouts, variants, matching, concurrency, and fork recovery remain subsequent work.
+The aggregate tranche is specified in [RFC
+0002](RFC-0002-ALGEBRAIC-DATA.md). RFC 0003 phases 1–2 now supply explicit
+trivial/imported lifecycle syntax, declaration-only interface/import contracts,
+source/HIR validation, and a target-neutral cleanup plan. Resolved functions
+carry typed blocks/edges/regions/exits, guarded liveness, atomic call commits,
+sticky status sources, cleanup order, and result publication; validation
+independently rebuilds the plan, and Graph v6 serializes it.
+
+Phase 3 now has three deliberately separated evidence layers. The unpublished
+native host physically connects strict descriptor v1, a real exact loader
+lease, same-thread authority, ledger, and opaque owners, but its execution
+callback remains trusted Rust. Private compiler staging derives strict callable
+descriptor v2 from the admitted host template plus execution/cleanup and
+semantic-dictionary evidence; the host independently decodes it, and the loader
+can resolve an exact-instance one-shot byte callable. Those pieces are not
+connected into ownership execution. Separately, generated native C and real
+Node/Wasm execute the same [direct trivial-resource
+subset](WASM-OWNED-ABI-V1.md), emit dictionary-authenticated ordinals, and match
+the reference executor exactly for all 14 authoritative scenarios. This proves
+the narrow semantics, not the production native boundary. Compiler resource
+builds retain `SPX-B104`; Windows lacks the physical-host/callable fixture and
+the callable path lacks sanitizer evidence. Imported lifecycles, calls,
+aggregates, broader control flow, cross-realm/worker identity, Windows
+dependency-collision/runtime evidence, production callable native execution,
+aggregate layouts, variants,
+matching, concurrency, and fork recovery remain subsequent work.
 
 The active phase-3 gate is [Owned resource vertical slice
 v1](OWNED-RESOURCE-VERTICAL-V1.md). It requires one production-reachable,

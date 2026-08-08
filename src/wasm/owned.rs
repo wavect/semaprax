@@ -5,21 +5,25 @@
 //! `semaprax.cleanup-plan.v1`; unsupported shapes remain behind `SPX-W111`.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::fmt::Write as _;
 
 use crate::ast::BinaryOp;
 use crate::cleanup_plan::{
-    CleanupPlace, CleanupResultSource, ContractPhase, ExitContinuation, FinalizeAction,
-    StatusProducer, StorageId,
+    CleanupPlace, CleanupResultSource, CleanupTransition, ContractPhase, ExitContinuation,
+    FinalizeAction, StatusProducer, StatusSourceId, StorageId,
 };
+use crate::conformance::TraceEventKind;
 use crate::diagnostic::{quote_json, Diagnostic};
 use crate::hir::{
     OwnershipMode, ResolvedExpr, ResolvedExprKind, ResolvedFunction, ResolvedProgram,
     ResolvedResourceDropKind, ResolvedType, ResolvedTypeDeclarationKind, ValueId,
 };
 
+use crate::semantic_trace::{build_semantic_event_dictionary, SemanticEventDictionary};
+
 use super::{write_i64, write_u32, I32, I64};
 
-pub(super) const IMPORT_NAMES: [&str; 10] = [
+pub(super) const IMPORT_NAMES: [&str; 11] = [
     "spx_owned_begin",
     "spx_owned_stage",
     "spx_owned_abort",
@@ -30,6 +34,7 @@ pub(super) const IMPORT_NAMES: [&str; 10] = [
     "spx_owned_publish",
     "spx_status_record",
     "spx_owned_success",
+    "spx_semantic_event",
 ];
 
 pub(super) const BEGIN_IMPORT: u32 = 7;
@@ -42,6 +47,7 @@ pub(super) const CANCEL_RESULT_IMPORT: u32 = 13;
 pub(super) const PUBLISH_IMPORT: u32 = 14;
 pub(super) const STATUS_IMPORT: u32 = 15;
 pub(super) const SUCCESS_IMPORT: u32 = 16;
+pub(super) const SEMANTIC_IMPORT: u32 = 17;
 
 const STATUS_CLASS_REQUIRES: i64 = 1;
 const STATUS_CLASS_ENSURES: i64 = 2;
@@ -99,8 +105,22 @@ enum ScalarExpr {
 #[derive(Clone, Debug)]
 struct Guard {
     expression: ScalarExpr,
-    finalizers: Vec<usize>,
+    failure_ordinal: u32,
+    finalizers: Vec<FinalizerPlan>,
     phase: ContractPhase,
+}
+
+#[derive(Clone, Debug)]
+struct FailurePlan {
+    failure_ordinal: u32,
+    finalizers: Vec<FinalizerPlan>,
+}
+
+#[derive(Clone, Debug)]
+struct FinalizerPlan {
+    parameter: usize,
+    begin_ordinal: u32,
+    end_ordinal: u32,
 }
 
 #[derive(Clone, Debug)]
@@ -118,11 +138,17 @@ pub(super) struct OwnedPlan {
     lifecycle: String,
     params: Vec<ParamKind>,
     owned_params: Vec<usize>,
+    function_ordinal: u32,
+    function_identity: String,
+    dictionary_fingerprint: [u8; 32],
+    dictionary_ordinals: Vec<u32>,
     requires: Vec<Guard>,
     body: Body,
-    arithmetic_failure: Option<Vec<usize>>,
+    transfer_ordinals: Vec<u32>,
+    arithmetic_failure: Option<FailurePlan>,
     ensures: Vec<Guard>,
-    success_finalizers: Vec<usize>,
+    success_finalizers: Vec<FinalizerPlan>,
+    result_commit_ordinal: u32,
 }
 
 impl OwnedPlan {
@@ -159,11 +185,25 @@ impl OwnedPlan {
             .map(|kind| quote_json(kind.manifest_name()))
             .collect::<Vec<_>>()
             .join(",");
+        let mut fingerprint = String::with_capacity(64);
+        for byte in &self.dictionary_fingerprint {
+            write!(fingerprint, "{byte:02x}").expect("writing to a string cannot fail");
+        }
+        let ordinals = self
+            .dictionary_ordinals
+            .iter()
+            .map(u32::to_string)
+            .collect::<Vec<_>>()
+            .join(",");
         format!(
-            "{}:{{\"parameters\":[{}],\"result\":{}}}",
+            "{}:{{\"parameters\":[{}],\"result\":{},\"function\":{},\"function_ordinal\":{},\"dictionary_schema\":\"semaprax.semantic-event-dictionary.v1\",\"dictionary_fingerprint\":{},\"valid_ordinals\":[{}]}}",
             quote_json(&self.export),
             params,
-            quote_json(self.result.manifest_name())
+            quote_json(self.result.manifest_name()),
+            quote_json(&self.function_identity),
+            self.function_ordinal,
+            quote_json(&fingerprint),
+            ordinals,
         )
     }
 
@@ -233,14 +273,17 @@ impl OwnedPlan {
             emit_scalar_expr(&mut body, &guard.expression);
             body.push(0x45); // i32.eqz
             body.extend([0x04, 0x40]);
+            emit_status_record(&mut body, guard.phase, status_local);
+            emit_semantic_event(&mut body, self.function_ordinal, guard.failure_ordinal);
             emit_cleanup(
                 &mut body,
                 &guard.finalizers,
                 &self.owned_params,
                 first_live_local,
+                self.function_ordinal,
             );
             emit_cancel_result(&mut body, self.result);
-            emit_status_return(&mut body, guard.phase);
+            emit_return_status_local(&mut body, status_local);
             body.push(0x0b);
         }
 
@@ -275,20 +318,26 @@ impl OwnedPlan {
                 write_i64(&mut body, 0);
                 body.push(0x53); // i64.lt_s
                 body.extend([0x04, 0x40]);
-                emit_cleanup(
-                    &mut body,
-                    self.arithmetic_failure
-                        .as_deref()
-                        .expect("checked add admission records a failure exit"),
-                    &self.owned_params,
-                    first_live_local,
-                );
-                emit_cancel_result(&mut body, self.result);
-                emit_raw_status_return(
+                emit_raw_status_record(
                     &mut body,
                     STATUS_CLASS_ARITHMETIC,
                     STATUS_CODE_ADD_OVERFLOW,
+                    status_local,
                 );
+                let failure = self
+                    .arithmetic_failure
+                    .as_ref()
+                    .expect("checked add admission records a failure exit");
+                emit_semantic_event(&mut body, self.function_ordinal, failure.failure_ordinal);
+                emit_cleanup(
+                    &mut body,
+                    &failure.finalizers,
+                    &self.owned_params,
+                    first_live_local,
+                    self.function_ordinal,
+                );
+                emit_cancel_result(&mut body, self.result);
+                emit_return_status_local(&mut body, status_local);
                 body.push(0x0b);
             }
             Body::I64(expression) => {
@@ -299,18 +348,25 @@ impl OwnedPlan {
             Body::OwnedParameter(_) => {}
         }
 
+        for ordinal in &self.transfer_ordinals {
+            emit_semantic_event(&mut body, self.function_ordinal, *ordinal);
+        }
+
         for guard in &self.ensures {
             emit_scalar_expr(&mut body, &guard.expression);
             body.push(0x45);
             body.extend([0x04, 0x40]);
+            emit_status_record(&mut body, guard.phase, status_local);
+            emit_semantic_event(&mut body, self.function_ordinal, guard.failure_ordinal);
             emit_cleanup(
                 &mut body,
                 &guard.finalizers,
                 &self.owned_params,
                 first_live_local,
+                self.function_ordinal,
             );
             emit_cancel_result(&mut body, self.result);
-            emit_status_return(&mut body, guard.phase);
+            emit_return_status_local(&mut body, status_local);
             body.push(0x0b);
         }
 
@@ -319,6 +375,7 @@ impl OwnedPlan {
             &self.success_finalizers,
             &self.owned_params,
             first_live_local,
+            self.function_ordinal,
         );
         body.push(0x20);
         write_u32(&mut body, out_pointer);
@@ -345,6 +402,7 @@ impl OwnedPlan {
                 body.extend([0x36, 0x02, 0x00]); // i32.store align=4 offset=0
             }
         }
+        emit_semantic_event(&mut body, self.function_ordinal, self.result_commit_ordinal);
         body.push(0x20);
         write_u32(&mut body, 0);
         body.push(0x10);
@@ -389,6 +447,7 @@ pub(super) fn plan(program: &ResolvedProgram) -> Result<Vec<OwnedPlan>, Diagnost
             continue;
         }
         plans.push(plan_function(
+            program,
             function,
             function_index,
             &resources,
@@ -399,6 +458,7 @@ pub(super) fn plan(program: &ResolvedProgram) -> Result<Vec<OwnedPlan>, Diagnost
 }
 
 fn plan_function(
+    program: &ResolvedProgram,
     function: &ResolvedFunction,
     function_index: usize,
     resources: &BTreeMap<
@@ -407,6 +467,12 @@ fn plan_function(
     >,
     export_ordinal: usize,
 ) -> Result<OwnedPlan, Diagnostic> {
+    let dictionary = build_semantic_event_dictionary(program, &function.id)?;
+    let function_ordinal = u32::try_from(export_ordinal)
+        .ok()
+        .and_then(|ordinal| ordinal.checked_add(1))
+        .filter(|ordinal| *ordinal <= i32::MAX as u32)
+        .ok_or_else(unsupported)?;
     let mut params = Vec::new();
     let mut owned_params = Vec::new();
     let mut param_by_id = BTreeMap::<ValueId, usize>::new();
@@ -494,7 +560,15 @@ fn plan_function(
     let mut arithmetic_failure = None;
     for source in &function.cleanup_plan.status_sources {
         let finalizers = status_exits.get(&source.id).ok_or_else(unsupported)?;
-        let mapped = map_finalizers(finalizers, &param_by_id, result_param, resources, function)?;
+        let mapped = map_finalizers(
+            finalizers,
+            &param_by_id,
+            result_param,
+            resources,
+            function,
+            &dictionary,
+        )?;
+        let failure_ordinal = ordinal_for_failure(&dictionary, &source.id)?;
         match &source.producer {
             StatusProducer::ContractFalse { phase, ordinal } => {
                 let expression = match phase {
@@ -504,6 +578,7 @@ fn plan_function(
                 .ok_or_else(unsupported)?;
                 let guard = Guard {
                     expression: scalar_expr(expression, &param_by_id)?,
+                    failure_ordinal,
                     finalizers: mapped,
                     phase: *phase,
                 };
@@ -516,7 +591,13 @@ fn plan_function(
                 if source.id.expression == body_tail(function)?.id
                     && matches!(operation, crate::cleanup_plan::CheckedOperation::Add) =>
             {
-                if arithmetic_failure.replace(mapped).is_some() {
+                if arithmetic_failure
+                    .replace(FailurePlan {
+                        failure_ordinal,
+                        finalizers: mapped,
+                    })
+                    .is_some()
+                {
                     return Err(unsupported());
                 }
             }
@@ -536,9 +617,21 @@ fn plan_function(
             Body::I64(expression)
         }
     };
-    let success_finalizers =
-        map_finalizers(success.1, &param_by_id, result_param, resources, function)?;
+    let transfer_ordinals = transfer_ordinals(function, result_param, &dictionary)?;
+    let success_finalizers = map_finalizers(
+        success.1,
+        &param_by_id,
+        result_param,
+        resources,
+        function,
+        &dictionary,
+    )?;
     validate_terminal_coverage(&owned_params, result_param, &success_finalizers)?;
+    let result_commit_ordinal = dictionary
+        .ordinal_for(&TraceEventKind::ResultCommit {
+            source: success.0.clone(),
+        })
+        .ok_or_else(unsupported)?;
 
     Ok(OwnedPlan {
         export: format!("semaprax_owned_{export_ordinal}"),
@@ -563,11 +656,21 @@ fn plan_function(
             .to_owned(),
         params,
         owned_params,
+        function_ordinal,
+        function_identity: function.id.as_str().to_owned(),
+        dictionary_fingerprint: dictionary.fingerprint(),
+        dictionary_ordinals: dictionary
+            .entries()
+            .iter()
+            .map(|entry| entry.ordinal)
+            .collect(),
         requires,
         body,
+        transfer_ordinals,
         arithmetic_failure,
         ensures,
         success_finalizers,
+        result_commit_ordinal,
     })
 }
 
@@ -621,7 +724,8 @@ fn map_finalizers(
         (crate::hir::DeclarationId, &ResolvedResourceDropKind),
     >,
     function: &ResolvedFunction,
-) -> Result<Vec<usize>, Diagnostic> {
+    dictionary: &SemanticEventDictionary,
+) -> Result<Vec<FinalizerPlan>, Diagnostic> {
     let mut mapped = Vec::new();
     let mut seen = BTreeSet::new();
     for action in actions {
@@ -640,7 +744,27 @@ fn map_finalizers(
         if lifecycle != &action.lifecycle_id || !matches!(kind, ResolvedResourceDropKind::Trivial) {
             return Err(unsupported());
         }
-        mapped.push(parameter);
+        let begin_ordinal = dictionary
+            .ordinal_for(&TraceEventKind::FinalizeBegin {
+                source: action.source.clone(),
+                lifecycle_id: action.lifecycle_id.clone(),
+                guard_flag: action.guard_flag,
+                binding_import: None,
+            })
+            .ok_or_else(unsupported)?;
+        let end_ordinal = dictionary
+            .ordinal_for(&TraceEventKind::FinalizeEnd {
+                source: action.source.clone(),
+                lifecycle_id: action.lifecycle_id.clone(),
+                guard_flag: action.guard_flag,
+                binding_import: None,
+            })
+            .ok_or_else(unsupported)?;
+        mapped.push(FinalizerPlan {
+            parameter,
+            begin_ordinal,
+            end_ordinal,
+        });
     }
     Ok(mapped)
 }
@@ -663,19 +787,99 @@ fn param_for_place(
 fn validate_terminal_coverage(
     owned: &[usize],
     result: Option<usize>,
-    finalized: &[usize],
+    finalized: &[FinalizerPlan],
 ) -> Result<(), Diagnostic> {
     let expected = owned
         .iter()
         .copied()
         .filter(|parameter| Some(*parameter) != result)
         .collect::<BTreeSet<_>>();
-    if finalized.iter().copied().collect::<BTreeSet<_>>() != expected
+    if finalized
+        .iter()
+        .map(|finalizer| finalizer.parameter)
+        .collect::<BTreeSet<_>>()
+        != expected
         || finalized.len() != expected.len()
     {
         return Err(unsupported());
     }
     Ok(())
+}
+
+fn ordinal_for_failure(
+    dictionary: &SemanticEventDictionary,
+    source: &StatusSourceId,
+) -> Result<u32, Diagnostic> {
+    let mut matches = dictionary.entries().iter().filter_map(|entry| {
+        matches!(
+            &entry.event,
+            TraceEventKind::SelectFailure {
+                source: candidate,
+                ..
+            } if candidate == source
+        )
+        .then_some(entry.ordinal)
+    });
+    let ordinal = matches.next().ok_or_else(unsupported)?;
+    if matches.next().is_some() {
+        return Err(unsupported());
+    }
+    Ok(ordinal)
+}
+
+fn transfer_ordinals(
+    function: &ResolvedFunction,
+    result_param: Option<usize>,
+    dictionary: &SemanticEventDictionary,
+) -> Result<Vec<u32>, Diagnostic> {
+    let transfers = function
+        .cleanup_plan
+        .blocks
+        .iter()
+        .flat_map(|block| &block.transitions)
+        .filter_map(|transition| match transition {
+            CleanupTransition::Transfer {
+                at,
+                source,
+                destination,
+            } => Some((at, source, destination)),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    let Some(parameter_index) = result_param else {
+        return if transfers.is_empty() {
+            Ok(Vec::new())
+        } else {
+            Err(unsupported())
+        };
+    };
+    let mut current = CleanupPlace {
+        storage: StorageId::Value(function.params[parameter_index].id.clone()),
+        projections: Vec::new(),
+    };
+    let mut ordinals = Vec::with_capacity(transfers.len());
+    for (at, source, destination) in transfers {
+        if source != &current {
+            return Err(unsupported());
+        }
+        let event = TraceEventKind::Transfer {
+            at: at.clone(),
+            source: source.clone(),
+            destination: destination.clone(),
+        };
+        ordinals.push(dictionary.ordinal_for(&event).ok_or_else(unsupported)?);
+        current = destination.clone();
+    }
+    if current
+        != (CleanupPlace {
+            storage: StorageId::ProvisionalResult,
+            projections: Vec::new(),
+        })
+        || ordinals.is_empty()
+    {
+        return Err(unsupported());
+    }
+    Ok(ordinals)
 }
 
 fn is_resource(
@@ -792,35 +996,51 @@ fn emit_out_pointer_preflight(
 
 fn emit_cleanup(
     output: &mut Vec<u8>,
-    finalizers: &[usize],
+    finalizers: &[FinalizerPlan],
     owned_params: &[usize],
     first_live_local: u32,
+    function_ordinal: u32,
 ) {
-    for parameter in finalizers {
+    for finalizer in finalizers {
+        let parameter = finalizer.parameter;
         let ordinal = owned_params
             .iter()
-            .position(|candidate| candidate == parameter)
+            .position(|candidate| *candidate == parameter)
             .expect("admitted cleanup action has an owned-parameter liveness bit");
         output.push(0x20);
         write_u32(output, first_live_local + ordinal as u32);
         output.extend([0x04, 0x40, 0x41, 0x00, 0x21]);
         write_u32(output, first_live_local + ordinal as u32);
+        emit_semantic_event(output, function_ordinal, finalizer.begin_ordinal);
         output.push(0x20);
         write_u32(output, 0);
         output.push(0x20);
-        write_u32(output, *parameter as u32 + 1);
+        write_u32(output, parameter as u32 + 1);
         output.push(0x10);
         write_u32(output, DROP_IMPORT);
+        emit_semantic_event(output, function_ordinal, finalizer.end_ordinal);
         output.push(0x0b);
     }
 }
 
-fn emit_status_return(output: &mut Vec<u8>, phase: ContractPhase) {
+fn emit_semantic_event(output: &mut Vec<u8>, function_ordinal: u32, event_ordinal: u32) {
+    debug_assert!(function_ordinal != 0 && event_ordinal != 0);
+    output.push(0x20);
+    write_u32(output, 0);
+    output.push(0x41);
+    write_i64(output, i64::from(function_ordinal));
+    output.push(0x41);
+    write_i64(output, i64::from(event_ordinal));
+    output.push(0x10);
+    write_u32(output, SEMANTIC_IMPORT);
+}
+
+fn emit_status_record(output: &mut Vec<u8>, phase: ContractPhase, status_local: u32) {
     let (class, code) = match phase {
         ContractPhase::Requires => (STATUS_CLASS_REQUIRES, 1),
         ContractPhase::Ensures => (STATUS_CLASS_ENSURES, 2),
     };
-    emit_raw_status_return(output, class, code);
+    emit_raw_status_record(output, class, code, status_local);
 }
 
 fn emit_cancel_result(output: &mut Vec<u8>, result: OwnedResultKind) {
@@ -832,7 +1052,7 @@ fn emit_cancel_result(output: &mut Vec<u8>, result: OwnedResultKind) {
     }
 }
 
-fn emit_raw_status_return(output: &mut Vec<u8>, class: i64, code: i64) {
+fn emit_raw_status_record(output: &mut Vec<u8>, class: i64, code: i64, status_local: u32) {
     output.push(0x20);
     write_u32(output, 0);
     output.push(0x41);
@@ -841,6 +1061,13 @@ fn emit_raw_status_return(output: &mut Vec<u8>, class: i64, code: i64) {
     write_i64(output, code);
     output.push(0x10);
     write_u32(output, STATUS_IMPORT);
+    output.push(0x21);
+    write_u32(output, status_local);
+}
+
+fn emit_return_status_local(output: &mut Vec<u8>, status_local: u32) {
+    output.push(0x20);
+    write_u32(output, status_local);
     output.push(0x0f);
 }
 

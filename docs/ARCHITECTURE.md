@@ -55,15 +55,78 @@ This remains staged groundwork rather than the sole compiler IR: the current ver
 
 The target-neutral runtime protocol is split from physical target state. `semaprax.status.v1` contains only a stable `domain_id`, nonzero code, class, and retryability; the invocation-local arena assigns immutable one-based tokens while reserving zero for success and rejects cross-context and same-nonce cross-arena resolution. `semaprax.conformance-trace.v1` records semantic ownership, import, write-once failure selection, finalization, and result publication without pointers, handles, tokens, offsets, or host exceptions. Attached plans are independently checked against inventory and exact typed-HIR control/event coverage, then exhaustively replayed across the current acyclic CFG for ordered liveness, sticky failures, exact region-leave chains, reverse cleanup, and typed whole-result publication. The deterministic single-frame reference executor models an uninitialized/published caller out slot; record results remain rejected until the trace schema can preserve aggregate semantic values. The native scalar C lane shares one caller-supplied context across nested calls, returns exact compiler statuses, and commits its out slot only after postconditions.
 
-For the admitted native resource shape, compiler preflight derives and discards an authority-free host template and its canonical pointer-free [native adapter descriptor](NATIVE-ADAPTER-DESCRIPTOR-V1.md). The generated provider compile-guards the encoded target and exports only the immutable descriptor getter. One doc-hidden, unsupported public Rust facade emits that descriptor/provider artifact for the unpublished workspace host; it exposes none of the planner, authority, ledger, owner, loader, or runtime state. The unpublished `semaprax-native-host` crate performs the real physical connection that compiler emission still does not: it strictly decodes the descriptor, opens and retains one exact loader instance, constructs an OS-seeded same-thread [capability authority](NATIVE-CAPABILITY-TOKENS-V1.md), authenticates owner/result credentials, and drives the private ownership ledger through opaque non-copying owners. Linux/macOS fixtures exercise real loading, descriptor admission, trusted adoption, atomic rejection/commit, owned generation rotation, draining, and lease-retention order. Its execution callback is an explicitly unsafe trusted Rust closure, not a callable symbol resolved from the loaded provider or generated native resource machine code. Windows builds the crate but has no equivalent runtime fixture. Compiler preflight constructs none of the physical state, and `SPX-B104` remains closed. Same-root callable-symbol admission, real finalizer/call execution, Windows loader hardening and runtime evidence, cross-target semantic traces, fork/concurrency recovery, and physical unload quiescence remain required.
+For the admitted native resource shape, compiler preflight derives and discards
+an authority-free host template and its canonical pointer-free [native adapter
+descriptor v1](NATIVE-ADAPTER-DESCRIPTOR-V1.md). That descriptor-only provider
+still exports only its immutable getter. A second private compiler stage now
+derives exact [callable descriptor-v2
+metadata](NATIVE-CALLABLE-ABI-V2.md) from the sealed template, generated
+execution/cleanup fingerprint, and deterministic semantic-event dictionary. It
+binds eleven independently domain-separated fingerprints, exact getter and
+callable symbols, request/response capacities, the complete ordered signature,
+and result mapping. The unpublished host independently parses that v2 wire and
+rejects every single-byte mutation, truncation, or trailing byte in cross-crate
+fixtures.
+
+The unpublished `semaprax-native-host` crate performs the real physical v1
+connection that compiler emission still does not: it strictly decodes the
+descriptor, opens and retains one exact loader instance, constructs an OS-seeded
+same-thread [capability authority](NATIVE-CAPABILITY-TOKENS-V1.md),
+authenticates owner/result credentials, and drives the private ownership ledger
+through opaque non-copying owners. Linux/macOS fixtures exercise real loading,
+descriptor admission, typed scalar/owner preflight, trusted adoption, atomic
+rejection/commit, owned generation rotation, draining, and lease-retention
+order. The loader also has a separate exact-instance-bound, one-shot callable-v2
+byte transport with eager Unix resolution, but the host does not connect to it.
+Host execution remains an explicitly unsafe trusted Rust closure, not generated
+native resource machine code. Windows builds the crates but has no equivalent
+runtime fixture, and the callable path has no sanitizer evidence. Compiler
+preflight constructs none of the physical state, and `SPX-B104` remains
+closed. Generated callable execution, Windows dependency-collision runtime
+evidence, callable-path sanitizers, fork/concurrency recovery, and physical unload
+quiescence remain required.
 
 ## Record groundwork and backend gate
 
 Canonical source accepts nominal records with persistent field IDs, source-ordered construction, shorthand expansion, and chained projection. The verifier reports unknown, duplicate, missing, or mismatched constructor fields deterministically and rejects direct or indirect by-value layout cycles. Resolved HIR distinguishes place projections from projections of temporary values, and its validator rejects foreign/reordered fields and inconsistent facts.
 
-Resources now require one explicitly identified `drop trivial` or `drop import` strategy. Imported strategies resolve through an explicitly identified interface/import contract with ownership, authority, consumption, result-publication, and failure meaning; the v1 source grammar uses the import `@id` as its logical key while HIR keeps those concepts separate. Resources and records containing resources remain semantically non-copy. The compiler has a shared cleanup plan plus target-neutral reference replay/execution, and the native scalar lane has a non-trapping status/out ABI. A gated native test lane executes the admitted direct-trivial-resource value/cleanup corpus and compares exact traces with the independent oracle, while the private physical host described above proves real lease/authority/ledger/owner topology without invoking loaded resource code. Native resource lowering therefore still rejects with `SPX-B104`.
+Resources now require one explicitly identified `drop trivial` or `drop
+import` strategy. Imported strategies resolve through an explicitly identified
+interface/import contract with ownership, authority, consumption,
+result-publication, and failure meaning; the v1 source grammar uses the import
+`@id` as its logical key while HIR keeps those concepts separate. Resources
+and records containing resources remain semantically non-copy. The compiler has
+a shared cleanup plan plus target-neutral reference replay/execution, and the
+native scalar lane has a non-trapping status/out ABI. The deterministic
+`semaprax.semantic-event-dictionary.v1` maps compiler-generated nonzero
+ordinals back to exact semantic events without reconstructing execution.
+Generated native C at O0/O2 and real Node/Wasm both emit actual executed
+ordinals for the same authoritative 14-case direct-trivial-resource corpus;
+each materializes to the exact reference trace, normalized outcome, and
+canonical JSON. This is strong cross-target semantic evidence, but the native
+side remains a test-only generated-C harness rather than the physical ownership
+host described above. Native resource lowering therefore still rejects with
+`SPX-B104`.
 
-WebAssembly now has one public but deliberately narrow exception to the former blanket resource gate. `semaprax.wasm-owned.v1` admits exactly one direct, non-generic `drop trivial` resource identity, direct `own` parameters, scalar parameters, and either an `i64` or selected owned-input result for a restricted statement-free contract/body shape. The emitter consumes replay-validated terminal cleanup vectors without sorting them. Its generated instance host uses exact export metadata, SHA-256 binding to the exact generated Wasm bytes, private imports, canonical ABI argument checks, one-shot trusted adoption tickets, checked/aligned out ranges before ownership commit, instance-tagged slot/generation handles, a pre-reserved normalized-status cell, and poison-preserving publication. One same-realm global allocator prevents tag reuse across separately evaluated copies of the generated host when the surrounding realm and reserved binding are trusted; scalar-only packages allocate no tag. Real Node execution covers this subset and boundary. Imported lifecycles, calls, aggregates, multiple resource identities, broader control flow, hostile co-resident JavaScript, cross-realm/worker identity, Components, semantic conformance-trace emission, and exact native/reference/Wasm trace equality remain gated with `SPX-W111` or the record diagnostic.
+WebAssembly now has one public but deliberately narrow exception to the former
+blanket resource gate. `semaprax.wasm-owned.v1` admits exactly one direct,
+non-generic `drop trivial` resource identity, direct `own` parameters, scalar
+parameters, and either an `i64` or selected owned-input result for a restricted
+statement-free contract/body shape. The emitter consumes replay-validated
+terminal cleanup vectors without sorting them. Its generated instance host uses
+exact export metadata, SHA-256 binding to the exact generated Wasm bytes,
+private imports, canonical ABI argument checks, one-shot trusted adoption
+tickets, checked/aligned out ranges before ownership commit, instance-tagged
+slot/generation handles, a pre-reserved normalized-status cell, semantic ordinal
+storage, and poison-preserving publication. One same-realm global allocator
+prevents tag reuse across separately evaluated copies of the generated host when
+the surrounding realm and reserved binding are trusted; scalar-only packages
+allocate no tag. Real Node execution covers the narrow runtime boundary and the
+shared 14-case semantic conformance corpus. Imported lifecycles, calls,
+aggregates, multiple resource identities, broader control flow, hostile
+co-resident JavaScript, cross-realm/worker identity, and Components remain gated
+with `SPX-W111` or the record diagnostic; the native production-host connection
+is still absent.
 
 ## Semantic graph
 
@@ -130,7 +193,12 @@ The web package contains `app.wasm`, `semaprax.js`, `index.html`, `package.json`
 - String data embedded into C diagnostics is escaped.
 - Generated C is compiled without shell interpolation.
 - Patch writes are revision-bound, verified, and atomic.
-- Native dynamic-library loading is confined to the unpublished host crate. The loader lease, descriptor admission, authority, and ledger are real, but the admitted provider exposes no callable resource symbol; the test execution closure is an explicitly unsafe trusted boundary.
+- Native dynamic-library loading is confined to unpublished quarantine crates.
+  The descriptor-v1 lease, authority, and ledger are physically connected; a
+  separate descriptor-v2 parser and exact callable transport are real but not
+  connected to that host. The only callable-v2 runtime provider is a transport
+  fixture, while physical-host execution still crosses an explicitly unsafe
+  trusted-Rust-closure boundary.
 - `prepareTrustedAdoption` is the Wasm host's explicit trusted assertion that one unique external ownership identity is being transferred. Tickets are one-shot; exact Wasm byte binding keeps the mutating imports private to the generated artifact; canonical arguments, generated export metadata, and the result range are checked before ownership commit.
 - Same-realm Wasm instance tags are coordinated through one host-global allocator. The realm and its reserved binding are trusted host state; hostile pre-poisoning, cross-realm, and worker identity remain outside the implemented guarantee.
 - The compiler currently invokes the host `clang`; sandboxed build execution is roadmap work.

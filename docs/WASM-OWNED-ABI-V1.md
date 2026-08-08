@@ -109,7 +109,8 @@ An invocation performs one indivisible commit:
 4. `commit` revalidates the complete set, then changes every entry to
    in-flight as one synchronous host operation; and
 5. emitted Wasm clears each liveness bit before calling `drop`, or publishes
-   through the already-reserved result entry.
+   through the already-reserved result entry, while recording the exact
+   compiler-generated semantic event ordinals in execution order.
 
 Any precommit rejection aborts reservations and leaves all owners usable.
 After commit, cleanup and publication use only reserved table/status capacity;
@@ -148,12 +149,22 @@ result reinterpretation cannot enter the ownership transaction.
   negative-as-unsigned, and out-of-bounds result pointers;
 - scalar packages surviving more than the complete owned-tag namespace without
   constructing an owned runtime; and
-- hostile attached-plan rejection as `SPX-H006` before backend admission.
+- hostile attached-plan rejection as `SPX-H006` before backend admission; and
+- the authoritative 14-case direct-trivial-resource corpus under real Node,
+  including zero/max payloads, reverse two-owner cleanup, requires success and
+  failure, checked-add success/overflow/precondition failure, scalar
+  publication, owned identity and exact second-owner selection with distinct or
+  equal payloads, failed owned precondition, and failed owned postcondition.
+  Generated Wasm emits only fingerprint-bound nonzero
+  `semaprax.semantic-event-dictionary.v1` ordinals; independent
+  materialization equals the target-neutral reference and native generated-C
+  traces, normalized outcomes, and canonical JSON exactly.
 
 This slice does not yet claim WIT/component resources, callable imports,
 imported finalizers, async or worker transfer, shared memory, reentrancy,
-resource acquisition from SEMAPRAX source, cross-realm identity isolation,
-an adversarially pre-poisoned same-realm global environment, aggregate shadow
-stacks, semantic conformance-trace emission, or
-native/reference/Wasm full-corpus conformance. Those remain required before the
-broad WebAssembly resource row can be marked complete.
+resource acquisition from SEMAPRAX source, cross-realm identity isolation, an
+adversarially pre-poisoned same-realm global environment, aggregate shadow
+stacks, broader resource/control-flow trace conformance, or a
+production-connected native ownership-host peer. The exact 14-case equality is
+the narrow first-slice gate, not evidence for those excluded shapes or the broad
+WebAssembly resource row.

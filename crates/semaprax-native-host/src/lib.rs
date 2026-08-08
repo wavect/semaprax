@@ -8,6 +8,9 @@
 
 mod authority;
 mod descriptor;
+mod descriptor_v2;
+#[cfg(test)]
+mod descriptor_v2_integration;
 
 // Temporary audited source sharing keeps these protocol implementations
 // private in both crates while avoiding a second security-critical codec or
@@ -35,7 +38,7 @@ use std::path::Path;
 use std::rc::Rc;
 
 use authority::{Authority, AuthorityError, Credential};
-use descriptor::{Descriptor, DescriptorError, ResultShape};
+use descriptor::{Descriptor, DescriptorError, ResultShape, ScalarKind};
 use host_ownership::{
     HostBoundaryRejection, HostCallContract, HostCallOutcome, HostCallRequest, HostIdentity,
     HostOwnerToken, HostOwnershipRegistry, HostPublishedValue, HostResourceProvenance,
@@ -51,6 +54,13 @@ use semaprax_native_loader::{
 pub enum ResultKind {
     ScalarI64,
     OwnedInput { owner_ordinal: usize },
+}
+
+/// Canonical scalar values supplied in scalar-parameter order.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ScalarValue {
+    I64(i64),
+    Bool(bool),
 }
 
 /// Stable admission rejection categories. Error text never contains secrets or
@@ -79,6 +89,8 @@ pub enum CallRejection {
     Draining,
     WrongShape,
     InputCountMismatch,
+    ScalarInputCountMismatch,
+    ScalarKindMismatch,
     WrongModuleInstance,
     WrongResourceType,
     WrongLifecycle,
@@ -234,11 +246,6 @@ impl NativeHost {
             ));
         }
         let descriptor = Descriptor::parse(expected_descriptor).map_err(AdmissionError::from)?;
-        if descriptor.has_scalar_parameters() {
-            return Err(AdmissionError::Descriptor(
-                DescriptorRejection::UnsupportedShape,
-            ));
-        }
         if getter_symbol != descriptor.getter_symbol().as_bytes() {
             return Err(AdmissionError::Descriptor(
                 DescriptorRejection::NonCanonical,
@@ -405,11 +412,37 @@ impl NativeHost {
     /// or reinterpret the opaque payload integers outside that contract.
     pub unsafe fn execute_scalar_with<F>(
         &mut self,
-        mut owners: Vec<NativeOwner>,
+        owners: Vec<NativeOwner>,
         execute: F,
     ) -> Result<ScalarExecution, RejectedCall>
     where
         F: FnOnce(&[u64]) -> Result<i64, NormalizedStatus>,
+    {
+        // SAFETY: This compatibility entry point preserves its existing
+        // closure contract and supplies no scalar values. Scalar preflight
+        // rejects scalar-bearing descriptors before ownership commit.
+        unsafe {
+            self.execute_scalar_with_values(owners, Vec::new(), |payloads, _| execute(payloads))
+        }
+    }
+
+    /// Execute a trusted scalar-result body with canonical scalar arguments.
+    /// Scalar values are ordered by scalar-parameter occurrence; owner values
+    /// remain ordered by owner ordinal.
+    ///
+    /// # Safety
+    ///
+    /// The closure is part of the audited generated adapter. It must implement
+    /// the admitted function template and may not retain, duplicate, finalize,
+    /// or reinterpret the opaque payload integers outside that contract.
+    pub unsafe fn execute_scalar_with_values<F>(
+        &mut self,
+        mut owners: Vec<NativeOwner>,
+        scalars: Vec<ScalarValue>,
+        execute: F,
+    ) -> Result<ScalarExecution, RejectedCall>
+    where
+        F: FnOnce(&[u64], &[ScalarValue]) -> Result<i64, NormalizedStatus>,
     {
         if self.draining {
             return Err(rejected(CallRejection::Draining, owners));
@@ -418,6 +451,9 @@ impl NativeHost {
             return Err(rejected(CallRejection::WrongShape, owners));
         }
         if let Err(rejection) = self.preflight_owners(&owners) {
+            return Err(rejected(rejection, owners));
+        }
+        if let Err(rejection) = self.preflight_scalars(&scalars) {
             return Err(rejected(rejection, owners));
         }
         let tokens = owners.iter().map(|owner| owner.token).collect();
@@ -430,7 +466,7 @@ impl NativeHost {
         for owner in &mut owners {
             owner.armed = false;
         }
-        let outcome = catch_unwind(AssertUnwindSafe(|| execute(prepared.payloads())));
+        let outcome = catch_unwind(AssertUnwindSafe(|| execute(prepared.payloads(), &scalars)));
         let outcome = match outcome {
             Ok(result) => self
                 .ledger
@@ -474,11 +510,35 @@ impl NativeHost {
     /// or reinterpret the opaque payload integers outside that contract.
     pub unsafe fn execute_owned_with<F>(
         &mut self,
-        mut owners: Vec<NativeOwner>,
+        owners: Vec<NativeOwner>,
         execute: F,
     ) -> Result<OwnedExecution, RejectedCall>
     where
         F: FnOnce(&[u64]) -> Result<(), NormalizedStatus>,
+    {
+        // SAFETY: This compatibility entry point preserves its existing
+        // closure contract and supplies no scalar values. Scalar preflight
+        // rejects scalar-bearing descriptors before ownership commit.
+        unsafe {
+            self.execute_owned_with_values(owners, Vec::new(), |payloads, _| execute(payloads))
+        }
+    }
+
+    /// Execute a trusted owned-result body with canonical scalar arguments.
+    ///
+    /// # Safety
+    ///
+    /// The closure is part of the audited generated adapter. It must implement
+    /// the admitted function template and may not retain, duplicate, finalize,
+    /// or reinterpret the opaque payload integers outside that contract.
+    pub unsafe fn execute_owned_with_values<F>(
+        &mut self,
+        mut owners: Vec<NativeOwner>,
+        scalars: Vec<ScalarValue>,
+        execute: F,
+    ) -> Result<OwnedExecution, RejectedCall>
+    where
+        F: FnOnce(&[u64], &[ScalarValue]) -> Result<(), NormalizedStatus>,
     {
         if self.draining {
             return Err(rejected(CallRejection::Draining, owners));
@@ -487,6 +547,9 @@ impl NativeHost {
             return Err(rejected(CallRejection::WrongShape, owners));
         };
         if let Err(rejection) = self.preflight_owners(&owners) {
+            return Err(rejected(rejection, owners));
+        }
+        if let Err(rejection) = self.preflight_scalars(&scalars) {
             return Err(rejected(rejection, owners));
         }
         let selected = &owners[owner_ordinal];
@@ -535,7 +598,7 @@ impl NativeHost {
         for owner in &mut owners {
             owner.armed = false;
         }
-        let outcome = catch_unwind(AssertUnwindSafe(|| execute(prepared.payloads())));
+        let outcome = catch_unwind(AssertUnwindSafe(|| execute(prepared.payloads(), &scalars)));
         let outcome = match outcome {
             Ok(result) => self
                 .ledger
@@ -597,6 +660,22 @@ impl NativeHost {
                     owner.token.generation(),
                 )
                 .map_err(map_authority_error)?;
+        }
+        Ok(())
+    }
+
+    fn preflight_scalars(&self, scalars: &[ScalarValue]) -> Result<(), CallRejection> {
+        let expected = self.descriptor.scalar_kinds();
+        if scalars.len() != expected.len() {
+            return Err(CallRejection::ScalarInputCountMismatch);
+        }
+        for (value, kind) in scalars.iter().zip(expected) {
+            if !matches!(
+                (value, kind),
+                (ScalarValue::I64(_), ScalarKind::I64) | (ScalarValue::Bool(_), ScalarKind::Bool)
+            ) {
+                return Err(CallRejection::ScalarKindMismatch);
+            }
         }
         Ok(())
     }

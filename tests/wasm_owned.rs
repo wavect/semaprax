@@ -1,8 +1,16 @@
+use std::collections::BTreeMap;
+use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use semaprax::cleanup_plan::ExitContinuation;
+use semaprax::cleanup_plan::{
+    execute_for_conformance, CleanupScenario, ContractPhase, ExitContinuation, StatusCase,
+    StatusProducer, StatusSourceId,
+};
+use semaprax::conformance::{NormalizedStatus, OperationOutcome, TraceOutcome, TraceResult};
+use semaprax::hir::{DeclarationId, ResolvedFunction, ResolvedProgram};
+use semaprax::semantic_trace::build_semantic_event_dictionary;
 use semaprax::{hir, parse, wasm};
 
 static NEXT_OUTPUT: AtomicU64 = AtomicU64::new(0);
@@ -85,6 +93,216 @@ impl Drop for OutputDirectory {
     }
 }
 
+struct ConformanceCase {
+    id: &'static str,
+    function: &'static str,
+    booleans: BTreeMap<semaprax::hir::ExpressionId, bool>,
+    operations: BTreeMap<StatusSourceId, OperationOutcome>,
+    result: Option<TraceResult>,
+}
+
+impl ConformanceCase {
+    fn scenario(&self) -> CleanupScenario {
+        let mut scenario = CleanupScenario::new(self.id, self.result.clone());
+        scenario.booleans = self.booleans.clone();
+        scenario.operations = self.operations.clone();
+        scenario
+    }
+}
+
+fn resolved_function<'a>(program: &'a ResolvedProgram, id: &str) -> &'a ResolvedFunction {
+    program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == id)
+        .unwrap()
+}
+
+fn contract_source(function: &ResolvedFunction, phase: ContractPhase) -> StatusSourceId {
+    function
+        .cleanup_plan
+        .status_sources
+        .iter()
+        .find_map(|source| {
+            matches!(
+                source.producer,
+                StatusProducer::ContractFalse {
+                    phase: candidate,
+                    ..
+                } if candidate == phase
+            )
+            .then(|| source.id.clone())
+        })
+        .unwrap()
+}
+
+fn arithmetic_source(function: &ResolvedFunction) -> StatusSourceId {
+    function
+        .cleanup_plan
+        .status_sources
+        .iter()
+        .find_map(|source| {
+            matches!(source.producer, StatusProducer::CheckedArithmetic { .. })
+                .then(|| source.id.clone())
+        })
+        .unwrap()
+}
+
+fn conformance_cases(program: &ResolvedProgram) -> Vec<ConformanceCase> {
+    let requires = resolved_function(program, "token.requires");
+    let checked = resolved_function(program, "token.checked");
+    let choose = resolved_function(program, "token.choose-second");
+    let ensures = resolved_function(program, "token.ensures-false");
+    let requires_source = contract_source(requires, ContractPhase::Requires);
+    let checked_requires = contract_source(checked, ContractPhase::Requires);
+    let checked_add = arithmetic_source(checked);
+    let choose_requires = contract_source(choose, ContractPhase::Requires);
+    let ensures_source = contract_source(ensures, ContractPhase::Ensures);
+    let owned_result = || TraceResult::Owned {
+        type_id: DeclarationId::new("token.type"),
+    };
+    let cases = vec![
+        ConformanceCase {
+            id: "discard-zero",
+            function: "token.discard",
+            booleans: BTreeMap::new(),
+            operations: BTreeMap::new(),
+            result: Some(TraceResult::I64(0)),
+        },
+        ConformanceCase {
+            id: "discard-max",
+            function: "token.discard",
+            booleans: BTreeMap::new(),
+            operations: BTreeMap::new(),
+            result: Some(TraceResult::I64(0)),
+        },
+        ConformanceCase {
+            id: "discard-two-reverse",
+            function: "token.discard-two",
+            booleans: BTreeMap::new(),
+            operations: BTreeMap::new(),
+            result: Some(TraceResult::I64(0)),
+        },
+        ConformanceCase {
+            id: "requires-false",
+            function: "token.requires",
+            booleans: BTreeMap::from([(requires_source.expression.clone(), false)]),
+            operations: BTreeMap::new(),
+            result: None,
+        },
+        ConformanceCase {
+            id: "requires-true",
+            function: "token.requires",
+            booleans: BTreeMap::from([(requires_source.expression.clone(), true)]),
+            operations: BTreeMap::new(),
+            result: Some(TraceResult::I64(0)),
+        },
+        ConformanceCase {
+            id: "checked-success",
+            function: "token.checked",
+            booleans: BTreeMap::from([(checked_requires.expression.clone(), true)]),
+            operations: BTreeMap::from([(checked_add.clone(), OperationOutcome::Success)]),
+            result: Some(TraceResult::I64(42)),
+        },
+        ConformanceCase {
+            id: "checked-add-overflow",
+            function: "token.checked",
+            booleans: BTreeMap::from([(checked_requires.expression.clone(), true)]),
+            operations: BTreeMap::from([(
+                checked_add,
+                OperationOutcome::Failure(NormalizedStatus::arithmetic(StatusCase::AddOverflow)),
+            )]),
+            result: None,
+        },
+        ConformanceCase {
+            id: "checked-precondition-false",
+            function: "token.checked",
+            booleans: BTreeMap::from([(checked_requires.expression, false)]),
+            operations: BTreeMap::new(),
+            result: None,
+        },
+        ConformanceCase {
+            id: "identity-zero",
+            function: "token.identity",
+            booleans: BTreeMap::new(),
+            operations: BTreeMap::new(),
+            result: Some(owned_result()),
+        },
+        ConformanceCase {
+            id: "identity-max",
+            function: "token.identity",
+            booleans: BTreeMap::new(),
+            operations: BTreeMap::new(),
+            result: Some(owned_result()),
+        },
+        ConformanceCase {
+            id: "choose-second-zero-max",
+            function: "token.choose-second",
+            booleans: BTreeMap::from([(choose_requires.expression.clone(), true)]),
+            operations: BTreeMap::new(),
+            result: Some(owned_result()),
+        },
+        ConformanceCase {
+            id: "choose-second-zero-zero",
+            function: "token.choose-second",
+            booleans: BTreeMap::from([(choose_requires.expression.clone(), true)]),
+            operations: BTreeMap::new(),
+            result: Some(owned_result()),
+        },
+        ConformanceCase {
+            id: "choose-second-requires-false",
+            function: "token.choose-second",
+            booleans: BTreeMap::from([(choose_requires.expression, false)]),
+            operations: BTreeMap::new(),
+            result: None,
+        },
+        ConformanceCase {
+            id: "ensures-false",
+            function: "token.ensures-false",
+            booleans: BTreeMap::from([(ensures_source.expression, false)]),
+            operations: BTreeMap::new(),
+            result: None,
+        },
+    ];
+    assert_eq!(
+        cases.iter().map(|case| case.id).collect::<Vec<_>>(),
+        semaprax::semantic_trace::OWNED_RESOURCE_CORPUS_V1_SCENARIOS
+    );
+    cases
+}
+
+fn fingerprint_hex(bytes: [u8; 32]) -> String {
+    let mut output = String::with_capacity(64);
+    for byte in bytes {
+        write!(output, "{byte:02x}").unwrap();
+    }
+    output
+}
+
+fn outcome_summary(outcome: &TraceOutcome) -> String {
+    match outcome {
+        TraceOutcome::Success {
+            result: TraceResult::I64(value),
+        } => format!("success:i64:{value}"),
+        TraceOutcome::Success {
+            result: TraceResult::Owned { type_id },
+        } => {
+            format!("success:owned:{type_id}")
+        }
+        TraceOutcome::Failure { status, .. } => format!(
+            "failure:{}:{}:{}",
+            status.domain_id(),
+            status.code(),
+            match status.class() {
+                semaprax::conformance::StatusClass::Contract => "contract",
+                semaprax::conformance::StatusClass::Arithmetic => "arithmetic",
+                _ => panic!("unexpected first-corpus failure class"),
+            }
+        ),
+        other => panic!("unexpected first-corpus outcome: {other:?}"),
+    }
+}
+
 #[test]
 fn direct_trivial_resource_slice_executes_in_real_node_wasm() {
     let program = parse(SOURCE, Path::new("wasm-owned.spx")).unwrap();
@@ -152,6 +370,74 @@ fn direct_trivial_resource_slice_executes_in_real_node_wasm() {
             String::from_utf8_lossy(&poisoned.stdout).trim(),
             format!("poisoned-allocator-{mode}-ok")
         );
+    }
+}
+
+#[test]
+fn fourteen_case_wasm_ordinals_materialize_to_the_exact_reference_trace() {
+    if Command::new("node").arg("--version").output().is_err() {
+        return;
+    }
+    let parsed = parse(SOURCE, Path::new("wasm-owned-conformance.spx")).unwrap();
+    let resolved = hir::resolve(&parsed).unwrap();
+    let cases = conformance_cases(&resolved);
+    assert_eq!(cases.len(), 14);
+    let output = OutputDirectory::create();
+    wasm::build_web(&parsed, &output.path).unwrap();
+    let script = output.path.join("wasm-conformance.mjs");
+    std::fs::write(&script, NODE_CONFORMANCE).unwrap();
+    let execution = Command::new("node")
+        .arg(&script)
+        .arg(&output.path)
+        .output()
+        .unwrap();
+    assert!(
+        execution.status.success(),
+        "node conformance failed: {}\n{}",
+        String::from_utf8_lossy(&execution.stderr),
+        String::from_utf8_lossy(&execution.stdout),
+    );
+    let rows = String::from_utf8(execution.stdout).unwrap();
+    let parsed_rows = rows
+        .lines()
+        .map(|line| {
+            let fields = line.split('\t').collect::<Vec<_>>();
+            assert_eq!(fields.len(), 5, "malformed Wasm conformance row: {line}");
+            (fields[0].to_owned(), fields)
+        })
+        .collect::<BTreeMap<_, _>>();
+    assert_eq!(parsed_rows.len(), cases.len());
+
+    for case in cases {
+        let reference = execute_for_conformance(
+            &resolved,
+            &DeclarationId::new(case.function),
+            case.scenario(),
+        )
+        .unwrap();
+        let dictionary =
+            build_semantic_event_dictionary(&resolved, &DeclarationId::new(case.function)).unwrap();
+        let fields = &parsed_rows[case.id];
+        assert_eq!(fields[1], case.function);
+        assert_eq!(fields[2], fingerprint_hex(dictionary.fingerprint()));
+        let ordinals = if fields[3].is_empty() {
+            Vec::new()
+        } else {
+            fields[3]
+                .split(',')
+                .map(|ordinal| ordinal.parse::<u32>().unwrap())
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(fields[4], outcome_summary(&reference.outcome));
+        let materialized = dictionary
+            .materialize_trace(case.id, &ordinals, reference.outcome.clone())
+            .unwrap();
+        assert_eq!(
+            materialized, reference,
+            "Wasm/reference mismatch: {}",
+            case.id
+        );
+        assert_eq!(materialized.to_json(), reference.to_json());
     }
 }
 
@@ -239,6 +525,55 @@ fn excluded_resource_shapes_keep_stable_w111_gate() {
     assert_eq!(wasm::emit_module(&borrowed).unwrap_err().code, "SPX-W111");
 }
 
+const NODE_CONFORMANCE: &str = r#"import { readFile } from "node:fs/promises";
+import { pathToFileURL } from "node:url";
+import { join } from "node:path";
+
+const directory = process.argv[2];
+const runtime = await import(pathToFileURL(join(directory, "semaprax.js")));
+const bytes = await readFile(join(directory, "app.wasm"));
+const { owned } = await runtime.instantiateBytes(bytes);
+const adopt = value => owned.adopt(owned.prepareTrustedAdoption(value));
+const rows = [];
+const run = (id, exportName, args, resultKind) => {
+  const result = owned.invoke(exportName, args, resultKind);
+  let outcome;
+  if (!result.ok) {
+    outcome = `failure:${result.status.domain_id}:${result.status.code}:${result.status.class}`;
+  } else if (resultKind === "i64") {
+    outcome = `success:i64:${result.value}`;
+  } else {
+    outcome = "success:owned:token.type";
+  }
+  rows.push([
+    id,
+    result.semantic.function,
+    result.semantic.dictionary_fingerprint,
+    result.semantic.ordinals.join(","),
+    outcome,
+  ].join("\t"));
+  if (result.ok && resultKind === "resource") owned.dispose(result.value);
+};
+
+run("discard-zero", "semaprax_owned_0", [adopt(0n)], "i64");
+run("discard-max", "semaprax_owned_0", [adopt(18446744073709551615n)], "i64");
+run("discard-two-reverse", "semaprax_owned_1", [adopt("first"), adopt("second")], "i64");
+run("requires-false", "semaprax_owned_2", [adopt("requires-false"), 0], "i64");
+run("requires-true", "semaprax_owned_2", [adopt("requires-true"), 1], "i64");
+run("checked-success", "semaprax_owned_3", [adopt("checked-success"), 41n], "i64");
+run("checked-add-overflow", "semaprax_owned_3", [adopt("checked-overflow"), 9223372036854775807n], "i64");
+run("checked-precondition-false", "semaprax_owned_3", [adopt("checked-precondition"), -1n], "i64");
+run("identity-zero", "semaprax_owned_4", [adopt(0n)], "resource");
+run("identity-max", "semaprax_owned_4", [adopt(18446744073709551615n)], "resource");
+run("choose-second-zero-max", "semaprax_owned_5", [adopt(0n), 17n, adopt(18446744073709551615n)], "resource");
+run("choose-second-zero-zero", "semaprax_owned_5", [adopt(0n), 17n, adopt(0n)], "resource");
+run("choose-second-requires-false", "semaprax_owned_5", [adopt("first"), -1n, adopt("second")], "resource");
+run("ensures-false", "semaprax_owned_6", [adopt("ensures")], "resource");
+
+if (owned.liveHandleCount() !== 0) throw new Error("Wasm conformance leaked an owned handle");
+console.log(rows.join("\n"));
+"#;
+
 const NODE_TEST: &str = r#"import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
@@ -287,6 +622,10 @@ handle = adopt({ label: "discard" });
 let result = owned.invoke("semaprax_owned_0", [handle], "i64");
 assert.deepEqual({ ok: result.ok, published: result.published, value: result.value },
   { ok: true, published: true, value: 0n });
+assert.equal(result.semantic.schema, "semaprax.semantic-event-dictionary.v1");
+assert.equal(result.semantic.function, "token.discard");
+assert.match(result.semantic.dictionary_fingerprint, /^[0-9a-f]{64}$/);
+assert.deepEqual(result.semantic.ordinals, [1, 2, 3]);
 assert.equal(owned.liveHandleCount(), 0);
 
 const reverseStart = owned.trace().length;
@@ -300,13 +639,20 @@ assert.deepEqual(
 );
 
 handle = adopt("requires-false");
+const requiresFailureStart = owned.trace().length;
 result = owned.invoke("semaprax_owned_2", [handle, 0], "i64");
 assert.equal(result.ok, false);
 assert.equal(result.published, false);
 assert.deepEqual(result.status, expectedStatus("semaprax.contract.v1", 1, "contract"));
+assert.equal(result.semantic.function, "token.requires");
+assert.deepEqual(result.semantic.ordinals, [1, 2, 3]);
 assert.equal(JSON.stringify(result.status),
   '{"schema":"semaprax.status.v1","domain_id":"semaprax.contract.v1","code":1,"class":"contract","retryable":false}');
 assert.equal(owned.liveHandleCount(), 0);
+assert.deepEqual(
+  owned.trace().slice(requiresFailureStart).map(event => event.kind),
+  ["commit", "status", "drop"],
+);
 
 handle = adopt("requires-true");
 result = owned.invoke("semaprax_owned_2", [handle, 1], "i64");
@@ -316,14 +662,21 @@ handle = adopt("checked-success");
 result = owned.invoke("semaprax_owned_3", [handle, 41n], "i64");
 assert.equal(result.value, 42n);
 handle = adopt("checked-overflow");
+const checkedFailureStart = owned.trace().length;
 result = owned.invoke("semaprax_owned_3", [handle, 9223372036854775807n], "i64");
 assert.equal(result.ok, false);
 assert.deepEqual(result.status, expectedStatus("semaprax.arithmetic.v1", 1, "arithmetic"));
 assert.equal(owned.liveHandleCount(), 0);
+assert.deepEqual(
+  owned.trace().slice(checkedFailureStart).map(event => event.kind),
+  ["commit", "status", "drop"],
+);
 
 const original = adopt("identity");
 result = owned.invoke("semaprax_owned_4", [original], "resource");
 assert.equal(result.ok, true);
+assert.equal(result.semantic.function, "token.identity");
+assert.deepEqual(result.semantic.ordinals, [1, 2, 3]);
 const rotated = result.value;
 assert.notEqual(rotated, original);
 assert.equal(owned.liveHandleCount(), 1);
@@ -347,13 +700,21 @@ assert.equal(owned.liveHandleCount(), 1);
 assert.equal(owned.invoke("semaprax_owned_0", [result.value], "i64").ok, true);
 
 handle = adopt("ensures-false");
+const ensuresFailureStart = owned.trace().length;
 result = owned.invoke("semaprax_owned_6", [handle], "resource");
 assert.equal(result.ok, false);
 assert.deepEqual(result.status, expectedStatus("semaprax.contract.v1", 2, "contract"));
+assert.equal(result.semantic.function, "token.ensures-false");
+assert.deepEqual(result.semantic.ordinals, [1, 2, 3, 4, 5]);
 assert.equal(owned.liveHandleCount(), 0);
+assert.deepEqual(
+  owned.trace().slice(ensuresFailureStart).map(event => event.kind),
+  ["commit", "status", "drop"],
+);
 
 result = owned.invoke("semaprax_owned_0", [0x7fffffff], "i64");
 assert.equal(result.ok, false);
+assert.deepEqual(result.semantic.ordinals, []);
 assert.deepEqual(result.status, expectedStatus("semaprax.wasm-adapter.v1", 3, "adapter"));
 assert.equal(owned.liveHandleCount(), 0);
 

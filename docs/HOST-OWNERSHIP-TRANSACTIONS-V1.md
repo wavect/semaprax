@@ -9,8 +9,10 @@ physical compatibility evidence only; it neither serializes this ledger's
 runtime authority nor makes the transaction callable. The separate
 [native capability-token layer](NATIVE-CAPABILITY-TOKENS-V1.md) fixes future
 bearer-token authentication and private OS-entropy/thread-binding mechanics,
-but its authority remains disconnected from this ledger; only a synchronized
-registry can make authenticated bytes linear.
+plus a test-only fake-backed module-lifetime topology retained by the authority
+and staged credential wrappers. That authority remains disconnected from this
+ledger; raw bearer bytes retain nothing, and only a synchronized registry can
+make authenticated bytes linear.
 
 The private native staging lane also derives ownership contracts in
 `src/codegen/native_host_contract.rs`. Derivation accepts a validated program
@@ -46,7 +48,9 @@ or forget an input after validation or language execution fails.
 
 1. Each registry receives a nonzero identity unique within its linked runtime
    instance and is not cloneable. A future cross-library/process ABI must bind
-   tokens to a retained module/adapter capability as well.
+   ledger entries to the exact retained module/adapter capability as well. The
+   staged credential wrapper now proves this shape against a fake pin, but the
+   ledger does not yet store it.
 2. An owner token contains registry identity, slot, and generation. Physical
    payload equality never establishes ownership identity; payload zero and
    `u64::MAX` are both valid.
@@ -103,10 +107,11 @@ resource export can ship, all of the following remain mandatory:
   compatibility evidence, while defining the still-missing callable owner
   token, rejection/completion, argument, result/out-slot, context, and
   module-lifetime layouts;
-- turn the private, binding-instance-distinct process-local adapter authority and deterministic
-  module/template fingerprints into a versioned physical library capability
-  that retains the loaded module and safely rejects hot-reload, unload, and
-  cross-library exchange;
+- turn the private fake-backed exact-instance lease and deterministic
+  module/template fingerprints into a versioned production capability that
+  owns a platform loader handle, validates the admitted descriptor and code
+  identity, and safely rejects hot-reload, premature unload, and cross-library
+  exchange;
 - preserve the template's complete ordered scalar/resource metadata through
   generated headers and physical adapters; the ownership ledger intentionally
   consumes only ordered resource requirements and the result owner ordinal;
@@ -115,7 +120,9 @@ resource export can ship, all of the following remain mandatory:
   public gate evidence;
 - runtime-owned context, status arena, trace storage, provisional result, and
   deep materialization—no caller-provided mutable storage;
-- a binding-instance/module-lifetime capability retained by every live owner;
+- the exact production module-lifetime capability retained by every live
+  ledger owner and runtime-owned outcome, with call/callback/finalizer
+  quiescence before unload;
 - map the private Rust `ThreadId` observation to each physical target runtime
   and define an explicit `Send`/sharing policy;
 - exactly-once physical finalizer execution, guard clearing before callbacks,

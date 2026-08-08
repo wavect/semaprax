@@ -74,6 +74,11 @@ runtime-owned storage, allocation-failure behavior, authenticated ownership
 tokens, status/output lifetimes, unwind containment, imported finalizers, and
 cross-thread execution remain future gates.
 
+The separate test-only fake-backed Rust lease is never constructed from, and
+does not retain, the shared-library provider built by this descriptor suite.
+It proves strong-reference topology only; physical provider lifetime remains a
+production-loader gate.
+
 Consequently, public native resource emission still returns the exact generic
 `SPX-B104` diagnostic. A future callable adapter must consume this compatibility
 evidence and independently prove the host-ownership transaction and cleanup

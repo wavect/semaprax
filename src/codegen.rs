@@ -11,6 +11,8 @@ mod native_conformance_materialize;
 #[cfg(test)]
 mod native_conformance_wire;
 mod native_host_contract;
+#[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
+mod native_module_lease;
 mod native_resource;
 mod native_runtime;
 mod native_trace;

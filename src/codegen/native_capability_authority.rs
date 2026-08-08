@@ -1,9 +1,10 @@
 //! Private OS-backed authority for staged native capability-token mechanics.
 //!
 //! This authority is deliberately unreachable from compiler preflight and has
-//! no public or C-facing API. It proves fail-closed entropy acquisition and
-//! actual-thread binding only; it is not a callable adapter, ownership ledger,
-//! retained-library handle, or module-unload protocol.
+//! no public or C-facing API. In tests it additionally requires a fake-backed
+//! module lease and retains that exact allocation through every staged
+//! credential wrapper. It is not a callable adapter, ownership ledger,
+//! platform loader handle, physical module pin, or unload protocol.
 
 #![cfg_attr(
     not(test),
@@ -16,6 +17,7 @@ use super::native_capability_token::{
     authenticate_expected, mint, NativeCapabilityBinding, NativeCapabilityClaims,
     NativeCapabilityKind, NativeCapabilitySecret, NativeCapabilityTokenError, TOKEN_BYTES,
 };
+use super::native_module_lease::{NativeModuleLease, NativeModuleLeaseError};
 
 const SECRET_BYTES: usize = 32;
 const EPOCH_BYTES: usize = 8;
@@ -23,12 +25,14 @@ const THREAD_NONCE_BYTES: usize = 32;
 const SEED_BYTES: usize = SECRET_BYTES + EPOCH_BYTES + THREAD_NONCE_BYTES;
 const THREAD_BINDING_HEX_BYTES: usize = THREAD_NONCE_BYTES * 2;
 
-/// Immutable semantic/physical scope copied into one runtime binding.
+/// Immutable semantic scope copied into one runtime binding.
 ///
-/// Construction is private to the future retained adapter. Identities use the
-/// same canonical nonempty, NUL-free form as the token codec.
+/// The physical-module fingerprint is intentionally available only through
+/// the exact module-instance lease. Construction remains private to the future
+/// retained adapter. Identities use the same canonical nonempty, NUL-free form
+/// as the token codec.
 pub(super) struct NativeCapabilityAuthorityConfig<'a> {
-    pub(super) physical_module_fingerprint: &'a [u8; 32],
+    pub(super) module_lease: NativeModuleLease,
     pub(super) adapter_identity: &'a [u8],
     pub(super) resource_identity: &'a [u8],
     pub(super) lifecycle_identity: &'a [u8],
@@ -39,10 +43,12 @@ pub(super) struct NativeCapabilityAuthorityConfig<'a> {
 ///
 /// The type is intentionally neither `Clone` nor `Debug`. Tokens remain
 /// copyable bearer bytes, so the future synchronized ledger must still enforce
-/// generation liveness, replay rejection, and exactly-once consumption.
+/// generation liveness, replay rejection, and exactly-once consumption. The
+/// lease topology proves strong-reference retention against a fake pin only;
+/// it does not prove that executable code remains mapped.
 pub(super) struct NativeCapabilityAuthority {
     secret: NativeCapabilitySecret,
-    physical_module_fingerprint: [u8; 32],
+    module_lease: NativeModuleLease,
     adapter_identity: Vec<u8>,
     binding_epoch: u64,
     resource_identity: Vec<u8>,
@@ -57,7 +63,10 @@ pub(super) struct NativeCapabilityAuthority {
 /// It intentionally implements neither copying nor formatting traits. This is
 /// defense-in-depth against accidental logging, not a linearity guarantee: the
 /// authenticated bytes remain reproducible by any holder that can read them.
-pub(super) struct StagedNativeCapabilityToken([u8; TOKEN_BYTES]);
+pub(super) struct StagedNativeCapabilityToken {
+    bytes: [u8; TOKEN_BYTES],
+    module_lease: NativeModuleLease,
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum NativeCapabilityAuthorityError {
@@ -65,6 +74,7 @@ pub(super) enum NativeCapabilityAuthorityError {
     InvalidEntropy,
     InvalidBinding,
     WrongThread,
+    ModuleLease(NativeModuleLeaseError),
     Token(NativeCapabilityTokenError),
 }
 
@@ -133,7 +143,7 @@ impl NativeCapabilityAuthority {
 
         Ok(Self {
             secret,
-            physical_module_fingerprint: *config.physical_module_fingerprint,
+            module_lease: config.module_lease,
             adapter_identity: config.adapter_identity.to_vec(),
             binding_epoch,
             resource_identity: config.resource_identity.to_vec(),
@@ -150,9 +160,13 @@ impl NativeCapabilityAuthority {
         generation: u64,
     ) -> Result<StagedNativeCapabilityToken, NativeCapabilityAuthorityError> {
         self.require_current_thread()?;
+        let module_lease = self.module_lease.retain_current_process()?;
         let binding = self.binding(NativeCapabilityKind::Owner, None)?;
         mint(&self.secret, &binding, slot, generation)
-            .map(StagedNativeCapabilityToken)
+            .map(|bytes| StagedNativeCapabilityToken {
+                bytes,
+                module_lease,
+            })
             .map_err(Into::into)
     }
 
@@ -163,11 +177,17 @@ impl NativeCapabilityAuthority {
         expected_generation: u64,
     ) -> Result<NativeCapabilityClaims, NativeCapabilityAuthorityError> {
         self.require_current_thread()?;
+        let operation_lease = self.module_lease.retain_current_process()?;
+        if !operation_lease.is_same_instance(&token.module_lease) {
+            return Err(NativeCapabilityAuthorityError::ModuleLease(
+                NativeModuleLeaseError::WrongModuleInstance,
+            ));
+        }
         let binding = self.binding(NativeCapabilityKind::Owner, None)?;
         authenticate_expected(
             &self.secret,
             &binding,
-            &token.0,
+            &token.bytes,
             expected_slot,
             expected_generation,
         )
@@ -181,12 +201,16 @@ impl NativeCapabilityAuthority {
         generation: u64,
     ) -> Result<StagedNativeCapabilityToken, NativeCapabilityAuthorityError> {
         self.require_current_thread()?;
+        let module_lease = self.module_lease.retain_current_process()?;
         let binding = self.binding(
             NativeCapabilityKind::FunctionOwnedResult,
             Some(function_template_fingerprint),
         )?;
         mint(&self.secret, &binding, slot, generation)
-            .map(StagedNativeCapabilityToken)
+            .map(|bytes| StagedNativeCapabilityToken {
+                bytes,
+                module_lease,
+            })
             .map_err(Into::into)
     }
 
@@ -198,6 +222,12 @@ impl NativeCapabilityAuthority {
         expected_generation: u64,
     ) -> Result<NativeCapabilityClaims, NativeCapabilityAuthorityError> {
         self.require_current_thread()?;
+        let operation_lease = self.module_lease.retain_current_process()?;
+        if !operation_lease.is_same_instance(&token.module_lease) {
+            return Err(NativeCapabilityAuthorityError::ModuleLease(
+                NativeModuleLeaseError::WrongModuleInstance,
+            ));
+        }
         let binding = self.binding(
             NativeCapabilityKind::FunctionOwnedResult,
             Some(function_template_fingerprint),
@@ -205,7 +235,7 @@ impl NativeCapabilityAuthority {
         authenticate_expected(
             &self.secret,
             &binding,
-            &token.0,
+            &token.bytes,
             expected_slot,
             expected_generation,
         )
@@ -226,7 +256,7 @@ impl NativeCapabilityAuthority {
         function_template_fingerprint: Option<&'a [u8; 32]>,
     ) -> Result<NativeCapabilityBinding<'a>, NativeCapabilityAuthorityError> {
         NativeCapabilityBinding::from_trusted_runtime_binding(
-            &self.physical_module_fingerprint,
+            self.module_lease.physical_module_fingerprint(),
             &self.adapter_identity,
             self.binding_epoch,
             kind,
@@ -246,6 +276,12 @@ impl From<NativeCapabilityTokenError> for NativeCapabilityAuthorityError {
     }
 }
 
+impl From<NativeModuleLeaseError> for NativeCapabilityAuthorityError {
+    fn from(value: NativeModuleLeaseError) -> Self {
+        Self::ModuleLease(value)
+    }
+}
+
 #[cfg(test)]
 trait EntropySource {
     fn fill(&mut self, destination: &mut [u8]) -> Result<(), ()>;
@@ -254,8 +290,9 @@ trait EntropySource {
 fn validate_config(
     config: &NativeCapabilityAuthorityConfig<'_>,
 ) -> Result<(), NativeCapabilityAuthorityError> {
+    let validation_lease = config.module_lease.retain_current_process()?;
     NativeCapabilityBinding::from_trusted_runtime_binding(
-        config.physical_module_fingerprint,
+        validation_lease.physical_module_fingerprint(),
         config.adapter_identity,
         1,
         NativeCapabilityKind::Owner,
@@ -281,6 +318,9 @@ fn encode_lower_hex(input: &[u8; THREAD_NONCE_BYTES]) -> [u8; THREAD_BINDING_HEX
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
+    use super::super::native_module_lease::{FakeRetainedPinProbe, NativeProcessIncarnation};
     use super::*;
 
     macro_rules! assert_not_impl {
@@ -300,9 +340,24 @@ mod tests {
     const FUNCTION: [u8; 32] = [0x3c; 32];
     const OTHER_FUNCTION: [u8; 32] = [0xc3; 32];
 
+    fn fake_module(module: &[u8; 32]) -> (NativeModuleLease, Arc<FakeRetainedPinProbe>) {
+        let probe = Arc::new(FakeRetainedPinProbe::new());
+        let lease = NativeModuleLease::fake_retained(
+            *module,
+            NativeProcessIncarnation::current_for_test(23),
+            Arc::clone(&probe),
+        )
+        .unwrap();
+        (lease, probe)
+    }
+
     fn config(module: &[u8; 32]) -> NativeCapabilityAuthorityConfig<'_> {
+        config_on(fake_module(module).0)
+    }
+
+    fn config_on(module_lease: NativeModuleLease) -> NativeCapabilityAuthorityConfig<'static> {
         NativeCapabilityAuthorityConfig {
-            physical_module_fingerprint: module,
+            module_lease,
             adapter_identity: b"adapter.binding.one",
             resource_identity: b"token.type",
             lifecycle_identity: b"token.drop",
@@ -363,9 +418,12 @@ mod tests {
         assert_eq!(entropy.calls, 1);
 
         let owner = authority.mint_owner(29, 31).unwrap();
-        assert_eq!(&owner.0[8..16], &0x0102_0304_0506_0708_u64.to_le_bytes());
         assert_eq!(
-            owner.0,
+            &owner.bytes[8..16],
+            &0x0102_0304_0506_0708_u64.to_le_bytes()
+        );
+        assert_eq!(
+            owner.bytes,
             [
                 83, 80, 88, 67, 1, 1, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1, 29, 0, 0, 0, 0, 0, 0, 0, 31, 0,
                 0, 0, 0, 0, 0, 0, 11, 242, 82, 255, 7, 18, 225, 221, 190, 217, 150, 23, 192, 222,
@@ -384,7 +442,7 @@ mod tests {
             .mint_function_owned_result(&FUNCTION, 37, 41)
             .unwrap();
         assert_eq!(
-            result.0,
+            result.bytes,
             [
                 83, 80, 88, 67, 1, 2, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1, 37, 0, 0, 0, 0, 0, 0, 0, 41, 0,
                 0, 0, 0, 0, 0, 0, 15, 143, 187, 123, 45, 168, 91, 115, 195, 110, 159, 219, 180, 2,
@@ -468,14 +526,7 @@ mod tests {
 
     #[test]
     fn invalid_static_binding_is_rejected_before_entropy_is_requested() {
-        let zero_module = [0_u8; 32];
         let mut entropy = FixtureEntropy::valid();
-        assert!(matches!(
-            NativeCapabilityAuthority::from_entropy_source(config(&zero_module), &mut entropy),
-            Err(NativeCapabilityAuthorityError::InvalidBinding)
-        ));
-        assert_eq!(entropy.calls, 0);
-
         let mut invalid = config(&MODULE);
         invalid.adapter_identity = b"bad\0adapter";
         assert!(matches!(
@@ -499,6 +550,19 @@ mod tests {
             ));
             assert_eq!(entropy.calls, 0);
         }
+
+        let draining = config(&MODULE);
+        draining
+            .module_lease
+            .begin_draining(NativeProcessIncarnation::current_for_test(23))
+            .unwrap();
+        assert!(matches!(
+            NativeCapabilityAuthority::from_entropy_source(draining, &mut entropy),
+            Err(NativeCapabilityAuthorityError::ModuleLease(
+                NativeModuleLeaseError::Draining
+            ))
+        ));
+        assert_eq!(entropy.calls, 0);
     }
 
     #[test]
@@ -511,7 +575,10 @@ mod tests {
 
         thread::scope(|scope| {
             scope.spawn(|| {
-                let structurally_invalid = StagedNativeCapabilityToken([0_u8; TOKEN_BYTES]);
+                let structurally_invalid = StagedNativeCapabilityToken {
+                    bytes: [0_u8; TOKEN_BYTES],
+                    module_lease: authority.module_lease.retain_current_process().unwrap(),
+                };
                 assert!(matches!(
                     authority.mint_owner(3, 5),
                     Err(NativeCapabilityAuthorityError::WrongThread)
@@ -563,20 +630,25 @@ mod tests {
         let (first, _) = fixture_authority(&MODULE);
         let (other_module, _) = fixture_authority(&OTHER_MODULE);
         let token = first.mint_owner(13, 17).unwrap();
+        let other_module_token = other_module.mint_owner(13, 17).unwrap();
+
+        assert_ne!(token.bytes, other_module_token.bytes);
 
         assert!(matches!(
             other_module.authenticate_owner(&token, 13, 17),
-            Err(NativeCapabilityAuthorityError::Token(
-                NativeCapabilityTokenError::AuthenticationFailed
+            Err(NativeCapabilityAuthorityError::ModuleLease(
+                NativeModuleLeaseError::WrongModuleInstance
             ))
         ));
 
         for offset in [0, SECRET_BYTES, SECRET_BYTES + EPOCH_BYTES] {
             let mut entropy = FixtureEntropy::valid();
             entropy.seed[offset] ^= 0x80;
-            let replacement =
-                NativeCapabilityAuthority::from_entropy_source(config(&MODULE), &mut entropy)
-                    .unwrap();
+            let replacement = NativeCapabilityAuthority::from_entropy_source(
+                config_on(first.module_lease.retain_current_process().unwrap()),
+                &mut entropy,
+            )
+            .unwrap();
             assert!(matches!(
                 replacement.authenticate_owner(&token, 13, 17),
                 Err(NativeCapabilityAuthorityError::Token(
@@ -612,7 +684,7 @@ mod tests {
             ),
         ];
         for (adapter, resource, lifecycle, thread_policy) in contexts {
-            let mut changed = config(&MODULE);
+            let mut changed = config_on(first.module_lease.retain_current_process().unwrap());
             changed.adapter_identity = adapter;
             changed.resource_identity = resource;
             changed.lifecycle_identity = lifecycle;
@@ -632,13 +704,112 @@ mod tests {
     #[test]
     fn catastrophic_full_entropy_repeat_is_an_explicit_nonclaim() {
         let (first, _) = fixture_authority(&MODULE);
-        let (repeated, _) = fixture_authority(&MODULE);
+        let mut entropy = FixtureEntropy::valid();
+        let repeated = NativeCapabilityAuthority::from_entropy_source(
+            config_on(first.module_lease.retain_current_process().unwrap()),
+            &mut entropy,
+        )
+        .unwrap();
         let token = first.mint_owner(19, 23).unwrap();
 
         // Exact RNG+context repetition produces the same authority. Production
         // safety is conditional on the operating-system CSPRNG, not a proof of
         // mathematical uniqueness or a substitute for module retention.
         assert!(repeated.authenticate_owner(&token, 19, 23).is_ok());
+    }
+
+    #[test]
+    fn authority_and_every_staged_credential_retain_the_exact_module_instance() {
+        let (module_lease, probe) = fake_module(&MODULE);
+        let mut entropy = FixtureEntropy::valid();
+        let authority =
+            NativeCapabilityAuthority::from_entropy_source(config_on(module_lease), &mut entropy)
+                .unwrap();
+        let owner = authority.mint_owner(53, 59).unwrap();
+        let result = authority
+            .mint_function_owned_result(&FUNCTION, 61, 67)
+            .unwrap();
+
+        assert!(authority.module_lease.is_same_instance(&owner.module_lease));
+        assert!(authority
+            .module_lease
+            .is_same_instance(&result.module_lease));
+        drop(authority);
+        assert_eq!(probe.releases(), 0);
+        drop(result);
+        assert_eq!(probe.releases(), 0);
+        drop(owner);
+        assert_eq!(probe.releases(), 1);
+    }
+
+    #[test]
+    fn identical_bearer_bytes_from_distinct_fake_loads_cannot_cross_instances() {
+        let (first, _) = fixture_authority(&MODULE);
+        let (second, _) = fixture_authority(&MODULE);
+        let first_owner = first.mint_owner(71, 73).unwrap();
+        let second_owner = second.mint_owner(71, 73).unwrap();
+        let first_result = first.mint_function_owned_result(&FUNCTION, 79, 83).unwrap();
+        let second_result = second
+            .mint_function_owned_result(&FUNCTION, 79, 83)
+            .unwrap();
+
+        assert_eq!(first_owner.bytes, second_owner.bytes);
+        assert_eq!(first_result.bytes, second_result.bytes);
+        assert!(!first_owner
+            .module_lease
+            .is_same_instance(&second_owner.module_lease));
+        assert_eq!(
+            second.authenticate_owner(&first_owner, 71, 73),
+            Err(NativeCapabilityAuthorityError::ModuleLease(
+                NativeModuleLeaseError::WrongModuleInstance
+            ))
+        );
+        assert_eq!(
+            second.authenticate_function_owned_result(&FUNCTION, &first_result, 79, 83),
+            Err(NativeCapabilityAuthorityError::ModuleLease(
+                NativeModuleLeaseError::WrongModuleInstance
+            ))
+        );
+    }
+
+    #[test]
+    fn draining_rejects_all_four_existing_authority_paths() {
+        let (authority, _) = fixture_authority(&MODULE);
+        let owner = authority.mint_owner(89, 97).unwrap();
+        let result = authority
+            .mint_function_owned_result(&FUNCTION, 101, 103)
+            .unwrap();
+        authority
+            .module_lease
+            .begin_draining(NativeProcessIncarnation::current_for_test(23))
+            .unwrap();
+
+        assert_eq!(
+            authority.mint_owner(107, 109).map(|_| ()),
+            Err(NativeCapabilityAuthorityError::ModuleLease(
+                NativeModuleLeaseError::Draining
+            ))
+        );
+        assert_eq!(
+            authority.authenticate_owner(&owner, 89, 97),
+            Err(NativeCapabilityAuthorityError::ModuleLease(
+                NativeModuleLeaseError::Draining
+            ))
+        );
+        assert_eq!(
+            authority
+                .mint_function_owned_result(&FUNCTION, 113, 127)
+                .map(|_| ()),
+            Err(NativeCapabilityAuthorityError::ModuleLease(
+                NativeModuleLeaseError::Draining
+            ))
+        );
+        assert_eq!(
+            authority.authenticate_function_owned_result(&FUNCTION, &result, 101, 103),
+            Err(NativeCapabilityAuthorityError::ModuleLease(
+                NativeModuleLeaseError::Draining
+            ))
+        );
     }
 
     #[test]
@@ -680,6 +851,10 @@ mod tests {
             NativeCapabilityAuthorityError::InvalidEntropy,
             NativeCapabilityAuthorityError::InvalidBinding,
             NativeCapabilityAuthorityError::WrongThread,
+            NativeCapabilityAuthorityError::ModuleLease(NativeModuleLeaseError::Draining),
+            NativeCapabilityAuthorityError::ModuleLease(
+                NativeModuleLeaseError::WrongModuleInstance,
+            ),
             NativeCapabilityAuthorityError::Token(NativeCapabilityTokenError::AuthenticationFailed),
         ] {
             let rendered = format!("{error:?}");

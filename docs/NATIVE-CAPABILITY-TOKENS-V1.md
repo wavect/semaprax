@@ -1,7 +1,8 @@
 # Native capability tokens v1
 
-Status: private, disconnected mechanics plus an OS-backed authority for a
-future retained native runtime. This is not a public C ABI and does not enable
+Status: private, compiler/ledger-disconnected mechanics with an OS-backed
+authority and a test-only fake-backed retained-module lifetime topology. This
+is not a public C ABI, owns no platform loader handle, and does not enable
 resource execution.
 
 The codec defines authenticated bearer bytes for two staged capability kinds:
@@ -74,9 +75,10 @@ owner 535058430101000008070605040302011d000000000000001f00000000000000d7cda640f9
 
 ## Private native authority
 
-The codec's only production caller is a disconnected private Rust authority.
-Construction validates the immutable physical module, adapter, resource,
-lifecycle, and thread-policy identities before requesting entropy. It then asks
+The codec's only non-test caller is a disconnected private Rust authority.
+Construction requires a module lease, derives the physical-module fingerprint
+from it, and validates the immutable adapter, resource, lifecycle, and
+thread-policy identities before requesting entropy. It then asks
 the exactly pinned `getrandom` 0.4.3 `fill` API for one 72-byte seed:
 
 - 32 bytes for the HMAC secret;
@@ -118,11 +120,42 @@ owner  535058430101000008070605040302011d000000000000001f000000000000000bf252ff0
 result 53505843010200000807060504030201250000000000000029000000000000000f8fbb7b2da85b73c36e9fdbb402ea60db4d61acf0f5db0dfc67dabb9d247bc5
 ```
 
+## Retained-module lease topology
+
+Exact module-instance identity is the private `Arc` allocation, not a path,
+fingerprint, descriptor, or bearer-token byte string. Construction exists only
+under tests and substitutes a fake retained pin for the future loader-owned
+handle. The authority owns one lease; every minted owner or provisional-result
+credential wrapper explicitly retains the same allocation. Raw 64-byte token
+bytes retain nothing. Authentication checks exact lease-instance identity
+before accepting the wrapper.
+
+The authority retention path checks the current process ID against the
+injected loader origin while preserving that origin's incarnation, then passes
+a one-way open-to-draining gate. The lower-level test seam separately proves
+that a mismatched process ID or incarnation is rejected before state access.
+Draining rejects new retention, minting, and authentication without revoking
+existing lifetime pins. The fake pin releases exactly once after the final
+strong reference, including concurrent final drops. Its leaf allocation
+contains no authority, credential, registry, callback, finalizer, or other
+retention backedge.
+
+Two fake loads may deliberately have identical physical fingerprints and,
+under repeated test entropy and context, identical authenticated bytes. Their
+credential wrappers still fail cross-instance authentication. This proves why
+the wrapper's allocation identity is necessary and why copied bearer bytes are
+not a module-lifetime capability.
+
 The authority suite additionally covers entropy error after a partial test
 fill, every all-zero structural component, invalid binding before any entropy
 request, exact one-fill behavior, secret/epoch/nonce/module/adapter/resource/
 lifecycle/thread-policy/function changes, zero slot/generation mapping, stable
 error redaction, native OS smoke, and catastrophic full-entropy repetition.
+Separate lifetime tests cover invalid fake identities, equal-fingerprint
+instance nonconflation, draining, process/incarnation mismatch, exact-instance
+authority and credential retention across drop orders, concurrent last drops,
+cross-instance rejection despite equal token bytes, deliberate traits, and
+absence of retention cycles.
 
 The suite also requires RFC 4231 HMAC-SHA256 test case 1 exactly, mutates all
 512 token bits, runs a deterministic arbitrary-byte corpus across lengths zero
@@ -133,9 +166,13 @@ expected generations, and maximum `u64` fields.
 ## Security boundary and nonclaims
 
 The secret and authority types are private, non-`Clone`, and absent from
-`Debug`. Native OS entropy and its failure path now exist, but there is no
-retained library capability, deterministic uniqueness proof, module pin/unload
-protocol, fork detection/reseeding, locked memory, or audited zeroization.
+`Debug`. Native OS entropy and the fake-pin strong-reference topology now
+exist, but there is no production lease constructor, platform loader handle,
+dynamic loading, descriptor/provider or code-identity admission, physical pin,
+call/callback/finalizer quiescence, unload protocol, fork recovery/reseeding,
+locked memory, or audited zeroization. The process-incarnation checks are
+executable staging; authentic origin and fork integration still belong to the
+future loader boundary.
 Best-effort filling of temporary/key buffers is not a memory-erasure guarantee,
 and HMAC implementation internals may copy key material.
 
@@ -148,8 +185,8 @@ preflight must stream into the MAC or use preallocated storage.
 
 The compiler only registers these private modules. Resource preflight never
 constructs a secret, authority, binding, or token, and no C symbol exposes
-minting or authentication. Safe owner acquisition, a retained module lease,
-runtime-owned outcome storage, synchronized ledger integration, physical
-finalization, fork handling, hostile concurrency, and equivalent Wasm evidence
-must all land before a callable adapter can use this layer or `SPX-B104` can
-change.
+minting or authentication. Safe owner acquisition, a production OS-backed
+module lease, admitted code identity, runtime-owned outcome storage,
+synchronized ledger integration, physical finalization, quiesced unload, fork
+handling, hostile concurrency, and equivalent Wasm evidence must all land
+before a callable adapter can use this layer or `SPX-B104` can change.

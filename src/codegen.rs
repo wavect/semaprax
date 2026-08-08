@@ -1,4 +1,7 @@
+mod native_cleanup;
+mod native_resource;
 mod native_runtime;
+mod native_trace;
 
 use std::collections::HashMap;
 use std::fmt::Write;

@@ -61,13 +61,15 @@ Node/Wasm.
 
 This proves the narrow private semantics, not the public native boundary.
 Compiler resource builds retain `SPX-B104` while physical/malformed-response
-fallback cleanup and quiescence remain nongeneralized, the full host path lacks
-Rust-host sanitizer instrumentation, and Windows runtime/dependency-collision
-confirmation awaits a green public CI run. The Windows lane now contains an
-explicit generated-callable corpus gate and a same-name CWD/legacy-`PATH`
-collision fixture with a fail-closed missing-sibling assertion; committed tests
-alone are not runtime evidence. Android/iOS device or static-link profiles are
-absent, and ordinary compiler build/preflight does not emit the callable.
+fallback cleanup and quiescence remain nongeneralized, the configured
+Rust-host ASan lane still lacks a green public run, and Android/iOS device or
+static-link profiles are absent. The generated callable corpus and same-name
+CWD/legacy-`PATH` dependency-isolation fixture are green on Windows in [run
+31257545008, job
+93103151756](https://github.com/wavect/semaprax/actions/runs/31257545008/job/93103151756).
+The public build-only API/CLI now emits one selected direct-trivial callable-v2
+bundle with deterministic hashed metadata, but it exposes no execution,
+admission, or adoption surface.
 Imported lifecycles, calls, aggregates, broader control flow,
 cross-realm/worker identity, aggregate layouts, variants, matching,
 concurrency, and fork recovery remain subsequent work.
@@ -84,15 +86,17 @@ The dedicated Linux
 is green for all 14 O0/O2 generated-provider cases through the host. It linked
 the sanitizer runtimes without instrumenting Rust host code; unrelated
 Clippy/GCC failures kept the overall workflow run red, so Windows and the full
-platform matrix remain unproven.
+platform matrix were unproven by that historical run. The later narrow Windows
+callable/dependency-isolation run is green; broader application-platform
+completion remains open.
 
 The active phase-3 gate is [Owned resource vertical slice
 v1](OWNED-RESOURCE-VERTICAL-V1.md). It requires one production-reachable,
 thread-confined native host and one instance-confined Wasm host to execute the
 same admitted direct-trivial-resource cleanup plan with exact reference-trace
 equivalence. The private host now meets that semantic corpus requirement. The
-remaining public compiler, fallback cleanup/quiescence, Rust-host sanitizer
-instrumentation, Windows CI, and mobile-profile requirements keep the gate open,
+remaining fallback cleanup/quiescence, Rust-host sanitizer instrumentation,
+public execution/admission, and mobile-profile requirements keep the gate open,
 and every broader resource or aggregate shape remains closed.
 
 ## 0.3 — Ownership and fast development

@@ -19,9 +19,17 @@ use semaprax_native_host::{
 
 static NEXT_FIXTURE: AtomicU64 = AtomicU64::new(1);
 const REQUIRED_SANITIZERS_ENV: &str = "SEMAPRAX_REQUIRE_CALLABLE_HOST_SANITIZERS";
+const REQUIRED_RUST_HOST_ASAN_ENV: &str = "SEMAPRAX_REQUIRE_RUST_HOST_ASAN";
 
-fn sanitizers_required() -> bool {
-    match std::env::var(REQUIRED_SANITIZERS_ENV) {
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum RequiredSanitizers {
+    None,
+    Address,
+    AddressAndUndefined,
+}
+
+fn required_flag(name: &str) -> bool {
+    match std::env::var(name) {
         Err(std::env::VarError::NotPresent) => false,
         Ok(value) if value == "1" => {
             #[cfg(target_os = "linux")]
@@ -30,23 +38,50 @@ fn sanitizers_required() -> bool {
             }
             #[cfg(not(target_os = "linux"))]
             {
-                panic!("{REQUIRED_SANITIZERS_ENV}=1 requires the audited Linux Clang host lane")
+                panic!("{name}=1 requires the audited Linux Clang host lane")
             }
         }
-        Ok(value) => {
-            panic!("{REQUIRED_SANITIZERS_ENV} must be unset or exactly `1`, received `{value}`")
-        }
+        Ok(value) => panic!("{name} must be unset or exactly `1`, received `{value}`"),
         Err(std::env::VarError::NotUnicode(_)) => {
-            panic!("{REQUIRED_SANITIZERS_ENV} is not valid Unicode")
+            panic!("{name} is not valid Unicode")
         }
     }
 }
 
+fn required_sanitizers() -> RequiredSanitizers {
+    match (
+        required_flag(REQUIRED_SANITIZERS_ENV),
+        required_flag(REQUIRED_RUST_HOST_ASAN_ENV),
+    ) {
+        (false, false) => RequiredSanitizers::None,
+        (true, false) => RequiredSanitizers::AddressAndUndefined,
+        (false, true) => RequiredSanitizers::Address,
+        (true, true) => panic!(
+            "{REQUIRED_SANITIZERS_ENV} and {REQUIRED_RUST_HOST_ASAN_ENV} are mutually exclusive"
+        ),
+    }
+}
+
+fn required_sanitizer_compiler(required: RequiredSanitizers) -> std::ffi::OsString {
+    let compiler =
+        std::env::var_os("CC").expect("mandatory callable-host sanitizers require an explicit CC");
+    if required == RequiredSanitizers::Address {
+        assert_eq!(
+            compiler,
+            std::ffi::OsString::from("clang-18"),
+            "Rust-host ASan evidence requires CC=clang-18"
+        );
+    }
+    compiler
+}
+
 fn assert_required_sanitizer_environment() {
-    if !sanitizers_required() {
+    let required = required_sanitizers();
+    if required == RequiredSanitizers::None {
         return;
     }
-    let clang = Command::new("clang")
+    let compiler = required_sanitizer_compiler(required);
+    let clang = Command::new(&compiler)
         .arg("--version")
         .output()
         .expect("mandatory callable-host sanitizers require Clang");
@@ -55,10 +90,12 @@ fn assert_required_sanitizer_environment() {
         "mandatory callable-host sanitizer Clang probe failed:\n{}",
         String::from_utf8_lossy(&clang.stderr)
     );
-    for (name, required) in [
-        ("ASAN_OPTIONS", ["halt_on_error=1", "detect_leaks=0"]),
-        ("UBSAN_OPTIONS", ["halt_on_error=1", "print_stacktrace=1"]),
-    ] {
+    let asan_options = match required {
+        RequiredSanitizers::Address => ["halt_on_error=1", "detect_leaks=1"],
+        RequiredSanitizers::AddressAndUndefined => ["halt_on_error=1", "detect_leaks=0"],
+        RequiredSanitizers::None => unreachable!(),
+    };
+    for (name, required) in [("ASAN_OPTIONS", asan_options)] {
         let value = std::env::var(name)
             .unwrap_or_else(|_| panic!("mandatory callable-host sanitizers require {name}"));
         for option in required {
@@ -68,10 +105,20 @@ fn assert_required_sanitizer_environment() {
             );
         }
     }
+    if required == RequiredSanitizers::AddressAndUndefined {
+        let value = std::env::var("UBSAN_OPTIONS")
+            .expect("mandatory callable-host sanitizers require UBSAN_OPTIONS");
+        for option in ["halt_on_error=1", "print_stacktrace=1"] {
+            assert!(
+                value.split(':').any(|candidate| candidate == option),
+                "mandatory callable-host sanitizer option UBSAN_OPTIONS must contain `{option}`"
+            );
+        }
+    }
 }
 
-fn assert_sanitizer_instrumentation(library: &Path) {
-    if !sanitizers_required() {
+fn assert_sanitizer_instrumentation(library: &Path, required: RequiredSanitizers) {
+    if required == RequiredSanitizers::None {
         return;
     }
     let symbols = Command::new("nm")
@@ -91,10 +138,12 @@ fn assert_sanitizer_instrumentation(library: &Path) {
         output.contains("__asan_"),
         "callable provider lacks required ASan instrumentation:\n{output}"
     );
-    assert!(
-        output.contains("__ubsan_"),
-        "callable provider lacks required UBSan instrumentation:\n{output}"
-    );
+    if required == RequiredSanitizers::AddressAndUndefined {
+        assert!(
+            output.contains("__ubsan_"),
+            "callable provider lacks required UBSan instrumentation:\n{output}"
+        );
+    }
     // Clang does not link its ASan executable runtime into a shared object.
     // These unresolved callbacks plus the later successful `dlopen` prove
     // that the sanitizer-linked Rust test process supplies the runtime used by
@@ -166,9 +215,9 @@ impl Fixture {
         fs::write(&source, artifact.provider_source())
             .expect("write compiler-generated callable provider");
 
-        let required_sanitizers = sanitizers_required();
-        let compiler_name = if required_sanitizers {
-            "clang".into()
+        let required_sanitizers = required_sanitizers();
+        let compiler_name = if required_sanitizers != RequiredSanitizers::None {
+            required_sanitizer_compiler(required_sanitizers)
         } else {
             std::env::var_os("CC").unwrap_or_else(|| {
                 if cfg!(windows) {
@@ -185,12 +234,22 @@ impl Fixture {
         compiler.args(["-shared", "-fPIC", "-fvisibility=hidden"]);
         #[cfg(target_os = "windows")]
         compiler.arg("-shared");
-        if required_sanitizers {
-            compiler.args([
-                "-fsanitize=address,undefined",
-                "-fno-omit-frame-pointer",
-                "-fno-sanitize-recover=all",
-            ]);
+        match required_sanitizers {
+            RequiredSanitizers::None => {}
+            RequiredSanitizers::Address => {
+                compiler.args([
+                    "-fsanitize=address",
+                    "-fno-omit-frame-pointer",
+                    "-fno-sanitize-recover=all",
+                ]);
+            }
+            RequiredSanitizers::AddressAndUndefined => {
+                compiler.args([
+                    "-fsanitize=address,undefined",
+                    "-fno-omit-frame-pointer",
+                    "-fno-sanitize-recover=all",
+                ]);
+            }
         }
         let output = compiler
             .args([
@@ -213,7 +272,7 @@ impl Fixture {
             String::from_utf8_lossy(&output.stderr),
         );
         let library = fs::canonicalize(library).expect("canonical callable-corpus library");
-        assert_sanitizer_instrumentation(&library);
+        assert_sanitizer_instrumentation(&library, required_sanitizers);
         Self {
             directory,
             library,

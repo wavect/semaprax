@@ -31,6 +31,7 @@ cargo run -- graph examples/meaning.spx
 cargo run -- context examples/meaning.spx app.main --depth 1
 cargo run -- run examples/meaning.spx
 cargo run -- run examples/control_flow.spx
+cargo run -- build examples/native_callable.spx --target native-callable --function example.token.identity -o target/native-callable
 cargo run -- build examples/control_flow.spx --target web -o target/control-flow-web
 node scripts/verify-web.mjs target/control-flow-web
 ```
@@ -107,7 +108,13 @@ Implemented today:
   ownership imports to the exact generated Wasm bytes with SHA-256 and rejects
   non-canonical ABI arguments; broader shapes remain gated.
 
-Not implemented yet: public native resource build/preflight emission,
+The public build-only `native-callable` target now preflights one selected,
+explicitly identified direct-trivial owned function and emits a strict
+host-platform shared-library bundle with descriptor, dictionary, trace
+certificate, canonical hashed manifest, and source. It does not load, invoke,
+or adopt resources. Ordinary native resource builds still return `SPX-B104`.
+
+Not implemented yet: public native resource execution/admission,
 general-shape native/reference/Wasm trace conformance, the general Wasm resource ABI,
 recursive reference execution, callable imports/adapters, record machine-code
 layout/lowering, variants and matching, lifetime and alias analysis, user-facing
@@ -141,10 +148,11 @@ runtimes but did not sanitizer-instrument the Rust host code itself, and the
 overall workflow run was not green because unrelated Clippy/GCC failures
 stopped the platform jobs before runtime evidence. The dependency-policy job in
 that run was also green.
-Confirmed Windows runtime and dependency-collision CI,
-Android/iOS device or static-link profiles, and the public compiler
-build/preflight path are also outstanding. `SPX-B104` therefore remains
-unchanged.
+The generated callable corpus and hardened dependency-collision fixture are
+confirmed on Windows in [run 31257545008, job
+93103151756](https://github.com/wavect/semaprax/actions/runs/31257545008/job/93103151756).
+Android/iOS device or static-link profiles and public execution/admission remain
+outstanding. `SPX-B104` therefore remains unchanged.
 
 [RFC 0004](docs/RFC-0004-NATIVE-CALL-SETTLEMENT.md) now records the proposed
 callable-v3 recovery/settlement foundation for that physical-failure gap:
@@ -169,9 +177,12 @@ production-reachable owned-resource corpus must execute with exact
 native/reference/Wasm status, cleanup, publication, and semantic-trace equality
 before either backend gate can open. The private generated-callable host and
 real Wasm lane now prove that equality for the authoritative 14 cases, including
-native O0/O2 and logical final liveness. The physical/malformed-response
-fallback, Rust-host sanitizer instrumentation, confirmed Windows runtime/dependency
-isolation, mobile profiles, and the public native compiler gate remain absent.
+native O0/O2 and logical final liveness. A fail-closed pinned-nightly
+[Rust-host ASan lane](docs/RUST-HOST-SANITIZERS.md) is configured but still
+needs a green public run. The physical/malformed-response fallback, mobile
+profiles, and public native execution/admission remain absent. Windows
+callable/dependency isolation and build-only compiler emission are proven by
+the evidence above; ordinary native resource execution retains `SPX-B104`.
 The document remains a gate, not a completion claim.
 
 ## Agent protocol
@@ -209,7 +220,7 @@ The patch updates the declaration and verified call sites together. If the graph
 | `check <file> [--json]` | Parse, type-check, verify contracts and effects |
 | `graph <file>` | Emit the revisioned semantic program graph |
 | `context <file> <symbol> [--depth N]` | Emit a dependency-bounded graph slice |
-| `build <file> [--target native\|web] [-o path]` | Produce a native executable or deployable browser/Wasm package |
+| `build <file> [--target native\|native-callable\|web] [--function stable-id] [-o path]` | Produce a native executable, build-only callable bundle, or browser/Wasm package |
 | `run <file>` | Build and run in one step |
 | `fmt <file> [--check]` | Apply or verify canonical formatting |
 | `patch <file> <patch.spatch>` | Apply an atomic semantic transaction |

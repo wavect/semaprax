@@ -77,13 +77,23 @@ the complete ordered signature, and result mapping. The unpublished host
 independently parses that v2 wire and rejects every single-byte mutation,
 truncation, or trailing byte in cross-crate fixtures.
 
-The feature-gated compiler callable stage emits the complete provider
+The public build-only compiler callable stage emits the complete provider
 translation unit: generated value/cleanup/status/trace execution, strict
 bounded request and response codecs, physical target guards, one descriptor-v2
 getter, and one callable. The target guards fail C compilation when
 architecture, OS, environment, object format, pointer width, or endianness
 cannot be proven; MSVC uses its supported target architecture instead of
 assuming GNU byte-order builtins.
+
+`preflight_native_callable_bundle` accepts one explicitly identified function
+with at least one direct `own` trivial-resource parameter. The CLI target
+`native-callable` compiles that exact provider for the host and commits a new
+bundle containing the shared library, C source, descriptor, event dictionary,
+trace certificate, canonical file-hash manifest, and manifest checksum. It
+refuses observed files, directories, and dangling symlinks and stages beside a
+canonical trusted output parent; portable `std` cannot make the final directory
+rename no-replace against an adversarial concurrent parent mutation. The API
+does not load, invoke, adopt, mint authority, or connect callable v3.
 
 The unpublished `semaprax-native-host` now performs the complete private
 connection. It strictly decodes descriptor v2, authenticates the dictionary and
@@ -126,9 +136,11 @@ fallback evidence and does not change `SPX-B104`.
 The Windows CI lane now explicitly reruns the generated O0/O2 callable corpus
 and a loader fixture that places a same-name dependency in CWD and legacy
 `PATH`, then removes the root sibling to require fail-closed `LibraryOpen`.
-These committed gates do not become Windows runtime evidence until a green
-public run records them. Android/iOS device or static-link profiles and ordinary
-compiler build/preflight emission also remain required.
+Both gates passed in [run 31257545008, job
+93103151756](https://github.com/wavect/semaprax/actions/runs/31257545008/job/93103151756),
+confirming the narrow Windows callable corpus and dependency isolation. This is
+not broader Windows application-platform completion. Android/iOS device or
+static-link profiles and public native execution/admission remain required.
 
 ## Record groundwork and backend gate
 
@@ -241,7 +253,8 @@ The web package contains `app.wasm`, `semaprax.js`, `index.html`, `package.json`
   admission, loader lease, authority, ledger, strict wire transport, and
   compiler-generated execution. Its unsafe admission contract still trusts the
   selected native image and dependencies; it is not a sandbox or code-identity
-  proof, and the public compiler gate remains closed.
+  proof. Public bundle construction adds no unsafe loading authority; the
+  public execution/admission gate remains closed.
 - `prepareTrustedAdoption` is the Wasm host's explicit trusted assertion that one unique external ownership identity is being transferred. Tickets are one-shot; exact Wasm byte binding keeps the mutating imports private to the generated artifact; canonical arguments, generated export metadata, and the result range are checked before ownership commit.
 - Same-realm Wasm instance tags are coordinated through one host-global allocator. The realm and its reserved binding are trusted host state; hostile pre-poisoning, cross-realm, and worker identity remain outside the implemented guarantee.
 - The compiler currently invokes the host `clang`; sandboxed build execution is roadmap work.

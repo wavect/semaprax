@@ -62,12 +62,12 @@ Windows-only fixture now places a same-name malicious dependency in both the
 process current directory and legacy `PATH`: the sibling dependency must win,
 and removing that sibling must fail as `LibraryOpen` rather than falling back
 to the malicious image. CI also names the complete generated O0/O2 callable
-corpus as an explicit Windows gate. Until those committed gates pass in public
-CI, they are implementation intent rather than confirmed Windows runtime
-evidence. The current evidence also does not prove
+corpus as an explicit Windows gate. Both passed in [run 31257545008, job
+93103151756](https://github.com/wavect/semaprax/actions/runs/31257545008/job/93103151756).
+The current evidence still does not prove
 immediate physical unmapping, same-root-image callable provenance, Windows
-dependency isolation on an unobserved host, sanitizer instrumentation of the
-Rust host, iOS dynamic/static admission, Android device execution,
+application-platform completion, sanitizer instrumentation of the Rust host,
+iOS dynamic/static admission, Android device execution,
 callback/finalizer quiescence, hot reload, fork recovery, signed code admission,
 or callable resource safety. Those remain gates before any public native
 adapter or `SPX-B104` change.
@@ -76,4 +76,5 @@ The Linux
 [ASan/UBSan generated-provider job](https://github.com/wavect/semaprax/actions/runs/31256134955/job/93099637801)
 is green for all 14 O0/O2 cases loaded through this quarantine and the Rust
 host. It did not instrument the Rust host, and unrelated Clippy/GCC failures
-kept the overall workflow run red; it is not Windows evidence.
+kept that historical overall workflow run red; the later Windows evidence is
+linked above.

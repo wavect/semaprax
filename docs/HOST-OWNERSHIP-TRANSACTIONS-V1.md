@@ -135,5 +135,7 @@ resource export can ship, all of the following remain mandatory:
   sanitizers, and eventually Wasm plus platform hosts.
 
 Until those gates pass, raw payload adoption remains outside the safe contract,
-the model remains private, and all public resource-bearing native builds return
-the exact generic `SPX-B104` diagnostic.
+the execution model remains private, and ordinary public resource-bearing
+native execution/admission returns the exact generic `SPX-B104` diagnostic.
+The public callable-v2 build target packages a non-executing bundle only; it
+does not expose host admission, invocation, adoption, or ownership authority.

@@ -444,12 +444,13 @@ Each phase is incomplete until its executable evidence passes. An RFC, type defi
    14 authoritative cases and match the reference outcome, complete trace,
    publication, and final logical liveness; real Node/Wasm matches the same
    reference semantics. This proves the narrow private execution semantics, not
-   the public native boundary. Compiler preflight still constructs no host and
-   ordinary native resource builds retain `SPX-B104`. General physical or
-   malformed-response fallback cleanup and quiescence, Rust-host sanitizer
-   instrumentation, green public Windows runtime/dependency-collision evidence,
-   Android/iOS profiles, code provenance, concurrency, and fork recovery remain
-   required.
+   the public native execution boundary. Public build-only compiler preflight
+   and packaging construct no host, and ordinary native resource builds retain
+   `SPX-B104`. General physical or malformed-response fallback cleanup and
+   quiescence, Rust-host sanitizer instrumentation, Android/iOS profiles,
+   public execution/admission, code provenance, concurrency, and fork recovery
+   remain required. The narrow callable corpus and dependency-isolation fixture
+   are green on Windows in [run 31257545008, job 93103151756](https://github.com/wavect/semaprax/actions/runs/31257545008/job/93103151756).
    The proposed [native call recovery and settlement contract](RFC-0004-NATIVE-CALL-SETTLEMENT.md)
    specifies bounded linear recovery frames, compiler-certified physical
    checkpoints, idempotent settlement, and authenticated quiescence receipts

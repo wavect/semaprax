@@ -1,6 +1,6 @@
 mod native_adapter_abi;
 mod native_callable_abi;
-#[cfg(any(test, feature = "unstable-native-host-internal"))]
+mod native_callable_bundle;
 mod native_callable_execution;
 #[cfg_attr(
     not(test),
@@ -33,8 +33,12 @@ use std::path::Path;
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-#[cfg(any(test, feature = "unstable-native-host-internal"))]
 use sha2::{Digest as _, Sha256};
+
+pub use native_callable_bundle::{
+    build_native_callable_bundle, preflight_native_callable_bundle, NativeCallableBundle,
+    NativeCallableBundlePreflight,
+};
 
 use crate::ast::{BinaryOp, Program, UnaryOp};
 use crate::diagnostic::Diagnostic;
@@ -132,7 +136,7 @@ pub fn emit_native_adapter_admission(
     })
 }
 
-/// Feature-gated callable-v2 admission metadata derived only from validated
+/// Compiler-private callable-v2 admission metadata derived only from validated
 /// HIR and exact compiler-emitted runtime/cleanup/dictionary artifacts.
 ///
 /// The artifact contains the complete private C11 provider translation unit,
@@ -140,9 +144,7 @@ pub fn emit_native_adapter_admission(
 /// cannot open the public native resource gate by itself: loading and adopting
 /// physical resources remain quarantined behind the native host and
 /// `SPX-B104`.
-#[doc(hidden)]
-#[cfg(any(test, feature = "unstable-native-host-internal"))]
-pub struct NativeCallableAdmissionArtifact {
+struct NativeCallableAdmissionCore {
     descriptor: Vec<u8>,
     getter_symbol: String,
     callable_symbol: String,
@@ -150,61 +152,65 @@ pub struct NativeCallableAdmissionArtifact {
     max_request_bytes: u32,
     max_response_bytes: u32,
     provider_source: String,
+    #[cfg(any(test, feature = "unstable-native-host-internal"))]
     semantic_event_dictionary: crate::semantic_trace::SemanticEventDictionary,
     trace_path_certificate: crate::trace_path_certificate::TracePathCertificate,
     event_dictionary: String,
+    #[cfg(any(test, feature = "unstable-native-host-internal"))]
     codec_profile_fingerprint: [u8; 32],
+    #[cfg(any(test, feature = "unstable-native-host-internal"))]
     normalized_execution_projection: String,
 }
 
-#[doc(hidden)]
-#[cfg(any(test, feature = "unstable-native-host-internal"))]
-impl NativeCallableAdmissionArtifact {
-    pub fn descriptor(&self) -> &[u8] {
+impl NativeCallableAdmissionCore {
+    fn descriptor(&self) -> &[u8] {
         &self.descriptor
     }
 
-    pub fn getter_symbol(&self) -> &str {
+    fn getter_symbol(&self) -> &str {
         &self.getter_symbol
     }
 
-    pub fn callable_symbol(&self) -> &str {
+    fn callable_symbol(&self) -> &str {
         &self.callable_symbol
     }
 
-    pub fn call_contract(&self) -> [u8; 32] {
+    fn call_contract(&self) -> [u8; 32] {
         self.call_contract
     }
 
-    pub fn max_request_bytes(&self) -> u32 {
+    fn max_request_bytes(&self) -> u32 {
         self.max_request_bytes
     }
 
-    pub fn max_response_bytes(&self) -> u32 {
+    fn max_response_bytes(&self) -> u32 {
         self.max_response_bytes
     }
 
-    pub fn provider_source(&self) -> &str {
+    fn provider_source(&self) -> &str {
         &self.provider_source
     }
 
-    pub fn semantic_event_dictionary(&self) -> &crate::semantic_trace::SemanticEventDictionary {
+    #[cfg(any(test, feature = "unstable-native-host-internal"))]
+    fn semantic_event_dictionary(&self) -> &crate::semantic_trace::SemanticEventDictionary {
         &self.semantic_event_dictionary
     }
 
-    pub fn trace_path_certificate(&self) -> &crate::trace_path_certificate::TracePathCertificate {
+    fn trace_path_certificate(&self) -> &crate::trace_path_certificate::TracePathCertificate {
         &self.trace_path_certificate
     }
 
-    pub fn event_dictionary(&self) -> &str {
+    fn event_dictionary(&self) -> &str {
         &self.event_dictionary
     }
 
-    pub fn codec_profile_fingerprint(&self) -> [u8; 32] {
+    #[cfg(any(test, feature = "unstable-native-host-internal"))]
+    fn codec_profile_fingerprint(&self) -> [u8; 32] {
         self.codec_profile_fingerprint
     }
 
-    pub fn normalized_execution_projection(&self) -> &str {
+    #[cfg(any(test, feature = "unstable-native-host-internal"))]
+    fn normalized_execution_projection(&self) -> &str {
         &self.normalized_execution_projection
     }
 }
@@ -217,12 +223,10 @@ impl NativeCallableAdmissionArtifact {
 /// pinned call codec profile, and canonicalized wrapper/direct-hook template.
 /// Dictionary facts and maximum trace capacity are computed internally;
 /// callers cannot assert these security-critical facts.
-#[doc(hidden)]
-#[cfg(any(test, feature = "unstable-native-host-internal"))]
-pub fn emit_native_callable_admission(
+fn emit_native_callable_admission_core(
     program: &ResolvedProgram,
     function_id: &DeclarationId,
-) -> Result<NativeCallableAdmissionArtifact, Diagnostic> {
+) -> Result<NativeCallableAdmissionCore, Diagnostic> {
     hir::validate(program)?;
     let resource_abi = native_resource::build_resource_abi(program)?;
     let function = program
@@ -309,7 +313,7 @@ pub fn emit_native_callable_admission(
     provider_source.push_str(&trace_runtime);
     provider_source.push_str(&concrete.source);
     provider_source.push_str(&native_callable_abi::emit_getter_source(&descriptor));
-    Ok(NativeCallableAdmissionArtifact {
+    Ok(NativeCallableAdmissionCore {
         descriptor: descriptor.bytes,
         getter_symbol: descriptor.getter_symbol,
         callable_symbol: descriptor.callable_symbol,
@@ -317,15 +321,86 @@ pub fn emit_native_callable_admission(
         max_request_bytes: descriptor.max_request_bytes,
         max_response_bytes: descriptor.max_response_bytes,
         provider_source,
+        #[cfg(any(test, feature = "unstable-native-host-internal"))]
         semantic_event_dictionary: dictionary,
         trace_path_certificate,
         event_dictionary,
+        #[cfg(any(test, feature = "unstable-native-host-internal"))]
         codec_profile_fingerprint,
+        #[cfg(any(test, feature = "unstable-native-host-internal"))]
         normalized_execution_projection,
     })
 }
 
+/// Feature-gated callable-v2 admission artifact for the unpublished native
+/// host. The default public compiler surface exposes only the build-only
+/// bundle API, not these host-facing semantic internals.
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
+#[doc(hidden)]
+pub struct NativeCallableAdmissionArtifact(NativeCallableAdmissionCore);
+
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+#[doc(hidden)]
+impl NativeCallableAdmissionArtifact {
+    pub fn descriptor(&self) -> &[u8] {
+        self.0.descriptor()
+    }
+
+    pub fn getter_symbol(&self) -> &str {
+        self.0.getter_symbol()
+    }
+
+    pub fn callable_symbol(&self) -> &str {
+        self.0.callable_symbol()
+    }
+
+    pub fn call_contract(&self) -> [u8; 32] {
+        self.0.call_contract()
+    }
+
+    pub fn max_request_bytes(&self) -> u32 {
+        self.0.max_request_bytes()
+    }
+
+    pub fn max_response_bytes(&self) -> u32 {
+        self.0.max_response_bytes()
+    }
+
+    pub fn provider_source(&self) -> &str {
+        self.0.provider_source()
+    }
+
+    pub fn semantic_event_dictionary(&self) -> &crate::semantic_trace::SemanticEventDictionary {
+        self.0.semantic_event_dictionary()
+    }
+
+    pub fn trace_path_certificate(&self) -> &crate::trace_path_certificate::TracePathCertificate {
+        self.0.trace_path_certificate()
+    }
+
+    pub fn event_dictionary(&self) -> &str {
+        self.0.event_dictionary()
+    }
+
+    pub fn codec_profile_fingerprint(&self) -> [u8; 32] {
+        self.0.codec_profile_fingerprint()
+    }
+
+    pub fn normalized_execution_projection(&self) -> &str {
+        self.0.normalized_execution_projection()
+    }
+}
+
+/// Feature-gated compiler facade used by the unpublished native host tests.
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+#[doc(hidden)]
+pub fn emit_native_callable_admission(
+    program: &ResolvedProgram,
+    function_id: &DeclarationId,
+) -> Result<NativeCallableAdmissionArtifact, Diagnostic> {
+    emit_native_callable_admission_core(program, function_id).map(NativeCallableAdmissionArtifact)
+}
+
 fn native_callable_execution_cleanup_fingerprint(components: &[&[u8]]) -> [u8; 32] {
     let mut hasher = Sha256::new();
     hasher.update(b"semaprax.native-callable-execution-cleanup.v2\0");
@@ -1458,7 +1533,7 @@ fn main() -> i64 { 0 }
         push_u32(&mut bytes, 1);
         push_u32(&mut bytes, 20);
         push_u32(&mut bytes, 0);
-        bytes.extend_from_slice(&artifact.call_contract);
+        bytes.extend_from_slice(&artifact.call_contract());
         push_u64(&mut bytes, invocation);
         push_u32(&mut bytes, arguments.len() as u32);
         for (index, argument) in arguments.iter().enumerate() {
@@ -1483,7 +1558,7 @@ fn main() -> i64 { 0 }
         }
         let length = u32::try_from(bytes.len()).unwrap();
         bytes[16..20].copy_from_slice(&length.to_le_bytes());
-        assert_eq!(length, artifact.max_request_bytes);
+        assert_eq!(length, artifact.max_request_bytes());
         bytes
     }
 
@@ -1500,7 +1575,7 @@ fn main() -> i64 { 0 }
         artifact: &NativeCallableAdmissionArtifact,
         requests: &[Vec<u8>],
     ) -> String {
-        let mut source = artifact.provider_source.clone();
+        let mut source = artifact.provider_source().to_owned();
         source.push_str("#if defined(_WIN32)\n#include <fcntl.h>\n#include <io.h>\n#endif\n");
         for (index, request) in requests.iter().enumerate() {
             source.push_str(&c_byte_array(&format!("spx_request_{index}"), request));
@@ -1512,18 +1587,18 @@ fn main() -> i64 { 0 }
         writeln!(
             source,
             "    if (memcmp({}(), \"SPXNABI2\", UINT32_C(8)) != 0) return 90;",
-            artifact.getter_symbol
+            artifact.getter_symbol()
         )
         .unwrap();
         writeln!(
             source,
             "    uint8_t response[UINT32_C({})];",
-            artifact.max_response_bytes
+            artifact.max_response_bytes()
         )
         .unwrap();
         for index in 0..requests.len() {
             source.push_str("    memset(response, 0xa5, sizeof(response));\n");
-            writeln!(source, "    if ({}(spx_request_{index}, (uint32_t)sizeof(spx_request_{index}), response, (uint32_t)sizeof(response)) != SPX_CALL_COMPLETE) return {};", artifact.callable_symbol, 100 + index).unwrap();
+            writeln!(source, "    if ({}(spx_request_{index}, (uint32_t)sizeof(spx_request_{index}), response, (uint32_t)sizeof(response)) != SPX_CALL_COMPLETE) return {};", artifact.callable_symbol(), 100 + index).unwrap();
             writeln!(source, "    uint32_t declared_{index} = spx_load_u32(response + UINT32_C(16)); if (declared_{index} > (uint32_t)sizeof(response) || fwrite(response, UINT32_C(1), declared_{index}, stdout) != declared_{index}) return {};", 120 + index).unwrap();
         }
         source.push_str("    return 0;\n}\n");
@@ -1845,8 +1920,8 @@ fn main() -> i64 { increment(41) }
         writeln!(
             hostile,
             "static int spx_response_unchanged(const uint8_t *response, size_t length) {{ for (size_t i = 0; i < length; ++i) if (response[i] != UINT8_C(0xa5)) return 0; return 1; }}\nint main(void) {{ uint8_t response[UINT32_C({})]; memset(response, 0xa5, sizeof(response)); uint32_t physical = {}(spx_physical_mismatch_request, (uint32_t)sizeof(spx_physical_mismatch_request), response, (uint32_t)sizeof(response)); if (physical != SPX_CALL_INTERNAL_FAILURE || !spx_response_unchanged(response, sizeof(response))) return 1; return 0; }}",
-            artifact.max_response_bytes,
-            artifact.callable_symbol
+            artifact.max_response_bytes(),
+            artifact.callable_symbol()
         )
         .unwrap();
 
@@ -2056,7 +2131,7 @@ fn main() -> i64 { increment(41) }
                 "{:x}",
                 Sha256::digest(requires.normalized_execution_projection().as_bytes())
             ),
-            "926a0c25682e1fef0e40e2a373650c1cf40d2e6763dfc00d409efc02c5aa82b2"
+            "e5802548830ebc278bfd727a91fecebd763c81d5729374d85a4bded1e0dbf83c"
         );
     }
 

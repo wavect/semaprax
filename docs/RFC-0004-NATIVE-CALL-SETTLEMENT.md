@@ -19,8 +19,9 @@ The repository contains an internal, target-neutral model of the bounded
 certificate, frame, decision, receipt, and idempotent settlement operation. It
 has unit evidence only. There is no v3 descriptor or wire layout, provider
 symbol, code generator, loader path, physical finalizer, ownership-host wiring,
-or public compiler surface. Callable v2 remains the implemented private
-experiment, ordinary native resource builds still fail with `SPX-B104`, and
+or public callable-v3 compiler surface. Callable v2 has an independent public
+build-only bundle surface plus a feature-gated execution experiment; ordinary
+native resource execution still fails with `SPX-B104`, and
 the model plus this document satisfy no physical-runtime completion gate.
 
 The key rule is:
@@ -414,8 +415,10 @@ cross-instance mutation evidence through an independent parser.
 4. Connect the exact-instance loader and host with the combined settlement guard,
    receipt authentication, poison, draining, and quarantine.
 5. Run the complete failure-injection, sanitizer, unload, and platform matrix.
-6. Connect ordinary compiler build/preflight only after the full admitted slice
-   is proven. Every excluded shape retains its stable fail-closed diagnostic.
+6. Connect callable-v3 compiler execution/admission only after the full admitted
+   slice is proven. The independent callable-v2 build-only bundle remains
+   non-executing, and every excluded shape retains its stable fail-closed
+   diagnostic.
 
 Each step must update the completion matrix, architecture, quality gates,
 roadmap, migrations, and changelog honestly. An earlier step is enabling

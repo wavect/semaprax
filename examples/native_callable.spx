@@ -1,0 +1,19 @@
+module example.native_callable;
+
+@id("example.token")
+resource Token {
+    @id("example.token.drop")
+    drop trivial;
+}
+
+@id("example.token.identity")
+fn identity(value: own Token) -> Token
+{
+    value
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    0
+}

@@ -1,12 +1,13 @@
 # Native callable ABI v2
 
-Status: connected private implementation. Feature-gated compiler emission
-produces the complete guarded C11 provider, canonical descriptor v2, semantic
-dictionary, and trace-path certificate. The unpublished native host
+Status: public build-only bundle and connected private execution. Public
+preflight/CLI emission produces the complete guarded C11 provider, canonical
+descriptor v2, semantic dictionary, trace-path certificate, host shared
+library, and hashed manifest for one selected function. The unpublished host
 independently authenticates them, eagerly loads one exact byte-wire callable,
 and connects strict request/response codecs to its authority and ownership
-ledger. This is not a public or stable ecosystem ABI, and it does not open
-`SPX-B104`.
+ledger. No public loader, invocation, or adoption API exists. This is not a
+stable ecosystem ABI, and it does not open `SPX-B104`.
 
 ## Scope
 
@@ -373,12 +374,13 @@ trace, outcome, publication, owner rotation, and final logical liveness exactly.
   because the job's linker flags only make the provider runtimes available and
   do not instrument Rust code. Unrelated Clippy/GCC failures stopped the
   platform jobs before runtime evidence and kept the overall workflow run red;
-- a green public Windows CI run of the generated callable corpus plus the
-  dependency-collision fixture and hardened search assertions;
+- the generated callable corpus plus dependency-collision fixture and hardened
+  search assertions are green on Windows in [run 31257545008, job
+  93103151756](https://github.com/wavect/semaprax/actions/runs/31257545008/job/93103151756);
 - Android device/runtime admission and an iOS-compatible static-link profile,
   with representative device or simulator evidence;
-- the ordinary public compiler build/preflight path emitting and admitting this
-  exact slice while every excluded shape preserves its stable diagnostic; and
+- public execution/admission of this exact slice while every excluded shape
+  preserves its stable diagnostic; build-only emission is implemented;
 - the complete all-feature MSRV, formatting, strict Clippy, tests, docs,
   package, cargo-deny, examples, sanitizer, and platform matrix in public CI.
 
@@ -396,9 +398,10 @@ legacy current-directory/PATH lookup. The repository now has a mandatory
 Windows collision fixture that requires a sibling dependency to beat a
 same-name image in both locations, then requires `LibraryOpen` when only the
 malicious image remains. The Windows CI lane also reruns the complete generated
-O0/O2 callable corpus explicitly. Neither is public Windows runtime evidence
-until a green public run records both gates. Android is a compile target, not
-device execution evidence. iOS dynamic loading is not claimed and may require
+O0/O2 callable corpus explicitly. Both passed in [run 31257545008, job
+93103151756](https://github.com/wavect/semaprax/actions/runs/31257545008/job/93103151756).
+This narrow evidence does not complete Windows applications. Android is a
+compile target, not device execution evidence. iOS dynamic loading is not claimed and may require
 a later static-link admission profile. There is no present claim of
 Android/iOS device execution, cross-thread calls, concurrency,
 callback/finalizer quiescence, fork recovery, hot reload, signed-code admission,

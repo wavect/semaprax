@@ -70,12 +70,16 @@ jobs:
       - run: cargo run --locked -p semaprax -- check examples/lifecycle.spx
       - run: cargo run --locked -p semaprax -- check examples/control_flow.spx
       - run: cargo run --locked -p semaprax -- check examples/records.spx
+      - run: cargo run --locked -p semaprax -- check examples/native_callable.spx
       - run: cargo run --locked -p semaprax -- fmt examples/meaning.spx --check
       - run: cargo run --locked -p semaprax -- fmt examples/effects.spx --check
       - run: cargo run --locked -p semaprax -- fmt examples/ownership.spx --check
       - run: cargo run --locked -p semaprax -- fmt examples/lifecycle.spx --check
       - run: cargo run --locked -p semaprax -- fmt examples/control_flow.spx --check
       - run: cargo run --locked -p semaprax -- fmt examples/records.spx --check
+      - run: cargo run --locked -p semaprax -- fmt examples/native_callable.spx --check
+      - name: Build public native-callable bundle
+        run: cargo run --locked -p semaprax -- build examples/native_callable.spx --target native-callable --function example.token.identity -o target/native-callable-example
       - name: Build and run native example (Unix)
         if: runner.os != 'Windows'
         run: |
@@ -117,6 +121,25 @@ jobs:
           "$RUNNER_TEMP/sanitizer-probe"
       - name: Run dynamically loaded callable corpus under ASan and UBSan
         run: cargo test --locked -p semaprax-native-host --test runtime_callable_corpus authoritative_corpus_executes_through_generated_callable_host_at_o0_and_o2 -- --exact
+
+  rust-host-address-sanitizer:
+    name: Rust host ASan (nightly-2026-07-16)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CC: clang-18
+      SEMAPRAX_REQUIRE_RUST_HOST_ASAN: "1"
+      SEMAPRAX_RUST_HOST_ASAN_TOOLCHAIN: nightly-2026-07-16
+      ASAN_OPTIONS: detect_leaks=1:halt_on_error=1:abort_on_error=1
+      RUSTFLAGS: -Zsanitizer=address -Zexternal-clangrt -Clinker=clang-18 -Clink-arg=-fsanitize=address -Cforce-frame-pointers=yes
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          toolchain: nightly-2026-07-16
+          components: rust-src
+      - name: Require Rust-host AddressSanitizer instrumentation and execute real callables
+        run: scripts/verify-rust-host-asan.sh
 
   msrv:
     name: Rust 1.85 minimum

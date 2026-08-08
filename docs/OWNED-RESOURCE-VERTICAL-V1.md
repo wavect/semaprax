@@ -5,11 +5,12 @@ resource-execution slice; it does not make the slice implemented. Native
 `SPX-B104` and WebAssembly `SPX-W111` remain mandatory until every admission
 and conformance gate below is executable.
 
-Current private evidence now connects feature-gated compiler emission to the
-real callable-v2 loader/authority/ledger host. It executes the complete 14-case
-corpus from generated O0/O2 shared libraries and exactly matches the reference
-and Node/Wasm outcomes and semantic traces. That closes the former
-former callable-composition gap, but not this public gate.
+Current evidence connects compiler emission to the real callable-v2
+loader/authority/ledger host. A public build-only API/CLI emits one exact
+selected direct-trivial provider bundle, while the feature-gated host executes
+the complete 14-case corpus from generated O0/O2 shared libraries and exactly
+matches the reference and Node/Wasm outcomes and semantic traces. That closes
+the former callable-composition gap, but not public execution/admission.
 
 ## Purpose
 
@@ -191,12 +192,13 @@ For every case, compare the normalized status, publication state, complete
 event sequence, storage/lifecycle identities, and final liveness. Native O0
 and O2, ASan, and UBSan executions must agree exactly.
 
-The private native corpus now exercises non-`cfg(test)` feature-gated compiler
-and host surfaces: the compiler emits the artifact, the host loads it, and the
-safe call API runs the corpus through its ledger. This is stronger than a
-generated-source harness, but the ordinary public compiler build/preflight path
-still rejects with `SPX-B104`; therefore the production-reachability gate is
-not complete.
+The native corpus exercises non-`cfg(test)` feature-gated host surfaces: the
+compiler emits the artifact, the host loads it, and the safe call API runs the
+corpus through its ledger. The ordinary compiler also exposes build-only
+preflight and packaging for one explicitly selected direct-trivial owned
+function. It exposes no loader, invocation, adoption, or authority surface;
+ordinary native resource execution still rejects with `SPX-B104`, so the
+production-reachability gate is not complete.
 
 ## Hostile boundary gates
 
@@ -252,18 +254,19 @@ The slice cannot be admitted until all of these pass:
 This v1 slice does not implement imported finalizers, records, variants,
 `Option`, `Result`, borrowing across FFI, allocation APIs, callbacks, async,
 concurrency, fork recovery, hot reload, independent same-root native symbol
-provenance authentication, Windows dependency-collision runtime evidence,
-signed code admission, WebAssembly
+provenance authentication, signed code admission, WebAssembly
 Components, packages, UI, or mobile/desktop application hosts. Those remain
 subsequent completion-matrix gates; this slice is the ownership prerequisite,
 not a substitute for them.
 
 It also does not yet prove general physical/malformed-response fallback cleanup
 and quiescence, sanitizer instrumentation of the Rust host itself, a green
-public Windows callable/dependency-collision run, Android device admission, an
-iOS static-link profile, or public compiler emission. Those are blockers for
-`SPX-B104`, not implications of the private 14-case success.
+public Rust-host ASan run, Android device admission, an iOS static-link profile,
+or public native execution/admission. Those are blockers for `SPX-B104`, not
+implications of the private 14-case success or public build-only packaging.
 
-The sanitizer job above was green even though unrelated Clippy/GCC failures
-kept its overall workflow run red. It is not evidence for Rust-host
-instrumentation, Windows runtime behavior, or a green overall platform matrix.
+The Linux provider sanitizer job above was green even though unrelated
+Clippy/GCC failures kept its overall workflow run red. It is not evidence for
+Rust-host instrumentation or a green overall platform matrix. The later
+Windows callable/dependency-isolation job is the narrow Windows evidence cited
+elsewhere in this repository.

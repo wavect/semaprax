@@ -27,6 +27,12 @@ pub mod semantic_trace;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
 #[doc(hidden)]
 pub mod trace_path_certificate;
+#[cfg(not(any(test, feature = "unstable-native-host-internal")))]
+#[allow(
+    dead_code,
+    reason = "host-only certificate inspection remains behind the unpublished feature"
+)]
+mod trace_path_certificate;
 pub mod verify;
 pub mod wasm;
 

@@ -187,12 +187,14 @@ preflight must stream into the MAC or use preallocated storage.
 
 The compiler only registers these private modules. Resource preflight never
 constructs a secret, authority, binding, or token, and no C symbol exposes
-minting or authentication. The unpublished host's unsafe adoption and generated
-callable executor are private physical plumbing evidence, not the public native
-adapter. General postcommit fallback cleanup, physical finalization and
-quiesced unload, code identity, fork handling, hostile concurrency, confirmed
-Windows runtime, mobile profiles, Rust-host sanitizer instrumentation, and
-public compiler emission must land before `SPX-B104` can change.
+minting or authentication. Public build-only bundle emission likewise creates
+no capability and exposes no loader, invocation, or adoption surface. The
+unpublished host's unsafe adoption and generated callable executor are private
+physical plumbing evidence, not the public native adapter. General postcommit
+fallback cleanup, physical finalization and quiesced unload, code identity,
+fork handling, hostile concurrency, mobile profiles, a green public Rust-host
+ASan run, and public native execution/admission must land before `SPX-B104` can
+change.
 
 The generated-provider side has green public Linux evidence: the
 [callable-host sanitizer job](https://github.com/wavect/semaprax/actions/runs/31256134955/job/93099637801)

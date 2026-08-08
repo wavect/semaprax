@@ -80,8 +80,23 @@ fn run(args: Vec<String>) -> Result<(), u8> {
                     wasm::build_web(&program, &output).map_err(|error| report(&[error], false))?;
                     println!("built web package {}", output.display());
                 }
+                "native-callable" => {
+                    let function = option_value(&args, "--function").ok_or_else(|| {
+                        eprintln!("native-callable target requires --function <stable-id>");
+                        2
+                    })?;
+                    let bundle = codegen::build_native_callable_bundle(&program, function, &output)
+                        .map_err(|error| report(&[error], false))?;
+                    println!(
+                        "built native-callable bundle {} (manifest sha256:{})",
+                        bundle.output_directory().display(),
+                        bundle.manifest_sha256()
+                    );
+                }
                 target => {
-                    eprintln!("unsupported target `{target}`; available: native, web");
+                    eprintln!(
+                        "unsupported target `{target}`; available: native, native-callable, web"
+                    );
                     return Err(2);
                 }
             }
@@ -210,7 +225,7 @@ fn print_help() {
            semaprax check <file> [--json]\n\
            semaprax graph <file>\n\
            semaprax context <file> <symbol|stable-id> [--depth N]\n\
-           semaprax build <file> [--target native|web] [-o path]\n\
+           semaprax build <file> [--target native|native-callable|web] [--function stable-id] [-o path]\n\
            semaprax run <file>\n\
            semaprax fmt <file> [--check]\n\
            semaprax patch <file> <patch.spatch>\n\

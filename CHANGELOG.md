@@ -104,9 +104,14 @@ All notable changes to SEMAPRAX are documented here.
 - Made formatting, Clippy, tests, docs, builds, and the Rust 1.85 gate run every
   workspace feature so staged production surfaces cannot escape CI. `SPX-B104`
   remains closed for general physical/malformed-response fallback cleanup and
-  quiescence, Rust-host sanitizer instrumentation, confirmed Windows
-  runtime/dependency isolation, Android/iOS profiles, and public compiler
-  build/preflight emission.
+  quiescence, a green public Rust-host ASan run, Android/iOS profiles, and
+  public native execution/admission.
+- Added a separate fail-closed Linux Rust-host ASan lane pinned to
+  `nightly-2026-07-16`: it rebuilds the target standard library, proves active
+  Rust instrumentation with both an intentional fault and binary/compiler
+  inspection, and runs the real callable host plus generated corpus. This is
+  configuration and static-test evidence until its first green public run;
+  Rust-host UBSan is not claimed and `SPX-B104` remains closed.
 - Recorded the green public Linux
   [callable-host sanitizer job](https://github.com/wavect/semaprax/actions/runs/31256134955/job/93099637801):
   all 14 authoritative O0/O2 cases executed from dynamically loaded
@@ -126,8 +131,13 @@ All notable changes to SEMAPRAX are documented here.
   a same-name dependency in both CWD and legacy `PATH`, proves the root-image
   sibling wins for descriptor admission and invocation, then removes that
   sibling and requires `LibraryOpen` rather than malicious fallback. CI names
-  this fixture and the complete O0/O2 callable corpus explicitly; Windows
-  evidence remains pending until those gates pass in a green public run.
+  this fixture and the complete O0/O2 callable corpus explicitly. Both passed
+  in [run 31257545008, job 93103151756](https://github.com/wavect/semaprax/actions/runs/31257545008/job/93103151756).
+- Added a public build-only native-callable API and CLI for one explicitly
+  selected direct-trivial owned function. It produces a deterministic hashed
+  provider bundle and strict host shared library through safe staging and
+  observed no-overwrite checks, while exposing no loading, invocation,
+  adoption, or authority and retaining ordinary native `SPX-B104`.
 - Migrated browser manifests from `semaprax.web.v2` to `semaprax.web.v3`. Version 3 retains module, graph revision, Wasm entry, and capabilities while adding the required `owned_abi` object with schema `semaprax.wasm-owned.v1` and a declaration-ordered function mapping; scalar-only packages use an empty function array. Version-2-only consumers must reject or explicitly migrate rather than inferring ownership ABI metadata.
 
 ## 0.1.0 — 2026-08-07

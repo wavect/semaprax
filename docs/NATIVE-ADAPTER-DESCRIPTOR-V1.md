@@ -79,8 +79,10 @@ does not retain, the shared-library provider built by this descriptor suite.
 It proves strong-reference topology only; physical provider lifetime remains a
 production-loader gate.
 
-Consequently, public native resource emission still returns the exact generic
-`SPX-B104` diagnostic. A future callable adapter must consume this compatibility
-evidence and independently prove the host-ownership transaction and cleanup
-protocols; the descriptor alone grants no right to execute or transfer an
-owner.
+Consequently, ordinary public native resource execution/admission still returns
+the exact generic `SPX-B104` diagnostic. The public build-only callable-v2
+target may package one admitted direct-trivial function, but it cannot load,
+invoke, adopt, or create authority. A future public callable adapter must
+consume this compatibility evidence and independently prove the host-ownership
+transaction and cleanup protocols; the descriptor alone grants no right to
+execute or transfer an owner.

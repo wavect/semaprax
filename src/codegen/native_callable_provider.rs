@@ -1,9 +1,10 @@
-//! Private C11 request/response provider scaffold for callable ABI v2.
+//! C11 request/response provider scaffold for callable ABI v2 bundles.
 //!
 //! This emitter deliberately stops at a direct, translation-unit-local hook.
-//! The hook must be filled by the verified value/cleanup emitter before
-//! `SPX-B104` opens. There is no function pointer, allocation, callback, or
-//! independently selectable runtime operation in the generated surface.
+//! The verified value/cleanup emitter fills that hook for build-only public
+//! bundles. `SPX-B104` still blocks ordinary native resource execution. There
+//! is no function pointer, allocation, callback, or independently selectable
+//! runtime operation in the generated surface.
 
 use std::fmt::Write as _;
 
@@ -204,7 +205,7 @@ fn emit_prelude(
     target_guards: &str,
 ) {
     output.push_str(
-        "/* semaprax.native-callable-provider.v1; private behind SPX-B104 */\n\
+        "/* semaprax.native-callable-provider.v1; build-only, execution behind SPX-B104 */\n\
          #include <stdbool.h>\n#include <stddef.h>\n#include <stdint.h>\n#include <string.h>\n\
          ",
     );

@@ -13,9 +13,11 @@ cargo run --locked -p semaprax -- check examples/ownership.spx
 cargo run --locked -p semaprax -- check examples/lifecycle.spx
 cargo run --locked -p semaprax -- check examples/control_flow.spx
 cargo run --locked -p semaprax -- check examples/records.spx
+cargo run --locked -p semaprax -- check examples/native_callable.spx
 cargo run --locked -p semaprax -- fmt examples/meaning.spx --check
 cargo run --locked -p semaprax -- fmt examples/effects.spx --check
 cargo run --locked -p semaprax -- fmt examples/ownership.spx --check
 cargo run --locked -p semaprax -- fmt examples/lifecycle.spx --check
 cargo run --locked -p semaprax -- fmt examples/control_flow.spx --check
 cargo run --locked -p semaprax -- fmt examples/records.spx --check
+cargo run --locked -p semaprax -- fmt examples/native_callable.spx --check

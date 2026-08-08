@@ -133,6 +133,16 @@ All notable changes to SEMAPRAX are documented here.
   The model deliberately provides no invocation or module-instance reservation,
   physical finalizer authority, descriptor/provider, loader/host, public
   compiler, or backend runtime evidence; `SPX-B104` remains closed.
+- Added private callable settlement-proof v1 without consuming the future v3
+  ABI version. `SPXNPRF1` embeds the exact unchanged callable-v2 descriptor and
+  a canonical pointer-free binary settlement graph under one 64 KiB ceiling.
+  Separate compiler and host codecs bind the exact v2 call contract and trace
+  certificate, reject rehashed cross-module/changed-trace substitutions and
+  hostile graph structure, and reproduce a fixed known answer. The compiler
+  enforces the cap while serializing; the v2 loader rejects proof magic before
+  opening an image; default consumers cannot import the proof surface. This adds
+  no provider, descriptor-v3, loader admission, host settlement execution,
+  physical finalizer, public API, mobile evidence, or `SPX-B104` change.
 - Added a mandatory Windows callable-v2 dependency-isolation fixture. It places
   a same-name dependency in both CWD and legacy `PATH`, proves the root-image
   sibling wins for descriptor admission and invocation, then removes that

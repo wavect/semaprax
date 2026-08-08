@@ -331,10 +331,13 @@ this is a general semantic cleanup path for future physical finalizers.
 The proposed [native call recovery and settlement RFC](RFC-0004-NATIVE-CALL-SETTLEMENT.md)
 defines the incompatible callable-v3 foundation intended to close this exact
 gap with a host-owned linear frame, certified checkpoints, mandatory idempotent
-settlement, and an authenticated quiescence receipt. Only the hidden
-target-neutral owner-state model exists: v2 does not implement, negotiate, or
-partially inherit that protocol, no physical v3 path is wired, and `SPX-B104`
-remains closed.
+settlement, and an authenticated quiescence receipt. The hidden model and
+compiler derivation now have a separately versioned private
+[`SPXNPRF1` proof envelope](NATIVE-CALLABLE-SETTLEMENT-PROOF-V1.md). It embeds
+these exact v2 bytes for consistency checking but grants no authority and is
+rejected by the v2 loader before image loading. V2 does not implement,
+negotiate, or partially inherit callable v3, no physical v3 path is wired, and
+`SPX-B104` remains closed.
 
 ## Trust and lifetime model
 

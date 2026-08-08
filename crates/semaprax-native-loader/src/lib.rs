@@ -356,6 +356,8 @@ pub enum OpenError {
     InvalidCallableSymbol,
     /// The expected descriptor was empty or exceeded the bound.
     InvalidExpectedDescriptorLength { actual: usize, maximum: usize },
+    /// Settlement-proof envelopes are metadata and can never be loaded.
+    SettlementProofEnvelopeNotLoadable,
     /// Callable admission accepts only the separately versioned descriptor v2.
     InvalidCallableDescriptorSchema,
     /// The platform loader rejected the library.
@@ -394,6 +396,9 @@ impl fmt::Display for OpenError {
             Self::InvalidExpectedDescriptorLength { actual, maximum } => write!(
                 formatter,
                 "expected native descriptor length {actual} is outside 1..={maximum}"
+            ),
+            Self::SettlementProofEnvelopeNotLoadable => formatter.write_str(
+                "native callable settlement-proof envelopes are proof-only and cannot be loaded",
             ),
             Self::InvalidCallableDescriptorSchema => formatter
                 .write_str("native callable admission requires an exact SPXNABI2 descriptor"),
@@ -441,6 +446,8 @@ impl Error for OpenError {
 /// Exact equality proves only that the resolved getter returned
 /// `expected_descriptor`. It does not prove that the getter belongs to the root
 /// image, that the root image is compatible, or that admission was sound.
+/// An `SPXNPRF1` settlement-proof envelope is rejected during input validation
+/// before path canonicalization or library loading; it is not a descriptor.
 ///
 /// # Safety
 ///
@@ -527,6 +534,8 @@ pub unsafe fn open_admitted_exact(
 /// returned retain. Before crossing this boundary, the caller must also have
 /// decoded `expected_descriptor` with the exact canonical descriptor-v2 codec;
 /// this loader checks only its fixed envelope and byte equality.
+/// `SPXNPRF1` proof envelopes are rejected before path canonicalization or
+/// library loading and are never interpreted as callable descriptors.
 ///
 /// In addition, `callable_symbol` must name an eagerly resolvable function with
 /// the exact C ABI
@@ -643,6 +652,9 @@ fn validate_inputs(
             actual: expected_descriptor.len(),
             maximum: MAX_DESCRIPTOR_BYTES,
         });
+    }
+    if expected_descriptor.starts_with(b"SPXNPRF1") {
+        return Err(OpenError::SettlementProofEnvelopeNotLoadable);
     }
     Ok(())
 }

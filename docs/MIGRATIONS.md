@@ -240,6 +240,22 @@ No settlement file is added to callable-v2 bundles, no loader or host receives
 v2 settlement authority, ordinary native resource execution remains
 `SPX-B104`, and public callable-v3 admission remains absent.
 
+## Private callable settlement proof v1
+
+The compiler and unpublished native host add the private `SPXNPRF1` proof
+envelope. It embeds one exact, unchanged `SPXNABI2` descriptor plus the
+canonical binary settlement graph and binds them through separate schema,
+v2-byte, graph, and envelope fingerprint domains. The graph also carries the
+exact source v2 call-contract and trace-path-certificate fingerprints, which
+the independent parser requires to match the embedded descriptor.
+
+This is an additive proof format, not an in-place v2 migration and not callable
+ABI v3. `SPXNABI1`, `SPXNABI2`, and `SPXNPRF1` are mutually incompatible; there
+is no negotiation or fallback. Existing v2 descriptor/provider/bundle bytes and
+symbols do not change. The v2 loader rejects the proof magic before opening an
+image, default consumers cannot import the proof surface, and no proof byte
+grants loading, execution, adoption, settlement, or finalizer authority.
+
 ## Revision token FNV-1a64 to SHA-256
 
 Graph v3 and later, semantic patch bases, CLI output, and `semaprax.web.v2`/`semaprax.web.v3` manifests use one algorithm-tagged token:

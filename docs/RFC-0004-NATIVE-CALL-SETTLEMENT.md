@@ -1,6 +1,6 @@
 # RFC 0004: Native call recovery and settlement
 
-- Status: Proposed; private compiler derivation implemented, physical v3 unwired
+- Status: Proposed; private derivation/proof serialization implemented, physical v3 unwired
 - Version: 0.1
 - Audience: compiler, native code generator, loader, ownership-host, adapter,
   and conformance-test implementers
@@ -18,9 +18,12 @@ bounded cleanup protocol without guessing which physical resources remain live.
 The repository contains an internal, target-neutral model of the bounded
 certificate, progress graph, frame, decision, receipt, and idempotent
 settlement operation plus private compiler derivation from validated cleanup
-HIR. It has unit evidence only. There is no v3 descriptor or wire layout, provider
-symbol, code generator, loader path, physical finalizer, ownership-host wiring,
-or public callable-v3 compiler surface. Callable v2 has an independent public
+HIR. The authority-free [settlement-proof v1](NATIVE-CALLABLE-SETTLEMENT-PROOF-V1.md)
+format now embeds the exact callable-v2 descriptor and a canonical binary graph;
+an independent host parser validates its bounds, hashes, topology, transitions,
+and cross-artifact bindings. This is not descriptor v3 or a runtime wire. There
+is no v3 provider symbol, code generator, loader path, physical finalizer,
+ownership-host wiring, or public callable-v3 compiler surface. Callable v2 has an independent public
 build-only bundle surface plus a feature-gated execution experiment; ordinary
 native resource execution still fails with `SPX-B104`, and
 the model plus this document satisfy no physical-runtime completion gate.
@@ -372,9 +375,13 @@ The internal model's focused unit suite currently covers:
 This evidence proves the bounded owner-level model, not physical settlement.
 The private compiler derivation separately proves the current direct-trivial
 corpus against independently validated cleanup HIR and semantic trace paths.
-A future wire still requires every-byte, truncation, trailing-data,
-reserved-field, capacity, arithmetic-overflow, stale-generation, and
-cross-instance mutation evidence through an independent parser.
+The private proof envelope adds every-prefix, trailing-data, every-byte,
+authenticated hostile-graph, exact-cap, cross-module, changed-trace, and
+independent-parser evidence. It binds the exact v2 call contract and trace
+certificate but deliberately carries no instance, generation, capability,
+finalizer, frame, action, or receipt authority. Those physical-runtime wires
+still require stale-generation, cross-instance, failure-injection, and
+quiescence evidence.
 
 ### Generated provider and host
 
@@ -414,12 +421,15 @@ cross-instance mutation evidence through an independent parser.
    model gate with boundary, known-answer, and property evidence.
 2. Derive and independently validate the settlement certificate from cleanup
    HIR while callable v3 remains unreachable from compiler preflight.
-3. Add descriptor-v3 and generated `execute`/`settle` artifacts behind the
-   private feature; keep v2 tests unchanged as compatibility evidence.
-4. Connect the exact-instance loader and host with the combined settlement guard,
+3. Serialize the derived proof through one bounded authority-free envelope and
+   independently parse it while reserving no callable-v3 ABI version.
+4. Add the real descriptor-v3 contract and generated `execute`/`settle`
+   artifacts behind the private feature; keep v2 tests unchanged as
+   compatibility evidence.
+5. Connect the exact-instance loader and host with the combined settlement guard,
    receipt authentication, poison, draining, and quarantine.
-5. Run the complete failure-injection, sanitizer, unload, and platform matrix.
-6. Connect callable-v3 compiler execution/admission only after the full admitted
+6. Run the complete failure-injection, sanitizer, unload, and platform matrix.
+7. Connect callable-v3 compiler execution/admission only after the full admitted
    slice is proven. The independent callable-v2 build-only bundle remains
    non-executing, and every excluded shape retains its stable fail-closed
    diagnostic.
@@ -430,16 +440,19 @@ infrastructure, not evidence for a later one.
 
 ## Explicit nonclaims and current status
 
-This RFC specifies no stable public C ABI, public Rust API, byte layout, symbol,
-descriptor magic, capability token, or loader constructor. It does not implement
+This RFC specifies no stable public C ABI, public Rust API, callable-v3 byte
+layout or magic, symbol, capability token, or loader constructor. The private
+`SPXNPRF1` proof format is versioned separately and cannot be executed or loaded.
+It does not implement
 imports or finalizers, aggregates, callbacks, async, concurrency, fork recovery,
 hot reload, signed code, code-provenance authentication, Android/iOS hosts,
 WebAssembly Components, or ecosystem adapters. It does not turn quarantine into
 successful cleanup and does not recover from interruption inside a finalizer.
 
-As of this revision, the hidden target-neutral owner-state/progress model and
-private compiler derivation are implemented; none of their physical runtime
-pieces are wired. Callable v2
+As of this revision, the hidden target-neutral owner-state/progress model,
+private compiler derivation, bounded binary proof encoder, and independent
+proof parser are implemented; none of their physical runtime pieces are wired.
+Callable v2
 continues to retire logical ledger state after physical failure without proving
 general physical fallback cleanup or quiescence. Therefore the completion
 matrix remains Partial, callable v3 has no native execution evidence, and

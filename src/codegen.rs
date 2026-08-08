@@ -7,6 +7,8 @@ mod native_callable_execution;
     allow(dead_code, reason = "callable provider remains gated by SPX-B104")
 )]
 mod native_callable_provider;
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+mod native_callable_settlement_proof;
 #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
 mod native_capability_authority;
 mod native_capability_token;
@@ -401,6 +403,33 @@ pub fn emit_native_callable_admission(
     function_id: &DeclarationId,
 ) -> Result<NativeCallableAdmissionArtifact, Diagnostic> {
     emit_native_callable_admission_core(program, function_id).map(NativeCallableAdmissionArtifact)
+}
+
+/// Feature-gated, authority-free callable-v2 settlement proof used only by the
+/// unpublished native host's independent decoder tests. This is not callable
+/// descriptor v3; no descriptor-v3 format, provider, or execution path exists.
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+#[doc(hidden)]
+pub struct NativeCallableSettlementProofArtifact(
+    native_callable_settlement_proof::NativeCallableSettlementProof,
+);
+
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+#[doc(hidden)]
+impl NativeCallableSettlementProofArtifact {
+    pub fn bytes(&self) -> &[u8] {
+        self.0.bytes()
+    }
+}
+
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+#[doc(hidden)]
+pub fn emit_native_callable_settlement_proof(
+    program: &ResolvedProgram,
+    function_id: &DeclarationId,
+) -> Result<NativeCallableSettlementProofArtifact, Diagnostic> {
+    native_callable_settlement_proof::derive(program, function_id)
+        .map(NativeCallableSettlementProofArtifact)
 }
 
 fn native_callable_execution_cleanup_fingerprint(components: &[&[u8]]) -> [u8; 32] {

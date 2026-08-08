@@ -48,12 +48,17 @@ const MAX_DERIVATION_WORK_UNITS: usize = 1_000_000;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct NativeSettlementDerivation {
     recovery_contract_fingerprint: [u8; 32],
+    trace_certificate_fingerprint: [u8; 32],
     certificate: NativeSettlementCertificate,
 }
 
 impl NativeSettlementDerivation {
     pub(super) const fn recovery_contract_fingerprint(&self) -> [u8; 32] {
         self.recovery_contract_fingerprint
+    }
+
+    pub(super) const fn trace_certificate_fingerprint(&self) -> [u8; 32] {
+        self.trace_certificate_fingerprint
     }
 
     pub(super) fn certificate(&self) -> &NativeSettlementCertificate {
@@ -171,6 +176,7 @@ pub(super) fn derive_native_settlement(
 
     Ok(NativeSettlementDerivation {
         recovery_contract_fingerprint,
+        trace_certificate_fingerprint: trace_certificate.fingerprint(),
         certificate,
     })
 }

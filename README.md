@@ -157,10 +157,14 @@ outstanding. `SPX-B104` therefore remains unchanged.
 [RFC 0004](docs/RFC-0004-NATIVE-CALL-SETTLEMENT.md) now records the proposed
 callable-v3 recovery/settlement foundation for that physical-failure gap:
 bounded host-owned linear frames, compiler-certified checkpoints, idempotent
-settlement, authenticated receipts, and explicit call/module quiescence. Only
-its hidden target-neutral owner-state model exists; no v3 descriptor, provider,
-loader, ownership host, physical finalizer, or compiler path is wired, so it
-supplies no native-runtime evidence and does not weaken `SPX-B104`.
+settlement, authenticated receipts, and explicit call/module quiescence. Its
+hidden target-neutral model and compiler derivation now serialize through the
+private [settlement-proof v1](docs/NATIVE-CALLABLE-SETTLEMENT-PROOF-V1.md)
+envelope and an independent host parser. That proof binds exact v2 metadata but
+grants no authority and deliberately reserves no v3 ABI version. No v3
+descriptor, provider, loader admission, host settlement, or physical finalizer
+is wired, so it supplies no native-runtime evidence and does not weaken
+`SPX-B104`.
 
 An unpublished [native loader quarantine](docs/NATIVE-MODULE-LOADER.md) has
 separately documented unsafe boundaries for descriptor-only admission and exact
@@ -239,7 +243,7 @@ The long-term compiler has two output principles:
 - Native machine code where performance and platform integration matter.
 - WebAssembly Components where portability and capability sandboxing matter.
 
-Read [RFC 0001](docs/RFC-0001.md) for the language system, [RFC 0002](docs/RFC-0002-ALGEBRAIC-DATA.md) for algebraic data and aggregate ownership, [RFC 0003](docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) for implemented lifecycle source/resolution and the proposed exactly-once cleanup/runtime phases, and the model-backed, proposed [RFC 0004](docs/RFC-0004-NATIVE-CALL-SETTLEMENT.md) for the native recovery/settlement contract. [Conformance trace v1](docs/CONFORMANCE-TRACE-V1.md) fixes the target-neutral status/trace projection, and [host ownership transactions v1](docs/HOST-OWNERSHIP-TRANSACTIONS-V1.md) fixes the preflight/commit/publication semantics that future ecosystem adapters must preserve. [The architecture](docs/ARCHITECTURE.md) describes the current implementation, [the quality gates](docs/QUALITY-GATES.md) define executable contribution evidence, [protocol migrations](docs/MIGRATIONS.md) cover agent-facing compatibility, [the roadmap](docs/ROADMAP.md) gives the staged path forward, and the [full-goal completion matrix](docs/COMPLETION-MATRIX.md) records requirement-by-requirement evidence.
+Read [RFC 0001](docs/RFC-0001.md) for the language system, [RFC 0002](docs/RFC-0002-ALGEBRAIC-DATA.md) for algebraic data and aggregate ownership, [RFC 0003](docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) for implemented lifecycle source/resolution and the proposed exactly-once cleanup/runtime phases, and the model-backed, proposed [RFC 0004](docs/RFC-0004-NATIVE-CALL-SETTLEMENT.md) for the native recovery/settlement contract. [Settlement proof v1](docs/NATIVE-CALLABLE-SETTLEMENT-PROOF-V1.md) specifies the private authority-free compiler/host proof envelope. [Conformance trace v1](docs/CONFORMANCE-TRACE-V1.md) fixes the target-neutral status/trace projection, and [host ownership transactions v1](docs/HOST-OWNERSHIP-TRANSACTIONS-V1.md) fixes the preflight/commit/publication semantics that future ecosystem adapters must preserve. [The architecture](docs/ARCHITECTURE.md) describes the current implementation, [the quality gates](docs/QUALITY-GATES.md) define executable contribution evidence, [protocol migrations](docs/MIGRATIONS.md) cover agent-facing compatibility, [the roadmap](docs/ROADMAP.md) gives the staged path forward, and the [full-goal completion matrix](docs/COMPLETION-MATRIX.md) records requirement-by-requirement evidence.
 
 ## Status
 

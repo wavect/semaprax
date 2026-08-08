@@ -13,6 +13,7 @@ mod descriptor;
 mod descriptor_v2;
 #[cfg(test)]
 mod descriptor_v2_integration;
+mod settlement_proof;
 
 // Temporary audited source sharing keeps these protocol implementations
 // private in both crates while avoiding a second security-critical codec or

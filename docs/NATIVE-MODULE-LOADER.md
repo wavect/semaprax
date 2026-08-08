@@ -54,6 +54,12 @@ every-byte, truncation, and trailing-data rejection. The host connects that
 decoder and callable lease to its authority and ledger; real generated O0/O2
 providers execute the complete 14-case corpus through safe host calls.
 
+The private [`SPXNPRF1` settlement proof](NATIVE-CALLABLE-SETTLEMENT-PROOF-V1.md)
+is not a loadable descriptor. A dedicated regression requires the callable-v2
+constructor to reject its magic during input validation, before attempting to
+open any path. The unpublished host may parse proof bytes independently for
+consistency evidence, but no loader constructor or symbol surface accepts them.
+
 The standalone loader retains narrow bounded-call fixtures, while the
 ownership-host integration exercises generated SEMAPRAX resource code. The
 Windows loader excludes current-directory/legacy-PATH dependency search and

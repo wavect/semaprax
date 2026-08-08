@@ -138,11 +138,17 @@ direct-trivial owned slice, preserves exact result-staging/finalization timing,
 and binds terminal edges to accepted semantic trace paths. Exhaustive tests
 cover every valid live/dead/single-provisional combination through six owners,
 the authoritative 14-case corpus, exact bounds and known answers, hostile graph
-and receipt mutations, and non-cloneable/non-formattable frame API gates. This
-proof model has no invocation reservation, module-instance or frame-generation
-binding, physical finalizer authority, wire layout, provider, loader, host, or
-public compiler connection; it is not physical fallback evidence and does not
-change `SPX-B104`.
+and receipt mutations, and non-cloneable/non-formattable frame API gates. The
+private [settlement-proof v1](NATIVE-CALLABLE-SETTLEMENT-PROOF-V1.md) encoder now
+embeds the exact v2 descriptor and canonical binary graph under a 64 KiB cap.
+The unpublished host independently parses and canonically re-encodes the graph,
+validates its transition semantics, and requires its source call-contract and
+trace-certificate fingerprints to match v2. The v2 loader rejects the proof
+magic before opening an image. This proof path has no invocation reservation,
+module-instance or frame-generation binding, physical finalizer authority,
+descriptor-v3 contract, provider, loader admission, host execution, or public
+compiler connection; it is not physical fallback evidence and does not change
+`SPX-B104`.
 
 The Windows CI lane now explicitly reruns the generated O0/O2 callable corpus
 and a loader fixture that places a same-name dependency in CWD and legacy

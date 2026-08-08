@@ -53,9 +53,11 @@ contract](RFC-0004-NATIVE-CALL-SETTLEMENT.md) defines a bounded callable-v3
 frame/checkpoint/settlement/receipt foundation for the physical-failure and
 quiescence gap. Its hidden target-neutral model and private compiler derivation
 from validated cleanup HIR are implemented for the current direct-trivial
-owned slice. No descriptor-v3, provider, loader, host, physical finalizer, or
-public compiler path is wired, so this adds no native runtime evidence to any
-row.
+owned slice. A separately versioned private `SPXNPRF1` envelope now binds the
+exact v2 call contract and trace certificate to a bounded binary graph, which
+the host parses independently without loading or executing it. No descriptor-v3,
+provider, loader admission, host settlement execution, physical finalizer, or
+public compiler path is wired, so this adds no native runtime evidence to any row.
 
 The dedicated Linux
 [callable-host sanitizer job](https://github.com/wavect/semaprax/actions/runs/31256134955/job/93099637801)

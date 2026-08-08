@@ -216,15 +216,17 @@ semaprax = {{ path = "{manifest_root}", default-features = false }}
     fs::create_dir(consumer.join("src")).unwrap();
     fs::write(
         consumer.join("src/main.rs"),
-        r#"use semaprax::codegen::{emit_native_callable_admission, NativeCallableAdmissionArtifact};
+        r#"use semaprax::codegen::{emit_native_callable_admission, emit_native_callable_settlement_proof, NativeCallableAdmissionArtifact, NativeCallableSettlementProofArtifact};
 use semaprax::trace_path_certificate::TracePathCertificate;
 use semaprax::native_settlement::NativeSettlementCertificate;
 
 fn main() {
     let _ = std::mem::size_of::<NativeCallableAdmissionArtifact>();
+    let _ = std::mem::size_of::<NativeCallableSettlementProofArtifact>();
     let _ = std::mem::size_of::<TracePathCertificate>();
     let _ = std::mem::size_of::<NativeSettlementCertificate>();
     let _ = emit_native_callable_admission;
+    let _ = emit_native_callable_settlement_proof;
 }
 "#,
     )
@@ -243,7 +245,9 @@ fn main() {
     let stderr = String::from_utf8_lossy(&checked.stderr);
     assert!(
         stderr.contains("emit_native_callable_admission")
+            && stderr.contains("emit_native_callable_settlement_proof")
             && stderr.contains("NativeCallableAdmissionArtifact")
+            && stderr.contains("NativeCallableSettlementProofArtifact")
             && stderr.contains("trace_path_certificate")
             && stderr.contains("native_settlement")
             && (stderr.contains("unresolved import") || stderr.contains("private")),

@@ -158,6 +158,16 @@ impl SettlementCheckpointSpec {
     pub const fn normal_outcome(&self) -> Option<SettlementOutcome> {
         self.normal_outcome
     }
+
+    #[must_use]
+    pub fn abort_cleanup_order(&self) -> &[u32] {
+        &self.abort_cleanup_order
+    }
+
+    #[must_use]
+    pub fn accept_cleanup_order(&self) -> &[u32] {
+        &self.accept_cleanup_order
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

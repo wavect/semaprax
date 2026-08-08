@@ -756,8 +756,7 @@ impl NativeSettlementCertificate {
         if transaction.next_action != transaction.actions.len()
             || transaction
                 .resources
-                .iter()
-                .any(|state| *state == SettlementResourceState::Finalizing)
+                .contains(&SettlementResourceState::Finalizing)
         {
             transaction.quarantine(Some(decision));
             return Err(SettlementError::SettlementActionsIncomplete);

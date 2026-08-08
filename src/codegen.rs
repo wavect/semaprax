@@ -10,6 +10,7 @@ mod native_resource;
 mod native_runtime;
 mod native_trace;
 mod native_trace_runtime;
+mod native_value;
 
 use std::collections::HashMap;
 use std::fmt::Write;
@@ -88,7 +89,8 @@ fn emit_hir_c_with_labels(
     let resource_abi = native_resource::build_resource_abi(program)?;
     let functions = function_index(program)?;
     if !resource_abi.resources.is_empty() {
-        let _preflight = preflight_resource_lowering(program, &functions, &resource_abi);
+        let _preflight =
+            preflight_resource_lowering(program, &functions, &resource_abi, contract_labels);
         return Err(resource_lowering_gate());
     }
     let mut output = String::new();
@@ -184,20 +186,49 @@ fn preflight_resource_lowering(
     program: &ResolvedProgram,
     functions: &HashMap<DeclarationId, CFunction>,
     resource_abi: &native_resource::NativeResourceAbi,
+    contract_labels: &HashMap<ExpressionId, String>,
 ) -> Result<(), Diagnostic> {
     let mut first_failure = None;
     for function in &program.functions {
-        if let Err(diagnostic) = native_cleanup::classify(program, function) {
-            first_failure.get_or_insert(diagnostic);
+        match native_cleanup::classify(program, function) {
+            Ok(cleanup) => {
+                match native_value::plan(program, function, &cleanup, resource_abi, contract_labels)
+                {
+                    Ok(values) => {
+                        let _declarations = native_value::emit_declarations(&values);
+                        match native_cleanup_emit::emit_with_block_prologues(
+                            &cleanup,
+                            &values.cleanup_bindings,
+                            |block, output| {
+                                output.push_str(&native_value::emit_block_prologue(&values, block));
+                                Ok(())
+                            },
+                        ) {
+                            Ok(_cleanup_body) => {}
+                            Err(diagnostic) => {
+                                first_failure.get_or_insert(diagnostic);
+                            }
+                        }
+                    }
+                    Err(diagnostic) => {
+                        first_failure.get_or_insert(diagnostic);
+                    }
+                }
+            }
+            Err(diagnostic) => {
+                first_failure.get_or_insert(diagnostic);
+            }
         }
         if let Err(diagnostic) = native_trace::required_event_capacity(program, function) {
             first_failure.get_or_insert(diagnostic);
         }
     }
 
-    // Exercise the same declaration/type/prototype order that the eventual
-    // resource emitter will use, then discard it. No resource artifact may
-    // escape until cleanup execution and trace validation are connected.
+    // Exercise the same ABI declaration/type/prototype order that the eventual
+    // resource emitter will use, then discard it. The loop above separately
+    // constructs the gated value/cleanup bodies; the exact conformance harness
+    // composes those inside strict C functions. No resource artifact may escape
+    // until a public host ownership boundary is defined and proven.
     let mut staged_output = String::new();
     emit_native_prelude(&mut staged_output, resource_abi);
     if let Err(diagnostic) =
@@ -603,6 +634,16 @@ fn c_function_symbol(id: &DeclarationId) -> String {
     symbol
 }
 
+fn c_i64(value: i64) -> String {
+    if value == i64::MIN {
+        "(-INT64_C(9223372036854775807) - INT64_C(1))".to_owned()
+    } else if value < 0 {
+        format!("-INT64_C({})", value.unsigned_abs())
+    } else {
+        format!("INT64_C({value})")
+    }
+}
+
 #[derive(Clone)]
 struct CBinding {
     name: String,
@@ -682,7 +723,7 @@ impl<'a> CEmitter<'a> {
             ResolvedExprKind::Int(value) => {
                 self.require_type(&expr.ty, &ResolvedType::I64, "integer literal")?;
                 CValue {
-                    code: format!("INT64_C({value})"),
+                    code: c_i64(*value),
                     ty: ResolvedType::I64,
                 }
             }
@@ -1020,12 +1061,43 @@ fn main() -> i64 { 0 }
             Path::new("native-resource-public-gate.spx"),
         )
         .unwrap();
+        let program = hir::resolve(&parsed).unwrap();
+        let resource_abi = native_resource::build_resource_abi(&program).unwrap();
+        let functions = function_index(&program).unwrap();
+        preflight_resource_lowering(&program, &functions, &resource_abi, &HashMap::new()).unwrap();
+
         let diagnostic = emit_c(&parsed).unwrap_err();
         assert_eq!(diagnostic.code, "SPX-B104");
         assert_eq!(
             diagnostic.message,
             "native resource lowering requires lifecycle declarations and the verified cleanup ABI"
         );
+    }
+
+    #[test]
+    fn resource_value_preflight_rejects_unstaged_borrow_without_changing_public_gate() {
+        let source = RESOURCE_SOURCE.replace(
+            "@id(\"token.identity\")\nfn identity(value: own Token) -> Token { value }",
+            "@id(\"token.observe\")\nfn observe(value: borrow Token) -> i64 { 0 }",
+        );
+        let parsed = parse(
+            &source,
+            Path::new("native-resource-borrow-value-preflight.spx"),
+        )
+        .unwrap();
+        let program = hir::resolve(&parsed).unwrap();
+        let resource_abi = native_resource::build_resource_abi(&program).unwrap();
+        let functions = function_index(&program).unwrap();
+        let preflight =
+            preflight_resource_lowering(&program, &functions, &resource_abi, &HashMap::new())
+                .unwrap_err();
+        assert_eq!(preflight.code, "SPX-B104");
+        assert!(preflight.message.contains("resource parameter"));
+
+        let public = emit_c(&parsed).unwrap_err();
+        let gate = resource_lowering_gate();
+        assert_eq!(public.code, gate.code);
+        assert_eq!(public.message, gate.message);
     }
 
     #[test]
@@ -1040,18 +1112,30 @@ fn main() -> i64 { 0 }
         assert_eq!(escaped, "\\077\\077/\\316\\273\\n\\r\\t\\\\\\\"\\177");
         assert!(!escaped.contains("??"));
         assert!(escaped.is_ascii());
+        assert_eq!(
+            c_i64(i64::MIN),
+            "(-INT64_C(9223372036854775807) - INT64_C(1))"
+        );
+        assert_eq!(c_i64(-42), "-INT64_C(42)");
+        assert_eq!(c_i64(42), "INT64_C(42)");
 
         let source = format!(
             "#include <stddef.h>\n\
+             #include <stdint.h>\n\
              static const unsigned char value[] = \"{escaped}\";\n\
              static const unsigned char expected[] = {{0x3f, 0x3f, 0x2f, 0xce, 0xbb, 0x0a, 0x0d, 0x09, 0x5c, 0x22, 0x7f, 0x00}};\n\
+             static const int64_t minimum = {};\n\
+             static const int64_t negative = {};\n\
              int main(void) {{\n\
                  if (sizeof(value) != sizeof(expected)) return 1;\n\
                  for (size_t index = 0; index < sizeof(expected); ++index) {{\n\
                      if (value[index] != expected[index]) return 2;\n\
                  }}\n\
+                 if (minimum != INT64_MIN || negative != -INT64_C(42)) return 3;\n\
                  return 0;\n\
-             }}\n"
+             }}\n",
+            c_i64(i64::MIN),
+            c_i64(-42),
         );
         assert!(!source.contains("??"));
 
@@ -1074,6 +1158,7 @@ fn main() -> i64 { 0 }
                 "-Wextra",
                 "-Werror",
                 "-Wtrigraphs",
+                "-Wimplicitly-unsigned-literal",
             ])
             .arg(&c_path)
             .arg("-o")

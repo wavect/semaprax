@@ -1,8 +1,8 @@
 # Conformance trace v1
 
-Status: the public Rust data model, deterministic JSON projection, independent attached-plan replay, scenario-driven single-frame reference executor, and native scalar status/out execution are implemented. A gated native cleanup scaffold now emits root-frame events for the admitted direct-trivial-resource slice and passes exact typed/JSON comparison through a bounded binary decoder and validated-HIR materializer at O0/O2 plus sanitizers. Production native resource/expression integration, Wasm status/resource/trace instrumentation, recursive reference-callee execution, callable-import execution, adapter execution, and full backend-conformance claims are not implemented.
+Status: the public Rust data model, deterministic JSON projection, independent attached-plan replay, scenario-driven single-frame reference executor, and native scalar status/out execution are implemented. A gated native value/cleanup scaffold now executes real root-frame contracts, comparison, checked addition, scalar/owned publication, and cleanup events for the admitted direct-trivial-resource slice, then passes exact typed/JSON comparison through a bounded binary decoder and validated-HIR materializer at O0/O2 plus sanitizers. A public resource host/ownership boundary, Wasm status/resource/trace instrumentation, recursive reference-callee execution, callable-import execution, adapter execution, and full backend-conformance claims are not implemented.
 
-This document fixes the current public wire projection defined by `src/conformance.rs`. It complements [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md). The native scalar backend now executes the status/out portion, but no backend emits this semantic trace or claims cleanup conformance yet.
+This document fixes the current public wire projection defined by `src/conformance.rs`. It complements [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md). The native scalar backend executes the status/out portion, while the gated native test lane emits this semantic trace for the admitted slice; no production backend claims resource cleanup conformance yet.
 
 ## Normalized status
 

@@ -148,7 +148,8 @@ pub(crate) fn classify<'a>(
     let mut leaf_positions = BTreeMap::new();
 
     for slot in &plan.slots {
-        validate_direct_resource_type(program, function, &slot.ty, "cleanup slot")?;
+        let expected_lifecycle =
+            direct_resource_lifecycle(program, function, &slot.ty, "cleanup slot")?;
         let FieldLivenessShape::Leaf { flag, lifecycle } = &slot.field_liveness_shape else {
             let detail = match &slot.field_liveness_shape {
                 FieldLivenessShape::NoDrop => "has a no-drop cleanup shape",
@@ -160,6 +161,16 @@ pub(crate) fn classify<'a>(
                 format!("cleanup slot {} {detail}", slot.id.0),
             ));
         };
+        if lifecycle != expected_lifecycle {
+            return Err(unsupported(
+                function,
+                format!(
+                    "cleanup slot {} lifecycle `{lifecycle}` disagrees with resource type `{}` lifecycle `{expected_lifecycle}`",
+                    slot.id.0,
+                    slot.ty.identity_key()
+                ),
+            ));
+        }
         validate_trivial_lifecycle(program, function, lifecycle)?;
         let place = CleanupPlace {
             storage: slot.storage.clone(),
@@ -200,7 +211,7 @@ pub(crate) fn classify<'a>(
             ));
         }
         for transition in &block.transitions {
-            validate_transition(function, transition, &slot_positions)?;
+            validate_transition(function, transition, &slot_positions, &slots)?;
         }
         blocks.push(NativeCleanupBlock {
             block,
@@ -487,12 +498,12 @@ fn validate_supported_type(
     }
 }
 
-fn validate_direct_resource_type(
-    program: &ResolvedProgram,
+fn direct_resource_lifecycle<'a>(
+    program: &'a ResolvedProgram,
     function: &ResolvedFunction,
     ty: &ResolvedType,
     context: &str,
-) -> Result<(), Diagnostic> {
+) -> Result<&'a DeclarationId, Diagnostic> {
     validate_supported_type(program, function, ty, context)?;
     let ResolvedType::Nominal {
         declaration,
@@ -510,16 +521,18 @@ fn validate_direct_resource_type(
             format!("{context} uses generic resource arguments"),
         ));
     }
-    let is_resource = program.types.iter().any(|item| {
-        item.id == *declaration && matches!(item.kind, ResolvedTypeDeclarationKind::Resource { .. })
-    });
-    if !is_resource {
-        return Err(unsupported(
+    let item = program
+        .types
+        .iter()
+        .find(|item| item.id == *declaration)
+        .ok_or_else(|| unsupported(function, format!("references unknown type `{declaration}`")))?;
+    match &item.kind {
+        ResolvedTypeDeclarationKind::Resource { drop } => Ok(&drop.id),
+        ResolvedTypeDeclarationKind::Record { .. } => Err(unsupported(
             function,
             format!("{context} `{declaration}` is not an opaque resource"),
-        ));
+        )),
     }
-    Ok(())
 }
 
 fn validate_trivial_lifecycle(
@@ -668,6 +681,7 @@ fn validate_transition(
     function: &ResolvedFunction,
     transition: &CleanupTransition,
     slots: &BTreeMap<StorageId, usize>,
+    indexed_slots: &[NativeCleanupSlot<'_>],
 ) -> Result<(), Diagnostic> {
     match transition {
         CleanupTransition::Initialize { at, .. } => Err(unsupported(
@@ -677,12 +691,29 @@ fn validate_transition(
             ),
         )),
         CleanupTransition::Transfer {
+            at,
             source,
             destination,
-            ..
         } => {
             validate_place(function, source, slots, "transfer source")?;
-            validate_place(function, destination, slots, "transfer destination")
+            validate_place(function, destination, slots, "transfer destination")?;
+            let source_slot = &indexed_slots[*slots
+                .get(&source.storage)
+                .expect("validated transfer source is indexed")];
+            let destination_slot = &indexed_slots[*slots
+                .get(&destination.storage)
+                .expect("validated transfer destination is indexed")];
+            if source_slot.slot.ty != destination_slot.slot.ty {
+                return Err(unsupported(
+                    function,
+                    format!(
+                        "transfer `{at}` changes resource type from `{}` to `{}`",
+                        source_slot.slot.ty.identity_key(),
+                        destination_slot.slot.ty.identity_key()
+                    ),
+                ));
+            }
+            Ok(())
         }
         CleanupTransition::CallCommit { call, .. } => Err(unsupported(
             function,
@@ -1187,5 +1218,51 @@ permit { io.release }
         let diagnostic = classify(&program, &hostile).unwrap_err();
         assert_eq!(diagnostic.code, "SPX-B104");
         assert!(diagnostic.message.contains("generic nominal type"));
+    }
+
+    #[test]
+    fn forged_slot_lifecycle_and_transfer_type_mismatches_are_rejected() {
+        let program = resolve(
+            r#"module test.native_cleanup_type_identity;
+@id("alpha.type") resource Alpha { @id("alpha.drop") drop trivial; }
+@id("beta.type") resource Beta { @id("beta.drop") drop trivial; }
+@id("alpha.identity") fn identity(value: own Alpha) -> Alpha { value }
+@id("app.main") fn main() -> i64 { 0 }
+"#,
+        );
+        let original = function(&program, "alpha.identity");
+
+        let mut lifecycle_mismatch = original.clone();
+        let FieldLivenessShape::Leaf { lifecycle, .. } =
+            &mut lifecycle_mismatch.cleanup_plan.slots[0].field_liveness_shape
+        else {
+            panic!("direct resource slot must have one leaf");
+        };
+        *lifecycle = DeclarationId::new("beta.drop");
+        let diagnostic = classify(&program, &lifecycle_mismatch).unwrap_err();
+        assert_eq!(diagnostic.code, "SPX-B104");
+        assert!(diagnostic.message.contains("lifecycle `beta.drop`"));
+        assert!(diagnostic.message.contains("lifecycle `alpha.drop`"));
+
+        let mut transfer_mismatch = original.clone();
+        let temporary = transfer_mismatch
+            .cleanup_plan
+            .slots
+            .iter_mut()
+            .find(|slot| matches!(slot.storage, StorageId::Temporary(_)))
+            .expect("owned identity has body temporary storage");
+        temporary.ty = ResolvedType::Nominal {
+            declaration: DeclarationId::new("beta.type"),
+            arguments: Vec::new(),
+        };
+        let FieldLivenessShape::Leaf { lifecycle, .. } = &mut temporary.field_liveness_shape else {
+            panic!("direct resource temporary must have one leaf");
+        };
+        *lifecycle = DeclarationId::new("beta.drop");
+        let diagnostic = classify(&program, &transfer_mismatch).unwrap_err();
+        assert_eq!(diagnostic.code, "SPX-B104");
+        assert!(diagnostic.message.contains("changes resource type"));
+        assert!(diagnostic.message.contains("alpha.type"));
+        assert!(diagnostic.message.contains("beta.type"));
     }
 }

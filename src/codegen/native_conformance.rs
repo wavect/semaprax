@@ -4,15 +4,15 @@
 //! `SPX-B104`; the probe composes the private staged runtimes and cleanup
 //! emitter directly so the gate cannot accidentally leak an artifact.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::cleanup_plan::{
-    execute_for_conformance, CleanupResultSource, CleanupScenario, ContractPhase, EdgeCondition,
-    ExitContinuation, StatusCase, StatusProducer, StatusSourceId, StorageId,
+    execute_for_conformance, CleanupScenario, ContractPhase, StatusCase, StatusProducer,
+    StatusSourceId,
 };
 use crate::conformance::{NormalizedStatus, OperationOutcome, TraceOutcome, TraceResult};
 use crate::hir::{
@@ -20,11 +20,11 @@ use crate::hir::{
 };
 use crate::parse;
 
-use super::native_cleanup::{self, NativeCleanupIndex};
-use super::native_cleanup_emit::{self, NativeCleanupBindings};
+use super::native_cleanup;
+use super::native_cleanup_emit;
 use super::native_conformance_materialize;
 use super::native_conformance_wire;
-use super::{native_resource, native_runtime, native_trace, native_trace_runtime};
+use super::{native_resource, native_runtime, native_trace_runtime, native_value};
 
 static NEXT_PROBE: AtomicU64 = AtomicU64::new(0);
 
@@ -133,11 +133,18 @@ impl Payload {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+enum CaseArgument {
+    Resource(Payload),
+    Bool(bool),
+    I64(i64),
+}
+
 #[derive(Clone, Debug)]
 struct Case {
     scenario_id: &'static str,
     function_id: &'static str,
-    payloads: Vec<Payload>,
+    arguments: Vec<CaseArgument>,
     booleans: BTreeMap<ExpressionId, bool>,
     operations: BTreeMap<StatusSourceId, OperationOutcome>,
     result: Option<TraceResult>,
@@ -192,7 +199,7 @@ fn cases(program: &ResolvedProgram) -> Vec<Case> {
         Case {
             scenario_id: "discard-zero",
             function_id: "token.discard",
-            payloads: vec![Payload::Zero],
+            arguments: vec![CaseArgument::Resource(Payload::Zero)],
             booleans: BTreeMap::new(),
             operations: BTreeMap::new(),
             result: Some(TraceResult::I64(0)),
@@ -200,7 +207,7 @@ fn cases(program: &ResolvedProgram) -> Vec<Case> {
         Case {
             scenario_id: "discard-max",
             function_id: "token.discard",
-            payloads: vec![Payload::Maximum],
+            arguments: vec![CaseArgument::Resource(Payload::Maximum)],
             booleans: BTreeMap::new(),
             operations: BTreeMap::new(),
             result: Some(TraceResult::I64(0)),
@@ -208,7 +215,10 @@ fn cases(program: &ResolvedProgram) -> Vec<Case> {
         Case {
             scenario_id: "discard-two-reverse",
             function_id: "token.discard-two",
-            payloads: vec![Payload::Zero, Payload::Maximum],
+            arguments: vec![
+                CaseArgument::Resource(Payload::Zero),
+                CaseArgument::Resource(Payload::Maximum),
+            ],
             booleans: BTreeMap::new(),
             operations: BTreeMap::new(),
             result: Some(TraceResult::I64(0)),
@@ -216,15 +226,29 @@ fn cases(program: &ResolvedProgram) -> Vec<Case> {
         Case {
             scenario_id: "requires-false",
             function_id: "token.requires",
-            payloads: vec![Payload::Maximum],
+            arguments: vec![
+                CaseArgument::Resource(Payload::Maximum),
+                CaseArgument::Bool(false),
+            ],
             booleans: BTreeMap::from([(requires_source.expression.clone(), false)]),
             operations: BTreeMap::new(),
             result: None,
         },
         Case {
+            scenario_id: "requires-true",
+            function_id: "token.requires",
+            arguments: vec![
+                CaseArgument::Resource(Payload::Zero),
+                CaseArgument::Bool(true),
+            ],
+            booleans: BTreeMap::from([(requires_source.expression.clone(), true)]),
+            operations: BTreeMap::new(),
+            result: Some(TraceResult::I64(0)),
+        },
+        Case {
             scenario_id: "checked-success",
             function_id: "token.checked",
-            payloads: vec![Payload::Zero],
+            arguments: vec![CaseArgument::Resource(Payload::Zero), CaseArgument::I64(41)],
             booleans: BTreeMap::from([(checked_requires.expression.clone(), true)]),
             operations: BTreeMap::from([(checked_arithmetic.clone(), OperationOutcome::Success)]),
             result: Some(TraceResult::I64(42)),
@@ -232,7 +256,10 @@ fn cases(program: &ResolvedProgram) -> Vec<Case> {
         Case {
             scenario_id: "checked-add-overflow",
             function_id: "token.checked",
-            payloads: vec![Payload::Maximum],
+            arguments: vec![
+                CaseArgument::Resource(Payload::Maximum),
+                CaseArgument::I64(i64::MAX),
+            ],
             booleans: BTreeMap::from([(checked_requires.expression.clone(), true)]),
             operations: BTreeMap::from([(
                 checked_arithmetic.clone(),
@@ -243,7 +270,7 @@ fn cases(program: &ResolvedProgram) -> Vec<Case> {
         Case {
             scenario_id: "checked-precondition-false",
             function_id: "token.checked",
-            payloads: vec![Payload::Zero],
+            arguments: vec![CaseArgument::Resource(Payload::Zero), CaseArgument::I64(-1)],
             booleans: BTreeMap::from([(checked_requires.expression.clone(), false)]),
             operations: BTreeMap::new(),
             result: None,
@@ -251,7 +278,7 @@ fn cases(program: &ResolvedProgram) -> Vec<Case> {
         Case {
             scenario_id: "identity-zero",
             function_id: "token.identity",
-            payloads: vec![Payload::Zero],
+            arguments: vec![CaseArgument::Resource(Payload::Zero)],
             booleans: BTreeMap::new(),
             operations: BTreeMap::new(),
             result: Some(TraceResult::Owned {
@@ -267,7 +294,7 @@ fn cases(program: &ResolvedProgram) -> Vec<Case> {
         Case {
             scenario_id: "identity-max",
             function_id: "token.identity",
-            payloads: vec![Payload::Maximum],
+            arguments: vec![CaseArgument::Resource(Payload::Maximum)],
             booleans: BTreeMap::new(),
             operations: BTreeMap::new(),
             result: Some(TraceResult::Owned {
@@ -283,65 +310,12 @@ fn cases(program: &ResolvedProgram) -> Vec<Case> {
         Case {
             scenario_id: "ensures-false",
             function_id: "token.ensures-false",
-            payloads: vec![Payload::Maximum],
+            arguments: vec![CaseArgument::Resource(Payload::Maximum)],
             booleans: BTreeMap::from([(ensures_source.expression.clone(), false)]),
             operations: BTreeMap::new(),
             result: None,
         },
     ]
-}
-
-fn bindings(index: &NativeCleanupIndex<'_>) -> NativeCleanupBindings {
-    let mut bindings = NativeCleanupBindings {
-        context: "spx_bind_context".to_owned(),
-        ..NativeCleanupBindings::default()
-    };
-    for slot in &index.slots {
-        bindings.storage_values.insert(
-            slot.slot.storage.clone(),
-            format!("spx_bind_slot_{}", slot.slot.id.0),
-        );
-    }
-    for edge in index.edges {
-        match &edge.condition {
-            EdgeCondition::BooleanResult(expression, _) => {
-                let next = bindings.boolean_values.len();
-                bindings
-                    .boolean_values
-                    .entry(expression.clone())
-                    .or_insert_with(|| format!("spx_bind_bool_{next}"));
-            }
-            EdgeCondition::StatusZero(source) | EdgeCondition::StatusNonzero(source) => {
-                let next = bindings.status_tokens.len();
-                bindings
-                    .status_tokens
-                    .entry(source.clone())
-                    .or_insert_with(|| format!("spx_bind_status_{next}"));
-            }
-            EdgeCondition::Always => {}
-        }
-    }
-    for indexed in &index.exits {
-        match &indexed.exit.continuation {
-            ExitContinuation::CommitResult { source } => {
-                bindings.result_out = Some("spx_bind_result_out".to_owned());
-                if let CleanupResultSource::Scalar { expression } = source {
-                    bindings
-                        .scalar_results
-                        .insert(expression.clone(), "spx_bind_scalar_result".to_owned());
-                }
-            }
-            ExitContinuation::ReturnFailure { source } => {
-                let next = bindings.status_tokens.len();
-                bindings
-                    .status_tokens
-                    .entry(source.clone())
-                    .or_insert_with(|| format!("spx_bind_status_{next}"));
-            }
-            ExitContinuation::Continue(_) | ExitContinuation::ReturnUnit => {}
-        }
-    }
-    bindings
 }
 
 fn emit_probe(
@@ -352,6 +326,8 @@ fn emit_probe(
     let mut source = String::new();
     native_runtime::emit_status_runtime(&mut source);
     source.push_str(&abi.declarations);
+    source.push_str("#include <stdio.h>\n\n");
+    source.push_str(super::NATIVE_SCALAR_RUNTIME_C);
     native_trace_runtime::emit_trace_runtime(&mut source);
     source.push_str(C_WIRE_WRITER);
     source.push_str(
@@ -364,11 +340,6 @@ fn emit_probe(
          (void)spx_status_record_arithmetic;\n\
          }\n",
     );
-    writeln!(
-        source,
-        "static __attribute__((noreturn)) void spx_runtime_invariant_failure(const char *message) {{ (void)message; abort(); }}"
-    )
-    .unwrap();
     for (index, (case, oracle)) in cases.iter().enumerate() {
         emit_case(&mut source, program, &abi, index, case, oracle);
     }
@@ -395,111 +366,66 @@ fn emit_case(
 ) {
     let function = function(program, case.function_id);
     let index = native_cleanup::classify(program, function).unwrap();
-    let capacity = native_trace::required_event_capacity(program, function).unwrap();
+    let values = native_value::plan(program, function, &index, abi, &HashMap::new()).unwrap();
+    let capacity = values.required_event_capacity;
     assert!(capacity > 1);
-    let bindings = bindings(&index);
-    let cleanup = native_cleanup_emit::emit(&index, &bindings).unwrap();
+    let declarations = native_value::emit_declarations(&values);
+    let cleanup = native_cleanup_emit::emit_with_block_prologues(
+        &index,
+        &values.cleanup_bindings,
+        |block, output| {
+            output.push_str(&native_value::emit_block_prologue(&values, block));
+            Ok(())
+        },
+    )
+    .unwrap();
     let result_type = abi.c_type(program, &function.return_type).unwrap();
-    let resource_parameters = function
-        .params
-        .iter()
-        .filter(|parameter| {
-            parameter.ownership == OwnershipMode::Own
-                && matches!(parameter.ty, ResolvedType::Nominal { .. })
-        })
-        .collect::<Vec<_>>();
-    assert_eq!(resource_parameters.len(), case.payloads.len());
+    assert_eq!(function.params.len(), case.arguments.len());
+    for (parameter, argument) in function.params.iter().zip(&case.arguments) {
+        assert!(
+            matches!(
+                (&parameter.ty, parameter.ownership, argument),
+                (
+                    ResolvedType::Nominal { .. },
+                    OwnershipMode::Own,
+                    CaseArgument::Resource(_)
+                ) | (
+                    ResolvedType::Bool,
+                    OwnershipMode::Value,
+                    CaseArgument::Bool(_)
+                ) | (
+                    ResolvedType::I64,
+                    OwnershipMode::Value,
+                    CaseArgument::I64(_)
+                )
+            ),
+            "case `{}` argument does not match parameter `{}`",
+            case.scenario_id,
+            parameter.id
+        );
+    }
 
     write!(
         source,
         "static spx_status_token spx_cleanup_case_{case_index}(struct spx_context *spx_bind_context"
     )
     .unwrap();
-    for (parameter_index, parameter) in resource_parameters.iter().enumerate() {
+    for (parameter_index, parameter) in function.params.iter().enumerate() {
         write!(
             source,
-            ", {} spx_input_{parameter_index}",
+            ", {} spx_bind_param_{parameter_index}",
             abi.c_type(program, &parameter.ty).unwrap()
         )
         .unwrap();
     }
     writeln!(source, ", {result_type} *spx_bind_result_out) {{").unwrap();
-
-    for slot in &index.slots {
-        let name = &bindings.storage_values[&slot.slot.storage];
-        let c_type = abi.c_type(program, &slot.slot.ty).unwrap();
-        let initializer = match &slot.slot.storage {
-            StorageId::Value(value) => resource_parameters
-                .iter()
-                .position(|parameter| parameter.id == *value)
-                .map_or_else(
-                    || "{0}".to_owned(),
-                    |position| format!("spx_input_{position}"),
-                ),
-            StorageId::Temporary(_)
-            | StorageId::CallArgument { .. }
-            | StorageId::ProvisionalResult => "{0}".to_owned(),
-        };
-        writeln!(source, "    {c_type} {name} = {initializer};").unwrap();
-        writeln!(source, "    (void){name};").unwrap();
+    for line in declarations.lines() {
+        writeln!(source, "    {line}").unwrap();
     }
-    for (expression, name) in &bindings.boolean_values {
-        let value =
-            case.booleans.get(expression).copied().unwrap_or_else(|| {
-                panic!("case `{}` lacks boolean `{expression}`", case.scenario_id)
-            });
-        writeln!(
-            source,
-            "    bool {name} = {};",
-            if value { "true" } else { "false" }
-        )
-        .unwrap();
-    }
-    for (status_source, name) in &bindings.status_tokens {
-        writeln!(source, "    spx_status_token {name} = SPX_STATUS_SUCCESS;").unwrap();
-        let producer = function
-            .cleanup_plan
-            .status_sources
-            .iter()
-            .find(|candidate| candidate.id == *status_source)
-            .unwrap();
-        match &producer.producer {
-            StatusProducer::ContractFalse { phase, .. }
-                if case.booleans.get(&status_source.expression) == Some(&false) =>
-            {
-                let recorder = match phase {
-                    ContractPhase::Requires => "spx_status_record_requires_false",
-                    ContractPhase::Ensures => "spx_status_record_ensures_false",
-                };
-                writeln!(
-                    source,
-                    "    if (!{recorder}(spx_bind_context, &{name})) spx_runtime_invariant_failure(\"status record\");"
-                )
-                .unwrap();
-            }
-            StatusProducer::CheckedArithmetic { .. } => {
-                if let Some(OperationOutcome::Failure(status)) = case.operations.get(status_source)
-                {
-                    writeln!(
-                        source,
-                        "    if (!spx_status_record_arithmetic(spx_bind_context, UINT32_C({}), &{name})) spx_runtime_invariant_failure(\"status record\");",
-                        status.code()
-                    )
-                    .unwrap();
-                }
-            }
-            StatusProducer::ContractFalse { .. } => {}
-            StatusProducer::PropagatedCall { .. } => {
-                panic!("call status reached the single-frame case corpus")
-            }
+    for declaration in &values.declarations {
+        if let native_value::NativeValueDeclaration::ResourceStorage { binding, .. } = declaration {
+            writeln!(source, "    (void){binding};").unwrap();
         }
-    }
-    for name in bindings.scalar_results.values() {
-        let value = match &case.result {
-            Some(TraceResult::I64(value)) => *value,
-            _ => 0,
-        };
-        writeln!(source, "    int64_t {name} = INT64_C({value});").unwrap();
     }
     source.push_str(&cleanup);
     source.push_str("}\n");
@@ -510,26 +436,57 @@ fn emit_case(
     )
     .unwrap();
     source.push_str("    spx_retain_status_runtime();\n");
-    for (position, payload) in case.payloads.iter().enumerate() {
-        let c_type = abi
-            .c_type(program, &resource_parameters[position].ty)
-            .unwrap();
-        writeln!(
-            source,
-            "    {c_type} spx_case_input_{position} = {{{}}};",
-            payload.c_expression()
-        )
-        .unwrap();
-        writeln!(
-            source,
-            "    const uintptr_t spx_case_original_{position} = spx_case_input_{position}.payload;"
-        )
-        .unwrap();
+    for (position, (parameter, argument)) in function.params.iter().zip(&case.arguments).enumerate()
+    {
+        let c_type = abi.c_type(program, &parameter.ty).unwrap();
+        match argument {
+            CaseArgument::Resource(payload) => {
+                writeln!(
+                    source,
+                    "    {c_type} spx_case_input_{position} = {{{}}};",
+                    payload.c_expression()
+                )
+                .unwrap();
+                writeln!(
+                    source,
+                    "    const uintptr_t spx_case_original_{position} = spx_case_input_{position}.payload;"
+                )
+                .unwrap();
+            }
+            CaseArgument::Bool(value) => {
+                writeln!(
+                    source,
+                    "    {c_type} spx_case_input_{position} = {};",
+                    if *value { "true" } else { "false" }
+                )
+                .unwrap();
+            }
+            CaseArgument::I64(value) => {
+                writeln!(
+                    source,
+                    "    {c_type} spx_case_input_{position} = {};",
+                    super::c_i64(*value)
+                )
+                .unwrap();
+            }
+        }
     }
     let success = matches!(oracle.outcome, TraceOutcome::Success { .. });
     let owned_result = matches!(function.return_type, ResolvedType::Nominal { .. });
+    let owned_result_input = function
+        .params
+        .iter()
+        .zip(&case.arguments)
+        .enumerate()
+        .find_map(|(position, (parameter, argument))| {
+            (parameter.ty == function.return_type
+                && parameter.ownership == OwnershipMode::Own
+                && matches!(argument, CaseArgument::Resource(_)))
+            .then_some(position)
+        });
     if owned_result {
-        source.push_str("    const uintptr_t spx_case_poison = spx_case_input_0.payload == UINTPTR_MAX ? (uintptr_t)UINT32_C(0) : UINTPTR_MAX;\n");
+        let position = owned_result_input.expect("owned result lacks its owned argument");
+        writeln!(source, "    const uintptr_t spx_case_poison = spx_case_input_{position}.payload == UINTPTR_MAX ? (uintptr_t)UINT32_C(0) : UINTPTR_MAX;").unwrap();
         writeln!(
             source,
             "    {result_type} spx_case_result = {{spx_case_poison}};"
@@ -556,12 +513,14 @@ fn emit_case(
     writeln!(source, "    if (!spx_trace_buffer_init(&spx_small_trace, spx_small_events, UINT32_C({}))) return 31;", capacity - 1).unwrap();
     writeln!(source, "    if (spx_trace_attach_preflight(&spx_small_context, &spx_small_trace, UINT32_C({capacity}))) return 32;").unwrap();
     source.push_str("    if (spx_small_context.trace != NULL || spx_small_trace.length != UINT32_C(0) || spx_small_trace.state != SPX_TRACE_BUFFER_READY) return 33;\n");
-    for position in 0..case.payloads.len() {
-        writeln!(
-            source,
-            "    if (spx_case_input_{position}.payload != spx_case_original_{position}) return 34;"
-        )
-        .unwrap();
+    for (position, argument) in case.arguments.iter().enumerate() {
+        if matches!(argument, CaseArgument::Resource(_)) {
+            writeln!(
+                source,
+                "    if (spx_case_input_{position}.payload != spx_case_original_{position}) return 34;"
+            )
+            .unwrap();
+        }
     }
     if owned_result {
         source.push_str("    if (spx_case_result.payload != spx_case_poison) return 35;\n");
@@ -589,7 +548,7 @@ fn emit_case(
         "    spx_status_token spx_status = spx_cleanup_case_{case_index}(&spx_context"
     )
     .unwrap();
-    for position in 0..case.payloads.len() {
+    for position in 0..case.arguments.len() {
         write!(source, ", spx_case_input_{position}").unwrap();
     }
     source.push_str(", &spx_case_result);\n");
@@ -601,16 +560,16 @@ fn emit_case(
             } => {
                 writeln!(
                     source,
-                    "    if (spx_case_result != INT64_C({value})) return 44;"
+                    "    if (spx_case_result != {}) return 44;",
+                    super::c_i64(*value)
                 )
                 .unwrap();
             }
             TraceOutcome::Success {
                 result: TraceResult::Owned { .. },
             } => {
-                source.push_str(
-                    "    if (spx_case_result.payload != spx_case_input_0.payload) return 44;\n",
-                );
+                let position = owned_result_input.expect("owned result lacks its owned argument");
+                writeln!(source, "    if (spx_case_result.payload != spx_case_input_{position}.payload) return 44;").unwrap();
             }
             _ => panic!("unsupported success result in first corpus"),
         }
@@ -886,6 +845,33 @@ fn assert_payload_opacity(cases: &[(Case, crate::conformance::ConformanceTrace)]
     }
 }
 
+fn assert_real_value_lowering(source: &str) {
+    for required in [
+        ", bool spx_bind_param_1",
+        ", int64_t spx_bind_param_1",
+        "bool spx_case_input_1 = false;",
+        "bool spx_case_input_1 = true;",
+        "int64_t spx_case_input_1 = INT64_C(41);",
+        "int64_t spx_case_input_1 = INT64_C(9223372036854775807);",
+        "int64_t spx_case_input_1 = -INT64_C(1);",
+        " = spx_rt_contract(spx_bind_context,",
+        " = spx_rt_add(spx_bind_context,",
+    ] {
+        assert!(
+            source.contains(required),
+            "native corpus omitted real value lowering fragment `{required}`"
+        );
+    }
+    assert!(
+        source
+            .lines()
+            .any(|line| line.contains(" = (") && line.contains(" >= ")),
+        "native corpus omitted the staged i64 Ge comparison"
+    );
+    assert!(!source.contains("spx_bind_bool_"));
+    assert!(!source.contains("\"status record\""));
+}
+
 #[test]
 fn first_native_resource_corpus_matches_the_reference_across_codegen_modes() {
     let require_sanitizers =
@@ -931,6 +917,7 @@ fn first_native_resource_corpus_matches_the_reference_across_codegen_modes() {
     assert_eq!(reverse_flags, [1, 1, 0, 0]);
     assert_payload_opacity(&cases);
     let c_source = emit_probe(&program, &cases);
+    assert_real_value_lowering(&c_source);
     let suffix = NEXT_PROBE.fetch_add(1, Ordering::Relaxed);
     let directory = ProbeDirectory::create(suffix);
     let directory = directory.path();

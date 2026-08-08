@@ -8,7 +8,7 @@ Status values:
 - **Partial** — useful implementation exists, but the full gate is not proven.
 - **Missing** — no qualifying implementation exists yet.
 
-[RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) phases 1–2 are implemented. Every resolved function carries an independently rebuilt target-neutral cleanup CFG with storage/leaf liveness, regions, atomic call commits, sticky failure sources, guarded finalization order, and result publication; Graph v6 serializes it. Versioned status/trace types, independent attached-plan coverage/path replay, a single-frame reference executor, native scalar status/out execution, and a gated typed-resource cleanup scaffold with exact first-slice backend-oracle traces are phase-3 groundwork. Production native/Wasm resource execution, real resource-expression integration, Wasm status/out execution, callable imports, adapters, and cross-target conformance remain unimplemented and fail closed.
+[RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) phases 1–2 are implemented. Every resolved function carries an independently rebuilt target-neutral cleanup CFG with storage/leaf liveness, regions, atomic call commits, sticky failure sources, guarded finalization order, and result publication; Graph v6 serializes it. Versioned status/trace types, independent attached-plan coverage/path replay, a single-frame reference executor, native scalar status/out execution, and a gated typed-resource value/cleanup scaffold with exact first-slice backend-oracle traces are phase-3 groundwork. Public native/Wasm resource hosting, Wasm status/out execution, callable imports, adapters, and cross-target conformance remain unimplemented and fail closed.
 
 ## Defining product contract
 

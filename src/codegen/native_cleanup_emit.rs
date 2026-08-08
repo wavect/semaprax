@@ -59,6 +59,16 @@ pub(crate) fn emit(
     index: &NativeCleanupIndex<'_>,
     bindings: &NativeCleanupBindings,
 ) -> Result<String, Diagnostic> {
+    emit_with_block_prologues(index, bindings, |_, _| Ok(()))
+}
+
+/// Emit the cleanup scaffold while allowing the surrounding value emitter to
+/// materialize each block's observations immediately after its label.
+pub(crate) fn emit_with_block_prologues(
+    index: &NativeCleanupIndex<'_>,
+    bindings: &NativeCleanupBindings,
+    mut emit_block_prologue: impl FnMut(BlockId, &mut String) -> Result<(), Diagnostic>,
+) -> Result<String, Diagnostic> {
     validate_bindings(index, bindings)?;
 
     let mut output = String::from("/* semaprax.native-cleanup-scaffold.v1 */\n");
@@ -78,6 +88,7 @@ pub(crate) fn emit(
     for indexed in &index.blocks {
         writeln!(output, "{}:", block_label(indexed.block.id))
             .expect("writing to a string cannot fail");
+        emit_block_prologue(indexed.block.id, &mut output)?;
         for transition in indexed.transitions {
             emit_transition(&mut output, index, bindings, transition)?;
         }
@@ -1284,6 +1295,66 @@ fn main() -> i64 { 0 }
             "return SPX_STATUS_SUCCESS;\n",
         );
         assert_eq!(emitted, expected);
+    }
+
+    #[test]
+    fn block_prologues_run_immediately_after_every_block_label() {
+        let program = program();
+        let index = classify(&program, function(&program, "token.checked")).unwrap();
+        let bindings = complete_bindings(&index);
+        let baseline = emit(&index, &bindings).unwrap();
+        let no_op = emit_with_block_prologues(&index, &bindings, |_, _| Ok(())).unwrap();
+        assert_eq!(no_op, baseline);
+
+        let mut visited = Vec::new();
+        let emitted = emit_with_block_prologues(&index, &bindings, |block, output| {
+            visited.push(block);
+            writeln!(output, "/* test block prologue {} */", block.0)
+                .expect("writing to a string cannot fail");
+            Ok(())
+        })
+        .unwrap();
+
+        assert_eq!(
+            visited,
+            index
+                .blocks
+                .iter()
+                .map(|indexed| indexed.block.id)
+                .collect::<Vec<_>>()
+        );
+        for indexed in &index.blocks {
+            let block = indexed.block.id;
+            assert!(emitted.contains(&format!(
+                "{}:\n/* test block prologue {} */\n",
+                block_label(block),
+                block.0
+            )));
+        }
+    }
+
+    #[test]
+    fn block_prologue_error_is_propagated_without_visiting_later_blocks() {
+        let program = program();
+        let index = classify(&program, function(&program, "token.checked")).unwrap();
+        assert!(index.blocks.len() > 1);
+        let mut visited = Vec::new();
+        let diagnostic =
+            emit_with_block_prologues(&index, &complete_bindings(&index), |block, _| {
+                visited.push(block);
+                Err(Diagnostic::io(
+                    "SPX-TEST",
+                    format!("failed block prologue {}", block.0),
+                ))
+            })
+            .unwrap_err();
+
+        assert_eq!(visited, vec![index.entry]);
+        assert_eq!(diagnostic.code, "SPX-TEST");
+        assert_eq!(
+            diagnostic.message,
+            format!("failed block prologue {}", index.entry.0)
+        );
     }
 
     #[test]

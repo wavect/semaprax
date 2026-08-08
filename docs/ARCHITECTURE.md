@@ -130,15 +130,19 @@ CI run; it does not claim Rust-host UBSan or mobile/app-platform coverage.
 
 The hidden `native_settlement` module and proposed [RFC
 0004](RFC-0004-NATIVE-CALL-SETTLEMENT.md) now make the target-neutral recovery
-state machine executable: bounded dense checkpoints, exact accept/abort action
-permutations, idempotent cached receipts, terminal owner dispositions, and
-quiescence validation. Exhaustive tests cover every valid live/dead/single-
-provisional combination through six owners, accepted outcomes, hostile
-certificate/receipt mutations, deterministic fingerprints, and non-cloneable,
-non-formattable frame API gates. This model has no invocation reservation,
-module-instance or frame-generation binding, physical finalizer authority,
-wire layout, provider, loader, host, or compiler connection; it is not physical
-fallback evidence and does not change `SPX-B104`.
+state machine executable: bounded dense checkpoints, one all-live start, exact
+typed progress, accept/abort action permutations, idempotent cached receipts,
+terminal owner dispositions, and quiescence validation. A private compiler
+deriver now constructs this graph from validated cleanup HIR for the current
+direct-trivial owned slice, preserves exact result-staging/finalization timing,
+and binds terminal edges to accepted semantic trace paths. Exhaustive tests
+cover every valid live/dead/single-provisional combination through six owners,
+the authoritative 14-case corpus, exact bounds and known answers, hostile graph
+and receipt mutations, and non-cloneable/non-formattable frame API gates. This
+proof model has no invocation reservation, module-instance or frame-generation
+binding, physical finalizer authority, wire layout, provider, loader, host, or
+public compiler connection; it is not physical fallback evidence and does not
+change `SPX-B104`.
 
 The Windows CI lane now explicitly reruns the generated O0/O2 callable corpus
 and a loader fixture that places a same-name dependency in CWD and legacy

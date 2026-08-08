@@ -225,6 +225,21 @@ Mobile profiles, general fallback cleanup/quiescence, and public native
 execution/admission remain absent, so this migration does not change
 `SPX-B104`.
 
+## Native settlement proof model v1 to v2
+
+The private draft settlement certificate and receipt projections move from v1
+to v2. Version 2 replaces the misleading `call_contract` field with the
+domain-separated `recovery_contract`, adds exactly one post-commit start plus
+typed `Finalize`, `StageOwnedResult`, and trace-bound `CertifyOutcome` progress
+edges, and authenticates those fields under new v2 certificate and receipt
+fingerprint domains. Draft v1 bytes and fingerprints are intentionally not
+accepted or reinterpreted as v2.
+
+This is a private proof-model migration, not descriptor-v3 or runtime wiring.
+No settlement file is added to callable-v2 bundles, no loader or host receives
+v2 settlement authority, ordinary native resource execution remains
+`SPX-B104`, and public callable-v3 admission remains absent.
+
 ## Revision token FNV-1a64 to SHA-256
 
 Graph v3 and later, semantic patch bases, CLI output, and `semaprax.web.v2`/`semaprax.web.v3` manifests use one algorithm-tagged token:

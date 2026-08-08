@@ -218,10 +218,12 @@ semaprax = {{ path = "{manifest_root}", default-features = false }}
         consumer.join("src/main.rs"),
         r#"use semaprax::codegen::{emit_native_callable_admission, NativeCallableAdmissionArtifact};
 use semaprax::trace_path_certificate::TracePathCertificate;
+use semaprax::native_settlement::NativeSettlementCertificate;
 
 fn main() {
     let _ = std::mem::size_of::<NativeCallableAdmissionArtifact>();
     let _ = std::mem::size_of::<TracePathCertificate>();
+    let _ = std::mem::size_of::<NativeSettlementCertificate>();
     let _ = emit_native_callable_admission;
 }
 "#,
@@ -243,6 +245,7 @@ fn main() {
         stderr.contains("emit_native_callable_admission")
             && stderr.contains("NativeCallableAdmissionArtifact")
             && stderr.contains("trace_path_certificate")
+            && stderr.contains("native_settlement")
             && (stderr.contains("unresolved import") || stderr.contains("private")),
         "unexpected default-surface compiler diagnostic:\n{stderr}"
     );

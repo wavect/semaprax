@@ -6,12 +6,17 @@
 //! native resource emission remains blocked by `SPX-B104`.
 //!
 //! `NativeSettlementFrame` is non-cloneable, but this pure model is not an
-//! invocation-reservation authority: repeated calls to `prepare_frame` with
-//! equal inputs deliberately produce equal model states. A future host ledger
-//! must bind one frame generation to one exact module instance and reject a
-//! duplicate invocation before ownership commit.
+//! invocation-reservation authority: test-only snapshot preparation can create
+//! equal model states. Production proof consumers can prepare only the sole
+//! post-commit start and walk authenticated progress edges. A future host
+//! ledger must still bind one frame generation to one exact module instance
+//! and reject a duplicate invocation before ownership commit.
 
 #![forbid(unsafe_code)]
+#![allow(
+    dead_code,
+    reason = "callable-v3 settlement remains private proof scaffolding"
+)]
 
 use std::collections::BTreeSet;
 use std::error::Error;
@@ -23,15 +28,15 @@ use sha2::{Digest, Sha256};
 use crate::diagnostic::quote_json;
 use crate::hir::DeclarationId;
 
-pub const NATIVE_SETTLEMENT_CERTIFICATE_V1: &str = "semaprax.native-settlement-certificate.v1";
-pub const NATIVE_SETTLEMENT_RECEIPT_V1: &str = "semaprax.native-settlement-receipt.v1";
+pub const NATIVE_SETTLEMENT_CERTIFICATE_V2: &str = "semaprax.native-settlement-certificate.v2";
+pub const NATIVE_SETTLEMENT_RECEIPT_V2: &str = "semaprax.native-settlement-receipt.v2";
 
 pub const MAX_SETTLEMENT_RESOURCES: usize = 4_096;
 pub const MAX_SETTLEMENT_CHECKPOINTS: usize = 65_536;
 const MAX_SETTLEMENT_WORK_UNITS: usize = 1_000_000;
 const CERTIFICATE_FINGERPRINT_DOMAIN: &[u8] =
-    b"semaprax.native-settlement-certificate-fingerprint.v1\0";
-const RECEIPT_FINGERPRINT_DOMAIN: &[u8] = b"semaprax.native-settlement-receipt-fingerprint.v1\0";
+    b"semaprax.native-settlement-certificate-fingerprint.v2\0";
+const RECEIPT_FINGERPRINT_DOMAIN: &[u8] = b"semaprax.native-settlement-receipt-fingerprint.v2\0";
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum SettlementResourceState {
@@ -67,6 +72,43 @@ pub enum SettlementDecision {
 pub enum SettlementAction {
     Finalize { owner_ordinal: u32 },
     Publish { owner_ordinal: u32 },
+}
+
+/// One authenticated transition between dense recovery checkpoints.
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum SettlementProgressAction {
+    Finalize { owner_ordinal: u32 },
+    StageOwnedResult { owner_ordinal: u32 },
+    CertifyOutcome { trace_evidence: [u8; 32] },
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct SettlementProgressEdge {
+    from: u32,
+    to: u32,
+    action: SettlementProgressAction,
+}
+
+impl SettlementProgressEdge {
+    #[must_use]
+    pub const fn new(from: u32, to: u32, action: SettlementProgressAction) -> Self {
+        Self { from, to, action }
+    }
+
+    #[must_use]
+    pub const fn from(&self) -> u32 {
+        self.from
+    }
+
+    #[must_use]
+    pub const fn to(&self) -> u32 {
+        self.to
+    }
+
+    #[must_use]
+    pub const fn action(&self) -> SettlementProgressAction {
+        self.action
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -122,23 +164,50 @@ impl SettlementCheckpointSpec {
 pub struct NativeSettlementCertificate {
     schema: &'static str,
     function: DeclarationId,
-    call_contract: [u8; 32],
+    recovery_contract: [u8; 32],
     resource_count: usize,
     checkpoints: Vec<SettlementCheckpointSpec>,
+    start_checkpoints: Vec<u32>,
+    progress_edges: Vec<SettlementProgressEdge>,
 }
 
 impl NativeSettlementCertificate {
+    /// Test-only independent checkpoint snapshots for exhaustive state-model
+    /// enumeration. Compiler derivation must use `try_new_with_progress`.
+    #[cfg(test)]
     pub fn try_new(
         function: DeclarationId,
-        call_contract: [u8; 32],
+        recovery_contract: [u8; 32],
         resource_count: usize,
         checkpoints: Vec<SettlementCheckpointSpec>,
+    ) -> Result<Self, SettlementError> {
+        let start_checkpoints = (1..=checkpoints.len())
+            .map(u32::try_from)
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|_| SettlementError::CheckpointCountOutOfBounds)?;
+        Self::try_new_with_progress(
+            function,
+            recovery_contract,
+            resource_count,
+            checkpoints,
+            start_checkpoints,
+            Vec::new(),
+        )
+    }
+
+    pub fn try_new_with_progress(
+        function: DeclarationId,
+        recovery_contract: [u8; 32],
+        resource_count: usize,
+        checkpoints: Vec<SettlementCheckpointSpec>,
+        start_checkpoints: Vec<u32>,
+        progress_edges: Vec<SettlementProgressEdge>,
     ) -> Result<Self, SettlementError> {
         if function.as_str().is_empty() || function.as_str().as_bytes().contains(&0) {
             return Err(SettlementError::InvalidFunctionIdentity);
         }
-        if call_contract.iter().all(|byte| *byte == 0) {
-            return Err(SettlementError::ZeroCallContract);
+        if recovery_contract.iter().all(|byte| *byte == 0) {
+            return Err(SettlementError::ZeroRecoveryContract);
         }
         if resource_count == 0 || resource_count > MAX_SETTLEMENT_RESOURCES {
             return Err(SettlementError::ResourceCountOutOfBounds);
@@ -152,6 +221,17 @@ impl NativeSettlementCertificate {
         if work > MAX_SETTLEMENT_WORK_UNITS {
             return Err(SettlementError::WorkBudgetExceeded);
         }
+        let independent_snapshots =
+            progress_edges.is_empty() && start_checkpoints.len() == checkpoints.len();
+        if !independent_snapshots {
+            let progress_work = work
+                .checked_add(start_checkpoints.len())
+                .and_then(|value| value.checked_add(progress_edges.len()))
+                .ok_or(SettlementError::WorkBudgetExceeded)?;
+            if progress_work > MAX_SETTLEMENT_WORK_UNITS {
+                return Err(SettlementError::WorkBudgetExceeded);
+            }
+        }
         for (index, checkpoint) in checkpoints.iter().enumerate() {
             let expected = u32::try_from(index)
                 .ok()
@@ -162,12 +242,15 @@ impl NativeSettlementCertificate {
             }
             validate_checkpoint(checkpoint, resource_count)?;
         }
+        validate_progress(&checkpoints, &start_checkpoints, &progress_edges)?;
         Ok(Self {
-            schema: NATIVE_SETTLEMENT_CERTIFICATE_V1,
+            schema: NATIVE_SETTLEMENT_CERTIFICATE_V2,
             function,
-            call_contract,
+            recovery_contract,
             resource_count,
             checkpoints,
+            start_checkpoints,
+            progress_edges,
         })
     }
 
@@ -177,8 +260,8 @@ impl NativeSettlementCertificate {
     }
 
     #[must_use]
-    pub const fn call_contract(&self) -> [u8; 32] {
-        self.call_contract
+    pub const fn recovery_contract(&self) -> [u8; 32] {
+        self.recovery_contract
     }
 
     #[must_use]
@@ -192,6 +275,16 @@ impl NativeSettlementCertificate {
     }
 
     #[must_use]
+    pub fn start_checkpoints(&self) -> &[u32] {
+        &self.start_checkpoints
+    }
+
+    #[must_use]
+    pub fn progress_edges(&self) -> &[SettlementProgressEdge] {
+        &self.progress_edges
+    }
+
+    #[must_use]
     pub fn canonical_json(&self) -> String {
         let checkpoints = self
             .checkpoints
@@ -199,13 +292,27 @@ impl NativeSettlementCertificate {
             .map(checkpoint_json)
             .collect::<Vec<_>>()
             .join(",");
+        let starts = self
+            .start_checkpoints
+            .iter()
+            .map(u32::to_string)
+            .collect::<Vec<_>>()
+            .join(",");
+        let progress = self
+            .progress_edges
+            .iter()
+            .map(progress_edge_json)
+            .collect::<Vec<_>>()
+            .join(",");
         format!(
-            "{{\"schema\":{},\"function\":{},\"call_contract\":\"{}\",\"resource_count\":{},\"checkpoints\":[{}]}}",
+            "{{\"schema\":{},\"function\":{},\"recovery_contract\":\"{}\",\"resource_count\":{},\"checkpoints\":[{}],\"start_checkpoints\":[{}],\"progress_edges\":[{}]}}",
             quote_json(self.schema),
             quote_json(self.function.as_str()),
-            hex(&self.call_contract),
+            hex(&self.recovery_contract),
             self.resource_count,
             checkpoints,
+            starts,
+            progress,
         )
     }
 
@@ -217,11 +324,12 @@ impl NativeSettlementCertificate {
         )
     }
 
-    /// Construct a deterministic model frame for one checkpoint.
+    /// Construct a deterministic snapshot frame for one checkpoint.
     ///
     /// This method does not reserve the invocation or establish process-local
     /// uniqueness. Runtime wiring must perform that linear reservation before
     /// exposing a frame to physical settlement.
+    #[cfg(test)]
     pub fn prepare_frame(
         &self,
         invocation: NonZeroU64,
@@ -230,13 +338,59 @@ impl NativeSettlementCertificate {
         let checkpoint = self.checkpoint(checkpoint)?;
         Ok(NativeSettlementFrame {
             function: self.function.clone(),
-            call_contract: self.call_contract,
+            recovery_contract: self.recovery_contract,
             certificate_fingerprint: self.fingerprint(),
             invocation,
             checkpoint: checkpoint.checkpoint,
             resources: checkpoint.resources.clone(),
             terminal: None,
         })
+    }
+
+    /// Prepare the sole authenticated post-commit start checkpoint.
+    pub fn prepare_start_frame(
+        &self,
+        invocation: NonZeroU64,
+    ) -> Result<NativeSettlementFrame, SettlementError> {
+        if self.start_checkpoints.as_slice() != [1] {
+            return Err(SettlementError::InvalidProgressStart);
+        }
+        let checkpoint = self.checkpoint(1)?;
+        Ok(NativeSettlementFrame {
+            function: self.function.clone(),
+            recovery_contract: self.recovery_contract,
+            certificate_fingerprint: self.fingerprint(),
+            invocation,
+            checkpoint: 1,
+            resources: checkpoint.resources.clone(),
+            terminal: None,
+        })
+    }
+
+    /// Advance one exact certified progress edge without mutating on failure.
+    pub fn advance_frame(
+        &self,
+        frame: &mut NativeSettlementFrame,
+        action: SettlementProgressAction,
+    ) -> Result<(), SettlementError> {
+        self.authenticate_frame(frame)?;
+        if frame.terminal.is_some() {
+            return Err(SettlementError::ProgressActionNotAdmitted);
+        }
+        let mut matches = self
+            .progress_edges
+            .iter()
+            .filter(|edge| edge.from == frame.checkpoint && edge.action == action);
+        let edge = matches
+            .next()
+            .ok_or(SettlementError::ProgressActionNotAdmitted)?;
+        if matches.next().is_some() {
+            return Err(SettlementError::NonCanonicalProgressEdge);
+        }
+        let destination = self.checkpoint(edge.to)?;
+        frame.checkpoint = edge.to;
+        frame.resources.clone_from(&destination.resources);
+        Ok(())
     }
 
     pub fn settle(
@@ -269,9 +423,9 @@ impl NativeSettlementCertificate {
         apply_actions(&mut resources, &actions)?;
         let dispositions = terminal_dispositions(&resources)?;
         let receipt = NativeSettlementReceipt {
-            schema: NATIVE_SETTLEMENT_RECEIPT_V1,
+            schema: NATIVE_SETTLEMENT_RECEIPT_V2,
             function: self.function.clone(),
-            call_contract: self.call_contract,
+            recovery_contract: self.recovery_contract,
             certificate_fingerprint: self.fingerprint(),
             invocation: frame.invocation,
             checkpoint: frame.checkpoint,
@@ -298,11 +452,11 @@ impl NativeSettlementCertificate {
         expected_invocation: NonZeroU64,
         receipt: &NativeSettlementReceipt,
     ) -> Result<(), SettlementError> {
-        if receipt.schema != NATIVE_SETTLEMENT_RECEIPT_V1 {
+        if receipt.schema != NATIVE_SETTLEMENT_RECEIPT_V2 {
             return Err(SettlementError::ReceiptSchemaMismatch);
         }
         if receipt.function != self.function
-            || receipt.call_contract != self.call_contract
+            || receipt.recovery_contract != self.recovery_contract
             || receipt.certificate_fingerprint != self.fingerprint()
             || receipt.invocation != expected_invocation
         {
@@ -327,7 +481,7 @@ impl NativeSettlementCertificate {
 
     fn authenticate_frame(&self, frame: &NativeSettlementFrame) -> Result<(), SettlementError> {
         if frame.function != self.function
-            || frame.call_contract != self.call_contract
+            || frame.recovery_contract != self.recovery_contract
             || frame.certificate_fingerprint != self.fingerprint()
         {
             return Err(SettlementError::FrameBindingMismatch);
@@ -354,23 +508,13 @@ impl NativeSettlementCertificate {
 ///
 /// The frame intentionally is not cloneable. This prevents accidental local
 /// duplication, but does not make the certificate's deterministic
-/// `prepare_frame` constructor a uniqueness authority. A runtime integration
+/// test-only snapshot constructor a uniqueness authority. A runtime integration
 /// must additionally bind one frame generation to one exact module instance
 /// and committed ledger invocation.
-///
-/// ```compile_fail
-/// use semaprax::native_settlement::NativeSettlementFrame;
-/// fn duplicate(frame: NativeSettlementFrame) { let _ = frame.clone(); }
-/// ```
-///
-/// ```compile_fail
-/// use semaprax::native_settlement::NativeSettlementFrame;
-/// fn expose(frame: NativeSettlementFrame) { let _ = format!("{frame:?}"); }
-/// ```
 #[derive(Eq, PartialEq)]
 pub struct NativeSettlementFrame {
     function: DeclarationId,
-    call_contract: [u8; 32],
+    recovery_contract: [u8; 32],
     certificate_fingerprint: [u8; 32],
     invocation: NonZeroU64,
     checkpoint: u32,
@@ -412,7 +556,7 @@ struct TerminalSettlement {
 pub struct NativeSettlementReceipt {
     schema: &'static str,
     function: DeclarationId,
-    call_contract: [u8; 32],
+    recovery_contract: [u8; 32],
     certificate_fingerprint: [u8; 32],
     invocation: NonZeroU64,
     checkpoint: u32,
@@ -468,10 +612,10 @@ impl NativeSettlementReceipt {
             .collect::<Vec<_>>()
             .join(",");
         format!(
-            "{{\"schema\":{},\"function\":{},\"call_contract\":\"{}\",\"certificate_fingerprint\":\"{}\",\"invocation\":{},\"checkpoint\":{},\"decision\":{},\"actions\":[{}],\"dispositions\":[{}],\"active_finalizers\":{}}}",
+            "{{\"schema\":{},\"function\":{},\"recovery_contract\":\"{}\",\"certificate_fingerprint\":\"{}\",\"invocation\":{},\"checkpoint\":{},\"decision\":{},\"actions\":[{}],\"dispositions\":[{}],\"active_finalizers\":{}}}",
             quote_json(self.schema),
             quote_json(self.function.as_str()),
-            hex(&self.call_contract),
+            hex(&self.recovery_contract),
             hex(&self.certificate_fingerprint),
             self.invocation,
             self.checkpoint,
@@ -516,7 +660,7 @@ impl SettlementApplication {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SettlementError {
     InvalidFunctionIdentity,
-    ZeroCallContract,
+    ZeroRecoveryContract,
     ResourceCountOutOfBounds,
     CheckpointCountOutOfBounds,
     WorkBudgetExceeded,
@@ -526,6 +670,11 @@ pub enum SettlementError {
     MultipleProvisionalResults,
     InvalidCleanupOrder,
     InvalidNormalOutcome,
+    InvalidProgressStart,
+    NonCanonicalProgressEdge,
+    InvalidProgressTransition,
+    UnreachableCheckpoint,
+    ProgressActionNotAdmitted,
     InvalidAbortReason,
     UnknownCheckpoint,
     FrameBindingMismatch,
@@ -546,7 +695,7 @@ impl fmt::Display for SettlementError {
             Self::InvalidFunctionIdentity => {
                 "settlement function identity is empty or contains NUL"
             }
-            Self::ZeroCallContract => "settlement call contract is zero",
+            Self::ZeroRecoveryContract => "settlement recovery contract is zero",
             Self::ResourceCountOutOfBounds => "settlement resource count is outside bounds",
             Self::CheckpointCountOutOfBounds => "settlement checkpoint count is outside bounds",
             Self::WorkBudgetExceeded => "settlement certificate work budget is exceeded",
@@ -560,6 +709,11 @@ impl fmt::Display for SettlementError {
             }
             Self::InvalidCleanupOrder => "settlement cleanup order is not an exact permutation",
             Self::InvalidNormalOutcome => "settlement normal outcome disagrees with liveness",
+            Self::InvalidProgressStart => "settlement progress start is invalid",
+            Self::NonCanonicalProgressEdge => "settlement progress edge is not canonical",
+            Self::InvalidProgressTransition => "settlement progress transition is invalid",
+            Self::UnreachableCheckpoint => "settlement checkpoint is unreachable",
+            Self::ProgressActionNotAdmitted => "settlement progress action is not admitted",
             Self::InvalidAbortReason => "settlement physical abort result must be nonzero",
             Self::UnknownCheckpoint => "settlement checkpoint is unknown",
             Self::FrameBindingMismatch => "settlement frame binding does not match certificate",
@@ -581,6 +735,157 @@ impl fmt::Display for SettlementError {
 }
 
 impl Error for SettlementError {}
+
+fn validate_progress(
+    checkpoints: &[SettlementCheckpointSpec],
+    starts: &[u32],
+    edges: &[SettlementProgressEdge],
+) -> Result<(), SettlementError> {
+    let all = (1..=checkpoints.len())
+        .map(u32::try_from)
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|_| SettlementError::CheckpointCountOutOfBounds)?;
+    // `try_new` preserves the original proof-model meaning: each supplied row
+    // can independently prepare a frame. Compiler-derived certificates use
+    // `try_new_with_progress` and therefore take the strict branch below.
+    if edges.is_empty() && starts == all {
+        return Ok(());
+    }
+    if starts != [1]
+        || checkpoints[0].normal_outcome.is_some()
+        || checkpoints[0]
+            .resources
+            .iter()
+            .any(|state| *state != SettlementResourceState::Live)
+    {
+        return Err(SettlementError::InvalidProgressStart);
+    }
+    let mut seen_edges = BTreeSet::new();
+    let mut seen_actions = BTreeSet::new();
+    let mut reachable = BTreeSet::from([1_u32]);
+    for edge in edges {
+        if edge.from == 0
+            || edge.to == 0
+            || edge.from >= edge.to
+            || edge.to as usize > checkpoints.len()
+            || !seen_edges.insert(*edge)
+            || !seen_actions.insert((edge.from, edge.action))
+            || !reachable.contains(&edge.from)
+        {
+            return Err(SettlementError::NonCanonicalProgressEdge);
+        }
+        let from = &checkpoints[(edge.from - 1) as usize];
+        let to = &checkpoints[(edge.to - 1) as usize];
+        if from.normal_outcome.is_some() || !valid_progress_transition(from, to, edge.action) {
+            return Err(SettlementError::InvalidProgressTransition);
+        }
+        reachable.insert(edge.to);
+    }
+    if reachable.len() != checkpoints.len() {
+        return Err(SettlementError::UnreachableCheckpoint);
+    }
+    Ok(())
+}
+
+fn valid_progress_transition(
+    from: &SettlementCheckpointSpec,
+    to: &SettlementCheckpointSpec,
+    action: SettlementProgressAction,
+) -> bool {
+    if from.resources.len() != to.resources.len() {
+        return false;
+    }
+    match action {
+        SettlementProgressAction::Finalize { owner_ordinal } => {
+            if to.normal_outcome.is_some() {
+                return false;
+            }
+            let state_transition = changed_owner_state(
+                &from.resources,
+                &to.resources,
+                owner_ordinal,
+                SettlementResourceState::Live,
+                SettlementResourceState::Dead,
+            ) || changed_owner_state(
+                &from.resources,
+                &to.resources,
+                owner_ordinal,
+                SettlementResourceState::ProvisionalResult,
+                SettlementResourceState::Dead,
+            );
+            let Some(finalized_position) = from
+                .abort_cleanup_order
+                .iter()
+                .position(|candidate| *candidate == owner_ordinal)
+            else {
+                return false;
+            };
+            let prefix_is_only_provisional = from.abort_cleanup_order[..finalized_position]
+                .iter()
+                .all(|ordinal| {
+                    from.resources[*ordinal as usize] == SettlementResourceState::ProvisionalResult
+                });
+            let mut expected_abort = from.abort_cleanup_order.clone();
+            expected_abort.remove(finalized_position);
+            state_transition
+                && from.accept_cleanup_order.is_empty()
+                && to.accept_cleanup_order.is_empty()
+                && prefix_is_only_provisional
+                && to.abort_cleanup_order == expected_abort
+        }
+        SettlementProgressAction::StageOwnedResult { owner_ordinal } => {
+            to.normal_outcome.is_none()
+                && changed_owner_state(
+                    &from.resources,
+                    &to.resources,
+                    owner_ordinal,
+                    SettlementResourceState::Live,
+                    SettlementResourceState::ProvisionalResult,
+                )
+                && from.accept_cleanup_order.is_empty()
+                && to.accept_cleanup_order.is_empty()
+                && from.abort_cleanup_order == to.abort_cleanup_order
+        }
+        SettlementProgressAction::CertifyOutcome { trace_evidence } => {
+            let expected_accept = to
+                .abort_cleanup_order
+                .iter()
+                .copied()
+                .filter(|ordinal| to.resources[*ordinal as usize] == SettlementResourceState::Live)
+                .collect::<Vec<_>>();
+            from.normal_outcome.is_none()
+                && to.normal_outcome.is_some()
+                && from.resources == to.resources
+                && from.accept_cleanup_order.is_empty()
+                && from.abort_cleanup_order == to.abort_cleanup_order
+                && to.accept_cleanup_order == expected_accept
+                && trace_evidence.iter().any(|byte| *byte != 0)
+        }
+    }
+}
+
+fn changed_owner_state(
+    from: &[SettlementResourceState],
+    to: &[SettlementResourceState],
+    owner_ordinal: u32,
+    expected_from: SettlementResourceState,
+    expected_to: SettlementResourceState,
+) -> bool {
+    let Ok(owner) = usize::try_from(owner_ordinal) else {
+        return false;
+    };
+    from.iter()
+        .zip(to)
+        .enumerate()
+        .all(|(index, (left, right))| {
+            if index == owner {
+                *left == expected_from && *right == expected_to
+            } else {
+                left == right
+            }
+        })
+        && owner < from.len()
+}
 
 fn validate_checkpoint(
     checkpoint: &SettlementCheckpointSpec,
@@ -775,6 +1080,25 @@ fn checkpoint_json(checkpoint: &SettlementCheckpointSpec) -> String {
     )
 }
 
+fn progress_edge_json(edge: &SettlementProgressEdge) -> String {
+    let action = match edge.action {
+        SettlementProgressAction::Finalize { owner_ordinal } => {
+            format!("{{\"kind\":\"finalize\",\"owner_ordinal\":{owner_ordinal}}}")
+        }
+        SettlementProgressAction::StageOwnedResult { owner_ordinal } => {
+            format!("{{\"kind\":\"stage_owned_result\",\"owner_ordinal\":{owner_ordinal}}}")
+        }
+        SettlementProgressAction::CertifyOutcome { trace_evidence } => format!(
+            "{{\"kind\":\"certify_outcome\",\"trace_evidence\":\"{}\"}}",
+            hex(&trace_evidence)
+        ),
+    };
+    format!(
+        "{{\"from\":{},\"to\":{},\"action\":{action}}}",
+        edge.from, edge.to
+    )
+}
+
 fn decision_json(decision: SettlementDecision) -> String {
     match decision {
         SettlementDecision::Accept(outcome) => {
@@ -862,12 +1186,24 @@ fn hex(bytes: &[u8]) -> String {
 mod tests {
     use super::*;
 
+    macro_rules! assert_not_impl {
+        ($type:ty, $trait:path) => {{
+            trait AmbiguousIfImplemented<Marker> {
+                fn probe() {}
+            }
+            impl<T: ?Sized> AmbiguousIfImplemented<()> for T {}
+            struct Implemented;
+            impl<T: ?Sized + $trait> AmbiguousIfImplemented<Implemented> for T {}
+            let _ = <$type as AmbiguousIfImplemented<_>>::probe;
+        }};
+    }
+
     const CONTRACT: [u8; 32] = [0x5a; 32];
 
     #[derive(Debug, Eq, PartialEq)]
     struct FrameSnapshot {
         function: DeclarationId,
-        call_contract: [u8; 32],
+        recovery_contract: [u8; 32],
         certificate_fingerprint: [u8; 32],
         invocation: NonZeroU64,
         checkpoint: u32,
@@ -878,7 +1214,7 @@ mod tests {
     fn snapshot(frame: &NativeSettlementFrame) -> FrameSnapshot {
         FrameSnapshot {
             function: frame.function.clone(),
-            call_contract: frame.call_contract,
+            recovery_contract: frame.recovery_contract,
             certificate_fingerprint: frame.certificate_fingerprint,
             invocation: frame.invocation,
             checkpoint: frame.checkpoint,
@@ -1228,7 +1564,7 @@ mod tests {
                 1,
                 vec![valid.clone()]
             ),
-            Err(SettlementError::ZeroCallContract)
+            Err(SettlementError::ZeroRecoveryContract)
         );
         assert_eq!(
             NativeSettlementCertificate::try_new(
@@ -1331,7 +1667,7 @@ mod tests {
         receipt.schema = "wrong";
         mutations.push((receipt, SettlementError::ReceiptSchemaMismatch));
         let mut receipt = valid.clone();
-        receipt.call_contract[0] ^= 1;
+        receipt.recovery_contract[0] ^= 1;
         mutations.push((receipt, SettlementError::ReceiptBindingMismatch));
         let mut receipt = valid.clone();
         receipt.certificate_fingerprint[0] ^= 1;
@@ -1425,5 +1761,287 @@ mod tests {
         assert_eq!(snapshot(&first), snapshot(&second));
         assert!(!first.is_terminal());
         assert!(!second.is_terminal());
+    }
+
+    #[test]
+    fn strict_progress_graph_rejects_bad_starts_edges_transitions_and_orphans() {
+        let live = SettlementCheckpointSpec::new(
+            1,
+            vec![SettlementResourceState::Live],
+            None,
+            vec![0],
+            Vec::new(),
+        );
+        let dead = SettlementCheckpointSpec::new(
+            2,
+            vec![SettlementResourceState::Dead],
+            None,
+            Vec::new(),
+            Vec::new(),
+        );
+        let terminal = SettlementCheckpointSpec::new(
+            3,
+            vec![SettlementResourceState::Dead],
+            Some(SettlementOutcome::ScalarSuccess),
+            Vec::new(),
+            Vec::new(),
+        );
+        let finalize = SettlementProgressEdge::new(
+            1,
+            2,
+            SettlementProgressAction::Finalize { owner_ordinal: 0 },
+        );
+        let certify = SettlementProgressEdge::new(
+            2,
+            3,
+            SettlementProgressAction::CertifyOutcome {
+                trace_evidence: [7; 32],
+            },
+        );
+        let build = |starts, edges| {
+            NativeSettlementCertificate::try_new_with_progress(
+                DeclarationId::new("token.progress"),
+                CONTRACT,
+                1,
+                vec![live.clone(), dead.clone(), terminal.clone()],
+                starts,
+                edges,
+            )
+        };
+        assert!(build(vec![1], vec![finalize, certify]).is_ok());
+        assert_eq!(
+            build(vec![1, 2], vec![finalize, certify]),
+            Err(SettlementError::InvalidProgressStart)
+        );
+        assert_eq!(
+            build(vec![1], vec![certify]),
+            Err(SettlementError::NonCanonicalProgressEdge)
+        );
+        assert_eq!(
+            build(vec![1], vec![finalize]),
+            Err(SettlementError::UnreachableCheckpoint)
+        );
+        assert_eq!(
+            build(vec![1], vec![finalize, finalize, certify]),
+            Err(SettlementError::NonCanonicalProgressEdge)
+        );
+        assert_eq!(
+            build(
+                vec![1],
+                vec![
+                    SettlementProgressEdge::new(
+                        1,
+                        2,
+                        SettlementProgressAction::StageOwnedResult { owner_ordinal: 0 },
+                    ),
+                    certify,
+                ],
+            ),
+            Err(SettlementError::InvalidProgressTransition)
+        );
+        assert_eq!(
+            build(
+                vec![1],
+                vec![
+                    finalize,
+                    SettlementProgressEdge::new(
+                        2,
+                        3,
+                        SettlementProgressAction::Finalize { owner_ordinal: 0 },
+                    ),
+                ],
+            ),
+            Err(SettlementError::InvalidProgressTransition)
+        );
+
+        let finalize_order_counterexample = NativeSettlementCertificate::try_new_with_progress(
+            DeclarationId::new("token.progress.finalize-order"),
+            CONTRACT,
+            3,
+            vec![
+                SettlementCheckpointSpec::new(
+                    1,
+                    vec![SettlementResourceState::Live; 3],
+                    None,
+                    vec![2, 1, 0],
+                    Vec::new(),
+                ),
+                SettlementCheckpointSpec::new(
+                    2,
+                    vec![
+                        SettlementResourceState::Live,
+                        SettlementResourceState::Live,
+                        SettlementResourceState::Dead,
+                    ],
+                    None,
+                    vec![0, 1],
+                    Vec::new(),
+                ),
+            ],
+            vec![1],
+            vec![SettlementProgressEdge::new(
+                1,
+                2,
+                SettlementProgressAction::Finalize { owner_ordinal: 2 },
+            )],
+        );
+        assert_eq!(
+            finalize_order_counterexample,
+            Err(SettlementError::InvalidProgressTransition)
+        );
+
+        let skipped_live_counterexample = NativeSettlementCertificate::try_new_with_progress(
+            DeclarationId::new("token.progress.finalize-skips-live"),
+            CONTRACT,
+            2,
+            vec![
+                SettlementCheckpointSpec::new(
+                    1,
+                    vec![SettlementResourceState::Live; 2],
+                    None,
+                    vec![0, 1],
+                    Vec::new(),
+                ),
+                SettlementCheckpointSpec::new(
+                    2,
+                    vec![SettlementResourceState::Live, SettlementResourceState::Dead],
+                    None,
+                    vec![0],
+                    Vec::new(),
+                ),
+            ],
+            vec![1],
+            vec![SettlementProgressEdge::new(
+                1,
+                2,
+                SettlementProgressAction::Finalize { owner_ordinal: 1 },
+            )],
+        );
+        assert_eq!(
+            skipped_live_counterexample,
+            Err(SettlementError::InvalidProgressTransition)
+        );
+
+        let stage_order_counterexample = NativeSettlementCertificate::try_new_with_progress(
+            DeclarationId::new("token.progress.stage-order"),
+            CONTRACT,
+            2,
+            vec![
+                SettlementCheckpointSpec::new(
+                    1,
+                    vec![SettlementResourceState::Live; 2],
+                    None,
+                    vec![1, 0],
+                    Vec::new(),
+                ),
+                SettlementCheckpointSpec::new(
+                    2,
+                    vec![
+                        SettlementResourceState::Live,
+                        SettlementResourceState::ProvisionalResult,
+                    ],
+                    None,
+                    vec![0, 1],
+                    Vec::new(),
+                ),
+            ],
+            vec![1],
+            vec![SettlementProgressEdge::new(
+                1,
+                2,
+                SettlementProgressAction::StageOwnedResult { owner_ordinal: 1 },
+            )],
+        );
+        assert_eq!(
+            stage_order_counterexample,
+            Err(SettlementError::InvalidProgressTransition)
+        );
+
+        let certify_accept_counterexample = NativeSettlementCertificate::try_new_with_progress(
+            DeclarationId::new("token.progress.certify-order"),
+            CONTRACT,
+            2,
+            vec![
+                SettlementCheckpointSpec::new(
+                    1,
+                    vec![SettlementResourceState::Live; 2],
+                    None,
+                    vec![1, 0],
+                    Vec::new(),
+                ),
+                SettlementCheckpointSpec::new(
+                    2,
+                    vec![SettlementResourceState::Live; 2],
+                    Some(SettlementOutcome::ScalarSuccess),
+                    vec![1, 0],
+                    vec![0, 1],
+                ),
+            ],
+            vec![1],
+            vec![SettlementProgressEdge::new(
+                1,
+                2,
+                SettlementProgressAction::CertifyOutcome {
+                    trace_evidence: [9; 32],
+                },
+            )],
+        );
+        assert_eq!(
+            certify_accept_counterexample,
+            Err(SettlementError::InvalidProgressTransition)
+        );
+    }
+
+    #[test]
+    fn frame_traits_are_deliberately_linear_and_nonformatting() {
+        assert_not_impl!(NativeSettlementFrame, Clone);
+        assert_not_impl!(NativeSettlementFrame, fmt::Debug);
+        assert_not_impl!(NativeSettlementFrame, fmt::Display);
+    }
+
+    #[test]
+    fn certificate_bounds_accept_exact_limits_and_reject_zero_over_and_excess_work() {
+        fn specs(resources: usize, checkpoints: usize) -> Vec<SettlementCheckpointSpec> {
+            (1..=checkpoints)
+                .map(|checkpoint| {
+                    SettlementCheckpointSpec::new(
+                        u32::try_from(checkpoint).unwrap(),
+                        vec![SettlementResourceState::Dead; resources],
+                        None,
+                        Vec::new(),
+                        Vec::new(),
+                    )
+                })
+                .collect()
+        }
+        let build = |resources, checkpoints| {
+            NativeSettlementCertificate::try_new(
+                DeclarationId::new("token.bounds"),
+                CONTRACT,
+                resources,
+                specs(resources.max(1), checkpoints),
+            )
+        };
+        assert!(build(1, 1).is_ok());
+        assert!(build(MAX_SETTLEMENT_RESOURCES, 1).is_ok());
+        assert_eq!(build(0, 1), Err(SettlementError::ResourceCountOutOfBounds));
+        assert_eq!(
+            build(MAX_SETTLEMENT_RESOURCES + 1, 1),
+            Err(SettlementError::ResourceCountOutOfBounds)
+        );
+        assert!(build(1, MAX_SETTLEMENT_CHECKPOINTS).is_ok());
+        assert_eq!(
+            build(1, 0),
+            Err(SettlementError::CheckpointCountOutOfBounds)
+        );
+        assert_eq!(
+            build(1, MAX_SETTLEMENT_CHECKPOINTS + 1),
+            Err(SettlementError::CheckpointCountOutOfBounds)
+        );
+        assert!(build(1_000, 1_000).is_ok());
+        assert_eq!(
+            build(1_001, 1_000),
+            Err(SettlementError::WorkBudgetExceeded)
+        );
     }
 }

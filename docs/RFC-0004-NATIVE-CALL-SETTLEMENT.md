@@ -1,6 +1,6 @@
 # RFC 0004: Native call recovery and settlement
 
-- Status: Proposed; target-neutral owner model implemented, physical v3 unwired
+- Status: Proposed; private compiler derivation implemented, physical v3 unwired
 - Version: 0.1
 - Audience: compiler, native code generator, loader, ownership-host, adapter,
   and conformance-test implementers
@@ -16,8 +16,9 @@ physical failure, malformed provider output, and host unwinding converge on one
 bounded cleanup protocol without guessing which physical resources remain live.
 
 The repository contains an internal, target-neutral model of the bounded
-certificate, frame, decision, receipt, and idempotent settlement operation. It
-has unit evidence only. There is no v3 descriptor or wire layout, provider
+certificate, progress graph, frame, decision, receipt, and idempotent
+settlement operation plus private compiler derivation from validated cleanup
+HIR. It has unit evidence only. There is no v3 descriptor or wire layout, provider
 symbol, code generator, loader path, physical finalizer, ownership-host wiring,
 or public callable-v3 compiler surface. Callable v2 has an independent public
 build-only bundle surface plus a feature-gated execution experiment; ordinary
@@ -117,15 +118,15 @@ quarantine rather than trigger speculative cleanup.
 
 The implemented foundation models a frame prepared from one authenticated
 certificate, one nonzero invocation, and one dense checkpoint. The frame stores
-the function identity, nonzero call-contract fingerprint, certificate
+the function identity, nonzero recovery-contract fingerprint, certificate
 fingerprint, invocation, checkpoint ordinal, one owner-level state per resource,
 and an optional cached terminal settlement. It contains no raw pointer, target
 handle, loader lease, authority, physical payload, or host ledger.
 
 The Rust frame type is deliberately neither cloneable nor formattable, but that
-negative API fact is not a uniqueness proof. `prepare_frame` is a deterministic
-model constructor: calling it twice with the same certificate, invocation, and
-checkpoint produces two equal model states. The model performs no invocation
+negative API fact is not a uniqueness proof. Test-only snapshot preparation is
+deterministic, while production proof consumers can prepare only the certified
+post-commit start and walk exact progress edges. The model performs no invocation
 reservation and binds neither a process-local module instance nor a nonreused
 frame generation. Consequently its action vectors are proof data, not physical
 finalizer capabilities. Only future host-ledger admission may create the one
@@ -136,11 +137,11 @@ The future physical host MUST allocate every frame, action buffer, and receipt
 buffer before owner commit and treat the frame as linear. Module-instance and
 frame-generation binding, exact loader retention, thread policy, and physical
 sidecars are mandatory future wiring; they are not properties of the current
-model and must not be inferred from a function or call-contract fingerprint.
+model and must not be inferred from a recovery-contract fingerprint.
 
 ### Implemented model bounds
 
-`semaprax.native-settlement-certificate.v1` enforces:
+`semaprax.native-settlement-certificate.v2` enforces:
 
 | Quantity | Maximum |
 | --- | ---: |
@@ -213,7 +214,7 @@ Each `SettlementCheckpointSpec` contains:
 The certificate constructor rejects a vector whose length differs from the
 resource count, any checkpoint containing `Finalizing` or `Published`, more
 than one provisional result, an empty or NUL-bearing function identity, a zero
-call contract, non-dense ordinals, and every cleanup list that is not an exact
+recovery contract, non-dense ordinals, and every cleanup list that is not an exact
 duplicate-free permutation of its required owner ordinals.
 
 Abort cleanup is an exact ordered permutation of every non-`Dead` owner,
@@ -225,11 +226,12 @@ permutation of every `Live` owner and publication of that provisional result is
 the final action. A checkpoint with no normal outcome admits only abort and has
 an empty accept-cleanup list.
 
-The model authenticates settlement from a returned dense checkpoint. It does
-not yet record or validate a sequence of physical progress transitions between
-checkpoints. Future compiler derivation MUST place recoverable checkpoints only
-after an atomic physical action has completed and MUST prove the checkpoint
-vector and both cleanup permutations from independently validated cleanup HIR.
+The model authenticates one all-`Live` post-commit start and a bounded acyclic
+sequence of typed progress transitions between dense checkpoints. Private
+compiler derivation places checkpoints after each complete physical ownership
+action and binds terminal certification to an independently accepted semantic
+trace path. The checkpoint vector and both cleanup permutations come only from
+validated cleanup HIR.
 The provider may report failure only at such a returnable checkpoint. Missing,
 skipped, forged, or physically inconsistent progress is a host/adapter contract
 violation and must quarantine.
@@ -280,24 +282,24 @@ frame/lease/ledger guard. None of this provider or host wiring exists yet.
 ## Settlement certificate
 
 The implemented `NativeSettlementCertificate` binds the schema, stable
-function declaration ID, nonzero 32-byte call contract, resource count, and
-dense checkpoint specs. It emits deterministic canonical JSON and a
+function declaration ID, nonzero 32-byte recovery contract, resource count,
+dense checkpoint specs, sole start, and typed progress edges. It emits deterministic canonical JSON and a
 domain-separated SHA-256 fingerprint. Construction performs all structural,
 state, permutation, outcome, and work-budget checks described above.
 
-This certificate is a bounded target-neutral decision table, not yet a compiled
-physical-path DFA. The future compiler must derive it from independently
-validated HIR, cleanup inventory, cleanup plan, physical recovery layout, and
-result contract. A future descriptor must fingerprint it separately from the
+This certificate is a bounded target-neutral decision table and progress graph,
+not yet a physical provider protocol. The private compiler derives it from
+independently validated HIR, cleanup inventory, cleanup plan, direct-owner
+recovery layout, result meaning, and the semantic trace certificate. A future descriptor must fingerprint it separately from the
 semantic event dictionary and trace-path certificate, and an independently
 implemented host parser must reject every noncanonical byte, identity, count,
 bound, or fingerprint mismatch before commit.
 
 ## Quiescence receipt
 
-The implemented `semaprax.native-settlement-receipt.v1` model binds:
+The implemented `semaprax.native-settlement-receipt.v2` model binds:
 
-- schema, function, call contract, certificate fingerprint, and invocation;
+- schema, function, recovery contract, certificate fingerprint, and invocation;
 - the exact checkpoint and decision;
 - the exact derived ordered `Finalize`/`Publish` actions;
 - one terminal `Dead` or `Published` disposition per owner ordinal; and
@@ -357,17 +359,20 @@ The internal model's focused unit suite currently covers:
   up to six entries;
 - exact ordered finalization, unique publication, same-decision idempotence,
   conflicting-decision nonmutation, and zero physical-result rejection;
-- structural certificate hostility for invalid identity, zero contract,
-  noncanonical checkpoint, duplicate cleanup ordinal, terminal checkpoint
-  state, and multiple provisional results;
+- one all-live start, executable typed progress, exact cross-edge cleanup-order
+  continuity, trace-bound terminal outcomes, and exact corpus graph snapshots;
+- structural certificate hostility for invalid identity, zero recovery contract,
+  noncanonical checkpoint, invalid/reordered/duplicate progress, duplicate
+  cleanup ordinal, terminal checkpoint state, and multiple provisional results;
+- exact minimum/maximum/work-budget boundaries and fixed certificate/receipt
+  known-answer projections;
 - independent receipt-field mutation rejection; and
 - deterministic, domain-separated certificate and receipt projections.
 
 This evidence proves the bounded owner-level model, not physical settlement.
-Before any wire or host connection, the model gate must additionally include
-exact minimum/maximum/work-budget boundary cases, fixed known-answer hashes,
-broader property generation, and hostile tests for every closed enum and count.
-A future wire then requires every-byte, truncation, trailing-data,
+The private compiler derivation separately proves the current direct-trivial
+corpus against independently validated cleanup HIR and semantic trace paths.
+A future wire still requires every-byte, truncation, trailing-data,
 reserved-field, capacity, arithmetic-overflow, stale-generation, and
 cross-instance mutation evidence through an independent parser.
 
@@ -408,8 +413,7 @@ cross-instance mutation evidence through an independent parser.
 1. Complete the partially implemented target-neutral frame and settlement
    model gate with boundary, known-answer, and property evidence.
 2. Derive and independently validate the settlement certificate from cleanup
-   HIR while callable
-   v3 remains unreachable from compiler preflight.
+   HIR while callable v3 remains unreachable from compiler preflight.
 3. Add descriptor-v3 and generated `execute`/`settle` artifacts behind the
    private feature; keep v2 tests unchanged as compatibility evidence.
 4. Connect the exact-instance loader and host with the combined settlement guard,
@@ -433,8 +437,9 @@ hot reload, signed code, code-provenance authentication, Android/iOS hosts,
 WebAssembly Components, or ecosystem adapters. It does not turn quarantine into
 successful cleanup and does not recover from interruption inside a finalizer.
 
-As of this RFC's publication, only the hidden target-neutral owner-state model
-is implemented; none of its physical runtime pieces are wired. Callable v2
+As of this revision, the hidden target-neutral owner-state/progress model and
+private compiler derivation are implemented; none of their physical runtime
+pieces are wired. Callable v2
 continues to retire logical ledger state after physical failure without proving
 general physical fallback cleanup or quiescence. Therefore the completion
 matrix remains Partial, callable v3 has no native execution evidence, and

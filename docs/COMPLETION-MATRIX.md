@@ -51,8 +51,11 @@ dependency isolation passed on Windows in [run 31257545008, job
 The proposed [RFC 0004 native call recovery and settlement
 contract](RFC-0004-NATIVE-CALL-SETTLEMENT.md) defines a bounded callable-v3
 frame/checkpoint/settlement/receipt foundation for the physical-failure and
-quiescence gap. Only its hidden target-neutral model is implemented: no v3
-physical runtime component is wired and it adds no native evidence to any row.
+quiescence gap. Its hidden target-neutral model and private compiler derivation
+from validated cleanup HIR are implemented for the current direct-trivial
+owned slice. No descriptor-v3, provider, loader, host, physical finalizer, or
+public compiler path is wired, so this adds no native runtime evidence to any
+row.
 
 The dedicated Linux
 [callable-host sanitizer job](https://github.com/wavect/semaprax/actions/runs/31256134955/job/93099637801)

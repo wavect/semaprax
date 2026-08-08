@@ -124,12 +124,15 @@ All notable changes to SEMAPRAX are documented here.
   runtime evidence and kept the overall workflow run red; no Windows runtime
   evidence is inferred from this job.
 - Added the hidden callable-v3 settlement foundation and proposed RFC 0004: a
-  bounded target-neutral certificate/frame/receipt model with exhaustive owner
-  state enumeration, exact accept/abort cleanup actions, idempotent quiescent
-  receipts, deterministic fingerprints, hostile mutations, and non-cloneable,
-  non-formattable frames. The model deliberately provides no invocation or
-  module-instance reservation, physical finalizer authority, wire/provider,
-  loader/host, compiler, or public backend evidence; `SPX-B104` remains closed.
+  bounded target-neutral certificate/frame/receipt model with one all-live
+  start, typed progress, exhaustive owner-state enumeration, exact accept/abort
+  cleanup actions, idempotent quiescent receipts, deterministic fingerprints,
+  and hostile mutations. A private compiler deriver now preserves exact HIR
+  result-staging/finalization timing and binds terminal settlement to accepted
+  semantic trace paths for the authoritative 14-case direct-trivial corpus.
+  The model deliberately provides no invocation or module-instance reservation,
+  physical finalizer authority, descriptor/provider, loader/host, public
+  compiler, or backend runtime evidence; `SPX-B104` remains closed.
 - Added a mandatory Windows callable-v2 dependency-isolation fixture. It places
   a same-name dependency in both CWD and legacy `PATH`, proves the root-image
   sibling wins for descriptor admission and invocation, then removes that

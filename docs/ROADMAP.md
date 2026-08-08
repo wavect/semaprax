@@ -77,9 +77,11 @@ concurrency, and fork recovery remain subsequent work.
 The model-backed, proposed [RFC 0004 native call recovery and settlement
 contract](RFC-0004-NATIVE-CALL-SETTLEMENT.md) specifies the bounded linear
 frame, certified checkpoint, idempotent settlement, receipt, and quiescence
-model proposed for the physical-failure blocker. Only the hidden target-neutral
-model exists; none of its callable-v3 physical runtime pieces are wired, so it
-does not advance phase 3 or `SPX-B104`.
+model proposed for the physical-failure blocker. The hidden target-neutral model
+and private compiler derivation from validated cleanup HIR now exist for the
+current direct-trivial owned slice. None of the callable-v3 descriptor,
+provider, loader, host, physical-finalizer, or public compiler pieces are wired,
+so this does not advance phase 3 or `SPX-B104`.
 
 The dedicated Linux
 [dynamic-provider sanitizer job](https://github.com/wavect/semaprax/actions/runs/31256134955/job/93099637801)

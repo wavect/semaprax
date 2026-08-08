@@ -23,6 +23,8 @@ mod native_host_contract;
 mod native_module_lease;
 mod native_resource;
 mod native_runtime;
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+mod native_settlement_derivation;
 mod native_trace;
 mod native_trace_runtime;
 mod native_value;

@@ -263,6 +263,25 @@ fn windows_source_lock_rejects_hostile_gate_removal() {
         ),
         source.replace("$linkOutput -match '(?i)fatal error'", "$false"),
         source.replace("$exactLibraryPath", "$ambientLibraryPath"),
+        source.replace("CARGO_ENCODED_RUSTFLAGS", "REMOVED_ENCODED_RUSTFLAGS"),
+        source.replace(
+            "--remap-path-prefix=$targetDirectory=/semaprax-private-desktop-target",
+            "",
+        ),
+        source.replace("-C codegen-units=1", ""),
+        source.replace("-C link-arg=/Brepro", ""),
+        source.replace(
+            "[System.Environment]::SetEnvironmentVariable('SOURCE_DATE_EPOCH', '1', 'Process')",
+            "",
+        ),
+        source.replace(
+            "[System.Environment]::SetEnvironmentVariable('RUSTFLAGS', $previousRustFlags, 'Process')",
+            "",
+        ),
+        source.replace(
+            "[System.Environment]::SetEnvironmentVariable('SOURCE_DATE_EPOCH', $previousSourceDateEpoch, 'Process')",
+            "",
+        ),
         source.replace("& $clangPath -std=c11", "clang -std=c11"),
         source.replace("-c $sourceFile -o $providerObject", "$sourceFile"),
         source.replace(
@@ -487,6 +506,11 @@ fn windows_contract(source: &str) -> Result<(), String> {
             "Resolve-CanonicalNonReparsePath $Path 'import library'",
             "CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER",
             "$exactLibraryPath",
+            "Windows desktop packaging rejects ambient CARGO_ENCODED_RUSTFLAGS",
+            "[System.Environment]::SetEnvironmentVariable('RUSTFLAGS', \"--remap-path-prefix=$targetDirectory=/semaprax-private-desktop-target -C codegen-units=1 -C link-arg=/Brepro\", 'Process')",
+            "[System.Environment]::SetEnvironmentVariable('SOURCE_DATE_EPOCH', '1', 'Process')",
+            "[System.Environment]::SetEnvironmentVariable('RUSTFLAGS', $previousRustFlags, 'Process')",
+            "[System.Environment]::SetEnvironmentVariable('SOURCE_DATE_EPOCH', $previousSourceDateEpoch, 'Process')",
             "cargo run --quiet --locked --offline",
             "cargo build --quiet --locked --offline --release",
             "Build-Once -Label 'first'",

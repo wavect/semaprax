@@ -10,6 +10,9 @@ if (-not [System.IO.Path]::IsPathFullyQualified($OutputRoot)) { throw 'output di
 if (Test-Path -LiteralPath $OutputRoot) { throw 'output directory must not already exist' }
 if (-not [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([System.Runtime.InteropServices.OSPlatform]::Windows)) { throw 'Windows package gate must run on Windows' }
 if ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture -ne [System.Runtime.InteropServices.Architecture]::X64) { throw 'Windows package gate requires an x86_64 runner' }
+if (-not [string]::IsNullOrEmpty([System.Environment]::GetEnvironmentVariable('CARGO_ENCODED_RUSTFLAGS', 'Process'))) {
+  throw 'Windows desktop packaging rejects ambient CARGO_ENCODED_RUSTFLAGS'
+}
 
 $lock = @{}
 foreach ($line in (Get-Content -LiteralPath $lockPath)) {
@@ -165,10 +168,14 @@ function Build-Once([Parameter(Mandatory = $true)][string]$Label, [Parameter(Man
   $previousTargetDirectory = [System.Environment]::GetEnvironmentVariable('CARGO_TARGET_DIR', 'Process')
   $previousTargetLinker = [System.Environment]::GetEnvironmentVariable('CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER', 'Process')
   $previousLibraryPath = [System.Environment]::GetEnvironmentVariable('LIB', 'Process')
+  $previousRustFlags = [System.Environment]::GetEnvironmentVariable('RUSTFLAGS', 'Process')
+  $previousSourceDateEpoch = [System.Environment]::GetEnvironmentVariable('SOURCE_DATE_EPOCH', 'Process')
   try {
     [System.Environment]::SetEnvironmentVariable('CARGO_TARGET_DIR', $targetDirectory, 'Process')
     [System.Environment]::SetEnvironmentVariable('CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER', $linkExe, 'Process')
     [System.Environment]::SetEnvironmentVariable('LIB', $exactLibraryPath, 'Process')
+    [System.Environment]::SetEnvironmentVariable('RUSTFLAGS', "--remap-path-prefix=$targetDirectory=/semaprax-private-desktop-target -C codegen-units=1 -C link-arg=/Brepro", 'Process')
+    [System.Environment]::SetEnvironmentVariable('SOURCE_DATE_EPOCH', '1', 'Process')
     cargo run --quiet --locked --offline -p semaprax-native-host --features unstable-desktop-app-harness --bin private-desktop-v3-fixture -- $sourceFile $descriptorFile
     if ($LASTEXITCODE -ne 0) { throw "$Label desktop fixture emission failed" }
     & $clangPath -std=c11 -pedantic-errors -Wall -Wextra -Werror -O2 -c $sourceFile -o $providerObject
@@ -182,6 +189,8 @@ function Build-Once([Parameter(Mandatory = $true)][string]$Label, [Parameter(Man
     [System.Environment]::SetEnvironmentVariable('CARGO_TARGET_DIR', $previousTargetDirectory, 'Process')
     [System.Environment]::SetEnvironmentVariable('CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER', $previousTargetLinker, 'Process')
     [System.Environment]::SetEnvironmentVariable('LIB', $previousLibraryPath, 'Process')
+    [System.Environment]::SetEnvironmentVariable('RUSTFLAGS', $previousRustFlags, 'Process')
+    [System.Environment]::SetEnvironmentVariable('SOURCE_DATE_EPOCH', $previousSourceDateEpoch, 'Process')
   }
   $executableFile = Join-Path $targetDirectory 'release/private-desktop-v3-app.exe'
   foreach ($artifact in @($sourceFile, $providerObject, $descriptorFile, $providerFile, $executableFile)) {

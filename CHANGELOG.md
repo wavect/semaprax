@@ -45,7 +45,9 @@ All notable changes to SEMAPRAX are documented here.
   v1](docs/APPLE-SWIFT-OWNERSHIP-V1.md): a feature-gated same-thread Rust host,
   generation-tagged Swift wrapper, target-bound device/simulator providers,
   private XCFramework packager, and installed arm64-Simulator app gate. Local
-  Rust/source-lock evidence is green; hosted Apple execution is pending.
+  Rust/source-lock evidence and the bounded hosted Apple path are green in
+  [run 31333469714, job
+  93295293995](https://github.com/wavect/semaprax/actions/runs/31333469714/job/93295293995).
   Public framework, device, UI/lifecycle, admission, and `SPX-B104` claims stay
   closed.
 - Added the private [WIT boundary

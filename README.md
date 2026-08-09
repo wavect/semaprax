@@ -172,9 +172,11 @@ A private [Apple Swift ownership adapter](docs/APPLE-SWIFT-OWNERSHIP-V1.md) is
 also implemented and CI-configured. It reuses the exact iOS static callable-v3
 host behind a Swift 6 stable-thread wrapper. The hosted lane is configured to
 build private device/Simulator XCFramework slices and install arm64-Simulator
-applications; that Apple compilation/runtime evidence is still pending. This
-is **Partial** Swift/iOS implementation evidence, not a public framework,
-device, UI, or lifecycle claim.
+applications; that bounded compilation/runtime path is green in [run
+31333469714, job
+93295293995](https://github.com/wavect/semaprax/actions/runs/31333469714/job/93295293995).
+This is **Partial** Swift/iOS evidence, not a public framework, physical-device,
+UI, or general lifecycle claim.
 
 The private [WIT boundary v1](docs/WIT-COMPONENT-BOUNDARY-V1.md) adds a
 deterministic, mutation-closed WIT/schema/JavaScript bundle with Node execution

@@ -360,8 +360,9 @@ ledger with a Swift-owned stable thread, opaque generation-tagged sessions,
 poison-preserving outputs, and explicit-versus-ARC cleanup arbitration.
 Generated C binds fixed hidden evidence hooks; caller-selected hooks and the
 legacy raw open are absent. A Swift 6 lane is configured to construct device
-and universal Simulator slices plus two installed no-UI apps. Local gates
-pass; hosted Apple link/app execution is pending.
+and universal Simulator slices plus two installed no-UI apps. Local gates and
+the bounded hosted Apple link/app path are green in [run 31333469714, job
+93295293995](https://github.com/wavect/semaprax/actions/runs/31333469714/job/93295293995).
 
 The private [WIT boundary v1](WIT-COMPONENT-BOUNDARY-V1.md) freezes one scalar
 result/status WIT mapping and JavaScript adapter over the existing Wasm

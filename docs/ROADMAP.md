@@ -113,12 +113,13 @@ locks are green; packaged macOS/Windows execution is configured and counts only
 after hosted green. General SEMAPRAX UI/state syntax, SwiftUI/WinUI, broad
 accessibility/lifecycle, signing, installers, and distribution remain later.
 
-The next Apple gate is configured as one Swift/iOS application milestone:
+The bounded Apple Swift/iOS application milestone is green in [run
+31333469714, job
+93295293995](https://github.com/wavect/semaprax/actions/runs/31333469714/job/93295293995):
 target-bound device and Simulator static slices, a private XCFramework, Swift 6
 complete-concurrency checking, and installed arm64-Simulator applications for
-explicit and deterministic ARC cleanup. It counts only after hosted execution
-is green; physical-device, public-framework, UI/accessibility, and general
-lifecycle work remains later.
+explicit and deterministic ARC cleanup. Physical-device, public-framework,
+UI/accessibility, and general lifecycle work remains later.
 
 WIT/component work has started with the deterministic private `SPXWIT01`
 schema/adapter bundle and Node evidence. A separate standards-valid scalar

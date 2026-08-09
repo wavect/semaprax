@@ -407,8 +407,11 @@ The feature-gated Swift adapter reuses generation-tagged handles and the
 callable-v3 receipt ledger, but is not a public handle ABI or framework
 compatibility promise. The generated zero-argument fixture is the sole open
 entry; migrations must not restore caller-selected evidence hooks or expose the
-hidden registration bridge. Hosted Apple evidence is pending and must not be
-inferred from local Rust/source-lock checks.
+hidden registration bridge. The bounded hosted Apple gate is green in
+[run 31333469714, job
+93295293995](https://github.com/wavect/semaprax/actions/runs/31333469714/job/93295293995);
+that evidence must not be generalized to public frameworks, physical devices,
+UI, or general lifecycle support.
 
 ## Private WIT boundary v1
 

@@ -79,7 +79,9 @@ fn hostile_aliases_and_nonexistent_extras_fail_closed() {
     }
     for hostile in hostile {
         assert!(
-            repository.changed_plan(&[hostile.clone()]).is_err(),
+            repository
+                .changed_plan(std::slice::from_ref(&hostile))
+                .is_err(),
             "hostile alias was accepted: {hostile:?}"
         );
     }

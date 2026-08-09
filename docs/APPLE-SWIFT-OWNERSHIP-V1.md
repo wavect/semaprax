@@ -3,8 +3,9 @@
 Status: implemented and CI-configured behind
 `unstable-apple-swift-harness`. Local Rust, generator, source-lock, and strict
 host gates pass. The Apple device/simulator compilation, XCFramework
-inspection, and installed arm64-Simulator application run count only after the
-dedicated hosted macOS job is green.
+inspection, and two installed arm64-Simulator application paths are green in
+[run 31333469714, job
+93295293995](https://github.com/wavect/semaprax/actions/runs/31333469714/job/93295293995).
 
 This is one bounded Swift projection of the exact callable-v3
 `token.discard-two` fixture. It is not a public Swift package, framework API,

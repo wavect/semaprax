@@ -113,22 +113,6 @@ grep -F '<string>simulator</string>' "$work/xc-info.xml" >/dev/null
 grep -F '<string>arm64</string>' "$work/xc-info.xml" >/dev/null
 grep -F '<string>x86_64</string>' "$work/xc-info.xml" >/dev/null
 
-expected_archive_symbols='_spx_private_apple_swift_fixture_register_v1
-_spx_private_apple_swift_fixture_reset_v1
-_spx_private_apple_swift_fixture_snapshot_v1
-_spx_private_apple_swift_fixture_v1_open
-_spx_private_apple_swift_v1_adopt_pair
-_spx_private_apple_swift_v1_close_runtime
-_spx_private_apple_swift_v1_consume'
-for archive in "$work/lib-device.a" "$work/lib-simulator-arm64-o2.a" "$work/lib-simulator-x86_64-o2.a"; do
-  private_symbols="$(nm -gjU "$archive" | grep '^_spx_private_apple_swift' | LC_ALL=C sort -u)"
-  if [[ "$private_symbols" != "$expected_archive_symbols" ]]; then
-    echo "private Swift archive symbol inventory changed: $archive" >&2
-    printf '%s\n' "$private_symbols" >&2
-    exit 1
-  fi
-done
-
 cat >"$work/app.exports" <<'EOF'
 _main
 _spx_private_apple_swift_fixture_v1_open

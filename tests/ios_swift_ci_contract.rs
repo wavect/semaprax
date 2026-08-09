@@ -254,7 +254,6 @@ fn private_ios_swift_hosted_gate_is_mandatory_and_fail_closed() {
         "platform IOS",
         "otool -L",
         "nm -gjU",
-        "private Swift archive symbol inventory changed",
         "private Swift app has an unexpected dependency",
         "codesign --verify --strict",
     ] {

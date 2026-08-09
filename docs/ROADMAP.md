@@ -10,6 +10,7 @@ Status: implemented in this repository.
 - Stable declaration identities.
 - Revisioned semantic graph and context slices.
 - Versioned byte/node-bounded agent context with stable replay frontiers.
+- Offline context economics with exact goldens and conservative quality routing.
 - Effects, module permits, and contract guards.
 - Machine-readable diagnostics.
 - Atomic, stale-safe semantic renames.
@@ -101,6 +102,17 @@ configured but not counted until green. This is headless packaging evidence,
 not AppKit/SwiftUI/WinUI, accessibility, lifecycle, signing, installation, or
 public application-language support.
 
+A second private desktop seam now composes that engine behind one real AppKit
+window/button and one real Win32 window/button. Each adapter verifies its
+native accessibility name, sends a delayed button action through the platform
+event loop, binds the engine bytes to a deterministic package manifest before
+launch, requires the exact engine result, and reaches native close and
+termination before publishing success. AppKit bounds engine termination; Win32
+freezes its imported DLL set and rejects every export directory. Strict AppKit compilation and source
+locks are green; packaged macOS/Windows execution is configured and counts only
+after hosted green. General SEMAPRAX UI/state syntax, SwiftUI/WinUI, broad
+accessibility/lifecycle, signing, installers, and distribution remain later.
+
 The next Apple gate is configured as one Swift/iOS application milestone:
 target-bound device and Simulator static slices, a private XCFramework, Swift 6
 complete-concurrency checking, and installed arm64-Simulator applications for
@@ -110,10 +122,13 @@ lifecycle work remains later.
 
 WIT/component work has started with the deterministic private `SPXWIT01`
 schema/adapter bundle and Node evidence. A separate standards-valid scalar
-Component Model artifact now has a frozen digest, independent exact-profile
-parser, hostile mutation coverage, and a private Node subset runtime that
-executes its extracted import-free core module. The next WIT milestone is to
-compose the result/status WIT mapping with generated checked SEMAPRAX Wasm and
+Component Model v1 artifact has a frozen digest, independent exact-profile
+parser, hostile mutation coverage, and a private Node subset runtime. Checked
+component v2 now composes the exact SEMAPRAX-generated scalar core with a
+frozen checked runtime, passes pinned upstream validation and rehashed hostile
+cross-type gates, and executes generated success, overflow, and contract
+failure through its authenticated private `evaluate()` API. The next WIT
+milestone is to compose the `SPXWIT01` result/status mapping with checked v2 and
 run it through a maintained engine-native Component Model runtime. Resources,
 futures/streams, capabilities, version negotiation, and multi-language
 composition remain later gates.

@@ -64,6 +64,13 @@ jobs:
       - name: Package and execute private macOS desktop application
         if: runner.os == 'macOS'
         run: platform-tests/desktop-native/package-macos.sh "$RUNNER_TEMP/semaprax-private-desktop-v3"
+      - name: Package and execute private Windows native UI application
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: platform-tests/desktop-native/package-ui-windows.ps1 -OutputRoot "$env:RUNNER_TEMP/semaprax-private-desktop-ui-v1" -EngineRoot "$env:RUNNER_TEMP/semaprax-private-desktop-v3"
+      - name: Package and execute private macOS native UI application
+        if: runner.os == 'macOS'
+        run: platform-tests/desktop-native/package-ui-macos.sh "$RUNNER_TEMP/semaprax-private-desktop-ui-v1" "$RUNNER_TEMP/semaprax-private-desktop-v3"
       - name: Require native cleanup sanitizers (Linux)
         if: runner.os == 'Linux'
         env:

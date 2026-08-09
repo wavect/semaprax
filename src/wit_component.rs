@@ -1,10 +1,12 @@
 //! Private deterministic WIT/component-boundary evidence.
 //!
 //! This freezes one scalar result/status interface and its JavaScript adapter,
-//! plus a separate scalar Component Model binary profile. Neither is a public
-//! WIT import/export surface.
+//! a standalone scalar Component Model v1 fixture, and checked generated-core
+//! component v2 evidence. None is a public WIT import/export surface.
 
 use sha2::{Digest, Sha256};
+
+use crate::{ast::Program, diagnostic::Diagnostic, graph, wasm};
 
 const MAGIC: &[u8; 8] = b"SPXWIT01";
 
@@ -308,6 +310,440 @@ export async function instantiatePrivateScalarComponentV1(candidate) {
 }
 "#;
 
+/// A deterministic private Component Model artifact whose application core is
+/// emitted by the checked SEMAPRAX Wasm backend.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PrivateCheckedComponentArtifactV2 {
+    bytes: Vec<u8>,
+    digest: [u8; 32],
+    generated_core_digest: [u8; 32],
+    runtime_core_digest: [u8; 32],
+    source_revision: String,
+}
+
+impl PrivateCheckedComponentArtifactV2 {
+    #[must_use]
+    pub fn bytes(&self) -> &[u8] {
+        &self.bytes
+    }
+
+    #[must_use]
+    pub fn source_revision(&self) -> &str {
+        &self.source_revision
+    }
+
+    #[must_use]
+    pub const fn digest(&self) -> [u8; 32] {
+        self.digest
+    }
+
+    #[must_use]
+    pub const fn generated_core_digest(&self) -> [u8; 32] {
+        self.generated_core_digest
+    }
+
+    #[must_use]
+    pub const fn runtime_core_digest(&self) -> [u8; 32] {
+        self.runtime_core_digest
+    }
+}
+
+/// Independently admitted cores from the private checked-component profile.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ValidatedPrivateCheckedComponentV2<'a> {
+    runtime_core: &'a [u8],
+    generated_core: &'a [u8],
+}
+
+impl<'a> ValidatedPrivateCheckedComponentV2<'a> {
+    #[must_use]
+    pub const fn runtime_core(self) -> &'a [u8] {
+        self.runtime_core
+    }
+
+    #[must_use]
+    pub const fn generated_core(self) -> &'a [u8] {
+        self.generated_core
+    }
+
+    #[must_use]
+    pub const fn export_name(self) -> &'static str {
+        "evaluate"
+    }
+}
+
+const CHECKED_RUNTIME_CORE_V2_SHA256: [u8; 32] = [
+    107, 218, 111, 164, 153, 237, 95, 189, 213, 36, 9, 38, 76, 115, 211, 151, 91, 30, 214, 179, 58,
+    220, 84, 251, 168, 250, 95, 166, 49, 17, 148, 45,
+];
+
+/// Compose one verified SEMAPRAX program with the private checked core runtime
+/// and lift its generated `semaprax_main() -> i64` export as
+/// `evaluate() -> s64`.
+pub fn emit_private_checked_component_v2(
+    program: &Program,
+) -> Result<PrivateCheckedComponentArtifactV2, Diagnostic> {
+    let generated_core = wasm::emit_module(program)?;
+    validate_generated_scalar_core_v2(&generated_core).map_err(|_| {
+        Diagnostic::io(
+            "SPX-WIT106",
+            "private checked component v2 admits only the scalar core import/export profile",
+        )
+    })?;
+    let runtime_core = emit_checked_runtime_core_v2();
+    let generated_core_digest = Sha256::digest(&generated_core).into();
+    let runtime_core_digest = Sha256::digest(&runtime_core).into();
+    let source_revision = graph::revision(program);
+
+    let mut bytes = COMPONENT_HEADER.to_vec();
+    push_section(&mut bytes, 1, &runtime_core);
+    push_counted_section(&mut bytes, 2, 1, &[0x00, 0x00, 0x00]);
+    push_section(&mut bytes, 1, &generated_core);
+
+    let mut generated_instance = vec![0x00, 0x01, 0x01];
+    push_name(&mut generated_instance, "env");
+    generated_instance.extend([0x12, 0x00]);
+    push_counted_section(&mut bytes, 2, 1, &generated_instance);
+
+    let mut alias = vec![0x00, 0x00, 0x01, 0x01];
+    push_name(&mut alias, "semaprax_main");
+    push_counted_section(&mut bytes, 6, 1, &alias);
+    push_counted_section(&mut bytes, 7, 1, &[0x40, 0x00, 0x00, 0x78]);
+    push_counted_section(&mut bytes, 8, 1, &[0x00, 0x00, 0x00, 0x00, 0x00]);
+    let mut export = vec![0x00];
+    push_name(&mut export, "evaluate");
+    export.extend([0x01, 0x00, 0x00]);
+    push_counted_section(&mut bytes, 11, 1, &export);
+
+    let digest = Sha256::digest(&bytes).into();
+    Ok(PrivateCheckedComponentArtifactV2 {
+        bytes,
+        digest,
+        generated_core_digest,
+        runtime_core_digest,
+        source_revision,
+    })
+}
+
+/// Independently parse the checked-component profile and bind its application
+/// core to the compiler-provided expected digest.
+pub fn validate_private_checked_component_v2(
+    candidate: &[u8],
+    expected_generated_core_digest: [u8; 32],
+) -> Result<ValidatedPrivateCheckedComponentV2<'_>, PrivateComponentValidationError> {
+    let mut component = Cursor::new(candidate);
+    if component.take(8)? != COMPONENT_HEADER {
+        return Err(PrivateComponentValidationError::Header);
+    }
+    let runtime_core = component.section(1)?;
+    if <[u8; 32]>::from(Sha256::digest(runtime_core)) != CHECKED_RUNTIME_CORE_V2_SHA256 {
+        return Err(PrivateComponentValidationError::CoreModule);
+    }
+    validate_exact_counted_section(
+        component.section(2)?,
+        &[0x00, 0x00, 0x00],
+        PrivateComponentValidationError::Profile,
+    )?;
+    let generated_core = component.section(1)?;
+    if <[u8; 32]>::from(Sha256::digest(generated_core)) != expected_generated_core_digest {
+        return Err(PrivateComponentValidationError::CoreModule);
+    }
+    validate_generated_scalar_core_v2(generated_core)?;
+    let mut instance = Cursor::new(component.section(2)?);
+    instance.expect_u32(1, PrivateComponentValidationError::Profile)?;
+    instance.expect_bytes(
+        &[0x00, 0x01, 0x01],
+        PrivateComponentValidationError::Profile,
+    )?;
+    instance.expect_name("env", PrivateComponentValidationError::Profile)?;
+    instance.expect_bytes(&[0x12, 0x00], PrivateComponentValidationError::Profile)?;
+    instance.finish(PrivateComponentValidationError::Profile)?;
+
+    let mut alias = Cursor::new(component.section(6)?);
+    alias.expect_u32(1, PrivateComponentValidationError::Profile)?;
+    alias.expect_bytes(
+        &[0x00, 0x00, 0x01, 0x01],
+        PrivateComponentValidationError::Profile,
+    )?;
+    alias.expect_name("semaprax_main", PrivateComponentValidationError::Profile)?;
+    alias.finish(PrivateComponentValidationError::Profile)?;
+    validate_exact_counted_section(
+        component.section(7)?,
+        &[0x40, 0x00, 0x00, 0x78],
+        PrivateComponentValidationError::Profile,
+    )?;
+    validate_exact_counted_section(
+        component.section(8)?,
+        &[0x00, 0x00, 0x00, 0x00, 0x00],
+        PrivateComponentValidationError::Profile,
+    )?;
+    let mut export = Cursor::new(component.section(11)?);
+    export.expect_u32(1, PrivateComponentValidationError::Profile)?;
+    export.expect_bytes(&[0x00], PrivateComponentValidationError::Profile)?;
+    export.expect_name("evaluate", PrivateComponentValidationError::Profile)?;
+    export.expect_bytes(
+        &[0x01, 0x00, 0x00],
+        PrivateComponentValidationError::Profile,
+    )?;
+    export.finish(PrivateComponentValidationError::Profile)?;
+    component.finish(PrivateComponentValidationError::Profile)?;
+    Ok(ValidatedPrivateCheckedComponentV2 {
+        runtime_core,
+        generated_core,
+    })
+}
+
+/// Emit an artifact-bound, dependency-free runtime for the private checked
+/// component profile. The runtime authenticates and parses the whole component
+/// before executing its two core instances through the host WebAssembly engine.
+#[must_use]
+pub fn private_checked_component_runtime_javascript_v2(
+    artifact: &PrivateCheckedComponentArtifactV2,
+) -> String {
+    format!(
+        "const SPX_CHECKED_COMPONENT_V2_SHA256 = \"{}\";\n{}",
+        hex_digest(&Sha256::digest(artifact.bytes()).into()),
+        PRIVATE_CHECKED_COMPONENT_RUNTIME_JAVASCRIPT_V2
+    )
+}
+
+const PRIVATE_CHECKED_COMPONENT_RUNTIME_JAVASCRIPT_V2: &str = r#"function spxCheckedComponentCursor(bytes) {
+  let offset = 0;
+  const take = count => {
+    if (!Number.isInteger(count) || count < 0 || offset + count > bytes.length) throw new TypeError("SPX-WIT102");
+    const value = bytes.subarray(offset, offset + count); offset += count; return value;
+  };
+  const u32 = () => {
+    const start = offset; let value = 0; let shift = 0;
+    for (let index = 0; index < 5; index++) {
+      const byte = take(1)[0];
+      if (index === 4 && (byte & 0xf0) !== 0) throw new TypeError("SPX-WIT102");
+      value |= (byte & 0x7f) << shift;
+      if ((byte & 0x80) === 0) {
+        const encoded = []; let canonical = value >>> 0;
+        do { let part = canonical & 0x7f; canonical >>>= 7; if (canonical !== 0) part |= 0x80; encoded.push(part); } while (canonical !== 0);
+        if (offset - start !== encoded.length) throw new TypeError("SPX-WIT102");
+        return value >>> 0;
+      }
+      shift += 7;
+    }
+    throw new TypeError("SPX-WIT102");
+  };
+  return { take, u32, done: () => offset === bytes.length };
+}
+
+async function spxCheckedComponentDigest(bytes) {
+  if (globalThis.crypto === undefined || globalThis.crypto.subtle === undefined) throw new TypeError("SPX-WIT105");
+  const digest = new Uint8Array(await globalThis.crypto.subtle.digest("SHA-256", bytes));
+  return Array.from(digest, byte => byte.toString(16).padStart(2, "0")).join("");
+}
+
+export async function instantiatePrivateCheckedComponentV2(candidate) {
+  let source;
+  if (candidate instanceof ArrayBuffer) source = new Uint8Array(candidate);
+  else if (ArrayBuffer.isView(candidate)) source = new Uint8Array(candidate.buffer, candidate.byteOffset, candidate.byteLength);
+  else throw new TypeError("SPX-WIT102");
+  const bytes = Uint8Array.from(source);
+  if (await spxCheckedComponentDigest(bytes) !== SPX_CHECKED_COMPONENT_V2_SHA256) throw new TypeError("SPX-WIT105");
+
+  const cursor = spxCheckedComponentCursor(bytes);
+  const expectedHeader = [0,97,115,109,13,0,1,0];
+  const header = cursor.take(8);
+  if (!expectedHeader.every((byte, index) => header[index] === byte)) throw new TypeError("SPX-WIT101");
+  const section = id => {
+    if (cursor.take(1)[0] !== id) throw new TypeError("SPX-WIT103");
+    return cursor.take(cursor.u32());
+  };
+  const exact = (actual, expected) => {
+    if (actual.length !== expected.length || !expected.every((byte, index) => actual[index] === byte)) throw new TypeError("SPX-WIT103");
+  };
+  const runtimeCore = section(1);
+  exact(section(2), [1,0,0,0]);
+  const generatedCore = section(1);
+  exact(section(2), [1,0,1,1,3,101,110,118,18,0]);
+  exact(section(6), [1,0,0,1,1,13,115,101,109,97,112,114,97,120,95,109,97,105,110]);
+  exact(section(7), [1,64,0,0,120]);
+  exact(section(8), [1,0,0,0,0,0]);
+  exact(section(11), [1,0,8,101,118,97,108,117,97,116,101,1,0,0]);
+  if (!cursor.done()) throw new TypeError("SPX-WIT103");
+
+  const runtime = (await WebAssembly.instantiate(runtimeCore, {})).instance;
+  const generated = (await WebAssembly.instantiate(generatedCore, { env: runtime.exports })).instance;
+  if (typeof generated.exports.semaprax_main !== "function") throw new TypeError("SPX-WIT104");
+  return Object.freeze({
+    evaluate() {
+      if (arguments.length !== 0) throw new TypeError("SPX-WIT-I64");
+      const result = generated.exports.semaprax_main();
+      if (typeof result !== "bigint") throw new TypeError("SPX-WIT104");
+      return result;
+    },
+  });
+}
+"#;
+
+fn hex_digest(digest: &[u8; 32]) -> String {
+    let mut output = String::with_capacity(64);
+    for byte in digest {
+        use std::fmt::Write as _;
+        write!(output, "{byte:02x}").expect("writing to a string cannot fail");
+    }
+    output
+}
+
+fn validate_generated_scalar_core_v2(
+    candidate: &[u8],
+) -> Result<(), PrivateComponentValidationError> {
+    let mut module = Cursor::new(candidate);
+    if module.take(8)? != b"\0asm\x01\0\0\0" {
+        return Err(PrivateComponentValidationError::CoreModule);
+    }
+    let types = module.section(1)?;
+    if types.is_empty() {
+        return Err(PrivateComponentValidationError::Profile);
+    }
+    let mut imports = Cursor::new(module.section(2)?);
+    imports.expect_u32(7, PrivateComponentValidationError::Profile)?;
+    for (name, type_index) in [
+        ("spx_add", 0),
+        ("spx_sub", 0),
+        ("spx_mul", 0),
+        ("spx_div", 0),
+        ("spx_rem", 0),
+        ("spx_neg", 1),
+        ("spx_contract_fail", 2),
+    ] {
+        imports.expect_name("env", PrivateComponentValidationError::Profile)?;
+        imports.expect_name(name, PrivateComponentValidationError::Profile)?;
+        imports.expect_bytes(&[0x00], PrivateComponentValidationError::Profile)?;
+        imports.expect_u32(type_index, PrivateComponentValidationError::Profile)?;
+    }
+    imports.finish(PrivateComponentValidationError::Profile)?;
+
+    let functions = module.section(3)?;
+    if functions.is_empty() {
+        return Err(PrivateComponentValidationError::Profile);
+    }
+    let mut exports = Cursor::new(module.section(7)?);
+    exports.expect_u32(1, PrivateComponentValidationError::Profile)?;
+    exports.expect_name("semaprax_main", PrivateComponentValidationError::Profile)?;
+    exports.expect_bytes(&[0x00], PrivateComponentValidationError::Profile)?;
+    if exports.u32()? < 7 {
+        return Err(PrivateComponentValidationError::Profile);
+    }
+    exports.finish(PrivateComponentValidationError::Profile)?;
+    if module.section(10)?.is_empty() {
+        return Err(PrivateComponentValidationError::Profile);
+    }
+    module.finish(PrivateComponentValidationError::Profile)
+}
+
+fn emit_checked_runtime_core_v2() -> Vec<u8> {
+    let mut module = b"\0asm\x01\0\0\0".to_vec();
+    push_section(
+        &mut module,
+        1,
+        &[
+            0x03, 0x60, 0x02, 0x7e, 0x7e, 0x01, 0x7e, 0x60, 0x01, 0x7e, 0x01, 0x7e, 0x60, 0x00,
+            0x00,
+        ],
+    );
+    push_section(
+        &mut module,
+        3,
+        &[0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02],
+    );
+    let mut exports = Vec::new();
+    push_u32(&mut exports, 7);
+    for (index, name) in [
+        "spx_add",
+        "spx_sub",
+        "spx_mul",
+        "spx_div",
+        "spx_rem",
+        "spx_neg",
+        "spx_contract_fail",
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        push_name(&mut exports, name);
+        exports.push(0x00);
+        push_u32(&mut exports, index as u32);
+    }
+    push_section(&mut module, 7, &exports);
+
+    let mut code = Vec::new();
+    push_u32(&mut code, 7);
+    push_core_body(&mut code, &[0x01, 0x01, 0x7e], &checked_add_body());
+    push_core_body(&mut code, &[0x01, 0x01, 0x7e], &checked_sub_body());
+    push_core_body(&mut code, &[0x01, 0x01, 0x7e], &checked_mul_body());
+    push_core_body(&mut code, &[0x00], &[0x20, 0x00, 0x20, 0x01, 0x7f]);
+    push_core_body(&mut code, &[0x00], &checked_rem_body());
+    push_core_body(&mut code, &[0x00], &checked_neg_body());
+    push_core_body(&mut code, &[0x00], &[0x00]);
+    push_section(&mut module, 10, &code);
+    module
+}
+
+fn checked_add_body() -> Vec<u8> {
+    vec![
+        0x20, 0x00, 0x20, 0x01, 0x7c, 0x21, 0x02, 0x20, 0x00, 0x20, 0x02, 0x85, 0x20, 0x01, 0x20,
+        0x02, 0x85, 0x83, 0x42, 0x00, 0x53, 0x04, 0x40, 0x00, 0x0b, 0x20, 0x02,
+    ]
+}
+
+fn checked_sub_body() -> Vec<u8> {
+    vec![
+        0x20, 0x00, 0x20, 0x01, 0x7d, 0x21, 0x02, 0x20, 0x00, 0x20, 0x01, 0x85, 0x20, 0x00, 0x20,
+        0x02, 0x85, 0x83, 0x42, 0x00, 0x53, 0x04, 0x40, 0x00, 0x0b, 0x20, 0x02,
+    ]
+}
+
+fn checked_mul_body() -> Vec<u8> {
+    vec![
+        0x20, 0x00, 0x20, 0x01, 0x7e, 0x21, 0x02, 0x20, 0x01, 0x50, 0x04, 0x7e, 0x20, 0x02, 0x05,
+        0x20, 0x02, 0x20, 0x01, 0x7f, 0x20, 0x00, 0x52, 0x04, 0x40, 0x00, 0x0b, 0x20, 0x02, 0x0b,
+    ]
+}
+
+fn checked_rem_body() -> Vec<u8> {
+    let mut body = vec![0x20, 0x01, 0x50, 0x04, 0x40, 0x00, 0x0b, 0x20, 0x00, 0x42];
+    push_i64(&mut body, i64::MIN);
+    body.extend([0x51, 0x20, 0x01, 0x42]);
+    push_i64(&mut body, -1);
+    body.extend([
+        0x51, 0x71, 0x04, 0x40, 0x00, 0x0b, 0x20, 0x00, 0x20, 0x01, 0x81,
+    ]);
+    body
+}
+
+fn checked_neg_body() -> Vec<u8> {
+    let mut body = vec![0x20, 0x00, 0x42];
+    push_i64(&mut body, i64::MIN);
+    body.extend([0x51, 0x04, 0x40, 0x00, 0x0b, 0x42, 0x00, 0x20, 0x00, 0x7d]);
+    body
+}
+
+fn push_core_body(code: &mut Vec<u8>, locals: &[u8], instructions: &[u8]) {
+    let mut body = locals.to_vec();
+    body.extend_from_slice(instructions);
+    body.push(0x0b);
+    push_u32(code, body.len() as u32);
+    code.extend_from_slice(&body);
+}
+
+fn push_i64(output: &mut Vec<u8>, mut value: i64) {
+    loop {
+        let byte = (value as u8) & 0x7f;
+        value >>= 7;
+        let done = (value == 0 && byte & 0x40 == 0) || (value == -1 && byte & 0x40 != 0);
+        output.push(if done { byte } else { byte | 0x80 });
+        if done {
+            break;
+        }
+    }
+}
+
 fn emit_private_component_core_v1() -> Vec<u8> {
     let mut module = b"\0asm\x01\0\0\0".to_vec();
     push_section(&mut module, 1, &[0x01, 0x60, 0x02, 0x7e, 0x7e, 0x01, 0x7e]);
@@ -537,6 +973,37 @@ mod tests {
 
     static NEXT_CONSUMER: AtomicU64 = AtomicU64::new(0);
 
+    const CHECKED_COMPONENT_SOURCE: &str = r#"
+module test.checked_component;
+
+@id("app.main")
+fn main() -> i64 { 19 + 23 }
+"#;
+
+    fn checked_component_program() -> crate::ast::Program {
+        crate::parse(CHECKED_COMPONENT_SOURCE, Path::new("checked-component.spx")).unwrap()
+    }
+
+    fn replace_unique_byte(bytes: &mut [u8], needle: &[u8], relative_index: usize, value: u8) {
+        let matches = bytes
+            .windows(needle.len())
+            .enumerate()
+            .filter_map(|(index, candidate)| (candidate == needle).then_some(index))
+            .collect::<Vec<_>>();
+        assert_eq!(matches.len(), 1, "hostile mutation anchor is not unique");
+        bytes[matches[0] + relative_index] = value;
+    }
+
+    fn rehashed_artifact(
+        original: &PrivateCheckedComponentArtifactV2,
+        bytes: Vec<u8>,
+    ) -> PrivateCheckedComponentArtifactV2 {
+        let mut hostile = original.clone();
+        hostile.bytes = bytes;
+        hostile.digest = Sha256::digest(hostile.bytes()).into();
+        hostile
+    }
+
     struct ConsumerDirectory(PathBuf);
 
     impl ConsumerDirectory {
@@ -707,6 +1174,319 @@ reject(new Proxy({}, { ownKeys() { throw new Error("hostile"); } }));
     }
 
     #[test]
+    fn checked_component_v2_is_generated_bound_and_independently_parsed() {
+        let program = checked_component_program();
+        let first = emit_private_checked_component_v2(&program).unwrap();
+        let second = emit_private_checked_component_v2(&program).unwrap();
+        assert_eq!(first, second);
+        assert_eq!(first.source_revision(), graph::revision(&program));
+        assert_eq!(first.runtime_core_digest(), CHECKED_RUNTIME_CORE_V2_SHA256);
+        assert_eq!(
+            first.digest(),
+            [
+                192, 191, 163, 225, 184, 136, 50, 55, 236, 153, 52, 82, 12, 249, 177, 205, 178, 73,
+                40, 157, 49, 141, 108, 208, 65, 62, 99, 183, 22, 112, 59, 192,
+            ]
+        );
+
+        let validated =
+            validate_private_checked_component_v2(first.bytes(), first.generated_core_digest())
+                .unwrap();
+        assert_eq!(validated.export_name(), "evaluate");
+        assert_eq!(
+            <[u8; 32]>::from(Sha256::digest(validated.generated_core())),
+            first.generated_core_digest()
+        );
+        assert_eq!(
+            <[u8; 32]>::from(Sha256::digest(validated.runtime_core())),
+            first.runtime_core_digest()
+        );
+        for index in 0..first.bytes().len() {
+            let mut hostile = first.bytes().to_vec();
+            hostile[index] ^= 1;
+            assert!(
+                validate_private_checked_component_v2(&hostile, first.generated_core_digest())
+                    .is_err(),
+                "component v2 byte {index} was not authenticated"
+            );
+        }
+        for end in 0..first.bytes().len() {
+            assert!(validate_private_checked_component_v2(
+                &first.bytes()[..end],
+                first.generated_core_digest()
+            )
+            .is_err());
+        }
+        let mut trailing = first.bytes().to_vec();
+        trailing.push(0);
+        assert_eq!(
+            validate_private_checked_component_v2(&trailing, first.generated_core_digest()),
+            Err(PrivateComponentValidationError::Profile)
+        );
+    }
+
+    #[test]
+    fn checked_component_v2_digest_is_read_only_and_javascript_uses_exact_bytes() {
+        let artifact = emit_private_checked_component_v2(&checked_component_program()).unwrap();
+        let expected = private_checked_component_runtime_javascript_v2(&artifact);
+        let mut forged_metadata = artifact.clone();
+        forged_metadata.digest = [0xa5; 32];
+        assert_ne!(forged_metadata.digest(), artifact.digest());
+        assert_eq!(
+            private_checked_component_runtime_javascript_v2(&forged_metadata),
+            expected,
+            "JavaScript authorization trusted forgeable digest metadata"
+        );
+    }
+
+    #[test]
+    fn upstream_validator_rejects_rehashed_component_cross_type_hostiles() {
+        let artifact = emit_private_checked_component_v2(&checked_component_program()).unwrap();
+        wasmparser::Validator::new_with_features(wasmparser::WasmFeatures::all())
+            .validate_all(artifact.bytes())
+            .expect("pinned upstream validator rejected checked component v2");
+
+        let validated = validate_private_checked_component_v2(
+            artifact.bytes(),
+            artifact.generated_core_digest(),
+        )
+        .unwrap();
+        let generated_offset = artifact
+            .bytes()
+            .windows(validated.generated_core().len())
+            .position(|candidate| candidate == validated.generated_core())
+            .unwrap();
+        let runtime_offset = artifact
+            .bytes()
+            .windows(validated.runtime_core().len())
+            .position(|candidate| candidate == validated.runtime_core())
+            .unwrap();
+
+        let mut invalid_signature = artifact.bytes().to_vec();
+        replace_unique_byte(
+            &mut invalid_signature[runtime_offset..runtime_offset + validated.runtime_core().len()],
+            &[7, b's', b'p', b'x', b'_', b'a', b'd', b'd', 0, 0],
+            9,
+            5,
+        );
+        let mut invalid_body = artifact.bytes().to_vec();
+        let generated_end = generated_offset + validated.generated_core().len();
+        invalid_body[generated_end - 1] = 0;
+        let mut invalid_cardinality = artifact.bytes().to_vec();
+        replace_unique_byte(&mut invalid_cardinality, &[6, 19, 1, 0, 0, 1, 1, 13], 2, 2);
+        let mut invalid_canonical_lift = artifact.bytes().to_vec();
+        replace_unique_byte(
+            &mut invalid_canonical_lift,
+            &[7, 5, 1, 64, 0, 0, 120],
+            6,
+            127,
+        );
+
+        for (name, bytes) in [
+            ("signature", invalid_signature),
+            ("body", invalid_body),
+            ("cardinality", invalid_cardinality),
+            ("canonical-lift", invalid_canonical_lift),
+        ] {
+            let hostile = rehashed_artifact(&artifact, bytes);
+            assert_eq!(
+                hostile.digest(),
+                <[u8; 32]>::from(Sha256::digest(hostile.bytes()))
+            );
+            assert!(
+                wasmparser::Validator::new_with_features(wasmparser::WasmFeatures::all())
+                    .validate_all(hostile.bytes())
+                    .is_err(),
+                "pinned upstream validator admitted rehashed hostile {name}"
+            );
+        }
+    }
+
+    #[test]
+    fn checked_component_v2_rejects_owned_core_profiles() {
+        let program = crate::parse(
+            r#"module test.checked_component_owned;
+@id("token.type")
+resource Token {
+    @id("token.drop")
+    drop trivial;
+}
+@id("token.identity")
+fn identity(value: own Token) -> Token { value }
+@id("app.main")
+fn main() -> i64 { 42 }
+"#,
+            Path::new("checked-component-owned.spx"),
+        )
+        .unwrap();
+        let error = emit_private_checked_component_v2(&program).unwrap_err();
+        assert_eq!(error.code, "SPX-WIT106");
+    }
+
+    #[test]
+    fn node_executes_generated_core_with_the_embedded_checked_runtime() {
+        let artifact = emit_private_checked_component_v2(&checked_component_program()).unwrap();
+        let validated = validate_private_checked_component_v2(
+            artifact.bytes(),
+            artifact.generated_core_digest(),
+        )
+        .unwrap();
+        let runtime = validated
+            .runtime_core()
+            .iter()
+            .map(u8::to_string)
+            .collect::<Vec<_>>()
+            .join(",");
+        let generated = validated
+            .generated_core()
+            .iter()
+            .map(u8::to_string)
+            .collect::<Vec<_>>()
+            .join(",");
+        let script = format!(
+            r#"const runtimeBytes = new Uint8Array([{runtime}]);
+const generatedBytes = new Uint8Array([{generated}]);
+if (!WebAssembly.validate(runtimeBytes)) process.exit(76);
+if (!WebAssembly.validate(generatedBytes)) process.exit(75);
+const runtime = (await WebAssembly.instantiate(runtimeBytes, {{}})).instance;
+const generated = (await WebAssembly.instantiate(generatedBytes, {{ env: runtime.exports }})).instance;
+if (generated.exports.semaprax_main() !== 42n) process.exit(72);
+const min = -(1n << 63n), max = (1n << 63n) - 1n;
+for (const invoke of [
+  () => runtime.exports.spx_add(max, 1n),
+  () => runtime.exports.spx_sub(min, 1n),
+  () => runtime.exports.spx_mul(max, 2n),
+  () => runtime.exports.spx_div(min, -1n),
+  () => runtime.exports.spx_rem(min, -1n),
+  () => runtime.exports.spx_neg(min),
+  () => runtime.exports.spx_contract_fail()
+]) {{
+  let trapped = false;
+  try {{ invoke(); }} catch (error) {{ trapped = error instanceof WebAssembly.RuntimeError; }}
+  if (!trapped) process.exit(73);
+}}
+if (runtime.exports.spx_add(19n, 23n) !== 42n ||
+    runtime.exports.spx_sub(23n, 19n) !== 4n ||
+    runtime.exports.spx_mul(-6n, 7n) !== -42n ||
+    runtime.exports.spx_div(-42n, 7n) !== -6n ||
+    runtime.exports.spx_rem(43n, 7n) !== 1n ||
+    runtime.exports.spx_neg(42n) !== -42n) process.exit(74);
+"#
+        );
+        let output = Command::new("node")
+            .args(["--input-type=module", "--eval", &script])
+            .output()
+            .expect("Node is required by the existing Wasm quality gate");
+        assert!(
+            output.status.success(),
+            "Node checked component core execution failed with {:?}: {}",
+            output.status.code(),
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+
+    #[test]
+    fn node_executes_the_authenticated_checked_component_v2_runtime() {
+        let artifact = emit_private_checked_component_v2(&checked_component_program()).unwrap();
+        let bytes = artifact
+            .bytes()
+            .iter()
+            .map(u8::to_string)
+            .collect::<Vec<_>>()
+            .join(",");
+        let script = format!(
+            r#"{}
+const original = new Uint8Array([{}]);
+const component = await instantiatePrivateCheckedComponentV2(original);
+if (component.evaluate() !== 42n || !Object.isFrozen(component)) process.exit(77);
+let rejectedArgument = false;
+try {{ component.evaluate(1n); }} catch (error) {{ rejectedArgument = error instanceof TypeError && error.message === "SPX-WIT-I64"; }}
+if (!rejectedArgument) process.exit(78);
+
+const copiedBeforeAwait = new Uint8Array(original);
+const pending = instantiatePrivateCheckedComponentV2(copiedBeforeAwait);
+copiedBeforeAwait.fill(0);
+if ((await pending).evaluate() !== 42n) process.exit(79);
+
+for (const hostile of [original.subarray(0, original.length - 1), Uint8Array.from([...original, 0])]) {{
+  let rejected = false;
+  try {{ await instantiatePrivateCheckedComponentV2(hostile); }}
+  catch (error) {{ rejected = error instanceof TypeError; }}
+  if (!rejected) process.exit(80);
+}}
+const changed = Uint8Array.from(original);
+changed[Math.floor(changed.length / 2)] ^= 1;
+let authenticated = false;
+try {{ await instantiatePrivateCheckedComponentV2(changed); }}
+catch (error) {{ authenticated = error instanceof TypeError && error.message === "SPX-WIT105"; }}
+if (!authenticated) process.exit(81);
+"#,
+            private_checked_component_runtime_javascript_v2(&artifact),
+            bytes
+        );
+        let output = Command::new("node")
+            .args(["--input-type=module", "--eval", &script])
+            .output()
+            .expect("Node is required by the existing Wasm quality gate");
+        assert!(
+            output.status.success(),
+            "Node checked component v2 runtime failed with {:?}: {}",
+            output.status.code(),
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+
+    #[test]
+    fn node_checked_component_v2_evaluate_traps_generated_overflow_and_contract_failure() {
+        for (name, source) in [
+            (
+                "overflow",
+                r#"module test.checked_component_overflow;
+@id("app.main")
+fn main() -> i64 { 9223372036854775807 + 1 }
+"#,
+            ),
+            (
+                "contract",
+                r#"module test.checked_component_contract;
+@id("app.main")
+fn main() -> i64 requires false { 42 }
+"#,
+            ),
+        ] {
+            let program = crate::parse(source, Path::new("checked-component-trap.spx")).unwrap();
+            let artifact = emit_private_checked_component_v2(&program).unwrap();
+            let bytes = artifact
+                .bytes()
+                .iter()
+                .map(u8::to_string)
+                .collect::<Vec<_>>()
+                .join(",");
+            let script = format!(
+                r#"{}
+const component = await instantiatePrivateCheckedComponentV2(new Uint8Array([{}]));
+let trapped = false;
+try {{ component.evaluate(); }}
+catch (error) {{ trapped = error instanceof WebAssembly.RuntimeError; }}
+if (!trapped) process.exit(82);
+"#,
+                private_checked_component_runtime_javascript_v2(&artifact),
+                bytes
+            );
+            let output = Command::new("node")
+                .args(["--input-type=module", "--eval", &script])
+                .output()
+                .expect("Node is required by the existing Wasm quality gate");
+            assert!(
+                output.status.success(),
+                "Node checked component v2 {name} did not trap through evaluate with {:?}: {}",
+                output.status.code(),
+                String::from_utf8_lossy(&output.stderr)
+            );
+        }
+    }
+
+    #[test]
     fn node_private_component_runtime_executes_the_embedded_core_export() {
         let artifact = emit_private_component_v1();
         let bytes = artifact
@@ -796,11 +1576,20 @@ semaprax = {{ path = "{manifest_root}", default-features = false }}
         std::fs::create_dir(directory.path().join("src")).unwrap();
         std::fs::write(
             directory.path().join("src/main.rs"),
-            r#"use semaprax::wit_component::{emit_private_component_v1, validate_private_component_v1};
+            r#"use semaprax::wit_component::{
+    emit_private_checked_component_v2,
+    emit_private_component_v1,
+    private_checked_component_runtime_javascript_v2,
+    validate_private_checked_component_v2,
+    validate_private_component_v1,
+};
 
 fn main() {
     let artifact = emit_private_component_v1();
     let _ = validate_private_component_v1(artifact.bytes());
+    let _ = emit_private_checked_component_v2;
+    let _ = private_checked_component_runtime_javascript_v2;
+    let _ = validate_private_checked_component_v2;
 }
 "#,
         )
@@ -821,5 +1610,59 @@ fn main() {
                 && (stderr.contains("could not find") || stderr.contains("unresolved import")),
             "unexpected default-surface compiler diagnostic:\n{stderr}"
         );
+    }
+
+    #[test]
+    fn feature_consumer_can_only_read_checked_component_digests_through_accessors() {
+        let directory = ConsumerDirectory::create();
+        let manifest_root = env!("CARGO_MANIFEST_DIR").replace('\\', "\\\\");
+        std::fs::write(
+            directory.path().join("Cargo.toml"),
+            format!(
+                r#"[package]
+name = "semaprax-wit-read-only-digest-check"
+version = "0.0.0"
+edition = "2021"
+
+[workspace]
+
+[dependencies]
+semaprax = {{ path = "{manifest_root}", default-features = false, features = ["unstable-wit-component-harness"] }}
+"#
+            ),
+        )
+        .unwrap();
+        std::fs::create_dir(directory.path().join("src")).unwrap();
+        std::fs::write(
+            directory.path().join("src/main.rs"),
+            r#"use semaprax::wit_component::PrivateCheckedComponentArtifactV2;
+
+fn hostile(artifact: &mut PrivateCheckedComponentArtifactV2) {
+    let _ = artifact.digest();
+    let _ = artifact.generated_core_digest();
+    let _ = artifact.runtime_core_digest();
+    artifact.digest = [0; 32];
+    artifact.generated_core_digest = [0; 32];
+    artifact.runtime_core_digest = [0; 32];
+}
+
+fn main() {}
+"#,
+        )
+        .unwrap();
+        let checked = Command::new(std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into()))
+            .args(["check", "--offline", "--manifest-path"])
+            .arg(directory.path().join("Cargo.toml"))
+            .env("CARGO_TARGET_DIR", directory.path().join("target"))
+            .output()
+            .unwrap();
+        assert!(!checked.status.success(), "digest fields remained writable");
+        let stderr = String::from_utf8_lossy(&checked.stderr);
+        for field in ["digest", "generated_core_digest", "runtime_core_digest"] {
+            assert!(
+                stderr.contains("private field") && stderr.contains(field),
+                "missing private-field diagnostic for {field}:\n{stderr}"
+            );
+        }
     }
 }

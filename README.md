@@ -180,10 +180,13 @@ The private [WIT boundary v1](docs/WIT-COMPONENT-BOUNDARY-V1.md) adds a
 deterministic, mutation-closed WIT/schema/JavaScript bundle with Node execution
 and exact status bounds. A separate standards-valid scalar Component Model
 binary has a frozen digest, an independent exact-profile parser, and a private
-Node runtime for its authenticated embedded core module. It is **Partial** WIT
-evidence only: the two artifacts are not composed, and there is no
-engine-native Component Model runtime, resource/future/stream/capability
-support, or public WIT surface.
+Node runtime for its authenticated embedded core module. Checked component v2
+additionally composes the exact SEMAPRAX-generated scalar core with a frozen
+checked-runtime core, validates the complete component with pinned upstream
+`wasmparser`, and executes success, overflow, and contract failure through its
+private `evaluate()` API. It is **Partial** WIT evidence only: `SPXWIT01`
+result/status is not composed with v2, and there is no engine-native Component
+Model runtime, resource/future/stream/capability support, or public WIT surface.
 
 Not implemented yet: public native resource execution/admission,
 general-shape native/reference/Wasm trace conformance, the general Wasm resource ABI,
@@ -235,6 +238,17 @@ receipt replay. The Windows package/runtime path and hosted desktop executions
 remain configured and pending; this is not UI, accessibility, lifecycle,
 installer/signing, or public admission evidence. `SPX-B104` therefore remains
 unchanged.
+
+The next private [native desktop UI v1](docs/DESKTOP-NATIVE-UI-V1.md) layer is
+implemented and CI-configured over that private engine. AppKit and Win32 each
+create one real visible native window and button, verify the button's native
+accessibility name, dispatch a delayed control event through the OS event loop,
+verify the packaged engine bytes against a deterministic SHA-256 manifest before
+launch, and close through the native lifecycle. AppKit also enforces a bounded
+engine deadline. Hosted packaged execution remains pending. The colocated
+manifest is consistency evidence, not signed provenance. This is a bounded
+private fixture, not SEMAPRAX UI syntax, SwiftUI/WinUI, a full accessibility or
+lifecycle claim, distribution, or public admission.
 
 [RFC 0004](docs/RFC-0004-NATIVE-CALL-SETTLEMENT.md) now records the proposed
 callable-v3 recovery/settlement foundation for that physical-failure gap:
@@ -350,6 +364,7 @@ The patch updates the declaration and verified call sites together. If the graph
 | `check <file> [--json]` | Parse, type-check, verify contracts and effects |
 | `graph <file>` | Emit the revisioned semantic program graph |
 | `context <file> <symbol> [bounded options]` | Emit deterministic [`semaprax.agent-context.v1`](docs/AGENT-CONTEXT-V1.md) JSON with budgets, filters, omitted counts, and replay frontier |
+| `context-benchmark <manifest>` | Run deterministic offline [`semaprax.agent-context-economics.v1`](docs/AGENT-ECONOMICS-V1.md) byte/node/non-model lexical-unit and evidence scoring |
 | `build <file> [--target native\|native-callable\|web] [--function stable-id] [-o path]` | Produce a native executable, build-only callable bundle, or browser/Wasm package |
 | `run <file>` | Build and run in one step |
 | `fmt <file> [--check]` | Apply or verify canonical formatting |

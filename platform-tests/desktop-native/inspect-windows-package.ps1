@@ -138,7 +138,9 @@ function Get-PeImports($Image) {
 
 function Get-PeExports($Image) {
   $directory = $Image.Directories[0]
-  if ($directory.Rva -eq 0 -and $directory.Size -eq 0) { return [pscustomobject]@{ ModuleName = ''; Names = @() } }
+  if ($directory.Rva -eq 0 -and $directory.Size -eq 0) {
+    return [pscustomobject]@{ ModuleName = ''; FunctionCount = [uint32]0; Names = @() }
+  }
   if ($directory.Rva -eq 0 -or $directory.Size -lt 40) { throw "$($Image.Path) has an invalid export directory" }
   $offset = Convert-RvaToOffset $Image $directory.Rva
   $moduleNameRva = Read-U32 $Image.Bytes ($offset + 12)
@@ -159,7 +161,11 @@ function Get-PeExports($Image) {
       $names += Read-AsciiZ $Image.Bytes (Convert-RvaToOffset $Image $nameRva) 512
     }
   }
-  return [pscustomobject]@{ ModuleName = $moduleName; Names = @($names | Sort-Object -Unique) }
+  return [pscustomobject]@{
+    ModuleName = $moduleName
+    FunctionCount = $functionCount
+    Names = @($names | Sort-Object -Unique)
+  }
 }
 
 function Test-PeHasManifestResource($Image) {

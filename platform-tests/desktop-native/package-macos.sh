@@ -111,7 +111,14 @@ build_once() {
     CARGO_TARGET_DIR="$target" cargo build --quiet --offline --locked --release \
     -p semaprax-native-host --features unstable-desktop-app-harness \
     --bin private-desktop-v3-app
-  cp "$target/release/private-desktop-v3-app" "$build/SemapraxPrivate"
+  SDKROOT="$sdk_path" MACOSX_DEPLOYMENT_TARGET="$readonly_deployment_target" \
+    SOURCE_DATE_EPOCH=1 ZERO_AR_DATE=1 \
+    CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER="$clang_tool" \
+    RUSTFLAGS="--remap-path-prefix=$target=/semaprax-private-desktop-target -C link-arg=--ld-path=$ld_tool" \
+    CARGO_TARGET_DIR="$target" cargo run --quiet --offline --locked \
+    -p semaprax-native-host --features unstable-desktop-app-harness \
+    --bin private-desktop-macho-uuid -- \
+    "$target/release/private-desktop-v3-app" "$build/SemapraxPrivate"
 }
 
 cd "$repo"

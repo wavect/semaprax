@@ -23,6 +23,9 @@ path = "src/lib.rs"
 hmac = "=0.12.1"
 sha2 = "=0.10.9"
 
+[dev-dependencies]
+wasmparser = { version = "=0.255.0", default-features = false, features = ["component-model", "features", "validate"] }
+
 [features]
 default = []
 unstable-native-host-internal = []

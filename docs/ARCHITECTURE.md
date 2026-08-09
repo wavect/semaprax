@@ -245,6 +245,21 @@ package/runtime path remains CI-configured and pending. This is an application
 process and native-packaging seam only: there is no UI toolkit, accessibility,
 lifecycle API, signing, installer, public admission, or `SPX-B104` change.
 
+Private [native desktop UI v1](DESKTOP-NATIVE-UI-V1.md) keeps that Rust process
+as a package-bound sibling engine and adds no loader or host authority. A foreground
+AppKit executable and a Win32 GUI-subsystem executable own their respective
+native window, button, accessibility-name query, timer-dispatched action,
+event loop, close, and termination evidence. Only the engine's exact output can
+advance the UI fixture to success publication. The UI packagers consume the
+already verified engine package, compile the platform frontend twice with the
+pinned native linker/SDK roots, inspect a closed artifact/import/framework
+inventory, publish and verify a canonical SHA-256 engine manifest before launch,
+and launch it in the ordinary platform matrix. AppKit enforces a bounded
+terminate/kill deadline; Windows freezes the exact DLL set and rejects any
+export directory, including ordinal-only functions. The colocated digest is not
+signed provenance. The hosted runs are pending, and the adapter remains private
+with `SPX-B104` closed.
+
 A mandatory macOS gate requires the loader and host
 static-only path to type-check for five iOS device, simulator, and Catalyst Rust
 targets, excluding `libloading`, dynamic `open_*`, and the desktop v1/v2 host
@@ -355,9 +370,15 @@ scalar Component Model binary with a frozen digest, independently parses its
 exact canonical-lift profile, and executes the extracted import-free core
 module through Node's standard WebAssembly engine. That bounded runtime parses
 the component container but is not engine-native Component Model
-instantiation. The scalar fixture is not composed with the result/status WIT
-mapping or generated checked SEMAPRAX Wasm, so neither the compiler trust
-boundary nor the public backend surface expands.
+instantiation. Checked component v2 separately embeds the unmodified
+SEMAPRAX-generated scalar core beside a frozen checked-runtime core, wires the
+runtime instance as its exact `env` import, and lifts `semaprax_main` as a
+zero-argument `evaluate`. A pinned upstream `wasmparser` gate validates that
+composition and rejects rehashed invalid signatures, bodies, cardinalities,
+and canonical-lift cross-typing. Node executes generated success, overflow,
+and contract-failure paths through the authenticated v2 API. `SPXWIT01`
+result/status remains uncomposed, and neither the engine-native nor public
+backend trust boundary expands.
 
 ## Record groundwork and backend gate
 
@@ -422,6 +443,20 @@ lifecycle, and import subgraphs are not claimed by this projection. Graph v6
 has no target, diagnostic, or test nodes, so those requests are marked
 unavailable rather than inferred. The legacy Rust Graph-v6 depth-slice API
 remains compatible.
+
+The additive [`semaprax.agent-context-economics.v1`](AGENT-ECONOMICS-V1.md)
+layer runs strict checked-in maintenance manifests offline. Canonical
+exact-case, separator-normal, Windows-forbidden/reserved-name-safe,
+non-symlink source containment, a manifest
+digest, exact label arrays, source revision, and context digest bind every
+score. Only facets available in Graph
+v6 may be scored. It records exact bytes, emitted nodes, and a
+repository-defined lexical unit explicitly marked as non-model-token data. The
+quality router exposes advisory `quick`, explicit-or-unique-target-merge-base
+to HEAD plus dirty-Git-state-reconciled `changed`, and default `full` profiles; its closed v2 plan
+carries a canonical base, exact path/invariant/test records, and the profile's
+exact ordered gates, which the executor validates before dispatch. Broad graph/CLI,
+unknown, wide, or router changes fail closed to the full workspace baseline.
 
 The public parsed-AST graph functions resolve and validate HIR and return diagnostics on failure. Direct HIR rendering remains internal so a caller cannot attach a forged canonical-source revision to transformed HIR. The graph currently rebuilds per command; a later daemon will persist indexed revisions.
 

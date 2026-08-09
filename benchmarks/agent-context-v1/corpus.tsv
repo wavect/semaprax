@@ -1,0 +1,5 @@
+schema	semaprax.agent-context-benchmark.v1
+fetch-contract	Which contracts and effects govern service.fetch?	maintenance.spx	service.fetch	0	8192	4	contracts,effects	service.fetch	service.fetch
+fetch-dependencies	Which internal functions contribute to service.fetch?	maintenance.spx	service.fetch	1	16384	8	effects,types	service.fetch,cache.lookup,cache.refresh	cache.lookup,cache.refresh
+entry-route	Which checked function does app.main reach?	maintenance.spx	app.main	1	8192	4	effects	app.main,service.fetch	service.fetch
+bounded-recall	What evidence is omitted when service.fetch is restricted to one node?	maintenance.spx	service.fetch	1	8192	1	effects	service.fetch,cache.lookup,cache.refresh	cache.lookup,cache.refresh

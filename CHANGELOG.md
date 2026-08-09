@@ -4,6 +4,17 @@ All notable changes to SEMAPRAX are documented here.
 
 ## 0.2.0 — 2026-08-07
 
+- Added deterministic offline [agent context economics
+  v1](docs/AGENT-ECONOMICS-V1.md): four checked maintenance questions, exact
+  context/economics goldens, UTF-8 byte and node counts, an explicitly
+  non-model lexical unit, manifest/context digests, exact scored label IDs,
+  reviewed relevance/evidence recall, mutation and hostile path/facet gates,
+  plus exact-case/separator-normal/Windows-forbidden-and-reserved-safe paths and
+  explicit-or-unique-target-merge-base plus dirty-Git fail-closed
+  `quick`/`changed`/`full` quality routing with a profile-exact
+  ordered executable gate plan. The small corpus honestly records context
+  larger than source; Graphify adoption and model-token savings remain
+  unclaimed.
 - Added [`semaprax.agent-context.v1`](docs/AGENT-CONTEXT-V1.md): the `context`
   CLI now emits deterministic whole-JSON byte- and function-node-bounded facts,
   exact used/omitted/deferred accounting, closed truncation reasons, strict
@@ -21,6 +32,15 @@ All notable changes to SEMAPRAX are documented here.
   exact replay. The Windows package/runtime path and hosted desktop executions
   remain configured and pending; UI, accessibility, lifecycle,
   installer/signing, public admission, and `SPX-B104` stay closed.
+- Added private [native desktop UI v1](docs/DESKTOP-NATIVE-UI-V1.md): exact
+  AppKit and Win32 frontends compose the package-bound desktop engine with one visible
+  native window/button, native accessibility-name query, delayed control event,
+  event-loop close/termination, pre-launch SHA-256 engine-byte verification,
+  bounded AppKit termination, exact Windows imports/no export directory,
+  double-build artifact inspection, and closed packaging. Source locks and local AppKit compilation are green; hosted
+  packaged macOS/Windows execution is configured and pending. This adds no
+  SEMAPRAX UI syntax, SwiftUI/WinUI, general accessibility/lifecycle,
+  distribution, public admission, or `SPX-B104` claim.
 - Added the private [Apple Swift ownership adapter
   v1](docs/APPLE-SWIFT-OWNERSHIP-V1.md): a feature-gated same-thread Rust host,
   generation-tagged Swift wrapper, target-bound device/simulator providers,
@@ -34,8 +54,13 @@ All notable changes to SEMAPRAX are documented here.
   status bounds, and Node adapter execution. A separate standards-valid scalar
   component binary now has a frozen digest, an independent exact-profile
   parser, hostile mutation coverage, default-surface closure, and private Node
-  execution of its extracted core module. It is not yet composed with the WIT
-  result/status mapping and exposes no public WIT interface.
+  execution of its extracted core module. Checked component v2 additionally
+  composes the exact SEMAPRAX-generated scalar core with a frozen checked
+  runtime, exposes read-only artifact digests, passes pinned upstream
+  `wasmparser` validation plus rehashed signature/body/cardinality/lift
+  hostiles, and executes generated success, overflow, and contract failure
+  through authenticated private `evaluate()`. It is not yet composed with the
+  WIT result/status mapping and exposes no public WIT interface.
 - Added a mandatory private Android Emulator runtime gate. A hidden closed
   selector emits exact arm64 and x86_64-emulator dynamic descriptors
   and Bionic/ELF-guarded strict-C providers; the unpublished host now compiles

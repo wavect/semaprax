@@ -4,6 +4,7 @@
 //!
 //! The source projection is for humans. The semantic graph is the agent API.
 
+pub mod agent_economics;
 pub mod ast;
 pub mod cleanup;
 pub mod cleanup_plan;
@@ -22,6 +23,7 @@ pub(crate) mod native_settlement;
 pub mod owned_resource_corpus;
 pub mod parser;
 pub mod patch;
+pub mod quality_route;
 pub mod runtime_status;
 pub mod semantic_trace;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]

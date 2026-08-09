@@ -56,9 +56,11 @@ that hosted job is green.
 
 ## Explicit nonclaims
 
-This is a headless application-process and packaging milestone. It does not
-provide a window, AppKit, SwiftUI, WinUI, accessibility, menus, installers,
-code signing/notarization, Store packaging, auto-update, application lifecycle
-APIs, sandbox entitlements, general SEMAPRAX application syntax, or public
-native resource admission. It covers one direct-trivial owned identity only;
+This v1 engine package is a headless application-process and packaging
+milestone. It does not itself provide a window or lifecycle UI; the separate
+private [native desktop UI v1](DESKTOP-NATIVE-UI-V1.md) consumes it without
+expanding the engine API. Neither tranche provides SwiftUI, WinUI, menus,
+installers, code signing/notarization, Store packaging, auto-update, sandbox
+entitlements, general SEMAPRAX application syntax, or public native resource
+admission. The engine covers one direct-trivial owned identity only;
 `SPX-B104` remains closed.

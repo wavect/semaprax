@@ -1,0 +1,42 @@
+module benchmark.maintenance;
+
+permit { clock.read }
+
+@id("config.validate-limit")
+fn validate_limit(limit: i64) -> bool
+    requires limit >= 0
+{
+    limit <= 100
+}
+
+@id("cache.lookup")
+fn lookup(key: i64) -> i64
+    uses { clock.read }
+    requires key >= 0
+{
+    key + 1
+}
+
+@id("cache.refresh")
+fn refresh(key: i64) -> i64
+    uses { clock.read }
+    requires key >= 0
+{
+    key + 2
+}
+
+@id("service.fetch")
+fn fetch(key: i64) -> i64
+    uses { clock.read }
+    requires key >= 0
+    ensures result >= 0
+{
+    lookup(key) + refresh(key)
+}
+
+@id("app.main")
+fn main() -> i64
+    uses { clock.read }
+{
+    fetch(7)
+}

@@ -57,3 +57,8 @@ required-features = ["unstable-desktop-app-harness"]
 name = "private-desktop-v3-app"
 path = "src/bin/private_desktop_v3_app.rs"
 required-features = ["unstable-desktop-app-harness"]
+
+[[bin]]
+name = "private-desktop-macho-uuid"
+path = "src/bin/private_desktop_macho_uuid.rs"
+required-features = ["unstable-desktop-app-harness"]

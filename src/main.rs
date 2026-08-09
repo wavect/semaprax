@@ -2,7 +2,9 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode};
 
 use semaprax::diagnostic::{Diagnostic, Severity};
-use semaprax::{codegen, format, graph, parse, patch, verify, wasm};
+use semaprax::{
+    agent_economics, codegen, format, graph, parse, patch, quality_route, verify, wasm,
+};
 
 fn main() -> ExitCode {
     match run(std::env::args().skip(1).collect()) {
@@ -61,6 +63,30 @@ fn run(args: Vec<String>) -> Result<(), u8> {
                     1
                 })?;
             println!("{context}");
+            Ok(())
+        }
+        "context-benchmark" => {
+            if args.len() != 2 {
+                eprintln!("context-benchmark requires exactly one manifest path");
+                return Err(2);
+            }
+            let path = required_path(&args, 1)?;
+            let output = agent_economics::benchmark_manifest(&path)
+                .map_err(|error| report(&[error], false))?;
+            println!("{output}");
+            Ok(())
+        }
+        "quality-plan" => {
+            let profile = args.get(1).ok_or_else(|| {
+                eprintln!("quality-plan requires quick, changed, or full");
+                2
+            })?;
+            let plan =
+                quality_route::plan(Path::new("."), profile, &args[2..]).map_err(|error| {
+                    eprintln!("quality-plan: {error}");
+                    2
+                })?;
+            print!("{plan}");
             Ok(())
         }
         "build" => {
@@ -302,6 +328,8 @@ fn print_help() {
            semaprax check <file> [--json]\n\
            semaprax graph <file>\n\
            semaprax context <file> <symbol|stable-id> [--depth N] [--max-bytes N] [--max-nodes N] [--filters contracts,ownership,effects,types,targets,diagnostics,tests]\n\
+           semaprax context-benchmark <manifest>\n\
+           semaprax quality-plan <quick|changed|full> [exact-changed-path ...]\n\
            semaprax build <file> [--target native|native-callable|web] [--function stable-id] [-o path]\n\
            semaprax run <file>\n\
            semaprax fmt <file> [--check]\n\

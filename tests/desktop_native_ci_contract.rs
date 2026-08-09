@@ -28,6 +28,10 @@ fn private_desktop_packages_are_feature_gated_native_and_source_locked() {
         root,
         "crates/semaprax-native-host/src/desktop_app_harness.rs",
     );
+    let uuid_tool = read(
+        root,
+        "crates/semaprax-native-host/src/bin/private_desktop_macho_uuid.rs",
+    );
     let workflow = read(root, ".github/workflows/ci.yml");
 
     assert_contains_all(
@@ -37,6 +41,7 @@ fn private_desktop_packages_are_feature_gated_native_and_source_locked() {
             "unstable-desktop-app-harness = []",
             "name = \"private-desktop-v3-fixture\"",
             "name = \"private-desktop-v3-app\"",
+            "name = \"private-desktop-macho-uuid\"",
             "required-features = [\"unstable-desktop-app-harness\"]",
         ],
     );
@@ -61,11 +66,12 @@ fn private_desktop_packages_are_feature_gated_native_and_source_locked() {
             "macos.sdk.version=26.5",
             "macos.sdk.build=25F70",
             "macos.deployment-target=11.0",
+            "macos.uuid=sha256-zeroed-lc-uuid-prefix16",
             "windows.clang.version=20.1.8",
             "windows.vswhere.version=3.1.7.39155",
             "windows.visual-studio.version=18.8.12023.21",
             "windows.msvc.tools.version=14.51.36231",
-            "windows.link.version=14.51.36231.0",
+            "windows.link.version=14.51.36252.0",
             "windows.sdk.version=10.0.26100.0",
             "windows.provider.libraries=libcmt.lib,libvcruntime.lib,libucrt.lib,oldnames.lib,ucrt.lib,kernel32.lib",
             "network=forbidden-cargo-offline",
@@ -77,6 +83,18 @@ fn private_desktop_packages_are_feature_gated_native_and_source_locked() {
     assert!(runner.contains("pub unsafe fn private_desktop_v3_app_main"));
     assert!(runner.contains("execute_owned_success(&[original], &[41])"));
     assert!(runner.contains("execute_owned_success(&[refreshed], &[43])"));
+    assert_contains_all(
+        "Mach-O UUID canonicalizer",
+        &uuid_tool,
+        &[
+            "const LC_UUID: u32 = 0x1b",
+            "const CPU_TYPE_ARM64: u32 = 0x0100_000c",
+            "Sha256::digest(&output)",
+            "expected exactly one canonical LC_UUID command",
+            "LC_UUID is structurally zero",
+            "create_new(true)",
+        ],
+    );
 
     let verify_job = workflow
         .split("  verify:\n")
@@ -125,6 +143,7 @@ fn macos_source_lock_rejects_hostile_gate_removal() {
         source.replace("otool -L", "otool -l"),
         source.replace("nm -gjU", "nm"),
         source.replace("build_once second", ": second build removed"),
+        source.replace("private-desktop-macho-uuid", "removed-uuid-canonicalizer"),
         source.replace("cmp -s", "test -s"),
         source.replace("expected_inventory=", "removed_inventory="),
     ] {
@@ -209,6 +228,7 @@ fn macos_contract(source: &str) -> Result<(), String> {
             "output directory must not already exist or be a symbolic link",
             "cargo run --quiet --offline --locked",
             "cargo build --quiet --offline --locked --release",
+            "--bin private-desktop-macho-uuid",
             "xcrun --sdk macosx --find clang",
             "xcrun --sdk macosx --find ld",
             "xcrun --sdk macosx --show-sdk-path",

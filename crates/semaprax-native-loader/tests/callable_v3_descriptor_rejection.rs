@@ -1,3 +1,5 @@
+#![cfg(not(target_os = "ios"))]
+
 use semaprax_native_loader::{open_admitted_callable_exact, open_admitted_exact, OpenError};
 
 const GETTER_SYMBOL: &[u8] = b"semaprax_descriptor_v3";

@@ -227,8 +227,12 @@ iOS device/simulator execution, or Android, and exposes no
 public admission. Private bounded process-lifetime static-registration logic
 now binds exact descriptor and entry addresses to the same host ledger; its
 non-Apple fake-function test proves retention and quarantine only, with no
-`dlopen` or unload claim. The loader and host crates are not compiled for iOS,
-so this is not yet an iOS admission API. `SPX-B104` remains
+`dlopen` or unload claim. A mandatory macOS gate requires the loader and host
+static-only path to type-check for five iOS device, simulator, and Catalyst Rust
+targets, excluding `libloading`, dynamic `open_*`, and the desktop v1/v2 host
+API. No iOS
+link, runtime, app-host, lifecycle, or public-admission evidence follows.
+`SPX-B104` remains
 closed.
 
 The callable-v2 Windows CI lane explicitly reruns its generated O0/O2 corpus

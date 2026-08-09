@@ -1,15 +1,20 @@
+#[cfg(not(target_os = "ios"))]
+use super::open_library;
 use super::{
-    allocate_instance_id, open_library, ModuleInstanceId, OpenError, MAX_CALL_WIRE_BYTES,
-    MAX_DESCRIPTOR_BYTES, MAX_GETTER_SYMBOL_BYTES,
+    allocate_instance_id, ModuleInstanceId, OpenError, MAX_CALL_WIRE_BYTES, MAX_DESCRIPTOR_BYTES,
+    MAX_GETTER_SYMBOL_BYTES,
 };
+#[cfg(not(target_os = "ios"))]
 use libloading::Library;
 use std::cell::Cell;
 use std::error::Error;
+#[cfg(not(target_os = "ios"))]
 use std::ffi::c_void;
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "ios")))]
 use std::ffi::{c_char, c_int, CStr};
 use std::fmt;
 use std::marker::PhantomData;
+#[cfg(not(target_os = "ios"))]
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex, OnceLock};
@@ -41,6 +46,7 @@ pub type StaticExecuteEntry =
 pub type StaticSettleEntry =
     unsafe extern "C" fn(*mut u8, u32, *const u8, u32, *mut u8, u32) -> u32;
 
+#[cfg(not(target_os = "ios"))]
 type DescriptorGetter = StaticDescriptorGetter;
 type ExecuteEntry = StaticExecuteEntry;
 type SettleEntry = StaticSettleEntry;
@@ -251,11 +257,13 @@ impl Error for SettlementCallError {}
 /// fn assert_sync<T: Sync>() {}
 /// assert_sync::<NativeSettlementModuleLease>();
 /// ```
+#[cfg(not(target_os = "ios"))]
 pub struct NativeSettlementModuleLease {
     inner: Arc<LoadedSettlementModule>,
     _same_thread: PhantomData<Rc<()>>,
 }
 
+#[cfg(not(target_os = "ios"))]
 struct LoadedSettlementModule {
     instance_id: ModuleInstanceId,
     canonical_path: PathBuf,
@@ -471,6 +479,7 @@ struct SettlementBuffers {
     candidate: Vec<u8>,
 }
 
+#[cfg(not(target_os = "ios"))]
 impl NativeSettlementModuleLease {
     #[must_use]
     pub fn retain(&self) -> Self {
@@ -954,6 +963,7 @@ pub unsafe fn register_admitted_ios_static_settlement_exact(
 /// supplied bounded disjoint ranges. Descriptor storage must remain immutable
 /// for the complete lease lifetime. The root path and dependency namespace
 /// must remain non-adversarially stable from admission through final release.
+#[cfg(not(target_os = "ios"))]
 pub unsafe fn open_admitted_settlement_exact(
     canonical_path: &Path,
     expected_descriptor: &[u8],
@@ -1037,13 +1047,17 @@ pub unsafe fn open_admitted_settlement_exact(
 }
 
 struct DescriptorProjection {
+    #[cfg(not(target_os = "ios"))]
     getter_symbol: Vec<u8>,
+    #[cfg(not(target_os = "ios"))]
     execute_symbol: Vec<u8>,
+    #[cfg(not(target_os = "ios"))]
     settle_symbol: Vec<u8>,
     capacities: SettlementBufferCapacities,
 }
 
 impl DescriptorProjection {
+    #[cfg(not(target_os = "ios"))]
     fn parse(bytes: &[u8]) -> Result<Self, OpenError> {
         Self::parse_for_profile(bytes, 1)
     }
@@ -1157,8 +1171,11 @@ impl DescriptorProjection {
         }
         validate_capacities(raw, request, owned.len())?;
         Ok(Self {
+            #[cfg(not(target_os = "ios"))]
             getter_symbol,
+            #[cfg(not(target_os = "ios"))]
             execute_symbol,
+            #[cfg(not(target_os = "ios"))]
             settle_symbol,
             capacities: SettlementBufferCapacities {
                 request: usize::try_from(raw[0])
@@ -1484,7 +1501,7 @@ fn range(bytes: &[u8]) -> (usize, usize) {
     (start, end)
 }
 
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "ios")))]
 fn root_image_allocation(address: *const c_void, expected_path: &Path) -> Result<usize, OpenError> {
     #[repr(C)]
     struct DlInfo {

@@ -129,8 +129,12 @@ ASan+UBSan. Canonical pre-execute `AbortHostUnwind` skips provider execute,
 binds zero-filled response storage, performs certified abort settlement, and
 commits an authenticated host receipt. Bounded process-lifetime static-
 registration logic feeds the same ledger in non-Apple fake-function evidence
-without `dlopen` or unload; the crates are not yet compiled for iOS, so this is
-not an iOS admission path. This is not public admission, exhaustive process-crash or
+without `dlopen` or unload. The source and mandatory macOS CI gate require that
+static-only path to type-check for five distinct iOS device, simulator, and
+Catalyst Rust targets, with no resolved `libloading` or dynamic `open_*`
+surface. This is
+cross-target compilation, not linking, simulator/device execution, Swift or
+XCFramework integration, or public admission. It is also not exhaustive process-crash or
 fatal-allocator evidence, representative iOS/Android execution, quiescence, or
 containment of malicious native code. `SPX-B104` stays closed.
 

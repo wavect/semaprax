@@ -4,6 +4,12 @@ All notable changes to SEMAPRAX are documented here.
 
 ## 0.2.0 — 2026-08-07
 
+- Added iOS-target cfg isolation plus a mandatory macOS CI cross-check for the
+  unpublished static callable-v3 loader and receipt/ledger host across five
+  distinct device, simulator, and Catalyst Rust targets. The gate requires zero
+  resolved `libloading`, dynamic `open_*`, or desktop v1/v2 host surface there;
+  linking, mobile runtime, Swift/XCFramework integration, and public admission
+  remain open.
 - Added resource declarations and explicit `own`, `borrow`, and `shared` boundaries.
 - Added stable resource identities and atomic resource/type-boundary renames.
 - Added straight-line move analysis with use-after-move and illegal-transfer diagnostics.

@@ -112,6 +112,38 @@ jobs:
         if: runner.os == 'Linux'
         run: cargo package --locked -p semaprax
 
+  ios-static-cross-check:
+    name: Private iOS static loader + host cross-check
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          toolchain: stable
+          targets: aarch64-apple-ios,aarch64-apple-ios-sim,x86_64-apple-ios,aarch64-apple-ios-macabi,x86_64-apple-ios-macabi
+      - name: Require every private iOS static target to compile
+        shell: bash
+        run: |
+          set -euo pipefail
+          for target in \
+            aarch64-apple-ios \
+            aarch64-apple-ios-sim \
+            x86_64-apple-ios \
+            aarch64-apple-ios-macabi \
+            x86_64-apple-ios-macabi
+          do
+            cargo check --locked -p semaprax-native-loader --target "$target" --all-targets
+            cargo check --locked -p semaprax-native-host --target "$target" --all-targets
+            loader_tree="$(cargo tree --locked -p semaprax-native-loader --target "$target" -e normal)"
+            host_tree="$(cargo tree --locked -p semaprax-native-host --target "$target" -e normal)"
+            if grep -q libloading <<<"$loader_tree" || grep -q libloading <<<"$host_tree"
+            then
+              echo "iOS static loader/host target unexpectedly resolved libloading: $target" >&2
+              exit 1
+            fi
+          done
+
   callable-host-sanitizers:
     name: Callable host ASan + UBSan
     runs-on: ubuntu-latest

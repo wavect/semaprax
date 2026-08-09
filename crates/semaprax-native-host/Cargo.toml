@@ -13,7 +13,7 @@ semaprax = { path = "../..", version = "0.2.0", features = ["unstable-native-hos
 hmac = "=0.12.1"
 sha2 = "=0.10.9"
 
-[target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))'.dependencies]
+[target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows", target_os = "ios"))'.dependencies]
 getrandom = "=0.4.3"
 semaprax-native-loader = { path = "../semaprax-native-loader", version = "0.1.0" }
 

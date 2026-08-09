@@ -1,34 +1,41 @@
-//! A narrow quarantine around native module loading for SEMAPRAX hosts.
+//! A narrow quarantine around native module admission for SEMAPRAX hosts.
 //!
-//! Loading a native library executes trusted platform code, including its
-//! initializers and terminators. Exact descriptor equality establishes only
-//! that the resolved getter returned the caller's expected bytes; it does not
-//! prove root-image provenance, authenticate code, or make code trustworthy.
+//! Linux, Android, macOS, and Windows use exact dynamic-image admission. iOS
+//! uses only exact statically linked settlement registration: this crate does
+//! not link a dynamic-loader dependency or expose an `open_*` API there.
+//! Descriptor equality does not authenticate code or make code trustworthy.
 
 #![cfg(any(
     target_os = "linux",
     target_os = "android",
+    target_os = "ios",
     target_os = "macos",
     target_os = "windows"
 ))]
 
+#[cfg(not(target_os = "ios"))]
 use libloading::Library;
 use std::error::Error;
 use std::fmt;
+#[cfg(not(target_os = "ios"))]
 use std::marker::PhantomData;
 use std::num::NonZeroU64;
+#[cfg(not(target_os = "ios"))]
 use std::path::{Path, PathBuf};
+#[cfg(not(target_os = "ios"))]
 use std::rc::Rc;
 use std::sync::atomic::{AtomicU64, Ordering};
+#[cfg(not(target_os = "ios"))]
 use std::sync::Arc;
 
 mod settlement;
 
+#[cfg(not(target_os = "ios"))]
+pub use settlement::{open_admitted_settlement_exact, NativeSettlementModuleLease};
 pub use settlement::{
-    open_admitted_settlement_exact, register_admitted_ios_static_settlement_exact, IosStaticTarget,
-    NativeSettlementModuleLease, NativeStaticSettlementLease, PreparedSettlementCall,
-    PreparedSettlementExecute, SettlementBufferCapacities, SettlementCallError,
-    StaticDescriptorGetter, StaticExecuteEntry, StaticSettleEntry,
+    register_admitted_ios_static_settlement_exact, IosStaticTarget, NativeStaticSettlementLease,
+    PreparedSettlementCall, PreparedSettlementExecute, SettlementBufferCapacities,
+    SettlementCallError, StaticDescriptorGetter, StaticExecuteEntry, StaticSettleEntry,
     StaticSettlementRegistrationError,
 };
 
@@ -39,6 +46,7 @@ pub const MAX_DESCRIPTOR_BYTES: usize = 64 * 1024;
 pub const MAX_GETTER_SYMBOL_BYTES: usize = 1024;
 
 /// Largest callable symbol accepted by the loader.
+#[cfg(not(target_os = "ios"))]
 pub const MAX_CALLABLE_SYMBOL_BYTES: usize = 1024;
 
 /// Largest canonical request or response buffer admitted for one call.
@@ -96,6 +104,7 @@ impl ModuleInstanceId {
 /// fn assert_sync<T: Sync>() {}
 /// assert_sync::<NativeModuleLease>();
 /// ```
+#[cfg(not(target_os = "ios"))]
 pub struct NativeModuleLease {
     inner: Arc<LoadedModule>,
     // A final drop can execute arbitrary native terminators. Until the module
@@ -104,6 +113,7 @@ pub struct NativeModuleLease {
     _same_thread: PhantomData<Rc<()>>,
 }
 
+#[cfg(not(target_os = "ios"))]
 struct LoadedModule {
     instance_id: ModuleInstanceId,
     canonical_path: PathBuf,
@@ -113,6 +123,7 @@ struct LoadedModule {
     _library: Library,
 }
 
+#[cfg(not(target_os = "ios"))]
 type CallableEntry = unsafe extern "C" fn(*const u8, u32, *mut u8, u32) -> u32;
 
 /// An opaque strong lease on one exact loaded callable module instance.
@@ -145,11 +156,13 @@ type CallableEntry = unsafe extern "C" fn(*const u8, u32, *mut u8, u32) -> u32;
 /// fn assert_sync<T: Sync>() {}
 /// assert_sync::<NativeCallableModuleLease>();
 /// ```
+#[cfg(not(target_os = "ios"))]
 pub struct NativeCallableModuleLease {
     inner: Arc<LoadedCallableModule>,
     _same_thread: PhantomData<Rc<()>>,
 }
 
+#[cfg(not(target_os = "ios"))]
 struct LoadedCallableModule {
     instance_id: ModuleInstanceId,
     canonical_path: PathBuf,
@@ -175,6 +188,7 @@ struct LoadedCallableModule {
 /// use semaprax_native_loader::PreparedNativeCall;
 /// fn wire_bytes_are_not_formatted(call: PreparedNativeCall) { let _ = format!("{call:?}"); }
 /// ```
+#[cfg(not(target_os = "ios"))]
 pub struct PreparedNativeCall {
     module_instance: ModuleInstanceId,
     request: Vec<u8>,
@@ -184,6 +198,7 @@ pub struct PreparedNativeCall {
 
 /// Stable failure while preallocating a canonical call wire.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg(not(target_os = "ios"))]
 pub enum CallWireError {
     InvalidRequestLength { actual: usize, maximum: usize },
     InvalidResponseCapacity { actual: usize, maximum: usize },
@@ -191,6 +206,7 @@ pub enum CallWireError {
     AlreadyInvoked,
 }
 
+#[cfg(not(target_os = "ios"))]
 impl fmt::Display for CallWireError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -210,8 +226,10 @@ impl fmt::Display for CallWireError {
     }
 }
 
+#[cfg(not(target_os = "ios"))]
 impl Error for CallWireError {}
 
+#[cfg(not(target_os = "ios"))]
 impl NativeModuleLease {
     /// Creates another explicit strong lease on this exact module instance.
     #[must_use]
@@ -247,6 +265,7 @@ impl NativeModuleLease {
     }
 }
 
+#[cfg(not(target_os = "ios"))]
 impl NativeCallableModuleLease {
     /// Creates another explicit strong lease on this exact callable instance.
     #[must_use]
@@ -343,6 +362,7 @@ impl NativeCallableModuleLease {
     }
 }
 
+#[cfg(not(target_os = "ios"))]
 impl PreparedNativeCall {
     /// Return the complete preallocated response storage. Its canonical prefix
     /// and declared length must still be validated by the descriptor-bound host.
@@ -380,14 +400,19 @@ pub enum OpenError {
     /// Callable admission accepts only the separately versioned descriptor v2.
     InvalidCallableDescriptorSchema,
     /// The platform loader rejected the library.
+    #[cfg(not(target_os = "ios"))]
     LibraryOpen(libloading::Error),
     /// The platform loader could not resolve the exact getter symbol.
+    #[cfg(not(target_os = "ios"))]
     GetterLookup(libloading::Error),
     /// The platform loader could not resolve the exact callable symbol.
+    #[cfg(not(target_os = "ios"))]
     CallableLookup(libloading::Error),
     /// The platform loader could not resolve the exact execute symbol.
+    #[cfg(not(target_os = "ios"))]
     ExecuteLookup(libloading::Error),
     /// The platform loader could not resolve the exact settle symbol.
+    #[cfg(not(target_os = "ios"))]
     SettleLookup(libloading::Error),
     /// Two distinct settlement symbol names resolved to the same address.
     AliasedSettlementSymbols,
@@ -440,16 +465,21 @@ impl fmt::Display for OpenError {
             ),
             Self::InvalidCallableDescriptorSchema => formatter
                 .write_str("native callable admission requires an exact SPXNABI2 descriptor"),
+            #[cfg(not(target_os = "ios"))]
             Self::LibraryOpen(error) => write!(formatter, "native module open failed: {error}"),
+            #[cfg(not(target_os = "ios"))]
             Self::GetterLookup(error) => {
                 write!(formatter, "native descriptor getter lookup failed: {error}")
             }
+            #[cfg(not(target_os = "ios"))]
             Self::CallableLookup(error) => {
                 write!(formatter, "native callable lookup failed: {error}")
             }
+            #[cfg(not(target_os = "ios"))]
             Self::ExecuteLookup(error) => {
                 write!(formatter, "native settlement execute lookup failed: {error}")
             }
+            #[cfg(not(target_os = "ios"))]
             Self::SettleLookup(error) => {
                 write!(formatter, "native settlement settle lookup failed: {error}")
             }
@@ -476,6 +506,7 @@ impl Error for OpenError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::PathCanonicalization(error) => Some(error),
+            #[cfg(not(target_os = "ios"))]
             Self::LibraryOpen(error)
             | Self::GetterLookup(error)
             | Self::CallableLookup(error)
@@ -519,6 +550,7 @@ impl Error for OpenError {
 /// that storage. Satisfying these conditions is necessary because a native
 /// symbol's actual type and returned allocation cannot be verified by Rust or
 /// the platform loader.
+#[cfg(not(target_os = "ios"))]
 pub unsafe fn open_admitted_exact(
     canonical_path: &Path,
     getter_symbol: &[u8],
@@ -601,6 +633,7 @@ pub unsafe fn open_admitted_exact(
 /// every selected dependency must preserve these properties and same-root
 /// provenance for the entire lease lifetime. Native code cannot be made safe
 /// by descriptor equality; this constructor is the explicit trusted boundary.
+#[cfg(not(target_os = "ios"))]
 pub unsafe fn open_admitted_callable_exact(
     canonical_path: &Path,
     getter_symbol: &[u8],
@@ -657,7 +690,7 @@ pub unsafe fn open_admitted_callable_exact(
     })
 }
 
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "ios")))]
 pub(crate) unsafe fn open_library(canonical_path: &Path) -> Result<Library, libloading::Error> {
     use libloading::os::unix::{Library as UnixLibrary, RTLD_LOCAL, RTLD_NOW};
 
@@ -687,6 +720,7 @@ pub(crate) unsafe fn open_library(canonical_path: &Path) -> Result<Library, libl
     Ok(library.into())
 }
 
+#[cfg(not(target_os = "ios"))]
 fn validate_inputs(
     canonical_path: &Path,
     getter_symbol: &[u8],
@@ -716,6 +750,7 @@ fn validate_inputs(
     Ok(())
 }
 
+#[cfg(not(target_os = "ios"))]
 fn validate_callable_inputs(
     getter_symbol: &[u8],
     callable_symbol: &[u8],
@@ -734,6 +769,7 @@ fn validate_callable_inputs(
     Ok(())
 }
 
+#[cfg(not(target_os = "ios"))]
 fn is_callable_descriptor_v2_envelope(bytes: &[u8]) -> bool {
     const HEADER_SIZE: usize = 20;
     if bytes.len() < HEADER_SIZE || bytes.get(..8) != Some(b"SPXNABI2") {

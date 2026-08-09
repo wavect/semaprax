@@ -20,13 +20,27 @@ uses address-to-module allocation-base resolution plus canonical module-path
 equality without adding another image reference. Unix opens use
 `RTLD_NOW | RTLD_LOCAL`, so dependency relocations fail during admission
 rather than at a later first call. The main `semaprax` crate remains
-`unsafe_code = "forbid"`. The loader is unpublished, has one exact-pinned
-`libloading` dependency, exposes no generic symbol lookup, raw handle, raw
+`unsafe_code = "forbid"`. The loader is unpublished. Dynamic-image builds have
+one exact-pinned `libloading` dependency; iOS builds resolve no `libloading`
+dependency and expose only the static settlement registration surface. The
+crate exposes no generic symbol lookup, raw handle, raw
 pointer, callable pointer, or manual close, and returns only opaque
 `Arc`-backed leases with explicit retention and exact logical-admission
 identity. Leases are deliberately neither `Send` nor `Sync`, keeping
 potential native terminator execution on the opening thread until a future
 module contract can prove cross-thread teardown safe.
+
+The static settlement lane has a mandatory macOS type-check gate for five
+distinct iOS-family Rust targets: arm64 device, arm64 and x86_64 simulators, and
+arm64 and x86_64 Mac Catalyst. It binds one process-lifetime
+descriptor/getter/execute/settle address
+tuple to a same-thread exact logical instance and feeds the same private host
+receipt/ledger/quarantine composition as dynamic v3. Every iOS build excludes
+the dynamic leases, path/image provenance code, and all `open_*` APIs. The
+cross-target gate also fails if `libloading` reappears in any iOS dependency
+graph. This proves Rust type checking only—not provider linking, simulator or
+device execution, Apple app packaging, lifecycle integration, or public
+admission.
 
 The constructor is intentionally `unsafe`. Loading executes the selected
 image's and dependencies' initializers before descriptor validation and may run
@@ -111,7 +125,7 @@ corpus as an explicit Windows gate. Both passed in [run 31257545008, job
 93103151756](https://github.com/wavect/semaprax/actions/runs/31257545008/job/93103151756).
 The current evidence still does not prove
 immediate physical unmapping, broader Windows
-application-platform completion, an iOS-target loader/host build or runtime,
+application-platform completion, iOS linking or runtime execution,
 Android device execution,
 callback/finalizer quiescence, hot reload, fork recovery, signed code admission,
 or callable resource safety. Those remain gates before any public native

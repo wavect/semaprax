@@ -81,8 +81,10 @@ across the irreversible interval. Decode-reserve failure quarantines exact
 evidence, and seven joint provider/loader/host fixtures add physical-failure,
 malformed, interruption, replay, and conflict evidence. Canonical pre-execute
 unwind is also settled without entering execute. The private static-registration
-logic distinguishes iOS device, simulator, and Catalyst targets, but the next
-gate still requires broader fatal-allocation/process-crash injection,
+logic now has a mandatory gate through the same host ledger for five distinct
+iOS device, simulator, and Catalyst Rust targets, with no dynamic loader
+surface. The next gate still requires actual linking/runtime/app-host evidence, broader
+fatal-allocation/process-crash injection,
 representative Android/iOS runtime evidence, and quiescence. None of these
 private steps opens public admission or `SPX-B104`.
 
@@ -105,8 +107,8 @@ rejects resealed mutations; this is not independent host acceptance of the
 trace-path DFA certificate. The emitter is bound to its compiler build target
 with no public/general Android/iOS/Windows machine-code cross-emission; a hidden
 selector emits iOS descriptor identities only. Windows dynamic runtime is
-green, while Android/iOS runtime is absent. Future iOS
-device, simulator, and macabi targets remain distinct. Private graph-derived
+green, while Android/iOS runtime is absent. The five gated iOS device,
+simulator, and macabi target identities remain distinct. Private graph-derived
 providers execute all 14 normal scenarios at `-O0`/`-O2`; the desktop v3 loader
 binds exact descriptor bytes and all entry points to one root image; and the
 host provides exact-instance receipt authority, authoritative owner

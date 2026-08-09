@@ -10,10 +10,11 @@
     reason = "callable-v3 public admission remains closed by SPX-B104"
 )]
 
+#[cfg(not(target_os = "ios"))]
+use semaprax_native_loader::NativeSettlementModuleLease;
 use semaprax_native_loader::{
-    IosStaticTarget, ModuleInstanceId, NativeSettlementModuleLease, NativeStaticSettlementLease,
-    PreparedSettlementCall, PreparedSettlementExecute, SettlementBufferCapacities,
-    SettlementCallError,
+    IosStaticTarget, ModuleInstanceId, NativeStaticSettlementLease, PreparedSettlementCall,
+    PreparedSettlementExecute, SettlementBufferCapacities, SettlementCallError,
 };
 
 use crate::callable_wire_v3::{
@@ -35,6 +36,7 @@ use crate::settlement_ledger::{
 /// generations, draining, frame pins, settlement and quarantine therefore use
 /// one authoritative implementation.
 pub(crate) enum SettlementInstanceLease {
+    #[cfg(not(target_os = "ios"))]
     Dynamic(NativeSettlementModuleLease),
     IosStatic(NativeStaticSettlementLease),
 }
@@ -42,6 +44,7 @@ pub(crate) enum SettlementInstanceLease {
 impl SettlementInstanceLease {
     fn retain(&self) -> Self {
         match self {
+            #[cfg(not(target_os = "ios"))]
             Self::Dynamic(lease) => Self::Dynamic(lease.retain()),
             Self::IosStatic(lease) => Self::IosStatic(lease.retain()),
         }
@@ -49,6 +52,7 @@ impl SettlementInstanceLease {
 
     fn instance_id(&self) -> ModuleInstanceId {
         match self {
+            #[cfg(not(target_os = "ios"))]
             Self::Dynamic(lease) => lease.instance_id(),
             Self::IosStatic(lease) => lease.instance_id(),
         }
@@ -56,6 +60,7 @@ impl SettlementInstanceLease {
 
     fn descriptor_matches(&self, candidate: &[u8]) -> bool {
         match self {
+            #[cfg(not(target_os = "ios"))]
             Self::Dynamic(lease) => lease.descriptor_matches(candidate),
             Self::IosStatic(lease) => lease.descriptor_matches(candidate),
         }
@@ -63,6 +68,7 @@ impl SettlementInstanceLease {
 
     fn capacities(&self) -> SettlementBufferCapacities {
         match self {
+            #[cfg(not(target_os = "ios"))]
             Self::Dynamic(lease) => lease.capacities(),
             Self::IosStatic(lease) => lease.capacities(),
         }
@@ -70,6 +76,7 @@ impl SettlementInstanceLease {
 
     fn prepare_execute(&self) -> Result<PreparedSettlementExecute, SettlementCallError> {
         match self {
+            #[cfg(not(target_os = "ios"))]
             Self::Dynamic(lease) => lease.prepare_execute(),
             Self::IosStatic(lease) => lease.prepare_execute(),
         }
@@ -80,6 +87,7 @@ impl SettlementInstanceLease {
         call: &mut PreparedSettlementExecute,
     ) -> Result<u32, SettlementCallError> {
         match self {
+            #[cfg(not(target_os = "ios"))]
             Self::Dynamic(lease) => lease.invoke_execute(call),
             Self::IosStatic(lease) => lease.invoke_execute(call),
         }
@@ -87,6 +95,7 @@ impl SettlementInstanceLease {
 
     fn invoke_settle(&self, call: &mut PreparedSettlementCall) -> Result<u32, SettlementCallError> {
         match self {
+            #[cfg(not(target_os = "ios"))]
             Self::Dynamic(lease) => lease.invoke_settle(call),
             Self::IosStatic(lease) => lease.invoke_settle(call),
         }
@@ -94,8 +103,10 @@ impl SettlementInstanceLease {
 
     fn is_same_instance(&self, other: &Self) -> bool {
         match (self, other) {
+            #[cfg(not(target_os = "ios"))]
             (Self::Dynamic(left), Self::Dynamic(right)) => left.is_same_instance(right),
             (Self::IosStatic(left), Self::IosStatic(right)) => left.is_same_instance(right),
+            #[cfg(not(target_os = "ios"))]
             (Self::Dynamic(_), Self::IosStatic(_)) | (Self::IosStatic(_), Self::Dynamic(_)) => {
                 false
             }
@@ -203,7 +214,18 @@ pub(crate) struct PrivateSettlementHostV3 {
     module_lease: SettlementInstanceLease,
 }
 
+// This production-only assertion is intentionally compiled by every iOS
+// target check. It proves that the exact static loader lease composes into the
+// same private host ledger without creating a public admission constructor.
+#[cfg(target_os = "ios")]
+const _: fn(
+    NativeStaticSettlementLease,
+    &[u8],
+) -> Result<PrivateSettlementHostV3, SettlementLedgerError> =
+    PrivateSettlementHostV3::from_static_admitted;
+
 impl PrivateSettlementHostV3 {
+    #[cfg(not(target_os = "ios"))]
     pub(crate) fn from_admitted(
         module_lease: NativeSettlementModuleLease,
         expected_descriptor: &[u8],

@@ -40,8 +40,11 @@ decode-reserve failure. Seven joint failure/interruption fixtures add returned/
 malformed/durable-boundary/replay/conflict evidence. Canonical pre-execute
 unwind skips execute and reaches authenticated abort receipt commit. Private
 bounded static-registration logic feeds the same ledger in non-Apple
-fake-function evidence, but the loader and host crates do not yet compile it as
-an iOS API. There is no representative mobile execution or general
+fake-function evidence. A mandatory macOS gate requires the unpublished loader
+and host static-only composition to type-check for five distinct iOS-family
+Rust targets, excluding dynamic loading and desktop v1/v2 host APIs. There is no
+iOS linking or runtime
+execution, representative mobile execution, or general
 physical-finalizer authority, or public callable-v3 compiler surface. Callable
 v2 has an independent public
 build-only bundle surface plus a feature-gated execution experiment; ordinary
@@ -573,9 +576,11 @@ This RFC specifies no stable public C ABI, public Rust API, or capability
 token. Private non-Apple logic models a bounded process-lifetime iOS-static
 registration constructor that binds one exact descriptor/getter/execute/settle
 address tuple to the same ledger pin contract as dynamic admission; it exposes
-no path, `dlopen`, close, or unload operation. The loader and host crates are
-not yet built for iOS, so this is neither an iOS constructor nor iOS runtime
-evidence.
+no path, `dlopen`, close, or unload operation. A mandatory macOS gate requires
+the unpublished loader and host static-only constructor/ledger composition to
+type-check for five iOS-family Rust targets, with no dynamic loader surface.
+This gate is not iOS linking, runtime, device/simulator execution, or app
+integration.
 The private callable-v3 document fixes its
 descriptor and seven runtime wire codecs, derived symbols, capacities, and
 host-only receipt transcript. A private desktop dynamic loader, receipt

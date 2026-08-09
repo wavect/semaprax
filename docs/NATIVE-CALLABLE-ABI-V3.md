@@ -46,17 +46,19 @@ The linkage profile is closed:
 | `2` | iOS static registration; no dynamic image open or unload |
 
 The dynamic-image role has a private desktop loader on Unix and Windows. The
-current crates model the future iOS-static alternative with a bounded
+current crates implement the private iOS-static alternative with a bounded
 process-lifetime registration table exercised by non-Apple fake functions: one
 exact descriptor-storage/getter/execute/settle address tuple receives one
 idempotent logical instance, and conflicting partial address reuse fails
 closed. Its explicit-retain lease feeds the same settlement ledger as dynamic
 admission and has no path, `dlopen`, close, unload, or unload-eligibility API.
-The loader and host crates are not yet compiled for an iOS target, so this is
-logic evidence rather than an iOS admission API or runtime claim. Future iOS
-device, iOS simulator, and Mac Catalyst/macabi targets retain distinct target
-strings and cannot share admission evidence merely because they use the same
-static-registration linkage tag.
+Source cfg isolation and a mandatory macOS gate require the unpublished loader
+and host static-only composition to type-check for five distinct iOS device,
+simulator, and Mac Catalyst/macabi Rust targets. Those target builds must exclude
+`libloading`, all dynamic `open_*` APIs, and the desktop v1/v2 host API.
+Cross-target type checking is not linking, runtime execution, an app
+host, or public admission; the five target strings cannot share admission
+evidence merely because they use the same static-registration linkage tag.
 
 ## Descriptor layout
 
@@ -563,10 +565,12 @@ joint desktop dynamic-loader and host path at `-O0`/`-O2`, without measured
 Rust heap growth across the irreversible interval. A non-Apple static-function
 fixture proves same-thread exact re-registration, cross-thread and target/address
 conflict rejection, shared draining/quarantine behavior, and process-lifetime
-retention; the loader/host crates do not yet compile this as an iOS API. This
+retention. A mandatory gate requires the loader/host static-only composition to
+type-check for all five iOS-family Rust targets, but does not link or execute it
+there. This
 tranche does not implement callbacks,
 async work, concurrency, fork/hot reload, imported finalizers, general
-general machine-code cross-target emission, mobile execution, public adoption,
+machine-code cross-target emission, mobile execution, public adoption,
 or ecosystem FFI. The emitter is bound to its own build target; the hidden iOS
 selector emits metadata identities rather than machine code. V3 Windows runtime
 is green in hosted run 31313341303. Legacy loader

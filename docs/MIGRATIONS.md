@@ -301,7 +301,11 @@ descriptor storage all prove canonical root-image provenance, then retains a
 separate immutable copy of the admitted bytes. A distinct bounded process-
 lifetime static-registration model binds exact descriptor/getter/execute/settle
 addresses and target identity without exposing paths, close, or unload. It is
-exercised with non-Apple fake functions; the crates do not yet compile for iOS.
+exercised with non-Apple fake functions, and a mandatory macOS gate now requires
+the unpublished loader and host static-only path to type-check for five iOS
+device, simulator, and Catalyst Rust targets. That cross-target check adds no
+link, runtime, app-host, or public API
+compatibility promise.
 
 V3 now freezes six provider wire roles and a separate host-only committed
 receipt: exact envelopes, tags, checked capacities, a six-argument execute ABI,
@@ -333,7 +337,9 @@ reserve failure quarantines exact evidence and pins. Seven joint failure
 fixtures add returned/malformed/interruption/replay/conflict evidence, and
 canonical pre-execute unwind reaches authenticated abort receipt commit without
 entering provider execute. The private static-registration model has non-Apple
-fake-function evidence only and is not compiled as an iOS API. Consumers must not generalize that evidence to fatal
+runtime evidence plus a mandatory five-target iOS compilation gate; hosted
+observation belongs to that job, and there is no iOS link or runtime evidence.
+Consumers must not generalize that evidence to fatal
 allocator/process-crash recovery or representative mobile execution. These
 additions provide no public admission,
 general physical-finalizer, or mobile execution guarantee. They change no

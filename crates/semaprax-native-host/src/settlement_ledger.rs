@@ -51,6 +51,7 @@ pub(crate) trait SettlementPin: Sized {
     fn is_same_instance(&self, other: &Self) -> bool;
 }
 
+#[cfg(not(target_os = "ios"))]
 impl SettlementPin for semaprax_native_loader::NativeSettlementModuleLease {
     fn retain(&self) -> Self {
         self.retain()

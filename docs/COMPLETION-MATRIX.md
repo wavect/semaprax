@@ -76,8 +76,11 @@ joint failure/interruption fixtures cover physical return, malformed wires,
 durable boundaries, replay, and decision conflict. Canonical pre-execute unwind
 skips provider execute and reaches authenticated abort receipt commit. A
 bounded static-registration model feeds the same ledger in non-Apple
-fake-function evidence, but the loader/host crates do not compile it as an iOS
-API. It does not prove exhaustive crash/fatal-allocator failure injection,
+fake-function evidence. A mandatory macOS gate now requires this static-only
+composition to type-check for five distinct iOS device, simulator, and Catalyst
+Rust targets, with dynamic loader and desktop v1/v2 surfaces absent. This does
+not prove linking or runtime execution, and it does not prove exhaustive
+crash/fatal-allocator failure injection,
 representative Android/iOS execution, quiescence, malicious-code containment,
 physical-finalizer generality, or public admission; `SPX-B104` remains closed.
 The hidden linear phase model now starts from the sole authenticated

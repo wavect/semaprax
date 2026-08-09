@@ -83,8 +83,8 @@ malformed, interruption, replay, and conflict evidence. Canonical pre-execute
 unwind is also settled without entering execute. The private static-registration
 logic now has a mandatory gate through the same host ledger for five distinct
 iOS device, simulator, and Catalyst Rust targets, with no dynamic loader
-surface. One exact arm64-Simulator link/runtime path is implemented and awaits
-hosted observation; after that, app-host/device and broader iOS corpus evidence,
+surface. One exact arm64-Simulator link/runtime path is implemented and green in
+hosted run 31318280135; app-host/device and broader iOS corpus evidence,
 fatal-allocation/process-crash injection, representative Android runtime, and
 quiescence remain. None of these
 private steps opens public admission or `SPX-B104`.
@@ -108,9 +108,8 @@ rejects resealed mutations; this is not independent host acceptance of the
 trace-path DFA certificate. The emitter is bound to its compiler build target
 with no public/general Android/iOS/Windows machine-code cross-emission; a hidden
 selector can emit one exact target-bound iOS evidence provider. Windows dynamic
-runtime is green. A mandatory job is configured to link and execute the
-`token.discard-two` provider on arm64 iOS Simulator at `-O0`/`-O2`; it counts
-only after the hosted job for the revision is green. Android runtime, iOS device
+runtime is green. Hosted run 31318280135 linked and executed the
+`token.discard-two` provider on arm64 iOS Simulator at `-O0`/`-O2`. Android runtime, iOS device
 and app lifecycle execution, and the remaining iOS corpus are absent. The five
 gated iOS device, simulator, and macabi target identities remain distinct.
 Private graph-derived

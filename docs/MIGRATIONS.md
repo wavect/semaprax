@@ -306,8 +306,10 @@ the unpublished loader and host static-only path to type-check for five iOS
 device, simulator, and Catalyst Rust targets. A new feature-only evidence
 harness additionally cross-emits one exact arm64-Simulator provider and the
 mandatory job is configured to link and run it against the private host at
-`-O0`/`-O2`. This private migration changes no public API or compatibility
-promise; the runtime result is evidence only after that hosted job is green.
+`-O0`/`-O2`. [Run 31318280135, job
+93257002836](https://github.com/wavect/semaprax/actions/runs/31318280135/job/93257002836)
+proved that path. This private migration changes no public API or compatibility
+promise.
 
 V3 now freezes six provider wire roles and a separate host-only committed
 receipt: exact envelopes, tags, checked capacities, a six-argument execute ABI,
@@ -326,9 +328,8 @@ and model `ReceiptCommitted` must not be treated as public ledger
 The ordinary emitter derives its target from the compiler build and exposes no
 public or general machine-code cross-target configuration. A hidden selector
 emits complete target-bound evidence providers for five closed iOS targets.
-Android runtime evidence remains absent; the single arm64-Simulator gate is
-configured but remains unobserved until its hosted revision passes; Windows
-dynamic runtime is green. Future iOS device, simulator, and Mac Catalyst/macabi
+Android runtime evidence remains absent; the bounded arm64-Simulator and Windows
+dynamic runtime paths are green. Future iOS device, simulator, and Mac Catalyst/macabi
 profiles must retain distinct target strings even though they share static
 registration. No migration may infer physical finalizer success from
 `Finalizing`; interruption remains uncertain and quarantined without retry.

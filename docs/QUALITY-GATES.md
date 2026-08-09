@@ -147,9 +147,9 @@ dependency policy, generated-provider ASan+UBSan, Rust-host ASan, release, and
 package gates. [Run
 31316677457](https://github.com/wavect/semaprax/actions/runs/31316677457)
 then proved the five-target iOS type-check and no-`libloading` dependency
-contract. The single arm64-Simulator provider/loader/host runtime is separate
-evidence and must pass its own hosted job for the revision before it is treated
-as observed.
+contract. [Run 31318280135, job
+93257002836](https://github.com/wavect/semaprax/actions/runs/31318280135/job/93257002836)
+proved the separate arm64-Simulator provider/loader/host O0/O2 runtime contract.
 
 ## Evidence strength
 

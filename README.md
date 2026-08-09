@@ -135,8 +135,10 @@ Catalyst Rust targets, with no resolved `libloading` or dynamic `open_*`
 surface. The same gate is configured to generate one exact
 `token.discard-two` provider for arm64 iOS Simulator, link it with the private
 host as an ad-hoc-signed standalone Mach-O, and run provider → static
-registration → authenticated receipt/ledger commit at `-O0` and `-O2`. That
-runtime evidence counts only when the hosted gate for the revision is green.
+registration → authenticated receipt/ledger commit at `-O0` and `-O2`. [Run
+31318280135, job
+93257002836](https://github.com/wavect/semaprax/actions/runs/31318280135/job/93257002836)
+proved that exact Simulator path.
 It is one bounded Simulator process, not device execution, Apple app lifecycle,
 UIKit/Swift or XCFramework integration, general mobile support, or public
 admission. It is also not exhaustive process-crash or fatal-allocator evidence,
@@ -203,9 +205,9 @@ former provisional identities and freeze new private v3 known answers.
 The ordinary emitter is bound to its compiler build target and has no public or
 general machine-code cross-target configuration; a closed hidden selector emits
 complete target-bound iOS evidence providers for five enumerated targets.
-Windows dynamic runtime evidence is green. The single arm64-Simulator gate is
-configured but remains unobserved until its hosted revision passes; Android
-runtime remains absent. The private physical tranche now has graph-derived
+Windows dynamic runtime evidence is green. The bounded arm64-Simulator path is
+green in hosted run 31318280135; Android runtime remains absent. The private
+physical tranche now has graph-derived
 providers for all 14 normal corpus scenarios running through the generated-
 provider → desktop-loader → receipt-ledger path at `-O0`/`-O2`. That joint
 path proves exact descriptor/image/instance binding, pre-settle copied-evidence

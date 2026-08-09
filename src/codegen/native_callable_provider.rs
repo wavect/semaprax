@@ -1003,7 +1003,7 @@ mod tests {
         if Command::new("clang").arg("--version").output().is_err() {
             return;
         }
-        fn preprocess(guard: &str, simulator: bool, directory: &std::path::Path) -> bool {
+        fn preprocess(guard: &str, simulator: bool, directory: &std::path::Path) -> (bool, String) {
             fs::write(
                 directory.join("TargetConditionals.h"),
                 format!(
@@ -1014,34 +1014,60 @@ mod tests {
             )
             .unwrap();
             fs::write(
+                directory.join("stdint.h"),
+                "#define UINT32_MAX 4294967295U\n\
+                 #define UINT64_MAX 18446744073709551615ULL\n\
+                 #define UINTPTR_MAX UINT64_MAX\n\
+                 #ifndef __ORDER_LITTLE_ENDIAN__\n\
+                 #define __ORDER_LITTLE_ENDIAN__ 1234\n\
+                 #endif\n\
+                 #ifndef __BYTE_ORDER__\n\
+                 #define __BYTE_ORDER__ __ORDER_LITTLE_ENDIAN__\n\
+                 #endif\n",
+            )
+            .unwrap();
+            fs::write(
                 directory.join("guard.c"),
                 format!("#include <stdint.h>\n{guard}\nint semaprax_guard_probe;\n"),
             )
             .unwrap();
-            Command::new("clang")
+            let output = Command::new("clang")
                 .args([
                     "-E",
+                    "-nostdinc",
                     "-D__x86_64__=1",
+                    "-D__APPLE__=1",
+                    "-D__MACH__=1",
                     "-U__aarch64__",
                     "-U__arm64__",
                     "-U__arm__",
+                    "-U__ELF__",
+                    "-U_WIN32",
+                    "-U_WIN64",
+                    "-U_MSC_VER",
+                    "-U__MINGW32__",
+                    "-U__MINGW64__",
                     "-I",
                 ])
                 .arg(directory)
                 .arg(directory.join("guard.c"))
                 .output()
-                .unwrap()
-                .status
-                .success()
+                .unwrap();
+            (
+                output.status.success(),
+                String::from_utf8_lossy(&output.stderr).into_owned(),
+            )
         }
 
         let directory = fixture_directory();
         let simulator = ios_provider_target_guards(IosProviderPhysicalTarget::SimulatorX86_64);
         let catalyst = ios_provider_target_guards(IosProviderPhysicalTarget::MacCatalystX86_64);
-        assert!(preprocess(&simulator, true, directory.path()));
-        assert!(!preprocess(&catalyst, true, directory.path()));
-        assert!(preprocess(&catalyst, false, directory.path()));
-        assert!(!preprocess(&simulator, false, directory.path()));
+        let simulator_on_simulator = preprocess(&simulator, true, directory.path());
+        assert!(simulator_on_simulator.0, "{}", simulator_on_simulator.1);
+        assert!(!preprocess(&catalyst, true, directory.path()).0);
+        let catalyst_on_catalyst = preprocess(&catalyst, false, directory.path());
+        assert!(catalyst_on_catalyst.0, "{}", catalyst_on_catalyst.1);
+        assert!(!preprocess(&simulator, false, directory.path()).0);
     }
 
     #[test]

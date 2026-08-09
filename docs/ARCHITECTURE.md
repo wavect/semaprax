@@ -208,9 +208,8 @@ HMAC transcripts and their changed private known answers. The
 ordinary compiler encoder is bound to its build target and exposes no
 public/general machine-code cross-target configuration; a hidden closed selector
 emits complete target-bound iOS evidence providers for five enumerated targets.
-Windows dynamic runtime is green. The single arm64-Simulator gate is configured
-but remains unobserved until its hosted revision passes; Android runtime remains
-absent. The legacy loader constructors reject the full v3 magic in their shared
+Windows dynamic runtime and the bounded arm64-Simulator path are green; Android
+runtime remains absent. The legacy loader constructors reject the full v3 magic in their shared
 input validator before canonicalization, image loading, getter lookup, or
 callable lookup; their exact callable-v2 classifier remains unchanged. A
 separate private v3 constructor binds the getter, execute, settle, and returned
@@ -237,8 +236,9 @@ provider, link it with the private host into a standalone ad-hoc-signed Mach-O,
 and execute the unchanged static-registration and receipt ledger at `-O0` and
 `-O2` through `simctl`. It requires exact finalizer order/payload, authenticated
 no-owned publication, and zero measured Rust allocations across the irreversible
-interval. This is counted as runtime evidence only after the hosted job for the
-revision is green. It is not an installed app, device run, lifecycle/UI/Swift
+interval. [Run 31318280135, job
+93257002836](https://github.com/wavect/semaprax/actions/runs/31318280135/job/93257002836)
+proved that exact path. It is not an installed app, device run, lifecycle/UI/Swift
 integration, general iOS backend, or public admission. `SPX-B104` remains
 closed.
 
@@ -253,9 +253,11 @@ proved Windows, Linux, macOS, MSRV, dependency policy, generated-provider
 ASan+UBSan, and Rust-host ASan gates. None of this is broader Windows
 application-platform completion. [Run
 31316677457](https://github.com/wavect/semaprax/actions/runs/31316677457)
-proved the five-target iOS type-check and no-`libloading` dependency gate. The
-new single-Simulator runtime gate remains unobserved until its revision passes;
-representative Android/iOS device and broader Simulator/app execution plus
+proved the five-target iOS type-check and no-`libloading` dependency gate. [Run
+31318280135, job
+93257002836](https://github.com/wavect/semaprax/actions/runs/31318280135/job/93257002836)
+then proved the bounded single-Simulator runtime; representative Android/iOS
+device and broader Simulator/app execution plus
 public native execution/admission remain required.
 
 ## Record groundwork and backend gate

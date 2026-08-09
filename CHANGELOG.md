@@ -9,8 +9,10 @@ All notable changes to SEMAPRAX are documented here.
   target-specific descriptor and strict-C provider; CI links it with the
   static-only loader/host, ad-hoc signs the standalone Mach-O, and requires
   exact O0/O2 finalizers, authenticated no-owned receipt/ledger transition, and
-  zero measured Rust allocation across the irreversible interval. Evidence is
-  counted only after the hosted job for the revision is green; device/app
+  zero measured Rust allocation across the irreversible interval. The first
+  hosted Simulator job is green in [run 31318280135, job
+  93257002836](https://github.com/wavect/semaprax/actions/runs/31318280135/job/93257002836);
+  device/app
   lifecycle, the remaining iOS corpus, Android, and public admission remain
   open.
 - Added iOS-target cfg isolation plus a mandatory macOS CI cross-check for the

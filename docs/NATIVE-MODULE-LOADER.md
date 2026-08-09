@@ -40,8 +40,9 @@ the dynamic leases, path/image provenance code, and all `open_*` APIs. The
 cross-target gate also fails if `libloading` reappears in any iOS dependency
 graph. The same mandatory job is configured to link one exact generated
 arm64-Simulator provider with the private host and run its static lease through
-authenticated receipt commit at `-O0`/`-O2`. That runtime evidence counts only
-after the hosted job for the revision is green. It remains a standalone
+authenticated receipt commit at `-O0`/`-O2`. [Run 31318280135, job
+93257002836](https://github.com/wavect/semaprax/actions/runs/31318280135/job/93257002836)
+proved that runtime path. It remains a standalone
 Simulator process—not device execution, Apple app packaging, lifecycle/UI/Swift
 integration, general iOS admission, or public admission.
 

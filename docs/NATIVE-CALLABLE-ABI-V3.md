@@ -26,9 +26,8 @@ dynamic-image or iOS-static linkage role. The ordinary machine-code emitter
 derives the physical target from the compiler's own build target and exposes no
 public/general cross-target configuration; a hidden closed selector emits
 complete target-bound evidence providers for five enumerated iOS targets.
-Android runtime evidence is absent; the single arm64-Simulator gate remains
-unobserved until its hosted revision passes, while Windows dynamic runtime is
-green. It is a new contract: v1, v2,
+Android runtime evidence is absent; the bounded arm64-Simulator and Windows
+dynamic runtime paths are green. It is a new contract: v1, v2,
 settlement-proof v1, and v3 are
 mutually incompatible and there is no negotiation or fallback.
 
@@ -61,8 +60,9 @@ simulator, and Mac Catalyst/macabi Rust targets. Those target builds must exclud
 The mandatory job is also configured to derive one exact arm64-Simulator
 `token.discard-two` descriptor and strict-C provider from the same compiler
 facts, link it with the private host, and run it through static registration and
-authenticated receipt commit at `-O0` and `-O2`. That counts as runtime evidence
-only when the hosted job for the revision is green. It is not an app host,
+authenticated receipt commit at `-O0` and `-O2`. [Run 31318280135, job
+93257002836](https://github.com/wavect/semaprax/actions/runs/31318280135/job/93257002836)
+proved that exact path. It is not an app host,
 device execution, general iOS corpus/backend claim, or public admission; the
 five target strings cannot share admission evidence merely because they use the
 same static-registration linkage tag.
@@ -577,7 +577,7 @@ type-check for all five iOS-family Rust targets. It is additionally configured
 to cross-emit, link, ad-hoc sign, and execute one exact arm64-Simulator provider
 as a standalone Mach-O at `-O0`/`-O2`, with exact finalizers, authenticated
 receipt/ledger transition, and zero measured Rust allocation in the irreversible
-interval. This is evidence only after the hosted job is green. This tranche does
+interval. The hosted job above is green. This tranche does
 not implement callbacks,
 async work, concurrency, fork/hot reload, imported finalizers, general
 machine-code cross-target emission beyond the closed evidence selector, iOS

@@ -82,8 +82,9 @@ composition to type-check for five distinct iOS device, simulator, and Catalyst
 Rust targets, with dynamic loader and desktop v1/v2 surfaces absent. The same
 mandatory job is configured to link and execute one exact arm64 iOS Simulator
 `token.discard-two` provider through static registration and the authenticated
-ledger at `-O0`/`-O2`; it counts only after the hosted job for the revision is
-green. That bounded standalone-process slice does not prove device or app
+ledger at `-O0`/`-O2`; [run 31318280135, job
+93257002836](https://github.com/wavect/semaprax/actions/runs/31318280135/job/93257002836)
+proved that bounded path. The standalone-process slice does not prove device or app
 lifecycle execution, the remaining corpus on iOS, exhaustive crash/fatal-
 allocator failure injection, representative Android execution, quiescence,
 malicious-code containment, physical-finalizer generality, or public admission;

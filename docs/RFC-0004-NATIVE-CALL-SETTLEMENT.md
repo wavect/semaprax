@@ -45,8 +45,9 @@ and host static-only composition to type-check for five distinct iOS-family
 Rust targets, excluding dynamic loading and desktop v1/v2 host APIs. The same
 gate is configured to cross-emit and link one exact arm64-Simulator provider and
 run it through static registration and authenticated receipt commit at
-`-O0`/`-O2`; that is evidence only after the hosted job for the revision is
-green. There is no iOS device/app lifecycle or general-corpus execution,
+`-O0`/`-O2`; [run 31318280135, job
+93257002836](https://github.com/wavect/semaprax/actions/runs/31318280135/job/93257002836)
+proved that exact path. There is no iOS device/app lifecycle or general-corpus execution,
 representative mobile execution, general physical-finalizer authority, or
 public callable-v3 compiler surface. Callable
 v2 has an independent public
@@ -584,7 +585,7 @@ the unpublished loader and host static-only constructor/ledger composition to
 type-check for five iOS-family Rust targets, with no dynamic loader surface. It
 is also configured to link one exact generated provider with the private host
 as an ad-hoc-signed arm64 Simulator Mach-O and execute it at `-O0`/`-O2` through
-`simctl`. A green hosted job proves only that bounded standalone process, not
+`simctl`. The hosted job linked above proves only that bounded standalone process, not
 device execution, an installed app, lifecycle/UI/Swift integration, or the
 remaining corpus.
 The private callable-v3 document fixes its

@@ -134,10 +134,10 @@ function Build-Ui([string]$BuildRoot) {
     '-Werror', '-O2', '-c', $uiSource, '-o', $object)
   & $clangPath @compileArguments
   if ($LASTEXITCODE -ne 0) { throw 'private Windows native UI compilation failed' }
-  $linkArguments = @('-Werror', '-municode', "--ld-path=$lldLinkPath",
-    '-Wl,/Brepro,/nodefaultlib,/subsystem:windows', $object) +
-    $uiLibraries + @('-o', $destination)
-  & $clangPath @linkArguments
+  $linkArguments = @('/Brepro', '/nodefaultlib', '/subsystem:windows',
+    '/entry:wWinMainCRTStartup', '/machine:x64', '/WX', "/out:$destination",
+    $object) + $uiLibraries
+  & $lldLinkPath @linkArguments
   if ($LASTEXITCODE -ne 0) { throw 'private Windows native UI link failed' }
   return $destination
 }

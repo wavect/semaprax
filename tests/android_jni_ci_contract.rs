@@ -114,6 +114,8 @@ fn private_android_jni_project_is_offline_closed_and_source_locked() {
         "build_tools_version=\"35.0.0\"",
         "kotlinc-jvm 2[.]",
         "-jvm-target 11",
+        "-language-version 2.2",
+        "-api-version 2.2",
         "-no-reflect",
         "d8\"",
         "aapt2\" link",

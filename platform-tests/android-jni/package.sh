@@ -100,8 +100,8 @@ readonly classes_jar="$work/classes.jar"
 kotlinc \
   -Werror \
   -jvm-target 11 \
-  -language-version 2.0 \
-  -api-version 2.0 \
+  -language-version 2.2 \
+  -api-version 2.2 \
   -no-reflect \
   -classpath "$android_jar:$kotlin_stdlib:$kotlin_stdlib_jdk7:$kotlin_stdlib_jdk8" \
   -d "$classes_jar" \

@@ -198,8 +198,8 @@ function Assert-SequenceEqual([string]$Label, [string[]]$Actual, [string[]]$Expe
 
 function Assert-SystemImportAllowlist([string]$Label, [string[]]$Imports) {
   $fixed = @(
-    'advapi32.dll', 'bcrypt.dll', 'kernel32.dll', 'ntdll.dll', 'ole32.dll',
-    'shell32.dll', 'ucrtbase.dll', 'userenv.dll', 'vcruntime140.dll',
+    'advapi32.dll', 'bcrypt.dll', 'bcryptprimitives.dll', 'kernel32.dll',
+    'ntdll.dll', 'ole32.dll', 'shell32.dll', 'ucrtbase.dll', 'userenv.dll', 'vcruntime140.dll',
     'vcruntime140_1.dll', 'ws2_32.dll'
   )
   if ($Imports.Count -eq 0 -or $Imports -notcontains 'kernel32.dll') { throw "$Label must import kernel32.dll" }

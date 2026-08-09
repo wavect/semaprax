@@ -294,6 +294,7 @@ fn windows_source_lock_rejects_hostile_gate_removal() {
         ),
         source.replace("'/WX'", "'/WX:NO'"),
         source.replace("Get-PeImports", "Removed-PeImports"),
+        source.replace("'bcryptprimitives.dll'", "'ambient-crypto.dll'"),
         source.replace("Get-PeExports", "Removed-PeExports"),
         source.replace(
             "Assert-ExternalManifestIsEffective",
@@ -524,6 +525,7 @@ fn windows_contract(source: &str) -> Result<(), String> {
             "Get-PeImports",
             "Get-PeExports",
             "Assert-SystemImportAllowlist",
+            "'bcryptprimitives.dll'",
             "Assert-ExternalManifestIsEffective",
             "Test-PeHasManifestResource",
             "CreateActCtx",

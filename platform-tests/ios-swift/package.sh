@@ -140,6 +140,7 @@ build_executable() {
   local output="$6"
   xcrun --sdk "$sdk" swiftc \
     -target "$target" -sdk "$(xcrun --sdk "$sdk" --show-sdk-path)" \
+    -module-name SemapraxPrivateSwiftContractApp \
     -swift-version 6 -strict-concurrency=complete -warnings-as-errors -parse-as-library \
     "-$optimization" -D "$mode_define" \
     -I "$project_root/include" \
@@ -190,8 +191,12 @@ make_app() {
   printf '%s\n' "$app"
 }
 
-readonly app_o0="$(make_app Onone explicit SEMAPRAX_EXPLICIT "$work/lib-simulator-arm64-o0.a" dev.semaprax.private.swift.o0)"
-readonly app_o2="$(make_app O deinit SEMAPRAX_DEINIT "$work/lib-simulator-arm64-o2.a" dev.semaprax.private.swift.o2)"
+make_app Onone explicit SEMAPRAX_EXPLICIT \
+  "$work/lib-simulator-arm64-o0.a" dev.semaprax.private.swift.o0
+readonly app_o0="$work/SemapraxPrivateSwift-Onone.app"
+make_app O deinit SEMAPRAX_DEINIT \
+  "$work/lib-simulator-arm64-o2.a" dev.semaprax.private.swift.o2
+readonly app_o2="$work/SemapraxPrivateSwift-O.app"
 
 readonly output_root="$project_root/build"
 if [[ -e "$output_root" && ( ! -d "$output_root" || -L "$output_root" ) ]]; then

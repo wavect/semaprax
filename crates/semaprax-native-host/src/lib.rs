@@ -151,6 +151,8 @@ static POSTCOMMIT_COUNTING_ALLOCATOR: postcommit_allocation_probe::CountingAlloc
 mod android_emulator_harness;
 #[cfg(feature = "unstable-android-jni-harness")]
 mod android_jni_harness;
+#[cfg(feature = "unstable-desktop-app-harness")]
+mod desktop_app_harness;
 #[cfg(feature = "unstable-apple-swift-harness")]
 mod ios_swift_harness;
 
@@ -177,6 +179,10 @@ mod settlement_host_v3;
 #[cfg(all(test, not(target_os = "ios")))]
 mod settlement_host_v3_integration;
 mod settlement_ledger;
+
+#[cfg(feature = "unstable-desktop-app-harness")]
+#[doc(hidden)]
+pub use desktop_app_harness::private_desktop_v3_app_main;
 #[cfg(not(target_os = "ios"))]
 mod settlement_proof;
 

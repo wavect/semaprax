@@ -28,7 +28,7 @@ jobs:
 
   verify:
     name: Rust ${{ matrix.os }}
-    timeout-minutes: 15
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
@@ -38,7 +38,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
         with:
-          toolchain: stable
+          toolchain: 1.97.1
           components: rustfmt, clippy
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -57,6 +57,13 @@ jobs:
           cargo test --locked -p semaprax --lib codegen::native_callable_provider_v3::tests::physical_failure_injection_and_durable_settlement_boundaries_are_exact_at_o0_o2 -- --exact
           cargo test --locked -p semaprax-native-host --lib settlement_host_v3_integration::generated_provider_loader_host_v3_end_to_end_is_exact -- --exact
           cargo test --locked -p semaprax-native-host --lib settlement_host_v3_integration::generated_provider_loader_host_v3_physical_failures_are_durable_at_o0_o2 -- --exact
+      - name: Package and execute private Windows desktop application
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: platform-tests/desktop-native/package-windows.ps1 -OutputRoot "$env:RUNNER_TEMP/semaprax-private-desktop-v3"
+      - name: Package and execute private macOS desktop application
+        if: runner.os == 'macOS'
+        run: platform-tests/desktop-native/package-macos.sh "$RUNNER_TEMP/semaprax-private-desktop-v3"
       - name: Require native cleanup sanitizers (Linux)
         if: runner.os == 'Linux'
         env:
@@ -155,7 +162,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
         with:
-          toolchain: stable
+          toolchain: 1.97.1
           targets: aarch64-apple-ios,aarch64-apple-ios-sim,x86_64-apple-ios
       - name: Build and inspect the private device + Simulator XCFramework, then run the arm64 Swift application
         shell: bash

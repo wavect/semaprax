@@ -1,6 +1,7 @@
 schema=semaprax.ios-swift-toolchain.v1
 xcode.major=26
 swift.major=6
+rust.version=1.97.1
 ios.minimum=15.0
 ios.device.arch=arm64
 ios.simulator.archs=arm64,x86_64

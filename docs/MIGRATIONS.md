@@ -2,6 +2,16 @@
 
 SEMAPRAX is pre-alpha, but agent-facing changes are still explicit. Consumers must inspect the declared schema field rather than assuming every JSON object has the latest shape.
 
+## Graph-v6 CLI context to agent-context v1
+
+`semaprax context` now emits `semaprax.agent-context.v1` instead of a Graph-v6
+context view. Consumers must check `schema`, honor byte/node budgets,
+truncation reasons, omitted counts, and resume frontiers, and must not interpret
+unavailable target/diagnostic/test filters as empty facts. The legacy Rust
+`graph::context_json(program, symbol, depth)` API is unchanged; new Rust
+consumers use `graph::agent_context_json` with `AgentContextOptions`. There is
+no schema negotiation or silent fallback.
+
 ## Persistent identities are NUL-free
 
 Persistent semantic identities and logical import keys may not contain a literal NUL byte. Source validation reports the declaration-specific stable diagnostic before resolution or graph serialization; `\0` remains an unsupported source-string escape. Public consumers of transformed resolved HIR must likewise reject NUL in declaration IDs, types, expressions, places, call/record/field references, and attached cleanup inventory or plan metadata before code generation or serialization. Regenerate or rename any pre-alpha fixture that constructed such an identity directly.
@@ -406,6 +416,15 @@ inferred from local Rust/source-lock checks.
 its WIT text, mapping JSON, adapter bytes, status constraints, or framing
 require a new known answer and explicit migration note. This identity must not
 be reinterpreted as a Component Model binary or public WIT package version.
+
+The separate private scalar Component Model profile freezes a standards-valid
+binary with digest
+`sha256:3ed6bed8472eeae0ef17f96458622c9ae032dd7a13b115d2d7fea7fcfecde643`.
+Its section order, component function type, canonical lift, export, and embedded
+core module are part of the known answer. An incompatible change requires a new
+profile/version and migration note. This scalar fixture must not be
+reinterpreted as the `SPXWIT01` result/status interface or a public component
+package.
 
 ## Revision token FNV-1a64 to SHA-256
 

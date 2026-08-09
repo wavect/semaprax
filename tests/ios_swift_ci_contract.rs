@@ -36,6 +36,7 @@ fn private_ios_swift_project_is_offline_closed_and_source_locked() {
         "schema=semaprax.ios-swift-toolchain.v1",
         "xcode.major=26",
         "swift.major=6",
+        "rust.version=1.97.1",
         "ios.minimum=15.0",
         "ios.device.arch=arm64",
         "ios.simulator.archs=arm64,x86_64",
@@ -195,19 +196,24 @@ fn private_ios_swift_hosted_gate_is_mandatory_and_fail_closed() {
     let script = read(root, "scripts/ios-swift-app-v3.sh");
     let package = read(root, "platform-tests/ios-swift/package.sh");
     let rust_harness = read(root, "crates/semaprax-native-host/src/ios_swift_harness.rs");
+    let swift_job = workflow
+        .split_once("  ios-swift-app-cross-check:")
+        .and_then(|(_, tail)| tail.split_once("\n  android-emulator-cross-check:"))
+        .map(|(job, _)| job)
+        .expect("private Swift job remains a distinct fail-closed CI job");
 
     for required in [
-        "ios-swift-app-cross-check:",
         "Private Swift/iOS application + XCFramework runtime",
         "runs-on: macos-26",
         "timeout-minutes: 40",
         "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7",
         "dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master",
+        "toolchain: 1.97.1",
         "targets: aarch64-apple-ios,aarch64-apple-ios-sim,x86_64-apple-ios",
         "Build and inspect the private device + Simulator XCFramework, then run the arm64 Swift application",
         "run: scripts/ios-swift-app-v3.sh",
     ] {
-        assert!(workflow.contains(required), "hosted Swift gate lost `{required}`");
+        assert!(swift_job.contains(required), "hosted Swift gate lost `{required}`");
     }
     for required in [
         "set -euo pipefail",
@@ -248,6 +254,7 @@ fn private_ios_swift_hosted_gate_is_mandatory_and_fail_closed() {
         "SupportedPlatform",
         "simulator",
         "xcrun --sdk \"$sdk\" swiftc",
+        "-module-name SemapraxPrivateSwiftContractApp",
         "-swift-version 6 -strict-concurrency=complete -warnings-as-errors",
         "Mach-O 64-bit executable arm64",
         "platform IOSSIMULATOR",

@@ -9,6 +9,7 @@ Status: implemented in this repository.
 - Canonical source and typed expression core.
 - Stable declaration identities.
 - Revisioned semantic graph and context slices.
+- Versioned byte/node-bounded agent context with stable replay frontiers.
 - Effects, module permits, and contract guards.
 - Machine-readable diagnostics.
 - Atomic, stale-safe semantic renames.
@@ -91,6 +92,15 @@ and quiescence remain. The bounded Android JNI/APK path is green in [run
 None of these
 private steps opens public admission or `SPX-B104`.
 
+A first private native-desktop application seam now has a locally green macOS
+package/runtime path and a configured, pending Windows path. It packages one
+exact callable-v3 owned-identity provider with the existing loader and
+authenticated receipt ledger; the local macOS process rotates ownership across
+two calls and verifies exact replay. Hosted macOS/Windows execution is
+configured but not counted until green. This is headless packaging evidence,
+not AppKit/SwiftUI/WinUI, accessibility, lifecycle, signing, installation, or
+public application-language support.
+
 The next Apple gate is configured as one Swift/iOS application milestone:
 target-bound device and Simulator static slices, a private XCFramework, Swift 6
 complete-concurrency checking, and installed arm64-Simulator applications for
@@ -99,10 +109,14 @@ is green; physical-device, public-framework, UI/accessibility, and general
 lifecycle work remains later.
 
 WIT/component work has started with the deterministic private `SPXWIT01`
-schema/adapter bundle and Node evidence. The next WIT milestone is a real,
-independently parsed Component Model binary running generated SEMAPRAX Wasm;
-resources, futures/streams, capabilities, version negotiation, and
-multi-language composition remain later gates.
+schema/adapter bundle and Node evidence. A separate standards-valid scalar
+Component Model artifact now has a frozen digest, independent exact-profile
+parser, hostile mutation coverage, and a private Node subset runtime that
+executes its extracted import-free core module. The next WIT milestone is to
+compose the result/status WIT mapping with generated checked SEMAPRAX Wasm and
+run it through a maintained engine-native Component Model runtime. Resources,
+futures/streams, capabilities, version negotiation, and multi-language
+composition remain later gates.
 
 The model-backed, proposed [RFC 0004 native call recovery and settlement
 contract](RFC-0004-NATIVE-CALL-SETTLEMENT.md) specifies the bounded linear

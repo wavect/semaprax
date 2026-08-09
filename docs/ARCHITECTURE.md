@@ -234,7 +234,18 @@ admission. The separate bounded Android JNI/APK path is green in [run
 Private bounded process-lifetime static-registration logic
 now binds exact descriptor and entry addresses to the same host ledger; its
 non-Apple fake-function test proves retention and quarantine only, with no
-`dlopen` or unload claim. A mandatory macOS gate requires the loader and host
+`dlopen` or unload claim.
+
+The private [native desktop application v1](DESKTOP-NATIVE-APP-V1.md) packages
+that same dynamic callable-v3 boundary as a headless macOS `APPL` bundle and a
+Windows portable PE application directory. Local macOS execution admits its
+co-located exact provider/descriptor, performs two owned receipt commits with
+generation rotation, and replays the first commit exactly. The Windows
+package/runtime path remains CI-configured and pending. This is an application
+process and native-packaging seam only: there is no UI toolkit, accessibility,
+lifecycle API, signing, installer, public admission, or `SPX-B104` change.
+
+A mandatory macOS gate requires the loader and host
 static-only path to type-check for five iOS device, simulator, and Catalyst Rust
 targets, excluding `libloading`, dynamic `open_*`, and the desktop v1/v2 host
 API. That same job is configured to cross-emit one exact arm64-Simulator
@@ -333,14 +344,20 @@ v1](APPLE-SWIFT-OWNERSHIP-V1.md) composes the same iOS static lease and receipt
 ledger with a Swift-owned stable thread, opaque generation-tagged sessions,
 poison-preserving outputs, and explicit-versus-ARC cleanup arbitration.
 Generated C binds fixed hidden evidence hooks; caller-selected hooks and the
-legacy raw open are absent. A Swift 6 lane constructs device and universal
-Simulator slices plus two installed no-UI apps. Local gates pass; hosted Apple
-link/app execution is pending.
+legacy raw open are absent. A Swift 6 lane is configured to construct device
+and universal Simulator slices plus two installed no-UI apps. Local gates
+pass; hosted Apple link/app execution is pending.
 
 The private [WIT boundary v1](WIT-COMPONENT-BOUNDARY-V1.md) freezes one scalar
 result/status WIT mapping and JavaScript adapter over the existing Wasm
-semantics. It does not add a Component Model encoder, parser, linker, or runtime
-to the compiler trust boundary.
+semantics. The same default-off harness now emits a separate standards-valid
+scalar Component Model binary with a frozen digest, independently parses its
+exact canonical-lift profile, and executes the extracted import-free core
+module through Node's standard WebAssembly engine. That bounded runtime parses
+the component container but is not engine-native Component Model
+instantiation. The scalar fixture is not composed with the result/status WIT
+mapping or generated checked SEMAPRAX Wasm, so neither the compiler trust
+boundary nor the public backend surface expands.
 
 ## Record groundwork and backend gate
 
@@ -392,6 +409,19 @@ Integer literals are decimal JSON strings rather than JSON numbers, so JavaScrip
 Expression and value IDs are deterministic but revision-scoped; only explicitly authored declaration IDs are persistent across revisions. Automatic name-derived declaration IDs remain visibly marked unstable. Spans are intentionally absent because canonical source revisions ignore whitespace while spans do not.
 
 Context slicing starts from a display name or exact declaration ID, with exact IDs taking precedence on collisions. It walks declaration-ID call dependencies from preconditions, bodies, and postconditions to a bounded depth and closes referenced record types transitively through their field types. Unrelated declarations remain excluded. Every result declares a `module` or `context` view. Context views record root, depth, truncation, and frontier IDs so an omitted call dependency is distinguishable from a dangling reference. Callers, tests, packages, targets, and generated artifacts will become additional typed edges.
+
+The additive [`semaprax.agent-context.v1`](AGENT-CONTEXT-V1.md) projection is
+the current CLI context contract. It applies exact whole-document byte and
+function-node budgets, reports used/omitted budgets, and turns known omitted
+functions into stable-ID progress frontiers, with exact deferred counts,
+non-dangling emitted call edges, a query-bound minimum-byte cursor, aggregate
+pagination by stable-ID re-rooting, and fail-closed rejection only when an
+individual page cannot fit the contract maximum. Compact contracts, parameter/result
+ownership, effects, and reference-closed types are selectable; cleanup,
+lifecycle, and import subgraphs are not claimed by this projection. Graph v6
+has no target, diagnostic, or test nodes, so those requests are marked
+unavailable rather than inferred. The legacy Rust Graph-v6 depth-slice API
+remains compatible.
 
 The public parsed-AST graph functions resolve and validate HIR and return diagnostics on failure. Direct HIR rendering remains internal so a caller cannot attach a forged canonical-source revision to transformed HIR. The graph currently rebuilds per command; a later daemon will persist indexed revisions.
 

@@ -13,6 +13,7 @@ default = []
 unstable-android-emulator-harness = []
 unstable-android-jni-harness = []
 unstable-apple-swift-harness = []
+unstable-desktop-app-harness = []
 unstable-ios-simulator-harness = []
 
 [dependencies]
@@ -46,3 +47,13 @@ required-features = ["unstable-apple-swift-harness"]
 name = "private-ios-simulator-v3-fixture"
 path = "src/bin/private_ios_simulator_v3_fixture.rs"
 required-features = ["unstable-ios-simulator-harness"]
+
+[[bin]]
+name = "private-desktop-v3-fixture"
+path = "src/bin/private_desktop_v3_fixture.rs"
+required-features = ["unstable-desktop-app-harness"]
+
+[[bin]]
+name = "private-desktop-v3-app"
+path = "src/bin/private_desktop_v3_app.rs"
+required-features = ["unstable-desktop-app-harness"]

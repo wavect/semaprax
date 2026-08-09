@@ -52,13 +52,9 @@ fn run(args: Vec<String>) -> Result<(), u8> {
                 eprintln!("context requires a symbol name or stable id");
                 2
             })?;
-            let depth = args
-                .windows(2)
-                .find(|pair| pair[0] == "--depth")
-                .and_then(|pair| pair[1].parse().ok())
-                .unwrap_or(1);
+            let options = context_options(&args)?;
             let program = checked(&path)?;
-            let context = graph::context_json(&program, symbol, depth)
+            let context = graph::agent_context_json(&program, symbol, &options)
                 .map_err(|errors| report(&errors, false))?
                 .ok_or_else(|| {
                     eprintln!("symbol `{symbol}` was not found");
@@ -163,6 +159,87 @@ fn run(args: Vec<String>) -> Result<(), u8> {
     }
 }
 
+fn context_options(args: &[String]) -> Result<graph::AgentContextOptions, u8> {
+    let defaults = graph::AgentContextOptions::default();
+    let mut depth = defaults.depth();
+    let mut max_bytes = defaults.max_bytes();
+    let mut max_nodes = defaults.max_nodes();
+    let mut filters = None;
+    let mut seen = std::collections::BTreeSet::new();
+    let mut index = 3;
+    while index < args.len() {
+        let option = args[index].as_str();
+        if !matches!(
+            option,
+            "--depth" | "--max-bytes" | "--max-nodes" | "--filters"
+        ) {
+            eprintln!("unknown context option `{option}`");
+            return Err(2);
+        }
+        if !seen.insert(option.to_owned()) {
+            eprintln!("duplicate context option `{option}`");
+            return Err(2);
+        }
+        let value = args.get(index + 1).ok_or_else(|| {
+            eprintln!("context option `{option}` requires a value");
+            2
+        })?;
+        match option {
+            "--depth" => depth = context_number(option, value)?,
+            "--max-bytes" => max_bytes = context_number(option, value)?,
+            "--max-nodes" => max_nodes = context_number(option, value)?,
+            "--filters" => {
+                if value.is_empty() {
+                    eprintln!("context --filters requires a comma-separated nonempty list");
+                    return Err(2);
+                }
+                let mut parsed = std::collections::BTreeSet::new();
+                for name in value.split(',') {
+                    let Some(filter) = graph::AgentContextFilter::from_name(name) else {
+                        eprintln!("unknown context filter `{name}`");
+                        return Err(2);
+                    };
+                    if !parsed.insert(filter) {
+                        eprintln!("duplicate context filter `{name}`");
+                        return Err(2);
+                    }
+                }
+                filters = Some(parsed);
+            }
+            _ => unreachable!("closed context option table"),
+        }
+        index += 2;
+    }
+    let filters = filters.unwrap_or_else(|| {
+        [
+            graph::AgentContextFilter::Contracts,
+            graph::AgentContextFilter::Ownership,
+            graph::AgentContextFilter::Effects,
+            graph::AgentContextFilter::Types,
+        ]
+        .into_iter()
+        .collect()
+    });
+    graph::AgentContextOptions::new(depth, max_bytes, max_nodes, filters).map_err(|error| {
+        eprintln!("{error}");
+        2
+    })
+}
+
+fn context_number(option: &str, value: &str) -> Result<usize, u8> {
+    if value.is_empty()
+        || !value.bytes().all(|byte| byte.is_ascii_digit())
+        || (value.len() > 1 && value.starts_with('0'))
+    {
+        eprintln!("context option `{option}` requires a canonical nonnegative integer");
+        return Err(2);
+    }
+    value.parse::<usize>().map_err(|_| {
+        eprintln!("context option `{option}` requires a canonical nonnegative integer");
+        2
+    })
+}
+
 fn checked(path: &Path) -> Result<semaprax::ast::Program, u8> {
     let program = load(path).map_err(|errors| report(&errors, false))?;
     let diagnostics = verify::verify(&program);
@@ -224,7 +301,7 @@ fn print_help() {
          Usage:\n\
            semaprax check <file> [--json]\n\
            semaprax graph <file>\n\
-           semaprax context <file> <symbol|stable-id> [--depth N]\n\
+           semaprax context <file> <symbol|stable-id> [--depth N] [--max-bytes N] [--max-nodes N] [--filters contracts,ownership,effects,types,targets,diagnostics,tests]\n\
            semaprax build <file> [--target native|native-callable|web] [--function stable-id] [-o path]\n\
            semaprax run <file>\n\
            semaprax fmt <file> [--check]\n\

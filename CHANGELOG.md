@@ -4,6 +4,23 @@ All notable changes to SEMAPRAX are documented here.
 
 ## 0.2.0 — 2026-08-07
 
+- Added [`semaprax.agent-context.v1`](docs/AGENT-CONTEXT-V1.md): the `context`
+  CLI now emits deterministic whole-JSON byte- and function-node-bounded facts,
+  exact used/omitted/deferred accounting, closed truncation reasons, strict
+  options, and query-bound stable-ID progress frontiers with non-dangling
+  emitted calls and permanent oversize rejection. Compact Graph-v6
+  contracts, parameter/result ownership, effects, and reference-closed types
+  are filterable; cleanup/lifecycle/import subgraphs are not claimed, and
+  absent target/diagnostic/test graph facts are explicitly unavailable. This
+  is not an exact model-token budget or repository-wide relevance/impact claim.
+- Added the private [native desktop application
+  v1](docs/DESKTOP-NATIVE-APP-V1.md): a feature-gated headless macOS `APPL`
+  bundle and Windows portable PE application directory package one exact
+  callable-v3 provider/descriptor with the existing loader and authenticated
+  host. Local macOS execution proves two generation-rotating owned calls and
+  exact replay. The Windows package/runtime path and hosted desktop executions
+  remain configured and pending; UI, accessibility, lifecycle,
+  installer/signing, public admission, and `SPX-B104` stay closed.
 - Added the private [Apple Swift ownership adapter
   v1](docs/APPLE-SWIFT-OWNERSHIP-V1.md): a feature-gated same-thread Rust host,
   generation-tagged Swift wrapper, target-bound device/simulator providers,
@@ -14,8 +31,11 @@ All notable changes to SEMAPRAX are documented here.
 - Added the private [WIT boundary
   v1](docs/WIT-COMPONENT-BOUNDARY-V1.md): deterministic `SPXWIT01`
   WIT/schema/JavaScript bytes, a frozen digest, mutation rejection, exact
-  status bounds, and Node adapter execution. It does not emit or run a
-  Component Model binary and exposes no public WIT interface.
+  status bounds, and Node adapter execution. A separate standards-valid scalar
+  component binary now has a frozen digest, an independent exact-profile
+  parser, hostile mutation coverage, default-surface closure, and private Node
+  execution of its extracted core module. It is not yet composed with the WIT
+  result/status mapping and exposes no public WIT interface.
 - Added a mandatory private Android Emulator runtime gate. A hidden closed
   selector emits exact arm64 and x86_64-emulator dynamic descriptors
   and Bionic/ELF-guarded strict-C providers; the unpublished host now compiles

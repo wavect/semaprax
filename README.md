@@ -28,7 +28,7 @@ Requirements: Rust 1.85+ and Clang. Node.js 22+ is required for the shown browse
 ```sh
 cargo run -- check examples/meaning.spx
 cargo run -- graph examples/meaning.spx
-cargo run -- context examples/meaning.spx app.main --depth 1
+cargo run -- context examples/meaning.spx app.main --depth 1 --max-bytes 65536 --max-nodes 256
 cargo run -- run examples/meaning.spx
 cargo run -- run examples/control_flow.spx
 cargo run -- build examples/native_callable.spx --target native-callable --function example.token.identity -o target/native-callable
@@ -170,24 +170,28 @@ lifecycle/UI, device, general-resource, or public native support.
 
 A private [Apple Swift ownership adapter](docs/APPLE-SWIFT-OWNERSHIP-V1.md) is
 also implemented and CI-configured. It reuses the exact iOS static callable-v3
-host behind a Swift 6 stable-thread wrapper and builds private device/Simulator
-XCFramework slices plus installed arm64-Simulator applications. Hosted Apple
-compilation/runtime evidence is pending; this is **Partial** Swift/iOS
-implementation evidence, not a public framework, device, UI, or lifecycle
-claim.
+host behind a Swift 6 stable-thread wrapper. The hosted lane is configured to
+build private device/Simulator XCFramework slices and install arm64-Simulator
+applications; that Apple compilation/runtime evidence is still pending. This
+is **Partial** Swift/iOS implementation evidence, not a public framework,
+device, UI, or lifecycle claim.
 
 The private [WIT boundary v1](docs/WIT-COMPONENT-BOUNDARY-V1.md) adds a
 deterministic, mutation-closed WIT/schema/JavaScript bundle with Node execution
-and exact status bounds. It is **Partial** WIT evidence only: no Component
-Model binary/runtime, resources, futures/streams, capabilities, or public WIT
-surface exist yet.
+and exact status bounds. A separate standards-valid scalar Component Model
+binary has a frozen digest, an independent exact-profile parser, and a private
+Node runtime for its authenticated embedded core module. It is **Partial** WIT
+evidence only: the two artifacts are not composed, and there is no
+engine-native Component Model runtime, resource/future/stream/capability
+support, or public WIT surface.
 
 Not implemented yet: public native resource execution/admission,
 general-shape native/reference/Wasm trace conformance, the general Wasm resource ABI,
 recursive reference execution, callable imports/adapters, record machine-code
 layout/lowering, variants and matching, lifetime and alias analysis, user-facing
 regions, effect handlers, static contract proofs, Cranelift, LLVM/MLIR IR,
-WebAssembly Components, packages, concurrency, or cross-platform UI. Native
+composed engine-native WebAssembly Component backend, packages, concurrency,
+or cross-platform UI. Native
 resource builds retain `SPX-B104`; Wasm admits only the documented narrow slice
 and rejects every excluded resource shape with `SPX-W111`; records remain gated
 with their target-specific diagnostics.
@@ -222,7 +226,15 @@ confirmed on Windows in [run 31257545008, job
 The bounded private Android JNI/Kotlin APK now executes in hosted CI, but
 Android device/lifecycle/UI breadth, iOS device/app execution, and public
 execution/admission remain outstanding.
-`SPX-B104` therefore remains unchanged.
+
+The private [native desktop application v1](docs/DESKTOP-NATIVE-APP-V1.md)
+packages the exact callable-v3 owned-identity provider and authenticated host as
+a headless macOS `APPL` bundle or Windows portable PE application directory.
+Local macOS execution proves two generation-rotating owned calls and exact
+receipt replay. The Windows package/runtime path and hosted desktop executions
+remain configured and pending; this is not UI, accessibility, lifecycle,
+installer/signing, or public admission evidence. `SPX-B104` therefore remains
+unchanged.
 
 [RFC 0004](docs/RFC-0004-NATIVE-CALL-SETTLEMENT.md) now records the proposed
 callable-v3 recovery/settlement foundation for that physical-failure gap:
@@ -314,7 +326,7 @@ semaprax graph examples/meaning.spx
 An agent can request only the meaning around one symbol:
 
 ```sh
-semaprax context examples/meaning.spx app.main --depth 1
+semaprax context examples/meaning.spx app.main --depth 1 --max-bytes 65536 --max-nodes 256
 ```
 
 It can then submit a transaction:
@@ -337,7 +349,7 @@ The patch updates the declaration and verified call sites together. If the graph
 | --- | --- |
 | `check <file> [--json]` | Parse, type-check, verify contracts and effects |
 | `graph <file>` | Emit the revisioned semantic program graph |
-| `context <file> <symbol> [--depth N]` | Emit a dependency-bounded graph slice |
+| `context <file> <symbol> [bounded options]` | Emit deterministic [`semaprax.agent-context.v1`](docs/AGENT-CONTEXT-V1.md) JSON with budgets, filters, omitted counts, and replay frontier |
 | `build <file> [--target native\|native-callable\|web] [--function stable-id] [-o path]` | Produce a native executable, build-only callable bundle, or browser/Wasm package |
 | `run <file>` | Build and run in one step |
 | `fmt <file> [--check]` | Apply or verify canonical formatting |

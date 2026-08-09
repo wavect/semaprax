@@ -13,6 +13,9 @@ mod descriptor;
 mod descriptor_v2;
 #[cfg(test)]
 mod descriptor_v2_integration;
+mod descriptor_v3;
+#[cfg(test)]
+mod descriptor_v3_integration;
 mod settlement_proof;
 
 // Temporary audited source sharing keeps these protocol implementations

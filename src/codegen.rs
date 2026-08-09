@@ -1,5 +1,7 @@
 mod native_adapter_abi;
 mod native_callable_abi;
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+mod native_callable_abi_v3;
 mod native_callable_bundle;
 mod native_callable_execution;
 #[cfg_attr(
@@ -406,8 +408,9 @@ pub fn emit_native_callable_admission(
 }
 
 /// Feature-gated, authority-free callable-v2 settlement proof used only by the
-/// unpublished native host's independent decoder tests. This is not callable
-/// descriptor v3; no descriptor-v3 format, provider, or execution path exists.
+/// unpublished native host's independent decoder tests. This remains distinct
+/// from the metadata-only callable-v3 descriptor and provides no provider or
+/// execution path.
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
 #[doc(hidden)]
 pub struct NativeCallableSettlementProofArtifact(
@@ -430,6 +433,49 @@ pub fn emit_native_callable_settlement_proof(
 ) -> Result<NativeCallableSettlementProofArtifact, Diagnostic> {
     native_callable_settlement_proof::derive(program, function_id)
         .map(NativeCallableSettlementProofArtifact)
+}
+
+/// Feature-gated, metadata-only callable-v3 descriptor artifact.
+///
+/// This exposes no provider, loader, native function pointer, finalizer, or
+/// host authority. The unpublished host uses the bytes and exact symbol names
+/// solely to exercise its independent parser and version-confusion gates.
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+#[doc(hidden)]
+pub struct NativeCallableV3DescriptorArtifact(native_callable_abi_v3::NativeCallableV3Descriptor);
+
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+#[doc(hidden)]
+impl NativeCallableV3DescriptorArtifact {
+    pub fn bytes(&self) -> &[u8] {
+        &self.0.bytes
+    }
+
+    pub fn getter_symbol(&self) -> &str {
+        &self.0.getter_symbol
+    }
+
+    pub fn execute_symbol(&self) -> &str {
+        &self.0.execute_symbol
+    }
+
+    pub fn settle_symbol(&self) -> &str {
+        &self.0.settle_symbol
+    }
+
+    pub fn call_contract(&self) -> [u8; 32] {
+        self.0.call_contract
+    }
+}
+
+/// Derive metadata-only callable-v3 bytes from validated compiler facts.
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+#[doc(hidden)]
+pub fn emit_native_callable_v3_descriptor(
+    program: &ResolvedProgram,
+    function_id: &DeclarationId,
+) -> Result<NativeCallableV3DescriptorArtifact, Diagnostic> {
+    native_callable_abi_v3::derive(program, function_id).map(NativeCallableV3DescriptorArtifact)
 }
 
 fn native_callable_execution_cleanup_fingerprint(components: &[&[u8]]) -> [u8; 32] {

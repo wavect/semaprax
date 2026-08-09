@@ -13,6 +13,9 @@ const EXPECTED: &[u8] = b"SPX-native-descriptor-v1";
 const CALLABLE_EXPECTED: &[u8] = &[
     b'S', b'P', b'X', b'N', b'A', b'B', b'I', b'2', 2, 0, 0, 0, 20, 0, 0, 0, 20, 0, 0, 0,
 ];
+const CALLABLE_V3_METADATA: &[u8] = &[
+    b'S', b'P', b'X', b'N', b'A', b'B', b'I', b'3', 3, 0, 0, 0, 20, 0, 0, 0, 20, 0, 0, 0,
+];
 static NEXT_FIXTURE: AtomicU64 = AtomicU64::new(1);
 
 struct Fixture {
@@ -300,6 +303,53 @@ fn callable_schema_and_symbols_fail_closed_before_or_during_admission() {
         assert!(matches!(error, OpenError::InvalidCallableSymbol));
         assert!(!fixture.unload_marker.exists());
     }
+}
+
+#[test]
+fn callable_v3_metadata_rejection_does_not_open_a_native_image() {
+    let descriptor_fixture = Fixture::build();
+    // SAFETY: Shared input validation rejects v3 before the trusted fixture is
+    // opened. If that ordering regresses, the exact v1 getter still provides a
+    // readable range longer than the 20-byte expected metadata.
+    let descriptor_error = require_error(
+        unsafe {
+            open_admitted_exact(
+                &descriptor_fixture.library,
+                b"spx_descriptor_good",
+                CALLABLE_V3_METADATA,
+            )
+        },
+        "callable v3 metadata unexpectedly reached descriptor-only loading",
+    );
+    assert!(matches!(
+        descriptor_error,
+        OpenError::CallableV3DescriptorNotLoadable
+    ));
+    assert!(
+        !descriptor_fixture.unload_marker.exists(),
+        "descriptor-only v3 rejection must happen before image load"
+    );
+
+    let callable_fixture = Fixture::build();
+    // SAFETY: Shared input validation rejects v3 before image or symbol access.
+    // The trusted fixture exposes exact 20-byte descriptor storage if that
+    // ordering regresses, so even the failure path remains within its contract.
+    let callable_error = require_callable_error(unsafe {
+        open_admitted_callable_exact(
+            &callable_fixture.library,
+            b"spx_descriptor_callable",
+            b"spx_callable_echo",
+            CALLABLE_V3_METADATA,
+        )
+    });
+    assert!(matches!(
+        callable_error,
+        OpenError::CallableV3DescriptorNotLoadable
+    ));
+    assert!(
+        !callable_fixture.unload_marker.exists(),
+        "callable v3 rejection must happen before image load or symbol lookup"
+    );
 }
 
 #[test]

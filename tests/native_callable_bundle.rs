@@ -256,6 +256,60 @@ fn main() {
 }
 
 #[test]
+fn default_feature_external_consumer_cannot_import_callable_v3_metadata_api() {
+    let fixture = Fixture::create("default-v3-surface");
+    let consumer = fixture.path("consumer");
+    fs::create_dir(&consumer).unwrap();
+    let manifest_root = env!("CARGO_MANIFEST_DIR").replace('\\', "\\\\");
+    fs::write(
+        consumer.join("Cargo.toml"),
+        format!(
+            r#"[package]
+name = "semaprax-default-v3-surface-check"
+version = "0.0.0"
+edition = "2021"
+
+[workspace]
+
+[dependencies]
+semaprax = {{ path = "{manifest_root}", default-features = false }}
+"#,
+        ),
+    )
+    .unwrap();
+    fs::create_dir(consumer.join("src")).unwrap();
+    fs::write(
+        consumer.join("src/main.rs"),
+        r#"use semaprax::codegen::{emit_native_callable_v3_descriptor, NativeCallableV3DescriptorArtifact};
+
+fn main() {
+    let _ = emit_native_callable_v3_descriptor;
+    let _ = std::mem::size_of::<NativeCallableV3DescriptorArtifact>();
+}
+"#,
+    )
+    .unwrap();
+
+    let checked = Command::new(std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into()))
+        .args(["check", "--offline", "--manifest-path"])
+        .arg(consumer.join("Cargo.toml"))
+        .env("CARGO_TARGET_DIR", fixture.path("consumer-target"))
+        .output()
+        .unwrap();
+    assert!(
+        !checked.status.success(),
+        "default surface exposed callable-v3 metadata API"
+    );
+    let stderr = String::from_utf8_lossy(&checked.stderr);
+    assert!(
+        stderr.contains("emit_native_callable_v3_descriptor")
+            && stderr.contains("NativeCallableV3DescriptorArtifact")
+            && (stderr.contains("unresolved import") || stderr.contains("private")),
+        "unexpected callable-v3 default-surface diagnostic:\n{stderr}"
+    );
+}
+
+#[test]
 fn build_refuses_existing_files_directories_and_symlinks_without_mutation() {
     let fixture = Fixture::create("no-overwrite");
     let program = program();

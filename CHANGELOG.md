@@ -152,6 +152,24 @@ All notable changes to SEMAPRAX are documented here.
   opening an image; default consumers cannot import the proof surface. This adds
   no provider, descriptor-v3, loader admission, host settlement execution,
   physical finalizer, public API, mobile evidence, or `SPX-B104` change.
+- Froze the private metadata-only [callable ABI v3
+  contract](docs/NATIVE-CALLABLE-ABI-V3.md): `SPXNABI3` fixes the descriptor
+  order, acyclic hash dependencies, recovery graph, capacity budget, dynamic
+  and iOS-static linkage roles, and provisional bounded request/execute/frame/
+  decision/action/candidate plus host-only committed-receipt reservations.
+  `CertifyOutcome` embeds the canonical ordinal/outcome witness and a nonzero
+  trace-certificate-bound evidence digest independently recomputed by the host;
+  this binds the witness only and is not host acceptance of the trace-path DFA
+  certificate. Resealed witness or digest mutations are rejected.
+  Those seven statements are not complete runtime codecs and omit full
+  byte/tag/digest/host-HMAC transcripts; replacing them with independently
+  tested codecs may change private v3 known answers. The emitter is bound to its
+  build target and provides no Android/iOS/Windows cross-emission evidence. Both
+  existing loader constructors now reject v3 magic before path
+  canonicalization or image/symbol access, including malformed same-magic
+  headers. The compiler/host codec tranche grants no provider, runtime-wire,
+  loading, settlement, finalizer, ledger, mobile, or public authority and leaves
+  v2/proof bytes and `SPX-B104` unchanged.
 - Added a mandatory Windows callable-v2 dependency-isolation fixture. It places
   a same-name dependency in both CWD and legacy `PATH`, proves the root-image
   sibling wins for descriptor admission and invocation, then removes that

@@ -50,6 +50,7 @@ pub(super) struct NativeSettlementDerivation {
     recovery_contract_fingerprint: [u8; 32],
     trace_certificate_fingerprint: [u8; 32],
     certificate: NativeSettlementCertificate,
+    trace_evidence_witnesses: BTreeMap<[u8; 32], TraceEvidenceWitness>,
 }
 
 impl NativeSettlementDerivation {
@@ -63,6 +64,31 @@ impl NativeSettlementDerivation {
 
     pub(super) fn certificate(&self) -> &NativeSettlementCertificate {
         &self.certificate
+    }
+
+    pub(super) fn trace_evidence_witness(
+        &self,
+        fingerprint: &[u8; 32],
+    ) -> Option<&TraceEvidenceWitness> {
+        self.trace_evidence_witnesses.get(fingerprint)
+    }
+}
+
+/// Canonical witness whose digest is carried by one `CertifyOutcome` edge.
+/// This remains compiler-private proof data and confers no runtime authority.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(super) struct TraceEvidenceWitness {
+    ordinals: Vec<u32>,
+    outcome: TracePathOutcome,
+}
+
+impl TraceEvidenceWitness {
+    pub(super) fn ordinals(&self) -> &[u32] {
+        &self.ordinals
+    }
+
+    pub(super) const fn outcome(&self) -> TracePathOutcome {
+        self.outcome
     }
 }
 
@@ -81,6 +107,8 @@ struct TerminalPath {
     progress: Vec<PhysicalProgress>,
     outcome: SettlementOutcome,
     trace_evidence: [u8; 32],
+    trace_ordinals: Vec<u32>,
+    trace_outcome: TracePathOutcome,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -161,6 +189,21 @@ pub(super) fn derive_native_settlement(
         &dictionary,
         &trace_certificate,
     )?;
+    let mut trace_evidence_witnesses = BTreeMap::new();
+    for terminal in &terminals {
+        let witness = TraceEvidenceWitness {
+            ordinals: terminal.trace_ordinals.clone(),
+            outcome: terminal.trace_outcome,
+        };
+        match trace_evidence_witnesses.insert(terminal.trace_evidence, witness.clone()) {
+            Some(existing) if existing != witness => {
+                return Err(derivation_error(
+                    "trace-evidence digest collision has inconsistent witnesses",
+                ));
+            }
+            Some(_) | None => {}
+        }
+    }
     let (checkpoints, progress_edges) = derive_checkpoints(&terminals, owners.len())?;
     let certificate = NativeSettlementCertificate::try_new_with_progress(
         function.id.clone(),
@@ -178,6 +221,7 @@ pub(super) fn derive_native_settlement(
         recovery_contract_fingerprint,
         trace_certificate_fingerprint: trace_certificate.fingerprint(),
         certificate,
+        trace_evidence_witnesses,
     })
 }
 
@@ -434,6 +478,8 @@ fn collect_terminal_paths(
                                 &state.trace_ordinals,
                                 trace_outcome,
                             ),
+                            trace_ordinals: state.trace_ordinals,
+                            trace_outcome,
                         };
                         if seen_terminals.insert(terminal.clone()) {
                             terminals.push(terminal);
@@ -465,6 +511,8 @@ fn collect_terminal_paths(
                                 &state.trace_ordinals,
                                 trace_outcome,
                             ),
+                            trace_ordinals: state.trace_ordinals,
+                            trace_outcome,
                         };
                         if seen_terminals.insert(terminal.clone()) {
                             terminals.push(terminal);

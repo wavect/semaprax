@@ -281,6 +281,45 @@ symbols do not change. The v2 loader rejects the proof magic before opening an
 image, default consumers cannot import the proof surface, and no proof byte
 grants loading, execution, adoption, settlement, or finalizer authority.
 
+## Pre-v3 proof to private `SPXNABI3` metadata
+
+The [native callable ABI v3](NATIVE-CALLABLE-ABI-V3.md) is a new metadata
+format, not an extension or reinterpretation of `SPXNPRF1` or `SPXNABI2`.
+Consumers must dispatch on the full eight-byte magic and exact version, reject
+unknown or malformed versions, and never negotiate or fall back. V3 carries its
+settlement graph directly and uses new descriptor, graph, wire-schema, ABI,
+contract, and symbol domains. V2 and proof bytes, hashes, symbols, bundles, and
+public build-only behavior remain unchanged.
+
+The two existing dynamic-loader constructors reject every bounded descriptor
+beginning with `SPXNABI3` before path canonicalization, image load, or symbol
+lookup. This includes a same-magic blob with a changed version, header size, or
+total length; it must not fall through to v2 classification or generic
+descriptor loading. There is no v3 loader or iOS static-registration
+constructor.
+
+The v3 document reserves six provider wire roles and a separate host-only
+committed-receipt role. Their current strings and fingerprints are provisional
+bounded schema reservations, not complete codecs: they omit full byte/tag/
+digest transcripts and the exact host-HMAC transcript. They must be replaced
+and frozen with independently tested codecs before runtime admission, and that
+replacement may change private v3 fingerprints, symbols, and descriptor known
+answers. V3 `CertifyOutcome` carries the canonical ordinal/outcome witness and a
+nonzero digest over the trace-certificate fingerprint plus that transcript. The
+host recomputes this digest and rejects resealed witness/digest mutations, but
+does not thereby accept or walk the trace-path DFA certificate independently.
+Provider candidate evidence must never be relabeled as a host receipt,
+and model `ReceiptCommitted` must not be treated as public ledger
+`ReceiptCommit`.
+
+The current emitter derives its target from the compiler build and exposes no
+cross-target configuration. Android, iOS, and Windows cross-emission/runtime
+evidence remain absent. Future iOS device, simulator, and Mac Catalyst/macabi
+profiles must retain distinct target strings even though they share static
+registration. No migration may infer physical finalizer success from
+`Finalizing`; interruption remains uncertain and quarantined without retry.
+This migration changes no native execution gate and leaves `SPX-B104` closed.
+
 ## Revision token FNV-1a64 to SHA-256
 
 Graph v3 and later, semantic patch bases, CLI output, and `semaprax.web.v2`/`semaprax.web.v3` manifests use one algorithm-tagged token:

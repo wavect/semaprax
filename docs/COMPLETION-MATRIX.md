@@ -55,9 +55,22 @@ quiescence gap. Its hidden target-neutral model and private compiler derivation
 from validated cleanup HIR are implemented for the current direct-trivial
 owned slice. A separately versioned private `SPXNPRF1` envelope now binds the
 exact v2 call contract and trace certificate to a bounded binary graph, which
-the host parses independently without loading or executing it. No descriptor-v3,
-provider, loader admission, host settlement execution, physical finalizer, or
-public compiler path is wired, so this adds no native runtime evidence to any row.
+the host parses independently without loading or executing it. The separate
+metadata-only `SPXNABI3` contract now fixes descriptor/hash/graph/capacity and
+linkage-profile metadata while reserving seven provisional bounded runtime
+roles. Those role statements omit full wire/tag/digest/host-HMAC transcripts
+and must be replaced by independently tested codecs, which may change private
+v3 known answers. `CertifyOutcome` binds an embedded ordinal/outcome witness to
+the trace-certificate fingerprint through a nonzero host-recomputed digest;
+this is not independent host acceptance of the trace-path DFA certificate, and
+resealed witness/digest mutations are rejected. The emitter is
+build-target-bound with no cross-target configuration or Android/iOS/Windows
+cross-emission/runtime evidence. Both
+existing loaders reject v3 magic before path or image access. Its private
+compiler-encoder/independent-host-parser tranche does not add a provider,
+runtime wire codec, loader admission, host settlement
+execution, physical finalizer, or public compiler path, so it adds no native
+runtime evidence to any row.
 The hidden linear phase model now starts from the sole authenticated
 post-`CallCommit` state and exercises exact `SettlementDecisionCommit`,
 provider-candidate, model-`ReceiptCommitted`, and absorbing `Quarantined`

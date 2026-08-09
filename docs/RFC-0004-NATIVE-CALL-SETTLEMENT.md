@@ -1,6 +1,7 @@
 # RFC 0004: Native call recovery and settlement
 
-- Status: Proposed; private phase model/derivation/proof serialization implemented, physical v3 unwired
+- Status: Proposed; private phase model/proof and v3 metadata contract exist,
+  physical v3 unwired
 - Version: 0.1
 - Audience: compiler, native code generator, loader, ownership-host, adapter,
   and conformance-test implementers
@@ -22,9 +23,14 @@ private compiler derivation from validated cleanup HIR. The authority-free
 [settlement-proof v1](NATIVE-CALLABLE-SETTLEMENT-PROOF-V1.md)
 format now embeds the exact callable-v2 descriptor and a canonical binary graph;
 an independent host parser validates its bounds, hashes, topology, transitions,
-and cross-artifact bindings. This is not descriptor v3 or a runtime wire. There
-is no v3 provider symbol, code generator, loader path, physical finalizer,
-ownership-host wiring, or public callable-v3 compiler surface. Callable v2 has an independent public
+and cross-artifact bindings. The separate metadata-only [native callable ABI
+v3](NATIVE-CALLABLE-ABI-V3.md) now fixes the current private `SPXNABI3`
+descriptor projection, capacities, linkage metadata, hash DAG, and graph. Its
+seven future runtime strings/fingerprints are provisional bounded role/schema
+reservations that omit full byte/tag/digest/host-HMAC transcripts; they are not
+frozen wire codecs. There is no v3 provider code, loader/static
+admission, physical finalizer, ownership-host wiring, or public callable-v3
+compiler surface. Callable v2 has an independent public
 build-only bundle surface plus a feature-gated execution experiment; ordinary
 native resource execution still fails with `SPX-B104`, and
 the model plus this document satisfy no physical-runtime completion gate.
@@ -62,6 +68,9 @@ This RFC extends, but does not replace, the following contracts:
 - [Native callable ABI v2](NATIVE-CALLABLE-ABI-V2.md) defines the current
   private request/response and trace-certificate experiment, including its
   unresolved physical-failure boundary.
+- [Native callable ABI v3](NATIVE-CALLABLE-ABI-V3.md) fixes the current private
+  metadata descriptor and capacities while reserving provisional future wire
+  roles without granting execution or settlement authority.
 - [Conformance trace v1](CONFORMANCE-TRACE-V1.md) remains the semantic trace.
   Recovery checkpoints, physical resource state, adapter failure, and
   settlement receipts are adapter evidence and must not be inserted into that
@@ -173,12 +182,15 @@ must be exactly dense `1..=N`, and every size multiplication is checked. These
 bounds make model validation finite; they are not an implemented physical ABI
 or byte-capacity guarantee.
 
-A future descriptor and wire schema MUST authenticate exact frame,
-certificate, action, and receipt byte capacities and MUST set a versioned hard
-byte ceiling before wiring. Every alignment, addition, multiplication,
-host-size conversion, and allocation must be checked before commit. Exceeding a
-bound is a precommit rejection, never postcommit truncation. The present model's
-canonical JSON is test evidence, not a stable native wire layout.
+The metadata-only `SPXNABI3` descriptor authenticates exact request, response,
+frame, decision, action, candidate-receipt, count, and instance-reservation
+capacities under versioned hard ceilings. The corresponding runtime wire codecs
+are still future work; the current role statements are incomplete and may
+change private v3 fingerprints/symbols/known answers when complete independently
+tested codecs are frozen. Every alignment, addition, multiplication, host-size
+conversion, and allocation must be checked before commit. Exceeding a bound is
+a precommit rejection, never postcommit truncation. The present model's
+canonical JSON remains test evidence, not a native runtime wire layout.
 
 ## Owner-level resource states
 
@@ -352,10 +364,17 @@ state, permutation, outcome, and work-budget checks described above.
 This certificate is a bounded target-neutral decision table and progress graph,
 not yet a physical provider protocol. The private compiler derives it from
 independently validated HIR, cleanup inventory, cleanup plan, direct-owner
-recovery layout, result meaning, and the semantic trace certificate. A future descriptor must fingerprint it separately from the
-semantic event dictionary and trace-path certificate, and an independently
-implemented host parser must reject every noncanonical byte, identity, count,
-bound, or fingerprint mismatch before commit.
+recovery layout, result meaning, and the semantic trace certificate. The
+metadata-only v3 descriptor fingerprints it separately from the semantic event
+dictionary and trace-path certificate. A `CertifyOutcome` edge additionally
+carries its ordinal/outcome witness and a nonzero digest computed over that
+transcript plus the trace-certificate fingerprint. The host recomputes the
+exact `semaprax.native-recovery-trace-evidence.v1` digest and rejects resealed
+witness/digest mutations. This proves only the witness binding; the v3 metadata
+parser does not independently accept, reconstruct, or walk the trace-path DFA
+certificate. It must still reject every noncanonical byte, identity, count,
+bound, or fingerprint mismatch; physical commit and provider admission remain
+unwired.
 
 ## Candidate and committed receipts
 
@@ -516,14 +535,19 @@ model, atomic `settle` helper, or proof envelope.
 2. Derive and independently validate the settlement certificate from cleanup
    HIR while callable v3 remains unreachable from compiler preflight.
 3. Serialize the derived proof through one bounded authority-free envelope and
-   independently parse it while reserving no callable-v3 ABI version.
-4. Add the real descriptor-v3 contract and generated `execute`/`settle`
-   artifacts behind the private feature; keep v2 tests unchanged as
-   compatibility evidence.
-5. Connect the exact-instance loader and host with the combined settlement guard,
+   parse it independently from callable v3.
+4. Maintain the current private descriptor-v3 metadata contract, build-target-
+   bound compiler encoder, and
+   independent host parser behind the private feature; keep v2/proof known
+   answers unchanged as compatibility evidence.
+5. Replace all seven provisional role statements with complete independently
+   encoded/parsed byte, tag, digest, and host-HMAC transcripts; freeze new
+   private v3 known answers; then add generated `execute`/`settle` provider
+   artifacts behind the private feature.
+6. Connect the exact-instance loader and host with the combined settlement guard,
    receipt authentication, poison, draining, and quarantine.
-6. Run the complete failure-injection, sanitizer, unload, and platform matrix.
-7. Connect callable-v3 compiler execution/admission only after the full admitted
+7. Run the complete failure-injection, sanitizer, unload, and platform matrix.
+8. Connect callable-v3 compiler execution/admission only after the full admitted
    slice is proven. The independent callable-v2 build-only bundle remains
    non-executing, and every excluded shape retains its stable fail-closed
    diagnostic.
@@ -534,8 +558,15 @@ infrastructure, not evidence for a later one.
 
 ## Explicit nonclaims and current status
 
-This RFC specifies no stable public C ABI, public Rust API, callable-v3 byte
-layout or magic, symbol, capability token, or loader constructor. The private
+This RFC specifies no stable public C ABI, public Rust API, capability token,
+or loader/static-registration constructor. The private metadata-only callable
+v3 document fixes its descriptor bytes, derived symbols, capacities, and future
+wire-role reservations, but those role statements are not complete/frozen
+runtime codecs and provider symbols are not implemented or admitted. The
+emitter derives only its compiler build target and has no cross-target
+configuration. Android/iOS/Windows cross-emission and runtime evidence are
+absent; future iOS device, simulator, and Mac Catalyst/macabi targets remain
+distinct. The private
 `SPXNPRF1` proof format is versioned separately and cannot be executed or loaded.
 It does not implement
 imports or finalizers, aggregates, callbacks, async, concurrency, fork recovery,
@@ -545,8 +576,9 @@ successful cleanup and does not recover from interruption inside a finalizer.
 
 As of this revision, the hidden target-neutral owner-state/progress model,
 phase-aware linear transaction and its 29 focused tests, private compiler
-derivation, bounded binary proof encoder, and independent proof parser are
-implemented; none of their physical runtime pieces are wired.
+derivation, bounded binary proof encoder, independent proof parser, and v3
+metadata contract exist; the existing loader rejects v3 before path/image
+access, and none of the physical v3 runtime pieces are wired.
 Callable v2
 continues to retire logical ledger state after physical failure without proving
 general physical fallback cleanup or quiescence. Therefore the completion

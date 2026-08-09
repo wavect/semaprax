@@ -150,9 +150,9 @@ validates its transition semantics, and requires its source call-contract and
 trace-certificate fingerprints to match v2. The v2 loader rejects the proof
 magic before opening an image. This proof path has no invocation reservation,
 module-instance or frame-generation binding, physical finalizer authority,
-descriptor-v3 contract, provider, loader admission, host execution, or public
-compiler connection; it is not physical fallback evidence and does not change
-`SPX-B104`.
+embedded descriptor-v3 contract, provider, loader admission, host execution,
+or public compiler connection; it is not physical fallback evidence and does
+not change `SPX-B104`.
 
 The hidden phase model now keeps the eligibility evidence for three
 irreversible physical boundaries distinct: `CallCommit`,
@@ -170,6 +170,29 @@ model's `ReceiptCommitted` phase is only exact candidate-validation evidence:
 it allocates and owns no host secret, ledger, exact-instance reservation,
 loader pin, or physical finalizer. The current proof envelope and callable host
 do not wire the physical v3 boundary.
+
+The separate [native callable ABI v3](NATIVE-CALLABLE-ABI-V3.md) now fixes that
+boundary's private metadata: sequential `SPXNABI3` descriptor fields, an
+acyclic hash DAG, bounded recovery graph, exact buffer and instance capacities,
+future `execute`/`settle` symbols, six provider-wire role/schema reservations, a
+distinct provisional host-only committed-receipt role, and dynamic-image versus
+iOS-static linkage metadata. Each `CertifyOutcome` carries its ordinal/outcome
+witness and a nonzero digest bound to the trace-certificate fingerprint; the
+host recomputes that digest without independently accepting or walking the
+trace-path DFA certificate. Resealed witness/digest mutations fail. The seven
+runtime statements omit complete byte/tag/digest/host-HMAC transcripts; they
+are not frozen codecs and may change private v3 known answers when replaced by
+independently tested codecs. The
+compiler encoder is bound to its build target and exposes no cross-target
+configuration; Android/iOS/Windows cross-emission and runtime evidence remain
+absent. The compiler encoder and independently implemented host parser are a
+metadata-only tranche. The loader rejects the full v3 magic in its
+shared input validator before canonicalization, image loading, getter lookup,
+or callable lookup; its exact callable-v2 classifier remains unchanged. Runtime
+wire codecs, provider code, v3 loader/static registration, exact-instance frame
+reservation, host receipt authentication, physical finalizers, and ledger
+publication remain absent. This is architecture evidence, not execution
+evidence, and `SPX-B104` remains closed.
 
 The Windows CI lane now explicitly reruns the generated O0/O2 callable corpus
 and a loader fixture that places a same-name dependency in CWD and legacy

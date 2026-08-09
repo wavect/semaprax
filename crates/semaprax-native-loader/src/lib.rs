@@ -358,6 +358,8 @@ pub enum OpenError {
     InvalidExpectedDescriptorLength { actual: usize, maximum: usize },
     /// Settlement-proof envelopes are metadata and can never be loaded.
     SettlementProofEnvelopeNotLoadable,
+    /// Callable-v3 descriptors are metadata-only until exact v3 admission exists.
+    CallableV3DescriptorNotLoadable,
     /// Callable admission accepts only the separately versioned descriptor v2.
     InvalidCallableDescriptorSchema,
     /// The platform loader rejected the library.
@@ -400,6 +402,8 @@ impl fmt::Display for OpenError {
             Self::SettlementProofEnvelopeNotLoadable => formatter.write_str(
                 "native callable settlement-proof envelopes are proof-only and cannot be loaded",
             ),
+            Self::CallableV3DescriptorNotLoadable => formatter
+                .write_str("native callable v3 descriptors are metadata-only and cannot be loaded"),
             Self::InvalidCallableDescriptorSchema => formatter
                 .write_str("native callable admission requires an exact SPXNABI2 descriptor"),
             Self::LibraryOpen(error) => write!(formatter, "native module open failed: {error}"),
@@ -446,8 +450,9 @@ impl Error for OpenError {
 /// Exact equality proves only that the resolved getter returned
 /// `expected_descriptor`. It does not prove that the getter belongs to the root
 /// image, that the root image is compatible, or that admission was sound.
-/// An `SPXNPRF1` settlement-proof envelope is rejected during input validation
-/// before path canonicalization or library loading; it is not a descriptor.
+/// `SPXNPRF1` settlement-proof envelopes and `SPXNABI3` metadata-only
+/// descriptors are rejected during input validation before path
+/// canonicalization or library loading; neither is a loadable descriptor.
 ///
 /// # Safety
 ///
@@ -534,8 +539,9 @@ pub unsafe fn open_admitted_exact(
 /// returned retain. Before crossing this boundary, the caller must also have
 /// decoded `expected_descriptor` with the exact canonical descriptor-v2 codec;
 /// this loader checks only its fixed envelope and byte equality.
-/// `SPXNPRF1` proof envelopes are rejected before path canonicalization or
-/// library loading and are never interpreted as callable descriptors.
+/// `SPXNPRF1` proof envelopes and `SPXNABI3` metadata-only descriptors are
+/// rejected before path canonicalization or library loading and are never
+/// interpreted as callable-v2 descriptors.
 ///
 /// In addition, `callable_symbol` must name an eagerly resolvable function with
 /// the exact C ABI
@@ -655,6 +661,9 @@ fn validate_inputs(
     }
     if expected_descriptor.starts_with(b"SPXNPRF1") {
         return Err(OpenError::SettlementProofEnvelopeNotLoadable);
+    }
+    if expected_descriptor.starts_with(b"SPXNABI3") {
+        return Err(OpenError::CallableV3DescriptorNotLoadable);
     }
     Ok(())
 }

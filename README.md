@@ -161,10 +161,23 @@ settlement, authenticated receipts, and explicit call/module quiescence. Its
 hidden target-neutral model and compiler derivation now serialize through the
 private [settlement-proof v1](docs/NATIVE-CALLABLE-SETTLEMENT-PROOF-V1.md)
 envelope and an independent host parser. That proof binds exact v2 metadata but
-grants no authority and deliberately reserves no v3 ABI version. No v3
-descriptor, provider, loader admission, host settlement, or physical finalizer
-is wired, so it supplies no native-runtime evidence and does not weaken
-`SPX-B104`.
+grants no authority. The private [callable ABI v3 metadata
+contract](docs/NATIVE-CALLABLE-ABI-V3.md) now fixes the current private
+`SPXNABI3` descriptor order, hash DAG, capacities, settlement graph, linkage
+metadata, and seven provisional future wire-role/schema reservations. A
+`CertifyOutcome` edge carries the exact ordinal/outcome witness plus a nonzero
+digest bound to the trace-certificate fingerprint; the host recomputes that
+digest but does not independently accept the trace-path DFA certificate. The
+seven reservations omit complete byte/tag/digest/host-HMAC transcripts and may
+change private v3 known answers when independently tested codecs are frozen.
+The current emitter is bound to its compiler build target and has no
+cross-target configuration;
+Android/iOS/Windows cross-emission and runtime evidence remain absent. The
+compiler-encoder/independent-host-parser tranche is metadata work only, and the
+existing loader rejects v3 magic before path or image access. No v3 provider,
+runtime wire codec, loader admission, host settlement, physical finalizer, or
+public compiler path is wired, so this supplies no native-runtime evidence and
+does not weaken `SPX-B104`.
 
 The hidden phase-aware transaction model now starts from the authenticated
 post-`CallCommit` state and separates one exact `SettlementDecisionCommit`,
@@ -183,8 +196,10 @@ callable-v2 admission. It eagerly resolves one private callable and exposes only
 instance-bound, preallocated one-shot prepared calls—never a raw handle,
 generic lookup, or callable pointer. The ownership host now consumes the v2
 lease and callable transport, but the unsafe caller must still establish trusted
-image and dependency provenance. This is not a malicious-plugin boundary and
-does not weaken `SPX-B104`.
+image and dependency provenance. Both loader entry points reject `SPXNABI3`
+metadata before canonicalization, native image load, or symbol lookup; there is
+no v3 constructor or fallback to v2. This is not a malicious-plugin boundary
+and does not weaken `SPX-B104`.
 
 The current critical-path implementation contract is [Owned resource vertical
 slice v1](docs/OWNED-RESOURCE-VERTICAL-V1.md): one deliberately narrow,
@@ -254,7 +269,7 @@ The long-term compiler has two output principles:
 - Native machine code where performance and platform integration matter.
 - WebAssembly Components where portability and capability sandboxing matter.
 
-Read [RFC 0001](docs/RFC-0001.md) for the language system, [RFC 0002](docs/RFC-0002-ALGEBRAIC-DATA.md) for algebraic data and aggregate ownership, [RFC 0003](docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) for implemented lifecycle source/resolution and the proposed exactly-once cleanup/runtime phases, and the model-backed, proposed [RFC 0004](docs/RFC-0004-NATIVE-CALL-SETTLEMENT.md) for the native recovery/settlement contract. [Settlement proof v1](docs/NATIVE-CALLABLE-SETTLEMENT-PROOF-V1.md) specifies the private authority-free compiler/host proof envelope. [Conformance trace v1](docs/CONFORMANCE-TRACE-V1.md) fixes the target-neutral status/trace projection, and [host ownership transactions v1](docs/HOST-OWNERSHIP-TRANSACTIONS-V1.md) fixes the preflight/commit/publication semantics that future ecosystem adapters must preserve. [The architecture](docs/ARCHITECTURE.md) describes the current implementation, [the quality gates](docs/QUALITY-GATES.md) define executable contribution evidence, [protocol migrations](docs/MIGRATIONS.md) cover agent-facing compatibility, [the roadmap](docs/ROADMAP.md) gives the staged path forward, and the [full-goal completion matrix](docs/COMPLETION-MATRIX.md) records requirement-by-requirement evidence.
+Read [RFC 0001](docs/RFC-0001.md) for the language system, [RFC 0002](docs/RFC-0002-ALGEBRAIC-DATA.md) for algebraic data and aggregate ownership, [RFC 0003](docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) for implemented lifecycle source/resolution and the proposed exactly-once cleanup/runtime phases, and the model-backed, proposed [RFC 0004](docs/RFC-0004-NATIVE-CALL-SETTLEMENT.md) for the native recovery/settlement contract. [Settlement proof v1](docs/NATIVE-CALLABLE-SETTLEMENT-PROOF-V1.md) specifies the private authority-free compiler/host proof envelope, while [callable ABI v3](docs/NATIVE-CALLABLE-ABI-V3.md) freezes the separate metadata-only physical contract. [Conformance trace v1](docs/CONFORMANCE-TRACE-V1.md) fixes the target-neutral status/trace projection, and [host ownership transactions v1](docs/HOST-OWNERSHIP-TRANSACTIONS-V1.md) fixes the preflight/commit/publication semantics that future ecosystem adapters must preserve. [The architecture](docs/ARCHITECTURE.md) describes the current implementation, [the quality gates](docs/QUALITY-GATES.md) define executable contribution evidence, [protocol migrations](docs/MIGRATIONS.md) cover agent-facing compatibility, [the roadmap](docs/ROADMAP.md) gives the staged path forward, and the [full-goal completion matrix](docs/COMPLETION-MATRIX.md) records requirement-by-requirement evidence.
 
 ## Status
 

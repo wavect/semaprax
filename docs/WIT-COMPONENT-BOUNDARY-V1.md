@@ -106,7 +106,7 @@ and embedded-core profile, and maintained upstream `wasmparser` validation
 independently accepts the artifact and rejects rehashed hostile type/lift
 mutations.
 
-Local engine-native evidence uses an unpublished standalone Wasmtime 47.0.2
+Local engine-native evidence uses an unpublished standalone Wasmtime 47.0.3
 runner and generated typed bindings. It invokes success, addition overflow,
 division by zero, false precondition, and false postcondition twice on one
 instance and again on fresh instances. A competing `(i64::MAX, 0)` case proves

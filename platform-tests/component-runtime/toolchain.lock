@@ -6,4 +6,4 @@ cargo.release=1.97.1
 cargo.commit=c980f4866141969fab6254a680546a277789d6f0
 cargo.commit-date=2026-06-30
 ci.host=x86_64-unknown-linux-gnu
-wasmtime.version=47.0.2
+wasmtime.version=47.0.3

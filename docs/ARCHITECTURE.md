@@ -383,7 +383,7 @@ Portable Result Component v3 is a third exact private profile. It canonically
 lifts the checked two-`i64` generated core as `result<s64, status>`, binds
 component/core/profile/source digests, and is admitted by both an independent
 bounded parser and maintained upstream validation. The standalone Wasmtime
-47.0.2 runner re-authenticates immutable bytes, requires zero imports,
+47.0.3 runner re-authenticates immutable bytes, requires zero imports,
 instantiates with an empty linker and no WASI or host callbacks, then uses
 generated typed bindings for success, addition overflow, division by zero,
 false precondition, and false postcondition. Node core evidence independently

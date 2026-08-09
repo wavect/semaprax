@@ -14,11 +14,12 @@ fn standalone_runner_is_pinned_private_and_outside_the_root_workspace() {
     let manifest = read("platform-tests/component-runtime/Cargo.toml");
     for required in [
         "publish = false",
+        "license = \"Apache-2.0\"",
         "[workspace]",
         "resolver = \"2\"",
-        "semaprax = { path = \"../..\", default-features = false, features = [\"unstable-wit-component-harness\"] }",
+        "semaprax = { version = \"=0.2.0\", path = \"../..\", default-features = false, features = [\"unstable-wit-component-harness\"] }",
         "sha2 = { version = \"=0.10.9\", default-features = false }",
-        "wasmtime = { version = \"=47.0.2\", default-features = false, features = [\"component-model\", \"cranelift\", \"runtime\", \"std\"] }",
+        "wasmtime = { version = \"=47.0.3\", default-features = false, features = [\"component-model\", \"cranelift\", \"runtime\", \"std\"] }",
         "unsafe_code = \"forbid\"",
     ] {
         assert!(manifest.contains(required), "missing runner lock: {required}");
@@ -31,6 +32,7 @@ fn standalone_runner_is_pinned_private_and_outside_the_root_workspace() {
     }
 
     let root_manifest = read("Cargo.toml");
+    assert!(root_manifest.contains("license = \"Apache-2.0\""));
     assert_eq!(
         root_manifest
             .lines()
@@ -43,11 +45,11 @@ fn standalone_runner_is_pinned_private_and_outside_the_root_workspace() {
     assert!(toolchain.contains("profile = \"minimal\""));
     assert_eq!(
         read("platform-tests/component-runtime/toolchain.lock"),
-        "rustc.release=1.97.1\nrustc.commit=8bab26f4f68e0e26f0bb7960be334d5b520ea452\nrustc.commit-date=2026-07-14\nrustc.llvm=22.1.6\ncargo.release=1.97.1\ncargo.commit=c980f4866141969fab6254a680546a277789d6f0\ncargo.commit-date=2026-06-30\nci.host=x86_64-unknown-linux-gnu\nwasmtime.version=47.0.2\n"
+        "rustc.release=1.97.1\nrustc.commit=8bab26f4f68e0e26f0bb7960be334d5b520ea452\nrustc.commit-date=2026-07-14\nrustc.llvm=22.1.6\ncargo.release=1.97.1\ncargo.commit=c980f4866141969fab6254a680546a277789d6f0\ncargo.commit-date=2026-06-30\nci.host=x86_64-unknown-linux-gnu\nwasmtime.version=47.0.3\n"
     );
 
     let lock = read("platform-tests/component-runtime/Cargo.lock");
-    assert!(lock.contains("name = \"wasmtime\"\nversion = \"47.0.2\""));
+    assert!(lock.contains("name = \"wasmtime\"\nversion = \"47.0.3\""));
     assert!(lock.contains("name = \"semaprax-private-component-runtime-v3\""));
     for forbidden in [
         "name = \"wasmtime-wasi\"",

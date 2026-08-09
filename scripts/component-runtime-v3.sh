@@ -20,7 +20,7 @@ test "$(grep -c '^cargo.release=1.97.1$' "$readonly_toolchain_lock")" -eq 1
 test "$(grep -c '^cargo.commit=c980f4866141969fab6254a680546a277789d6f0$' "$readonly_toolchain_lock")" -eq 1
 test "$(grep -c '^cargo.commit-date=2026-06-30$' "$readonly_toolchain_lock")" -eq 1
 test "$(grep -c '^ci.host=x86_64-unknown-linux-gnu$' "$readonly_toolchain_lock")" -eq 1
-test "$(grep -c '^wasmtime.version=47.0.2$' "$readonly_toolchain_lock")" -eq 1
+test "$(grep -c '^wasmtime.version=47.0.3$' "$readonly_toolchain_lock")" -eq 1
 printf '%s\n' "$readonly_rustc" | grep -Fx 'release: 1.97.1'
 printf '%s\n' "$readonly_rustc" | grep -Fx 'commit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452'
 printf '%s\n' "$readonly_rustc" | grep -Fx 'commit-date: 2026-07-14'

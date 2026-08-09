@@ -157,6 +157,12 @@ fn macos_source_lock_rejects_hostile_gate_removal() {
         source.replace("otool -hv", "otool -l"),
         source.replace("otool -D", "otool -L"),
         source.replace("otool -L", "otool -l"),
+        source.replace("load_commands=$(otool -l \"$binary\")", "load_commands=''"),
+        source.replace(
+            "$(printf '%s\\n' \"$load_commands\" | sed -n '1p')",
+            "$binary:",
+        ),
+        source.replace("\"$load_commands\" | sed '1d'", "\"$load_commands\""),
         source.replace("nm -gjU", "nm"),
         source.replace("build_once second", ": second build removed"),
         source.replace("package_once second", ": second signed package removed"),
@@ -256,6 +262,9 @@ fn windows_source_lock_rejects_hostile_gate_removal() {
 }
 
 fn macos_contract(source: &str) -> Result<(), String> {
+    if source.contains("otool -l \"$executable\" \"$provider\"") {
+        return Err("macOS: otool filename headers must not enter the load-path scan".to_owned());
+    }
     require_all(
         "macOS",
         source,
@@ -311,7 +320,9 @@ fn macos_contract(source: &str) -> Result<(), String> {
             "tool 3",
             "version $readonly_ld_build_version",
             "otool -D",
-            "otool -l",
+            "load_commands=$(otool -l \"$binary\")",
+            "[ \"$(printf '%s\\n' \"$load_commands\" | sed -n '1p')\" != \"$binary:\" ]",
+            "printf '%s\\n' \"$load_commands\" | sed '1d' | grep -E 'LC_RPATH|@loader_path|@executable_path|/private/|/Users/|/Volumes/|target/'",
             "LC_RPATH|@loader_path|@executable_path|/private/|/Users/|/Volumes/|target/",
             "otool -L",
             "actual_executable_images",

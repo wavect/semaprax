@@ -220,10 +220,17 @@ if [ "$(otool -D "$provider" | sed -n '2p')" != "$readonly_provider_id" ]; then
   otool -D "$provider" >&2
   exit 1
 fi
-if otool -l "$executable" "$provider" | grep -E 'LC_RPATH|@loader_path|@executable_path|/private/|/Users/|/Volumes/|target/' >/dev/null; then
-  echo "private desktop Mach-O contains an ambient or build-local load path" >&2
-  exit 1
-fi
+for binary in "$executable" "$provider"; do
+  load_commands=$(otool -l "$binary")
+  if [ "$(printf '%s\n' "$load_commands" | sed -n '1p')" != "$binary:" ]; then
+    echo "private desktop Mach-O load-command header changed: $binary" >&2
+    exit 1
+  fi
+  if printf '%s\n' "$load_commands" | sed '1d' | grep -E 'LC_RPATH|@loader_path|@executable_path|/private/|/Users/|/Volumes/|target/' >/dev/null; then
+    echo "private desktop Mach-O contains an ambient or build-local load path: $binary" >&2
+    exit 1
+  fi
+done
 
 actual_executable_images=$(otool -L "$executable" | sed -n '2,$s/^[[:space:]]*\([^[:space:]]*\).*/\1/p')
 expected_executable_images='/usr/lib/libSystem.B.dylib

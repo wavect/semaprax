@@ -11,6 +11,14 @@ fn read(relative: &str) -> String {
 
 #[test]
 fn standalone_runner_is_pinned_private_and_outside_the_root_workspace() {
+    let attributes = read(".gitattributes");
+    assert!(
+        attributes
+            .lines()
+            .any(|line| line == "platform-tests/component-runtime/** text eol=lf"),
+        "the byte-locked runtime inputs must retain canonical LF checkouts on Windows"
+    );
+
     let manifest = read("platform-tests/component-runtime/Cargo.toml");
     for required in [
         "publish = false",

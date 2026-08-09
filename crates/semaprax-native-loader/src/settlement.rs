@@ -4,7 +4,9 @@ use super::{
 };
 use libloading::Library;
 use std::error::Error;
-use std::ffi::{c_char, c_int, c_void, CStr};
+use std::ffi::c_void;
+#[cfg(unix)]
+use std::ffi::{c_char, c_int, CStr};
 use std::fmt;
 use std::marker::PhantomData;
 use std::path::{Path, PathBuf};

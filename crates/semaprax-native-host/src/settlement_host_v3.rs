@@ -431,6 +431,7 @@ impl PrivateSettlementHostV3 {
             test,
             all(feature = "unstable-android-emulator-harness", target_os = "android"),
             all(feature = "unstable-android-jni-harness", target_os = "android"),
+            all(feature = "unstable-apple-swift-harness", target_os = "ios"),
             all(
                 feature = "unstable-ios-simulator-harness",
                 target_os = "ios",
@@ -553,6 +554,7 @@ impl PrivateSettlementHostV3 {
             test,
             all(feature = "unstable-android-emulator-harness", target_os = "android"),
             all(feature = "unstable-android-jni-harness", target_os = "android"),
+            all(feature = "unstable-apple-swift-harness", target_os = "ios"),
             all(
                 feature = "unstable-ios-simulator-harness",
                 target_os = "ios",
@@ -610,6 +612,7 @@ impl PrivateSettlementHostV3 {
             test,
             all(feature = "unstable-android-emulator-harness", target_os = "android"),
             all(feature = "unstable-android-jni-harness", target_os = "android"),
+            all(feature = "unstable-apple-swift-harness", target_os = "ios"),
             all(
                 feature = "unstable-ios-simulator-harness",
                 target_os = "ios",
@@ -693,6 +696,7 @@ impl PrivateSettlementHostV3 {
             test,
             all(feature = "unstable-android-emulator-harness", target_os = "android"),
             all(feature = "unstable-android-jni-harness", target_os = "android"),
+            all(feature = "unstable-apple-swift-harness", target_os = "ios"),
             all(
                 feature = "unstable-ios-simulator-harness",
                 target_os = "ios",

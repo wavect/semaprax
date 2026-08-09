@@ -196,6 +196,10 @@ fn private_ios_swift_hosted_gate_is_mandatory_and_fail_closed() {
     let script = read(root, "scripts/ios-swift-app-v3.sh");
     let package = read(root, "platform-tests/ios-swift/package.sh");
     let rust_harness = read(root, "crates/semaprax-native-host/src/ios_swift_harness.rs");
+    let settlement_host = read(
+        root,
+        "crates/semaprax-native-host/src/settlement_host_v3.rs",
+    );
     let swift_job = workflow
         .split_once("  ios-swift-app-cross-check:")
         .and_then(|(_, tail)| tail.split_once("\n  android-emulator-cross-check:"))
@@ -285,6 +289,13 @@ fn private_ios_swift_hosted_gate_is_mandatory_and_fail_closed() {
         );
     }
     assert!(!rust_harness.contains("fn spx_private_apple_swift_v1_open("));
+    assert_eq!(
+        settlement_host
+            .matches("all(feature = \"unstable-apple-swift-harness\", target_os = \"ios\")")
+            .count(),
+        4,
+        "Swift execution and pre-execute unwind must both start and finish the allocation probe",
+    );
     for required in [
         "expected_app_exports",
         "_spx_private_apple_swift_fixture_v1_open",

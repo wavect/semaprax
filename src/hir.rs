@@ -782,6 +782,11 @@ pub enum ResolvedExprKind {
         record: DeclarationId,
         fields: Vec<ResolvedFieldInitializer>,
     },
+    UpdateRecord {
+        base: Box<ResolvedExpr>,
+        record: DeclarationId,
+        fields: Vec<ResolvedFieldInitializer>,
+    },
     Project {
         base: Box<ResolvedExpr>,
         field: DeclarationId,
@@ -1825,6 +1830,99 @@ impl<'a> HirValidator<'a> {
                 let ownership = self.expected_ownership(&ty, OwnershipMode::Own)?;
                 (ty, ownership)
             }
+            ResolvedExprKind::UpdateRecord {
+                base,
+                record,
+                fields,
+            } => {
+                self.validate_expr(
+                    function,
+                    base,
+                    scope,
+                    &format!("{path}.base"),
+                    allow_moves,
+                    allowed_effects,
+                )?;
+                let declaration = self
+                    .program
+                    .declarations
+                    .declaration(record)
+                    .ok_or_else(|| hir_error(format!("record `{record}` is not indexed")))?;
+                if declaration.kind != DeclarationKind::Record {
+                    return Err(hir_error(format!(
+                        "record update target `{record}` is not a record"
+                    )));
+                }
+                let ty = ResolvedType::Nominal {
+                    declaration: record.clone(),
+                    arguments: Vec::new(),
+                };
+                self.require_type(&base.ty, &ty, "record update base")?;
+                let ownership = self.expected_ownership(&ty, OwnershipMode::Own)?;
+                if base.ownership != ownership {
+                    return Err(hir_error(format!(
+                        "record update base for `{record}` has incompatible ownership"
+                    )));
+                }
+                if ownership == OwnershipMode::Own {
+                    if !allow_moves {
+                        return Err(hir_error(
+                            "contract cannot transfer ownership from a record update base",
+                        ));
+                    }
+                    self.mark_value_sources_moved(base, scope)?;
+                }
+
+                let expected_fields = self
+                    .program
+                    .declarations
+                    .record_fields(record)
+                    .ok_or_else(|| hir_error(format!("record `{record}` has no fields")))?
+                    .to_vec();
+                let mut seen = BTreeSet::new();
+                for (index, initializer) in fields.iter().enumerate() {
+                    let field = expected_fields
+                        .iter()
+                        .find(|field| field.id == initializer.field)
+                        .ok_or_else(|| {
+                            hir_error(format!(
+                                "update for `{record}` contains foreign field `{}`",
+                                initializer.field
+                            ))
+                        })?;
+                    if !seen.insert(initializer.field.clone()) {
+                        return Err(hir_error(format!(
+                            "update for `{record}` repeats field `{}`",
+                            initializer.field
+                        )));
+                    }
+                    self.validate_expr(
+                        function,
+                        &initializer.value,
+                        scope,
+                        &format!("{path}.field.{index}.value"),
+                        allow_moves,
+                        allowed_effects,
+                    )?;
+                    self.require_type(&initializer.value.ty, &field.ty, "record replacement")?;
+                    let expected = self.expected_ownership(&field.ty, OwnershipMode::Own)?;
+                    if initializer.value.ownership != expected {
+                        return Err(hir_error(format!(
+                            "replacement field `{}` has incompatible ownership",
+                            initializer.field
+                        )));
+                    }
+                    if expected == OwnershipMode::Own {
+                        if !allow_moves {
+                            return Err(hir_error(
+                                "contract cannot transfer ownership into a record replacement",
+                            ));
+                        }
+                        self.mark_value_sources_moved(&initializer.value, scope)?;
+                    }
+                }
+                (ty, ownership)
+            }
             ResolvedExprKind::Project { base, field } => {
                 if matches!(&base.kind, ResolvedExprKind::Place(_)) {
                     return Err(hir_error(
@@ -1991,7 +2089,8 @@ impl<'a> HirValidator<'a> {
             | ResolvedExprKind::Call { .. }
             | ResolvedExprKind::Unary { .. }
             | ResolvedExprKind::Binary { .. }
-            | ResolvedExprKind::ConstructRecord { .. } => {}
+            | ResolvedExprKind::ConstructRecord { .. }
+            | ResolvedExprKind::UpdateRecord { .. } => {}
         }
         Ok(())
     }
@@ -2444,6 +2543,18 @@ fn audit_resolved_expression(root: &ResolvedExpr) -> Result<(), Diagnostic> {
                     pending.push(&field.value);
                 }
             }
+            ResolvedExprKind::UpdateRecord {
+                base,
+                record,
+                fields,
+            } => {
+                reject_nul_identity("resolved record update", record.as_str())?;
+                for field in fields.iter().rev() {
+                    reject_nul_identity("resolved record replacement field", field.field.as_str())?;
+                    pending.push(&field.value);
+                }
+                pending.push(base);
+            }
             ResolvedExprKind::Project { base, field } => {
                 reject_nul_identity("resolved projected field", field.as_str())?;
                 pending.push(base);
@@ -2762,6 +2873,12 @@ fn visit_resolved_calls(expression: &ResolvedExpr, visit: &mut impl FnMut(&Decla
             visit_resolved_calls(else_branch, visit);
         }
         ResolvedExprKind::ConstructRecord { fields, .. } => {
+            for field in fields {
+                visit_resolved_calls(&field.value, visit);
+            }
+        }
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            visit_resolved_calls(base, visit);
             for field in fields {
                 visit_resolved_calls(&field.value, visit);
             }
@@ -3341,6 +3458,68 @@ impl Resolver<'_> {
                 let ownership = self.expression_ownership(&ty, OwnershipMode::Own, expr.span)?;
                 (
                     ResolvedExprKind::ConstructRecord {
+                        record,
+                        fields: resolved_fields,
+                    },
+                    ty,
+                    ownership,
+                )
+            }
+            ExprKind::UpdateRecord { base, fields } => {
+                let base = self.resolve_expr(function, base, bindings, &format!("{path}.base"))?;
+                let ResolvedType::Nominal {
+                    declaration: record,
+                    arguments,
+                } = &base.ty
+                else {
+                    return Err(self.error(
+                        "SPX-H001",
+                        "cannot resolve a record update on a non-record value",
+                        expr.span,
+                    ));
+                };
+                if !arguments.is_empty()
+                    || self
+                        .declarations
+                        .declaration(record)
+                        .is_none_or(|item| item.kind != DeclarationKind::Record)
+                {
+                    return Err(self.error(
+                        "SPX-H001",
+                        "cannot resolve a record update on a non-record value",
+                        expr.span,
+                    ));
+                }
+                let record = record.clone();
+                let mut resolved_fields = Vec::with_capacity(fields.len());
+                for (index, initializer) in fields.iter().enumerate() {
+                    let field = self
+                        .declarations
+                        .field_id(&record, &initializer.name)
+                        .cloned()
+                        .ok_or_else(|| {
+                            self.error(
+                                "SPX-H001",
+                                format!(
+                                    "unresolved replacement field `{}.{}`",
+                                    record, initializer.name
+                                ),
+                                initializer.name_span,
+                            )
+                        })?;
+                    let value = self.resolve_expr(
+                        function,
+                        &initializer.value,
+                        bindings,
+                        &format!("{path}.field.{index}.value"),
+                    )?;
+                    resolved_fields.push(ResolvedFieldInitializer { field, value });
+                }
+                let ty = base.ty.clone();
+                let ownership = self.expression_ownership(&ty, OwnershipMode::Own, expr.span)?;
+                (
+                    ResolvedExprKind::UpdateRecord {
+                        base: Box::new(base),
                         record,
                         fields: resolved_fields,
                     },

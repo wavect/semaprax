@@ -275,6 +275,11 @@ fn expression_boolean_splits(expression: &ResolvedExpr) -> usize {
                 total.saturating_add(expression_boolean_splits(&field.value))
             })
         }
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => fields
+            .iter()
+            .fold(expression_boolean_splits(base), |total, field| {
+                total.saturating_add(expression_boolean_splits(&field.value))
+            }),
         ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => 0,
     }
 }
@@ -480,6 +485,12 @@ fn collect_supplemental_slots(
             collect_supplemental_slots(program, function, else_branch, next_flag, slots)?;
         }
         ResolvedExprKind::ConstructRecord { fields, .. } => {
+            for field in fields {
+                collect_supplemental_slots(program, function, &field.value, next_flag, slots)?;
+            }
+        }
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            collect_supplemental_slots(program, function, base, next_flag, slots)?;
             for field in fields {
                 collect_supplemental_slots(program, function, &field.value, next_flag, slots)?;
             }
@@ -695,6 +706,12 @@ fn collect_expression_statuses(
             collect_expression_statuses(program, function, else_branch, statuses)?;
         }
         ResolvedExprKind::ConstructRecord { fields, .. } => {
+            for field in fields {
+                collect_expression_statuses(program, function, &field.value, statuses)?;
+            }
+        }
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            collect_expression_statuses(program, function, base, statuses)?;
             for field in fields {
                 collect_expression_statuses(program, function, &field.value, statuses)?;
             }
@@ -1637,6 +1654,99 @@ fn expression_skeleton(
                         field_destination,
                         "owned record field",
                     )?;
+                }
+            }
+            for path in &mut paths {
+                if !path.failed {
+                    path.owned_source = Some(destination.clone());
+                }
+            }
+            Ok(paths)
+        }
+        ResolvedExprKind::UpdateRecord {
+            base,
+            record,
+            fields,
+        } => {
+            let mut paths = sequence_expression(program, function, vec![empty_expr_path()], base)?;
+            let needs_cleanup = expression.ownership == OwnershipMode::Own
+                && type_needs_drop(program, function, &expression.ty)?;
+            if !needs_cleanup {
+                for field in fields {
+                    paths = sequence_expression(program, function, paths, &field.value)?;
+                }
+                return Ok(paths);
+            }
+
+            let staged_base = temporary_place(base);
+            for path in &mut paths {
+                if path.failed {
+                    continue;
+                }
+                let source = path.owned_source.take().ok_or_else(|| {
+                    replay_error(
+                        function,
+                        "owned record update base has no HIR cleanup source",
+                    )
+                })?;
+                if source != staged_base {
+                    path.observations.push(SkeletonObservation::Transfer {
+                        at: base.id.clone(),
+                        source,
+                        destination: staged_base.clone(),
+                    });
+                }
+                path.owned_source = Some(staged_base.clone());
+            }
+
+            let destination = temporary_place(expression);
+            let mut replaced = BTreeSet::new();
+            for field in fields {
+                if !replaced.insert(field.field.clone()) {
+                    return Err(replay_error(
+                        function,
+                        format!("record update repeats field `{}`", field.field),
+                    ));
+                }
+                paths = sequence_expression(program, function, paths, &field.value)?;
+                if field.value.ownership == OwnershipMode::Own
+                    && type_needs_drop(program, function, &field.value.ty)?
+                {
+                    let mut field_destination = destination.clone();
+                    field_destination.projections.push(field.field.clone());
+                    paths = transfer_completed_paths(
+                        function,
+                        paths,
+                        field.value.id.clone(),
+                        field_destination,
+                        "owned record replacement",
+                    )?;
+                }
+            }
+
+            let declarations = program.declarations.record_fields(record).ok_or_else(|| {
+                replay_error(
+                    function,
+                    format!("record update has unknown record `{record}`"),
+                )
+            })?;
+            for field in declarations {
+                if replaced.contains(&field.id) || !type_needs_drop(program, function, &field.ty)? {
+                    continue;
+                }
+                for path in &mut paths {
+                    if path.failed {
+                        continue;
+                    }
+                    let mut source = staged_base.clone();
+                    source.projections.push(field.id.clone());
+                    let mut field_destination = destination.clone();
+                    field_destination.projections.push(field.id.clone());
+                    path.observations.push(SkeletonObservation::Transfer {
+                        at: expression.id.clone(),
+                        source,
+                        destination: field_destination,
+                    });
                 }
             }
             for path in &mut paths {
@@ -2966,6 +3076,12 @@ fn collect_expression_facts(
                 collect_expression_facts(function, &field.value, facts)?;
             }
         }
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            collect_expression_facts(function, base, facts)?;
+            for field in fields {
+                collect_expression_facts(function, &field.value, facts)?;
+            }
+        }
         ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
     }
     Ok(())
@@ -3071,6 +3187,25 @@ fn forward(value: own Token) -> Token { identity(value) }
 @id("pair.identity")
 fn identity_pair(value: own Pair) -> Pair { value }
 
+@id("pair.update-one")
+fn update_one(pair: own Pair, second: own Token) -> Pair {
+    pair with { second: second }
+}
+
+@id("pair.update-both")
+fn update_both(pair: own Pair, first: own Token, second: own Token) -> Pair {
+    pair with { second: second, first: first }
+}
+
+@id("pair.update-partial-failure")
+fn update_partial_failure(
+    pair: own Pair,
+    first: own Token,
+    second: own Token
+) -> Pair {
+    pair with { second: second, first: identity(first) }
+}
+
 @id("flow.regions")
 fn region_flow(flag: bool, left: i64, right: i64) -> i64 {
     if flag { { left + right } } else { 0 }
@@ -3092,6 +3227,191 @@ fn main() -> i64 { 0 }
             .find(|function| function.id.as_str() == id)
             .cloned()
             .unwrap()
+    }
+
+    fn update_expression(function: &ResolvedFunction) -> &ResolvedExpr {
+        let ResolvedExprKind::Block { tail, .. } = &function.body.kind else {
+            panic!("update fixture body must be a block")
+        };
+        assert!(matches!(tail.kind, ResolvedExprKind::UpdateRecord { .. }));
+        tail
+    }
+
+    fn assert_independent_replay_rejects(program: &ResolvedProgram, function: &ResolvedFunction) {
+        let diagnostic = validate_structure(program, function).unwrap_err();
+        assert_eq!(diagnostic.code, "SPX-H006");
+        assert!(diagnostic.message.contains("failed independent replay"));
+    }
+
+    #[test]
+    fn update_replay_rejects_missing_base_and_untouched_transfers() {
+        let program = program();
+        let original = function(&program, "pair.update-one");
+        let update = update_expression(&original);
+        let ResolvedExprKind::UpdateRecord { base, .. } = &update.kind else {
+            unreachable!()
+        };
+        let base_stage = StorageId::Temporary(base.id.clone());
+        let destination = StorageId::Temporary(update.id.clone());
+
+        let mut missing_base = original.clone();
+        let (transitions, position) = missing_base
+            .cleanup_plan
+            .blocks
+            .iter_mut()
+            .find_map(|block| {
+                block
+                    .transitions
+                    .iter()
+                    .position(|transition| {
+                        matches!(
+                            transition,
+                            CleanupTransition::Transfer { destination, .. }
+                                if destination.storage == base_stage
+                                    && destination.projections.is_empty()
+                        )
+                    })
+                    .map(|position| (&mut block.transitions, position))
+            })
+            .expect("update must stage its complete base");
+        transitions.remove(position);
+        assert_independent_replay_rejects(&program, &missing_base);
+
+        let mut missing_untouched = original;
+        let (transitions, position) = missing_untouched
+            .cleanup_plan
+            .blocks
+            .iter_mut()
+            .find_map(|block| {
+                block
+                    .transitions
+                    .iter()
+                    .position(|transition| matches!(
+                        transition,
+                        CleanupTransition::Transfer { source, destination: target, .. }
+                            if source.storage == base_stage
+                                && source.projections.iter().map(|id| id.as_str()).collect::<Vec<_>>()
+                                    == ["pair.first"]
+                                && target.storage == destination
+                    ))
+                    .map(|position| (&mut block.transitions, position))
+            })
+            .expect("update must transfer its untouched first field");
+        transitions.remove(position);
+        assert_independent_replay_rejects(&program, &missing_untouched);
+    }
+
+    #[test]
+    fn update_replay_rejects_reordered_authored_replacements_and_displaced_finalizers() {
+        let program = program();
+        let original = function(&program, "pair.update-both");
+        let update = update_expression(&original);
+        let ResolvedExprKind::UpdateRecord { base, .. } = &update.kind else {
+            unreachable!()
+        };
+        let base_stage = StorageId::Temporary(base.id.clone());
+        let destination = StorageId::Temporary(update.id.clone());
+
+        let mut reordered = original.clone();
+        let block =
+            reordered
+                .cleanup_plan
+                .blocks
+                .iter_mut()
+                .find(|block| {
+                    block
+                    .transitions
+                    .iter()
+                    .filter(|transition| matches!(
+                        transition,
+                        CleanupTransition::Transfer { destination: target, .. }
+                            if target.storage == destination && !target.projections.is_empty()
+                    ))
+                    .count()
+                    == 2
+                })
+                .expect("both authored replacements must be in their evaluation block");
+        let replacement_positions = block
+            .transitions
+            .iter()
+            .enumerate()
+            .filter_map(|(index, transition)| {
+                matches!(
+                    transition,
+                    CleanupTransition::Transfer { destination: target, .. }
+                        if target.storage == destination && !target.projections.is_empty()
+                )
+                .then_some(index)
+            })
+            .collect::<Vec<_>>();
+        block
+            .transitions
+            .swap(replacement_positions[0], replacement_positions[1]);
+        assert_independent_replay_rejects(&program, &reordered);
+
+        let mut reordered_displaced = original;
+        let exit = reordered_displaced
+            .cleanup_plan
+            .exits
+            .iter_mut()
+            .find(|exit| {
+                matches!(exit.continuation, ExitContinuation::Continue(_))
+                    && exit.finalize_in_order.len() == 2
+                    && exit
+                        .finalize_in_order
+                        .iter()
+                        .all(|action| action.source.storage == base_stage)
+            })
+            .expect("successful update must finalize both displaced fields");
+        exit.finalize_in_order.swap(0, 1);
+        assert_independent_replay_rejects(&program, &reordered_displaced);
+    }
+
+    #[test]
+    fn update_replay_rejects_partial_failure_and_child_region_mutations() {
+        let program = program();
+
+        let mut partial = function(&program, "pair.update-partial-failure");
+        let update = update_expression(&partial).clone();
+        let ResolvedExprKind::UpdateRecord { fields, .. } = &update.kind else {
+            unreachable!()
+        };
+        let failing = fields[1].value.id.clone();
+        let exit = partial
+            .cleanup_plan
+            .exits
+            .iter_mut()
+            .find(|exit| {
+                matches!(
+                    &exit.continuation,
+                    ExitContinuation::ReturnFailure { source } if source.expression == failing
+                )
+            })
+            .expect("second replacement call must have a failure exit");
+        assert!(exit.finalize_in_order.len() >= 3);
+        exit.finalize_in_order.remove(0);
+        assert_independent_replay_rejects(&program, &partial);
+
+        let mut wrong_region = function(&program, "pair.update-one");
+        let update = update_expression(&wrong_region).clone();
+        let ResolvedExprKind::UpdateRecord { base, .. } = &update.kind else {
+            unreachable!()
+        };
+        let base_stage = StorageId::Temporary(base.id.clone());
+        let exit = wrong_region
+            .cleanup_plan
+            .exits
+            .iter_mut()
+            .find(|exit| {
+                matches!(exit.continuation, ExitContinuation::Continue(_))
+                    && exit
+                        .finalize_in_order
+                        .iter()
+                        .any(|action| action.source.storage == base_stage)
+            })
+            .expect("update must leave its child base epoch");
+        exit.leaves_regions.clear();
+        assert_independent_replay_rejects(&program, &wrong_region);
     }
 
     #[test]

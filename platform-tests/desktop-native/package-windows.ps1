@@ -180,7 +180,7 @@ function Build-Once([Parameter(Mandatory = $true)][string]$Label, [Parameter(Man
     if ($LASTEXITCODE -ne 0) { throw "$Label desktop fixture emission failed" }
     & $clangPath -std=c11 -pedantic-errors -Wall -Wextra -Werror -O2 -c $sourceFile -o $providerObject
     if ($LASTEXITCODE -ne 0) { throw "$Label desktop provider compilation failed" }
-    $providerLinkArguments = @('/dll', '/Brepro', '/nodefaultlib', '/noimplib', '/machine:x64', '/WX', "/out:$providerFile", $providerObject) + $providerLibraries
+    $providerLinkArguments = @('/dll', '/Brepro', '/nodefaultlib', '/noimplib', '/subsystem:console', '/machine:x64', '/WX', "/out:$providerFile", $providerObject) + $providerLibraries
     & $lldLinkPath @providerLinkArguments
     if ($LASTEXITCODE -ne 0) { throw "$Label desktop provider link failed" }
     cargo build --quiet --locked --offline --release -p semaprax-native-host --features unstable-desktop-app-harness --bin private-desktop-v3-app

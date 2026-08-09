@@ -1328,6 +1328,123 @@ fn check_expr(
                 CheckedValue::returned(ty.clone(), types.contains_resource(&ty))
             })
         }
+        ExprKind::UpdateRecord { base, fields } => {
+            let base_value = check_expr(
+                program,
+                current,
+                base,
+                variables,
+                functions,
+                types,
+                result_type,
+                allow_moves,
+                diagnostics,
+            )?;
+            let declared_fields = types.record_fields(&base_value.ty);
+            if declared_fields.is_none() {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T215",
+                    format!(
+                        "record update requires a record base, received {}",
+                        base_value.ty
+                    ),
+                    base.span,
+                ));
+                return None;
+            }
+
+            if types.contains_resource(&base_value.ty) {
+                match base_value.mode {
+                    ParamMode::Own if allow_moves => {
+                        mark_value_sources_moved(base, variables, types);
+                    }
+                    ParamMode::Own => diagnostics.push(error(
+                        program,
+                        "SPX-O105",
+                        "contract expression cannot transfer an owned record update base",
+                        base.span,
+                    )),
+                    ParamMode::Borrow | ParamMode::Shared => diagnostics.push(error(
+                        program,
+                        "SPX-O108",
+                        "cannot update an owned record through a borrowed or shared base",
+                        base.span,
+                    )),
+                    ParamMode::Value => {}
+                }
+            }
+
+            let mut supplied = HashSet::new();
+            for field in fields {
+                let declared = declared_fields.and_then(|declared| {
+                    declared
+                        .iter()
+                        .find(|candidate| candidate.name == field.name)
+                });
+                if !supplied.insert(field.name.as_str()) || declared.is_none() {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T212",
+                        format!(
+                            "unknown or duplicate field `{}` in `{}` update",
+                            field.name, base_value.ty
+                        ),
+                        field.span,
+                    ));
+                }
+                let actual = check_expr(
+                    program,
+                    current,
+                    &field.value,
+                    variables,
+                    functions,
+                    types,
+                    result_type,
+                    allow_moves,
+                    diagnostics,
+                );
+                if let (Some(declared), Some(actual)) = (declared, actual) {
+                    if actual.ty != declared.ty {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T215",
+                            format!(
+                                "field `{}.{}` expects {}, received {}",
+                                base_value.ty, field.name, declared.ty, actual.ty
+                            ),
+                            field.value.span,
+                        ));
+                    }
+                    if types.contains_resource(&declared.ty) && actual.mode == ParamMode::Own {
+                        if allow_moves {
+                            mark_value_sources_moved(&field.value, variables, types);
+                        } else {
+                            diagnostics.push(error(
+                                program,
+                                "SPX-O105",
+                                "contract expression cannot transfer an owned record replacement",
+                                field.value.span,
+                            ));
+                        }
+                    } else if types.contains_resource(&declared.ty)
+                        && matches!(actual.mode, ParamMode::Borrow | ParamMode::Shared)
+                    {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-O108",
+                            "cannot move an owned replacement through a borrowed or shared value",
+                            field.value.span,
+                        ));
+                    }
+                }
+            }
+
+            Some(CheckedValue::returned(
+                base_value.ty.clone(),
+                types.contains_resource(&base_value.ty),
+            ))
+        }
         ExprKind::Project { base, field, .. } => {
             if let Some(place) = source_place(expr, variables, types) {
                 check_source_place_availability(
@@ -1695,6 +1812,7 @@ fn mark_value_sources_moved(
                 }
             }
         }
+        ExprKind::UpdateRecord { .. } | ExprKind::ConstructRecord { .. } => {}
         _ => {}
     }
 }

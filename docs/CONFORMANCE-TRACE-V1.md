@@ -98,7 +98,7 @@ A selected cleanup status source is encoded as:
 
 ### Storage and places
 
-All ownership events reuse Graph-v6 cleanup storage and place identities:
+All ownership events reuse the current Graph cleanup storage and place identities:
 
 ```json
 {"kind":"value","value":"resolved-value-id"}

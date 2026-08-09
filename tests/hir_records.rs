@@ -115,6 +115,177 @@ fn records_resolve_to_stable_type_field_and_place_identities() {
 }
 
 #[test]
+fn updates_resolve_base_record_and_authored_replacements_to_stable_identities() {
+    let source = r#"
+module test.hir_record_update;
+@id("geometry.point")
+record Point {
+    @id("geometry.point.x") x: i64,
+    @id("geometry.point.y") y: i64,
+}
+@id("app.main")
+fn main() -> i64 {
+    let point = Point { x: 1, y: 2 };
+    let updated = point with { y: 40, x: 2 };
+    updated.x
+}
+"#;
+    let program = resolved(source);
+    let main = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "app.main")
+        .unwrap();
+    let ResolvedExprKind::Block { statements, .. } = &main.body.kind else {
+        panic!("main must resolve to a block");
+    };
+    let hir::ResolvedStatement::Let { value, .. } = &statements[1];
+    let ResolvedExprKind::UpdateRecord {
+        base,
+        record,
+        fields,
+    } = &value.kind
+    else {
+        panic!("updated must resolve to a record update");
+    };
+    assert_eq!(record.as_str(), "geometry.point");
+    assert_eq!(base.ty, value.ty);
+    assert!(base.id.as_str().ends_with("body.s1.value.base"));
+    assert_eq!(fields[0].field.as_str(), "geometry.point.y");
+    assert_eq!(fields[1].field.as_str(), "geometry.point.x");
+    assert!(fields[0]
+        .value
+        .id
+        .as_str()
+        .ends_with("body.s1.value.field.0.value"));
+    assert!(fields[1]
+        .value
+        .id
+        .as_str()
+        .ends_with("body.s1.value.field.1.value"));
+
+    let renamed = resolved(
+        &source
+            .replace(" y: i64", " vertical: i64")
+            .replace(" y: 2", " vertical: 2")
+            .replace(" y: 40", " vertical: 40"),
+    );
+    let renamed_main = renamed
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "app.main")
+        .unwrap();
+    let ResolvedExprKind::Block { statements, .. } = &renamed_main.body.kind else {
+        panic!("renamed main must resolve to a block");
+    };
+    let hir::ResolvedStatement::Let { value, .. } = &statements[1];
+    let ResolvedExprKind::UpdateRecord { record, fields, .. } = &value.kind else {
+        panic!("renamed update must remain a record update");
+    };
+    assert_eq!(record.as_str(), "geometry.point");
+    assert_eq!(fields[0].field.as_str(), "geometry.point.y");
+    assert_eq!(fields[1].field.as_str(), "geometry.point.x");
+}
+
+#[test]
+fn hostile_update_hir_cannot_change_record_fields_order_or_types() {
+    let source = r#"
+module test.hir_record_update_hostile;
+@id("geometry.point")
+record Point {
+    @id("geometry.point.x") x: i64,
+    @id("geometry.point.y") y: i64,
+}
+@id("geometry.other")
+record Other { @id("geometry.other.x") x: i64, }
+@id("app.main")
+fn main() -> i64 {
+    let point = Point { x: 1, y: 2 };
+    let updated = point with { y: 40, x: 2 };
+    updated.x
+}
+"#;
+    fn update(program: &mut hir::ResolvedProgram) -> &mut hir::ResolvedExpr {
+        let main = program
+            .functions
+            .iter_mut()
+            .find(|function| function.id.as_str() == "app.main")
+            .unwrap();
+        let ResolvedExprKind::Block { statements, .. } = &mut main.body.kind else {
+            panic!("main must resolve to a block");
+        };
+        let hir::ResolvedStatement::Let { value, .. } = &mut statements[1];
+        let ResolvedExprKind::UpdateRecord { .. } = &value.kind else {
+            panic!("updated must resolve to a record update");
+        };
+        value
+    }
+
+    let program = resolved(source);
+
+    let mut wrong_record = program.clone();
+    let ResolvedExprKind::UpdateRecord { record, .. } = &mut update(&mut wrong_record).kind else {
+        unreachable!()
+    };
+    *record = DeclarationId::new("geometry.other");
+    assert_eq!(hir::validate(&wrong_record).unwrap_err().code, "SPX-H006");
+
+    let mut wrong_base_type = program.clone();
+    let ResolvedExprKind::UpdateRecord { base, .. } = &mut update(&mut wrong_base_type).kind else {
+        unreachable!()
+    };
+    base.ty = ResolvedType::I64;
+    assert_eq!(
+        hir::validate(&wrong_base_type).unwrap_err().code,
+        "SPX-H006"
+    );
+
+    let mut wrong_base_ownership = program.clone();
+    let ResolvedExprKind::UpdateRecord { base, .. } = &mut update(&mut wrong_base_ownership).kind
+    else {
+        unreachable!()
+    };
+    base.ownership = OwnershipMode::Borrow;
+    assert_eq!(
+        hir::validate(&wrong_base_ownership).unwrap_err().code,
+        "SPX-H006"
+    );
+
+    let mut foreign_field = program.clone();
+    let ResolvedExprKind::UpdateRecord { fields, .. } = &mut update(&mut foreign_field).kind else {
+        unreachable!()
+    };
+    fields[0].field = DeclarationId::new("geometry.other.x");
+    assert_eq!(hir::validate(&foreign_field).unwrap_err().code, "SPX-H006");
+
+    let mut duplicate_field = program.clone();
+    let ResolvedExprKind::UpdateRecord { fields, .. } = &mut update(&mut duplicate_field).kind
+    else {
+        unreachable!()
+    };
+    fields[1].field = fields[0].field.clone();
+    assert_eq!(
+        hir::validate(&duplicate_field).unwrap_err().code,
+        "SPX-H006"
+    );
+
+    let mut reordered = program.clone();
+    let ResolvedExprKind::UpdateRecord { fields, .. } = &mut update(&mut reordered).kind else {
+        unreachable!()
+    };
+    fields.swap(0, 1);
+    assert_eq!(hir::validate(&reordered).unwrap_err().code, "SPX-H006");
+
+    let mut wrong_type = program;
+    let ResolvedExprKind::UpdateRecord { fields, .. } = &mut update(&mut wrong_type).kind else {
+        unreachable!()
+    };
+    fields[0].value.ty = ResolvedType::Bool;
+    fields[0].value.kind = ResolvedExprKind::Bool(true);
+    assert_eq!(hir::validate(&wrong_type).unwrap_err().code, "SPX-H006");
+}
+
+#[test]
 fn rvalue_projection_remains_explicit_and_uses_a_stable_field_id() {
     let source = r#"
 module test.hir_rvalue_projection;

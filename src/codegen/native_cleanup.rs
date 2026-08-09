@@ -727,6 +727,16 @@ fn validate_expression(
                 ),
             ));
         }
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            validate_expression(program, function, base)?;
+            for replacement in fields {
+                validate_expression(program, function, &replacement.value)?;
+            }
+            return Err(unsupported(
+                function,
+                format!("uses updated record expression `{}`", expression.id),
+            ));
+        }
     }
     Ok(())
 }

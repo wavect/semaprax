@@ -17,8 +17,27 @@ record Point {
 fn main() -> i64 { Point { x: 20, y: 22 }.x }
 "#;
 
+const UPDATE_RECORD_GRAPH: &str = r#"
+module examples.record_update_graph;
+
+@id("geometry.point")
+record Point {
+    @id("geometry.point.x")
+    x: i64,
+    @id("geometry.point.y")
+    y: i64,
+}
+
+@id("app.main")
+fn main() -> i64 {
+    let point = Point { x: 20, y: 0 };
+    let updated = point with { y: 22 };
+    updated.y
+}
+"#;
+
 #[test]
-fn record_graph_matches_exact_v6_snapshot() {
+fn record_graph_matches_exact_v7_snapshot() {
     let program = parse(RECORD_GRAPH, Path::new("record-graph.spx")).unwrap();
     let json = graph::to_json(&program).unwrap();
     assert_eq!(
@@ -28,10 +47,11 @@ fn record_graph_matches_exact_v6_snapshot() {
 }
 
 #[test]
-fn record_graph_uses_persistent_field_ids_for_declarations_construction_and_projection() {
-    let program = parse(RECORD_GRAPH, Path::new("record-graph.spx")).unwrap();
+fn record_graph_uses_persistent_field_ids_for_construction_update_and_projection() {
+    let program = parse(UPDATE_RECORD_GRAPH, Path::new("record-update-graph.spx")).unwrap();
     let json = graph::to_json(&program).unwrap();
-    assert!(json.contains("\"schema\":\"semaprax.graph.v6\""));
+    assert!(json.contains("\"schema\":\"semaprax.graph.v7\""));
+    assert!(!json.contains("semaprax.graph.v6"));
     assert!(json.contains("\"id\":\"geometry.point\",\"kind\":\"record\",\"name\":\"Point\""));
     assert!(json.contains(
         "\"id\":\"geometry.point.x\",\"kind\":\"field\",\"name\":\"x\",\"identity_origin\":\"explicit\",\"persistent\":true,\"owner\":\"geometry.point\",\"index\":0,\"type_id\":\"i64\""
@@ -39,8 +59,11 @@ fn record_graph_uses_persistent_field_ids_for_declarations_construction_and_proj
     assert!(json.contains(
         "\"kind\":\"construct_record\",\"record\":\"geometry.point\",\"fields\":[{\"field\":\"geometry.point.x\""
     ));
-    assert!(json.contains("\"kind\":\"project\""));
-    assert!(json.contains("\"field\":\"geometry.point.x\""));
+    assert!(json.contains("\"kind\":\"update_record\""));
+    assert!(
+        json.contains("\"record\":\"geometry.point\",\"fields\":[{\"field\":\"geometry.point.y\"")
+    );
+    assert!(json.contains("\"field\":\"geometry.point.y\""));
 }
 
 #[test]
@@ -54,7 +77,10 @@ record Line { @id("geometry.line.start") start: Point, }
 @id("unrelated.type")
 record Unrelated { @id("unrelated.value") value: bool, }
 @id("geometry.inspect")
-fn inspect(line: Line) -> i64 { line.start.x }
+fn inspect(line: Line, point: Point) -> i64 {
+    let updated = point with { x: line.start.x };
+    updated.x
+}
 @id("app.main")
 fn main() -> i64 { 0 }
 "#;
@@ -75,6 +101,9 @@ fn main() -> i64 { 0 }
         );
     }
     assert!(context.contains("\"type_id\":\"i64\""));
+    assert!(context.contains("\"kind\":\"update_record\""));
+    assert!(context.contains("\"record\":\"geometry.point\""));
+    assert!(context.contains("\"field\":\"geometry.point.x\""));
     assert!(!context.contains("unrelated.type"));
     assert!(!context.contains("unrelated.value"));
 }

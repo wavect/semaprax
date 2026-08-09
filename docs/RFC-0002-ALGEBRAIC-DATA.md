@@ -1,8 +1,18 @@
 # RFC 0002: Algebraic data, matching, and aggregate ownership
 
-Status: proposed for staged implementation.
+Status: partially implemented.
 
 This RFC defines the next useful-core tranche: nominal records, algebraic variants, `Option`, `Result`, exhaustive matching, and ownership of aggregate places. It deliberately introduces a resolved semantic layer before new syntax reaches either backend.
+
+The implemented record slice includes canonical declarations, construction,
+projection, immutable update, persistent record/field identities, resolved HIR,
+prefix-aware ownership, checked Native64/Wasm32 layouts, and independently
+rebuilt and replayed cleanup plans. Its bounded public backend slice executes
+nested `i64`/`bool` records through native C11/Clang at O0/O2 and browser Wasm
+under Node; the empty product has frozen size and alignment one on both layout
+profiles. Variants, generics, matching, `Option`, `Result`, `?`, a stable public
+aggregate ABI, public resource-bearing record execution, and general aggregate
+execution remain outside that evidence.
 
 ## Canonical source
 
@@ -107,7 +117,11 @@ Required rules:
 - `with` evaluates and consumes a non-copy base first, evaluates replacements left-to-right, and transfers untouched fields.
 - `?` evaluates once and routes success, residual return, postconditions, and cleanup through a unified epilogue.
 
-This model must support `Option<Resource>` and records containing resources in the first implementation; scalar-only aggregates would create a second ownership system.
+The ownership model must support `Option<Resource>` and records containing
+resources rather than create a second scalar-only ownership system. The current
+public scalar-record lowering and private resource-record proof harness both
+consume the same validated cleanup plan; the private harness does not open a
+public resource ABI or admission gate.
 
 ## Exhaustiveness
 
@@ -182,8 +196,8 @@ Existing diagnostic codes remain reserved; implementation must resolve any colli
 
 ## Staged implementation
 
-1. Add resolved nominal types, HIR, type facts, place paths, and deterministic layout keys without changing source behavior.
-2. Add records through parser, formatter, resolver, verifier, graph, transactions, C, and Wasm.
+1. Add resolved nominal types, HIR, type facts, place paths, and deterministic layout keys without changing source behavior. **Implemented.**
+2. Add records through parser, formatter, resolver, verifier, Graph, transactions, C, and Wasm. **Frontend, Graph v7, deterministic target layouts, target-neutral cleanup, and bounded public nested-scalar C11/Wasm execution are implemented; transaction breadth, resource-bearing public execution, a stable aggregate ABI, and general backend completion remain evidence-gated.**
 3. Add generic variants and reject recursive unsized layouts.
 4. Add exhaustive ownership-aware matching.
 5. Add ordinary prelude `Option` and `Result`.

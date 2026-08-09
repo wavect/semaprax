@@ -474,6 +474,42 @@ impl Parser {
         };
 
         loop {
+            if self.at_keyword("with") {
+                let start = expression.span;
+                self.bump();
+                self.expect(&TokenKind::LBrace, "`{` after `with`")?;
+                let mut fields = Vec::new();
+                while !self.at(&TokenKind::RBrace) {
+                    let (name, name_span) = self.ident("record replacement field name")?;
+                    self.expect(&TokenKind::Colon, "`:` after record replacement field")?;
+                    let value = self.expression(0)?;
+                    let field_span = name_span.merge(value.span);
+                    fields.push(FieldInitializer {
+                        name,
+                        name_span,
+                        value,
+                        span: field_span,
+                    });
+                    if !self.take(&TokenKind::Comma) {
+                        break;
+                    }
+                    if self.at(&TokenKind::RBrace) {
+                        break;
+                    }
+                }
+                let end = self
+                    .expect(&TokenKind::RBrace, "`}` after record replacements")?
+                    .span;
+                expression = Expr {
+                    kind: ExprKind::UpdateRecord {
+                        base: Box::new(expression),
+                        fields,
+                    },
+                    span: start.merge(end),
+                };
+                continue;
+            }
+
             if allow_record_literals && self.at(&TokenKind::LBrace) {
                 let Some(type_name) = expression_path(&expression) else {
                     break;

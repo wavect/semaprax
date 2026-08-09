@@ -1,4 +1,6 @@
 mod native_adapter_abi;
+#[cfg(test)]
+pub(crate) mod native_aggregate;
 mod native_callable_abi;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
 mod native_callable_abi_v3;
@@ -37,7 +39,7 @@ mod native_trace;
 mod native_trace_runtime;
 mod native_value;
 
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::fmt::Write;
 use std::path::Path;
 use std::process::Command;
@@ -50,11 +52,12 @@ pub use native_callable_bundle::{
     NativeCallableBundlePreflight,
 };
 
+use crate::aggregate_layout::{AggregateLayout, AggregateTarget};
 use crate::ast::{BinaryOp, Program, UnaryOp};
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
-    self, DeclarationId, DeclarationKind, ExpressionId, ResolvedExpr, ResolvedExprKind,
-    ResolvedFunction, ResolvedProgram, ResolvedStatement, ResolvedType,
+    self, DeclarationId, DeclarationKind, ExpressionId, PlaceProjection, ResolvedExpr,
+    ResolvedExprKind, ResolvedFunction, ResolvedProgram, ResolvedStatement, ResolvedType,
     ResolvedTypeDeclarationKind, ValueId,
 };
 
@@ -860,16 +863,6 @@ fn emit_hir_c_with_labels(
     contract_labels: &HashMap<ExpressionId, String>,
 ) -> Result<String, Diagnostic> {
     hir::validate(program)?;
-    if program.types.iter().any(|declaration| {
-        matches!(
-            &declaration.kind,
-            ResolvedTypeDeclarationKind::Record { .. }
-        )
-    }) {
-        return Err(backend_error(
-            "native record lowering is gated on aggregate cleanup and layout support",
-        ));
-    }
     let resource_abi = native_resource::build_resource_abi(program)?;
     let functions = function_index(program)?;
     if !resource_abi.resources.is_empty() {
@@ -879,6 +872,7 @@ fn emit_hir_c_with_labels(
     }
     let mut output = String::new();
     emit_native_prelude(&mut output, &resource_abi);
+    emit_aggregate_declarations(&mut output, program, &resource_abi)?;
     emit_function_prototypes(&mut output, program, &functions, &resource_abi)?;
 
     for function in &program.functions {
@@ -935,6 +929,177 @@ fn emit_native_prelude(output: &mut String, resource_abi: &native_resource::Nati
     output.push_str(NATIVE_SCALAR_RUNTIME_C);
 }
 
+fn emit_aggregate_declarations(
+    output: &mut String,
+    program: &ResolvedProgram,
+    resource_abi: &native_resource::NativeResourceAbi,
+) -> Result<(), Diagnostic> {
+    let records = program
+        .types
+        .iter()
+        .filter(|item| matches!(item.kind, ResolvedTypeDeclarationKind::Record { .. }))
+        .map(|item| item.id.clone())
+        .collect::<Vec<_>>();
+    if records.is_empty() {
+        return Ok(());
+    }
+
+    output.push_str("#include <stddef.h>\n\n");
+    for record in &records {
+        writeln!(output, "struct {};", c_record_symbol(record))
+            .expect("writing to a string cannot fail");
+    }
+    output.push('\n');
+
+    let mut visiting = BTreeSet::new();
+    let mut emitted = BTreeSet::new();
+    for record in &records {
+        emit_record_declaration(
+            output,
+            program,
+            resource_abi,
+            record,
+            &mut visiting,
+            &mut emitted,
+        )?;
+    }
+    Ok(())
+}
+
+fn emit_record_declaration(
+    output: &mut String,
+    program: &ResolvedProgram,
+    resource_abi: &native_resource::NativeResourceAbi,
+    record: &DeclarationId,
+    visiting: &mut BTreeSet<DeclarationId>,
+    emitted: &mut BTreeSet<DeclarationId>,
+) -> Result<(), Diagnostic> {
+    if emitted.contains(record) {
+        return Ok(());
+    }
+    if !visiting.insert(record.clone()) {
+        return Err(backend_error(format!(
+            "native aggregate declaration `{record}` is recursively embedded"
+        )));
+    }
+    let declaration = program
+        .types
+        .iter()
+        .find(|item| item.id == *record)
+        .ok_or_else(|| backend_error(format!("unknown native record `{record}`")))?;
+    let ResolvedTypeDeclarationKind::Record { fields } = &declaration.kind else {
+        return Err(backend_error(format!(
+            "native aggregate `{record}` is not a record"
+        )));
+    };
+    for field in fields {
+        if let Some(nested) = record_declaration_id(program, &field.ty)? {
+            emit_record_declaration(output, program, resource_abi, nested, visiting, emitted)?;
+        }
+    }
+
+    let layout = AggregateLayout::for_record(program, AggregateTarget::Native64, record)?;
+    layout.validate(program)?;
+    let symbol = c_record_symbol(record);
+    writeln!(output, "struct {symbol} {{").expect("writing to a string cannot fail");
+    if layout.fields.is_empty() {
+        output.push_str("    uint8_t spx_empty_record_padding;\n");
+    } else {
+        for field in &layout.fields {
+            writeln!(
+                output,
+                "    {} {};",
+                c_value_type(program, resource_abi, &field.ty)?,
+                c_field_symbol(&field.field)
+            )
+            .expect("writing to a string cannot fail");
+        }
+    }
+    output.push_str("};\n");
+    writeln!(
+        output,
+        "_Static_assert(sizeof(struct {symbol}) == UINT32_C({}), \"SEMAPRAX native aggregate size\");",
+        layout.size
+    )
+    .expect("writing to a string cannot fail");
+    writeln!(
+        output,
+        "_Static_assert(_Alignof(struct {symbol}) == UINT32_C({}), \"SEMAPRAX native aggregate alignment\");",
+        layout.align
+    )
+    .expect("writing to a string cannot fail");
+    for field in &layout.fields {
+        writeln!(
+            output,
+            "_Static_assert(offsetof(struct {symbol}, {}) == UINT32_C({}), \"SEMAPRAX native aggregate field offset\");",
+            c_field_symbol(&field.field),
+            field.offset
+        )
+        .expect("writing to a string cannot fail");
+    }
+    output.push('\n');
+    visiting.remove(record);
+    emitted.insert(record.clone());
+    Ok(())
+}
+
+fn c_value_type(
+    program: &ResolvedProgram,
+    resource_abi: &native_resource::NativeResourceAbi,
+    ty: &ResolvedType,
+) -> Result<String, Diagnostic> {
+    if let Some(record) = record_declaration_id(program, ty)? {
+        Ok(format!("struct {}", c_record_symbol(record)))
+    } else {
+        resource_abi.c_type(program, ty).map(str::to_owned)
+    }
+}
+
+fn is_record_type(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic> {
+    Ok(record_declaration_id(program, ty)?.is_some())
+}
+
+fn record_declaration_id<'a>(
+    program: &ResolvedProgram,
+    ty: &'a ResolvedType,
+) -> Result<Option<&'a DeclarationId>, Diagnostic> {
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = ty
+    else {
+        return Ok(None);
+    };
+    if !arguments.is_empty() {
+        return Err(backend_error(format!(
+            "native aggregate representation is unavailable for generic type `{}`",
+            ty.identity_key()
+        )));
+    }
+    let item = program
+        .types
+        .iter()
+        .find(|item| item.id == *declaration)
+        .ok_or_else(|| backend_error(format!("unknown native type `{declaration}`")))?;
+    Ok(matches!(item.kind, ResolvedTypeDeclarationKind::Record { .. }).then_some(declaration))
+}
+
+fn c_record_symbol(id: &DeclarationId) -> String {
+    stable_c_symbol("spx_record_", id)
+}
+
+fn c_field_symbol(id: &DeclarationId) -> String {
+    stable_c_symbol("spx_field_", id)
+}
+
+fn stable_c_symbol(prefix: &str, id: &DeclarationId) -> String {
+    let mut symbol = prefix.to_owned();
+    for byte in id.as_str().bytes() {
+        write!(symbol, "{byte:02x}").expect("writing to a string cannot fail");
+    }
+    symbol
+}
+
 fn emit_function_prototypes(
     output: &mut String,
     program: &ResolvedProgram,
@@ -952,13 +1117,17 @@ fn emit_function_prototypes(
         )
         .expect("writing to a string cannot fail");
         for param in &function.params {
-            write!(output, ", {}", resource_abi.c_type(program, &param.ty)?)
-                .expect("writing to a string cannot fail");
+            let ty = c_value_type(program, resource_abi, &param.ty)?;
+            if is_record_type(program, &param.ty)? {
+                write!(output, ", const {ty} *").expect("writing to a string cannot fail");
+            } else {
+                write!(output, ", {ty}").expect("writing to a string cannot fail");
+            }
         }
         writeln!(
             output,
             ", {} *spx_result_out);",
-            resource_abi.c_type(program, &function.return_type)?
+            c_value_type(program, resource_abi, &function.return_type)?
         )
         .expect("writing to a string cannot fail");
     }
@@ -1269,40 +1438,42 @@ fn emit_function(
     )
     .expect("writing to a string cannot fail");
     for (index, param) in function.params.iter().enumerate() {
-        write!(
-            output,
-            ", {} spx_param_{index}",
-            resource_abi.c_type(program, &param.ty)?
-        )
-        .expect("writing to a string cannot fail");
+        let ty = c_value_type(program, resource_abi, &param.ty)?;
+        if is_record_type(program, &param.ty)? {
+            write!(output, ", const {ty} *spx_param_{index}")
+                .expect("writing to a string cannot fail");
+        } else {
+            write!(output, ", {ty} spx_param_{index}").expect("writing to a string cannot fail");
+        }
     }
     writeln!(
         output,
         ", {} *spx_result_out) {{",
-        resource_abi.c_type(program, &function.return_type)?
+        c_value_type(program, resource_abi, &function.return_type)?
     )
     .expect("writing to a string cannot fail");
 
-    let variables = function
-        .params
-        .iter()
-        .enumerate()
-        .map(|(index, param)| {
-            (
-                param.id.clone(),
-                CBinding {
-                    name: format!("spx_param_{index}"),
-                    ty: param.ty.clone(),
-                },
-            )
-        })
-        .collect();
+    let mut variables = HashMap::new();
+    for (index, param) in function.params.iter().enumerate() {
+        let name = if is_record_type(program, &param.ty)? {
+            format!("(*spx_param_{index})")
+        } else {
+            format!("spx_param_{index}")
+        };
+        variables.insert(
+            param.id.clone(),
+            CBinding {
+                name,
+                ty: param.ty.clone(),
+            },
+        );
+    }
     let mut emitter = CEmitter::new(output, program, resource_abi, variables, functions);
     emitter.line("spx_status_token spx_status = SPX_STATUS_SUCCESS;");
     emitter.line("(void)spx_ctx;");
     emitter.line(&format!(
         "{} spx_result = {{0}};",
-        resource_abi.c_type(program, &function.return_type)?
+        c_value_type(program, resource_abi, &function.return_type)?
     ));
     for index in 0..function.params.len() {
         emitter.line(&format!("(void)spx_param_{index};"));
@@ -1522,7 +1693,7 @@ impl<'a> CEmitter<'a> {
         self.next_local += 1;
         self.line(&format!(
             "{} {name};",
-            self.resource_abi.c_type(self.program, ty)?
+            c_value_type(self.program, self.resource_abi, ty)?
         ));
         Ok(name)
     }
@@ -1561,19 +1732,9 @@ impl<'a> CEmitter<'a> {
                 }
             }
             ResolvedExprKind::Place(place) => {
-                if !place.projections.is_empty() {
-                    return Err(backend_error(
-                        "native aggregate place projections are not implemented",
-                    ));
-                }
-                let binding = self.variables.get(&place.root).ok_or_else(|| {
-                    backend_error(format!("resolved value `{}` is not in scope", place.root))
-                })?;
-                self.require_type(&expr.ty, &binding.ty, "place expression")?;
-                CValue {
-                    code: binding.name.clone(),
-                    ty: binding.ty.clone(),
-                }
+                let value = self.emit_place(place)?;
+                self.require_type(&expr.ty, &value.ty, "place expression")?;
+                value
             }
             ResolvedExprKind::Call { callee, args } => {
                 let target = self.functions.get(callee).ok_or_else(|| {
@@ -1591,7 +1752,11 @@ impl<'a> CEmitter<'a> {
                 for (index, (arg, expected)) in args.iter().zip(&target.params).enumerate() {
                     let argument = self.emit_expr(arg)?;
                     self.require_type(&argument.ty, expected, &format!("call argument {index}"))?;
-                    arguments.push(argument.code);
+                    arguments.push(if is_record_type(self.program, expected)? {
+                        format!("&({})", argument.code)
+                    } else {
+                        argument.code
+                    });
                 }
                 self.require_type(&expr.ty, &target.return_type, "call result")?;
                 let temporary = self.temporary(&target.return_type)?;
@@ -1645,7 +1810,7 @@ impl<'a> CEmitter<'a> {
                             self.next_local += 1;
                             self.line(&format!(
                                 "{} {local} = {};",
-                                self.resource_abi.c_type(self.program, &binding.ty)?,
+                                c_value_type(self.program, self.resource_abi, &binding.ty)?,
                                 value.code
                             ));
                             if self
@@ -1698,14 +1863,131 @@ impl<'a> CEmitter<'a> {
                     ty: expr.ty.clone(),
                 }
             }
-            ResolvedExprKind::ConstructRecord { .. } | ResolvedExprKind::Project { .. } => {
-                return Err(backend_error(
-                    "native record expressions require aggregate lowering",
-                ));
+            ResolvedExprKind::ConstructRecord { record, fields } => {
+                let layout = self.record_layout(&expr.ty)?;
+                if layout.record != *record {
+                    return Err(backend_error(format!(
+                        "native record constructor `{record}` has result type `{}`",
+                        expr.ty.identity_key()
+                    )));
+                }
+                let temporary = self.temporary(&expr.ty)?;
+                if layout.fields.is_empty() {
+                    self.line(&format!(
+                        "{temporary}.spx_empty_record_padding = UINT8_C(0);"
+                    ));
+                }
+                for initializer in fields {
+                    let field = layout.field(&initializer.field).cloned().ok_or_else(|| {
+                        backend_error(format!(
+                            "native record `{record}` has no field `{}`",
+                            initializer.field
+                        ))
+                    })?;
+                    let value = self.emit_expr(&initializer.value)?;
+                    self.require_type(&value.ty, &field.ty, "record field initializer")?;
+                    self.line(&format!(
+                        "{temporary}.{} = {};",
+                        c_field_symbol(&field.field),
+                        value.code
+                    ));
+                }
+                CValue {
+                    code: temporary,
+                    ty: expr.ty.clone(),
+                }
+            }
+            ResolvedExprKind::Project { base, field } => {
+                let base = self.emit_expr(base)?;
+                let layout = self.record_layout(&base.ty)?;
+                let field = layout.field(field).cloned().ok_or_else(|| {
+                    backend_error(format!(
+                        "native record `{}` has no projected field `{field}`",
+                        layout.record
+                    ))
+                })?;
+                self.require_type(&expr.ty, &field.ty, "record projection")?;
+                CValue {
+                    code: format!("({}).{}", base.code, c_field_symbol(&field.field)),
+                    ty: field.ty,
+                }
+            }
+            ResolvedExprKind::UpdateRecord {
+                base,
+                record,
+                fields,
+            } => {
+                let base = self.emit_expr(base)?;
+                self.require_type(&base.ty, &expr.ty, "record update base")?;
+                let layout = self.record_layout(&expr.ty)?;
+                if layout.record != *record {
+                    return Err(backend_error(format!(
+                        "native record update `{record}` has result type `{}`",
+                        expr.ty.identity_key()
+                    )));
+                }
+                let temporary = self.temporary(&expr.ty)?;
+                self.line(&format!("{temporary} = {};", base.code));
+                for replacement in fields {
+                    let field = layout.field(&replacement.field).cloned().ok_or_else(|| {
+                        backend_error(format!(
+                            "native record `{record}` has no update field `{}`",
+                            replacement.field
+                        ))
+                    })?;
+                    let value = self.emit_expr(&replacement.value)?;
+                    self.require_type(&value.ty, &field.ty, "record update field")?;
+                    self.line(&format!(
+                        "{temporary}.{} = {};",
+                        c_field_symbol(&field.field),
+                        value.code
+                    ));
+                }
+                CValue {
+                    code: temporary,
+                    ty: expr.ty.clone(),
+                }
             }
         };
         self.require_type(&value.ty, &expr.ty, "expression")?;
         Ok(value)
+    }
+
+    fn emit_place(&self, place: &hir::Place) -> Result<CValue, Diagnostic> {
+        let binding = self.variables.get(&place.root).cloned().ok_or_else(|| {
+            backend_error(format!("resolved value `{}` is not in scope", place.root))
+        })?;
+        let mut code = binding.name;
+        let mut ty = binding.ty;
+        for projection in &place.projections {
+            let PlaceProjection::Field(field) = projection else {
+                return Err(backend_error(
+                    "native variant-field projection is outside executable records v1",
+                ));
+            };
+            let layout = self.record_layout(&ty)?;
+            let field = layout.field(field).cloned().ok_or_else(|| {
+                backend_error(format!(
+                    "native record `{}` has no place field `{field}`",
+                    layout.record
+                ))
+            })?;
+            code = format!("({code}).{}", c_field_symbol(&field.field));
+            ty = field.ty;
+        }
+        Ok(CValue { code, ty })
+    }
+
+    fn record_layout(&self, ty: &ResolvedType) -> Result<AggregateLayout, Diagnostic> {
+        let record = record_declaration_id(self.program, ty)?.ok_or_else(|| {
+            backend_error(format!(
+                "native aggregate operation requires a record, found `{}`",
+                ty.identity_key()
+            ))
+        })?;
+        let layout = AggregateLayout::for_record(self.program, AggregateTarget::Native64, record)?;
+        layout.validate(self.program)?;
+        Ok(layout)
     }
 
     fn emit_binary(
@@ -1716,6 +1998,11 @@ impl<'a> CEmitter<'a> {
         result_type: &ResolvedType,
     ) -> Result<CValue, Diagnostic> {
         let left = self.emit_expr(left)?;
+        if matches!(op, BinaryOp::Eq | BinaryOp::Ne) && is_record_type(self.program, &left.ty)? {
+            return Err(backend_error(
+                "record equality is outside executable records v1",
+            ));
+        }
         let operand_type = match op {
             BinaryOp::And | BinaryOp::Or => ResolvedType::Bool,
             BinaryOp::Eq | BinaryOp::Ne => left.ty.clone(),

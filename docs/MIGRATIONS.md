@@ -107,6 +107,23 @@ Graph v6 embeds the complete plan under each selected function's `cleanup` membe
 
 The canonical source revision algorithm and domain separator are unchanged. The same source can therefore have the same revision in Graph v5 and v6 while the graph payload differs; caches and protocol negotiation must key by `(graph schema, revision)`. A v5 consumer must reject `semaprax.graph.v6`. Exact v6 scalar, control-flow, record, and lifecycle snapshots replace the v5 fixtures.
 
+## Graph v6 to v7 and executable record updates
+
+Graph v7 adds the resolved `update_record` expression. Its `base` edge is
+serialized before its authored `fields` vector; every replacement entry carries
+the persistent field declaration ID and its value edge. Producers must preserve
+replacement order because evaluation consumes the complete base first and then
+evaluates replacements left-to-right. Consumers must not resolve fields from
+display names or sort replacement entries.
+
+The source revision algorithm is unchanged. Consequently identical source that
+does not use record update can have the same revision under Graph v6 and v7,
+while the graph payload and agent-context `source_graph_schema` differ. Cache
+and protocol keys must include the exact graph schema. A v6 consumer must reject
+`semaprax.graph.v7`, and a v7 consumer must reject `semaprax.graph.v6`; neither
+may silently reinterpret an unknown expression kind. Agent Context v1 remains
+the context-envelope schema and now declares `semaprax.graph.v7` as its source.
+
 ## Normalized status v1 and conformance trace v1
 
 This release introduces two independent public protocol schemas:

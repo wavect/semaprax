@@ -51,7 +51,7 @@ The declaration index is the single current source of target-independent type fa
 
 The native and Wasm emitters now consume only validated HIR for semantic lowering; their parsed-AST entry points are compatibility wrappers that resolve first. A centralized HIR validator rejects duplicate/non-canonical identities, invalid declarations and nominal types, lexical-scope violations, inconsistent expression/call types, definite or conditional resource reuse, contract transfers, undeclared or unpermitted effects, effectful contracts, invalid result bindings, and an invalid entrypoint before either backend emits an artifact. Only after those checks pass, `cleanup` independently rebuilds the structural storage inventory; `cleanup_plan` then rebuilds and exact-compares the complete target-neutral plan. A hostile direct-HIR transform therefore cannot remove, retarget, reorder, or forge cleanup meaning before reaching Graph or a backend.
 
-This remains staged groundwork rather than the sole compiler IR: the current verifier still establishes meaning from parsed AST before HIR resolution. Explicit trivial/imported resource lifecycles, declaration-only interface/import contracts, record declarations, constructors, projections, stable identities, recursive resource/type facts, and by-value recursion rejection now reach validated HIR and Graph v6. The source checker and HIR validator independently replay lifecycle compatibility, lifecycle-effect authority, and prefix-aware partial-place availability. `CleanupInventory` remains a structural discovery boundary. Every `ResolvedFunction` additionally carries `semaprax.cleanup-plan.v1`: typed blocks, edges, lexical regions, entry liveness, storage/leaf flags, atomic call commits, sticky status sources, guarded finalizers, and scalar/owned result publication. The builder covers every current HIR expression and normal/checked-failure path; the validator reconstructs the plan from core HIR rather than trusting attached metadata.
+This remains staged groundwork rather than the sole compiler IR: the current verifier still establishes meaning from parsed AST before HIR resolution. Explicit trivial/imported resource lifecycles, declaration-only interface/import contracts, record declarations, constructors, projections, immutable updates, stable identities, recursive resource/type facts, and by-value recursion rejection now reach validated HIR and Graph v7. The source checker and HIR validator independently replay lifecycle compatibility, lifecycle-effect authority, and prefix-aware partial-place availability. `aggregate_layout` computes checked deterministic Native64 and Wasm32 layouts for nested `i64`/`bool`/direct-trivial-resource records. `CleanupInventory` remains a structural discovery boundary. Every `ResolvedFunction` additionally carries `semaprax.cleanup-plan.v1`: typed blocks, edges, lexical regions, entry liveness, storage/leaf flags, atomic call commits, sticky status sources, guarded finalizers, and scalar/owned result publication. Immutable update consumes its base first, evaluates replacements in authored order, transfers untouched fields, and cleans displaced live fields exactly once in reverse order. The builder covers every current HIR expression and normal/checked-failure path; the validator reconstructs the plan from core HIR rather than trusting attached metadata.
 
 The target-neutral runtime protocol is split from physical target state. `semaprax.status.v1` contains only a stable `domain_id`, nonzero code, class, and retryability; the invocation-local arena assigns immutable one-based tokens while reserving zero for success and rejects cross-context and same-nonce cross-arena resolution. `semaprax.conformance-trace.v1` records semantic ownership, import, write-once failure selection, finalization, and result publication without pointers, handles, tokens, offsets, or host exceptions. Attached plans are independently checked against inventory and exact typed-HIR control/event coverage, then exhaustively replayed across the current acyclic CFG for ordered liveness, sticky failures, exact region-leave chains, reverse cleanup, and typed whole-result publication. The deterministic single-frame reference executor models an uninitialized/published caller out slot; record results remain rejected until the trace schema can preserve aggregate semantic values. The native scalar C lane shares one caller-supplied context across nested calls, returns exact compiler statuses, and commits its out slot only after postconditions.
 
@@ -230,7 +230,7 @@ irreversible interval and exact quarantine on injected decode-reserve failure.
 It does not cover fatal allocator or process-crash containment, iOS device
 execution, or Android device/lifecycle breadth, and exposes no public
 admission. The separate bounded Android JNI/APK path is green in [run
-31324497016, job 93272580149](https://github.com/wavect/semaprax/actions/runs/31324497016/job/93272580149).
+31338834586, job 93309086206](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086206).
 Private bounded process-lifetime static-registration logic
 now binds exact descriptor and entry addresses to the same host ledger; its
 non-Apple fake-function test proves retention and quarantine only, with no
@@ -240,8 +240,11 @@ The private [native desktop application v1](DESKTOP-NATIVE-APP-V1.md) packages
 that same dynamic callable-v3 boundary as a headless macOS `APPL` bundle and a
 Windows portable PE application directory. Local macOS execution admits its
 co-located exact provider/descriptor, performs two owned receipt commits with
-generation rotation, and replays the first commit exactly. The Windows
-package/runtime path remains CI-configured and pending. This is an application
+generation rotation, and replays the first commit exactly. That macOS
+package/runtime is green in [run 31338834586, job
+93309086230](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086230).
+The Windows package/runtime remains pending in [run
+31339938860](https://github.com/wavect/semaprax/actions/runs/31339938860). This is an application
 process and native-packaging seam only: there is no UI toolkit, accessibility,
 lifecycle API, signing, installer, public admission, or `SPX-B104` change.
 
@@ -257,7 +260,11 @@ inventory, publish and verify a canonical SHA-256 engine manifest before launch,
 and launch it in the ordinary platform matrix. AppKit enforces a bounded
 terminate/kill deadline; Windows freezes the exact DLL set and rejects any
 export directory, including ordinal-only functions. The colocated digest is not
-signed provenance. The hosted runs are pending, and the adapter remains private
+signed provenance. The macOS engine plus AppKit package/runtime is green in
+[run 31338834586, job
+93309086230](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086230);
+Windows remains pending in [run
+31339938860](https://github.com/wavect/semaprax/actions/runs/31339938860). The adapter remains private
 with `SPX-B104` closed.
 
 A mandatory macOS gate requires the loader and host
@@ -348,8 +355,8 @@ outer handle table.
 
 The implementation, local Rust/strict-C checks, packaging contract, and CI
 source locks are backed by a green API-35 x86_64 APK/Instrumentation execution
-in [run 31324497016, job
-93272580149](https://github.com/wavect/semaprax/actions/runs/31324497016/job/93272580149).
+in [run 31338834586, job
+93309086206](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086206).
 Consequently this is partial Java/Kotlin and Android application evidence, not AAR, UI,
 lifecycle/accessibility breadth, device support, general resource/imported-
 finalizer execution, public ABI/admission, or permission to open `SPX-B104`.
@@ -361,8 +368,8 @@ poison-preserving outputs, and explicit-versus-ARC cleanup arbitration.
 Generated C binds fixed hidden evidence hooks; caller-selected hooks and the
 legacy raw open are absent. A Swift 6 lane is configured to construct device
 and universal Simulator slices plus two installed no-UI apps. Local gates and
-the bounded hosted Apple link/app path are green in [run 31333469714, job
-93295293995](https://github.com/wavect/semaprax/actions/runs/31333469714/job/93295293995).
+the bounded hosted Apple link/app path are green in [run 31338834586, job
+93309086228](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086228).
 
 The private [WIT boundary v1](WIT-COMPONENT-BOUNDARY-V1.md) freezes one scalar
 result/status WIT mapping and JavaScript adapter over the existing Wasm
@@ -391,14 +398,25 @@ freezes poisoned result-slot preservation and sticky first-failure status
 selection. Fuel exhaustion is an out-of-band engine error, never a typed
 SEMAPRAX status. The runner's unpublished workspace, lockfile, Rust 1.97.1
 toolchain, and dependency-denial policy isolate Wasmtime from the root compiler
-dependency and MSRV graph. Hosted runtime evidence is configured and pending;
+dependency and MSRV graph. Hosted runtime evidence is green in [run
+31338834586, job
+93309086213](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086213);
 source-language `Result`/`Option`, records/resources, imports, async,
 capabilities, multi-engine/browser execution, public API, and `SPX-B104` remain
 outside this trust boundary.
 
-## Record groundwork and backend gate
+## Record lowering and backend gate
 
-Canonical source accepts nominal records with persistent field IDs, source-ordered construction, shorthand expansion, and chained projection. The verifier reports unknown, duplicate, missing, or mismatched constructor fields deterministically and rejects direct or indirect by-value layout cycles. Resolved HIR distinguishes place projections from projections of temporary values, and its validator rejects foreign/reordered fields and inconsistent facts.
+Canonical source accepts nominal records with persistent field IDs, source-ordered construction, shorthand expansion, chained projection, and immutable `with` update. The verifier reports unknown, duplicate, missing, or mismatched fields deterministically and rejects direct or indirect by-value layout cycles. Resolved HIR distinguishes place projections from projections of temporary values, preserves base-first and authored replacement order for update, and its validator rejects foreign/reordered fields and inconsistent facts.
+
+Checked declaration-ordered Native64 and Wasm32 layouts cover nested `i64`,
+`bool`, and direct trivial-resource fields. Both profiles freeze the empty record
+to size and alignment one, giving C11 an inert byte and preventing Wasm frame
+slots from aliasing. The production-reachable scalar-record slice lowers nested
+`i64`/`bool` construction, projection, and update through native C11/Clang at
+O0/O2 and browser Wasm executed under Node. Internal aggregate parameters are
+pointers, results use caller-owned storage, failures preserve poisoned output,
+and Wasm restores its shadow stack across repeated same-instance calls.
 
 Resources now require one explicitly identified `drop trivial` or `drop
 import` strategy. Imported strategies resolve through an explicitly identified
@@ -417,6 +435,14 @@ native additionally verifies publication, owner rotation, and final logical
 liveness through the ledger. Native public resource lowering still rejects
 with `SPX-B104` for the remaining evidence boundaries above.
 
+Aggregate-resource execution has a narrower private proof boundary. One
+test-only scenario is derived from the same validated cleanup plan and projected
+into C11 O0/O2 and real Wasm. It covers move-in/out, whole-record leaf
+expansion, displaced reverse cleanup, propagated call failure, poisoned result
+storage, one exact cross-backend finalization trace, and zero final liveness.
+This is not an ordinary production emitter/runtime path and grants no public
+resource-record, callable/component aggregate-signature, or ABI authority.
+
 WebAssembly now has one public but deliberately narrow exception to the former
 blanket resource gate. `semaprax.wasm-owned.v1` admits exactly one direct,
 non-generic `drop trivial` resource identity, direct `own` parameters, scalar
@@ -432,14 +458,14 @@ prevents tag reuse across separately evaluated copies of the generated host when
 the surrounding realm and reserved binding are trusted; scalar-only packages
 allocate no tag. Real Node execution covers the narrow runtime boundary and the
 shared 14-case semantic conformance corpus. Imported lifecycles, calls,
-aggregates, multiple resource identities, broader control flow, hostile
+resource-containing aggregates, multiple resource identities, broader control flow, hostile
 co-resident JavaScript, cross-realm/worker identity, and Components remain gated
 with `SPX-W111` or the record diagnostic; the native production-host connection
 is still absent.
 
 ## Semantic graph
 
-`semaprax.graph.v6` is serialized exclusively from validated resolved HIR. It contains the canonical human-source revision, module capabilities, entrypoint declaration ID, explicit-versus-automatic declaration identity origin, resource/lifecycle/interface/import/record/field/function nodes, typed ownership and result-publication contracts, effects/authority/failure meaning, structural contracts, sorted declaration-ID call dependencies, the structural body graph, and the complete cleanup plan for every selected function. Cleanup vectors preserve canonical execution order and use tagged storage/place/status/transition/edge/region/exit forms; serialization never sorts malformed input into apparent validity. Context closure follows a resource through its lifecycle, full interface contract, import signatures, nominal types, and each selected function's self-contained cleanup plan. The source revision algorithm is unchanged, so caches key by both graph schema and revision.
+`semaprax.graph.v7` is serialized exclusively from validated resolved HIR. It contains the canonical human-source revision, module capabilities, entrypoint declaration ID, explicit-versus-automatic declaration identity origin, resource/lifecycle/interface/import/record/field/function nodes, typed ownership and result-publication contracts, effects/authority/failure meaning, structural contracts, sorted declaration-ID call dependencies, the structural body graph including base-first/authored-order immutable record updates, and the complete cleanup plan for every selected function. Cleanup vectors preserve canonical execution order and use tagged storage/place/status/transition/edge/region/exit forms; serialization never sorts malformed input into apparent validity. Context closure follows a resource through its lifecycle, full interface contract, import signatures, nominal types, and each selected function's self-contained cleanup plan. The source revision algorithm is unchanged, so caches key by both graph schema and revision.
 
 Integer literals are decimal JSON strings rather than JSON numbers, so JavaScript and TypeScript agents preserve every `i64` value exactly. `let` bindings expose one value identity; the enclosing statement does not reuse that ID as a second identity domain.
 
@@ -455,9 +481,9 @@ non-dangling emitted call edges, a query-bound minimum-byte cursor, aggregate
 pagination by stable-ID re-rooting, and fail-closed rejection only when an
 individual page cannot fit the contract maximum. Compact contracts, parameter/result
 ownership, effects, and reference-closed types are selectable; cleanup,
-lifecycle, and import subgraphs are not claimed by this projection. Graph v6
+lifecycle, and import subgraphs are not claimed by this projection. Graph v7
 has no target, diagnostic, or test nodes, so those requests are marked
-unavailable rather than inferred. The legacy Rust Graph-v6 depth-slice API
+unavailable rather than inferred. The legacy Rust depth-slice API over Graph v7
 remains compatible.
 
 The additive [`semaprax.agent-context-economics.v1`](AGENT-ECONOMICS-V1.md)
@@ -466,7 +492,7 @@ exact-case, separator-normal, Windows-forbidden/reserved-name-safe,
 non-symlink source containment, a manifest
 digest, exact label arrays, source revision, and context digest bind every
 score. Only facets available in Graph
-v6 may be scored. It records exact bytes, emitted nodes, and a
+v7 may be scored. It records exact bytes, emitted nodes, and a
 repository-defined lexical unit explicitly marked as non-model-token data. The
 quality router exposes advisory `quick`, explicit-or-unique-target-merge-base
 to HEAD plus dirty-Git-state-reconciled `changed`, and default `full` profiles; its closed v2 plan

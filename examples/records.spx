@@ -6,6 +6,8 @@ record Point {
     x: i64,
     @id("geometry.point.y")
     y: i64,
+    @id("geometry.point.enabled")
+    enabled: bool,
 }
 
 @id("geometry.line")
@@ -16,10 +18,17 @@ record Line {
     end: Point,
 }
 
+@id("geometry.line.shift")
+fn shift(line: Line, amount: i64) -> Line
+{
+    line with { start: line.start with { x: line.start.x + amount } }
+}
+
 @id("app.main")
 fn main() -> i64
 {
-    let point = Point { y: 22, x: 20 };
-    let line = Line { end: Point { x: 0, y: 0 }, start: point };
-    line.start.x + line.start.y
+    let point = Point { y: 22, enabled: true, x: 18 };
+    let line = Line { end: Point { x: 0, y: 0, enabled: false }, start: point };
+    let shifted = shift(line, 2);
+    if shifted.start.enabled { shifted.start.x + shifted.start.y } else { 0 }
 }

@@ -1,6 +1,8 @@
 use std::path::Path;
+use std::process::Command;
 
 use semaprax::{codegen, hir, parse, verify, wasm};
+use wasmparser::{Validator, WasmFeatures};
 
 fn diagnostic_codes(source: &str) -> Vec<&'static str> {
     let program = parse(source, Path::new("records-semantics.spx")).unwrap();
@@ -33,6 +35,114 @@ fn main() -> i64 {
 "#;
 
     assert!(diagnostic_codes(source).is_empty());
+}
+
+#[test]
+fn scalar_record_updates_accept_subsets_and_preserve_authored_value_order() {
+    let source = r#"
+module test.record_update;
+@id("geometry.point")
+record Point {
+    @id("geometry.point.x") x: i64,
+    @id("geometry.point.y") y: i64,
+}
+@id("app.main")
+fn main() -> i64 {
+    let point = Point { x: 1, y: 2 };
+    let updated = point with { y: 40 };
+    updated.x + updated.y
+}
+"#;
+
+    assert!(diagnostic_codes(source).is_empty());
+}
+
+#[test]
+fn empty_records_use_the_same_frozen_nonzero_native_and_wasm_representation() {
+    let source = r#"
+module test.empty_record;
+@id("empty.type")
+record Empty {}
+@id("empty.make")
+fn make() -> Empty { Empty {} }
+@id("empty.consume")
+fn consume(value: Empty) -> i64 { 42 }
+@id("app.main")
+fn main() -> i64 {
+    let empty = make();
+    let updated = empty with {};
+    consume(updated)
+}
+"#;
+    let program = parse(source, Path::new("empty-record.spx")).unwrap();
+    assert!(verify::verify(&program).is_empty());
+    let resolved = hir::resolve(&program).unwrap();
+
+    let c = codegen::emit_hir_c(&resolved).unwrap();
+    assert!(c.contains("uint8_t spx_empty_record_padding;"));
+    assert!(c.contains("== UINT32_C(1), \"SEMAPRAX native aggregate size\""));
+    assert!(c.contains("== UINT32_C(1), \"SEMAPRAX native aggregate alignment\""));
+
+    if Command::new("clang").arg("--version").output().is_ok() {
+        let stem = format!("semaprax-empty-record-{}", std::process::id());
+        let c_path = std::env::temp_dir().join(format!("{stem}.c"));
+        let executable =
+            std::env::temp_dir().join(format!("{stem}{}", std::env::consts::EXE_SUFFIX));
+        std::fs::write(&c_path, &c).unwrap();
+        let compiled = Command::new("clang")
+            .args(["-std=c11", "-Wall", "-Wextra", "-Werror"])
+            .arg(&c_path)
+            .arg("-o")
+            .arg(&executable)
+            .output()
+            .unwrap();
+        let _ = std::fs::remove_file(&c_path);
+        let _ = std::fs::remove_file(&executable);
+        assert!(
+            compiled.status.success(),
+            "empty-record C did not compile: {}",
+            String::from_utf8_lossy(&compiled.stderr)
+        );
+    }
+
+    let bytes = wasm::emit_resolved_module(&resolved).unwrap();
+    Validator::new_with_features(WasmFeatures::all())
+        .validate_all(&bytes)
+        .unwrap();
+    assert_eq!(wasm::emit_module(&program).unwrap(), bytes);
+}
+
+#[test]
+fn update_diagnostics_preserve_source_order_without_requiring_all_fields() {
+    let source = r#"
+module test.record_update_errors;
+@id("geometry.point")
+record Point {
+    @id("geometry.point.x") x: i64,
+    @id("geometry.point.flag") flag: bool,
+}
+@id("geometry.update")
+fn update(point: Point) -> i64 {
+    let updated = point with { missing: 1, x: true, x: 2 };
+    updated.x
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+
+    assert_eq!(
+        diagnostic_codes(source),
+        ["SPX-T212", "SPX-T215", "SPX-T212"]
+    );
+
+    let non_record = r#"
+module test.non_record_update;
+@id("values.update")
+fn update(value: i64) -> i64 { value with { field: 1 } }
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+    assert_eq!(diagnostic_codes(non_record), ["SPX-T215"]);
 }
 
 #[test]
@@ -257,6 +367,49 @@ fn main() -> i64 { 0 }
 }
 
 #[test]
+fn update_requires_a_complete_owned_base_and_consumes_replacements_left_to_right() {
+    let source = r#"
+module test.record_update_ownership;
+@id("buffer.type")
+resource Buffer {
+    @id("buffer.type.drop")
+    drop trivial;
+}
+@id("pair.type")
+record Pair {
+    @id("pair.left") left: Buffer,
+    @id("pair.right") right: Buffer,
+}
+@id("buffer.consume")
+fn consume(value: own Buffer) -> i64 { 1 }
+@id("pair.partial")
+fn partial(value: own Pair, replacement: own Buffer) -> Pair {
+    let consumed = consume(value.left);
+    value with { right: replacement }
+}
+@id("pair.borrowed")
+fn borrowed(value: borrow Pair) -> Pair { value with {} }
+@id("pair.shared")
+fn shared(value: shared Pair) -> Pair { value with {} }
+@id("pair.repeated")
+fn repeated(value: own Pair, replacement: own Buffer) -> Pair {
+    value with { left: replacement, right: replacement }
+}
+@id("pair.base_first")
+fn base_first(value: own Pair) -> Pair {
+    value with { left: value.left }
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+
+    let codes = diagnostic_codes(source);
+    assert_eq!(codes.iter().filter(|code| **code == "SPX-O109").count(), 1);
+    assert_eq!(codes.iter().filter(|code| **code == "SPX-O108").count(), 2);
+    assert_eq!(codes.iter().filter(|code| **code == "SPX-O101").count(), 2);
+}
+
+#[test]
 fn borrowed_resource_record_construction_fails_before_hir_resolution() {
     let source = r#"
 module test.record_borrowed_constructor;
@@ -290,7 +443,7 @@ fn main() -> i64 { 0 }
 }
 
 #[test]
-fn executable_backends_fail_closed_until_record_cleanup_and_layout_land() {
+fn public_resource_admission_stays_closed_when_record_layouts_are_present() {
     let source = r#"
 module test.record_backend_gate;
 @id("platform.handle")
@@ -305,13 +458,13 @@ fn main() -> i64 { Point { x: 42 }.x }
 "#;
     let program = parse(source, Path::new("record-backend-gate.spx")).unwrap();
     assert!(verify::verify(&program).is_empty());
-    assert_eq!(codegen::emit_c(&program).unwrap_err().code, "SPX-B103");
-    assert_eq!(wasm::emit_module(&program).unwrap_err().code, "SPX-W110");
+    assert_eq!(codegen::emit_c(&program).unwrap_err().code, "SPX-B104");
+    assert_eq!(wasm::emit_module(&program).unwrap_err().code, "SPX-W111");
 
     let resolved = hir::resolve(&program).unwrap();
-    assert_eq!(codegen::emit_hir_c(&resolved).unwrap_err().code, "SPX-B103");
+    assert_eq!(codegen::emit_hir_c(&resolved).unwrap_err().code, "SPX-B104");
     assert_eq!(
         wasm::emit_resolved_module(&resolved).unwrap_err().code,
-        "SPX-W110"
+        "SPX-W111"
     );
 }

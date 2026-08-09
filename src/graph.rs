@@ -1,7 +1,7 @@
 //! Deterministic semantic graph serialization and bounded context queries.
 //!
 //! Human source supplies the revision. Resolved HIR supplies every semantic
-//! identity and fact in graph v6; spans and display names are metadata only.
+//! identity and fact in graph v7; spans and display names are metadata only.
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fmt::Write;
@@ -31,7 +31,7 @@ pub fn revision(program: &Program) -> String {
     format!("sha256:{:x}", hasher.finalize())
 }
 
-/// Resolve and serialize a parsed program as `semaprax.graph.v6`.
+/// Resolve and serialize a parsed program as `semaprax.graph.v7`.
 ///
 /// Resolution is deliberately part of this public boundary. Invalid source
 /// cannot be mistaken for a checked semantic graph by library callers.
@@ -110,7 +110,7 @@ impl AgentContextFilter {
         Self::ALL.into_iter().find(|filter| filter.name() == name)
     }
 
-    const fn supported_by_graph_v6(self) -> bool {
+    const fn supported_by_graph_v7(self) -> bool {
         matches!(
             self,
             Self::Contracts | Self::Ownership | Self::Effects | Self::Types
@@ -554,6 +554,12 @@ fn collect_agent_contract_values(expression: &ResolvedExpr, values: &mut BTreeSe
                 collect_agent_contract_values(&initializer.value, values);
             }
         }
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            collect_agent_contract_values(base, values);
+            for initializer in fields {
+                collect_agent_contract_values(&initializer.value, values);
+            }
+        }
         ResolvedExprKind::Project { base, .. } => collect_agent_contract_values(base, values),
     }
 }
@@ -615,6 +621,26 @@ fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnos
         ),
         ResolvedExprKind::ConstructRecord { record, fields } => format!(
             "{{\"kind\":\"construct_record\",\"record\":{},\"fields\":[{}]}}",
+            quote_json(record.as_str()),
+            fields
+                .iter()
+                .map(|initializer| {
+                    Ok(format!(
+                        "{{\"field\":{},\"value\":{}}}",
+                        quote_json(initializer.field.as_str()),
+                        agent_contract_expr_json(&initializer.value)?
+                    ))
+                })
+                .collect::<Result<Vec<_>, Diagnostic>>()?
+                .join(",")
+        ),
+        ResolvedExprKind::UpdateRecord {
+            base,
+            record,
+            fields,
+        } => format!(
+            "{{\"kind\":\"update_record\",\"base\":{},\"record\":{},\"fields\":[{}]}}",
+            agent_contract_expr_json(base)?,
             quote_json(record.as_str()),
             fields
                 .iter()
@@ -735,7 +761,7 @@ fn render_agent_context(
     let unavailable_count = options
         .filters
         .iter()
-        .filter(|filter| !filter.supported_by_graph_v6())
+        .filter(|filter| !filter.supported_by_graph_v7())
         .count();
     if unavailable_count != 0 {
         reasons.insert("unavailable_filters");
@@ -753,14 +779,14 @@ fn render_agent_context(
     let included = options
         .filters
         .iter()
-        .filter(|filter| filter.supported_by_graph_v6())
+        .filter(|filter| filter.supported_by_graph_v7())
         .map(|filter| quote_json(filter.name()))
         .collect::<Vec<_>>()
         .join(",");
     let unavailable = options
         .filters
         .iter()
-        .filter(|filter| !filter.supported_by_graph_v6())
+        .filter(|filter| !filter.supported_by_graph_v7())
         .map(|filter| quote_json(filter.name()))
         .collect::<Vec<_>>()
         .join(",");
@@ -801,7 +827,7 @@ fn render_agent_context(
         .unwrap_or(0);
     let render = |used_bytes: usize| {
         format!(
-            "{{\"schema\":\"semaprax.agent-context.v1\",\"source_graph_schema\":\"semaprax.graph.v6\",\"revision\":{},\"module\":{},\"root\":{},\"query\":{{\"depth\":{},\"max_bytes\":{},\"max_nodes\":{},\"filters\":[{}]}},\"filter_support\":{{\"included\":[{}],\"unavailable\":[{}]}},\"budget\":{{\"used_bytes\":{},\"used_nodes\":{},\"max_depth_used\":{}}},\"truncation\":{{\"truncated\":{},\"reasons\":[{}],\"omitted_known_nodes\":{},\"deferred_known_nodes\":{},\"omitted_fact_bytes\":{},\"unavailable_filter_count\":{}}},\"resume_contract\":{{\"depth\":\"query.depth\",\"max_nodes\":\"query.max_nodes\",\"filters\":\"query.filters\",\"max_bytes\":\"frontier.resume.min_bytes\"}},\"frontier\":[{}],\"facts\":[{}]}}",
+            "{{\"schema\":\"semaprax.agent-context.v1\",\"source_graph_schema\":\"semaprax.graph.v7\",\"revision\":{},\"module\":{},\"root\":{},\"query\":{{\"depth\":{},\"max_bytes\":{},\"max_nodes\":{},\"filters\":[{}]}},\"filter_support\":{{\"included\":[{}],\"unavailable\":[{}]}},\"budget\":{{\"used_bytes\":{},\"used_nodes\":{},\"max_depth_used\":{}}},\"truncation\":{{\"truncated\":{},\"reasons\":[{}],\"omitted_known_nodes\":{},\"deferred_known_nodes\":{},\"omitted_fact_bytes\":{},\"unavailable_filter_count\":{}}},\"resume_contract\":{{\"depth\":\"query.depth\",\"max_nodes\":\"query.max_nodes\",\"filters\":\"query.filters\",\"max_bytes\":\"frontier.resume.min_bytes\"}},\"frontier\":[{}],\"facts\":[{}]}}",
             quote_json(source_revision),
             quote_json(&program.module),
             quote_json(root.as_str()),
@@ -1004,7 +1030,7 @@ fn graph_json(
     let mut output = String::new();
     write!(
         output,
-        "{{\"schema\":\"semaprax.graph.v6\",\"revision\":{},\"view\":{},\"identity\":{{\"declarations\":\"explicit-persistent-or-automatic-unstable\",\"values\":\"revision-scoped-structural\",\"expressions\":\"revision-scoped-structural\"}},\"module\":{},\"permits\":{},\"entrypoint\":{},\"type_facts\":[{}],\"nodes\":[",
+        "{{\"schema\":\"semaprax.graph.v7\",\"revision\":{},\"view\":{},\"identity\":{{\"declarations\":\"explicit-persistent-or-automatic-unstable\",\"values\":\"revision-scoped-structural\",\"expressions\":\"revision-scoped-structural\"}},\"module\":{},\"permits\":{},\"entrypoint\":{},\"type_facts\":[{}],\"nodes\":[",
         quote_json(source_revision),
         view_json(view),
         quote_json(&program.module),
@@ -1373,6 +1399,12 @@ fn visit_expr_calls(expression: &ResolvedExpr, visit: &mut impl FnMut(&Declarati
                 visit_expr_calls(&initializer.value, visit);
             }
         }
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            visit_expr_calls(base, visit);
+            for initializer in fields {
+                visit_expr_calls(&initializer.value, visit);
+            }
+        }
         ResolvedExprKind::Project { base, .. } => visit_expr_calls(base, visit),
     }
 }
@@ -1432,6 +1464,17 @@ fn collect_expr_type_declarations(
         }
         ResolvedExprKind::ConstructRecord { record, fields } => {
             declarations.insert(record.clone());
+            for initializer in fields {
+                collect_expr_type_declarations(&initializer.value, declarations);
+            }
+        }
+        ResolvedExprKind::UpdateRecord {
+            base,
+            record,
+            fields,
+        } => {
+            declarations.insert(record.clone());
+            collect_expr_type_declarations(base, declarations);
             for initializer in fields {
                 collect_expr_type_declarations(&initializer.value, declarations);
             }
@@ -1546,6 +1589,26 @@ fn expr_json(program: &ResolvedProgram, expression: &ResolvedExpr) -> Result<Str
         ),
         ResolvedExprKind::ConstructRecord { record, fields } => format!(
             "{{{header},\"kind\":\"construct_record\",\"record\":{},\"fields\":[{}]}}",
+            quote_json(record.as_str()),
+            fields
+                .iter()
+                .map(|initializer| {
+                    Ok(format!(
+                        "{{\"field\":{},\"value\":{}}}",
+                        quote_json(initializer.field.as_str()),
+                        expr_json(program, &initializer.value)?
+                    ))
+                })
+                .collect::<Result<Vec<_>, Diagnostic>>()?
+                .join(",")
+        ),
+        ResolvedExprKind::UpdateRecord {
+            base,
+            record,
+            fields,
+        } => format!(
+            "{{{header},\"kind\":\"update_record\",\"base\":{},\"record\":{},\"fields\":[{}]}}",
+            expr_json(program, base)?,
             quote_json(record.as_str()),
             fields
                 .iter()
@@ -1696,6 +1759,12 @@ fn collect_expr_types(expression: &ResolvedExpr, types: &mut BTreeMap<String, Re
             collect_expr_types(else_branch, types);
         }
         ResolvedExprKind::ConstructRecord { fields, .. } => {
+            for initializer in fields {
+                collect_expr_types(&initializer.value, types);
+            }
+        }
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            collect_expr_types(base, types);
             for initializer in fields {
                 collect_expr_types(&initializer.value, types);
             }

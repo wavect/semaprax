@@ -1,4 +1,4 @@
-//! Deterministic Graph v6 serialization for verified cleanup plans.
+//! Deterministic Graph v7 serialization for verified cleanup plans.
 //!
 //! This module is intentionally a renderer, not a validator or canonicalizer.
 //! Every vector is emitted in the order supplied by [`CleanupPlan`]. Sorting,
@@ -16,7 +16,7 @@ use crate::cleanup_plan::{
 use crate::diagnostic::quote_json;
 use crate::hir::ResolvedType;
 
-/// Serialize one already-validated cleanup plan for embedding in Graph v6.
+/// Serialize one already-validated cleanup plan for embedding in Graph v7.
 ///
 /// Callers must validate the enclosing resolved program before invoking this
 /// function. Keeping validation out of the renderer makes it impossible for

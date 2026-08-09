@@ -216,6 +216,10 @@ pub enum ExprKind {
         type_span: Span,
         fields: Vec<FieldInitializer>,
     },
+    UpdateRecord {
+        base: Box<Expr>,
+        fields: Vec<FieldInitializer>,
+    },
     Project {
         base: Box<Expr>,
         field: String,
@@ -327,6 +331,12 @@ impl Expr {
                 else_branch.visit_calls(visit);
             }
             ExprKind::ConstructRecord { fields, .. } => {
+                for field in fields {
+                    field.value.visit_calls(visit);
+                }
+            }
+            ExprKind::UpdateRecord { base, fields } => {
+                base.visit_calls(visit);
                 for field in fields {
                     field.value.visit_calls(visit);
                 }

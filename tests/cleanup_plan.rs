@@ -77,6 +77,23 @@ fn partial(first: own Token, second: own Token) -> Pair {
     }
 }
 
+@id("pair.update-one")
+fn update_one(pair: own Pair, second: own Token) -> Pair {
+    pair with { second: second }
+}
+
+@id("pair.update-partial-failure")
+fn update_partial_failure(
+    pair: own Pair,
+    first: own Token,
+    second: own Token
+) -> Pair {
+    pair with {
+        second: second,
+        first: identity(first),
+    }
+}
+
 @id("pair.discard")
 fn discard(first: own Token, second: own Token) -> i64 {
     let pair = Pair {
@@ -111,6 +128,11 @@ fn nested_partial(left: own Token, right: own Token, tail: own Token) -> Outer {
         },
         tail: identity(tail),
     }
+}
+
+@id("outer.update-inner")
+fn update_inner(outer: own Outer, inner: own Inner) -> Outer {
+    outer with { inner: inner }
 }
 
 @id("outer.discard")
@@ -880,6 +902,120 @@ fn record_plans_cover_partial_construction_normalization_and_projection() {
 }
 
 #[test]
+fn record_update_consumes_base_then_replaces_left_to_right_and_cleans_exactly_once() {
+    let program = resolved();
+
+    let update = function(&program, "pair.update-one");
+    let expression = block_tail(update);
+    let ResolvedExprKind::UpdateRecord { base, fields, .. } = &expression.kind else {
+        panic!("update_one tail must update Pair")
+    };
+    assert_eq!(fields.len(), 1);
+    assert_eq!(fields[0].field.as_str(), "pair.second");
+    let base_stage = StorageId::Temporary(base.id.clone());
+    let destination = StorageId::Temporary(expression.id.clone());
+    let transfers = update
+        .cleanup_plan
+        .blocks
+        .iter()
+        .flat_map(|block| &block.transitions)
+        .filter_map(|transition| match transition {
+            CleanupTransition::Transfer {
+                source,
+                destination,
+                ..
+            } => Some((source, destination)),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(transfers.len(), 5);
+    assert_eq!(
+        transfers[0].1.storage, base_stage,
+        "the whole base is consumed before any replacement"
+    );
+    assert_eq!(
+        transfers[1].1.storage, destination,
+        "the authored replacement is staged before untouched fields"
+    );
+    assert_eq!(transfers[1].1.projections[0].as_str(), "pair.second");
+    assert_eq!(transfers[2].0.storage, base_stage);
+    assert_eq!(transfers[2].0.projections[0].as_str(), "pair.first");
+    assert_eq!(transfers[2].1.storage, destination);
+    assert_eq!(transfers[2].1.projections[0].as_str(), "pair.first");
+    assert_eq!(
+        transfers[4].1.storage,
+        StorageId::ProvisionalResult,
+        "the completed update is transferred only after displaced cleanup"
+    );
+
+    let displaced_exit = update
+        .cleanup_plan
+        .exits
+        .iter()
+        .find(|exit| {
+            matches!(exit.continuation, ExitContinuation::Continue(_))
+                && exit
+                    .finalize_in_order
+                    .iter()
+                    .any(|action| action.source.storage == base_stage)
+        })
+        .expect("successful update must close its base epoch");
+    assert_eq!(displaced_exit.finalize_in_order.len(), 1);
+    assert_finalizer(
+        &update.cleanup_plan,
+        &displaced_exit.finalize_in_order[0],
+        &base_stage,
+        &["pair.second"],
+    );
+
+    let partial = function(&program, "pair.update-partial-failure");
+    let expression = block_tail(partial);
+    let ResolvedExprKind::UpdateRecord { base, fields, .. } = &expression.kind else {
+        panic!("update_partial_failure tail must update Pair")
+    };
+    assert_eq!(
+        fields
+            .iter()
+            .map(|field| field.field.as_str())
+            .collect::<Vec<_>>(),
+        ["pair.second", "pair.first"]
+    );
+    let failure = failure_exit(&partial.cleanup_plan, &fields[1].value.id);
+    let sources = failure
+        .finalize_in_order
+        .iter()
+        .map(|action| {
+            (
+                &action.source.storage,
+                action
+                    .source
+                    .projections
+                    .iter()
+                    .map(|projection| projection.as_str())
+                    .collect::<Vec<_>>(),
+            )
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(sources.len(), 3);
+    assert_eq!(
+        sources[0],
+        (
+            &StorageId::Temporary(expression.id.clone()),
+            vec!["pair.second"]
+        ),
+        "the already-staged replacement unwinds before the base epoch"
+    );
+    assert_eq!(
+        sources[1],
+        (&StorageId::Temporary(base.id.clone()), vec!["pair.second"])
+    );
+    assert_eq!(
+        sources[2],
+        (&StorageId::Temporary(base.id.clone()), vec!["pair.first"])
+    );
+}
+
+#[test]
 fn nested_records_preserve_recursive_partial_and_reverse_cleanup_order() {
     let program = resolved();
 
@@ -911,6 +1047,51 @@ fn nested_records_preserve_recursive_partial_and_reverse_cleanup_order() {
         &partial_storage,
         &["outer.inner", "inner.left"],
     );
+
+    let update = function(&program, "outer.update-inner");
+    let expression = block_tail(update);
+    let ResolvedExprKind::UpdateRecord { base, .. } = &expression.kind else {
+        panic!("update_inner tail must update Outer")
+    };
+    let base_stage = StorageId::Temporary(base.id.clone());
+    let displaced_exit = update
+        .cleanup_plan
+        .exits
+        .iter()
+        .find(|exit| {
+            matches!(exit.continuation, ExitContinuation::Continue(_))
+                && exit
+                    .finalize_in_order
+                    .iter()
+                    .any(|action| action.source.storage == base_stage)
+        })
+        .expect("nested update must close its base epoch");
+    assert_eq!(displaced_exit.finalize_in_order.len(), 2);
+    assert_finalizer(
+        &update.cleanup_plan,
+        &displaced_exit.finalize_in_order[0],
+        &base_stage,
+        &["outer.inner", "inner.right"],
+    );
+    assert_finalizer(
+        &update.cleanup_plan,
+        &displaced_exit.finalize_in_order[1],
+        &base_stage,
+        &["outer.inner", "inner.left"],
+    );
+    assert!(update
+        .cleanup_plan
+        .blocks
+        .iter()
+        .flat_map(|block| &block.transitions)
+        .any(|transition| matches!(
+            transition,
+            CleanupTransition::Transfer { source, destination, .. }
+                if source.storage == base_stage
+                    && source.projections.iter().map(|id| id.as_str()).collect::<Vec<_>>()
+                        == ["outer.tail"]
+                    && destination.storage == StorageId::Temporary(expression.id.clone())
+        )));
 
     let discard = function(&program, "outer.discard");
     let ResolvedExprKind::Block { statements, .. } = &discard.body.kind else {

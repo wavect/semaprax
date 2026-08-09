@@ -11,6 +11,7 @@ use crate::hir::{
     ResolvedType, ResolvedTypeDeclarationKind, ValueId,
 };
 
+mod aggregate;
 mod owned;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod result_component_v3;
@@ -60,10 +61,7 @@ pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagno
             ResolvedTypeDeclarationKind::Record { .. }
         )
     }) {
-        return Err(Diagnostic::io(
-            "SPX-W110",
-            "WebAssembly record lowering is gated on linear-memory cleanup and layout support",
-        ));
+        return aggregate::emit(program);
     }
     let owned_plans = owned::plan(program)?;
     let import_count = if owned_plans.is_empty() {
@@ -498,6 +496,12 @@ fn collect_locals(
         ResolvedExprKind::Project { base, .. } => {
             collect_locals(base, parameter_count, layout)?;
         }
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            collect_locals(base, parameter_count, layout)?;
+            for field in fields {
+                collect_locals(&field.value, parameter_count, layout)?;
+            }
+        }
         ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
     }
     Ok(())
@@ -695,7 +699,9 @@ fn emit_expr(
             )?;
             output.push(0x0b);
         }
-        ResolvedExprKind::ConstructRecord { .. } | ResolvedExprKind::Project { .. } => {
+        ResolvedExprKind::ConstructRecord { .. }
+        | ResolvedExprKind::Project { .. }
+        | ResolvedExprKind::UpdateRecord { .. } => {
             return Err(Diagnostic::io(
                 "SPX-W110",
                 "record expressions require WebAssembly aggregate lowering",

@@ -1183,6 +1183,9 @@ impl<'a> PlanBuilder<'a> {
             ResolvedExprKind::ConstructRecord { fields, .. } => {
                 self.lower_record(expression, fields, block, state, region)
             }
+            ResolvedExprKind::UpdateRecord { .. } => {
+                self.lower_update_record(expression, block, state, region)
+            }
             ResolvedExprKind::Project { base, field } => {
                 let base = self.lower_expr(base, block, state, region)?;
                 let destination = self.expression_slot(expression, region)?;
@@ -1547,6 +1550,132 @@ impl<'a> PlanBuilder<'a> {
             block: current,
             state: current_state,
             owned_source: destination,
+        })
+    }
+
+    fn lower_update_record(
+        &mut self,
+        expression: &ResolvedExpr,
+        block: BlockId,
+        state: FlowState,
+        region: CleanupRegionId,
+    ) -> Result<EvalResult, Diagnostic> {
+        let ResolvedExprKind::UpdateRecord {
+            base,
+            record,
+            fields,
+        } = &expression.kind
+        else {
+            return Err(plan_error(
+                "record-update lowering received another expression",
+            ));
+        };
+        let destination = self.expression_slot(expression, region)?;
+
+        // A record without droppable leaves has no cleanup state. Evaluation
+        // order still matters, so walk base then replacements in their authored
+        // order and leave physical value movement to the backend layout lane.
+        let Some(destination) = destination else {
+            let mut evaluated = self.lower_expr(base, block, state, region)?;
+            for initializer in fields {
+                evaluated =
+                    self.lower_expr(&initializer.value, evaluated.block, evaluated.state, region)?;
+            }
+            return Ok(EvalResult {
+                block: evaluated.block,
+                state: evaluated.state,
+                owned_source: None,
+            });
+        };
+
+        // The base epoch is isolated so the same reverse cleanup handles both
+        // failure and successful disposal of displaced values.  The completed
+        // destination belongs to the parent region and therefore survives the
+        // child region's normal exit.
+        let update_region = self.new_region(region)?;
+        let entry = self.new_block(update_region)?;
+        let edge = self.new_edge(block, entry, EdgeCondition::Always)?;
+        self.terminate(block, CleanupTerminator::Goto(edge))?;
+
+        let mut evaluated = self.lower_expr(base, entry, state, update_region)?;
+        let staged_base = CleanupPlace::whole(StorageId::Temporary(base.id.clone()));
+        self.assign_slot(&staged_base.storage, update_region)?;
+        let base_source = evaluated
+            .owned_source
+            .clone()
+            .ok_or_else(|| plan_error("owned record update base has no cleanup source"))?;
+        if base_source != staged_base {
+            self.transfer(
+                evaluated.block,
+                base.id.clone(),
+                base_source,
+                staged_base.clone(),
+                &mut evaluated.state,
+                true,
+            )?;
+        }
+
+        let mut replaced = BTreeSet::new();
+        for initializer in fields {
+            if !replaced.insert(initializer.field.clone()) {
+                return Err(plan_error(format!(
+                    "record update repeats field `{}`",
+                    initializer.field
+                )));
+            }
+            evaluated = self.lower_expr(
+                &initializer.value,
+                evaluated.block,
+                evaluated.state,
+                update_region,
+            )?;
+            if initializer.value.ownership == OwnershipMode::Own
+                && self.needs_drop(&initializer.value.ty)?
+            {
+                let source = evaluated.owned_source.clone().ok_or_else(|| {
+                    plan_error(format!(
+                        "record replacement field `{}` has no cleanup source",
+                        initializer.field
+                    ))
+                })?;
+                self.transfer(
+                    evaluated.block,
+                    initializer.value.id.clone(),
+                    source,
+                    destination.projected(initializer.field.clone()),
+                    &mut evaluated.state,
+                    false,
+                )?;
+            }
+        }
+
+        let declarations = self
+            .program
+            .declarations
+            .record_fields(record)
+            .ok_or_else(|| plan_error(format!("record update has unknown record `{record}`")))?
+            .to_vec();
+        for field in declarations {
+            if replaced.contains(&field.id) || !self.needs_drop(&field.ty)? {
+                continue;
+            }
+            self.transfer(
+                evaluated.block,
+                expression.id.clone(),
+                staged_base.projected(field.id.clone()),
+                destination.projected(field.id),
+                &mut evaluated.state,
+                false,
+            )?;
+        }
+
+        let (block, mut state) =
+            self.exit_scope(evaluated.block, evaluated.state, update_region)?;
+        self.canonicalize_complete_aggregate(&destination, &mut state)?;
+        Ok(EvalResult {
+            block,
+            state,
+            owned_source: Some(destination),
         })
     }
 }

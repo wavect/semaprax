@@ -82,10 +82,10 @@ fn context_slice_follows_calls() {
 }
 
 #[test]
-fn graph_v6_exposes_resolved_identity_types_ownership_and_facts() {
+fn graph_v7_exposes_resolved_identity_types_ownership_and_facts() {
     let program = parse(VALID, Path::new("resolved-graph.spx")).unwrap();
     let json = graph::to_json(&program).unwrap();
-    assert!(json.contains("\"schema\":\"semaprax.graph.v6\""));
+    assert!(json.contains("\"schema\":\"semaprax.graph.v7\""));
     assert!(json.contains("\"entrypoint\":\"app.main\""));
     assert!(json.contains("\"identity_origin\":\"explicit\",\"persistent\":true"));
     assert!(json.contains("\"id\":\"declaration:8:math.add:value:param:1:0\",\"name\":\"a\""));

@@ -324,6 +324,27 @@ impl InventoryBuilder<'_> {
                     self.collect_expression(&field.value)?;
                 }
             }
+            ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+                self.collect_expression(base)?;
+                // A place expression normally needs no temporary.  Record
+                // update is the exception: consuming the whole base into a
+                // child-region epoch lets failures and successful
+                // replacement dispose the displaced fields uniformly.
+                if matches!(base.kind, ResolvedExprKind::Place(_))
+                    && base.ownership == OwnershipMode::Own
+                    && self.needs_drop(&base.ty)?
+                {
+                    self.add_slot(
+                        CleanupStorageOrigin::Temporary {
+                            expression: base.id.clone(),
+                        },
+                        base.ty.clone(),
+                    )?;
+                }
+                for field in fields {
+                    self.collect_expression(&field.value)?;
+                }
+            }
             ResolvedExprKind::Project { base, .. } => self.collect_expression(base)?,
             ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
         }

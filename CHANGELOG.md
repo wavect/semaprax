@@ -4,6 +4,39 @@ All notable changes to SEMAPRAX are documented here.
 
 ## 0.2.0 — 2026-08-07
 
+- Superseding the earlier configured/pending notes below, hosted run
+  [31338834586](https://github.com/wavect/semaprax/actions/runs/31338834586)
+  is green for Portable Result Component v3
+  ([job 93309086213](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086213)),
+  the private macOS engine plus AppKit package/runtime
+  ([job 93309086230](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086230)),
+  the private Swift/iOS app plus XCFramework
+  ([job 93309086228](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086228)),
+  and the private Android JNI/Kotlin app
+  ([job 93309086206](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086206)).
+  Windows desktop package/runtime remains pending in
+  [run 31339938860](https://github.com/wavect/semaprax/actions/runs/31339938860).
+- Upgraded the current semantic projection to `semaprax.graph.v7` and added
+  canonical immutable record update across source, resolved HIR, Graph, and
+  context traversal. Update meaning is base-first with replacement expressions
+  in authored order; v6/v7 schema confusion rejects as documented in
+  [MIGRATIONS.md](docs/MIGRATIONS.md).
+- Added checked deterministic Native64/Wasm32 layouts for nested record fields
+  in the admitted `i64`/`bool`/direct-trivial-resource slice. Cleanup-plan
+  construction and independent replay now cover partial initialization and
+  immutable update, including untouched-field transfer and reverse exact-once
+  cleanup of displaced live fields. Empty records are frozen to one byte with
+  alignment one on both profiles.
+- Added production-reachable native C11 O0/O2 and Node-executed browser Wasm
+  lowering for nested scalar `i64`/`bool` records, including construction,
+  projection, immutable update, base-first/authored replacement order,
+  status/out poison, internal aggregate pointer parameters, caller-owned
+  results, and Wasm shadow-stack re-entry. A separate private test-only harness
+  projects one direct-trivial-resource record scenario from the same cleanup
+  plan into C and real Wasm, proving an exact common finalization trace and zero
+  liveness. This does not establish a stable public aggregate ABI, public
+  resource-record execution, callable/component aggregate signatures, or any
+  change to `SPX-B104`/`SPX-W111`.
 - Added deterministic offline [agent context economics
   v1](docs/AGENT-ECONOMICS-V1.md): four checked maintenance questions, exact
   context/economics goldens, UTF-8 byte and node counts, an explicitly
@@ -19,7 +52,7 @@ All notable changes to SEMAPRAX are documented here.
   CLI now emits deterministic whole-JSON byte- and function-node-bounded facts,
   exact used/omitted/deferred accounting, closed truncation reasons, strict
   options, and query-bound stable-ID progress frontiers with non-dangling
-  emitted calls and permanent oversize rejection. Compact Graph-v6
+  emitted calls and permanent oversize rejection. Compact Graph-v7
   contracts, parameter/result ownership, effects, and reference-closed types
   are filterable; cleanup/lifecycle/import subgraphs are not claimed, and
   absent target/diagnostic/test graph facts are explicitly unavailable. This

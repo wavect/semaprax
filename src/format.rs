@@ -218,6 +218,26 @@ pub fn expr(value: &Expr, parent_precedence: u8) -> String {
                 )
             }
         }
+        ExprKind::UpdateRecord { base, fields } => {
+            let base = match &base.kind {
+                ExprKind::Binary { .. } | ExprKind::If { .. } | ExprKind::Block { .. } => {
+                    format!("({})", expr(base, 0))
+                }
+                _ => expr(base, 8),
+            };
+            if fields.is_empty() {
+                format!("{base} with {{}}")
+            } else {
+                format!(
+                    "{base} with {{ {} }}",
+                    fields
+                        .iter()
+                        .map(|field| format!("{}: {}", field.name, expr(&field.value, 0)))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            }
+        }
         ExprKind::Project { base, field, .. } => {
             let base = match &base.kind {
                 ExprKind::Binary { .. } | ExprKind::If { .. } | ExprKind::Block { .. } => {
@@ -245,6 +265,12 @@ fn contains_record_construction(value: &Expr) -> bool {
         ExprKind::Call { args, .. } => args.iter().any(contains_record_construction),
         ExprKind::Unary { value, .. } | ExprKind::Project { base: value, .. } => {
             contains_record_construction(value)
+        }
+        ExprKind::UpdateRecord { base, fields } => {
+            contains_record_construction(base)
+                || fields
+                    .iter()
+                    .any(|field| contains_record_construction(&field.value))
         }
         ExprKind::Binary { left, right, .. } => {
             contains_record_construction(left) || contains_record_construction(right)

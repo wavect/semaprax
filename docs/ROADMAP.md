@@ -20,7 +20,7 @@ Status: implemented in this repository.
 
 Status: in progress. Resource ownership boundaries and explicit
 lifecycle/interface contracts, lexical `let`, typed `if/else`, partial-place
-diagnostics, record syntax/checking, Graph v6, validated stable-ID HIR/type
+diagnostics, record construction/projection/immutable-update semantics, Graph v7, validated stable-ID HIR/type
 facts, a mandatory replay-validated cleanup plan, versioned normalized-status
 and semantic-event-dictionary types, native scalar status/out execution, a
 browser-loadable scalar Wasm backend, and one narrow direct-trivial-resource
@@ -48,7 +48,18 @@ trivial/imported lifecycle syntax, declaration-only interface/import contracts,
 source/HIR validation, and a target-neutral cleanup plan. Resolved functions
 carry typed blocks/edges/regions/exits, guarded liveness, atomic call commits,
 sticky status sources, cleanup order, and result publication; validation
-independently rebuilds the plan, and Graph v6 serializes it.
+independently rebuilds the plan, and Graph v7 serializes it. Checked Native64
+and Wasm32 layouts cover nested `i64`, `bool`, and direct trivial-resource
+fields; immutable-update cleanup consumes the base first, evaluates authored
+replacements left-to-right, transfers untouched fields, and cleans displaced
+live fields exactly once in reverse order. Empty records have frozen size and
+alignment one on both profiles. The bounded production slice executes public
+nested `i64`/`bool` records through native C11/Clang at O0/O2 and browser Wasm
+under Node, including pointer parameters, caller-owned results, poison
+preservation, exact evaluation order, and Wasm shadow-stack re-entry. A private
+test-only resource-record scenario is projected from the same cleanup plan into
+C and real Wasm with an exact common finalization trace and zero liveness; it
+does not open public resource execution or any aggregate ABI.
 
 Phase 3 now composes its formerly separate native evidence layers for the
 private direct-trivial slice. Feature-gated compiler emission produces the
@@ -72,8 +83,8 @@ Rust-host evidence is the narrower [job
 The public build-only API/CLI now emits one selected direct-trivial callable-v2
 bundle with deterministic hashed metadata, but it exposes no execution,
 admission, or adoption surface.
-Imported lifecycles, calls, aggregates, broader control flow,
-cross-realm/worker identity, aggregate layouts, variants, matching,
+Imported lifecycles, calls, general aggregates, broader control flow,
+cross-realm/worker identity, stable public aggregate ABIs, variants, matching,
 concurrency, and fork recovery remain subsequent work.
 
 Callable v3 is a separate bounded physical tranche: graph-derived providers
@@ -89,16 +100,18 @@ surface. One exact arm64-Simulator link/runtime path is implemented and green in
 hosted run 31318280135; app-host/device and broader iOS corpus evidence,
 fatal-allocation/process-crash injection, Android device/lifecycle breadth,
 and quiescence remain. The bounded Android JNI/APK path is green in [run
-31324497016, job 93272580149](https://github.com/wavect/semaprax/actions/runs/31324497016/job/93272580149).
+31338834586, job 93309086206](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086206).
 None of these
 private steps opens public admission or `SPX-B104`.
 
-A first private native-desktop application seam now has a locally green macOS
-package/runtime path and a configured, pending Windows path. It packages one
+A first private native-desktop application seam has a hosted-green macOS
+package/runtime path in [run 31338834586, job
+93309086230](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086230)
+and a Windows path pending in [run
+31339938860](https://github.com/wavect/semaprax/actions/runs/31339938860). It packages one
 exact callable-v3 owned-identity provider with the existing loader and
-authenticated receipt ledger; the local macOS process rotates ownership across
-two calls and verifies exact replay. Hosted macOS/Windows execution is
-configured but not counted until green. This is headless packaging evidence,
+authenticated receipt ledger; the macOS process rotates ownership across two
+calls and verifies exact replay. This is headless packaging evidence,
 not AppKit/SwiftUI/WinUI, accessibility, lifecycle, signing, installation, or
 public application-language support.
 
@@ -109,13 +122,15 @@ event loop, binds the engine bytes to a deterministic package manifest before
 launch, requires the exact engine result, and reaches native close and
 termination before publishing success. AppKit bounds engine termination; Win32
 freezes its imported DLL set and rejects every export directory. Strict AppKit compilation and source
-locks are green; packaged macOS/Windows execution is configured and counts only
-after hosted green. General SEMAPRAX UI/state syntax, SwiftUI/WinUI, broad
+locks are green; packaged macOS AppKit execution is green in [job
+93309086230](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086230),
+while Windows remains pending in [run
+31339938860](https://github.com/wavect/semaprax/actions/runs/31339938860). General SEMAPRAX UI/state syntax, SwiftUI/WinUI, broad
 accessibility/lifecycle, signing, installers, and distribution remain later.
 
 The bounded Apple Swift/iOS application milestone is green in [run
-31333469714, job
-93295293995](https://github.com/wavect/semaprax/actions/runs/31333469714/job/93295293995):
+31338834586, job
+93309086228](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086228):
 target-bound device and Simulator static slices, a private XCFramework, Swift 6
 complete-concurrency checking, and installed arm64-Simulator applications for
 explicit and deterministic ARC cleanup. Physical-device, public-framework,
@@ -134,8 +149,10 @@ Component v3 now privately composes its exact checked two-scalar status/out core
 addition overflow, division by zero, false precondition, and false
 postcondition. Its independent/upstream validators, poison/sticky-status core
 evidence, zero-import empty-linker/no-WASI runtime, and isolated locked
-dependency/MSRV graph are implemented; the hosted Wasmtime job is configured
-and pending. Source-language `Result`/`Option`, records/resources/imports,
+dependency/MSRV graph are implemented; the hosted Wasmtime gate is green in
+[run 31338834586, job
+93309086213](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086213).
+Source-language `Result`/`Option`, records/resources/imports,
 async/capabilities, multi-engine/browser execution, public API, and
 `SPX-B104` remain later gates.
 
@@ -206,8 +223,8 @@ compile-and-inspect only. Its Kotlin wrapper confines the host to one
 `HandlerThread`, uses `SPXAJH01` handles and `SPXAJS01` statuses, treats
 `consume()` as the exact evidence path, and dispatches non-throwing Cleaner
 fallback through the identical `PhantomReference` action. That exact hosted
-API-35 x86_64 APK/Emulator execution is green in [run 31324497016, job
-93272580149](https://github.com/wavect/semaprax/actions/runs/31324497016/job/93272580149).
+API-35 x86_64 APK/Emulator execution is green in [run 31338834586, job
+93309086206](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086206).
 GC collection, process-exit cleanup, AAR/application lifecycle/UI, device execution, broader
 iOS corpus/app lifecycle, crash/fatal-allocation injection, and quiescence
 evidence remain.

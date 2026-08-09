@@ -111,6 +111,48 @@ fn construction_preserves_initializer_order_expands_shorthand_and_chains_project
 }
 
 #[test]
+fn immutable_updates_round_trip_canonically_and_preserve_replacement_order() {
+    let source = r#"
+module test.record_update_syntax;
+@id("geometry.point")
+record Point {
+    @id("geometry.point.x") x: i64,
+    @id("geometry.point.y") y: i64,
+}
+@id("app.main")
+fn main() -> i64 {
+    let point = Point { x: 1, y: 2 };
+    (point with { y: 40, x: 2 }).x
+}
+"#;
+    let program = parse(source, Path::new("record-update.spx")).unwrap();
+    let ExprKind::Block { statements, tail } = &program.functions[0].body.kind else {
+        panic!("function body should be a block")
+    };
+    assert_eq!(statements.len(), 1);
+    let ExprKind::Project { base, field, .. } = &tail.kind else {
+        panic!("tail should project the updated record")
+    };
+    assert_eq!(field, "x");
+    let ExprKind::UpdateRecord { base, fields } = &base.kind else {
+        panic!("projection base should be a record update")
+    };
+    assert!(matches!(&base.kind, ExprKind::Var(name) if name == "point"));
+    assert_eq!(
+        fields
+            .iter()
+            .map(|field| field.name.as_str())
+            .collect::<Vec<_>>(),
+        ["y", "x"]
+    );
+
+    let canonical = format::canonical(&program);
+    assert!(canonical.contains("point with { y: 40, x: 2 }.x"));
+    let reparsed = parse(&canonical, Path::new("record-update-canonical.spx")).unwrap();
+    assert_eq!(format::canonical(&reparsed), canonical);
+}
+
+#[test]
 fn dotted_names_remain_qualified_while_expression_dots_are_projections() {
     let source = r#"
 module ecosystem.example;
@@ -159,6 +201,27 @@ fn malformed_record_syntax_has_stable_parser_diagnostics() {
         .unwrap_err()
         .code,
         "SPX-P105"
+    );
+
+    let missing_replacement_colon =
+        "module bad; record Point { x: i64, } fn main(point: Point) -> Point { point with { x 1 } }";
+    assert_eq!(
+        parse(
+            missing_replacement_colon,
+            Path::new("missing-replacement-colon.spx")
+        )
+        .unwrap_err()
+        .code,
+        "SPX-P106"
+    );
+
+    let missing_update_close =
+        "module bad; record Point { x: i64, } fn main(point: Point) -> Point { point with { x: 1 }";
+    assert_eq!(
+        parse(missing_update_close, Path::new("missing-update-close.spx"))
+            .unwrap_err()
+            .code,
+        "SPX-P106"
     );
 }
 

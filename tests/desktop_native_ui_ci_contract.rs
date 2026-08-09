@@ -97,6 +97,12 @@ fn native_ui_source_locks_reject_hostile_gate_removal() {
             "removed second UI build",
         ),
         macos.replace("cmd LC_UUID", "cmd LC_SOURCE_VERSION"),
+        macos.replace("load_commands=$(otool -l \"$binary\")", "load_commands=''"),
+        macos.replace(
+            "$(printf '%s\\n' \"$load_commands\" | sed -n '1p')",
+            "$binary:",
+        ),
+        macos.replace("\"$load_commands\" | sed '1d'", "\"$load_commands\""),
         macos.replace("expected_inventory=", "removed_inventory="),
         macos.replace(
             "CC_SHA256(engineBytes.bytes",
@@ -123,6 +129,58 @@ fn native_ui_source_locks_reject_hostile_gate_removal() {
         windows.replace(
             "$vswhereVersion -ne (Lock 'windows.vswhere.version')",
             "$false",
+        ),
+        windows.replace(
+            "Exact-Library 'libcmt.lib' $vcLibRoot",
+            "Exact-Library 'libcmt.lib' $sdkUcrtLibRoot",
+        ),
+        windows.replace(
+            "Exact-Library 'libvcruntime.lib' $vcLibRoot",
+            "Exact-Library 'libvcruntime.lib' $sdkUcrtLibRoot",
+        ),
+        windows.replace(
+            "Exact-Library 'libucrt.lib' $sdkUcrtLibRoot",
+            "Exact-Library 'libucrt.lib' $vcLibRoot",
+        ),
+        windows.replace(
+            "Exact-Library 'oldnames.lib' $vcLibRoot",
+            "Exact-Library 'oldnames.lib' $sdkUcrtLibRoot",
+        ),
+        windows.replace(
+            "Exact-Library 'ucrt.lib' $sdkUcrtLibRoot",
+            "Exact-Library 'ucrt.lib' $vcLibRoot",
+        ),
+        windows.replace(
+            "Exact-Library 'kernel32.lib' $sdkUmLibRoot",
+            "Exact-Library 'kernel32.lib' $vcLibRoot",
+        ),
+        windows.replace(
+            "Exact-Library 'user32.lib' $sdkUmLibRoot",
+            "Exact-Library 'user32.lib' $vcLibRoot",
+        ),
+        windows.replace(
+            "Exact-Library 'oleacc.lib' $sdkUmLibRoot",
+            "Exact-Library 'oleacc.lib' $vcLibRoot",
+        ),
+        windows.replace(
+            "Exact-Library 'ole32.lib' $sdkUmLibRoot",
+            "Exact-Library 'ole32.lib' $vcLibRoot",
+        ),
+        windows.replace(
+            "Exact-Library 'oleaut32.lib' $sdkUmLibRoot",
+            "Exact-Library 'oleaut32.lib' $vcLibRoot",
+        ),
+        windows.replace(
+            "Exact-Library 'shell32.lib' $sdkUmLibRoot",
+            "Exact-Library 'shell32.lib' $vcLibRoot",
+        ),
+        windows.replace(
+            "Exact-Library 'uuid.lib' $sdkUmLibRoot",
+            "Exact-Library 'uuid.lib' $vcLibRoot",
+        ),
+        windows.replace(
+            "Exact-Library 'bcrypt.lib' $sdkUmLibRoot",
+            "Exact-Library 'bcrypt.lib' $vcLibRoot",
         ),
         windows.replace("CreateWindowExW", "RemovedWindowFactory"),
         windows.replace("IsWindowVisible", "RemovedVisibilityProbe"),
@@ -168,6 +226,11 @@ fn macos_contract(source: &str) -> Result<(), String> {
     if source.contains("waitUntilExit") {
         return Err("unbounded AppKit engine wait escaped the source lock".to_owned());
     }
+    if source.contains("otool -l \"$ui\" \"$engine\" \"$provider\"") {
+        return Err(
+            "macOS native UI otool filename headers must not enter the load-path scan".to_owned(),
+        );
+    }
     require_all(
         "macOS native UI",
         source,
@@ -185,6 +248,9 @@ fn macos_contract(source: &str) -> Result<(), String> {
             "cmp -s",
             "cmd LC_UUID",
             "cmd LC_BUILD_VERSION",
+            "load_commands=$(otool -l \"$binary\")",
+            "[ \"$(printf '%s\\n' \"$load_commands\" | sed -n '1p')\" != \"$binary:\" ]",
+            "printf '%s\\n' \"$load_commands\" | sed '1d' | grep -E 'LC_RPATH|@loader_path|@executable_path|/private/|/Users/|/Volumes/|target/'",
             "expected_ui_images=",
             "expected_inventory=",
             "CFBundlePackageType</key><string>APPL",
@@ -256,9 +322,19 @@ fn windows_contract(source: &str) -> Result<(), String> {
             "& $clangPath @arguments",
             "-Wl,/Brepro,/nodefaultlib,/subsystem:windows",
             "windows.ui.libraries",
-            "Exact-Library 'user32.lib'",
-            "Exact-Library 'oleacc.lib'",
-            "Exact-Library 'bcrypt.lib'",
+            "Exact-Library 'libcmt.lib' $vcLibRoot",
+            "Exact-Library 'libvcruntime.lib' $vcLibRoot",
+            "Exact-Library 'libucrt.lib' $sdkUcrtLibRoot",
+            "Exact-Library 'oldnames.lib' $vcLibRoot",
+            "Exact-Library 'ucrt.lib' $sdkUcrtLibRoot",
+            "Exact-Library 'kernel32.lib' $sdkUmLibRoot",
+            "Exact-Library 'user32.lib' $sdkUmLibRoot",
+            "Exact-Library 'oleacc.lib' $sdkUmLibRoot",
+            "Exact-Library 'ole32.lib' $sdkUmLibRoot",
+            "Exact-Library 'oleaut32.lib' $sdkUmLibRoot",
+            "Exact-Library 'shell32.lib' $sdkUmLibRoot",
+            "Exact-Library 'uuid.lib' $sdkUmLibRoot",
+            "Exact-Library 'bcrypt.lib' $sdkUmLibRoot",
             "Build-Ui (Join-Path $scratch 'ui-first')",
             "Build-Ui (Join-Path $scratch 'ui-second')",
             "$image.Subsystem -ne 2",

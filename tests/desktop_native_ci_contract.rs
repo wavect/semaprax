@@ -216,6 +216,30 @@ fn windows_source_lock_rejects_hostile_gate_removal() {
             "Resolve-Path (Join-Path $sdkLibRoot 'ucrt/x64')",
         ),
         source.replace(
+            "Assert-ExactLibrary (Join-Path $vcLibRoot 'libcmt.lib') $vcLibRoot",
+            "Assert-ExactLibrary (Join-Path $sdkUcrtLibRoot 'libcmt.lib') $sdkUcrtLibRoot",
+        ),
+        source.replace(
+            "Assert-ExactLibrary (Join-Path $vcLibRoot 'libvcruntime.lib') $vcLibRoot",
+            "Assert-ExactLibrary (Join-Path $sdkUcrtLibRoot 'libvcruntime.lib') $sdkUcrtLibRoot",
+        ),
+        source.replace(
+            "Assert-ExactLibrary (Join-Path $sdkUcrtLibRoot 'libucrt.lib') $sdkUcrtLibRoot",
+            "Assert-ExactLibrary (Join-Path $vcLibRoot 'libucrt.lib') $vcLibRoot",
+        ),
+        source.replace(
+            "Assert-ExactLibrary (Join-Path $vcLibRoot 'oldnames.lib') $vcLibRoot",
+            "Assert-ExactLibrary (Join-Path $sdkUcrtLibRoot 'oldnames.lib') $sdkUcrtLibRoot",
+        ),
+        source.replace(
+            "Assert-ExactLibrary (Join-Path $sdkUcrtLibRoot 'ucrt.lib') $sdkUcrtLibRoot",
+            "Assert-ExactLibrary (Join-Path $vcLibRoot 'ucrt.lib') $vcLibRoot",
+        ),
+        source.replace(
+            "Assert-ExactLibrary (Join-Path $sdkUmLibRoot 'kernel32.lib') $sdkUmLibRoot",
+            "Assert-ExactLibrary (Join-Path $vcLibRoot 'kernel32.lib') $vcLibRoot",
+        ),
+        source.replace(
             "CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER",
             "REMOVED_TARGET_LINKER",
         ),
@@ -426,6 +450,12 @@ fn windows_contract(source: &str) -> Result<(), String> {
             "import library is not a COFF archive",
             "windows.provider.libraries",
             "libcmt.lib,libvcruntime.lib,libucrt.lib,oldnames.lib,ucrt.lib,kernel32.lib",
+            "Assert-ExactLibrary (Join-Path $vcLibRoot 'libcmt.lib') $vcLibRoot",
+            "Assert-ExactLibrary (Join-Path $vcLibRoot 'libvcruntime.lib') $vcLibRoot",
+            "Assert-ExactLibrary (Join-Path $sdkUcrtLibRoot 'libucrt.lib') $sdkUcrtLibRoot",
+            "Assert-ExactLibrary (Join-Path $vcLibRoot 'oldnames.lib') $vcLibRoot",
+            "Assert-ExactLibrary (Join-Path $sdkUcrtLibRoot 'ucrt.lib') $sdkUcrtLibRoot",
+            "Assert-ExactLibrary (Join-Path $sdkUmLibRoot 'kernel32.lib') $sdkUmLibRoot",
             "function Resolve-CanonicalNonReparsePath",
             "[System.IO.Path]::GetPathRoot($full)",
             "$components = @('') +",

@@ -157,10 +157,17 @@ for binary in "$ui" "$engine" "$provider"; do
     exit 1
   fi
 done
-if otool -l "$ui" "$engine" "$provider" | grep -E 'LC_RPATH|@loader_path|@executable_path|/private/|/Users/|/Volumes/|target/' >/dev/null; then
-  echo "private desktop UI package contains an ambient or build-local load path" >&2
-  exit 1
-fi
+for binary in "$ui" "$engine" "$provider"; do
+  load_commands=$(otool -l "$binary")
+  if [ "$(printf '%s\n' "$load_commands" | sed -n '1p')" != "$binary:" ]; then
+    echo "private desktop UI Mach-O load-command header changed: $binary" >&2
+    exit 1
+  fi
+  if printf '%s\n' "$load_commands" | sed '1d' | grep -E 'LC_RPATH|@loader_path|@executable_path|/private/|/Users/|/Volumes/|target/' >/dev/null; then
+    echo "private desktop UI package contains an ambient or build-local load path: $binary" >&2
+    exit 1
+  fi
+done
 
 actual_ui_images=$(otool -L "$ui" | sed -n '2,$s/^[[:space:]]*\([^[:space:]]*\).*/\1/p')
 expected_ui_images='/System/Library/Frameworks/Cocoa.framework/Versions/A/Cocoa

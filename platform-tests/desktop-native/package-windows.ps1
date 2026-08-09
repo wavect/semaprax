@@ -143,7 +143,7 @@ if (($providerLibraryNames -join ',') -ne 'libcmt.lib,libvcruntime.lib,libucrt.l
 $providerLibraries = @(
   Assert-ExactLibrary (Join-Path $vcLibRoot 'libcmt.lib') $vcLibRoot
   Assert-ExactLibrary (Join-Path $vcLibRoot 'libvcruntime.lib') $vcLibRoot
-  Assert-ExactLibrary (Join-Path $vcLibRoot 'libucrt.lib') $vcLibRoot
+  Assert-ExactLibrary (Join-Path $sdkUcrtLibRoot 'libucrt.lib') $sdkUcrtLibRoot
   Assert-ExactLibrary (Join-Path $vcLibRoot 'oldnames.lib') $vcLibRoot
   Assert-ExactLibrary (Join-Path $sdkUcrtLibRoot 'ucrt.lib') $sdkUcrtLibRoot
   Assert-ExactLibrary (Join-Path $sdkUmLibRoot 'kernel32.lib') $sdkUmLibRoot

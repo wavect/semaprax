@@ -108,7 +108,7 @@ if (($uiLibraryNames -join ',') -ne 'libcmt.lib,libvcruntime.lib,libucrt.lib,old
 $uiLibraries = @(
   Exact-Library 'libcmt.lib' $vcLibRoot
   Exact-Library 'libvcruntime.lib' $vcLibRoot
-  Exact-Library 'libucrt.lib' $vcLibRoot
+  Exact-Library 'libucrt.lib' $sdkUcrtLibRoot
   Exact-Library 'oldnames.lib' $vcLibRoot
   Exact-Library 'ucrt.lib' $sdkUcrtLibRoot
   Exact-Library 'kernel32.lib' $sdkUmLibRoot

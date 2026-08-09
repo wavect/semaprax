@@ -847,7 +847,7 @@ pub unsafe fn register_admitted_ios_static_settlement_exact(
         execute_address,
         settle_address,
     ];
-    if addresses.iter().any(|address| *address == 0)
+    if addresses.contains(&0)
         || addresses
             .iter()
             .enumerate()

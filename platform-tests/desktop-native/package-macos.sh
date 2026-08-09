@@ -93,20 +93,20 @@ build_once() {
   SDKROOT="$sdk_path" MACOSX_DEPLOYMENT_TARGET="$readonly_deployment_target" \
     SOURCE_DATE_EPOCH=1 ZERO_AR_DATE=1 \
     CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER="$clang_tool" \
-    RUSTFLAGS="-C link-arg=-fuse-ld=$ld_tool" \
+    RUSTFLAGS="-C link-arg=--ld-path=$ld_tool" \
     CARGO_TARGET_DIR="$target" cargo run --quiet --offline --locked \
     -p semaprax-native-host --features unstable-desktop-app-harness \
     --bin private-desktop-v3-fixture -- "$source_file" "$descriptor_file"
   SOURCE_DATE_EPOCH=1 ZERO_AR_DATE=1 "$clang_tool" -isysroot "$sdk_path" \
     -mmacosx-version-min="$readonly_deployment_target" \
-    -fuse-ld="$ld_tool" \
+    --ld-path="$ld_tool" \
     -std=c11 -pedantic-errors -Wall -Wextra -Werror -O2 -dynamiclib \
     -Wl,-install_name,"$readonly_provider_id" \
     "$source_file" -o "$provider_file"
   SDKROOT="$sdk_path" MACOSX_DEPLOYMENT_TARGET="$readonly_deployment_target" \
     SOURCE_DATE_EPOCH=1 ZERO_AR_DATE=1 \
     CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER="$clang_tool" \
-    RUSTFLAGS="-C link-arg=-fuse-ld=$ld_tool" \
+    RUSTFLAGS="-C link-arg=--ld-path=$ld_tool" \
     CARGO_TARGET_DIR="$target" cargo build --quiet --offline --locked --release \
     -p semaprax-native-host --features unstable-desktop-app-harness \
     --bin private-desktop-v3-app

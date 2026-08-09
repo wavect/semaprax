@@ -172,24 +172,23 @@ loader pin, or physical finalizer. The current proof envelope and callable host
 do not wire the physical v3 boundary.
 
 The separate [native callable ABI v3](NATIVE-CALLABLE-ABI-V3.md) now fixes that
-boundary's private metadata: sequential `SPXNABI3` descriptor fields, an
-acyclic hash DAG, bounded recovery graph, exact buffer and instance capacities,
-future `execute`/`settle` symbols, six provider-wire role/schema reservations, a
-distinct provisional host-only committed-receipt role, and dynamic-image versus
+boundary's private descriptor and wires: sequential `SPXNABI3` fields, an
+acyclic hash DAG, bounded graph, exact buffer/instance capacities, a
+six-argument execute ABI, payload-bearing frame cells, six provider codecs, a
+distinct 524-byte host-only committed receipt, and dynamic-image versus
 iOS-static linkage metadata. Each `CertifyOutcome` carries its ordinal/outcome
 witness and a nonzero digest bound to the trace-certificate fingerprint; the
 host recomputes that digest without independently accepting or walking the
-trace-path DFA certificate. Resealed witness/digest mutations fail. The seven
-runtime statements omit complete byte/tag/digest/host-HMAC transcripts; they
-are not frozen codecs and may change private v3 known answers when replaced by
-independently tested codecs. The
+trace-path DFA certificate. Resealed witness/digest mutations fail. Independent
+compiler encoders and host parsers freeze the seven complete byte/tag/digest/
+HMAC transcripts and their changed private known answers. The
 compiler encoder is bound to its build target and exposes no cross-target
 configuration; Android/iOS/Windows cross-emission and runtime evidence remain
-absent. The compiler encoder and independently implemented host parser are a
-metadata-only tranche. The loader rejects the full v3 magic in its
+absent. The compiler encoders and independent host parsers are an
+authority-free codec tranche. The loader rejects the full v3 magic in its
 shared input validator before canonicalization, image loading, getter lookup,
-or callable lookup; its exact callable-v2 classifier remains unchanged. Runtime
-wire codecs, provider code, v3 loader/static registration, exact-instance frame
+or callable lookup; its exact callable-v2 classifier remains unchanged.
+Provider code, v3 loader/static registration, exact-instance frame
 reservation, host receipt authentication, physical finalizers, and ledger
 publication remain absent. This is architecture evidence, not execution
 evidence, and `SPX-B104` remains closed.

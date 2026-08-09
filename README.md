@@ -161,21 +161,23 @@ settlement, authenticated receipts, and explicit call/module quiescence. Its
 hidden target-neutral model and compiler derivation now serialize through the
 private [settlement-proof v1](docs/NATIVE-CALLABLE-SETTLEMENT-PROOF-V1.md)
 envelope and an independent host parser. That proof binds exact v2 metadata but
-grants no authority. The private [callable ABI v3 metadata
+grants no authority. The private [callable ABI v3 descriptor/wire
 contract](docs/NATIVE-CALLABLE-ABI-V3.md) now fixes the current private
 `SPXNABI3` descriptor order, hash DAG, capacities, settlement graph, linkage
-metadata, and seven provisional future wire-role/schema reservations. A
+metadata, six provider wire codecs, and one host-only HMAC receipt codec. A
 `CertifyOutcome` edge carries the exact ordinal/outcome witness plus a nonzero
 digest bound to the trace-certificate fingerprint; the host recomputes that
 digest but does not independently accept the trace-path DFA certificate. The
-seven reservations omit complete byte/tag/digest/host-HMAC transcripts and may
-change private v3 known answers when independently tested codecs are frozen.
+six-argument execute ABI, payload-bearing frame cells, closed tags, exact
+capacities, digest DAG, and receipt authentication transcript replace the
+former provisional identities and freeze new private v3 known answers.
 The current emitter is bound to its compiler build target and has no
 cross-target configuration;
 Android/iOS/Windows cross-emission and runtime evidence remain absent. The
-compiler-encoder/independent-host-parser tranche is metadata work only, and the
+compiler-encoder/independent-host-parser tranche is authority-free codec work,
+and the
 existing loader rejects v3 magic before path or image access. No v3 provider,
-runtime wire codec, loader admission, host settlement, physical finalizer, or
+loader admission, host settlement, physical finalizer, or
 public compiler path is wired, so this supplies no native-runtime evidence and
 does not weaken `SPX-B104`.
 

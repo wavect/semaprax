@@ -1,12 +1,12 @@
 # Native callable ABI v3
 
-Status: private metadata contract. `SPXNABI3` fixes the current compiler/host
-descriptor projection. Its seven future physical-wire strings and fingerprints
-are provisional bounded role/schema reservations, not complete wire codecs.
-No v3 provider, runtime wire codec, loader admission, settlement host,
-finalizer, or public compiler surface exists. The current loader rejects v3
-metadata before path or image access. Ordinary native resource compilation
-remains `SPX-B104`.
+Status: private descriptor and wire-codec contract. `SPXNABI3` fixes the
+compiler/host descriptor projection and seven bounded physical wire formats.
+The compiler encodes them and the unpublished host parses them independently;
+this does not create a provider, loader/static admission, settlement host,
+ledger publication, physical finalizer, mobile runtime, or public compiler
+surface. The current loader still rejects v3 before path or image access, and
+ordinary native resource compilation remains `SPX-B104`.
 
 ## Scope and primitives
 
@@ -81,11 +81,11 @@ instance bytes. Their exact derivation is:
 
 ```text
 request             = 104 + sum(i64: 16, bool: 12, owned: 20)
-execute_response    = 124 + 4 * maximum_event_count
-frame               = 208 + 4 * resource_count
+execute_response    = 156 + 4 * maximum_event_count
+frame               = 388 + 12 * resource_count
 decision            = 172
-action_evidence     = 188
-candidate_receipt   = 264
+action_evidence     = 196
+candidate_receipt   = 372 + 12 * resource_count
 
 resource_count      <= 4_096
 checkpoint_count    <= 65_536
@@ -93,9 +93,9 @@ graph_work_units     = resource_count * checkpoint_count <= 1_000_000
 active_frames        = 256
 quarantined_frames   = 64
 reserved_instance_bytes
-  = 256 * (request + execute_response + frame + decision
-           + action_evidence + candidate_receipt)
-    + 64 * (frame + candidate_receipt)
+  = (256 + 64)
+    * (request + execute_response + frame + 172 + 196
+       + candidate_receipt + 524)
   <= 64 MiB
 ```
 
@@ -165,13 +165,223 @@ state-transition, cleanup-order, and terminal-outcome rules. `Finalizing` and
 `Published` are closed vocabulary values but are never admissible checkpoint
 states. Canonical bytes are never sorted or repaired by the host.
 
+## Frozen runtime wires
+
+Every wire begins with the same 20-byte envelope: its eight-byte magic,
+`u32le version = 3`, `u32le header_size = 20`, and `u32le total_size`. Except
+for execute-response storage, total equals the supplied slice; a response total
+declares its canonical prefix and every remaining capacity byte is zero. All
+remaining integers are little-endian;
+all arithmetic, count conversions, and buffer ranges are checked. Prefixes,
+trailing bytes, unknown tags, noncanonical booleans, capacity disagreement,
+overlapping provider buffers, and zero required identities fail closed.
+Decoders never sort, truncate, repair, negotiate, or fall back.
+
+### Execute request: `SPXNRQ03`
+
+The fixed prefix is 104 bytes: the common envelope, call contract, nonzero
+`u64` invocation, nonzero `u64` frame generation, nonzero 32-byte challenge,
+and argument count. Arguments follow the exact signature order. Scalar tag `1`
+carries the dense parameter index and either `i64` as eight bytes (16 bytes
+total) or canonical Boolean `u32` zero/one (12 bytes total). Owned tag `2`
+carries dense parameter index, dense owner ordinal, and opaque `u64` payload
+(20 bytes total). Payload zero is valid and never means dead.
+
+### Execute response: `SPXNEX03`
+
+Its capacity is `156 + 4 * maximum_event_count`; a canonical response uses an
+exact prefix and leaves the unused preallocated tail zero. In order it contains
+the envelope; call contract; invocation and frame generation; challenge;
+request digest; certified checkpoint; outcome tag and detail; result payload
+`u64`; event count; and exact nonzero event ordinals. Outcome tag `1` is scalar
+success (`detail = 0`, payload contains the canonical `i64` bits); tag `2` is
+semantic failure (`detail` is the selected ordinal, payload zero); tag `3` is
+owned success (`detail` is the owner ordinal and payload exactly equals its
+frame payload).
+
+The C return is physical adapter evidence, never semantic status. Only zero
+makes response bytes eligible for parsing. A nonzero execute return permits
+`Abort(PhysicalResult(code))` only when the independent frame remains valid at
+a certified checkpoint; otherwise the exact instance is quarantined.
+
+### Recovery frame: `SPXNFR03`
+
+The mutable caller-owned frame has capacity `388 + 12 * resource_count`. Its
+exact order is:
+
+| Field | Encoding |
+| --- | --- |
+| Envelope | common 20-byte header |
+| Call, recovery, graph fingerprints | three 32-byte values |
+| Invocation, frame generation | two nonzero `u64` values |
+| Challenge | nonzero 32 bytes |
+| Request, response-storage, semantic-trace digests | three 32-byte values |
+| Execute return tag | `1 Pending`, `2 Returned` |
+| Execute return code | `u32`; zero while pending |
+| Certified checkpoint and phase | two `u32` values |
+| Locked-decision digest | 32 bytes; zero only before decision commit |
+| Next action index, record count, active finalizers | three `u32` values |
+| Resource count | `u32` |
+| Resource cells | state `u32`, exact opaque payload `u64` per owner |
+| Action-chain digest | 32 bytes |
+| Pre-candidate frame digest | final 32 bytes |
+
+Resource tags are `1 Live`, `2 ProvisionalResult`, `3 Finalizing`, `4 Dead`,
+and `5 Published`. Provider phases are `1 Executing`, `2 DecisionLocked`,
+`3 ActionInProgress`, and `4 ProviderSettled`. Host-only phases are
+`5 ReceiptCommitted` and absorbing `6 Quarantined`; provider output can never
+assert either. The host initializes the all-live start and payload cells before
+`CallCommit`. The provider binds the request digest, cells, generation,
+invocation, challenge, and graph before any effect.
+
+`Finalizing` is written before entering a physical finalizer and `Dead` only
+after normal return. A returned or unwound frame with `Finalizing`, a nonzero
+active-finalizer count, or state/checkpoint disagreement is uncertain and can
+never be retried.
+
+### Settlement decision: `SPXNDC03`
+
+The fixed 172-byte decision contains the envelope; call, recovery, and graph
+fingerprints; invocation and generation; challenge; decision tag; and one
+`u32` detail. Tags are `1 AcceptScalar`, `2 AcceptSemanticFailure`,
+`3 AcceptOwned(detail = owner ordinal)`, `4 AbortPhysical(detail nonzero)`,
+`5 AbortMalformedResponse`, `6 AbortTraceRejected`, and `7 AbortHostUnwind`.
+Every tag except `3` and `4` requires zero detail.
+
+### Action evidence: `SPXNAC03`
+
+The fixed 196-byte record contains the envelope; call, recovery, and graph
+fingerprints; invocation and generation; challenge; dense zero-based action
+index; boundary tag; owner ordinal; exact payload `u64`; before and after state;
+and certified checkpoint. Boundary tags are `1 FinalizeStart`,
+`2 FinalizeComplete`, and `3 Publish`. Start records the transition to
+`Finalizing`; completion requires `Finalizing -> Dead`; publish requires
+`ProvisionalResult -> Published`. Records feed the action chain in execution
+order and are evidence, never finalizer authority.
+
+### Candidate receipt: `SPXNCR03`
+
+The provider candidate has capacity `372 + 12 * resource_count`. It contains
+the envelope; call, recovery, and graph fingerprints; invocation and
+generation; challenge; request, response-storage, semantic-trace,
+pre-candidate-frame, decision, and action-chain digests; outcome tag and detail;
+canonical `active_finalizers = 0`; resource count; and one disposition-state
+`u32` plus exact payload `u64` per owner. Disposition tag `1 Dead` or
+`2 Published` is a receipt-only table. Candidate outcome tags are `1 Scalar`,
+`2 SemanticFailure`, `3 Owned(detail = owner ordinal)`, and
+`4 Abort(detail = 0)`. Owned accept has exactly the selected owner published
+and all others dead.
+
+Identical-decision replay from `ProviderSettled` re-encodes byte-identical
+candidate bytes with no action or finalizer effect. A provider candidate has no
+ledger authority.
+
+### Host committed receipt: `SPXHRP03`
+
+This fixed 524-byte role is host-only. In order it contains the envelope;
+32-byte exact-instance binding; call, recovery, and graph fingerprints;
+invocation and generation; challenge; request, response-storage, semantic,
+frame, decision, action-chain, candidate, ledger-before, and ledger-after
+digests; publication tag and `u32` detail; then a 32-byte HMAC. The body is
+bytes `0..492`; the HMAC occupies `492..524`.
+
+Only an independent host parser/replay gate may construct it. One exact
+64-byte OS-random fill is separated into a nonzero 32-byte receipt key and
+nonzero 32-byte instance binding. There is no retry, deterministic fallback,
+or capability-token-key reuse. The HMAC is:
+
+```text
+HMAC-SHA256(
+  K_receipt,
+  "semaprax.native-callable-host-receipt-auth.v3\0"
+  || F(receipt[0..492])
+)
+```
+
+Publication tag `1` means no owner publication and requires zero detail; tag
+`2` names one published owner ordinal. The host must make the authenticated
+receipt cache and exact ledger transition visible as one atomic
+`ReceiptCommit`. Replay returns the cached result without a second mutation. A
+postcommit conflict quarantines while preserving the original receipt and
+publication.
+
+### Digest DAG
+
+Let `F(x)` mean `u64` big-endian length followed by `x`:
+
+```text
+RQ = SHA256("semaprax.native-callable-request-digest.v3\0" || F(request))
+
+RS = SHA256(
+  "semaprax.native-callable-execute-response-storage-digest.v3\0"
+  || execute_return_u32le
+  || F(full_preallocated_response_storage)
+)
+
+DD = SHA256("semaprax.native-callable-decision-digest.v3\0" || F(decision))
+
+A[0] = SHA256(
+  "semaprax.native-callable-action-chain-seed.v3\0"
+  || DD
+  || expected_semantic_action_count_u64le
+)
+
+A[j + 1] = SHA256(
+  "semaprax.native-callable-action-chain-step.v3\0"
+  || A[j]
+  || j_u64le
+  || F(action_record)
+)
+
+FD = SHA256(
+  "semaprax.native-callable-pre-candidate-frame-digest.v3\0"
+  || F(frame[0..total_size-32])
+)
+
+CD = SHA256("semaprax.native-callable-candidate-digest.v3\0" || F(candidate))
+```
+
+The semantic digest is the existing nonzero recovery trace-evidence digest for
+an accepted response and exact terminal graph edge; abort uses 32 zero bytes.
+`FD` excludes only the final self-digest field. `CD` is host-computed and is
+not written into the provider frame, keeping the graph acyclic. The host ledger
+digests are exactly:
+
+```text
+LB = SHA256(
+  "semaprax.native-callable-ledger-before.v3\0"
+  || instance_binding32
+  || call_contract32
+  || invocation_u64le
+  || frame_generation_u64le
+  || owner_count_u32le
+  || each owner in ascending ordinal order as
+     ordinal_u32le || slot_u64le || generation_u64le
+     || state_u32le(1 = InInvocation)
+)
+
+LA = SHA256(
+  "semaprax.native-callable-ledger-after.v3\0"
+  || LB
+  || candidate_digest32
+  || owner_count_u32le
+  || each owner in ascending ordinal order as
+     ordinal_u32le || slot_u64le || generation_after_u64le || state_u32le
+)
+```
+
+Ledger-after state `1 Retired` requires generation-after zero. State
+`2 Published` requires the checked predecessor generation plus one; only an
+owned accept has exactly one published owner. Provider bytes never choose
+these transcripts.
+
 ## Hash DAG and symbols
 
 Let `F(x)` mean `u64` big-endian byte length followed by `x`. Domain strings
 include their displayed terminal NUL. SHA-256 inputs are concatenated exactly;
 numeric transcript fields are raw little-endian `u32` values.
 
-The descriptor schema and current provisional request, execute-response, frame,
+The descriptor schema and frozen request, execute-response, frame,
 decision, action, candidate-receipt, and committed-receipt role fingerprints
 use respectively:
 
@@ -186,23 +396,20 @@ semaprax.native-callable-candidate-receipt-schema.v3\0
 semaprax.native-callable-committed-receipt-schema.v3\0
 ```
 
-Each is currently the hash of its domain plus one ASCII statement. The
-descriptor statement is part of the private metadata layout. The seven runtime
-role statements are provisional reservations: they intentionally omit complete
-byte layouts, tag namespaces, digest transcripts, and—for the host receipt—the
-exact HMAC input/authentication transcript. Their current literal bytes, with no
-terminal NUL, are:
+Each is the hash of its domain plus one canonical ASCII statement. The complete
+tables, tags, digests, bounds, and rejection rules above are normative with
+these compact identities. Their literal bytes have no terminal NUL:
 
 ```text
 SPXNABI3;u32le;header=20;sequential-no-offsets-no-trailing;target;linkage-profile;19-fingerprints;module;function;getter;execute;settle;abi-tag;obligations;15-capacities;signature;graph-len;graph
-SPXNRQ03;u32le-envelope;call-contract32;invocation-u64;frame-generation-u64;provider-challenge32;argument-count;ordered-indexed-arguments;scalar-or-owned-u64-payload
-SPXNEX03;u32le-envelope;call-contract32;invocation-u64;frame-generation-u64;provider-challenge32;checkpoint;outcome;result-payload;event-count;event-ordinals
-SPXNFR03;u32le-envelope;call-contract32;recovery-contract32;settlement-graph32;invocation-u64;frame-generation-u64;provider-challenge32;checkpoint;phase;resource-count;resource-states;pre-candidate-digest32
-SPXNDC03;u32le-envelope;call-contract32;recovery-contract32;settlement-graph32;invocation-u64;frame-generation-u64;provider-challenge32;decision-tag;decision-detail
-SPXNAC03;u32le-envelope;call-contract32;recovery-contract32;settlement-graph32;invocation-u64;frame-generation-u64;provider-challenge32;action-index;action-tag;owner-ordinal;before-state;after-state;checkpoint
-SPXNCR03;u32le-envelope;call-contract32;recovery-contract32;settlement-graph32;invocation-u64;frame-generation-u64;provider-challenge32;pre-candidate-frame-digest32;decision-digest32;action-evidence-digest32;candidate-outcome
-SPXHRP03;u32le-envelope;host-only-HMAC-SHA256;exact-instance-capability;call-contract;invocation;frame-generation;provider-challenge;candidate-digest;ledger-before;ledger-after;decision;action-evidence-digest;publication-result;atomic-ledger-and-receipt-visibility
-extern-C;getter=const-u8-ptr(void);execute=u32(const-u8-ptr,u32,u8-ptr,u32);settle=u32(u8-ptr,u32,const-u8-ptr,u32,u8-ptr,u32);windows-cdecl;synchronous;same-thread;no-unwind;no-longjmp;no-callbacks;no-retained-pointers;no-reentrancy
+SPXNRQ03;v3;u32le;header20;total-exact;call32;invocation-u64;generation-u64;challenge32;argc;args[tag,index,payload];scalar-tag1;i64-8;bool-u32-0-or-1;owned-tag2-owner-u32-payload-u64;no-trailing
+SPXNEX03;v3;u32le;header20;total-declared;zero-tail-to-capacity;call32;invocation-u64;generation-u64;challenge32;request-digest32;checkpoint;outcome;detail;payload-u64;event-count;ordinals;outcomes1-scalar-2-semantic-3-owned
+SPXNFR03;v3;u32le;header20;total-exact;call32;recovery32;graph32;invocation-u64;generation-u64;challenge32;request32;response32;semantic32;return-tag;return-code;checkpoint;phase;decision32;next-action;record-count;active-finalizers;resource-count;cells[state-u32,payload-u64];action-chain32;pre-candidate-frame32
+SPXNDC03;v3;u32le;header20;total172;call32;recovery32;graph32;invocation-u64;generation-u64;challenge32;decision-tag;detail;tags1-scalar-2-semantic-3-owned-4-physical-5-malformed-6-trace-7-unwind
+SPXNAC03;v3;u32le;header20;total196;call32;recovery32;graph32;invocation-u64;generation-u64;challenge32;action-index;boundary-tag;owner;payload-u64;before-state;after-state;checkpoint;tags1-start-2-complete-3-publish
+SPXNCR03;v3;u32le;header20;total372-plus-12r;call32;recovery32;graph32;invocation-u64;generation-u64;challenge32;request32;response32;semantic32;frame32;decision32;action32;outcome;detail;active-finalizers-zero;disposition-count;cells[disposition-u32,payload-u64]
+SPXHRP03;v3;u32le;header20;total524;host-only;instance32;call32;recovery32;graph32;invocation-u64;generation-u64;challenge32;request32;response32;semantic32;frame32;decision32;action32;candidate32;ledger-before32;ledger-after32;publication;detail;hmac32;separate-receipt-key;atomic-ledger-and-cache
+extern-C;getter=const-u8-ptr(void);execute=u32(const-u8-ptr,u32,u8-ptr,u32,u8-ptr,u32);settle=u32(u8-ptr,u32,const-u8-ptr,u32,u8-ptr,u32);windows-cdecl;synchronous;same-thread;no-unwind;no-longjmp;no-callbacks;no-retained-pointers;no-reentrancy
 ```
 
 For any current one-statement identity, its fingerprint is
@@ -232,6 +439,12 @@ no-unwind/no-`longjmp`/no-retained-pointer/no-callback rules. Its fingerprint is
 `SHA256(domain || F(statement))`; the ABI tag and obligations are bound
 separately by the call contract.
 
+The six execute arguments are `(request, request_len, frame, frame_len,
+response, response_capacity)`. The settle arguments are `(frame, frame_len,
+decision, decision_len, candidate, candidate_capacity)`. Request and decision
+are read-only; frame is mutable; response and candidate are disjoint mutable
+outputs. Every pair of supplied ranges must be disjoint.
+
 The call-contract fingerprint uses
 `semaprax.native-callable-contract.v3\0`. It length-frames, in order, target,
 the first 18 descriptor fingerprints (everything before the call contract),
@@ -240,14 +453,10 @@ and all 15 capacity words; then appends the canonical signature transcript.
 The call contract does not hash symbols or the descriptor containing itself.
 This makes the dependency graph acyclic.
 
-Before provider or runtime admission, each of the seven provisional role
-statements MUST be replaced by and frozen against a complete normative codec,
-including every byte, tag, digest, authentication input, bound, and failure
-rule. Independent encoder/parser tests and known answers MUST cover those
-codecs. Because the private call contract binds these fingerprints, that
-replacement may intentionally change private v3 fingerprints, symbols, and
-descriptor known answers. No compatibility promise attaches to the current
-private KATs.
+These frozen replacements intentionally change the earlier private metadata
+fingerprints, symbols, and known answers. Independent encoders, parsers,
+canonical re-encoders, known answers, mutation tests, cross-binding tests, and
+version-confusion tests are required before the bytes count as evidence.
 
 After the contract exists, the symbol seed under
 `semaprax.native-callable-symbol-seed.v3\0` length-frames physical module,
@@ -269,13 +478,11 @@ all preceding identities + capacities + signature --> call contract
 physical/template/recovery/graph/wires/ABI/contract --> symbol seed --> symbols
 ```
 
-## Provisional runtime role/schema reservations
+## Runtime role separation
 
-This milestone reserves bounded roles and current fingerprint inputs, not
-complete runtime schemas, encoders, or provider behavior. The six
-provider-visible future roles are:
+Six frozen roles are provider-visible:
 
-| Future role | Reserved string | Descriptor capacity |
+| Role | Magic | Descriptor capacity |
 | --- | --- | --- |
 | Execute request | `SPXNRQ03` | request bytes |
 | Execute response | `SPXNEX03` | execute-response bytes |
@@ -284,13 +491,13 @@ provider-visible future roles are:
 | Action evidence | `SPXNAC03` | action-evidence bytes |
 | Candidate receipt | `SPXNCR03` | candidate-receipt bytes |
 
-The provider must never emit a committed receipt. `SPXHRP03` provisionally
-identifies a future host-only committed-receipt role created only after
+The provider must never emit a committed receipt. `SPXHRP03` identifies the
+host-only committed-receipt role created only after
 independent candidate parsing, exact-instance/frame-generation replay, and host
 authentication. It is not provider output, is not covered by a provider buffer
 capacity, and is the only role eligible to accompany public ledger
-`ReceiptCommit`. None of these seven runtime codecs is complete, frozen, or
-implemented by this metadata milestone.
+`ReceiptCommit`. The codecs define evidence; no provider or receipt authority
+is implemented by this milestone.
 
 ## Phases, finalizer uncertainty, and lifetime
 
@@ -307,13 +514,15 @@ The future ownership relation is an acyclic lifetime DAG:
 ```text
 module instance / static registration
   -> nonreused frame generation and invocation
-     -> preallocated request, response, frame, decision, action, candidate
+     -> preallocated request, response, frame, decision, action, candidate,
+        and host committed-receipt storage
         -> locked decision and provider evidence
            -> independently authenticated host committed receipt
               -> one ledger outcome
 
-quarantine retains the module/static registration, frame, buffers,
-decision/evidence, owners/results, callbacks, and finalizer pins
+quarantine retains the module/static registration, every preallocated buffer
+including host committed-receipt storage, decision/evidence, owners/results,
+callbacks, and finalizer pins
 ```
 
 Dynamic images become only unload-eligible after draining and release of every
@@ -324,10 +533,10 @@ generation, settlement, draining, and quarantine rules.
 
 ## Threat boundaries and nonclaims
 
-Descriptor equality and hash validation do not authenticate code provenance,
+Descriptor/wire equality and hash validation do not authenticate code provenance,
 make malicious native code memory-safe, observe omitted side effects, recover a
 process crash, or make an interrupted non-idempotent finalizer retryable. This
-contract does not implement provider symbols, physical wire codecs, loader or
+contract does not implement provider symbols, loader or
 static-registration admission, callbacks, async work, concurrency, fork/hot
 reload, imported finalizers, cross-target emission, mobile execution, public
 adoption, or ecosystem FFI. The emitter is bound to its own build target; there
@@ -341,9 +550,8 @@ Before any runtime or public claim, all of these must pass together:
 
 - deterministic compiler bytes and fixed fingerprints plus an independently
   implemented host parser and canonical re-encoder;
-- complete replacement and freeze of all seven provisional runtime role
-  statements as independently encoded/parsed byte, tag, digest, and host-HMAC
-  transcripts, accepting deliberate changes to private v3 known answers;
+- all seven frozen runtime roles independently encoded, parsed, canonically
+  re-encoded, and covered by exact byte, tag, digest, and host-HMAC known answers;
 - every-prefix, trailing-byte, every-byte mutation, hostile count/text/tag,
   overflow, cap, graph-topology, cross-module/target/trace, and rehashed
   substitution rejection;

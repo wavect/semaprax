@@ -11,6 +11,8 @@ mod native_callable_execution;
 mod native_callable_provider;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
 mod native_callable_settlement_proof;
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+mod native_callable_wire_v3;
 #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
 mod native_capability_authority;
 mod native_capability_token;

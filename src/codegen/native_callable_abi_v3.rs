@@ -25,6 +25,13 @@ use crate::native_settlement::{
 };
 use crate::trace_path_certificate::TracePathOutcome;
 
+use super::native_callable_wire_v3::{
+    self as runtime_wire, ACTION_EVIDENCE_BYTES, ACTION_SCHEMA_STATEMENT, CALL_ABI_STATEMENT,
+    CANDIDATE_RECEIPT_SCHEMA_STATEMENT, COMMITTED_RECEIPT_SCHEMA_STATEMENT, DECISION_BYTES,
+    DECISION_SCHEMA_STATEMENT, EXECUTE_RESPONSE_SCHEMA_STATEMENT, FRAME_SCHEMA_STATEMENT,
+    HOST_RECEIPT_BYTES, MAX_WIRE_BYTES, REQUEST_BOOL_BYTES, REQUEST_FIXED_BYTES, REQUEST_I64_BYTES,
+    REQUEST_OWNER_BYTES, REQUEST_SCHEMA_STATEMENT,
+};
 use super::native_host_contract::{
     NativeAdapterParameterProjection, NativeAdapterResultProjection, NativeHostScalarKind,
 };
@@ -39,7 +46,6 @@ const VERSION: u32 = 3;
 const HEADER_SIZE: u32 = 20;
 const FINGERPRINT_BYTES: usize = 32;
 const MAX_DESCRIPTOR_BYTES: usize = 64 * 1024;
-const MAX_WIRE_BYTES: u32 = 1024 * 1024;
 const MAX_EVENT_COUNT: u32 = 65_536;
 const MAX_DICTIONARY_BYTES: u32 = 1024 * 1024;
 const MAX_DICTIONARY_ENTRIES: u32 = 65_536;
@@ -77,21 +83,6 @@ const ACTION_FINALIZE: u32 = 1;
 const ACTION_STAGE_OWNED_RESULT: u32 = 2;
 const ACTION_CERTIFY_OUTCOME: u32 = 3;
 
-// These are exact maximum-wire formula constants. The exact instance
-// capability remains host state and is deliberately not asserted by provider
-// bytes; invocation, generation, and challenge only bind wire evidence.
-const REQUEST_FIXED_BYTES: u32 = 104;
-const REQUEST_I64_BYTES: u32 = 16;
-const REQUEST_BOOL_BYTES: u32 = 12;
-const REQUEST_OWNER_BYTES: u32 = 20;
-const EXECUTE_RESPONSE_FIXED_AND_MAX_PAYLOAD_BYTES: u32 = 124;
-const EVENT_ORDINAL_BYTES: u32 = 4;
-const FRAME_FIXED_BYTES: u32 = 208;
-const FRAME_RESOURCE_STATE_BYTES: u32 = 4;
-const DECISION_BYTES: u32 = 172;
-const ACTION_EVIDENCE_BYTES: u32 = 188;
-const CANDIDATE_RECEIPT_BYTES: u32 = 264;
-
 const DESCRIPTOR_SCHEMA_DOMAIN: &[u8] = b"semaprax.native-callable-descriptor-schema.v3\0";
 const TARGET_DOMAIN: &[u8] = b"semaprax.native-callable-target.v3\0";
 const PHYSICAL_MODULE_DOMAIN: &[u8] = b"semaprax.native-callable-physical-module.v3\0";
@@ -114,18 +105,9 @@ const GETTER_SYMBOL_DOMAIN: &[u8] = b"semaprax.native-callable-getter.v3\0";
 const EXECUTE_SYMBOL_DOMAIN: &[u8] = b"semaprax.native-callable-execute.v3\0";
 const SETTLE_SYMBOL_DOMAIN: &[u8] = b"semaprax.native-callable-settle.v3\0";
 
-// Literal statements are part of the current private metadata KAT inputs.
-// The provisional runtime-role statements may still change, with matching
-// compiler/host fixtures and KATs, before any v3 compatibility promise.
+// Literal descriptor metadata remains in this module. The runtime schema and
+// ABI statements are frozen alongside their canonical compiler encoders.
 const DESCRIPTOR_SCHEMA_STATEMENT: &[u8] = b"SPXNABI3;u32le;header=20;sequential-no-offsets-no-trailing;target;linkage-profile;19-fingerprints;module;function;getter;execute;settle;abi-tag;obligations;15-capacities;signature;graph-len;graph";
-const REQUEST_SCHEMA_STATEMENT: &[u8] = b"SPXNRQ03;u32le-envelope;call-contract32;invocation-u64;frame-generation-u64;provider-challenge32;argument-count;ordered-indexed-arguments;scalar-or-owned-u64-payload";
-const EXECUTE_RESPONSE_SCHEMA_STATEMENT: &[u8] = b"SPXNEX03;u32le-envelope;call-contract32;invocation-u64;frame-generation-u64;provider-challenge32;checkpoint;outcome;result-payload;event-count;event-ordinals";
-const FRAME_SCHEMA_STATEMENT: &[u8] = b"SPXNFR03;u32le-envelope;call-contract32;recovery-contract32;settlement-graph32;invocation-u64;frame-generation-u64;provider-challenge32;checkpoint;phase;resource-count;resource-states;pre-candidate-digest32";
-const DECISION_SCHEMA_STATEMENT: &[u8] = b"SPXNDC03;u32le-envelope;call-contract32;recovery-contract32;settlement-graph32;invocation-u64;frame-generation-u64;provider-challenge32;decision-tag;decision-detail";
-const ACTION_SCHEMA_STATEMENT: &[u8] = b"SPXNAC03;u32le-envelope;call-contract32;recovery-contract32;settlement-graph32;invocation-u64;frame-generation-u64;provider-challenge32;action-index;action-tag;owner-ordinal;before-state;after-state;checkpoint";
-const CANDIDATE_RECEIPT_SCHEMA_STATEMENT: &[u8] = b"SPXNCR03;u32le-envelope;call-contract32;recovery-contract32;settlement-graph32;invocation-u64;frame-generation-u64;provider-challenge32;pre-candidate-frame-digest32;decision-digest32;action-evidence-digest32;candidate-outcome";
-const COMMITTED_RECEIPT_SCHEMA_STATEMENT: &[u8] = b"SPXHRP03;u32le-envelope;host-only-HMAC-SHA256;exact-instance-capability;call-contract;invocation;frame-generation;provider-challenge;candidate-digest;ledger-before;ledger-after;decision;action-evidence-digest;publication-result;atomic-ledger-and-receipt-visibility";
-const CALL_ABI_STATEMENT: &[u8] = b"extern-C;getter=const-u8-ptr(void);execute=u32(const-u8-ptr,u32,u8-ptr,u32);settle=u32(u8-ptr,u32,const-u8-ptr,u32,u8-ptr,u32);windows-cdecl;synchronous;same-thread;no-unwind;no-longjmp;no-callbacks;no-retained-pointers;no-reentrancy";
 
 /// Metadata only. Possession of these bytes or names confers no native-call
 /// or physical-finalizer authority.
@@ -544,10 +526,8 @@ fn derive_capacities(
             .checked_add(increment)
             .ok_or_else(|| v3_error("request capacity overflow"))?;
     }
-    let execute_response = EVENT_ORDINAL_BYTES
-        .checked_mul(event_count)
-        .and_then(|events| EXECUTE_RESPONSE_FIXED_AND_MAX_PAYLOAD_BYTES.checked_add(events))
-        .ok_or_else(|| v3_error("execute-response capacity overflow"))?;
+    let execute_response = runtime_wire::execute_response_capacity(event_count)
+        .map_err(|_| v3_error("execute-response capacity overflow"))?;
     let resource_count = wire_u32(certificate.resource_count(), "settlement resource count")?;
     let checkpoint_count = wire_u32(
         certificate.checkpoints().len(),
@@ -567,17 +547,17 @@ fn derive_capacities(
         .checked_mul(checkpoint_count)
         .filter(|work| *work <= MAX_GRAPH_WORK_UNITS)
         .ok_or_else(|| v3_error("settlement graph work exceeds the v3 bound"))?;
-    let frame = FRAME_RESOURCE_STATE_BYTES
-        .checked_mul(resource_count)
-        .and_then(|states| FRAME_FIXED_BYTES.checked_add(states))
-        .ok_or_else(|| v3_error("frame capacity overflow"))?;
+    let frame = runtime_wire::frame_capacity(resource_count)
+        .map_err(|_| v3_error("frame capacity overflow"))?;
+    let candidate_receipt = runtime_wire::candidate_receipt_capacity(resource_count)
+        .map_err(|_| v3_error("candidate-receipt capacity overflow"))?;
     for (label, capacity) in [
         ("request", request),
         ("execute response", execute_response),
         ("frame", frame),
         ("decision", DECISION_BYTES),
         ("action evidence", ACTION_EVIDENCE_BYTES),
-        ("candidate receipt", CANDIDATE_RECEIPT_BYTES),
+        ("candidate receipt", candidate_receipt),
     ] {
         if capacity == 0 || capacity > MAX_WIRE_BYTES {
             return Err(v3_error(format!(
@@ -591,21 +571,17 @@ fn derive_capacities(
         frame,
         DECISION_BYTES,
         ACTION_EVIDENCE_BYTES,
-        CANDIDATE_RECEIPT_BYTES,
+        candidate_receipt,
+        HOST_RECEIPT_BYTES,
     ]
     .into_iter()
     .try_fold(0_u32, |sum, value| sum.checked_add(value))
     .ok_or_else(|| v3_error("active-frame reserve capacity overflow"))?;
-    let per_quarantine = frame
-        .checked_add(CANDIDATE_RECEIPT_BYTES)
-        .ok_or_else(|| v3_error("quarantine reserve capacity overflow"))?;
-    let instance_reserved_bytes = ACTIVE_FRAME_LIMIT
+    let retained_frames = ACTIVE_FRAME_LIMIT
+        .checked_add(QUARANTINED_FRAME_LIMIT)
+        .ok_or_else(|| v3_error("retained-frame count overflow"))?;
+    let instance_reserved_bytes = retained_frames
         .checked_mul(per_active)
-        .and_then(|active| {
-            QUARANTINED_FRAME_LIMIT
-                .checked_mul(per_quarantine)
-                .and_then(|quarantine| active.checked_add(quarantine))
-        })
         .filter(|reserve| *reserve <= MAX_INSTANCE_RESERVED_BYTES)
         .ok_or_else(|| v3_error("instance reserve exceeds the 64-MiB v3 bound"))?;
     let dictionary_bytes = wire_u32(dictionary_bytes, "event dictionary byte length")?;
@@ -627,7 +603,7 @@ fn derive_capacities(
         frame,
         decision: DECISION_BYTES,
         action_evidence: ACTION_EVIDENCE_BYTES,
-        candidate_receipt: CANDIDATE_RECEIPT_BYTES,
+        candidate_receipt,
         event_count,
         dictionary_bytes,
         dictionary_entries,
@@ -1167,6 +1143,17 @@ mod tests {
         value
     }
 
+    fn descriptor_capacities(bytes: &[u8]) -> [u32; 15] {
+        let mut offset = HEADER_SIZE as usize;
+        let _target = read_text(bytes, &mut offset);
+        offset += 4 + 19 * FINGERPRINT_BYTES;
+        for _ in 0..5 {
+            let _text = read_text(bytes, &mut offset);
+        }
+        offset += 8;
+        std::array::from_fn(|index| read_u32(bytes, offset + index * 4))
+    }
+
     #[test]
     fn all_fourteen_corpus_cases_derive_bounded_deterministic_v3_only_bytes() {
         let corpus = build_owned_resource_corpus_v1().unwrap();
@@ -1236,12 +1223,23 @@ mod tests {
         assert_eq!(descriptor.bytes.len(), 1_722);
         assert_eq!(
             hex(&Sha256::digest(&descriptor.bytes)),
-            "53096cf416ba8fe1fb7ca694649c81fcc93d3b5cfe71cdf5413c01b8f04ab64e"
+            "e39e8147488fd457ba60fc7badd2956262e6eb87be971049b4cb062fcb976028"
         );
         assert_eq!(
             hex(&descriptor.call_contract),
-            "9b9c13fc2c5cf506bd99b0cdcec326f7394bd94665d373dec2861f467149e496"
+            "4dd7a64f286eedd960dbd4c8d8a28cf9f408b497ec390fe87d167cfaeade8f0d"
         );
+        let capacities = descriptor_capacities(&descriptor.bytes);
+        let retained_per_frame = capacities[..6]
+            .iter()
+            .copied()
+            .chain(std::iter::once(HOST_RECEIPT_BYTES))
+            .sum::<u32>();
+        assert_eq!(
+            capacities[14],
+            (ACTIVE_FRAME_LIMIT + QUARANTINED_FRAME_LIMIT) * retained_per_frame
+        );
+        assert!(capacities[14] <= MAX_INSTANCE_RESERVED_BYTES);
     }
 
     #[test]

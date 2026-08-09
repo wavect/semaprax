@@ -298,13 +298,13 @@ total length; it must not fall through to v2 classification or generic
 descriptor loading. There is no v3 loader or iOS static-registration
 constructor.
 
-The v3 document reserves six provider wire roles and a separate host-only
-committed-receipt role. Their current strings and fingerprints are provisional
-bounded schema reservations, not complete codecs: they omit full byte/tag/
-digest transcripts and the exact host-HMAC transcript. They must be replaced
-and frozen with independently tested codecs before runtime admission, and that
-replacement may change private v3 fingerprints, symbols, and descriptor known
-answers. V3 `CertifyOutcome` carries the canonical ordinal/outcome witness and a
+V3 now freezes six provider wire roles and a separate host-only committed
+receipt: exact envelopes, tags, checked capacities, a six-argument execute ABI,
+payload-bearing frames, digest DAG, and distinct receipt-key HMAC. Independent
+compiler and host codecs intentionally replace the former provisional schema
+identities, changing private v3 fingerprints, symbols, and known answers while
+leaving v1, v2, and `SPXNPRF1` unchanged. V3 `CertifyOutcome` carries the
+canonical ordinal/outcome witness and a
 nonzero digest over the trace-certificate fingerprint plus that transcript. The
 host recomputes this digest and rejects resealed witness/digest mutations, but
 does not thereby accept or walk the trace-path DFA certificate independently.
@@ -318,7 +318,9 @@ evidence remain absent. Future iOS device, simulator, and Mac Catalyst/macabi
 profiles must retain distinct target strings even though they share static
 registration. No migration may infer physical finalizer success from
 `Finalizing`; interruption remains uncertain and quarantined without retry.
-This migration changes no native execution gate and leaves `SPX-B104` closed.
+These codec migrations add no provider, v3 loader/static constructor, ledger
+publication, physical finalizer, mobile execution, or public admission. They
+change no native execution gate and leave `SPX-B104` closed.
 
 ## Revision token FNV-1a64 to SHA-256
 

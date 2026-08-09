@@ -81,19 +81,20 @@ model proposed for the physical-failure blocker. The hidden target-neutral model
 and private compiler derivation from validated cleanup HIR now exist for the
 current direct-trivial owned slice. A private `SPXNPRF1` proof envelope and
 independent semantic parser bind that graph to the exact callable-v2 contract;
-this grants no authority. The separate metadata-only [callable ABI
-v3](NATIVE-CALLABLE-ABI-V3.md) now fixes the current private descriptor/hash/
-graph/capacity and linkage-role metadata. Its seven runtime statements are
-provisional bounded reservations, not complete wire/tag/digest/host-HMAC
-transcripts, and may change private v3 known answers when real codecs are
-frozen. `CertifyOutcome` now binds its embedded ordinal/outcome witness to the
+this grants no authority. The separate private [callable ABI
+v3](NATIVE-CALLABLE-ABI-V3.md) fixes the descriptor/hash/graph/capacity and
+linkage metadata plus seven complete, independently encoded/parsed runtime
+roles: six provider wires and one host-only HMAC receipt. Its six-argument
+execute ABI, payload-bearing frame, tags, digest DAG, and changed private known
+answers are frozen. `CertifyOutcome` binds its embedded ordinal/outcome witness
+to the
 trace-certificate fingerprint through a nonzero host-recomputed digest and
 rejects resealed mutations; this is not independent host acceptance of the
 trace-path DFA certificate. The emitter is bound to its compiler build target
 with no Android/iOS/Windows cross-emission or runtime evidence; future iOS
 device, simulator, and macabi targets remain distinct. This
 compiler-encoder/independent-parser
-tranche is not a provider or runtime wire, and both existing loaders reject v3
+tranche is not a provider or loader admission, and both existing loaders reject v3
 magic before path/image access. No v3 provider, loader/static admission, host
 settlement, physical finalizer, or public compiler execution is wired, so this
 does not advance phase 3 or `SPX-B104`.

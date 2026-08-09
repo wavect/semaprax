@@ -9,6 +9,7 @@
 mod authority;
 mod callable_semantics;
 mod callable_wire;
+mod callable_wire_v3;
 mod descriptor;
 mod descriptor_v2;
 #[cfg(test)]

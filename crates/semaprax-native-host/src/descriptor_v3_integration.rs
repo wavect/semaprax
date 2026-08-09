@@ -65,12 +65,12 @@ fn compiler_v3_descriptor_is_accepted_with_exact_bound_metadata() {
     assert_eq!(descriptor.capacities.request, 144);
     assert_eq!(
         descriptor.capacities.execute_response,
-        124 + 4 * descriptor.capacities.event_count
+        156 + 4 * descriptor.capacities.event_count
     );
-    assert_eq!(descriptor.capacities.frame, 216);
+    assert_eq!(descriptor.capacities.frame, 412);
     assert_eq!(descriptor.capacities.decision, 172);
-    assert_eq!(descriptor.capacities.action_evidence, 188);
-    assert_eq!(descriptor.capacities.candidate_receipt, 264);
+    assert_eq!(descriptor.capacities.action_evidence, 196);
+    assert_eq!(descriptor.capacities.candidate_receipt, 396);
     assert_eq!(descriptor.capacities.resource_count, 2);
     assert_eq!(descriptor.capacities.checkpoint_count, 4);
     assert_eq!(descriptor.capacities.graph_work_units, 8);
@@ -81,11 +81,11 @@ fn compiler_v3_descriptor_is_accepted_with_exact_bound_metadata() {
         + descriptor.capacities.frame
         + descriptor.capacities.decision
         + descriptor.capacities.action_evidence
-        + descriptor.capacities.candidate_receipt;
-    let per_quarantine = descriptor.capacities.frame + descriptor.capacities.candidate_receipt;
+        + descriptor.capacities.candidate_receipt
+        + 524;
     assert_eq!(
         descriptor.capacities.instance_reserved_bytes,
-        256 * per_active + 64 * per_quarantine
+        (256 + 64) * per_active
     );
 
     assert_eq!(descriptor.graph.function, descriptor.function);
@@ -164,11 +164,11 @@ fn exact_linux_compiler_descriptor_known_answer_is_stable() {
         assert_eq!(artifact.bytes().len(), 1_722);
         assert_eq!(
             hex(&Sha256::digest(artifact.bytes())),
-            "53096cf416ba8fe1fb7ca694649c81fcc93d3b5cfe71cdf5413c01b8f04ab64e"
+            "e39e8147488fd457ba60fc7badd2956262e6eb87be971049b4cb062fcb976028"
         );
         assert_eq!(
             hex(&artifact.call_contract()),
-            "9b9c13fc2c5cf506bd99b0cdcec326f7394bd94665d373dec2861f467149e496"
+            "4dd7a64f286eedd960dbd4c8d8a28cf9f408b497ec390fe87d167cfaeade8f0d"
         );
         assert!(Descriptor::parse(artifact.bytes()).is_ok());
     }

@@ -49,13 +49,15 @@ const REQUEST_FIXED_BYTES: u32 = 104;
 const REQUEST_I64_BYTES: u32 = 16;
 const REQUEST_BOOL_BYTES: u32 = 12;
 const REQUEST_OWNER_BYTES: u32 = 20;
-const EXECUTE_RESPONSE_FIXED_BYTES: u32 = 124;
+const EXECUTE_RESPONSE_FIXED_BYTES: u32 = 156;
 const EXECUTE_RESPONSE_EVENT_BYTES: u32 = 4;
-const FRAME_FIXED_BYTES: u32 = 208;
-const FRAME_RESOURCE_BYTES: u32 = 4;
+const FRAME_FIXED_BYTES: u32 = 388;
+const FRAME_RESOURCE_BYTES: u32 = 12;
 const DECISION_BYTES: u32 = 172;
-const ACTION_EVIDENCE_BYTES: u32 = 188;
-const CANDIDATE_RECEIPT_BYTES: u32 = 264;
+const ACTION_EVIDENCE_BYTES: u32 = 196;
+const CANDIDATE_RECEIPT_FIXED_BYTES: u32 = 372;
+const CANDIDATE_RECEIPT_RESOURCE_BYTES: u32 = 12;
+const HOST_RECEIPT_BYTES: u32 = 524;
 const CANONICAL_ACTIVE_FRAMES: u32 = 256;
 const CANONICAL_QUARANTINED_FRAMES: u32 = 64;
 
@@ -82,14 +84,14 @@ const SETTLE_SYMBOL_DOMAIN: &[u8] = b"semaprax.native-callable-settle.v3\0";
 const TRACE_EVIDENCE_DOMAIN: &[u8] = b"semaprax.native-recovery-trace-evidence.v1\0";
 
 const DESCRIPTOR_SCHEMA_STATEMENT: &[u8] = b"SPXNABI3;u32le;header=20;sequential-no-offsets-no-trailing;target;linkage-profile;19-fingerprints;module;function;getter;execute;settle;abi-tag;obligations;15-capacities;signature;graph-len;graph";
-const REQUEST_SCHEMA_STATEMENT: &[u8] = b"SPXNRQ03;u32le-envelope;call-contract32;invocation-u64;frame-generation-u64;provider-challenge32;argument-count;ordered-indexed-arguments;scalar-or-owned-u64-payload";
-const EXECUTE_RESPONSE_SCHEMA_STATEMENT: &[u8] = b"SPXNEX03;u32le-envelope;call-contract32;invocation-u64;frame-generation-u64;provider-challenge32;checkpoint;outcome;result-payload;event-count;event-ordinals";
-const FRAME_SCHEMA_STATEMENT: &[u8] = b"SPXNFR03;u32le-envelope;call-contract32;recovery-contract32;settlement-graph32;invocation-u64;frame-generation-u64;provider-challenge32;checkpoint;phase;resource-count;resource-states;pre-candidate-digest32";
-const DECISION_SCHEMA_STATEMENT: &[u8] = b"SPXNDC03;u32le-envelope;call-contract32;recovery-contract32;settlement-graph32;invocation-u64;frame-generation-u64;provider-challenge32;decision-tag;decision-detail";
-const ACTION_SCHEMA_STATEMENT: &[u8] = b"SPXNAC03;u32le-envelope;call-contract32;recovery-contract32;settlement-graph32;invocation-u64;frame-generation-u64;provider-challenge32;action-index;action-tag;owner-ordinal;before-state;after-state;checkpoint";
-const CANDIDATE_RECEIPT_SCHEMA_STATEMENT: &[u8] = b"SPXNCR03;u32le-envelope;call-contract32;recovery-contract32;settlement-graph32;invocation-u64;frame-generation-u64;provider-challenge32;pre-candidate-frame-digest32;decision-digest32;action-evidence-digest32;candidate-outcome";
-const COMMITTED_RECEIPT_SCHEMA_STATEMENT: &[u8] = b"SPXHRP03;u32le-envelope;host-only-HMAC-SHA256;exact-instance-capability;call-contract;invocation;frame-generation;provider-challenge;candidate-digest;ledger-before;ledger-after;decision;action-evidence-digest;publication-result;atomic-ledger-and-receipt-visibility";
-const CALL_ABI_STATEMENT: &[u8] = b"extern-C;getter=const-u8-ptr(void);execute=u32(const-u8-ptr,u32,u8-ptr,u32);settle=u32(u8-ptr,u32,const-u8-ptr,u32,u8-ptr,u32);windows-cdecl;synchronous;same-thread;no-unwind;no-longjmp;no-callbacks;no-retained-pointers;no-reentrancy";
+const REQUEST_SCHEMA_STATEMENT: &[u8] = b"SPXNRQ03;v3;u32le;header20;total-exact;call32;invocation-u64;generation-u64;challenge32;argc;args[tag,index,payload];scalar-tag1;i64-8;bool-u32-0-or-1;owned-tag2-owner-u32-payload-u64;no-trailing";
+const EXECUTE_RESPONSE_SCHEMA_STATEMENT: &[u8] = b"SPXNEX03;v3;u32le;header20;total-declared;zero-tail-to-capacity;call32;invocation-u64;generation-u64;challenge32;request-digest32;checkpoint;outcome;detail;payload-u64;event-count;ordinals;outcomes1-scalar-2-semantic-3-owned";
+const FRAME_SCHEMA_STATEMENT: &[u8] = b"SPXNFR03;v3;u32le;header20;total-exact;call32;recovery32;graph32;invocation-u64;generation-u64;challenge32;request32;response32;semantic32;return-tag;return-code;checkpoint;phase;decision32;next-action;record-count;active-finalizers;resource-count;cells[state-u32,payload-u64];action-chain32;pre-candidate-frame32";
+const DECISION_SCHEMA_STATEMENT: &[u8] = b"SPXNDC03;v3;u32le;header20;total172;call32;recovery32;graph32;invocation-u64;generation-u64;challenge32;decision-tag;detail;tags1-scalar-2-semantic-3-owned-4-physical-5-malformed-6-trace-7-unwind";
+const ACTION_SCHEMA_STATEMENT: &[u8] = b"SPXNAC03;v3;u32le;header20;total196;call32;recovery32;graph32;invocation-u64;generation-u64;challenge32;action-index;boundary-tag;owner;payload-u64;before-state;after-state;checkpoint;tags1-start-2-complete-3-publish";
+const CANDIDATE_RECEIPT_SCHEMA_STATEMENT: &[u8] = b"SPXNCR03;v3;u32le;header20;total372-plus-12r;call32;recovery32;graph32;invocation-u64;generation-u64;challenge32;request32;response32;semantic32;frame32;decision32;action32;outcome;detail;active-finalizers-zero;disposition-count;cells[disposition-u32,payload-u64]";
+const COMMITTED_RECEIPT_SCHEMA_STATEMENT: &[u8] = b"SPXHRP03;v3;u32le;header20;total524;host-only;instance32;call32;recovery32;graph32;invocation-u64;generation-u64;challenge32;request32;response32;semantic32;frame32;decision32;action32;candidate32;ledger-before32;ledger-after32;publication;detail;hmac32;separate-receipt-key;atomic-ledger-and-cache";
+const CALL_ABI_STATEMENT: &[u8] = b"extern-C;getter=const-u8-ptr(void);execute=u32(const-u8-ptr,u32,u8-ptr,u32,u8-ptr,u32);settle=u32(u8-ptr,u32,const-u8-ptr,u32,u8-ptr,u32);windows-cdecl;synchronous;same-thread;no-unwind;no-longjmp;no-callbacks;no-retained-pointers;no-reentrancy";
 
 const PARAMETER_SCALAR: u32 = 1;
 const PARAMETER_OWNED_RESOURCE: u32 = 2;
@@ -989,32 +991,31 @@ fn validate_exact_capacities(
         .checked_mul(FRAME_RESOURCE_BYTES)
         .and_then(|resources| FRAME_FIXED_BYTES.checked_add(resources))
         .ok_or(DescriptorError::Malformed)?;
+    let candidate_receipt = capacities
+        .resource_count
+        .checked_mul(CANDIDATE_RECEIPT_RESOURCE_BYTES)
+        .and_then(|resources| CANDIDATE_RECEIPT_FIXED_BYTES.checked_add(resources))
+        .ok_or(DescriptorError::Malformed)?;
     let per_active = request
         .checked_add(execute_response)
         .and_then(|value| value.checked_add(frame))
         .and_then(|value| value.checked_add(DECISION_BYTES))
         .and_then(|value| value.checked_add(ACTION_EVIDENCE_BYTES))
-        .and_then(|value| value.checked_add(CANDIDATE_RECEIPT_BYTES))
+        .and_then(|value| value.checked_add(candidate_receipt))
+        .and_then(|value| value.checked_add(HOST_RECEIPT_BYTES))
         .ok_or(DescriptorError::Malformed)?;
-    let active_reserved = CANONICAL_ACTIVE_FRAMES
+    let retained_frames = CANONICAL_ACTIVE_FRAMES
+        .checked_add(CANONICAL_QUARANTINED_FRAMES)
+        .ok_or(DescriptorError::Malformed)?;
+    let instance_reserved = retained_frames
         .checked_mul(per_active)
-        .ok_or(DescriptorError::Malformed)?;
-    let quarantined_reserved = CANONICAL_QUARANTINED_FRAMES
-        .checked_mul(
-            frame
-                .checked_add(CANDIDATE_RECEIPT_BYTES)
-                .ok_or(DescriptorError::Malformed)?,
-        )
-        .ok_or(DescriptorError::Malformed)?;
-    let instance_reserved = active_reserved
-        .checked_add(quarantined_reserved)
         .ok_or(DescriptorError::Malformed)?;
     if capacities.request != request
         || capacities.execute_response != execute_response
         || capacities.frame != frame
         || capacities.decision != DECISION_BYTES
         || capacities.action_evidence != ACTION_EVIDENCE_BYTES
-        || capacities.candidate_receipt != CANDIDATE_RECEIPT_BYTES
+        || capacities.candidate_receipt != candidate_receipt
         || capacities.active_frames != CANONICAL_ACTIVE_FRAMES
         || capacities.quarantined_frames != CANONICAL_QUARANTINED_FRAMES
         || capacities.instance_reserved_bytes != instance_reserved
@@ -1761,11 +1762,11 @@ mod tests {
     fn fixture_capacities() -> Capacities {
         Capacities {
             request: 140,
-            execute_response: 188,
-            frame: 212,
+            execute_response: 220,
+            frame: 400,
             decision: 172,
-            action_evidence: 188,
-            candidate_receipt: 264,
+            action_evidence: 196,
+            candidate_receipt: 384,
             event_count: 16,
             dictionary_bytes: 2048,
             dictionary_entries: 8,
@@ -1774,7 +1775,7 @@ mod tests {
             graph_work_units: 3,
             active_frames: 256,
             quarantined_frames: 64,
-            instance_reserved_bytes: 328_448,
+            instance_reserved_bytes: 651_520,
         }
     }
 
@@ -2121,9 +2122,10 @@ mod tests {
             CANDIDATE_RECEIPT_SCHEMA_DOMAIN,
             COMMITTED_RECEIPT_SCHEMA_DOMAIN
         );
-        assert!(std::str::from_utf8(COMMITTED_RECEIPT_SCHEMA_STATEMENT)
-            .unwrap()
-            .contains("host-only-HMAC-SHA256"));
+        let committed = std::str::from_utf8(COMMITTED_RECEIPT_SCHEMA_STATEMENT).unwrap();
+        assert!(committed.contains("host-only"));
+        assert!(committed.contains("hmac32"));
+        assert!(committed.contains("separate-receipt-key"));
         assert!(!std::str::from_utf8(CANDIDATE_RECEIPT_SCHEMA_STATEMENT)
             .unwrap()
             .contains("host-only"));

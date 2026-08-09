@@ -13,12 +13,12 @@
 use semaprax_native_loader::{NativeSettlementModuleLease, SettlementCallError};
 
 use crate::callable_wire_v3::{
-    frame_digest, validate_successful_execute_evidence, ActionBoundary, ActionRecord,
+    frame_digest, validate_successful_execute_evidence_preencoded, ActionBoundary, ActionRecord,
     CandidateOutcome, CandidateReceipt, CellState, Decision, ExecuteOutcome, ExecuteRequest,
     ExecuteResponse, ExecuteReturn, FramePhase, RecoveryFrame, RecoveryIdentity, RequestArgument,
     ResourceCell, SettlementDecision, WireError,
 };
-use crate::descriptor_v3::{Descriptor, Parameter, ResourceState};
+use crate::descriptor_v3::{Descriptor, Parameter, ResourceState, ScalarKind};
 use crate::receipt_authority::ReceiptAuthority;
 use crate::settlement_ledger::{
     CommittedResult, ReceiptCommitEvidence, ResponseStorageEvidence, SettlementLedger,
@@ -57,6 +57,19 @@ pub(crate) struct PrivatePhysicalCommit {
     pub(crate) outcome: ExecuteOutcome,
     pub(crate) candidate_bytes: Vec<u8>,
     pub(crate) committed: CommittedResult,
+}
+
+/// Canonical private argument lane for the descriptor-v3 signature. Owned
+/// handles carry ledger authority while their payload remains an exact wire
+/// value; scalar values carry no authority.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum PrivateSettlementArgumentV3 {
+    I64(i64),
+    Bool(bool),
+    Owned {
+        handle: SettlementOwnerHandle,
+        payload: u64,
+    },
 }
 
 /// Private exact-instance runtime. The outer loader pin is last, while every
@@ -104,7 +117,7 @@ impl PrivateSettlementHostV3 {
         self.ledger.register_owner(slot, generation)
     }
 
-    /// Execute the two currently admitted success fixtures through one exact
+    /// Execute one canonical descriptor-v3 argument vector through an exact
     /// generated provider, loader lease and authoritative host ledger.
     ///
     /// The handoff is explicit: canonical host request/frame bytes seed the
@@ -116,12 +129,35 @@ impl PrivateSettlementHostV3 {
         owners: &[SettlementOwnerHandle],
         payloads: &[u64],
     ) -> Result<PrivatePhysicalCommit, PrivateSettlementExecutionError> {
+        if owners.len() != payloads.len() {
+            return Err(PrivateSettlementExecutionError::UnsupportedFixture);
+        }
+        let mut arguments = Vec::with_capacity(self.descriptor.parameters.len());
+        for parameter in &self.descriptor.parameters {
+            let Parameter::Owned { owner_ordinal, .. } = parameter else {
+                return Err(PrivateSettlementExecutionError::UnsupportedFixture);
+            };
+            let handle = *owners
+                .get(*owner_ordinal)
+                .ok_or(PrivateSettlementExecutionError::UnsupportedFixture)?;
+            let payload = *payloads
+                .get(*owner_ordinal)
+                .ok_or(PrivateSettlementExecutionError::UnsupportedFixture)?;
+            arguments.push(PrivateSettlementArgumentV3::Owned { handle, payload });
+        }
+        self.execute_canonical(&arguments)
+    }
+
+    pub(crate) fn execute_canonical(
+        &self,
+        arguments: &[PrivateSettlementArgumentV3],
+    ) -> Result<PrivatePhysicalCommit, PrivateSettlementExecutionError> {
         let mut transaction = self.reserve()?;
         let identity = transaction.identity();
-        let request = self.owned_request(identity, payloads)?;
-        transaction.stage_call(&request, owners)?;
+        let (request, owners, payloads) = self.canonical_request(identity, arguments)?;
+        transaction.stage_call(&request, &owners)?;
 
-        let initial_frame = self.initial_frame(identity, payloads)?;
+        let initial_frame = self.initial_frame(identity, &request, &payloads)?;
         let initial_frame_bytes = initial_frame.encode();
         let mut provider = self.module_lease.prepare_execute()?;
         let mut candidate_bytes = vec![0; self.descriptor.capacities.candidate_receipt as usize];
@@ -133,6 +169,11 @@ impl PrivateSettlementHostV3 {
                 .saturating_add(1) as usize,
         );
         let mut replay_states =
+            Vec::with_capacity(self.descriptor.capacities.resource_count as usize);
+        let response_events = Vec::with_capacity(self.descriptor.capacities.event_count as usize);
+        let executed_cells = Vec::with_capacity(self.descriptor.capacities.resource_count as usize);
+        let settled_cells = Vec::with_capacity(self.descriptor.capacities.resource_count as usize);
+        let candidate_dispositions =
             Vec::with_capacity(self.descriptor.capacities.resource_count as usize);
         if provider.request_storage().len() != transaction.request_bytes().len()
             || provider.frame_storage().len() != initial_frame_bytes.len()
@@ -151,6 +192,8 @@ impl PrivateSettlementHostV3 {
 
         // Every allocation and exact-capacity check needed by the provider's
         // physical buffers has completed before this irreversible boundary.
+        #[cfg(test)]
+        let postcommit_allocation_probe = crate::postcommit_allocation_probe::begin();
         transaction.call_commit()?;
         let execute_return = self.module_lease.invoke_execute(&mut provider)?;
         transaction
@@ -163,12 +206,20 @@ impl PrivateSettlementHostV3 {
         if execute_return != 0 {
             return Err(PrivateSettlementExecutionError::UnsupportedFixture);
         }
-        let response =
-            ExecuteResponse::parse(transaction.execute_response_bytes(), &self.descriptor)?;
-        let executed_frame = RecoveryFrame::parse(transaction.frame_bytes(), &self.descriptor)?;
-        validate_successful_execute_evidence(
+        let response = ExecuteResponse::parse_reusing(
+            transaction.execute_response_bytes(),
+            &self.descriptor,
+            response_events,
+        )?;
+        let executed_frame = RecoveryFrame::parse_reusing(
+            transaction.frame_bytes(),
+            &self.descriptor,
+            executed_cells,
+        )?;
+        validate_successful_execute_evidence_preencoded(
             &self.descriptor,
             &request,
+            transaction.request_bytes(),
             execute_return,
             transaction.execute_response_bytes(),
             &response,
@@ -186,7 +237,7 @@ impl PrivateSettlementHostV3 {
         let mut provider = provider.into_settlement()?;
         provider
             .decision_storage_mut()
-            .copy_from_slice(&decision.encode());
+            .copy_from_slice(transaction.decision_bytes());
         let settle_return = self.module_lease.invoke_settle(&mut provider)?;
         if settle_return != 0 {
             return Err(PrivateSettlementExecutionError::UnsupportedFixture);
@@ -198,8 +249,16 @@ impl PrivateSettlementHostV3 {
             .candidate_storage_mut()
             .copy_from_slice(provider.candidate_storage());
 
-        let settled_frame = RecoveryFrame::parse(transaction.frame_bytes(), &self.descriptor)?;
-        let candidate = CandidateReceipt::parse(transaction.candidate_bytes(), &self.descriptor)?;
+        let settled_frame = RecoveryFrame::parse_reusing(
+            transaction.frame_bytes(),
+            &self.descriptor,
+            settled_cells,
+        )?;
+        let candidate = CandidateReceipt::parse_reusing(
+            transaction.candidate_bytes(),
+            &self.descriptor,
+            candidate_dispositions,
+        )?;
         physical_actions(
             &self.descriptor,
             &settled_frame,
@@ -220,6 +279,8 @@ impl PrivateSettlementHostV3 {
             actions: &actions,
             candidate: &candidate,
         })?;
+        #[cfg(test)]
+        let _postcommit_allocation_count = postcommit_allocation_probe.finish();
         Ok(PrivatePhysicalCommit {
             identity,
             outcome: response.outcome,
@@ -254,37 +315,92 @@ impl PrivateSettlementHostV3 {
         self.module_lease.instance_id()
     }
 
-    fn owned_request(
+    fn canonical_request(
         &self,
         identity: RecoveryIdentity,
-        payloads: &[u64],
-    ) -> Result<ExecuteRequest, PrivateSettlementExecutionError> {
-        if payloads.len() != self.descriptor.capacities.resource_count as usize {
+        supplied: &[PrivateSettlementArgumentV3],
+    ) -> Result<
+        (ExecuteRequest, Vec<SettlementOwnerHandle>, Vec<u64>),
+        PrivateSettlementExecutionError,
+    > {
+        if supplied.len() != self.descriptor.parameters.len() {
             return Err(PrivateSettlementExecutionError::UnsupportedFixture);
         }
         let mut arguments = Vec::with_capacity(self.descriptor.parameters.len());
-        for (index, parameter) in self.descriptor.parameters.iter().enumerate() {
-            let Parameter::Owned { owner_ordinal, .. } = parameter else {
-                return Err(PrivateSettlementExecutionError::UnsupportedFixture);
+        let resource_count = self.descriptor.capacities.resource_count as usize;
+        let mut owners = vec![None; resource_count];
+        let mut payloads = vec![None; resource_count];
+        for (index, (parameter, supplied)) in
+            self.descriptor.parameters.iter().zip(supplied).enumerate()
+        {
+            let argument = match (parameter, supplied) {
+                (
+                    Parameter::Scalar {
+                        index: admitted,
+                        kind: ScalarKind::I64,
+                        ..
+                    },
+                    PrivateSettlementArgumentV3::I64(value),
+                ) if *admitted == index => RequestArgument::I64 {
+                    index: index as u32,
+                    value: *value,
+                },
+                (
+                    Parameter::Scalar {
+                        index: admitted,
+                        kind: ScalarKind::Bool,
+                        ..
+                    },
+                    PrivateSettlementArgumentV3::Bool(value),
+                ) if *admitted == index => RequestArgument::Bool {
+                    index: index as u32,
+                    value: *value,
+                },
+                (
+                    Parameter::Owned {
+                        index: admitted,
+                        owner_ordinal,
+                        ..
+                    },
+                    PrivateSettlementArgumentV3::Owned { handle, payload },
+                ) if *admitted == index && *owner_ordinal < resource_count => {
+                    if owners[*owner_ordinal].replace(*handle).is_some()
+                        || payloads[*owner_ordinal].replace(*payload).is_some()
+                    {
+                        return Err(PrivateSettlementExecutionError::UnsupportedFixture);
+                    }
+                    RequestArgument::Owned {
+                        index: index as u32,
+                        owner_ordinal: *owner_ordinal as u32,
+                        payload: *payload,
+                    }
+                }
+                _ => return Err(PrivateSettlementExecutionError::UnsupportedFixture),
             };
-            if *owner_ordinal >= payloads.len() {
-                return Err(PrivateSettlementExecutionError::UnsupportedFixture);
-            }
-            arguments.push(RequestArgument::Owned {
-                index: index as u32,
-                owner_ordinal: *owner_ordinal as u32,
-                payload: payloads[*owner_ordinal],
-            });
+            arguments.push(argument);
         }
-        Ok(ExecuteRequest {
-            identity: identity.call,
-            arguments,
-        })
+        let owners = owners
+            .into_iter()
+            .collect::<Option<Vec<_>>>()
+            .ok_or(PrivateSettlementExecutionError::UnsupportedFixture)?;
+        let payloads = payloads
+            .into_iter()
+            .collect::<Option<Vec<_>>>()
+            .ok_or(PrivateSettlementExecutionError::UnsupportedFixture)?;
+        Ok((
+            ExecuteRequest {
+                identity: identity.call,
+                arguments,
+            },
+            owners,
+            payloads,
+        ))
     }
 
     fn initial_frame(
         &self,
         identity: RecoveryIdentity,
+        request: &ExecuteRequest,
         payloads: &[u64],
     ) -> Result<RecoveryFrame, PrivateSettlementExecutionError> {
         let start = self
@@ -311,13 +427,7 @@ impl PrivateSettlementHostV3 {
         }
         let mut frame = RecoveryFrame {
             identity,
-            request_digest: crate::callable_wire_v3::request_digest(
-                &ExecuteRequest {
-                    identity: identity.call,
-                    arguments: self.owned_request(identity, payloads)?.arguments,
-                }
-                .encode(),
-            ),
+            request_digest: crate::callable_wire_v3::request_digest(&request.encode()),
             response_storage_digest: [0; 32],
             semantic_trace_digest: [0; 32],
             execute_return: ExecuteReturn::Pending,

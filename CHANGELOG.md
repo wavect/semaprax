@@ -196,6 +196,17 @@ All notable changes to SEMAPRAX are documented here.
   run through loader plus host. Failure injection, public CI observation of
   this batch, mobile/static admission, quiescence, malicious-code containment,
   and public `SPX-B104` admission remain open.
+- Expanded the private callable-v3 joint path to all 14 authoritative scenarios
+  at `-O0`/`-O2`, with mixed scalar/bool/owned requests, exact graph-derived
+  finalizer evidence, authenticated replay/publication, and unload pinning. A
+  counting allocator observes zero Rust heap growth from immediately before
+  `CallCommit` through `ReceiptCommit`; injected reusable-decode reserve failure
+  quarantines exact bytes, owners, and the image pin. Seven provider-side
+  failure fixtures cover physical return, malformed response/frame/candidate,
+  durable finalizer interruption, replay, and decision conflict at `-O0`/`-O2`
+  and under ASan+UBSan. Pre-execute unwind, fatal allocator/process-crash
+  recovery, hosted Windows confirmation, mobile/static admission, quiescence,
+  malicious-code containment, public admission, and `SPX-B104` remain open.
 - Added a mandatory Windows callable-v2 dependency-isolation fixture. It places
   a same-name dependency in both CWD and legacy `PATH`, proves the root-image
   sibling wins for descriptor admission and invocation, then removes that

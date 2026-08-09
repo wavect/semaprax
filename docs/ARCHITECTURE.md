@@ -107,13 +107,17 @@ storage share canonical root-image provenance, then retains an immutable copy
 of the admitted bytes. The host independently creates
 one 64-byte OS fill split into a receipt MAC key and instance binding, and its
 fixed-capacity ledger/facade atomically commits authenticated terminal state
-and exact replay. One joint O0/O2 test now invokes scalar discard-two and owned
-identity through generated provider, dynamic loader, and host ledger, proving
+and exact replay. One joint O0/O2 test now invokes all 14 authoritative
+scenarios through generated provider, dynamic loader, and host ledger, proving
 copied-evidence decoding, replay, generation refresh, finalizer order,
-cross-instance rejection, and pin lifetime. The other corpus scenarios have
-not crossed that joint boundary. Pending/pre-execute host unwind fails closed;
-post-`CallCommit` host parsing/replay still allocates. Complete failure
-injection, publicly observed v3 sanitizer/Windows evidence, Android/iOS,
+cross-instance rejection, and pin lifetime. Its counting allocator observes
+zero Rust heap growth from immediately before `CallCommit` through
+`ReceiptCommit`; injected decode-reserve failure quarantines exact evidence and
+the image pin. Seven provider-side failure/interruption fixtures add returned
+physical failure, malformed wire, durable-boundary, replay, and conflict
+evidence. Pending/pre-execute host unwind still fails closed. Exhaustive
+process-crash/fatal-allocator evidence, publicly observed Windows v3 runtime,
+Android/iOS,
 quiescence, malicious-code containment, public admission, and `SPX-B104`
 remain closed.
 
@@ -213,20 +217,25 @@ and the private host now combines an exact-descriptor-bound receipt
 authority with authoritative owner generations, allocation-free `CallCommit`,
 atomic receipt/ledger publication, cached replay, and a drop-safe transaction
 guard whose postcommit uncertainty is quarantined without retry. One joint
-generated-provider → loader → host test covers scalar discard-two and owned
-identity. It does not cover the other 12 scenarios, postcommit allocation
-failure, canonical pre-execute unwind recovery, publicly observed Windows v3
-runtime CI, iOS static registration, or Android, and exposes no public
-admission. `SPX-B104` remains closed.
+generated-provider → loader → host test covers all 14 normal scenarios at
+`-O0`/`-O2`, with zero measured Rust allocations/reallocations across the
+irreversible interval and exact quarantine on injected decode-reserve failure.
+It does not cover canonical pre-execute unwind recovery, fatal allocator or
+process-crash containment, publicly observed Windows v3 runtime CI, iOS static
+registration, or Android, and exposes no public admission. `SPX-B104` remains
+closed.
 
 The callable-v2 Windows CI lane explicitly reruns its generated O0/O2 corpus
 and a loader fixture that places a same-name dependency in CWD and legacy
 `PATH`, then removes the root sibling to require fail-closed `LibraryOpen`.
 Those v2 gates passed in [run 31257545008, job
 93103151756](https://github.com/wavect/semaprax/actions/runs/31257545008/job/93103151756),
-confirming narrow callable-v2 corpus and dependency-isolation evidence. The new
-callable-v3 Windows and sanitizer gates are configured but remain unobserved
-until this batch passes on hosted CI. None of this is broader Windows
+confirming narrow callable-v2 corpus and dependency-isolation evidence. For
+callable v3, [run 31312094861](https://github.com/wavect/semaprax/actions/runs/31312094861)
+proved Linux, macOS, MSRV, dependency-policy, generated-provider ASan+UBSan,
+and Rust-host ASan gates. Its Windows job stopped at the test marker's MSVC
+`fopen` deprecation before runtime; the local fixture-only CRT fix remains
+unobserved until the next hosted run. None of this is broader Windows
 application-platform completion. Android/iOS device or static-link profiles
 and public native execution/admission remain required.
 

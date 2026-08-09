@@ -116,6 +116,7 @@ impl ReceiptAuthority {
     pub(crate) fn authenticate_receipt(
         &self,
         candidate: &CandidateReceipt,
+        candidate_digest: [u8; 32],
         ledger_before: [u8; 32],
         ledger_after: [u8; 32],
     ) -> Result<[u8; HOST_RECEIPT_BYTES], ReceiptAuthorityError> {
@@ -123,13 +124,11 @@ impl ReceiptAuthority {
             &self.key,
             self.instance_binding,
             candidate,
+            candidate_digest,
             ledger_before,
             ledger_after,
         )?;
-        receipt
-            .encode()
-            .try_into()
-            .map_err(|_| ReceiptAuthorityError::Authentication)
+        receipt.encode_fixed().map_err(ReceiptAuthorityError::from)
     }
 
     pub(crate) fn verify_receipt(
@@ -137,15 +136,17 @@ impl ReceiptAuthority {
         bytes: &[u8],
         descriptor: &crate::descriptor_v3::Descriptor,
         candidate: &CandidateReceipt,
+        candidate_digest: [u8; 32],
         ledger_before: [u8; 32],
         ledger_after: [u8; 32],
     ) -> Result<HostCommittedReceipt, ReceiptAuthorityError> {
-        HostCommittedReceipt::parse_and_verify(
+        HostCommittedReceipt::parse_and_verify_precomputed(
             bytes,
             &self.key,
             descriptor,
             self.instance_binding,
             candidate,
+            candidate_digest,
             ledger_before,
             ledger_after,
         )
@@ -219,8 +220,10 @@ mod tests {
             hex(&challenge),
             "677cd5775a7cd54a60dcd3bc7c1c8b36cc4323cbeef09ae18dd8104ca570dc9b"
         );
+        let candidate = candidate(challenge);
+        let digest = crate::callable_wire_v3::candidate_digest(&candidate.encode());
         let receipt = authority
-            .authenticate_receipt(&candidate(challenge), [0x51; 32], [0x52; 32])
+            .authenticate_receipt(&candidate, digest, [0x51; 32], [0x52; 32])
             .unwrap();
         assert_eq!(receipt.len(), 524);
         assert_eq!(

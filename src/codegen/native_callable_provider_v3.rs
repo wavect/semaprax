@@ -18,6 +18,7 @@ use sha2::{Digest, Sha256};
 
 use crate::diagnostic::Diagnostic;
 use crate::hir::{DeclarationId, ResolvedProgram};
+use crate::owned_resource_corpus::OwnedResourceCorpusArgument;
 
 use super::native_callable_abi_v3::NativeCallableV3Descriptor;
 use super::native_callable_wire_v3::{
@@ -28,6 +29,42 @@ use super::native_callable_wire_v3::{
 const MAX_SYMBOL_BYTES: usize = 1024;
 const MAX_EVENTS: u32 = 256;
 const MAX_RESOURCES: u32 = 4_096;
+const TEST_FAULT_DISABLED: u32 = u32::MAX;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct ProviderV3FaultConfig {
+    physical_failure_checkpoint: u32,
+    physical_failure_code: u32,
+    malformed_response_offset: u32,
+    malformed_frame_offset: u32,
+    malformed_candidate_offset: u32,
+    finalizer_action: u32,
+    finalizer_boundary: u32,
+}
+
+impl Default for ProviderV3FaultConfig {
+    fn default() -> Self {
+        Self {
+            physical_failure_checkpoint: TEST_FAULT_DISABLED,
+            physical_failure_code: 0,
+            malformed_response_offset: TEST_FAULT_DISABLED,
+            malformed_frame_offset: TEST_FAULT_DISABLED,
+            malformed_candidate_offset: TEST_FAULT_DISABLED,
+            finalizer_action: TEST_FAULT_DISABLED,
+            finalizer_boundary: 0,
+        }
+    }
+}
+
+#[cfg(test)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ProviderV3TestFault {
+    PhysicalFailure { checkpoint: u32, code: u32 },
+    MalformedResponse { offset: u32 },
+    MalformedFrame { offset: u32 },
+    MalformedCandidate { offset: u32 },
+    FinalizerInterruption { action: u32, boundary: u32 },
+}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) enum ProviderV3Plan {
@@ -143,6 +180,7 @@ pub(super) struct NativeCallableProviderV3Spec {
     dictionary_entries: u32,
     parameters: Vec<ProviderV3Parameter>,
     plan: ResolvedProviderV3Plan,
+    fault: ProviderV3FaultConfig,
 }
 
 impl NativeCallableProviderV3Spec {
@@ -235,7 +273,63 @@ impl NativeCallableProviderV3Spec {
             dictionary_entries,
             parameters,
             plan,
+            fault: ProviderV3FaultConfig::default(),
         })
+    }
+
+    #[cfg(test)]
+    fn with_test_fault(mut self, fault: ProviderV3TestFault) -> Result<Self, Diagnostic> {
+        match fault {
+            ProviderV3TestFault::PhysicalFailure { checkpoint, code } => {
+                if code == 0
+                    || !self
+                        .plan
+                        .checkpoints
+                        .iter()
+                        .any(|candidate| candidate.id == checkpoint)
+                {
+                    return Err(provider_error(
+                        "physical-failure injection is not a nonzero certified checkpoint",
+                    ));
+                }
+                self.fault.physical_failure_checkpoint = checkpoint;
+                self.fault.physical_failure_code = code;
+            }
+            ProviderV3TestFault::MalformedResponse { offset } => {
+                if offset >= self.response_bytes {
+                    return Err(provider_error(
+                        "malformed-response injection is outside response storage",
+                    ));
+                }
+                self.fault.malformed_response_offset = offset;
+            }
+            ProviderV3TestFault::MalformedFrame { offset } => {
+                if offset >= self.frame_bytes {
+                    return Err(provider_error(
+                        "malformed-frame injection is outside frame storage",
+                    ));
+                }
+                self.fault.malformed_frame_offset = offset;
+            }
+            ProviderV3TestFault::MalformedCandidate { offset } => {
+                if offset >= self.candidate_bytes {
+                    return Err(provider_error(
+                        "malformed-candidate injection is outside candidate storage",
+                    ));
+                }
+                self.fault.malformed_candidate_offset = offset;
+            }
+            ProviderV3TestFault::FinalizerInterruption { action, boundary } => {
+                if !(1..=3).contains(&boundary) || action >= self.resource_count {
+                    return Err(provider_error(
+                        "finalizer interruption is outside the bounded action/boundary range",
+                    ));
+                }
+                self.fault.finalizer_action = action;
+                self.fault.finalizer_boundary = boundary;
+            }
+        }
+        Ok(self)
     }
 }
 
@@ -268,6 +362,85 @@ pub(super) fn derive_private_artifact(
     emit(&NativeCallableProviderV3Spec::new(descriptor, plan)?)
 }
 
+/// Rebuild one sealed corpus witness from the stable function identity,
+/// canonical arguments, and independently executed semantic trace. Cleanup
+/// actions are intentionally absent: the authenticated graph remains their
+/// sole authority when `NativeCallableProviderV3Spec` validates this plan.
+pub(super) fn corpus_witness_plan(
+    program: &ResolvedProgram,
+    function_id: &DeclarationId,
+    arguments: &[OwnedResourceCorpusArgument],
+    expected_owned_result_ordinal: Option<usize>,
+    reference: &crate::conformance::ConformanceTrace,
+) -> Result<ProviderV3Plan, Diagnostic> {
+    let function = program
+        .functions
+        .iter()
+        .find(|function| &function.id == function_id)
+        .ok_or_else(|| provider_error("corpus function identity is not in the program"))?;
+    let dictionary = crate::semantic_trace::build_semantic_event_dictionary(program, &function.id)?;
+    let semantic_ordinals = reference
+        .events
+        .iter()
+        .map(|event| {
+            dictionary.ordinal_for(&event.event).ok_or_else(|| {
+                provider_error("corpus event is absent from the semantic dictionary")
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let outcome = match &reference.outcome {
+        crate::conformance::TraceOutcome::Success {
+            result: crate::conformance::TraceResult::I64(value),
+        } => ProviderV3Outcome::Scalar { value: *value },
+        crate::conformance::TraceOutcome::Success {
+            result: crate::conformance::TraceResult::Owned { .. },
+        } => ProviderV3Outcome::Owned {
+            owner_ordinal: u32::try_from(expected_owned_result_ordinal.ok_or_else(|| {
+                provider_error("owned corpus outcome has no expected owner ordinal")
+            })?)
+            .map_err(|_| provider_error("owned corpus result ordinal exceeds u32"))?,
+        },
+        crate::conformance::TraceOutcome::Failure { .. } => {
+            let selected_ordinal = reference
+                .events
+                .iter()
+                .find_map(|event| {
+                    matches!(
+                        event.event,
+                        crate::conformance::TraceEventKind::SelectFailure { .. }
+                    )
+                    .then(|| dictionary.ordinal_for(&event.event))
+                    .flatten()
+                })
+                .ok_or_else(|| provider_error("failure corpus trace has no selected status"))?;
+            ProviderV3Outcome::SemanticFailure { selected_ordinal }
+        }
+        crate::conformance::TraceOutcome::Success { .. } => {
+            return Err(provider_error("corpus result is outside callable v3"));
+        }
+    };
+    let scalar_arguments = arguments
+        .iter()
+        .enumerate()
+        .filter_map(|(index, argument)| match argument {
+            OwnedResourceCorpusArgument::Owned(_) => None,
+            OwnedResourceCorpusArgument::Bool(value) => Some(ProviderV3ScalarArgument {
+                parameter_index: index as u32,
+                value: ProviderV3ScalarValue::Bool(*value),
+            }),
+            OwnedResourceCorpusArgument::I64(value) => Some(ProviderV3ScalarArgument {
+                parameter_index: index as u32,
+                value: ProviderV3ScalarValue::I64(*value),
+            }),
+        })
+        .collect();
+    Ok(ProviderV3Plan::GraphWitness {
+        scalar_arguments,
+        outcome,
+        semantic_ordinals,
+    })
+}
+
 fn emit_prelude(
     output: &mut String,
     spec: &NativeCallableProviderV3Spec,
@@ -286,6 +459,31 @@ fn emit_prelude(
         ("SPX_V3_PARAMETER_COUNT", spec.parameters.len() as u32),
         ("SPX_V3_MAX_EVENTS", spec.maximum_events),
         ("SPX_V3_DICTIONARY_ENTRIES", spec.dictionary_entries),
+        (
+            "SPX_V3_FAULT_PHYSICAL_CHECKPOINT",
+            spec.fault.physical_failure_checkpoint,
+        ),
+        (
+            "SPX_V3_FAULT_PHYSICAL_CODE",
+            spec.fault.physical_failure_code,
+        ),
+        (
+            "SPX_V3_FAULT_RESPONSE_OFFSET",
+            spec.fault.malformed_response_offset,
+        ),
+        (
+            "SPX_V3_FAULT_FRAME_OFFSET",
+            spec.fault.malformed_frame_offset,
+        ),
+        (
+            "SPX_V3_FAULT_CANDIDATE_OFFSET",
+            spec.fault.malformed_candidate_offset,
+        ),
+        ("SPX_V3_FAULT_FINALIZER_ACTION", spec.fault.finalizer_action),
+        (
+            "SPX_V3_FAULT_FINALIZER_BOUNDARY",
+            spec.fault.finalizer_boundary,
+        ),
     ] {
         writeln!(output, "#define {name} UINT32_C({value})").expect("string write");
     }
@@ -378,26 +576,27 @@ fn emit_execute(output: &mut String, spec: &NativeCallableProviderV3Spec) {
         )
         .expect("string write");
     }
-    output.push_str("  memset(response,0,response_len);\n");
+    output.push_str("  memset(response,0,response_len);\n  { uint32_t spx_fault=spx_v3_maybe_physical_failure(frame,response,response_len,UINT32_C(1)); if(spx_fault!=0)return spx_fault; }\n");
     for action in &spec.plan.execute_actions {
         match *action {
             ProviderV3ExecuteAction::Finalize {
                 owner_ordinal,
                 checkpoint,
             } => {
-                writeln!(output, "  if (!spx_v3_begin_finalizer(frame,UINT32_C({owner_ordinal}))) return UINT32_C(2);\n  spx_v3_generated_finalize(UINT32_C({owner_ordinal}),payloads[{owner_ordinal}]);\n  if (!spx_v3_complete_finalizer(frame,UINT32_C({owner_ordinal}),UINT32_C({checkpoint}))) return UINT32_C(2);").expect("string write");
+                writeln!(output, "  if (!spx_v3_begin_finalizer(frame,UINT32_C({owner_ordinal}))) return UINT32_C(2);\n  spx_v3_generated_finalize(UINT32_C({owner_ordinal}),payloads[{owner_ordinal}]);\n  if (!spx_v3_complete_finalizer(frame,UINT32_C({owner_ordinal}),UINT32_C({checkpoint}))) return UINT32_C(2);\n  {{ uint32_t spx_fault=spx_v3_maybe_physical_failure(frame,response,response_len,UINT32_C({checkpoint})); if(spx_fault!=0)return spx_fault; }}").expect("string write");
             }
             ProviderV3ExecuteAction::Stage {
                 owner_ordinal,
                 checkpoint,
             } => {
-                writeln!(output, "  if (!spx_v3_stage_owned(frame,UINT32_C({owner_ordinal}),UINT32_C({checkpoint}))) return UINT32_C(2);").expect("string write");
+                writeln!(output, "  if (!spx_v3_stage_owned(frame,UINT32_C({owner_ordinal}),UINT32_C({checkpoint}))) return UINT32_C(2);\n  {{ uint32_t spx_fault=spx_v3_maybe_physical_failure(frame,response,response_len,UINT32_C({checkpoint})); if(spx_fault!=0)return spx_fault; }}").expect("string write");
             }
         }
     }
     writeln!(
         output,
-        "  spx_v3_store_u32(frame+268,UINT32_C({}));",
+        "  spx_v3_store_u32(frame+268,UINT32_C({}));\n  {{ uint32_t spx_fault=spx_v3_maybe_physical_failure(frame,response,response_len,UINT32_C({})); if(spx_fault!=0)return spx_fault; }}",
+        spec.plan.terminal_checkpoint,
         spec.plan.terminal_checkpoint
     )
     .expect("string write");
@@ -424,7 +623,7 @@ fn emit_execute(output: &mut String, spec: &NativeCallableProviderV3Spec) {
         )
         .expect("string write");
     }
-    output.push_str("  if (spx_write != spx_total) return UINT32_C(2);\n  spx_v3_response_digest(UINT32_C(0),response,frame+196); spx_v3_semantic_digest(response,frame+228); spx_v3_store_u32(frame+260,UINT32_C(2)); spx_v3_store_u32(frame+264,UINT32_C(0)); spx_v3_refresh_frame(frame);\n  return UINT32_C(0);\n}\n");
+    output.push_str("  if (spx_write != spx_total) return UINT32_C(2);\n  spx_v3_response_digest(UINT32_C(0),response,frame+196); spx_v3_semantic_digest(response,frame+228); spx_v3_store_u32(frame+260,UINT32_C(2)); spx_v3_store_u32(frame+264,UINT32_C(0)); spx_v3_refresh_frame(frame);\n  if(SPX_V3_FAULT_RESPONSE_OFFSET!=UINT32_MAX)response[SPX_V3_FAULT_RESPONSE_OFFSET]^=UINT8_C(1);\n  if(SPX_V3_FAULT_FRAME_OFFSET!=UINT32_MAX)frame[SPX_V3_FAULT_FRAME_OFFSET]^=UINT8_C(1);\n  return UINT32_C(0);\n}\n");
 }
 
 fn emit_response_header(
@@ -559,7 +758,7 @@ fn emit_settle(output: &mut String, spec: &NativeCallableProviderV3Spec) {
     output.push_str(r#"
   uint8_t decision_hash[32],replay[SPX_V3_FRAME_BYTES];uint32_t decision_tag,decision_detail,phase,checkpoint_index=UINT32_MAX,next,action_count=0,record_count=0;uint32_t action_kind[SPX_V3_RESOURCE_COUNT+1],action_owner[SPX_V3_RESOURCE_COUNT+1];
   if(!spx_v3_validate_settle_inputs(frame,frame_len,decision,decision_len,candidate,candidate_len,decision_hash,&decision_tag,&decision_detail))return UINT32_C(1);
-  phase=spx_v3_load_u32(frame+272);if(phase==UINT32_C(4)){if(memcmp(frame+276,decision_hash,32))return UINT32_C(3);return spx_v3_emit_candidate(frame,decision_tag,decision_detail,candidate);}if(phase!=1&&phase!=2&&phase!=3)return UINT32_C(3);
+  phase=spx_v3_load_u32(frame+272);if(phase==UINT32_C(4)){if(memcmp(frame+276,decision_hash,32))return UINT32_C(3);return spx_v3_emit_candidate_with_fault(frame,decision_tag,decision_detail,candidate);}if(phase!=1&&phase!=2&&phase!=3)return UINT32_C(3);
   for(uint32_t i=0;i<spx_v3_checkpoint_count;i++)if(spx_v3_checkpoint_id[i]==spx_v3_load_u32(frame+268)){if(checkpoint_index!=UINT32_MAX)return UINT32_C(3);checkpoint_index=i;}if(checkpoint_index==UINT32_MAX)return UINT32_C(3);
   if(decision_tag<4){if(spx_v3_load_u32(frame+260)!=2||spx_v3_load_u32(frame+264)!=0||spx_v3_zero(frame+196,32)||spx_v3_zero(frame+228,32)||decision_tag!=spx_v3_checkpoint_outcome[checkpoint_index]||(decision_tag==3&&decision_detail!=spx_v3_checkpoint_detail[checkpoint_index]))return UINT32_C(3);for(uint32_t i=0;i<spx_v3_accept_count[checkpoint_index];i++){action_kind[action_count]=1;action_owner[action_count++]=spx_v3_accept_order[checkpoint_index*SPX_V3_RESOURCE_COUNT+i];}if(decision_tag==3){action_kind[action_count]=2;action_owner[action_count++]=decision_detail;}}
   else{if(decision_tag==4&&(spx_v3_load_u32(frame+260)!=2||spx_v3_load_u32(frame+264)!=decision_detail||spx_v3_zero(frame+196,32)))return UINT32_C(3);if((decision_tag==5||decision_tag==6||decision_tag==7)&&(spx_v3_load_u32(frame+260)!=2||spx_v3_load_u32(frame+264)!=0||spx_v3_zero(frame+196,32)))return UINT32_C(3);for(uint32_t i=0;i<spx_v3_abort_count[checkpoint_index];i++){action_kind[action_count]=1;action_owner[action_count++]=spx_v3_abort_order[checkpoint_index*SPX_V3_RESOURCE_COUNT+i];}}
@@ -567,7 +766,7 @@ fn emit_settle(output: &mut String, spec: &NativeCallableProviderV3Spec) {
   for(uint32_t i=0;i<next;i++)record_count+=action_kind[i]==1?2:1;
   if(phase==1){if(next!=0||spx_v3_load_u32(frame+312)!=0)return UINT32_C(3);if(decision_tag>=4)memset(frame+228,0,32);if(!spx_v3_lock_decision(frame,decision_hash,(uint64_t)action_count))return UINT32_C(3);}else{if(memcmp(frame+276,decision_hash,32))return UINT32_C(3);if(phase==2){if(next!=0||spx_v3_load_u32(frame+312)!=0||!spx_v3_valid_action_seed(frame,decision_hash,(uint64_t)action_count))return UINT32_C(3);}else{if(spx_v3_load_u32(frame+312)!=record_count)return UINT32_C(3);memcpy(replay,frame,SPX_V3_FRAME_BYTES);spx_v3_action_seed(replay,decision_hash,(uint64_t)action_count);spx_v3_store_u32(replay+312,0);for(uint32_t i=0;i<next;i++){uint32_t owner=action_owner[i],before=spx_v3_checkpoint_state[checkpoint_index*SPX_V3_RESOURCE_COUNT+owner];if(action_kind[i]==1){spx_v3_action_step(replay,i,1,owner,before,3);spx_v3_action_step(replay,i,2,owner,3,4);}else spx_v3_action_step(replay,i,3,owner,2,5);}if(memcmp(replay+spx_v3_action_digest_offset(),frame+spx_v3_action_digest_offset(),32))return UINT32_C(3);}}
   for(uint32_t i=next;i<action_count;i++){if(action_kind[i]==1){if(!spx_v3_settlement_finalize(frame,i,action_owner[i]))return UINT32_C(3);}else if(!spx_v3_publish(frame,i,action_owner[i]))return UINT32_C(3);}
-  spx_v3_store_u32(frame+272,UINT32_C(4));spx_v3_refresh_frame(frame);return spx_v3_emit_candidate(frame,decision_tag,decision_detail,candidate);
+  spx_v3_store_u32(frame+272,UINT32_C(4));spx_v3_refresh_frame(frame);return spx_v3_emit_candidate_with_fault(frame,decision_tag,decision_detail,candidate);
 }
 "#);
 }
@@ -1312,6 +1511,7 @@ static void spx_v3_refresh_frame(uint8_t *frame){uint8_t d[32];spx_v3_framed_dig
 static bool spx_v3_valid_frame_digest(const uint8_t *frame){uint8_t d[32];spx_v3_framed_digest(spx_v3_frame_domain,(uint32_t)sizeof(spx_v3_frame_domain),frame,SPX_V3_FRAME_BYTES-UINT32_C(32),d);return memcmp(frame+spx_v3_frame_digest_offset(),d,32)==0;}
 static void spx_v3_request_digest(const uint8_t *request,uint8_t out[32]){spx_v3_framed_digest(spx_v3_request_domain,(uint32_t)sizeof(spx_v3_request_domain),request,SPX_V3_REQUEST_BYTES,out);}
 static void spx_v3_response_digest(uint32_t code,const uint8_t *response,uint8_t out[32]){struct spx_v3_sha s;uint8_t le[4];spx_v3_store_u32(le,code);spx_v3_sha_init(&s);spx_v3_sha_update(&s,spx_v3_response_domain,(uint32_t)sizeof(spx_v3_response_domain));spx_v3_sha_update(&s,le,4);spx_v3_hash_field(&s,response,SPX_V3_RESPONSE_BYTES);spx_v3_sha_final(&s,out);}
+static uint32_t spx_v3_maybe_physical_failure(uint8_t *frame,const uint8_t *response,uint32_t response_len,uint32_t checkpoint){uint32_t code=SPX_V3_FAULT_PHYSICAL_CODE;if(checkpoint!=SPX_V3_FAULT_PHYSICAL_CHECKPOINT)return UINT32_C(0);if(code==0||response_len!=SPX_V3_RESPONSE_BYTES||spx_v3_load_u32(frame+268)!=checkpoint||spx_v3_load_u32(frame+316)!=0)return UINT32_C(2);spx_v3_response_digest(code,response,frame+196);memset(frame+228,0,32);spx_v3_store_u32(frame+260,UINT32_C(2));spx_v3_store_u32(frame+264,code);spx_v3_refresh_frame(frame);return code;}
 static void spx_v3_semantic_digest(const uint8_t *response,uint8_t out[32]){struct spx_v3_sha s;uint8_t le[8],outcome;uint32_t count=spx_v3_load_u32(response+152),tag=spx_v3_load_u32(response+136);spx_v3_store_u64(le,(uint64_t)count);spx_v3_sha_init(&s);spx_v3_sha_update(&s,spx_v3_trace_domain,(uint32_t)sizeof(spx_v3_trace_domain));spx_v3_sha_update(&s,spx_v3_trace_path_certificate,32);spx_v3_sha_update(&s,le,8);for(uint32_t i=0;i<count;i++)spx_v3_sha_update(&s,response+156+4*i,4);outcome=(uint8_t)(tag==1?1:(tag==3?2:3));spx_v3_sha_update(&s,&outcome,1);if(outcome==3){spx_v3_store_u32(le,spx_v3_load_u32(response+140));spx_v3_sha_update(&s,le,4);}spx_v3_sha_final(&s,out);}
 static void spx_v3_decision_digest(const uint8_t *decision,uint8_t out[32]){spx_v3_framed_digest(spx_v3_decision_domain,(uint32_t)sizeof(spx_v3_decision_domain),decision,SPX_V3_DECISION_BYTES,out);}
 static bool spx_v3_common(const uint8_t *p,uint32_t n,const char magic[8]){return p!=NULL&&n>=20&&memcmp(p,magic,8)==0&&spx_v3_load_u32(p+8)==3&&spx_v3_load_u32(p+12)==20&&spx_v3_load_u32(p+16)==n;}
@@ -1330,9 +1530,10 @@ static bool spx_v3_valid_action_seed(const uint8_t *frame,const uint8_t decision
 static bool spx_v3_lock_decision(uint8_t *frame,const uint8_t decision[32],uint64_t actions){memcpy(frame+276,decision,32);spx_v3_action_seed(frame,decision,actions);spx_v3_store_u32(frame+272,2);spx_v3_refresh_frame(frame);return true;}
 static void spx_v3_action_step(uint8_t *frame,uint32_t action,uint32_t boundary,uint32_t owner,uint32_t before,uint32_t after){uint8_t record[SPX_V3_ACTION_BYTES],next[32],le[8];uint64_t j=spx_v3_load_u32(frame+312);spx_v3_store_u64(le,j);memset(record,0,sizeof(record));memcpy(record,"SPXNAC03",8);spx_v3_store_u32(record+8,3);spx_v3_store_u32(record+12,20);spx_v3_store_u32(record+16,SPX_V3_ACTION_BYTES);memcpy(record+20,frame+20,144);spx_v3_store_u32(record+164,action);spx_v3_store_u32(record+168,boundary);spx_v3_store_u32(record+172,owner);spx_v3_store_u64(record+176,spx_v3_load_u64(frame+spx_v3_cell(owner)+4));spx_v3_store_u32(record+184,before);spx_v3_store_u32(record+188,after);spx_v3_store_u32(record+192,spx_v3_load_u32(frame+268));struct spx_v3_sha s;spx_v3_sha_init(&s);spx_v3_sha_update(&s,spx_v3_action_step_domain,(uint32_t)sizeof(spx_v3_action_step_domain));spx_v3_sha_update(&s,frame+spx_v3_action_digest_offset(),32);spx_v3_sha_update(&s,le,8);spx_v3_hash_field(&s,record,SPX_V3_ACTION_BYTES);spx_v3_sha_final(&s,next);memcpy(frame+spx_v3_action_digest_offset(),next,32);spx_v3_store_u32(frame+312,(uint32_t)(j+1));}
 static bool spx_v3_publish(uint8_t *frame,uint32_t action,uint32_t owner){uint32_t c=spx_v3_cell(owner);if(spx_v3_load_u32(frame+308)!=action||spx_v3_load_u32(frame+c)!=2)return false;spx_v3_store_u32(frame+272,3);spx_v3_action_step(frame,action,3,owner,2,5);spx_v3_store_u32(frame+c,5);spx_v3_store_u32(frame+308,action+1);spx_v3_refresh_frame(frame);return true;}
-static bool spx_v3_settlement_finalize(uint8_t *frame,uint32_t action,uint32_t owner){uint32_t c=spx_v3_cell(owner);if(spx_v3_load_u32(frame+308)!=action||(spx_v3_load_u32(frame+c)!=1&&spx_v3_load_u32(frame+c)!=2))return false;uint32_t before=spx_v3_load_u32(frame+c);spx_v3_store_u32(frame+272,3);spx_v3_store_u32(frame+c,3);spx_v3_store_u32(frame+316,1);spx_v3_action_step(frame,action,1,owner,before,3);spx_v3_refresh_frame(frame);spx_v3_generated_finalize(owner,spx_v3_load_u64(frame+c+4));spx_v3_action_step(frame,action,2,owner,3,4);spx_v3_store_u32(frame+c,4);spx_v3_store_u32(frame+316,0);spx_v3_store_u32(frame+308,action+1);spx_v3_refresh_frame(frame);return true;}
+static bool spx_v3_settlement_finalize(uint8_t *frame,uint32_t action,uint32_t owner){uint32_t c=spx_v3_cell(owner);if(spx_v3_load_u32(frame+308)!=action||(spx_v3_load_u32(frame+c)!=1&&spx_v3_load_u32(frame+c)!=2))return false;uint32_t before=spx_v3_load_u32(frame+c);spx_v3_store_u32(frame+272,3);spx_v3_store_u32(frame+c,3);spx_v3_store_u32(frame+316,1);spx_v3_action_step(frame,action,1,owner,before,3);spx_v3_refresh_frame(frame);if(action==SPX_V3_FAULT_FINALIZER_ACTION&&SPX_V3_FAULT_FINALIZER_BOUNDARY==UINT32_C(1))return false;spx_v3_generated_finalize(owner,spx_v3_load_u64(frame+c+4));if(action==SPX_V3_FAULT_FINALIZER_ACTION&&SPX_V3_FAULT_FINALIZER_BOUNDARY==UINT32_C(2))return false;spx_v3_action_step(frame,action,2,owner,3,4);spx_v3_store_u32(frame+c,4);spx_v3_store_u32(frame+316,0);spx_v3_store_u32(frame+308,action+1);spx_v3_refresh_frame(frame);if(action==SPX_V3_FAULT_FINALIZER_ACTION&&SPX_V3_FAULT_FINALIZER_BOUNDARY==UINT32_C(3))return false;return true;}
 static bool spx_v3_validate_settle_inputs(uint8_t *frame,uint32_t frame_len,const uint8_t *decision,uint32_t decision_len,uint8_t *candidate,uint32_t candidate_len,uint8_t decision_hash[32],uint32_t *tag,uint32_t *detail){if(candidate==NULL||candidate_len!=SPX_V3_CANDIDATE_BYTES||!spx_v3_common(frame,frame_len,"SPXNFR03")||frame_len!=SPX_V3_FRAME_BYTES||!spx_v3_valid_frame_digest(frame)||!spx_v3_common(decision,decision_len,"SPXNDC03")||decision_len!=SPX_V3_DECISION_BYTES||!spx_v3_disjoint(frame,frame_len,decision,decision_len)||!spx_v3_disjoint(frame,frame_len,candidate,candidate_len)||!spx_v3_disjoint(decision,decision_len,candidate,candidate_len)||memcmp(frame+20,decision+20,144)!=0||spx_v3_load_u32(frame+316)!=0)return false;*tag=spx_v3_load_u32(decision+164);*detail=spx_v3_load_u32(decision+168);if(*tag<1||*tag>7||((*tag==1||*tag==2||*tag==5||*tag==6||*tag==7)&&*detail!=0)||(*tag==4&&*detail==0))return false;spx_v3_decision_digest(decision,decision_hash);return true;}
 static uint32_t spx_v3_emit_candidate(uint8_t *frame,uint32_t tag,uint32_t detail,uint8_t *candidate){uint32_t outcome=tag==1?1:(tag==2?2:(tag==3?3:4));memset(candidate,0,SPX_V3_CANDIDATE_BYTES);memcpy(candidate,"SPXNCR03",8);spx_v3_store_u32(candidate+8,3);spx_v3_store_u32(candidate+12,20);spx_v3_store_u32(candidate+16,SPX_V3_CANDIDATE_BYTES);memcpy(candidate+20,frame+20,144);memcpy(candidate+164,frame+164,64);if(outcome==4)memset(candidate+228,0,32);else memcpy(candidate+228,frame+228,32);memcpy(candidate+260,frame+spx_v3_frame_digest_offset(),32);memcpy(candidate+292,frame+276,32);memcpy(candidate+324,frame+spx_v3_action_digest_offset(),32);spx_v3_store_u32(candidate+356,outcome);spx_v3_store_u32(candidate+360,outcome==3?detail:0);spx_v3_store_u32(candidate+364,0);spx_v3_store_u32(candidate+368,SPX_V3_RESOURCE_COUNT);for(uint32_t i=0;i<SPX_V3_RESOURCE_COUNT;i++){uint32_t c=spx_v3_cell(i),q=372+12*i,s=spx_v3_load_u32(frame+c);if(s!=4&&s!=5)return UINT32_C(3);spx_v3_store_u32(candidate+q,s==4?1:2);spx_v3_store_u64(candidate+q+4,spx_v3_load_u64(frame+c+4));}return UINT32_C(0);}
+static uint32_t spx_v3_emit_candidate_with_fault(uint8_t *frame,uint32_t tag,uint32_t detail,uint8_t *candidate){uint32_t result=spx_v3_emit_candidate(frame,tag,detail,candidate);if(result==0&&SPX_V3_FAULT_CANDIDATE_OFFSET!=UINT32_MAX)candidate[SPX_V3_FAULT_CANDIDATE_OFFSET]^=UINT8_C(1);return result;}
 "#;
 
 #[cfg(test)]
@@ -2163,6 +2364,175 @@ int main(void){
         );
         for optimization in ["-O0", "-O2"] {
             compile_and_run(&source, optimization);
+        }
+    }
+
+    #[test]
+    fn physical_failure_injection_and_durable_settlement_boundaries_are_exact_at_o0_o2() {
+        fn fixture(
+            fault: ProviderV3TestFault,
+            invocation: u64,
+            decision: SettlementDecision,
+            body: &str,
+        ) -> String {
+            let plan = ProviderV3Plan::OwnedIdentity {
+                owner_ordinal: 0,
+                staged_checkpoint: 2,
+                semantic_ordinals: vec![1, 2, 3],
+            };
+            let spec = spec("token.identity", plan).with_test_fault(fault).unwrap();
+            let provider_binding = binding(&spec, invocation, invocation + 100, invocation as u8);
+            let (request, frame) = initial_owned_wires(provider_binding, &[900 + invocation]);
+            let decision = encode_decision(provider_binding, decision).unwrap();
+            let conflict =
+                encode_decision(provider_binding, SettlementDecision::AbortHostUnwind).unwrap();
+            let mut source = emit(&spec).unwrap().source;
+            writeln!(
+                source,
+                "#define spx_fixture_execute_v3 {}\n#define spx_fixture_settle_v3 {}",
+                spec.execute_symbol, spec.settle_symbol
+            )
+            .unwrap();
+            append_array(&mut source, "fixture_request", &request);
+            append_array(&mut source, "fixture_frame", &frame);
+            append_array(&mut source, "fixture_decision", &decision);
+            append_array(&mut source, "fixture_conflict", &conflict);
+            source.push_str(
+                r#"
+static uint32_t finalizer_count=0;static uint64_t finalized_payload=0;
+static void spx_v3_generated_finalize(uint32_t owner,uint64_t payload){if(owner==0){finalizer_count++;finalized_payload=payload;}}
+"#,
+            );
+            source.push_str(body);
+            source
+        }
+
+        let physical = fixture(
+            ProviderV3TestFault::PhysicalFailure {
+                checkpoint: 2,
+                code: 71,
+            },
+            61,
+            SettlementDecision::AbortPhysical { code: 71 },
+            r#"
+int main(void){
+ uint8_t frame[sizeof(fixture_frame)],response[SPX_V3_RESPONSE_BYTES],candidate[SPX_V3_CANDIDATE_BYTES],saved[SPX_V3_CANDIDATE_BYTES],saved_frame[sizeof(fixture_frame)],pending[sizeof(fixture_frame)],zero[32]={0};
+ memcpy(frame,fixture_frame,sizeof(frame));memset(response,0xa5,sizeof(response));
+ if(spx_fixture_execute_v3(fixture_request,sizeof(fixture_request),frame,sizeof(frame),response,sizeof(response))!=71)return 1;
+ if(spx_v3_load_u32(frame+260)!=2||spx_v3_load_u32(frame+264)!=71||spx_v3_load_u32(frame+268)!=2||spx_v3_load_u32(frame+324)!=2||spx_v3_zero(frame+196,32)||memcmp(frame+228,zero,32)||finalizer_count!=0)return 2;
+ if(spx_fixture_settle_v3(frame,sizeof(frame),fixture_decision,sizeof(fixture_decision),candidate,sizeof(candidate))!=0||finalizer_count!=1||finalized_payload!=961||spx_v3_load_u32(frame+324)!=4||spx_v3_load_u32(candidate+356)!=4)return 3;
+ memcpy(saved,candidate,sizeof(saved));if(spx_fixture_settle_v3(frame,sizeof(frame),fixture_decision,sizeof(fixture_decision),candidate,sizeof(candidate))!=0||memcmp(saved,candidate,sizeof(saved))||finalizer_count!=1)return 4;
+ memcpy(saved_frame,frame,sizeof(frame));memset(candidate,0xa5,sizeof(candidate));memcpy(saved,candidate,sizeof(saved));if(spx_fixture_settle_v3(frame,sizeof(frame),fixture_conflict,sizeof(fixture_conflict),candidate,sizeof(candidate))!=3||memcmp(saved_frame,frame,sizeof(frame))||memcmp(saved,candidate,sizeof(saved))||finalizer_count!=1)return 5;
+ memcpy(pending,fixture_frame,sizeof(pending));memcpy(saved_frame,pending,sizeof(pending));memset(candidate,0x5a,sizeof(candidate));memcpy(saved,candidate,sizeof(saved));if(spx_fixture_settle_v3(pending,sizeof(pending),fixture_conflict,sizeof(fixture_conflict),candidate,sizeof(candidate))!=3||memcmp(saved_frame,pending,sizeof(pending))||memcmp(saved,candidate,sizeof(saved))||finalizer_count!=1)return 6;
+ return 0;}
+"#,
+        );
+
+        let malformed_response = fixture(
+            ProviderV3TestFault::MalformedResponse { offset: 0 },
+            62,
+            SettlementDecision::AbortMalformed,
+            r#"
+int main(void){
+ uint8_t frame[sizeof(fixture_frame)],response[SPX_V3_RESPONSE_BYTES],candidate[SPX_V3_CANDIDATE_BYTES],saved[SPX_V3_CANDIDATE_BYTES],saved_frame[sizeof(fixture_frame)];
+ memcpy(frame,fixture_frame,sizeof(frame));if(spx_fixture_execute_v3(fixture_request,sizeof(fixture_request),frame,sizeof(frame),response,sizeof(response))!=0||response[0]!='R')return 1;
+ if(spx_fixture_settle_v3(frame,sizeof(frame),fixture_decision,sizeof(fixture_decision),candidate,sizeof(candidate))!=0||finalizer_count!=1||finalized_payload!=962||spx_v3_load_u32(candidate+356)!=4)return 2;
+ memcpy(saved,candidate,sizeof(saved));if(spx_fixture_settle_v3(frame,sizeof(frame),fixture_decision,sizeof(fixture_decision),candidate,sizeof(candidate))!=0||memcmp(saved,candidate,sizeof(saved))||finalizer_count!=1)return 3;
+ memcpy(saved_frame,frame,sizeof(frame));if(spx_fixture_settle_v3(frame,sizeof(frame),fixture_conflict,sizeof(fixture_conflict),candidate,sizeof(candidate))!=3||memcmp(saved_frame,frame,sizeof(frame))||memcmp(saved,candidate,sizeof(saved))||finalizer_count!=1)return 4;
+ return 0;}
+"#,
+        );
+
+        let malformed_frame = fixture(
+            ProviderV3TestFault::MalformedFrame { offset: 0 },
+            63,
+            SettlementDecision::AbortMalformed,
+            r#"
+int main(void){
+ uint8_t frame[sizeof(fixture_frame)],response[SPX_V3_RESPONSE_BYTES],candidate[SPX_V3_CANDIDATE_BYTES],saved[SPX_V3_CANDIDATE_BYTES],saved_frame[sizeof(fixture_frame)];
+ (void)fixture_conflict;
+ memcpy(frame,fixture_frame,sizeof(frame));if(spx_fixture_execute_v3(fixture_request,sizeof(fixture_request),frame,sizeof(frame),response,sizeof(response))!=0||frame[0]!='R')return 1;
+ memcpy(saved_frame,frame,sizeof(frame));memset(candidate,0xa5,sizeof(candidate));memcpy(saved,candidate,sizeof(saved));if(spx_fixture_settle_v3(frame,sizeof(frame),fixture_decision,sizeof(fixture_decision),candidate,sizeof(candidate))!=1||memcmp(saved_frame,frame,sizeof(frame))||memcmp(saved,candidate,sizeof(saved))||finalizer_count!=0)return 2;
+ return 0;}
+"#,
+        );
+
+        let malformed_candidate = fixture(
+            ProviderV3TestFault::MalformedCandidate { offset: 0 },
+            64,
+            SettlementDecision::AbortMalformed,
+            r#"
+int main(void){
+ uint8_t frame[sizeof(fixture_frame)],response[SPX_V3_RESPONSE_BYTES],candidate[SPX_V3_CANDIDATE_BYTES],saved[SPX_V3_CANDIDATE_BYTES],saved_frame[sizeof(fixture_frame)];
+ (void)fixture_conflict;
+ memcpy(frame,fixture_frame,sizeof(frame));if(spx_fixture_execute_v3(fixture_request,sizeof(fixture_request),frame,sizeof(frame),response,sizeof(response))!=0)return 1;
+ if(spx_fixture_settle_v3(frame,sizeof(frame),fixture_decision,sizeof(fixture_decision),candidate,sizeof(candidate))!=0||candidate[0]!='R'||finalizer_count!=1)return 2;
+ memcpy(saved,candidate,sizeof(saved));if(spx_fixture_settle_v3(frame,sizeof(frame),fixture_decision,sizeof(fixture_decision),candidate,sizeof(candidate))!=0||memcmp(saved,candidate,sizeof(saved))||finalizer_count!=1)return 3;
+ memcpy(saved_frame,frame,sizeof(frame));if(spx_fixture_settle_v3(frame,sizeof(frame),fixture_conflict,sizeof(fixture_conflict),candidate,sizeof(candidate))!=3||memcmp(saved_frame,frame,sizeof(frame))||memcmp(saved,candidate,sizeof(saved))||finalizer_count!=1)return 4;
+ return 0;}
+"#,
+        );
+
+        let boundary_body = |boundary: u32| {
+            if boundary == 1 {
+                r#"
+int main(void){
+ uint8_t frame[sizeof(fixture_frame)],response[SPX_V3_RESPONSE_BYTES],candidate[SPX_V3_CANDIDATE_BYTES],saved[SPX_V3_CANDIDATE_BYTES],saved_frame[sizeof(fixture_frame)];
+ (void)fixture_conflict;
+ memcpy(frame,fixture_frame,sizeof(frame));if(spx_fixture_execute_v3(fixture_request,sizeof(fixture_request),frame,sizeof(frame),response,sizeof(response))!=0)return 1;
+ if(spx_fixture_settle_v3(frame,sizeof(frame),fixture_decision,sizeof(fixture_decision),candidate,sizeof(candidate))!=3||spx_v3_load_u32(frame+316)!=1||spx_v3_load_u32(frame+324)!=3||finalizer_count!=0)return 2;
+ memcpy(saved_frame,frame,sizeof(frame));memset(candidate,0xa5,sizeof(candidate));memcpy(saved,candidate,sizeof(saved));if(spx_fixture_settle_v3(frame,sizeof(frame),fixture_decision,sizeof(fixture_decision),candidate,sizeof(candidate))!=1||memcmp(saved_frame,frame,sizeof(frame))||memcmp(saved,candidate,sizeof(saved))||finalizer_count!=0)return 3;
+ return 0;}
+"#
+            } else if boundary == 2 {
+                r#"
+int main(void){
+ uint8_t frame[sizeof(fixture_frame)],response[SPX_V3_RESPONSE_BYTES],candidate[SPX_V3_CANDIDATE_BYTES],saved[SPX_V3_CANDIDATE_BYTES],saved_frame[sizeof(fixture_frame)];
+ (void)fixture_conflict;
+ memcpy(frame,fixture_frame,sizeof(frame));if(spx_fixture_execute_v3(fixture_request,sizeof(fixture_request),frame,sizeof(frame),response,sizeof(response))!=0)return 1;
+ if(spx_fixture_settle_v3(frame,sizeof(frame),fixture_decision,sizeof(fixture_decision),candidate,sizeof(candidate))!=3||spx_v3_load_u32(frame+316)!=1||spx_v3_load_u32(frame+324)!=3||finalizer_count!=1||finalized_payload!=972)return 2;
+ memcpy(saved_frame,frame,sizeof(frame));memset(candidate,0xa5,sizeof(candidate));memcpy(saved,candidate,sizeof(saved));if(spx_fixture_settle_v3(frame,sizeof(frame),fixture_decision,sizeof(fixture_decision),candidate,sizeof(candidate))!=1||memcmp(saved_frame,frame,sizeof(frame))||memcmp(saved,candidate,sizeof(saved))||finalizer_count!=1||finalized_payload!=972)return 3;
+ return 0;}
+"#
+            } else {
+                r#"
+int main(void){
+ uint8_t frame[sizeof(fixture_frame)],response[SPX_V3_RESPONSE_BYTES],candidate[SPX_V3_CANDIDATE_BYTES],saved[SPX_V3_CANDIDATE_BYTES],saved_frame[sizeof(fixture_frame)];
+ (void)fixture_conflict;
+ memcpy(frame,fixture_frame,sizeof(frame));if(spx_fixture_execute_v3(fixture_request,sizeof(fixture_request),frame,sizeof(frame),response,sizeof(response))!=0)return 1;
+ if(spx_fixture_settle_v3(frame,sizeof(frame),fixture_decision,sizeof(fixture_decision),candidate,sizeof(candidate))!=3||finalizer_count!=1||spx_v3_load_u32(frame+316)!=0||spx_v3_load_u32(frame+308)!=1||spx_v3_load_u32(frame+324)!=4)return 2;
+ if(spx_fixture_settle_v3(frame,sizeof(frame),fixture_decision,sizeof(fixture_decision),candidate,sizeof(candidate))!=0||finalizer_count!=1||spx_v3_load_u32(candidate+356)!=4)return 3;
+ memcpy(saved,candidate,sizeof(saved));if(spx_fixture_settle_v3(frame,sizeof(frame),fixture_decision,sizeof(fixture_decision),candidate,sizeof(candidate))!=0||memcmp(saved,candidate,sizeof(saved))||finalizer_count!=1)return 4;
+ memcpy(saved_frame,frame,sizeof(frame));if(spx_fixture_settle_v3(frame,sizeof(frame),fixture_conflict,sizeof(fixture_conflict),candidate,sizeof(candidate))!=3||memcmp(saved_frame,frame,sizeof(frame))||memcmp(saved,candidate,sizeof(saved))||finalizer_count!=1)return 5;
+ return 0;}
+"#
+            }
+        };
+        let boundaries = [1_u32, 2, 3].map(|boundary| {
+            fixture(
+                ProviderV3TestFault::FinalizerInterruption {
+                    action: 0,
+                    boundary,
+                },
+                70 + u64::from(boundary),
+                SettlementDecision::AbortMalformed,
+                boundary_body(boundary),
+            )
+        });
+
+        let cases = [
+            ("physical", &physical),
+            ("malformed-response", &malformed_response),
+            ("malformed-frame", &malformed_frame),
+            ("malformed-candidate", &malformed_candidate),
+            ("finalizer-start", &boundaries[0]),
+            ("finalizer-effect", &boundaries[1]),
+            ("finalizer-complete", &boundaries[2]),
+        ];
+        for (label, source) in cases {
+            for optimization in ["-O0", "-O2"] {
+                compile_and_run_labeled(source, optimization, label);
+            }
         }
     }
 

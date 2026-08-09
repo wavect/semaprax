@@ -75,11 +75,11 @@ physical-finalizer policy; those remain host responsibilities. The v3 surface
 is private and does not change public native admission or `SPX-B104`.
 
 The loader's standalone plain-C fixtures remain separate provenance evidence.
-A new private joint test additionally compiles compiler-generated scalar
-discard-two and owned-identity providers, admits their exact descriptor and
-three entry points through this constructor, and executes them through the host
-receipt ledger at `-O0`/`-O2`. This does not put the other 12 normal corpus
-scenarios or failure paths through loader plus host.
+A private joint test additionally compiles generated providers for all 14
+authoritative normal scenarios, admits their exact descriptor and three entry
+points through this constructor, and executes them through the host receipt
+ledger at `-O0`/`-O2`. The provider-side failure matrix remains distinct from
+full joint failure/crash evidence; canonical pre-execute unwind is still open.
 
 The unpublished native host additionally proves that its real callable-v2
 lease is retained by its same-thread authority and every live owner/result

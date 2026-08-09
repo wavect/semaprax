@@ -1,18 +1,29 @@
 #![cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 
+use std::fmt::Write as _;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use semaprax::codegen::{emit_private_native_callable_v3_fixture, PrivateNativeCallableV3Fixture};
+use semaprax::codegen::{
+    emit_private_native_callable_v3_corpus_fixture, emit_private_native_callable_v3_fixture,
+    PrivateNativeCallableV3Fixture,
+};
+use semaprax::conformance::{TraceEventKind, TraceOutcome, TraceResult};
 use semaprax::hir::DeclarationId;
-use semaprax::owned_resource_corpus::build_owned_resource_corpus_v1;
+use semaprax::owned_resource_corpus::{
+    build_owned_resource_corpus_v1, OwnedResourceCorpus, OwnedResourceCorpusArgument,
+    OwnedResourceCorpusCase,
+};
+use semaprax::semantic_trace::build_semantic_event_dictionary;
 use semaprax_native_loader::open_admitted_settlement_exact;
 
 use crate::callable_wire_v3::{ExecuteOutcome, Publication};
-use crate::descriptor_v3::Descriptor;
-use crate::settlement_host_v3::{PrivateSettlementExecutionError, PrivateSettlementHostV3};
+use crate::descriptor_v3::{Action, Descriptor, TraceOutcome as DescriptorTraceOutcome};
+use crate::settlement_host_v3::{
+    PrivateSettlementArgumentV3, PrivateSettlementExecutionError, PrivateSettlementHostV3,
+};
 use crate::settlement_ledger::SettlementLedgerError;
 
 static NEXT_FIXTURE: AtomicU64 = AtomicU64::new(1);
@@ -52,17 +63,58 @@ impl Fixture {
             fixture,
         )
         .expect("derive private generated v3 provider");
-        let directory = fixture_directory(function);
+        Self::build_artifact(
+            function,
+            artifact.descriptor(),
+            artifact.source(),
+            optimization,
+            mutate,
+        )
+    }
+
+    fn build_corpus(
+        corpus: &OwnedResourceCorpus,
+        case: &OwnedResourceCorpusCase,
+        optimization: &str,
+    ) -> Self {
+        let artifact = emit_private_native_callable_v3_corpus_fixture(
+            &corpus.program,
+            &DeclarationId::new(case.function_id),
+            &case.arguments,
+            case.expected_owned_result_ordinal,
+            &case.reference,
+        )
+        .expect("derive private graph-witness v3 provider");
+        Self::build_artifact(
+            case.scenario_id,
+            artifact.descriptor(),
+            artifact.source(),
+            optimization,
+            |source, _, _| source,
+        )
+    }
+
+    fn build_artifact(
+        label: &str,
+        artifact_descriptor: &[u8],
+        artifact_source: &str,
+        optimization: &str,
+        mutate: impl FnOnce(String, &str, &str) -> String,
+    ) -> Self {
+        let directory = fixture_directory(label);
         let finalizer_marker = directory.join("finalizers.marker");
         let unload_marker = directory.join("unloaded.marker");
-        let descriptor = Descriptor::parse(artifact.descriptor()).expect("parse v3 descriptor");
+        let descriptor = Descriptor::parse(artifact_descriptor).expect("parse v3 descriptor");
         let provider = mutate(
-            artifact.source().to_owned(),
+            artifact_source.to_owned(),
             &descriptor.execute_symbol,
             &descriptor.settle_symbol,
         );
         let source = format!(
-            r#"{provider}
+            r#"#if defined(_WIN32)
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+{provider}
 #include <stdio.h>
 #if defined(_WIN32)
 #include <windows.h>
@@ -90,11 +142,15 @@ __attribute__((destructor)) static void spx_v3_on_unload(void){{
             finalizer = c_string_literal(&finalizer_marker),
             unload = c_string_literal(&unload_marker),
         );
+        assert!(
+            source.starts_with("#if defined(_WIN32)\n#define _CRT_SECURE_NO_WARNINGS\n#endif\n"),
+            "joint v3 fixture must keep its local Windows CRT opt-out before provider headers"
+        );
         let library = compile_provider(&directory, &source, optimization);
         Self {
             directory,
             library,
-            descriptor: artifact.descriptor().to_vec(),
+            descriptor: artifact_descriptor.to_vec(),
             finalizer_marker,
             unload_marker,
         }
@@ -165,10 +221,16 @@ SPX_V3_API uint32_t SPX_V3_CALL {settle_symbol}(uint8_t *frame,uint32_t frame_le
 
 #[test]
 fn generated_provider_loader_host_v3_end_to_end_is_exact() {
+    let corpus = build_owned_resource_corpus_v1().expect("build authoritative owned corpus");
+    assert_eq!(corpus.cases.len(), 14);
     for optimization in ["-O0", "-O2"] {
-        scalar_discard_is_exact(optimization);
-        owned_identity_rotates_generation(optimization);
+        for (case_index, case) in corpus.cases.iter().enumerate() {
+            corpus_case_is_exact(&corpus, case, case_index, optimization);
+        }
     }
+    // Retain one repeated accepted-owned call as focused evidence that the
+    // published generation, not the stale input handle, is reusable.
+    owned_identity_rotates_generation("-O2");
 }
 
 #[test]
@@ -224,37 +286,231 @@ fn generated_provider_loader_host_v3_rejects_descriptor_and_cross_instance_confu
     );
 }
 
-fn scalar_discard_is_exact(optimization: &str) {
-    let fixture = Fixture::build(
-        "token.discard-two",
-        PrivateNativeCallableV3Fixture::ScalarDiscardTwo,
-        optimization,
-    );
-    // SAFETY: The compiler-generated fixture implements the exact synchronous
-    // ABI and retains no provider-visible pointer after either call.
+fn corpus_case_is_exact(
+    corpus: &OwnedResourceCorpus,
+    case: &OwnedResourceCorpusCase,
+    case_index: usize,
+    optimization: &str,
+) {
+    let fixture = Fixture::build_corpus(corpus, case, optimization);
+    let descriptor = Descriptor::parse(&fixture.descriptor).unwrap();
+    // SAFETY: The compiler-generated graph-witness fixture implements the
+    // exact synchronous ABI and retains no provider-visible pointer.
     let lease =
         unsafe { open_admitted_settlement_exact(&fixture.library, &fixture.descriptor) }.unwrap();
     let host = PrivateSettlementHostV3::from_admitted(lease, &fixture.descriptor).unwrap();
-    let first = host.register_owner(11, 3).unwrap();
-    let second = host.register_owner(12, 7).unwrap();
-    let physical = host
-        .execute_owned_success(&[first, second], &[41, 73])
-        .unwrap();
-    assert_eq!(physical.outcome, ExecuteOutcome::Scalar { value: 0 });
-    assert_eq!(physical.committed.publication, Publication::NoOwned);
-    assert!(physical.committed.published_owner.is_none());
+    let mut owner_ordinal = 0_u64;
+    let mut arguments = Vec::with_capacity(case.arguments.len());
+    for argument in &case.arguments {
+        arguments.push(match argument {
+            OwnedResourceCorpusArgument::Owned(payload) => {
+                let slot = 10_000_u64
+                    .checked_add((case_index as u64) * 16)
+                    .and_then(|slot| slot.checked_add(owner_ordinal))
+                    .unwrap();
+                let handle = host.register_owner(slot, 31).unwrap();
+                owner_ordinal += 1;
+                PrivateSettlementArgumentV3::Owned {
+                    handle,
+                    payload: *payload,
+                }
+            }
+            OwnedResourceCorpusArgument::Bool(value) => PrivateSettlementArgumentV3::Bool(*value),
+            OwnedResourceCorpusArgument::I64(value) => PrivateSettlementArgumentV3::I64(*value),
+        });
+    }
+    let (semantic_ordinals, trace_outcome, expected_outcome) =
+        expected_trace_evidence(corpus, case);
+    let expected_finalizers =
+        graph_execute_finalizers(&descriptor, &semantic_ordinals, trace_outcome);
+    let payloads = case
+        .arguments
+        .iter()
+        .filter_map(|argument| match argument {
+            OwnedResourceCorpusArgument::Owned(payload) => Some(*payload),
+            OwnedResourceCorpusArgument::Bool(_) | OwnedResourceCorpusArgument::I64(_) => None,
+        })
+        .collect::<Vec<_>>();
+
+    let physical = host.execute_canonical(&arguments).unwrap();
+    assert_eq!(
+        crate::postcommit_allocation_probe::take_last(),
+        Some(0),
+        "{} allocated after CallCommit",
+        case.scenario_id
+    );
+    assert_eq!(physical.outcome, expected_outcome, "{}", case.scenario_id);
+    let expected_publication = match expected_outcome {
+        ExecuteOutcome::Owned { owner_ordinal, .. } => Publication::Owned(owner_ordinal),
+        ExecuteOutcome::Scalar { .. } | ExecuteOutcome::SemanticFailure { .. } => {
+            Publication::NoOwned
+        }
+    };
+    assert_eq!(
+        physical.committed.publication, expected_publication,
+        "{}",
+        case.scenario_id
+    );
+    assert_eq!(
+        physical.committed.published_owner.is_some(),
+        matches!(expected_publication, Publication::Owned(_)),
+        "{}",
+        case.scenario_id
+    );
     assert_eq!(
         host.replay_committed(physical.identity, &physical.candidate_bytes)
             .unwrap(),
-        physical.committed
+        physical.committed,
+        "{}",
+        case.scenario_id
     );
+    let mut expected_marker = String::new();
+    for owner in expected_finalizers {
+        writeln!(&mut expected_marker, "{owner}:{}", payloads[owner as usize]).unwrap();
+    }
+    let actual_marker = fs::read_to_string(&fixture.finalizer_marker).unwrap_or_default();
+    assert_eq!(actual_marker, expected_marker, "{}", case.scenario_id);
     assert_eq!(
-        fs::read_to_string(&fixture.finalizer_marker).unwrap(),
-        "1:73\n0:41\n"
+        host.execute_canonical(&arguments),
+        Err(PrivateSettlementExecutionError::Ledger(
+            SettlementLedgerError::StaleOwner
+        )),
+        "{}",
+        case.scenario_id
     );
-    assert!(!host.is_poisoned());
+    assert!(!host.is_poisoned(), "{}", case.scenario_id);
+    assert!(!host.is_draining(), "{}", case.scenario_id);
     drop(host);
-    assert!(fixture.unload_marker.exists());
+    assert!(fixture.unload_marker.exists(), "{}", case.scenario_id);
+}
+
+fn expected_trace_evidence(
+    corpus: &OwnedResourceCorpus,
+    case: &OwnedResourceCorpusCase,
+) -> (Vec<u32>, DescriptorTraceOutcome, ExecuteOutcome) {
+    let function_id = DeclarationId::new(case.function_id);
+    let dictionary = build_semantic_event_dictionary(&corpus.program, &function_id).unwrap();
+    let semantic_ordinals = case
+        .reference
+        .events
+        .iter()
+        .map(|event| dictionary.ordinal_for(&event.event).unwrap())
+        .collect::<Vec<_>>();
+    match &case.reference.outcome {
+        TraceOutcome::Success {
+            result: TraceResult::I64(value),
+        } => (
+            semantic_ordinals,
+            DescriptorTraceOutcome::ScalarSuccess,
+            ExecuteOutcome::Scalar { value: *value },
+        ),
+        TraceOutcome::Success {
+            result: TraceResult::Owned { .. },
+        } => {
+            let owner = case.expected_owned_result_ordinal.unwrap() as u32;
+            let payload =
+                case.arguments
+                    .iter()
+                    .filter_map(|argument| match argument {
+                        OwnedResourceCorpusArgument::Owned(payload) => Some(*payload),
+                        OwnedResourceCorpusArgument::Bool(_)
+                        | OwnedResourceCorpusArgument::I64(_) => None,
+                    })
+                    .nth(owner as usize)
+                    .unwrap();
+            (
+                semantic_ordinals,
+                DescriptorTraceOutcome::OwnedSuccess,
+                ExecuteOutcome::Owned {
+                    owner_ordinal: owner,
+                    payload,
+                },
+            )
+        }
+        TraceOutcome::Failure { .. } => {
+            let selected_ordinal = case
+                .reference
+                .events
+                .iter()
+                .find_map(|event| {
+                    matches!(event.event, TraceEventKind::SelectFailure { .. })
+                        .then(|| dictionary.ordinal_for(&event.event))
+                        .flatten()
+                })
+                .unwrap();
+            (
+                semantic_ordinals,
+                DescriptorTraceOutcome::Failure { selected_ordinal },
+                ExecuteOutcome::SemanticFailure { selected_ordinal },
+            )
+        }
+        TraceOutcome::Success { .. } => panic!("corpus outcome is outside callable v3"),
+    }
+}
+
+fn graph_execute_finalizers(
+    descriptor: &Descriptor,
+    semantic_ordinals: &[u32],
+    trace_outcome: DescriptorTraceOutcome,
+) -> Vec<u32> {
+    fn walk(
+        descriptor: &Descriptor,
+        checkpoint: u32,
+        semantic_ordinals: &[u32],
+        trace_outcome: DescriptorTraceOutcome,
+        path: &mut Vec<u32>,
+        matches: &mut Vec<Vec<u32>>,
+    ) {
+        for edge in descriptor
+            .graph
+            .edges
+            .iter()
+            .filter(|edge| edge.from == checkpoint)
+        {
+            match &edge.action {
+                Action::Finalize(owner) => {
+                    path.push(*owner);
+                    walk(
+                        descriptor,
+                        edge.to,
+                        semantic_ordinals,
+                        trace_outcome,
+                        path,
+                        matches,
+                    );
+                    path.pop();
+                }
+                Action::StageOwnedResult(_) => walk(
+                    descriptor,
+                    edge.to,
+                    semantic_ordinals,
+                    trace_outcome,
+                    path,
+                    matches,
+                ),
+                Action::CertifyOutcome(evidence)
+                    if evidence.ordinals == semantic_ordinals
+                        && evidence.outcome == trace_outcome =>
+                {
+                    matches.push(path.clone());
+                }
+                Action::CertifyOutcome(_) => {}
+            }
+        }
+    }
+
+    let mut matches = Vec::new();
+    let mut path = Vec::new();
+    walk(
+        descriptor,
+        descriptor.graph.starts[0],
+        semantic_ordinals,
+        trace_outcome,
+        &mut path,
+        &mut matches,
+    );
+    assert_eq!(matches.len(), 1, "graph witness path must be unique");
+    matches.pop().unwrap()
 }
 
 fn owned_identity_rotates_generation(optimization: &str) {

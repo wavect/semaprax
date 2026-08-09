@@ -115,18 +115,20 @@ certificate, canonical hashed manifest, and source. It does not load, invoke,
 or adopt resources. Ordinary native resource builds still return `SPX-B104`.
 
 The newer callable-v3 work remains private. Graph-derived strict-C11 providers
-now execute all 14 authoritative normal corpus scenarios at `-O0` and `-O2`.
-One narrower joint test compiles scalar discard-two and owned identity, admits
-the exact dynamic image through the unpublished loader, and executes it through
-the authoritative host receipt ledger with independent evidence decoding,
-exact replay, owned-generation refresh, cross-instance rejection, and unload
-pinning. Linux ASan+UBSan and explicit Windows gates are configured for this
-batch but are not public evidence until their hosted run is green. The full
-corpus has not yet passed through loader plus host, and pending/pre-execute host
-unwind intentionally fails closed until its canonical transcript is frozen.
-Post-`CallCommit` Rust decoding/replay still allocates. This is not public
-admission, exhaustive failure injection, Android/iOS execution, quiescence, or
-containment of malicious native code. `SPX-B104` stays closed.
+now execute all 14 authoritative normal corpus scenarios through the exact
+dynamic-image loader and authoritative host receipt ledger at `-O0` and `-O2`,
+with mixed scalar/bool/owned inputs, independent pre-settle evidence validation,
+exact replay, generation refresh, cross-instance rejection, and unload pinning.
+A counting allocator observes zero Rust allocations or reallocations from
+immediately before `CallCommit` through authenticated `ReceiptCommit` in every
+normal case; injected reusable-decode reserve failure preserves exact evidence
+and the image pin in quarantine. Seven provider-side physical-failure,
+malformed-output, interruption, replay, and conflict fixtures also pass at
+`-O0`/`-O2` and under Clang ASan+UBSan. Pending/pre-execute host unwind still
+fails closed until its canonical transcript is frozen. This is not public
+admission, exhaustive process-crash or fatal-allocator evidence, Android/iOS
+execution, quiescence, or containment of malicious native code. `SPX-B104`
+stays closed.
 
 Not implemented yet: public native resource execution/admission,
 general-shape native/reference/Wasm trace conformance, the general Wasm resource ABI,
@@ -188,13 +190,13 @@ former provisional identities and freeze new private v3 known answers.
 The current emitter is bound to its compiler build target and has no
 cross-target configuration; Android/iOS/Windows cross-emission and runtime
 evidence remain absent. The private physical tranche now has graph-derived
-providers for all 14 normal corpus scenarios at `-O0`/`-O2` and one narrower
-generated-provider → desktop-loader → receipt-ledger invocation for scalar
-discard-two and owned identity. That joint path proves exact descriptor/image/
-instance binding, copied-evidence decoding, replay, finalizer order, generation
-refresh, and pin lifetime. It does not put all 14 scenarios through the loader
-and host, freeze pre-execute unwind recovery, eliminate postcommit host
-allocation, cover mobile profiles, or expose a public compiler path.
+providers for all 14 normal corpus scenarios running through the generated-
+provider → desktop-loader → receipt-ledger path at `-O0`/`-O2`. That joint
+path proves exact descriptor/image/instance binding, pre-settle copied-evidence
+validation, replay, finalizer order, generation refresh, pin lifetime, and zero
+measured Rust heap growth across the irreversible interval. It does not freeze
+pre-execute unwind recovery, prove fatal allocator/process-crash containment,
+cover mobile profiles, or expose a public compiler path.
 `SPX-B104` remains unchanged.
 
 The hidden phase-aware transaction model now starts from the authenticated

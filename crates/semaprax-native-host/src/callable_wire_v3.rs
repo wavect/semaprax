@@ -9,7 +9,6 @@
     reason = "callable-v3 runtime admission remains private and unwired"
 )]
 
-use std::collections::BTreeMap;
 use std::num::NonZeroU64;
 
 use hmac::{Hmac, Mac};
@@ -22,6 +21,32 @@ use crate::descriptor_v3::{
 
 type HmacSha256 = Hmac<Sha256>;
 
+#[cfg(test)]
+std::thread_local! {
+    static REUSABLE_STORAGE_ALLOCATION_FAILURE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+#[cfg(test)]
+pub(crate) fn arm_reusable_storage_allocation_failure() {
+    REUSABLE_STORAGE_ALLOCATION_FAILURE.with(|armed| armed.set(true));
+}
+
+fn reserve_reusable<T>(storage: &mut Vec<T>, required: usize) -> Result<(), WireError> {
+    if storage.capacity() >= required {
+        return Ok(());
+    }
+    #[cfg(test)]
+    REUSABLE_STORAGE_ALLOCATION_FAILURE.with(|armed| {
+        if armed.replace(false) {
+            return Err(WireError::CapacityMismatch);
+        }
+        Ok(())
+    })?;
+    storage
+        .try_reserve_exact(required - storage.capacity())
+        .map_err(|_| WireError::CapacityMismatch)
+}
+
 const VERSION: u32 = 3;
 const HEADER_SIZE: u32 = 20;
 const REQUEST_MAGIC: &[u8; 8] = b"SPXNRQ03";
@@ -33,6 +58,8 @@ const CANDIDATE_MAGIC: &[u8; 8] = b"SPXNCR03";
 const HOST_RECEIPT_MAGIC: &[u8; 8] = b"SPXHRP03";
 pub(crate) const HOST_RECEIPT_BYTES: usize = 524;
 const HOST_RECEIPT_BODY_BYTES: usize = 492;
+pub(crate) const DECISION_BYTES: usize = 172;
+const ACTION_RECORD_BYTES: usize = 196;
 
 const REQUEST_DIGEST_DOMAIN: &[u8] = b"semaprax.native-callable-request-digest.v3\0";
 const RESPONSE_STORAGE_DIGEST_DOMAIN: &[u8] =
@@ -407,6 +434,16 @@ impl ExecuteRequest {
 
 impl ExecuteResponse {
     pub(crate) fn parse(bytes: &[u8], descriptor: &Descriptor) -> Result<Self, WireError> {
+        Self::parse_reusing(bytes, descriptor, Vec::new())
+    }
+
+    /// Decode into caller-preallocated event storage. When `event_ordinals`
+    /// has descriptor capacity this performs no heap allocation.
+    pub(crate) fn parse_reusing(
+        bytes: &[u8],
+        descriptor: &Descriptor,
+        mut event_ordinals: Vec<u32>,
+    ) -> Result<Self, WireError> {
         if bytes.len() != descriptor.capacities.execute_response as usize {
             return Err(WireError::CapacityMismatch);
         }
@@ -457,7 +494,8 @@ impl ExecuteResponse {
         if event_count == 0 || event_count > descriptor.capacities.event_count as usize {
             return Err(WireError::CapacityMismatch);
         }
-        let mut event_ordinals = Vec::with_capacity(event_count);
+        event_ordinals.clear();
+        reserve_reusable(&mut event_ordinals, event_count)?;
         for _ in 0..event_count {
             let ordinal = reader.u32()?;
             if ordinal == 0 || ordinal > descriptor.capacities.dictionary_entries {
@@ -474,7 +512,6 @@ impl ExecuteResponse {
             event_ordinals,
             storage_capacity: bytes.len(),
         };
-        require_exact(bytes, &value.encode())?;
         Ok(value)
     }
 
@@ -515,6 +552,15 @@ impl ExecuteResponse {
 
 impl RecoveryFrame {
     pub(crate) fn parse(bytes: &[u8], descriptor: &Descriptor) -> Result<Self, WireError> {
+        Self::parse_reusing(bytes, descriptor, Vec::new())
+    }
+
+    /// Decode into caller-preallocated resource-cell storage.
+    pub(crate) fn parse_reusing(
+        bytes: &[u8],
+        descriptor: &Descriptor,
+        mut cells: Vec<ResourceCell>,
+    ) -> Result<Self, WireError> {
         if bytes.len() != descriptor.capacities.frame as usize {
             return Err(WireError::CapacityMismatch);
         }
@@ -552,7 +598,8 @@ impl RecoveryFrame {
         if resource_count != descriptor.capacities.resource_count as usize {
             return Err(WireError::CapacityMismatch);
         }
-        let mut cells = Vec::with_capacity(resource_count);
+        cells.clear();
+        reserve_reusable(&mut cells, resource_count)?;
         for _ in 0..resource_count {
             cells.push(ResourceCell {
                 state: parse_cell_state(reader.u32()?)?,
@@ -589,7 +636,6 @@ impl RecoveryFrame {
             pre_candidate_digest,
         };
         validate_frame_state(&value)?;
-        require_exact(bytes, &value.encode())?;
         Ok(value)
     }
 
@@ -683,6 +729,25 @@ impl SettlementDecision {
         writer.u32(detail);
         writer.finish()
     }
+
+    pub(crate) fn encode_fixed(&self) -> Result<[u8; DECISION_BYTES], WireError> {
+        let mut bytes = [0_u8; DECISION_BYTES];
+        let mut writer = SliceWriter::new(&mut bytes, DECISION_MAGIC)?;
+        writer.recovery_identity(self.identity)?;
+        let (tag, detail) = match self.decision {
+            Decision::AcceptScalar => (1, 0),
+            Decision::AcceptSemanticFailure => (2, 0),
+            Decision::AcceptOwned(owner) => (3, owner),
+            Decision::AbortPhysical(code) => (4, code),
+            Decision::AbortMalformed => (5, 0),
+            Decision::AbortTraceRejected => (6, 0),
+            Decision::AbortHostUnwind => (7, 0),
+        };
+        writer.u32(tag)?;
+        writer.u32(detail)?;
+        writer.finish()?;
+        Ok(bytes)
+    }
 }
 
 impl ActionRecord {
@@ -752,10 +817,38 @@ impl ActionRecord {
         writer.u32(self.checkpoint);
         writer.finish()
     }
+
+    fn encode_fixed(&self) -> Result<[u8; ACTION_RECORD_BYTES], WireError> {
+        let mut bytes = [0_u8; ACTION_RECORD_BYTES];
+        let mut writer = SliceWriter::new(&mut bytes, ACTION_MAGIC)?;
+        writer.recovery_identity(self.identity)?;
+        writer.u32(self.semantic_action_index)?;
+        writer.u32(match self.boundary {
+            ActionBoundary::Started => 1,
+            ActionBoundary::Completed => 2,
+            ActionBoundary::Publish => 3,
+        })?;
+        writer.u32(self.owner_ordinal)?;
+        writer.u64(self.payload)?;
+        writer.u32(cell_state_tag(self.before))?;
+        writer.u32(cell_state_tag(self.after))?;
+        writer.u32(self.checkpoint)?;
+        writer.finish()?;
+        Ok(bytes)
+    }
 }
 
 impl CandidateReceipt {
     pub(crate) fn parse(bytes: &[u8], descriptor: &Descriptor) -> Result<Self, WireError> {
+        Self::parse_reusing(bytes, descriptor, Vec::new())
+    }
+
+    /// Decode into caller-preallocated disposition storage.
+    pub(crate) fn parse_reusing(
+        bytes: &[u8],
+        descriptor: &Descriptor,
+        mut dispositions: Vec<DispositionCell>,
+    ) -> Result<Self, WireError> {
         if bytes.len() != descriptor.capacities.candidate_receipt as usize {
             return Err(WireError::CapacityMismatch);
         }
@@ -785,7 +878,8 @@ impl CandidateReceipt {
         if count != descriptor.capacities.resource_count as usize {
             return Err(WireError::CapacityMismatch);
         }
-        let mut dispositions = Vec::with_capacity(count);
+        dispositions.clear();
+        reserve_reusable(&mut dispositions, count)?;
         for _ in 0..count {
             dispositions.push(DispositionCell {
                 disposition: match reader.u32()? {
@@ -797,25 +891,27 @@ impl CandidateReceipt {
             });
         }
         reader.finish()?;
-        let published = dispositions
-            .iter()
-            .enumerate()
-            .filter_map(|(index, cell)| {
-                (cell.disposition == Disposition::Published).then_some(index as u32)
-            })
-            .collect::<Vec<_>>();
+        let mut published_count = 0_usize;
+        let mut published_owner = None;
+        for (index, cell) in dispositions.iter().enumerate() {
+            if cell.disposition == Disposition::Published {
+                published_count += 1;
+                published_owner = Some(index as u32);
+            }
+        }
         match outcome {
             CandidateOutcome::Owned(owner)
                 if matches!(
                     descriptor.result,
                     ResultShape::OwnedInput { owner_ordinal, .. }
                         if owner_ordinal == owner as usize
-                ) && published.as_slice() == [owner] => {}
+                ) && published_count == 1
+                    && published_owner == Some(owner) => {}
             CandidateOutcome::Owned(_) => return Err(WireError::NonCanonical),
             CandidateOutcome::Scalar
-                if descriptor.result == ResultShape::ScalarI64 && published.is_empty() => {}
+                if descriptor.result == ResultShape::ScalarI64 && published_count == 0 => {}
             CandidateOutcome::Scalar => return Err(WireError::NonCanonical),
-            CandidateOutcome::Failure | CandidateOutcome::Abort if published.is_empty() => {}
+            CandidateOutcome::Failure | CandidateOutcome::Abort if published_count == 0 => {}
             CandidateOutcome::Failure | CandidateOutcome::Abort => {
                 return Err(WireError::NonCanonical)
             }
@@ -835,7 +931,6 @@ impl CandidateReceipt {
             active_finalizers,
             dispositions,
         };
-        require_exact(bytes, &value.encode())?;
         Ok(value)
     }
 
@@ -875,6 +970,7 @@ impl HostCommittedReceipt {
         key: &ReceiptMacKey,
         instance_binding: [u8; 32],
         candidate: &CandidateReceipt,
+        candidate_digest: [u8; 32],
         ledger_before_digest: [u8; 32],
         ledger_after_digest: [u8; 32],
     ) -> Result<Self, WireError> {
@@ -884,7 +980,9 @@ impl HostCommittedReceipt {
         {
             return Err(WireError::NonCanonical);
         }
-        let candidate_digest = candidate_digest(&candidate.encode());
+        if candidate_digest == [0; 32] {
+            return Err(WireError::NonCanonical);
+        }
         let publication = match candidate.outcome {
             CandidateOutcome::Owned(owner) => Publication::Owned(owner),
             CandidateOutcome::Scalar | CandidateOutcome::Failure | CandidateOutcome::Abort => {
@@ -906,18 +1004,19 @@ impl HostCommittedReceipt {
             publication,
             tag: [0; 32],
         };
-        let unsigned = value.encode();
+        let unsigned = value.encode_fixed()?;
         value.tag = receipt_mac(key, &unsigned[..HOST_RECEIPT_BODY_BYTES])?;
         Ok(value)
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn parse_and_verify(
+    pub(crate) fn parse_and_verify_precomputed(
         bytes: &[u8],
         key: &ReceiptMacKey,
         descriptor: &Descriptor,
         expected_instance_binding: [u8; 32],
         candidate: &CandidateReceipt,
+        expected_candidate_digest: [u8; 32],
         expected_ledger_before: [u8; 32],
         expected_ledger_after: [u8; 32],
     ) -> Result<Self, WireError> {
@@ -955,7 +1054,7 @@ impl HostCommittedReceipt {
             || frame_digest != candidate.frame_digest
             || decision_digest != candidate.decision_digest
             || action_evidence_digest != candidate.action_evidence_digest
-            || candidate_digest_value != candidate_digest(&candidate.encode())
+            || candidate_digest_value != expected_candidate_digest
             || ledger_before_digest != expected_ledger_before
             || ledger_after_digest != expected_ledger_after
             || publication
@@ -981,8 +1080,36 @@ impl HostCommittedReceipt {
             publication,
             tag,
         };
-        require_exact(bytes, &value.encode())?;
+        if bytes != value.encode_fixed()? {
+            return Err(WireError::NonCanonical);
+        }
         Ok(value)
+    }
+
+    /// Allocation-using compatibility facade for wire codec tests. The
+    /// physical receipt authority supplies the digest of reserved candidate
+    /// bytes directly to `parse_and_verify_precomputed`.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn parse_and_verify(
+        bytes: &[u8],
+        key: &ReceiptMacKey,
+        descriptor: &Descriptor,
+        expected_instance_binding: [u8; 32],
+        candidate: &CandidateReceipt,
+        expected_ledger_before: [u8; 32],
+        expected_ledger_after: [u8; 32],
+    ) -> Result<Self, WireError> {
+        let candidate_digest = candidate_digest(&candidate.encode());
+        Self::parse_and_verify_precomputed(
+            bytes,
+            key,
+            descriptor,
+            expected_instance_binding,
+            candidate,
+            candidate_digest,
+            expected_ledger_before,
+            expected_ledger_after,
+        )
     }
 
     pub(crate) fn encode(&self) -> Vec<u8> {
@@ -1011,6 +1138,35 @@ impl HostCommittedReceipt {
         writer.digest(self.tag);
         writer.finish()
     }
+
+    pub(crate) fn encode_fixed(&self) -> Result<[u8; HOST_RECEIPT_BYTES], WireError> {
+        let mut bytes = [0_u8; HOST_RECEIPT_BYTES];
+        let mut writer = SliceWriter::new(&mut bytes, HOST_RECEIPT_MAGIC)?;
+        writer.digest(self.instance_binding)?;
+        writer.recovery_identity(self.identity)?;
+        writer.digest(self.request_digest)?;
+        writer.digest(self.response_storage_digest)?;
+        writer.digest(self.semantic_trace_digest)?;
+        writer.digest(self.frame_digest)?;
+        writer.digest(self.decision_digest)?;
+        writer.digest(self.action_evidence_digest)?;
+        writer.digest(self.candidate_digest)?;
+        writer.digest(self.ledger_before_digest)?;
+        writer.digest(self.ledger_after_digest)?;
+        match self.publication {
+            Publication::NoOwned => {
+                writer.u32(1)?;
+                writer.u32(0)?;
+            }
+            Publication::Owned(owner) => {
+                writer.u32(2)?;
+                writer.u32(owner)?;
+            }
+        }
+        writer.digest(self.tag)?;
+        writer.finish()?;
+        Ok(bytes)
+    }
 }
 
 /// Independently replay provider evidence from the authenticated graph and
@@ -1019,7 +1175,6 @@ struct ValidatedSuccessfulExecute {
     request_digest: [u8; 32],
     response_storage_digest: [u8; 32],
     semantic_trace_digest: [u8; 32],
-    checkpoint_cells: Vec<ResourceCell>,
 }
 
 /// Validate the provider's returned-success evidence before any settlement
@@ -1027,9 +1182,10 @@ struct ValidatedSuccessfulExecute {
 /// not trust a parseable/resealed response or frame: it reconstructs the exact
 /// semantic witness and checkpoint cells from the admitted descriptor and
 /// caller-owned request payloads.
-pub(crate) fn validate_successful_execute_evidence(
+pub(crate) fn validate_successful_execute_evidence_preencoded(
     descriptor: &Descriptor,
     request: &ExecuteRequest,
+    request_storage: &[u8],
     execute_return_code: u32,
     response_storage: &[u8],
     response: &ExecuteResponse,
@@ -1038,6 +1194,7 @@ pub(crate) fn validate_successful_execute_evidence(
     let validated = validate_successful_execute_response(
         descriptor,
         request,
+        request_storage,
         execute_return_code,
         response_storage,
         response,
@@ -1058,29 +1215,53 @@ pub(crate) fn validate_successful_execute_evidence(
         || frame.next_action != 0
         || frame.record_count != 0
         || frame.active_finalizers != 0
-        || frame.cells != validated.checkpoint_cells
         || frame.action_chain_digest != [0; 32]
     {
         return Err(WireError::ReplayMismatch);
     }
-    Ok(())
+    validate_checkpoint_cells(descriptor, request, response.checkpoint, &frame.cells)
+}
+
+/// Allocation-using compatibility facade for independent codec tests. The
+/// physical host supplies its reserved request bytes to the preencoded gate.
+pub(crate) fn validate_successful_execute_evidence(
+    descriptor: &Descriptor,
+    request: &ExecuteRequest,
+    execute_return_code: u32,
+    response_storage: &[u8],
+    response: &ExecuteResponse,
+    frame: &RecoveryFrame,
+) -> Result<(), WireError> {
+    let request_storage = request.encode();
+    validate_successful_execute_evidence_preencoded(
+        descriptor,
+        request,
+        &request_storage,
+        execute_return_code,
+        response_storage,
+        response,
+        frame,
+    )
 }
 
 fn validate_successful_execute_response(
     descriptor: &Descriptor,
     request: &ExecuteRequest,
+    request_storage: &[u8],
     execute_return_code: u32,
     response_storage: &[u8],
     response: &ExecuteResponse,
 ) -> Result<ValidatedSuccessfulExecute, WireError> {
     if execute_return_code != 0
         || response_storage.len() != descriptor.capacities.execute_response as usize
-        || response.encode() != response_storage
         || response.identity != request.identity
     {
         return Err(WireError::CrossBinding);
     }
-    let request_digest_value = request_digest(&request.encode());
+    if request_storage.len() != descriptor.capacities.request as usize {
+        return Err(WireError::CapacityMismatch);
+    }
+    let request_digest_value = request_digest(request_storage);
     if response.request_digest != request_digest_value {
         return Err(WireError::DigestMismatch);
     }
@@ -1100,44 +1281,17 @@ fn validate_successful_execute_response(
         return Err(WireError::DigestMismatch);
     }
 
-    let mut payloads = BTreeMap::new();
-    for argument in &request.arguments {
-        if let RequestArgument::Owned {
-            owner_ordinal,
-            payload,
-            ..
-        } = argument
-        {
-            if payloads.insert(*owner_ordinal, *payload).is_some() {
-                return Err(WireError::ReplayMismatch);
-            }
-        }
-    }
-    if payloads.len() != descriptor.capacities.resource_count as usize {
-        return Err(WireError::ReplayMismatch);
-    }
-    let checkpoint_cells = checkpoint
-        .resources
-        .iter()
-        .enumerate()
-        .map(|(owner, state)| {
-            Ok(ResourceCell {
-                state: graph_state_to_cell(*state)?,
-                payload: *payloads
-                    .get(&(owner as u32))
-                    .ok_or(WireError::ReplayMismatch)?,
-            })
-        })
-        .collect::<Result<Vec<_>, WireError>>()?;
+    validate_owned_payloads(descriptor, request)?;
     if let ExecuteOutcome::Owned {
         owner_ordinal,
         payload,
     } = response.outcome
     {
-        if payloads.get(&owner_ordinal) != Some(&payload)
-            || checkpoint_cells
+        if owned_payload(request, owner_ordinal) != Some(payload)
+            || checkpoint
+                .resources
                 .get(owner_ordinal as usize)
-                .is_none_or(|cell| cell.state != CellState::ProvisionalResult)
+                .is_none_or(|state| *state != GraphResourceState::ProvisionalResult)
         {
             return Err(WireError::ReplayMismatch);
         }
@@ -1146,19 +1300,93 @@ fn validate_successful_execute_response(
         request_digest: request_digest_value,
         response_storage_digest: response_storage_digest(execute_return_code, response_storage),
         semantic_trace_digest,
-        checkpoint_cells,
     })
 }
 
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn validate_candidate_replay(
+fn validate_owned_payloads(
     descriptor: &Descriptor,
     request: &ExecuteRequest,
+) -> Result<(), WireError> {
+    for owner in 0..descriptor.capacities.resource_count {
+        let matches = request
+            .arguments
+            .iter()
+            .filter(|argument| {
+                matches!(
+                    argument,
+                    RequestArgument::Owned { owner_ordinal, .. } if *owner_ordinal == owner
+                )
+            })
+            .count();
+        if matches != 1 {
+            return Err(WireError::ReplayMismatch);
+        }
+    }
+    let owned_count = request
+        .arguments
+        .iter()
+        .filter(|argument| matches!(argument, RequestArgument::Owned { .. }))
+        .count();
+    if owned_count != descriptor.capacities.resource_count as usize {
+        return Err(WireError::ReplayMismatch);
+    }
+    Ok(())
+}
+
+fn owned_payload(request: &ExecuteRequest, owner: u32) -> Option<u64> {
+    request
+        .arguments
+        .iter()
+        .find_map(|argument| match argument {
+            RequestArgument::Owned {
+                owner_ordinal,
+                payload,
+                ..
+            } if *owner_ordinal == owner => Some(*payload),
+            _ => None,
+        })
+}
+
+fn validate_checkpoint_cells(
+    descriptor: &Descriptor,
+    request: &ExecuteRequest,
+    checkpoint_id: u32,
+    cells: &[ResourceCell],
+) -> Result<(), WireError> {
+    let checkpoint = descriptor
+        .graph
+        .checkpoints
+        .get(
+            checkpoint_id
+                .checked_sub(1)
+                .ok_or(WireError::ReplayMismatch)? as usize,
+        )
+        .filter(|checkpoint| checkpoint.id == checkpoint_id)
+        .ok_or(WireError::ReplayMismatch)?;
+    if cells.len() != checkpoint.resources.len() {
+        return Err(WireError::ReplayMismatch);
+    }
+    for (owner, (cell, state)) in cells.iter().zip(&checkpoint.resources).enumerate() {
+        if cell.state != graph_state_to_cell(*state)?
+            || owned_payload(request, owner as u32) != Some(cell.payload)
+        {
+            return Err(WireError::ReplayMismatch);
+        }
+    }
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn validate_candidate_replay_preencoded(
+    descriptor: &Descriptor,
+    request: &ExecuteRequest,
+    request_storage: &[u8],
     execute_return_code: u32,
     response_storage: &[u8],
     response: Option<&ExecuteResponse>,
     frame: &RecoveryFrame,
     decision: &SettlementDecision,
+    decision_storage: &[u8],
     actions: &[ActionRecord],
     candidate: &CandidateReceipt,
 ) -> Result<(), WireError> {
@@ -1173,8 +1401,12 @@ pub(crate) fn validate_candidate_replay(
     if response_storage.len() != descriptor.capacities.execute_response as usize {
         return Err(WireError::CapacityMismatch);
     }
-    let request_bytes = request.encode();
-    let request_digest_value = request_digest(&request_bytes);
+    if request_storage.len() != descriptor.capacities.request as usize
+        || decision_storage.len() != descriptor.capacities.decision as usize
+    {
+        return Err(WireError::CapacityMismatch);
+    }
+    let request_digest_value = request_digest(request_storage);
     let response_digest_value = response_storage_digest(execute_return_code, response_storage);
     if frame.request_digest != request_digest_value
         || candidate.request_digest != request_digest_value
@@ -1188,8 +1420,7 @@ pub(crate) fn validate_candidate_replay(
     {
         return Err(WireError::ReplayMismatch);
     }
-    let decision_bytes = decision.encode();
-    let decision_digest_value = decision_digest(&decision_bytes);
+    let decision_digest_value = decision_digest(decision_storage);
     if frame.decision_digest != decision_digest_value
         || candidate.decision_digest != decision_digest_value
     {
@@ -1241,6 +1472,7 @@ pub(crate) fn validate_candidate_replay(
     let validated = validate_successful_execute_response(
         descriptor,
         request,
+        request_storage,
         execute_return_code,
         response_storage,
         response,
@@ -1283,6 +1515,38 @@ pub(crate) fn validate_candidate_replay(
     replay_actions_and_dispositions(descriptor, request, frame, decision, actions, candidate)
 }
 
+/// Allocation-using compatibility facade for codec unit tests and precommit
+/// callers. The physical ledger uses `validate_candidate_replay_preencoded`
+/// with its already-reserved canonical wire buffers.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn validate_candidate_replay(
+    descriptor: &Descriptor,
+    request: &ExecuteRequest,
+    execute_return_code: u32,
+    response_storage: &[u8],
+    response: Option<&ExecuteResponse>,
+    frame: &RecoveryFrame,
+    decision: &SettlementDecision,
+    actions: &[ActionRecord],
+    candidate: &CandidateReceipt,
+) -> Result<(), WireError> {
+    let request_storage = request.encode();
+    let decision_storage = decision.encode_fixed()?;
+    validate_candidate_replay_preencoded(
+        descriptor,
+        request,
+        &request_storage,
+        execute_return_code,
+        response_storage,
+        response,
+        frame,
+        decision,
+        &decision_storage,
+        actions,
+        candidate,
+    )
+}
+
 fn replay_actions_and_dispositions(
     descriptor: &Descriptor,
     request: &ExecuteRequest,
@@ -1302,33 +1566,7 @@ fn replay_actions_and_dispositions(
         )
         .filter(|checkpoint| checkpoint.id == frame.checkpoint)
         .ok_or(WireError::ReplayMismatch)?;
-    let mut payloads = BTreeMap::new();
-    for argument in &request.arguments {
-        if let RequestArgument::Owned {
-            owner_ordinal,
-            payload,
-            ..
-        } = argument
-        {
-            payloads.insert(*owner_ordinal, *payload);
-        }
-    }
-    if payloads.len() != descriptor.capacities.resource_count as usize {
-        return Err(WireError::ReplayMismatch);
-    }
-    let mut cells = checkpoint
-        .resources
-        .iter()
-        .enumerate()
-        .map(|(owner, state)| {
-            Ok(ResourceCell {
-                state: graph_state_to_cell(*state)?,
-                payload: *payloads
-                    .get(&(owner as u32))
-                    .ok_or(WireError::ReplayMismatch)?,
-            })
-        })
-        .collect::<Result<Vec<_>, WireError>>()?;
+    validate_owned_payloads(descriptor, request)?;
     let cleanup = match decision.decision {
         Decision::AcceptScalar | Decision::AcceptSemanticFailure | Decision::AcceptOwned(_) => {
             &checkpoint.accept_order
@@ -1369,20 +1607,23 @@ fn replay_actions_and_dispositions(
         let completed = actions
             .get(record_cursor + 1)
             .ok_or(WireError::ReplayMismatch)?;
-        let before = cells
+        let before_state = checkpoint
+            .resources
             .get(owner_index)
             .copied()
-            .ok_or(WireError::ReplayMismatch)?;
+            .ok_or(WireError::ReplayMismatch)
+            .and_then(graph_state_to_cell)?;
+        let payload = owned_payload(request, *owner).ok_or(WireError::ReplayMismatch)?;
         if started.semantic_action_index as usize != semantic_cursor
             || completed.semantic_action_index as usize != semantic_cursor
             || started.checkpoint != frame.checkpoint
             || completed.checkpoint != frame.checkpoint
             || started.owner_ordinal != *owner
             || completed.owner_ordinal != *owner
-            || started.payload != before.payload
-            || completed.payload != before.payload
+            || started.payload != payload
+            || completed.payload != payload
             || started.boundary != ActionBoundary::Started
-            || started.before != before.state
+            || started.before != before_state
             || started.after != CellState::Finalizing
             || completed.boundary != ActionBoundary::Completed
             || completed.before != CellState::Finalizing
@@ -1390,7 +1631,6 @@ fn replay_actions_and_dispositions(
         {
             return Err(WireError::ReplayMismatch);
         }
-        cells[owner_index].state = CellState::Dead;
         record_cursor += 2;
         semantic_cursor += 1;
     }
@@ -1398,39 +1638,59 @@ fn replay_actions_and_dispositions(
         let record = actions
             .get(record_cursor)
             .ok_or(WireError::ReplayMismatch)?;
-        let cell = cells
-            .get_mut(owner as usize)
-            .ok_or(WireError::ReplayMismatch)?;
+        let initial_state = checkpoint
+            .resources
+            .get(owner as usize)
+            .copied()
+            .ok_or(WireError::ReplayMismatch)
+            .and_then(graph_state_to_cell)?;
+        let payload = owned_payload(request, owner).ok_or(WireError::ReplayMismatch)?;
         if record.semantic_action_index as usize != semantic_cursor
             || record.checkpoint != frame.checkpoint
             || record.owner_ordinal != owner
-            || record.payload != cell.payload
+            || record.payload != payload
             || record.boundary != ActionBoundary::Publish
             || record.before != CellState::ProvisionalResult
             || record.after != CellState::Published
-            || cell.state != CellState::ProvisionalResult
+            || initial_state != CellState::ProvisionalResult
         {
             return Err(WireError::ReplayMismatch);
         }
-        cell.state = CellState::Published;
         record_cursor += 1;
         semantic_cursor += 1;
     }
     if record_cursor != actions.len()
         || semantic_cursor != expected_semantic_actions
         || frame.next_action as usize != expected_semantic_actions
-        || frame.cells != cells
-        || candidate.dispositions.len() != cells.len()
+        || candidate.dispositions.len() != checkpoint.resources.len()
+        || frame.cells.len() != checkpoint.resources.len()
     {
         return Err(WireError::ReplayMismatch);
     }
-    for (candidate_cell, frame_cell) in candidate.dispositions.iter().zip(cells) {
-        let expected = match frame_cell.state {
+    for (owner, ((candidate_cell, frame_cell), initial_state)) in candidate
+        .dispositions
+        .iter()
+        .zip(&frame.cells)
+        .zip(&checkpoint.resources)
+        .enumerate()
+    {
+        let final_state = if cleanup.contains(&(owner as u32)) {
+            CellState::Dead
+        } else if publish_owner == Some(owner as u32) {
+            CellState::Published
+        } else {
+            graph_state_to_cell(*initial_state)?
+        };
+        let expected = match final_state {
             CellState::Dead => Disposition::Dead,
             CellState::Published => Disposition::Published,
             _ => return Err(WireError::ReplayMismatch),
         };
-        if candidate_cell.disposition != expected || candidate_cell.payload != frame_cell.payload {
+        if frame_cell.state != final_state
+            || owned_payload(request, owner as u32) != Some(frame_cell.payload)
+            || candidate_cell.disposition != expected
+            || candidate_cell.payload != frame_cell.payload
+        {
             return Err(WireError::ReplayMismatch);
         }
     }
@@ -1466,7 +1726,7 @@ pub(crate) fn action_chain_digest(
     seed.update(count.to_le_bytes());
     let mut digest: [u8; 32] = seed.finalize().into();
     for (index, record) in records.iter().enumerate() {
-        let bytes = record.encode();
+        let bytes = record.encode_fixed()?;
         let mut step = Sha256::new();
         step.update(ACTION_CHAIN_STEP_DOMAIN);
         step.update(digest);
@@ -1961,6 +2221,67 @@ struct Writer {
     bytes: Vec<u8>,
 }
 
+/// Allocation-free encoder for fixed-size postcommit wires.
+struct SliceWriter<'a> {
+    bytes: &'a mut [u8],
+    cursor: usize,
+}
+
+impl<'a> SliceWriter<'a> {
+    fn new(bytes: &'a mut [u8], magic: &[u8; 8]) -> Result<Self, WireError> {
+        let total = u32::try_from(bytes.len()).map_err(|_| WireError::CapacityMismatch)?;
+        let mut writer = Self { bytes, cursor: 0 };
+        writer.put(magic)?;
+        writer.put(&VERSION.to_le_bytes())?;
+        writer.put(&HEADER_SIZE.to_le_bytes())?;
+        writer.put(&total.to_le_bytes())?;
+        Ok(writer)
+    }
+
+    fn recovery_identity(&mut self, identity: RecoveryIdentity) -> Result<(), WireError> {
+        self.digest(identity.call.call_contract)?;
+        self.digest(identity.recovery_contract)?;
+        self.digest(identity.settlement_graph)?;
+        self.u64(identity.call.invocation.get())?;
+        self.u64(identity.call.frame_generation.get())?;
+        self.digest(identity.call.provider_challenge)
+    }
+
+    fn digest(&mut self, value: [u8; 32]) -> Result<(), WireError> {
+        self.put(&value)
+    }
+
+    fn u64(&mut self, value: u64) -> Result<(), WireError> {
+        self.put(&value.to_le_bytes())
+    }
+
+    fn u32(&mut self, value: u32) -> Result<(), WireError> {
+        self.put(&value.to_le_bytes())
+    }
+
+    fn put(&mut self, value: &[u8]) -> Result<(), WireError> {
+        let end = self
+            .cursor
+            .checked_add(value.len())
+            .ok_or(WireError::CapacityMismatch)?;
+        let destination = self
+            .bytes
+            .get_mut(self.cursor..end)
+            .ok_or(WireError::CapacityMismatch)?;
+        destination.copy_from_slice(value);
+        self.cursor = end;
+        Ok(())
+    }
+
+    fn finish(self) -> Result<(), WireError> {
+        if self.cursor == self.bytes.len() {
+            Ok(())
+        } else {
+            Err(WireError::CapacityMismatch)
+        }
+    }
+}
+
 impl Writer {
     fn new(magic: &[u8; 8]) -> Self {
         let mut bytes = Vec::new();
@@ -2020,6 +2341,8 @@ fn nonzero_digest(value: [u8; 32]) -> Result<[u8; 32], WireError> {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
+
     use semaprax::codegen::emit_native_callable_v3_descriptor;
     use semaprax::hir::DeclarationId;
     use semaprax::owned_resource_corpus::build_owned_resource_corpus_v1;
@@ -2307,6 +2630,10 @@ mod tests {
         );
         let decision_bytes = fixture.decision.encode();
         assert_eq!(
+            fixture.decision.encode_fixed().unwrap(),
+            decision_bytes.as_slice()
+        );
+        assert_eq!(
             SettlementDecision::parse(&decision_bytes, &fixture.descriptor)
                 .unwrap()
                 .encode(),
@@ -2314,6 +2641,7 @@ mod tests {
         );
         for action in &fixture.actions {
             let bytes = action.encode();
+            assert_eq!(action.encode_fixed().unwrap(), bytes.as_slice());
             assert_eq!(
                 ActionRecord::parse(&bytes, &fixture.descriptor)
                     .unwrap()
@@ -2344,6 +2672,10 @@ mod tests {
             fixture.ledger_after,
         )
         .unwrap();
+        assert_eq!(
+            receipt.encode_fixed().unwrap(),
+            fixture.receipt_bytes.as_slice()
+        );
         assert_eq!(receipt.encode(), fixture.receipt_bytes);
     }
 

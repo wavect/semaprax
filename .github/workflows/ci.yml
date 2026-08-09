@@ -54,6 +54,7 @@ jobs:
           cargo test --locked -p semaprax-native-loader --test runtime_loader_windows windows_callable_dependency_search_excludes_cwd_and_legacy_path -- --exact
           cargo test --locked -p semaprax-native-host --test runtime_callable_corpus authoritative_corpus_executes_through_generated_callable_host_at_o0_and_o2 -- --exact
           cargo test --locked -p semaprax --lib codegen::native_callable_provider_v3::tests::authoritative_fourteen_case_graph_providers_execute_and_settle_at_o0_o2 -- --exact
+          cargo test --locked -p semaprax --lib codegen::native_callable_provider_v3::tests::physical_failure_injection_and_durable_settlement_boundaries_are_exact_at_o0_o2 -- --exact
           cargo test --locked -p semaprax-native-host --lib settlement_host_v3_integration::generated_provider_loader_host_v3_end_to_end_is_exact -- --exact
       - name: Require native cleanup sanitizers (Linux)
         if: runner.os == 'Linux'
@@ -69,7 +70,9 @@ jobs:
           SEMAPRAX_REQUIRE_CALLABLE_V3_SANITIZERS: "1"
           ASAN_OPTIONS: detect_leaks=0:halt_on_error=1:abort_on_error=1
           UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
-        run: cargo test --locked -p semaprax --lib codegen::native_callable_provider_v3::tests::authoritative_fourteen_case_graph_providers_execute_and_settle_at_o0_o2 -- --exact
+        run: |
+          cargo test --locked -p semaprax --lib codegen::native_callable_provider_v3::tests::authoritative_fourteen_case_graph_providers_execute_and_settle_at_o0_o2 -- --exact
+          cargo test --locked -p semaprax --lib codegen::native_callable_provider_v3::tests::physical_failure_injection_and_durable_settlement_boundaries_are_exact_at_o0_o2 -- --exact
       - run: cargo test --locked --workspace --all-features --doc
       - run: cargo doc --locked --workspace --all-features --no-deps
         env:

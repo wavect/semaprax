@@ -549,6 +549,36 @@ pub fn emit_private_native_callable_v3_fixture(
     })
 }
 
+/// Hidden composition fixture derived from one canonical owned-resource
+/// corpus execution. The stable function ID and scenario inputs are explicit;
+/// no test label selects behavior, and the authenticated descriptor graph is
+/// still the sole cleanup authority.
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+#[doc(hidden)]
+pub fn emit_private_native_callable_v3_corpus_fixture(
+    program: &ResolvedProgram,
+    function_id: &DeclarationId,
+    arguments: &[crate::owned_resource_corpus::OwnedResourceCorpusArgument],
+    expected_owned_result_ordinal: Option<usize>,
+    reference: &crate::conformance::ConformanceTrace,
+) -> Result<PrivateNativeCallableV3Artifact, Diagnostic> {
+    let descriptor = native_callable_abi_v3::derive(program, function_id)?;
+    let descriptor_bytes = descriptor.bytes.clone();
+    let plan = native_callable_provider_v3::corpus_witness_plan(
+        program,
+        function_id,
+        arguments,
+        expected_owned_result_ordinal,
+        reference,
+    )?;
+    let spec = native_callable_provider_v3::NativeCallableProviderV3Spec::new(descriptor, plan)?;
+    let provider = native_callable_provider_v3::emit(&spec)?;
+    Ok(PrivateNativeCallableV3Artifact {
+        descriptor: descriptor_bytes,
+        source: provider.source,
+    })
+}
+
 fn native_callable_execution_cleanup_fingerprint(components: &[&[u8]]) -> [u8; 32] {
     let mut hasher = Sha256::new();
     hasher.update(b"semaprax.native-callable-execution-cleanup.v2\0");

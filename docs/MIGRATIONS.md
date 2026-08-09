@@ -323,12 +323,14 @@ registration. No migration may infer physical finalizer success from
 `Finalizing`; interruption remains uncertain and quarantined without retry.
 Subsequent private additions provide graph-derived providers for all 14 normal
 corpus scenarios, a desktop v3 loader, an OS-seeded receipt authority, and a
-fixed-capacity atomic ledger/facade. One narrower O0/O2 invocation now connects
-scalar discard-two and owned identity through those components. Consumers must
-not generalize that evidence to the other scenarios or failure paths:
-pending/pre-execute host unwind fails closed because no canonical returned-
-response transcript is frozen, and post-`CallCommit` Rust replay still
-allocates. These additions provide no iOS static constructor, public admission,
+fixed-capacity atomic ledger/facade. One O0/O2 invocation now connects all 14
+normal scenarios through those components and observes zero Rust heap growth
+from immediately before `CallCommit` through `ReceiptCommit`; injected decode-
+reserve failure quarantines exact evidence and pins. Seven provider-side
+failure fixtures add returned/malformed/interruption/replay/conflict evidence.
+Consumers must not generalize that evidence to canonical pre-execute unwind,
+fatal allocator/process-crash recovery, or mobile/static admission. These
+additions provide no iOS static constructor, public admission,
 general physical-finalizer, or mobile execution guarantee. They change no
 native execution gate and leave `SPX-B104` closed.
 

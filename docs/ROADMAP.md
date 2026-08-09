@@ -75,13 +75,14 @@ cross-realm/worker identity, aggregate layouts, variants, matching,
 concurrency, and fork recovery remain subsequent work.
 
 Callable v3 is a separate bounded physical tranche: graph-derived providers
-execute all 14 normal corpus scenarios at `-O0`/`-O2`, and one narrower joint
-path connects scalar discard-two and owned identity through the private desktop
-loader to the OS-seeded receipt ledger. The next gate puts the remaining
-scenarios through that joint path and adds exhaustive failure/malformed/
-allocation injection, publicly observed sanitizer and Windows runtime,
-Android/iOS, and quiescence. None of these private steps opens public admission
-or `SPX-B104`.
+execute all 14 normal corpus scenarios through the private desktop loader and
+OS-seeded receipt ledger at `-O0`/`-O2`, with zero measured Rust heap growth
+across the irreversible interval. Decode-reserve failure quarantines exact
+evidence, and seven provider fixtures add physical-failure/malformed/
+interruption/replay/conflict evidence. The next gate adds canonical pre-execute
+unwind, broader fatal-allocation/crash injection, publicly observed Windows
+runtime, Android/iOS, and quiescence. None of these private steps opens public
+admission or `SPX-B104`.
 
 The model-backed, proposed [RFC 0004 native call recovery and settlement
 contract](RFC-0004-NATIVE-CALL-SETTLEMENT.md) specifies the bounded linear
@@ -106,9 +107,10 @@ providers execute all 14 normal scenarios at `-O0`/`-O2`; the desktop v3 loader
 binds exact descriptor bytes and all entry points to one root image; and the
 host provides exact-instance receipt authority, authoritative owner
 generations, atomic receipt/ledger publication, cached replay, and drop-safe
-quarantine. One joint path now covers scalar discard-two and owned identity.
-The remaining scenarios, static/mobile execution, and public compiler
-admission stay closed with `SPX-B104`.
+quarantine. One joint path now covers all 14 normal scenarios at `-O0`/`-O2`
+without measured Rust heap growth across its irreversible interval. Canonical
+pre-execute unwind, fatal allocator/crash recovery, static/mobile execution,
+and public compiler admission stay closed with `SPX-B104`.
 
 With the current private descriptor-v3 metadata defined, the hidden settlement
 model starts at
@@ -121,13 +123,15 @@ quarantines without retry, candidate/committed replay is exact, and hostile
 phase mutations preserve evidence. The private physical path proves
 exact-instance reservation, allocation-free `CallCommit`, host-only
 receipt authentication, one authoritative ledger publication, refreshed owned
-generations, infallible pre-reserved quarantine on postcommit drop, and a
-two-fixture provider/loader/host composition. Next, the other 12 normal
-scenarios must cross the same boundary and all paths must receive failure,
-malformed, allocation, sanitizer, Windows, mobile, and quiescence evidence.
-The current host still allocates while parsing/replaying postcommit evidence;
-pending/pre-execute unwind fails closed until its canonical transcript is
-frozen. The pure model itself grants none of that authority and does not open
+generations, infallible pre-reserved quarantine on postcommit drop, and an
+all-14-scenario provider/loader/host composition at `-O0`/`-O2`. The normal
+joint path records zero Rust allocation/reallocation calls across the
+irreversible interval; decode-reserve failure quarantines exact evidence, and
+seven provider fixtures exercise returned failure, malformed wires, durable
+interruption, replay, and conflict under normal and sanitizer builds. Next,
+canonical pre-execute unwind, broader crash/fatal-allocation injection, hosted
+Windows confirmation, mobile/static admission, and quiescence evidence remain.
+The pure model itself grants none of that authority and does not open
 `SPX-B104`.
 
 The dedicated Linux

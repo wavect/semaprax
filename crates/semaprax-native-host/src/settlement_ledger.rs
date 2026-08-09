@@ -13,10 +13,10 @@ use std::cell::RefCell;
 use std::num::NonZeroU64;
 
 use crate::callable_wire_v3::{
-    candidate_digest, ledger_transition_digests, validate_candidate_replay, ActionRecord,
-    CallIdentity, CandidateOutcome, CandidateReceipt, ExecuteRequest, ExecuteResponse, LedgerEntry,
-    LedgerState, Publication, RecoveryFrame, RecoveryIdentity, SettlementDecision, WireError,
-    HOST_RECEIPT_BYTES,
+    candidate_digest, ledger_transition_digests, validate_candidate_replay_preencoded,
+    ActionRecord, CallIdentity, CandidateOutcome, CandidateReceipt, DispositionCell,
+    ExecuteRequest, ExecuteResponse, LedgerEntry, LedgerState, Publication, RecoveryFrame,
+    RecoveryIdentity, SettlementDecision, WireError, HOST_RECEIPT_BYTES,
 };
 use crate::descriptor_v3::{Capacities, Descriptor};
 use crate::receipt_authority::{ReceiptAuthority, ReceiptAuthorityError};
@@ -141,6 +141,7 @@ struct FrameStorage {
     receipt: Vec<u8>,
     before_entries: Vec<LedgerEntry>,
     after_entries: Vec<LedgerEntry>,
+    candidate_dispositions: Vec<DispositionCell>,
     resource_count: usize,
 }
 
@@ -158,6 +159,7 @@ impl FrameStorage {
             receipt: vec![0; HOST_RECEIPT_BYTES],
             before_entries: Vec::with_capacity(resource_count),
             after_entries: Vec::with_capacity(resource_count),
+            candidate_dispositions: Vec::with_capacity(resource_count),
             resource_count,
         })
     }
@@ -172,6 +174,7 @@ impl FrameStorage {
         self.receipt.fill(0);
         self.before_entries.clear();
         self.after_entries.clear();
+        self.candidate_dispositions.clear();
     }
 }
 
@@ -248,7 +251,7 @@ impl<P: SettlementPin> ReservedFrame<P> {
         if decision.identity != self.identity {
             return Err(SettlementLedgerError::WrongIdentity);
         }
-        let bytes = decision.encode();
+        let bytes = decision.encode_fixed()?;
         if bytes.len() != self.storage.decision.len() {
             return Err(SettlementLedgerError::CapacityExhausted);
         }
@@ -673,18 +676,30 @@ impl<P: SettlementPin> LedgerCore<P> {
             ResponseStorageEvidence::External(storage) => storage,
             ResponseStorageEvidence::Reserved => &reserved.storage.execute_response,
         };
-        validate_candidate_replay(
+        let candidate_scratch = std::mem::take(&mut reserved.storage.candidate_dispositions);
+        let decoded_candidate = CandidateReceipt::parse_reusing(
+            &reserved.storage.candidate,
+            &self.descriptor,
+            candidate_scratch,
+        )?;
+        if decoded_candidate != *evidence.candidate {
+            return Err(SettlementLedgerError::Wire(WireError::CrossBinding));
+        }
+        reserved.storage.candidate_dispositions = decoded_candidate.dispositions;
+        validate_candidate_replay_preencoded(
             &self.descriptor,
             evidence.request,
+            &reserved.storage.request,
             evidence.execute_return_code,
             response_storage,
             evidence.response,
             evidence.frame,
             evidence.decision,
+            &reserved.storage.decision,
             evidence.actions,
             evidence.candidate,
         )?;
-        let candidate_hash = candidate_digest(&evidence.candidate.encode());
+        let candidate_hash = candidate_digest(&reserved.storage.candidate);
         let published_owner = match evidence.candidate.outcome {
             CandidateOutcome::Owned(owner) => Some(owner),
             CandidateOutcome::Scalar | CandidateOutcome::Failure | CandidateOutcome::Abort => None,
@@ -713,13 +728,17 @@ impl<P: SettlementPin> LedgerCore<P> {
         )?;
         #[cfg(test)]
         receipt_prepare_panic_failpoint();
-        let receipt =
-            self.authority
-                .authenticate_receipt(evidence.candidate, ledger_before, ledger_after)?;
+        let receipt = self.authority.authenticate_receipt(
+            evidence.candidate,
+            candidate_hash,
+            ledger_before,
+            ledger_after,
+        )?;
         self.authority.verify_receipt(
             &receipt,
             &self.descriptor,
             evidence.candidate,
+            candidate_hash,
             ledger_before,
             ledger_after,
         )?;
@@ -1077,6 +1096,15 @@ impl<P: SettlementPin> SettlementTransaction<'_, P> {
             .frame_storage_mut()
     }
 
+    pub(crate) fn decision_bytes(&self) -> &[u8] {
+        &self
+            .frame
+            .as_ref()
+            .expect("live transaction owns one frame")
+            .storage
+            .decision
+    }
+
     pub(crate) fn frame_bytes(&self) -> &[u8] {
         &self
             .frame
@@ -1154,9 +1182,10 @@ mod tests {
 
     use super::*;
     use crate::callable_wire_v3::{
-        action_chain_digest, decision_digest, frame_digest, request_digest,
-        response_storage_digest, ActionBoundary, CandidateOutcome, CellState, Decision,
-        Disposition, DispositionCell, ExecuteOutcome, ExecuteReturn, FramePhase, ResourceCell,
+        action_chain_digest, arm_reusable_storage_allocation_failure, decision_digest,
+        frame_digest, request_digest, response_storage_digest, ActionBoundary, CandidateOutcome,
+        CellState, Decision, Disposition, DispositionCell, ExecuteOutcome, ExecuteReturn,
+        FramePhase, ResourceCell,
     };
     use crate::descriptor_v3::{Action as GraphAction, Outcome as GraphOutcome, ResourceState};
 
@@ -1826,6 +1855,9 @@ mod tests {
         reserved.stage_call(&evidence.request, &handles).unwrap();
         reserved.call_commit().unwrap();
         reserved.decision_commit(&evidence.decision).unwrap();
+        reserved
+            .candidate_storage_mut()
+            .copy_from_slice(&evidence.candidate.encode());
         reserved.provider_settled().unwrap();
         let identity = reserved.identity();
         let candidate_bytes = evidence.candidate.encode();
@@ -1878,6 +1910,9 @@ mod tests {
         transaction.stage_call(&evidence.request, &[old]).unwrap();
         transaction.call_commit().unwrap();
         transaction.decision_commit(&evidence.decision).unwrap();
+        transaction
+            .candidate_storage_mut()
+            .copy_from_slice(&evidence.candidate.encode());
         transaction.provider_settled().unwrap();
         let identity = transaction.identity();
         let candidate_bytes = evidence.candidate.encode();
@@ -1992,6 +2027,63 @@ mod tests {
         );
         drop(ledger);
         assert_eq!(drops.borrow().as_slice(), ["retain", "root"]);
+    }
+
+    #[test]
+    fn postcommit_decode_allocation_failure_quarantines_exact_reserved_evidence() {
+        let (ledger, drops) = ledger_for("token.identity");
+        let owner = ledger.register_owner(4, 7).unwrap();
+        let mut transaction = ledger.reserve().unwrap();
+        let evidence = owned_evidence(&ledger.core.borrow().descriptor, transaction.identity());
+        transaction.stage_call(&evidence.request, &[owner]).unwrap();
+        transaction.call_commit().unwrap();
+        transaction
+            .execute_response_storage_mut()
+            .copy_from_slice(&evidence.response_storage);
+        let frame_bytes = evidence.frame.encode();
+        transaction
+            .frame_storage_mut()
+            .copy_from_slice(&frame_bytes);
+        let candidate_bytes = evidence.candidate.encode();
+        transaction
+            .candidate_storage_mut()
+            .copy_from_slice(&candidate_bytes);
+        let identity = transaction.identity();
+        let request_bytes = transaction.request_bytes().to_vec();
+
+        arm_reusable_storage_allocation_failure();
+        assert_eq!(
+            ExecuteResponse::parse_reusing(
+                transaction.execute_response_bytes(),
+                &ledger.core.borrow().descriptor,
+                Vec::new(),
+            ),
+            Err(WireError::CapacityMismatch)
+        );
+        drop(transaction);
+
+        assert!(ledger.is_poisoned());
+        assert!(ledger.is_draining());
+        assert_eq!(ledger.quarantined_count(), 1);
+        let core = ledger.core.borrow();
+        assert_eq!(core.active_postcommit, 0);
+        let quarantined = core.quarantined.iter().flatten().next().unwrap();
+        assert_eq!(quarantined.frame.identity, identity);
+        assert_eq!(quarantined.frame.storage.request, request_bytes);
+        assert_eq!(
+            quarantined.frame.storage.execute_response,
+            evidence.response_storage
+        );
+        assert_eq!(quarantined.frame.storage.frame, frame_bytes);
+        assert_eq!(quarantined.frame.storage.candidate, candidate_bytes);
+        assert_eq!(
+            core.authoritative_owners[0].state,
+            AuthoritativeOwnerState::Quarantined
+        );
+        assert!(
+            drops.borrow().is_empty(),
+            "leaf pin must remain quarantined"
+        );
     }
 
     #[test]

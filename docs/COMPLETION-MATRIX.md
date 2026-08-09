@@ -65,14 +65,16 @@ the trace-certificate fingerprint through a nonzero host-recomputed digest;
 this is not independent host acceptance of the trace-path DFA certificate, and
 resealed witness/digest mutations are rejected. The emitter is
 build-target-bound with no cross-target configuration. Graph-derived private
-providers now execute all 14 authoritative normal scenarios at `-O0`/`-O2`,
-and one narrower joint invocation connects generated scalar discard-two and
-owned identity through exact dynamic-image admission to the receipt ledger.
-That path proves exact descriptor/instance binding, copied-evidence decoding,
-replay, generation refresh, finalizer order, and pin lifetime. It does not put
-the other 12 scenarios through loader plus host, canonically recover
-pending/pre-execute unwind, remove postcommit host allocation, or prove
-complete failure injection, publicly observed sanitizer/Windows runtime,
+providers now execute all 14 authoritative normal scenarios through exact
+dynamic-image admission and the receipt ledger at `-O0`/`-O2`. That joint path
+proves exact descriptor/instance binding, pre-settle copied-evidence validation,
+replay, generation refresh, finalizer order, pin lifetime, and zero measured
+Rust heap growth from immediately before `CallCommit` through `ReceiptCommit`.
+Injected decode-reserve failure quarantines exact evidence/pins, and seven
+provider-side failure/interruption fixtures cover physical return, malformed
+wires, durable boundaries, replay, and decision conflict. It does not
+canonically recover pending/pre-execute unwind or prove exhaustive crash/fatal-
+allocator failure injection or publicly observed Windows v3 runtime,
 Android/iOS, quiescence, malicious-code containment, physical-finalizer
 generality, or public admission; `SPX-B104` remains closed.
 The hidden linear phase model now starts from the sole authenticated

@@ -101,12 +101,13 @@ build_once() {
     -mmacosx-version-min="$readonly_deployment_target" \
     --ld-path="$ld_tool" \
     -std=c11 -pedantic-errors -Wall -Wextra -Werror -O2 -dynamiclib \
+    -Wl,-reproducible \
     -Wl,-install_name,"$readonly_provider_id" \
     "$source_file" -o "$provider_file"
   SDKROOT="$sdk_path" MACOSX_DEPLOYMENT_TARGET="$readonly_deployment_target" \
     SOURCE_DATE_EPOCH=1 ZERO_AR_DATE=1 \
     CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER="$clang_tool" \
-    RUSTFLAGS="--remap-path-prefix=$target=/semaprax-private-desktop-target -C codegen-units=1 -C link-arg=--ld-path=$ld_tool -C link-arg=-Wl,-x" \
+    RUSTFLAGS="--remap-path-prefix=$target=/semaprax-private-desktop-target -C codegen-units=1 -C link-arg=--ld-path=$ld_tool -C link-arg=-Wl,-reproducible -C link-arg=-Wl,-x" \
     CARGO_TARGET_DIR="$target" cargo build --quiet --offline --locked --release \
     -p semaprax-native-host --features unstable-desktop-app-harness \
     --bin private-desktop-v3-app

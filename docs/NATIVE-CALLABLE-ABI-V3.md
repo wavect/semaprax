@@ -1,12 +1,15 @@
 # Native callable ABI v3
 
-Status: private descriptor and wire-codec contract. `SPXNABI3` fixes the
-compiler/host descriptor projection and seven bounded physical wire formats.
-The compiler encodes them and the unpublished host parses them independently;
-this does not create a provider, loader/static admission, settlement host,
-ledger publication, physical finalizer, mobile runtime, or public compiler
-surface. The current loader still rejects v3 before path or image access, and
-ordinary native resource compilation remains `SPX-B104`.
+Status: private physical tranche. `SPXNABI3` fixes the compiler/host descriptor
+projection and seven bounded physical wire formats. Independent compiler and
+host codecs are joined by a private dynamic-image loader with root-image
+provenance checks, a private OS-seeded receipt authority and fixed-capacity
+atomic ledger/facade, and generated strict-C11 providers for two bounded proof
+fixtures. Those providers compile and execute at `-O0` and `-O2` in focused
+tests. The pieces are not yet exercised as one loader-to-provider-to-host
+invocation, expose no public admission or iOS static constructor, and grant no
+general physical-finalizer or malicious-code containment guarantee. Ordinary
+native resource compilation remains `SPX-B104`.
 
 ## Scope and primitives
 
@@ -34,7 +37,8 @@ The linkage profile is closed:
 | `1` | Dynamic image on Linux, macOS, Windows, or Android |
 | `2` | iOS static registration; no dynamic image open or unload |
 
-These tags describe private metadata roles, not implemented platform hosts.
+The dynamic-image role has a private desktop loader on Unix and Windows; the
+iOS-static role remains metadata only, not an implemented platform host.
 Future iOS device, iOS simulator, and Mac Catalyst/macabi targets MUST retain
 distinct target strings and MUST NOT share admission evidence merely because
 they use the same static-registration linkage tag.
@@ -496,8 +500,9 @@ host-only committed-receipt role created only after
 independent candidate parsing, exact-instance/frame-generation replay, and host
 authentication. It is not provider output, is not covered by a provider buffer
 capacity, and is the only role eligible to accompany public ledger
-`ReceiptCommit`. The codecs define evidence; no provider or receipt authority
-is implemented by this milestone.
+`ReceiptCommit`. The private receipt authority and bounded provider fixtures
+now implement their respective sides, but no joint invocation proves them
+together.
 
 ## Phases, finalizer uncertainty, and lifetime
 
@@ -536,13 +541,14 @@ generation, settlement, draining, and quarantine rules.
 Descriptor/wire equality and hash validation do not authenticate code provenance,
 make malicious native code memory-safe, observe omitted side effects, recover a
 process crash, or make an interrupted non-idempotent finalizer retryable. This
-contract does not implement provider symbols, loader or
-static-registration admission, callbacks, async work, concurrency, fork/hot
-reload, imported finalizers, cross-target emission, mobile execution, public
-adoption, or ecosystem FFI. The emitter is bound to its own build target; there
-is no Android/iOS/Windows cross-emission evidence. The existing dynamic loader
-rejects `SPXNABI3` before canonicalization,
-image load, or symbol lookup; no v3 loader constructor exists.
+private tranche implements only two bounded provider shapes and a desktop
+dynamic loader. It does not implement static-registration admission, callbacks,
+async work, concurrency, fork/hot reload, imported finalizers, cross-target
+emission, mobile execution, public adoption, or ecosystem FFI. The emitter is
+bound to its own build target; there is no Android/iOS/Windows cross-emission
+evidence, and v3 Windows runtime CI remains unobserved. Legacy loader
+constructors still reject `SPXNABI3`; the separate private v3 constructor admits
+only exact root-provenance images.
 
 ## Mandatory gates
 

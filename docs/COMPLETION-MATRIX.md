@@ -64,13 +64,14 @@ ordinal/outcome witness to
 the trace-certificate fingerprint through a nonzero host-recomputed digest;
 this is not independent host acceptance of the trace-path DFA certificate, and
 resealed witness/digest mutations are rejected. The emitter is
-build-target-bound with no cross-target configuration or Android/iOS/Windows
-cross-emission/runtime evidence. Both
-existing loaders reject v3 magic before path or image access. Its private
-compiler-encoder/independent-host-parser tranche does not add a provider,
-loader admission, host settlement
-execution, physical finalizer, or public compiler path, so it adds no native
-runtime evidence to any row.
+build-target-bound with no cross-target configuration. The private physical
+tranche now adds two generated provider fixtures executed at `-O0`/`-O2`, exact
+dynamic-image loader admission with root-image provenance, and an OS-seeded
+receipt authority plus fixed-capacity atomic ledger/facade. These pieces have
+not been connected in one host invocation. They therefore do not prove the
+full 14-case physical corpus, complete failure injection, sanitizers, Windows
+CI runtime, Android/iOS, quiescence, malicious-code containment,
+physical-finalizer generality, or public admission; `SPX-B104` remains closed.
 The hidden linear phase model now starts from the sole authenticated
 post-`CallCommit` state and exercises exact `SettlementDecisionCommit`,
 provider-candidate, model-`ReceiptCommitted`, and absorbing `Quarantined`

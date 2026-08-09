@@ -9,7 +9,15 @@ and it does not change `SPX-B104`.
 opening a trusted native library, resolving one fixed C descriptor getter,
 calling it, and reading and comparing an exactly bounded expected byte range.
 Its separately versioned callable-v2 constructor additionally resolves one
-exact C byte-wire function after descriptor equality. Unix opens use
+exact C byte-wire function after descriptor equality. The private settlement-v3
+constructor consumes only a structurally bounded `SPXNABI3` projection already
+accepted by the independent host decoder, resolves its getter plus six-argument
+execute and settle entries eagerly, and admits them only when every function
+address and the returned descriptor address belong to the canonical root
+image, then retains its own immutable copy of the admitted bytes. Unix proves
+this with `dladdr` plus canonical path equality; Windows
+uses address-to-module allocation-base resolution plus canonical module-path
+equality without adding another image reference. Unix opens use
 `RTLD_NOW | RTLD_LOCAL`, so dependency relocations fail during admission
 rather than at a later first call. The main `semaprax` crate remains
 `unsafe_code = "forbid"`. The loader is unpublished, has one exact-pinned
@@ -25,10 +33,14 @@ image's and dependencies' initializers before descriptor validation and may run
 termination routines when the last SEMAPRAX loader reference is released. The
 caller must already trust the exact artifact, its module directory, dependency
 search behavior, getter ABI, immutable returned byte range, and absence of
-foreign unwind. Canonical paths are diagnostic metadata; descriptor equality
-proves only that the resolved getter returned the caller's expected bytes. It
-does not prove that the getter belongs to the root image, that the root image is
-compatible, or establish file identity, signature, provenance, or code safety.
+foreign unwind. For descriptor-only and callable-v2 admission, canonical paths
+are diagnostic metadata and descriptor equality proves only that the resolved
+getter returned the caller's expected bytes. Settlement-v3 additionally proves
+that its getter, execute, settle, and returned descriptor storage share one
+root-image allocation and canonical path, and retains an immutable byte copy;
+continued immutability of provider-owned storage remains part of the unsafe
+caller contract. None of these checks establish file
+identity, signature validity, provider compatibility, or code safety.
 The unsafe contract therefore also requires the root path, module directory,
 and dependency-search namespace to remain non-adversarially stable throughout
 the load. This is not a sandbox or a malicious-plugin boundary.
@@ -41,7 +53,31 @@ after the last lease. The callable foundation separately proves v1 rejection
 before loading, bounded and distinct getter/callable names, exact v2 bytes,
 eager unresolved-import failure on Unix, one exact resolved echo callable,
 preallocated bounded request/response storage, one-shot invocation, and
-cross-instance prepared-call rejection.
+cross-instance prepared-call rejection. The v3 lane separately proves exact
+descriptor-derived capacity equations, pairwise-distinct names and resolved
+addresses, dependency-owned execute and descriptor-address rejection, missing
+entry rejection, five disjoint preallocations, separate one-shot execute and
+settle stages, cross-instance rejection, explicit retention, and final loader
+release on the currently observed Unix host. Windows-targeted fixtures encode
+the same contracts, but v3 Windows CI runtime is not yet observed and remains
+a gate.
+
+The v3 lease retains exactly one platform `Library`; provenance queries do not
+increment the native reference count. It also retains the exact admitted
+descriptor bytes under the existing 64 KiB ceiling and exposes only a narrow
+byte-equality check, so an independent host parse cannot be substituted with a
+different same-capacity descriptor. Its request, recovery frame,
+execute-response, decision, and candidate-receipt buffers are all allocated at
+their exact authenticated capacities before execute. No allocation, symbol
+lookup, generic lookup, or handle access occurs in either provider call. The
+loader owns no poison, draining, quarantine, receipt-authentication, ledger, or
+physical-finalizer policy; those remain host responsibilities. The v3 surface
+is private and does not change public native admission or `SPX-B104`.
+
+These plain-C loader fixtures are not the compiler's two generated settlement
+providers, and the private host facade's receipt/atomic-ledger tests do not
+invoke through this loader. There is no joint generated-provider/loader/host-v3
+evidence yet.
 
 The unpublished native host additionally proves that its real callable-v2
 lease is retained by its same-thread authority and every live owner/result
@@ -71,7 +107,7 @@ to the malicious image. CI also names the complete generated O0/O2 callable
 corpus as an explicit Windows gate. Both passed in [run 31257545008, job
 93103151756](https://github.com/wavect/semaprax/actions/runs/31257545008/job/93103151756).
 The current evidence still does not prove
-immediate physical unmapping, same-root-image callable provenance, Windows
+immediate physical unmapping, Windows
 application-platform completion, iOS dynamic/static admission, Android device execution,
 callback/finalizer quiescence, hot reload, fork recovery, signed code admission,
 or callable resource safety. Those remain gates before any public native

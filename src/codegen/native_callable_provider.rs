@@ -327,7 +327,7 @@ enum ProviderEndianGuard {
 /// unprovable Rust targets fail during provider derivation; a mismatched C
 /// compiler fails before producing an object file. These guards are not
 /// Windows loader, dependency-collision, or runtime-call evidence.
-fn provider_target_guards() -> Result<String, Diagnostic> {
+pub(super) fn provider_target_guards() -> Result<String, Diagnostic> {
     let architecture = if cfg!(target_arch = "x86_64") {
         "defined(__x86_64__) || defined(_M_X64) || defined(_M_AMD64)"
     } else if cfg!(target_arch = "x86") {

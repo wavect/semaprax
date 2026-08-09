@@ -10,6 +10,8 @@ mod native_callable_execution;
 )]
 mod native_callable_provider;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
+mod native_callable_provider_v3;
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
 mod native_callable_settlement_proof;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
 mod native_callable_wire_v3;

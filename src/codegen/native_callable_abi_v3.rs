@@ -118,6 +118,13 @@ pub(super) struct NativeCallableV3Descriptor {
     pub(super) execute_symbol: String,
     pub(super) settle_symbol: String,
     pub(super) call_contract: [u8; FINGERPRINT_BYTES],
+    pub(super) recovery_contract: [u8; FINGERPRINT_BYTES],
+    pub(super) settlement_graph: [u8; FINGERPRINT_BYTES],
+    pub(super) trace_path_certificate: [u8; FINGERPRINT_BYTES],
+    pub(super) request_bytes: u32,
+    pub(super) maximum_events: u32,
+    pub(super) dictionary_entries: u32,
+    pub(super) resource_count: u32,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -421,6 +428,13 @@ fn derive_for_target(
         execute_symbol,
         settle_symbol,
         call_contract,
+        recovery_contract: settlement.recovery_contract_fingerprint(),
+        settlement_graph,
+        trace_path_certificate: trace.fingerprint(),
+        request_bytes: capacities.request,
+        maximum_events: capacities.event_count,
+        dictionary_entries: capacities.dictionary_entries,
+        resource_count: capacities.resource_count,
     })
 }
 

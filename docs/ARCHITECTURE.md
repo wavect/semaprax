@@ -99,6 +99,21 @@ build-only bundle emission is green on [Ubuntu](https://github.com/wavect/semapr
 and [Windows](https://github.com/wavect/semaprax/actions/runs/31259216533/job/93107277085)
 hosted CI; this is not mobile or application-host evidence.
 
+Callable v3 is a separate private component tranche. The compiler emits two
+bounded strict-C11 providers (scalar discard and owned identity) whose focused
+fixtures execute at `-O0` and `-O2`. The loader independently admits an exact
+dynamic image only when the getter, execute, settle, and returned descriptor
+storage share canonical root-image provenance, then retains an immutable copy
+of the admitted bytes. The host independently creates
+one 64-byte OS fill split into a receipt MAC key and instance binding, and its
+fixed-capacity ledger/facade atomically commits authenticated terminal state
+and exact replay. No integration test yet invokes either generated provider
+through both the v3 loader and this facade, so these are component-level facts,
+not a joint end-to-end v3 claim. The full 14-case physical corpus, complete
+failure injection, v3 sanitizers and observed Windows runtime, Android/iOS,
+quiescence, malicious-code containment, public admission, and `SPX-B104`
+remain closed.
+
 The unpublished `semaprax-native-host` now performs the complete private
 connection. It strictly decodes descriptor v2, authenticates the dictionary and
 trace certificate, opens and retains one exact callable loader instance,
@@ -184,14 +199,20 @@ compiler encoders and host parsers freeze the seven complete byte/tag/digest/
 HMAC transcripts and their changed private known answers. The
 compiler encoder is bound to its build target and exposes no cross-target
 configuration; Android/iOS/Windows cross-emission and runtime evidence remain
-absent. The compiler encoders and independent host parsers are an
-authority-free codec tranche. The loader rejects the full v3 magic in its
-shared input validator before canonicalization, image loading, getter lookup,
-or callable lookup; its exact callable-v2 classifier remains unchanged.
-Provider code, v3 loader/static registration, exact-instance frame
-reservation, host receipt authentication, physical finalizers, and ledger
-publication remain absent. This is architecture evidence, not execution
-evidence, and `SPX-B104` remains closed.
+absent. The legacy loader constructors reject the full v3 magic in their shared
+input validator before canonicalization, image loading, getter lookup, or
+callable lookup; their exact callable-v2 classifier remains unchanged. A
+separate private v3 constructor binds the getter, execute, settle, and returned
+descriptor address to one canonical root image, retains an immutable copy of
+the admitted bytes, and returns one exact instance lease. Two generated
+strict-C11 provider fixtures execute at
+`-O0`/`-O2`, and the private host now combines an exact-descriptor-bound receipt
+authority with authoritative owner generations, allocation-free `CallCommit`,
+atomic receipt/ledger publication, cached replay, and a drop-safe transaction
+guard whose postcommit uncertainty is quarantined without retry. These pieces
+are not yet connected by one generated-provider → loader → host test, do not
+cover the full physical corpus, Windows v3 runtime CI, iOS static registration,
+or Android, and expose no public admission. `SPX-B104` remains closed.
 
 The Windows CI lane now explicitly reruns the generated O0/O2 callable corpus
 and a loader fixture that places a same-name dependency in CWD and legacy

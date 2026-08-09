@@ -31,7 +31,7 @@ const DECISION_MAGIC: &[u8; 8] = b"SPXNDC03";
 const ACTION_MAGIC: &[u8; 8] = b"SPXNAC03";
 const CANDIDATE_MAGIC: &[u8; 8] = b"SPXNCR03";
 const HOST_RECEIPT_MAGIC: &[u8; 8] = b"SPXHRP03";
-const HOST_RECEIPT_BYTES: usize = 524;
+pub(crate) const HOST_RECEIPT_BYTES: usize = 524;
 const HOST_RECEIPT_BODY_BYTES: usize = 492;
 
 const REQUEST_DIGEST_DOMAIN: &[u8] = b"semaprax.native-callable-request-digest.v3\0";
@@ -44,6 +44,7 @@ const FRAME_DIGEST_DOMAIN: &[u8] = b"semaprax.native-callable-pre-candidate-fram
 const CANDIDATE_DIGEST_DOMAIN: &[u8] = b"semaprax.native-callable-candidate-digest.v3\0";
 const TRACE_EVIDENCE_DOMAIN: &[u8] = b"semaprax.native-recovery-trace-evidence.v1\0";
 const RECEIPT_MAC_DOMAIN: &[u8] = b"semaprax.native-callable-host-receipt-auth.v3\0";
+const PROVIDER_CHALLENGE_DOMAIN: &[u8] = b"semaprax.native-callable-provider-challenge.v3\0";
 const LEDGER_BEFORE_DOMAIN: &[u8] = b"semaprax.native-callable-ledger-before.v3\0";
 const LEDGER_AFTER_DOMAIN: &[u8] = b"semaprax.native-callable-ledger-after.v3\0";
 
@@ -111,7 +112,7 @@ pub(crate) struct ExecuteResponse {
     pub(crate) checkpoint: u32,
     pub(crate) outcome: ExecuteOutcome,
     pub(crate) event_ordinals: Vec<u32>,
-    storage_capacity: usize,
+    pub(crate) storage_capacity: usize,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -265,6 +266,29 @@ impl ReceiptMacKey {
             return Err(WireError::NonCanonical);
         }
         Ok(Self(bytes))
+    }
+
+    pub(crate) fn provider_challenge(
+        &self,
+        instance_binding: [u8; 32],
+        instance_nonce: NonZeroU64,
+        call_contract: [u8; 32],
+        invocation: NonZeroU64,
+        frame_generation: NonZeroU64,
+    ) -> Result<[u8; 32], WireError> {
+        if instance_binding == [0; 32] || call_contract == [0; 32] {
+            return Err(WireError::NonCanonical);
+        }
+        let mut mac =
+            HmacSha256::new_from_slice(&self.0).map_err(|_| WireError::AuthenticationFailed)?;
+        mac.update(PROVIDER_CHALLENGE_DOMAIN);
+        mac.update(&instance_binding);
+        mac.update(&instance_nonce.get().to_le_bytes());
+        mac.update(&call_contract);
+        mac.update(&invocation.get().to_le_bytes());
+        mac.update(&frame_generation.get().to_le_bytes());
+        let challenge: [u8; 32] = mac.finalize().into_bytes().into();
+        nonzero_digest(challenge)
     }
 }
 
@@ -846,6 +870,47 @@ impl CandidateReceipt {
 }
 
 impl HostCommittedReceipt {
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn authenticate(
+        key: &ReceiptMacKey,
+        instance_binding: [u8; 32],
+        candidate: &CandidateReceipt,
+        ledger_before_digest: [u8; 32],
+        ledger_after_digest: [u8; 32],
+    ) -> Result<Self, WireError> {
+        if instance_binding == [0; 32]
+            || ledger_before_digest == [0; 32]
+            || ledger_after_digest == [0; 32]
+        {
+            return Err(WireError::NonCanonical);
+        }
+        let candidate_digest = candidate_digest(&candidate.encode());
+        let publication = match candidate.outcome {
+            CandidateOutcome::Owned(owner) => Publication::Owned(owner),
+            CandidateOutcome::Scalar | CandidateOutcome::Failure | CandidateOutcome::Abort => {
+                Publication::NoOwned
+            }
+        };
+        let mut value = Self {
+            instance_binding,
+            identity: candidate.identity,
+            request_digest: candidate.request_digest,
+            response_storage_digest: candidate.response_storage_digest,
+            semantic_trace_digest: candidate.semantic_trace_digest,
+            frame_digest: candidate.frame_digest,
+            decision_digest: candidate.decision_digest,
+            action_evidence_digest: candidate.action_evidence_digest,
+            candidate_digest,
+            ledger_before_digest,
+            ledger_after_digest,
+            publication,
+            tag: [0; 32],
+        };
+        let unsigned = value.encode();
+        value.tag = receipt_mac(key, &unsigned[..HOST_RECEIPT_BODY_BYTES])?;
+        Ok(value)
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn parse_and_verify(
         bytes: &[u8],
@@ -1543,13 +1608,13 @@ fn verify_receipt_mac(key: &ReceiptMacKey, body: &[u8], tag: &[u8; 32]) -> Resul
         .map_err(|_| WireError::AuthenticationFailed)
 }
 
-#[cfg(test)]
-fn receipt_mac(key: &ReceiptMacKey, body: &[u8]) -> [u8; 32] {
-    let mut mac = HmacSha256::new_from_slice(&key.0).unwrap();
+fn receipt_mac(key: &ReceiptMacKey, body: &[u8]) -> Result<[u8; 32], WireError> {
+    let mut mac =
+        HmacSha256::new_from_slice(&key.0).map_err(|_| WireError::AuthenticationFailed)?;
     mac.update(RECEIPT_MAC_DOMAIN);
     mac.update(&(body.len() as u64).to_be_bytes());
     mac.update(body);
-    mac.finalize().into_bytes().into()
+    Ok(mac.finalize().into_bytes().into())
 }
 
 fn validate_call_identity(
@@ -2063,7 +2128,7 @@ mod tests {
             tag: [0; 32],
         };
         let unsigned = receipt.encode();
-        receipt.tag = receipt_mac(&key, &unsigned[..HOST_RECEIPT_BODY_BYTES]);
+        receipt.tag = receipt_mac(&key, &unsigned[..HOST_RECEIPT_BODY_BYTES]).unwrap();
         let receipt_bytes = receipt.encode();
         assert_eq!(receipt_bytes.len(), HOST_RECEIPT_BYTES);
 
@@ -2670,7 +2735,7 @@ mod tests {
             tag: [0; 32],
         };
         let unsigned = receipt.encode();
-        receipt.tag = receipt_mac(&key, &unsigned[..HOST_RECEIPT_BODY_BYTES]);
+        receipt.tag = receipt_mac(&key, &unsigned[..HOST_RECEIPT_BODY_BYTES]).unwrap();
         assert_eq!(
             hex(&Sha256::digest(receipt.encode())),
             "c3425663c2bf483492e4fc388ceebd9b89e7339a21a916f1ea6803447c0da5a4"

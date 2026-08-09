@@ -22,6 +22,13 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
+mod settlement;
+
+pub use settlement::{
+    open_admitted_settlement_exact, NativeSettlementModuleLease, PreparedSettlementCall,
+    PreparedSettlementExecute, SettlementBufferCapacities, SettlementCallError,
+};
+
 /// Largest descriptor this quarantine will read from a native module.
 pub const MAX_DESCRIPTOR_BYTES: usize = 64 * 1024;
 
@@ -358,8 +365,14 @@ pub enum OpenError {
     InvalidExpectedDescriptorLength { actual: usize, maximum: usize },
     /// Settlement-proof envelopes are metadata and can never be loaded.
     SettlementProofEnvelopeNotLoadable,
-    /// Callable-v3 descriptors are metadata-only until exact v3 admission exists.
+    /// Descriptor-only and callable-v2 admission never accept descriptor v3.
     CallableV3DescriptorNotLoadable,
+    /// Settlement admission accepts only the separately versioned descriptor v3.
+    InvalidSettlementDescriptorSchema,
+    /// The descriptor's getter, execute, and settle symbols are not canonical and distinct.
+    InvalidSettlementSymbols,
+    /// The descriptor's settlement capacities are not the exact bounded v3 values.
+    InvalidSettlementCapacities,
     /// Callable admission accepts only the separately versioned descriptor v2.
     InvalidCallableDescriptorSchema,
     /// The platform loader rejected the library.
@@ -368,6 +381,14 @@ pub enum OpenError {
     GetterLookup(libloading::Error),
     /// The platform loader could not resolve the exact callable symbol.
     CallableLookup(libloading::Error),
+    /// The platform loader could not resolve the exact execute symbol.
+    ExecuteLookup(libloading::Error),
+    /// The platform loader could not resolve the exact settle symbol.
+    SettleLookup(libloading::Error),
+    /// Two distinct settlement symbol names resolved to the same address.
+    AliasedSettlementSymbols,
+    /// A resolved symbol or immutable descriptor byte range is outside the root image.
+    RootImageProvenanceMismatch,
     /// The admitted getter returned a null descriptor pointer.
     NullDescriptor,
     /// The returned bytes did not exactly equal the expected descriptor.
@@ -402,8 +423,17 @@ impl fmt::Display for OpenError {
             Self::SettlementProofEnvelopeNotLoadable => formatter.write_str(
                 "native callable settlement-proof envelopes are proof-only and cannot be loaded",
             ),
-            Self::CallableV3DescriptorNotLoadable => formatter
-                .write_str("native callable v3 descriptors are metadata-only and cannot be loaded"),
+            Self::CallableV3DescriptorNotLoadable => formatter.write_str(
+                "native callable v3 descriptors cannot use descriptor-only or callable-v2 admission",
+            ),
+            Self::InvalidSettlementDescriptorSchema => formatter
+                .write_str("native settlement admission requires an exact SPXNABI3 descriptor"),
+            Self::InvalidSettlementSymbols => formatter.write_str(
+                "native settlement getter, execute, and settle symbols must be canonical and pairwise distinct",
+            ),
+            Self::InvalidSettlementCapacities => formatter.write_str(
+                "native settlement descriptor capacities are not the exact bounded v3 values",
+            ),
             Self::InvalidCallableDescriptorSchema => formatter
                 .write_str("native callable admission requires an exact SPXNABI2 descriptor"),
             Self::LibraryOpen(error) => write!(formatter, "native module open failed: {error}"),
@@ -413,6 +443,18 @@ impl fmt::Display for OpenError {
             Self::CallableLookup(error) => {
                 write!(formatter, "native callable lookup failed: {error}")
             }
+            Self::ExecuteLookup(error) => {
+                write!(formatter, "native settlement execute lookup failed: {error}")
+            }
+            Self::SettleLookup(error) => {
+                write!(formatter, "native settlement settle lookup failed: {error}")
+            }
+            Self::AliasedSettlementSymbols => formatter.write_str(
+                "native settlement symbols resolved to aliased entry-point addresses",
+            ),
+            Self::RootImageProvenanceMismatch => formatter.write_str(
+                "native settlement symbol or descriptor storage is outside the admitted root image",
+            ),
             Self::NullDescriptor => {
                 formatter.write_str("native descriptor getter returned a null pointer")
             }
@@ -430,9 +472,11 @@ impl Error for OpenError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::PathCanonicalization(error) => Some(error),
-            Self::LibraryOpen(error) | Self::GetterLookup(error) | Self::CallableLookup(error) => {
-                Some(error)
-            }
+            Self::LibraryOpen(error)
+            | Self::GetterLookup(error)
+            | Self::CallableLookup(error)
+            | Self::ExecuteLookup(error)
+            | Self::SettleLookup(error) => Some(error),
             _ => None,
         }
     }
@@ -610,7 +654,7 @@ pub unsafe fn open_admitted_callable_exact(
 }
 
 #[cfg(unix)]
-unsafe fn open_library(canonical_path: &Path) -> Result<Library, libloading::Error> {
+pub(crate) unsafe fn open_library(canonical_path: &Path) -> Result<Library, libloading::Error> {
     use libloading::os::unix::{Library as UnixLibrary, RTLD_LOCAL, RTLD_NOW};
 
     // SAFETY: This helper preserves the caller's complete trusted-image and
@@ -620,7 +664,7 @@ unsafe fn open_library(canonical_path: &Path) -> Result<Library, libloading::Err
 }
 
 #[cfg(windows)]
-unsafe fn open_library(canonical_path: &Path) -> Result<Library, libloading::Error> {
+pub(crate) unsafe fn open_library(canonical_path: &Path) -> Result<Library, libloading::Error> {
     use libloading::os::windows::{
         Library as WindowsLibrary, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS,
         LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR,
@@ -701,7 +745,7 @@ fn is_callable_descriptor_v2_envelope(bytes: &[u8]) -> bool {
     version == 2 && header_size == 20 && total_size == bytes.len()
 }
 
-fn allocate_instance_id() -> Result<ModuleInstanceId, OpenError> {
+pub(crate) fn allocate_instance_id() -> Result<ModuleInstanceId, OpenError> {
     loop {
         let current = NEXT_INSTANCE_ID.load(Ordering::Relaxed);
         let next = current

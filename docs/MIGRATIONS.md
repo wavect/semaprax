@@ -291,12 +291,15 @@ settlement graph directly and uses new descriptor, graph, wire-schema, ABI,
 contract, and symbol domains. V2 and proof bytes, hashes, symbols, bundles, and
 public build-only behavior remain unchanged.
 
-The two existing dynamic-loader constructors reject every bounded descriptor
+The legacy dynamic-loader constructors reject every bounded descriptor
 beginning with `SPXNABI3` before path canonicalization, image load, or symbol
 lookup. This includes a same-magic blob with a changed version, header size, or
 total length; it must not fall through to v2 classification or generic
-descriptor loading. There is no v3 loader or iOS static-registration
-constructor.
+descriptor loading. A separate private v3 constructor now admits only an exact
+bounded descriptor whose getter, execute, settle, and returned descriptor
+storage all prove canonical root-image provenance, then retains a separate
+immutable copy of the admitted bytes. There is no iOS
+static-registration constructor.
 
 V3 now freezes six provider wire roles and a separate host-only committed
 receipt: exact envelopes, tags, checked capacities, a six-argument execute ABI,
@@ -318,9 +321,12 @@ evidence remain absent. Future iOS device, simulator, and Mac Catalyst/macabi
 profiles must retain distinct target strings even though they share static
 registration. No migration may infer physical finalizer success from
 `Finalizing`; interruption remains uncertain and quarantined without retry.
-These codec migrations add no provider, v3 loader/static constructor, ledger
-publication, physical finalizer, mobile execution, or public admission. They
-change no native execution gate and leave `SPX-B104` closed.
+Subsequent private additions provide two bounded generated provider fixtures, a
+desktop v3 loader, an OS-seeded receipt authority, and a fixed-capacity atomic
+ledger/facade. They are not yet connected by one end-to-end host invocation and
+add no iOS static constructor, public admission, general physical-finalizer or
+mobile execution guarantee. They change no native execution gate and leave
+`SPX-B104` closed.
 
 ## Revision token FNV-1a64 to SHA-256
 

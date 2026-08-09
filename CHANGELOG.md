@@ -172,6 +172,15 @@ All notable changes to SEMAPRAX are documented here.
   headers. The compiler/host codec tranche grants no provider,
   loading, settlement, finalizer, ledger, mobile, or public authority and leaves
   v2/proof bytes and `SPX-B104` unchanged.
+- Added the first private callable-v3 physical components: two bounded generated
+  strict-C11 providers execute scalar-discard and owned-identity settlement at
+  `-O0`/`-O2`; an exact dynamic-image loader verifies root provenance for the
+  getter, execute, settle, and descriptor storage; and the host has a distinct
+  OS-seeded receipt authority with a fixed-capacity atomic ledger/facade. These
+  components are not yet connected by one host invocation and do not prove the
+  full 14-case physical corpus, exhaustive failure injection, sanitizers,
+  Windows v3 runtime, Android/iOS, quiescence, malicious-code containment,
+  public admission, or any `SPX-B104` change.
 - Added a mandatory Windows callable-v2 dependency-isolation fixture. It places
   a same-name dependency in both CWD and legacy `PATH`, proves the root-image
   sibling wins for descriptor admission and invocation, then removes that

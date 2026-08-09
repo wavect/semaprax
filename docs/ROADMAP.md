@@ -60,9 +60,9 @@ and O2 match the reference executor for all 14 scenarios, as does real
 Node/Wasm.
 
 This proves the narrow private semantics, not the public native boundary.
-Compiler resource builds retain `SPX-B104` while physical/malformed-response
-fallback cleanup and quiescence remain nongeneralized and Android/iOS device or
-static-link profiles are absent. The pinned-nightly Rust-host ASan lane and the
+Compiler resource builds retain `SPX-B104` while broader fatal-process recovery
+and quiescence remain nongeneralized and representative Android/iOS device
+runtime evidence is absent. The pinned-nightly Rust-host ASan lane and the
 full Linux/macOS/Windows matrix are green in [public run
 31259216533](https://github.com/wavect/semaprax/actions/runs/31259216533); the
 Rust-host evidence is the narrower [job
@@ -78,11 +78,13 @@ Callable v3 is a separate bounded physical tranche: graph-derived providers
 execute all 14 normal corpus scenarios through the private desktop loader and
 OS-seeded receipt ledger at `-O0`/`-O2`, with zero measured Rust heap growth
 across the irreversible interval. Decode-reserve failure quarantines exact
-evidence, and seven provider fixtures add physical-failure/malformed/
-interruption/replay/conflict evidence. The next gate adds canonical pre-execute
-unwind, broader fatal-allocation/crash injection, publicly observed Windows
-runtime, Android/iOS, and quiescence. None of these private steps opens public
-admission or `SPX-B104`.
+evidence, and seven joint provider/loader/host fixtures add physical-failure,
+malformed, interruption, replay, and conflict evidence. Canonical pre-execute
+unwind is also settled without entering execute. The private static-registration
+logic distinguishes iOS device, simulator, and Catalyst targets, but the next
+gate still requires broader fatal-allocation/process-crash injection,
+representative Android/iOS runtime evidence, and quiescence. None of these
+private steps opens public admission or `SPX-B104`.
 
 The model-backed, proposed [RFC 0004 native call recovery and settlement
 contract](RFC-0004-NATIVE-CALL-SETTLEMENT.md) specifies the bounded linear
@@ -101,7 +103,9 @@ to the
 trace-certificate fingerprint through a nonzero host-recomputed digest and
 rejects resealed mutations; this is not independent host acceptance of the
 trace-path DFA certificate. The emitter is bound to its compiler build target
-with no Android/iOS/Windows cross-emission or runtime evidence; future iOS
+with no public/general Android/iOS/Windows machine-code cross-emission; a hidden
+selector emits iOS descriptor identities only. Windows dynamic runtime is
+green, while Android/iOS runtime is absent. Future iOS
 device, simulator, and macabi targets remain distinct. Private graph-derived
 providers execute all 14 normal scenarios at `-O0`/`-O2`; the desktop v3 loader
 binds exact descriptor bytes and all entry points to one root image; and the
@@ -109,8 +113,11 @@ host provides exact-instance receipt authority, authoritative owner
 generations, atomic receipt/ledger publication, cached replay, and drop-safe
 quarantine. One joint path now covers all 14 normal scenarios at `-O0`/`-O2`
 without measured Rust heap growth across its irreversible interval. Canonical
-pre-execute unwind, fatal allocator/crash recovery, static/mobile execution,
-and public compiler admission stay closed with `SPX-B104`.
+pre-execute unwind now reaches authenticated abort receipt without entering
+execute. Fatal allocator/crash recovery, representative iOS/mobile execution,
+and public compiler admission stay closed with `SPX-B104`. A private
+process-lifetime exact-address static registry now reaches the shared ledger in
+non-Apple fake-function evidence; it makes no `dlopen`, unload, or device claim.
 
 With the current private descriptor-v3 metadata defined, the hidden settlement
 model starts at
@@ -127,10 +134,11 @@ generations, infallible pre-reserved quarantine on postcommit drop, and an
 all-14-scenario provider/loader/host composition at `-O0`/`-O2`. The normal
 joint path records zero Rust allocation/reallocation calls across the
 irreversible interval; decode-reserve failure quarantines exact evidence, and
-seven provider fixtures exercise returned failure, malformed wires, durable
-interruption, replay, and conflict under normal and sanitizer builds. Next,
-canonical pre-execute unwind, broader crash/fatal-allocation injection, hosted
-Windows confirmation, mobile/static admission, and quiescence evidence remain.
+seven joint fixtures exercise returned failure, malformed wires, durable
+interruption, replay, and conflict under normal builds, with provider sanitizer
+evidence. Canonical pre-execute unwind is wired and the private static registry
+exists. Next, broader crash/fatal-allocation injection, representative iOS and
+Android execution, and quiescence evidence remain.
 The pure model itself grants none of that authority and does not open
 `SPX-B104`.
 

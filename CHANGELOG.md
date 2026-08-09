@@ -207,6 +207,18 @@ All notable changes to SEMAPRAX are documented here.
   and under ASan+UBSan. Pre-execute unwind, fatal allocator/process-crash
   recovery, hosted Windows confirmation, mobile/static admission, quiescence,
   malicious-code containment, public admission, and `SPX-B104` remain open.
+- Added canonical pre-execute callable-v3 unwind: frame tag 3 and reserved
+  `0xFFFF_FFFE` bind exact zero-filled response storage, the loader never enters
+  provider execute, certified abort finalizers settle, and the host commits an
+  authenticated receipt without Rust heap growth. Expanded all seven physical-
+  failure/interruption fixtures through exact loader and host at `-O0`/`-O2`,
+  including quarantine boundaries and zero retry. Added a bounded process-
+  lifetime iOS-static exact-address registry that shares the dynamic host's
+  generation/draining/quarantine ledger without any path, `dlopen`, close, or
+  unload surface. Non-Apple static-function evidence is green; representative
+  iOS/Android execution, fatal allocator/process-crash recovery, quiescence,
+  public admission, and `SPX-B104` remain open. Private v3 descriptor/frame KATs
+  migrated; v1/v2/proof bytes remain unchanged.
 - Added a mandatory Windows callable-v2 dependency-isolation fixture. It places
   a same-name dependency in both CWD and legacy `PATH`, proves the root-image
   sibling wins for descriptor admission and invocation, then removes that
@@ -218,6 +230,14 @@ All notable changes to SEMAPRAX are documented here.
   provider bundle and strict host shared library through safe staging and
   observed no-overwrite checks, while exposing no loading, invocation,
   adoption, or authority and retaining ordinary native `SPX-B104`.
+- Added a private bounded iOS-static callable-v3 registration alternative. It
+  binds one exact descriptor-storage/getter/execute/settle address tuple to a
+  process-lifetime logical instance, makes exact bootstrap re-registration
+  idempotent, rejects target relabeling and partial address reuse, and feeds the
+  same generation/draining/quarantine ledger as dynamic admission. Non-Apple
+  fake-function evidence exercises physical-return quarantine and pin
+  retention; there is no `dlopen`, close, unload, device-runtime, public API, or
+  `SPX-B104` claim.
 - Migrated browser manifests from `semaprax.web.v2` to `semaprax.web.v3`. Version 3 retains module, graph revision, Wasm entry, and capabilities while adding the required `owned_abi` object with schema `semaprax.wasm-owned.v1` and a declaration-ordered function mapping; scalar-only packages use an empty function array. Version-2-only consumers must reject or explicitly migrate rather than inferring ownership ABI metadata.
 
 ## 0.1.0 — 2026-08-07

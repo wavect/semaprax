@@ -113,11 +113,12 @@ copied-evidence decoding, replay, generation refresh, finalizer order,
 cross-instance rejection, and pin lifetime. Its counting allocator observes
 zero Rust heap growth from immediately before `CallCommit` through
 `ReceiptCommit`; injected decode-reserve failure quarantines exact evidence and
-the image pin. Seven provider-side failure/interruption fixtures add returned
-physical failure, malformed wire, durable-boundary, replay, and conflict
-evidence. Pending/pre-execute host unwind still fails closed. Exhaustive
-process-crash/fatal-allocator evidence, publicly observed Windows v3 runtime,
-Android/iOS,
+the image pin. Seven returned-physical-failure, malformed-wire, durable-boundary,
+replay, and conflict fixtures also cross provider, loader, and host at O0/O2.
+Canonical pre-execute unwind skips provider execute, binds exact zero response
+storage, settles certified abort cleanup, and commits one host receipt.
+Exhaustive process-crash/fatal-allocator evidence and representative Android/iOS
+execution,
 quiescence, malicious-code containment, public admission, and `SPX-B104`
 remain closed.
 
@@ -204,9 +205,10 @@ host recomputes that digest without independently accepting or walking the
 trace-path DFA certificate. Resealed witness/digest mutations fail. Independent
 compiler encoders and host parsers freeze the seven complete byte/tag/digest/
 HMAC transcripts and their changed private known answers. The
-compiler encoder is bound to its build target and exposes no cross-target
-configuration; Android/iOS/Windows cross-emission and runtime evidence remain
-absent. The legacy loader constructors reject the full v3 magic in their shared
+compiler encoder is bound to its build target and exposes no public/general
+machine-code cross-target configuration; a hidden closed selector emits iOS
+descriptor identities only. Windows dynamic runtime is green; Android/iOS
+runtime evidence remains absent. The legacy loader constructors reject the full v3 magic in their shared
 input validator before canonicalization, image loading, getter lookup, or
 callable lookup; their exact callable-v2 classifier remains unchanged. A
 separate private v3 constructor binds the getter, execute, settle, and returned
@@ -220,9 +222,13 @@ guard whose postcommit uncertainty is quarantined without retry. One joint
 generated-provider → loader → host test covers all 14 normal scenarios at
 `-O0`/`-O2`, with zero measured Rust allocations/reallocations across the
 irreversible interval and exact quarantine on injected decode-reserve failure.
-It does not cover canonical pre-execute unwind recovery, fatal allocator or
-process-crash containment, publicly observed Windows v3 runtime CI, iOS static
-registration, or Android, and exposes no public admission. `SPX-B104` remains
+It does not cover fatal allocator or process-crash containment, representative
+iOS device/simulator execution, or Android, and exposes no
+public admission. Private bounded process-lifetime static-registration logic
+now binds exact descriptor and entry addresses to the same host ledger; its
+non-Apple fake-function test proves retention and quarantine only, with no
+`dlopen` or unload claim. The loader and host crates are not compiled for iOS,
+so this is not yet an iOS admission API. `SPX-B104` remains
 closed.
 
 The callable-v2 Windows CI lane explicitly reruns its generated O0/O2 corpus
@@ -231,13 +237,11 @@ and a loader fixture that places a same-name dependency in CWD and legacy
 Those v2 gates passed in [run 31257545008, job
 93103151756](https://github.com/wavect/semaprax/actions/runs/31257545008/job/93103151756),
 confirming narrow callable-v2 corpus and dependency-isolation evidence. For
-callable v3, [run 31312094861](https://github.com/wavect/semaprax/actions/runs/31312094861)
-proved Linux, macOS, MSRV, dependency-policy, generated-provider ASan+UBSan,
-and Rust-host ASan gates. Its Windows job stopped at the test marker's MSVC
-`fopen` deprecation before runtime; the local fixture-only CRT fix remains
-unobserved until the next hosted run. None of this is broader Windows
-application-platform completion. Android/iOS device or static-link profiles
-and public native execution/admission remain required.
+callable v3, [run 31313341303](https://github.com/wavect/semaprax/actions/runs/31313341303)
+proved Windows, Linux, macOS, MSRV, dependency policy, generated-provider
+ASan+UBSan, and Rust-host ASan gates. None of this is broader Windows
+application-platform completion. Representative Android/iOS device/simulator
+execution and public native execution/admission remain required.
 
 ## Record groundwork and backend gate
 

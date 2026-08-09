@@ -23,7 +23,7 @@ use crate::owned_resource_corpus::OwnedResourceCorpusArgument;
 use super::native_callable_abi_v3::NativeCallableV3Descriptor;
 use super::native_callable_wire_v3::{
     candidate_receipt_capacity, execute_response_capacity, frame_capacity, ACTION_EVIDENCE_BYTES,
-    DECISION_BYTES, HEADER_BYTES, HOST_RECEIPT_BYTES, VERSION,
+    DECISION_BYTES, HEADER_BYTES, HOST_RECEIPT_BYTES, PRE_EXECUTE_HOST_UNWIND_CODE, VERSION,
 };
 
 const MAX_SYMBOL_BYTES: usize = 1024;
@@ -56,9 +56,9 @@ impl Default for ProviderV3FaultConfig {
     }
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum ProviderV3TestFault {
+pub(super) enum ProviderV3TestFault {
     PhysicalFailure { checkpoint: u32, code: u32 },
     MalformedResponse { offset: u32 },
     MalformedFrame { offset: u32 },
@@ -277,8 +277,11 @@ impl NativeCallableProviderV3Spec {
         })
     }
 
-    #[cfg(test)]
-    fn with_test_fault(mut self, fault: ProviderV3TestFault) -> Result<Self, Diagnostic> {
+    #[cfg(any(test, feature = "unstable-native-host-internal"))]
+    pub(super) fn with_test_fault(
+        mut self,
+        fault: ProviderV3TestFault,
+    ) -> Result<Self, Diagnostic> {
         match fault {
             ProviderV3TestFault::PhysicalFailure { checkpoint, code } => {
                 if code == 0
@@ -460,6 +463,10 @@ fn emit_prelude(
         ("SPX_V3_MAX_EVENTS", spec.maximum_events),
         ("SPX_V3_DICTIONARY_ENTRIES", spec.dictionary_entries),
         (
+            "SPX_V3_PREEXECUTE_UNWIND_CODE",
+            PRE_EXECUTE_HOST_UNWIND_CODE,
+        ),
+        (
             "SPX_V3_FAULT_PHYSICAL_CHECKPOINT",
             spec.fault.physical_failure_checkpoint,
         ),
@@ -513,6 +520,16 @@ fn emit_prelude(
         output,
         "spx_v3_trace_path_certificate",
         &spec.trace_path_certificate,
+    );
+    let unwind_response_digest = super::native_callable_wire_v3::response_storage_digest(
+        PRE_EXECUTE_HOST_UNWIND_CODE,
+        &vec![0; spec.response_bytes as usize],
+    )
+    .expect("validated response capacity has a canonical unwind digest");
+    emit_c_array(
+        output,
+        "spx_v3_preexecute_unwind_response_digest",
+        &unwind_response_digest,
     );
     for (name, domain) in [
         (
@@ -761,7 +778,7 @@ fn emit_settle(output: &mut String, spec: &NativeCallableProviderV3Spec) {
   phase=spx_v3_load_u32(frame+272);if(phase==UINT32_C(4)){if(memcmp(frame+276,decision_hash,32))return UINT32_C(3);return spx_v3_emit_candidate_with_fault(frame,decision_tag,decision_detail,candidate);}if(phase!=1&&phase!=2&&phase!=3)return UINT32_C(3);
   for(uint32_t i=0;i<spx_v3_checkpoint_count;i++)if(spx_v3_checkpoint_id[i]==spx_v3_load_u32(frame+268)){if(checkpoint_index!=UINT32_MAX)return UINT32_C(3);checkpoint_index=i;}if(checkpoint_index==UINT32_MAX)return UINT32_C(3);
   if(decision_tag<4){if(spx_v3_load_u32(frame+260)!=2||spx_v3_load_u32(frame+264)!=0||spx_v3_zero(frame+196,32)||spx_v3_zero(frame+228,32)||decision_tag!=spx_v3_checkpoint_outcome[checkpoint_index]||(decision_tag==3&&decision_detail!=spx_v3_checkpoint_detail[checkpoint_index]))return UINT32_C(3);for(uint32_t i=0;i<spx_v3_accept_count[checkpoint_index];i++){action_kind[action_count]=1;action_owner[action_count++]=spx_v3_accept_order[checkpoint_index*SPX_V3_RESOURCE_COUNT+i];}if(decision_tag==3){action_kind[action_count]=2;action_owner[action_count++]=decision_detail;}}
-  else{if(decision_tag==4&&(spx_v3_load_u32(frame+260)!=2||spx_v3_load_u32(frame+264)!=decision_detail||spx_v3_zero(frame+196,32)))return UINT32_C(3);if((decision_tag==5||decision_tag==6||decision_tag==7)&&(spx_v3_load_u32(frame+260)!=2||spx_v3_load_u32(frame+264)!=0||spx_v3_zero(frame+196,32)))return UINT32_C(3);for(uint32_t i=0;i<spx_v3_abort_count[checkpoint_index];i++){action_kind[action_count]=1;action_owner[action_count++]=spx_v3_abort_order[checkpoint_index*SPX_V3_RESOURCE_COUNT+i];}}
+  else{if(decision_tag==4&&(spx_v3_load_u32(frame+260)!=2||spx_v3_load_u32(frame+264)!=decision_detail||spx_v3_zero(frame+196,32)))return UINT32_C(3);if((decision_tag==5||decision_tag==6)&&(spx_v3_load_u32(frame+260)!=2||spx_v3_load_u32(frame+264)!=0||spx_v3_zero(frame+196,32)))return UINT32_C(3);if(decision_tag==7&&(spx_v3_load_u32(frame+260)!=3||spx_v3_load_u32(frame+264)!=SPX_V3_PREEXECUTE_UNWIND_CODE||memcmp(frame+196,spx_v3_preexecute_unwind_response_digest,32)||!spx_v3_zero(frame+228,32)))return UINT32_C(3);for(uint32_t i=0;i<spx_v3_abort_count[checkpoint_index];i++){action_kind[action_count]=1;action_owner[action_count++]=spx_v3_abort_order[checkpoint_index*SPX_V3_RESOURCE_COUNT+i];}}
   next=spx_v3_load_u32(frame+308);if(next>action_count)return UINT32_C(3);for(uint32_t owner=0;owner<SPX_V3_RESOURCE_COUNT;owner++){uint32_t want=spx_v3_checkpoint_state[checkpoint_index*SPX_V3_RESOURCE_COUNT+owner];for(uint32_t i=0;i<next;i++)if(action_owner[i]==owner)want=action_kind[i]==1?4:5;if(spx_v3_load_u32(frame+spx_v3_cell(owner))!=want)return UINT32_C(3);}
   for(uint32_t i=0;i<next;i++)record_count+=action_kind[i]==1?2:1;
   if(phase==1){if(next!=0||spx_v3_load_u32(frame+312)!=0)return UINT32_C(3);if(decision_tag>=4)memset(frame+228,0,32);if(!spx_v3_lock_decision(frame,decision_hash,(uint64_t)action_count))return UINT32_C(3);}else{if(memcmp(frame+276,decision_hash,32))return UINT32_C(3);if(phase==2){if(next!=0||spx_v3_load_u32(frame+312)!=0||!spx_v3_valid_action_seed(frame,decision_hash,(uint64_t)action_count))return UINT32_C(3);}else{if(spx_v3_load_u32(frame+312)!=record_count)return UINT32_C(3);memcpy(replay,frame,SPX_V3_FRAME_BYTES);spx_v3_action_seed(replay,decision_hash,(uint64_t)action_count);spx_v3_store_u32(replay+312,0);for(uint32_t i=0;i<next;i++){uint32_t owner=action_owner[i],before=spx_v3_checkpoint_state[checkpoint_index*SPX_V3_RESOURCE_COUNT+owner];if(action_kind[i]==1){spx_v3_action_step(replay,i,1,owner,before,3);spx_v3_action_step(replay,i,2,owner,3,4);}else spx_v3_action_step(replay,i,3,owner,2,5);}if(memcmp(replay+spx_v3_action_digest_offset(),frame+spx_v3_action_digest_offset(),32))return UINT32_C(3);}}
@@ -1552,9 +1569,10 @@ mod tests {
     use super::super::native_callable_abi_v3;
     use super::super::native_callable_wire_v3::{
         decision_digest, encode_action_evidence, encode_decision, encode_frame, encode_request,
-        extend_action_chain_digest, initial_action_chain_digest, request_digest, ActionBoundary,
-        ActionEvidence, ExecuteReturn, FramePhase, ProviderBinding, RecoveryFrame, RequestArgument,
-        ResourceCell, ResourceState, SettlementDecision,
+        extend_action_chain_digest, initial_action_chain_digest, request_digest,
+        response_storage_digest, ActionBoundary, ActionEvidence, ExecuteReturn, FramePhase,
+        ProviderBinding, RecoveryFrame, RequestArgument, ResourceCell, ResourceState,
+        SettlementDecision,
     };
     use super::*;
 
@@ -1608,6 +1626,42 @@ mod tests {
             1,
             0,
         )
+    }
+
+    fn preexecute_unwind_owned_wires(
+        binding: ProviderBinding,
+        payloads: &[u64],
+        response_bytes: u32,
+    ) -> (Vec<u8>, Vec<u8>) {
+        let (request, _) = initial_owned_wires(binding, payloads);
+        let resources = payloads
+            .iter()
+            .map(|payload| ResourceCell {
+                state: ResourceState::Live,
+                payload: *payload,
+            })
+            .collect::<Vec<_>>();
+        let frame = encode_frame(&RecoveryFrame {
+            binding,
+            request_digest: request_digest(&request).unwrap(),
+            response_digest: response_storage_digest(
+                PRE_EXECUTE_HOST_UNWIND_CODE,
+                &vec![0; response_bytes as usize],
+            )
+            .unwrap(),
+            semantic_trace_digest: [0; 32],
+            execute_return: ExecuteReturn::PreExecuteHostUnwind,
+            checkpoint: 1,
+            phase: FramePhase::Executing,
+            decision_digest: [0; 32],
+            next_action_index: 0,
+            action_record_count: 0,
+            active_finalizers: 0,
+            resources: &resources,
+            action_chain_digest: [0; 32],
+        })
+        .unwrap();
+        (request, frame)
     }
 
     fn owned_wires_at(
@@ -1976,6 +2030,8 @@ mod tests {
         let mid_abort_binding = binding(&spec, 42, 52, 9);
         let uncertain_binding = binding(&spec, 43, 53, 10);
         let (_, initial_abort_frame) = initial_owned_wires(initial_abort_binding, &[201, 203]);
+        let (_, preexecute_abort_frame) =
+            preexecute_unwind_owned_wires(initial_abort_binding, &[201, 203], spec.response_bytes);
         let (_, mid_abort_frame) = owned_wires_at(
             mid_abort_binding,
             &[211, 223],
@@ -2005,6 +2061,11 @@ mod tests {
         append_array(&mut source, "expected_semantic", &expected_semantic);
         append_array(&mut source, "expected_accept_chain", &expected_accept_chain);
         append_array(&mut source, "initial_abort_frame", &initial_abort_frame);
+        append_array(
+            &mut source,
+            "preexecute_abort_frame",
+            &preexecute_abort_frame,
+        );
         append_array(&mut source, "mid_abort_frame", &mid_abort_frame);
         append_array(&mut source, "uncertain_frame", &uncertain_frame);
         append_array(&mut source, "initial_abort_decision", &initial_abort);
@@ -2035,8 +2096,9 @@ int main(void){
  memcpy(saved_frame,frame,sizeof(frame));memset(candidate,0xa5,sizeof(candidate));memcpy(saved,candidate,sizeof(saved));if(spx_fixture_settle_v3(frame,sizeof(frame),conflict_decision,sizeof(conflict_decision),candidate,sizeof(candidate))!=3||finalizer_count!=2||memcmp(frame,saved_frame,sizeof(frame))||memcmp(candidate,saved,sizeof(candidate)))return 8;
  if(memcmp(spx_fixture_descriptor_v3(),spx_v3_descriptor,sizeof(spx_v3_descriptor)))return 9;
  memcpy(abort_frame,initial_abort_frame,sizeof(abort_frame));memcpy(saved_frame,abort_frame,sizeof(abort_frame));memset(candidate,0xa5,sizeof(candidate));memcpy(saved,candidate,sizeof(saved));if(spx_fixture_settle_v3(abort_frame,sizeof(abort_frame),initial_abort_decision,sizeof(initial_abort_decision),candidate,sizeof(candidate))!=3||finalizer_count!=2||memcmp(abort_frame,saved_frame,sizeof(abort_frame))||memcmp(candidate,saved,sizeof(candidate)))return 12;
- memcpy(abort_frame,mid_abort_frame,sizeof(abort_frame));memcpy(saved_frame,abort_frame,sizeof(abort_frame));if(spx_fixture_settle_v3(abort_frame,sizeof(abort_frame),mid_abort_decision,sizeof(mid_abort_decision),candidate,sizeof(candidate))!=3||finalizer_count!=2||memcmp(abort_frame,saved_frame,sizeof(abort_frame))||memcmp(candidate,saved,sizeof(candidate)))return 13;
- memcpy(abort_frame,uncertain_frame,sizeof(abort_frame));if(spx_fixture_settle_v3(abort_frame,sizeof(abort_frame),uncertain_abort_decision,sizeof(uncertain_abort_decision),candidate,sizeof(candidate))!=1||finalizer_count!=2)return 14;
+ memcpy(abort_frame,preexecute_abort_frame,sizeof(abort_frame));if(spx_fixture_settle_v3(abort_frame,sizeof(abort_frame),initial_abort_decision,sizeof(initial_abort_decision),candidate,sizeof(candidate))!=0||finalizer_count!=4||finalizer_order[2]!=1||finalizer_order[3]!=0||finalizer_payload[2]!=203||finalizer_payload[3]!=201||spx_v3_load_u32(candidate+356)!=4||spx_v3_load_u32(candidate+372)!=1||spx_v3_load_u32(candidate+384)!=1)return 15;
+ memcpy(abort_frame,mid_abort_frame,sizeof(abort_frame));memcpy(saved_frame,abort_frame,sizeof(abort_frame));memcpy(saved,candidate,sizeof(saved));if(spx_fixture_settle_v3(abort_frame,sizeof(abort_frame),mid_abort_decision,sizeof(mid_abort_decision),candidate,sizeof(candidate))!=3||finalizer_count!=4||memcmp(abort_frame,saved_frame,sizeof(abort_frame))||memcmp(candidate,saved,sizeof(candidate)))return 13;
+ memcpy(abort_frame,uncertain_frame,sizeof(abort_frame));if(spx_fixture_settle_v3(abort_frame,sizeof(abort_frame),uncertain_abort_decision,sizeof(uncertain_abort_decision),candidate,sizeof(candidate))!=1||finalizer_count!=4)return 14;
  return 0;}
 "#,
         );

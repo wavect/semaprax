@@ -482,6 +482,49 @@ pub fn emit_native_callable_v3_descriptor(
     native_callable_abi_v3::derive(program, function_id).map(NativeCallableV3DescriptorArtifact)
 }
 
+/// Closed cross-target selector used only by the unpublished iOS-static host
+/// admission evidence. It emits metadata and grants no registration or call
+/// authority.
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+#[doc(hidden)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PrivateNativeCallableV3IosTarget {
+    DeviceArm64,
+    SimulatorArm64,
+    SimulatorX86_64,
+    MacCatalystArm64,
+    MacCatalystX86_64,
+}
+
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+impl PrivateNativeCallableV3IosTarget {
+    fn canonical_tag(self) -> &'static str {
+        match self {
+            Self::DeviceArm64 => "aarch64-ios-device-apple-macho-ptr64-little-callable-v3",
+            Self::SimulatorArm64 => "aarch64-ios-simulator-apple-macho-ptr64-little-callable-v3",
+            Self::SimulatorX86_64 => "x86_64-ios-simulator-apple-macho-ptr64-little-callable-v3",
+            Self::MacCatalystArm64 => "aarch64-ios-catalyst-apple-macho-ptr64-little-callable-v3",
+            Self::MacCatalystX86_64 => "x86_64-ios-catalyst-apple-macho-ptr64-little-callable-v3",
+        }
+    }
+}
+
+/// Derive one exact iOS-static descriptor for private registration evidence.
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+#[doc(hidden)]
+pub fn emit_private_native_callable_v3_ios_descriptor(
+    program: &ResolvedProgram,
+    function_id: &DeclarationId,
+    target: PrivateNativeCallableV3IosTarget,
+) -> Result<NativeCallableV3DescriptorArtifact, Diagnostic> {
+    native_callable_abi_v3::derive_ios_static_for_target(
+        program,
+        function_id,
+        target.canonical_tag(),
+    )
+    .map(NativeCallableV3DescriptorArtifact)
+}
+
 /// Closed fixture selector for the first compiler/provider/loader/host v3
 /// composition proof. This remains unavailable without the unpublished host
 /// feature and cannot select arbitrary caller-supplied cleanup metadata.
@@ -491,6 +534,20 @@ pub fn emit_native_callable_v3_descriptor(
 pub enum PrivateNativeCallableV3Fixture {
     ScalarDiscardTwo,
     OwnedIdentity,
+}
+
+/// Closed fault selector for private physical recovery evidence. These values
+/// are compiler-sealed into generated provider fixtures and remain absent from
+/// the default/public compiler surface.
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+#[doc(hidden)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PrivateNativeCallableV3Fault {
+    PhysicalFailure { checkpoint: u32, code: u32 },
+    MalformedResponse { offset: u32 },
+    MalformedFrame { offset: u32 },
+    MalformedCandidate { offset: u32 },
+    FinalizerInterruption { action: u32, boundary: u32 },
 }
 
 /// Exact descriptor bytes and the strict-C provider sealed around those same
@@ -524,7 +581,60 @@ pub fn emit_private_native_callable_v3_fixture(
 ) -> Result<PrivateNativeCallableV3Artifact, Diagnostic> {
     let descriptor = native_callable_abi_v3::derive(program, function_id)?;
     let descriptor_bytes = descriptor.bytes.clone();
-    let plan = match fixture {
+    let plan = private_native_callable_v3_plan(fixture);
+    let spec = native_callable_provider_v3::NativeCallableProviderV3Spec::new(descriptor, plan)?;
+    let provider = native_callable_provider_v3::emit(&spec)?;
+    Ok(PrivateNativeCallableV3Artifact {
+        descriptor: descriptor_bytes,
+        source: provider.source,
+    })
+}
+
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+#[doc(hidden)]
+pub fn emit_private_native_callable_v3_fault_fixture(
+    program: &ResolvedProgram,
+    function_id: &DeclarationId,
+    fixture: PrivateNativeCallableV3Fixture,
+    fault: PrivateNativeCallableV3Fault,
+) -> Result<PrivateNativeCallableV3Artifact, Diagnostic> {
+    let descriptor = native_callable_abi_v3::derive(program, function_id)?;
+    let descriptor_bytes = descriptor.bytes.clone();
+    let plan = private_native_callable_v3_plan(fixture);
+    let fault = match fault {
+        PrivateNativeCallableV3Fault::PhysicalFailure { checkpoint, code } => {
+            native_callable_provider_v3::ProviderV3TestFault::PhysicalFailure { checkpoint, code }
+        }
+        PrivateNativeCallableV3Fault::MalformedResponse { offset } => {
+            native_callable_provider_v3::ProviderV3TestFault::MalformedResponse { offset }
+        }
+        PrivateNativeCallableV3Fault::MalformedFrame { offset } => {
+            native_callable_provider_v3::ProviderV3TestFault::MalformedFrame { offset }
+        }
+        PrivateNativeCallableV3Fault::MalformedCandidate { offset } => {
+            native_callable_provider_v3::ProviderV3TestFault::MalformedCandidate { offset }
+        }
+        PrivateNativeCallableV3Fault::FinalizerInterruption { action, boundary } => {
+            native_callable_provider_v3::ProviderV3TestFault::FinalizerInterruption {
+                action,
+                boundary,
+            }
+        }
+    };
+    let spec = native_callable_provider_v3::NativeCallableProviderV3Spec::new(descriptor, plan)?
+        .with_test_fault(fault)?;
+    let provider = native_callable_provider_v3::emit(&spec)?;
+    Ok(PrivateNativeCallableV3Artifact {
+        descriptor: descriptor_bytes,
+        source: provider.source,
+    })
+}
+
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+fn private_native_callable_v3_plan(
+    fixture: PrivateNativeCallableV3Fixture,
+) -> native_callable_provider_v3::ProviderV3Plan {
+    match fixture {
         PrivateNativeCallableV3Fixture::ScalarDiscardTwo => {
             native_callable_provider_v3::ProviderV3Plan::ScalarDiscard {
                 scalar_result: 0,
@@ -540,13 +650,7 @@ pub fn emit_private_native_callable_v3_fixture(
                 semantic_ordinals: vec![1, 2, 3],
             }
         }
-    };
-    let spec = native_callable_provider_v3::NativeCallableProviderV3Spec::new(descriptor, plan)?;
-    let provider = native_callable_provider_v3::emit(&spec)?;
-    Ok(PrivateNativeCallableV3Artifact {
-        descriptor: descriptor_bytes,
-        source: provider.source,
-    })
+    }
 }
 
 /// Hidden composition fixture derived from one canonical owned-resource

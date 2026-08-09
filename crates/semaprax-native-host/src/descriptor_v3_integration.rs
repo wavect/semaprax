@@ -3,6 +3,7 @@
 use semaprax::codegen::{
     emit_native_adapter_admission, emit_native_callable_admission,
     emit_native_callable_settlement_proof, emit_native_callable_v3_descriptor,
+    emit_private_native_callable_v3_ios_descriptor, PrivateNativeCallableV3IosTarget,
 };
 use semaprax::hir::DeclarationId;
 use semaprax::owned_resource_corpus::build_owned_resource_corpus_v1;
@@ -15,6 +16,7 @@ use crate::descriptor_v3::{
     ResourceState, ResultShape, TraceOutcome,
 };
 use crate::settlement_proof::BoundSettlementProof;
+use semaprax_native_loader::IosStaticTarget;
 
 fn compiler_descriptor() -> semaprax::codegen::NativeCallableV3DescriptorArtifact {
     let corpus = build_owned_resource_corpus_v1().unwrap();
@@ -122,6 +124,66 @@ fn compiler_v3_descriptor_is_accepted_with_exact_bound_metadata() {
 }
 
 #[test]
+fn every_ios_static_descriptor_identity_matches_exactly_one_loader_target() {
+    let corpus = build_owned_resource_corpus_v1().unwrap();
+    let function = DeclarationId::new("token.discard-two");
+    let pairs = [
+        (
+            PrivateNativeCallableV3IosTarget::DeviceArm64,
+            IosStaticTarget::DeviceArm64,
+        ),
+        (
+            PrivateNativeCallableV3IosTarget::SimulatorArm64,
+            IosStaticTarget::SimulatorArm64,
+        ),
+        (
+            PrivateNativeCallableV3IosTarget::SimulatorX86_64,
+            IosStaticTarget::SimulatorX86_64,
+        ),
+        (
+            PrivateNativeCallableV3IosTarget::MacCatalystArm64,
+            IosStaticTarget::MacCatalystArm64,
+        ),
+        (
+            PrivateNativeCallableV3IosTarget::MacCatalystX86_64,
+            IosStaticTarget::MacCatalystX86_64,
+        ),
+    ];
+    let mut encoded = Vec::with_capacity(pairs.len());
+    for (compiler_target, loader_target) in pairs {
+        let artifact = emit_private_native_callable_v3_ios_descriptor(
+            &corpus.program,
+            &function,
+            compiler_target,
+        )
+        .unwrap();
+        let descriptor = Descriptor::parse_for_target(
+            artifact.bytes(),
+            loader_target.canonical_tag(),
+            Linkage::IosStatic,
+        )
+        .unwrap();
+        assert_eq!(descriptor.target, loader_target.canonical_tag());
+        encoded.push((loader_target, artifact.bytes().to_vec()));
+    }
+    for (index, (target, bytes)) in encoded.iter().enumerate() {
+        for (other_index, (other_target, other_bytes)) in encoded.iter().enumerate() {
+            if index == other_index {
+                continue;
+            }
+            assert_ne!(bytes, other_bytes);
+            assert!(Descriptor::parse_for_target(
+                bytes,
+                other_target.canonical_tag(),
+                Linkage::IosStatic,
+            )
+            .is_err());
+            assert_ne!(target.canonical_tag(), other_target.canonical_tag());
+        }
+    }
+}
+
+#[test]
 fn all_fourteen_authoritative_corpus_cases_parse_and_reencode_canonically() {
     let corpus = build_owned_resource_corpus_v1().unwrap();
     assert_eq!(corpus.cases.len(), 14);
@@ -164,11 +226,11 @@ fn exact_linux_compiler_descriptor_known_answer_is_stable() {
         assert_eq!(artifact.bytes().len(), 1_722);
         assert_eq!(
             hex(&Sha256::digest(artifact.bytes())),
-            "e39e8147488fd457ba60fc7badd2956262e6eb87be971049b4cb062fcb976028"
+            "74b1e96c2d78ccd7d1ea08eec988674ab22bfa6d91b2de19bb41dee42251b44e"
         );
         assert_eq!(
             hex(&artifact.call_contract()),
-            "4dd7a64f286eedd960dbd4c8d8a28cf9f408b497ec390fe87d167cfaeade8f0d"
+            "c3ebe4ac69ba061c551305e260ebfa2f4af62be7d9a619227edd7625e8210b59"
         );
         assert!(Descriptor::parse(artifact.bytes()).is_ok());
     }

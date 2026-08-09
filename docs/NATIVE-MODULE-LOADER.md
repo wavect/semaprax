@@ -58,9 +58,9 @@ descriptor-derived capacity equations, pairwise-distinct names and resolved
 addresses, dependency-owned execute and descriptor-address rejection, missing
 entry rejection, five disjoint preallocations, separate one-shot execute and
 settle stages, cross-instance rejection, explicit retention, and final loader
-release on the currently observed Unix host. Windows-targeted fixtures encode
-the same contracts, but v3 Windows CI runtime is not yet observed and remains
-a gate.
+release on the currently observed Unix host. The equivalent v3 Windows dynamic
+runtime is green in [hosted run
+31313341303](https://github.com/wavect/semaprax/actions/runs/31313341303).
 
 The v3 lease retains exactly one platform `Library`; provenance queries do not
 increment the native reference count. It also retains the exact admitted
@@ -78,8 +78,9 @@ The loader's standalone plain-C fixtures remain separate provenance evidence.
 A private joint test additionally compiles generated providers for all 14
 authoritative normal scenarios, admits their exact descriptor and three entry
 points through this constructor, and executes them through the host receipt
-ledger at `-O0`/`-O2`. The provider-side failure matrix remains distinct from
-full joint failure/crash evidence; canonical pre-execute unwind is still open.
+ledger at `-O0`/`-O2`. Seven failure/interruption fixtures also cross loader and
+host; canonical pre-execute unwind skips execute and transitions directly to
+settlement. Fatal allocator/process-crash evidence remains open.
 
 The unpublished native host additionally proves that its real callable-v2
 lease is retained by its same-thread authority and every live owner/result
@@ -109,8 +110,9 @@ to the malicious image. CI also names the complete generated O0/O2 callable
 corpus as an explicit Windows gate. Both passed in [run 31257545008, job
 93103151756](https://github.com/wavect/semaprax/actions/runs/31257545008/job/93103151756).
 The current evidence still does not prove
-immediate physical unmapping, Windows
-application-platform completion, iOS dynamic/static admission, Android device execution,
+immediate physical unmapping, broader Windows
+application-platform completion, an iOS-target loader/host build or runtime,
+Android device execution,
 callback/finalizer quiescence, hot reload, fork recovery, signed code admission,
 or callable resource safety. Those remain gates before any public native
 adapter or `SPX-B104` change. Bounded Linux Rust-host ASan evidence is green in

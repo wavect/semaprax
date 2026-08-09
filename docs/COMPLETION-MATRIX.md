@@ -63,20 +63,23 @@ candidate, and host-only HMAC receipt. `CertifyOutcome` binds an embedded
 ordinal/outcome witness to
 the trace-certificate fingerprint through a nonzero host-recomputed digest;
 this is not independent host acceptance of the trace-path DFA certificate, and
-resealed witness/digest mutations are rejected. The emitter is
-build-target-bound with no cross-target configuration. Graph-derived private
+resealed witness/digest mutations are rejected. The machine-code emitter is
+build-target-bound with no public/general cross-target configuration; a hidden
+closed selector emits iOS descriptor identities only. Graph-derived private
 providers now execute all 14 authoritative normal scenarios through exact
 dynamic-image admission and the receipt ledger at `-O0`/`-O2`. That joint path
 proves exact descriptor/instance binding, pre-settle copied-evidence validation,
 replay, generation refresh, finalizer order, pin lifetime, and zero measured
 Rust heap growth from immediately before `CallCommit` through `ReceiptCommit`.
 Injected decode-reserve failure quarantines exact evidence/pins, and seven
-provider-side failure/interruption fixtures cover physical return, malformed
-wires, durable boundaries, replay, and decision conflict. It does not
-canonically recover pending/pre-execute unwind or prove exhaustive crash/fatal-
-allocator failure injection or publicly observed Windows v3 runtime,
-Android/iOS, quiescence, malicious-code containment, physical-finalizer
-generality, or public admission; `SPX-B104` remains closed.
+joint failure/interruption fixtures cover physical return, malformed wires,
+durable boundaries, replay, and decision conflict. Canonical pre-execute unwind
+skips provider execute and reaches authenticated abort receipt commit. A
+bounded static-registration model feeds the same ledger in non-Apple
+fake-function evidence, but the loader/host crates do not compile it as an iOS
+API. It does not prove exhaustive crash/fatal-allocator failure injection,
+representative Android/iOS execution, quiescence, malicious-code containment,
+physical-finalizer generality, or public admission; `SPX-B104` remains closed.
 The hidden linear phase model now starts from the sole authenticated
 post-`CallCommit` state and exercises exact `SettlementDecisionCommit`,
 provider-candidate, model-`ReceiptCommitted`, and absorbing `Quarantined`

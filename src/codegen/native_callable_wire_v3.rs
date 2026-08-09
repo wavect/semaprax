@@ -15,6 +15,7 @@ pub(super) const VERSION: u32 = 3;
 pub(super) const HEADER_BYTES: u32 = 20;
 pub(super) const MAX_WIRE_BYTES: u32 = 1024 * 1024;
 pub(super) const HOST_RECEIPT_BYTES: u32 = 524;
+pub(super) const PRE_EXECUTE_HOST_UNWIND_CODE: u32 = u32::MAX - 1;
 
 pub(super) const REQUEST_FIXED_BYTES: u32 = 104;
 pub(super) const REQUEST_I64_BYTES: u32 = 16;
@@ -31,7 +32,7 @@ pub(super) const CANDIDATE_DISPOSITION_BYTES: u32 = 12;
 
 pub(super) const REQUEST_SCHEMA_STATEMENT: &[u8] = b"SPXNRQ03;v3;u32le;header20;total-exact;call32;invocation-u64;generation-u64;challenge32;argc;args[tag,index,payload];scalar-tag1;i64-8;bool-u32-0-or-1;owned-tag2-owner-u32-payload-u64;no-trailing";
 pub(super) const EXECUTE_RESPONSE_SCHEMA_STATEMENT: &[u8] = b"SPXNEX03;v3;u32le;header20;total-declared;zero-tail-to-capacity;call32;invocation-u64;generation-u64;challenge32;request-digest32;checkpoint;outcome;detail;payload-u64;event-count;ordinals;outcomes1-scalar-2-semantic-3-owned";
-pub(super) const FRAME_SCHEMA_STATEMENT: &[u8] = b"SPXNFR03;v3;u32le;header20;total-exact;call32;recovery32;graph32;invocation-u64;generation-u64;challenge32;request32;response32;semantic32;return-tag;return-code;checkpoint;phase;decision32;next-action;record-count;active-finalizers;resource-count;cells[state-u32,payload-u64];action-chain32;pre-candidate-frame32";
+pub(super) const FRAME_SCHEMA_STATEMENT: &[u8] = b"SPXNFR03;v3;u32le;header20;total-exact;call32;recovery32;graph32;invocation-u64;generation-u64;challenge32;request32;response32;semantic32;return-tag;return-code;returns1-pending-2-returned-3-preexecute-host-unwind;preexecute-host-unwind-code-4294967294;checkpoint;phase;decision32;next-action;record-count;active-finalizers;resource-count;cells[state-u32,payload-u64];action-chain32;pre-candidate-frame32";
 pub(super) const DECISION_SCHEMA_STATEMENT: &[u8] = b"SPXNDC03;v3;u32le;header20;total172;call32;recovery32;graph32;invocation-u64;generation-u64;challenge32;decision-tag;detail;tags1-scalar-2-semantic-3-owned-4-physical-5-malformed-6-trace-7-unwind";
 pub(super) const ACTION_SCHEMA_STATEMENT: &[u8] = b"SPXNAC03;v3;u32le;header20;total196;call32;recovery32;graph32;invocation-u64;generation-u64;challenge32;action-index;boundary-tag;owner;payload-u64;before-state;after-state;checkpoint;tags1-start-2-complete-3-publish";
 pub(super) const CANDIDATE_RECEIPT_SCHEMA_STATEMENT: &[u8] = b"SPXNCR03;v3;u32le;header20;total372-plus-12r;call32;recovery32;graph32;invocation-u64;generation-u64;challenge32;request32;response32;semantic32;frame32;decision32;action32;outcome;detail;active-finalizers-zero;disposition-count;cells[disposition-u32,payload-u64]";
@@ -148,6 +149,7 @@ pub(super) enum FramePhase {
 pub(super) enum ExecuteReturn {
     Pending,
     Returned(u32),
+    PreExecuteHostUnwind,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -410,6 +412,10 @@ pub(super) fn encode_frame(frame: &RecoveryFrame<'_>) -> Result<Vec<u8>, WireV3E
             writer.u32(2);
             writer.u32(code);
         }
+        ExecuteReturn::PreExecuteHostUnwind => {
+            writer.u32(3);
+            writer.u32(PRE_EXECUTE_HOST_UNWIND_CODE);
+        }
     }
     writer.u32(frame.checkpoint);
     writer.u32(frame.phase as u32);
@@ -609,7 +615,14 @@ fn validate_frame_state(frame: &RecoveryFrame<'_>) -> Result<(), WireV3Error> {
         ExecuteReturn::Returned(_) if is_zero(&frame.response_digest) => {
             return Err(WireV3Error::InvalidDigest)
         }
-        ExecuteReturn::Pending | ExecuteReturn::Returned(_) => {}
+        ExecuteReturn::PreExecuteHostUnwind
+            if is_zero(&frame.response_digest) || !is_zero(&frame.semantic_trace_digest) =>
+        {
+            return Err(WireV3Error::InvalidState)
+        }
+        ExecuteReturn::Pending
+        | ExecuteReturn::Returned(_)
+        | ExecuteReturn::PreExecuteHostUnwind => {}
     }
     match frame.phase {
         FramePhase::Executing => {
@@ -975,6 +988,31 @@ mod tests {
             action_chain_digest: [0; 32],
         };
         assert_eq!(encode_frame(&invalid), Err(WireV3Error::InvalidState));
+
+        let response = vec![0; execute_response_capacity(1).unwrap() as usize];
+        let unwind_digest =
+            response_storage_digest(PRE_EXECUTE_HOST_UNWIND_CODE, &response).unwrap();
+        let unwind_resources = [ResourceCell {
+            state: ResourceState::Live,
+            payload: 0,
+        }];
+        let unwind = encode_frame(&RecoveryFrame {
+            resources: &unwind_resources,
+            response_digest: unwind_digest,
+            execute_return: ExecuteReturn::PreExecuteHostUnwind,
+            active_finalizers: 0,
+            ..invalid
+        })
+        .unwrap();
+        assert_eq!(read_u32(&unwind, 260).unwrap(), 3);
+        assert_eq!(
+            read_u32(&unwind, 264).unwrap(),
+            PRE_EXECUTE_HOST_UNWIND_CODE
+        );
+        assert_eq!(
+            hex(&unwind_digest),
+            "bb1e191d800451376f7407935c9cf6771a61c8ea144befc62508d60845e63b70"
+        );
     }
 
     #[test]

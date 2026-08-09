@@ -57,6 +57,7 @@ const ACTION_MAGIC: &[u8; 8] = b"SPXNAC03";
 const CANDIDATE_MAGIC: &[u8; 8] = b"SPXNCR03";
 const HOST_RECEIPT_MAGIC: &[u8; 8] = b"SPXHRP03";
 pub(crate) const HOST_RECEIPT_BYTES: usize = 524;
+pub(crate) const PRE_EXECUTE_HOST_UNWIND_CODE: u32 = u32::MAX - 1;
 const HOST_RECEIPT_BODY_BYTES: usize = 492;
 pub(crate) const DECISION_BYTES: usize = 172;
 const ACTION_RECORD_BYTES: usize = 196;
@@ -146,6 +147,7 @@ pub(crate) struct ExecuteResponse {
 pub(crate) enum ExecuteReturn {
     Pending,
     Returned(u32),
+    PreExecuteHostUnwind,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -575,6 +577,7 @@ impl RecoveryFrame {
         let execute_return = match (return_tag, execute_code) {
             (1, 0) => ExecuteReturn::Pending,
             (2, code) => ExecuteReturn::Returned(code),
+            (3, PRE_EXECUTE_HOST_UNWIND_CODE) => ExecuteReturn::PreExecuteHostUnwind,
             _ => return Err(WireError::NonCanonical),
         };
         let checkpoint = reader.u32()?;
@@ -653,6 +656,10 @@ impl RecoveryFrame {
             ExecuteReturn::Returned(code) => {
                 writer.u32(2);
                 writer.u32(code);
+            }
+            ExecuteReturn::PreExecuteHostUnwind => {
+                writer.u32(3);
+                writer.u32(PRE_EXECUTE_HOST_UNWIND_CODE);
             }
         }
         writer.u32(self.checkpoint);
@@ -1412,7 +1419,12 @@ pub(crate) fn validate_candidate_replay_preencoded(
         || candidate.request_digest != request_digest_value
         || frame.response_storage_digest != response_digest_value
         || candidate.response_storage_digest != response_digest_value
-        || frame.execute_return != ExecuteReturn::Returned(execute_return_code)
+        || frame.execute_return
+            != if decision.decision == Decision::AbortHostUnwind {
+                ExecuteReturn::PreExecuteHostUnwind
+            } else {
+                ExecuteReturn::Returned(execute_return_code)
+            }
         || frame.phase != FramePhase::ProviderSettled
         || frame.active_finalizers != 0
         || candidate.active_finalizers != 0
@@ -1427,6 +1439,9 @@ pub(crate) fn validate_candidate_replay_preencoded(
         return Err(WireError::DigestMismatch);
     }
     match decision.decision {
+        Decision::AbortHostUnwind if execute_return_code != PRE_EXECUTE_HOST_UNWIND_CODE => {
+            return Err(WireError::ReplayMismatch)
+        }
         Decision::AcceptScalar
         | Decision::AcceptSemanticFailure
         | Decision::AcceptOwned(_)
@@ -1943,7 +1958,15 @@ fn validate_frame_state(frame: &RecoveryFrame) -> Result<(), WireError> {
         ExecuteReturn::Returned(_) if frame.response_storage_digest == [0; 32] => {
             return Err(WireError::NonCanonical)
         }
-        ExecuteReturn::Pending | ExecuteReturn::Returned(_) => {}
+        ExecuteReturn::PreExecuteHostUnwind
+            if frame.response_storage_digest == [0; 32]
+                || frame.semantic_trace_digest != [0; 32] =>
+        {
+            return Err(WireError::NonCanonical)
+        }
+        ExecuteReturn::Pending
+        | ExecuteReturn::Returned(_)
+        | ExecuteReturn::PreExecuteHostUnwind => {}
     }
     match frame.phase {
         FramePhase::Executing => {
@@ -2436,7 +2459,7 @@ mod tests {
 
         let decision = SettlementDecision {
             identity,
-            decision: Decision::AbortHostUnwind,
+            decision: Decision::AbortPhysical(9),
         };
         let decision_hash = decision_digest(&decision.encode());
         let checkpoint = descriptor.graph.checkpoints.first().unwrap();
@@ -3183,6 +3206,40 @@ mod tests {
         assert_eq!(
             hex(&response_hash),
             "72bf589efdd016f29616f9a1448d563cff9ae0fd9fe231cc7706d867edba9fb7"
+        );
+        let unwind_storage = vec![0; 160];
+        let unwind_response_hash =
+            response_storage_digest(PRE_EXECUTE_HOST_UNWIND_CODE, &unwind_storage);
+        assert_eq!(
+            hex(&unwind_response_hash),
+            "bb1e191d800451376f7407935c9cf6771a61c8ea144befc62508d60845e63b70"
+        );
+        let mut unwind_frame = RecoveryFrame {
+            identity,
+            request_digest: request_hash,
+            response_storage_digest: unwind_response_hash,
+            semantic_trace_digest: [0; 32],
+            execute_return: ExecuteReturn::PreExecuteHostUnwind,
+            checkpoint: 1,
+            phase: FramePhase::Executing,
+            decision_digest: [0; 32],
+            next_action: 0,
+            record_count: 0,
+            active_finalizers: 0,
+            cells: vec![ResourceCell {
+                state: CellState::Live,
+                payload: 0,
+            }],
+            action_chain_digest: [0; 32],
+            pre_candidate_digest: [0; 32],
+        };
+        let provisional = unwind_frame.encode();
+        unwind_frame.pre_candidate_digest = frame_digest(&provisional[..provisional.len() - 32]);
+        let unwind_bytes = unwind_frame.encode();
+        assert_eq!(&unwind_bytes[260..264], &3_u32.to_le_bytes());
+        assert_eq!(
+            &unwind_bytes[264..268],
+            &PRE_EXECUTE_HOST_UNWIND_CODE.to_le_bytes()
         );
         let decision = SettlementDecision {
             identity,

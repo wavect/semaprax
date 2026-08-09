@@ -86,7 +86,7 @@ const TRACE_EVIDENCE_DOMAIN: &[u8] = b"semaprax.native-recovery-trace-evidence.v
 const DESCRIPTOR_SCHEMA_STATEMENT: &[u8] = b"SPXNABI3;u32le;header=20;sequential-no-offsets-no-trailing;target;linkage-profile;19-fingerprints;module;function;getter;execute;settle;abi-tag;obligations;15-capacities;signature;graph-len;graph";
 const REQUEST_SCHEMA_STATEMENT: &[u8] = b"SPXNRQ03;v3;u32le;header20;total-exact;call32;invocation-u64;generation-u64;challenge32;argc;args[tag,index,payload];scalar-tag1;i64-8;bool-u32-0-or-1;owned-tag2-owner-u32-payload-u64;no-trailing";
 const EXECUTE_RESPONSE_SCHEMA_STATEMENT: &[u8] = b"SPXNEX03;v3;u32le;header20;total-declared;zero-tail-to-capacity;call32;invocation-u64;generation-u64;challenge32;request-digest32;checkpoint;outcome;detail;payload-u64;event-count;ordinals;outcomes1-scalar-2-semantic-3-owned";
-const FRAME_SCHEMA_STATEMENT: &[u8] = b"SPXNFR03;v3;u32le;header20;total-exact;call32;recovery32;graph32;invocation-u64;generation-u64;challenge32;request32;response32;semantic32;return-tag;return-code;checkpoint;phase;decision32;next-action;record-count;active-finalizers;resource-count;cells[state-u32,payload-u64];action-chain32;pre-candidate-frame32";
+const FRAME_SCHEMA_STATEMENT: &[u8] = b"SPXNFR03;v3;u32le;header20;total-exact;call32;recovery32;graph32;invocation-u64;generation-u64;challenge32;request32;response32;semantic32;return-tag;return-code;returns1-pending-2-returned-3-preexecute-host-unwind;preexecute-host-unwind-code-4294967294;checkpoint;phase;decision32;next-action;record-count;active-finalizers;resource-count;cells[state-u32,payload-u64];action-chain32;pre-candidate-frame32";
 const DECISION_SCHEMA_STATEMENT: &[u8] = b"SPXNDC03;v3;u32le;header20;total172;call32;recovery32;graph32;invocation-u64;generation-u64;challenge32;decision-tag;detail;tags1-scalar-2-semantic-3-owned-4-physical-5-malformed-6-trace-7-unwind";
 const ACTION_SCHEMA_STATEMENT: &[u8] = b"SPXNAC03;v3;u32le;header20;total196;call32;recovery32;graph32;invocation-u64;generation-u64;challenge32;action-index;boundary-tag;owner;payload-u64;before-state;after-state;checkpoint;tags1-start-2-complete-3-publish";
 const CANDIDATE_RECEIPT_SCHEMA_STATEMENT: &[u8] = b"SPXNCR03;v3;u32le;header20;total372-plus-12r;call32;recovery32;graph32;invocation-u64;generation-u64;challenge32;request32;response32;semantic32;frame32;decision32;action32;outcome;detail;active-finalizers-zero;disposition-count;cells[disposition-u32,payload-u64]";
@@ -301,6 +301,20 @@ pub(crate) enum DescriptorError {
 
 impl Descriptor {
     pub(crate) fn parse(bytes: &[u8]) -> Result<Self, DescriptorError> {
+        let target = current_target_tag()?;
+        let linkage = if cfg!(target_os = "ios") {
+            Linkage::IosStatic
+        } else {
+            Linkage::Dynamic
+        };
+        Self::parse_for_target(bytes, &target, linkage)
+    }
+
+    pub(crate) fn parse_for_target(
+        bytes: &[u8],
+        expected_target: &str,
+        expected_linkage: Linkage,
+    ) -> Result<Self, DescriptorError> {
         if bytes.len() > MAX_DESCRIPTOR_BYTES || bytes.len() < HEADER_SIZE as usize {
             return Err(DescriptorError::Malformed);
         }
@@ -312,7 +326,7 @@ impl Descriptor {
             return Err(DescriptorError::Malformed);
         }
         let target = reader.text(MAX_TEXT_BYTES)?;
-        if target != current_target_tag()? {
+        if target != expected_target {
             return Err(DescriptorError::WrongTarget);
         }
         let linkage = match reader.u32()? {
@@ -320,7 +334,7 @@ impl Descriptor {
             LINKAGE_IOS_STATIC => Linkage::IosStatic,
             _ => return Err(DescriptorError::UnsupportedSchema),
         };
-        if !linkage_matches_target(linkage) {
+        if linkage != expected_linkage {
             return Err(DescriptorError::WrongTarget);
         }
         let fingerprints = Fingerprints {
@@ -1382,14 +1396,6 @@ fn current_target_tag() -> Result<String, DescriptorError> {
             std::env::consts::OS,
             usize::BITS
         ))
-    }
-}
-
-fn linkage_matches_target(linkage: Linkage) -> bool {
-    if cfg!(target_os = "ios") {
-        linkage == Linkage::IosStatic
-    } else {
-        linkage == Linkage::Dynamic
     }
 }
 

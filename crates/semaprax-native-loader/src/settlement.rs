@@ -3,6 +3,7 @@ use super::{
     MAX_DESCRIPTOR_BYTES, MAX_GETTER_SYMBOL_BYTES,
 };
 use libloading::Library;
+use std::cell::Cell;
 use std::error::Error;
 use std::ffi::c_void;
 #[cfg(unix)]
@@ -11,7 +12,9 @@ use std::fmt;
 use std::marker::PhantomData;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, OnceLock};
+
+const PRE_EXECUTE_HOST_UNWIND_CODE: u32 = u32::MAX - 1;
 
 const HEADER_BYTES: usize = 20;
 const FINGERPRINT_COUNT: usize = 19;
@@ -27,13 +30,135 @@ const MAX_GRAPH_WORK_UNITS: u32 = 1_000_000;
 const MAX_ACTIVE_FRAMES: u32 = 256;
 const MAX_QUARANTINED_FRAMES: u32 = 64;
 const MAX_INSTANCE_RESERVED_BYTES: u32 = 64 * 1024 * 1024;
+const MAX_STATIC_SETTLEMENT_REGISTRATIONS: usize = 256;
 const DECISION_BYTES: u32 = 172;
 const ACTION_EVIDENCE_BYTES: u32 = 196;
 const HOST_RECEIPT_BYTES: u32 = 524;
 
-type DescriptorGetter = unsafe extern "C" fn() -> *const u8;
-type ExecuteEntry = unsafe extern "C" fn(*const u8, u32, *mut u8, u32, *mut u8, u32) -> u32;
-type SettleEntry = unsafe extern "C" fn(*mut u8, u32, *const u8, u32, *mut u8, u32) -> u32;
+pub type StaticDescriptorGetter = unsafe extern "C" fn() -> *const u8;
+pub type StaticExecuteEntry =
+    unsafe extern "C" fn(*const u8, u32, *mut u8, u32, *mut u8, u32) -> u32;
+pub type StaticSettleEntry =
+    unsafe extern "C" fn(*mut u8, u32, *const u8, u32, *mut u8, u32) -> u32;
+
+type DescriptorGetter = StaticDescriptorGetter;
+type ExecuteEntry = StaticExecuteEntry;
+type SettleEntry = StaticSettleEntry;
+
+/// Closed iOS-family target identities for static callable-v3 registration.
+///
+/// Device, simulator, and Mac Catalyst registrations never share an identity,
+/// even when their linked entry points happen to have the same source-level
+/// names. The target tag is authenticated by the complete host descriptor.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum IosStaticTarget {
+    DeviceArm64,
+    SimulatorArm64,
+    SimulatorX86_64,
+    MacCatalystArm64,
+    MacCatalystX86_64,
+}
+
+impl IosStaticTarget {
+    #[must_use]
+    pub const fn canonical_tag(self) -> &'static str {
+        match self {
+            Self::DeviceArm64 => "aarch64-ios-device-apple-macho-ptr64-little-callable-v3",
+            Self::SimulatorArm64 => "aarch64-ios-simulator-apple-macho-ptr64-little-callable-v3",
+            Self::SimulatorX86_64 => "x86_64-ios-simulator-apple-macho-ptr64-little-callable-v3",
+            Self::MacCatalystArm64 => "aarch64-ios-catalyst-apple-macho-ptr64-little-callable-v3",
+            Self::MacCatalystX86_64 => "x86_64-ios-catalyst-apple-macho-ptr64-little-callable-v3",
+        }
+    }
+
+    /// Return the exact iOS-family identity of this compilation target.
+    #[must_use]
+    pub const fn current() -> Option<Self> {
+        if cfg!(all(
+            target_os = "ios",
+            target_arch = "aarch64",
+            target_abi = "macabi"
+        )) {
+            Some(Self::MacCatalystArm64)
+        } else if cfg!(all(
+            target_os = "ios",
+            target_arch = "x86_64",
+            target_abi = "macabi"
+        )) {
+            Some(Self::MacCatalystX86_64)
+        } else if cfg!(all(
+            target_os = "ios",
+            target_arch = "aarch64",
+            target_abi = "sim"
+        )) {
+            Some(Self::SimulatorArm64)
+        } else if cfg!(all(
+            target_os = "ios",
+            target_arch = "x86_64",
+            target_abi = "sim"
+        )) {
+            Some(Self::SimulatorX86_64)
+        } else if cfg!(all(
+            target_os = "ios",
+            target_arch = "aarch64",
+            not(any(target_abi = "macabi", target_abi = "sim"))
+        )) {
+            Some(Self::DeviceArm64)
+        } else {
+            None
+        }
+    }
+}
+
+/// Stable static-registration rejection without paths or loader diagnostics.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum StaticSettlementRegistrationError {
+    InvalidDescriptor,
+    WrongTarget,
+    NullDescriptor,
+    DescriptorAddressMismatch,
+    DescriptorMismatch,
+    AliasedAddresses,
+    AddressConflict,
+    WrongThread,
+    RegistrationInProgress,
+    RegistryFull,
+    RegistryPoisoned,
+    InstanceIdentityExhausted,
+}
+
+impl fmt::Display for StaticSettlementRegistrationError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::InvalidDescriptor => "iOS static registration requires exact SPXNABI3 bytes",
+            Self::WrongTarget => {
+                "iOS static registration target does not match the descriptor or compilation target"
+            }
+            Self::NullDescriptor => "iOS static descriptor getter returned null",
+            Self::DescriptorAddressMismatch => {
+                "iOS static descriptor getter returned different storage"
+            }
+            Self::DescriptorMismatch => "iOS static descriptor bytes do not match exactly",
+            Self::AliasedAddresses => {
+                "iOS static descriptor and entry addresses are not pairwise distinct"
+            }
+            Self::AddressConflict => {
+                "iOS static registration reuses an address with conflicting evidence"
+            }
+            Self::WrongThread => {
+                "iOS static registration is bound to its original registering thread"
+            }
+            Self::RegistrationInProgress => {
+                "iOS static registration for these addresses is already in progress"
+            }
+            Self::RegistryFull => "iOS static registration table reached its fixed process bound",
+            Self::RegistryPoisoned => "iOS static registration table is unavailable",
+            Self::InstanceIdentityExhausted => "native module instance identity space is exhausted",
+        })
+    }
+}
+
+impl Error for StaticSettlementRegistrationError {}
 
 /// Exact descriptor-authenticated byte capacities for one settlement frame.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -144,6 +269,138 @@ struct LoadedSettlementModule {
     // This is the single platform image pin. Keep it last so all copied entry
     // pointers and metadata disappear before native terminators may run.
     _library: Library,
+}
+
+/// One exact process-lifetime iOS-static callable-v3 registration.
+///
+/// This lease has no path, dynamic image, close operation, or unload
+/// eligibility. The process table deliberately retains the registration even
+/// after every explicit lease is dropped. Like the dynamic lease, it is
+/// non-`Clone`, non-formatting, `!Send`, and `!Sync`; [`Self::retain`] is the
+/// only way to create another exact-instance pin.
+///
+/// ```compile_fail
+/// use semaprax_native_loader::NativeStaticSettlementLease;
+/// fn clone_is_not_implicit(lease: NativeStaticSettlementLease) { let _ = lease.clone(); }
+/// ```
+///
+/// ```compile_fail
+/// use semaprax_native_loader::NativeStaticSettlementLease;
+/// fn state_is_not_formatted(lease: NativeStaticSettlementLease) { let _ = format!("{lease:?}"); }
+/// ```
+///
+/// ```compile_fail
+/// use semaprax_native_loader::NativeStaticSettlementLease;
+/// fn assert_send<T: Send>() {}
+/// assert_send::<NativeStaticSettlementLease>();
+/// ```
+///
+/// ```compile_fail
+/// use semaprax_native_loader::NativeStaticSettlementLease;
+/// fn assert_sync<T: Sync>() {}
+/// assert_sync::<NativeStaticSettlementLease>();
+/// ```
+pub struct NativeStaticSettlementLease {
+    inner: Arc<LoadedStaticSettlement>,
+    _same_thread: PhantomData<Rc<()>>,
+}
+
+struct LoadedStaticSettlement {
+    instance_id: ModuleInstanceId,
+    target: IosStaticTarget,
+    descriptor_address: usize,
+    getter_address: usize,
+    execute_address: usize,
+    settle_address: usize,
+    registering_thread: std::thread::ThreadId,
+    descriptor: Box<[u8]>,
+    capacities: SettlementBufferCapacities,
+    execute: ExecuteEntry,
+    settle: SettleEntry,
+}
+
+struct PendingStaticSettlement {
+    target: IosStaticTarget,
+    addresses: [usize; 4],
+    registering_thread: std::thread::ThreadId,
+    descriptor: &'static [u8],
+}
+
+#[derive(Default)]
+struct StaticSettlementRegistry {
+    ready: Vec<Arc<LoadedStaticSettlement>>,
+    pending: Vec<PendingStaticSettlement>,
+}
+
+impl StaticSettlementRegistry {
+    fn find_existing(
+        &self,
+        target: IosStaticTarget,
+        addresses: [usize; 4],
+        registering_thread: std::thread::ThreadId,
+        expected_descriptor: &'static [u8],
+    ) -> Result<Option<Arc<LoadedStaticSettlement>>, StaticSettlementRegistrationError> {
+        for existing in &self.ready {
+            let existing_addresses = [
+                existing.descriptor_address,
+                existing.getter_address,
+                existing.execute_address,
+                existing.settle_address,
+            ];
+            if existing_addresses == addresses
+                && existing.target == target
+                && existing.descriptor.as_ref() == expected_descriptor
+            {
+                if existing.registering_thread != registering_thread {
+                    return Err(StaticSettlementRegistrationError::WrongThread);
+                }
+                return Ok(Some(Arc::clone(existing)));
+            }
+            if addresses
+                .iter()
+                .any(|address| existing_addresses.contains(address))
+            {
+                return Err(StaticSettlementRegistrationError::AddressConflict);
+            }
+        }
+        for pending in &self.pending {
+            if pending.addresses == addresses
+                && pending.target == target
+                && pending.descriptor == expected_descriptor
+            {
+                return Err(if pending.registering_thread == registering_thread {
+                    StaticSettlementRegistrationError::RegistrationInProgress
+                } else {
+                    StaticSettlementRegistrationError::WrongThread
+                });
+            }
+            if addresses
+                .iter()
+                .any(|address| pending.addresses.contains(address))
+            {
+                return Err(StaticSettlementRegistrationError::AddressConflict);
+            }
+        }
+        Ok(None)
+    }
+
+    fn entry_count(&self) -> usize {
+        self.ready.len() + self.pending.len()
+    }
+}
+
+static STATIC_SETTLEMENT_REGISTRATIONS: OnceLock<Mutex<StaticSettlementRegistry>> = OnceLock::new();
+
+thread_local! {
+    static STATIC_DESCRIPTOR_GETTER_ACTIVE: Cell<bool> = const { Cell::new(false) };
+}
+
+struct StaticDescriptorGetterGuard;
+
+impl Drop for StaticDescriptorGetterGuard {
+    fn drop(&mut self) {
+        STATIC_DESCRIPTOR_GETTER_ACTIVE.with(|active| active.set(false));
+    }
 }
 
 /// All five disjoint buffers reserved before the one-shot execute boundary.
@@ -347,6 +604,67 @@ impl NativeSettlementModuleLease {
     }
 }
 
+impl NativeStaticSettlementLease {
+    #[must_use]
+    pub fn retain(&self) -> Self {
+        Self {
+            inner: Arc::clone(&self.inner),
+            _same_thread: PhantomData,
+        }
+    }
+
+    #[must_use]
+    pub fn instance_id(&self) -> ModuleInstanceId {
+        self.inner.instance_id
+    }
+
+    #[must_use]
+    pub fn is_same_instance(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.inner, &other.inner)
+    }
+
+    #[must_use]
+    pub fn target(&self) -> IosStaticTarget {
+        self.inner.target
+    }
+
+    #[must_use]
+    pub fn descriptor_len(&self) -> usize {
+        self.inner.descriptor.len()
+    }
+
+    #[must_use]
+    pub fn descriptor_matches(&self, candidate: &[u8]) -> bool {
+        self.inner.descriptor.as_ref() == candidate
+    }
+
+    #[must_use]
+    pub fn capacities(&self) -> SettlementBufferCapacities {
+        self.inner.capacities
+    }
+
+    /// Preallocate the same five disjoint buffers used by dynamic admission.
+    pub fn prepare_execute(&self) -> Result<PreparedSettlementExecute, SettlementCallError> {
+        prepare_execute(self.instance_id(), self.capacities())
+    }
+
+    /// Invoke the exact statically registered execute address at most once.
+    pub fn invoke_execute(
+        &self,
+        call: &mut PreparedSettlementExecute,
+    ) -> Result<u32, SettlementCallError> {
+        invoke_execute(self.instance_id(), self.inner.execute, call)
+    }
+
+    /// Invoke the exact statically registered settle address at most once.
+    pub fn invoke_settle(
+        &self,
+        call: &mut PreparedSettlementCall,
+    ) -> Result<u32, SettlementCallError> {
+        invoke_settle(self.instance_id(), self.inner.settle, call)
+    }
+}
+
 impl PreparedSettlementExecute {
     #[must_use]
     pub fn request_storage(&self) -> &[u8] {
@@ -384,6 +702,27 @@ impl PreparedSettlementExecute {
         Ok(PreparedSettlementCall {
             buffers: self.buffers,
             execute_return,
+            settle_return: None,
+            _same_thread: PhantomData,
+        })
+    }
+
+    /// Private callable-v3 recovery lane when host control unwinds before the
+    /// provider execute entry is entered. The distinct sentinel is evidence,
+    /// not an execute return value; the response buffer remains canonical zero.
+    #[doc(hidden)]
+    pub fn into_pre_execute_host_unwind_settlement(
+        self,
+    ) -> Result<PreparedSettlementCall, SettlementCallError> {
+        if self.execute_return.is_some() {
+            return Err(SettlementCallError::ExecuteAlreadyInvoked);
+        }
+        if self.buffers.response.iter().any(|byte| *byte != 0) {
+            return Err(SettlementCallError::ExecuteNotInvoked);
+        }
+        Ok(PreparedSettlementCall {
+            buffers: self.buffers,
+            execute_return: PRE_EXECUTE_HOST_UNWIND_CODE,
             settle_return: None,
             _same_thread: PhantomData,
         })
@@ -433,6 +772,167 @@ impl PreparedSettlementCall {
     pub fn candidate_storage(&self) -> &[u8] {
         &self.buffers.candidate
     }
+}
+
+unsafe fn validate_static_descriptor_getter(
+    expected_descriptor: &'static [u8],
+    getter: StaticDescriptorGetter,
+) -> Result<(), StaticSettlementRegistrationError> {
+    let was_active = STATIC_DESCRIPTOR_GETTER_ACTIVE.with(|active| active.replace(true));
+    if was_active {
+        return Err(StaticSettlementRegistrationError::RegistrationInProgress);
+    }
+    let _guard = StaticDescriptorGetterGuard;
+    // SAFETY: The caller establishes the getter ABI and process-lifetime
+    // storage. Admission checks both exact address and bytes.
+    let actual_pointer = unsafe { getter() };
+    if actual_pointer.is_null() {
+        return Err(StaticSettlementRegistrationError::NullDescriptor);
+    }
+    if actual_pointer != expected_descriptor.as_ptr() {
+        return Err(StaticSettlementRegistrationError::DescriptorAddressMismatch);
+    }
+    // SAFETY: Pointer identity above and the caller's static-lifetime contract
+    // establish this complete readable range.
+    let actual_descriptor =
+        unsafe { std::slice::from_raw_parts(actual_pointer, expected_descriptor.len()) };
+    if actual_descriptor != expected_descriptor {
+        return Err(StaticSettlementRegistrationError::DescriptorMismatch);
+    }
+    Ok(())
+}
+
+/// Register one trusted, statically linked iOS-family callable-v3 provider.
+///
+/// Exact re-registration is idempotent and returns another retain of the same
+/// logical instance. Reusing any descriptor/getter/execute/settle address with
+/// different evidence fails closed. The registry itself retains the exact
+/// entry for the process lifetime, so dropping leases has no unload meaning.
+///
+/// # Safety
+///
+/// The four supplied addresses and descriptor storage must be linked into the
+/// process for its complete lifetime. The getter must synchronously return
+/// exactly `expected_descriptor.as_ptr()` and must never unwind or `longjmp`.
+/// Execute and settle must implement the exact synchronous SPXNABI3 ABIs, never
+/// unwind, `longjmp`, retain pointers, invoke callbacks, or access outside the
+/// supplied disjoint ranges. Exact
+/// re-registration and every resulting lease remain bound to the first
+/// registering thread. The caller must trust all provider and finalizer code
+/// reachable through these entries.
+pub unsafe fn register_admitted_ios_static_settlement_exact(
+    target: IosStaticTarget,
+    expected_descriptor: &'static [u8],
+    getter: StaticDescriptorGetter,
+    execute: StaticExecuteEntry,
+    settle: StaticSettleEntry,
+) -> Result<NativeStaticSettlementLease, StaticSettlementRegistrationError> {
+    if expected_descriptor.is_empty() || expected_descriptor.len() > MAX_DESCRIPTOR_BYTES {
+        return Err(StaticSettlementRegistrationError::InvalidDescriptor);
+    }
+    if let Some(current) = IosStaticTarget::current() {
+        if current != target {
+            return Err(StaticSettlementRegistrationError::WrongTarget);
+        }
+    }
+    let projection = DescriptorProjection::parse_ios_static(expected_descriptor, target)?;
+
+    let descriptor_address = expected_descriptor.as_ptr() as usize;
+    let getter_address = getter as usize;
+    let execute_address = execute as usize;
+    let settle_address = settle as usize;
+    let addresses = [
+        descriptor_address,
+        getter_address,
+        execute_address,
+        settle_address,
+    ];
+    if addresses.iter().any(|address| *address == 0)
+        || addresses
+            .iter()
+            .enumerate()
+            .any(|(index, address)| addresses[index + 1..].contains(address))
+    {
+        return Err(StaticSettlementRegistrationError::AliasedAddresses);
+    }
+
+    let registry = STATIC_SETTLEMENT_REGISTRATIONS
+        .get_or_init(|| Mutex::new(StaticSettlementRegistry::default()));
+    let registering_thread = std::thread::current().id();
+    {
+        let mut registrations = registry
+            .lock()
+            .map_err(|_| StaticSettlementRegistrationError::RegistryPoisoned)?;
+        if let Some(existing) = registrations.find_existing(
+            target,
+            addresses,
+            registering_thread,
+            expected_descriptor,
+        )? {
+            drop(registrations);
+            // SAFETY: The caller contract is unchanged, and the pure registry
+            // thread check precedes provider entry. No lock spans that entry.
+            unsafe { validate_static_descriptor_getter(expected_descriptor, getter)? };
+            return Ok(NativeStaticSettlementLease {
+                inner: existing,
+                _same_thread: PhantomData,
+            });
+        }
+        if registrations.entry_count() >= MAX_STATIC_SETTLEMENT_REGISTRATIONS {
+            return Err(StaticSettlementRegistrationError::RegistryFull);
+        }
+        registrations.pending.push(PendingStaticSettlement {
+            target,
+            addresses,
+            registering_thread,
+            descriptor: expected_descriptor,
+        });
+    }
+
+    // SAFETY: The caller establishes this new provider's ABI and lifetime.
+    // A pending pure-data reservation prevents conflicting registration, and
+    // no registry lock spans this foreign call.
+    let getter_validation =
+        unsafe { validate_static_descriptor_getter(expected_descriptor, getter) };
+    let mut registrations = registry
+        .lock()
+        .map_err(|_| StaticSettlementRegistrationError::RegistryPoisoned)?;
+    let pending_index = registrations.pending.iter().position(|pending| {
+        pending.target == target
+            && pending.addresses == addresses
+            && pending.registering_thread == registering_thread
+            && pending.descriptor == expected_descriptor
+    });
+    let Some(pending_index) = pending_index else {
+        return Err(StaticSettlementRegistrationError::RegistryPoisoned);
+    };
+    registrations.pending.remove(pending_index);
+    getter_validation?;
+
+    let instance_id = allocate_instance_id().map_err(|error| match error {
+        OpenError::InstanceIdentityExhausted => {
+            StaticSettlementRegistrationError::InstanceIdentityExhausted
+        }
+        _ => StaticSettlementRegistrationError::InvalidDescriptor,
+    })?;
+    let registration = Arc::new(LoadedStaticSettlement {
+        instance_id,
+        target,
+        descriptor_address,
+        getter_address,
+        execute_address,
+        settle_address,
+        registering_thread,
+        descriptor: expected_descriptor.to_vec().into_boxed_slice(),
+        capacities: projection.capacities,
+        execute,
+        settle,
+    });
+    registrations.ready.push(Arc::clone(&registration));
+    Ok(NativeStaticSettlementLease {
+        inner: registration,
+        _same_thread: PhantomData,
+    })
 }
 
 /// Open one already-admitted canonical SPXNABI3 dynamic provider.
@@ -545,6 +1045,21 @@ struct DescriptorProjection {
 
 impl DescriptorProjection {
     fn parse(bytes: &[u8]) -> Result<Self, OpenError> {
+        Self::parse_for_profile(bytes, 1)
+    }
+
+    fn parse_ios_static(
+        bytes: &[u8],
+        target: IosStaticTarget,
+    ) -> Result<Self, StaticSettlementRegistrationError> {
+        if !descriptor_has_target_and_profile(bytes, target.canonical_tag(), 2) {
+            return Err(StaticSettlementRegistrationError::WrongTarget);
+        }
+        Self::parse_for_profile(bytes, 2)
+            .map_err(|_| StaticSettlementRegistrationError::InvalidDescriptor)
+    }
+
+    fn parse_for_profile(bytes: &[u8], expected_profile: u32) -> Result<Self, OpenError> {
         let mut reader = Reader::new(bytes);
         if reader.take(8)? != b"SPXNABI3"
             || reader.u32()? != 3
@@ -554,7 +1069,7 @@ impl DescriptorProjection {
             return Err(OpenError::InvalidSettlementDescriptorSchema);
         }
         let _target = reader.text(MAX_TEXT_BYTES)?;
-        if reader.u32()? != 1 {
+        if reader.u32()? != expected_profile {
             return Err(OpenError::InvalidSettlementDescriptorSchema);
         }
         for _ in 0..FINGERPRINT_COUNT {
@@ -659,6 +1174,46 @@ impl DescriptorProjection {
             },
         })
     }
+}
+
+fn descriptor_has_target_and_profile(bytes: &[u8], expected_target: &str, profile: u32) -> bool {
+    let Some(header) = bytes.get(..HEADER_BYTES) else {
+        return false;
+    };
+    if &header[..8] != b"SPXNABI3"
+        || u32::from_le_bytes(header[8..12].try_into().expect("fixed header")) != 3
+        || u32::from_le_bytes(header[12..16].try_into().expect("fixed header"))
+            != HEADER_BYTES as u32
+        || usize::try_from(u32::from_le_bytes(
+            header[16..20].try_into().expect("fixed header"),
+        ))
+        .ok()
+            != Some(bytes.len())
+    {
+        return false;
+    }
+    let Some(length_bytes) = bytes.get(HEADER_BYTES..HEADER_BYTES + 4) else {
+        return false;
+    };
+    let Ok(length) = usize::try_from(u32::from_le_bytes(
+        length_bytes.try_into().expect("fixed text length"),
+    )) else {
+        return false;
+    };
+    let Some(target_end) = HEADER_BYTES
+        .checked_add(4)
+        .and_then(|start| start.checked_add(length))
+    else {
+        return false;
+    };
+    let Some(profile_end) = target_end.checked_add(4) else {
+        return false;
+    };
+    bytes.get(HEADER_BYTES + 4..target_end) == Some(expected_target.as_bytes())
+        && bytes
+            .get(target_end..profile_end)
+            .map(|value| u32::from_le_bytes(value.try_into().expect("fixed linkage width")))
+            == Some(profile)
 }
 
 fn validate_capacities(
@@ -810,6 +1365,96 @@ fn zeroed(length: usize) -> Result<Vec<u8>, SettlementCallError> {
         .map_err(|_| SettlementCallError::AllocationFailed)?;
     bytes.resize(length, 0);
     Ok(bytes)
+}
+
+fn prepare_execute(
+    instance_id: ModuleInstanceId,
+    capacities: SettlementBufferCapacities,
+) -> Result<PreparedSettlementExecute, SettlementCallError> {
+    let buffers = SettlementBuffers {
+        module_instance: instance_id,
+        request: zeroed(capacities.request)?,
+        frame: zeroed(capacities.frame)?,
+        response: zeroed(capacities.execute_response)?,
+        decision: zeroed(capacities.decision)?,
+        candidate: zeroed(capacities.candidate_receipt)?,
+    };
+    if !buffers_are_disjoint(&buffers) {
+        return Err(SettlementCallError::BufferOverlap);
+    }
+    Ok(PreparedSettlementExecute {
+        buffers,
+        execute_return: None,
+        _same_thread: PhantomData,
+    })
+}
+
+fn invoke_execute(
+    instance_id: ModuleInstanceId,
+    execute: ExecuteEntry,
+    call: &mut PreparedSettlementExecute,
+) -> Result<u32, SettlementCallError> {
+    if call.buffers.module_instance != instance_id {
+        return Err(SettlementCallError::WrongModuleInstance);
+    }
+    if call.execute_return.is_some() {
+        return Err(SettlementCallError::ExecuteAlreadyInvoked);
+    }
+    if !buffers_are_disjoint(&call.buffers) {
+        return Err(SettlementCallError::BufferOverlap);
+    }
+    call.execute_return = Some(u32::MAX);
+    let request_len = wire_len(call.buffers.request.len());
+    let frame_len = wire_len(call.buffers.frame.len());
+    let response_len = wire_len(call.buffers.response.len());
+    // SAFETY: Static admission fixes the same synchronous, non-retaining ABI
+    // as dynamic admission and all ranges were rechecked disjoint above.
+    let result = unsafe {
+        execute(
+            call.buffers.request.as_ptr(),
+            request_len,
+            call.buffers.frame.as_mut_ptr(),
+            frame_len,
+            call.buffers.response.as_mut_ptr(),
+            response_len,
+        )
+    };
+    call.execute_return = Some(result);
+    Ok(result)
+}
+
+fn invoke_settle(
+    instance_id: ModuleInstanceId,
+    settle: SettleEntry,
+    call: &mut PreparedSettlementCall,
+) -> Result<u32, SettlementCallError> {
+    if call.buffers.module_instance != instance_id {
+        return Err(SettlementCallError::WrongModuleInstance);
+    }
+    if call.settle_return.is_some() {
+        return Err(SettlementCallError::SettleAlreadyInvoked);
+    }
+    if !buffers_are_disjoint(&call.buffers) {
+        return Err(SettlementCallError::BufferOverlap);
+    }
+    call.settle_return = Some(u32::MAX);
+    let frame_len = wire_len(call.buffers.frame.len());
+    let decision_len = wire_len(call.buffers.decision.len());
+    let candidate_len = wire_len(call.buffers.candidate.len());
+    // SAFETY: The statically registered settle entry has the admitted ABI and
+    // receives only the three nonempty disjoint ranges reserved above.
+    let result = unsafe {
+        settle(
+            call.buffers.frame.as_mut_ptr(),
+            frame_len,
+            call.buffers.decision.as_ptr(),
+            decision_len,
+            call.buffers.candidate.as_mut_ptr(),
+            candidate_len,
+        )
+    };
+    call.settle_return = Some(result);
+    Ok(result)
 }
 
 fn wire_len(length: usize) -> u32 {

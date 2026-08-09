@@ -20,6 +20,7 @@ fn private_callable_v3_physical_ci_evidence_is_mandatory() {
         "CLANG: clang",
         "codegen::native_callable_provider_v3::tests::authoritative_fourteen_case_graph_providers_execute_and_settle_at_o0_o2",
         "settlement_host_v3_integration::generated_provider_loader_host_v3_end_to_end_is_exact",
+        "settlement_host_v3_integration::generated_provider_loader_host_v3_physical_failures_are_durable_at_o0_o2",
         "Run dynamically loaded callable-v2 and private callable-v3 paths under ASan and UBSan",
     ] {
         assert!(
@@ -31,5 +32,7 @@ fn private_callable_v3_physical_ci_evidence_is_mandatory() {
         .contains("fn authoritative_fourteen_case_graph_providers_execute_and_settle_at_o0_o2()"));
     assert!(provider.contains("SEMAPRAX_REQUIRE_CALLABLE_V3_SANITIZERS"));
     assert!(joint.contains("fn generated_provider_loader_host_v3_end_to_end_is_exact()"));
+    assert!(joint
+        .contains("fn generated_provider_loader_host_v3_physical_failures_are_durable_at_o0_o2()"));
     assert!(joint.contains("REQUIRED_SANITIZERS_ENV"));
 }

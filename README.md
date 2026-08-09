@@ -122,13 +122,17 @@ exact replay, generation refresh, cross-instance rejection, and unload pinning.
 A counting allocator observes zero Rust allocations or reallocations from
 immediately before `CallCommit` through authenticated `ReceiptCommit` in every
 normal case; injected reusable-decode reserve failure preserves exact evidence
-and the image pin in quarantine. Seven provider-side physical-failure,
-malformed-output, interruption, replay, and conflict fixtures also pass at
-`-O0`/`-O2` and under Clang ASan+UBSan. Pending/pre-execute host unwind still
-fails closed until its canonical transcript is frozen. This is not public
-admission, exhaustive process-crash or fatal-allocator evidence, Android/iOS
-execution, quiescence, or containment of malicious native code. `SPX-B104`
-stays closed.
+and the image pin in quarantine. Seven physical-failure, malformed-output,
+interruption, replay, and conflict fixtures now pass through provider, exact
+loader, and host at `-O0`/`-O2`; the provider subset also runs under Clang
+ASan+UBSan. Canonical pre-execute `AbortHostUnwind` skips provider execute,
+binds zero-filled response storage, performs certified abort settlement, and
+commits an authenticated host receipt. Bounded process-lifetime static-
+registration logic feeds the same ledger in non-Apple fake-function evidence
+without `dlopen` or unload; the crates are not yet compiled for iOS, so this is
+not an iOS admission path. This is not public admission, exhaustive process-crash or
+fatal-allocator evidence, representative iOS/Android execution, quiescence, or
+containment of malicious native code. `SPX-B104` stays closed.
 
 Not implemented yet: public native resource execution/admission,
 general-shape native/reference/Wasm trace conformance, the general Wasm resource ABI,
@@ -167,8 +171,8 @@ that run was also green.
 The generated callable corpus and hardened dependency-collision fixture are
 confirmed on Windows in [run 31257545008, job
 93103151756](https://github.com/wavect/semaprax/actions/runs/31257545008/job/93103151756).
-Android/iOS device or static-link profiles and public execution/admission remain
-outstanding. `SPX-B104` therefore remains unchanged.
+Representative Android/iOS device or simulator execution and public
+execution/admission remain outstanding. `SPX-B104` therefore remains unchanged.
 
 [RFC 0004](docs/RFC-0004-NATIVE-CALL-SETTLEMENT.md) now records the proposed
 callable-v3 recovery/settlement foundation for that physical-failure gap:
@@ -187,16 +191,18 @@ digest but does not independently accept the trace-path DFA certificate. The
 six-argument execute ABI, payload-bearing frame cells, closed tags, exact
 capacities, digest DAG, and receipt authentication transcript replace the
 former provisional identities and freeze new private v3 known answers.
-The current emitter is bound to its compiler build target and has no
-cross-target configuration; Android/iOS/Windows cross-emission and runtime
-evidence remain absent. The private physical tranche now has graph-derived
+The current emitter is bound to its compiler build target and has no public or
+general machine-code cross-target configuration; a closed hidden selector emits
+iOS descriptor identities only. Windows dynamic runtime evidence is green;
+Android/iOS runtime evidence remains absent. The private physical tranche now has graph-derived
 providers for all 14 normal corpus scenarios running through the generated-
 provider → desktop-loader → receipt-ledger path at `-O0`/`-O2`. That joint
 path proves exact descriptor/image/instance binding, pre-settle copied-evidence
 validation, replay, finalizer order, generation refresh, pin lifetime, and zero
-measured Rust heap growth across the irreversible interval. It does not freeze
-pre-execute unwind recovery, prove fatal allocator/process-crash containment,
-cover mobile profiles, or expose a public compiler path.
+measured Rust heap growth across the irreversible interval. Canonical
+pre-execute unwind and seven physical failure paths reach the same host
+authority. It does not prove fatal allocator/process-crash containment,
+representative mobile execution, or expose a public compiler path.
 `SPX-B104` remains unchanged.
 
 The hidden phase-aware transaction model now starts from the authenticated

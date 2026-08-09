@@ -295,11 +295,13 @@ The legacy dynamic-loader constructors reject every bounded descriptor
 beginning with `SPXNABI3` before path canonicalization, image load, or symbol
 lookup. This includes a same-magic blob with a changed version, header size, or
 total length; it must not fall through to v2 classification or generic
-descriptor loading. A separate private v3 constructor now admits only an exact
-bounded descriptor whose getter, execute, settle, and returned descriptor
-storage all prove canonical root-image provenance, then retains a separate
-immutable copy of the admitted bytes. There is no iOS
-static-registration constructor.
+descriptor loading. A separate private dynamic-v3 constructor now admits only
+an exact bounded descriptor whose getter, execute, settle, and returned
+descriptor storage all prove canonical root-image provenance, then retains a
+separate immutable copy of the admitted bytes. A distinct bounded process-
+lifetime static-registration model binds exact descriptor/getter/execute/settle
+addresses and target identity without exposing paths, close, or unload. It is
+exercised with non-Apple fake functions; the crates do not yet compile for iOS.
 
 V3 now freezes six provider wire roles and a separate host-only committed
 receipt: exact envelopes, tags, checked capacities, a six-argument execute ABI,
@@ -316,8 +318,9 @@ and model `ReceiptCommitted` must not be treated as public ledger
 `ReceiptCommit`.
 
 The current emitter derives its target from the compiler build and exposes no
-cross-target configuration. Android, iOS, and Windows cross-emission/runtime
-evidence remain absent. Future iOS device, simulator, and Mac Catalyst/macabi
+public or general machine-code cross-target configuration. A hidden selector
+emits closed iOS descriptor identities only. Android and iOS runtime evidence
+remain absent; Windows dynamic runtime is green. Future iOS device, simulator, and Mac Catalyst/macabi
 profiles must retain distinct target strings even though they share static
 registration. No migration may infer physical finalizer success from
 `Finalizing`; interruption remains uncertain and quarantined without retry.
@@ -326,11 +329,13 @@ corpus scenarios, a desktop v3 loader, an OS-seeded receipt authority, and a
 fixed-capacity atomic ledger/facade. One O0/O2 invocation now connects all 14
 normal scenarios through those components and observes zero Rust heap growth
 from immediately before `CallCommit` through `ReceiptCommit`; injected decode-
-reserve failure quarantines exact evidence and pins. Seven provider-side
-failure fixtures add returned/malformed/interruption/replay/conflict evidence.
-Consumers must not generalize that evidence to canonical pre-execute unwind,
-fatal allocator/process-crash recovery, or mobile/static admission. These
-additions provide no iOS static constructor, public admission,
+reserve failure quarantines exact evidence and pins. Seven joint failure
+fixtures add returned/malformed/interruption/replay/conflict evidence, and
+canonical pre-execute unwind reaches authenticated abort receipt commit without
+entering provider execute. The private static-registration model has non-Apple
+fake-function evidence only and is not compiled as an iOS API. Consumers must not generalize that evidence to fatal
+allocator/process-crash recovery or representative mobile execution. These
+additions provide no public admission,
 general physical-finalizer, or mobile execution guarantee. They change no
 native execution gate and leave `SPX-B104` closed.
 

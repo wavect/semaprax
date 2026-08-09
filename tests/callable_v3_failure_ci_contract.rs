@@ -31,7 +31,14 @@ fn callable_v3_failure_injection_evidence_is_mandatory() {
     ] {
         assert!(provider.contains(required), "provider lost `{required}`");
     }
-    assert!(abi.contains("Pending/pre-execute"));
-    assert!(abi
-        .contains("`AbortHostUnwind` deliberately returns a nonzero settle failure with no frame"));
+    for required in [
+        "Pre-execute",
+        "`AbortHostUnwind` uses frame return tag 3",
+        "reserved sentinel `0xFFFF_FFFE`",
+        "execute is not entered",
+        "certified abort settlement",
+        "host receipt",
+    ] {
+        assert!(abi.contains(required), "ABI lost `{required}`");
+    }
 }

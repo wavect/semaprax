@@ -438,6 +438,20 @@ fn derive_for_target(
     })
 }
 
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+pub(super) fn derive_ios_static_for_target(
+    program: &ResolvedProgram,
+    function_id: &DeclarationId,
+    target: &str,
+) -> Result<NativeCallableV3Descriptor, Diagnostic> {
+    derive_for_target(
+        program,
+        function_id,
+        target,
+        LINKAGE_IOS_STATIC_REGISTRATION,
+    )
+}
+
 fn canonical_signature(
     projected: &[NativeAdapterParameterProjection],
     projected_result: &NativeAdapterResultProjection,
@@ -1237,11 +1251,11 @@ mod tests {
         assert_eq!(descriptor.bytes.len(), 1_722);
         assert_eq!(
             hex(&Sha256::digest(&descriptor.bytes)),
-            "e39e8147488fd457ba60fc7badd2956262e6eb87be971049b4cb062fcb976028"
+            "74b1e96c2d78ccd7d1ea08eec988674ab22bfa6d91b2de19bb41dee42251b44e"
         );
         assert_eq!(
             hex(&descriptor.call_contract),
-            "4dd7a64f286eedd960dbd4c8d8a28cf9f408b497ec390fe87d167cfaeade8f0d"
+            "c3ebe4ac69ba061c551305e260ebfa2f4af62be7d9a619227edd7625e8210b59"
         );
         let capacities = descriptor_capacities(&descriptor.bytes);
         let retained_per_frame = capacities[..6]

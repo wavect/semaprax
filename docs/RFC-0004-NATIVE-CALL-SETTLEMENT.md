@@ -2,7 +2,8 @@
 
 - Status: Proposed; private model/codecs plus bounded provider, loader, receipt,
   and ledger components exist; all 14 normal scenarios have a private joint v3
-  path, while unwind, fatal-failure, mobile/static, and public gates remain
+  path and canonical pre-execute unwind is wired, while fatal-process,
+  representative mobile, quiescence, and public gates remain
 - Version: 0.1
 - Audience: compiler, native code generator, loader, ownership-host, adapter,
   and conformance-test implementers
@@ -35,9 +36,12 @@ graph-derived generated C providers provide focused physical evidence. All 14
 authoritative normal corpus scenarios compile and execute through the exact-
 image loader and host facade at `-O0` and `-O2`, with zero measured Rust heap
 growth across the irreversible interval and exact quarantine on injected
-decode-reserve failure. Seven provider-side failure/interruption fixtures add
-returned/malformed/durable-boundary/replay/conflict evidence. There is no iOS
-static admission, general
+decode-reserve failure. Seven joint failure/interruption fixtures add returned/
+malformed/durable-boundary/replay/conflict evidence. Canonical pre-execute
+unwind skips execute and reaches authenticated abort receipt commit. Private
+bounded static-registration logic feeds the same ledger in non-Apple
+fake-function evidence, but the loader and host crates do not yet compile it as
+an iOS API. There is no representative mobile execution or general
 physical-finalizer authority, or public callable-v3 compiler surface. Callable
 v2 has an independent public
 build-only bundle surface plus a feature-gated execution experiment; ordinary
@@ -548,15 +552,16 @@ model, atomic `settle` helper, or proof envelope.
    bound compiler encoders, and independent host parsers behind the private
    feature; keep v2/proof known answers unchanged as compatibility evidence.
 5. Maintain the seven independently encoded/parsed byte, tag, digest, and
-   host-HMAC transcripts and frozen private known answers; next add generated
+   host-HMAC transcripts, frozen private known answers, and generated
    `execute`/`settle` provider artifacts behind the private feature.
-6. Connect the exact-instance loader and host with the combined settlement guard,
-   receipt authentication, poison, draining, and quarantine.
-7. Run the complete failure-injection, sanitizer, unload, and platform matrix.
-8. Connect callable-v3 compiler execution/admission only after the full admitted
-   slice is proven. The independent callable-v2 build-only bundle remains
-   non-executing, and every excluded shape retains its stable fail-closed
-   diagnostic.
+6. Maintain the connected exact-instance loader and host settlement guard,
+   receipt authentication, poison, draining, and quarantine evidence.
+7. Complete the remaining fatal-process, quiescence, representative mobile,
+   unload, and platform failure matrix.
+8. Open callable-v3 public compiler execution/admission only after that full
+   admitted slice is proven. The independent callable-v2 build-only bundle
+   remains non-executing, and every excluded shape retains its stable
+   fail-closed diagnostic.
 
 Each step must update the completion matrix, architecture, quality gates,
 roadmap, migrations, and changelog honestly. An earlier step is enabling
@@ -564,16 +569,23 @@ infrastructure, not evidence for a later one.
 
 ## Explicit nonclaims and current status
 
-This RFC specifies no stable public C ABI, public Rust API, capability token,
-or static-registration constructor. The private callable-v3 document fixes its
+This RFC specifies no stable public C ABI, public Rust API, or capability
+token. Private non-Apple logic models a bounded process-lifetime iOS-static
+registration constructor that binds one exact descriptor/getter/execute/settle
+address tuple to the same ledger pin contract as dynamic admission; it exposes
+no path, `dlopen`, close, or unload operation. The loader and host crates are
+not yet built for iOS, so this is neither an iOS constructor nor iOS runtime
+evidence.
+The private callable-v3 document fixes its
 descriptor and seven runtime wire codecs, derived symbols, capacities, and
 host-only receipt transcript. A private desktop dynamic loader, receipt
 authority, fixed-capacity atomic ledger/facade, and one all-14-scenario joint
 provider/loader/host path are implemented. The
 emitter derives only its compiler build target and has no cross-target
-configuration. Android/iOS/Windows cross-emission and runtime evidence are
-absent; future iOS device, simulator, and Mac Catalyst/macabi targets remain
-distinct. The private
+configuration except for closed non-Apple static-registration fixtures.
+Windows dynamic runtime is green in hosted run 31313341303; representative
+Android/iOS runtime evidence is absent, and iOS device, simulator, and Mac
+Catalyst/macabi targets remain distinct. The private
 `SPXNPRF1` proof format is versioned separately and cannot be executed or loaded.
 It does not implement
 imports or finalizers, aggregates, callbacks, async, concurrency, fork recovery,
@@ -592,8 +604,8 @@ with zero measured Rust heap growth across the irreversible interval.
 Callable v2
 continues to retire logical ledger state after physical failure without proving
 general physical fallback cleanup or quiescence. Therefore the completion
-matrix remains Partial: pending/pre-execute unwind has no canonical returned-
-response transcript, and provider-side failure fixtures do not prove exhaustive
-joint fatal-allocator/process-crash recovery. The current evidence is bounded
-and private, and
+matrix remains Partial: the seven joint failure fixtures and canonical
+pre-execute unwind do not prove exhaustive fatal-allocator/process-crash
+recovery, quiescence, or representative mobile execution. The current evidence
+is bounded and private, and
 `SPX-B104` remains closed without exception.

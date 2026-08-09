@@ -8,11 +8,12 @@ atomic ledger/facade, and graph-derived strict-C11 providers that execute all
 14 authoritative normal scenarios at `-O0` and `-O2`. The joint test connects
 all 14 through provider, loader, and host receipt commit, with zero measured
 Rust heap growth across the irreversible interval and exact quarantine on an
-injected reusable-decode reserve failure. Seven provider-side failure fixtures
-cover returned failure, malformed evidence, durable interruption, replay, and
-decision conflict. Pending/pre-execute unwind still fails closed. This exposes
-no public admission or iOS static
-constructor and grants no general physical-finalizer or malicious-code
+injected reusable-decode reserve failure. Seven joint failure fixtures cover
+returned failure, malformed evidence, durable interruption, replay, and
+decision conflict. Canonical pre-execute unwind skips provider execute and
+commits an authenticated abort receipt after certified settlement. The private
+process-lifetime static constructor grants no public admission and no
+`dlopen`/unload authority, general physical-finalizer guarantee, or malicious-code
 containment guarantee. Ordinary native resource compilation remains
 `SPX-B104`.
 
@@ -21,10 +22,12 @@ containment guarantee. Ordinary native resource compilation remains
 This ABI is the metadata boundary for [RFC 0004](RFC-0004-NATIVE-CALL-SETTLEMENT.md).
 It binds one validated direct-trivial owned callable to its recovery graph,
 future `execute`/`settle` entry points, exact descriptor capacities, and a
-dynamic-image or iOS-static linkage role. The current emitter derives the
-physical target from the compiler's own build target and exposes no cross-target
-configuration. Android, iOS, and Windows cross-emission and runtime evidence
-are absent. It is a new contract: v1, v2, settlement-proof v1, and v3 are
+dynamic-image or iOS-static linkage role. The current machine-code emitter
+derives the physical target from the compiler's own build target and exposes no
+public/general cross-target configuration; a hidden closed selector emits iOS
+descriptor identities only. Android and iOS runtime evidence is absent, while
+Windows dynamic runtime is green. It is a new contract: v1, v2,
+settlement-proof v1, and v3 are
 mutually incompatible and there is no negotiation or fallback.
 
 All descriptor and graph integers are little-endian `u32`. A fingerprint is 32
@@ -42,11 +45,18 @@ The linkage profile is closed:
 | `1` | Dynamic image on Linux, macOS, Windows, or Android |
 | `2` | iOS static registration; no dynamic image open or unload |
 
-The dynamic-image role has a private desktop loader on Unix and Windows; the
-iOS-static role remains metadata only, not an implemented platform host.
-Future iOS device, iOS simulator, and Mac Catalyst/macabi targets MUST retain
-distinct target strings and MUST NOT share admission evidence merely because
-they use the same static-registration linkage tag.
+The dynamic-image role has a private desktop loader on Unix and Windows. The
+current crates model the future iOS-static alternative with a bounded
+process-lifetime registration table exercised by non-Apple fake functions: one
+exact descriptor-storage/getter/execute/settle address tuple receives one
+idempotent logical instance, and conflicting partial address reuse fails
+closed. Its explicit-retain lease feeds the same settlement ledger as dynamic
+admission and has no path, `dlopen`, close, unload, or unload-eligibility API.
+The loader and host crates are not yet compiled for an iOS target, so this is
+logic evidence rather than an iOS admission API or runtime claim. Future iOS
+device, iOS simulator, and Mac Catalyst/macabi targets retain distinct target
+strings and cannot share admission evidence merely because they use the same
+static-registration linkage tag.
 
 ## Descriptor layout
 
@@ -225,8 +235,8 @@ exact order is:
 | Invocation, frame generation | two nonzero `u64` values |
 | Challenge | nonzero 32 bytes |
 | Request, response-storage, semantic-trace digests | three 32-byte values |
-| Execute return tag | `1 Pending`, `2 Returned` |
-| Execute return code | `u32`; zero while pending |
+| Execute return tag | `1 Pending`, `2 Returned`, `3 HostUnwindBeforeExecute` |
+| Execute return code | `u32`; zero while pending, reserved `0xFFFF_FFFE` for tag 3 |
 | Certified checkpoint and phase | two `u32` values |
 | Locked-decision digest | 32 bytes; zero only before decision commit |
 | Next action index, record count, active finalizers | three `u32` values |
@@ -413,7 +423,7 @@ these compact identities. Their literal bytes have no terminal NUL:
 SPXNABI3;u32le;header=20;sequential-no-offsets-no-trailing;target;linkage-profile;19-fingerprints;module;function;getter;execute;settle;abi-tag;obligations;15-capacities;signature;graph-len;graph
 SPXNRQ03;v3;u32le;header20;total-exact;call32;invocation-u64;generation-u64;challenge32;argc;args[tag,index,payload];scalar-tag1;i64-8;bool-u32-0-or-1;owned-tag2-owner-u32-payload-u64;no-trailing
 SPXNEX03;v3;u32le;header20;total-declared;zero-tail-to-capacity;call32;invocation-u64;generation-u64;challenge32;request-digest32;checkpoint;outcome;detail;payload-u64;event-count;ordinals;outcomes1-scalar-2-semantic-3-owned
-SPXNFR03;v3;u32le;header20;total-exact;call32;recovery32;graph32;invocation-u64;generation-u64;challenge32;request32;response32;semantic32;return-tag;return-code;checkpoint;phase;decision32;next-action;record-count;active-finalizers;resource-count;cells[state-u32,payload-u64];action-chain32;pre-candidate-frame32
+SPXNFR03;v3;u32le;header20;total-exact;call32;recovery32;graph32;invocation-u64;generation-u64;challenge32;request32;response32;semantic32;return-tag;return-code;returns1-pending-2-returned-3-preexecute-host-unwind;preexecute-host-unwind-code-4294967294;checkpoint;phase;decision32;next-action;record-count;active-finalizers;resource-count;cells[state-u32,payload-u64];action-chain32;pre-candidate-frame32
 SPXNDC03;v3;u32le;header20;total172;call32;recovery32;graph32;invocation-u64;generation-u64;challenge32;decision-tag;detail;tags1-scalar-2-semantic-3-owned-4-physical-5-malformed-6-trace-7-unwind
 SPXNAC03;v3;u32le;header20;total196;call32;recovery32;graph32;invocation-u64;generation-u64;challenge32;action-index;boundary-tag;owner;payload-u64;before-state;after-state;checkpoint;tags1-start-2-complete-3-publish
 SPXNCR03;v3;u32le;header20;total372-plus-12r;call32;recovery32;graph32;invocation-u64;generation-u64;challenge32;request32;response32;semantic32;frame32;decision32;action32;outcome;detail;active-finalizers-zero;disposition-count;cells[disposition-u32,payload-u64]
@@ -506,9 +516,10 @@ independent candidate parsing, exact-instance/frame-generation replay, and host
 authentication. It is not provider output, is not covered by a provider buffer
 capacity, and is the only role eligible to accompany public ledger
 `ReceiptCommit`. The private joint path now exercises this boundary for all 14
-normal scenarios through exact loader admission and host authentication. The
-seven provider-side failure fixtures are not exhaustive joint failure/crash
-evidence.
+normal scenarios through exact loader admission and host authentication. Seven
+joint provider/loader/host failure fixtures cover the bounded physical,
+malformed, interruption, replay, and conflict cases, but they are not exhaustive
+fatal allocator/process-crash evidence.
 
 ## Phases, finalizer uncertainty, and lifetime
 
@@ -549,12 +560,16 @@ make malicious native code memory-safe, observe omitted side effects, recover a
 process crash, or make an interrupted non-idempotent finalizer retryable. This
 private tranche executes all 14 authoritative normal scenarios through the
 joint desktop dynamic-loader and host path at `-O0`/`-O2`, without measured
-Rust heap growth across the irreversible interval. It does not implement
-static-registration admission, callbacks,
-async work, concurrency, fork/hot reload, imported finalizers, cross-target
-emission, mobile execution, public adoption, or ecosystem FFI. The emitter is
-bound to its own build target; there is no Android/iOS/Windows cross-emission
-evidence, and v3 Windows runtime CI remains unobserved. Legacy loader
+Rust heap growth across the irreversible interval. A non-Apple static-function
+fixture proves same-thread exact re-registration, cross-thread and target/address
+conflict rejection, shared draining/quarantine behavior, and process-lifetime
+retention; the loader/host crates do not yet compile this as an iOS API. This
+tranche does not implement callbacks,
+async work, concurrency, fork/hot reload, imported finalizers, general
+general machine-code cross-target emission, mobile execution, public adoption,
+or ecosystem FFI. The emitter is bound to its own build target; the hidden iOS
+selector emits metadata identities rather than machine code. V3 Windows runtime
+is green in hosted run 31313341303. Legacy loader
 constructors still reject `SPXNABI3`; the separate private v3 constructor admits
 only exact root-provenance images.
 
@@ -588,9 +603,10 @@ Until the physical and public gates pass, `SPX-B104` remains closed.
 Current bounded evidence covers all 14 normal scenarios through generated
 strict-C providers, dynamic loader, and host receipt commit at `-O0`/`-O2`,
 with zero measured Rust allocations/reallocations across the irreversible
-interval and exact quarantine on injected decode-reserve failure. Pending/pre-execute
-`AbortHostUnwind` deliberately returns a nonzero settle failure with no frame,
-candidate, or physical-effect mutation until its canonical response-storage
-and execute-return transcript is specified. Seven provider-side physical-
-failure fixtures cover the current returned/malformed/interruption/replay/
-conflict matrix, but do not prove fatal allocator or process-crash recovery.
+interval and exact quarantine on injected decode-reserve failure. Pre-execute
+`AbortHostUnwind` uses frame return tag 3, reserved sentinel `0xFFFF_FFFE`, and
+the existing digest DAG over the exact zero-filled response storage; provider
+execute is not entered, while certified abort settlement and host receipt
+commit remain mandatory. Seven joint physical-failure fixtures cover the
+current returned/malformed/interruption/replay/conflict matrix, but do not prove
+fatal allocator or process-crash recovery.

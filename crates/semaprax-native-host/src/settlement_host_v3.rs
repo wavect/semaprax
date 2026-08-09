@@ -10,26 +10,127 @@
     reason = "callable-v3 public admission remains closed by SPX-B104"
 )]
 
-use semaprax_native_loader::{NativeSettlementModuleLease, SettlementCallError};
+use semaprax_native_loader::{
+    IosStaticTarget, ModuleInstanceId, NativeSettlementModuleLease, NativeStaticSettlementLease,
+    PreparedSettlementCall, PreparedSettlementExecute, SettlementBufferCapacities,
+    SettlementCallError,
+};
 
 use crate::callable_wire_v3::{
     frame_digest, validate_successful_execute_evidence_preencoded, ActionBoundary, ActionRecord,
     CandidateOutcome, CandidateReceipt, CellState, Decision, ExecuteOutcome, ExecuteRequest,
     ExecuteResponse, ExecuteReturn, FramePhase, RecoveryFrame, RecoveryIdentity, RequestArgument,
-    ResourceCell, SettlementDecision, WireError,
+    ResourceCell, SettlementDecision, WireError, PRE_EXECUTE_HOST_UNWIND_CODE,
 };
-use crate::descriptor_v3::{Descriptor, Parameter, ResourceState, ScalarKind};
+use crate::descriptor_v3::{Descriptor, Linkage, Parameter, ResourceState, ScalarKind};
 use crate::receipt_authority::ReceiptAuthority;
 use crate::settlement_ledger::{
     CommittedResult, ReceiptCommitEvidence, ResponseStorageEvidence, SettlementLedger,
-    SettlementLedgerError, SettlementOwnerHandle, SettlementTransaction,
+    SettlementLedgerError, SettlementOwnerHandle, SettlementPin, SettlementTransaction,
 };
+
+/// One private exact callable-v3 instance, independent of how code was bound.
+///
+/// Dynamic and iOS-static admission intentionally converge before the ledger:
+/// generations, draining, frame pins, settlement and quarantine therefore use
+/// one authoritative implementation.
+pub(crate) enum SettlementInstanceLease {
+    Dynamic(NativeSettlementModuleLease),
+    IosStatic(NativeStaticSettlementLease),
+}
+
+impl SettlementInstanceLease {
+    fn retain(&self) -> Self {
+        match self {
+            Self::Dynamic(lease) => Self::Dynamic(lease.retain()),
+            Self::IosStatic(lease) => Self::IosStatic(lease.retain()),
+        }
+    }
+
+    fn instance_id(&self) -> ModuleInstanceId {
+        match self {
+            Self::Dynamic(lease) => lease.instance_id(),
+            Self::IosStatic(lease) => lease.instance_id(),
+        }
+    }
+
+    fn descriptor_matches(&self, candidate: &[u8]) -> bool {
+        match self {
+            Self::Dynamic(lease) => lease.descriptor_matches(candidate),
+            Self::IosStatic(lease) => lease.descriptor_matches(candidate),
+        }
+    }
+
+    fn capacities(&self) -> SettlementBufferCapacities {
+        match self {
+            Self::Dynamic(lease) => lease.capacities(),
+            Self::IosStatic(lease) => lease.capacities(),
+        }
+    }
+
+    fn prepare_execute(&self) -> Result<PreparedSettlementExecute, SettlementCallError> {
+        match self {
+            Self::Dynamic(lease) => lease.prepare_execute(),
+            Self::IosStatic(lease) => lease.prepare_execute(),
+        }
+    }
+
+    fn invoke_execute(
+        &self,
+        call: &mut PreparedSettlementExecute,
+    ) -> Result<u32, SettlementCallError> {
+        match self {
+            Self::Dynamic(lease) => lease.invoke_execute(call),
+            Self::IosStatic(lease) => lease.invoke_execute(call),
+        }
+    }
+
+    fn invoke_settle(&self, call: &mut PreparedSettlementCall) -> Result<u32, SettlementCallError> {
+        match self {
+            Self::Dynamic(lease) => lease.invoke_settle(call),
+            Self::IosStatic(lease) => lease.invoke_settle(call),
+        }
+    }
+
+    fn is_same_instance(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Dynamic(left), Self::Dynamic(right)) => left.is_same_instance(right),
+            (Self::IosStatic(left), Self::IosStatic(right)) => left.is_same_instance(right),
+            (Self::Dynamic(_), Self::IosStatic(_)) | (Self::IosStatic(_), Self::Dynamic(_)) => {
+                false
+            }
+        }
+    }
+}
+
+impl SettlementPin for SettlementInstanceLease {
+    fn retain(&self) -> Self {
+        self.retain()
+    }
+
+    fn instance_nonce(&self) -> std::num::NonZeroU64 {
+        std::num::NonZeroU64::new(self.instance_id().get())
+            .expect("native instance identities are structurally nonzero")
+    }
+
+    fn is_same_instance(&self, other: &Self) -> bool {
+        self.is_same_instance(other)
+    }
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum PrivateSettlementExecutionError {
     Ledger(SettlementLedgerError),
     Loader(SettlementCallError),
     Wire(WireError),
+    ProviderSettlementRejected {
+        code: u32,
+        phase: FramePhase,
+        active_finalizers: u32,
+        next_action: u32,
+        record_count: u32,
+        frame_digest: [u8; 32],
+    },
     UnsupportedFixture,
 }
 
@@ -59,6 +160,28 @@ pub(crate) struct PrivatePhysicalCommit {
     pub(crate) committed: CommittedResult,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct PrivateHostUnwindCommit {
+    pub(crate) identity: RecoveryIdentity,
+    pub(crate) candidate_bytes: Vec<u8>,
+    pub(crate) committed: CommittedResult,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct PrivateRecoveryCommit {
+    pub(crate) identity: RecoveryIdentity,
+    pub(crate) outcome: Option<ExecuteOutcome>,
+    pub(crate) decision: Decision,
+    pub(crate) candidate_bytes: Vec<u8>,
+    pub(crate) committed: CommittedResult,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum PrivateRecoveryPolicy {
+    ValidateResponse,
+    AbortMalformed,
+}
+
 /// Canonical private argument lane for the descriptor-v3 signature. Owned
 /// handles carry ledger authority while their payload remains an exact wire
 /// value; scalar values carry no authority.
@@ -76,8 +199,8 @@ pub(crate) enum PrivateSettlementArgumentV3 {
 /// frame/cache/quarantine owns its own explicit retain through the ledger.
 pub(crate) struct PrivateSettlementHostV3 {
     descriptor: Descriptor,
-    ledger: SettlementLedger<NativeSettlementModuleLease>,
-    module_lease: NativeSettlementModuleLease,
+    ledger: SettlementLedger<SettlementInstanceLease>,
+    module_lease: SettlementInstanceLease,
 }
 
 impl PrivateSettlementHostV3 {
@@ -85,9 +208,35 @@ impl PrivateSettlementHostV3 {
         module_lease: NativeSettlementModuleLease,
         expected_descriptor: &[u8],
     ) -> Result<Self, SettlementLedgerError> {
-        let descriptor = parse_exact_admitted_descriptor(expected_descriptor, |candidate| {
-            module_lease.descriptor_matches(candidate)
-        })?;
+        Self::from_exact(
+            SettlementInstanceLease::Dynamic(module_lease),
+            expected_descriptor,
+            None,
+        )
+    }
+
+    pub(crate) fn from_static_admitted(
+        module_lease: NativeStaticSettlementLease,
+        expected_descriptor: &[u8],
+    ) -> Result<Self, SettlementLedgerError> {
+        let target = module_lease.target();
+        Self::from_exact(
+            SettlementInstanceLease::IosStatic(module_lease),
+            expected_descriptor,
+            Some(target),
+        )
+    }
+
+    fn from_exact(
+        module_lease: SettlementInstanceLease,
+        expected_descriptor: &[u8],
+        static_target: Option<IosStaticTarget>,
+    ) -> Result<Self, SettlementLedgerError> {
+        let descriptor = parse_exact_admitted_descriptor(
+            expected_descriptor,
+            |candidate| module_lease.descriptor_matches(candidate),
+            static_target,
+        )?;
         let loader = module_lease.capacities();
         if loader.request() != descriptor.capacities.request as usize
             || loader.execute_response() != descriptor.capacities.execute_response as usize
@@ -152,6 +301,38 @@ impl PrivateSettlementHostV3 {
         &self,
         arguments: &[PrivateSettlementArgumentV3],
     ) -> Result<PrivatePhysicalCommit, PrivateSettlementExecutionError> {
+        let recovered = self.execute_canonical_recovery(arguments)?;
+        let outcome = recovered
+            .outcome
+            .ok_or(PrivateSettlementExecutionError::UnsupportedFixture)?;
+        Ok(PrivatePhysicalCommit {
+            identity: recovered.identity,
+            outcome,
+            candidate_bytes: recovered.candidate_bytes,
+            committed: recovered.committed,
+        })
+    }
+
+    pub(crate) fn execute_canonical_recovery(
+        &self,
+        arguments: &[PrivateSettlementArgumentV3],
+    ) -> Result<PrivateRecoveryCommit, PrivateSettlementExecutionError> {
+        self.execute_canonical_recovery_inner(arguments, PrivateRecoveryPolicy::ValidateResponse)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn execute_canonical_abort_malformed(
+        &self,
+        arguments: &[PrivateSettlementArgumentV3],
+    ) -> Result<PrivateRecoveryCommit, PrivateSettlementExecutionError> {
+        self.execute_canonical_recovery_inner(arguments, PrivateRecoveryPolicy::AbortMalformed)
+    }
+
+    fn execute_canonical_recovery_inner(
+        &self,
+        arguments: &[PrivateSettlementArgumentV3],
+        policy: PrivateRecoveryPolicy,
+    ) -> Result<PrivateRecoveryCommit, PrivateSettlementExecutionError> {
         let mut transaction = self.reserve()?;
         let identity = transaction.identity();
         let (request, owners, payloads) = self.canonical_request(identity, arguments)?;
@@ -203,35 +384,46 @@ impl PrivateSettlementHostV3 {
             .frame_storage_mut()
             .copy_from_slice(provider.frame_storage());
 
-        if execute_return != 0 {
-            return Err(PrivateSettlementExecutionError::UnsupportedFixture);
-        }
-        let response = ExecuteResponse::parse_reusing(
-            transaction.execute_response_bytes(),
-            &self.descriptor,
-            response_events,
-        )?;
         let executed_frame = RecoveryFrame::parse_reusing(
             transaction.frame_bytes(),
             &self.descriptor,
             executed_cells,
         )?;
-        validate_successful_execute_evidence_preencoded(
-            &self.descriptor,
-            &request,
-            transaction.request_bytes(),
-            execute_return,
-            transaction.execute_response_bytes(),
-            &response,
-            &executed_frame,
-        )?;
+        let (response, decision_kind) = if execute_return != 0 {
+            (None, Decision::AbortPhysical(execute_return))
+        } else if policy == PrivateRecoveryPolicy::AbortMalformed {
+            (None, Decision::AbortMalformed)
+        } else {
+            match ExecuteResponse::parse_reusing(
+                transaction.execute_response_bytes(),
+                &self.descriptor,
+                response_events,
+            ) {
+                Ok(response) => {
+                    validate_successful_execute_evidence_preencoded(
+                        &self.descriptor,
+                        &request,
+                        transaction.request_bytes(),
+                        execute_return,
+                        transaction.execute_response_bytes(),
+                        &response,
+                        &executed_frame,
+                    )?;
+                    let decision = match response.outcome {
+                        ExecuteOutcome::Scalar { .. } => Decision::AcceptScalar,
+                        ExecuteOutcome::Owned { owner_ordinal, .. } => {
+                            Decision::AcceptOwned(owner_ordinal)
+                        }
+                        ExecuteOutcome::SemanticFailure { .. } => Decision::AcceptSemanticFailure,
+                    };
+                    (Some(response), decision)
+                }
+                Err(_) => (None, Decision::AbortMalformed),
+            }
+        };
         let decision = SettlementDecision {
             identity,
-            decision: match response.outcome {
-                ExecuteOutcome::Scalar { .. } => Decision::AcceptScalar,
-                ExecuteOutcome::Owned { owner_ordinal, .. } => Decision::AcceptOwned(owner_ordinal),
-                ExecuteOutcome::SemanticFailure { .. } => Decision::AcceptSemanticFailure,
-            },
+            decision: decision_kind,
         };
         transaction.decision_commit(&decision)?;
         let mut provider = provider.into_settlement()?;
@@ -239,15 +431,30 @@ impl PrivateSettlementHostV3 {
             .decision_storage_mut()
             .copy_from_slice(transaction.decision_bytes());
         let settle_return = self.module_lease.invoke_settle(&mut provider)?;
-        if settle_return != 0 {
-            return Err(PrivateSettlementExecutionError::UnsupportedFixture);
-        }
         transaction
             .frame_storage_mut()
             .copy_from_slice(provider.frame_storage());
         transaction
             .candidate_storage_mut()
             .copy_from_slice(provider.candidate_storage());
+
+        if settle_return != 0 {
+            let interrupted_frame = RecoveryFrame::parse_reusing(
+                transaction.frame_bytes(),
+                &self.descriptor,
+                settled_cells,
+            )?;
+            return Err(
+                PrivateSettlementExecutionError::ProviderSettlementRejected {
+                    code: settle_return,
+                    phase: interrupted_frame.phase,
+                    active_finalizers: interrupted_frame.active_finalizers,
+                    next_action: interrupted_frame.next_action,
+                    record_count: interrupted_frame.record_count,
+                    frame_digest: frame_digest(transaction.frame_bytes()),
+                },
+            );
+        }
 
         let settled_frame = RecoveryFrame::parse_reusing(
             transaction.frame_bytes(),
@@ -273,7 +480,7 @@ impl PrivateSettlementHostV3 {
             request: &request,
             execute_return_code: execute_return,
             response_storage: ResponseStorageEvidence::Reserved,
-            response: Some(&response),
+            response: response.as_ref(),
             frame: &settled_frame,
             decision: &decision,
             actions: &actions,
@@ -281,9 +488,130 @@ impl PrivateSettlementHostV3 {
         })?;
         #[cfg(test)]
         let _postcommit_allocation_count = postcommit_allocation_probe.finish();
-        Ok(PrivatePhysicalCommit {
+        Ok(PrivateRecoveryCommit {
             identity,
-            outcome: response.outcome,
+            outcome: response.as_ref().map(|response| response.outcome),
+            decision: decision_kind,
+            candidate_bytes,
+            committed,
+        })
+    }
+
+    /// Commit ownership, deliberately skip the provider execute entry, then
+    /// run the certified abort settlement from the unique start checkpoint.
+    pub(crate) fn abort_host_unwind_before_execute(
+        &self,
+        arguments: &[PrivateSettlementArgumentV3],
+    ) -> Result<PrivateHostUnwindCommit, PrivateSettlementExecutionError> {
+        let mut transaction = self.reserve()?;
+        let identity = transaction.identity();
+        let (request, owners, payloads) = self.canonical_request(identity, arguments)?;
+        transaction.stage_call(&request, &owners)?;
+        let mut provider = self.module_lease.prepare_execute()?;
+        let initial_frame = self.initial_host_unwind_frame(
+            identity,
+            &request,
+            &payloads,
+            provider.response_storage(),
+        )?;
+        let initial_frame_bytes = initial_frame.encode();
+        provider
+            .request_storage_mut()
+            .copy_from_slice(transaction.request_bytes());
+        provider
+            .frame_storage_mut()
+            .copy_from_slice(&initial_frame_bytes);
+        transaction
+            .frame_storage_mut()
+            .copy_from_slice(&initial_frame_bytes);
+        let mut candidate_bytes = vec![0; self.descriptor.capacities.candidate_receipt as usize];
+        let mut actions = Vec::with_capacity(
+            self.descriptor.capacities.resource_count.saturating_mul(2) as usize,
+        );
+        let mut replay_states =
+            Vec::with_capacity(self.descriptor.capacities.resource_count as usize);
+        let settled_cells = Vec::with_capacity(self.descriptor.capacities.resource_count as usize);
+        let candidate_dispositions =
+            Vec::with_capacity(self.descriptor.capacities.resource_count as usize);
+
+        #[cfg(test)]
+        let postcommit_allocation_probe = crate::postcommit_allocation_probe::begin();
+        transaction.call_commit()?;
+        let decision = SettlementDecision {
+            identity,
+            decision: Decision::AbortHostUnwind,
+        };
+        transaction.decision_commit(&decision)?;
+        let mut provider = provider.into_pre_execute_host_unwind_settlement()?;
+        if provider.execute_return() != PRE_EXECUTE_HOST_UNWIND_CODE
+            || provider.response_storage().iter().any(|byte| *byte != 0)
+        {
+            return Err(PrivateSettlementExecutionError::UnsupportedFixture);
+        }
+        transaction
+            .execute_response_storage_mut()
+            .copy_from_slice(provider.response_storage());
+        provider
+            .decision_storage_mut()
+            .copy_from_slice(transaction.decision_bytes());
+        let settle_return = self.module_lease.invoke_settle(&mut provider)?;
+        transaction
+            .frame_storage_mut()
+            .copy_from_slice(provider.frame_storage());
+        transaction
+            .candidate_storage_mut()
+            .copy_from_slice(provider.candidate_storage());
+        if settle_return != 0 {
+            let interrupted_frame = RecoveryFrame::parse_reusing(
+                transaction.frame_bytes(),
+                &self.descriptor,
+                settled_cells,
+            )?;
+            return Err(
+                PrivateSettlementExecutionError::ProviderSettlementRejected {
+                    code: settle_return,
+                    phase: interrupted_frame.phase,
+                    active_finalizers: interrupted_frame.active_finalizers,
+                    next_action: interrupted_frame.next_action,
+                    record_count: interrupted_frame.record_count,
+                    frame_digest: frame_digest(transaction.frame_bytes()),
+                },
+            );
+        }
+        let settled_frame = RecoveryFrame::parse_reusing(
+            transaction.frame_bytes(),
+            &self.descriptor,
+            settled_cells,
+        )?;
+        let candidate = CandidateReceipt::parse_reusing(
+            transaction.candidate_bytes(),
+            &self.descriptor,
+            candidate_dispositions,
+        )?;
+        physical_actions(
+            &self.descriptor,
+            &settled_frame,
+            &decision,
+            &candidate,
+            &mut actions,
+            &mut replay_states,
+        )?;
+        transaction.provider_settled()?;
+        candidate_bytes.copy_from_slice(transaction.candidate_bytes());
+        let committed = transaction.receipt_commit(ReceiptCommitEvidence {
+            request: &request,
+            execute_return_code: PRE_EXECUTE_HOST_UNWIND_CODE,
+            response_storage: ResponseStorageEvidence::Reserved,
+            response: None,
+            frame: &settled_frame,
+            decision: &decision,
+            actions: &actions,
+            candidate: &candidate,
+        })?;
+        #[cfg(test)]
+        let _postcommit_allocation_count = postcommit_allocation_probe.finish();
+        Ok(PrivateHostUnwindCommit {
+            identity,
             candidate_bytes,
             committed,
         })
@@ -291,7 +619,7 @@ impl PrivateSettlementHostV3 {
 
     pub(crate) fn reserve(
         &self,
-    ) -> Result<SettlementTransaction<'_, NativeSettlementModuleLease>, SettlementLedgerError> {
+    ) -> Result<SettlementTransaction<'_, SettlementInstanceLease>, SettlementLedgerError> {
         self.ledger.reserve()
     }
 
@@ -309,6 +637,10 @@ impl PrivateSettlementHostV3 {
 
     pub(crate) fn is_draining(&self) -> bool {
         self.ledger.is_draining()
+    }
+
+    pub(crate) fn quarantined_count(&self) -> usize {
+        self.ledger.quarantined_count()
     }
 
     pub(crate) fn module_instance_id(&self) -> semaprax_native_loader::ModuleInstanceId {
@@ -451,6 +783,29 @@ impl PrivateSettlementHostV3 {
         frame.pre_candidate_digest = frame_digest(&provisional[..provisional.len() - 32]);
         Ok(frame)
     }
+
+    fn initial_host_unwind_frame(
+        &self,
+        identity: RecoveryIdentity,
+        request: &ExecuteRequest,
+        payloads: &[u64],
+        response_storage: &[u8],
+    ) -> Result<RecoveryFrame, PrivateSettlementExecutionError> {
+        if response_storage.len() != self.descriptor.capacities.execute_response as usize
+            || response_storage.iter().any(|byte| *byte != 0)
+        {
+            return Err(PrivateSettlementExecutionError::UnsupportedFixture);
+        }
+        let mut frame = self.initial_frame(identity, request, payloads)?;
+        frame.response_storage_digest = crate::callable_wire_v3::response_storage_digest(
+            PRE_EXECUTE_HOST_UNWIND_CODE,
+            response_storage,
+        );
+        frame.execute_return = ExecuteReturn::PreExecuteHostUnwind;
+        let provisional = frame.encode();
+        frame.pre_candidate_digest = frame_digest(&provisional[..provisional.len() - 32]);
+        Ok(frame)
+    }
 }
 
 fn physical_actions(
@@ -579,11 +934,20 @@ fn physical_actions(
 fn parse_exact_admitted_descriptor(
     expected_descriptor: &[u8],
     mut admitted_matches: impl FnMut(&[u8]) -> bool,
+    static_target: Option<IosStaticTarget>,
 ) -> Result<Descriptor, SettlementLedgerError> {
     if !admitted_matches(expected_descriptor) {
         return Err(SettlementLedgerError::DescriptorMismatch);
     }
-    Descriptor::parse(expected_descriptor).map_err(|_| SettlementLedgerError::DescriptorMismatch)
+    match static_target {
+        Some(target) => Descriptor::parse_for_target(
+            expected_descriptor,
+            target.canonical_tag(),
+            Linkage::IosStatic,
+        ),
+        None => Descriptor::parse(expected_descriptor),
+    }
+    .map_err(|_| SettlementLedgerError::DescriptorMismatch)
 }
 
 #[cfg(test)]
@@ -622,9 +986,11 @@ mod tests {
         );
         assert_ne!(image_a.bytes(), image_b.bytes());
         assert_eq!(
-            parse_exact_admitted_descriptor(image_b.bytes(), |candidate| {
-                candidate == image_a.bytes()
-            }),
+            parse_exact_admitted_descriptor(
+                image_b.bytes(),
+                |candidate| candidate == image_a.bytes(),
+                None,
+            ),
             Err(SettlementLedgerError::DescriptorMismatch)
         );
     }

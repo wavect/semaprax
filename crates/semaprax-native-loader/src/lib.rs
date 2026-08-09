@@ -25,8 +25,11 @@ use std::sync::Arc;
 mod settlement;
 
 pub use settlement::{
-    open_admitted_settlement_exact, NativeSettlementModuleLease, PreparedSettlementCall,
+    open_admitted_settlement_exact, register_admitted_ios_static_settlement_exact, IosStaticTarget,
+    NativeSettlementModuleLease, NativeStaticSettlementLease, PreparedSettlementCall,
     PreparedSettlementExecute, SettlementBufferCapacities, SettlementCallError,
+    StaticDescriptorGetter, StaticExecuteEntry, StaticSettleEntry,
+    StaticSettlementRegistrationError,
 };
 
 /// Largest descriptor this quarantine will read from a native module.
@@ -43,10 +46,11 @@ pub const MAX_CALL_WIRE_BYTES: usize = 1024 * 1024;
 
 static NEXT_INSTANCE_ID: AtomicU64 = AtomicU64::new(1);
 
-/// Process-local identity of one exact successful library open.
+/// Process-local identity of one exact successful image or static admission.
 ///
 /// Opening the same canonical path twice produces distinct identities. Retains
-/// of one lease preserve its identity.
+/// of one lease preserve its identity; exact iOS-static re-registration is
+/// idempotent and returns the original identity.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct ModuleInstanceId(NonZeroU64);
 

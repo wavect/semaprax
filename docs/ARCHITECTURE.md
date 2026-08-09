@@ -211,8 +211,9 @@ emits complete target-bound iOS evidence providers for five enumerated targets.
 The same hidden seam emits arm64 and x86_64-emulator Android dynamic
 providers whose guards require Android, Bionic, ELF, 64-bit pointers, and
 little-endian code generation. Windows dynamic runtime and the bounded
-arm64-Simulator path are green; the Android Emulator job is configured but not
-yet hosted evidence. The legacy loader constructors reject the full v3 magic in their shared
+arm64-Simulator path are green. [Run 31320436726, job
+93262427248](https://github.com/wavect/semaprax/actions/runs/31320436726/job/93262427248)
+also proves the bounded Android Emulator path. The legacy loader constructors reject the full v3 magic in their shared
 input validator before canonicalization, image loading, getter lookup, or
 callable lookup; their exact callable-v2 classifier remains unchanged. A
 separate private v3 constructor binds the getter, execute, settle, and returned
@@ -227,7 +228,7 @@ generated-provider → loader → host test covers all 14 normal scenarios at
 `-O0`/`-O2`, with zero measured Rust allocations/reallocations across the
 irreversible interval and exact quarantine on injected decode-reserve failure.
 It does not cover fatal allocator or process-crash containment, iOS device
-execution, or a hosted Android result yet, and exposes no
+execution, or Android JNI/app/device integration, and exposes no
 public admission. Private bounded process-lifetime static-registration logic
 now binds exact descriptor and entry addresses to the same host ledger; its
 non-Apple fake-function test proves retention and quarantine only, with no
@@ -263,15 +264,15 @@ then proved the bounded single-Simulator runtime; representative Android/iOS
 device and broader Simulator/app execution plus
 public native execution/admission remain required.
 
-The next mandatory mobile job compiles the dynamic loader and unchanged host
+The mandatory Android job compiles the dynamic loader and unchanged host
 for `x86_64-linux-android` and `aarch64-linux-android`, builds both exact
 Bionic/ELF providers with NDK r27.2, inspects the resulting x86_64 and AArch64
 ELFs, and runs `token.discard-two` at O0/O2 in an API-35 x86_64 emulator. It
 requires canonical-path `dladdr` provenance, exact finalizer order/payload,
-receipt/ledger evidence, and zero measured Rust allocations. Until the hosted
-job is green this is configured evidence only, not an Android runtime claim;
-it is also not JNI/Kotlin, APK/AAR, lifecycle/UI, device, or general-corpus
-evidence.
+receipt/ledger evidence, and zero measured Rust allocations. [Run 31320436726,
+job 93262427248](https://github.com/wavect/semaprax/actions/runs/31320436726/job/93262427248)
+proved this bounded runtime path. It is not JNI/Kotlin, APK/AAR, lifecycle/UI,
+device, or general-corpus evidence.
 
 ## Record groundwork and backend gate
 

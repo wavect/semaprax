@@ -74,8 +74,8 @@ requires tag-3/sentinel/zero-storage KATs, proof that execute is not entered,
 certified abort settlement, authenticated host receipt, and unchanged legacy
 v1/v2/proof evidence. Documentation must still deny exhaustive fatal-allocator/
 process-crash evidence, quiescence, malicious-code containment, public
-admission, and any `SPX-B104` change. Android runtime must also be denied until
-the dedicated hosted Emulator job is green. That job must compile the loader,
+admission, and any `SPX-B104` change. Bounded Android runtime evidence is
+accepted only from the dedicated hosted Emulator job. That job must compile the loader,
 host, and target-bound provider for x86_64 and arm64 with pinned NDK r27.2;
 prove the exact Bionic/ELF guards and both ELF architectures; retain exact
 `libloading 0.8.9`; execute the x86_64 O0/O2 providers from canonical paths in
@@ -83,6 +83,10 @@ an API-35 emulator; and require exact finalizers, receipt/ledger transition,
 healthy host state, and zero measured Rust allocation across the irreversible
 interval. JNI/Kotlin, APK/AAR, lifecycle/UI, device, broader corpus, and public
 admission remain separate gates.
+
+[Run 31320436726, job
+93262427248](https://github.com/wavect/semaprax/actions/runs/31320436726/job/93262427248)
+is the first green Android execution of that exact contract.
 
 | Change | Required evidence |
 | --- | --- |

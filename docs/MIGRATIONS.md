@@ -330,7 +330,7 @@ public or general machine-code cross-target configuration. A hidden selector
 emits complete target-bound evidence providers for five closed iOS targets and
 two closed Android targets. Android dynamic guards now bind architecture,
 Android/Bionic, ELF, pointer width, and byte order; the x86_64 Emulator gate is
-configured but not counted until hosted execution is green. The bounded
+green in hosted run 31320436726. The bounded
 arm64-Simulator and Windows dynamic runtime paths are green. Future iOS device,
 simulator, and Mac Catalyst/macabi
 profiles must retain distinct target strings even though they share static
@@ -350,9 +350,11 @@ is now configured to link and execute one exact arm64 Simulator provider through
 the same receipt ledger at `-O0`/`-O2`; hosted observation belongs only to a
 green job for the revision. Consumers must not generalize this single standalone
 process to device/app lifecycle coverage, the remaining iOS corpus, fatal
-allocator/process-crash recovery, or representative mobile execution. These
+allocator/process-crash recovery, or representative or general mobile
+application/device execution. These
 additions provide no public admission,
-general physical-finalizer, or mobile execution guarantee. They change no
+general physical-finalizer, or general mobile application/device execution
+guarantee. They change no
 native execution gate and leave `SPX-B104` closed.
 
 ## Revision token FNV-1a64 to SHA-256

@@ -57,9 +57,10 @@ the model plus this document satisfy no physical-runtime completion gate.
 A separate mandatory Android job now has closed arm64/x86_64 dynamic
 descriptors and Bionic/ELF provider guards, Android host compilation, pinned
 NDK output inspection for both architectures, and one x86_64 Emulator
-`token.discard-two` O0/O2 receipt path configured. It remains unobserved rather
-than runtime evidence until the hosted job is green. It does not add JNI/Kotlin,
-APK/AAR, lifecycle/UI, device, general-corpus, or public authority.
+`token.discard-two` O0/O2 receipt path. [Run 31320436726, job
+93262427248](https://github.com/wavect/semaprax/actions/runs/31320436726/job/93262427248)
+is green. It does not add JNI/Kotlin, APK/AAR, lifecycle/UI, device,
+general-corpus, or public authority.
 
 The key rule is:
 
@@ -604,8 +605,8 @@ general cross-target configuration; closed evidence-only selectors derive one
 exact provider for each enumerated iOS static and Android dynamic target.
 Windows dynamic runtime is green in hosted run 31313341303 and the bounded iOS
 Simulator path is green in run 31318280135. The Android Emulator path is
-configured but not yet hosted evidence; iOS device, simulator, and Mac
-Catalyst/macabi target identities remain distinct. The private
+green in run 31320436726; iOS device, simulator, and Mac Catalyst/macabi target
+identities remain distinct. The private
 `SPXNPRF1` proof format is versioned separately and cannot be executed or loaded.
 It does not implement
 imports or finalizers, aggregates, callbacks, async, concurrency, fork recovery,
@@ -626,6 +627,6 @@ continues to retire logical ledger state after physical failure without proving
 general physical fallback cleanup or quiescence. Therefore the completion
 matrix remains Partial: the seven joint failure fixtures and canonical
 pre-execute unwind do not prove exhaustive fatal-allocator/process-crash
-recovery, quiescence, or representative mobile execution. The current evidence
-is bounded and private, and
+recovery, quiescence, or representative or general mobile application/device
+execution. The current evidence is bounded and private, and
 `SPX-B104` remains closed without exception.

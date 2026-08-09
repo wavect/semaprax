@@ -46,18 +46,18 @@ proved that runtime path. It remains a standalone
 Simulator process—not device execution, Apple app packaging, lifecycle/UI/Swift
 integration, general iOS admission, or public admission.
 
-Android retains dynamic-image profile 1. A mandatory API-35 x86_64 Emulator
-job is configured to compile the loader and private host for both
-`x86_64-linux-android` and `aarch64-linux-android`, require exact
-`libloading 0.8.9`, compile target-bound Bionic/ELF providers with pinned NDK
-r27.2, and inspect both x86_64 and AArch64 ELFs. The runtime half pushes the
+Android retains dynamic-image profile 1. The mandatory API-35 x86_64 Emulator
+job compiles the loader and private host for both
+`x86_64-linux-android` and `aarch64-linux-android`, requires exact
+`libloading 0.8.9`, compiles target-bound Bionic/ELF providers with pinned NDK
+r27.2, and inspects both x86_64 and AArch64 ELFs. The runtime half pushes the
 x86_64 provider and standalone host runner to a canonical
 `/data/local/tmp` directory and requires `dladdr` root-image provenance, exact
 O0/O2 finalizers, authenticated receipt/ledger transition, and zero measured
-Rust allocation across the irreversible interval. This remains configured,
-not observed runtime evidence, until the hosted job is green. It is not an APK,
-JNI/Kotlin, app lifecycle/UI, arm64 device, general-corpus, or public admission
-claim.
+Rust allocation across the irreversible interval. [Run 31320436726, job
+93262427248](https://github.com/wavect/semaprax/actions/runs/31320436726/job/93262427248)
+is green. It is not an APK, JNI/Kotlin, app lifecycle/UI, arm64 device,
+general-corpus, or public admission claim.
 
 The constructor is intentionally `unsafe`. Loading executes the selected
 image's and dependencies' initializers before descriptor validation and may run

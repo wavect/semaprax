@@ -28,9 +28,10 @@ public/general cross-target configuration; a hidden closed selector emits
 complete target-bound evidence providers for five enumerated iOS targets and
 two Android targets. Android descriptors retain dynamic profile 1 and their C
 guards prove exact architecture, Android/Bionic, ELF, 64-bit pointers, and
-little endian. The pinned x86_64 Android Emulator job is configured but not
-yet hosted evidence; the bounded arm64-Simulator and Windows dynamic paths are
-green. It is a new contract: v1, v2,
+little endian. [Run 31320436726, job
+93262427248](https://github.com/wavect/semaprax/actions/runs/31320436726/job/93262427248)
+proves the pinned x86_64 Android Emulator path; the bounded arm64-Simulator and
+Windows dynamic paths are also green. It is a new contract: v1, v2,
 settlement-proof v1, and v3 are
 mutually incompatible and there is no negotiation or fallback.
 

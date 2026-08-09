@@ -4,6 +4,18 @@ All notable changes to SEMAPRAX are documented here.
 
 ## 0.2.0 — 2026-08-07
 
+- Added the private [Apple Swift ownership adapter
+  v1](docs/APPLE-SWIFT-OWNERSHIP-V1.md): a feature-gated same-thread Rust host,
+  generation-tagged Swift wrapper, target-bound device/simulator providers,
+  private XCFramework packager, and installed arm64-Simulator app gate. Local
+  Rust/source-lock evidence is green; hosted Apple execution is pending.
+  Public framework, device, UI/lifecycle, admission, and `SPX-B104` claims stay
+  closed.
+- Added the private [WIT boundary
+  v1](docs/WIT-COMPONENT-BOUNDARY-V1.md): deterministic `SPXWIT01`
+  WIT/schema/JavaScript bytes, a frozen digest, mutation rejection, exact
+  status bounds, and Node adapter execution. It does not emit or run a
+  Component Model binary and exposes no public WIT interface.
 - Added a mandatory private Android Emulator runtime gate. A hidden closed
   selector emits exact arm64 and x86_64-emulator dynamic descriptors
   and Bionic/ELF-guarded strict-C providers; the unpublished host now compiles

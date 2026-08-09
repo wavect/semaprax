@@ -502,6 +502,14 @@ Each phase is incomplete until its executable evidence passes. An RFC, type defi
    while arm64 is compile/ELF inspection only. This is neither phase-6 completion nor evidence for general fallible
    SEMAPRAX close, bidirectional JVM calls, lifecycle/UI, AAR, device runtime,
    general resources/imported finalizers, public admission, or `SPX-B104`.
+
+   A second private phase-6 projection is implemented/configured for Swift and
+   iOS. It uses one stable Swift-owned thread, generation-tagged sessions, the
+   exact static callable-v3 lease/receipt ledger, explicit `consume()`, and a
+   nonthrowing ARC `deinit` action. Target-bound arm64-device and
+   arm64/x86_64-Simulator slices feed a private XCFramework and installed
+   arm64-Simulator app gate. Hosted execution is pending, so this is neither
+   phase-6 completion nor public framework/device/lifecycle evidence.
 7. **Broader control flow.** Extend the plan and trace suite before enabling loops, variants/matching, `?`, closures, regions, concurrency, cancellation, or async resources.
 
 At every phase, source-verifier and hostile-HIR replay diagnostics must agree, failed imports and failed postconditions must not initialize caller result storage, automatic finalizers must remain infallible and non-trapping, explicit close failure must obey its declared consumption contract, and native/Wasm normalized event traces must match. The rows in the [completion matrix](COMPLETION-MATRIX.md) remain Partial or Missing until their complete gates pass.

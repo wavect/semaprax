@@ -28,7 +28,9 @@ proof scaffolding, not a wired native-runtime claim.
 - `src/graph_cleanup.rs`: deterministic tagged Graph v6 projection of validated cleanup plans.
 - `src/graph.rs`, `patch.rs`: agent representation and atomic transactions.
 - `src/codegen.rs`, `src/codegen/native_callable_*`, `wasm.rs`: native C11/Clang, private callable-v2, and browser/Wasm lanes.
+- `src/wit_component.rs`: default-off deterministic WIT/schema/JavaScript boundary evidence; not a Component Model runtime.
 - `crates/semaprax-native-loader`, `crates/semaprax-native-host`: unpublished unsafe loader quarantine and connected callable authority/ledger host.
+- `platform-tests/`: private installed-app/native-process packaging and runtime gates; claims count only after their hosted jobs are green.
 - `tests/`: executable language, graph, transaction, ownership, and backend evidence.
 - `examples/`: canonical programs exercised directly in CI.
 

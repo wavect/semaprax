@@ -91,6 +91,19 @@ and quiescence remain. The bounded Android JNI/APK path is green in [run
 None of these
 private steps opens public admission or `SPX-B104`.
 
+The next Apple gate is configured as one Swift/iOS application milestone:
+target-bound device and Simulator static slices, a private XCFramework, Swift 6
+complete-concurrency checking, and installed arm64-Simulator applications for
+explicit and deterministic ARC cleanup. It counts only after hosted execution
+is green; physical-device, public-framework, UI/accessibility, and general
+lifecycle work remains later.
+
+WIT/component work has started with the deterministic private `SPXWIT01`
+schema/adapter bundle and Node evidence. The next WIT milestone is a real,
+independently parsed Component Model binary running generated SEMAPRAX Wasm;
+resources, futures/streams, capabilities, version negotiation, and
+multi-language composition remain later gates.
+
 The model-backed, proposed [RFC 0004 native call recovery and settlement
 contract](RFC-0004-NATIVE-CALL-SETTLEMENT.md) specifies the bounded linear
 frame, certified checkpoint, idempotent settlement, receipt, and quiescence

@@ -391,6 +391,22 @@ public admission/`SPX-B104`. Since both projections are private pre-alpha
 fixtures, future incompatible changes must use new magic/schema identities and
 new independent known answers rather than silently accepting old values.
 
+## Private Apple Swift ownership adapter v1
+
+The feature-gated Swift adapter reuses generation-tagged handles and the
+callable-v3 receipt ledger, but is not a public handle ABI or framework
+compatibility promise. The generated zero-argument fixture is the sole open
+entry; migrations must not restore caller-selected evidence hooks or expose the
+hidden registration bridge. Hosted Apple evidence is pending and must not be
+inferred from local Rust/source-lock checks.
+
+## Private WIT boundary v1
+
+`SPXWIT01` freezes one exact private WIT/schema/JavaScript bundle. Changes to
+its WIT text, mapping JSON, adapter bytes, status constraints, or framing
+require a new known answer and explicit migration note. This identity must not
+be reinterpreted as a Component Model binary or public WIT package version.
+
 ## Revision token FNV-1a64 to SHA-256
 
 Graph v3 and later, semantic patch bases, CLI output, and `semaprax.web.v2`/`semaprax.web.v3` manifests use one algorithm-tagged token:

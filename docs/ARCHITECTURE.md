@@ -328,6 +328,20 @@ Consequently this is partial Java/Kotlin and Android application evidence, not A
 lifecycle/accessibility breadth, device support, general resource/imported-
 finalizer execution, public ABI/admission, or permission to open `SPX-B104`.
 
+The private [Apple Swift ownership adapter
+v1](APPLE-SWIFT-OWNERSHIP-V1.md) composes the same iOS static lease and receipt
+ledger with a Swift-owned stable thread, opaque generation-tagged sessions,
+poison-preserving outputs, and explicit-versus-ARC cleanup arbitration.
+Generated C binds fixed hidden evidence hooks; caller-selected hooks and the
+legacy raw open are absent. A Swift 6 lane constructs device and universal
+Simulator slices plus two installed no-UI apps. Local gates pass; hosted Apple
+link/app execution is pending.
+
+The private [WIT boundary v1](WIT-COMPONENT-BOUNDARY-V1.md) freezes one scalar
+result/status WIT mapping and JavaScript adapter over the existing Wasm
+semantics. It does not add a Component Model encoder, parser, linker, or runtime
+to the compiler trust boundary.
+
 ## Record groundwork and backend gate
 
 Canonical source accepts nominal records with persistent field IDs, source-ordered construction, shorthand expansion, and chained projection. The verifier reports unknown, duplicate, missing, or mismatched constructor fields deterministically and rejects direct or indirect by-value layout cycles. Resolved HIR distinguishes place projections from projections of temporary values, and its validator rejects foreign/reordered fields and inconsistent facts.

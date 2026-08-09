@@ -21,6 +21,7 @@
     test,
     feature = "unstable-android-emulator-harness",
     feature = "unstable-android-jni-harness",
+    feature = "unstable-apple-swift-harness",
     feature = "unstable-ios-simulator-harness"
 ))]
 #[cfg_attr(
@@ -34,6 +35,11 @@
             feature = "unstable-android-jni-harness",
             not(test),
             not(target_os = "android")
+        ),
+        all(
+            feature = "unstable-apple-swift-harness",
+            not(test),
+            not(target_os = "ios")
         ),
         all(
             feature = "unstable-ios-simulator-harness",
@@ -130,6 +136,7 @@ mod postcommit_allocation_probe {
     test,
     all(feature = "unstable-android-emulator-harness", target_os = "android"),
     all(feature = "unstable-android-jni-harness", target_os = "android"),
+    all(feature = "unstable-apple-swift-harness", target_os = "ios"),
     all(
         feature = "unstable-ios-simulator-harness",
         target_os = "ios",
@@ -144,6 +151,8 @@ static POSTCOMMIT_COUNTING_ALLOCATOR: postcommit_allocation_probe::CountingAlloc
 mod android_emulator_harness;
 #[cfg(feature = "unstable-android-jni-harness")]
 mod android_jni_harness;
+#[cfg(feature = "unstable-apple-swift-harness")]
+mod ios_swift_harness;
 
 #[cfg(not(target_os = "ios"))]
 mod authority;

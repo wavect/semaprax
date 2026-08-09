@@ -1,0 +1,4 @@
+module SemapraxPrivateSwift {
+  header "SemapraxPrivateSwift.h"
+  export *
+}

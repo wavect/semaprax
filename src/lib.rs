@@ -35,6 +35,9 @@ pub mod trace_path_certificate;
 mod trace_path_certificate;
 pub mod verify;
 pub mod wasm;
+#[cfg(any(test, feature = "unstable-wit-component-harness"))]
+#[doc(hidden)]
+pub mod wit_component;
 
 mod graph_cleanup;
 mod host_ownership;

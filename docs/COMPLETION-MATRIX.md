@@ -116,6 +116,14 @@ job 93272580149](https://github.com/wavect/semaprax/actions/runs/31324497016/job
 This moves only the Java/Kotlin and Android rows to **Partial**; it proves no GC collection,
 process-exit cleanup, AAR, UI/accessibility, general lifecycle, device or arm64
 runtime, public ABI/admission, or `SPX-B104` change.
+
+The private [Apple Swift ownership adapter
+v1](APPLE-SWIFT-OWNERSHIP-V1.md) and [WIT boundary
+v1](WIT-COMPONENT-BOUNDARY-V1.md) are implemented with local Rust/Node and
+source-lock evidence. Swift/iOS is **Partial** for the closed same-thread
+wrapper and configured XCFramework/Simulator-app gate; hosted Apple execution
+is pending. WIT is **Partial** for deterministic schema/adapter output and Node
+execution; there is no Component Model binary/runtime.
 The hidden linear phase model now starts from the sole authenticated
 post-`CallCommit` state and exercises exact `SettlementDecisionCommit`,
 provider-candidate, model-`ReceiptCommitted`, and absorbing `Quarantined`
@@ -181,9 +189,9 @@ is not the later Windows evidence linked above.
 | C and Objective-C | Missing | — | Header import, raw bindings, ownership annotations, safe wrappers, error/string/buffer mappings, and tests verified |
 | C++ | Missing | — | Stable shim workflow, exception/ownership policy, maintained adapters, and unsafe classification verified |
 | Java and Kotlin | Partial | Private generated JNI shim plus minSdk-28 Kotlin ownership wrapper: closed `RegisterNatives`, HandlerThread confinement, generation-tagged handles, fixed status/exception normalization, deterministic identical Cleaner action, explicit `consume()` ownership transfer, and green API-35 x86_64 APK/Instrumentation evidence in [run 31324497016, job 93272580149](https://github.com/wavect/semaprax/actions/runs/31324497016/job/93272580149) | JVM metadata import, public JNI generation, general Android lifecycle/ownership integration, bidirectional calls, and representative hosted conformance verified |
-| Swift and Apple frameworks | Missing | — | Swift/Objective-C bindings, async/result/ownership mappings, framework metadata import, XCFramework output, and tests verified |
+| Swift and Apple frameworks | Partial | Private Swift 6 ownership wrapper, stable-thread static host, generation-tagged handles, target-bound device/simulator fixtures, and private XCFramework/app gate are implemented; hosted Apple execution is pending | Public Swift/Objective-C bindings, async/result/ownership breadth, framework metadata import, distributable XCFramework output, and representative tests verified |
 | JavaScript and TypeScript | Missing | — | Declaration import, promise/error/typed-array/callback/resource mapping, browser/Node hosts, and component transpilation verified |
-| WIT and WebAssembly Components | Missing | — | Import/export, resources, futures/streams, versions, capabilities, adapters, and multi-language composition verified |
+| WIT and WebAssembly Components | Partial | Deterministic private `SPXWIT01` WIT/schema/JavaScript bundle with digest KAT, mutation closure, exact status bounds, and Node execution | Real Component Model binary emission/runtime, import/export, resources, futures/streams, versions, capabilities, and multi-language composition verified |
 | OpenAPI, Protobuf/gRPC, GraphQL, and SQL | Missing | — | Deterministic schema import/generation, compatibility/migration rules, and live conformance fixtures verified |
 
 ## Application platforms
@@ -192,7 +200,7 @@ is not the later Windows evidence linked above.
 | --- | --- | --- | --- |
 | First-class application/state/UI dialect | Missing | — | Typed state/actions/update/view, semantic controls, accessibility, navigation, localization, assets, platform blocks, and custom rendering verified |
 | Web | Partial | Deployable HTML/ES module/Wasm package with an accessible scalar entry and a narrow Node-executed owned-resource adapter | DOM/CSS output, accessible HTML, SSR, hydration, general Wasm resource/components support, browser capabilities, Canvas/WebGPU escape hatch, and deployable sample verified |
-| iOS | Missing | — | Native code, Swift host, XCFramework/app project, UIKit/SwiftUI adapter, lifecycle, accessibility, signing metadata, and device/simulator sample verified |
+| iOS | Partial | Existing private static callable runtime plus a Swift 6 same-thread host, device/universal-Simulator XCFramework construction, and installed arm64-Simulator app gate are implemented/configured; the new hosted app run is pending | Public native/Swift host, distributable framework/app project, UIKit/SwiftUI adapter, lifecycle, accessibility, signing metadata, and device plus representative simulator samples verified |
 | Android | Partial | Private same-package no-UI Instrumentation APK executes on an API-35 x86_64 Emulator with offline plugin-free packaging, exact JNI/O0/O2 inventory and ownership assertions in [run 31324497016, job 93272580149](https://github.com/wavect/semaprax/actions/runs/31324497016/job/93272580149); arm64 remains compile/ELF inspection only | Public native code and Kotlin/JNI host, AAR/app project, Compose/View adapter, lifecycle, accessibility, manifests/packaging, and representative emulator plus device samples verified |
 | macOS | Partial | Host-native command-line executable | Native app bundle, AppKit/SwiftUI host, menus/windows/accessibility, packaging/signing metadata, and sample verified |
 | Windows | Partial | `windows-latest` compiles/tests the compiler and callable host, builds native and web artifacts, and confirms the generated O0/O2 callable corpus plus root-sibling/CWD/legacy-`PATH` dependency isolation in [run 31257545008, job 93103151756](https://github.com/wavect/semaprax/actions/runs/31257545008/job/93103151756) | Native app, WinUI host, accessibility, packaging metadata, and representative application sample verified |

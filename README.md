@@ -168,6 +168,20 @@ green in [run 31324497016, job
 so this is **Partial** Java/Kotlin and Android application evidence—not AAR,
 lifecycle/UI, device, general-resource, or public native support.
 
+A private [Apple Swift ownership adapter](docs/APPLE-SWIFT-OWNERSHIP-V1.md) is
+also implemented and CI-configured. It reuses the exact iOS static callable-v3
+host behind a Swift 6 stable-thread wrapper and builds private device/Simulator
+XCFramework slices plus installed arm64-Simulator applications. Hosted Apple
+compilation/runtime evidence is pending; this is **Partial** Swift/iOS
+implementation evidence, not a public framework, device, UI, or lifecycle
+claim.
+
+The private [WIT boundary v1](docs/WIT-COMPONENT-BOUNDARY-V1.md) adds a
+deterministic, mutation-closed WIT/schema/JavaScript bundle with Node execution
+and exact status bounds. It is **Partial** WIT evidence only: no Component
+Model binary/runtime, resources, futures/streams, capabilities, or public WIT
+surface exist yet.
+
 Not implemented yet: public native resource execution/admission,
 general-shape native/reference/Wasm trace conformance, the general Wasm resource ABI,
 recursive reference execution, callable imports/adapters, record machine-code

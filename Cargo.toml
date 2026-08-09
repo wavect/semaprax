@@ -26,6 +26,7 @@ sha2 = "=0.10.9"
 [features]
 default = []
 unstable-native-host-internal = []
+unstable-wit-component-harness = []
 
 [target.'cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))'.dependencies]
 getrandom = "=0.4.3"

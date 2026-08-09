@@ -112,7 +112,7 @@ fn component_job_fetches_root_and_runner_then_runs_every_gate_locked_and_offline
         "name: Private Wasmtime Component result runtime",
         "runs-on: ubuntu-24.04",
         "toolchain: 1.97.1",
-        "platform-tests/component-runtime/Cargo.toml",
+        "manifest-path: platform-tests/component-runtime/Cargo.toml",
         "--config platform-tests/component-runtime/deny.toml",
         "scripts/component-runtime-v3.sh",
     ] {
@@ -121,6 +121,10 @@ fn component_job_fetches_root_and_runner_then_runs_every_gate_locked_and_offline
             "missing CI source lock: {required}"
         );
     }
+    assert!(
+        !workflow.contains("arguments: --manifest-path"),
+        "cargo-deny arguments duplicated the action's dedicated manifest-path input"
+    );
 }
 
 #[test]

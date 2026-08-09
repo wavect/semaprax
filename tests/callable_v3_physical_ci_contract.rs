@@ -16,6 +16,8 @@ fn private_callable_v3_physical_ci_evidence_is_mandatory() {
         .expect("read the private callable-v3 iOS Simulator gate");
     let android_emulator = fs::read_to_string(root.join("scripts/android-emulator-v3.sh"))
         .expect("read the private callable-v3 Android Emulator gate");
+    let android_jni = fs::read_to_string(root.join("scripts/android-jni-app-v3.sh"))
+        .expect("read the private Android JNI application gate");
 
     for required in [
         "Require Windows callable-v2 and private callable-v3 physical evidence",
@@ -51,6 +53,10 @@ fn private_callable_v3_physical_ci_evidence_is_mandatory() {
         "arch: x86_64",
         "ndk: 27.2.12479018",
         "script: scripts/android-emulator-v3.sh",
+        "Private Android JNI/Kotlin application runtime",
+        "Enable Android JNI emulator hardware acceleration",
+        "Build offline and run the private JNI/Kotlin instrumentation APK",
+        "script: scripts/android-jni-app-v3.sh",
     ] {
         assert!(
             workflow.contains(required),
@@ -108,6 +114,29 @@ fn private_callable_v3_physical_ci_evidence_is_mandatory() {
         assert!(
             android_emulator.contains(required),
             "Android Emulator gate lost mandatory physical evidence: {required}"
+        );
+    }
+    for required in [
+        "set -euo pipefail",
+        "android_ndk_version=\"27.2.12479018\"",
+        "android_api_level=\"35\"",
+        "android_minimum_api=\"28\"",
+        "--features unstable-android-jni-harness",
+        "--bin private-android-jni-v3-fixture",
+        "x86_64-linux-android",
+        "aarch64-linux-android",
+        "libsemaprax_provider_o0.so",
+        "libsemaprax_provider_o2.so",
+        "libsemaprax_jni.so",
+        "JNI_OnLoad",
+        "gradle --offline",
+        "adb shell am instrument -w",
+        "adb shell run-as",
+        "SEMAPRAX_ANDROID_JNI_V1_OK",
+    ] {
+        assert!(
+            android_jni.contains(required),
+            "Android JNI application gate lost mandatory evidence: {required}"
         );
     }
 }

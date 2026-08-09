@@ -13,18 +13,25 @@
 //! handle, and therefore does not weaken the compiler's `SPX-B104` gate.
 //! On iOS, only the private callable-v3 static-lease composition is compiled;
 //! the dynamic host API is absent and no public admission path opens. Android
-//! uses that same private dynamic composition only for a bounded emulator gate;
-//! it exposes no JNI, Kotlin, application, or lifecycle boundary.
+//! uses the same private dynamic composition in bounded native-process and
+//! feature-gated JNI/Kotlin application evidence; the ordinary crate surface
+//! still exposes no JNI, application, lifecycle, or public admission API.
 
 #[cfg(any(
     test,
     feature = "unstable-android-emulator-harness",
+    feature = "unstable-android-jni-harness",
     feature = "unstable-ios-simulator-harness"
 ))]
 #[cfg_attr(
     any(
         all(
             feature = "unstable-android-emulator-harness",
+            not(test),
+            not(target_os = "android")
+        ),
+        all(
+            feature = "unstable-android-jni-harness",
             not(test),
             not(target_os = "android")
         ),
@@ -122,6 +129,7 @@ mod postcommit_allocation_probe {
 #[cfg(any(
     test,
     all(feature = "unstable-android-emulator-harness", target_os = "android"),
+    all(feature = "unstable-android-jni-harness", target_os = "android"),
     all(
         feature = "unstable-ios-simulator-harness",
         target_os = "ios",
@@ -134,6 +142,8 @@ static POSTCOMMIT_COUNTING_ALLOCATOR: postcommit_allocation_probe::CountingAlloc
 
 #[cfg(feature = "unstable-android-emulator-harness")]
 mod android_emulator_harness;
+#[cfg(feature = "unstable-android-jni-harness")]
+mod android_jni_harness;
 
 #[cfg(not(target_os = "ios"))]
 mod authority;

@@ -1,0 +1,9 @@
+schema=semaprax.android-jni-toolchain.v1
+gradle.major=9
+kotlin.major=2
+android.compile_api=35
+android.target_api=35
+android.minimum_api=28
+android.build_tools=35.0.0
+android.ndk=27.2.12479018
+android.abi=x86_64

@@ -500,6 +500,48 @@ impl<P: SettlementPin> LedgerCore<P> {
         })
     }
 
+    fn register_owner_pair(
+        &mut self,
+        owners: [(u64, u64); 2],
+    ) -> Result<[SettlementOwnerHandle; 2], SettlementLedgerError> {
+        self.require_live()?;
+        if owners
+            .iter()
+            .any(|(slot, generation)| *slot == 0 || *generation == 0)
+        {
+            return Err(SettlementLedgerError::StaleOwner);
+        }
+        if owners[0].0 == owners[1].0
+            || self
+                .authoritative_owners
+                .iter()
+                .any(|owner| owners.iter().any(|(slot, _)| owner.slot == *slot))
+        {
+            return Err(SettlementLedgerError::DuplicateOwner);
+        }
+        if self
+            .authoritative_owners
+            .len()
+            .checked_add(owners.len())
+            .is_none_or(|required| required > self.owner_capacity)
+        {
+            return Err(SettlementLedgerError::OwnerTableFull);
+        }
+        let instance_nonce = self.root_pin.instance_nonce();
+        let handles = owners.map(|(slot, generation)| SettlementOwnerHandle {
+            instance_nonce,
+            slot,
+            generation,
+        });
+        self.authoritative_owners
+            .extend(owners.map(|(slot, generation)| AuthoritativeOwner {
+                slot,
+                generation,
+                state: AuthoritativeOwnerState::Live,
+            }));
+        Ok(handles)
+    }
+
     fn stage_call(
         &self,
         frame: &mut ReservedFrame<P>,
@@ -942,6 +984,13 @@ impl<P: SettlementPin> SettlementLedger<P> {
         self.core.borrow_mut().register_owner(slot, generation)
     }
 
+    pub(crate) fn register_owner_pair(
+        &self,
+        owners: [(u64, u64); 2],
+    ) -> Result<[SettlementOwnerHandle; 2], SettlementLedgerError> {
+        self.core.borrow_mut().register_owner_pair(owners)
+    }
+
     pub(crate) fn reserve(&self) -> Result<SettlementTransaction<'_, P>, SettlementLedgerError> {
         let frame = self.core.borrow_mut().reserve()?;
         Ok(SettlementTransaction {
@@ -1300,6 +1349,20 @@ mod tests {
             ledger.register_owner(4, 7).unwrap(),
             ledger.register_owner(5, 9).unwrap(),
         ]
+    }
+
+    #[test]
+    fn pair_registration_is_atomic_for_hostile_second_owner() {
+        let (ledger, _drops) = ledger();
+        let before = ledger.core.borrow().authoritative_owners.clone();
+        assert_eq!(
+            ledger.register_owner_pair([(4, 7), (4, 9)]),
+            Err(SettlementLedgerError::DuplicateOwner)
+        );
+        assert_eq!(ledger.core.borrow().authoritative_owners, before);
+        let handles = ledger.register_owner_pair([(4, 7), (5, 9)]).unwrap();
+        assert_eq!(handles[0].slot, 4);
+        assert_eq!(handles[1].slot, 5);
     }
 
     struct AbortEvidence {

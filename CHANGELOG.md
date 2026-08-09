@@ -13,8 +13,25 @@ All notable changes to SEMAPRAX are documented here.
   with exact finalizers and zero measured Rust allocation across the
   irreversible interval. [Run 31320436726, job
   93262427248](https://github.com/wavect/semaprax/actions/runs/31320436726/job/93262427248)
-  is green. JNI/Kotlin, APK/AAR, lifecycle/UI, device, general-corpus,
+  is green. That standalone-process lane proves no JNI/Kotlin APK; public or
+  general JNI, APK/AAR distribution, lifecycle/UI, device, general-corpus,
   public-admission, and `SPX-B104` claims remain closed.
+- Added the separate private [Android JNI ownership adapter
+  v1](docs/ANDROID-JNI-OWNERSHIP-V1.md) implementation and a dedicated hosted
+  APK job. A feature-gated generator emits exact x86_64/arm64 provider and JNI
+  shim sources; strict NDK compilation, exact `JNI_OnLoad` export/dependency
+  inspection, and a plugin-free Gradle 9 `--offline` packaging project produce
+  one same-package, no-UI framework Instrumentation APK containing only the
+  x86_64 JNI library and O0/O2 providers. The minSdk-28 Kotlin wrapper uses an
+  owning `HandlerThread`, generation-tagged `SPXAJH01` handles, fixed
+  `SPXAJS01` status words, and a `PhantomReference`/`ReferenceQueue` fallback.
+  `OwnedSession.consume()` is the explicit evidence path;
+  `AutoCloseable.close()` is non-throwing Cleaner-style dispatch. Tests invoke
+  the identical registered cleanup action deterministically through
+  `cleanForTest()`, not by observing GC. Local Rust/C and source-lock evidence
+  is green, while the first hosted API-35 x86_64 APK/Emulator execution is
+  pending. This is no AAR, UI/lifecycle, device, arm64 runtime, general resource
+  execution, public admission, or `SPX-B104` change.
 - Added a mandatory private arm64 iOS Simulator runtime gate for one exact
   `token.discard-two` callable-v3 provider. The closed emitter produces the
   target-specific descriptor and strict-C provider; CI links it with the

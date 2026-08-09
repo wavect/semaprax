@@ -175,6 +175,34 @@ jobs:
           disable-animations: true
           script: scripts/android-emulator-v3.sh
 
+  android-jni-app-cross-check:
+    name: Private Android JNI/Kotlin application runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          toolchain: stable
+          targets: x86_64-linux-android,aarch64-linux-android
+      - name: Enable Android JNI emulator hardware acceleration
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Build offline and run the private JNI/Kotlin instrumentation APK
+        uses: ReactiveCircus/android-emulator-runner@0a638108440efd5c7f980e6ba145dbcdd8f32009 # v2.37.0
+        with:
+          api-level: 35
+          target: default
+          arch: x86_64
+          ndk: 27.2.12479018
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: scripts/android-jni-app-v3.sh
+
   callable-host-sanitizers:
     name: Callable host ASan + UBSan
     runs-on: ubuntu-latest

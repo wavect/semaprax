@@ -11,6 +11,7 @@ repository = "https://github.com/wavect/semaprax"
 [features]
 default = []
 unstable-android-emulator-harness = []
+unstable-android-jni-harness = []
 unstable-ios-simulator-harness = []
 
 [dependencies]
@@ -29,6 +30,11 @@ unsafe_op_in_unsafe_fn = "deny"
 name = "private-android-emulator-v3-fixture"
 path = "src/bin/private_android_emulator_v3_fixture.rs"
 required-features = ["unstable-android-emulator-harness"]
+
+[[bin]]
+name = "private-android-jni-v3-fixture"
+path = "src/bin/private_android_jni_v3_fixture.rs"
+required-features = ["unstable-android-jni-harness"]
 
 [[bin]]
 name = "private-ios-simulator-v3-fixture"

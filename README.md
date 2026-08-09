@@ -148,6 +148,25 @@ and x86_64 Emulator execution. [Run 31320436726, job
 93262427248](https://github.com/wavect/semaprax/actions/runs/31320436726/job/93262427248)
 proved the exact O0/O2 path. `SPX-B104` stays closed.
 
+A separate private Android JNI/Kotlin application tranche is now implemented
+and source-locked. It generates the same bounded provider plus a
+`JNI_OnLoad`/`RegisterNatives` shim, packages exactly
+`libsemaprax_jni.so`, `libsemaprax_provider_o0.so`, and
+`libsemaprax_provider_o2.so` into a same-package, no-UI framework
+Instrumentation APK, and builds through a plugin-free Gradle 9 task in
+`--offline` mode using pinned runner Kotlin 2, Android build-tools 35.0.0, and
+NDK 27.2.12479018. The minSdk-28 wrapper confines the native host to a
+`HandlerThread`; `OwnedSession.consume()` is the exact fallible evidence path,
+while `AutoCloseable.close()` and the API-28 `PhantomReference`/
+`ReferenceQueue` fallback only enqueue the same non-throwing cleanup action.
+Deterministic Cleaner tests call the identical registered action through
+`cleanForTest()`; they do not infer GC collection or process-exit cleanup.
+Local Rust/C and repository source-lock gates pass, and arm64 JNI/provider ELFs
+are compile-and-inspect only. The dedicated API-35 x86_64 hosted APK/Emulator
+job is configured but has not yet been observed green, so this is **Partial**
+Java/Kotlin and Android evidence—not hosted application execution, lifecycle/UI,
+AAR, device, general-resource, or public native support.
+
 Not implemented yet: public native resource execution/admission,
 general-shape native/reference/Wasm trace conformance, the general Wasm resource ABI,
 recursive reference execution, callable imports/adapters, record machine-code
@@ -185,8 +204,10 @@ that run was also green.
 The generated callable corpus and hardened dependency-collision fixture are
 confirmed on Windows in [run 31257545008, job
 93103151756](https://github.com/wavect/semaprax/actions/runs/31257545008/job/93103151756).
-Android JNI/Kotlin/app/device execution, iOS device/app execution, and public
-execution/admission remain outstanding. `SPX-B104` therefore remains unchanged.
+The bounded private Android JNI/Kotlin APK implementation now exists, but its
+first hosted application run, Android device/lifecycle/UI breadth, iOS
+device/app execution, and public execution/admission remain outstanding.
+`SPX-B104` therefore remains unchanged.
 
 [RFC 0004](docs/RFC-0004-NATIVE-CALL-SETTLEMENT.md) now records the proposed
 callable-v3 recovery/settlement foundation for that physical-failure gap:

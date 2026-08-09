@@ -267,6 +267,7 @@ pub struct NativeSettlementModuleLease {
 struct LoadedSettlementModule {
     instance_id: ModuleInstanceId,
     canonical_path: PathBuf,
+    root_image_allocation: usize,
     // Retain the exact immutable admission claim, not merely its capacities.
     // The descriptor is bounded before any image is opened and binds the
     // independent host parse byte-for-byte to this logical loader instance.
@@ -502,6 +503,28 @@ impl NativeSettlementModuleLease {
     #[must_use]
     pub fn canonical_path(&self) -> &Path {
         &self.inner.canonical_path
+    }
+
+    /// Private adapter predicate: both supplied live symbol addresses must
+    /// resolve to the exact root allocation and canonical path admitted for
+    /// this lease. No allocation address is exposed to the caller.
+    #[doc(hidden)]
+    #[must_use]
+    pub fn private_addresses_share_admitted_root(
+        &self,
+        first: *const c_void,
+        second: *const c_void,
+    ) -> bool {
+        !first.is_null()
+            && !second.is_null()
+            && matches!(
+                root_image_allocation(first, &self.inner.canonical_path),
+                Ok(allocation) if allocation == self.inner.root_image_allocation
+            )
+            && matches!(
+                root_image_allocation(second, &self.inner.canonical_path),
+                Ok(allocation) if allocation == self.inner.root_image_allocation
+            )
     }
 
     #[must_use]
@@ -1036,6 +1059,7 @@ pub unsafe fn open_admitted_settlement_exact(
         inner: Arc::new(LoadedSettlementModule {
             instance_id,
             canonical_path: resolved_path,
+            root_image_allocation: root_allocation,
             descriptor: expected_descriptor.to_vec().into_boxed_slice(),
             capacities: projection.capacities,
             execute,

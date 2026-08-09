@@ -131,8 +131,8 @@ The ordinary compiler now exposes build-only preflight and a deterministic
 hashed shared-library bundle for one explicitly selected direct-trivial owned
 function; loading, invocation, adoption, and authority remain feature-gated,
 and ordinary native execution still returns `SPX-B104`. General
-physical/malformed-response fallback cleanup and quiescence, Android/iOS
-profiles, recursive callee execution, callable imports, imported finalizers,
+physical/malformed-response fallback cleanup and quiescence, production
+Android/iOS profiles, recursive callee execution, callable imports, imported finalizers,
 aggregates, and broader control flow remain absent. The bounded Linux Rust-host
 ASan lane is green in [public job
 93107277065](https://github.com/wavect/semaprax/actions/runs/31259216533/job/93107277065).
@@ -356,6 +356,38 @@ additions provide no public admission,
 general physical-finalizer, or general mobile application/device execution
 guarantee. They change no
 native execution gate and leave `SPX-B104` closed.
+
+## Private Android JNI handle and status projections v1
+
+The private [Android JNI ownership adapter
+v1](ANDROID-JNI-OWNERSHIP-V1.md) introduces two closed projections for its
+Kotlin/native boundary. They are fixture protocols, not a stable public JNI or
+resource ABI, and they do not replace `semaprax.status.v1`.
+
+`SPXAJH01` is one positive `u64`: reserved sign bit zero, nonzero 15-bit
+process-lifetime runtime tag, nonzero 24-bit generation, and nonzero 24-bit
+slot. The independent Kotlin/native known answer for tag/generation/slot
+`1/1/1` is `0x0001000001000001`. Consumers must reject zero, negative,
+reserved, zero-field, stale, forged, cross-runtime, or exhausted-generation
+values; they must never reinterpret a handle as a pointer or ownership payload.
+
+`SPXAJS01` is one fixed `u64` status projection: nonzero `u32` code, closed
+three-bit class, closed two-bit retryability, nonzero 16-bit manifest-domain
+ordinal, and zero reserved high bits. Zero alone is success. Its base known
+answer is `0x0000002d00000001`; the declared fixture exception is
+`0x0000006b00000007`, and every undeclared JVM throwable maps to
+`0x0000004500000001`. Consumers must validate all closed fields and may not
+derive semantic meaning from exception class names, messages, stacks, or
+objects.
+
+The implementation and source-lock/packaging evidence exist, but the first
+hosted API-35 x86_64 APK/Emulator execution is pending. No migration may infer
+GC collection or process-exit cleanup from deterministic
+`cleanForTest()`/`cleanable.clean()` evidence, reinterpret non-throwing
+`AutoCloseable.close()` as SEMAPRAX's general fallible explicit close, or open
+public admission/`SPX-B104`. Since both projections are private pre-alpha
+fixtures, future incompatible changes must use new magic/schema identities and
+new independent known answers rather than silently accepting old values.
 
 ## Revision token FNV-1a64 to SHA-256
 

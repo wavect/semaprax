@@ -66,6 +66,18 @@ impl SettlementInstanceLease {
         }
     }
 
+    #[cfg(not(target_os = "ios"))]
+    fn private_addresses_share_admitted_root(
+        &self,
+        first: *const std::ffi::c_void,
+        second: *const std::ffi::c_void,
+    ) -> bool {
+        match self {
+            Self::Dynamic(lease) => lease.private_addresses_share_admitted_root(first, second),
+            Self::IosStatic(_) => false,
+        }
+    }
+
     fn capacities(&self) -> SettlementBufferCapacities {
         match self {
             #[cfg(not(target_os = "ios"))]
@@ -237,6 +249,16 @@ impl PrivateSettlementHostV3 {
         )
     }
 
+    #[cfg(not(target_os = "ios"))]
+    pub(crate) fn private_addresses_share_admitted_root(
+        &self,
+        first: *const std::ffi::c_void,
+        second: *const std::ffi::c_void,
+    ) -> bool {
+        self.module_lease
+            .private_addresses_share_admitted_root(first, second)
+    }
+
     pub(crate) fn from_static_admitted(
         module_lease: NativeStaticSettlementLease,
         expected_descriptor: &[u8],
@@ -286,6 +308,16 @@ impl PrivateSettlementHostV3 {
         generation: u64,
     ) -> Result<SettlementOwnerHandle, SettlementLedgerError> {
         self.ledger.register_owner(slot, generation)
+    }
+
+    /// Atomically register the exact two-owner shape used by the private
+    /// Android JNI evidence lane. Either both owners become authoritative or
+    /// the ledger remains unchanged.
+    pub(crate) fn register_owner_pair(
+        &self,
+        owners: [(u64, u64); 2],
+    ) -> Result<[SettlementOwnerHandle; 2], SettlementLedgerError> {
+        self.ledger.register_owner_pair(owners)
     }
 
     /// Execute one canonical descriptor-v3 argument vector through an exact
@@ -398,6 +430,7 @@ impl PrivateSettlementHostV3 {
         #[cfg(any(
             test,
             all(feature = "unstable-android-emulator-harness", target_os = "android"),
+            all(feature = "unstable-android-jni-harness", target_os = "android"),
             all(
                 feature = "unstable-ios-simulator-harness",
                 target_os = "ios",
@@ -519,6 +552,7 @@ impl PrivateSettlementHostV3 {
         #[cfg(any(
             test,
             all(feature = "unstable-android-emulator-harness", target_os = "android"),
+            all(feature = "unstable-android-jni-harness", target_os = "android"),
             all(
                 feature = "unstable-ios-simulator-harness",
                 target_os = "ios",
@@ -575,6 +609,7 @@ impl PrivateSettlementHostV3 {
         #[cfg(any(
             test,
             all(feature = "unstable-android-emulator-harness", target_os = "android"),
+            all(feature = "unstable-android-jni-harness", target_os = "android"),
             all(
                 feature = "unstable-ios-simulator-harness",
                 target_os = "ios",
@@ -657,6 +692,7 @@ impl PrivateSettlementHostV3 {
         #[cfg(any(
             test,
             all(feature = "unstable-android-emulator-harness", target_os = "android"),
+            all(feature = "unstable-android-jni-harness", target_os = "android"),
             all(
                 feature = "unstable-ios-simulator-harness",
                 target_os = "ios",

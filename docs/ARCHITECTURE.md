@@ -228,8 +228,8 @@ generated-provider → loader → host test covers all 14 normal scenarios at
 `-O0`/`-O2`, with zero measured Rust allocations/reallocations across the
 irreversible interval and exact quarantine on injected decode-reserve failure.
 It does not cover fatal allocator or process-crash containment, iOS device
-execution, or Android JNI/app/device integration, and exposes no
-public admission. Private bounded process-lifetime static-registration logic
+execution, a hosted Android JNI/APK run, or Android device/lifecycle breadth,
+and exposes no public admission. Private bounded process-lifetime static-registration logic
 now binds exact descriptor and entry addresses to the same host ledger; its
 non-Apple fake-function test proves retention and quarantine only, with no
 `dlopen` or unload claim. A mandatory macOS gate requires the loader and host
@@ -271,8 +271,59 @@ ELFs, and runs `token.discard-two` at O0/O2 in an API-35 x86_64 emulator. It
 requires canonical-path `dladdr` provenance, exact finalizer order/payload,
 receipt/ledger evidence, and zero measured Rust allocations. [Run 31320436726,
 job 93262427248](https://github.com/wavect/semaprax/actions/runs/31320436726/job/93262427248)
-proved this bounded runtime path. It is not JNI/Kotlin, APK/AAR, lifecycle/UI,
-device, or general-corpus evidence.
+proved this bounded runtime path. That standalone process is not the separate
+JNI/Kotlin APK, and it proves no public/general JNI, APK/AAR distribution,
+lifecycle/UI, device, or general-corpus behavior.
+
+## Private Android JNI application adapter
+
+The separate [`unstable-android-jni-harness`](ANDROID-JNI-OWNERSHIP-V1.md)
+tranche implements one private Kotlin/JNI projection of that bounded v3 host.
+Its generator emits target-matched strict-C provider and JNI shim sources for
+x86_64 and arm64 Android. The build links each shim to the target Rust static
+host, requires `JNI_OnLoad` as the only defined global export, checks the exact
+Android system-library dependency allowlist and absence of workspace paths,
+and packages the x86_64 shim plus O0/O2 providers under their exact names.
+arm64 is compile-and-ELF-inspect evidence only.
+
+The application fixture is a same-package, no-UI framework `Instrumentation`
+APK with minSdk 28 and target/compile API 35. Its Gradle 9 project declares no
+plugin or repository; the offline task invokes a checked packaging script that
+requires runner Kotlin 2 and Android build-tools 35.0.0. The resulting APK has
+one exact native-library inventory and is aligned, signed with an ephemeral
+fixture key, verified, installed only after removing any prior package, and
+required to publish an exact app-private
+`files/semaprax-android-jni-v1.txt` result.
+
+One `NativeRuntime` owns one `HandlerThread`; all provider admission, adoption,
+consumption, receipt commit, drain barriers, and thread-local host destruction
+occur there. `SPXAJH01` positive generation-tagged handles keep JVM values
+opaque. `OwnedSession.consume()` atomically claims the wrapper cell, restores
+the exact handle only for a defined precommit Android-domain rejection, and
+never restores it after success or terminal/uncertain execution.
+`AutoCloseable.close()` and the API-28 `PhantomReference`/`ReferenceQueue`
+Cleaner fallback are non-throwing dispatch paths. The Cleaner thread never
+enters native state; deterministic tests call the identical registered action
+through `cleanForTest()` and cross a FIFO drain barrier rather than depending on
+GC or process exit.
+
+`SPXAJS01` projects only the closed status class/retry/domain fields into a
+fixed `u64`; JVM exception class, text, stack, and object remain nonsemantic.
+The precommit callback probe recognizes the one declared fixture exception,
+maps every other throwable to `semaprax.adapter.unexpected.v1`, clears the JNI
+exception, and returns with no pending exception. The installed assertion
+contract covers O0 explicit consume, O2 Cleaner consumption, their one-winner
+race, stale/forged/cross-runtime/wrong-thread/reentrant rejection, poisoned
+output preservation, exact finalizer order `1:13,0:11`, no-owned publication,
+zero measured Rust postcommit allocations, healthy host state, and an empty
+outer handle table.
+
+The implementation, local Rust/strict-C checks, packaging contract, and CI
+source locks exist. The dedicated API-35 x86_64 Emulator job is configured but
+its first hosted APK execution is pending. Consequently this is partial
+Java/Kotlin and Android evidence, not an executed hosted app claim, AAR, UI,
+lifecycle/accessibility breadth, device support, general resource/imported-
+finalizer execution, public ABI/admission, or permission to open `SPX-B104`.
 
 ## Record groundwork and backend gate
 

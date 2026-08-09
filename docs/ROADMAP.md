@@ -85,8 +85,8 @@ logic now has a mandatory gate through the same host ledger for five distinct
 iOS device, simulator, and Catalyst Rust targets, with no dynamic loader
 surface. One exact arm64-Simulator link/runtime path is implemented and green in
 hosted run 31318280135; app-host/device and broader iOS corpus evidence,
-fatal-allocation/process-crash injection, Android JNI/app/device runtime, and
-quiescence remain. None of these
+fatal-allocation/process-crash injection, the first hosted Android JNI/APK run,
+Android device/lifecycle breadth, and quiescence remain. None of these
 private steps opens public admission or `SPX-B104`.
 
 The model-backed, proposed [RFC 0004 native call recovery and settlement
@@ -123,8 +123,8 @@ generations, atomic receipt/ledger publication, cached replay, and drop-safe
 quarantine. One joint path now covers all 14 normal scenarios at `-O0`/`-O2`
 without measured Rust heap growth across its irreversible interval. Canonical
 pre-execute unwind now reaches authenticated abort receipt without entering
-execute. Fatal allocator/crash recovery, Android app/JNI/device execution,
-broader iOS runtime, and public compiler admission stay closed with
+execute. Fatal allocator/crash recovery, hosted Android app/JNI execution and
+device breadth, broader iOS runtime, and public compiler admission stay closed with
 `SPX-B104`. A private
 process-lifetime exact-address static registry now reaches the shared ledger in
 non-Apple fake-function evidence; it makes no `dlopen`, unload, or device claim.
@@ -148,9 +148,18 @@ seven joint fixtures exercise returned failure, malformed wires, durable
 interruption, replay, and conflict under normal builds, with provider sanitizer
 evidence. Canonical pre-execute unwind is wired and the private static registry
 exists. The bounded arm64 iOS Simulator and x86_64 Android Emulator providers
-are green. The next mobile gate is the RFC-0003 JNI/Kotlin ownership and
-exception-normalization adapter; APK/application lifecycle, broader iOS corpus/app
-lifecycle, crash/fatal-allocation injection, and quiescence evidence remain.
+are green. The RFC-0003 private JNI/Kotlin ownership and
+exception-normalization adapter is now implemented and source-locked: a
+same-package no-UI Instrumentation APK packages exact x86_64 JNI and O0/O2
+providers through plugin-free Gradle 9 `--offline`, while arm64 is
+compile-and-inspect only. Its Kotlin wrapper confines the host to one
+`HandlerThread`, uses `SPXAJH01` handles and `SPXAJS01` statuses, treats
+`consume()` as the exact evidence path, and dispatches non-throwing Cleaner
+fallback through the identical `PhantomReference` action. The next mobile gate
+is the first green hosted API-35 x86_64 APK/Emulator execution. GC collection,
+process-exit cleanup, AAR/application lifecycle/UI, device execution, broader
+iOS corpus/app lifecycle, crash/fatal-allocation injection, and quiescence
+evidence remain.
 The pure model itself grants none of that authority and does not open
 `SPX-B104`.
 

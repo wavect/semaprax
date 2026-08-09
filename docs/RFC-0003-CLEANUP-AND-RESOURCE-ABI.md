@@ -1,8 +1,10 @@
 # RFC 0003: Exactly-once cleanup and the resource ABI
 
-Status: accepted; phases 1–2 implemented, phases 3–7 proposed.
+Status: accepted; phases 1–2 implemented, phases 3–4 partially implemented,
+one private Android tranche of phase 6 implemented/configured with hosted APK
+execution pending, and phases 5 and 7 proposed.
 
-This RFC defines the target-neutral destruction, cleanup, and failure contract required before SEMAPRAX may execute resources or records containing resources. Phase 1 implements canonical lifecycle/interface/import declarations and their source/HIR checks. Phase 2 implements a mandatory target-neutral `CleanupPlan` for every resolved function, independently rebuilds it after ordinary HIR and inventory validation, serializes it in Graph v6, and proves its current expression/control-flow surface with focused and hostile-HIR tests. Imported-call execution, target adapters, runtime status ABIs, backend conformance traces, and resource/aggregate execution remain proposed. Native and Wasm continue to reject resource-bearing and record-bearing modules.
+This RFC defines the target-neutral destruction, cleanup, and failure contract required before SEMAPRAX may execute resources or records containing resources. Phase 1 implements canonical lifecycle/interface/import declarations and their source/HIR checks. Phase 2 implements a mandatory target-neutral `CleanupPlan` for every resolved function, independently rebuilds it after ordinary HIR and inventory validation, serializes it in Graph v6, and proves its current expression/control-flow surface with focused and hostile-HIR tests. Later private native-host and narrow Wasm work implements bounded status, trace, ownership, and adapter evidence described below; it does not implement general imported-call, resource/aggregate, or public native execution. Ordinary native resource builds still reject with `SPX-B104`, and Wasm rejects every shape outside its documented narrow owned ABI.
 
 ## Scope and non-goals
 
@@ -389,7 +391,7 @@ One logical import ID must retain the same ownership, effect, success, and failu
 | C / Objective-C | Generated stable wrapper type plus ownership annotations; automatic finalizer is `noexcept`/non-trapping. An explicit fallible close shim consumes its argument, returns status, and initializes its result out-parameter only on success. |
 | WIT / WebAssembly Components | WIT `resource.drop` maps only to the infallible finalizer. A fallible close is a separate interface function returning `result`; canonical ABI errors normalize before entering core cleanup. |
 | Swift / iOS / macOS | Generated owning wrapper has a non-throwing `deinit` fallback. A consuming explicit close surfaces `Result`/`throws` while the wrapper is reachable; public failure appears only after SEMAPRAX cleanup. |
-| JNI / Kotlin / Android | Native handle table entry has a non-throwing finalizer/Cleaner path. A separate consuming close normalizes JNI exceptions into status; JVM cleanup itself never reports failure. |
+| JNI / Kotlin / Android | Native handle table entry has a non-throwing finalizer/Cleaner path. A future separate consuming fallible close normalizes JNI exceptions into status; JVM cleanup itself never reports failure. The first private fixture instead uses exact `consume()` as its fallible evidence path, while `AutoCloseable.close()` only dispatches the same non-throwing Cleaner action. |
 | JavaScript / TypeScript / web | Host resource-table entry has an infallible explicit drop import; a separate consuming close returns a synchronous status/result in this core ABI. Promise-based close belongs to the later async ABI or public orchestration and cannot suspend this cleanup frame. |
 | Windows native | C-compatible status/out shim over Win32, COM, or WinRT adapters; HRESULT/last-error translation occurs without skipping SEMAPRAX cleanup. |
 | Linux native/server | C-compatible status/out shim over system libraries; errno or library errors become deterministic status data before return. |
@@ -447,7 +449,7 @@ Each phase is incomplete until its executable evidence passes. An RFC, type defi
    the public native execution boundary. Public build-only compiler preflight
    and packaging construct no host, and ordinary native resource builds retain
    `SPX-B104`. General physical or malformed-response fallback cleanup and
-   quiescence, Android/iOS profiles, public execution/admission, code
+   quiescence, production Android/iOS profiles, public execution/admission, code
    provenance, concurrency, and fork recovery remain required. Rust-host ASan
    instrumentation is green in [public run 31259216533, job
    93107277065](https://github.com/wavect/semaprax/actions/runs/31259216533/job/93107277065),
@@ -481,7 +483,24 @@ Each phase is incomplete until its executable evidence passes. An RFC, type defi
    isolation, async/shared memory, Components, or a production native-host
    peer. Those gates remain before this phase is complete.
 5. **Aggregate cleanup.** Prove partial and nested construction, field moves, sibling survival, aggregate return, failed postconditions, and reverse field cleanup for resource-containing records. Enable record backend lowering only after native/Wasm trace equivalence passes.
-6. **Interop adapters.** Bind the same logical fixtures through C, WIT, Swift/Apple, JNI/Kotlin/Android, and JavaScript/TypeScript. Prove ownership, out-slot initialization, status normalization, infallible automatic finalization, and separate fallible close mapping in both directions on representative hosts, simulators, or devices.
+6. **Interop adapters — one private Android tranche implemented/configured.** Bind the same logical fixtures through C, WIT, Swift/Apple, JNI/Kotlin/Android, and JavaScript/TypeScript. Prove ownership, out-slot initialization, status normalization, infallible automatic finalization, and separate fallible close mapping in both directions on representative hosts, simulators, or devices.
+
+   The private [Android JNI ownership adapter
+   v1](ANDROID-JNI-OWNERSHIP-V1.md) now implements one bounded Kotlin/JNI
+   projection of `token.discard-two`. Its target-matched generator, strict NDK
+   shim/provider compilation, closed `RegisterNatives` table, opaque
+   `SPXAJH01` handles, fixed `SPXAJS01` statuses, HandlerThread confinement,
+   exception clearing/normalization, and poison-preserving arrays are locally
+   tested; the plugin-free offline no-UI Instrumentation APK packaging contract
+   is source-locked. Explicit `OwnedSession.consume()` is the exact evidence path;
+   `AutoCloseable.close()` and the API-28 `PhantomReference` fallback enqueue
+   the same non-throwing native consume action. Tests invoke that identical
+   action deterministically through `cleanForTest()` rather than relying on GC
+   collection or process exit. The dedicated API-35 x86_64 hosted APK/Emulator
+   execution is configured but pending, and arm64 is compile/ELF inspection
+   only. This is neither phase-6 completion nor evidence for general fallible
+   SEMAPRAX close, bidirectional JVM calls, lifecycle/UI, AAR, device runtime,
+   general resources/imported finalizers, public admission, or `SPX-B104`.
 7. **Broader control flow.** Extend the plan and trace suite before enabling loops, variants/matching, `?`, closures, regions, concurrency, cancellation, or async resources.
 
 At every phase, source-verifier and hostile-HIR replay diagnostics must agree, failed imports and failed postconditions must not initialize caller result storage, automatic finalizers must remain infallible and non-trapping, explicit close failure must obey its declared consumption contract, and native/Wasm normalized event traces must match. The rows in the [completion matrix](COMPLETION-MATRIX.md) remain Partial or Missing until their complete gates pass.

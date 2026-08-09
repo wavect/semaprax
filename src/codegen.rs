@@ -507,6 +507,24 @@ impl PrivateNativeCallableV3IosTarget {
             Self::MacCatalystX86_64 => "x86_64-ios-catalyst-apple-macho-ptr64-little-callable-v3",
         }
     }
+
+    fn provider_target(self) -> native_callable_provider::IosProviderPhysicalTarget {
+        match self {
+            Self::DeviceArm64 => native_callable_provider::IosProviderPhysicalTarget::DeviceArm64,
+            Self::SimulatorArm64 => {
+                native_callable_provider::IosProviderPhysicalTarget::SimulatorArm64
+            }
+            Self::SimulatorX86_64 => {
+                native_callable_provider::IosProviderPhysicalTarget::SimulatorX86_64
+            }
+            Self::MacCatalystArm64 => {
+                native_callable_provider::IosProviderPhysicalTarget::MacCatalystArm64
+            }
+            Self::MacCatalystX86_64 => {
+                native_callable_provider::IosProviderPhysicalTarget::MacCatalystX86_64
+            }
+        }
+    }
 }
 
 /// Derive one exact iOS-static descriptor for private registration evidence.
@@ -558,6 +576,9 @@ pub enum PrivateNativeCallableV3Fault {
 pub struct PrivateNativeCallableV3Artifact {
     descriptor: Vec<u8>,
     source: String,
+    getter_symbol: String,
+    execute_symbol: String,
+    settle_symbol: String,
 }
 
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
@@ -570,6 +591,32 @@ impl PrivateNativeCallableV3Artifact {
     pub fn source(&self) -> &str {
         &self.source
     }
+
+    pub fn getter_symbol(&self) -> &str {
+        &self.getter_symbol
+    }
+
+    pub fn execute_symbol(&self) -> &str {
+        &self.execute_symbol
+    }
+
+    pub fn settle_symbol(&self) -> &str {
+        &self.settle_symbol
+    }
+}
+
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+fn private_native_callable_v3_artifact(
+    descriptor: native_callable_abi_v3::NativeCallableV3Descriptor,
+    provider: native_callable_provider_v3::NativeCallableProviderV3,
+) -> PrivateNativeCallableV3Artifact {
+    PrivateNativeCallableV3Artifact {
+        getter_symbol: descriptor.getter_symbol,
+        execute_symbol: descriptor.execute_symbol,
+        settle_symbol: descriptor.settle_symbol,
+        descriptor: descriptor.bytes,
+        source: provider.source,
+    }
 }
 
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
@@ -580,14 +627,37 @@ pub fn emit_private_native_callable_v3_fixture(
     fixture: PrivateNativeCallableV3Fixture,
 ) -> Result<PrivateNativeCallableV3Artifact, Diagnostic> {
     let descriptor = native_callable_abi_v3::derive(program, function_id)?;
-    let descriptor_bytes = descriptor.bytes.clone();
     let plan = private_native_callable_v3_plan(fixture);
-    let spec = native_callable_provider_v3::NativeCallableProviderV3Spec::new(descriptor, plan)?;
+    let spec =
+        native_callable_provider_v3::NativeCallableProviderV3Spec::new(descriptor.clone(), plan)?;
     let provider = native_callable_provider_v3::emit(&spec)?;
-    Ok(PrivateNativeCallableV3Artifact {
-        descriptor: descriptor_bytes,
-        source: provider.source,
-    })
+    Ok(private_native_callable_v3_artifact(descriptor, provider))
+}
+
+/// Emit one exact statically linked iOS-family callable-v3 fixture. Descriptor
+/// target/linkage bytes and C physical-target guards are selected by the same
+/// closed enum and cross-checked before source emission.
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+#[doc(hidden)]
+pub fn emit_private_native_callable_v3_ios_fixture(
+    program: &ResolvedProgram,
+    function_id: &DeclarationId,
+    fixture: PrivateNativeCallableV3Fixture,
+    target: PrivateNativeCallableV3IosTarget,
+) -> Result<PrivateNativeCallableV3Artifact, Diagnostic> {
+    let descriptor = native_callable_abi_v3::derive_ios_static_for_target(
+        program,
+        function_id,
+        target.canonical_tag(),
+    )?;
+    let plan = private_native_callable_v3_plan(fixture);
+    let spec = native_callable_provider_v3::NativeCallableProviderV3Spec::new_ios_static(
+        descriptor.clone(),
+        plan,
+        target.provider_target(),
+    )?;
+    let provider = native_callable_provider_v3::emit(&spec)?;
+    Ok(private_native_callable_v3_artifact(descriptor, provider))
 }
 
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
@@ -599,7 +669,6 @@ pub fn emit_private_native_callable_v3_fault_fixture(
     fault: PrivateNativeCallableV3Fault,
 ) -> Result<PrivateNativeCallableV3Artifact, Diagnostic> {
     let descriptor = native_callable_abi_v3::derive(program, function_id)?;
-    let descriptor_bytes = descriptor.bytes.clone();
     let plan = private_native_callable_v3_plan(fixture);
     let fault = match fault {
         PrivateNativeCallableV3Fault::PhysicalFailure { checkpoint, code } => {
@@ -621,13 +690,11 @@ pub fn emit_private_native_callable_v3_fault_fixture(
             }
         }
     };
-    let spec = native_callable_provider_v3::NativeCallableProviderV3Spec::new(descriptor, plan)?
-        .with_test_fault(fault)?;
+    let spec =
+        native_callable_provider_v3::NativeCallableProviderV3Spec::new(descriptor.clone(), plan)?
+            .with_test_fault(fault)?;
     let provider = native_callable_provider_v3::emit(&spec)?;
-    Ok(PrivateNativeCallableV3Artifact {
-        descriptor: descriptor_bytes,
-        source: provider.source,
-    })
+    Ok(private_native_callable_v3_artifact(descriptor, provider))
 }
 
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
@@ -667,7 +734,6 @@ pub fn emit_private_native_callable_v3_corpus_fixture(
     reference: &crate::conformance::ConformanceTrace,
 ) -> Result<PrivateNativeCallableV3Artifact, Diagnostic> {
     let descriptor = native_callable_abi_v3::derive(program, function_id)?;
-    let descriptor_bytes = descriptor.bytes.clone();
     let plan = native_callable_provider_v3::corpus_witness_plan(
         program,
         function_id,
@@ -675,12 +741,10 @@ pub fn emit_private_native_callable_v3_corpus_fixture(
         expected_owned_result_ordinal,
         reference,
     )?;
-    let spec = native_callable_provider_v3::NativeCallableProviderV3Spec::new(descriptor, plan)?;
+    let spec =
+        native_callable_provider_v3::NativeCallableProviderV3Spec::new(descriptor.clone(), plan)?;
     let provider = native_callable_provider_v3::emit(&spec)?;
-    Ok(PrivateNativeCallableV3Artifact {
-        descriptor: descriptor_bytes,
-        source: provider.source,
-    })
+    Ok(private_native_callable_v3_artifact(descriptor, provider))
 }
 
 fn native_callable_execution_cleanup_fingerprint(components: &[&[u8]]) -> [u8; 32] {
@@ -1964,6 +2028,43 @@ fn main() -> i64 { 0 }
         )
         .unwrap();
         hir::resolve(&parsed).unwrap()
+    }
+
+    #[test]
+    fn private_ios_static_fixture_facade_binds_descriptor_source_and_symbols() {
+        let corpus = crate::owned_resource_corpus::build_owned_resource_corpus_v1().unwrap();
+        let function = DeclarationId::new("token.discard-two");
+        let targets = [
+            PrivateNativeCallableV3IosTarget::DeviceArm64,
+            PrivateNativeCallableV3IosTarget::SimulatorArm64,
+            PrivateNativeCallableV3IosTarget::SimulatorX86_64,
+            PrivateNativeCallableV3IosTarget::MacCatalystArm64,
+            PrivateNativeCallableV3IosTarget::MacCatalystX86_64,
+        ];
+        let mut artifacts = Vec::new();
+        for target in targets {
+            let artifact = emit_private_native_callable_v3_ios_fixture(
+                &corpus.program,
+                &function,
+                PrivateNativeCallableV3Fixture::ScalarDiscardTwo,
+                target,
+            )
+            .unwrap();
+            let metadata =
+                emit_private_native_callable_v3_ios_descriptor(&corpus.program, &function, target)
+                    .unwrap();
+            assert_eq!(artifact.descriptor(), metadata.bytes());
+            assert_eq!(artifact.getter_symbol(), metadata.getter_symbol());
+            assert_eq!(artifact.execute_symbol(), metadata.execute_symbol());
+            assert_eq!(artifact.settle_symbol(), metadata.settle_symbol());
+            assert!(artifact.source().contains(artifact.getter_symbol()));
+            assert!(artifact.source().contains(artifact.execute_symbol()));
+            assert!(artifact.source().contains(artifact.settle_symbol()));
+            assert!(artifacts
+                .iter()
+                .all(|prior: &Vec<u8>| prior.as_slice() != artifact.descriptor()));
+            artifacts.push(artifact.descriptor().to_vec());
+        }
     }
 
     #[test]

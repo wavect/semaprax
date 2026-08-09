@@ -83,9 +83,10 @@ malformed, interruption, replay, and conflict evidence. Canonical pre-execute
 unwind is also settled without entering execute. The private static-registration
 logic now has a mandatory gate through the same host ledger for five distinct
 iOS device, simulator, and Catalyst Rust targets, with no dynamic loader
-surface. The next gate still requires actual linking/runtime/app-host evidence, broader
-fatal-allocation/process-crash injection,
-representative Android/iOS runtime evidence, and quiescence. None of these
+surface. One exact arm64-Simulator link/runtime path is implemented and awaits
+hosted observation; after that, app-host/device and broader iOS corpus evidence,
+fatal-allocation/process-crash injection, representative Android runtime, and
+quiescence remain. None of these
 private steps opens public admission or `SPX-B104`.
 
 The model-backed, proposed [RFC 0004 native call recovery and settlement
@@ -106,9 +107,13 @@ trace-certificate fingerprint through a nonzero host-recomputed digest and
 rejects resealed mutations; this is not independent host acceptance of the
 trace-path DFA certificate. The emitter is bound to its compiler build target
 with no public/general Android/iOS/Windows machine-code cross-emission; a hidden
-selector emits iOS descriptor identities only. Windows dynamic runtime is
-green, while Android/iOS runtime is absent. The five gated iOS device,
-simulator, and macabi target identities remain distinct. Private graph-derived
+selector can emit one exact target-bound iOS evidence provider. Windows dynamic
+runtime is green. A mandatory job is configured to link and execute the
+`token.discard-two` provider on arm64 iOS Simulator at `-O0`/`-O2`; it counts
+only after the hosted job for the revision is green. Android runtime, iOS device
+and app lifecycle execution, and the remaining iOS corpus are absent. The five
+gated iOS device, simulator, and macabi target identities remain distinct.
+Private graph-derived
 providers execute all 14 normal scenarios at `-O0`/`-O2`; the desktop v3 loader
 binds exact descriptor bytes and all entry points to one root image; and the
 host provides exact-instance receipt authority, authoritative owner
@@ -116,8 +121,9 @@ generations, atomic receipt/ledger publication, cached replay, and drop-safe
 quarantine. One joint path now covers all 14 normal scenarios at `-O0`/`-O2`
 without measured Rust heap growth across its irreversible interval. Canonical
 pre-execute unwind now reaches authenticated abort receipt without entering
-execute. Fatal allocator/crash recovery, representative iOS/mobile execution,
-and public compiler admission stay closed with `SPX-B104`. A private
+execute. Fatal allocator/crash recovery, representative Android/mobile
+execution, broader iOS runtime, and public compiler admission stay closed with
+`SPX-B104`. A private
 process-lifetime exact-address static registry now reaches the shared ledger in
 non-Apple fake-function evidence; it makes no `dlopen`, unload, or device claim.
 
@@ -139,8 +145,9 @@ irreversible interval; decode-reserve failure quarantines exact evidence, and
 seven joint fixtures exercise returned failure, malformed wires, durable
 interruption, replay, and conflict under normal builds, with provider sanitizer
 evidence. Canonical pre-execute unwind is wired and the private static registry
-exists. Next, broader crash/fatal-allocation injection, representative iOS and
-Android execution, and quiescence evidence remain.
+exists. The next bounded mobile gate is one exact arm64 iOS Simulator provider;
+after that, broader iOS corpus/app lifecycle, Android execution, crash/fatal-
+allocation injection, and quiescence evidence remain.
 The pure model itself grants none of that authority and does not open
 `SPX-B104`.
 

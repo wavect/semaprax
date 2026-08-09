@@ -22,11 +22,13 @@ containment guarantee. Ordinary native resource compilation remains
 This ABI is the metadata boundary for [RFC 0004](RFC-0004-NATIVE-CALL-SETTLEMENT.md).
 It binds one validated direct-trivial owned callable to its recovery graph,
 future `execute`/`settle` entry points, exact descriptor capacities, and a
-dynamic-image or iOS-static linkage role. The current machine-code emitter
+dynamic-image or iOS-static linkage role. The ordinary machine-code emitter
 derives the physical target from the compiler's own build target and exposes no
-public/general cross-target configuration; a hidden closed selector emits iOS
-descriptor identities only. Android and iOS runtime evidence is absent, while
-Windows dynamic runtime is green. It is a new contract: v1, v2,
+public/general cross-target configuration; a hidden closed selector emits
+complete target-bound evidence providers for five enumerated iOS targets.
+Android runtime evidence is absent; the single arm64-Simulator gate remains
+unobserved until its hosted revision passes, while Windows dynamic runtime is
+green. It is a new contract: v1, v2,
 settlement-proof v1, and v3 are
 mutually incompatible and there is no negotiation or fallback.
 
@@ -56,9 +58,14 @@ Source cfg isolation and a mandatory macOS gate require the unpublished loader
 and host static-only composition to type-check for five distinct iOS device,
 simulator, and Mac Catalyst/macabi Rust targets. Those target builds must exclude
 `libloading`, all dynamic `open_*` APIs, and the desktop v1/v2 host API.
-Cross-target type checking is not linking, runtime execution, an app
-host, or public admission; the five target strings cannot share admission
-evidence merely because they use the same static-registration linkage tag.
+The mandatory job is also configured to derive one exact arm64-Simulator
+`token.discard-two` descriptor and strict-C provider from the same compiler
+facts, link it with the private host, and run it through static registration and
+authenticated receipt commit at `-O0` and `-O2`. That counts as runtime evidence
+only when the hosted job for the revision is green. It is not an app host,
+device execution, general iOS corpus/backend claim, or public admission; the
+five target strings cannot share admission evidence merely because they use the
+same static-registration linkage tag.
 
 ## Descriptor layout
 
@@ -566,13 +573,17 @@ Rust heap growth across the irreversible interval. A non-Apple static-function
 fixture proves same-thread exact re-registration, cross-thread and target/address
 conflict rejection, shared draining/quarantine behavior, and process-lifetime
 retention. A mandatory gate requires the loader/host static-only composition to
-type-check for all five iOS-family Rust targets, but does not link or execute it
-there. This
-tranche does not implement callbacks,
+type-check for all five iOS-family Rust targets. It is additionally configured
+to cross-emit, link, ad-hoc sign, and execute one exact arm64-Simulator provider
+as a standalone Mach-O at `-O0`/`-O2`, with exact finalizers, authenticated
+receipt/ledger transition, and zero measured Rust allocation in the irreversible
+interval. This is evidence only after the hosted job is green. This tranche does
+not implement callbacks,
 async work, concurrency, fork/hot reload, imported finalizers, general
-machine-code cross-target emission, mobile execution, public adoption,
-or ecosystem FFI. The emitter is bound to its own build target; the hidden iOS
-selector emits metadata identities rather than machine code. V3 Windows runtime
+machine-code cross-target emission beyond the closed evidence selector, iOS
+device/app lifecycle execution, public adoption, or ecosystem FFI. The emitter
+remains build-target-bound for ordinary use; only the hidden closed iOS evidence
+selector emits the exact target-specific provider. V3 Windows runtime
 is green in hosted run 31313341303. Legacy loader
 constructors still reject `SPXNABI3`; the separate private v3 constructor admits
 only exact root-provenance images.

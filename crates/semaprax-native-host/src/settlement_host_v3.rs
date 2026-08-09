@@ -395,7 +395,14 @@ impl PrivateSettlementHostV3 {
 
         // Every allocation and exact-capacity check needed by the provider's
         // physical buffers has completed before this irreversible boundary.
-        #[cfg(test)]
+        #[cfg(any(
+            test,
+            all(
+                feature = "unstable-ios-simulator-harness",
+                target_os = "ios",
+                target_abi = "sim"
+            )
+        ))]
         let postcommit_allocation_probe = crate::postcommit_allocation_probe::begin();
         transaction.call_commit()?;
         let execute_return = self.module_lease.invoke_execute(&mut provider)?;
@@ -508,7 +515,14 @@ impl PrivateSettlementHostV3 {
             actions: &actions,
             candidate: &candidate,
         })?;
-        #[cfg(test)]
+        #[cfg(any(
+            test,
+            all(
+                feature = "unstable-ios-simulator-harness",
+                target_os = "ios",
+                target_abi = "sim"
+            )
+        ))]
         let _postcommit_allocation_count = postcommit_allocation_probe.finish();
         Ok(PrivateRecoveryCommit {
             identity,
@@ -556,7 +570,14 @@ impl PrivateSettlementHostV3 {
         let candidate_dispositions =
             Vec::with_capacity(self.descriptor.capacities.resource_count as usize);
 
-        #[cfg(test)]
+        #[cfg(any(
+            test,
+            all(
+                feature = "unstable-ios-simulator-harness",
+                target_os = "ios",
+                target_abi = "sim"
+            )
+        ))]
         let postcommit_allocation_probe = crate::postcommit_allocation_probe::begin();
         transaction.call_commit()?;
         let decision = SettlementDecision {
@@ -630,7 +651,14 @@ impl PrivateSettlementHostV3 {
             actions: &actions,
             candidate: &candidate,
         })?;
-        #[cfg(test)]
+        #[cfg(any(
+            test,
+            all(
+                feature = "unstable-ios-simulator-harness",
+                target_os = "ios",
+                target_abi = "sim"
+            )
+        ))]
         let _postcommit_allocation_count = postcommit_allocation_probe.finish();
         Ok(PrivateHostUnwindCommit {
             identity,

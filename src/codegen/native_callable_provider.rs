@@ -322,6 +322,70 @@ enum ProviderEndianGuard {
     Big,
 }
 
+/// Closed physical iOS-family target selector for private statically linked
+/// callable-v3 fixtures. It is deliberately separate from the build target so
+/// cross-target fixture generation never inherits ambient compiler cfgs.
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum IosProviderPhysicalTarget {
+    DeviceArm64,
+    SimulatorArm64,
+    SimulatorX86_64,
+    MacCatalystArm64,
+    MacCatalystX86_64,
+}
+
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+impl IosProviderPhysicalTarget {
+    pub(super) const fn canonical_tag(self) -> &'static str {
+        match self {
+            Self::DeviceArm64 => "aarch64-ios-device-apple-macho-ptr64-little-callable-v3",
+            Self::SimulatorArm64 => "aarch64-ios-simulator-apple-macho-ptr64-little-callable-v3",
+            Self::SimulatorX86_64 => "x86_64-ios-simulator-apple-macho-ptr64-little-callable-v3",
+            Self::MacCatalystArm64 => "aarch64-ios-catalyst-apple-macho-ptr64-little-callable-v3",
+            Self::MacCatalystX86_64 => "x86_64-ios-catalyst-apple-macho-ptr64-little-callable-v3",
+        }
+    }
+}
+
+/// Emit the exact C preprocessor proof paired with one iOS-static descriptor.
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+pub(super) fn ios_provider_target_guards(target: IosProviderPhysicalTarget) -> String {
+    let architecture = match target {
+        IosProviderPhysicalTarget::DeviceArm64
+        | IosProviderPhysicalTarget::SimulatorArm64
+        | IosProviderPhysicalTarget::MacCatalystArm64 => {
+            "(defined(__aarch64__) || defined(__arm64__)) && !defined(__x86_64__) && !defined(__i386__)"
+        }
+        IosProviderPhysicalTarget::SimulatorX86_64
+        | IosProviderPhysicalTarget::MacCatalystX86_64 => {
+            "defined(__x86_64__) && !defined(__aarch64__) && !defined(__arm64__) && !defined(__arm__)"
+        }
+    };
+    let operating_system = match target {
+        IosProviderPhysicalTarget::DeviceArm64 => {
+            "defined(__APPLE__) && defined(__MACH__) && defined(TARGET_OS_IOS) && TARGET_OS_IOS && defined(TARGET_OS_SIMULATOR) && !TARGET_OS_SIMULATOR && defined(TARGET_OS_MACCATALYST) && !TARGET_OS_MACCATALYST"
+        }
+        IosProviderPhysicalTarget::SimulatorArm64
+        | IosProviderPhysicalTarget::SimulatorX86_64 => {
+            "defined(__APPLE__) && defined(__MACH__) && defined(TARGET_OS_IOS) && TARGET_OS_IOS && defined(TARGET_OS_SIMULATOR) && TARGET_OS_SIMULATOR && defined(TARGET_OS_MACCATALYST) && !TARGET_OS_MACCATALYST"
+        }
+        IosProviderPhysicalTarget::MacCatalystArm64
+        | IosProviderPhysicalTarget::MacCatalystX86_64 => {
+            "defined(__APPLE__) && defined(__MACH__) && defined(TARGET_OS_IOS) && TARGET_OS_IOS && defined(TARGET_OS_SIMULATOR) && !TARGET_OS_SIMULATOR && defined(TARGET_OS_MACCATALYST) && TARGET_OS_MACCATALYST"
+        }
+    };
+    render_provider_target_guards(ProviderTargetGuardSpec {
+        includes: "#include <TargetConditionals.h>\n",
+        architecture,
+        operating_system,
+        environment: "defined(__APPLE__) && !defined(_WIN32)",
+        object_format: "defined(__MACH__) && !defined(__ELF__)",
+        pointer_width: "UINTPTR_MAX == UINT64_MAX",
+        endian: ProviderEndianGuard::Little,
+    })
+}
+
 /// Emit a preprocessor proof that the C compiler is materializing the exact
 /// physical target authenticated by callable descriptor v2. Unsupported or
 /// unprovable Rust targets fail during provider derivation; a mismatched C
@@ -895,6 +959,89 @@ mod tests {
         assert!(gnu.contains("#if !(defined(__ELF__) && !defined(__MACH__))"));
         assert!(gnu.contains("defined(__BYTE_ORDER__)"));
         assert!(!gnu.contains("TARGET_OS_"));
+    }
+
+    #[test]
+    fn ios_static_target_guards_are_closed_distinct_and_stable() {
+        let targets = [
+            IosProviderPhysicalTarget::DeviceArm64,
+            IosProviderPhysicalTarget::SimulatorArm64,
+            IosProviderPhysicalTarget::SimulatorX86_64,
+            IosProviderPhysicalTarget::MacCatalystArm64,
+            IosProviderPhysicalTarget::MacCatalystX86_64,
+        ];
+        let guards = targets.map(ios_provider_target_guards);
+        for (index, guard) in guards.iter().enumerate() {
+            assert!(guard.starts_with("#include <TargetConditionals.h>\n"));
+            assert!(guard.contains("defined(TARGET_OS_IOS) && TARGET_OS_IOS"));
+            assert!(guard.contains("defined(TARGET_OS_SIMULATOR)"));
+            assert!(guard.contains("defined(TARGET_OS_MACCATALYST)"));
+            assert!(guard.contains("UINTPTR_MAX == UINT64_MAX"));
+            assert!(guards[index + 1..].iter().all(|other| other != guard));
+        }
+        assert!(guards[0].contains("!TARGET_OS_SIMULATOR"));
+        assert!(guards[1].contains("TARGET_OS_SIMULATOR"));
+        assert!(guards[1].contains("!TARGET_OS_MACCATALYST"));
+        assert!(guards[3].contains("TARGET_OS_MACCATALYST"));
+        assert!(guards[3].contains("!TARGET_OS_SIMULATOR"));
+
+        let mut hasher = Sha256::new();
+        for (target, guard) in targets.into_iter().zip(guards) {
+            hasher.update((target.canonical_tag().len() as u64).to_be_bytes());
+            hasher.update(target.canonical_tag().as_bytes());
+            hasher.update((guard.len() as u64).to_be_bytes());
+            hasher.update(guard.as_bytes());
+        }
+        assert_eq!(
+            format!("{:x}", hasher.finalize()),
+            "84eb82f6f26f3026fe94ee6c712a4e7add346ea8041b177a7dbd4adebe96d9b4"
+        );
+    }
+
+    #[test]
+    fn ios_simulator_and_catalyst_guards_reject_each_others_target_conditionals() {
+        if Command::new("clang").arg("--version").output().is_err() {
+            return;
+        }
+        fn preprocess(guard: &str, simulator: bool, directory: &std::path::Path) -> bool {
+            fs::write(
+                directory.join("TargetConditionals.h"),
+                format!(
+                    "#define TARGET_OS_IOS 1\n#define TARGET_OS_SIMULATOR {}\n#define TARGET_OS_MACCATALYST {}\n",
+                    u8::from(simulator),
+                    u8::from(!simulator),
+                ),
+            )
+            .unwrap();
+            fs::write(
+                directory.join("guard.c"),
+                format!("#include <stdint.h>\n{guard}\nint semaprax_guard_probe;\n"),
+            )
+            .unwrap();
+            Command::new("clang")
+                .args([
+                    "-E",
+                    "-D__x86_64__=1",
+                    "-U__aarch64__",
+                    "-U__arm64__",
+                    "-U__arm__",
+                    "-I",
+                ])
+                .arg(directory)
+                .arg(directory.join("guard.c"))
+                .output()
+                .unwrap()
+                .status
+                .success()
+        }
+
+        let directory = fixture_directory();
+        let simulator = ios_provider_target_guards(IosProviderPhysicalTarget::SimulatorX86_64);
+        let catalyst = ios_provider_target_guards(IosProviderPhysicalTarget::MacCatalystX86_64);
+        assert!(preprocess(&simulator, true, directory.path()));
+        assert!(!preprocess(&catalyst, true, directory.path()));
+        assert!(preprocess(&catalyst, false, directory.path()));
+        assert!(!preprocess(&simulator, false, directory.path()));
     }
 
     #[test]

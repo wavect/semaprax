@@ -129,14 +129,19 @@ ASan+UBSan. Canonical pre-execute `AbortHostUnwind` skips provider execute,
 binds zero-filled response storage, performs certified abort settlement, and
 commits an authenticated host receipt. Bounded process-lifetime static-
 registration logic feeds the same ledger in non-Apple fake-function evidence
-without `dlopen` or unload. The source and mandatory macOS CI gate require that
+without `dlopen` or unload. The mandatory macOS CI gate requires that
 static-only path to type-check for five distinct iOS device, simulator, and
 Catalyst Rust targets, with no resolved `libloading` or dynamic `open_*`
-surface. This is
-cross-target compilation, not linking, simulator/device execution, Swift or
-XCFramework integration, or public admission. It is also not exhaustive process-crash or
-fatal-allocator evidence, representative iOS/Android execution, quiescence, or
-containment of malicious native code. `SPX-B104` stays closed.
+surface. The same gate is configured to generate one exact
+`token.discard-two` provider for arm64 iOS Simulator, link it with the private
+host as an ad-hoc-signed standalone Mach-O, and run provider → static
+registration → authenticated receipt/ledger commit at `-O0` and `-O2`. That
+runtime evidence counts only when the hosted gate for the revision is green.
+It is one bounded Simulator process, not device execution, Apple app lifecycle,
+UIKit/Swift or XCFramework integration, general mobile support, or public
+admission. It is also not exhaustive process-crash or fatal-allocator evidence,
+representative Android execution, quiescence, or containment of malicious
+native code. `SPX-B104` stays closed.
 
 Not implemented yet: public native resource execution/admission,
 general-shape native/reference/Wasm trace conformance, the general Wasm resource ABI,
@@ -195,10 +200,12 @@ digest but does not independently accept the trace-path DFA certificate. The
 six-argument execute ABI, payload-bearing frame cells, closed tags, exact
 capacities, digest DAG, and receipt authentication transcript replace the
 former provisional identities and freeze new private v3 known answers.
-The current emitter is bound to its compiler build target and has no public or
+The ordinary emitter is bound to its compiler build target and has no public or
 general machine-code cross-target configuration; a closed hidden selector emits
-iOS descriptor identities only. Windows dynamic runtime evidence is green;
-Android/iOS runtime evidence remains absent. The private physical tranche now has graph-derived
+complete target-bound iOS evidence providers for five enumerated targets.
+Windows dynamic runtime evidence is green. The single arm64-Simulator gate is
+configured but remains unobserved until its hosted revision passes; Android
+runtime remains absent. The private physical tranche now has graph-derived
 providers for all 14 normal corpus scenarios running through the generated-
 provider → desktop-loader → receipt-ledger path at `-O0`/`-O2`. That joint
 path proves exact descriptor/image/instance binding, pre-settle copied-evidence

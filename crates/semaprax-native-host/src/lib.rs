@@ -13,7 +13,18 @@
 //! On iOS, only the private callable-v3 static-lease composition is compiled;
 //! the desktop dynamic host API is absent and no public admission path opens.
 
-#[cfg(test)]
+#[cfg(any(test, feature = "unstable-ios-simulator-harness"))]
+#[cfg_attr(
+    all(
+        feature = "unstable-ios-simulator-harness",
+        not(test),
+        not(all(target_os = "ios", target_abi = "sim"))
+    ),
+    allow(
+        dead_code,
+        reason = "allocation probe is type-checked before Simulator linking"
+    )
+)]
 mod postcommit_allocation_probe {
     use std::alloc::{GlobalAlloc, Layout, System};
     use std::cell::Cell;
@@ -94,7 +105,14 @@ mod postcommit_allocation_probe {
     }
 }
 
-#[cfg(test)]
+#[cfg(any(
+    test,
+    all(
+        feature = "unstable-ios-simulator-harness",
+        target_os = "ios",
+        target_abi = "sim"
+    )
+))]
 #[global_allocator]
 static POSTCOMMIT_COUNTING_ALLOCATOR: postcommit_allocation_probe::CountingAllocator =
     postcommit_allocation_probe::CountingAllocator;
@@ -115,6 +133,8 @@ mod descriptor_v2_integration;
 mod descriptor_v3;
 #[cfg(all(test, not(target_os = "ios")))]
 mod descriptor_v3_integration;
+#[cfg(feature = "unstable-ios-simulator-harness")]
+mod ios_simulator_harness;
 mod receipt_authority;
 mod settlement_host_v3;
 #[cfg(all(test, not(target_os = "ios")))]

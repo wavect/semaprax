@@ -8,6 +8,10 @@ description = "Thread-confined physical native ownership host for SEMAPRAX"
 license = "Apache-2.0"
 repository = "https://github.com/wavect/semaprax"
 
+[features]
+default = []
+unstable-ios-simulator-harness = []
+
 [dependencies]
 semaprax = { path = "../..", version = "0.2.0", features = ["unstable-native-host-internal"] }
 hmac = "=0.12.1"
@@ -19,3 +23,8 @@ semaprax-native-loader = { path = "../semaprax-native-loader", version = "0.1.0"
 
 [lints.rust]
 unsafe_op_in_unsafe_fn = "deny"
+
+[[bin]]
+name = "private-ios-simulator-v3-fixture"
+path = "src/bin/private_ios_simulator_v3_fixture.rs"
+required-features = ["unstable-ios-simulator-harness"]

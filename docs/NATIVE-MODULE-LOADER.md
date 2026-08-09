@@ -38,9 +38,12 @@ tuple to a same-thread exact logical instance and feeds the same private host
 receipt/ledger/quarantine composition as dynamic v3. Every iOS build excludes
 the dynamic leases, path/image provenance code, and all `open_*` APIs. The
 cross-target gate also fails if `libloading` reappears in any iOS dependency
-graph. This proves Rust type checking only—not provider linking, simulator or
-device execution, Apple app packaging, lifecycle integration, or public
-admission.
+graph. The same mandatory job is configured to link one exact generated
+arm64-Simulator provider with the private host and run its static lease through
+authenticated receipt commit at `-O0`/`-O2`. That runtime evidence counts only
+after the hosted job for the revision is green. It remains a standalone
+Simulator process—not device execution, Apple app packaging, lifecycle/UI/Swift
+integration, general iOS admission, or public admission.
 
 The constructor is intentionally `unsafe`. Loading executes the selected
 image's and dependencies' initializers before descriptor validation and may run
@@ -123,10 +126,9 @@ and removing that sibling must fail as `LibraryOpen` rather than falling back
 to the malicious image. CI also names the complete generated O0/O2 callable
 corpus as an explicit Windows gate. Both passed in [run 31257545008, job
 93103151756](https://github.com/wavect/semaprax/actions/runs/31257545008/job/93103151756).
-The current evidence still does not prove
-immediate physical unmapping, broader Windows
-application-platform completion, iOS linking or runtime execution,
-Android device execution,
+The current evidence still does not prove immediate physical unmapping, broader
+Windows application-platform completion, iOS device/app lifecycle or general-
+corpus execution, Android device execution,
 callback/finalizer quiescence, hot reload, fork recovery, signed code admission,
 or callable resource safety. Those remain gates before any public native
 adapter or `SPX-B104` change. Bounded Linux Rust-host ASan evidence is green in

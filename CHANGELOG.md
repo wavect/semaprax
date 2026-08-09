@@ -4,6 +4,15 @@ All notable changes to SEMAPRAX are documented here.
 
 ## 0.2.0 — 2026-08-07
 
+- Added a mandatory private arm64 iOS Simulator runtime gate for one exact
+  `token.discard-two` callable-v3 provider. The closed emitter produces the
+  target-specific descriptor and strict-C provider; CI links it with the
+  static-only loader/host, ad-hoc signs the standalone Mach-O, and requires
+  exact O0/O2 finalizers, authenticated no-owned receipt/ledger transition, and
+  zero measured Rust allocation across the irreversible interval. Evidence is
+  counted only after the hosted job for the revision is green; device/app
+  lifecycle, the remaining iOS corpus, Android, and public admission remain
+  open.
 - Added iOS-target cfg isolation plus a mandatory macOS CI cross-check for the
   unpublished static callable-v3 loader and receipt/ledger host across five
   distinct device, simulator, and Catalyst Rust targets. The gate requires zero

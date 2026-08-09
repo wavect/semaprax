@@ -303,9 +303,11 @@ lifetime static-registration model binds exact descriptor/getter/execute/settle
 addresses and target identity without exposing paths, close, or unload. It is
 exercised with non-Apple fake functions, and a mandatory macOS gate now requires
 the unpublished loader and host static-only path to type-check for five iOS
-device, simulator, and Catalyst Rust targets. That cross-target check adds no
-link, runtime, app-host, or public API
-compatibility promise.
+device, simulator, and Catalyst Rust targets. A new feature-only evidence
+harness additionally cross-emits one exact arm64-Simulator provider and the
+mandatory job is configured to link and run it against the private host at
+`-O0`/`-O2`. This private migration changes no public API or compatibility
+promise; the runtime result is evidence only after that hosted job is green.
 
 V3 now freezes six provider wire roles and a separate host-only committed
 receipt: exact envelopes, tags, checked capacities, a six-argument execute ABI,
@@ -321,10 +323,12 @@ Provider candidate evidence must never be relabeled as a host receipt,
 and model `ReceiptCommitted` must not be treated as public ledger
 `ReceiptCommit`.
 
-The current emitter derives its target from the compiler build and exposes no
+The ordinary emitter derives its target from the compiler build and exposes no
 public or general machine-code cross-target configuration. A hidden selector
-emits closed iOS descriptor identities only. Android and iOS runtime evidence
-remain absent; Windows dynamic runtime is green. Future iOS device, simulator, and Mac Catalyst/macabi
+emits complete target-bound evidence providers for five closed iOS targets.
+Android runtime evidence remains absent; the single arm64-Simulator gate is
+configured but remains unobserved until its hosted revision passes; Windows
+dynamic runtime is green. Future iOS device, simulator, and Mac Catalyst/macabi
 profiles must retain distinct target strings even though they share static
 registration. No migration may infer physical finalizer success from
 `Finalizing`; interruption remains uncertain and quarantined without retry.
@@ -337,10 +341,12 @@ reserve failure quarantines exact evidence and pins. Seven joint failure
 fixtures add returned/malformed/interruption/replay/conflict evidence, and
 canonical pre-execute unwind reaches authenticated abort receipt commit without
 entering provider execute. The private static-registration model has non-Apple
-runtime evidence plus a mandatory five-target iOS compilation gate; hosted
-observation belongs to that job, and there is no iOS link or runtime evidence.
-Consumers must not generalize that evidence to fatal
-allocator/process-crash recovery or representative mobile execution. These
+runtime evidence plus a mandatory five-target iOS compilation gate. That gate
+is now configured to link and execute one exact arm64 Simulator provider through
+the same receipt ledger at `-O0`/`-O2`; hosted observation belongs only to a
+green job for the revision. Consumers must not generalize this single standalone
+process to device/app lifecycle coverage, the remaining iOS corpus, fatal
+allocator/process-crash recovery, or representative mobile execution. These
 additions provide no public admission,
 general physical-finalizer, or mobile execution guarantee. They change no
 native execution gate and leave `SPX-B104` closed.

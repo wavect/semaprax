@@ -280,7 +280,7 @@ semaprax = {{ path = "{manifest_root}", default-features = false }}
     fs::create_dir(consumer.join("src")).unwrap();
     fs::write(
         consumer.join("src/main.rs"),
-        r#"use semaprax::codegen::{emit_native_callable_v3_descriptor, emit_private_native_callable_v3_corpus_fixture, emit_private_native_callable_v3_fault_fixture, emit_private_native_callable_v3_fixture, emit_private_native_callable_v3_ios_descriptor, NativeCallableV3DescriptorArtifact, PrivateNativeCallableV3Artifact, PrivateNativeCallableV3Fault, PrivateNativeCallableV3Fixture, PrivateNativeCallableV3IosTarget};
+        r#"use semaprax::codegen::{emit_native_callable_v3_descriptor, emit_private_native_callable_v3_corpus_fixture, emit_private_native_callable_v3_fault_fixture, emit_private_native_callable_v3_fixture, emit_private_native_callable_v3_ios_descriptor, emit_private_native_callable_v3_ios_fixture, NativeCallableV3DescriptorArtifact, PrivateNativeCallableV3Artifact, PrivateNativeCallableV3Fault, PrivateNativeCallableV3Fixture, PrivateNativeCallableV3IosTarget};
 
 fn main() {
     let _ = emit_native_callable_v3_descriptor;
@@ -288,6 +288,7 @@ fn main() {
     let _ = emit_private_native_callable_v3_fault_fixture;
     let _ = emit_private_native_callable_v3_fixture;
     let _ = emit_private_native_callable_v3_ios_descriptor;
+    let _ = emit_private_native_callable_v3_ios_fixture;
     let _ = std::mem::size_of::<NativeCallableV3DescriptorArtifact>();
     let _ = std::mem::size_of::<PrivateNativeCallableV3Artifact>();
     let _ = std::mem::size_of::<PrivateNativeCallableV3Fault>();
@@ -316,6 +317,7 @@ fn main() {
             && stderr.contains("emit_private_native_callable_v3_corpus_fixture")
             && stderr.contains("emit_private_native_callable_v3_fault_fixture")
             && stderr.contains("emit_private_native_callable_v3_ios_descriptor")
+            && stderr.contains("emit_private_native_callable_v3_ios_fixture")
             && stderr.contains("PrivateNativeCallableV3Artifact")
             && stderr.contains("PrivateNativeCallableV3Fault")
             && stderr.contains("PrivateNativeCallableV3Fixture")

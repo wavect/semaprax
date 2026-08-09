@@ -42,10 +42,13 @@ unwind skips execute and reaches authenticated abort receipt commit. Private
 bounded static-registration logic feeds the same ledger in non-Apple
 fake-function evidence. A mandatory macOS gate requires the unpublished loader
 and host static-only composition to type-check for five distinct iOS-family
-Rust targets, excluding dynamic loading and desktop v1/v2 host APIs. There is no
-iOS linking or runtime
-execution, representative mobile execution, or general
-physical-finalizer authority, or public callable-v3 compiler surface. Callable
+Rust targets, excluding dynamic loading and desktop v1/v2 host APIs. The same
+gate is configured to cross-emit and link one exact arm64-Simulator provider and
+run it through static registration and authenticated receipt commit at
+`-O0`/`-O2`; that is evidence only after the hosted job for the revision is
+green. There is no iOS device/app lifecycle or general-corpus execution,
+representative mobile execution, general physical-finalizer authority, or
+public callable-v3 compiler surface. Callable
 v2 has an independent public
 build-only bundle surface plus a feature-gated execution experiment; ordinary
 native resource execution still fails with `SPX-B104`, and
@@ -578,16 +581,20 @@ registration constructor that binds one exact descriptor/getter/execute/settle
 address tuple to the same ledger pin contract as dynamic admission; it exposes
 no path, `dlopen`, close, or unload operation. A mandatory macOS gate requires
 the unpublished loader and host static-only constructor/ledger composition to
-type-check for five iOS-family Rust targets, with no dynamic loader surface.
-This gate is not iOS linking, runtime, device/simulator execution, or app
-integration.
+type-check for five iOS-family Rust targets, with no dynamic loader surface. It
+is also configured to link one exact generated provider with the private host
+as an ad-hoc-signed arm64 Simulator Mach-O and execute it at `-O0`/`-O2` through
+`simctl`. A green hosted job proves only that bounded standalone process, not
+device execution, an installed app, lifecycle/UI/Swift integration, or the
+remaining corpus.
 The private callable-v3 document fixes its
 descriptor and seven runtime wire codecs, derived symbols, capacities, and
 host-only receipt transcript. A private desktop dynamic loader, receipt
 authority, fixed-capacity atomic ledger/facade, and one all-14-scenario joint
 provider/loader/host path are implemented. The
-emitter derives only its compiler build target and has no cross-target
-configuration except for closed non-Apple static-registration fixtures.
+emitter derives only its compiler build target in ordinary use and has no
+general cross-target configuration; the closed evidence-only iOS selector can
+derive one exact provider for each enumerated static target.
 Windows dynamic runtime is green in hosted run 31313341303; representative
 Android/iOS runtime evidence is absent, and iOS device, simulator, and Mac
 Catalyst/macabi targets remain distinct. The private

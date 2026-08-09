@@ -4,12 +4,15 @@ Status: private physical tranche. `SPXNABI3` fixes the compiler/host descriptor
 projection and seven bounded physical wire formats. Independent compiler and
 host codecs are joined by a private dynamic-image loader with root-image
 provenance checks, a private OS-seeded receipt authority and fixed-capacity
-atomic ledger/facade, and generated strict-C11 providers for two bounded proof
-fixtures. Those providers compile and execute at `-O0` and `-O2` in focused
-tests. The pieces are not yet exercised as one loader-to-provider-to-host
-invocation, expose no public admission or iOS static constructor, and grant no
-general physical-finalizer or malicious-code containment guarantee. Ordinary
-native resource compilation remains `SPX-B104`.
+atomic ledger/facade, and graph-derived strict-C11 providers that execute all
+14 authoritative normal scenarios at `-O0` and `-O2`. A narrower joint test
+connects scalar discard-two and owned identity through provider, loader, and
+host receipt commit. The other scenarios have not crossed that full boundary;
+pending/pre-execute unwind fails closed, and post-`CallCommit` host evidence
+decoding/replay still allocates. This exposes no public admission or iOS static
+constructor and grants no general physical-finalizer or malicious-code
+containment guarantee. Ordinary native resource compilation remains
+`SPX-B104`.
 
 ## Scope and primitives
 
@@ -500,9 +503,9 @@ host-only committed-receipt role created only after
 independent candidate parsing, exact-instance/frame-generation replay, and host
 authentication. It is not provider output, is not covered by a provider buffer
 capacity, and is the only role eligible to accompany public ledger
-`ReceiptCommit`. The private receipt authority and bounded provider fixtures
-now implement their respective sides, but no joint invocation proves them
-together.
+`ReceiptCommit`. The private joint scalar-discard and owned-identity paths now
+exercise this boundary through exact loader admission and host authentication;
+the remaining corpus and failure paths are not yet joint evidence.
 
 ## Phases, finalizer uncertainty, and lifetime
 
@@ -541,8 +544,9 @@ generation, settlement, draining, and quarantine rules.
 Descriptor/wire equality and hash validation do not authenticate code provenance,
 make malicious native code memory-safe, observe omitted side effects, recover a
 process crash, or make an interrupted non-idempotent finalizer retryable. This
-private tranche implements only two bounded provider shapes and a desktop
-dynamic loader. It does not implement static-registration admission, callbacks,
+private tranche executes all 14 authoritative normal scenarios in generated
+providers, but only scalar discard-two and owned identity through the joint
+desktop dynamic-loader and host path. It does not implement static-registration admission, callbacks,
 async work, concurrency, fork/hot reload, imported finalizers, cross-target
 emission, mobile execution, public adoption, or ecosystem FFI. The emitter is
 bound to its own build target; there is no Android/iOS/Windows cross-emission
@@ -576,3 +580,12 @@ Before any runtime or public claim, all of these must pass together:
   package, dependency-policy, example, and documentation-link gates.
 
 Until the physical and public gates pass, `SPX-B104` remains closed.
+
+Current bounded evidence covers all 14 normal scenarios inside generated
+strict-C providers and connects only scalar discard-two and owned identity
+through dynamic loader plus host receipt commit. Pending/pre-execute
+`AbortHostUnwind` deliberately returns a nonzero settle failure with no frame,
+candidate, or physical-effect mutation until its canonical response-storage
+and execute-return transcript is specified. Host evidence decoding and replay
+also remain allocating after `CallCommit`; panic is absorbed into exact
+pre-reserved quarantine, but allocator-failure hardening is not claimed.

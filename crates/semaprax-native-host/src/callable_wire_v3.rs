@@ -1015,6 +1015,141 @@ impl HostCommittedReceipt {
 
 /// Independently replay provider evidence from the authenticated graph and
 /// exact request payloads. Success is eligibility evidence, not ReceiptCommit.
+struct ValidatedSuccessfulExecute {
+    request_digest: [u8; 32],
+    response_storage_digest: [u8; 32],
+    semantic_trace_digest: [u8; 32],
+    checkpoint_cells: Vec<ResourceCell>,
+}
+
+/// Validate the provider's returned-success evidence before any settlement
+/// decision is committed or physical settlement is entered. This gate does
+/// not trust a parseable/resealed response or frame: it reconstructs the exact
+/// semantic witness and checkpoint cells from the admitted descriptor and
+/// caller-owned request payloads.
+pub(crate) fn validate_successful_execute_evidence(
+    descriptor: &Descriptor,
+    request: &ExecuteRequest,
+    execute_return_code: u32,
+    response_storage: &[u8],
+    response: &ExecuteResponse,
+    frame: &RecoveryFrame,
+) -> Result<(), WireError> {
+    let validated = validate_successful_execute_response(
+        descriptor,
+        request,
+        execute_return_code,
+        response_storage,
+        response,
+    )?;
+    let identity = recovery_identity_from_call(request.identity, descriptor);
+    if frame.identity != identity || response.checkpoint != frame.checkpoint {
+        return Err(WireError::CrossBinding);
+    }
+    if frame.request_digest != validated.request_digest
+        || frame.response_storage_digest != validated.response_storage_digest
+        || frame.semantic_trace_digest != validated.semantic_trace_digest
+    {
+        return Err(WireError::DigestMismatch);
+    }
+    if frame.execute_return != ExecuteReturn::Returned(0)
+        || frame.phase != FramePhase::Executing
+        || frame.decision_digest != [0; 32]
+        || frame.next_action != 0
+        || frame.record_count != 0
+        || frame.active_finalizers != 0
+        || frame.cells != validated.checkpoint_cells
+        || frame.action_chain_digest != [0; 32]
+    {
+        return Err(WireError::ReplayMismatch);
+    }
+    Ok(())
+}
+
+fn validate_successful_execute_response(
+    descriptor: &Descriptor,
+    request: &ExecuteRequest,
+    execute_return_code: u32,
+    response_storage: &[u8],
+    response: &ExecuteResponse,
+) -> Result<ValidatedSuccessfulExecute, WireError> {
+    if execute_return_code != 0
+        || response_storage.len() != descriptor.capacities.execute_response as usize
+        || response.encode() != response_storage
+        || response.identity != request.identity
+    {
+        return Err(WireError::CrossBinding);
+    }
+    let request_digest_value = request_digest(&request.encode());
+    if response.request_digest != request_digest_value {
+        return Err(WireError::DigestMismatch);
+    }
+    let checkpoint = descriptor
+        .graph
+        .checkpoints
+        .get(
+            response
+                .checkpoint
+                .checked_sub(1)
+                .ok_or(WireError::ReplayMismatch)? as usize,
+        )
+        .filter(|checkpoint| checkpoint.id == response.checkpoint)
+        .ok_or(WireError::ReplayMismatch)?;
+    let semantic_trace_digest = semantic_trace_digest(descriptor, response)?;
+    if semantic_trace_digest == [0; 32] {
+        return Err(WireError::DigestMismatch);
+    }
+
+    let mut payloads = BTreeMap::new();
+    for argument in &request.arguments {
+        if let RequestArgument::Owned {
+            owner_ordinal,
+            payload,
+            ..
+        } = argument
+        {
+            if payloads.insert(*owner_ordinal, *payload).is_some() {
+                return Err(WireError::ReplayMismatch);
+            }
+        }
+    }
+    if payloads.len() != descriptor.capacities.resource_count as usize {
+        return Err(WireError::ReplayMismatch);
+    }
+    let checkpoint_cells = checkpoint
+        .resources
+        .iter()
+        .enumerate()
+        .map(|(owner, state)| {
+            Ok(ResourceCell {
+                state: graph_state_to_cell(*state)?,
+                payload: *payloads
+                    .get(&(owner as u32))
+                    .ok_or(WireError::ReplayMismatch)?,
+            })
+        })
+        .collect::<Result<Vec<_>, WireError>>()?;
+    if let ExecuteOutcome::Owned {
+        owner_ordinal,
+        payload,
+    } = response.outcome
+    {
+        if payloads.get(&owner_ordinal) != Some(&payload)
+            || checkpoint_cells
+                .get(owner_ordinal as usize)
+                .is_none_or(|cell| cell.state != CellState::ProvisionalResult)
+        {
+            return Err(WireError::ReplayMismatch);
+        }
+    }
+    Ok(ValidatedSuccessfulExecute {
+        request_digest: request_digest_value,
+        response_storage_digest: response_storage_digest(execute_return_code, response_storage),
+        semantic_trace_digest,
+        checkpoint_cells,
+    })
+}
+
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn validate_candidate_replay(
     descriptor: &Descriptor,
@@ -1100,18 +1235,22 @@ pub(crate) fn validate_candidate_replay(
             );
         }
     };
-    if execute_return_code != 0
-        || response.encode() != response_storage
-        || response.identity != request.identity
-        || response.request_digest != request_digest_value
-        || response.checkpoint != frame.checkpoint
-    {
+    if response.checkpoint != frame.checkpoint {
         return Err(WireError::CrossBinding);
     }
-    let semantic = semantic_trace_digest(descriptor, response)?;
-    if semantic == [0; 32]
-        || frame.semantic_trace_digest != semantic
-        || candidate.semantic_trace_digest != semantic
+    let validated = validate_successful_execute_response(
+        descriptor,
+        request,
+        execute_return_code,
+        response_storage,
+        response,
+    )?;
+    if frame.request_digest != validated.request_digest
+        || candidate.request_digest != validated.request_digest
+        || frame.response_storage_digest != validated.response_storage_digest
+        || candidate.response_storage_digest != validated.response_storage_digest
+        || frame.semantic_trace_digest != validated.semantic_trace_digest
+        || candidate.semantic_trace_digest != validated.semantic_trace_digest
     {
         return Err(WireError::DigestMismatch);
     }
@@ -2580,6 +2719,83 @@ mod tests {
     }
 
     #[test]
+    fn pre_settle_gate_rejects_resealed_wrong_witness_checkpoint_and_cell() {
+        let fixture = fixture();
+        let (storage, frame) =
+            build_executed(&fixture.descriptor, &fixture.request, &fixture.response);
+        validate_successful_execute_evidence(
+            &fixture.descriptor,
+            &fixture.request,
+            0,
+            &storage,
+            &fixture.response,
+            &frame,
+        )
+        .unwrap();
+
+        let mut wrong_witness = fixture.response.clone();
+        let ordinal = wrong_witness.event_ordinals.first_mut().unwrap();
+        *ordinal = if *ordinal < fixture.descriptor.capacities.dictionary_entries {
+            *ordinal + 1
+        } else {
+            *ordinal - 1
+        };
+        let wrong_witness_storage = wrong_witness.encode();
+        let wrong_witness =
+            ExecuteResponse::parse(&wrong_witness_storage, &fixture.descriptor).unwrap();
+        let (_, wrong_witness_frame) =
+            build_executed(&fixture.descriptor, &fixture.request, &wrong_witness);
+        assert!(validate_successful_execute_evidence(
+            &fixture.descriptor,
+            &fixture.request,
+            0,
+            &wrong_witness_storage,
+            &wrong_witness,
+            &wrong_witness_frame,
+        )
+        .is_err());
+
+        let mut wrong_checkpoint = fixture.response.clone();
+        wrong_checkpoint.checkpoint = fixture
+            .descriptor
+            .graph
+            .checkpoints
+            .iter()
+            .find(|checkpoint| checkpoint.id != wrong_checkpoint.checkpoint)
+            .unwrap()
+            .id;
+        let wrong_checkpoint_storage = wrong_checkpoint.encode();
+        let wrong_checkpoint =
+            ExecuteResponse::parse(&wrong_checkpoint_storage, &fixture.descriptor).unwrap();
+        let (_, wrong_checkpoint_frame) =
+            build_executed(&fixture.descriptor, &fixture.request, &wrong_checkpoint);
+        assert!(validate_successful_execute_evidence(
+            &fixture.descriptor,
+            &fixture.request,
+            0,
+            &wrong_checkpoint_storage,
+            &wrong_checkpoint,
+            &wrong_checkpoint_frame,
+        )
+        .is_err());
+
+        let mut wrong_cell = frame;
+        wrong_cell.cells[0].payload ^= 1;
+        reseal_frame(&mut wrong_cell);
+        let wrong_cell_bytes = wrong_cell.encode();
+        let wrong_cell = RecoveryFrame::parse(&wrong_cell_bytes, &fixture.descriptor).unwrap();
+        assert!(validate_successful_execute_evidence(
+            &fixture.descriptor,
+            &fixture.request,
+            0,
+            &storage,
+            &fixture.response,
+            &wrong_cell,
+        )
+        .is_err());
+    }
+
+    #[test]
     fn independent_host_encoders_match_all_six_compiler_known_answers() {
         let call = CallIdentity {
             call_contract: [1; 32],
@@ -2885,6 +3101,61 @@ mod tests {
                 .collect(),
         };
         (storage, frame, decision, actions, candidate)
+    }
+
+    fn build_executed(
+        descriptor: &Descriptor,
+        request: &ExecuteRequest,
+        response: &ExecuteResponse,
+    ) -> (Vec<u8>, RecoveryFrame) {
+        let identity = recovery_identity_from_call(request.identity, descriptor);
+        let storage = response.encode();
+        let checkpoint = &descriptor.graph.checkpoints[(response.checkpoint - 1) as usize];
+        let payloads = request
+            .arguments
+            .iter()
+            .filter_map(|argument| match argument {
+                RequestArgument::Owned {
+                    owner_ordinal,
+                    payload,
+                    ..
+                } => Some((*owner_ordinal, *payload)),
+                _ => None,
+            })
+            .collect::<BTreeMap<_, _>>();
+        let cells = checkpoint
+            .resources
+            .iter()
+            .enumerate()
+            .map(|(owner, state)| ResourceCell {
+                state: graph_state_to_cell(*state).unwrap(),
+                payload: payloads[&(owner as u32)],
+            })
+            .collect();
+        let mut frame = RecoveryFrame {
+            identity,
+            request_digest: request_digest(&request.encode()),
+            response_storage_digest: response_storage_digest(0, &storage),
+            semantic_trace_digest: raw_trace_digest_for_test(descriptor, response),
+            execute_return: ExecuteReturn::Returned(0),
+            checkpoint: response.checkpoint,
+            phase: FramePhase::Executing,
+            decision_digest: [0; 32],
+            next_action: 0,
+            record_count: 0,
+            active_finalizers: 0,
+            cells,
+            action_chain_digest: [0; 32],
+            pre_candidate_digest: [0; 32],
+        };
+        reseal_frame(&mut frame);
+        (storage, frame)
+    }
+
+    fn reseal_frame(frame: &mut RecoveryFrame) {
+        frame.pre_candidate_digest = [0; 32];
+        let provisional = frame.encode();
+        frame.pre_candidate_digest = frame_digest(&provisional[..provisional.len() - 32]);
     }
 
     fn raw_trace_digest_for_test(descriptor: &Descriptor, response: &ExecuteResponse) -> [u8; 32] {

@@ -99,18 +99,21 @@ build-only bundle emission is green on [Ubuntu](https://github.com/wavect/semapr
 and [Windows](https://github.com/wavect/semaprax/actions/runs/31259216533/job/93107277085)
 hosted CI; this is not mobile or application-host evidence.
 
-Callable v3 is a separate private component tranche. The compiler emits two
-bounded strict-C11 providers (scalar discard and owned identity) whose focused
-fixtures execute at `-O0` and `-O2`. The loader independently admits an exact
+Callable v3 is a separate private tranche. Graph-derived strict-C11 providers
+execute all 14 authoritative normal corpus scenarios at `-O0` and `-O2`. The
+loader independently admits an exact
 dynamic image only when the getter, execute, settle, and returned descriptor
 storage share canonical root-image provenance, then retains an immutable copy
 of the admitted bytes. The host independently creates
 one 64-byte OS fill split into a receipt MAC key and instance binding, and its
 fixed-capacity ledger/facade atomically commits authenticated terminal state
-and exact replay. No integration test yet invokes either generated provider
-through both the v3 loader and this facade, so these are component-level facts,
-not a joint end-to-end v3 claim. The full 14-case physical corpus, complete
-failure injection, v3 sanitizers and observed Windows runtime, Android/iOS,
+and exact replay. One joint O0/O2 test now invokes scalar discard-two and owned
+identity through generated provider, dynamic loader, and host ledger, proving
+copied-evidence decoding, replay, generation refresh, finalizer order,
+cross-instance rejection, and pin lifetime. The other corpus scenarios have
+not crossed that joint boundary. Pending/pre-execute host unwind fails closed;
+post-`CallCommit` host parsing/replay still allocates. Complete failure
+injection, publicly observed v3 sanitizer/Windows evidence, Android/iOS,
 quiescence, malicious-code containment, public admission, and `SPX-B104`
 remain closed.
 
@@ -204,24 +207,28 @@ input validator before canonicalization, image loading, getter lookup, or
 callable lookup; their exact callable-v2 classifier remains unchanged. A
 separate private v3 constructor binds the getter, execute, settle, and returned
 descriptor address to one canonical root image, retains an immutable copy of
-the admitted bytes, and returns one exact instance lease. Two generated
-strict-C11 provider fixtures execute at
-`-O0`/`-O2`, and the private host now combines an exact-descriptor-bound receipt
+the admitted bytes, and returns one exact instance lease. Graph-derived
+strict-C11 providers execute all 14 normal corpus scenarios at `-O0`/`-O2`,
+and the private host now combines an exact-descriptor-bound receipt
 authority with authoritative owner generations, allocation-free `CallCommit`,
 atomic receipt/ledger publication, cached replay, and a drop-safe transaction
-guard whose postcommit uncertainty is quarantined without retry. These pieces
-are not yet connected by one generated-provider → loader → host test, do not
-cover the full physical corpus, Windows v3 runtime CI, iOS static registration,
-or Android, and expose no public admission. `SPX-B104` remains closed.
+guard whose postcommit uncertainty is quarantined without retry. One joint
+generated-provider → loader → host test covers scalar discard-two and owned
+identity. It does not cover the other 12 scenarios, postcommit allocation
+failure, canonical pre-execute unwind recovery, publicly observed Windows v3
+runtime CI, iOS static registration, or Android, and exposes no public
+admission. `SPX-B104` remains closed.
 
-The Windows CI lane now explicitly reruns the generated O0/O2 callable corpus
+The callable-v2 Windows CI lane explicitly reruns its generated O0/O2 corpus
 and a loader fixture that places a same-name dependency in CWD and legacy
 `PATH`, then removes the root sibling to require fail-closed `LibraryOpen`.
-Both gates passed in [run 31257545008, job
+Those v2 gates passed in [run 31257545008, job
 93103151756](https://github.com/wavect/semaprax/actions/runs/31257545008/job/93103151756),
-confirming the narrow Windows callable corpus and dependency isolation. This is
-not broader Windows application-platform completion. Android/iOS device or
-static-link profiles and public native execution/admission remain required.
+confirming narrow callable-v2 corpus and dependency-isolation evidence. The new
+callable-v3 Windows and sanitizer gates are configured but remain unobserved
+until this batch passes on hosted CI. None of this is broader Windows
+application-platform completion. Android/iOS device or static-link profiles
+and public native execution/admission remain required.
 
 ## Record groundwork and backend gate
 

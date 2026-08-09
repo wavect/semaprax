@@ -74,13 +74,14 @@ Imported lifecycles, calls, aggregates, broader control flow,
 cross-realm/worker identity, aggregate layouts, variants, matching,
 concurrency, and fork recovery remain subsequent work.
 
-Callable v3 is a separate bounded physical tranche: two generated providers
-execute at `-O0`/`-O2`, the private desktop loader enforces exact root-image
-provenance, and the private host has an OS-seeded receipt authority plus a
-fixed-capacity atomic ledger/facade. The next gate is one connected host
-invocation, followed by the 14-case physical corpus, exhaustive failure
-injection, sanitizer and Windows CI runtime, Android/iOS, and quiescence. None
-of these private steps opens public admission or `SPX-B104`.
+Callable v3 is a separate bounded physical tranche: graph-derived providers
+execute all 14 normal corpus scenarios at `-O0`/`-O2`, and one narrower joint
+path connects scalar discard-two and owned identity through the private desktop
+loader to the OS-seeded receipt ledger. The next gate puts the remaining
+scenarios through that joint path and adds exhaustive failure/malformed/
+allocation injection, publicly observed sanitizer and Windows runtime,
+Android/iOS, and quiescence. None of these private steps opens public admission
+or `SPX-B104`.
 
 The model-backed, proposed [RFC 0004 native call recovery and settlement
 contract](RFC-0004-NATIVE-CALL-SETTLEMENT.md) specifies the bounded linear
@@ -100,15 +101,14 @@ trace-certificate fingerprint through a nonzero host-recomputed digest and
 rejects resealed mutations; this is not independent host acceptance of the
 trace-path DFA certificate. The emitter is bound to its compiler build target
 with no Android/iOS/Windows cross-emission or runtime evidence; future iOS
-device, simulator, and macabi targets remain distinct. Two private generated
-provider fixtures now execute at `-O0`/`-O2`; a separate desktop v3 loader
-binds immutable descriptor bytes and all entry points to one root image; and a
-private host has exact-instance receipt authority, authoritative owner
+device, simulator, and macabi targets remain distinct. Private graph-derived
+providers execute all 14 normal scenarios at `-O0`/`-O2`; the desktop v3 loader
+binds exact descriptor bytes and all entry points to one root image; and the
+host provides exact-instance receipt authority, authoritative owner
 generations, atomic receipt/ledger publication, cached replay, and drop-safe
-quarantine. Both legacy loaders still reject v3 magic before path/image access.
-The pieces are not yet joined by one provider → loader → host invocation and
-there is no static/mobile or public compiler execution, so `SPX-B104` remains
-closed.
+quarantine. One joint path now covers scalar discard-two and owned identity.
+The remaining scenarios, static/mobile execution, and public compiler
+admission stay closed with `SPX-B104`.
 
 With the current private descriptor-v3 metadata defined, the hidden settlement
 model starts at
@@ -118,14 +118,17 @@ eligibility executable.
 Its 29 focused tests prove pre-decision unwind selects `Abort(HostUnwind)`,
 post-decision unwind resumes the locked decision, every-finalizer interruption
 quarantines without retry, candidate/committed replay is exact, and hostile
-phase mutations preserve evidence. The new private physical pieces separately
-prove exact-instance reservation, allocation-free `CallCommit`, host-only
+phase mutations preserve evidence. The private physical path proves
+exact-instance reservation, allocation-free `CallCommit`, host-only
 receipt authentication, one authoritative ledger publication, refreshed owned
-generations, and infallible pre-reserved quarantine on postcommit drop. Next,
-they must be exercised together, expanded from two fixtures to the full
-physical corpus, and subjected to failure injection, sanitizers, Windows CI,
-mobile profiles, and quiescence evidence. The pure model itself grants none of
-that authority and does not open `SPX-B104`.
+generations, infallible pre-reserved quarantine on postcommit drop, and a
+two-fixture provider/loader/host composition. Next, the other 12 normal
+scenarios must cross the same boundary and all paths must receive failure,
+malformed, allocation, sanitizer, Windows, mobile, and quiescence evidence.
+The current host still allocates while parsing/replaying postcommit evidence;
+pending/pre-execute unwind fails closed until its canonical transcript is
+frozen. The pure model itself grants none of that authority and does not open
+`SPX-B104`.
 
 The dedicated Linux
 [dynamic-provider sanitizer job](https://github.com/wavect/semaprax/actions/runs/31256134955/job/93099637801)

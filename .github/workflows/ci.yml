@@ -46,13 +46,15 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
       - run: cargo test --locked --workspace --all-targets --all-features
-      - name: Require Windows callable-v2 dependency isolation
+      - name: Require Windows callable-v2 and private callable-v3 physical evidence
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           clang --version
           cargo test --locked -p semaprax-native-loader --test runtime_loader_windows windows_callable_dependency_search_excludes_cwd_and_legacy_path -- --exact
           cargo test --locked -p semaprax-native-host --test runtime_callable_corpus authoritative_corpus_executes_through_generated_callable_host_at_o0_and_o2 -- --exact
+          cargo test --locked -p semaprax --lib codegen::native_callable_provider_v3::tests::authoritative_fourteen_case_graph_providers_execute_and_settle_at_o0_o2 -- --exact
+          cargo test --locked -p semaprax-native-host --lib settlement_host_v3_integration::generated_provider_loader_host_v3_end_to_end_is_exact -- --exact
       - name: Require native cleanup sanitizers (Linux)
         if: runner.os == 'Linux'
         env:
@@ -60,6 +62,14 @@ jobs:
         run: |
           cargo test --locked -p semaprax --lib codegen::native_conformance::first_native_resource_corpus_matches_the_reference_across_codegen_modes -- --exact
           cargo test --locked -p semaprax --lib codegen::tests::callable_v2_integrated_scalar_owned_success_failure_are_o0_o2_exact -- --exact
+      - name: Require private callable-v3 provider sanitizers (Linux)
+        if: runner.os == 'Linux'
+        env:
+          CLANG: clang
+          SEMAPRAX_REQUIRE_CALLABLE_V3_SANITIZERS: "1"
+          ASAN_OPTIONS: detect_leaks=0:halt_on_error=1:abort_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: cargo test --locked -p semaprax --lib codegen::native_callable_provider_v3::tests::authoritative_fourteen_case_graph_providers_execute_and_settle_at_o0_o2 -- --exact
       - run: cargo test --locked --workspace --all-features --doc
       - run: cargo doc --locked --workspace --all-features --no-deps
         env:
@@ -119,8 +129,10 @@ jobs:
           printf 'int main(void) { return 0; }\n' > "$RUNNER_TEMP/sanitizer-probe.c"
           clang -fsanitize=address,undefined -fno-sanitize-recover=all "$RUNNER_TEMP/sanitizer-probe.c" -o "$RUNNER_TEMP/sanitizer-probe"
           "$RUNNER_TEMP/sanitizer-probe"
-      - name: Run dynamically loaded callable corpus under ASan and UBSan
-        run: cargo test --locked -p semaprax-native-host --test runtime_callable_corpus authoritative_corpus_executes_through_generated_callable_host_at_o0_and_o2 -- --exact
+      - name: Run dynamically loaded callable-v2 and private callable-v3 paths under ASan and UBSan
+        run: |
+          cargo test --locked -p semaprax-native-host --test runtime_callable_corpus authoritative_corpus_executes_through_generated_callable_host_at_o0_and_o2 -- --exact
+          cargo test --locked -p semaprax-native-host --lib settlement_host_v3_integration::generated_provider_loader_host_v3_end_to_end_is_exact -- --exact
 
   rust-host-address-sanitizer:
     name: Rust host ASan (nightly-2026-07-16)

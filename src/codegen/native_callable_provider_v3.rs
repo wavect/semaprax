@@ -1,8 +1,10 @@
-//! Private C11 provider for the first physical callable-v3 proof fixtures.
+//! Private C11 provider for the bounded physical callable-v3 proof corpus.
 //!
 //! This emitter is deliberately unreachable from public compilation. It emits
 //! one exact descriptor getter plus synchronous six-argument `execute` and
-//! `settle` entry points for the current direct-trivial owned slice.
+//! `settle` entry points. Corpus scenarios seal their scalar inputs while all
+//! ownership paths, checkpoints, and settlement permutations come from the
+//! authenticated descriptor graph.
 
 #![forbid(unsafe_code)]
 #![cfg_attr(
@@ -40,6 +42,84 @@ pub(super) enum ProviderV3Plan {
         staged_checkpoint: u32,
         semantic_ordinals: Vec<u32>,
     },
+    /// One exact corpus scenario. Scalar values are part of the sealed
+    /// provider projection; physical ownership actions are not. They are
+    /// recovered exclusively from the authenticated settlement graph.
+    GraphWitness {
+        scalar_arguments: Vec<ProviderV3ScalarArgument>,
+        outcome: ProviderV3Outcome,
+        semantic_ordinals: Vec<u32>,
+    },
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum ProviderV3ScalarValue {
+    I64(i64),
+    Bool(bool),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) struct ProviderV3ScalarArgument {
+    pub(super) parameter_index: u32,
+    pub(super) value: ProviderV3ScalarValue,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum ProviderV3Outcome {
+    Scalar { value: i64 },
+    SemanticFailure { selected_ordinal: u32 },
+    Owned { owner_ordinal: u32 },
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ProviderV3ParameterKind {
+    I64,
+    Bool,
+    Owned { owner_ordinal: u32 },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct ProviderV3Parameter {
+    index: u32,
+    kind: ProviderV3ParameterKind,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ProviderV3Result {
+    ScalarI64,
+    Owned { owner_ordinal: u32 },
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ProviderV3ExecuteAction {
+    Finalize { owner_ordinal: u32, checkpoint: u32 },
+    Stage { owner_ordinal: u32, checkpoint: u32 },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct ProviderV3Checkpoint {
+    id: u32,
+    states: Vec<u32>,
+    outcome: Option<ProviderV3OutcomeClass>,
+    abort_cleanup: Vec<u32>,
+    accept_cleanup: Vec<u32>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ProviderV3OutcomeClass {
+    Scalar,
+    SemanticFailure,
+    Owned { owner_ordinal: u32 },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct ResolvedProviderV3Plan {
+    scalar_arguments: Vec<ProviderV3ScalarArgument>,
+    outcome: ProviderV3Outcome,
+    semantic_ordinals: Vec<u32>,
+    execute_actions: Vec<ProviderV3ExecuteAction>,
+    checkpoints: Vec<ProviderV3Checkpoint>,
+    terminal_checkpoint: u32,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -61,7 +141,8 @@ pub(super) struct NativeCallableProviderV3Spec {
     resource_count: u32,
     maximum_events: u32,
     dictionary_entries: u32,
-    plan: ProviderV3Plan,
+    parameters: Vec<ProviderV3Parameter>,
+    plan: ResolvedProviderV3Plan,
 }
 
 impl NativeCallableProviderV3Spec {
@@ -69,7 +150,7 @@ impl NativeCallableProviderV3Spec {
         descriptor: NativeCallableV3Descriptor,
         plan: ProviderV3Plan,
     ) -> Result<Self, Diagnostic> {
-        validate_descriptor_exact(&descriptor, &plan)?;
+        let (parameters, _result, plan) = validate_descriptor_exact(&descriptor, &plan)?;
         let NativeCallableV3Descriptor {
             bytes: descriptor,
             getter_symbol,
@@ -128,25 +209,12 @@ impl NativeCallableProviderV3Spec {
                 "provider count is outside the first-v3 bound",
             ));
         }
-        let expected_request = 104_u32
-            .checked_add(
-                20_u32
-                    .checked_mul(resource_count)
-                    .ok_or_else(|| provider_error("request capacity overflow"))?,
-            )
-            .ok_or_else(|| provider_error("request capacity overflow"))?;
-        if request_bytes != expected_request {
-            return Err(provider_error(
-                "request capacity does not match owned signature",
-            ));
-        }
         let response_bytes = execute_response_capacity(maximum_events)
             .map_err(|_| provider_error("response capacity overflow"))?;
         let frame_bytes = frame_capacity(resource_count)
             .map_err(|_| provider_error("frame capacity overflow"))?;
         let candidate_bytes = candidate_receipt_capacity(resource_count)
             .map_err(|_| provider_error("candidate capacity overflow"))?;
-        validate_plan(&plan, resource_count, maximum_events, dictionary_entries)?;
         Ok(Self {
             descriptor,
             getter_symbol,
@@ -165,6 +233,7 @@ impl NativeCallableProviderV3Spec {
             resource_count,
             maximum_events,
             dictionary_entries,
+            parameters,
             plan,
         })
     }
@@ -214,17 +283,30 @@ fn emit_prelude(
         ("SPX_V3_ACTION_BYTES", spec.action_bytes),
         ("SPX_V3_CANDIDATE_BYTES", spec.candidate_bytes),
         ("SPX_V3_RESOURCE_COUNT", spec.resource_count),
+        ("SPX_V3_PARAMETER_COUNT", spec.parameters.len() as u32),
         ("SPX_V3_MAX_EVENTS", spec.maximum_events),
         ("SPX_V3_DICTIONARY_ENTRIES", spec.dictionary_entries),
     ] {
         writeln!(output, "#define {name} UINT32_C({value})").expect("string write");
     }
-    writeln!(
-        output,
-        "#define SPX_V3_OWNED_IDENTITY {}",
-        u32::from(matches!(spec.plan, ProviderV3Plan::OwnedIdentity { .. }))
-    )
-    .expect("string write");
+    output.push_str("static const uint32_t spx_v3_parameter_kind[SPX_V3_PARAMETER_COUNT]={");
+    for parameter in &spec.parameters {
+        let kind = match parameter.kind {
+            ProviderV3ParameterKind::I64 => 1,
+            ProviderV3ParameterKind::Bool => 2,
+            ProviderV3ParameterKind::Owned { .. } => 3,
+        };
+        write!(output, "UINT32_C({kind}),").expect("string write");
+    }
+    output.push_str("};\nstatic const uint32_t spx_v3_parameter_owner[SPX_V3_PARAMETER_COUNT]={");
+    for parameter in &spec.parameters {
+        let owner = match parameter.kind {
+            ProviderV3ParameterKind::Owned { owner_ordinal } => owner_ordinal,
+            ProviderV3ParameterKind::I64 | ProviderV3ParameterKind::Bool => u32::MAX,
+        };
+        write!(output, "UINT32_C({owner}),").expect("string write");
+    }
+    output.push_str("};\n");
     emit_c_array(output, "spx_v3_descriptor", &spec.descriptor);
     emit_c_array(output, "spx_v3_call_contract", &spec.call_contract);
     emit_c_array(output, "spx_v3_recovery_contract", &spec.recovery_contract);
@@ -283,45 +365,64 @@ fn emit_prelude(
 
 fn emit_execute(output: &mut String, spec: &NativeCallableProviderV3Spec) {
     writeln!(output, "SPX_V3_API uint32_t SPX_V3_CALL {}(const uint8_t *request,uint32_t request_len,uint8_t *frame,uint32_t frame_len,uint8_t *response,uint32_t response_len) {{", spec.execute_symbol).expect("string write");
-    output.push_str("  uint64_t payloads[SPX_V3_RESOURCE_COUNT]; uint8_t request_hash[32];\n  if (!spx_v3_validate_execute_inputs(request,request_len,frame,frame_len,response,response_len,payloads,request_hash)) return UINT32_C(1);\n  memset(response,0,response_len);\n");
-    match &spec.plan {
-        ProviderV3Plan::ScalarDiscard {
-            scalar_result,
-            finalizer_order,
-            completed_checkpoints,
-            semantic_ordinals,
-        } => {
-            for (owner, checkpoint) in finalizer_order.iter().zip(completed_checkpoints) {
-                writeln!(output, "  if (!spx_v3_begin_finalizer(frame,UINT32_C({owner}))) return UINT32_C(2);\n  spx_v3_generated_finalize(UINT32_C({owner}),payloads[{owner}]);\n  if (!spx_v3_complete_finalizer(frame,UINT32_C({owner}),UINT32_C({checkpoint}))) return UINT32_C(2);").expect("string write");
+    output.push_str("  uint64_t payloads[SPX_V3_RESOURCE_COUNT],arguments[SPX_V3_PARAMETER_COUNT]; uint8_t request_hash[32];\n  (void)spx_v3_begin_finalizer;(void)spx_v3_complete_finalizer;(void)spx_v3_stage_owned;\n  if (!spx_v3_validate_execute_inputs(request,request_len,frame,frame_len,response,response_len,payloads,arguments,request_hash)) return UINT32_C(1);\n");
+    for argument in &spec.plan.scalar_arguments {
+        let bits = match argument.value {
+            ProviderV3ScalarValue::I64(value) => value as u64,
+            ProviderV3ScalarValue::Bool(value) => u64::from(value),
+        };
+        writeln!(
+            output,
+            "  if(arguments[UINT32_C({})]!=UINT64_C({bits})) return UINT32_C(1);",
+            argument.parameter_index
+        )
+        .expect("string write");
+    }
+    output.push_str("  memset(response,0,response_len);\n");
+    for action in &spec.plan.execute_actions {
+        match *action {
+            ProviderV3ExecuteAction::Finalize {
+                owner_ordinal,
+                checkpoint,
+            } => {
+                writeln!(output, "  if (!spx_v3_begin_finalizer(frame,UINT32_C({owner_ordinal}))) return UINT32_C(2);\n  spx_v3_generated_finalize(UINT32_C({owner_ordinal}),payloads[{owner_ordinal}]);\n  if (!spx_v3_complete_finalizer(frame,UINT32_C({owner_ordinal}),UINT32_C({checkpoint}))) return UINT32_C(2);").expect("string write");
             }
-            emit_response_header(
-                output,
-                semantic_ordinals.len(),
-                "1",
-                "0",
-                &scalar_result.to_string(),
-            );
-            for ordinal in semantic_ordinals {
-                writeln!(output, "  spx_v3_store_u32(response+spx_write,UINT32_C({ordinal})); spx_write+=UINT32_C(4);").expect("string write");
-            }
-        }
-        ProviderV3Plan::OwnedIdentity {
-            owner_ordinal,
-            staged_checkpoint,
-            semantic_ordinals,
-        } => {
-            writeln!(output, "  if (!spx_v3_stage_owned(frame,UINT32_C({owner_ordinal}),UINT32_C({staged_checkpoint}))) return UINT32_C(2);").expect("string write");
-            emit_response_header(
-                output,
-                semantic_ordinals.len(),
-                "3",
-                &owner_ordinal.to_string(),
-                &format!("payloads[{owner_ordinal}]"),
-            );
-            for ordinal in semantic_ordinals {
-                writeln!(output, "  spx_v3_store_u32(response+spx_write,UINT32_C({ordinal})); spx_write+=UINT32_C(4);").expect("string write");
+            ProviderV3ExecuteAction::Stage {
+                owner_ordinal,
+                checkpoint,
+            } => {
+                writeln!(output, "  if (!spx_v3_stage_owned(frame,UINT32_C({owner_ordinal}),UINT32_C({checkpoint}))) return UINT32_C(2);").expect("string write");
             }
         }
+    }
+    writeln!(
+        output,
+        "  spx_v3_store_u32(frame+268,UINT32_C({}));",
+        spec.plan.terminal_checkpoint
+    )
+    .expect("string write");
+    let (tag, detail, payload) = match spec.plan.outcome {
+        ProviderV3Outcome::Scalar { value } => (1, 0, value.to_string()),
+        ProviderV3Outcome::SemanticFailure { selected_ordinal } => {
+            (2, selected_ordinal, "0".to_owned())
+        }
+        ProviderV3Outcome::Owned { owner_ordinal } => {
+            (3, owner_ordinal, format!("payloads[{owner_ordinal}]"))
+        }
+    };
+    emit_response_header(
+        output,
+        spec.plan.semantic_ordinals.len(),
+        &tag.to_string(),
+        &detail.to_string(),
+        &payload,
+    );
+    for ordinal in &spec.plan.semantic_ordinals {
+        writeln!(
+            output,
+            "  spx_v3_store_u32(response+spx_write,UINT32_C({ordinal})); spx_write+=UINT32_C(4);"
+        )
+        .expect("string write");
     }
     output.push_str("  if (spx_write != spx_total) return UINT32_C(2);\n  spx_v3_response_digest(UINT32_C(0),response,frame+196); spx_v3_semantic_digest(response,frame+228); spx_v3_store_u32(frame+260,UINT32_C(2)); spx_v3_store_u32(frame+264,UINT32_C(0)); spx_v3_refresh_frame(frame);\n  return UINT32_C(0);\n}\n");
 }
@@ -337,28 +438,151 @@ fn emit_response_header(
 }
 
 fn emit_settle(output: &mut String, spec: &NativeCallableProviderV3Spec) {
-    writeln!(output, "SPX_V3_API uint32_t SPX_V3_CALL {}(uint8_t *frame,uint32_t frame_len,const uint8_t *decision,uint32_t decision_len,uint8_t *candidate,uint32_t candidate_len) {{", spec.settle_symbol).expect("string write");
-    output.push_str("  uint8_t decision_hash[32]; uint32_t decision_tag,decision_detail,phase;\n  if (!spx_v3_validate_settle_inputs(frame,frame_len,decision,decision_len,candidate,candidate_len,decision_hash,&decision_tag,&decision_detail)) return UINT32_C(1);\n  phase=spx_v3_load_u32(frame+272);\n  if (phase==UINT32_C(4)) { if (memcmp(frame+276,decision_hash,32)!=0) return UINT32_C(3); return spx_v3_emit_candidate(frame,decision_tag,decision_detail,candidate); }\n  if (phase!=UINT32_C(1)&&phase!=UINT32_C(2)&&phase!=UINT32_C(3)) return UINT32_C(3);\n  if (decision_tag<UINT32_C(4) && (spx_v3_load_u32(frame+260)!=UINT32_C(2)||spx_v3_load_u32(frame+264)!=UINT32_C(0)||spx_v3_zero(frame+196,32)||spx_v3_zero(frame+228,32))) return UINT32_C(3);\n  if (decision_tag==UINT32_C(4) && (spx_v3_load_u32(frame+260)!=UINT32_C(2)||spx_v3_load_u32(frame+264)!=decision_detail)) return UINT32_C(3);\n  if ((decision_tag==UINT32_C(5)||decision_tag==UINT32_C(6)) && (spx_v3_load_u32(frame+260)!=UINT32_C(2)||spx_v3_load_u32(frame+264)!=UINT32_C(0))) return UINT32_C(3);\n");
-    match spec.plan {
-        ProviderV3Plan::ScalarDiscard {
-            ref finalizer_order,
-            ..
-        } => {
-            writeln!(output, "  static const uint32_t spx_order[{}]={{ {} }}; uint32_t completed,expected,next; uint8_t replay[SPX_V3_FRAME_BYTES];", finalizer_order.len(), finalizer_order.iter().map(|owner| format!("UINT32_C({owner})")).collect::<Vec<_>>().join(",")).expect("string write");
-            writeln!(output, "  if (decision_tag!=UINT32_C(1) && decision_tag<UINT32_C(4)) return UINT32_C(3);\n  if (spx_v3_load_u32(frame+268)<1||spx_v3_load_u32(frame+268)>UINT32_C({})) return UINT32_C(3); completed=spx_v3_load_u32(frame+268)-1;\n  if (decision_tag==UINT32_C(1)&&completed!=UINT32_C({})) return UINT32_C(3); expected=decision_tag==UINT32_C(1)?0:UINT32_C({})-completed; next=spx_v3_load_u32(frame+308); if(next>expected)return UINT32_C(3);", finalizer_order.len()+1, finalizer_order.len(), finalizer_order.len()).expect("string write");
-            output.push_str("  for(uint32_t i=0;i<SPX_V3_RESOURCE_COUNT;i++){uint32_t state=spx_v3_load_u32(frame+spx_v3_cell(spx_order[i]));uint32_t want=i<completed+next?UINT32_C(4):UINT32_C(1);if(state!=want)return UINT32_C(3);}\n  if (phase==UINT32_C(1)) { if(next!=0||spx_v3_load_u32(frame+312)!=0)return UINT32_C(3); if (decision_tag>=UINT32_C(4)) memset(frame+228,0,32); if (!spx_v3_lock_decision(frame,decision_hash,(uint64_t)expected)) return UINT32_C(3); } else { if (memcmp(frame+276,decision_hash,32)!=0) return UINT32_C(3); if(phase==UINT32_C(2)){if(next!=0||spx_v3_load_u32(frame+312)!=0||!spx_v3_valid_action_seed(frame,decision_hash,(uint64_t)expected))return UINT32_C(3);}else{if(spx_v3_load_u32(frame+312)!=2*next)return UINT32_C(3);memcpy(replay,frame,SPX_V3_FRAME_BYTES);spx_v3_action_seed(replay,decision_hash,(uint64_t)expected);spx_v3_store_u32(replay+312,0);for(uint32_t i=0;i<next;i++){uint32_t owner=spx_order[completed+i];spx_v3_action_step(replay,i,1,owner,1,3);spx_v3_action_step(replay,i,2,owner,3,4);}if(memcmp(replay+spx_v3_action_digest_offset(),frame+spx_v3_action_digest_offset(),32))return UINT32_C(3);}}\n  for(uint32_t i=next;i<expected;i++){if(!spx_v3_settlement_finalize(frame,i,spx_order[completed+i]))return UINT32_C(3);}\n");
-        }
-        ProviderV3Plan::OwnedIdentity { owner_ordinal, .. } => {
-            writeln!(output, "  uint32_t next=spx_v3_load_u32(frame+308),before;uint8_t replay[SPX_V3_FRAME_BYTES];\n  if (decision_tag<UINT32_C(4) && (decision_tag!=UINT32_C(3)||decision_detail!=UINT32_C({owner_ordinal}))) return UINT32_C(3); if(next>1)return UINT32_C(3); before=spx_v3_load_u32(frame+268)==1?UINT32_C(1):(spx_v3_load_u32(frame+268)==2?UINT32_C(2):0);if(before==0||(decision_tag==UINT32_C(3)&&before!=UINT32_C(2)))return UINT32_C(3);\n  if(next==0&&spx_v3_load_u32(frame+spx_v3_cell(UINT32_C({owner_ordinal})))!=before)return UINT32_C(3);if(next==1&&spx_v3_load_u32(frame+spx_v3_cell(UINT32_C({owner_ordinal})) )!=(decision_tag==UINT32_C(3)?UINT32_C(5):UINT32_C(4)))return UINT32_C(3);\n  if (phase==UINT32_C(1)) {{if(next!=0||spx_v3_load_u32(frame+312)!=0)return UINT32_C(3); if (decision_tag>=UINT32_C(4)) memset(frame+228,0,32); if (!spx_v3_lock_decision(frame,decision_hash,UINT64_C(1))) return UINT32_C(3); }} else {{if (memcmp(frame+276,decision_hash,32)!=0) return UINT32_C(3);if(phase==UINT32_C(2)){{if(next!=0||spx_v3_load_u32(frame+312)!=0||!spx_v3_valid_action_seed(frame,decision_hash,UINT64_C(1)))return UINT32_C(3);}}else{{uint32_t records=decision_tag==UINT32_C(3)?1:2;if(next!=1||spx_v3_load_u32(frame+312)!=records)return UINT32_C(3);memcpy(replay,frame,SPX_V3_FRAME_BYTES);spx_v3_action_seed(replay,decision_hash,UINT64_C(1));spx_v3_store_u32(replay+312,0);if(decision_tag==UINT32_C(3))spx_v3_action_step(replay,0,3,UINT32_C({owner_ordinal}),2,5);else{{spx_v3_action_step(replay,0,1,UINT32_C({owner_ordinal}),before,3);spx_v3_action_step(replay,0,2,UINT32_C({owner_ordinal}),3,4);}}if(memcmp(replay+spx_v3_action_digest_offset(),frame+spx_v3_action_digest_offset(),32))return UINT32_C(3);}}}}\n  if(next==0){{if (decision_tag==UINT32_C(3)) {{ if (!spx_v3_publish(frame,UINT32_C({owner_ordinal}))) return UINT32_C(3); }} else {{ if (!spx_v3_settlement_finalize(frame,0,UINT32_C({owner_ordinal}))) return UINT32_C(3); }} }}").expect("string write");
-        }
+    let checkpoints = &spec.plan.checkpoints;
+    writeln!(
+        output,
+        "static const uint32_t spx_v3_checkpoint_count=UINT32_C({});",
+        checkpoints.len()
+    )
+    .expect("string write");
+    for (name, values) in [
+        (
+            "spx_v3_checkpoint_id",
+            checkpoints.iter().map(|entry| entry.id).collect::<Vec<_>>(),
+        ),
+        (
+            "spx_v3_checkpoint_outcome",
+            checkpoints
+                .iter()
+                .map(|entry| match entry.outcome {
+                    None => 0,
+                    Some(ProviderV3OutcomeClass::Scalar) => 1,
+                    Some(ProviderV3OutcomeClass::SemanticFailure) => 2,
+                    Some(ProviderV3OutcomeClass::Owned { .. }) => 3,
+                })
+                .collect::<Vec<_>>(),
+        ),
+        (
+            "spx_v3_checkpoint_detail",
+            checkpoints
+                .iter()
+                .map(|entry| match entry.outcome {
+                    Some(ProviderV3OutcomeClass::Owned { owner_ordinal }) => owner_ordinal,
+                    None
+                    | Some(
+                        ProviderV3OutcomeClass::Scalar | ProviderV3OutcomeClass::SemanticFailure,
+                    ) => 0,
+                })
+                .collect::<Vec<_>>(),
+        ),
+        (
+            "spx_v3_abort_count",
+            checkpoints
+                .iter()
+                .map(|entry| entry.abort_cleanup.len() as u32)
+                .collect::<Vec<_>>(),
+        ),
+        (
+            "spx_v3_accept_count",
+            checkpoints
+                .iter()
+                .map(|entry| entry.accept_cleanup.len() as u32)
+                .collect::<Vec<_>>(),
+        ),
+    ] {
+        writeln!(
+            output,
+            "static const uint32_t {name}[{}]={{{}}};",
+            values.len(),
+            values
+                .iter()
+                .map(|value| format!("UINT32_C({value})"))
+                .collect::<Vec<_>>()
+                .join(",")
+        )
+        .expect("string write");
     }
-    output.push_str("  spx_v3_store_u32(frame+272,UINT32_C(4)); spx_v3_refresh_frame(frame);\n  return spx_v3_emit_candidate(frame,decision_tag,decision_detail,candidate);\n}\n");
+    for (name, values) in [
+        (
+            "spx_v3_checkpoint_state",
+            checkpoints
+                .iter()
+                .flat_map(|entry| entry.states.iter().copied())
+                .collect::<Vec<_>>(),
+        ),
+        (
+            "spx_v3_abort_order",
+            checkpoints
+                .iter()
+                .flat_map(|entry| {
+                    entry
+                        .abort_cleanup
+                        .iter()
+                        .copied()
+                        .chain(std::iter::repeat_n(
+                            0,
+                            spec.resource_count as usize - entry.abort_cleanup.len(),
+                        ))
+                })
+                .collect::<Vec<_>>(),
+        ),
+        (
+            "spx_v3_accept_order",
+            checkpoints
+                .iter()
+                .flat_map(|entry| {
+                    entry
+                        .accept_cleanup
+                        .iter()
+                        .copied()
+                        .chain(std::iter::repeat_n(
+                            0,
+                            spec.resource_count as usize - entry.accept_cleanup.len(),
+                        ))
+                })
+                .collect::<Vec<_>>(),
+        ),
+    ] {
+        writeln!(
+            output,
+            "static const uint32_t {name}[{}]={{{}}};",
+            values.len(),
+            values
+                .iter()
+                .map(|value| format!("UINT32_C({value})"))
+                .collect::<Vec<_>>()
+                .join(",")
+        )
+        .expect("string write");
+    }
+    writeln!(output, "SPX_V3_API uint32_t SPX_V3_CALL {}(uint8_t *frame,uint32_t frame_len,const uint8_t *decision,uint32_t decision_len,uint8_t *candidate,uint32_t candidate_len) {{", spec.settle_symbol).expect("string write");
+    output.push_str(r#"
+  uint8_t decision_hash[32],replay[SPX_V3_FRAME_BYTES];uint32_t decision_tag,decision_detail,phase,checkpoint_index=UINT32_MAX,next,action_count=0,record_count=0;uint32_t action_kind[SPX_V3_RESOURCE_COUNT+1],action_owner[SPX_V3_RESOURCE_COUNT+1];
+  if(!spx_v3_validate_settle_inputs(frame,frame_len,decision,decision_len,candidate,candidate_len,decision_hash,&decision_tag,&decision_detail))return UINT32_C(1);
+  phase=spx_v3_load_u32(frame+272);if(phase==UINT32_C(4)){if(memcmp(frame+276,decision_hash,32))return UINT32_C(3);return spx_v3_emit_candidate(frame,decision_tag,decision_detail,candidate);}if(phase!=1&&phase!=2&&phase!=3)return UINT32_C(3);
+  for(uint32_t i=0;i<spx_v3_checkpoint_count;i++)if(spx_v3_checkpoint_id[i]==spx_v3_load_u32(frame+268)){if(checkpoint_index!=UINT32_MAX)return UINT32_C(3);checkpoint_index=i;}if(checkpoint_index==UINT32_MAX)return UINT32_C(3);
+  if(decision_tag<4){if(spx_v3_load_u32(frame+260)!=2||spx_v3_load_u32(frame+264)!=0||spx_v3_zero(frame+196,32)||spx_v3_zero(frame+228,32)||decision_tag!=spx_v3_checkpoint_outcome[checkpoint_index]||(decision_tag==3&&decision_detail!=spx_v3_checkpoint_detail[checkpoint_index]))return UINT32_C(3);for(uint32_t i=0;i<spx_v3_accept_count[checkpoint_index];i++){action_kind[action_count]=1;action_owner[action_count++]=spx_v3_accept_order[checkpoint_index*SPX_V3_RESOURCE_COUNT+i];}if(decision_tag==3){action_kind[action_count]=2;action_owner[action_count++]=decision_detail;}}
+  else{if(decision_tag==4&&(spx_v3_load_u32(frame+260)!=2||spx_v3_load_u32(frame+264)!=decision_detail||spx_v3_zero(frame+196,32)))return UINT32_C(3);if((decision_tag==5||decision_tag==6||decision_tag==7)&&(spx_v3_load_u32(frame+260)!=2||spx_v3_load_u32(frame+264)!=0||spx_v3_zero(frame+196,32)))return UINT32_C(3);for(uint32_t i=0;i<spx_v3_abort_count[checkpoint_index];i++){action_kind[action_count]=1;action_owner[action_count++]=spx_v3_abort_order[checkpoint_index*SPX_V3_RESOURCE_COUNT+i];}}
+  next=spx_v3_load_u32(frame+308);if(next>action_count)return UINT32_C(3);for(uint32_t owner=0;owner<SPX_V3_RESOURCE_COUNT;owner++){uint32_t want=spx_v3_checkpoint_state[checkpoint_index*SPX_V3_RESOURCE_COUNT+owner];for(uint32_t i=0;i<next;i++)if(action_owner[i]==owner)want=action_kind[i]==1?4:5;if(spx_v3_load_u32(frame+spx_v3_cell(owner))!=want)return UINT32_C(3);}
+  for(uint32_t i=0;i<next;i++)record_count+=action_kind[i]==1?2:1;
+  if(phase==1){if(next!=0||spx_v3_load_u32(frame+312)!=0)return UINT32_C(3);if(decision_tag>=4)memset(frame+228,0,32);if(!spx_v3_lock_decision(frame,decision_hash,(uint64_t)action_count))return UINT32_C(3);}else{if(memcmp(frame+276,decision_hash,32))return UINT32_C(3);if(phase==2){if(next!=0||spx_v3_load_u32(frame+312)!=0||!spx_v3_valid_action_seed(frame,decision_hash,(uint64_t)action_count))return UINT32_C(3);}else{if(spx_v3_load_u32(frame+312)!=record_count)return UINT32_C(3);memcpy(replay,frame,SPX_V3_FRAME_BYTES);spx_v3_action_seed(replay,decision_hash,(uint64_t)action_count);spx_v3_store_u32(replay+312,0);for(uint32_t i=0;i<next;i++){uint32_t owner=action_owner[i],before=spx_v3_checkpoint_state[checkpoint_index*SPX_V3_RESOURCE_COUNT+owner];if(action_kind[i]==1){spx_v3_action_step(replay,i,1,owner,before,3);spx_v3_action_step(replay,i,2,owner,3,4);}else spx_v3_action_step(replay,i,3,owner,2,5);}if(memcmp(replay+spx_v3_action_digest_offset(),frame+spx_v3_action_digest_offset(),32))return UINT32_C(3);}}
+  for(uint32_t i=next;i<action_count;i++){if(action_kind[i]==1){if(!spx_v3_settlement_finalize(frame,i,action_owner[i]))return UINT32_C(3);}else if(!spx_v3_publish(frame,i,action_owner[i]))return UINT32_C(3);}
+  spx_v3_store_u32(frame+272,UINT32_C(4));spx_v3_refresh_frame(frame);return spx_v3_emit_candidate(frame,decision_tag,decision_detail,candidate);
+}
+"#);
 }
 
 fn validate_descriptor_exact(
     descriptor: &NativeCallableV3Descriptor,
     plan: &ProviderV3Plan,
-) -> Result<(), Diagnostic> {
+) -> Result<
+    (
+        Vec<ProviderV3Parameter>,
+        ProviderV3Result,
+        ResolvedProviderV3Plan,
+    ),
+    Diagnostic,
+> {
     let bytes = &descriptor.bytes;
     if bytes.len() < HEADER_BYTES as usize
         || bytes.get(..8) != Some(b"SPXNABI3")
@@ -434,46 +658,73 @@ fn validate_descriptor_exact(
     {
         return Err(provider_error("descriptor capacities diverge"));
     }
-    let parameters = descriptor_u32(bytes, &mut at)?;
-    if parameters != descriptor.resource_count {
-        return Err(provider_error(
-            "provider tranche requires all-owned parameters",
-        ));
-    }
-    for expected in 0..parameters {
-        if descriptor_u32(bytes, &mut at)? != 2 || descriptor_u32(bytes, &mut at)? != expected {
-            return Err(provider_error("descriptor owned parameter is noncanonical"));
+    let parameter_count = descriptor_u32(bytes, &mut at)?;
+    let mut parameters = Vec::with_capacity(parameter_count as usize);
+    let mut next_owner = 0_u32;
+    let mut expected_request = 104_u32;
+    for expected in 0..parameter_count {
+        let tag = descriptor_u32(bytes, &mut at)?;
+        if descriptor_u32(bytes, &mut at)? != expected {
+            return Err(provider_error("descriptor parameter index is noncanonical"));
         }
         let _value = descriptor_text(bytes, &mut at)?;
-        if descriptor_u32(bytes, &mut at)? != expected {
-            return Err(provider_error("descriptor owner ordinal is noncanonical"));
-        }
-        let _resource = descriptor_text(bytes, &mut at)?;
-        let _lifecycle = descriptor_text(bytes, &mut at)?;
-        if descriptor_u32(bytes, &mut at)? != 1 {
-            return Err(provider_error(
-                "descriptor payload wire kind is unsupported",
-            ));
-        }
-    }
-    match plan {
-        ProviderV3Plan::ScalarDiscard { .. } => {
-            if descriptor_u32(bytes, &mut at)? != 1 {
-                return Err(provider_error("descriptor result is not scalar i64"));
+        let (kind, increment) = match tag {
+            1 => match descriptor_u32(bytes, &mut at)? {
+                1 => (ProviderV3ParameterKind::I64, 16_u32),
+                2 => (ProviderV3ParameterKind::Bool, 12_u32),
+                _ => return Err(provider_error("descriptor scalar wire kind is unsupported")),
+            },
+            2 => {
+                let owner_ordinal = descriptor_u32(bytes, &mut at)?;
+                if owner_ordinal != next_owner {
+                    return Err(provider_error("descriptor owner ordinal is noncanonical"));
+                }
+                next_owner = next_owner
+                    .checked_add(1)
+                    .ok_or_else(|| provider_error("descriptor owner ordinal overflow"))?;
+                let _resource = descriptor_text(bytes, &mut at)?;
+                let _lifecycle = descriptor_text(bytes, &mut at)?;
+                if descriptor_u32(bytes, &mut at)? != 1 {
+                    return Err(provider_error(
+                        "descriptor payload wire kind is unsupported",
+                    ));
+                }
+                (ProviderV3ParameterKind::Owned { owner_ordinal }, 20_u32)
             }
-        }
-        ProviderV3Plan::OwnedIdentity { owner_ordinal, .. } => {
-            if descriptor_u32(bytes, &mut at)? != 2
-                || descriptor_u32(bytes, &mut at)? != *owner_ordinal
-            {
+            _ => return Err(provider_error("descriptor parameter kind is unsupported")),
+        };
+        expected_request = expected_request
+            .checked_add(increment)
+            .ok_or_else(|| provider_error("request capacity overflow"))?;
+        parameters.push(ProviderV3Parameter {
+            index: expected,
+            kind,
+        });
+    }
+    if next_owner != descriptor.resource_count || expected_request != descriptor.request_bytes {
+        return Err(provider_error(
+            "descriptor request capacity or owned signature diverges",
+        ));
+    }
+    let result = match descriptor_u32(bytes, &mut at)? {
+        1 => ProviderV3Result::ScalarI64,
+        2 => {
+            let parameter_index = descriptor_u32(bytes, &mut at)?;
+            let _value = descriptor_text(bytes, &mut at)?;
+            let owner_ordinal = descriptor_u32(bytes, &mut at)?;
+            if !matches!(
+                parameters.get(parameter_index as usize),
+                Some(ProviderV3Parameter {
+                    index,
+                    kind: ProviderV3ParameterKind::Owned { owner_ordinal: admitted },
+                }) if *index == parameter_index && *admitted == owner_ordinal
+            ) {
                 return Err(provider_error("descriptor owned result diverges"));
             }
-            let _value = descriptor_text(bytes, &mut at)?;
-            if descriptor_u32(bytes, &mut at)? != *owner_ordinal {
-                return Err(provider_error("descriptor owned-result ordinal diverges"));
-            }
+            ProviderV3Result::Owned { owner_ordinal }
         }
-    }
+        _ => return Err(provider_error("descriptor result kind is unsupported")),
+    };
     let graph_len = descriptor_u32(bytes, &mut at)? as usize;
     let graph = descriptor_bytes(bytes, &mut at, graph_len)?;
     if at != bytes.len() {
@@ -488,22 +739,38 @@ fn validate_descriptor_exact(
             "descriptor settlement graph digest diverges",
         ));
     }
-    validate_plan_against_graph(graph, plan, descriptor.resource_count)?;
-    Ok(())
+    let resolved = validate_plan_against_graph(
+        graph,
+        plan,
+        descriptor.resource_count,
+        &parameters,
+        result,
+        descriptor.maximum_events,
+        descriptor.dictionary_entries,
+    )?;
+    Ok((parameters, result, resolved))
 }
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 enum GraphAction {
     Finalize(u32),
     Stage(u32),
-    Certify(Vec<u32>, u32),
+    Certify {
+        ordinals: Vec<u32>,
+        outcome: u32,
+        detail: u32,
+    },
 }
 
 fn validate_plan_against_graph(
     graph: &[u8],
     plan: &ProviderV3Plan,
     resources: u32,
-) -> Result<(), Diagnostic> {
+    parameters: &[ProviderV3Parameter],
+    result: ProviderV3Result,
+    maximum_events: u32,
+    dictionary_entries: u32,
+) -> Result<ResolvedProviderV3Plan, Diagnostic> {
     let mut at = 0;
     if descriptor_u32(graph, &mut at)? != 3 {
         return Err(provider_error("settlement graph version diverges"));
@@ -514,28 +781,50 @@ fn validate_plan_against_graph(
         return Err(provider_error("settlement graph resource count diverges"));
     }
     let checkpoint_count = descriptor_u32(graph, &mut at)?;
-    let mut outcomes = Vec::new();
-    for _ in 0..checkpoint_count {
+    let mut checkpoints = Vec::with_capacity(checkpoint_count as usize);
+    for expected_id in 1..=checkpoint_count {
         let id = descriptor_u32(graph, &mut at)?;
+        if id != expected_id {
+            return Err(provider_error("settlement checkpoints are not dense"));
+        }
         if descriptor_u32(graph, &mut at)? != resources {
             return Err(provider_error("settlement checkpoint width diverges"));
         }
+        let mut states = Vec::with_capacity(resources as usize);
         for _ in 0..resources {
-            if !(1..=5).contains(&descriptor_u32(graph, &mut at)?) {
+            let state = descriptor_u32(graph, &mut at)?;
+            if !matches!(state, 1 | 2 | 4) {
                 return Err(provider_error("settlement resource state is invalid"));
             }
+            states.push(state);
         }
-        let outcome = descriptor_u32(graph, &mut at)?;
-        let detail = if outcome == 3 {
-            descriptor_u32(graph, &mut at)?
-        } else {
-            0
+        let outcome = match descriptor_u32(graph, &mut at)? {
+            0 => None,
+            1 => Some(ProviderV3OutcomeClass::Scalar),
+            2 => Some(ProviderV3OutcomeClass::SemanticFailure),
+            3 => Some(ProviderV3OutcomeClass::Owned {
+                owner_ordinal: descriptor_u32(graph, &mut at)?,
+            }),
+            _ => return Err(provider_error("settlement checkpoint outcome is invalid")),
         };
-        outcomes.push((id, outcome, detail));
-        let _abort = graph_ordinals(graph, &mut at)?;
-        let _accept = graph_ordinals(graph, &mut at)?;
+        let abort_cleanup = graph_ordinals(graph, &mut at)?;
+        let accept_cleanup = graph_ordinals(graph, &mut at)?;
+        validate_checkpoint(resources, &states, outcome, &abort_cleanup, &accept_cleanup)?;
+        checkpoints.push(ProviderV3Checkpoint {
+            id,
+            states,
+            outcome,
+            abort_cleanup,
+            accept_cleanup,
+        });
     }
     let starts = graph_ordinals(graph, &mut at)?;
+    if starts
+        .iter()
+        .any(|start| *start == 0 || *start > checkpoint_count)
+    {
+        return Err(provider_error("settlement start checkpoint is invalid"));
+    }
     let edge_count = descriptor_u32(graph, &mut at)?;
     let mut edges = Vec::new();
     for _ in 0..edge_count {
@@ -548,12 +837,18 @@ fn validate_plan_against_graph(
                 let _digest = descriptor_bytes(graph, &mut at, 32)?;
                 let ordinals = graph_ordinals(graph, &mut at)?;
                 let outcome = descriptor_u32(graph, &mut at)?;
-                if outcome == 3 {
-                    let _selected = descriptor_u32(graph, &mut at)?;
+                let detail = if outcome == 3 {
+                    descriptor_u32(graph, &mut at)?
                 } else if !matches!(outcome, 1 | 2) {
                     return Err(provider_error("trace witness outcome is invalid"));
+                } else {
+                    0
+                };
+                GraphAction::Certify {
+                    ordinals,
+                    outcome,
+                    detail,
                 }
-                GraphAction::Certify(ordinals, outcome)
             }
             _ => return Err(provider_error("settlement graph action is invalid")),
         };
@@ -562,34 +857,138 @@ fn validate_plan_against_graph(
     if at != graph.len() || starts.is_empty() {
         return Err(provider_error("settlement graph is not exact"));
     }
-    let wanted = match plan {
-        ProviderV3Plan::ScalarDiscard { .. } => (1, 0),
-        ProviderV3Plan::OwnedIdentity { owner_ordinal, .. } => (3, *owner_ordinal),
+    let (scalar_arguments, requested_outcome, semantic_ordinals) = match plan {
+        ProviderV3Plan::ScalarDiscard {
+            scalar_result,
+            semantic_ordinals,
+            ..
+        } => (
+            Vec::new(),
+            ProviderV3Outcome::Scalar {
+                value: *scalar_result,
+            },
+            semantic_ordinals.clone(),
+        ),
+        ProviderV3Plan::OwnedIdentity {
+            owner_ordinal,
+            semantic_ordinals,
+            ..
+        } => (
+            Vec::new(),
+            ProviderV3Outcome::Owned {
+                owner_ordinal: *owner_ordinal,
+            },
+            semantic_ordinals.clone(),
+        ),
+        ProviderV3Plan::GraphWitness {
+            scalar_arguments,
+            outcome,
+            semantic_ordinals,
+        } => (
+            scalar_arguments.clone(),
+            *outcome,
+            semantic_ordinals.clone(),
+        ),
+    };
+    validate_scalar_arguments(parameters, &scalar_arguments)?;
+    if semantic_ordinals.is_empty()
+        || semantic_ordinals.len() > maximum_events as usize
+        || semantic_ordinals
+            .iter()
+            .any(|ordinal| *ordinal == 0 || *ordinal > dictionary_entries)
+    {
+        return Err(provider_error("semantic ordinals are outside dictionary"));
+    }
+    match (result, requested_outcome) {
+        (ProviderV3Result::ScalarI64, ProviderV3Outcome::Scalar { .. })
+        | (ProviderV3Result::ScalarI64, ProviderV3Outcome::SemanticFailure { .. }) => {}
+        (
+            ProviderV3Result::Owned {
+                owner_ordinal: expected,
+            },
+            ProviderV3Outcome::Owned { owner_ordinal },
+        ) if expected == owner_ordinal => {}
+        (ProviderV3Result::Owned { .. }, ProviderV3Outcome::SemanticFailure { .. }) => {}
+        _ => {
+            return Err(provider_error(
+                "provider outcome diverges from descriptor result",
+            ))
+        }
+    }
+    let (wanted_checkpoint, wanted_trace) = match requested_outcome {
+        ProviderV3Outcome::Scalar { .. } => ((1, 0), (1, 0)),
+        ProviderV3Outcome::SemanticFailure { selected_ordinal } => ((2, 0), (3, selected_ordinal)),
+        ProviderV3Outcome::Owned { owner_ordinal } => ((3, owner_ordinal), (2, 0)),
     };
     let mut paths = Vec::new();
     for start in starts {
         collect_paths(
             start,
-            wanted,
-            &outcomes,
+            wanted_checkpoint,
+            &checkpoints,
             &edges,
             &mut Vec::new(),
             &mut Vec::new(),
             &mut paths,
         );
     }
+    paths.retain(|path| {
+        path.iter().any(|(action, _)| {
+            matches!(
+                action,
+                GraphAction::Certify { ordinals, outcome, detail }
+                    if ordinals == &semantic_ordinals
+                        && *outcome == wanted_trace.0
+                        && *detail == wanted_trace.1
+            )
+        })
+    });
     paths.sort();
     paths.dedup();
     if paths.len() != 1 {
         return Err(provider_error("settlement graph normal path is not unique"));
     }
     let path = &paths[0];
+    let terminal_checkpoint = path
+        .last()
+        .map(|(_, checkpoint)| *checkpoint)
+        .ok_or_else(|| provider_error("settlement graph path is empty"))?;
+    let witnesses = path
+        .iter()
+        .filter_map(|(action, _)| match action {
+            GraphAction::Certify {
+                ordinals,
+                outcome,
+                detail,
+            } => Some((ordinals, *outcome, *detail)),
+            GraphAction::Finalize(_) | GraphAction::Stage(_) => None,
+        })
+        .collect::<Vec<_>>();
+    if witnesses.as_slice() != [(&semantic_ordinals, wanted_trace.0, wanted_trace.1)]
+        || !matches!(path.last(), Some((GraphAction::Certify { .. }, _)))
+    {
+        return Err(provider_error("provider trace witness diverges from graph"));
+    }
+    let execute_actions = path
+        .iter()
+        .filter_map(|(action, checkpoint)| match action {
+            GraphAction::Finalize(owner_ordinal) => Some(ProviderV3ExecuteAction::Finalize {
+                owner_ordinal: *owner_ordinal,
+                checkpoint: *checkpoint,
+            }),
+            GraphAction::Stage(owner_ordinal) => Some(ProviderV3ExecuteAction::Stage {
+                owner_ordinal: *owner_ordinal,
+                checkpoint: *checkpoint,
+            }),
+            GraphAction::Certify { .. } => None,
+        })
+        .collect::<Vec<_>>();
     match plan {
         ProviderV3Plan::ScalarDiscard {
             scalar_result,
             finalizer_order,
             completed_checkpoints,
-            semantic_ordinals,
+            semantic_ordinals: _,
         } => {
             let actual_order = path
                 .iter()
@@ -604,27 +1003,19 @@ fn validate_plan_against_graph(
                     matches!(action, GraphAction::Finalize(_)).then_some(*checkpoint)
                 })
                 .collect::<Vec<_>>();
-            let witnesses = path
-                .iter()
-                .filter_map(|(action, _)| match action {
-                    GraphAction::Certify(ordinals, 1) => Some(ordinals),
-                    _ => None,
-                })
-                .collect::<Vec<_>>();
             if *scalar_result != 0
                 || &actual_order != finalizer_order
                 || &actual_checkpoints != completed_checkpoints
-                || witnesses.as_slice() != [semantic_ordinals]
             {
                 return Err(provider_error(format!(
-                    "scalar provider plan diverges from graph: order={actual_order:?} checkpoints={actual_checkpoints:?} witnesses={witnesses:?}"
+                    "scalar provider plan diverges from graph: order={actual_order:?} checkpoints={actual_checkpoints:?}"
                 )));
             }
         }
         ProviderV3Plan::OwnedIdentity {
             owner_ordinal,
             staged_checkpoint,
-            semantic_ordinals,
+            semantic_ordinals: _,
         } => {
             let stages = path
                 .iter()
@@ -633,20 +1024,99 @@ fn validate_plan_against_graph(
                     _ => None,
                 })
                 .collect::<Vec<_>>();
-            let witnesses = path
-                .iter()
-                .filter_map(|(action, _)| match action {
-                    GraphAction::Certify(ordinals, 2) => Some(ordinals),
-                    _ => None,
-                })
-                .collect::<Vec<_>>();
-            if stages.as_slice() != [(*owner_ordinal, *staged_checkpoint)]
-                || witnesses.as_slice() != [semantic_ordinals]
-            {
+            if stages.as_slice() != [(*owner_ordinal, *staged_checkpoint)] {
                 return Err(provider_error(format!(
-                    "owned provider plan diverges from graph: stages={stages:?} witnesses={witnesses:?}"
+                    "owned provider plan diverges from graph: stages={stages:?}"
                 )));
             }
+        }
+        ProviderV3Plan::GraphWitness { .. } => {}
+    }
+    Ok(ResolvedProviderV3Plan {
+        scalar_arguments,
+        outcome: requested_outcome,
+        semantic_ordinals,
+        execute_actions,
+        checkpoints,
+        terminal_checkpoint,
+    })
+}
+
+fn validate_checkpoint(
+    resources: u32,
+    states: &[u32],
+    outcome: Option<ProviderV3OutcomeClass>,
+    abort_cleanup: &[u32],
+    accept_cleanup: &[u32],
+) -> Result<(), Diagnostic> {
+    let exact = |ordinals: &[u32], wanted: Vec<u32>| {
+        let mut actual = ordinals.to_vec();
+        actual.sort_unstable();
+        actual.dedup();
+        actual == wanted && ordinals.len() == actual.len()
+    };
+    let non_dead = states
+        .iter()
+        .enumerate()
+        .filter_map(|(owner, state)| (*state != 4).then_some(owner as u32))
+        .collect::<Vec<_>>();
+    if !exact(abort_cleanup, non_dead) {
+        return Err(provider_error("checkpoint abort cleanup is not exact"));
+    }
+    let live = states
+        .iter()
+        .enumerate()
+        .filter_map(|(owner, state)| (*state == 1).then_some(owner as u32))
+        .collect::<Vec<_>>();
+    let wanted_accept = if outcome.is_some() { live } else { Vec::new() };
+    if accept_cleanup.len() > resources as usize || !exact(accept_cleanup, wanted_accept) {
+        return Err(provider_error("checkpoint accept cleanup is not exact"));
+    }
+    let provisional = states
+        .iter()
+        .enumerate()
+        .filter_map(|(owner, state)| (*state == 2).then_some(owner as u32))
+        .collect::<Vec<_>>();
+    match outcome {
+        None if accept_cleanup.is_empty() && provisional.len() <= 1 => {}
+        Some(ProviderV3OutcomeClass::Owned { owner_ordinal })
+            if provisional.as_slice() == [owner_ordinal] => {}
+        Some(ProviderV3OutcomeClass::Scalar | ProviderV3OutcomeClass::SemanticFailure)
+            if provisional.is_empty() => {}
+        _ => {
+            return Err(provider_error(
+                "checkpoint outcome and resource states diverge",
+            ))
+        }
+    }
+    Ok(())
+}
+
+fn validate_scalar_arguments(
+    parameters: &[ProviderV3Parameter],
+    arguments: &[ProviderV3ScalarArgument],
+) -> Result<(), Diagnostic> {
+    let scalar_parameters = parameters
+        .iter()
+        .filter(|parameter| !matches!(parameter.kind, ProviderV3ParameterKind::Owned { .. }))
+        .collect::<Vec<_>>();
+    if arguments.len() != scalar_parameters.len() {
+        return Err(provider_error("scenario scalar argument count diverges"));
+    }
+    for (argument, parameter) in arguments.iter().zip(scalar_parameters) {
+        if argument.parameter_index != parameter.index
+            || !matches!(
+                (argument.value, parameter.kind),
+                (ProviderV3ScalarValue::I64(_), ProviderV3ParameterKind::I64)
+                    | (
+                        ProviderV3ScalarValue::Bool(_),
+                        ProviderV3ParameterKind::Bool
+                    )
+            )
+        {
+            return Err(provider_error(
+                "scenario scalar argument diverges from signature",
+            ));
         }
     }
     Ok(())
@@ -656,23 +1126,32 @@ fn validate_plan_against_graph(
 fn collect_paths(
     checkpoint: u32,
     wanted: (u32, u32),
-    outcomes: &[(u32, u32, u32)],
+    checkpoints: &[ProviderV3Checkpoint],
     edges: &[(u32, u32, GraphAction)],
     visited: &mut Vec<u32>,
     path: &mut Vec<(GraphAction, u32)>,
     paths: &mut Vec<Vec<(GraphAction, u32)>>,
 ) {
-    if visited.contains(&checkpoint) || visited.len() > outcomes.len() {
+    if visited.contains(&checkpoint) || visited.len() > checkpoints.len() {
         return;
     }
-    if outcomes.contains(&(checkpoint, wanted.0, wanted.1)) {
+    let wanted_outcome = match wanted {
+        (1, 0) => Some(ProviderV3OutcomeClass::Scalar),
+        (2, _) => Some(ProviderV3OutcomeClass::SemanticFailure),
+        (3, owner_ordinal) => Some(ProviderV3OutcomeClass::Owned { owner_ordinal }),
+        _ => None,
+    };
+    if checkpoints
+        .iter()
+        .any(|entry| entry.id == checkpoint && entry.outcome == wanted_outcome)
+    {
         paths.push(path.clone());
         return;
     }
     visited.push(checkpoint);
     for (_, to, action) in edges.iter().filter(|(from, _, _)| *from == checkpoint) {
         path.push((action.clone(), *to));
-        collect_paths(*to, wanted, outcomes, edges, visited, path, paths);
+        collect_paths(*to, wanted, checkpoints, edges, visited, path, paths);
         path.pop();
     }
     visited.pop();
@@ -755,6 +1234,9 @@ fn validate_plan(
             }
             semantic_ordinals
         }
+        ProviderV3Plan::GraphWitness {
+            semantic_ordinals, ..
+        } => semantic_ordinals,
     };
     if ordinals.is_empty()
         || ordinals.len() > maximum_events as usize
@@ -833,26 +1315,21 @@ static void spx_v3_response_digest(uint32_t code,const uint8_t *response,uint8_t
 static void spx_v3_semantic_digest(const uint8_t *response,uint8_t out[32]){struct spx_v3_sha s;uint8_t le[8],outcome;uint32_t count=spx_v3_load_u32(response+152),tag=spx_v3_load_u32(response+136);spx_v3_store_u64(le,(uint64_t)count);spx_v3_sha_init(&s);spx_v3_sha_update(&s,spx_v3_trace_domain,(uint32_t)sizeof(spx_v3_trace_domain));spx_v3_sha_update(&s,spx_v3_trace_path_certificate,32);spx_v3_sha_update(&s,le,8);for(uint32_t i=0;i<count;i++)spx_v3_sha_update(&s,response+156+4*i,4);outcome=(uint8_t)(tag==1?1:(tag==3?2:3));spx_v3_sha_update(&s,&outcome,1);if(outcome==3){spx_v3_store_u32(le,spx_v3_load_u32(response+140));spx_v3_sha_update(&s,le,4);}spx_v3_sha_final(&s,out);}
 static void spx_v3_decision_digest(const uint8_t *decision,uint8_t out[32]){spx_v3_framed_digest(spx_v3_decision_domain,(uint32_t)sizeof(spx_v3_decision_domain),decision,SPX_V3_DECISION_BYTES,out);}
 static bool spx_v3_common(const uint8_t *p,uint32_t n,const char magic[8]){return p!=NULL&&n>=20&&memcmp(p,magic,8)==0&&spx_v3_load_u32(p+8)==3&&spx_v3_load_u32(p+12)==20&&spx_v3_load_u32(p+16)==n;}
-static bool spx_v3_validate_execute_inputs(const uint8_t *request,uint32_t request_len,uint8_t *frame,uint32_t frame_len,uint8_t *response,uint32_t response_len,uint64_t payloads[SPX_V3_RESOURCE_COUNT],uint8_t request_hash[32]){
+static bool spx_v3_validate_execute_inputs(const uint8_t *request,uint32_t request_len,uint8_t *frame,uint32_t frame_len,uint8_t *response,uint32_t response_len,uint64_t payloads[SPX_V3_RESOURCE_COUNT],uint64_t arguments[SPX_V3_PARAMETER_COUNT],uint8_t request_hash[32]){
  if(response==NULL||response_len!=SPX_V3_RESPONSE_BYTES||!spx_v3_common(request,request_len,"SPXNRQ03")||request_len!=SPX_V3_REQUEST_BYTES||!spx_v3_common(frame,frame_len,"SPXNFR03")||frame_len!=SPX_V3_FRAME_BYTES||!spx_v3_valid_frame_digest(frame)||!spx_v3_disjoint(request,request_len,frame,frame_len)||!spx_v3_disjoint(request,request_len,response,response_len)||!spx_v3_disjoint(frame,frame_len,response,response_len))return false;
- if(memcmp(request+20,spx_v3_call_contract,32)||memcmp(frame+20,spx_v3_call_contract,32)||memcmp(frame+52,spx_v3_recovery_contract,32)||memcmp(frame+84,spx_v3_settlement_graph,32)||memcmp(request+52,frame+116,48)||spx_v3_load_u64(request+52)==0||spx_v3_load_u64(request+60)==0||spx_v3_zero(request+68,32)||spx_v3_load_u32(request+100)!=SPX_V3_RESOURCE_COUNT||!spx_v3_zero(frame+196,64)||spx_v3_load_u32(frame+260)!=1||spx_v3_load_u32(frame+264)!=0||spx_v3_load_u32(frame+268)!=1||spx_v3_load_u32(frame+272)!=1||!spx_v3_zero(frame+276,32)||spx_v3_load_u32(frame+308)!=0||spx_v3_load_u32(frame+312)!=0||spx_v3_load_u32(frame+316)!=0||spx_v3_load_u32(frame+320)!=SPX_V3_RESOURCE_COUNT||!spx_v3_zero(frame+spx_v3_action_digest_offset(),32))return false;
+ if(memcmp(request+20,spx_v3_call_contract,32)||memcmp(frame+20,spx_v3_call_contract,32)||memcmp(frame+52,spx_v3_recovery_contract,32)||memcmp(frame+84,spx_v3_settlement_graph,32)||memcmp(request+52,frame+116,48)||spx_v3_load_u64(request+52)==0||spx_v3_load_u64(request+60)==0||spx_v3_zero(request+68,32)||spx_v3_load_u32(request+100)!=SPX_V3_PARAMETER_COUNT||!spx_v3_zero(frame+196,64)||spx_v3_load_u32(frame+260)!=1||spx_v3_load_u32(frame+264)!=0||spx_v3_load_u32(frame+268)!=1||spx_v3_load_u32(frame+272)!=1||!spx_v3_zero(frame+276,32)||spx_v3_load_u32(frame+308)!=0||spx_v3_load_u32(frame+312)!=0||spx_v3_load_u32(frame+316)!=0||spx_v3_load_u32(frame+320)!=SPX_V3_RESOURCE_COUNT||!spx_v3_zero(frame+spx_v3_action_digest_offset(),32))return false;
  spx_v3_request_digest(request,request_hash);if(memcmp(frame+164,request_hash,32)!=0)return false;
- for(uint32_t i=0;i<SPX_V3_RESOURCE_COUNT;i++){uint32_t q=104+20*i,c=spx_v3_cell(i);if(spx_v3_load_u32(request+q)!=2||spx_v3_load_u32(request+q+4)!=i||spx_v3_load_u32(request+q+8)!=i||spx_v3_load_u32(frame+c)!=1)return false;payloads[i]=spx_v3_load_u64(request+q+12);if(spx_v3_load_u64(frame+c+4)!=payloads[i])return false;}return true;
+ uint32_t q=104,owners=0;for(uint32_t i=0;i<SPX_V3_PARAMETER_COUNT;i++){uint32_t kind=spx_v3_parameter_kind[i],bytes=kind==1?16:(kind==2?12:20);if(q>request_len||bytes>request_len-q||spx_v3_load_u32(request+q)!=(kind==3?2:1)||spx_v3_load_u32(request+q+4)!=i)return false;if(kind==1){arguments[i]=spx_v3_load_u64(request+q+8);}else if(kind==2){uint32_t value=spx_v3_load_u32(request+q+8);if(value>1)return false;arguments[i]=value;}else{uint32_t owner=spx_v3_load_u32(request+q+8),c;if(owner!=spx_v3_parameter_owner[i]||owner!=owners||owner>=SPX_V3_RESOURCE_COUNT)return false;c=spx_v3_cell(owner);if(spx_v3_load_u32(frame+c)!=1)return false;payloads[owner]=spx_v3_load_u64(request+q+12);arguments[i]=payloads[owner];if(spx_v3_load_u64(frame+c+4)!=payloads[owner])return false;owners++;}q+=bytes;}return q==request_len&&owners==SPX_V3_RESOURCE_COUNT;
 }
-#if !SPX_V3_OWNED_IDENTITY
-static bool spx_v3_begin_finalizer(uint8_t *frame,uint32_t owner){uint32_t c=spx_v3_cell(owner);if(owner>=SPX_V3_RESOURCE_COUNT||spx_v3_load_u32(frame+c)!=1)return false;spx_v3_store_u32(frame+c,3);spx_v3_store_u32(frame+316,1);spx_v3_refresh_frame(frame);return true;}
+static bool spx_v3_begin_finalizer(uint8_t *frame,uint32_t owner){uint32_t c=spx_v3_cell(owner),state;if(owner>=SPX_V3_RESOURCE_COUNT)return false;state=spx_v3_load_u32(frame+c);if(state!=1&&state!=2)return false;spx_v3_store_u32(frame+c,3);spx_v3_store_u32(frame+316,1);spx_v3_refresh_frame(frame);return true;}
 static bool spx_v3_complete_finalizer(uint8_t *frame,uint32_t owner,uint32_t checkpoint){uint32_t c=spx_v3_cell(owner);if(spx_v3_load_u32(frame+c)!=3)return false;spx_v3_store_u32(frame+c,4);spx_v3_store_u32(frame+316,0);spx_v3_store_u32(frame+268,checkpoint);spx_v3_refresh_frame(frame);return true;}
-#else
 static bool spx_v3_stage_owned(uint8_t *frame,uint32_t owner,uint32_t checkpoint){uint32_t c=spx_v3_cell(owner);if(owner>=SPX_V3_RESOURCE_COUNT||spx_v3_load_u32(frame+c)!=1)return false;spx_v3_store_u32(frame+c,2);spx_v3_store_u32(frame+268,checkpoint);spx_v3_refresh_frame(frame);return true;}
-#endif
 static void spx_v3_action_seed_digest(const uint8_t decision[32],uint64_t count,uint8_t out[32]){struct spx_v3_sha s;uint8_t le[8];spx_v3_store_u64(le,count);spx_v3_sha_init(&s);spx_v3_sha_update(&s,spx_v3_action_seed_domain,(uint32_t)sizeof(spx_v3_action_seed_domain));spx_v3_sha_update(&s,decision,32);spx_v3_sha_update(&s,le,8);spx_v3_sha_final(&s,out);}
 static void spx_v3_action_seed(uint8_t *frame,const uint8_t decision[32],uint64_t count){spx_v3_action_seed_digest(decision,count,frame+spx_v3_action_digest_offset());}
 static bool spx_v3_valid_action_seed(const uint8_t *frame,const uint8_t decision[32],uint64_t count){uint8_t expected[32];spx_v3_action_seed_digest(decision,count,expected);return memcmp(frame+spx_v3_action_digest_offset(),expected,32)==0;}
 static bool spx_v3_lock_decision(uint8_t *frame,const uint8_t decision[32],uint64_t actions){memcpy(frame+276,decision,32);spx_v3_action_seed(frame,decision,actions);spx_v3_store_u32(frame+272,2);spx_v3_refresh_frame(frame);return true;}
 static void spx_v3_action_step(uint8_t *frame,uint32_t action,uint32_t boundary,uint32_t owner,uint32_t before,uint32_t after){uint8_t record[SPX_V3_ACTION_BYTES],next[32],le[8];uint64_t j=spx_v3_load_u32(frame+312);spx_v3_store_u64(le,j);memset(record,0,sizeof(record));memcpy(record,"SPXNAC03",8);spx_v3_store_u32(record+8,3);spx_v3_store_u32(record+12,20);spx_v3_store_u32(record+16,SPX_V3_ACTION_BYTES);memcpy(record+20,frame+20,144);spx_v3_store_u32(record+164,action);spx_v3_store_u32(record+168,boundary);spx_v3_store_u32(record+172,owner);spx_v3_store_u64(record+176,spx_v3_load_u64(frame+spx_v3_cell(owner)+4));spx_v3_store_u32(record+184,before);spx_v3_store_u32(record+188,after);spx_v3_store_u32(record+192,spx_v3_load_u32(frame+268));struct spx_v3_sha s;spx_v3_sha_init(&s);spx_v3_sha_update(&s,spx_v3_action_step_domain,(uint32_t)sizeof(spx_v3_action_step_domain));spx_v3_sha_update(&s,frame+spx_v3_action_digest_offset(),32);spx_v3_sha_update(&s,le,8);spx_v3_hash_field(&s,record,SPX_V3_ACTION_BYTES);spx_v3_sha_final(&s,next);memcpy(frame+spx_v3_action_digest_offset(),next,32);spx_v3_store_u32(frame+312,(uint32_t)(j+1));}
-#if SPX_V3_OWNED_IDENTITY
-static bool spx_v3_publish(uint8_t *frame,uint32_t owner){uint32_t c=spx_v3_cell(owner);if(spx_v3_load_u32(frame+c)!=2)return false;spx_v3_store_u32(frame+272,3);spx_v3_action_step(frame,0,3,owner,2,5);spx_v3_store_u32(frame+c,5);spx_v3_store_u32(frame+308,1);spx_v3_refresh_frame(frame);return true;}
-#endif
+static bool spx_v3_publish(uint8_t *frame,uint32_t action,uint32_t owner){uint32_t c=spx_v3_cell(owner);if(spx_v3_load_u32(frame+308)!=action||spx_v3_load_u32(frame+c)!=2)return false;spx_v3_store_u32(frame+272,3);spx_v3_action_step(frame,action,3,owner,2,5);spx_v3_store_u32(frame+c,5);spx_v3_store_u32(frame+308,action+1);spx_v3_refresh_frame(frame);return true;}
 static bool spx_v3_settlement_finalize(uint8_t *frame,uint32_t action,uint32_t owner){uint32_t c=spx_v3_cell(owner);if(spx_v3_load_u32(frame+308)!=action||(spx_v3_load_u32(frame+c)!=1&&spx_v3_load_u32(frame+c)!=2))return false;uint32_t before=spx_v3_load_u32(frame+c);spx_v3_store_u32(frame+272,3);spx_v3_store_u32(frame+c,3);spx_v3_store_u32(frame+316,1);spx_v3_action_step(frame,action,1,owner,before,3);spx_v3_refresh_frame(frame);spx_v3_generated_finalize(owner,spx_v3_load_u64(frame+c+4));spx_v3_action_step(frame,action,2,owner,3,4);spx_v3_store_u32(frame+c,4);spx_v3_store_u32(frame+316,0);spx_v3_store_u32(frame+308,action+1);spx_v3_refresh_frame(frame);return true;}
 static bool spx_v3_validate_settle_inputs(uint8_t *frame,uint32_t frame_len,const uint8_t *decision,uint32_t decision_len,uint8_t *candidate,uint32_t candidate_len,uint8_t decision_hash[32],uint32_t *tag,uint32_t *detail){if(candidate==NULL||candidate_len!=SPX_V3_CANDIDATE_BYTES||!spx_v3_common(frame,frame_len,"SPXNFR03")||frame_len!=SPX_V3_FRAME_BYTES||!spx_v3_valid_frame_digest(frame)||!spx_v3_common(decision,decision_len,"SPXNDC03")||decision_len!=SPX_V3_DECISION_BYTES||!spx_v3_disjoint(frame,frame_len,decision,decision_len)||!spx_v3_disjoint(frame,frame_len,candidate,candidate_len)||!spx_v3_disjoint(decision,decision_len,candidate,candidate_len)||memcmp(frame+20,decision+20,144)!=0||spx_v3_load_u32(frame+316)!=0)return false;*tag=spx_v3_load_u32(decision+164);*detail=spx_v3_load_u32(decision+168);if(*tag<1||*tag>7||((*tag==1||*tag==2||*tag==5||*tag==6||*tag==7)&&*detail!=0)||(*tag==4&&*detail==0))return false;spx_v3_decision_digest(decision,decision_hash);return true;}
 static uint32_t spx_v3_emit_candidate(uint8_t *frame,uint32_t tag,uint32_t detail,uint8_t *candidate){uint32_t outcome=tag==1?1:(tag==2?2:(tag==3?3:4));memset(candidate,0,SPX_V3_CANDIDATE_BYTES);memcpy(candidate,"SPXNCR03",8);spx_v3_store_u32(candidate+8,3);spx_v3_store_u32(candidate+12,20);spx_v3_store_u32(candidate+16,SPX_V3_CANDIDATE_BYTES);memcpy(candidate+20,frame+20,144);memcpy(candidate+164,frame+164,64);if(outcome==4)memset(candidate+228,0,32);else memcpy(candidate+228,frame+228,32);memcpy(candidate+260,frame+spx_v3_frame_digest_offset(),32);memcpy(candidate+292,frame+276,32);memcpy(candidate+324,frame+spx_v3_action_digest_offset(),32);spx_v3_store_u32(candidate+356,outcome);spx_v3_store_u32(candidate+360,outcome==3?detail:0);spx_v3_store_u32(candidate+364,0);spx_v3_store_u32(candidate+368,SPX_V3_RESOURCE_COUNT);for(uint32_t i=0;i<SPX_V3_RESOURCE_COUNT;i++){uint32_t c=spx_v3_cell(i),q=372+12*i,s=spx_v3_load_u32(frame+c);if(s!=4&&s!=5)return UINT32_C(3);spx_v3_store_u32(candidate+q,s==4?1:2);spx_v3_store_u64(candidate+q+4,spx_v3_load_u64(frame+c+4));}return UINT32_C(0);}
@@ -865,7 +1342,11 @@ mod tests {
     use std::process::Command;
     use std::sync::atomic::{AtomicU64, Ordering};
 
-    use crate::owned_resource_corpus::build_owned_resource_corpus_v1;
+    use crate::conformance::{TraceEventKind, TraceOutcome, TraceResult};
+    use crate::owned_resource_corpus::{
+        build_owned_resource_corpus_v1, OwnedResourceCorpusArgument, OwnedResourceCorpusCase,
+    };
+    use crate::semantic_trace::build_semantic_event_dictionary;
 
     use super::super::native_callable_abi_v3;
     use super::super::native_callable_wire_v3::{
@@ -973,11 +1454,78 @@ mod tests {
         (request, frame)
     }
 
+    fn corpus_wires(
+        binding: ProviderBinding,
+        arguments: &[OwnedResourceCorpusArgument],
+    ) -> (Vec<u8>, Vec<u8>, Vec<u64>) {
+        let mut next_owner = 0_u32;
+        let mut payloads = Vec::new();
+        let request_arguments = arguments
+            .iter()
+            .enumerate()
+            .map(|(index, argument)| match *argument {
+                OwnedResourceCorpusArgument::Owned(payload) => {
+                    let owner_ordinal = next_owner;
+                    next_owner += 1;
+                    payloads.push(payload);
+                    RequestArgument::Owned {
+                        index: index as u32,
+                        owner_ordinal,
+                        payload,
+                    }
+                }
+                OwnedResourceCorpusArgument::Bool(value) => RequestArgument::Bool {
+                    index: index as u32,
+                    value,
+                },
+                OwnedResourceCorpusArgument::I64(value) => RequestArgument::I64 {
+                    index: index as u32,
+                    value,
+                },
+            })
+            .collect::<Vec<_>>();
+        let request = encode_request(binding, &request_arguments).unwrap();
+        let digest = request_digest(&request).unwrap();
+        let resources = payloads
+            .iter()
+            .map(|payload| ResourceCell {
+                state: ResourceState::Live,
+                payload: *payload,
+            })
+            .collect::<Vec<_>>();
+        let frame = encode_frame(&RecoveryFrame {
+            binding,
+            request_digest: digest,
+            response_digest: [0; 32],
+            semantic_trace_digest: [0; 32],
+            execute_return: ExecuteReturn::Pending,
+            checkpoint: 1,
+            phase: FramePhase::Executing,
+            decision_digest: [0; 32],
+            next_action_index: 0,
+            action_record_count: 0,
+            active_finalizers: 0,
+            resources: &resources,
+            action_chain_digest: [0; 32],
+        })
+        .unwrap();
+        (request, frame, payloads)
+    }
+
     fn append_array(output: &mut String, name: &str, bytes: &[u8]) {
         emit_c_array(output, name, bytes);
     }
 
     fn semantic_digest(trace: [u8; 32], ordinals: &[u32], outcome: u8) -> [u8; 32] {
+        semantic_digest_exact(trace, ordinals, outcome, 0)
+    }
+
+    fn semantic_digest_exact(
+        trace: [u8; 32],
+        ordinals: &[u32],
+        outcome: u8,
+        selected_ordinal: u32,
+    ) -> [u8; 32] {
         let mut hasher = Sha256::new();
         hasher.update(b"semaprax.native-recovery-trace-evidence.v1\0");
         hasher.update(trace);
@@ -986,24 +1534,94 @@ mod tests {
             hasher.update(ordinal.to_le_bytes());
         }
         hasher.update([outcome]);
+        if outcome == 3 {
+            hasher.update(selected_ordinal.to_le_bytes());
+        }
         hasher.finalize().into()
     }
 
+    fn append_u32_array(output: &mut String, name: &str, values: &[u32]) {
+        let physical = if values.is_empty() { &[0][..] } else { values };
+        writeln!(
+            output,
+            "static const uint32_t {name}[{}]={{{}}};",
+            physical.len(),
+            physical
+                .iter()
+                .map(|value| format!("UINT32_C({value})"))
+                .collect::<Vec<_>>()
+                .join(",")
+        )
+        .unwrap();
+    }
+
+    fn append_u64_array(output: &mut String, name: &str, values: &[u64]) {
+        let physical = if values.is_empty() { &[0][..] } else { values };
+        writeln!(
+            output,
+            "static const uint64_t {name}[{}]={{{}}};",
+            physical.len(),
+            physical
+                .iter()
+                .map(|value| format!("UINT64_C({value})"))
+                .collect::<Vec<_>>()
+                .join(",")
+        )
+        .unwrap();
+    }
+
     fn compile_and_run(source: &str, optimization: &str) {
+        compile_and_run_labeled(source, optimization, "provider");
+    }
+
+    fn compile_and_run_labeled(source: &str, optimization: &str, label: &str) {
         let directory = FixtureDirectory::new();
         let c_path = directory.path().join("provider.c");
         let executable = directory.path().join("provider");
         fs::write(&c_path, source).unwrap();
-        let clang = std::env::var_os("CLANG").unwrap_or_else(|| "clang".into());
-        let compile = Command::new(clang)
-            .args([
-                "-std=c11",
-                optimization,
-                "-Wall",
-                "-Wextra",
-                "-Werror",
-                "-pedantic",
-            ])
+        let sanitizers_required = match std::env::var("SEMAPRAX_REQUIRE_CALLABLE_V3_SANITIZERS") {
+            Err(std::env::VarError::NotPresent) => false,
+            Ok(value) if value == "1" => true,
+            Ok(value) => {
+                panic!("SEMAPRAX_REQUIRE_CALLABLE_V3_SANITIZERS must be exactly `1`, got `{value}`")
+            }
+            Err(std::env::VarError::NotUnicode(_)) => {
+                panic!("SEMAPRAX_REQUIRE_CALLABLE_V3_SANITIZERS must be Unicode `1`")
+            }
+        };
+        let clang = if sanitizers_required {
+            std::env::var_os("CLANG")
+                .expect("SEMAPRAX_REQUIRE_CALLABLE_V3_SANITIZERS=1 requires an explicit CLANG path")
+        } else {
+            std::env::var_os("CLANG").unwrap_or_else(|| "clang".into())
+        };
+        if sanitizers_required {
+            let version = Command::new(&clang).arg("--version").output().unwrap();
+            assert!(
+                version.status.success()
+                    && String::from_utf8_lossy(&version.stdout)
+                        .to_ascii_lowercase()
+                        .contains("clang"),
+                "callable-v3 sanitizer gate requires Clang"
+            );
+        }
+        let mut compiler = Command::new(clang);
+        compiler.args([
+            "-std=c11",
+            optimization,
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-pedantic",
+        ]);
+        if sanitizers_required {
+            compiler.args([
+                "-fsanitize=address,undefined",
+                "-fno-omit-frame-pointer",
+                "-fno-sanitize-recover=all",
+            ]);
+        }
+        let compile = compiler
             .arg(&c_path)
             .arg("-o")
             .arg(&executable)
@@ -1011,18 +1629,49 @@ mod tests {
             .unwrap();
         assert!(
             compile.status.success(),
-            "provider compile failed:\n{}\n{}",
+            "provider `{label}` compile failed:\n{}\n{}",
             String::from_utf8_lossy(&compile.stdout),
             String::from_utf8_lossy(&compile.stderr)
         );
-        let run = Command::new(&executable).output().unwrap();
+        let mut runner = Command::new(&executable);
+        if sanitizers_required {
+            let asan = strict_sanitizer_options(
+                "ASAN_OPTIONS",
+                "detect_leaks=0:halt_on_error=1:abort_on_error=1",
+            );
+            let ubsan =
+                strict_sanitizer_options("UBSAN_OPTIONS", "halt_on_error=1:print_stacktrace=1");
+            runner.env("ASAN_OPTIONS", asan);
+            runner.env("UBSAN_OPTIONS", ubsan);
+        }
+        let run = runner.output().unwrap();
         assert!(
             run.status.success(),
-            "provider failed {:?}:\n{}\n{}",
+            "provider `{label}` failed {:?}:\n{}\n{}",
             run.status.code(),
             String::from_utf8_lossy(&run.stdout),
             String::from_utf8_lossy(&run.stderr)
         );
+    }
+
+    fn strict_sanitizer_options(name: &str, default: &str) -> String {
+        match std::env::var(name) {
+            Err(std::env::VarError::NotPresent) => default.to_owned(),
+            Ok(value)
+                if value.split(':').any(|field| field == "halt_on_error=1")
+                    && (name != "ASAN_OPTIONS"
+                        || value.split(':').any(|field| field == "abort_on_error=1")) =>
+            {
+                value
+            }
+            Ok(value) => panic!(
+                "{name} must preserve strict halt{} semantics, got `{value}`",
+                if name == "ASAN_OPTIONS" { "/abort" } else { "" }
+            ),
+            Err(std::env::VarError::NotUnicode(_)) => {
+                panic!("{name} must be valid Unicode strict sanitizer options")
+            }
+        }
     }
 
     fn spec(function_id: &str, plan: ProviderV3Plan) -> NativeCallableProviderV3Spec {
@@ -1035,6 +1684,73 @@ mod tests {
             .unwrap();
         let descriptor = native_callable_abi_v3::derive(&corpus.program, &function.id).unwrap();
         NativeCallableProviderV3Spec::new(descriptor, plan).unwrap()
+    }
+
+    fn graph_spec(
+        program: &ResolvedProgram,
+        case: &OwnedResourceCorpusCase,
+    ) -> NativeCallableProviderV3Spec {
+        let function = program
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == case.function_id)
+            .unwrap();
+        let dictionary = build_semantic_event_dictionary(program, &function.id).unwrap();
+        let semantic_ordinals = case
+            .reference
+            .events
+            .iter()
+            .map(|event| dictionary.ordinal_for(&event.event).unwrap())
+            .collect::<Vec<_>>();
+        let outcome = match &case.reference.outcome {
+            TraceOutcome::Success {
+                result: TraceResult::I64(value),
+            } => ProviderV3Outcome::Scalar { value: *value },
+            TraceOutcome::Success {
+                result: TraceResult::Owned { .. },
+            } => ProviderV3Outcome::Owned {
+                owner_ordinal: case.expected_owned_result_ordinal.unwrap() as u32,
+            },
+            TraceOutcome::Failure { .. } => {
+                let selected_ordinal = case
+                    .reference
+                    .events
+                    .iter()
+                    .find_map(|event| {
+                        matches!(event.event, TraceEventKind::SelectFailure { .. })
+                            .then(|| dictionary.ordinal_for(&event.event).unwrap())
+                    })
+                    .unwrap();
+                ProviderV3Outcome::SemanticFailure { selected_ordinal }
+            }
+            TraceOutcome::Success { .. } => panic!("corpus result is outside callable v3"),
+        };
+        let scalar_arguments = case
+            .arguments
+            .iter()
+            .enumerate()
+            .filter_map(|(index, argument)| match argument {
+                OwnedResourceCorpusArgument::Owned(_) => None,
+                OwnedResourceCorpusArgument::Bool(value) => Some(ProviderV3ScalarArgument {
+                    parameter_index: index as u32,
+                    value: ProviderV3ScalarValue::Bool(*value),
+                }),
+                OwnedResourceCorpusArgument::I64(value) => Some(ProviderV3ScalarArgument {
+                    parameter_index: index as u32,
+                    value: ProviderV3ScalarValue::I64(*value),
+                }),
+            })
+            .collect();
+        let descriptor = native_callable_abi_v3::derive(program, &function.id).unwrap();
+        NativeCallableProviderV3Spec::new(
+            descriptor,
+            ProviderV3Plan::GraphWitness {
+                scalar_arguments,
+                outcome,
+                semantic_ordinals,
+            },
+        )
+        .unwrap()
     }
 
     #[test]
@@ -1093,6 +1809,12 @@ mod tests {
         append_array(&mut source, "initial_abort_decision", &initial_abort);
         append_array(&mut source, "mid_abort_decision", &mid_abort);
         append_array(&mut source, "uncertain_abort_decision", &uncertain_abort);
+        writeln!(
+            source,
+            "#define expected_terminal_checkpoint UINT32_C({})",
+            spec.plan.terminal_checkpoint
+        )
+        .unwrap();
         source.push_str(
             r#"
 static uint32_t finalizer_count=0,finalizer_order[8]; static uint64_t finalizer_payload[8];
@@ -1105,20 +1827,248 @@ int main(void){
  memcpy(hostile_frame,initial_frame,sizeof(hostile_frame));hostile_frame[196]=1;spx_v3_refresh_frame(hostile_frame);if(spx_fixture_execute_v3(request,sizeof(request),hostile_frame,sizeof(hostile_frame),response,sizeof(response))!=1||finalizer_count!=0)return 10;
  memcpy(hostile_frame,initial_frame,sizeof(hostile_frame));if(spx_fixture_execute_v3(request,sizeof(request),hostile_frame,sizeof(hostile_frame),hostile_frame+20,sizeof(response))!=1||finalizer_count!=0)return 11;
  memcpy(frame,initial_frame,sizeof(frame));if(spx_fixture_execute_v3(request,sizeof(request),frame,sizeof(frame),response,sizeof(response))!=0)return 3;
- if(finalizer_count!=2||finalizer_order[0]!=1||finalizer_order[1]!=0||finalizer_payload[0]!=73||finalizer_payload[1]!=41||spx_v3_load_u32(frame+268)!=3||spx_v3_load_u32(frame+324)!=4||spx_v3_load_u32(frame+336)!=4||memcmp(frame+228,expected_semantic,32))return 4;
+ if(finalizer_count!=2||finalizer_order[0]!=1||finalizer_order[1]!=0||finalizer_payload[0]!=73||finalizer_payload[1]!=41||spx_v3_load_u32(frame+268)!=expected_terminal_checkpoint||spx_v3_load_u32(frame+324)!=4||spx_v3_load_u32(frame+336)!=4||memcmp(frame+228,expected_semantic,32))return 4;
  if(spx_fixture_settle_v3(frame,sizeof(frame),accept_decision,sizeof(accept_decision),candidate,sizeof(candidate))!=0)return 5;
  if(spx_v3_load_u32(frame+272)!=4||spx_v3_load_u32(candidate+356)!=1||spx_v3_load_u32(candidate+372)!=1||spx_v3_load_u32(candidate+384)!=1||memcmp(candidate+228,frame+228,32)||memcmp(candidate+324,expected_accept_chain,32))return 6;
  memcpy(saved,candidate,sizeof(saved));if(spx_fixture_settle_v3(frame,sizeof(frame),accept_decision,sizeof(accept_decision),candidate,sizeof(candidate))!=0||memcmp(saved,candidate,sizeof(saved))||finalizer_count!=2)return 7;
  memcpy(saved_frame,frame,sizeof(frame));memset(candidate,0xa5,sizeof(candidate));memcpy(saved,candidate,sizeof(saved));if(spx_fixture_settle_v3(frame,sizeof(frame),conflict_decision,sizeof(conflict_decision),candidate,sizeof(candidate))!=3||finalizer_count!=2||memcmp(frame,saved_frame,sizeof(frame))||memcmp(candidate,saved,sizeof(candidate)))return 8;
  if(memcmp(spx_fixture_descriptor_v3(),spx_v3_descriptor,sizeof(spx_v3_descriptor)))return 9;
- memcpy(abort_frame,initial_abort_frame,sizeof(abort_frame));if(spx_fixture_settle_v3(abort_frame,sizeof(abort_frame),initial_abort_decision,sizeof(initial_abort_decision),candidate,sizeof(candidate))!=0||finalizer_count!=4||finalizer_order[2]!=1||finalizer_payload[2]!=203||finalizer_order[3]!=0||finalizer_payload[3]!=201)return 12;
- memcpy(abort_frame,mid_abort_frame,sizeof(abort_frame));if(spx_fixture_settle_v3(abort_frame,sizeof(abort_frame),mid_abort_decision,sizeof(mid_abort_decision),candidate,sizeof(candidate))!=0||finalizer_count!=5||finalizer_order[4]!=0||finalizer_payload[4]!=211)return 13;
- memcpy(abort_frame,uncertain_frame,sizeof(abort_frame));if(spx_fixture_settle_v3(abort_frame,sizeof(abort_frame),uncertain_abort_decision,sizeof(uncertain_abort_decision),candidate,sizeof(candidate))!=1||finalizer_count!=5)return 14;
+ memcpy(abort_frame,initial_abort_frame,sizeof(abort_frame));memcpy(saved_frame,abort_frame,sizeof(abort_frame));memset(candidate,0xa5,sizeof(candidate));memcpy(saved,candidate,sizeof(saved));if(spx_fixture_settle_v3(abort_frame,sizeof(abort_frame),initial_abort_decision,sizeof(initial_abort_decision),candidate,sizeof(candidate))!=3||finalizer_count!=2||memcmp(abort_frame,saved_frame,sizeof(abort_frame))||memcmp(candidate,saved,sizeof(candidate)))return 12;
+ memcpy(abort_frame,mid_abort_frame,sizeof(abort_frame));memcpy(saved_frame,abort_frame,sizeof(abort_frame));if(spx_fixture_settle_v3(abort_frame,sizeof(abort_frame),mid_abort_decision,sizeof(mid_abort_decision),candidate,sizeof(candidate))!=3||finalizer_count!=2||memcmp(abort_frame,saved_frame,sizeof(abort_frame))||memcmp(candidate,saved,sizeof(candidate)))return 13;
+ memcpy(abort_frame,uncertain_frame,sizeof(abort_frame));if(spx_fixture_settle_v3(abort_frame,sizeof(abort_frame),uncertain_abort_decision,sizeof(uncertain_abort_decision),candidate,sizeof(candidate))!=1||finalizer_count!=2)return 14;
  return 0;}
 "#,
         );
         for optimization in ["-O0", "-O2"] {
             compile_and_run(&source, optimization);
+        }
+    }
+
+    #[test]
+    fn all_fourteen_graph_witness_specs_are_unique_and_bounded() {
+        let corpus = build_owned_resource_corpus_v1().unwrap();
+        assert_eq!(corpus.cases.len(), 14);
+        for case in &corpus.cases {
+            let spec = graph_spec(&corpus.program, case);
+            assert!(spec.plan.terminal_checkpoint > 1, "{}", case.scenario_id);
+            assert_eq!(
+                spec.plan.semantic_ordinals.len(),
+                case.reference.events.len(),
+                "{}",
+                case.scenario_id
+            );
+            let emitted = emit(&spec).unwrap();
+            assert!(!emitted.source.contains("malloc("), "{}", case.scenario_id);
+            assert!(!emitted.source.contains("calloc("), "{}", case.scenario_id);
+            assert!(!emitted.source.contains("realloc("), "{}", case.scenario_id);
+            assert!(!emitted.source.contains("free("), "{}", case.scenario_id);
+        }
+    }
+
+    #[test]
+    fn authoritative_fourteen_case_graph_providers_execute_and_settle_at_o0_o2() {
+        let corpus = build_owned_resource_corpus_v1().unwrap();
+        assert_eq!(corpus.cases.len(), 14);
+        for (case_index, case) in corpus.cases.iter().enumerate() {
+            let spec = graph_spec(&corpus.program, case);
+            let emitted = emit(&spec).unwrap();
+            let primary_binding = binding(&spec, 1_000 + case_index as u64, 2_000, 31);
+            let abort_binding = binding(&spec, 3_000 + case_index as u64, 4_000, 47);
+            let (request, frame, payloads) =
+                corpus_wires(primary_binding, case.arguments.as_slice());
+            let (_, abort_frame, _) = corpus_wires(abort_binding, case.arguments.as_slice());
+            let decision = match spec.plan.outcome {
+                ProviderV3Outcome::Scalar { .. } => {
+                    encode_decision(primary_binding, SettlementDecision::AcceptScalar).unwrap()
+                }
+                ProviderV3Outcome::SemanticFailure { .. } => {
+                    encode_decision(primary_binding, SettlementDecision::AcceptSemanticFailure)
+                        .unwrap()
+                }
+                ProviderV3Outcome::Owned { owner_ordinal } => encode_decision(
+                    primary_binding,
+                    SettlementDecision::AcceptOwned { owner_ordinal },
+                )
+                .unwrap(),
+            };
+            let abort_decision =
+                encode_decision(abort_binding, SettlementDecision::AbortHostUnwind).unwrap();
+            let execute_finalizers = spec
+                .plan
+                .execute_actions
+                .iter()
+                .filter_map(|action| match action {
+                    ProviderV3ExecuteAction::Finalize { owner_ordinal, .. } => Some(*owner_ordinal),
+                    ProviderV3ExecuteAction::Stage { .. } => None,
+                })
+                .collect::<Vec<_>>();
+            let execute_payloads = execute_finalizers
+                .iter()
+                .map(|owner| payloads[*owner as usize])
+                .collect::<Vec<_>>();
+            let (outcome_tag, outcome_detail, outcome_payload, semantic_class, candidate_tag) =
+                match spec.plan.outcome {
+                    ProviderV3Outcome::Scalar { value } => (1, 0, value as u64, 1, 1),
+                    ProviderV3Outcome::SemanticFailure { selected_ordinal } => {
+                        (2, selected_ordinal, 0, 3, 2)
+                    }
+                    ProviderV3Outcome::Owned { owner_ordinal } => {
+                        (3, owner_ordinal, payloads[owner_ordinal as usize], 2, 3)
+                    }
+                };
+            let expected_semantic = semantic_digest_exact(
+                spec.trace_path_certificate,
+                &spec.plan.semantic_ordinals,
+                semantic_class,
+                outcome_detail,
+            );
+            let terminal = spec
+                .plan
+                .checkpoints
+                .iter()
+                .find(|checkpoint| checkpoint.id == spec.plan.terminal_checkpoint)
+                .unwrap();
+            let published = match spec.plan.outcome {
+                ProviderV3Outcome::Owned { owner_ordinal } => Some(owner_ordinal),
+                ProviderV3Outcome::Scalar { .. } | ProviderV3Outcome::SemanticFailure { .. } => {
+                    None
+                }
+            };
+            let accept_action_count =
+                terminal.accept_cleanup.len() + usize::from(published.is_some());
+            let mut expected_accept_chain = initial_action_chain_digest(
+                decision_digest(&decision).unwrap(),
+                accept_action_count as u64,
+            )
+            .unwrap();
+            let mut record_index = 0_u64;
+            for (action_index, owner_ordinal) in terminal.accept_cleanup.iter().enumerate() {
+                let before = match terminal.states[*owner_ordinal as usize] {
+                    1 => ResourceState::Live,
+                    2 => ResourceState::ProvisionalResult,
+                    _ => panic!("accept cleanup starts from a non-live owner"),
+                };
+                for (boundary, from, after) in [
+                    (
+                        ActionBoundary::FinalizerStarted,
+                        before,
+                        ResourceState::Finalizing,
+                    ),
+                    (
+                        ActionBoundary::FinalizerCompleted,
+                        ResourceState::Finalizing,
+                        ResourceState::Dead,
+                    ),
+                ] {
+                    let evidence = encode_action_evidence(ActionEvidence {
+                        binding: primary_binding,
+                        action_index: action_index as u32,
+                        boundary,
+                        owner_ordinal: *owner_ordinal,
+                        payload: payloads[*owner_ordinal as usize],
+                        before: from,
+                        after,
+                        checkpoint: terminal.id,
+                    })
+                    .unwrap();
+                    expected_accept_chain =
+                        extend_action_chain_digest(expected_accept_chain, record_index, &evidence)
+                            .unwrap();
+                    record_index += 1;
+                }
+            }
+            if let Some(owner_ordinal) = published {
+                let evidence = encode_action_evidence(ActionEvidence {
+                    binding: primary_binding,
+                    action_index: terminal.accept_cleanup.len() as u32,
+                    boundary: ActionBoundary::Publish,
+                    owner_ordinal,
+                    payload: payloads[owner_ordinal as usize],
+                    before: ResourceState::ProvisionalResult,
+                    after: ResourceState::Published,
+                    checkpoint: terminal.id,
+                })
+                .unwrap();
+                expected_accept_chain =
+                    extend_action_chain_digest(expected_accept_chain, record_index, &evidence)
+                        .unwrap();
+            }
+            let mut source = emitted.source;
+            writeln!(
+                source,
+                "#define spx_fixture_execute_v3 {}\n#define spx_fixture_settle_v3 {}",
+                spec.execute_symbol, spec.settle_symbol
+            )
+            .unwrap();
+            append_array(&mut source, "case_request", &request);
+            append_array(&mut source, "case_frame", &frame);
+            append_array(&mut source, "case_decision", &decision);
+            append_array(&mut source, "case_abort_frame", &abort_frame);
+            append_array(&mut source, "case_abort_decision", &abort_decision);
+            append_array(&mut source, "case_expected_semantic", &expected_semantic);
+            append_array(
+                &mut source,
+                "case_expected_accept_chain",
+                &expected_accept_chain,
+            );
+            append_u32_array(&mut source, "case_execute_order", &execute_finalizers);
+            append_u64_array(&mut source, "case_execute_payload", &execute_payloads);
+            writeln!(
+                source,
+                "#define CASE_EXECUTE_COUNT UINT32_C({})\n#define CASE_EVENT_COUNT UINT32_C({})\n#define CASE_OUTCOME_TAG UINT32_C({outcome_tag})\n#define CASE_OUTCOME_DETAIL UINT32_C({outcome_detail})\n#define CASE_OUTCOME_PAYLOAD UINT64_C({outcome_payload})\n#define CASE_CANDIDATE_TAG UINT32_C({candidate_tag})\n#define CASE_TERMINAL_CHECKPOINT UINT32_C({})",
+                execute_finalizers.len(),
+                spec.plan.semantic_ordinals.len(),
+                spec.plan.terminal_checkpoint,
+            )
+            .unwrap();
+
+            let mut hostile = case.arguments.clone();
+            let hostile_wires = hostile
+                .iter_mut()
+                .find_map(|argument| match argument {
+                    OwnedResourceCorpusArgument::Bool(value) => {
+                        *value = !*value;
+                        Some(())
+                    }
+                    OwnedResourceCorpusArgument::I64(value) => {
+                        *value = value.wrapping_add(1);
+                        Some(())
+                    }
+                    OwnedResourceCorpusArgument::Owned(_) => None,
+                })
+                .map(|()| {
+                    let hostile_binding = binding(&spec, 5_000 + case_index as u64, 6_000, 63);
+                    corpus_wires(hostile_binding, &hostile)
+                });
+            if let Some((hostile_request, hostile_frame, _)) = hostile_wires {
+                append_array(&mut source, "case_hostile_request", &hostile_request);
+                append_array(&mut source, "case_hostile_frame", &hostile_frame);
+                source.push_str("#define CASE_HAS_HOSTILE_SCALAR UINT32_C(1)\n");
+            } else {
+                append_array(&mut source, "case_hostile_request", &request);
+                append_array(&mut source, "case_hostile_frame", &frame);
+                source.push_str("#define CASE_HAS_HOSTILE_SCALAR UINT32_C(0)\n");
+            }
+            source.push_str(
+                r#"
+static uint32_t finalizer_count=0,finalizer_order[16];static uint64_t finalizer_payload[16];
+static void spx_v3_generated_finalize(uint32_t owner,uint64_t payload){if(finalizer_count<16){finalizer_order[finalizer_count]=owner;finalizer_payload[finalizer_count]=payload;}finalizer_count++;}
+int main(void){
+ uint8_t frame[sizeof(case_frame)],response[SPX_V3_RESPONSE_BYTES],candidate[SPX_V3_CANDIDATE_BYTES],saved[SPX_V3_CANDIDATE_BYTES],abort_frame[sizeof(case_abort_frame)],saved_abort_frame[sizeof(case_abort_frame)],hostile_frame[sizeof(case_hostile_frame)];
+ if(CASE_HAS_HOSTILE_SCALAR){memcpy(hostile_frame,case_hostile_frame,sizeof(hostile_frame));if(spx_fixture_execute_v3(case_hostile_request,sizeof(case_hostile_request),hostile_frame,sizeof(hostile_frame),response,sizeof(response))!=1||finalizer_count!=0)return 1;}
+ memcpy(frame,case_frame,sizeof(frame));if(spx_fixture_execute_v3(case_request,sizeof(case_request),frame,sizeof(frame),response,sizeof(response))!=0)return 2;
+ if(spx_v3_load_u32(frame+268)!=CASE_TERMINAL_CHECKPOINT||spx_v3_load_u32(response+132)!=CASE_TERMINAL_CHECKPOINT||spx_v3_load_u32(response+136)!=CASE_OUTCOME_TAG||spx_v3_load_u32(response+140)!=CASE_OUTCOME_DETAIL||spx_v3_load_u64(response+144)!=CASE_OUTCOME_PAYLOAD||spx_v3_load_u32(response+152)!=CASE_EVENT_COUNT||memcmp(frame+228,case_expected_semantic,32))return 3;
+ if(finalizer_count!=CASE_EXECUTE_COUNT)return 4;for(uint32_t i=0;i<CASE_EXECUTE_COUNT;i++)if(finalizer_order[i]!=case_execute_order[i]||finalizer_payload[i]!=case_execute_payload[i])return 5;
+ if(spx_fixture_settle_v3(frame,sizeof(frame),case_decision,sizeof(case_decision),candidate,sizeof(candidate))!=0||spx_v3_load_u32(candidate+356)!=CASE_CANDIDATE_TAG||spx_v3_load_u32(candidate+360)!=(CASE_CANDIDATE_TAG==3?CASE_OUTCOME_DETAIL:0)||spx_v3_load_u32(candidate+368)!=SPX_V3_RESOURCE_COUNT||memcmp(candidate+228,case_expected_semantic,32)||memcmp(candidate+324,case_expected_accept_chain,32))return 6;
+ for(uint32_t owner=0;owner<SPX_V3_RESOURCE_COUNT;owner++){uint32_t disposition=spx_v3_load_u32(candidate+372+12*owner);uint32_t expected=CASE_CANDIDATE_TAG==3&&owner==CASE_OUTCOME_DETAIL?2:1;if(disposition!=expected||spx_v3_load_u64(candidate+376+12*owner)!=spx_v3_load_u64(frame+spx_v3_cell(owner)+4))return 7;}
+ memcpy(saved,candidate,sizeof(saved));if(spx_fixture_settle_v3(frame,sizeof(frame),case_decision,sizeof(case_decision),candidate,sizeof(candidate))!=0||memcmp(saved,candidate,sizeof(saved))||finalizer_count!=CASE_EXECUTE_COUNT)return 8;
+ memcpy(abort_frame,case_abort_frame,sizeof(abort_frame));memcpy(saved_abort_frame,abort_frame,sizeof(abort_frame));memset(candidate,0xa5,sizeof(candidate));memcpy(saved,candidate,sizeof(saved));if(spx_fixture_settle_v3(abort_frame,sizeof(abort_frame),case_abort_decision,sizeof(case_abort_decision),candidate,sizeof(candidate))!=3||memcmp(abort_frame,saved_abort_frame,sizeof(abort_frame))||memcmp(candidate,saved,sizeof(candidate))||finalizer_count!=CASE_EXECUTE_COUNT)return 9;
+ return 0;}
+"#,
+            );
+            for optimization in ["-O0", "-O2"] {
+                compile_and_run_labeled(&source, optimization, case.scenario_id);
+            }
         }
     }
 
@@ -1152,7 +2102,7 @@ int main(void){
             payload: 99,
             before: ResourceState::ProvisionalResult,
             after: ResourceState::Published,
-            checkpoint: 2,
+            checkpoint: spec.plan.terminal_checkpoint,
         })
         .unwrap();
         let expected_accept_chain =
@@ -1167,7 +2117,7 @@ int main(void){
             payload: 101,
             before: ResourceState::ProvisionalResult,
             after: ResourceState::Finalizing,
-            checkpoint: 2,
+            checkpoint: spec.plan.terminal_checkpoint,
         })
         .unwrap();
         let abort_completed = encode_action_evidence(ActionEvidence {
@@ -1178,7 +2128,7 @@ int main(void){
             payload: 101,
             before: ResourceState::Finalizing,
             after: ResourceState::Dead,
-            checkpoint: 2,
+            checkpoint: spec.plan.terminal_checkpoint,
         })
         .unwrap();
         let abort_after_started =
@@ -1298,6 +2248,47 @@ int main(void){
                 finalizer_order: vec![0, 1],
                 completed_checkpoints: vec![2, 3],
                 semantic_ordinals: vec![1, 2, 3, 4, 5],
+            },
+        )
+        .is_err());
+
+        let checked_case = corpus
+            .cases
+            .iter()
+            .find(|case| case.scenario_id == "checked-success")
+            .unwrap();
+        let good = graph_spec(&corpus.program, checked_case);
+        let mut reversed = good.plan.semantic_ordinals.clone();
+        reversed.reverse();
+        let descriptor = native_callable_abi_v3::derive(
+            &corpus.program,
+            &DeclarationId::new(checked_case.function_id),
+        )
+        .unwrap();
+        assert!(NativeCallableProviderV3Spec::new(
+            descriptor,
+            ProviderV3Plan::GraphWitness {
+                scalar_arguments: good.plan.scalar_arguments.clone(),
+                outcome: good.plan.outcome,
+                semantic_ordinals: reversed,
+            },
+        )
+        .is_err());
+
+        let descriptor = native_callable_abi_v3::derive(
+            &corpus.program,
+            &DeclarationId::new(checked_case.function_id),
+        )
+        .unwrap();
+        assert!(NativeCallableProviderV3Spec::new(
+            descriptor,
+            ProviderV3Plan::GraphWitness {
+                scalar_arguments: vec![ProviderV3ScalarArgument {
+                    parameter_index: 1,
+                    value: ProviderV3ScalarValue::Bool(true),
+                }],
+                outcome: good.plan.outcome,
+                semantic_ordinals: good.plan.semantic_ordinals,
             },
         )
         .is_err());

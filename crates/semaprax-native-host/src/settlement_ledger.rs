@@ -21,6 +21,25 @@ use crate::callable_wire_v3::{
 use crate::descriptor_v3::{Capacities, Descriptor};
 use crate::receipt_authority::{ReceiptAuthority, ReceiptAuthorityError};
 
+#[cfg(test)]
+std::thread_local! {
+    static RECEIPT_PREPARE_PANIC: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+#[cfg(test)]
+fn arm_receipt_prepare_panic() {
+    RECEIPT_PREPARE_PANIC.with(|armed| armed.set(true));
+}
+
+#[cfg(test)]
+fn receipt_prepare_panic_failpoint() {
+    RECEIPT_PREPARE_PANIC.with(|armed| {
+        if armed.replace(false) {
+            panic!("injected receipt HMAC preparation panic");
+        }
+    });
+}
+
 /// Narrow leaf-pin contract implemented by the loader's exact v3 lease.
 ///
 /// Retention is explicit and the trait intentionally requires ownership of a
@@ -288,12 +307,17 @@ impl<P: SettlementPin> ReservedFrame<P> {
 pub(crate) struct ReceiptCommitEvidence<'a> {
     pub(crate) request: &'a ExecuteRequest,
     pub(crate) execute_return_code: u32,
-    pub(crate) response_storage: &'a [u8],
+    pub(crate) response_storage: ResponseStorageEvidence<'a>,
     pub(crate) response: Option<&'a ExecuteResponse>,
     pub(crate) frame: &'a RecoveryFrame,
     pub(crate) decision: &'a SettlementDecision,
     pub(crate) actions: &'a [ActionRecord],
     pub(crate) candidate: &'a CandidateReceipt,
+}
+
+pub(crate) enum ResponseStorageEvidence<'a> {
+    External(&'a [u8]),
+    Reserved,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -303,6 +327,17 @@ pub(crate) struct CommittedResult {
     pub(crate) ledger_before: [u8; 32],
     pub(crate) ledger_after: [u8; 32],
     pub(crate) published_owner: Option<SettlementOwnerHandle>,
+}
+
+struct PreparedReceiptCommit {
+    candidate_digest: [u8; 32],
+    ledger_before: [u8; 32],
+    ledger_after: [u8; 32],
+    receipt: [u8; HOST_RECEIPT_BYTES],
+    publication: Publication,
+    cache_index: usize,
+    published_owner: Option<u32>,
+    refreshed_owner: Option<SettlementOwnerHandle>,
 }
 
 /// Cached authenticated result. The exact pin is deliberately last.
@@ -601,127 +636,125 @@ impl<P: SettlementPin> LedgerCore<P> {
         })
     }
 
-    /// Third irreversible boundary. Replay, ledger digests, receipt bytes and
-    /// a free cache slot are all established before the single exclusive-borrow
-    /// mutation that publishes the ledger result and cached receipt together.
-    pub(crate) fn receipt_commit(
+    /// Perform every fallible, allocating, parsing and authentication step
+    /// while the RAII transaction still owns `reserved`. A returned error or
+    /// panic therefore unwinds through `SettlementTransaction::drop`, which
+    /// absorbs this exact frame and pin into quarantine.
+    fn prepare_receipt_commit(
         &mut self,
-        mut reserved: ReservedFrame<P>,
+        reserved: &mut ReservedFrame<P>,
         evidence: ReceiptCommitEvidence<'_>,
-    ) -> Result<CommittedResult, SettlementLedgerError> {
-        let prepared = (|| {
-            self.require_live()?;
-            if reserved.phase != AuthoritativePhase::ProviderSettled {
-                return Err(SettlementLedgerError::WrongPhase);
-            }
-            if !self.root_pin.is_same_instance(&reserved._pin)
-                || evidence.request.identity != reserved.identity.call
-                || evidence.frame.identity != reserved.identity
-                || evidence.decision.identity != reserved.identity
-                || evidence.candidate.identity != reserved.identity
+    ) -> Result<PreparedReceiptCommit, SettlementLedgerError> {
+        self.require_live()?;
+        if reserved.phase != AuthoritativePhase::ProviderSettled || self.active_postcommit != 1 {
+            return Err(SettlementLedgerError::WrongPhase);
+        }
+        if !self.root_pin.is_same_instance(&reserved._pin)
+            || evidence.request.identity != reserved.identity.call
+            || evidence.frame.identity != reserved.identity
+            || evidence.decision.identity != reserved.identity
+            || evidence.candidate.identity != reserved.identity
+        {
+            return Err(SettlementLedgerError::WrongIdentity);
+        }
+        for entry in &reserved.storage.before_entries {
+            let owner = self
+                .authoritative_owners
+                .iter()
+                .find(|owner| owner.slot == entry.slot)
+                .ok_or(SettlementLedgerError::StaleOwner)?;
+            if owner.generation != entry.generation
+                || owner.state != AuthoritativeOwnerState::InInvocation(reserved.identity)
             {
-                return Err(SettlementLedgerError::WrongIdentity);
+                return Err(SettlementLedgerError::StaleOwner);
             }
-            for entry in &reserved.storage.before_entries {
-                let owner = self
-                    .authoritative_owners
-                    .iter()
-                    .find(|owner| owner.slot == entry.slot)
-                    .ok_or(SettlementLedgerError::StaleOwner)?;
-                if owner.generation != entry.generation
-                    || owner.state != AuthoritativeOwnerState::InInvocation(reserved.identity)
-                {
-                    return Err(SettlementLedgerError::StaleOwner);
-                }
+        }
+        let response_storage = match evidence.response_storage {
+            ResponseStorageEvidence::External(storage) => storage,
+            ResponseStorageEvidence::Reserved => &reserved.storage.execute_response,
+        };
+        validate_candidate_replay(
+            &self.descriptor,
+            evidence.request,
+            evidence.execute_return_code,
+            response_storage,
+            evidence.response,
+            evidence.frame,
+            evidence.decision,
+            evidence.actions,
+            evidence.candidate,
+        )?;
+        let candidate_hash = candidate_digest(&evidence.candidate.encode());
+        let published_owner = match evidence.candidate.outcome {
+            CandidateOutcome::Owned(owner) => Some(owner),
+            CandidateOutcome::Scalar | CandidateOutcome::Failure | CandidateOutcome::Abort => None,
+        };
+        for entry in &mut reserved.storage.after_entries {
+            if published_owner == Some(entry.owner_ordinal) {
+                entry.generation = entry
+                    .generation
+                    .checked_add(1)
+                    .ok_or(SettlementLedgerError::CounterExhausted)?;
+                entry.state = LedgerState::Published;
+            } else {
+                entry.generation = 0;
+                entry.state = LedgerState::Retired;
             }
-            validate_candidate_replay(
-                &self.descriptor,
-                evidence.request,
-                evidence.execute_return_code,
-                evidence.response_storage,
-                evidence.response,
-                evidence.frame,
-                evidence.decision,
-                evidence.actions,
-                evidence.candidate,
-            )?;
-            let candidate_hash = candidate_digest(&evidence.candidate.encode());
-            let published_owner = match evidence.candidate.outcome {
-                CandidateOutcome::Owned(owner) => Some(owner),
-                CandidateOutcome::Scalar | CandidateOutcome::Failure | CandidateOutcome::Abort => {
-                    None
-                }
-            };
-            for entry in &mut reserved.storage.after_entries {
-                if published_owner == Some(entry.owner_ordinal) {
-                    entry.generation = entry
-                        .generation
-                        .checked_add(1)
-                        .ok_or(SettlementLedgerError::CounterExhausted)?;
-                    entry.state = LedgerState::Published;
-                } else {
-                    entry.generation = 0;
-                    entry.state = LedgerState::Retired;
-                }
-            }
-            let (ledger_before, ledger_after) = ledger_transition_digests(
-                self.authority.instance_binding(),
-                reserved.identity.call.call_contract,
-                reserved.identity.call.invocation,
-                reserved.identity.call.frame_generation,
-                candidate_hash,
-                &reserved.storage.before_entries,
-                &reserved.storage.after_entries,
-                published_owner,
-            )?;
-            let receipt = self.authority.authenticate_receipt(
-                evidence.candidate,
-                ledger_before,
-                ledger_after,
-            )?;
-            self.authority.verify_receipt(
-                &receipt,
-                &self.descriptor,
-                evidence.candidate,
-                ledger_before,
-                ledger_after,
-            )?;
-            let cache_index = reserved.committed_index;
-            if self.committed[cache_index].is_some() || !self.committed_reserved[cache_index] {
-                return Err(SettlementLedgerError::CapacityExhausted);
-            }
-            let publication = match published_owner {
-                Some(owner) => Publication::Owned(owner),
-                None => Publication::NoOwned,
-            };
-            let refreshed_owner = published_owner.map(|owner_ordinal| {
+        }
+        let (ledger_before, ledger_after) = ledger_transition_digests(
+            self.authority.instance_binding(),
+            reserved.identity.call.call_contract,
+            reserved.identity.call.invocation,
+            reserved.identity.call.frame_generation,
+            candidate_hash,
+            &reserved.storage.before_entries,
+            &reserved.storage.after_entries,
+            published_owner,
+        )?;
+        #[cfg(test)]
+        receipt_prepare_panic_failpoint();
+        let receipt =
+            self.authority
+                .authenticate_receipt(evidence.candidate, ledger_before, ledger_after)?;
+        self.authority.verify_receipt(
+            &receipt,
+            &self.descriptor,
+            evidence.candidate,
+            ledger_before,
+            ledger_after,
+        )?;
+        let cache_index = reserved.committed_index;
+        if self.committed.get(cache_index).is_none()
+            || self.committed[cache_index].is_some()
+            || self.committed_reserved.get(cache_index) != Some(&true)
+            || reserved.quarantine_replacement.is_none()
+        {
+            return Err(SettlementLedgerError::CapacityExhausted);
+        }
+        let publication = match published_owner {
+            Some(owner) => Publication::Owned(owner),
+            None => Publication::NoOwned,
+        };
+        let refreshed_owner = match published_owner {
+            Some(owner_ordinal) => {
                 let entry = reserved
                     .storage
                     .before_entries
                     .get(owner_ordinal as usize)
-                    .expect("candidate replay bounds the published owner");
-                SettlementOwnerHandle {
+                    .ok_or(SettlementLedgerError::StaleOwner)?;
+                Some(SettlementOwnerHandle {
                     instance_nonce: self.root_pin.instance_nonce(),
                     slot: entry.slot,
                     generation: entry
                         .generation
                         .checked_add(1)
-                        .expect("publication generation was preflighted"),
-                }
-            });
-            Ok((
-                candidate_hash,
-                ledger_before,
-                ledger_after,
-                receipt,
-                publication,
-                cache_index,
-                published_owner,
-                refreshed_owner,
-            ))
-        })();
-        let (
-            candidate_hash,
+                        .ok_or(SettlementLedgerError::CounterExhausted)?,
+                })
+            }
+            None => None,
+        };
+        Ok(PreparedReceiptCommit {
+            candidate_digest: candidate_hash,
             ledger_before,
             ledger_after,
             receipt,
@@ -729,19 +762,23 @@ impl<P: SettlementPin> LedgerCore<P> {
             cache_index,
             published_owner,
             refreshed_owner,
-        ) = match prepared {
-            Ok(prepared) => prepared,
-            Err(error) => {
-                self.absorb_uncertain(reserved);
-                return Err(error);
-            }
-        };
+        })
+    }
+
+    /// Third irreversible boundary. `prepare_receipt_commit` established every
+    /// index, generation, capacity, receipt and owner transition. This method
+    /// only performs fixed-capacity state writes and transfers the exact pin.
+    fn linearize_receipt_commit(
+        &mut self,
+        mut reserved: ReservedFrame<P>,
+        prepared: PreparedReceiptCommit,
+    ) -> CommittedResult {
         let result = CommittedResult {
-            receipt,
-            publication,
-            ledger_before,
-            ledger_after,
-            published_owner: refreshed_owner,
+            receipt: prepared.receipt,
+            publication: prepared.publication,
+            ledger_before: prepared.ledger_before,
+            ledger_after: prepared.ledger_after,
+            published_owner: prepared.refreshed_owner,
         };
 
         // ReceiptCommit linearization point: both the authoritative terminal
@@ -758,7 +795,7 @@ impl<P: SettlementPin> LedgerCore<P> {
                 .iter_mut()
                 .find(|owner| owner.slot == entry.slot)
                 .expect("validated owner remains in fixed authoritative table");
-            if published_owner == Some(entry.owner_ordinal) {
+            if prepared.published_owner == Some(entry.owner_ordinal) {
                 owner.generation = owner
                     .generation
                     .checked_add(1)
@@ -778,15 +815,15 @@ impl<P: SettlementPin> LedgerCore<P> {
                 .expect("every active frame owns one quarantine permit"),
         );
         self.available_quarantine.push(reserved.quarantine_index);
-        self.committed_reserved[cache_index] = false;
-        self.committed[cache_index] = Some(CommittedRecord {
+        self.committed_reserved[prepared.cache_index] = false;
+        self.committed[prepared.cache_index] = Some(CommittedRecord {
             identity: reserved.identity,
-            candidate_digest: candidate_hash,
+            candidate_digest: prepared.candidate_digest,
             result,
             conflicted: false,
             _pin: pin,
         });
-        Ok(result)
+        result
     }
 
     /// Idempotent replay returns the byte-identical receipt. A conflicting
@@ -991,8 +1028,23 @@ impl<P: SettlementPin> SettlementTransaction<'_, P> {
         mut self,
         evidence: ReceiptCommitEvidence<'_>,
     ) -> Result<CommittedResult, SettlementLedgerError> {
-        let frame = self.frame.take().ok_or(SettlementLedgerError::WrongPhase)?;
-        self.core.borrow_mut().receipt_commit(frame, evidence)
+        let prepared = {
+            let frame = self
+                .frame
+                .as_mut()
+                .ok_or(SettlementLedgerError::WrongPhase)?;
+            self.core
+                .borrow_mut()
+                .prepare_receipt_commit(frame, evidence)?
+        };
+        // Borrow the ledger before detaching the frame. Any RefCell failure or
+        // preparation panic therefore still unwinds through this guard's Drop.
+        let mut core = self.core.borrow_mut();
+        let frame = self
+            .frame
+            .take()
+            .expect("receipt preparation retained the guarded frame");
+        Ok(core.linearize_receipt_commit(frame, prepared))
     }
 
     pub(crate) fn request_bytes(&self) -> &[u8] {
@@ -1009,11 +1061,29 @@ impl<P: SettlementPin> SettlementTransaction<'_, P> {
             .execute_response_storage_mut()
     }
 
+    pub(crate) fn execute_response_bytes(&self) -> &[u8] {
+        &self
+            .frame
+            .as_ref()
+            .expect("live transaction owns one frame")
+            .storage
+            .execute_response
+    }
+
     pub(crate) fn frame_storage_mut(&mut self) -> &mut [u8] {
         self.frame
             .as_mut()
             .expect("live transaction owns one frame")
             .frame_storage_mut()
+    }
+
+    pub(crate) fn frame_bytes(&self) -> &[u8] {
+        &self
+            .frame
+            .as_ref()
+            .expect("live transaction owns one frame")
+            .storage
+            .frame
     }
 
     pub(crate) fn action_storage_mut(&mut self) -> &mut [u8] {
@@ -1028,6 +1098,15 @@ impl<P: SettlementPin> SettlementTransaction<'_, P> {
             .as_mut()
             .expect("live transaction owns one frame")
             .candidate_storage_mut()
+    }
+
+    pub(crate) fn candidate_bytes(&self) -> &[u8] {
+        &self
+            .frame
+            .as_ref()
+            .expect("live transaction owns one frame")
+            .storage
+            .candidate
     }
 
     #[cfg(test)]
@@ -1754,7 +1833,7 @@ mod tests {
             .receipt_commit(ReceiptCommitEvidence {
                 request: &evidence.request,
                 execute_return_code: 9,
-                response_storage: &evidence.response_storage,
+                response_storage: ResponseStorageEvidence::External(&evidence.response_storage),
                 response: None,
                 frame: &evidence.frame,
                 decision: &evidence.decision,
@@ -1806,7 +1885,7 @@ mod tests {
             .receipt_commit(ReceiptCommitEvidence {
                 request: &evidence.request,
                 execute_return_code: 0,
-                response_storage: &evidence.response_storage,
+                response_storage: ResponseStorageEvidence::External(&evidence.response_storage),
                 response: Some(&evidence.response),
                 frame: &evidence.frame,
                 decision: &evidence.decision,
@@ -1844,6 +1923,78 @@ mod tests {
     }
 
     #[test]
+    fn receipt_hmac_panic_quarantines_exact_evidence_and_retains_leaf_pin() {
+        let (ledger, drops) = ledger_for("token.identity");
+        let owner = ledger.register_owner(4, 7).unwrap();
+        let mut transaction = ledger.reserve().unwrap();
+        let evidence = owned_evidence(&ledger.core.borrow().descriptor, transaction.identity());
+        transaction.stage_call(&evidence.request, &[owner]).unwrap();
+        transaction.call_commit().unwrap();
+        transaction.decision_commit(&evidence.decision).unwrap();
+        transaction
+            .execute_response_storage_mut()
+            .copy_from_slice(&evidence.response_storage);
+        let frame_bytes = evidence.frame.encode();
+        transaction
+            .frame_storage_mut()
+            .copy_from_slice(&frame_bytes);
+        let action_bytes = evidence.actions[0].encode();
+        transaction
+            .action_storage_mut()
+            .copy_from_slice(&action_bytes);
+        let candidate_bytes = evidence.candidate.encode();
+        transaction
+            .candidate_storage_mut()
+            .copy_from_slice(&candidate_bytes);
+        transaction.provider_settled().unwrap();
+        let identity = transaction.identity();
+        let request_bytes = evidence.request.encode();
+
+        arm_receipt_prepare_panic();
+        let panic = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _ = transaction.receipt_commit(ReceiptCommitEvidence {
+                request: &evidence.request,
+                execute_return_code: 0,
+                response_storage: ResponseStorageEvidence::Reserved,
+                response: Some(&evidence.response),
+                frame: &evidence.frame,
+                decision: &evidence.decision,
+                actions: &evidence.actions,
+                candidate: &evidence.candidate,
+            });
+        }));
+        assert!(panic.is_err());
+
+        {
+            let core = ledger.core.borrow();
+            assert_eq!(core.active_postcommit, 0);
+            assert!(core.poisoned);
+            assert!(core.draining);
+            assert_eq!(core.quarantined_count(), 1);
+            let quarantined = core.quarantined.iter().flatten().next().unwrap();
+            assert_eq!(quarantined.frame.identity, identity);
+            assert_eq!(quarantined.frame.storage.request, request_bytes);
+            assert_eq!(
+                quarantined.frame.storage.execute_response,
+                evidence.response_storage
+            );
+            assert_eq!(quarantined.frame.storage.frame, frame_bytes);
+            assert_eq!(quarantined.frame.storage.action, action_bytes);
+            assert_eq!(quarantined.frame.storage.candidate, candidate_bytes);
+            assert!(matches!(
+                core.authoritative_owners[0].state,
+                AuthoritativeOwnerState::Quarantined
+            ));
+        }
+        assert!(
+            drops.borrow().is_empty(),
+            "quarantine must retain the leaf pin"
+        );
+        drop(ledger);
+        assert_eq!(drops.borrow().as_slice(), ["retain", "root"]);
+    }
+
+    #[test]
     fn failed_postcommit_evidence_is_absorbed_and_never_retried() {
         let (ledger, _) = ledger();
         let handles = owners(&ledger);
@@ -1858,7 +2009,7 @@ mod tests {
             reserved.receipt_commit(ReceiptCommitEvidence {
                 request: &evidence.request,
                 execute_return_code: 9,
-                response_storage: &evidence.response_storage,
+                response_storage: ResponseStorageEvidence::External(&evidence.response_storage),
                 response: None,
                 frame: &evidence.frame,
                 decision: &evidence.decision,

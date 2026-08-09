@@ -10,18 +10,59 @@
     reason = "callable-v3 public admission remains closed by SPX-B104"
 )]
 
-use semaprax_native_loader::NativeSettlementModuleLease;
+use semaprax_native_loader::{NativeSettlementModuleLease, SettlementCallError};
 
-use crate::callable_wire_v3::RecoveryIdentity;
-use crate::descriptor_v3::Descriptor;
+use crate::callable_wire_v3::{
+    frame_digest, validate_successful_execute_evidence, ActionBoundary, ActionRecord,
+    CandidateOutcome, CandidateReceipt, CellState, Decision, ExecuteOutcome, ExecuteRequest,
+    ExecuteResponse, ExecuteReturn, FramePhase, RecoveryFrame, RecoveryIdentity, RequestArgument,
+    ResourceCell, SettlementDecision, WireError,
+};
+use crate::descriptor_v3::{Descriptor, Parameter, ResourceState};
 use crate::receipt_authority::ReceiptAuthority;
 use crate::settlement_ledger::{
-    CommittedResult, SettlementLedger, SettlementLedgerError, SettlementTransaction,
+    CommittedResult, ReceiptCommitEvidence, ResponseStorageEvidence, SettlementLedger,
+    SettlementLedgerError, SettlementOwnerHandle, SettlementTransaction,
 };
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum PrivateSettlementExecutionError {
+    Ledger(SettlementLedgerError),
+    Loader(SettlementCallError),
+    Wire(WireError),
+    UnsupportedFixture,
+}
+
+impl From<SettlementLedgerError> for PrivateSettlementExecutionError {
+    fn from(value: SettlementLedgerError) -> Self {
+        Self::Ledger(value)
+    }
+}
+
+impl From<SettlementCallError> for PrivateSettlementExecutionError {
+    fn from(value: SettlementCallError) -> Self {
+        Self::Loader(value)
+    }
+}
+
+impl From<WireError> for PrivateSettlementExecutionError {
+    fn from(value: WireError) -> Self {
+        Self::Wire(value)
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct PrivatePhysicalCommit {
+    pub(crate) identity: RecoveryIdentity,
+    pub(crate) outcome: ExecuteOutcome,
+    pub(crate) candidate_bytes: Vec<u8>,
+    pub(crate) committed: CommittedResult,
+}
 
 /// Private exact-instance runtime. The outer loader pin is last, while every
 /// frame/cache/quarantine owns its own explicit retain through the ledger.
 pub(crate) struct PrivateSettlementHostV3 {
+    descriptor: Descriptor,
     ledger: SettlementLedger<NativeSettlementModuleLease>,
     module_lease: NativeSettlementModuleLease,
 }
@@ -46,10 +87,144 @@ impl PrivateSettlementHostV3 {
         let instance_nonce = std::num::NonZeroU64::new(module_lease.instance_id().get())
             .expect("loader instance identities are structurally nonzero");
         let authority = ReceiptAuthority::from_os(instance_nonce)?;
-        let ledger = SettlementLedger::try_new(module_lease.retain(), descriptor, authority)?;
+        let ledger =
+            SettlementLedger::try_new(module_lease.retain(), descriptor.clone(), authority)?;
         Ok(Self {
+            descriptor,
             ledger,
             module_lease,
+        })
+    }
+
+    pub(crate) fn register_owner(
+        &self,
+        slot: u64,
+        generation: u64,
+    ) -> Result<SettlementOwnerHandle, SettlementLedgerError> {
+        self.ledger.register_owner(slot, generation)
+    }
+
+    /// Execute the two currently admitted success fixtures through one exact
+    /// generated provider, loader lease and authoritative host ledger.
+    ///
+    /// The handoff is explicit: canonical host request/frame bytes seed the
+    /// loader's disjoint one-shot buffers before `CallCommit`; provider output
+    /// is copied back into host-owned evidence buffers before independent
+    /// decoding. No provider-mutated shadow frame is treated as authority.
+    pub(crate) fn execute_owned_success(
+        &self,
+        owners: &[SettlementOwnerHandle],
+        payloads: &[u64],
+    ) -> Result<PrivatePhysicalCommit, PrivateSettlementExecutionError> {
+        let mut transaction = self.reserve()?;
+        let identity = transaction.identity();
+        let request = self.owned_request(identity, payloads)?;
+        transaction.stage_call(&request, owners)?;
+
+        let initial_frame = self.initial_frame(identity, payloads)?;
+        let initial_frame_bytes = initial_frame.encode();
+        let mut provider = self.module_lease.prepare_execute()?;
+        let mut candidate_bytes = vec![0; self.descriptor.capacities.candidate_receipt as usize];
+        let mut actions = Vec::with_capacity(
+            self.descriptor
+                .capacities
+                .resource_count
+                .saturating_mul(2)
+                .saturating_add(1) as usize,
+        );
+        let mut replay_states =
+            Vec::with_capacity(self.descriptor.capacities.resource_count as usize);
+        if provider.request_storage().len() != transaction.request_bytes().len()
+            || provider.frame_storage().len() != initial_frame_bytes.len()
+        {
+            return Err(PrivateSettlementExecutionError::UnsupportedFixture);
+        }
+        provider
+            .request_storage_mut()
+            .copy_from_slice(transaction.request_bytes());
+        provider
+            .frame_storage_mut()
+            .copy_from_slice(&initial_frame_bytes);
+        transaction
+            .frame_storage_mut()
+            .copy_from_slice(&initial_frame_bytes);
+
+        // Every allocation and exact-capacity check needed by the provider's
+        // physical buffers has completed before this irreversible boundary.
+        transaction.call_commit()?;
+        let execute_return = self.module_lease.invoke_execute(&mut provider)?;
+        transaction
+            .execute_response_storage_mut()
+            .copy_from_slice(provider.response_storage());
+        transaction
+            .frame_storage_mut()
+            .copy_from_slice(provider.frame_storage());
+
+        if execute_return != 0 {
+            return Err(PrivateSettlementExecutionError::UnsupportedFixture);
+        }
+        let response =
+            ExecuteResponse::parse(transaction.execute_response_bytes(), &self.descriptor)?;
+        let executed_frame = RecoveryFrame::parse(transaction.frame_bytes(), &self.descriptor)?;
+        validate_successful_execute_evidence(
+            &self.descriptor,
+            &request,
+            execute_return,
+            transaction.execute_response_bytes(),
+            &response,
+            &executed_frame,
+        )?;
+        let decision = SettlementDecision {
+            identity,
+            decision: match response.outcome {
+                ExecuteOutcome::Scalar { .. } => Decision::AcceptScalar,
+                ExecuteOutcome::Owned { owner_ordinal, .. } => Decision::AcceptOwned(owner_ordinal),
+                ExecuteOutcome::SemanticFailure { .. } => Decision::AcceptSemanticFailure,
+            },
+        };
+        transaction.decision_commit(&decision)?;
+        let mut provider = provider.into_settlement()?;
+        provider
+            .decision_storage_mut()
+            .copy_from_slice(&decision.encode());
+        let settle_return = self.module_lease.invoke_settle(&mut provider)?;
+        if settle_return != 0 {
+            return Err(PrivateSettlementExecutionError::UnsupportedFixture);
+        }
+        transaction
+            .frame_storage_mut()
+            .copy_from_slice(provider.frame_storage());
+        transaction
+            .candidate_storage_mut()
+            .copy_from_slice(provider.candidate_storage());
+
+        let settled_frame = RecoveryFrame::parse(transaction.frame_bytes(), &self.descriptor)?;
+        let candidate = CandidateReceipt::parse(transaction.candidate_bytes(), &self.descriptor)?;
+        physical_actions(
+            &self.descriptor,
+            &settled_frame,
+            &decision,
+            &candidate,
+            &mut actions,
+            &mut replay_states,
+        )?;
+        transaction.provider_settled()?;
+        candidate_bytes.copy_from_slice(transaction.candidate_bytes());
+        let committed = transaction.receipt_commit(ReceiptCommitEvidence {
+            request: &request,
+            execute_return_code: execute_return,
+            response_storage: ResponseStorageEvidence::Reserved,
+            response: Some(&response),
+            frame: &settled_frame,
+            decision: &decision,
+            actions: &actions,
+            candidate: &candidate,
+        })?;
+        Ok(PrivatePhysicalCommit {
+            identity,
+            outcome: response.outcome,
+            candidate_bytes,
+            committed,
         })
     }
 
@@ -60,7 +235,7 @@ impl PrivateSettlementHostV3 {
     }
 
     pub(crate) fn replay_committed(
-        &mut self,
+        &self,
         identity: RecoveryIdentity,
         candidate_bytes: &[u8],
     ) -> Result<CommittedResult, SettlementLedgerError> {
@@ -78,6 +253,217 @@ impl PrivateSettlementHostV3 {
     pub(crate) fn module_instance_id(&self) -> semaprax_native_loader::ModuleInstanceId {
         self.module_lease.instance_id()
     }
+
+    fn owned_request(
+        &self,
+        identity: RecoveryIdentity,
+        payloads: &[u64],
+    ) -> Result<ExecuteRequest, PrivateSettlementExecutionError> {
+        if payloads.len() != self.descriptor.capacities.resource_count as usize {
+            return Err(PrivateSettlementExecutionError::UnsupportedFixture);
+        }
+        let mut arguments = Vec::with_capacity(self.descriptor.parameters.len());
+        for (index, parameter) in self.descriptor.parameters.iter().enumerate() {
+            let Parameter::Owned { owner_ordinal, .. } = parameter else {
+                return Err(PrivateSettlementExecutionError::UnsupportedFixture);
+            };
+            if *owner_ordinal >= payloads.len() {
+                return Err(PrivateSettlementExecutionError::UnsupportedFixture);
+            }
+            arguments.push(RequestArgument::Owned {
+                index: index as u32,
+                owner_ordinal: *owner_ordinal as u32,
+                payload: payloads[*owner_ordinal],
+            });
+        }
+        Ok(ExecuteRequest {
+            identity: identity.call,
+            arguments,
+        })
+    }
+
+    fn initial_frame(
+        &self,
+        identity: RecoveryIdentity,
+        payloads: &[u64],
+    ) -> Result<RecoveryFrame, PrivateSettlementExecutionError> {
+        let start = self
+            .descriptor
+            .graph
+            .starts
+            .first()
+            .and_then(|id| {
+                self.descriptor
+                    .graph
+                    .checkpoints
+                    .iter()
+                    .find(|point| point.id == *id)
+            })
+            .ok_or(PrivateSettlementExecutionError::UnsupportedFixture)?;
+        if self.descriptor.graph.starts.len() != 1
+            || start.resources.len() != payloads.len()
+            || start
+                .resources
+                .iter()
+                .any(|state| *state != ResourceState::Live)
+        {
+            return Err(PrivateSettlementExecutionError::UnsupportedFixture);
+        }
+        let mut frame = RecoveryFrame {
+            identity,
+            request_digest: crate::callable_wire_v3::request_digest(
+                &ExecuteRequest {
+                    identity: identity.call,
+                    arguments: self.owned_request(identity, payloads)?.arguments,
+                }
+                .encode(),
+            ),
+            response_storage_digest: [0; 32],
+            semantic_trace_digest: [0; 32],
+            execute_return: ExecuteReturn::Pending,
+            checkpoint: start.id,
+            phase: FramePhase::Executing,
+            decision_digest: [0; 32],
+            next_action: 0,
+            record_count: 0,
+            active_finalizers: 0,
+            cells: payloads
+                .iter()
+                .map(|payload| ResourceCell {
+                    state: CellState::Live,
+                    payload: *payload,
+                })
+                .collect(),
+            action_chain_digest: [0; 32],
+            pre_candidate_digest: [0; 32],
+        };
+        let provisional = frame.encode();
+        frame.pre_candidate_digest = frame_digest(&provisional[..provisional.len() - 32]);
+        Ok(frame)
+    }
+}
+
+fn physical_actions(
+    descriptor: &Descriptor,
+    frame: &RecoveryFrame,
+    decision: &SettlementDecision,
+    candidate: &CandidateReceipt,
+    actions: &mut Vec<ActionRecord>,
+    states: &mut Vec<CellState>,
+) -> Result<(), WireError> {
+    actions.clear();
+    states.clear();
+    let checkpoint = descriptor
+        .graph
+        .checkpoints
+        .iter()
+        .find(|checkpoint| checkpoint.id == frame.checkpoint)
+        .ok_or(WireError::ReplayMismatch)?;
+    if checkpoint.resources.len() != frame.cells.len() {
+        return Err(WireError::ReplayMismatch);
+    }
+    let cleanup = match decision.decision {
+        Decision::AcceptScalar | Decision::AcceptSemanticFailure | Decision::AcceptOwned(_) => {
+            &checkpoint.accept_order
+        }
+        Decision::AbortPhysical(_)
+        | Decision::AbortMalformed
+        | Decision::AbortTraceRejected
+        | Decision::AbortHostUnwind => &checkpoint.abort_order,
+    };
+    for state in &checkpoint.resources {
+        states.push(match state {
+            ResourceState::Live => CellState::Live,
+            ResourceState::ProvisionalResult => CellState::ProvisionalResult,
+            ResourceState::Finalizing => CellState::Finalizing,
+            ResourceState::Dead => CellState::Dead,
+            ResourceState::Published => CellState::Published,
+        });
+    }
+    let mut semantic_action_index = 0_u32;
+    for owner in cleanup {
+        let index = *owner as usize;
+        let before = *states.get(index).ok_or(WireError::ReplayMismatch)?;
+        let payload = frame
+            .cells
+            .get(index)
+            .ok_or(WireError::ReplayMismatch)?
+            .payload;
+        if !matches!(before, CellState::Live | CellState::ProvisionalResult) {
+            return Err(WireError::ReplayMismatch);
+        }
+        actions.push(ActionRecord {
+            identity: frame.identity,
+            semantic_action_index,
+            boundary: ActionBoundary::Started,
+            owner_ordinal: *owner,
+            payload,
+            before,
+            after: CellState::Finalizing,
+            checkpoint: frame.checkpoint,
+        });
+        actions.push(ActionRecord {
+            identity: frame.identity,
+            semantic_action_index,
+            boundary: ActionBoundary::Completed,
+            owner_ordinal: *owner,
+            payload,
+            before: CellState::Finalizing,
+            after: CellState::Dead,
+            checkpoint: frame.checkpoint,
+        });
+        states[index] = CellState::Dead;
+        semantic_action_index = semantic_action_index
+            .checked_add(1)
+            .ok_or(WireError::CapacityMismatch)?;
+    }
+    if let Decision::AcceptOwned(owner) = decision.decision {
+        let index = owner as usize;
+        let state = states.get_mut(index).ok_or(WireError::ReplayMismatch)?;
+        let payload = frame
+            .cells
+            .get(index)
+            .ok_or(WireError::ReplayMismatch)?
+            .payload;
+        if *state != CellState::ProvisionalResult {
+            return Err(WireError::ReplayMismatch);
+        }
+        actions.push(ActionRecord {
+            identity: frame.identity,
+            semantic_action_index,
+            boundary: ActionBoundary::Publish,
+            owner_ordinal: owner,
+            payload,
+            before: CellState::ProvisionalResult,
+            after: CellState::Published,
+            checkpoint: frame.checkpoint,
+        });
+        *state = CellState::Published;
+        semantic_action_index = semantic_action_index
+            .checked_add(1)
+            .ok_or(WireError::CapacityMismatch)?;
+    }
+    let outcome_matches = match (candidate.outcome, decision.decision) {
+        (CandidateOutcome::Scalar, Decision::AcceptScalar)
+        | (CandidateOutcome::Failure, Decision::AcceptSemanticFailure)
+        | (CandidateOutcome::Abort, Decision::AbortPhysical(_))
+        | (CandidateOutcome::Abort, Decision::AbortMalformed)
+        | (CandidateOutcome::Abort, Decision::AbortTraceRejected)
+        | (CandidateOutcome::Abort, Decision::AbortHostUnwind) => true,
+        (CandidateOutcome::Owned(owner), Decision::AcceptOwned(expected)) => owner == expected,
+        _ => false,
+    };
+    if actions.len() != frame.record_count as usize
+        || frame.next_action != semantic_action_index
+        || states
+            .iter()
+            .zip(&frame.cells)
+            .any(|(expected, actual)| *expected != actual.state)
+        || !outcome_matches
+    {
+        return Err(WireError::ReplayMismatch);
+    }
+    Ok(())
 }
 
 fn parse_exact_admitted_descriptor(

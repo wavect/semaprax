@@ -19,6 +19,8 @@ mod descriptor_v3;
 mod descriptor_v3_integration;
 mod receipt_authority;
 mod settlement_host_v3;
+#[cfg(test)]
+mod settlement_host_v3_integration;
 mod settlement_ledger;
 mod settlement_proof;
 

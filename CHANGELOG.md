@@ -181,6 +181,21 @@ All notable changes to SEMAPRAX are documented here.
   full 14-case physical corpus, exhaustive failure injection, sanitizers,
   Windows v3 runtime, Android/iOS, quiescence, malicious-code containment,
   public admission, or any `SPX-B104` change.
+- Connected one private callable-v3 path from compiler-generated strict C
+  through exact dynamic-image admission into the authoritative host receipt
+  ledger. Scalar discard-two and owned identity execute at `-O0`/`-O2` with
+  exact buffer handoff, independent host decoding, finalizer order, receipt
+  replay, generation refresh, cross-instance rejection, and unload pinning.
+  Separately, graph-derived providers now execute all 14 authoritative normal
+  corpus scenarios at `-O0`/`-O2`, including mixed owned/scalar/bool inputs,
+  exact trace/action digests, dispositions, and replay; a mandatory ASan+UBSan
+  gate and explicit Windows gate are configured. Pending/pre-execute host
+  unwind fails closed without effects because its canonical returned-response
+  transcript is not yet frozen. The joint host still allocates during
+  post-`CallCommit` evidence decoding/replay, and the full corpus has not yet
+  run through loader plus host. Failure injection, public CI observation of
+  this batch, mobile/static admission, quiescence, malicious-code containment,
+  and public `SPX-B104` admission remain open.
 - Added a mandatory Windows callable-v2 dependency-isolation fixture. It places
   a same-name dependency in both CWD and legacy `PATH`, proves the root-image
   sibling wins for descriptor admission and invocation, then removes that

@@ -482,6 +482,73 @@ pub fn emit_native_callable_v3_descriptor(
     native_callable_abi_v3::derive(program, function_id).map(NativeCallableV3DescriptorArtifact)
 }
 
+/// Closed fixture selector for the first compiler/provider/loader/host v3
+/// composition proof. This remains unavailable without the unpublished host
+/// feature and cannot select arbitrary caller-supplied cleanup metadata.
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+#[doc(hidden)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PrivateNativeCallableV3Fixture {
+    ScalarDiscardTwo,
+    OwnedIdentity,
+}
+
+/// Exact descriptor bytes and the strict-C provider sealed around those same
+/// bytes. No loader lease, receipt authority, or public execution permission
+/// is carried by this compiler artifact.
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+#[doc(hidden)]
+pub struct PrivateNativeCallableV3Artifact {
+    descriptor: Vec<u8>,
+    source: String,
+}
+
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+#[doc(hidden)]
+impl PrivateNativeCallableV3Artifact {
+    pub fn descriptor(&self) -> &[u8] {
+        &self.descriptor
+    }
+
+    pub fn source(&self) -> &str {
+        &self.source
+    }
+}
+
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+#[doc(hidden)]
+pub fn emit_private_native_callable_v3_fixture(
+    program: &ResolvedProgram,
+    function_id: &DeclarationId,
+    fixture: PrivateNativeCallableV3Fixture,
+) -> Result<PrivateNativeCallableV3Artifact, Diagnostic> {
+    let descriptor = native_callable_abi_v3::derive(program, function_id)?;
+    let descriptor_bytes = descriptor.bytes.clone();
+    let plan = match fixture {
+        PrivateNativeCallableV3Fixture::ScalarDiscardTwo => {
+            native_callable_provider_v3::ProviderV3Plan::ScalarDiscard {
+                scalar_result: 0,
+                finalizer_order: vec![1, 0],
+                completed_checkpoints: vec![2, 3],
+                semantic_ordinals: vec![1, 2, 3, 4, 5],
+            }
+        }
+        PrivateNativeCallableV3Fixture::OwnedIdentity => {
+            native_callable_provider_v3::ProviderV3Plan::OwnedIdentity {
+                owner_ordinal: 0,
+                staged_checkpoint: 2,
+                semantic_ordinals: vec![1, 2, 3],
+            }
+        }
+    };
+    let spec = native_callable_provider_v3::NativeCallableProviderV3Spec::new(descriptor, plan)?;
+    let provider = native_callable_provider_v3::emit(&spec)?;
+    Ok(PrivateNativeCallableV3Artifact {
+        descriptor: descriptor_bytes,
+        source: provider.source,
+    })
+}
+
 fn native_callable_execution_cleanup_fingerprint(components: &[&[u8]]) -> [u8; 32] {
     let mut hasher = Sha256::new();
     hasher.update(b"semaprax.native-callable-execution-cleanup.v2\0");

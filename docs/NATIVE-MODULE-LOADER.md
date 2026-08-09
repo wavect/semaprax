@@ -74,10 +74,12 @@ loader owns no poison, draining, quarantine, receipt-authentication, ledger, or
 physical-finalizer policy; those remain host responsibilities. The v3 surface
 is private and does not change public native admission or `SPX-B104`.
 
-These plain-C loader fixtures are not the compiler's two generated settlement
-providers, and the private host facade's receipt/atomic-ledger tests do not
-invoke through this loader. There is no joint generated-provider/loader/host-v3
-evidence yet.
+The loader's standalone plain-C fixtures remain separate provenance evidence.
+A new private joint test additionally compiles compiler-generated scalar
+discard-two and owned-identity providers, admits their exact descriptor and
+three entry points through this constructor, and executes them through the host
+receipt ledger at `-O0`/`-O2`. This does not put the other 12 normal corpus
+scenarios or failure paths through loader plus host.
 
 The unpublished native host additionally proves that its real callable-v2
 lease is retained by its same-thread authority and every live owner/result

@@ -280,11 +280,14 @@ semaprax = {{ path = "{manifest_root}", default-features = false }}
     fs::create_dir(consumer.join("src")).unwrap();
     fs::write(
         consumer.join("src/main.rs"),
-        r#"use semaprax::codegen::{emit_native_callable_v3_descriptor, NativeCallableV3DescriptorArtifact};
+        r#"use semaprax::codegen::{emit_native_callable_v3_descriptor, emit_private_native_callable_v3_fixture, NativeCallableV3DescriptorArtifact, PrivateNativeCallableV3Artifact, PrivateNativeCallableV3Fixture};
 
 fn main() {
     let _ = emit_native_callable_v3_descriptor;
+    let _ = emit_private_native_callable_v3_fixture;
     let _ = std::mem::size_of::<NativeCallableV3DescriptorArtifact>();
+    let _ = std::mem::size_of::<PrivateNativeCallableV3Artifact>();
+    let _ = PrivateNativeCallableV3Fixture::ScalarDiscardTwo;
 }
 "#,
     )
@@ -304,6 +307,9 @@ fn main() {
     assert!(
         stderr.contains("emit_native_callable_v3_descriptor")
             && stderr.contains("NativeCallableV3DescriptorArtifact")
+            && stderr.contains("emit_private_native_callable_v3_fixture")
+            && stderr.contains("PrivateNativeCallableV3Artifact")
+            && stderr.contains("PrivateNativeCallableV3Fixture")
             && (stderr.contains("unresolved import") || stderr.contains("private")),
         "unexpected callable-v3 default-surface diagnostic:\n{stderr}"
     );

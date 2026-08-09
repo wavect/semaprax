@@ -1,7 +1,8 @@
 # RFC 0004: Native call recovery and settlement
 
 - Status: Proposed; private model/codecs plus bounded provider, loader, receipt,
-  and ledger components exist; public and joint end-to-end v3 remain unwired
+  and ledger components exist; a two-scenario joint v3 path is wired, while
+  public admission and the remaining end-to-end corpus remain gated
 - Version: 0.1
 - Audience: compiler, native code generator, loader, ownership-host, adapter,
   and conformance-test implementers
@@ -29,12 +30,14 @@ host-only 524-byte receipt, exact tags/capacities, six-argument execute ABI,
 payload-bearing frame, digest DAG, receipt HMAC, linkage metadata, and graph.
 Independent compiler and host codecs freeze those evidence bytes. A private
 dynamic-image loader now admits an exact v3 instance with root-image provenance;
-an OS-seeded receipt authority, fixed-capacity atomic ledger/facade, and two
-bounded generated C providers provide focused component evidence. The scalar-
-discard and owned-identity providers compile and execute at `-O0` and `-O2`.
-No test yet connects those providers through the loader and host facade, and
-there is no iOS static admission, general physical-finalizer authority, or
-public callable-v3 compiler surface. Callable v2 has an independent public
+an OS-seeded receipt authority, fixed-capacity atomic ledger/facade, and
+graph-derived generated C providers provide focused physical evidence. All 14
+authoritative normal corpus scenarios compile and execute provider-only at
+`-O0` and `-O2`; one joint test connects scalar discard-two and owned identity
+through the exact-image loader and host facade. The other 12 scenarios have not
+run through that joint path, and there is no iOS static admission, general
+physical-finalizer authority, or public callable-v3 compiler surface. Callable
+v2 has an independent public
 build-only bundle surface plus a feature-gated execution experiment; ordinary
 native resource execution still fails with `SPX-B104`, and
 the model plus this document satisfy no physical-runtime completion gate.
@@ -563,8 +566,9 @@ This RFC specifies no stable public C ABI, public Rust API, capability token,
 or static-registration constructor. The private callable-v3 document fixes its
 descriptor and seven runtime wire codecs, derived symbols, capacities, and
 host-only receipt transcript. A private desktop dynamic loader, receipt
-authority, fixed-capacity atomic ledger/facade, and two bounded generated
-provider fixtures are implemented. The
+authority, fixed-capacity atomic ledger/facade, graph-derived providers for all
+14 normal scenarios, and one two-fixture joint provider/loader/host path are
+implemented. The
 emitter derives only its compiler build target and has no cross-target
 configuration. Android/iOS/Windows cross-emission and runtime evidence are
 absent; future iOS device, simulator, and Mac Catalyst/macabi targets remain
@@ -580,11 +584,15 @@ As of this revision, the hidden target-neutral owner-state/progress model,
 phase-aware linear transaction and its 29 focused tests, private compiler
 derivation, bounded binary proof encoder, independent proof parser, and v3
 descriptor/wire codecs, private v3 dynamic loader/provenance gate, receipt
-authority, atomic ledger/facade, and two generated `-O0`/`-O2` provider
-fixtures exist. They have not been proven in one joint host invocation.
+authority, atomic ledger/facade, and graph-derived `-O0`/`-O2` providers for all
+14 normal scenarios exist. One joint invocation now covers scalar discard-two
+and owned identity through provider, loader, independent host replay, and
+authenticated receipt commit.
 Callable v2
 continues to retire logical ledger state after physical failure without proving
 general physical fallback cleanup or quiescence. Therefore the completion
-matrix remains Partial, callable v3 has only bounded component execution
-evidence, and
+matrix remains Partial: the other v3 scenarios and failure paths are not joint,
+pending/pre-execute unwind has no canonical returned-response transcript, and
+the Rust host still allocates during postcommit evidence decoding/replay. The
+current evidence is bounded and private, and
 `SPX-B104` remains closed without exception.

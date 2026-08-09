@@ -321,12 +321,16 @@ evidence remain absent. Future iOS device, simulator, and Mac Catalyst/macabi
 profiles must retain distinct target strings even though they share static
 registration. No migration may infer physical finalizer success from
 `Finalizing`; interruption remains uncertain and quarantined without retry.
-Subsequent private additions provide two bounded generated provider fixtures, a
-desktop v3 loader, an OS-seeded receipt authority, and a fixed-capacity atomic
-ledger/facade. They are not yet connected by one end-to-end host invocation and
-add no iOS static constructor, public admission, general physical-finalizer or
-mobile execution guarantee. They change no native execution gate and leave
-`SPX-B104` closed.
+Subsequent private additions provide graph-derived providers for all 14 normal
+corpus scenarios, a desktop v3 loader, an OS-seeded receipt authority, and a
+fixed-capacity atomic ledger/facade. One narrower O0/O2 invocation now connects
+scalar discard-two and owned identity through those components. Consumers must
+not generalize that evidence to the other scenarios or failure paths:
+pending/pre-execute host unwind fails closed because no canonical returned-
+response transcript is frozen, and post-`CallCommit` Rust replay still
+allocates. These additions provide no iOS static constructor, public admission,
+general physical-finalizer, or mobile execution guarantee. They change no
+native execution gate and leave `SPX-B104` closed.
 
 ## Revision token FNV-1a64 to SHA-256
 

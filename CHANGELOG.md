@@ -14,8 +14,8 @@ All notable changes to SEMAPRAX are documented here.
   ([job 93309086228](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086228)),
   and the private Android JNI/Kotlin app
   ([job 93309086206](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086206)).
-  Windows desktop package/runtime remains pending in
-  [run 31339938860](https://github.com/wavect/semaprax/actions/runs/31339938860).
+  Windows desktop package/runtime remains pending after
+  [failed run 31340893685, job 93314358662](https://github.com/wavect/semaprax/actions/runs/31340893685/job/93314358662).
 - Upgraded the current semantic projection to `semaprax.graph.v7` and added
   canonical immutable record update across source, resolved HIR, Graph, and
   context traversal. Update meaning is base-first with replacement expressions

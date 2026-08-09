@@ -298,6 +298,14 @@ fn windows_source_lock_rejects_hostile_gate_removal() {
         source.replace("'bcryptprimitives.dll'", "'ambient-crypto.dll'"),
         source.replace("Get-PeExports", "Removed-PeExports"),
         source.replace(
+            "$inspectedExeExports = Get-PeExports $exeContract.Image",
+            "$inspectedExeExports = @(Get-PeExports $exeContract.Image)",
+        ),
+        source.replace(
+            "$inspectedProviderExports = Get-PeExports $providerContract.Image",
+            "$inspectedProviderExports = @(Get-PeExports $providerContract.Image)",
+        ),
+        source.replace(
             "Assert-ExternalManifestIsEffective",
             "Removed-EffectiveManifest",
         ),
@@ -526,6 +534,10 @@ fn windows_contract(source: &str) -> Result<(), String> {
             "IMAGE_SUBSYSTEM_WINDOWS_CUI",
             "Get-PeImports",
             "Get-PeExports",
+            "$inspectedExeExports = Get-PeExports $exeContract.Image",
+            "$inspectedProviderExports = Get-PeExports $providerContract.Image",
+            "@($inspectedExeExports.Names).Count -ne 0",
+            "@($inspectedProviderExports.Names).Count -ne 3",
             "Assert-SystemImportAllowlist",
             "'bcryptprimitives.dll'",
             "Assert-ExternalManifestIsEffective",

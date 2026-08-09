@@ -141,8 +141,8 @@ the Swift/iOS app plus XCFramework in [job
 93309086228](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086228),
 and the Android JNI/Kotlin app in [job
 93309086206](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086206).
-The Windows desktop package/runtime remains pending in [run
-31339938860](https://github.com/wavect/semaprax/actions/runs/31339938860).
+The Windows desktop package/runtime remains pending after [failed run
+31340893685, job 93314358662](https://github.com/wavect/semaprax/actions/runs/31340893685/job/93314358662).
 
 | Change | Required evidence |
 | --- | --- |

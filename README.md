@@ -259,8 +259,8 @@ a headless macOS `APPL` bundle or Windows portable PE application directory.
 The macOS engine package/runtime is green in [run 31338834586, job
 93309086230](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086230),
 including two generation-rotating owned calls and exact receipt replay. The
-Windows package/runtime remains pending in [run
-31339938860](https://github.com/wavect/semaprax/actions/runs/31339938860);
+Windows package/runtime remains pending after [failed run 31340893685, job
+93314358662](https://github.com/wavect/semaprax/actions/runs/31340893685/job/93314358662);
 this is not UI, accessibility, lifecycle,
 installer/signing, or public admission evidence. `SPX-B104` therefore remains
 unchanged.
@@ -273,8 +273,8 @@ verify the packaged engine bytes against a deterministic SHA-256 manifest before
 launch, and close through the native lifecycle. AppKit also enforces a bounded
 engine deadline. The macOS AppKit package/runtime is green in [run 31338834586,
 job 93309086230](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086230).
-Windows remains pending in [run
-31339938860](https://github.com/wavect/semaprax/actions/runs/31339938860). The colocated
+Windows remains pending after [failed run 31340893685, job
+93314358662](https://github.com/wavect/semaprax/actions/runs/31340893685/job/93314358662). The colocated
 manifest is consistency evidence, not signed provenance. This is a bounded
 private fixture, not SEMAPRAX UI syntax, SwiftUI/WinUI, a full accessibility or
 lifecycle claim, distribution, or public admission.

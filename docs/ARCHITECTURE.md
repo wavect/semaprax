@@ -243,8 +243,8 @@ co-located exact provider/descriptor, performs two owned receipt commits with
 generation rotation, and replays the first commit exactly. That macOS
 package/runtime is green in [run 31338834586, job
 93309086230](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086230).
-The Windows package/runtime remains pending in [run
-31339938860](https://github.com/wavect/semaprax/actions/runs/31339938860). This is an application
+The Windows package/runtime remains pending after [failed run 31340893685, job
+93314358662](https://github.com/wavect/semaprax/actions/runs/31340893685/job/93314358662). This is an application
 process and native-packaging seam only: there is no UI toolkit, accessibility,
 lifecycle API, signing, installer, public admission, or `SPX-B104` change.
 
@@ -263,8 +263,8 @@ export directory, including ordinal-only functions. The colocated digest is not
 signed provenance. The macOS engine plus AppKit package/runtime is green in
 [run 31338834586, job
 93309086230](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086230);
-Windows remains pending in [run
-31339938860](https://github.com/wavect/semaprax/actions/runs/31339938860). The adapter remains private
+Windows remains pending after [failed run 31340893685, job
+93314358662](https://github.com/wavect/semaprax/actions/runs/31340893685/job/93314358662). The adapter remains private
 with `SPX-B104` closed.
 
 A mandatory macOS gate requires the loader and host

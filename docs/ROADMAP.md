@@ -107,8 +107,8 @@ private steps opens public admission or `SPX-B104`.
 A first private native-desktop application seam has a hosted-green macOS
 package/runtime path in [run 31338834586, job
 93309086230](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086230)
-and a Windows path pending in [run
-31339938860](https://github.com/wavect/semaprax/actions/runs/31339938860). It packages one
+and a Windows path pending after [failed run 31340893685, job
+93314358662](https://github.com/wavect/semaprax/actions/runs/31340893685/job/93314358662). It packages one
 exact callable-v3 owned-identity provider with the existing loader and
 authenticated receipt ledger; the macOS process rotates ownership across two
 calls and verifies exact replay. This is headless packaging evidence,
@@ -124,8 +124,8 @@ termination before publishing success. AppKit bounds engine termination; Win32
 freezes its imported DLL set and rejects every export directory. Strict AppKit compilation and source
 locks are green; packaged macOS AppKit execution is green in [job
 93309086230](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086230),
-while Windows remains pending in [run
-31339938860](https://github.com/wavect/semaprax/actions/runs/31339938860). General SEMAPRAX UI/state syntax, SwiftUI/WinUI, broad
+while Windows remains pending after [failed run 31340893685, job
+93314358662](https://github.com/wavect/semaprax/actions/runs/31340893685/job/93314358662). General SEMAPRAX UI/state syntax, SwiftUI/WinUI, broad
 accessibility/lifecycle, signing, installers, and distribution remain later.
 
 The bounded Apple Swift/iOS application milestone is green in [run

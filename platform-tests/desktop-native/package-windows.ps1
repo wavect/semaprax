@@ -271,10 +271,10 @@ try {
   }
   $inspectedExeImports = @(Get-PeImports $exeContract.Image)
   $inspectedProviderImports = @(Get-PeImports $providerContract.Image)
-  $inspectedExeExports = @(Get-PeExports $exeContract.Image)
-  $inspectedProviderExports = @(Get-PeExports $providerContract.Image)
+  $inspectedExeExports = Get-PeExports $exeContract.Image
+  $inspectedProviderExports = Get-PeExports $providerContract.Image
   if ($inspectedExeImports.Count -eq 0 -or $inspectedProviderImports.Count -eq 0 -or
-      $inspectedExeExports.Names.Count -ne 0 -or $inspectedProviderExports.Names.Count -ne 3) {
+      @($inspectedExeExports.Names).Count -ne 0 -or @($inspectedProviderExports.Names).Count -ne 3) {
     throw 'independent import/export inspection changed'
   }
   if ($providerContract.HasManifest) { throw 'provider DLL unexpectedly embeds an application manifest' }

@@ -1,9 +1,9 @@
 # Private Android JNI ownership adapter v1
 
-Status: private implementation and CI configuration exist; local Rust/C and
-source-lock evidence is green, and the packaging contract is source-locked. The
-first hosted API-35 x86_64 APK build, install, and Emulator execution is
-pending, so this is not yet hosted Android runtime evidence or a public Android
+Status: private implementation, local Rust/C/source-lock evidence, and the exact
+API-35 x86_64 APK build/install/Instrumentation path are green in [run
+31324497016, job 93272580149](https://github.com/wavect/semaprax/actions/runs/31324497016/job/93272580149).
+This is bounded hosted Android application evidence, not a public Android
 application boundary.
 
 This document freezes the first bounded Kotlin/JNI projection of SEMAPRAX
@@ -34,8 +34,7 @@ The adapter must prove:
 - non-throwing automatic cleanup;
 - stale, forged, cross-runtime, duplicate, reentrant, and wrong-thread
   rejection before ownership mutation;
-- exact O0/O2 behavior in an installed API-35 x86_64 Emulator APK once the
-  configured hosted job is observed green; and
+- exact O0/O2 behavior in an installed API-35 x86_64 Emulator APK; and
 - arm64 Android JNI/provider compilation and ELF inspection without claiming
   arm64 device execution.
 

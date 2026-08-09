@@ -380,8 +380,10 @@ answer is `0x0000002d00000001`; the declared fixture exception is
 derive semantic meaning from exception class names, messages, stacks, or
 objects.
 
-The implementation and source-lock/packaging evidence exist, but the first
-hosted API-35 x86_64 APK/Emulator execution is pending. No migration may infer
+The implementation, source-lock/packaging evidence, and exact API-35 x86_64
+APK/Instrumentation path are green in [run 31324497016, job
+93272580149](https://github.com/wavect/semaprax/actions/runs/31324497016/job/93272580149).
+No migration may infer
 GC collection or process-exit cleanup from deterministic
 `cleanForTest()`/`cleanable.clean()` evidence, reinterpret non-throwing
 `AutoCloseable.close()` as SEMAPRAX's general fallible explicit close, or open

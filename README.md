@@ -162,10 +162,11 @@ while `AutoCloseable.close()` and the API-28 `PhantomReference`/
 Deterministic Cleaner tests call the identical registered action through
 `cleanForTest()`; they do not infer GC collection or process-exit cleanup.
 Local Rust/C and repository source-lock gates pass, and arm64 JNI/provider ELFs
-are compile-and-inspect only. The dedicated API-35 x86_64 hosted APK/Emulator
-job is configured but has not yet been observed green, so this is **Partial**
-Java/Kotlin and Android evidence—not hosted application execution, lifecycle/UI,
-AAR, device, general-resource, or public native support.
+are compile-and-inspect only. The dedicated API-35 x86_64 APK/Emulator path is
+green in [run 31324497016, job
+93272580149](https://github.com/wavect/semaprax/actions/runs/31324497016/job/93272580149),
+so this is **Partial** Java/Kotlin and Android application evidence—not AAR,
+lifecycle/UI, device, general-resource, or public native support.
 
 Not implemented yet: public native resource execution/admission,
 general-shape native/reference/Wasm trace conformance, the general Wasm resource ABI,
@@ -204,9 +205,9 @@ that run was also green.
 The generated callable corpus and hardened dependency-collision fixture are
 confirmed on Windows in [run 31257545008, job
 93103151756](https://github.com/wavect/semaprax/actions/runs/31257545008/job/93103151756).
-The bounded private Android JNI/Kotlin APK implementation now exists, but its
-first hosted application run, Android device/lifecycle/UI breadth, iOS
-device/app execution, and public execution/admission remain outstanding.
+The bounded private Android JNI/Kotlin APK now executes in hosted CI, but
+Android device/lifecycle/UI breadth, iOS device/app execution, and public
+execution/admission remain outstanding.
 `SPX-B104` therefore remains unchanged.
 
 [RFC 0004](docs/RFC-0004-NATIVE-CALL-SETTLEMENT.md) now records the proposed

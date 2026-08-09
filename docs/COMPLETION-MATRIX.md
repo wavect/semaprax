@@ -111,8 +111,9 @@ poison-preserving outputs, exact finalizer evidence, and the plugin-free offline
 APK packaging contract. The same-package no-UI Instrumentation APK is configured
 to install on API 35 x86_64 and exact-match one app-private result after O0
 explicit `consume()` and O2 Cleaner paths; arm64 is compile/ELF inspection only.
-The first hosted APK/Emulator execution is pending. This moves only the
-Java/Kotlin and Android rows to **Partial**; it proves no GC collection,
+The exact APK build/install/Instrumentation path is green in [run 31324497016,
+job 93272580149](https://github.com/wavect/semaprax/actions/runs/31324497016/job/93272580149).
+This moves only the Java/Kotlin and Android rows to **Partial**; it proves no GC collection,
 process-exit cleanup, AAR, UI/accessibility, general lifecycle, device or arm64
 runtime, public ABI/admission, or `SPX-B104` change.
 The hidden linear phase model now starts from the sole authenticated
@@ -179,7 +180,7 @@ is not the later Windows evidence linked above.
 | Portable canonical ABI and native fast ABI | Missing | — | Equivalent interface semantics with documented copy/borrow behavior and cross-language conformance verified |
 | C and Objective-C | Missing | — | Header import, raw bindings, ownership annotations, safe wrappers, error/string/buffer mappings, and tests verified |
 | C++ | Missing | — | Stable shim workflow, exception/ownership policy, maintained adapters, and unsafe classification verified |
-| Java and Kotlin | Partial | Private generated JNI shim plus minSdk-28 Kotlin ownership wrapper: closed `RegisterNatives`, HandlerThread confinement, generation-tagged handles, fixed status/exception normalization, deterministic identical Cleaner action, explicit `consume()` ownership transfer, and local Rust/C/source-lock evidence; the first hosted APK execution is pending | JVM metadata import, public JNI generation, general Android lifecycle/ownership integration, bidirectional calls, and representative hosted conformance verified |
+| Java and Kotlin | Partial | Private generated JNI shim plus minSdk-28 Kotlin ownership wrapper: closed `RegisterNatives`, HandlerThread confinement, generation-tagged handles, fixed status/exception normalization, deterministic identical Cleaner action, explicit `consume()` ownership transfer, and green API-35 x86_64 APK/Instrumentation evidence in [run 31324497016, job 93272580149](https://github.com/wavect/semaprax/actions/runs/31324497016/job/93272580149) | JVM metadata import, public JNI generation, general Android lifecycle/ownership integration, bidirectional calls, and representative hosted conformance verified |
 | Swift and Apple frameworks | Missing | — | Swift/Objective-C bindings, async/result/ownership mappings, framework metadata import, XCFramework output, and tests verified |
 | JavaScript and TypeScript | Missing | — | Declaration import, promise/error/typed-array/callback/resource mapping, browser/Node hosts, and component transpilation verified |
 | WIT and WebAssembly Components | Missing | — | Import/export, resources, futures/streams, versions, capabilities, adapters, and multi-language composition verified |
@@ -192,7 +193,7 @@ is not the later Windows evidence linked above.
 | First-class application/state/UI dialect | Missing | — | Typed state/actions/update/view, semantic controls, accessibility, navigation, localization, assets, platform blocks, and custom rendering verified |
 | Web | Partial | Deployable HTML/ES module/Wasm package with an accessible scalar entry and a narrow Node-executed owned-resource adapter | DOM/CSS output, accessible HTML, SSR, hydration, general Wasm resource/components support, browser capabilities, Canvas/WebGPU escape hatch, and deployable sample verified |
 | iOS | Missing | — | Native code, Swift host, XCFramework/app project, UIKit/SwiftUI adapter, lifecycle, accessibility, signing metadata, and device/simulator sample verified |
-| Android | Partial | Private same-package no-UI Instrumentation APK and manifest are implemented/configured with offline plugin-free packaging, exact x86_64 JNI/O0/O2 library inventory, API-35 Emulator assertions, and arm64 compile/ELF inspection; local/source-lock gates pass, but the first hosted APK/Emulator run is pending | Public native code and Kotlin/JNI host, AAR/app project, Compose/View adapter, lifecycle, accessibility, manifests/packaging, and representative emulator plus device samples verified |
+| Android | Partial | Private same-package no-UI Instrumentation APK executes on an API-35 x86_64 Emulator with offline plugin-free packaging, exact JNI/O0/O2 inventory and ownership assertions in [run 31324497016, job 93272580149](https://github.com/wavect/semaprax/actions/runs/31324497016/job/93272580149); arm64 remains compile/ELF inspection only | Public native code and Kotlin/JNI host, AAR/app project, Compose/View adapter, lifecycle, accessibility, manifests/packaging, and representative emulator plus device samples verified |
 | macOS | Partial | Host-native command-line executable | Native app bundle, AppKit/SwiftUI host, menus/windows/accessibility, packaging/signing metadata, and sample verified |
 | Windows | Partial | `windows-latest` compiles/tests the compiler and callable host, builds native and web artifacts, and confirms the generated O0/O2 callable corpus plus root-sibling/CWD/legacy-`PATH` dependency isolation in [run 31257545008, job 93103151756](https://github.com/wavect/semaprax/actions/runs/31257545008/job/93103151756) | Native app, WinUI host, accessibility, packaging metadata, and representative application sample verified |
 | Linux | Partial | Host compilation exercised in CI | Native application, selected UI adapter, accessibility, AppImage/deb/rpm metadata, and sample verified |

@@ -85,8 +85,10 @@ logic now has a mandatory gate through the same host ledger for five distinct
 iOS device, simulator, and Catalyst Rust targets, with no dynamic loader
 surface. One exact arm64-Simulator link/runtime path is implemented and green in
 hosted run 31318280135; app-host/device and broader iOS corpus evidence,
-fatal-allocation/process-crash injection, the first hosted Android JNI/APK run,
-Android device/lifecycle breadth, and quiescence remain. None of these
+fatal-allocation/process-crash injection, Android device/lifecycle breadth,
+and quiescence remain. The bounded Android JNI/APK path is green in [run
+31324497016, job 93272580149](https://github.com/wavect/semaprax/actions/runs/31324497016/job/93272580149).
+None of these
 private steps opens public admission or `SPX-B104`.
 
 The model-backed, proposed [RFC 0004 native call recovery and settlement
@@ -155,9 +157,10 @@ providers through plugin-free Gradle 9 `--offline`, while arm64 is
 compile-and-inspect only. Its Kotlin wrapper confines the host to one
 `HandlerThread`, uses `SPXAJH01` handles and `SPXAJS01` statuses, treats
 `consume()` as the exact evidence path, and dispatches non-throwing Cleaner
-fallback through the identical `PhantomReference` action. The next mobile gate
-is the first green hosted API-35 x86_64 APK/Emulator execution. GC collection,
-process-exit cleanup, AAR/application lifecycle/UI, device execution, broader
+fallback through the identical `PhantomReference` action. That exact hosted
+API-35 x86_64 APK/Emulator execution is green in [run 31324497016, job
+93272580149](https://github.com/wavect/semaprax/actions/runs/31324497016/job/93272580149).
+GC collection, process-exit cleanup, AAR/application lifecycle/UI, device execution, broader
 iOS corpus/app lifecycle, crash/fatal-allocation injection, and quiescence
 evidence remain.
 The pure model itself grants none of that authority and does not open

@@ -228,8 +228,10 @@ generated-provider → loader → host test covers all 14 normal scenarios at
 `-O0`/`-O2`, with zero measured Rust allocations/reallocations across the
 irreversible interval and exact quarantine on injected decode-reserve failure.
 It does not cover fatal allocator or process-crash containment, iOS device
-execution, a hosted Android JNI/APK run, or Android device/lifecycle breadth,
-and exposes no public admission. Private bounded process-lifetime static-registration logic
+execution, or Android device/lifecycle breadth, and exposes no public
+admission. The separate bounded Android JNI/APK path is green in [run
+31324497016, job 93272580149](https://github.com/wavect/semaprax/actions/runs/31324497016/job/93272580149).
+Private bounded process-lifetime static-registration logic
 now binds exact descriptor and entry addresses to the same host ledger; its
 non-Apple fake-function test proves retention and quarantine only, with no
 `dlopen` or unload claim. A mandatory macOS gate requires the loader and host
@@ -319,9 +321,10 @@ zero measured Rust postcommit allocations, healthy host state, and an empty
 outer handle table.
 
 The implementation, local Rust/strict-C checks, packaging contract, and CI
-source locks exist. The dedicated API-35 x86_64 Emulator job is configured but
-its first hosted APK execution is pending. Consequently this is partial
-Java/Kotlin and Android evidence, not an executed hosted app claim, AAR, UI,
+source locks are backed by a green API-35 x86_64 APK/Instrumentation execution
+in [run 31324497016, job
+93272580149](https://github.com/wavect/semaprax/actions/runs/31324497016/job/93272580149).
+Consequently this is partial Java/Kotlin and Android application evidence, not AAR, UI,
 lifecycle/accessibility breadth, device support, general resource/imported-
 finalizer execution, public ABI/admission, or permission to open `SPX-B104`.
 

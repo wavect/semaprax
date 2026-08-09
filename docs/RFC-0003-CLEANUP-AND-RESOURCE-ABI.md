@@ -1,8 +1,8 @@
 # RFC 0003: Exactly-once cleanup and the resource ABI
 
 Status: accepted; phases 1–2 implemented, phases 3–4 partially implemented,
-one private Android tranche of phase 6 implemented/configured with hosted APK
-execution pending, and phases 5 and 7 proposed.
+one private Android tranche of phase 6 implemented with bounded hosted APK
+evidence, and phases 5 and 7 proposed.
 
 This RFC defines the target-neutral destruction, cleanup, and failure contract required before SEMAPRAX may execute resources or records containing resources. Phase 1 implements canonical lifecycle/interface/import declarations and their source/HIR checks. Phase 2 implements a mandatory target-neutral `CleanupPlan` for every resolved function, independently rebuilds it after ordinary HIR and inventory validation, serializes it in Graph v6, and proves its current expression/control-flow surface with focused and hostile-HIR tests. Later private native-host and narrow Wasm work implements bounded status, trace, ownership, and adapter evidence described below; it does not implement general imported-call, resource/aggregate, or public native execution. Ordinary native resource builds still reject with `SPX-B104`, and Wasm rejects every shape outside its documented narrow owned ABI.
 
@@ -496,9 +496,10 @@ Each phase is incomplete until its executable evidence passes. An RFC, type defi
    `AutoCloseable.close()` and the API-28 `PhantomReference` fallback enqueue
    the same non-throwing native consume action. Tests invoke that identical
    action deterministically through `cleanForTest()` rather than relying on GC
-   collection or process exit. The dedicated API-35 x86_64 hosted APK/Emulator
-   execution is configured but pending, and arm64 is compile/ELF inspection
-   only. This is neither phase-6 completion nor evidence for general fallible
+   collection or process exit. The dedicated API-35 x86_64 APK/Emulator
+   execution is green in [run 31324497016, job
+   93272580149](https://github.com/wavect/semaprax/actions/runs/31324497016/job/93272580149),
+   while arm64 is compile/ELF inspection only. This is neither phase-6 completion nor evidence for general fallible
    SEMAPRAX close, bidirectional JVM calls, lifecycle/UI, AAR, device runtime,
    general resources/imported finalizers, public admission, or `SPX-B104`.
 7. **Broader control flow.** Extend the plan and trace suite before enabling loops, variants/matching, `?`, closures, regions, concurrency, cancellation, or async resources.

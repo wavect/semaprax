@@ -29,8 +29,9 @@ All notable changes to SEMAPRAX are documented here.
   `AutoCloseable.close()` is non-throwing Cleaner-style dispatch. Tests invoke
   the identical registered cleanup action deterministically through
   `cleanForTest()`, not by observing GC. Local Rust/C and source-lock evidence
-  is green, while the first hosted API-35 x86_64 APK/Emulator execution is
-  pending. This is no AAR, UI/lifecycle, device, arm64 runtime, general resource
+  plus the exact API-35 x86_64 APK/Instrumentation path are green in [run
+  31324497016, job 93272580149](https://github.com/wavect/semaprax/actions/runs/31324497016/job/93272580149).
+  This is no AAR, UI/lifecycle, device, arm64 runtime, general resource
   execution, public admission, or `SPX-B104` change.
 - Added a mandatory private arm64 iOS Simulator runtime gate for one exact
   `token.discard-two` callable-v3 provider. The closed emitter produces the

@@ -38,7 +38,11 @@ static NSString *const kUiOutput =
     fprintf(stderr, "SEMAPRAX desktop UI failure: %s\n",
             message.UTF8String);
   }
-  [NSApp terminate:nil];
+  // `terminate:` exits the process with status zero after notifying the
+  // delegate, which would make a rejected hostile engine indistinguishable
+  // from a successful application run. Stop the event loop so `main` returns
+  // the controller's stable nonzero status instead.
+  [NSApp stop:nil];
 }
 
 - (BOOL)runEngine {

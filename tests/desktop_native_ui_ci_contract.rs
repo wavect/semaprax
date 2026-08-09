@@ -97,6 +97,7 @@ fn native_ui_source_locks_reject_hostile_gate_removal() {
             "removed second UI build",
         ),
         macos.replace("cmd LC_UUID", "cmd LC_SOURCE_VERSION"),
+        macos.replace("[NSApp stop:nil];", "[NSApp terminate:nil];"),
         macos.replace("load_commands=$(otool -l \"$binary\")", "load_commands=''"),
         macos.replace(
             "$(printf '%s\\n' \"$load_commands\" | sed -n '1p')",
@@ -124,7 +125,16 @@ fn native_ui_source_locks_reject_hostile_gate_removal() {
         );
     }
     for (index, hostile) in [
-        windows.replace("& $clangPath @arguments", "clang @arguments"),
+        windows.replace(
+            "& $clangPath @compileArguments",
+            "clang @compileArguments",
+        ),
+        windows.replace("& $clangPath @linkArguments", "clang @linkArguments"),
+        windows.replace("'-c', $uiSource, '-o', $object", "$uiSource"),
+        windows.replace(
+            "'-Wl,/Brepro,/nodefaultlib,/subsystem:windows', $object",
+            "'-Wl,/Brepro,/nodefaultlib,/subsystem:windows', $uiSource",
+        ),
         windows.replace("\"--ld-path=$lldLinkPath\"", "-fuse-ld=lld"),
         windows.replace(
             "$vswhereVersion -ne (Lock 'windows.vswhere.version')",
@@ -263,6 +273,7 @@ fn macos_contract(source: &str) -> Result<(), String> {
             "self.window.visible",
             "[self.button performClick:nil]",
             "[application run]",
+            "[NSApp stop:nil];",
             "applicationWillTerminate",
             "SemapraxPrivateEngine",
             "SemapraxPrivateEngine.sha256",
@@ -319,8 +330,10 @@ fn windows_contract(source: &str) -> Result<(), String> {
             "Get-Command lld-link.exe",
             "$vswhereVersion -ne (Lock 'windows.vswhere.version')",
             "\"--ld-path=$lldLinkPath\"",
-            "& $clangPath @arguments",
-            "-Wl,/Brepro,/nodefaultlib,/subsystem:windows",
+            "'-c', $uiSource, '-o', $object",
+            "& $clangPath @compileArguments",
+            "'-Wl,/Brepro,/nodefaultlib,/subsystem:windows', $object",
+            "& $clangPath @linkArguments",
             "windows.ui.libraries",
             "Exact-Library 'libcmt.lib' $vcLibRoot",
             "Exact-Library 'libvcruntime.lib' $vcLibRoot",

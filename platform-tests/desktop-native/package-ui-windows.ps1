@@ -129,12 +129,16 @@ $uiSource = Join-Path $PSScriptRoot 'ui-windows.c'
 function Build-Ui([string]$BuildRoot) {
   New-Item -ItemType Directory -Path $BuildRoot | Out-Null
   $destination = Join-Path $BuildRoot 'SemapraxPrivate.exe'
-  $arguments = @('-std=c11', '-pedantic-errors', '-Wall', '-Wextra', '-Werror',
-    '-O2', '-municode', "--ld-path=$lldLinkPath",
-    '-Wl,/Brepro,/nodefaultlib,/subsystem:windows', $uiSource) +
-    $uiLibraries + @('-o', $destination)
-  & $clangPath @arguments
+  $object = Join-Path $BuildRoot 'SemapraxPrivate.obj'
+  $compileArguments = @('-std=c11', '-pedantic-errors', '-Wall', '-Wextra',
+    '-Werror', '-O2', '-c', $uiSource, '-o', $object)
+  & $clangPath @compileArguments
   if ($LASTEXITCODE -ne 0) { throw 'private Windows native UI compilation failed' }
+  $linkArguments = @('-Werror', '-municode', "--ld-path=$lldLinkPath",
+    '-Wl,/Brepro,/nodefaultlib,/subsystem:windows', $object) +
+    $uiLibraries + @('-o', $destination)
+  & $clangPath @linkArguments
+  if ($LASTEXITCODE -ne 0) { throw 'private Windows native UI link failed' }
   return $destination
 }
 $firstUi = Build-Ui (Join-Path $scratch 'ui-first')

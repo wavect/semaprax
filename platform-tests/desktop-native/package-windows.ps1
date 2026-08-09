@@ -158,6 +158,7 @@ New-Item -ItemType Directory -Path $scratch | Out-Null
 function Build-Once([Parameter(Mandatory = $true)][string]$Label, [Parameter(Mandatory = $true)][string]$BuildRoot) {
   New-Item -ItemType Directory -Path $BuildRoot | Out-Null
   $sourceFile = Join-Path $BuildRoot 'provider.c'
+  $providerObject = Join-Path $BuildRoot 'provider.obj'
   $descriptorFile = Join-Path $BuildRoot 'SemapraxPrivateProvider.spxnabi3'
   $providerFile = Join-Path $BuildRoot 'SemapraxPrivateProvider.dll'
   $targetDirectory = Join-Path $BuildRoot 'cargo-target'
@@ -170,8 +171,10 @@ function Build-Once([Parameter(Mandatory = $true)][string]$Label, [Parameter(Man
     [System.Environment]::SetEnvironmentVariable('LIB', $exactLibraryPath, 'Process')
     cargo run --quiet --locked --offline -p semaprax-native-host --features unstable-desktop-app-harness --bin private-desktop-v3-fixture -- $sourceFile $descriptorFile
     if ($LASTEXITCODE -ne 0) { throw "$Label desktop fixture emission failed" }
-    & $clangPath -std=c11 -pedantic-errors -Wall -Wextra -Werror -O2 "--ld-path=$lldLinkPath" '-Wl,/Brepro,/nodefaultlib' -shared $sourceFile @providerLibraries -o $providerFile
+    & $clangPath -std=c11 -pedantic-errors -Wall -Wextra -Werror -O2 -c $sourceFile -o $providerObject
     if ($LASTEXITCODE -ne 0) { throw "$Label desktop provider compilation failed" }
+    & $clangPath -Werror "--ld-path=$lldLinkPath" '-Wl,/Brepro,/nodefaultlib' -shared $providerObject @providerLibraries -o $providerFile
+    if ($LASTEXITCODE -ne 0) { throw "$Label desktop provider link failed" }
     cargo build --quiet --locked --offline --release -p semaprax-native-host --features unstable-desktop-app-harness --bin private-desktop-v3-app
     if ($LASTEXITCODE -ne 0) { throw "$Label desktop application build failed" }
   } finally {
@@ -180,7 +183,7 @@ function Build-Once([Parameter(Mandatory = $true)][string]$Label, [Parameter(Man
     [System.Environment]::SetEnvironmentVariable('LIB', $previousLibraryPath, 'Process')
   }
   $executableFile = Join-Path $targetDirectory 'release/private-desktop-v3-app.exe'
-  foreach ($artifact in @($sourceFile, $descriptorFile, $providerFile, $executableFile)) {
+  foreach ($artifact in @($sourceFile, $providerObject, $descriptorFile, $providerFile, $executableFile)) {
     if (-not (Test-Path -LiteralPath $artifact -PathType Leaf)) { throw "independent build omitted $artifact" }
   }
   return [pscustomobject]@{

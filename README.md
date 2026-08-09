@@ -186,9 +186,15 @@ Node runtime for its authenticated embedded core module. Checked component v2
 additionally composes the exact SEMAPRAX-generated scalar core with a frozen
 checked-runtime core, validates the complete component with pinned upstream
 `wasmparser`, and executes success, overflow, and contract failure through its
-private `evaluate()` API. It is **Partial** WIT evidence only: `SPXWIT01`
-result/status is not composed with v2, and there is no engine-native Component
-Model runtime, resource/future/stream/capability support, or public WIT surface.
+private `evaluate()` API. Portable Result Component v3 now composes the exact
+private `result<s64, status>` projection and locally executes typed success,
+addition-overflow, division-by-zero, precondition, and postcondition outcomes
+through Wasmtime with zero imports, an empty linker, and no WASI. The standalone
+runtime/dependency graph cannot widen the public compiler graph or MSRV. Its
+hosted Wasmtime job is configured and pending. This remains **Partial** WIT
+evidence only: there is no source-language `Result`/`Option`, records,
+resources, imports, async, capabilities, multi-engine/browser conformance,
+public WIT surface, or `SPX-B104` change.
 
 Not implemented yet: public native resource execution/admission,
 general-shape native/reference/Wasm trace conformance, the general Wasm resource ABI,

@@ -128,11 +128,16 @@ parser, hostile mutation coverage, and a private Node subset runtime. Checked
 component v2 now composes the exact SEMAPRAX-generated scalar core with a
 frozen checked runtime, passes pinned upstream validation and rehashed hostile
 cross-type gates, and executes generated success, overflow, and contract
-failure through its authenticated private `evaluate()` API. The next WIT
-milestone is to compose the `SPXWIT01` result/status mapping with checked v2 and
-run it through a maintained engine-native Component Model runtime. Resources,
-futures/streams, capabilities, version negotiation, and multi-language
-composition remain later gates.
+failure through its authenticated private `evaluate()` API. Portable Result
+Component v3 now privately composes its exact checked two-scalar status/out core as
+`result<s64, status>` and has local typed Wasmtime evidence for success,
+addition overflow, division by zero, false precondition, and false
+postcondition. Its independent/upstream validators, poison/sticky-status core
+evidence, zero-import empty-linker/no-WASI runtime, and isolated locked
+dependency/MSRV graph are implemented; the hosted Wasmtime job is configured
+and pending. Source-language `Result`/`Option`, records/resources/imports,
+async/capabilities, multi-engine/browser execution, public API, and
+`SPX-B104` remain later gates.
 
 The model-backed, proposed [RFC 0004 native call recovery and settlement
 contract](RFC-0004-NATIVE-CALL-SETTLEMENT.md) specifies the bounded linear

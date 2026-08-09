@@ -61,8 +61,15 @@ All notable changes to SEMAPRAX are documented here.
   runtime, exposes read-only artifact digests, passes pinned upstream
   `wasmparser` validation plus rehashed signature/body/cardinality/lift
   hostiles, and executes generated success, overflow, and contract failure
-  through authenticated private `evaluate()`. It is not yet composed with the
-  WIT result/status mapping and exposes no public WIT interface.
+  through authenticated private `evaluate()`. Portable Result Component v3
+  adds the exact private `result<s64, status>` lift, independent parser and
+  upstream validation, poison/sticky-status evidence, and local typed Wasmtime
+  execution of success, addition overflow, division by zero, precondition, and
+  postcondition outcomes with zero imports, an empty linker, and no WASI. Its
+  dependency/MSRV graph is isolated; hosted Wasmtime is configured and pending.
+  Source-language `Result`/`Option`, records/resources/imports/async,
+  capabilities, multi-engine/browser conformance, public API, and `SPX-B104`
+  remain closed.
 - Added a mandatory private Android Emulator runtime gate. A hidden closed
   selector emits exact arm64 and x86_64-emulator dynamic descriptors
   and Bionic/ELF-guarded strict-C providers; the unpublished host now compiles

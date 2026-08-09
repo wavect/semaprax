@@ -105,9 +105,15 @@ $vcToolsRoot = Resolve-CanonicalNonReparsePath (Join-Path $visualStudioRoot "VC/
 $linkExe = Resolve-CanonicalNonReparsePath (Join-Path $vcToolsRoot 'bin/Hostx64/x64/link.exe') 'link.exe'
 $linkVersion = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($linkExe).FileVersion
 if ($linkVersion -ne (Lock 'windows.link.version')) { throw "link.exe identity mismatch: $linkVersion" }
-$linkOutput = ((& $linkExe '/?') -join "`n").Trim()
-if ($LASTEXITCODE -ne 0 -or $linkOutput -notmatch "(?m)^Microsoft \(R\) Incremental Linker Version $([regex]::Escape($linkVersion))") {
-  throw "link.exe runtime version mismatch:`n$linkOutput"
+$linkLines = @(& $linkExe '/?' 2>&1)
+$linkExit = $LASTEXITCODE
+$linkOutput = ($linkLines -join "`n").Trim()
+$linkBanner = if ($linkLines.Count -gt 0) { $linkLines[0].ToString().Trim().TrimStart([char]0xFEFF) } else { '' }
+$expectedLinkBanner = "Microsoft (R) Incremental Linker Version $linkVersion"
+if ($linkBanner -ne $expectedLinkBanner -or
+    $linkOutput -notmatch '(?m)^\s*usage: LINK \[options\] \[files\] \[@commandfile\]\s*$' -or
+    $linkOutput -match '(?i)fatal error') {
+  throw "link.exe runtime version mismatch (exit $linkExit):`n$linkOutput"
 }
 
 $kitsRegistry = 'Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Kits\Installed Roots'

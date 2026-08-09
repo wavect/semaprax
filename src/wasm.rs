@@ -12,6 +12,14 @@ use crate::hir::{
 };
 
 mod owned;
+#[cfg(any(test, feature = "unstable-wit-component-harness"))]
+mod result_component_v3;
+
+#[cfg(any(test, feature = "unstable-wit-component-harness"))]
+pub(crate) use result_component_v3::{
+    emit_private_result_core_v3, CANONICAL_EXPORT as RESULT_COMPONENT_CANONICAL_EXPORT_V3,
+    STATUS_OUT_EXPORT as RESULT_COMPONENT_STATUS_OUT_EXPORT_V3,
+};
 
 const I32: u8 = 0x7f;
 const I64: u8 = 0x7e;

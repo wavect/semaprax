@@ -26,6 +26,24 @@ jobs:
           command: check advisories bans licenses sources
           arguments: --workspace --all-features --locked
 
+  component-runtime-v3:
+    name: Private Wasmtime Component result runtime
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          toolchain: 1.97.1
+          components: rustfmt, clippy
+      - name: Audit the isolated Component runtime dependency graph
+        uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
+        with:
+          command: check advisories bans licenses sources
+          arguments: --manifest-path platform-tests/component-runtime/Cargo.toml --config platform-tests/component-runtime/deny.toml --all-features --locked
+      - name: Fetch root and isolated dependencies, then execute every Component gate offline
+        run: scripts/component-runtime-v3.sh
+
   verify:
     name: Rust ${{ matrix.os }}
     timeout-minutes: 25

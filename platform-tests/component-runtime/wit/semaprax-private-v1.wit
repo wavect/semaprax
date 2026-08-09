@@ -1,0 +1,10 @@
+package semaprax:private@0.1.0;
+
+interface evaluation {
+  record status { domain: string, code: u32, class: u8, retryable: option<bool> }
+  evaluate: func(left: s64, right: s64) -> result<s64, status>;
+}
+
+world semaprax-private-v1 {
+  export evaluation;
+}

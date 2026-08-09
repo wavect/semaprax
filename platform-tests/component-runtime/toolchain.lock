@@ -1,0 +1,9 @@
+rustc.release=1.97.1
+rustc.commit=8bab26f4f68e0e26f0bb7960be334d5b520ea452
+rustc.commit-date=2026-07-14
+rustc.llvm=22.1.6
+cargo.release=1.97.1
+cargo.commit=c980f4866141969fab6254a680546a277789d6f0
+cargo.commit-date=2026-06-30
+ci.host=x86_64-unknown-linux-gnu
+wasmtime.version=47.0.2

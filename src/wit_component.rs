@@ -8,6 +8,13 @@ use sha2::{Digest, Sha256};
 
 use crate::{ast::Program, diagnostic::Diagnostic, graph, wasm};
 
+mod result_v3;
+
+pub use result_v3::{
+    emit_private_result_component_v3, validate_private_result_component_v3,
+    PrivateResultComponentArtifactV3, ValidatedPrivateResultComponentV3,
+};
+
 const MAGIC: &[u8; 8] = b"SPXWIT01";
 
 const WIT: &str = "package semaprax:private@0.1.0;\n\ninterface evaluation {\n  record status { domain: string, code: u32, class: u8, retryable: option<bool> }\n  evaluate: func(left: s64, right: s64) -> result<s64, status>;\n}\n\nworld semaprax-private-v1 {\n  export evaluation;\n}\n";
@@ -1579,9 +1586,11 @@ semaprax = {{ path = "{manifest_root}", default-features = false }}
             r#"use semaprax::wit_component::{
     emit_private_checked_component_v2,
     emit_private_component_v1,
+    emit_private_result_component_v3,
     private_checked_component_runtime_javascript_v2,
     validate_private_checked_component_v2,
     validate_private_component_v1,
+    validate_private_result_component_v3,
 };
 
 fn main() {
@@ -1590,6 +1599,8 @@ fn main() {
     let _ = emit_private_checked_component_v2;
     let _ = private_checked_component_runtime_javascript_v2;
     let _ = validate_private_checked_component_v2;
+    let _ = emit_private_result_component_v3;
+    let _ = validate_private_result_component_v3;
 }
 "#,
         )
@@ -1635,7 +1646,7 @@ semaprax = {{ path = "{manifest_root}", default-features = false, features = ["u
         std::fs::create_dir(directory.path().join("src")).unwrap();
         std::fs::write(
             directory.path().join("src/main.rs"),
-            r#"use semaprax::wit_component::PrivateCheckedComponentArtifactV2;
+            r#"use semaprax::wit_component::{PrivateCheckedComponentArtifactV2, PrivateResultComponentArtifactV3};
 
 fn hostile(artifact: &mut PrivateCheckedComponentArtifactV2) {
     let _ = artifact.digest();
@@ -1644,6 +1655,15 @@ fn hostile(artifact: &mut PrivateCheckedComponentArtifactV2) {
     artifact.digest = [0; 32];
     artifact.generated_core_digest = [0; 32];
     artifact.runtime_core_digest = [0; 32];
+}
+
+fn hostile_v3(artifact: &mut PrivateResultComponentArtifactV3) {
+    let _ = artifact.digest();
+    let _ = artifact.generated_core_digest();
+    let _ = artifact.profile_digest();
+    artifact.digest = [0; 32];
+    artifact.generated_core_digest = [0; 32];
+    artifact.profile_digest = [0; 32];
 }
 
 fn main() {}
@@ -1658,7 +1678,12 @@ fn main() {}
             .unwrap();
         assert!(!checked.status.success(), "digest fields remained writable");
         let stderr = String::from_utf8_lossy(&checked.stderr);
-        for field in ["digest", "generated_core_digest", "runtime_core_digest"] {
+        for field in [
+            "digest",
+            "generated_core_digest",
+            "runtime_core_digest",
+            "profile_digest",
+        ] {
             assert!(
                 stderr.contains("private field") && stderr.contains(field),
                 "missing private-field diagnostic for {field}:\n{stderr}"

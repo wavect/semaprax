@@ -41,11 +41,12 @@ path component proven non-reparse, exact archive names, and COFF archive
 signatures; ambient `LIB` is replaced and the provider links only explicit
 absolute archives under `/nodefaultlib`.
 The macOS Rust link disables path-dependent linker signing, canonicalizes the
-single `LC_UUID`, then applies a timestamp-free ad-hoc signature with the fixed
-identifier `semaprax.private.desktop.v1`. Both independently built signed
-executables must still compare byte-for-byte, and `codesign --verify --strict`
-must accept the packaged copy. This uses no distribution identity or signing
-credential.
+single `LC_UUID`, assembles two complete application bundles, then applies a
+timestamp-free ad-hoc signature with the fixed identifier
+`semaprax.private.desktop.v1` to each bundle. Their complete signed inventories
+must compare byte-for-byte, and `codesign --verify --strict` must accept both
+independent bundles and the packaged copy. This uses no distribution identity
+or signing credential.
 
 The scripts require strict C11 warnings, `-O2`, exact native Mach-O or PE/COFF
 architecture and file kinds, closed load/import and export inventories, no

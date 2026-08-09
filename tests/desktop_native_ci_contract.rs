@@ -68,6 +68,7 @@ fn private_desktop_packages_are_feature_gated_native_and_source_locked() {
             "macos.deployment-target=11.0",
             "macos.uuid=sha256-zeroed-lc-uuid-prefix16",
             "macos.signature=adhoc-fixed-id-semaprax.private.desktop.v1",
+            "macos.signed-bundle-reproducibility=two-independent-signed-app-bundles-byte-equal",
             "windows.clang.version=20.1.8",
             "windows.vswhere.version=3.1.7.39155",
             "windows.visual-studio.version=18.8.12023.21",
@@ -121,14 +122,14 @@ fn macos_source_lock_rejects_hostile_gate_removal() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let source = read(root, "platform-tests/desktop-native/package-macos.sh");
     macos_contract(&source).expect("checked-in macOS packaging contract");
-    let signing_block = "  codesign --force --sign - --timestamp=none \\\n    --identifier \"$readonly_app_signature_id\" \"$build/SemapraxPrivate\"\n  codesign --verify --strict \"$build/SemapraxPrivate\"\n";
+    let signing_block = "  codesign --force --sign - --timestamp=none \\\n    --identifier \"$readonly_app_signature_id\" \"$app\"\n  codesign --verify --strict \"$app\"\n";
     let signing_after_comparison = source.replacen(signing_block, "", 1).replacen(
-        "done\n\napp=",
-        &format!("done\n{signing_block}\napp="),
+        "done\n\nmkdir -p \"$output\"",
+        &format!("done\n{signing_block}\nmkdir -p \"$output\""),
         1,
     );
 
-    for hostile in [
+    for (index, hostile) in [
         source.replace(" --offline", ""),
         source.replace(PROVIDER_ID, "/tmp/provider.dylib"),
         source.replace("@(#)PROGRAM:ld PROJECT:ld-1267", "ambient-ld"),
@@ -158,13 +159,22 @@ fn macos_source_lock_rejects_hostile_gate_removal() {
         source.replace("otool -L", "otool -l"),
         source.replace("nm -gjU", "nm"),
         source.replace("build_once second", ": second build removed"),
+        source.replace("package_once second", ": second signed package removed"),
+        source.replace("first_inventory=", "inventory_one="),
+        source.replace(
+            "if [ \"$first_inventory\" != \"$second_inventory\" ]; then",
+            "if false; then",
+        ),
         source.replace("private-desktop-macho-uuid", "removed-uuid-canonicalizer"),
         source.replace("cmp -s", "test -s"),
         source.replace("expected_inventory=", "removed_inventory="),
-    ] {
+    ]
+    .into_iter()
+    .enumerate()
+    {
         assert!(
             macos_contract(&hostile).is_err(),
-            "hostile macOS gate removal escaped the source lock"
+            "hostile macOS gate removal escaped the source lock at index {index}"
         );
     }
 }
@@ -203,6 +213,25 @@ fn windows_source_lock_rejects_hostile_gate_removal() {
             "CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER",
             "REMOVED_TARGET_LINKER",
         ),
+        source.replace("$linkLines = @(& $linkExe '/?' 2>&1)", "$linkLines = @()"),
+        source.replace(
+            "$linkVersion = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($linkExe).FileVersion",
+            "$linkVersion = Lock 'windows.link.version'",
+        ),
+        source.replace(
+            "$linkVersion -ne (Lock 'windows.link.version')",
+            "$linkVersion -eq (Lock 'windows.link.version')",
+        ),
+        source.replace(".TrimStart([char]0xFEFF)", ".Trim()"),
+        source.replace(
+            "$linkBanner -ne $expectedLinkBanner",
+            "$linkBanner -eq $expectedLinkBanner",
+        ),
+        source.replace(
+            "usage: LINK \\[options\\] \\[files\\] \\[@commandfile\\]",
+            "usage: ANY",
+        ),
+        source.replace("$linkOutput -match '(?i)fatal error'", "$false"),
         source.replace("$exactLibraryPath", "$ambientLibraryPath"),
         source.replace("& $clangPath -std=c11", "clang -std=c11"),
         source.replace("\"--ld-path=$lldLinkPath\"", "-fuse-ld=lld"),
@@ -264,6 +293,11 @@ fn macos_contract(source: &str) -> Result<(), String> {
             "-Wl,-install_name",
             "build_once first",
             "build_once second",
+            "package_once first",
+            "package_once second",
+            "first_inventory=",
+            "second_inventory=",
+            "if [ \"$first_inventory\" != \"$second_inventory\" ]; then",
             "cmp -s",
             "shasum -a 256",
             "Mach-O 64-bit",
@@ -292,7 +326,7 @@ fn macos_contract(source: &str) -> Result<(), String> {
     )?;
     let build_once = source
         .split_once("build_once() {")
-        .and_then(|(_, suffix)| suffix.split_once("\n}\n\ncd \"$repo\""))
+        .and_then(|(_, suffix)| suffix.split_once("\n}\n\npackage_once() {"))
         .map(|(body, _)| body)
         .ok_or_else(|| "macOS: missing exact build_once function boundary".to_owned())?;
     require_ordered(
@@ -300,9 +334,20 @@ fn macos_contract(source: &str) -> Result<(), String> {
         &[
             "--bin private-desktop-v3-app -- -C link-arg=-Wl,-no_adhoc_codesign",
             "--bin private-desktop-macho-uuid -- \\",
+        ],
+    )?;
+    let package_once = source
+        .split_once("package_once() {")
+        .and_then(|(_, suffix)| suffix.split_once("\n}\n\ncd \"$repo\""))
+        .map(|(body, _)| body)
+        .ok_or_else(|| "macOS: missing exact package_once function boundary".to_owned())?;
+    require_ordered(
+        package_once,
+        &[
+            "cp \"$build/SemapraxPrivate\" \"$app/Contents/MacOS/SemapraxPrivate\"",
             "codesign --force --sign - --timestamp=none \\",
-            "--identifier \"$readonly_app_signature_id\" \"$build/SemapraxPrivate\"",
-            "codesign --verify --strict \"$build/SemapraxPrivate\"",
+            "--identifier \"$readonly_app_signature_id\" \"$app\"",
+            "codesign --verify --strict \"$app\"",
         ],
     )?;
     require_ordered(
@@ -310,8 +355,13 @@ fn macos_contract(source: &str) -> Result<(), String> {
         &[
             "build_once first",
             "build_once second",
-            "cmp -s",
-            "codesign --verify --strict \"$executable\"",
+            "for artifact in",
+            "package_once first",
+            "package_once second",
+            "first_inventory=",
+            "cmp -s \"$first_app/$relative\" \"$second_app/$relative\"",
+            "cp -R \"$first_app\" \"$output/SemapraxPrivate.app\"",
+            "codesign --verify --strict \"$app\"",
         ],
     )
 }
@@ -351,6 +401,13 @@ fn windows_contract(source: &str) -> Result<(), String> {
             "VC/Tools/MSVC/$vcToolsVersion",
             "bin/Hostx64/x64/link.exe",
             "Incremental Linker Version",
+            "$linkVersion = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($linkExe).FileVersion",
+            "$linkVersion -ne (Lock 'windows.link.version')",
+            "$linkLines = @(& $linkExe '/?' 2>&1)",
+            ".TrimStart([char]0xFEFF)",
+            "$linkBanner -ne $expectedLinkBanner",
+            "usage: LINK \\[options\\] \\[files\\] \\[@commandfile\\]",
+            "$linkOutput -match '(?i)fatal error'",
             "Windows Kits\\Installed Roots",
             "windows.sdk.version",
             "Lib/$sdkVersion",

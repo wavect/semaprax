@@ -377,9 +377,24 @@ runtime instance as its exact `env` import, and lifts `semaprax_main` as a
 zero-argument `evaluate`. A pinned upstream `wasmparser` gate validates that
 composition and rejects rehashed invalid signatures, bodies, cardinalities,
 and canonical-lift cross-typing. Node executes generated success, overflow,
-and contract-failure paths through the authenticated v2 API. `SPXWIT01`
-result/status remains uncomposed, and neither the engine-native nor public
-backend trust boundary expands.
+and contract-failure paths through the authenticated v2 API.
+
+Portable Result Component v3 is a third exact private profile. It canonically
+lifts the checked two-`i64` generated core as `result<s64, status>`, binds
+component/core/profile/source digests, and is admitted by both an independent
+bounded parser and maintained upstream validation. The standalone Wasmtime
+47.0.2 runner re-authenticates immutable bytes, requires zero imports,
+instantiates with an empty linker and no WASI or host callbacks, then uses
+generated typed bindings for success, addition overflow, division by zero,
+false precondition, and false postcondition. Node core evidence independently
+freezes poisoned result-slot preservation and sticky first-failure status
+selection. Fuel exhaustion is an out-of-band engine error, never a typed
+SEMAPRAX status. The runner's unpublished workspace, lockfile, Rust 1.97.1
+toolchain, and dependency-denial policy isolate Wasmtime from the root compiler
+dependency and MSRV graph. Hosted runtime evidence is configured and pending;
+source-language `Result`/`Option`, records/resources, imports, async,
+capabilities, multi-engine/browser execution, public API, and `SPX-B104` remain
+outside this trust boundary.
 
 ## Record groundwork and backend gate
 

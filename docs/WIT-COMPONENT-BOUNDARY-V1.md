@@ -94,18 +94,49 @@ bytes, truncation, and trailing bytes. Dedicated generated programs exercise
 overflow and `requires false` through the composed JavaScript `evaluate()` API,
 not by calling runtime helper exports directly.
 
-The next gate is to compose the `SPXWIT01` result/status mapping with this
-generated-core lane and execute the resulting artifact through a maintained
-engine-native Component Model runtime.
+## Portable result component v3
+
+The same default-off private feature now emits one deterministic, import-free
+Portable Result Component v3 for the exact WIT function
+`evaluate(left: s64, right: s64) -> result<s64, status>`. Its canonical lift
+uses a distinct checked status/out core generated from the fixture program;
+the component, generated core, profile, and source revision are bound by frozen
+known answers. An independent bounded parser authenticates the exact component
+and embedded-core profile, and maintained upstream `wasmparser` validation
+independently accepts the artifact and rejects rehashed hostile type/lift
+mutations.
+
+Local engine-native evidence uses an unpublished standalone Wasmtime 47.0.2
+runner and generated typed bindings. It invokes success, addition overflow,
+division by zero, false precondition, and false postcondition twice on one
+instance and again on fresh instances. A competing `(i64::MAX, 0)` case proves
+that addition overflow remains the first typed failure instead of being replaced
+by the later division-by-zero condition. The typed results preserve the exact
+`semaprax.status.v1` domain/code/class/retryability mapping; lower-level Node
+evidence separately freezes poisoned result-slot preservation, the same sticky
+first-failure behavior, and executable add/subtract/multiply/divide/remainder/
+negate overflow and zero-divisor status paths. Wasmtime fuel exhaustion remains
+an out-of-band engine error rather than a forged typed SEMAPRAX status.
+
+The runner requires zero component imports, instantiates with an empty linker,
+provides no WASI context or host callback, and grants no filesystem, network,
+environment, clock, randomness, process, logging, or mutable ambient authority.
+Its unpublished crate, exact Rust 1.97.1 evidence toolchain, Wasmtime
+dependency, lockfile, and denial policy are isolated from the root workspace,
+so they cannot widen the public compiler dependency graph or Rust 1.85 MSRV.
+The hosted Ubuntu Wasmtime job is configured and pending; it does not count as
+hosted evidence until a green run URL is recorded.
 
 ## Nonclaims
 
-The original scalar component remains deliberately separate from `SPXWIT01`.
-Checked component v2 proves one generated zero-argument `i64` main and checked
-trap semantics; it does not implement `result<s64, status>`, typed failure
-publication, parameters, general export selection, records, or ownership.
+The original scalar component and checked v2 artifact remain separate profiles.
+Portable Result Component v3 proves only one private two-parameter scalar
+`result<s64, status>` export; it does not add source-language `Result` or
+`Option`, propagation syntax, exhaustive matching, records, variants,
+resources, handles, ownership, imports, async/futures/streams, or general
+export selection.
 
-This tranche does not provide engine-native Component Model instantiation,
-import WIT, implement resources, handles, futures, streams, capabilities,
-version negotiation, multi-language component composition, or expose a public
-WIT API. It does not change the existing core-Wasm owned ABI or `SPX-B104`.
+This tranche does not provide WIT imports, capabilities, version negotiation,
+multi-language composition, browser or WASI execution, multi-engine
+conformance, or any public compiler/API/backend surface. It does not change the
+existing core-Wasm owned ABI or open `SPX-B104`.

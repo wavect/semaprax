@@ -1,0 +1,22 @@
+[package]
+name = "semaprax-private-component-runtime-v3"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+# This evidence runner is deliberately isolated from the root workspace. Its
+# maintained-engine dependency must not change SEMAPRAX's MSRV or publish graph.
+[workspace]
+resolver = "2"
+
+[dependencies]
+semaprax = { path = "../..", default-features = false, features = ["unstable-wit-component-harness"] }
+sha2 = { version = "=0.10.9", default-features = false }
+wasmtime = { version = "=47.0.2", default-features = false, features = ["component-model", "cranelift", "runtime", "std"] }
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = "deny"
+pedantic = "deny"

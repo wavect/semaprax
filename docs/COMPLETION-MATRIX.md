@@ -88,12 +88,12 @@ mandatory job is configured to link and execute one exact arm64 iOS Simulator
 `token.discard-two` provider through static registration and the authenticated
 ledger at `-O0`/`-O2`; [run 31318280135, job
 93257002836](https://github.com/wavect/semaprax/actions/runs/31318280135/job/93257002836)
-proved that bounded path. The standalone-process slice does not prove device or app
-lifecycle execution, the remaining corpus on iOS, exhaustive crash/fatal-
-allocator failure injection, a hosted Android APK/JNI run, Android device
-execution, quiescence,
-malicious-code containment, physical-finalizer generality, or public admission;
-`SPX-B104` remains closed.
+proved that bounded path. The standalone-process slice does not prove device or
+app lifecycle execution, the remaining corpus on iOS, exhaustive crash/fatal-
+allocator failure injection, Android device execution, quiescence,
+malicious-code containment, physical-finalizer generality, or public admission.
+It is not the Android APK/JNI gate; that separate green hosted evidence is
+recorded below. `SPX-B104` remains closed.
 The mandatory Android job compiles the loader/host and exact
 providers for x86_64 and arm64, then runs one x86_64 `token.discard-two`
 dynamic provider through the same receipt ledger at O0/O2 in an API-35
@@ -123,12 +123,17 @@ v1](WIT-COMPONENT-BOUNDARY-V1.md) are implemented with local Rust/Node and
 source-lock evidence. Swift/iOS is **Partial** for the closed same-thread
 wrapper and green bounded XCFramework/Simulator-app gate in [run 31333469714,
 job 93295293995](https://github.com/wavect/semaprax/actions/runs/31333469714/job/93295293995).
-WIT is **Partial** for deterministic schema/adapter output, a
-separate independently parsed scalar Component Model fixture, and checked v2
-composition of the exact generated scalar core with its frozen runtime. Pinned
-upstream validation and private Node `evaluate()` execution cover success,
-overflow, and contract failure; the result/status mapping is not yet composed
-with v2, and there is no engine-native component runtime.
+WIT is **Partial** for deterministic schema/adapter output, a separate
+independently parsed scalar Component Model fixture, checked v2 composition,
+and private Portable Result Component v3. V3 binds the exact generated scalar
+core to `result<s64, status>`, passes independent and upstream validation, and
+has local typed Wasmtime evidence for success, addition overflow, division by
+zero, false precondition, and false postcondition with zero imports, an empty
+linker, and no WASI. Poison preservation and sticky status selection remain
+separately frozen at the generated-core boundary. Its isolated runtime graph
+cannot widen the public compiler graph or MSRV. The hosted Wasmtime job is
+configured and pending; source-language `Result`/`Option`, broader component
+shapes/authorities, public API, and `SPX-B104` remain absent.
 The hidden linear phase model now starts from the sole authenticated
 post-`CallCommit` state and exercises exact `SettlementDecisionCommit`,
 provider-candidate, model-`ReceiptCommitted`, and absorbing `Quarantined`
@@ -181,7 +186,7 @@ is not the later Windows evidence linked above.
 | --- | --- | --- | --- |
 | Fast development lane | Missing | — | Cranelift JIT/AOT, incremental affected-node builds, hot reload, and debugger mapping verified |
 | Optimizing native lane | Partial | Validated stable-ID HIR lowers to sequenced C11/Clang AOT; a public build-only callable-v2 API/CLI emits one selected direct-trivial function as a strict host shared library plus deterministic descriptor/dictionary/certificate and hashed manifest; the private host executes the 14-case corpus at O0/O2; Linux provider sanitizers, Windows callable/dependency isolation, and pinned-nightly Rust-host ASan evidence are green in the current Linux/macOS/Windows hosted-CI matrix | Public resource execution/admission, general fallback cleanup/quiescence, Android/iOS profiles, LLVM/MLIR lowering, LTO/PGO, cross-compilation, CPU specialization, debug/release parity, and reproducibility verified |
-| WebAssembly core/components | Partial | Validated stable-ID HIR lowers to direct Wasm core with browser ES runtime, checked arithmetic, contracts, HTML, `semaprax.web.v3`, and a Node-executed `semaprax.wasm-owned.v1` subset for one direct trivial resource, including same-realm duplicated-host isolation and exact semantic ordinal/reference equality for the shared 14-case corpus. Private component v1 provides an exact scalar fixture; checked v2 composes the unmodified generated scalar core with a frozen checked runtime, an independent exact parser, pinned upstream Component Model validation including rehashed hostile cross-typing, default-surface closure, and authenticated Node `evaluate()` execution for success, overflow, and contract failure | Browser/WASI modules, composition of generated checked SEMAPRAX Wasm with the WIT result/status interface, engine-native Component Model execution, general canonical resource ABI, async, sandboxing, cross-realm/worker identity, and production native-host/Wasm conformance verified |
+| WebAssembly core/components | Partial | Validated stable-ID HIR lowers to direct Wasm core with browser ES runtime, checked arithmetic, contracts, HTML, `semaprax.web.v3`, and a Node-executed `semaprax.wasm-owned.v1` subset for one direct trivial resource, including same-realm duplicated-host isolation and exact semantic ordinal/reference equality for the shared 14-case corpus. Private component v1 provides an exact scalar fixture; checked v2 composes the unmodified generated scalar core with a frozen checked runtime. Portable Result Component v3 privately lifts its distinct checked two-scalar status/out core as `result<s64, status>`, passes independent and pinned-upstream validation, preserves poison/sticky statuses at the core boundary, and locally executes typed success/add-overflow/division-by-zero/precondition/postcondition through Wasmtime with zero imports, an empty linker, and no WASI; the hosted job is configured and pending | Browser/WASI modules, source-language `Result`/`Option`, records/resources/imports, async/capabilities, multi-engine conformance, general canonical resource ABI, sandboxing, cross-realm/worker identity, public component API, and production native-host/Wasm conformance verified |
 | Embedded and real-time | Missing | — | Bare-metal artifacts, no-runtime/no-allocation/no-blocking profiles, MMIO/volatile/atomics, linker control, and hardware/emulator tests verified |
 | SIMD and GPU | Missing | — | Portable SIMD plus SPIR-V/WebGPU/platform kernels and memory/effect rules verified |
 
@@ -196,7 +201,7 @@ is not the later Windows evidence linked above.
 | Java and Kotlin | Partial | Private generated JNI shim plus minSdk-28 Kotlin ownership wrapper: closed `RegisterNatives`, HandlerThread confinement, generation-tagged handles, fixed status/exception normalization, deterministic identical Cleaner action, explicit `consume()` ownership transfer, and green API-35 x86_64 APK/Instrumentation evidence in [run 31324497016, job 93272580149](https://github.com/wavect/semaprax/actions/runs/31324497016/job/93272580149) | JVM metadata import, public JNI generation, general Android lifecycle/ownership integration, bidirectional calls, and representative hosted conformance verified |
 | Swift and Apple frameworks | Partial | Private Swift 6 ownership wrapper, stable-thread static host, generation-tagged handles, target-bound device/simulator fixtures, and bounded XCFramework/installed-Simulator execution are green in [run 31333469714, job 93295293995](https://github.com/wavect/semaprax/actions/runs/31333469714/job/93295293995) | Public Swift/Objective-C bindings, async/result/ownership breadth, framework metadata import, distributable XCFramework output, and representative tests verified |
 | JavaScript and TypeScript | Missing | — | Declaration import, promise/error/typed-array/callback/resource mapping, browser/Node hosts, and component transpilation verified |
-| WIT and WebAssembly Components | Partial | Deterministic private `SPXWIT01` WIT/schema/JavaScript bundle with digest KAT, mutation closure, snapshot-only hostile-object normalization, lossless UTF-8/exact status bounds, and Node execution; standalone component v1 fixture; checked component v2 composition of exact generated scalar Wasm plus frozen runtime with read-only digests, independent/pinned-upstream validation, rehashed hostile closure, and authenticated Node `evaluate()` success/trap evidence | Compose the WIT result/status mapping with checked v2 and execute through a maintained engine-native Component Model runtime; import/export breadth, resources, futures/streams, versions, capabilities, and multi-language composition verified |
+| WIT and WebAssembly Components | Partial | Deterministic private `SPXWIT01` WIT/schema/JavaScript bundle with digest KAT, mutation closure, snapshot-only hostile-object normalization, lossless UTF-8/exact status bounds, and Node execution; standalone component v1; checked component v2; and private Portable Result Component v3 with exact `result<s64, status>` composition, independent/upstream validation, typed local Wasmtime outcomes, zero imports/empty linker/no WASI, and a standalone locked Rust 1.97.1/Wasmtime dependency graph isolated from the compiler MSRV graph. Hosted Wasmtime is configured and pending | Source-language `Result`/`Option`, general imports/exports, records/resources, futures/streams, versions, capabilities, browser and multi-engine conformance, multi-language composition, public API, and `SPX-B104` admission verified |
 | OpenAPI, Protobuf/gRPC, GraphQL, and SQL | Missing | — | Deterministic schema import/generation, compatibility/migration rules, and live conformance fixtures verified |
 
 ## Application platforms

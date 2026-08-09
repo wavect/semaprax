@@ -116,13 +116,26 @@ build_once() {
     SOURCE_DATE_EPOCH=1 ZERO_AR_DATE=1 \
     CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER="$clang_tool" \
     RUSTFLAGS="--remap-path-prefix=$target=/semaprax-private-desktop-target -C link-arg=--ld-path=$ld_tool" \
-    CARGO_TARGET_DIR="$target" cargo run --quiet --offline --locked \
+  CARGO_TARGET_DIR="$target" cargo run --quiet --offline --locked \
     -p semaprax-native-host --features unstable-desktop-app-harness \
     --bin private-desktop-macho-uuid -- \
     "$target/release/private-desktop-v3-app" "$build/SemapraxPrivate"
+}
+
+package_once() {
+  label=$1
+  build="$scratch/$label"
+  package_root="$scratch/package-$label"
+  app="$package_root/SemapraxPrivate.app"
+  mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
+  cp platform-tests/desktop-native/Info.plist "$app/Contents/Info.plist"
+  cp "$build/SemapraxPrivate" "$app/Contents/MacOS/SemapraxPrivate"
+  cp "$build/SemapraxPrivateProvider.dylib" "$app/Contents/Resources/SemapraxPrivateProvider.dylib"
+  cp "$build/SemapraxPrivateProvider.spxnabi3" "$app/Contents/Resources/SemapraxPrivateProvider.spxnabi3"
+  chmod 755 "$app/Contents/MacOS/SemapraxPrivate"
   codesign --force --sign - --timestamp=none \
-    --identifier "$readonly_app_signature_id" "$build/SemapraxPrivate"
-  codesign --verify --strict "$build/SemapraxPrivate"
+    --identifier "$readonly_app_signature_id" "$app"
+  codesign --verify --strict "$app"
 }
 
 cd "$repo"
@@ -136,13 +149,28 @@ for artifact in provider.c SemapraxPrivateProvider.spxnabi3 SemapraxPrivateProvi
   fi
 done
 
+package_once first
+package_once second
+first_app="$scratch/package-first/SemapraxPrivate.app"
+second_app="$scratch/package-second/SemapraxPrivate.app"
+first_inventory=$(find "$first_app" -mindepth 1 -print | sed "s#^$first_app/##" | LC_ALL=C sort)
+second_inventory=$(find "$second_app" -mindepth 1 -print | sed "s#^$second_app/##" | LC_ALL=C sort)
+if [ "$first_inventory" != "$second_inventory" ]; then
+  echo "independently signed private desktop package inventories differ" >&2
+  exit 1
+fi
+for relative in $(find "$first_app" -type f -print | sed "s#^$first_app/##" | LC_ALL=C sort); do
+  if ! cmp -s "$first_app/$relative" "$second_app/$relative"; then
+    echo "independently signed private desktop package file is not reproducible: $relative" >&2
+    shasum -a 256 "$first_app/$relative" "$second_app/$relative" >&2
+    exit 1
+  fi
+done
+
+mkdir -p "$output"
+cp -R "$first_app" "$output/SemapraxPrivate.app"
 app="$output/SemapraxPrivate.app"
-mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
-cp platform-tests/desktop-native/Info.plist "$app/Contents/Info.plist"
-cp "$scratch/first/SemapraxPrivate" "$app/Contents/MacOS/SemapraxPrivate"
-cp "$scratch/first/SemapraxPrivateProvider.dylib" "$app/Contents/Resources/SemapraxPrivateProvider.dylib"
-cp "$scratch/first/SemapraxPrivateProvider.spxnabi3" "$app/Contents/Resources/SemapraxPrivateProvider.spxnabi3"
-chmod 755 "$app/Contents/MacOS/SemapraxPrivate"
+codesign --verify --strict "$app"
 
 plutil -lint "$app/Contents/Info.plist" >/dev/null
 if [ "$(plutil -extract CFBundlePackageType raw -o - "$app/Contents/Info.plist")" != 'APPL' ] ||
@@ -153,7 +181,6 @@ fi
 
 executable="$app/Contents/MacOS/SemapraxPrivate"
 provider="$app/Contents/Resources/SemapraxPrivateProvider.dylib"
-codesign --verify --strict "$executable"
 for binary in "$executable" "$provider"; do
   if [ -L "$binary" ] || ! file "$binary" | grep -F 'Mach-O 64-bit' | grep -F 'arm64' >/dev/null; then
     echo "private desktop artifact is not an arm64 64-bit Mach-O: $binary" >&2
@@ -238,7 +265,9 @@ Contents/MacOS
 Contents/MacOS/SemapraxPrivate
 Contents/Resources
 Contents/Resources/SemapraxPrivateProvider.dylib
-Contents/Resources/SemapraxPrivateProvider.spxnabi3'
+Contents/Resources/SemapraxPrivateProvider.spxnabi3
+Contents/_CodeSignature
+Contents/_CodeSignature/CodeResources'
 if [ "$actual_inventory" != "$expected_inventory" ] || find "$app" -type l -print | grep . >/dev/null; then
   echo "private desktop macOS package inventory changed or contains a symbolic link" >&2
   printf '%s\n' "$actual_inventory" >&2

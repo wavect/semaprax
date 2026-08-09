@@ -452,6 +452,15 @@ pub(super) fn derive_ios_static_for_target(
     )
 }
 
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+pub(super) fn derive_dynamic_for_target(
+    program: &ResolvedProgram,
+    function_id: &DeclarationId,
+    target: &str,
+) -> Result<NativeCallableV3Descriptor, Diagnostic> {
+    derive_for_target(program, function_id, target, LINKAGE_DYNAMIC_IMAGE)
+}
+
 fn canonical_signature(
     projected: &[NativeAdapterParameterProjection],
     projected_result: &NativeAdapterResultProjection,

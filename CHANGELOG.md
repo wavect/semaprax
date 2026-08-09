@@ -4,6 +4,16 @@ All notable changes to SEMAPRAX are documented here.
 
 ## 0.2.0 — 2026-08-07
 
+- Added a mandatory private Android Emulator runtime gate. A hidden closed
+  selector emits exact arm64 and x86_64-emulator dynamic descriptors
+  and Bionic/ELF-guarded strict-C providers; the unpublished host now compiles
+  for Android and connects the real dynamic loader to the unchanged receipt
+  ledger. The pinned NDK/API-35 lane compiles both architectures and is
+  configured to execute `token.discard-two` at O0/O2 in an x86_64 emulator
+  with exact finalizers and zero measured Rust allocation across the
+  irreversible interval. Runtime evidence is not counted until that hosted
+  job is green. JNI/Kotlin, APK/AAR, lifecycle/UI, device, general-corpus,
+  public-admission, and `SPX-B104` claims remain closed.
 - Added a mandatory private arm64 iOS Simulator runtime gate for one exact
   `token.discard-two` callable-v3 provider. The closed emitter produces the
   target-specific descriptor and strict-C provider; CI links it with the

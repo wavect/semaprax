@@ -335,6 +335,27 @@ pub(super) enum IosProviderPhysicalTarget {
     MacCatalystX86_64,
 }
 
+/// Closed physical Android target selector for private dynamically loaded
+/// callable-v3 fixtures. The role names identify the evidence lanes; the
+/// authenticated physical tags remain architecture/OS/environment/object
+/// identities and never depend on the host that generates the fixture.
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum AndroidProviderPhysicalTarget {
+    Arm64,
+    EmulatorX86_64,
+}
+
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+impl AndroidProviderPhysicalTarget {
+    pub(super) const fn canonical_tag(self) -> &'static str {
+        match self {
+            Self::Arm64 => "aarch64-android-android-elf-ptr64-little-callable-v3",
+            Self::EmulatorX86_64 => "x86_64-android-android-elf-ptr64-little-callable-v3",
+        }
+    }
+}
+
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
 impl IosProviderPhysicalTarget {
     pub(super) const fn canonical_tag(self) -> &'static str {
@@ -381,6 +402,31 @@ pub(super) fn ios_provider_target_guards(target: IosProviderPhysicalTarget) -> S
         operating_system,
         environment: "defined(__APPLE__) && !defined(_WIN32)",
         object_format: "defined(__MACH__) && !defined(__ELF__)",
+        pointer_width: "UINTPTR_MAX == UINT64_MAX",
+        endian: ProviderEndianGuard::Little,
+    })
+}
+
+/// Emit the exact C preprocessor proof paired with one private Android
+/// dynamic-image descriptor. API 21 is the first 64-bit Android API level and
+/// is treated as a minimum compatibility floor, not as part of the target tag.
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+pub(super) fn android_provider_target_guards(target: AndroidProviderPhysicalTarget) -> String {
+    let architecture = match target {
+        AndroidProviderPhysicalTarget::Arm64 => {
+            "(defined(__aarch64__) || defined(__arm64__)) && !defined(__x86_64__) && !defined(__i386__) && !defined(__arm__)"
+        }
+        AndroidProviderPhysicalTarget::EmulatorX86_64 => {
+            "defined(__x86_64__) && !defined(__aarch64__) && !defined(__arm64__) && !defined(__arm__) && !defined(__i386__)"
+        }
+    };
+    render_provider_target_guards(ProviderTargetGuardSpec {
+        includes: "",
+        architecture,
+        operating_system:
+            "defined(__linux__) && defined(__ANDROID__) && !defined(__APPLE__) && !defined(_WIN32)",
+        environment: "defined(__ANDROID__) && defined(__BIONIC__) && !defined(__GLIBC__) && defined(__ANDROID_API__) && (__ANDROID_API__ >= 21)",
+        object_format: "defined(__ELF__) && !defined(__MACH__) && !defined(_WIN32)",
         pointer_width: "UINTPTR_MAX == UINT64_MAX",
         endian: ProviderEndianGuard::Little,
     })
@@ -996,6 +1042,167 @@ mod tests {
             format!("{:x}", hasher.finalize()),
             "84eb82f6f26f3026fe94ee6c712a4e7add346ea8041b177a7dbd4adebe96d9b4"
         );
+    }
+
+    #[test]
+    fn android_dynamic_target_guards_are_closed_distinct_and_stable() {
+        let targets = [
+            AndroidProviderPhysicalTarget::Arm64,
+            AndroidProviderPhysicalTarget::EmulatorX86_64,
+        ];
+        let guards = targets.map(android_provider_target_guards);
+        for (index, guard) in guards.iter().enumerate() {
+            assert!(guard.contains("defined(__linux__)"));
+            assert!(guard.contains("defined(__ANDROID__)"));
+            assert!(guard.contains("defined(__BIONIC__)"));
+            assert!(guard.contains("!defined(__GLIBC__)"));
+            assert!(guard.contains("defined(__ANDROID_API__)"));
+            assert!(guard.contains("(__ANDROID_API__ >= 21)"));
+            assert!(guard.contains("defined(__ELF__)"));
+            assert!(guard.contains("!defined(__APPLE__)"));
+            assert!(guard.contains("!defined(_WIN32)"));
+            assert!(guard.contains("UINTPTR_MAX == UINT64_MAX"));
+            assert!(guards[index + 1..].iter().all(|other| other != guard));
+        }
+        assert!(guards[0].contains("defined(__aarch64__) || defined(__arm64__)"));
+        assert!(guards[0].contains("!defined(__x86_64__)"));
+        assert!(guards[1].contains("defined(__x86_64__)"));
+        assert!(guards[1].contains("!defined(__aarch64__)"));
+
+        let mut hasher = Sha256::new();
+        for (target, guard) in targets.into_iter().zip(guards) {
+            hasher.update((target.canonical_tag().len() as u64).to_be_bytes());
+            hasher.update(target.canonical_tag().as_bytes());
+            hasher.update((guard.len() as u64).to_be_bytes());
+            hasher.update(guard.as_bytes());
+        }
+        assert_eq!(
+            format!("{:x}", hasher.finalize()),
+            "dddb21eec3f3d0fc048cd5c000c2e427a15102db3a8d96634c2651016b86926a"
+        );
+    }
+
+    #[test]
+    fn android_guards_reject_wrong_architecture_platform_api_and_object_format() {
+        if Command::new("clang").arg("--version").output().is_err() {
+            return;
+        }
+        fn preprocess(
+            guard: &str,
+            architecture: AndroidProviderPhysicalTarget,
+            overrides: &[&str],
+            directory: &std::path::Path,
+        ) -> (bool, String) {
+            fs::write(
+                directory.join("stdint.h"),
+                "#define UINT32_MAX 4294967295U\n\
+                 #define UINT64_MAX 18446744073709551615ULL\n\
+                 #define UINTPTR_MAX UINT64_MAX\n\
+                 #define __ORDER_LITTLE_ENDIAN__ 1234\n\
+                 #define __ORDER_BIG_ENDIAN__ 4321\n\
+                 #define __BYTE_ORDER__ __ORDER_LITTLE_ENDIAN__\n",
+            )
+            .unwrap();
+            fs::write(
+                directory.join("guard.c"),
+                format!("#include <stdint.h>\n{guard}\nint semaprax_guard_probe;\n"),
+            )
+            .unwrap();
+            let mut command = Command::new("clang");
+            command.args([
+                "-E",
+                "-nostdinc",
+                "-D__linux__=1",
+                "-D__ANDROID__=1",
+                "-D__BIONIC__=1",
+                "-D__ANDROID_API__=21",
+                "-D__ELF__=1",
+                "-U__GLIBC__",
+                "-U__APPLE__",
+                "-U__MACH__",
+                "-U_WIN32",
+                "-U_WIN64",
+                "-U_MSC_VER",
+                "-U__MINGW32__",
+                "-U__MINGW64__",
+                "-U__i386__",
+                "-U__arm__",
+            ]);
+            match architecture {
+                AndroidProviderPhysicalTarget::Arm64 => {
+                    command.args(["-D__aarch64__=1", "-D__arm64__=1", "-U__x86_64__"]);
+                }
+                AndroidProviderPhysicalTarget::EmulatorX86_64 => {
+                    command.args(["-D__x86_64__=1", "-U__aarch64__", "-U__arm64__"]);
+                }
+            }
+            command
+                .args(overrides)
+                .arg("-I")
+                .arg(directory)
+                .arg(directory.join("guard.c"));
+            let output = command.output().unwrap();
+            (
+                output.status.success(),
+                String::from_utf8_lossy(&output.stderr).into_owned(),
+            )
+        }
+
+        let directory = fixture_directory();
+        let arm = android_provider_target_guards(AndroidProviderPhysicalTarget::Arm64);
+        let x86 = android_provider_target_guards(AndroidProviderPhysicalTarget::EmulatorX86_64);
+        let arm_ok = preprocess(
+            &arm,
+            AndroidProviderPhysicalTarget::Arm64,
+            &[],
+            directory.path(),
+        );
+        assert!(arm_ok.0, "{}", arm_ok.1);
+        let x86_ok = preprocess(
+            &x86,
+            AndroidProviderPhysicalTarget::EmulatorX86_64,
+            &[],
+            directory.path(),
+        );
+        assert!(x86_ok.0, "{}", x86_ok.1);
+        assert!(
+            !preprocess(
+                &arm,
+                AndroidProviderPhysicalTarget::EmulatorX86_64,
+                &[],
+                directory.path(),
+            )
+            .0
+        );
+        assert!(
+            !preprocess(
+                &x86,
+                AndroidProviderPhysicalTarget::Arm64,
+                &[],
+                directory.path(),
+            )
+            .0
+        );
+        for rejected in [
+            &["-U__ANDROID__"][..],
+            &["-U__BIONIC__"][..],
+            &["-D__GLIBC__=1"][..],
+            &["-U__ANDROID_API__"][..],
+            &["-U__ANDROID_API__", "-D__ANDROID_API__=20"][..],
+            &["-U__ELF__"][..],
+            &["-D__APPLE__=1"][..],
+            &["-D_WIN32=1"][..],
+        ] {
+            assert!(
+                !preprocess(
+                    &x86,
+                    AndroidProviderPhysicalTarget::EmulatorX86_64,
+                    rejected,
+                    directory.path(),
+                )
+                .0
+            );
+        }
     }
 
     #[test]

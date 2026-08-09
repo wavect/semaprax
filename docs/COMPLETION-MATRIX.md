@@ -66,7 +66,8 @@ this is not independent host acceptance of the trace-path DFA certificate, and
 resealed witness/digest mutations are rejected. The ordinary machine-code
 emitter is build-target-bound with no public/general cross-target configuration;
 a hidden closed selector emits complete target-bound iOS evidence providers for
-five enumerated targets. Graph-derived private
+five enumerated targets and closed arm64/x86_64 Android dynamic providers with
+exact Bionic/ELF guards. Graph-derived private
 providers now execute all 14 authoritative normal scenarios through exact
 dynamic-image admission and the receipt ledger at `-O0`/`-O2`. That joint path
 proves exact descriptor/instance binding, pre-settle copied-evidence validation,
@@ -86,9 +87,15 @@ ledger at `-O0`/`-O2`; [run 31318280135, job
 93257002836](https://github.com/wavect/semaprax/actions/runs/31318280135/job/93257002836)
 proved that bounded path. The standalone-process slice does not prove device or app
 lifecycle execution, the remaining corpus on iOS, exhaustive crash/fatal-
-allocator failure injection, representative Android execution, quiescence,
+allocator failure injection, hosted Android execution, quiescence,
 malicious-code containment, physical-finalizer generality, or public admission;
 `SPX-B104` remains closed.
+The mandatory Android job is configured to compile the loader/host and exact
+providers for x86_64 and arm64, then run one x86_64 `token.discard-two`
+dynamic provider through the same receipt ledger at O0/O2 in an API-35
+emulator. It remains pending rather than completion evidence until hosted
+green, and it does not satisfy the Android application row's
+JNI/Kotlin/APK/lifecycle/UI gate.
 The hidden linear phase model now starts from the sole authenticated
 post-`CallCommit` state and exercises exact `SettlementDecisionCommit`,
 provider-candidate, model-`ReceiptCommitted`, and absorbing `Quarantined`

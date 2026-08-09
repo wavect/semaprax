@@ -25,9 +25,12 @@ future `execute`/`settle` entry points, exact descriptor capacities, and a
 dynamic-image or iOS-static linkage role. The ordinary machine-code emitter
 derives the physical target from the compiler's own build target and exposes no
 public/general cross-target configuration; a hidden closed selector emits
-complete target-bound evidence providers for five enumerated iOS targets.
-Android runtime evidence is absent; the bounded arm64-Simulator and Windows
-dynamic runtime paths are green. It is a new contract: v1, v2,
+complete target-bound evidence providers for five enumerated iOS targets and
+two Android targets. Android descriptors retain dynamic profile 1 and their C
+guards prove exact architecture, Android/Bionic, ELF, 64-bit pointers, and
+little endian. The pinned x86_64 Android Emulator job is configured but not
+yet hosted evidence; the bounded arm64-Simulator and Windows dynamic paths are
+green. It is a new contract: v1, v2,
 settlement-proof v1, and v3 are
 mutually incompatible and there is no negotiation or fallback.
 

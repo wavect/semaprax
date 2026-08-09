@@ -14,6 +14,8 @@ fn private_callable_v3_physical_ci_evidence_is_mandatory() {
     .expect("read the private callable-v3 joint integration");
     let ios_simulator = fs::read_to_string(root.join("scripts/ios-simulator-v3.sh"))
         .expect("read the private callable-v3 iOS Simulator gate");
+    let android_emulator = fs::read_to_string(root.join("scripts/android-emulator-v3.sh"))
+        .expect("read the private callable-v3 Android Emulator gate");
 
     for required in [
         "Require Windows callable-v2 and private callable-v3 physical evidence",
@@ -39,6 +41,16 @@ fn private_callable_v3_physical_ci_evidence_is_mandatory() {
         "host_tree=\"$(cargo tree --locked -p semaprax-native-host --target \"$target\" -e normal)\"",
         "if grep -q libloading <<<\"$loader_tree\" || grep -q libloading <<<\"$host_tree\"",
         "iOS static loader/host target unexpectedly resolved libloading",
+        "Private Android dynamic loader + host runtime",
+        "Enable Android emulator hardware acceleration",
+        "Run generated callable-v3 through the x86_64 Android Emulator",
+        "ReactiveCircus/android-emulator-runner@0a638108440efd5c7f980e6ba145dbcdd8f32009 # v2.37.0",
+        "targets: x86_64-linux-android,aarch64-linux-android",
+        "api-level: 35",
+        "target: default",
+        "arch: x86_64",
+        "ndk: 27.2.12479018",
+        "script: scripts/android-emulator-v3.sh",
     ] {
         assert!(
             workflow.contains(required),
@@ -70,6 +82,32 @@ fn private_callable_v3_physical_ci_evidence_is_mandatory() {
         assert!(
             ios_simulator.contains(required),
             "iOS Simulator gate lost mandatory physical evidence: {required}"
+        );
+    }
+    for required in [
+        "set -euo pipefail",
+        "android_ndk_version=\"27.2.12479018\"",
+        "android_api_level=\"35\"",
+        "android_minimum_api=\"28\"",
+        "--features unstable-android-emulator-harness",
+        "--bin private-android-emulator-v3-fixture",
+        "x86_64-linux-android",
+        "aarch64-linux-android",
+        "arm64_provider_source",
+        "libsemaprax_android_v3_arm64.so",
+        "grep -F 'AArch64'",
+        "libloading v0.8.9",
+        "--lib --crate-type staticlib",
+        "-fPIC -shared",
+        "llvm-readelf",
+        "adb shell getprop ro.product.cpu.abi",
+        "adb shell realpath",
+        "SEMAPRAX_ANDROID_V3_MARKER",
+        "SEMAPRAX_ANDROID_EMULATOR_V3_OK O$optimization target=x86_64-android finalizers=1:13,0:11 publication=no-owned allocations=0",
+    ] {
+        assert!(
+            android_emulator.contains(required),
+            "Android Emulator gate lost mandatory physical evidence: {required}"
         );
     }
 }

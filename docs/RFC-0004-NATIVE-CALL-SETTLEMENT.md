@@ -48,12 +48,18 @@ run it through static registration and authenticated receipt commit at
 `-O0`/`-O2`; [run 31318280135, job
 93257002836](https://github.com/wavect/semaprax/actions/runs/31318280135/job/93257002836)
 proved that exact path. There is no iOS device/app lifecycle or general-corpus execution,
-representative mobile execution, general physical-finalizer authority, or
-public callable-v3 compiler surface. Callable
-v2 has an independent public
+general mobile application execution, general physical-finalizer authority, or
+public callable-v3 compiler surface. Callable v2 has an independent public
 build-only bundle surface plus a feature-gated execution experiment; ordinary
 native resource execution still fails with `SPX-B104`, and
 the model plus this document satisfy no physical-runtime completion gate.
+
+A separate mandatory Android job now has closed arm64/x86_64 dynamic
+descriptors and Bionic/ELF provider guards, Android host compilation, pinned
+NDK output inspection for both architectures, and one x86_64 Emulator
+`token.discard-two` O0/O2 receipt path configured. It remains unobserved rather
+than runtime evidence until the hosted job is green. It does not add JNI/Kotlin,
+APK/AAR, lifecycle/UI, device, general-corpus, or public authority.
 
 The key rule is:
 
@@ -594,15 +600,16 @@ host-only receipt transcript. A private desktop dynamic loader, receipt
 authority, fixed-capacity atomic ledger/facade, and one all-14-scenario joint
 provider/loader/host path are implemented. The
 emitter derives only its compiler build target in ordinary use and has no
-general cross-target configuration; the closed evidence-only iOS selector can
-derive one exact provider for each enumerated static target.
-Windows dynamic runtime is green in hosted run 31313341303; representative
-Android/iOS runtime evidence is absent, and iOS device, simulator, and Mac
-Catalyst/macabi targets remain distinct. The private
+general cross-target configuration; closed evidence-only selectors derive one
+exact provider for each enumerated iOS static and Android dynamic target.
+Windows dynamic runtime is green in hosted run 31313341303 and the bounded iOS
+Simulator path is green in run 31318280135. The Android Emulator path is
+configured but not yet hosted evidence; iOS device, simulator, and Mac
+Catalyst/macabi target identities remain distinct. The private
 `SPXNPRF1` proof format is versioned separately and cannot be executed or loaded.
 It does not implement
 imports or finalizers, aggregates, callbacks, async, concurrency, fork recovery,
-hot reload, signed code, code-provenance authentication, Android/iOS hosts,
+hot reload, signed code, code-provenance authentication, Android/iOS app hosts,
 WebAssembly Components, or ecosystem adapters. It does not turn quarantine into
 successful cleanup and does not recover from interruption inside a finalizer.
 

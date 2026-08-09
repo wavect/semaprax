@@ -159,6 +159,41 @@ struct ResolvedProviderV3Plan {
     terminal_checkpoint: u32,
 }
 
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum BoundProviderPhysicalTarget {
+    IosStatic(super::native_callable_provider::IosProviderPhysicalTarget),
+    AndroidDynamic(super::native_callable_provider::AndroidProviderPhysicalTarget),
+}
+
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+impl BoundProviderPhysicalTarget {
+    fn canonical_tag(self) -> &'static str {
+        match self {
+            Self::IosStatic(target) => target.canonical_tag(),
+            Self::AndroidDynamic(target) => target.canonical_tag(),
+        }
+    }
+
+    const fn linkage_profile(self) -> u32 {
+        match self {
+            Self::IosStatic(_) => 2,
+            Self::AndroidDynamic(_) => 1,
+        }
+    }
+
+    fn guards(self) -> String {
+        match self {
+            Self::IosStatic(target) => {
+                super::native_callable_provider::ios_provider_target_guards(target)
+            }
+            Self::AndroidDynamic(target) => {
+                super::native_callable_provider::android_provider_target_guards(target)
+            }
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct NativeCallableProviderV3Spec {
     descriptor: Vec<u8>,
@@ -181,7 +216,8 @@ pub(super) struct NativeCallableProviderV3Spec {
     parameters: Vec<ProviderV3Parameter>,
     plan: ResolvedProviderV3Plan,
     fault: ProviderV3FaultConfig,
-    ios_static_target: Option<super::native_callable_provider::IosProviderPhysicalTarget>,
+    #[cfg(any(test, feature = "unstable-native-host-internal"))]
+    bound_target: Option<BoundProviderPhysicalTarget>,
 }
 
 impl NativeCallableProviderV3Spec {
@@ -275,7 +311,8 @@ impl NativeCallableProviderV3Spec {
             parameters,
             plan,
             fault: ProviderV3FaultConfig::default(),
-            ios_static_target: None,
+            #[cfg(any(test, feature = "unstable-native-host-internal"))]
+            bound_target: None,
         })
     }
 
@@ -285,13 +322,43 @@ impl NativeCallableProviderV3Spec {
         plan: ProviderV3Plan,
         target: super::native_callable_provider::IosProviderPhysicalTarget,
     ) -> Result<Self, Diagnostic> {
-        if !descriptor_has_ios_static_target(&descriptor.bytes, target.canonical_tag())? {
+        Self::new_target_bound(
+            descriptor,
+            plan,
+            BoundProviderPhysicalTarget::IosStatic(target),
+        )
+    }
+
+    #[cfg(any(test, feature = "unstable-native-host-internal"))]
+    pub(super) fn new_android_dynamic(
+        descriptor: NativeCallableV3Descriptor,
+        plan: ProviderV3Plan,
+        target: super::native_callable_provider::AndroidProviderPhysicalTarget,
+    ) -> Result<Self, Diagnostic> {
+        Self::new_target_bound(
+            descriptor,
+            plan,
+            BoundProviderPhysicalTarget::AndroidDynamic(target),
+        )
+    }
+
+    #[cfg(any(test, feature = "unstable-native-host-internal"))]
+    fn new_target_bound(
+        descriptor: NativeCallableV3Descriptor,
+        plan: ProviderV3Plan,
+        target: BoundProviderPhysicalTarget,
+    ) -> Result<Self, Diagnostic> {
+        if !descriptor_has_target_and_profile(
+            &descriptor.bytes,
+            target.canonical_tag(),
+            target.linkage_profile(),
+        )? {
             return Err(provider_error(
-                "iOS static provider target guard does not match descriptor",
+                "target-bound provider target guard does not match descriptor",
             ));
         }
         let mut spec = Self::new(descriptor, plan)?;
-        spec.ios_static_target = Some(target);
+        spec.bound_target = Some(target);
         Ok(spec)
     }
 
@@ -467,11 +534,14 @@ fn emit_prelude(
     spec: &NativeCallableProviderV3Spec,
 ) -> Result<(), Diagnostic> {
     output.push_str("/* semaprax.native-callable-provider.v3; private; SPX-B104 closed */\n#include <stdbool.h>\n#include <stddef.h>\n#include <stdint.h>\n#include <string.h>\n");
-    if let Some(target) = spec.ios_static_target {
-        output.push_str(&super::native_callable_provider::ios_provider_target_guards(target));
+    #[cfg(any(test, feature = "unstable-native-host-internal"))]
+    if let Some(target) = spec.bound_target {
+        output.push_str(&target.guards());
     } else {
         output.push_str(&super::native_callable_provider::provider_target_guards()?);
     }
+    #[cfg(not(any(test, feature = "unstable-native-host-internal")))]
+    output.push_str(&super::native_callable_provider::provider_target_guards()?);
     output.push_str("#if defined(__cplusplus)\n#define SPX_V3_STATIC_ASSERT(c,m) static_assert((c),m)\nextern \"C\" {\n#else\n#define SPX_V3_STATIC_ASSERT(c,m) _Static_assert((c),m)\n#endif\n#if defined(_WIN32)\n#define SPX_V3_API __declspec(dllexport)\n#define SPX_V3_CALL __cdecl\n#elif defined(__GNUC__) || defined(__clang__)\n#define SPX_V3_API __attribute__((visibility(\"default\")))\n#define SPX_V3_CALL\n#else\n#define SPX_V3_API\n#define SPX_V3_CALL\n#endif\nSPX_V3_STATIC_ASSERT(sizeof(uint32_t)==4,\"u32\");\nSPX_V3_STATIC_ASSERT(sizeof(uint64_t)==8,\"u64\");\n");
     for (name, value) in [
         ("SPX_V3_REQUEST_BYTES", spec.request_bytes),
@@ -1488,9 +1558,10 @@ fn validate_plan(
 }
 
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
-fn descriptor_has_ios_static_target(
+fn descriptor_has_target_and_profile(
     bytes: &[u8],
     expected_target: &str,
+    expected_profile: u32,
 ) -> Result<bool, Diagnostic> {
     if bytes.get(..8) != Some(b"SPXNABI3") || read_u32(bytes, 12)? != HEADER_BYTES {
         return Ok(false);
@@ -1509,7 +1580,7 @@ fn descriptor_has_ios_static_target(
     }
     Ok(
         bytes.get(target_start..target_end) == Some(expected_target.as_bytes())
-            && read_u32(bytes, target_end)? == 2,
+            && read_u32(bytes, target_end)? == expected_profile,
     )
 }
 
@@ -2048,6 +2119,78 @@ mod tests {
                 }));
             emitted.push((descriptor.bytes, source));
         }
+    }
+
+    #[test]
+    fn android_dynamic_descriptors_and_provider_guards_are_exactly_paired() {
+        use super::super::native_callable_provider::AndroidProviderPhysicalTarget;
+
+        let corpus = build_owned_resource_corpus_v1().unwrap();
+        let function = DeclarationId::new("token.discard-two");
+        let pairs = [
+            AndroidProviderPhysicalTarget::Arm64,
+            AndroidProviderPhysicalTarget::EmulatorX86_64,
+        ];
+        let plan = ProviderV3Plan::ScalarDiscard {
+            scalar_result: 0,
+            finalizer_order: vec![1, 0],
+            completed_checkpoints: vec![2, 3],
+            semantic_ordinals: vec![1, 2, 3, 4, 5],
+        };
+        let mut emitted = Vec::new();
+        for (index, target) in pairs.into_iter().enumerate() {
+            let descriptor = native_callable_abi_v3::derive_dynamic_for_target(
+                &corpus.program,
+                &function,
+                target.canonical_tag(),
+            )
+            .unwrap();
+            let wrong_target = pairs[(index + 1) % pairs.len()];
+            let mismatch = NativeCallableProviderV3Spec::new_android_dynamic(
+                descriptor.clone(),
+                plan.clone(),
+                wrong_target,
+            )
+            .unwrap_err();
+            assert_eq!(mismatch.code, "SPX-I107");
+            assert!(mismatch
+                .message
+                .contains("target guard does not match descriptor"));
+
+            let spec = NativeCallableProviderV3Spec::new_android_dynamic(
+                descriptor.clone(),
+                plan.clone(),
+                target,
+            )
+            .unwrap();
+            let source = emit(&spec).unwrap().source;
+            assert!(source.contains(
+                &super::super::native_callable_provider::android_provider_target_guards(target)
+            ));
+            assert!(source.contains(&descriptor.getter_symbol));
+            assert!(source.contains(&descriptor.execute_symbol));
+            assert!(source.contains(&descriptor.settle_symbol));
+            assert!(emitted
+                .iter()
+                .all(|(bytes, prior_source): &(Vec<u8>, String)| {
+                    bytes != &descriptor.bytes && prior_source != &source
+                }));
+            emitted.push((descriptor.bytes, source));
+        }
+
+        let ios_descriptor = native_callable_abi_v3::derive_ios_static_for_target(
+            &corpus.program,
+            &function,
+            super::super::native_callable_provider::IosProviderPhysicalTarget::DeviceArm64
+                .canonical_tag(),
+        )
+        .unwrap();
+        assert!(NativeCallableProviderV3Spec::new_android_dynamic(
+            ios_descriptor,
+            plan,
+            AndroidProviderPhysicalTarget::Arm64,
+        )
+        .is_err());
     }
 
     fn graph_spec(

@@ -142,8 +142,10 @@ proved that exact Simulator path.
 It is one bounded Simulator process, not device execution, Apple app lifecycle,
 UIKit/Swift or XCFramework integration, general mobile support, or public
 admission. It is also not exhaustive process-crash or fatal-allocator evidence,
-representative Android execution, quiescence, or containment of malicious
-native code. `SPX-B104` stays closed.
+quiescence, or containment of malicious native code. A separate pinned Android
+gate now has target-bound Bionic/ELF providers, dynamic-loader/host composition,
+and x86_64 Emulator execution configured; it is not counted as runtime evidence
+until the hosted job passes. `SPX-B104` stays closed.
 
 Not implemented yet: public native resource execution/admission,
 general-shape native/reference/Wasm trace conformance, the general Wasm resource ABI,
@@ -182,7 +184,7 @@ that run was also green.
 The generated callable corpus and hardened dependency-collision fixture are
 confirmed on Windows in [run 31257545008, job
 93103151756](https://github.com/wavect/semaprax/actions/runs/31257545008/job/93103151756).
-Representative Android/iOS device or simulator execution and public
+Android hosted execution, iOS device/app execution, and public
 execution/admission remain outstanding. `SPX-B104` therefore remains unchanged.
 
 [RFC 0004](docs/RFC-0004-NATIVE-CALL-SETTLEMENT.md) now records the proposed
@@ -205,8 +207,10 @@ former provisional identities and freeze new private v3 known answers.
 The ordinary emitter is bound to its compiler build target and has no public or
 general machine-code cross-target configuration; a closed hidden selector emits
 complete target-bound iOS evidence providers for five enumerated targets.
-Windows dynamic runtime evidence is green. The bounded arm64-Simulator path is
-green in hosted run 31318280135; Android runtime remains absent. The private
+It also emits closed arm64 and x86_64-emulator Android dynamic providers
+with exact Bionic/ELF guards. Windows dynamic runtime evidence is green and the
+bounded arm64-Simulator path is green in hosted run 31318280135; the new Android
+Emulator job is configured but remains unobserved at this revision. The private
 physical tranche now has graph-derived
 providers for all 14 normal corpus scenarios running through the generated-
 provider → desktop-loader → receipt-ledger path at `-O0`/`-O2`. That joint

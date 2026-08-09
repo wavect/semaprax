@@ -527,6 +527,34 @@ impl PrivateNativeCallableV3IosTarget {
     }
 }
 
+/// Closed cross-target selector used only by unpublished Android dynamic-host
+/// evidence. The target is authenticated in descriptor bytes and paired with
+/// exact C preprocessor guards; it grants no loader or call authority.
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+#[doc(hidden)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PrivateNativeCallableV3AndroidTarget {
+    Arm64,
+    X86_64,
+}
+
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+impl PrivateNativeCallableV3AndroidTarget {
+    fn canonical_tag(self) -> &'static str {
+        match self {
+            Self::Arm64 => "aarch64-android-android-elf-ptr64-little-callable-v3",
+            Self::X86_64 => "x86_64-android-android-elf-ptr64-little-callable-v3",
+        }
+    }
+
+    fn provider_target(self) -> native_callable_provider::AndroidProviderPhysicalTarget {
+        match self {
+            Self::Arm64 => native_callable_provider::AndroidProviderPhysicalTarget::Arm64,
+            Self::X86_64 => native_callable_provider::AndroidProviderPhysicalTarget::EmulatorX86_64,
+        }
+    }
+}
+
 /// Derive one exact iOS-static descriptor for private registration evidence.
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
 #[doc(hidden)]
@@ -541,6 +569,19 @@ pub fn emit_private_native_callable_v3_ios_descriptor(
         target.canonical_tag(),
     )
     .map(NativeCallableV3DescriptorArtifact)
+}
+
+/// Derive one exact Android dynamic-image descriptor for private admission
+/// evidence without opening or invoking an image.
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+#[doc(hidden)]
+pub fn emit_private_native_callable_v3_android_descriptor(
+    program: &ResolvedProgram,
+    function_id: &DeclarationId,
+    target: PrivateNativeCallableV3AndroidTarget,
+) -> Result<NativeCallableV3DescriptorArtifact, Diagnostic> {
+    native_callable_abi_v3::derive_dynamic_for_target(program, function_id, target.canonical_tag())
+        .map(NativeCallableV3DescriptorArtifact)
 }
 
 /// Closed fixture selector for the first compiler/provider/loader/host v3
@@ -652,6 +693,32 @@ pub fn emit_private_native_callable_v3_ios_fixture(
     )?;
     let plan = private_native_callable_v3_plan(fixture);
     let spec = native_callable_provider_v3::NativeCallableProviderV3Spec::new_ios_static(
+        descriptor.clone(),
+        plan,
+        target.provider_target(),
+    )?;
+    let provider = native_callable_provider_v3::emit(&spec)?;
+    Ok(private_native_callable_v3_artifact(descriptor, provider))
+}
+
+/// Emit one exact dynamically loaded Android callable-v3 fixture. Descriptor
+/// target/linkage bytes and C physical-target guards are selected by the same
+/// closed enum and cross-checked before source emission.
+#[cfg(any(test, feature = "unstable-native-host-internal"))]
+#[doc(hidden)]
+pub fn emit_private_native_callable_v3_android_fixture(
+    program: &ResolvedProgram,
+    function_id: &DeclarationId,
+    fixture: PrivateNativeCallableV3Fixture,
+    target: PrivateNativeCallableV3AndroidTarget,
+) -> Result<PrivateNativeCallableV3Artifact, Diagnostic> {
+    let descriptor = native_callable_abi_v3::derive_dynamic_for_target(
+        program,
+        function_id,
+        target.canonical_tag(),
+    )?;
+    let plan = private_native_callable_v3_plan(fixture);
+    let spec = native_callable_provider_v3::NativeCallableProviderV3Spec::new_android_dynamic(
         descriptor.clone(),
         plan,
         target.provider_target(),
@@ -2064,6 +2131,52 @@ fn main() -> i64 { 0 }
                 .iter()
                 .all(|prior: &Vec<u8>| prior.as_slice() != artifact.descriptor()));
             artifacts.push(artifact.descriptor().to_vec());
+        }
+    }
+
+    #[test]
+    fn private_android_dynamic_fixture_facade_binds_descriptor_source_and_symbols() {
+        let corpus = crate::owned_resource_corpus::build_owned_resource_corpus_v1().unwrap();
+        let function = DeclarationId::new("token.discard-two");
+        let targets = [
+            PrivateNativeCallableV3AndroidTarget::Arm64,
+            PrivateNativeCallableV3AndroidTarget::X86_64,
+        ];
+        let mut artifacts = Vec::new();
+        for target in targets {
+            let first = emit_private_native_callable_v3_android_fixture(
+                &corpus.program,
+                &function,
+                PrivateNativeCallableV3Fixture::ScalarDiscardTwo,
+                target,
+            )
+            .unwrap();
+            let second = emit_private_native_callable_v3_android_fixture(
+                &corpus.program,
+                &function,
+                PrivateNativeCallableV3Fixture::ScalarDiscardTwo,
+                target,
+            )
+            .unwrap();
+            let metadata = emit_private_native_callable_v3_android_descriptor(
+                &corpus.program,
+                &function,
+                target,
+            )
+            .unwrap();
+            assert_eq!(first.descriptor(), metadata.bytes());
+            assert_eq!(first.getter_symbol(), metadata.getter_symbol());
+            assert_eq!(first.execute_symbol(), metadata.execute_symbol());
+            assert_eq!(first.settle_symbol(), metadata.settle_symbol());
+            assert_eq!(first.descriptor(), second.descriptor());
+            assert_eq!(first.source(), second.source());
+            assert!(first.source().contains(first.getter_symbol()));
+            assert!(first.source().contains(first.execute_symbol()));
+            assert!(first.source().contains(first.settle_symbol()));
+            assert!(artifacts
+                .iter()
+                .all(|prior: &Vec<u8>| prior.as_slice() != first.descriptor()));
+            artifacts.push(first.descriptor().to_vec());
         }
     }
 

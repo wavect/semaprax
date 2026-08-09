@@ -10,6 +10,7 @@ repository = "https://github.com/wavect/semaprax"
 
 [features]
 default = []
+unstable-android-emulator-harness = []
 unstable-ios-simulator-harness = []
 
 [dependencies]
@@ -17,12 +18,17 @@ semaprax = { path = "../..", version = "0.2.0", features = ["unstable-native-hos
 hmac = "=0.12.1"
 sha2 = "=0.10.9"
 
-[target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows", target_os = "ios"))'.dependencies]
+[target.'cfg(any(target_os = "linux", target_os = "android", target_os = "macos", target_os = "windows", target_os = "ios"))'.dependencies]
 getrandom = "=0.4.3"
 semaprax-native-loader = { path = "../semaprax-native-loader", version = "0.1.0" }
 
 [lints.rust]
 unsafe_op_in_unsafe_fn = "deny"
+
+[[bin]]
+name = "private-android-emulator-v3-fixture"
+path = "src/bin/private_android_emulator_v3_fixture.rs"
+required-features = ["unstable-android-emulator-harness"]
 
 [[bin]]
 name = "private-ios-simulator-v3-fixture"

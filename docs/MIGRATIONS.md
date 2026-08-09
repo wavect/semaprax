@@ -327,9 +327,12 @@ and model `ReceiptCommitted` must not be treated as public ledger
 
 The ordinary emitter derives its target from the compiler build and exposes no
 public or general machine-code cross-target configuration. A hidden selector
-emits complete target-bound evidence providers for five closed iOS targets.
-Android runtime evidence remains absent; the bounded arm64-Simulator and Windows
-dynamic runtime paths are green. Future iOS device, simulator, and Mac Catalyst/macabi
+emits complete target-bound evidence providers for five closed iOS targets and
+two closed Android targets. Android dynamic guards now bind architecture,
+Android/Bionic, ELF, pointer width, and byte order; the x86_64 Emulator gate is
+configured but not counted until hosted execution is green. The bounded
+arm64-Simulator and Windows dynamic runtime paths are green. Future iOS device,
+simulator, and Mac Catalyst/macabi
 profiles must retain distinct target strings even though they share static
 registration. No migration may infer physical finalizer success from
 `Finalizing`; interruption remains uncertain and quarantined without retry.

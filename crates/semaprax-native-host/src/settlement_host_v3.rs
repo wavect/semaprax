@@ -397,6 +397,7 @@ impl PrivateSettlementHostV3 {
         // physical buffers has completed before this irreversible boundary.
         #[cfg(any(
             test,
+            all(feature = "unstable-android-emulator-harness", target_os = "android"),
             all(
                 feature = "unstable-ios-simulator-harness",
                 target_os = "ios",
@@ -517,6 +518,7 @@ impl PrivateSettlementHostV3 {
         })?;
         #[cfg(any(
             test,
+            all(feature = "unstable-android-emulator-harness", target_os = "android"),
             all(
                 feature = "unstable-ios-simulator-harness",
                 target_os = "ios",
@@ -572,6 +574,7 @@ impl PrivateSettlementHostV3 {
 
         #[cfg(any(
             test,
+            all(feature = "unstable-android-emulator-harness", target_os = "android"),
             all(
                 feature = "unstable-ios-simulator-harness",
                 target_os = "ios",
@@ -653,6 +656,7 @@ impl PrivateSettlementHostV3 {
         })?;
         #[cfg(any(
             test,
+            all(feature = "unstable-android-emulator-harness", target_os = "android"),
             all(
                 feature = "unstable-ios-simulator-harness",
                 target_os = "ios",

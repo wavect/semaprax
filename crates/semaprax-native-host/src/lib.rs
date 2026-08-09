@@ -1,5 +1,6 @@
 #![cfg(any(
     target_os = "linux",
+    target_os = "android",
     target_os = "macos",
     target_os = "windows",
     target_os = "ios"
@@ -11,18 +12,31 @@
 //! ownership ledger. It deliberately exposes no callable symbol or raw loader
 //! handle, and therefore does not weaken the compiler's `SPX-B104` gate.
 //! On iOS, only the private callable-v3 static-lease composition is compiled;
-//! the desktop dynamic host API is absent and no public admission path opens.
+//! the dynamic host API is absent and no public admission path opens. Android
+//! uses that same private dynamic composition only for a bounded emulator gate;
+//! it exposes no JNI, Kotlin, application, or lifecycle boundary.
 
-#[cfg(any(test, feature = "unstable-ios-simulator-harness"))]
+#[cfg(any(
+    test,
+    feature = "unstable-android-emulator-harness",
+    feature = "unstable-ios-simulator-harness"
+))]
 #[cfg_attr(
-    all(
-        feature = "unstable-ios-simulator-harness",
-        not(test),
-        not(all(target_os = "ios", target_abi = "sim"))
+    any(
+        all(
+            feature = "unstable-android-emulator-harness",
+            not(test),
+            not(target_os = "android")
+        ),
+        all(
+            feature = "unstable-ios-simulator-harness",
+            not(test),
+            not(all(target_os = "ios", target_abi = "sim"))
+        )
     ),
     allow(
         dead_code,
-        reason = "allocation probe is type-checked before Simulator linking"
+        reason = "allocation probe is type-checked before mobile target linking"
     )
 )]
 mod postcommit_allocation_probe {
@@ -107,6 +121,7 @@ mod postcommit_allocation_probe {
 
 #[cfg(any(
     test,
+    all(feature = "unstable-android-emulator-harness", target_os = "android"),
     all(
         feature = "unstable-ios-simulator-harness",
         target_os = "ios",
@@ -116,6 +131,9 @@ mod postcommit_allocation_probe {
 #[global_allocator]
 static POSTCOMMIT_COUNTING_ALLOCATOR: postcommit_allocation_probe::CountingAllocator =
     postcommit_allocation_probe::CountingAllocator;
+
+#[cfg(feature = "unstable-android-emulator-harness")]
+mod android_emulator_harness;
 
 #[cfg(not(target_os = "ios"))]
 mod authority;

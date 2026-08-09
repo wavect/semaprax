@@ -40,6 +40,12 @@ pinned Visual Studio/MSVC/SDK versions, canonical versioned roots with every
 path component proven non-reparse, exact archive names, and COFF archive
 signatures; ambient `LIB` is replaced and the provider links only explicit
 absolute archives under `/nodefaultlib`.
+The macOS Rust link disables path-dependent linker signing, canonicalizes the
+single `LC_UUID`, then applies a timestamp-free ad-hoc signature with the fixed
+identifier `semaprax.private.desktop.v1`. Both independently built signed
+executables must still compare byte-for-byte, and `codesign --verify --strict`
+must accept the packaged copy. This uses no distribution identity or signing
+credential.
 
 The scripts require strict C11 warnings, `-O2`, exact native Mach-O or PE/COFF
 architecture and file kinds, closed load/import and export inventories, no
@@ -48,7 +54,7 @@ build-local load paths, an exact package inventory, and the effective Windows
 descriptor-v3 admission, two authenticated owned receipt commits,
 refreshed-owner reuse, exact replay, and an unpoisoned host. They reject an
 existing or linked caller-selected output directory and perform no network
-access or signing.
+access. macOS uses only the deterministic ad-hoc signature above.
 
 CI source locks require both platform commands to remain in the ordinary
 macOS/Windows matrix. Hosted runtime evidence counts per platform only after
@@ -60,7 +66,7 @@ This v1 engine package is a headless application-process and packaging
 milestone. It does not itself provide a window or lifecycle UI; the separate
 private [native desktop UI v1](DESKTOP-NATIVE-UI-V1.md) consumes it without
 expanding the engine API. Neither tranche provides SwiftUI, WinUI, menus,
-installers, code signing/notarization, Store packaging, auto-update, sandbox
-entitlements, general SEMAPRAX application syntax, or public native resource
+installers, distribution code signing/notarization, Store packaging,
+auto-update, sandbox entitlements, general SEMAPRAX application syntax, or public native resource
 admission. The engine covers one direct-trivial owned identity only;
 `SPX-B104` remains closed.

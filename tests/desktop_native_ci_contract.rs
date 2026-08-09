@@ -67,6 +67,7 @@ fn private_desktop_packages_are_feature_gated_native_and_source_locked() {
             "macos.sdk.build=25F70",
             "macos.deployment-target=11.0",
             "macos.uuid=sha256-zeroed-lc-uuid-prefix16",
+            "macos.signature=adhoc-fixed-id-semaprax.private.desktop.v1",
             "windows.clang.version=20.1.8",
             "windows.vswhere.version=3.1.7.39155",
             "windows.visual-studio.version=18.8.12023.21",
@@ -120,6 +121,12 @@ fn macos_source_lock_rejects_hostile_gate_removal() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let source = read(root, "platform-tests/desktop-native/package-macos.sh");
     macos_contract(&source).expect("checked-in macOS packaging contract");
+    let signing_block = "  codesign --force --sign - --timestamp=none \\\n    --identifier \"$readonly_app_signature_id\" \"$build/SemapraxPrivate\"\n  codesign --verify --strict \"$build/SemapraxPrivate\"\n";
+    let signing_after_comparison = source.replacen(signing_block, "", 1).replacen(
+        "done\n\napp=",
+        &format!("done\n{signing_block}\napp="),
+        1,
+    );
 
     for hostile in [
         source.replace(" --offline", ""),
@@ -136,6 +143,14 @@ fn macos_source_lock_rejects_hostile_gate_removal() {
         source.replace("-C link-arg=-Wl,-reproducible", ""),
         source.replace("-Wl,-reproducible", "-Wl,-fatal_warnings"),
         source.replace("-C link-arg=-Wl,-x", ""),
+        source.replace("-C link-arg=-Wl,-no_adhoc_codesign", ""),
+        source.replace("codesign --force --sign - --timestamp=none", "codesign -v"),
+        source.replace(
+            "--identifier \"$readonly_app_signature_id\"",
+            "--identifier removed.identifier",
+        ),
+        source.replace("codesign --verify --strict", "codesign -v"),
+        signing_after_comparison,
         source.replace("cmd LC_UUID", "cmd LC_SOURCE_VERSION"),
         source.replace("cmd LC_BUILD_VERSION", "cmd LC_SOURCE_VERSION"),
         source.replace("otool -hv", "otool -l"),
@@ -224,11 +239,14 @@ fn macos_contract(source: &str) -> Result<(), String> {
             "readonly_sdk_build='25F70'",
             "readonly_deployment_target='11.0'",
             "readonly_ld_build_version='1267.0'",
+            "readonly_app_signature_id='semaprax.private.desktop.v1'",
             PROVIDER_ID,
             "output directory must not already exist or be a symbolic link",
             "cargo run --quiet --offline --locked",
-            "cargo build --quiet --offline --locked --release",
+            "cargo rustc --quiet --offline --locked --release",
             "--bin private-desktop-macho-uuid",
+            "codesign --force --sign - --timestamp=none",
+            "codesign --verify --strict",
             "xcrun --sdk macosx --find clang",
             "xcrun --sdk macosx --find ld",
             "xcrun --sdk macosx --show-sdk-path",
@@ -238,6 +256,7 @@ fn macos_contract(source: &str) -> Result<(), String> {
             "SOURCE_DATE_EPOCH=1 ZERO_AR_DATE=1",
             "RUSTFLAGS=\"--remap-path-prefix=$target=/semaprax-private-desktop-target -C link-arg=--ld-path=$ld_tool\"",
             "RUSTFLAGS=\"--remap-path-prefix=$target=/semaprax-private-desktop-target -C codegen-units=1 -C link-arg=--ld-path=$ld_tool -C link-arg=-Wl,-reproducible -C link-arg=-Wl,-x\"",
+            "--bin private-desktop-v3-app -- -C link-arg=-Wl,-no_adhoc_codesign",
             "-isysroot \"$sdk_path\"",
             "-mmacosx-version-min=\"$readonly_deployment_target\"",
             "--ld-path=\"$ld_tool\"",
@@ -271,7 +290,30 @@ fn macos_contract(source: &str) -> Result<(), String> {
             "SEMAPRAX_DESKTOP_V3_OK platform=macos",
         ],
     )?;
-    require_ordered(source, &["build_once first", "build_once second", "cmp -s"])
+    let build_once = source
+        .split_once("build_once() {")
+        .and_then(|(_, suffix)| suffix.split_once("\n}\n\ncd \"$repo\""))
+        .map(|(body, _)| body)
+        .ok_or_else(|| "macOS: missing exact build_once function boundary".to_owned())?;
+    require_ordered(
+        build_once,
+        &[
+            "--bin private-desktop-v3-app -- -C link-arg=-Wl,-no_adhoc_codesign",
+            "--bin private-desktop-macho-uuid -- \\",
+            "codesign --force --sign - --timestamp=none \\",
+            "--identifier \"$readonly_app_signature_id\" \"$build/SemapraxPrivate\"",
+            "codesign --verify --strict \"$build/SemapraxPrivate\"",
+        ],
+    )?;
+    require_ordered(
+        source,
+        &[
+            "build_once first",
+            "build_once second",
+            "cmp -s",
+            "codesign --verify --strict \"$executable\"",
+        ],
+    )
 }
 
 fn windows_contract(source: &str) -> Result<(), String> {

@@ -10,6 +10,7 @@ readonly_sdk_build='25F70'
 readonly_deployment_target='11.0'
 readonly_ld_build_version='1267.0'
 readonly_provider_id='@rpath/SemapraxPrivateProvider.dylib'
+readonly_app_signature_id='semaprax.private.desktop.v1'
 
 if [ "$(uname -s)" != "Darwin" ] || [ "$(uname -m)" != "arm64" ]; then
   echo "private desktop macOS packaging requires arm64 macOS" >&2
@@ -19,7 +20,7 @@ if [ "$#" -ne 1 ]; then
   echo "usage: package-macos.sh ABSOLUTE_NEW_OUTPUT_DIRECTORY" >&2
   exit 2
 fi
-for command in cargo cmp file find mktemp nm otool plutil rustc sed shasum sort xcrun; do
+for command in cargo codesign cmp file find mktemp nm otool plutil rustc sed shasum sort xcrun; do
   if ! command -v "$command" >/dev/null 2>&1; then
     echo "required private desktop packaging tool is unavailable: $command" >&2
     exit 2
@@ -108,9 +109,9 @@ build_once() {
     SOURCE_DATE_EPOCH=1 ZERO_AR_DATE=1 \
     CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER="$clang_tool" \
     RUSTFLAGS="--remap-path-prefix=$target=/semaprax-private-desktop-target -C codegen-units=1 -C link-arg=--ld-path=$ld_tool -C link-arg=-Wl,-reproducible -C link-arg=-Wl,-x" \
-    CARGO_TARGET_DIR="$target" cargo build --quiet --offline --locked --release \
+    CARGO_TARGET_DIR="$target" cargo rustc --quiet --offline --locked --release \
     -p semaprax-native-host --features unstable-desktop-app-harness \
-    --bin private-desktop-v3-app
+    --bin private-desktop-v3-app -- -C link-arg=-Wl,-no_adhoc_codesign
   SDKROOT="$sdk_path" MACOSX_DEPLOYMENT_TARGET="$readonly_deployment_target" \
     SOURCE_DATE_EPOCH=1 ZERO_AR_DATE=1 \
     CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER="$clang_tool" \
@@ -119,6 +120,9 @@ build_once() {
     -p semaprax-native-host --features unstable-desktop-app-harness \
     --bin private-desktop-macho-uuid -- \
     "$target/release/private-desktop-v3-app" "$build/SemapraxPrivate"
+  codesign --force --sign - --timestamp=none \
+    --identifier "$readonly_app_signature_id" "$build/SemapraxPrivate"
+  codesign --verify --strict "$build/SemapraxPrivate"
 }
 
 cd "$repo"
@@ -149,6 +153,7 @@ fi
 
 executable="$app/Contents/MacOS/SemapraxPrivate"
 provider="$app/Contents/Resources/SemapraxPrivateProvider.dylib"
+codesign --verify --strict "$executable"
 for binary in "$executable" "$provider"; do
   if [ -L "$binary" ] || ! file "$binary" | grep -F 'Mach-O 64-bit' | grep -F 'arm64' >/dev/null; then
     echo "private desktop artifact is not an arm64 64-bit Mach-O: $binary" >&2

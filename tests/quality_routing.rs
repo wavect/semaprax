@@ -370,6 +370,7 @@ fn assert_plan(repository: &Repository, profile: &str, expected: &str) {
     );
 }
 
+#[cfg(unix)]
 fn root() -> &'static Path {
     Path::new(env!("CARGO_MANIFEST_DIR"))
 }

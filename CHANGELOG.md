@@ -16,7 +16,9 @@ All notable changes to SEMAPRAX are documented here.
   mutation closure, and local generated-core Node execution. The isolated
   Wasmtime 47.0.3 runner and CI source locks cover ten typed outcomes,
   same/fresh-instance calls, zero imports, empty linker/no WASI, and
-  out-of-band fuel failure. Hosted v4 runtime evidence is pending. This does
+  out-of-band fuel failure. The v4 runner is hosted green in [run 31356536123,
+  job 93357169796](https://github.com/wavect/semaprax/actions/runs/31356536123/job/93357169796).
+  This does
   not alter v1-v3 artifacts, public component/aggregate ABI, resources,
   imports/capabilities, general `Result`/`Option`/`?`, callable/FFI signatures,
   or `SPX-B104`.

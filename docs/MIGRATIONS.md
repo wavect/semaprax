@@ -576,7 +576,8 @@ prelude/layout bindings, component type graph, canonical lift, export name,
 status mapping, or core/component topology requires another private profile
 version and new independent known answers. V4 adds no compatibility fallback
 from or to v1-v3 and creates no public component, aggregate, callable, FFI, or
-resource ABI. Its hosted Wasmtime evidence is pending.
+resource ABI. Its exact Wasmtime execution is hosted green in [run 31356536123,
+job 93357169796](https://github.com/wavect/semaprax/actions/runs/31356536123/job/93357169796).
 
 ## Revision token FNV-1a64 to SHA-256
 

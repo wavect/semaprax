@@ -191,15 +191,17 @@ evidence, zero-import empty-linker/no-WASI runtime, and isolated locked
 dependency/MSRV graph are implemented. The current prelude-bound KAT migration
 and standalone runner are hosted green in [run 31347109201, job
 93330959212](https://github.com/wavect/semaprax/actions/runs/31347109201/job/93330959212).
-Private Source-Result Component v4 now locally connects one exact effect-free
+Private Source-Result Component v4 now connects one exact effect-free
 source closure using `Result<i64, bool>`, postfix `?`, and
 `Result<bool, bool>` to the distinct WIT 0.2 type
 `result<result<bool, bool>, status>`. Deterministic source/core/profile/
 component/layout KATs, exact admission, independent/upstream validation,
 hostile mutation and cross-version closure, generated-core execution, and CI
-source locks are green. Its isolated typed Wasmtime matrix is configured with
+source locks are green. Its isolated typed Wasmtime matrix executes with
 zero imports, empty linker/no WASI, repeated/fresh instances, and out-of-band
-fuel failure; hosted v4 execution is pending. General source
+fuel failure and is hosted green in [run 31356536123, job
+93357169796](https://github.com/wavect/semaprax/actions/runs/31356536123/job/93357169796).
+General source
 `Result`/`Option`/`?` mapping, records/resources/imports, async/capabilities,
 callable/FFI aggregate signatures, multi-engine/browser execution, public
 component API/ABI, and `SPX-B104` remain later gates.

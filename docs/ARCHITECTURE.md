@@ -424,8 +424,10 @@ LEB/every-byte/truncation/trailing and rehashed cross-profile/type/lift
 rejection, plus maintained upstream validation. Local core execution covers
 language values, residual short-circuiting, status precedence, poison, and
 re-entry. The isolated Wasmtime runner is extended with generated v4 bindings
-and ten exact same-instance/fresh-instance outcomes; its hosted execution is
-pending and therefore is not yet hosted evidence. V1-v3 remain unchanged.
+and ten exact same-instance/fresh-instance outcomes; its execution is hosted
+green in [run 31356536123, job
+93357169796](https://github.com/wavect/semaprax/actions/runs/31356536123/job/93357169796).
+V1-v3 remain unchanged.
 General source `Result`/`Option`/`?` mapping, user records/variants/resources,
 imports, async, capabilities, callable/FFI signatures, multi-engine/browser
 execution, public component API/ABI, and `SPX-B104` remain outside this trust

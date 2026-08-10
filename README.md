@@ -246,8 +246,10 @@ profile parsing, upstream Component validation, hostile mutation tests, and
 generated-core Node execution are green. The isolated Wasmtime runner is
 configured to cover both language-result arms and boolean payloads, residual
 short-circuiting, sticky arithmetic failure, pre/postconditions, re-entry,
-fresh instances, and out-of-band fuel failure; hosted v4 runtime evidence is
-pending. This remains **Partial** WIT evidence only: v4 admits exactly that
+fresh instances, and out-of-band fuel failure; that v4 runtime evidence is
+hosted green in [run 31356536123, job
+93357169796](https://github.com/wavect/semaprax/actions/runs/31356536123/job/93357169796).
+This remains **Partial** WIT evidence only: v4 admits exactly that
 private effect-free source closure. General `Result`/`Option` component
 mapping, records, resources, imports, async, capabilities, multi-engine/browser
 conformance, a public WIT surface, callable/FFI aggregate signatures, and any

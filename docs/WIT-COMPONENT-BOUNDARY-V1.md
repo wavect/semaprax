@@ -187,8 +187,9 @@ division by zero, and sticky first failure; false precondition; and false
 postcondition after both ordinary and residual paths. It repeats the matrix on
 one instance and fresh instances, requires zero imports and an empty linker,
 provides no WASI or callbacks, and keeps fuel exhaustion out of band. The
-source locks and compiler/component tests are green locally; hosted v4
-Wasmtime execution is pending and does not yet count as hosted evidence.
+source locks and compiler/component tests are green. The v4 Wasmtime execution
+is hosted green in [run 31356536123, job
+93357169796](https://github.com/wavect/semaprax/actions/runs/31356536123/job/93357169796).
 
 ## Nonclaims
 

@@ -23,16 +23,18 @@ struct SemanticPatch {
 
 const STAGING_ATTEMPTS: usize = 32;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+// Unix uses device/inode identity. Windows retains a `same_file::Handle` so
+// volume/file-index reuse cannot occur while a transaction is live. The
+// Windows key is intentionally a bounded identity: ReFS 128-bit file IDs and
+// hostile/non-unique 64-bit indices are outside this portable protocol's claim.
+#[derive(Debug, Eq, PartialEq)]
 struct FileIdentity {
     #[cfg(unix)]
     device: u64,
     #[cfg(unix)]
     inode: u64,
     #[cfg(windows)]
-    volume: u32,
-    #[cfg(windows)]
-    index: u64,
+    handle: same_file::Handle,
 }
 
 struct SourceSnapshot {
@@ -71,12 +73,11 @@ impl Drop for ProvisionalSiblingFile {
         if !self.cleanup {
             return;
         }
-        let Some(handle_identity) = self
-            .file
-            .as_ref()
-            .and_then(|file| file.metadata().ok())
-            .and_then(|metadata| platform_file_identity(&metadata).ok())
-        else {
+        let Some(handle_identity) = self.file.as_ref().and_then(|file| {
+            file.metadata()
+                .ok()
+                .and_then(|metadata| platform_handle_identity(file, &metadata).ok())
+        }) else {
             self.file.take();
             return;
         };
@@ -85,7 +86,7 @@ impl Drop for ProvisionalSiblingFile {
             return;
         };
         if regular_metadata(&metadata)
-            && platform_file_identity(&metadata).ok() == Some(handle_identity)
+            && platform_path_identity(&self.path, &metadata).ok() == Some(handle_identity)
         {
             let _ = std::fs::remove_file(&self.path);
         }
@@ -118,7 +119,7 @@ impl OwnedSiblingFile {
                 )]);
             }
         };
-        // Install cleanup ownership immediately after create_new. Exact identity
+        // Install cleanup ownership immediately after create_new. Held identity
         // replaces this short provisional guard as soon as handle metadata is
         // available; the containing directory is the documented portable trust
         // boundary for these path-based operations.
@@ -142,11 +143,22 @@ impl OwnedSiblingFile {
                 )]
             })?;
         validate_regular_metadata(&metadata, &provisional.path, description, diagnostic_code)?;
-        let identity = file_identity(&metadata, &provisional.path, description, diagnostic_code)?;
+        let identity = file_handle_identity(
+            provisional
+                .file
+                .as_ref()
+                .expect("new sibling file remains open"),
+            &metadata,
+            &provisional.path,
+            description,
+            diagnostic_code,
+        )?;
         let owned = provisional.into_owned(identity);
         let path_metadata = safe_symlink_metadata(&owned.path, description, diagnostic_code)?;
         validate_regular_metadata(&path_metadata, &owned.path, description, diagnostic_code)?;
-        if file_identity(&path_metadata, &owned.path, description, diagnostic_code)? != identity {
+        if file_identity(&path_metadata, &owned.path, description, diagnostic_code)?
+            != owned.identity
+        {
             return Err(vec![Diagnostic::io(
                 diagnostic_code,
                 format!(
@@ -191,6 +203,7 @@ impl OwnedSiblingFile {
 
     fn validate_contents(&mut self, expected: &[u8]) -> Result<(), Vec<Diagnostic>> {
         self.validate_path("semantic patch staging file", "SPX-I203")?;
+        let path = self.path.clone();
         let file = self.file_mut()?;
         file.seek(SeekFrom::Start(0)).map_err(|error| {
             vec![Diagnostic::io(
@@ -217,9 +230,10 @@ impl OwnedSiblingFile {
                 format!("cannot inspect semantic patch staging file: {error}"),
             )]
         })?;
-        if file_identity(
+        if file_handle_identity(
+            file,
             &metadata,
-            &self.path,
+            &path,
             "semantic patch staging file",
             "SPX-I203",
         )? != self.identity
@@ -248,7 +262,7 @@ impl OwnedSiblingFile {
         if !regular_metadata(&metadata) {
             return;
         }
-        let Ok(identity) = platform_file_identity(&metadata) else {
+        let Ok(identity) = platform_path_identity(&self.path, &metadata) else {
             return;
         };
         if identity == self.identity {
@@ -536,7 +550,13 @@ fn read_source_snapshot(path: &Path) -> Result<SourceSnapshot, Vec<Diagnostic>> 
         )]
     })?;
     validate_regular_metadata(&handle_metadata, path, "semantic patch source", "SPX-I201")?;
-    if file_identity(&handle_metadata, path, "semantic patch source", "SPX-I201")? != path_identity
+    if file_handle_identity(
+        &file,
+        &handle_metadata,
+        path,
+        "semantic patch source",
+        "SPX-I201",
+    )? != path_identity
     {
         return Err(source_changed_error());
     }
@@ -659,7 +679,7 @@ fn file_identity(
     description: &str,
     diagnostic_code: &'static str,
 ) -> Result<FileIdentity, Vec<Diagnostic>> {
-    platform_file_identity(metadata).map_err(|message| {
+    platform_path_identity(path, metadata).map_err(|message| {
         vec![Diagnostic::io(
             diagnostic_code,
             format!(
@@ -670,8 +690,26 @@ fn file_identity(
     })
 }
 
+fn file_handle_identity(
+    file: &File,
+    metadata: &Metadata,
+    path: &Path,
+    description: &str,
+    diagnostic_code: &'static str,
+) -> Result<FileIdentity, Vec<Diagnostic>> {
+    platform_handle_identity(file, metadata).map_err(|message| {
+        vec![Diagnostic::io(
+            diagnostic_code,
+            format!(
+                "cannot authenticate {description} {} handle identity: {message}",
+                path.display()
+            ),
+        )]
+    })
+}
+
 #[cfg(unix)]
-fn platform_file_identity(metadata: &Metadata) -> Result<FileIdentity, &'static str> {
+fn platform_path_identity(_path: &Path, metadata: &Metadata) -> Result<FileIdentity, String> {
     use std::os::unix::fs::MetadataExt;
     Ok(FileIdentity {
         device: metadata.dev(),
@@ -679,19 +717,49 @@ fn platform_file_identity(metadata: &Metadata) -> Result<FileIdentity, &'static 
     })
 }
 
+#[cfg(unix)]
+fn platform_handle_identity(_file: &File, metadata: &Metadata) -> Result<FileIdentity, String> {
+    platform_path_identity(Path::new("."), metadata)
+}
+
 #[cfg(windows)]
-fn platform_file_identity(metadata: &Metadata) -> Result<FileIdentity, &'static str> {
-    use std::os::windows::fs::MetadataExt;
-    let volume = metadata
-        .volume_serial_number()
-        .ok_or("volume serial number is unavailable")?;
-    let index = metadata.file_index().ok_or("file index is unavailable")?;
-    Ok(FileIdentity { volume, index })
+fn platform_path_identity(path: &Path, metadata: &Metadata) -> Result<FileIdentity, String> {
+    if !regular_metadata(metadata) {
+        return Err("path is not a regular non-reparse file".to_owned());
+    }
+    let first_file = File::open(path).map_err(|error| error.to_string())?;
+    let first = platform_handle_identity(&first_file, metadata)?;
+    let after_first = std::fs::symlink_metadata(path).map_err(|error| error.to_string())?;
+    if !regular_metadata(&after_first) {
+        return Err("path changed to a non-regular or reparse file".to_owned());
+    }
+    let second_file = File::open(path).map_err(|error| error.to_string())?;
+    let second = platform_handle_identity(&second_file, &after_first)?;
+    let after_second = std::fs::symlink_metadata(path).map_err(|error| error.to_string())?;
+    if !regular_metadata(&after_second) {
+        return Err("path changed to a non-regular or reparse file".to_owned());
+    }
+    if first != second {
+        return Err("path identity changed while it was opened".to_owned());
+    }
+    Ok(first)
+}
+
+#[cfg(windows)]
+fn platform_handle_identity(file: &File, _metadata: &Metadata) -> Result<FileIdentity, String> {
+    let clone = file.try_clone().map_err(|error| error.to_string())?;
+    let handle = same_file::Handle::from_file(clone).map_err(|error| error.to_string())?;
+    Ok(FileIdentity { handle })
 }
 
 #[cfg(not(any(unix, windows)))]
-fn platform_file_identity(_metadata: &Metadata) -> Result<FileIdentity, &'static str> {
-    Err("exact file identity is unsupported on this platform")
+fn platform_path_identity(_path: &Path, _metadata: &Metadata) -> Result<FileIdentity, String> {
+    Err("exact file identity is unsupported on this platform".to_owned())
+}
+
+#[cfg(not(any(unix, windows)))]
+fn platform_handle_identity(_file: &File, _metadata: &Metadata) -> Result<FileIdentity, String> {
+    Err("exact file identity is unsupported on this platform".to_owned())
 }
 
 fn source_changed_error() -> Vec<Diagnostic> {
@@ -1073,5 +1141,26 @@ fn main() -> i64
         assert_eq!(error[0].code, "SPX-I204");
         assert_eq!(std::fs::read_to_string(&source_path).unwrap(), SOURCE);
         assert_owned_artifacts_removed(&source_path);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_held_identity_matches_hardlinks_and_rejects_distinct_files() {
+        let (source_path, _) = fixture("windows-held-identity");
+        let source_file = File::open(&source_path).unwrap();
+        let source_metadata = source_file.metadata().unwrap();
+        let source_identity = platform_handle_identity(&source_file, &source_metadata).unwrap();
+
+        let hardlink_path = source_path.with_extension("hardlink.spx");
+        std::fs::hard_link(&source_path, &hardlink_path).unwrap();
+        let hardlink_metadata = std::fs::symlink_metadata(&hardlink_path).unwrap();
+        let hardlink_identity = platform_path_identity(&hardlink_path, &hardlink_metadata).unwrap();
+        assert_eq!(source_identity, hardlink_identity);
+
+        let distinct_path = source_path.with_extension("distinct.spx");
+        std::fs::write(&distinct_path, SOURCE).unwrap();
+        let distinct_metadata = std::fs::symlink_metadata(&distinct_path).unwrap();
+        let distinct_identity = platform_path_identity(&distinct_path, &distinct_metadata).unwrap();
+        assert_ne!(source_identity, distinct_identity);
     }
 }

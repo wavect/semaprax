@@ -273,3 +273,8 @@ KATs remain
 `081bcb20aca2e74f724f5bc0cd2cf03770a499e11aa090d92b59650209165544`.
 The Review report itself remains non-proof; only the separate Evidence v1
 capsule is the bounded proof carrier.
+
+The additive [Target Evidence v1](SEMANTIC-TARGET-EVIDENCE-V1.md) and
+[Semantic Patch Evidence v2](SEMANTIC-PATCH-EVIDENCE-V2.md) contracts do not
+change any Evidence v1 artifact, KAT, command, API, or nonclaim. V2 opts into a
+separate target-report binding; v1 remains target-execution-free and immutable.

@@ -193,7 +193,11 @@ not turn the derived digest into a proof artifact or widen repair/Impact scope.
 The separate [Semantic Patch Evidence v1](SEMANTIC-PATCH-EVIDENCE-V1.md)
 capsule may bind Review's digest of this exact shared identity-rebase object
 for the sole canonical Patch v3. The capsule, not Diagnostic Repair or the
-identity-rebase object, is the bounded proof carrier. Only the opt-in
+Review report, is the proof carrier. Additive [Target Evidence
+v1](SEMANTIC-TARGET-EVIDENCE-V1.md) and [Evidence
+v2](SEMANTIC-PATCH-EVIDENCE-V2.md) classify this v3 target artifact as exactly
+`change_proven` without widening repair, Impact, authority, or multi-file scope.
+The capsule, not the identity-rebase object, is the bounded proof carrier. Only the opt-in
 `patch-with-evidence` route requires exact replay before A0 staging; ordinary
 `patch`, Repair bytes/KATs, and every repair/Impact nonclaim remain unchanged.
 

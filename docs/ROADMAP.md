@@ -52,6 +52,19 @@ Status: implemented in this repository.
   and is not green evidence. Signatures/provenance, approval, target/test execution, general
   formal proofs, repository/multi-file scope, and reusable authorization remain
   open.
+- Semantic Target Evidence v1 reports exact compiler projections for one
+  patch: base/candidate Graph JSON, typed zero capability delta, production C11
+  source, and structurally validated Wasm core. Evidence v2 additively binds
+  that report into generation, verification, and lock-first A0 apply. Target
+  9/9, target units 4/4, Evidence-v2 8/8, library 439/439, full local gates,
+  and security are green. The exact
+  `fcdf3861d79faea27c526a8dc5105b92c6738213` matrix is hosted green in [run
+  31440359793](https://github.com/wavect/semaprax/actions/runs/31440359793),
+  including [Ubuntu job
+  93624123631](https://github.com/wavect/semaprax/actions/runs/31440359793/job/93624123631);
+  all 12 jobs passed. The artifacts execute no
+  target/project test, carry no authority, and change no status. Multi-file
+  transactions remain the next strategic architecture tranche.
 - Offline context economics with exact goldens and conservative quality routing.
 - Effects, module permits, and contract guards.
 - Machine-readable diagnostics.
@@ -621,6 +634,21 @@ all 12 jobs passed. The earlier `e04c2c9` run failed only the Rust 1.97 lint
 and is not green evidence. General formal proofs, signatures/provenance, approval, target/test or
 consumer-compatibility proof, repository/multi-file analysis, and comprehensive
 claims/capability/target verification remain roadmap work.
+
+Target Evidence v1 and Semantic Patch Evidence v2 are an additive bounded
+projection/evidence tranche, not the multi-file architecture tranche and not a
+0.2 exit-criterion claim. Their target report KATs are
+`b00f9a0a6757e6da6f7cf32771172da02c93615e5fce697c71a24fbf28e5e011`,
+`00c835772f189110c3cee85088ec34862c0f2cb0716ffe43b71675ec40fa22a2`, and
+`fdcd73f2e40123434243c89ab5e3839d77d349305f5f984aca865ffd671aa6e1`;
+Evidence-v2 KATs are frozen in
+[`SEMANTIC-PATCH-EVIDENCE-V2.md`](SEMANTIC-PATCH-EVIDENCE-V2.md). Local
+evidence is Target 9/9, target units 4/4, Evidence-v2 8/8, and library 439/439.
+The exact `fcdf3861d79faea27c526a8dc5105b92c6738213` matrix is hosted green in
+[run 31440359793](https://github.com/wavect/semaprax/actions/runs/31440359793),
+including [Ubuntu job
+93624123631](https://github.com/wavect/semaprax/actions/runs/31440359793/job/93624123631);
+all 12 jobs passed. The dashboard stays 38 Partial/18 Missing.
 
 - Versioned language, graph, package, and component specifications.
 - Reproducible native and component builds on supported targets.

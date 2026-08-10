@@ -229,7 +229,12 @@ change, repository index, multi-file transaction, or commit authority.
 The separate [Semantic Patch Evidence v1](SEMANTIC-PATCH-EVIDENCE-V1.md)
 capsule domain-digest-binds an independently rebuilt Review and carries the
 bounded proof artifact. This does not change any Review byte, KAT, schema,
-nonclaim, or public API: Review still exposes only read-only `review::preview`,
+API, or nonclaim. Additive [Semantic Patch Evidence
+v2](SEMANTIC-PATCH-EVIDENCE-V2.md) also binds an independently rebuilt
+[Target Evidence v1](SEMANTIC-TARGET-EVIDENCE-V1.md) report; Review itself
+still performs no target/test execution and is not a proof artifact. This does
+not change any Review nonclaim or public API: Review still exposes only
+read-only `review::preview`,
 has no `review::verify`, and its report itself remains non-proof. Evidence's
 opt-in apply authority comes from `patch-with-evidence`, not from Review.
 

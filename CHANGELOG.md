@@ -4,6 +4,21 @@ All notable changes to SEMAPRAX are documented here.
 
 ## 0.2.0 — 2026-08-07
 
+- Added [Semantic Target Evidence v1](docs/SEMANTIC-TARGET-EVIDENCE-V1.md) and
+  [Semantic Patch Evidence v2](docs/SEMANTIC-PATCH-EVIDENCE-V2.md).
+  `target-evidence` reports exact base/candidate Graph JSON, typed zero
+  capability delta, production C11 source, and structurally validated Wasm core
+  digests/lengths without executing a target or discovering tests. Additive
+  Evidence-v2 generation, verification, and lock-first A0 application bind
+  that report while preserving Evidence v1 and ordinary `patch`. Target is
+  9/9, target units 4/4, Evidence-v2 8/8, and library 439/439 locally. The exact
+  `fcdf3861d79faea27c526a8dc5105b92c6738213` matrix is hosted green in [run
+  31440359793](https://github.com/wavect/semaprax/actions/runs/31440359793),
+  including [Ubuntu job
+  93624123631](https://github.com/wavect/semaprax/actions/runs/31440359793/job/93624123631);
+  all 12 jobs passed. This changes none of the 38 Partial/18 Missing statuses,
+  grants no authority, and does not implement or replace multi-file work.
+
 - Added [Semantic Patch Evidence v1](docs/SEMANTIC-PATCH-EVIDENCE-V1.md).
   Fixed-arity `patch-evidence` and `verify-patch-evidence` commands emit and
   independently replay exact bounded capsules for Patch v1/v2 and the sole

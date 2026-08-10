@@ -221,6 +221,10 @@ still does not emit the seven review sections.
 The separate [Semantic Patch Evidence v1](SEMANTIC-PATCH-EVIDENCE-V1.md)
 capsule may bind Review's domain digest of that complete embedded Impact v1
 object. Impact itself remains byte-identical, v1/v2-only, read-only, and not a
+target projection. Additive [Evidence v2](SEMANTIC-PATCH-EVIDENCE-V2.md)
+retains that exact Impact binding and separately binds
+[Target Evidence v1](SEMANTIC-TARGET-EVIDENCE-V1.md); it does not widen Impact
+to Patch v3, targets, repositories, or multi-file analysis. Impact is not a
 proof carrier, verifier, authorization token, or apply/commit authority.
 
 ## Evidence

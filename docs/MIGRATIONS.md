@@ -205,6 +205,26 @@ including [Ubuntu job
 all 12 jobs passed. The earlier `e04c2c9` run failed only the Rust 1.97 lint
 and is not green evidence.
 
+## Evidence v1 to Target Evidence v1 and Patch Evidence v2
+
+No v1 artifact or command migrates implicitly. Existing Evidence v1 capsule
+and receipt bytes, KATs, APIs, and commands remain frozen. Consumers opt into
+`target-evidence` for `semaprax.semantic-target-evidence.v1`, or the suffixed
+`patch-evidence-v2`, `verify-patch-evidence-v2`, and
+`patch-with-evidence-v2` commands for the additive v2 schemas.
+
+Evidence v2 adds one independently rebuilt target-report binding and overlays
+Review only with exact zero `security_authority` delta and digest-based
+`target_artifact`; Patch v3 is `change_proven`. These are input reads and
+replay work, not authority. Reports/capsules contain no execution or project-
+test result. Multi-file migration remains future work and 38 Partial/18 Missing
+is unchanged. The exact `fcdf3861d79faea27c526a8dc5105b92c6738213`
+matrix is hosted green in [run
+31440359793](https://github.com/wavect/semaprax/actions/runs/31440359793),
+including [Ubuntu job
+93624123631](https://github.com/wavect/semaprax/actions/runs/31440359793/job/93624123631);
+all 12 jobs passed.
+
 ## Persistent identities are NUL-free
 
 Persistent semantic identities and logical import keys may not contain a literal NUL byte. Source validation reports the declaration-specific stable diagnostic before resolution or graph serialization; `\0` remains an unsupported source-string escape. Public consumers of transformed resolved HIR must likewise reject NUL in declaration IDs, types, expressions, places, call/record/field references, and attached cleanup inventory or plan metadata before code generation or serialization. Regenerate or rename any pre-alpha fixture that constructed such an identity directly.

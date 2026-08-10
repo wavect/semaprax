@@ -355,6 +355,21 @@ including [Ubuntu job
 all 12 jobs passed. The earlier `e04c2c9` run failed only the Rust 1.97 lint
 and is not green evidence.
 
+Semantic Target Evidence v1 and additive Patch Evidence v2 do not move another
+row or widen the existing Partial status. They bind exact base/candidate Graph,
+typed zero capability delta, production C11 source, and structurally validated
+Wasm core projections; Evidence v2 independently replays that report before
+the same lock-first A0 staging boundary. Target 9/9, target units 4/4,
+Evidence-v2 8/8, library 439/439, full local gates, and security are green. The
+exact `fcdf3861d79faea27c526a8dc5105b92c6738213` matrix is hosted green in [run
+31440359793](https://github.com/wavect/semaprax/actions/runs/31440359793),
+including [Ubuntu job
+93624123631](https://github.com/wavect/semaprax/actions/runs/31440359793/job/93624123631);
+all 12 jobs passed. Reports/capsules execute no target or project test,
+grant no authority, and prove neither safety nor compatibility. Repository and
+multi-file scope remains the next strategic tranche. Totals remain exactly 38
+Partial and 18 Missing.
+
 ## Language and safety
 
 | Requirement | Status | Current evidence | Completion gate |

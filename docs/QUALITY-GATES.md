@@ -241,6 +241,45 @@ contract. [Run 31318280135, job
 93257002836](https://github.com/wavect/semaprax/actions/runs/31318280135/job/93257002836)
 proved the separate arm64-Simulator provider/loader/host O0/O2 runtime contract.
 
+Semantic Target Evidence v1 requires exact report/nested order, Graph-v10-v14
+and Patch-v1-v3 admission, typed capability-fact order and zero delta, all
+digest domains, fixed-point accounting, parsed-AST bounds, source final checks,
+production C11/Wasm byte equality, pinned wasmparser structural validation,
+the three report KATs, and ordered nonclaims. Hosted integration must compile/
+run the exact candidate C at O0/O2 and run exact candidate Wasm through Node,
+while proving execution is absent from the report and grants no authority.
+
+Evidence v2 requires strict additive capsule/receipt parsing, exact Target
+Evidence binding, unchanged Review/Evidence-v1 bytes and KATs, v1/v2/v3 replay
+parity, v3 `target_artifact = change_proven`, hostile/confusion cases, lock-
+before-read, replay-before-stage, and unchanged A0/ordinary patch behavior.
+
+```sh
+cargo test --locked -p semaprax --all-features --test semantic_target_evidence_v1
+cargo test --locked -p semaprax --all-features --lib target_evidence::tests
+cargo test --locked -p semaprax --all-features --test semantic_patch_evidence_v2
+```
+
+Focused results are Target 9/9, Target units 4/4, and Evidence v2 8/8. Root
+library 439/439, full workspace/all-target/all-feature, release, host 11/11 and
+loader 26/26 doctests, rustdoc `-D warnings`, strict Clippy, formatting, diff,
+preservation, and security are locally green. The exact
+`fcdf3861d79faea27c526a8dc5105b92c6738213` matrix is hosted green in [run
+31440359793](https://github.com/wavect/semaprax/actions/runs/31440359793), with
+[dependency job
+93624123614](https://github.com/wavect/semaprax/actions/runs/31440359793/job/93624123614),
+[Ubuntu job
+93624123631](https://github.com/wavect/semaprax/actions/runs/31440359793/job/93624123631),
+[macOS job
+93624123633](https://github.com/wavect/semaprax/actions/runs/31440359793/job/93624123633),
+[Windows job
+93624123715](https://github.com/wavect/semaprax/actions/runs/31440359793/job/93624123715),
+[component job
+93624123698](https://github.com/wavect/semaprax/actions/runs/31440359793/job/93624123698),
+and [MSRV job
+93624123711](https://github.com/wavect/semaprax/actions/runs/31440359793/job/93624123711);
+all 12 jobs passed. The dashboard remains exactly 38 Partial/18 Missing.
+
 ## Evidence strength
 
 Semantic Patch v2 changes additionally require the exact grammar/schema

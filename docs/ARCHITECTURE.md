@@ -954,12 +954,44 @@ including [Ubuntu job
 all 12 jobs passed. The earlier `e04c2c9` run failed only the Rust 1.97 lint
 and is not green evidence.
 
-This is not a signature, MAC, authenticated provenance, theorem/SMT/general
-proof, human approval, target/test execution, Agent Context/repository
-analysis, multi-file transaction, external-consumer compatibility guarantee,
-or new Patch/Repair/Impact/Review, Graph/CleanupPlan, backend, or runtime
-semantic surface. Existing A0 collision, stale-lock, crash-left-lock,
-trusted-directory-window, durability, and platform-identity nonclaims remain.
+Evidence v1 is not a signature, MAC, authenticated provenance,
+theorem/SMT/general proof, human approval, target/test execution, Agent
+Context/repository analysis, multi-file transaction, external-consumer
+compatibility guarantee, or new Patch/Repair/Impact/Review,
+Graph/CleanupPlan, backend, or runtime semantic surface. Existing A0
+collision, stale-lock, crash-left-lock, trusted-directory-window, durability,
+and platform-identity nonclaims remain.
+
+## Semantic Target Evidence v1 and Patch Evidence v2
+
+`src/target_evidence.rs` owns the read-only
+`semaprax.semantic-target-evidence.v1` projection. It reuses bounded Review
+preflight, then renders exact base/candidate Graph JSON, a canonical typed
+capability manifest whose delta must be zero, production C11 source, and
+production Wasm core bytes structurally validated by pinned wasmparser 0.255.0.
+The public `target_evidence::preview` returns one canonical JSON line without
+LF; the fixed-arity CLI adds one LF. No target or project test is executed and
+the route never enters A0.
+
+Additive `patch_evidence::{generate_v2, verify_v2, apply_v2}` bind the exact
+Target report alongside unchanged Review v1 and complete Impact-v1 or
+identity-rebase support. Apply remains lock-first: bounded input reads and
+exact replay occur while holding the unchanged A0 lock and before staging. The
+capsule has no authority; A0 owns source/stage checks and commit. Exact wire,
+KATs, limits, and nonclaims are frozen in
+[`SEMANTIC-TARGET-EVIDENCE-V1.md`](SEMANTIC-TARGET-EVIDENCE-V1.md) and
+[`SEMANTIC-PATCH-EVIDENCE-V2.md`](SEMANTIC-PATCH-EVIDENCE-V2.md).
+
+Target is 9/9, target units 4/4, Evidence-v2 is 8/8, and library is 439/439.
+Full local gates and security are green. The exact
+`fcdf3861d79faea27c526a8dc5105b92c6738213` matrix is hosted green in [run
+31440359793](https://github.com/wavect/semaprax/actions/runs/31440359793),
+including [Ubuntu job
+93624123631](https://github.com/wavect/semaprax/actions/runs/31440359793/job/93624123631);
+all 12 jobs passed. Hosted C
+O0/O2 and Node/Wasm execution validates emitted artifacts only and is not a
+report fact or authority. This adds no multi-file transaction and changes no
+completion status.
 
 ## Transactions
 

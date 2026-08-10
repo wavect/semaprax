@@ -84,7 +84,11 @@ artifact, provenance authentication, or A0 authority.
 The separate [Semantic Patch Evidence v1](SEMANTIC-PATCH-EVIDENCE-V1.md)
 capsule binds that unchanged Review/Impact evidence and can be independently
 replayed. Only the opt-in `patch-with-evidence` route requires replay before
-A0 staging; ordinary `patch` and Patch v2 bytes, selectors, operation meaning,
+staging. Additive [Target Evidence v1](SEMANTIC-TARGET-EVIDENCE-V1.md) and
+[Evidence v2](SEMANTIC-PATCH-EVIDENCE-V2.md) bind compiler projections without
+adding Patch operations, target execution, authority, or multi-file scope.
+Only the evidence routes gate A0 staging; ordinary `patch` and Patch v2 bytes,
+selectors, operation meaning,
 and trusted patch-path nonclaim are unchanged. The capsule is neither
 authenticated provenance nor reusable commit authorization.
 

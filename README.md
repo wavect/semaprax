@@ -258,6 +258,21 @@ Implemented today:
   green evidence. Ordinary `patch` remains unchanged, and the capsule is not
   provenance, approval, target/test
   execution, general formal proof, commit authority, or a reusable token.
+- [Semantic Target Evidence v1](docs/SEMANTIC-TARGET-EVIDENCE-V1.md) adds a
+  read-only `target-evidence` projection over exact base/candidate Graph JSON,
+  a typed zero capability delta, production C11 source, and structurally
+  validated Wasm core bytes. [Semantic Patch Evidence
+  v2](docs/SEMANTIC-PATCH-EVIDENCE-V2.md) binds that report into additive
+  generation, exact-replay, and lock-first A0 commands while preserving every
+  Evidence v1 byte and command. Target is 9/9, target units 4/4, Evidence-v2
+  8/8, and library 439/439 locally. The exact
+  `fcdf3861d79faea27c526a8dc5105b92c6738213` matrix is hosted green in [run
+  31440359793](https://github.com/wavect/semaprax/actions/runs/31440359793),
+  including [Ubuntu job
+  93624123631](https://github.com/wavect/semaprax/actions/runs/31440359793/job/93624123631);
+  all 12 jobs passed. Reports and
+  capsules execute no target/project test, grant no authority, change no
+  completion status, and do not replace multi-file work.
 - Native AOT output through a readable C11 lowering and Clang.
 - Direct WebAssembly core output with a generated ES-module runtime, HTML entry point, capability manifest, checked arithmetic, and contract traps.
 - A deliberately narrow `semaprax.wasm-owned.v1` Core Wasm path for one direct

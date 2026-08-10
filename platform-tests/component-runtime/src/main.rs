@@ -1839,7 +1839,9 @@ fn prove_all_pair_swaps_reject_and_polarity_swaps_are_observable_v8(
 
     let mut canonical_anchor = Vec::new();
     for (index, ty) in [5_u8, 5, 6, 6].into_iter().enumerate() {
-        canonical_anchor.extend([0x00, 0x00, index as u8, 0x02, 0x00, 0x03, 0x00, ty]);
+        let index =
+            u8::try_from(index).map_err(|_| failure("v8 canonical function index exceeds u8"))?;
+        canonical_anchor.extend([0x00, 0x00, index, 0x02, 0x00, 0x03, 0x00, ty]);
     }
     let canonical_at = bytes
         .windows(canonical_anchor.len())

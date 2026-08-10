@@ -250,9 +250,9 @@ if [ "$actual_provider_images" != "$expected_provider_images" ]; then
 fi
 
 actual_provider_exports=$(nm -gjU "$provider" | LC_ALL=C sort -u)
-expected_provider_exports='_spx_2a22fa94332f89e89759814ac819ac1276e18c483c5f8ef7_settle_v3
-_spx_915894aca5e0f0a8cbb1b4f8303e2cb7338675acde2daf87_execute_v3
-_spx_c4fc772786c757489ff61579dd9fad5a831a3ff538ac2993_descriptor_v3'
+expected_provider_exports='_spx_91fcc6dc8d2360d0d2d82bdfd0ca0b858123bf94481701cb_settle_v3
+_spx_bc155186b4bee926b067131fcade912528466cf75acd8afc_descriptor_v3
+_spx_d72f6239e04d9f84af37553d6588219300c6dc73b1df6b21_execute_v3'
 if [ "$actual_provider_exports" != "$expected_provider_exports" ]; then
   echo "private desktop provider export allowlist changed" >&2
   printf '%s\n' "$actual_provider_exports" >&2

@@ -164,6 +164,10 @@ fn macos_source_lock_rejects_hostile_gate_removal() {
         ),
         source.replace("\"$load_commands\" | sed '1d'", "\"$load_commands\""),
         source.replace("nm -gjU", "nm"),
+        source.replace(
+            "_spx_91fcc6dc8d2360d0d2d82bdfd0ca0b858123bf94481701cb_settle_v3",
+            "_spx_forged_settle_v3",
+        ),
         source.replace("build_once second", ": second build removed"),
         source.replace("package_once second", ": second signed package removed"),
         source.replace("first_inventory=", "inventory_one="),
@@ -395,6 +399,7 @@ fn macos_contract(source: &str) -> Result<(), String> {
             "actual_provider_images",
             "nm -gjU",
             "actual_provider_exports",
+            "expected_provider_exports='_spx_91fcc6dc8d2360d0d2d82bdfd0ca0b858123bf94481701cb_settle_v3\n_spx_bc155186b4bee926b067131fcade912528466cf75acd8afc_descriptor_v3\n_spx_d72f6239e04d9f84af37553d6588219300c6dc73b1df6b21_execute_v3'",
             "actual_app_exports",
             "expected_inventory=",
             "find \"$app\" -type l",

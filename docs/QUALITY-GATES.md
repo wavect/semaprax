@@ -264,8 +264,11 @@ digest replay, preview/apply candidate-revision parity, all Graph v10-v14
 schema selections, high-cardinality deterministic closure, and preservation of
 Agent Context v1/v2 and Patch v1/v2 behavior. The local focused suites are
 12/12 integration and 4/4 internal across `tests/semantic_impact_v1.rs`,
-`impact::tests`, and `call_index::tests`; hosted full-matrix evidence remains
-pending.
+`impact::tests`, and `call_index::tests`. The exact `1b3731a` full hosted matrix
+is green in [run 31408654657 attempt
+2](https://github.com/wavect/semaprax/actions/runs/31408654657/attempts/2),
+including [Ubuntu job
+93530141404](https://github.com/wavect/semaprax/actions/runs/31408654657/job/93530141404).
 
 - A design document proves intent, not implementation.
 - A compiler unit test proves only the covered semantic case.

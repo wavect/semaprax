@@ -210,12 +210,15 @@ Implemented today:
   2](https://github.com/wavect/semaprax/actions/runs/31401200449/attempts/2),
   including [Ubuntu job
   93505622044](https://github.com/wavect/semaprax/actions/runs/31401200449/job/93505622044).
-- Locally implemented, read-only
+- Read-only
   [`semaprax.semantic-impact.v1`](docs/SEMANTIC-IMPACT-V1.md) previews one Patch
   v1/v2 file with exact operation/change/source-consumer provenance and a
   deterministic byte/node/depth-bounded reverse-call closure for exact generic
-  call-instance changes. It does not apply the patch; hosted evidence is
-  pending.
+  call-instance changes. It does not apply the patch. The exact `1b3731a`
+  matrix is hosted green in [run 31408654657 attempt
+  2](https://github.com/wavect/semaprax/actions/runs/31408654657/attempts/2),
+  including [Ubuntu job
+  93530141404](https://github.com/wavect/semaprax/actions/runs/31408654657/job/93530141404).
 - Native AOT output through a readable C11 lowering and Clang.
 - Direct WebAssembly core output with a generated ES-module runtime, HTML entry point, capability manifest, checked arithmetic, and contract traps.
 - A deliberately narrow `semaprax.wasm-owned.v1` Core Wasm path for one direct

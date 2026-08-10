@@ -83,7 +83,11 @@ impact over explicit persistent callables. Automatic behavioral callers fail
 closed as `SPX-G110`, and existing generic-function limits continue to report
 `SPX-T226`. This is not a migration to repository-wide or general non-call
 impact. The canonical report KAT is recorded in [the Impact v1
-contract](SEMANTIC-IMPACT-V1.md); hosted evidence is pending.
+contract](SEMANTIC-IMPACT-V1.md). Its exact `1b3731a` full matrix is hosted
+green in [run 31408654657 attempt
+2](https://github.com/wavect/semaprax/actions/runs/31408654657/attempts/2),
+including [Ubuntu job
+93530141404](https://github.com/wavect/semaprax/actions/runs/31408654657/job/93530141404).
 
 ## Persistent identities are NUL-free
 

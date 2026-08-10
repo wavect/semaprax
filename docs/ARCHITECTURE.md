@@ -794,7 +794,11 @@ persistent; existing
 `SPX-T226` generic-function closure remains unchanged. This is neither a
 persistent/incremental repository index nor general type/contract/test/schema/
 migration/target/capability impact, repair, ranking, review, or commit
-authority. Hosted full-matrix evidence is pending.
+authority. The exact `1b3731a` full hosted matrix is green in [run 31408654657
+attempt
+2](https://github.com/wavect/semaprax/actions/runs/31408654657/attempts/2),
+including [Ubuntu job
+93530141404](https://github.com/wavect/semaprax/actions/runs/31408654657/job/93530141404).
 
 The additive [`semaprax.agent-context-economics.v1`](AGENT-ECONOMICS-V1.md)
 layer runs strict checked-in maintenance manifests offline. Canonical

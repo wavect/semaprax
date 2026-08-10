@@ -4,7 +4,7 @@ All notable changes to SEMAPRAX are documented here.
 
 ## 0.2.0 — 2026-08-07
 
-- Added locally implemented [`semaprax.semantic-impact.v1`](docs/SEMANTIC-IMPACT-V1.md),
+- Added [`semaprax.semantic-impact.v1`](docs/SEMANTIC-IMPACT-V1.md),
   a deterministic read-only preview for one Semantic Patch v1/v2 file. It
   reports exact operation/change provenance and source consumers, and computes
   a byte/node/depth-bounded reverse-call closure only for exact generic-call
@@ -17,8 +17,11 @@ All notable changes to SEMAPRAX are documented here.
   Local focused integration and internal Impact/call-index suites are 12/12 and
   4/4.
   This is single-file call impact, not repository-wide, non-call, repair,
-  ranking, semantic-review, or commit authority. Hosted matrix evidence is
-  pending.
+  ranking, semantic-review, or commit authority. The exact `1b3731a` full
+  hosted matrix is green in [run 31408654657 attempt
+  2](https://github.com/wavect/semaprax/actions/runs/31408654657/attempts/2),
+  including [Ubuntu job
+  93530141404](https://github.com/wavect/semaprax/actions/runs/31408654657/job/93530141404).
 
 - Added [`semaprax.agent-context.v2`](docs/AGENT-CONTEXT-V2.md) as an
   explicit-direction extension of the byte/node-bounded context query. V1

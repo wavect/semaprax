@@ -1,7 +1,10 @@
 # Bounded Semantic Impact v1
 
-Status: implemented locally as a deterministic, read-only, single-file patch
-preview. Hosted full-matrix evidence is pending.
+Status: implemented as a deterministic, read-only, single-file patch preview.
+The exact `1b3731a` full hosted matrix is green in [run 31408654657 attempt
+2](https://github.com/wavect/semaprax/actions/runs/31408654657/attempts/2),
+including [Ubuntu job
+93530141404](https://github.com/wavect/semaprax/actions/runs/31408654657/job/93530141404).
 
 ## Command and limits
 
@@ -207,7 +210,11 @@ general contract-dependency analysis.
 The canonical rename-report SHA-256 KAT is
 `94bbe5dcfe02f4b80b12ba5c8faf0889ddf11a96598072e539490c71a09518e9`.
 The local focused integration suite is 12/12 and the internal Impact/call-index
-suite is 4/4; hosted full-matrix evidence remains pending.
+suite is 4/4. The same exact `1b3731a` full matrix is hosted green in [run
+31408654657 attempt
+2](https://github.com/wavect/semaprax/actions/runs/31408654657/attempts/2),
+including [Ubuntu job
+93530141404](https://github.com/wavect/semaprax/actions/runs/31408654657/job/93530141404).
 Focused integration evidence covers exact patch-byte digest binding,
 read-only inventory, v1/v2 operation/change provenance, preview/apply revision
 parity, CLI confusion, explicit-owner closure, automatic-owner fail-closed

@@ -94,10 +94,12 @@ arm remains `i64`/`bool`. HIR authenticates full concrete instance plus stable
 record/field/binding IDs. Explicit patterns select program-wide Graph v13 above
 v12/v11/v10, while wildcard-only record matches retain the prior schema.
 CleanupPlan v2/v3 stays straight-line with no new slots, transitions, status
-sources, or decision edges. Native C11 O0/O2 and 4,096-entry Node/Wasm locally
-cover nested/generic instances, whole-record binding, both bool paths, one call
-scrutinee, failure order, postconditions, and poison; independent security
-review is clean. Refutable/literal/guard/or/rest/nested-variant patterns,
+sources, or decision edges. Native C11 O0/O2 and 4,096-entry Node/Wasm cover
+nested/generic instances, whole-record binding, both bool paths, one call
+scrutinee, failure order, postconditions, and poison; the Ubuntu gate is hosted
+green in [run 31373317800, job
+93406925130](https://github.com/wavect/semaprax/actions/runs/31373317800/job/93406925130),
+and independent security review is clean. Refutable/literal/guard/or/rest/nested-variant patterns,
 resource/non-Copy ownership modes, aggregate arm results, and public aggregate
 ABI remain subsequent work.
 
@@ -274,8 +276,10 @@ instances through unchanged outer status. Exact source/core/four-layout/Graph-
 v12/plan/profile/component authentication, independent/upstream validation,
 hostile reindexing/cross-version closure, local Node core execution, default-
 consumer hiding, source locks, strict gates, and security review are green.
-The pinned Rust 1.97.1/Wasmtime 47 typed runtime is configured, but hosted
-execution remains pending and is not credited green. V1-v6 remain unchanged;
+The pinned Rust 1.97.1/Wasmtime 47 typed runtime is hosted green in [run
+31373317800, job
+93406924922](https://github.com/wavect/semaprax/actions/runs/31373317800/job/93406924922).
+V1-v6 remain unchanged;
 general source selection/export, general/nested/resource/non-Copy record
 mapping, imports/capabilities/callbacks/async, callable/FFI or public ABI,
 browser/multi-engine support, package negotiation, and `SPX-B104`/`SPX-W111`

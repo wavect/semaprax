@@ -53,7 +53,9 @@ stays straight-line without new slots, transitions, status sources, or
 variant-case edges. An authenticated explicit record pattern selects
 program-wide Graph v13 above v12/v11/v10; a top-level wildcard alone does not.
 Native C11 O0/O2 and Node/Wasm evidence covers recursive and whole-record
-bindings, failure order, poison, and repeated entry.
+bindings, failure order, poison, and repeated entry; the Ubuntu gate is hosted
+green in [run 31373317800, job
+93406925130](https://github.com/wavect/semaprax/actions/runs/31373317800/job/93406925130).
 Generic functions/inference, nested/resource/non-Copy record arguments or
 fields, refutable/literal/guard/or/rest patterns, nested variant patterns,
 ownership-aware or non-copy propagation/matching, residual conversion, `?` in
@@ -74,8 +76,9 @@ source instance identities, concrete layouts, Graph v12, component mappings,
 and the distinction between the same-layout Phantom instances. Local
 source-lock, hostile, Node/core, component, strict-quality, and independent
 security gates are green. The isolated Rust 1.97.1/Wasmtime 47 typed runtime is
-configured but hosted execution remains pending, so no hosted v7 runtime claim
-is made. V7 does not establish general generic-record selection or mapping,
+hosted green in [run 31373317800, job
+93406924922](https://github.com/wavect/semaprax/actions/runs/31373317800/job/93406924922).
+V7 does not establish general generic-record selection or mapping,
 nested/resource/non-Copy records, imports/capabilities, public aggregate ABI,
 browser/multi-engine conformance, or package/version negotiation; v1-v6 bytes
 and known answers remain unchanged.
@@ -324,7 +327,7 @@ Existing diagnostic codes remain reserved; implementation must resolve any colli
 ## Staged implementation
 
 1. Add resolved nominal types, HIR, type facts, place paths, and deterministic layout keys without changing source behavior. **Implemented.**
-2. Add records through parser, formatter, resolver, verifier, Graph, transactions, C, and Wasm. **Frontend, Graph v7 record-update meaning, Graph v12 bounded generic-record identity, Graph v13 exact recursive Copy-record pattern meaning, deterministic target layouts, target-neutral cleanup, bounded public nested-scalar execution, explicitly instantiated direct-scalar generic Copy records, and irrefutable recursive Copy-record destructuring are implemented through C11 O0/O2 and Node/Wasm; the generic-record gate is hosted green in [run 31365363898, Ubuntu job 93383304995](https://github.com/wavect/semaprax/actions/runs/31365363898/job/93383304995). Transaction breadth, refutable/ownership-aware/non-Copy patterns, nested/resource/non-Copy generic records, resource-bearing public execution, a stable aggregate ABI, and general backend completion remain evidence-gated.**
+2. Add records through parser, formatter, resolver, verifier, Graph, transactions, C, and Wasm. **Frontend, Graph v7 record-update meaning, Graph v12 bounded generic-record identity, Graph v13 exact recursive Copy-record pattern meaning, deterministic target layouts, target-neutral cleanup, bounded public nested-scalar execution, explicitly instantiated direct-scalar generic Copy records, and irrefutable recursive Copy-record destructuring are implemented through C11 O0/O2 and Node/Wasm; the generic-record gate is hosted green in [run 31365363898, Ubuntu job 93383304995](https://github.com/wavect/semaprax/actions/runs/31365363898/job/93383304995), and the record-pattern gate is hosted green in [run 31373317800, Ubuntu job 93406925130](https://github.com/wavect/semaprax/actions/runs/31373317800/job/93406925130). Transaction breadth, refutable/ownership-aware/non-Copy patterns, nested/resource/non-Copy generic records, resource-bearing public execution, a stable aggregate ABI, and general backend completion remain evidence-gated.**
 3. Add bounded non-generic copy variants and exhaustive copy matching. **Implemented for unit/direct-`i64`/direct-`bool` payloads, scalar `i64`/`bool` arm results, CleanupPlan v2 variant-case replay, deterministic internal Native64/Wasm32 layouts, and native C11 O0/O2 plus Node/Wasm execution.**
 4. Add generic variants, recursive-unsized rejection, and ownership-aware matching. **Partially implemented for nominal variant templates with explicit direct `i64`/`bool` arguments, exact substitution/instance identity, Graph v10, internal layout digest v2, cleanup-free copy matching, and native/Wasm execution. Nested/resource arguments and non-copy ownership modes remain open.**
 5. Add ordinary prelude `Option` and `Result`. **Implemented for compiler-owned `semaprax.prelude.v1` variants under the same direct-`i64`/`bool`, copy-only, internal-ABI limits; component/FFI mappings remain open.**

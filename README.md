@@ -105,10 +105,12 @@ Implemented today:
   Graph v13; v13 is selected program-wide only by an explicit record pattern
   and takes precedence over v12/v11/v10. A sole top-level `_` remains binding-
   free and schema-neutral. CleanupPlan v2/v3 does not migrate because admitted
-  record patterns are straight-line and Copy-only. Local strict C11 O0/O2 and
+  record patterns are straight-line and Copy-only. Strict C11 O0/O2 and
   4,096-entry Node/Wasm evidence covers nested and generic instances, whole-
   record bindings, one-evaluation failure order, poison, and postconditions;
-  independent security review reports no P0/P1. Refutable/literal/guard/or/
+  the Ubuntu gate is hosted green in [run 31373317800, job
+  93406925130](https://github.com/wavect/semaprax/actions/runs/31373317800/job/93406925130),
+  and independent security review reports no P0/P1. Refutable/literal/guard/or/
   rest patterns, nested variant patterns, non-Copy/resource matching,
   aggregate arm results, and public aggregate ABI admission remain closed.
 - One private test-only resource-record harness projects the shared cleanup plan
@@ -314,8 +316,9 @@ component identity, ordered type arguments, and the distinct identity of the
 same-layout Phantom instances are frozen; local exact/upstream validation,
 hostile cross-index/cross-version closure, generated-core Node execution,
 default-consumer hiding, source locks, strict gates, and independent security
-review are green. The isolated Rust 1.97.1/Wasmtime 47 typed runtime is
-configured but hosted execution is still pending, so it is not credited green.
+review are green. The isolated Rust 1.97.1/Wasmtime 47 typed runtime is hosted
+green in [run 31373317800, job
+93406924922](https://github.com/wavect/semaprax/actions/runs/31373317800/job/93406924922).
 V1-v6 bytes remain unchanged. This opens no general generic-record exporter,
 source selection, nested/resource/non-Copy records, imports/capabilities,
 callbacks/async, callable/FFI ABI, browser/multi-engine conformance, package

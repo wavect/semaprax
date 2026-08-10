@@ -672,8 +672,9 @@ artifact DAG:    c3d1fd10501bfe8dcd4b5c8f24184d127e462b9ca4bc6b1f9422ad8fbcc0b26
 
 Local source-lock, hostile core/component, Node/core, default-consumer hiding,
 strict quality, and independent security gates are green. The isolated Rust
-1.97.1/Wasmtime 47 typed runtime is configured, but hosted execution remains
-pending and must not be credited green. V1-v6 bytes and known answers remain
+1.97.1/Wasmtime 47 typed runtime is hosted green in [run 31373317800, job
+93406924922](https://github.com/wavect/semaprax/actions/runs/31373317800/job/93406924922).
+V1-v6 bytes and known answers remain
 unchanged. V7 does not establish general source selection or generic-record
 mapping, empty/nested/resource/non-Copy records, imports or capabilities,
 callbacks/reentrancy/async, callable/FFI/public ABI, browser/multi-engine

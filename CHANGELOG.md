@@ -14,8 +14,11 @@ All notable changes to SEMAPRAX are documented here.
   record matches preserve the prior schema. CleanupPlan v2/v3 remains unchanged
   and straight-line. Native C11 O0/O2 and Node/Wasm 4,096-entry evidence covers
   one-evaluation, nested/generic and whole-record bindings, bool paths, failure
-  precedence, postconditions, and poison. Independent security review found no
-  P0/P1. Refutable/literal/guard/or/rest/nested-variant patterns, non-Copy or
+  precedence, postconditions, and poison. The Ubuntu gate is hosted green in
+  [run 31373317800, job
+  93406925130](https://github.com/wavect/semaprax/actions/runs/31373317800/job/93406925130),
+  and independent security review found no P0/P1.
+  Refutable/literal/guard/or/rest/nested-variant patterns, non-Copy or
   resource matching, aggregate arm results, and public aggregate ABI admission
   remain closed.
 - Added default-off Private Generic Record Component v7 for exact WIT package
@@ -27,8 +30,9 @@ All notable changes to SEMAPRAX are documented here.
   mapping are authenticated. Local core/component hostility, upstream
   validation, Node core execution, default-consumer hiding, source locks,
   strict gates, and independent security review are green. The isolated pinned
-  Rust 1.97.1/Wasmtime 47 typed runner is configured but hosted execution is
-  pending and is not claimed green. V1-v6 bytes remain unchanged; this adds no
+  Rust 1.97.1/Wasmtime 47 typed runner is hosted green in [run 31373317800, job
+  93406924922](https://github.com/wavect/semaprax/actions/runs/31373317800/job/93406924922).
+  V1-v6 bytes remain unchanged; this adds no
   general source selection/exporter, nested/resource/non-Copy records,
   imports/capabilities/callbacks/async, callable/FFI or public ABI, browser/
   multi-engine conformance, package negotiation, or `SPX-B104`/`SPX-W111`

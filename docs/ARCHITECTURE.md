@@ -497,8 +497,10 @@ component digests, and the distinct identity of physically identical Phantom
 instances. Exact/upstream validation, same-signature reindexing and cross-
 version hostility, generated-core Node execution, default-consumer hiding,
 source locks, strict gates, and independent security review are locally green.
-The isolated Rust 1.97.1/Wasmtime 47 typed runtime is configured but hosted
-execution is pending and is not credited green. V1-v6 bytes remain unchanged;
+The isolated Rust 1.97.1/Wasmtime 47 typed runtime is hosted green in [run
+31373317800, job
+93406924922](https://github.com/wavect/semaprax/actions/runs/31373317800/job/93406924922).
+V1-v6 bytes remain unchanged;
 there is no general source selection/exporter, nested/resource/non-Copy record
 mapping, imports/capabilities/callbacks/async, callable/FFI or public ABI,
 browser/multi-engine claim, package negotiation, or `SPX-B104`/`SPX-W111`

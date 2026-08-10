@@ -20,7 +20,9 @@ All notable changes to SEMAPRAX are documented here.
   and bounded context
   `880a5f21a12e3c945ec75f08af4889c98a75925dec23f491e01ce4317cea6e1c`.
   Local strict C11 O0/O2 and 4,096-entry Node/Wasm evidence plus independent
-  security review are green; hosted matrix evidence is pending. CleanupPlan v2
+  security review are green; the hosted matrix is green in [run 31385406865,
+  Ubuntu job
+  93445428338](https://github.com/wavect/semaprax/actions/runs/31385406865/job/93445428338). CleanupPlan v2
   remains byte/schema/meaning compatible and template-ID-only; HIR and Graph
   authenticate the exact instance before replay. Inference, constraints,
   aggregate/resource/non-Copy signatures, effects, generic entrypoints,
@@ -44,7 +46,8 @@ All notable changes to SEMAPRAX are documented here.
   behaviorally observable polarity swaps, generated-core Node behavior,
   poison/invalid-value closure, source locks, strict gates, and independent
   security review are green. The isolated pinned Rust 1.97.1/Wasmtime 47 typed
-  runner is configured in CI; hosted execution evidence is pending. V1-v7
+  runner is hosted green in [run 31385406865, job
+  93445428268](https://github.com/wavect/semaprax/actions/runs/31385406865/job/93445428268). V1-v7
   bytes remain unchanged; v8 adds no generic-function component, general
   exporter, imports/capabilities/resources, public ABI, browser/multi-engine,
   package-negotiation, or `SPX-B104`/`SPX-W111` claim.

@@ -740,8 +740,9 @@ all six same-signature function-index swaps; only the four polarity-changing
 swaps are claimed behaviorally observable. Local independent/upstream,
 every-byte, invalid-value/poison, Node/core, source-lock, strict, and security
 gates are green. The isolated pinned Rust 1.97.1/Wasmtime 47 zero-import,
-empty-linker, no-WASI typed runner is configured in CI; hosted evidence is
-pending. V1-v7 bytes and KATs remain unchanged. V8 provides no generic-function
+empty-linker, no-WASI typed runner is hosted green in [run 31385406865, job
+93445428268](https://github.com/wavect/semaprax/actions/runs/31385406865/job/93445428268).
+V1-v7 bytes and KATs remain unchanged. V8 provides no generic-function
 component, general source selection or record mapping, imports/capabilities/
 resources, callbacks/async, callable/FFI/public ABI, browser/multi-engine
 conformance, package negotiation, or `SPX-B104`/`SPX-W111` widening.

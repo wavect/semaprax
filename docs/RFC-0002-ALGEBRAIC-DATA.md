@@ -65,7 +65,8 @@ instances receive exact domain-separated HIR/native/Wasm identities and
 program-wide Graph v14. CleanupPlan v2 stays byte/schema/meaning unchanged and
 template-ID-only, with exact instance authentication in HIR and Graph. Local
 C11 O0/O2 and 4,096-entry Node/Wasm evidence plus security review are green;
-hosted matrix evidence is pending.
+the hosted matrix is green in [run 31385406865, Ubuntu job
+93445428338](https://github.com/wavect/semaprax/actions/runs/31385406865/job/93445428338).
 Generic-function inference/constraints or aggregate/resource/non-Copy
 signatures, nested/resource/non-Copy record arguments or fields,
 refutable/literal/guard/or/rest patterns, nested variant patterns,
@@ -101,7 +102,10 @@ four monomorphic preserve/invert exports over exact same-layout-distinct
 `semaprax-private-v8`. It authenticates exact source/core/layout/Graph-v13/
 plan/profile/component identity and record-pattern projection behavior. Local
 validation, hostility, Node/core, source-lock, strict, and security gates are
-green; the pinned Rust 1.97.1/Wasmtime 47 hosted runtime is pending. V1-v7
+green; the pinned Rust 1.97.1/Wasmtime 47 hosted runtime is green in [run
+31385406865, job
+93445428268](https://github.com/wavect/semaprax/actions/runs/31385406865/job/93445428268).
+V1-v7
 bytes remain unchanged, and v8 establishes neither generic-function component
 support nor general source selection, record mapping, imports/capabilities,
 public ABI, browser/multi-engine conformance, or package negotiation.
@@ -367,7 +371,9 @@ Existing diagnostic codes remain reserved; implementation must resolve any colli
 7. Add bounded explicitly instantiated direct-scalar Copy generic functions.
    **Implemented across canonical source, source verification, resolved HIR,
    program-wide Graph v14, strict native C11 O0/O2, and Node/Wasm. Hosted
-   matrix evidence remains pending; inference, constraints, richer signatures,
+   matrix evidence is green in [run 31385406865, Ubuntu job
+   93445428338](https://github.com/wavect/semaprax/actions/runs/31385406865/job/93445428338);
+   inference, constraints, richer signatures,
    generic composition, callable/resource/component admission, and stable ABI
    remain open.**
 8. Add member/case transactions, layout/interface hashes, and context traversal.

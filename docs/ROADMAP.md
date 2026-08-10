@@ -98,7 +98,9 @@ execution identities, exact native symbols and Wasm indices, and program-wide
 Graph v14 authenticate only explicitly referenced instances. Module, Agent
 Context, and bounded-context KATs are frozen; local strict C11 O0/O2,
 failure/poison, 4,096-entry Node/Wasm, hostile boundary, and independent
-security gates are green, while hosted matrix evidence is pending. CleanupPlan
+security gates are green, and the hosted matrix is green in [run 31385406865,
+Ubuntu job
+93445428338](https://github.com/wavect/semaprax/actions/runs/31385406865/job/93445428338). CleanupPlan
 v2 remains unchanged and template-ID-only; HIR and Graph authenticate the exact
 instance before replay. Inference, constraints, aggregate/resource/non-Copy
 signatures, effects, generic-to-generic calls, recursion, entrypoints,
@@ -314,8 +316,9 @@ source/core/two-layout/Graph-v13/plan/profile/component/DAG KATs,
 independent/upstream validation, all-pair identity hostility, local Node core
 execution, poison/invalid-value closure, default-consumer hiding, source locks,
 strict gates, and security review are green. Its pinned Rust 1.97.1/Wasmtime 47
-zero-import typed runner is configured in CI; hosted execution evidence is
-pending. V1-v7 remain unchanged. This does not open generic-function
+zero-import typed runner is hosted green in [run 31385406865, job
+93445428268](https://github.com/wavect/semaprax/actions/runs/31385406865/job/93445428268).
+V1-v7 remain unchanged. This does not open generic-function
 components, general source selection, general/empty/nested/resource/non-Copy
 record mapping, imports/capabilities, callbacks/async, callable/FFI or public
 ABI, browser/multi-engine support, package negotiation, or

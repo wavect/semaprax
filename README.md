@@ -105,7 +105,9 @@ Implemented today:
   instances receive domain-separated HIR execution identities, Graph v14
   instance nodes, exact native symbols, and exact Wasm function indices.
   Canonical source/HIR/Graph KATs and local strict C11 O0/O2 plus 4,096-entry
-  Node/Wasm evidence are green; hosted matrix evidence is pending. Inference,
+  Node/Wasm evidence are green; the hosted matrix is green in [run 31385406865,
+  Ubuntu job
+  93445428338](https://github.com/wavect/semaprax/actions/runs/31385406865/job/93445428338). Inference,
   constraints, aggregate/resource/non-Copy signatures, effects, generic-to-
   generic calls, recursion, generic entrypoints, callable/resource/component
   admission, and a stable public ABI remain closed.
@@ -350,7 +352,8 @@ and artifact DAG are frozen. Local independent/upstream validation, all-pair
 identity-swap rejection, generated-core Node behavior/poison/invalid-value
 closure, default-consumer hiding, source locks, strict gates, and independent
 security review are green. The isolated pinned Rust 1.97.1/Wasmtime 47 runner
-is configured in CI; hosted execution evidence is pending. V1-v7 bytes remain
+is hosted green in [run 31385406865, job
+93445428268](https://github.com/wavect/semaprax/actions/runs/31385406865/job/93445428268). V1-v7 bytes remain
 unchanged. V8 is monomorphic record-pattern evidence, not generic-function or
 general source-selection/component support, and it opens no imports,
 capabilities, resources, callable/FFI or public ABI, browser/multi-engine

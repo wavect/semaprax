@@ -11,10 +11,11 @@ All notable changes to SEMAPRAX are documented here.
   capability-free source table/order, prelude layouts, stable-ID/core-index/WIT
   mapping, canonical memory, and source/core/profile/component DAG are
   authenticated without inferring identity from equal signatures or layouts.
-  Local core/component KATs, hostile mutation/reindexing/cross-version closure,
-  upstream validation, invalid-value traps, default-consumer hiding, and
-  isolated runner source locks are green. Typed Wasmtime execution on pinned
-  Rust 1.97.1 is hosted pending. V1-v4 bytes remain unchanged; this adds no
+  Core/component KATs, hostile mutation/reindexing/cross-version closure,
+  upstream validation, invalid-value traps, default-consumer hiding, and the
+  isolated pinned-Rust-1.97.1 typed Wasmtime matrix are hosted green in
+  [run 31360176398, job 93367728269](https://github.com/wavect/semaprax/actions/runs/31360176398/job/93367728269).
+  V1-v4 bytes remain unchanged; this adds no
   general exporter, resources/non-copy carriers, imports/capabilities, async,
   public API/ABI, callable/FFI mapping, or `SPX-B104`/`SPX-W111` widening.
 - Added default-off Private Source-Result Component v4 for one exact

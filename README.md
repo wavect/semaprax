@@ -258,9 +258,10 @@ Private Scalar Algebraic Component v5 separately freezes six exports covering
 for `T, E` in `i64`/`bool`, each nested inside an unchanged outer physical
 status result. Exact source/core/profile/component KATs, stable-ID-to-export
 mapping, canonical layouts, hostile reindexing/mutation closure, upstream
-validation, and zero-import isolated-runner source locks are locally green;
-the pinned Rust 1.97.1 typed Wasmtime execution is hosted pending. V1-v4 bytes
-remain unchanged. This remains **Partial** WIT evidence only: v4/v5 admit only
+validation, and zero-import isolated-runner source locks are green. The pinned
+Rust 1.97.1 typed Wasmtime matrix is hosted green in [run 31360176398, job
+93367728269](https://github.com/wavect/semaprax/actions/runs/31360176398/job/93367728269).
+V1-v4 bytes remain unchanged. This remains **Partial** WIT evidence only: v4/v5 admit only
 their exact private closures. General `Result`/`Option` component
 mapping, records, resources, imports, async, capabilities, multi-engine/browser
 conformance, a public WIT surface, callable/FFI aggregate signatures, and any

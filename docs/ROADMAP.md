@@ -90,8 +90,9 @@ expressions, and joins the ordinary path before shared postconditions and
 publication. Result retains CleanupPlan v2/Graph v10; Option uses per-function
 CleanupPlan v3 and program-bound Graph v11. Native C11 O0/O2 and Node/Wasm
 prove different source/outer layouts, status separation, poison, invalid-tag
-closure, and re-entry. Result is hosted green; Option hosted-matrix evidence is
-pending. This does not open generic functions/records,
+closure, and re-entry. Result is hosted green; Option is hosted green in [run
+31360176398, job 93367728277](https://github.com/wavect/semaprax/actions/runs/31360176398/job/93367728277).
+This does not open generic functions/records,
 nested/resource arguments, resource- or record-bearing payloads, non-copy
 ownership/propagation, residual conversion, `?` in contracts, a stable public
 aggregate ABI, callable/component signatures, or public resource admission.
@@ -208,8 +209,9 @@ profile with six fixed exports for `Option<i64>`, `Option<bool>`, and the
 complete direct-copy `Result<T, E>` matrix over `i64`/`bool`, each nested inside
 outer physical status. Exact source/core/profile/component/layout/mapping KATs,
 canonical reconstruction, hostile reindexing/mutation/cross-version closure,
-upstream validation, and zero-import runner source locks are locally green;
-typed Wasmtime execution on pinned Rust 1.97.1 is hosted pending. It does not
+upstream validation, and zero-import runner execution are hosted green on
+pinned Rust 1.97.1 in [run 31360176398, job 93367728269](https://github.com/wavect/semaprax/actions/runs/31360176398/job/93367728269).
+It does not
 open general source selection, resources/non-copy carriers, imports,
 capabilities, async, public ABI, or `SPX-B104`/`SPX-W111`. General source
 `Result`/`Option`/`?` mapping, records/resources/imports, async/capabilities,

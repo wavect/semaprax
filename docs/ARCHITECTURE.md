@@ -435,10 +435,11 @@ nested inside the unchanged outer physical-status result. Admission binds the
 capability-free seven-function source table/order, prelude and six Wasm32
 layout-v2 digests, stable-ID/core-index/distinct-WIT-type mapping, canonical
 outer layouts, fieldwise tag-last reconstruction, and the complete
-source/core/profile/component DAG. Local exact-profile, reindexing, mutation,
+source/core/profile/component DAG. Exact-profile, reindexing, mutation,
 cross-version, invalid-value, upstream-validation, and source-lock gates are
-green; isolated typed Wasmtime execution on pinned Rust 1.97.1 is hosted
-pending. V1-v4 bytes remain unchanged. General source `Result`/`Option`/`?`
+green; isolated typed Wasmtime execution on pinned Rust 1.97.1 is hosted green
+in [run 31360176398, job 93367728269](https://github.com/wavect/semaprax/actions/runs/31360176398/job/93367728269).
+V1-v4 bytes remain unchanged. General source `Result`/`Option`/`?`
 mapping, user records/variants/resources,
 imports, async, capabilities, callable/FFI signatures, multi-engine/browser
 execution, public component API/ABI, and `SPX-B104` remain outside this trust

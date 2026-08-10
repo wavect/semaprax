@@ -27,9 +27,9 @@ evaluates the operand once, stages `Err` or payload-free `None` as a normal
 outer result, skips later body expressions, and joins shared
 postconditions/publication. Result evidence is hosted green in [run
 31353051690](https://github.com/wavect/semaprax/actions/runs/31353051690).
-Option evidence is locally green through Native C11 O0/O2 and Node/Wasm for
+Option evidence is hosted green through Native C11 O0/O2 and Node/Wasm for
 both source/outer layout directions, physical-status separation, poison,
-invalid tags, and re-entry; hosted matrix evidence is pending.
+invalid tags, and re-entry in [run 31360176398, job 93367728277](https://github.com/wavect/semaprax/actions/runs/31360176398/job/93367728277).
 Generic functions or records, nested/resource arguments, non-copy
 propagation/matching, residual conversion, `?` in contracts, resource- or
 record-bearing variant payloads, a stable public aggregate ABI, public
@@ -273,7 +273,7 @@ Existing diagnostic codes remain reserved; implementation must resolve any colli
 3. Add bounded non-generic copy variants and exhaustive copy matching. **Implemented for unit/direct-`i64`/direct-`bool` payloads, scalar `i64`/`bool` arm results, CleanupPlan v2 variant-case replay, deterministic internal Native64/Wasm32 layouts, and native C11 O0/O2 plus Node/Wasm execution.**
 4. Add generic variants, recursive-unsized rejection, and ownership-aware matching. **Partially implemented for nominal variant templates with explicit direct `i64`/`bool` arguments, exact substitution/instance identity, Graph v10, internal layout digest v2, cleanup-free copy matching, and native/Wasm execution. Nested/resource arguments and non-copy ownership modes remain open.**
 5. Add ordinary prelude `Option` and `Result`. **Implemented for compiler-owned `semaprax.prelude.v1` variants under the same direct-`i64`/`bool`, copy-only, internal-ABI limits; component/FFI mappings remain open.**
-6. Add `?` with evaluation-once and unified epilogues. **Implemented for ordinary compiler-owned direct-scalar Copy `Result<T, E>` to `Result<U, E>` and `Option<T>` to `Option<U>`. Result uses exact CleanupPlan v2 staging and Graph v10; Option uses authenticated payload-free-None CleanupPlan v3 staging and program-bound Graph v11 without migrating Result-only bytes. Native C11 O0/O2 plus Node/Wasm evidence covers both carriers; Result is hosted green, while Option hosted-matrix evidence is pending. One private Source-Result Component v4 maps the exact `Result<i64, bool>` to `Result<bool, bool>` fixture to nested WIT result/status and is hosted green in [run 31356536123, job 93357169796](https://github.com/wavect/semaprax/actions/runs/31356536123/job/93357169796). Residual conversion, nested/resource/non-copy arguments, contracts, public ABI, general component mapping, and callable/FFI signatures remain open.**
+6. Add `?` with evaluation-once and unified epilogues. **Implemented for ordinary compiler-owned direct-scalar Copy `Result<T, E>` to `Result<U, E>` and `Option<T>` to `Option<U>`. Result uses exact CleanupPlan v2 staging and Graph v10; Option uses authenticated payload-free-None CleanupPlan v3 staging and program-bound Graph v11 without migrating Result-only bytes. Native C11 O0/O2 plus Node/Wasm evidence covers both carriers; Result is hosted green in [run 31353051690](https://github.com/wavect/semaprax/actions/runs/31353051690), and Option is hosted green in [run 31360176398, job 93367728277](https://github.com/wavect/semaprax/actions/runs/31360176398/job/93367728277). One private Source-Result Component v4 maps the exact `Result<i64, bool>` to `Result<bool, bool>` fixture to nested WIT result/status and is hosted green in [run 31356536123, job 93357169796](https://github.com/wavect/semaprax/actions/runs/31356536123/job/93357169796). Residual conversion, nested/resource/non-copy arguments, contracts, public ABI, general component mapping, and callable/FFI signatures remain open.**
 7. Add member/case transactions, layout/interface hashes, and context traversal.
 
 ## Completion evidence

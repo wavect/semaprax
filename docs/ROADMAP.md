@@ -28,7 +28,10 @@ v12/v11/v10 lattice for generic records/Option propagation/legacy, validated
 stable-ID HIR/type facts, mandatory replay-validated CleanupPlan v2/v3 plans, versioned normalized-status
 and semantic-event-dictionary types, native scalar status/out execution, a
 browser-loadable scalar Wasm backend, and one narrow direct-trivial-resource
-Wasm owned ABI are implemented. A private generated-callable native host now
+Wasm owned ABI are implemented. The bounded generic-record Native O0/O2 and
+Node/Wasm gate is hosted green in [run 31365363898, Ubuntu job
+93383304995](https://github.com/wavect/semaprax/actions/runs/31365363898/job/93383304995).
+A private generated-callable native host now
 connects the exact loader, authority, ledger, strict codecs, event dictionary,
 and compiler-owned trace-path certificate. That host and the real Wasm lane
 match the reference outcome, complete trace, publication, and final logical
@@ -238,8 +241,10 @@ fixture for package `semaprax:private@0.4.0`, with one `transform` export over f
 records. Exact source/core/layout/profile/component/DAG authentication,
 independent/upstream validation, hostile closure, core execution,
 default-consumer hiding, source locks, and security review are locally green.
-Its pinned Rust 1.97.1/Wasmtime 47 typed runtime remains hosted pending. This
-does not open general/empty/generic/resource records, algebraic nesting,
+Its pinned Rust 1.97.1/Wasmtime 47 typed runtime is hosted green in [run
+31365363898, job
+93383304974](https://github.com/wavect/semaprax/actions/runs/31365363898/job/93383304974).
+This does not open general/empty/generic/resource records, algebraic nesting,
 imports/capabilities/async, public ABI, browser/multi-engine support,
 package/version negotiation, or `SPX-B104`/`SPX-W111`.
 

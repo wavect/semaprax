@@ -12,7 +12,9 @@ All notable changes to SEMAPRAX are documented here.
   DAG have frozen KATs; local exact-profile/upstream validation, hostile
   mutation/cross-version closure, core execution, default-consumer hiding,
   source locks, strict Clippy, and independent security review are green. The
-  isolated pinned Rust 1.97.1/Wasmtime 47 typed runtime remains hosted pending.
+  isolated pinned Rust 1.97.1/Wasmtime 47 typed runtime is hosted green in [run
+  31365363898, job
+  93383304974](https://github.com/wavect/semaprax/actions/runs/31365363898/job/93383304974).
   V1-v5 bytes stay unchanged; this adds no general/empty/generic/resource
   records, variants/algebraic nesting, imports/capabilities/async, public ABI,
   browser/multi-engine support, package negotiation, or
@@ -27,7 +29,10 @@ All notable changes to SEMAPRAX are documented here.
   program-wide Graph v12 above the existing v11 Option/v10 legacy lattice;
   legacy graph snapshots remain byte-identical. Strict C11 O0/O2 and Node/Wasm
   re-entry cover construction, update, pass/return, both bool arms, sticky
-  failure order, and poisoned outputs. Generic functions/inference,
+  failure order, and poisoned outputs and are hosted green in [run 31365363898,
+  Ubuntu job
+  93383304995](https://github.com/wavect/semaprax/actions/runs/31365363898/job/93383304995).
+  Generic functions/inference,
   nested/resource/non-Copy arguments or fields, record patterns/matching,
   public aggregate/callable/FFI ABIs, and resource admission remain closed.
 - Added default-off Private Scalar Algebraic Component v5 with six fixed WIT

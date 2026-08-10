@@ -93,7 +93,9 @@ Implemented today:
   Graph v12 structured arguments, and Native64/Wasm32 lowering. C11 O0/O2 and
   Node/Wasm evidence covers construction, projection, immutable update,
   pass/return, multi-parameter order, poison-preserving failure, and repeated
-  entry. Generic functions/inference, nested/resource/non-Copy arguments,
+  entry and is hosted green in [run 31365363898, Ubuntu job
+  93383304995](https://github.com/wavect/semaprax/actions/runs/31365363898/job/93383304995).
+  Generic functions/inference, nested/resource/non-Copy arguments,
   matching on records, and public aggregate/callable/FFI ABI admission remain
   closed.
 - One private test-only resource-record harness projects the shared cleanup plan
@@ -280,7 +282,8 @@ WIT package `semaprax:private@0.4.0`, interface `nested-records`, and world
 source/core/layout/profile/component/DAG KATs, independent/upstream validation,
 hostile closure, default-consumer hiding, local core execution, and security
 review are green. The isolated pinned Rust 1.97.1/Wasmtime 47 typed runtime is
-hosted pending and is not yet credited runtime-green.
+hosted green in [run 31365363898, job
+93383304974](https://github.com/wavect/semaprax/actions/runs/31365363898/job/93383304974).
 V1-v5 bytes remain unchanged. This remains **Partial** WIT evidence only: v4-v6 admit only
 their exact private closures. General `Result`/`Option` component
 mapping, general/empty/generic/resource records, imports, async, capabilities, multi-engine/browser

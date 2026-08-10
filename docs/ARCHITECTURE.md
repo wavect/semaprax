@@ -456,7 +456,10 @@ publication remains status-first/poison-preserving. Local exact-profile and
 upstream validation, mutation/reindexing/cross-version closure, generated-core
 execution, default-consumer hiding, source locks, and independent security
 review are green. The isolated pinned Rust 1.97.1/Wasmtime 47 typed runtime is
-hosted pending and grants no runtime-complete claim. V1-v5 remain unchanged;
+hosted green in [run 31365363898, job
+93383304974](https://github.com/wavect/semaprax/actions/runs/31365363898/job/93383304974).
+This remains exact private-profile evidence rather than a broader runtime-complete
+claim. V1-v5 remain unchanged;
 the frozen SHA-256 KATs are source
 `d1fcbc45b3d86fa1d7910378578828df3c557dba92f90ed9459f928c5bf2fe8a`,
 core `42835dcbf98078ac24bfd36568f1b6917b5b64ca2d8265ef4ded161d26438da1`,

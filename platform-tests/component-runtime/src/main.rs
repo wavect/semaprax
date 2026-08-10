@@ -596,6 +596,9 @@ fn run_v4() -> HostResult<()> {
     Ok(())
 }
 
+// This is deliberately a flat, reviewable six-export protocol matrix. Splitting
+// it behind generic helpers would obscure the exact WIT export-to-carrier map.
+#[allow(clippy::too_many_lines)]
 fn run_v5_instance(engine: &Engine, component: &Component) -> HostResult<()> {
     let linker = Linker::<()>::new(engine);
     let mut store = Store::new(engine, ());

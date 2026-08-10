@@ -172,6 +172,8 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "call_evaluate",
         "SemapraxPrivateV4::instantiate",
         "SemapraxPrivateV5::instantiate",
+        "#[allow(clippy::too_many_lines)]\nfn run_v5_instance",
+        "This is deliberately a flat, reviewable six-export protocol matrix.",
         "semaprax-private-v4.wit",
         "semaprax-private-v5.wit",
         "EXPECTED_COMPONENT_V4_SHA256",

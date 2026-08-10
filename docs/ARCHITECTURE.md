@@ -953,7 +953,12 @@ closed repair and breaking-rebase proof before using the same A0 commit path.
 Local Phase A integration is 13/13; the Phase B semantic integration corpus is
 7/7; v3 A0 hook units are 4/4; aggregate v3 integration-plus-hook evidence is
 9/9; and the library suite is 404/404. Full preservation is green and
-independent security review is clean. Hosted evidence is pending. V3 adds no other operation,
+independent security review is clean. The exact `dae957a` full matrix is hosted
+green in [run 31418476217 attempt
+1](https://github.com/wavect/semaprax/actions/runs/31418476217/attempts/1),
+including [Ubuntu job
+93553147265](https://github.com/wavect/semaprax/actions/runs/31418476217/job/93553147265);
+all 12 jobs passed. V3 adds no other operation,
 batching, general repair language, multi-file authority, or authenticated patch
 provenance.
 

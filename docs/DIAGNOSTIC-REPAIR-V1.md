@@ -337,8 +337,12 @@ equality, strict Native C11 O0/O2 and Node/Wasm behavior when those tools are
 available, CLI rejection, A0 artifact cleanup, Impact-v3 rejection, and Patch
 v1/v2 plus Impact byte-preservation coverage.
 
-Hosted evidence is pending. Local and security gates must not be described as
-cross-platform hosted proof until an exact green workflow run exists.
+The exact `dae957a` full matrix is hosted green in [run 31418476217 attempt
+1](https://github.com/wavect/semaprax/actions/runs/31418476217/attempts/1),
+including [Ubuntu job
+93553147265](https://github.com/wavect/semaprax/actions/runs/31418476217/job/93553147265);
+all 12 jobs passed. This hosted result proves only the bounded contract and
+does not widen any scope or nonclaim below.
 
 ## Explicit nonclaims
 

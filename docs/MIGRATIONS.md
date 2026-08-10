@@ -123,7 +123,12 @@ key/line order, domains, KATs, limits, and nonclaims are frozen in
 [`DIAGNOSTIC-REPAIR-V1.md`](DIAGNOSTIC-REPAIR-V1.md). Local Phase A integration
 is 13/13; the Phase B semantic integration corpus is 7/7; v3 A0 hook units are
 4/4; aggregate v3 integration-plus-hook evidence is 9/9; and library 404/404,
-full-preservation, and security gates are green. Hosted evidence is pending.
+full-preservation, and security gates are green. The exact `dae957a` full
+matrix is hosted green in [run 31418476217 attempt
+1](https://github.com/wavect/semaprax/actions/runs/31418476217/attempts/1),
+including [Ubuntu job
+93553147265](https://github.com/wavect/semaprax/actions/runs/31418476217/job/93553147265);
+all 12 jobs passed.
 V3 additionally runs function/call-site bounds on parsed AST before HIR and
 caps its initial A0 source read plus both final rechecks at 16 MiB. Initial
 oversize fails `SPX-R101`; concurrent final growth past the bound fails

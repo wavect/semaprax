@@ -294,8 +294,11 @@ aggregate means seven semantic integration cases plus two bounded-work
 integration hooks; the separate internal v3 A0 hook-unit result remains 4/4.
 Its focused hook command is
 `cargo test --locked -p semaprax --all-features --lib patch::commit_tests::v3`.
-Hosted evidence is pending; these local results do
-not prove a cross-platform matrix.
+The exact `dae957a` full matrix is hosted green in [run 31418476217 attempt
+1](https://github.com/wavect/semaprax/actions/runs/31418476217/attempts/1),
+including [Ubuntu job
+93553147265](https://github.com/wavect/semaprax/actions/runs/31418476217/job/93553147265);
+all 12 jobs passed.
 
 - A design document proves intent, not implementation.
 - A compiler unit test proves only the covered semantic case.

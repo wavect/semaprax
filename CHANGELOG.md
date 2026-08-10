@@ -26,7 +26,12 @@ All notable changes to SEMAPRAX are documented here.
   is 7/7; v3 A0 hook units are 4/4; aggregate v3 integration-plus-hook evidence
   is 9/9 (seven semantic cases plus two bounded-work integration hooks, not the
   separate 4/4 internal units); and the library suite is 404/404. Full preservation is green and
-  security review is clean; hosted evidence is pending. Typed holes, other diagnostics and declaration kinds, repair
+  security review is clean. The exact `dae957a` full matrix is hosted green in
+  [run 31418476217 attempt
+  1](https://github.com/wavect/semaprax/actions/runs/31418476217/attempts/1),
+  including [Ubuntu job
+  93553147265](https://github.com/wavect/semaprax/actions/runs/31418476217/job/93553147265);
+  all 12 jobs passed. Typed holes, other diagnostics and declaration kinds, repair
   ranking/composition/automatic application, other v3 operations, authenticated
   patch provenance, Graph or CleanupPlan schema/version/semantic-shape
   widening, Graph v11-v14 repair admission, backend/runtime semantic changes,

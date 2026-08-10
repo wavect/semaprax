@@ -546,7 +546,12 @@ only the canonical three-line `assign-function-id` operation through unchanged
 A0; Impact v1 remains v1/v2-only. Local Phase A integration is 13/13; the
 Phase B semantic integration corpus is 7/7; v3 A0 hook units are 4/4;
 aggregate v3 integration-plus-hook evidence is 9/9; and library 404/404,
-full-preservation, and security gates are green. Hosted evidence is pending. The breaking operation rebases Graph-v10 identity content
+full-preservation, and security gates are green. The exact `dae957a` full
+matrix is hosted green in [run 31418476217 attempt
+1](https://github.com/wavect/semaprax/actions/runs/31418476217/attempts/1),
+including [Ubuntu job
+93553147265](https://github.com/wavect/semaprax/actions/runs/31418476217/job/93553147265);
+all 12 jobs passed. The breaking operation rebases Graph-v10 identity content
 and may rebase identity-bearing CleanupPlan content, but widens no schema or
 semantic shape and changes no backend/runtime semantics. General, typed-hole,
 ranked/composed, repository-wide, and multi-file repair remains roadmap work.

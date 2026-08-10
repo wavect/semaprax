@@ -4,6 +4,22 @@ All notable changes to SEMAPRAX are documented here.
 
 ## 0.2.0 — 2026-08-07
 
+- Added default-off Private Source-Result Component v4 for one exact
+  effect-free source closure. It compiles ordinary compiler-owned
+  `Result<i64, bool>` plus postfix `?` into `Result<bool, bool>`, then lifts the
+  result as the distinct WIT 0.2 type
+  `result<result<bool, bool>, status>`. Source `Ok`/`Err` remain the inner
+  language result while recognized compiler status is the outer error;
+  invalid internal tags and unknown statuses trap. The artifact binds the
+  exact source revision, generated core, prelude, both layout-v2 digests, and
+  v4 profile with independent parsing, upstream validation, canonical-byte
+  mutation closure, and local generated-core Node execution. The isolated
+  Wasmtime 47.0.3 runner and CI source locks cover ten typed outcomes,
+  same/fresh-instance calls, zero imports, empty linker/no WASI, and
+  out-of-band fuel failure. Hosted v4 runtime evidence is pending. This does
+  not alter v1-v3 artifacts, public component/aggregate ABI, resources,
+  imports/capabilities, general `Result`/`Option`/`?`, callable/FFI signatures,
+  or `SPX-B104`.
 - Added bounded typed postfix `?` for ordinary compiler-owned
   `Result<T, E>` with direct `i64`/`bool` arguments. Source and HIR authenticate
   the exact prelude members, source and outer instances, one operand

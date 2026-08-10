@@ -543,6 +543,41 @@ profile/version and migration note. This scalar fixture must not be
 reinterpreted as the `SPXWIT01` result/status interface or a public component
 package.
 
+## Private source-result component v4
+
+Private Source-Result Component v4 is a new profile, not an in-place change to
+the v1 scalar fixture, checked component v2, or Portable Result Component v3.
+Its package/interface version is `semaprax:private@0.2.0`, and its sole admitted
+export is:
+
+```wit
+type language-result = result<bool, bool>;
+evaluate: func(value: s64, reject: bool, divisor: s64) -> result<language-result, status>;
+```
+
+Consumers must preserve the nested result distinction: source-language
+`Ok`/`Err` occupy the inner result, while recognized compiler status occupies
+the outer error. They must not flatten language `Err` into status, treat status
+as a language payload, or reinterpret the compiler's internal variant bytes as
+the WIT canonical representation. Invalid internal tags and unknown statuses
+remain traps.
+
+The v4 known answers are:
+
+```text
+source revision: sha256:4391bc27b5db547f2b162c2b5467c2b75797e8a5ef64e4ffe4abef15678c6254
+generated core:  54fa2822c51a71cebfd88d379b45c37ffd3d0f0b2893cb4f2966f9e2db6d5e5f
+component bytes: 3e7b9c2ddc8ca6fdfa801eb50ae3a21531fce44677345ddea68d20581c79b23b
+artifact DAG:    f5fa5ae3905d30c998f783e9b77867986813b0e8b4412fa4afa98e932eda4d40
+```
+
+Any incompatible change to the exact source closure, selected signature,
+prelude/layout bindings, component type graph, canonical lift, export name,
+status mapping, or core/component topology requires another private profile
+version and new independent known answers. V4 adds no compatibility fallback
+from or to v1-v3 and creates no public component, aggregate, callable, FFI, or
+resource ABI. Its hosted Wasmtime evidence is pending.
+
 ## Revision token FNV-1a64 to SHA-256
 
 Graph v3 and later, semantic patch bases, CLI output, and `semaprax.web.v2`/`semaprax.web.v3` manifests use one algorithm-tagged token:

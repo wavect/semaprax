@@ -124,17 +124,82 @@ environment, clock, randomness, process, logging, or mutable ambient authority.
 Its unpublished crate, exact Rust 1.97.1 evidence toolchain, Wasmtime
 dependency, lockfile, and denial policy are isolated from the root workspace,
 so they cannot widen the public compiler dependency graph or Rust 1.85 MSRV.
-The hosted Ubuntu Wasmtime job is configured and pending; it does not count as
-hosted evidence until a green run URL is recorded.
+The prelude-bound runner is hosted green in [run 31347109201, job
+93330959212](https://github.com/wavect/semaprax/actions/runs/31347109201/job/93330959212)
+and again in [run 31353051690, job
+93347328905](https://github.com/wavect/semaprax/actions/runs/31353051690/job/93347328905).
+
+## Private source-result component v4
+
+V4 is a separate WIT 0.2 profile that connects one exact verified source
+closure to an engine-native Component boundary:
+
+```wit
+package semaprax:private@0.2.0;
+
+interface evaluation {
+  record status { domain: string, code: u32, class: u8, retryable: option<bool> }
+  type language-result = result<bool, bool>;
+  evaluate: func(value: s64, reject: bool, divisor: s64) -> result<language-result, status>;
+}
+```
+
+The admitted source closure contains only `component.source` and
+`component.evaluate`. It is effect-free, uses compiler-owned
+`Result<i64, bool>` and `Result<bool, bool>`, and exercises postfix `?` before
+a checked add and division. The compiler derives the core from validated HIR
+and CleanupPlan v2, then independently binds the exact source revision,
+prelude digest, both Wasm32 layout-v2 digests, selected signatures and closure,
+generated core, and component profile. User nominal types, resources,
+interfaces, permits/effects, extra reachable functions, and altered signatures
+fail closed.
+
+The WIT result is deliberately nested. A source-language `Ok(bool)` becomes
+outer `ok(inner ok(bool))`; a propagated source-language `Err(bool)` becomes
+outer `ok(inner err(bool))`; and a recognized compiler contract or arithmetic
+status becomes outer `err(status)`. Status is selected before the poisoned
+source-result area is read. The adapter reconstructs canonical memory field by
+field, validates boolean values, publishes tags last, and traps on invalid
+internal tags, unknown statuses, or invalid canonical inputs. It never
+memcpy/transmutes the compiler's internal `u32`-tagged variant into the WIT
+canonical representation.
+
+The frozen local known answers are:
+
+```text
+source revision: sha256:4391bc27b5db547f2b162c2b5467c2b75797e8a5ef64e4ffe4abef15678c6254
+generated core:  54fa2822c51a71cebfd88d379b45c37ffd3d0f0b2893cb4f2966f9e2db6d5e5f
+component bytes: 3e7b9c2ddc8ca6fdfa801eb50ae3a21531fce44677345ddea68d20581c79b23b
+artifact DAG:    f5fa5ae3905d30c998f783e9b77867986813b0e8b4412fa4afa98e932eda4d40
+```
+
+An independent bounded parser verifies the exact core signatures, function
+indices, memory/global, exports, code/data/custom manifest, component types,
+aliases, canonical lift, named interface, and versioned export. Maintained
+upstream validation and every-byte, truncation, trailing, noncanonical-length,
+rehashed type/lift, cross-version, and admission hostiles are locally green.
+The default consumer still cannot name the feature-gated API.
+
+The isolated Wasmtime 47.0.3 runner is extended with checked-in v4 WIT and
+generated typed bindings. It is configured for ten outcomes: both inner result
+arms and boolean payloads; an `Err` that skips division by zero; add overflow,
+division by zero, and sticky first failure; false precondition; and false
+postcondition after both ordinary and residual paths. It repeats the matrix on
+one instance and fresh instances, requires zero imports and an empty linker,
+provides no WASI or callbacks, and keeps fuel exhaustion out of band. The
+source locks and compiler/component tests are green locally; hosted v4
+Wasmtime execution is pending and does not yet count as hosted evidence.
 
 ## Nonclaims
 
-The original scalar component and checked v2 artifact remain separate profiles.
-Portable Result Component v3 proves only one private two-parameter scalar
-`result<s64, status>` export; it does not add source-language `Result` or
-`Option`, propagation syntax, exhaustive matching, records, variants,
-resources, handles, ownership, imports, async/futures/streams, or general
-export selection.
+The original scalar component, checked v2 artifact, Portable Result Component
+v3, and Source-Result Component v4 remain separate profiles. V3 proves only one
+private two-parameter scalar `result<s64, status>` export. V4 proves only one
+exact effect-free source closure and its
+`result<result<bool, bool>, status>` export; it does not generalize source
+`Result`, `Option`, or `?`, exhaustive matching, records, user variants,
+resources, handles, ownership, imports, async/futures/streams, callable/FFI
+aggregate signatures, or export selection.
 
 This tranche does not provide WIT imports, capabilities, version negotiation,
 multi-language composition, browser or WASI execution, multi-engine

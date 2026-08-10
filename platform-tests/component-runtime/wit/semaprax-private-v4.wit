@@ -1,0 +1,11 @@
+package semaprax:private@0.2.0;
+
+interface evaluation {
+  record status { domain: string, code: u32, class: u8, retryable: option<bool> }
+  type language-result = result<bool, bool>;
+  evaluate: func(value: s64, reject: bool, divisor: s64) -> result<language-result, status>;
+}
+
+world semaprax-private-v4 {
+  export evaluation;
+}

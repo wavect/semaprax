@@ -1,4 +1,4 @@
-//! Hosted typed Wasmtime Component Model evidence for private result v3.
+//! Hosted typed Wasmtime Component Model evidence for private results v3/v4.
 
 use std::{error::Error, io, path::Path};
 
@@ -9,11 +9,20 @@ use wasmtime::{
 };
 
 wasmtime::component::bindgen!({
-    path: "wit",
+    path: "wit/semaprax-private-v1.wit",
     world: "semaprax-private-v1",
     ownership: Owning,
     additional_derives: [Eq, PartialEq],
 });
+
+mod v4_bindings {
+    wasmtime::component::bindgen!({
+        path: "wit/semaprax-private-v4.wit",
+        world: "semaprax-private-v4",
+        ownership: Owning,
+        additional_derives: [Eq, PartialEq],
+    });
+}
 
 use exports::semaprax::private::evaluation::Status;
 
@@ -34,6 +43,30 @@ fn evaluate(left: i64, right: i64) -> i64
 fn main() -> i64 { 0 }
 "#;
 
+const SOURCE_V4: &str = r#"module test.component_source_result_v4;
+
+@id("component.source")
+fn source(value: i64, reject: bool) -> Result<i64, bool>
+{
+    if reject { Result<i64, bool>::Err { error: value > 0 } } else { Result<i64, bool>::Ok { value: value } }
+}
+
+@id("component.evaluate")
+fn evaluate(value: i64, reject: bool, divisor: i64) -> Result<bool, bool>
+    requires value != -99
+    ensures divisor != 13
+{
+    let checked = source(value, reject)?;
+    Result<bool, bool>::Ok { value: (checked + 1) / divisor > 0 }
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    0
+}
+"#;
+
 // These independent known answers are replaced only alongside a reviewed
 // component-profile version change. Artifact accessor metadata is never used
 // as runtime authority.
@@ -49,6 +82,19 @@ const EXPECTED_PROFILE_SHA256: [u8; 32] = [
     222, 215, 48, 247, 69, 152, 10, 90, 86, 167, 93, 149, 152, 80, 26, 184, 41, 24, 28, 36, 66,
     136, 84, 206, 88, 224, 108, 189, 68, 18, 50, 98,
 ];
+
+// Independent v4 known answers. These are intentionally not read from
+// artifact metadata and are replaced only with a reviewed v4 profile change.
+const EXPECTED_COMPONENT_V4_SHA256: [u8; 32] = [
+    0x3e, 0x7b, 0x9c, 0x2d, 0xdc, 0x8c, 0xa6, 0xfd, 0xfa, 0x80, 0x1e, 0xb5, 0x0a, 0xe3, 0xa2, 0x15,
+    0x31, 0xfc, 0xe4, 0x46, 0x77, 0x34, 0x5d, 0xde, 0xa6, 0x8d, 0x20, 0x58, 0x1c, 0x79, 0xb2, 0x3b,
+];
+const EXPECTED_GENERATED_CORE_V4_SHA256: [u8; 32] = [
+    0x54, 0xfa, 0x28, 0x22, 0xc5, 0x1a, 0x71, 0xce, 0xbf, 0xd8, 0x8d, 0x37, 0x9b, 0x45, 0xc3, 0x7f,
+    0xfd, 0x3d, 0x0f, 0x0b, 0x28, 0x93, 0xcb, 0x4f, 0x29, 0x66, 0xf9, 0xe2, 0xdb, 0x6d, 0x5e, 0x5f,
+];
+const EXPECTED_SOURCE_REVISION_V4: &str =
+    "sha256:4391bc27b5db547f2b162c2b5467c2b75797e8a5ef64e4ffe4abef15678c6254";
 
 #[derive(Clone, Copy)]
 enum Expected {
@@ -127,6 +173,125 @@ const CASES: [Case; 6] = [
     },
 ];
 
+type EvaluationV4 =
+    Result<Result<bool, bool>, v4_bindings::exports::semaprax::private::evaluation::Status>;
+
+#[derive(Clone, Copy)]
+enum ExpectedV4 {
+    Value(Result<bool, bool>),
+    Status {
+        domain: &'static str,
+        code: u32,
+        class: u8,
+    },
+}
+
+#[derive(Clone, Copy)]
+struct CaseV4 {
+    name: &'static str,
+    value: i64,
+    reject: bool,
+    divisor: i64,
+    expected: ExpectedV4,
+}
+
+const CASES_V4: [CaseV4; 10] = [
+    CaseV4 {
+        name: "inner-ok-true",
+        value: 83,
+        reject: false,
+        divisor: 2,
+        expected: ExpectedV4::Value(Ok(true)),
+    },
+    CaseV4 {
+        name: "inner-ok-false",
+        value: -3,
+        reject: false,
+        divisor: 2,
+        expected: ExpectedV4::Value(Ok(false)),
+    },
+    CaseV4 {
+        name: "inner-err-true",
+        value: 1,
+        reject: true,
+        divisor: 0,
+        expected: ExpectedV4::Value(Err(true)),
+    },
+    CaseV4 {
+        name: "inner-err-false",
+        value: -1,
+        reject: true,
+        divisor: 0,
+        expected: ExpectedV4::Value(Err(false)),
+    },
+    CaseV4 {
+        name: "addition-overflow",
+        value: i64::MAX,
+        reject: false,
+        divisor: 1,
+        expected: ExpectedV4::Status {
+            domain: "semaprax.arithmetic.v1",
+            code: 1,
+            class: 2,
+        },
+    },
+    CaseV4 {
+        name: "division-by-zero",
+        value: 1,
+        reject: false,
+        divisor: 0,
+        expected: ExpectedV4::Status {
+            domain: "semaprax.arithmetic.v1",
+            code: 4,
+            class: 2,
+        },
+    },
+    CaseV4 {
+        name: "sticky-add-overflow-before-division-by-zero",
+        value: i64::MAX,
+        reject: false,
+        divisor: 0,
+        expected: ExpectedV4::Status {
+            domain: "semaprax.arithmetic.v1",
+            code: 1,
+            class: 2,
+        },
+    },
+    CaseV4 {
+        name: "false-precondition",
+        value: -99,
+        reject: false,
+        divisor: 1,
+        expected: ExpectedV4::Status {
+            domain: "semaprax.contract.v1",
+            code: 1,
+            class: 1,
+        },
+    },
+    CaseV4 {
+        name: "false-postcondition-after-ok",
+        value: 1,
+        reject: false,
+        divisor: 13,
+        expected: ExpectedV4::Status {
+            domain: "semaprax.contract.v1",
+            code: 2,
+            class: 1,
+        },
+    },
+    CaseV4 {
+        name: "false-postcondition-after-err",
+        value: 1,
+        reject: true,
+        divisor: 13,
+        expected: ExpectedV4::Status {
+            domain: "semaprax.contract.v1",
+            code: 2,
+            class: 1,
+        },
+    },
+];
+
 fn failure(message: impl Into<String>) -> Box<dyn Error> {
     Box::new(io::Error::other(message.into()))
 }
@@ -198,7 +363,80 @@ fn prove_engine_failure_is_out_of_band(engine: &Engine, component: &Component) -
     Ok(())
 }
 
-fn run() -> HostResult<()> {
+fn assert_outcome_v4(case: CaseV4, outcome: &EvaluationV4) -> HostResult<()> {
+    match (case.expected, outcome) {
+        (ExpectedV4::Value(expected), Ok(actual)) if *actual == expected => Ok(()),
+        (
+            ExpectedV4::Status {
+                domain,
+                code,
+                class,
+            },
+            Err(status),
+        ) if status.domain == domain
+            && status.code == code
+            && status.class == class
+            && status.retryable == Some(false) =>
+        {
+            Ok(())
+        }
+        _ => Err(failure(format!(
+            "{} returned an unexpected typed nested result: {outcome:?}",
+            case.name
+        ))),
+    }
+}
+
+fn invoke_v4(
+    bindings: &v4_bindings::SemapraxPrivateV4,
+    store: &mut Store<()>,
+    case: CaseV4,
+) -> HostResult<()> {
+    let outcome = bindings.semaprax_private_evaluation().call_evaluate(
+        store,
+        case.value,
+        case.reject,
+        case.divisor,
+    )?;
+    assert_outcome_v4(case, &outcome)
+}
+
+fn instantiate_and_run_v4(
+    engine: &Engine,
+    component: &Component,
+    cases: impl IntoIterator<Item = CaseV4>,
+) -> HostResult<()> {
+    let linker = Linker::<()>::new(engine);
+    let mut store = Store::new(engine, ());
+    store.set_fuel(10_000_000)?;
+    let bindings = v4_bindings::SemapraxPrivateV4::instantiate(&mut store, component, &linker)?;
+    for case in cases {
+        invoke_v4(&bindings, &mut store, case)?;
+    }
+    Ok(())
+}
+
+fn prove_engine_failure_is_out_of_band_v4(
+    engine: &Engine,
+    component: &Component,
+) -> HostResult<()> {
+    let linker = Linker::<()>::new(engine);
+    let mut store = Store::new(engine, ());
+    store.set_fuel(1_000_000)?;
+    let bindings = v4_bindings::SemapraxPrivateV4::instantiate(&mut store, component, &linker)?;
+    store.set_fuel(0)?;
+    let engine_failure = bindings
+        .semaprax_private_evaluation()
+        .call_evaluate(&mut store, 83, false, 2);
+    if engine_failure.is_ok() {
+        return Err(failure(
+            "fuel exhaustion did not remain an out-of-band Wasmtime error for v4",
+        ));
+    }
+    Ok(())
+}
+
+fn run_v3() -> HostResult<()> {
     let program = ::semaprax::check(SOURCE, Path::new("component-result-v3.spx"))
         .map_err(|diagnostics| failure(format!("fixture verification failed: {diagnostics:?}")))?;
     let artifact = ::semaprax::wit_component::emit_private_result_component_v3(&program)
@@ -268,6 +506,78 @@ fn run() -> HostResult<()> {
     prove_engine_failure_is_out_of_band(&engine, &component)?;
     println!("semaprax-private-component-runtime-v3-ok");
     Ok(())
+}
+
+fn run_v4() -> HostResult<()> {
+    let program = ::semaprax::check(SOURCE_V4, Path::new("component-source-result-v4.spx"))
+        .map_err(|diagnostics| {
+            failure(format!("v4 fixture verification failed: {diagnostics:?}"))
+        })?;
+    let artifact = ::semaprax::wit_component::emit_private_source_result_component_v4(&program)
+        .map_err(|diagnostic| failure(format!("v4 component emission failed: {diagnostic:?}")))?;
+    if artifact.wit() != include_str!("../wit/semaprax-private-v4.wit") {
+        return Err(failure(
+            "checked-in Wasmtime v4 WIT drifted from the compiler fixture",
+        ));
+    }
+
+    let bytes: Box<[u8]> = artifact.bytes().to_vec().into_boxed_slice();
+    let before: [u8; 32] = Sha256::digest(&bytes).into();
+    if before != EXPECTED_COMPONENT_V4_SHA256 {
+        return Err(failure(format!(
+            "v4 component bytes failed the independent SHA-256 known answer: {before:02x?}"
+        )));
+    }
+    let expected_revision = ::semaprax::graph::revision(&program);
+    if expected_revision != EXPECTED_SOURCE_REVISION_V4 {
+        return Err(failure(format!(
+            "v4 fixture source revision drifted: {expected_revision}"
+        )));
+    }
+    let validated = ::semaprax::wit_component::validate_private_source_result_component_v4(
+        &bytes,
+        &expected_revision,
+        EXPECTED_GENERATED_CORE_V4_SHA256,
+    )
+    .map_err(|error| failure(format!("v4 component profile validation failed: {error:?}")))?;
+    if validated.interface_export_name() != "semaprax:private/evaluation@0.2.0"
+        || validated.function_export_name() != "evaluate"
+        || validated.source_revision() != expected_revision
+    {
+        return Err(failure(
+            "independent v4 component profile did not match the typed WIT",
+        ));
+    }
+
+    let mut config = Config::new();
+    config.wasm_component_model(true);
+    config.consume_fuel(true);
+    let engine = Engine::new(&config)?;
+    let component = Component::new(&engine, &bytes)?;
+    if component.component_type().imports(&engine).len() != 0 {
+        return Err(failure(
+            "private nested-result component requested ambient imports",
+        ));
+    }
+    let after: [u8; 32] = Sha256::digest(&bytes).into();
+    if after != before {
+        return Err(failure(
+            "authenticated v4 component bytes changed before compilation",
+        ));
+    }
+
+    instantiate_and_run_v4(&engine, &component, CASES_V4.into_iter().chain(CASES_V4))?;
+    for case in CASES_V4 {
+        instantiate_and_run_v4(&engine, &component, [case])?;
+    }
+    prove_engine_failure_is_out_of_band_v4(&engine, &component)?;
+    println!("semaprax-private-component-runtime-v4-ok");
+    Ok(())
+}
+
+fn run() -> HostResult<()> {
+    run_v3()?;
+    run_v4()
 }
 
 fn main() -> HostResult<()> {

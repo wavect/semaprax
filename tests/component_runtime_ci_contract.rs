@@ -73,10 +73,14 @@ fn standalone_runner_is_pinned_private_and_outside_the_root_workspace() {
 }
 
 #[test]
-fn runtime_wit_is_the_exact_existing_private_result_contract() {
-    let checked_in = read("platform-tests/component-runtime/wit/semaprax-private-v1.wit");
-    let expected = "package semaprax:private@0.1.0;\n\ninterface evaluation {\n  record status { domain: string, code: u32, class: u8, retryable: option<bool> }\n  evaluate: func(left: s64, right: s64) -> result<s64, status>;\n}\n\nworld semaprax-private-v1 {\n  export evaluation;\n}\n";
-    assert_eq!(checked_in, expected);
+fn runtime_wits_are_the_exact_private_result_contracts() {
+    let checked_in_v3 = read("platform-tests/component-runtime/wit/semaprax-private-v1.wit");
+    let expected_v3 = "package semaprax:private@0.1.0;\n\ninterface evaluation {\n  record status { domain: string, code: u32, class: u8, retryable: option<bool> }\n  evaluate: func(left: s64, right: s64) -> result<s64, status>;\n}\n\nworld semaprax-private-v1 {\n  export evaluation;\n}\n";
+    assert_eq!(checked_in_v3, expected_v3);
+
+    let checked_in_v4 = read("platform-tests/component-runtime/wit/semaprax-private-v4.wit");
+    let expected_v4 = "package semaprax:private@0.2.0;\n\ninterface evaluation {\n  record status { domain: string, code: u32, class: u8, retryable: option<bool> }\n  type language-result = result<bool, bool>;\n  evaluate: func(value: s64, reject: bool, divisor: s64) -> result<language-result, status>;\n}\n\nworld semaprax-private-v4 {\n  export evaluation;\n}\n";
+    assert_eq!(checked_in_v4, expected_v4);
 }
 
 #[test]
@@ -88,6 +92,7 @@ fn component_job_fetches_root_and_runner_then_runs_every_gate_locked_and_offline
         "cargo fetch --locked --manifest-path \"$readonly_root/Cargo.toml\"",
         "cargo fetch --locked --manifest-path \"$readonly_manifest\"",
         "--features unstable-wit-component-harness --lib wit_component::result_v3::tests::",
+        "--features unstable-wit-component-harness --lib wit_component::source_result_v4::tests::",
         "--test component_runtime_ci_contract",
     ] {
         assert!(
@@ -107,13 +112,14 @@ fn component_job_fetches_root_and_runner_then_runs_every_gate_locked_and_offline
         assert!(script.contains(exact_toolchain_field));
     }
     for command in ["cargo clippy", "cargo test", "cargo run"] {
-        let line = script
-            .lines()
-            .find(|line| line.starts_with(command))
-            .unwrap_or_else(|| panic!("missing {command}"));
-        assert!(line.contains("--locked"), "unlocked command: {line}");
-        assert!(line.contains("--offline"), "online command: {line}");
-        assert!(line.contains("--manifest-path"), "unscoped command: {line}");
+        let mut found = false;
+        for line in script.lines().filter(|line| line.starts_with(command)) {
+            found = true;
+            assert!(line.contains("--locked"), "unlocked command: {line}");
+            assert!(line.contains("--offline"), "online command: {line}");
+            assert!(line.contains("--manifest-path"), "unscoped command: {line}");
+        }
+        assert!(found, "missing {command}");
     }
 
     let workflow = read(".github/workflows/ci.yml");
@@ -125,6 +131,7 @@ fn component_job_fetches_root_and_runner_then_runs_every_gate_locked_and_offline
         "manifest-path: platform-tests/component-runtime/Cargo.toml",
         "--config platform-tests/component-runtime/deny.toml",
         "scripts/component-runtime-v3.sh",
+        "execute every v3/v4 Component gate offline",
     ] {
         assert!(
             workflow.contains(required),
@@ -157,11 +164,20 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "component.component_type().imports(&engine)",
         "Linker::<()>::new(engine)",
         "call_evaluate",
+        "SemapraxPrivateV4::instantiate",
+        "semaprax-private-v4.wit",
+        "EXPECTED_COMPONENT_V4_SHA256",
+        "EXPECTED_GENERATED_CORE_V4_SHA256",
+        "EXPECTED_SOURCE_REVISION_V4",
+        "sha256:4391bc27b5db547f2b162c2b5467c2b75797e8a5ef64e4ffe4abef15678c6254",
+        "validate_private_source_result_component_v4",
         "config.consume_fuel(true)",
         "store.set_fuel(0)",
         "engine_failure.is_ok()",
         "CASES.into_iter().chain(CASES)",
+        "CASES_V4.into_iter().chain(CASES_V4)",
         "for case in CASES",
+        "for case in CASES_V4",
         "(left + 1) / right",
         "name: \"addition-overflow\"",
         "left: i64::MAX",
@@ -169,8 +185,18 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "name: \"sticky-add-overflow-before-division-by-zero\"",
         "name: \"false-precondition\"",
         "name: \"false-postcondition\"",
+        "name: \"inner-ok-true\"",
+        "name: \"inner-ok-false\"",
+        "name: \"inner-err-true\"",
+        "name: \"inner-err-false\"",
+        "let checked = source(value, reject)?;",
+        "(checked + 1) / divisor > 0",
+        "name: \"false-postcondition-after-ok\"",
+        "name: \"false-postcondition-after-err\"",
         "0x7d, 0x86, 0x44, 0x38, 0x49, 0x48, 0xf5, 0x91",
         "0xd5, 0x5f, 0x76, 0xa0, 0xe6, 0x97, 0x47, 0x77",
+        "0x3e, 0x7b, 0x9c, 0x2d, 0xdc, 0x8c, 0xa6, 0xfd",
+        "0x54, 0xfa, 0x28, 0x22, 0xc5, 0x1a, 0x71, 0xce",
     ] {
         assert!(
             runner.contains(required),

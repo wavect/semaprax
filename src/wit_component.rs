@@ -9,10 +9,15 @@ use sha2::{Digest, Sha256};
 use crate::{ast::Program, diagnostic::Diagnostic, graph, wasm};
 
 mod result_v3;
+mod source_result_v4;
 
 pub use result_v3::{
     emit_private_result_component_v3, validate_private_result_component_v3,
     PrivateResultComponentArtifactV3, ValidatedPrivateResultComponentV3,
+};
+pub use source_result_v4::{
+    emit_private_source_result_component_v4, validate_private_source_result_component_v4,
+    PrivateSourceResultComponentArtifactV4, ValidatedPrivateSourceResultComponentV4,
 };
 
 const MAGIC: &[u8; 8] = b"SPXWIT01";
@@ -1608,10 +1613,12 @@ semaprax = {{ path = "{manifest_root}", default-features = false }}
     emit_private_checked_component_v2,
     emit_private_component_v1,
     emit_private_result_component_v3,
+    emit_private_source_result_component_v4,
     private_checked_component_runtime_javascript_v2,
     validate_private_checked_component_v2,
     validate_private_component_v1,
     validate_private_result_component_v3,
+    validate_private_source_result_component_v4,
 };
 
 fn main() {
@@ -1622,6 +1629,8 @@ fn main() {
     let _ = validate_private_checked_component_v2;
     let _ = emit_private_result_component_v3;
     let _ = validate_private_result_component_v3;
+    let _ = emit_private_source_result_component_v4;
+    let _ = validate_private_source_result_component_v4;
 }
 "#,
         )
@@ -1667,7 +1676,11 @@ semaprax = {{ path = "{manifest_root}", default-features = false, features = ["u
         std::fs::create_dir(directory.path().join("src")).unwrap();
         std::fs::write(
             directory.path().join("src/main.rs"),
-            r#"use semaprax::wit_component::{PrivateCheckedComponentArtifactV2, PrivateResultComponentArtifactV3};
+            r#"use semaprax::wit_component::{
+    PrivateCheckedComponentArtifactV2,
+    PrivateResultComponentArtifactV3,
+    PrivateSourceResultComponentArtifactV4,
+};
 
 fn hostile(artifact: &mut PrivateCheckedComponentArtifactV2) {
     let _ = artifact.digest();
@@ -1687,6 +1700,21 @@ fn hostile_v3(artifact: &mut PrivateResultComponentArtifactV3) {
     artifact.profile_digest = [0; 32];
 }
 
+fn hostile_v4(artifact: &mut PrivateSourceResultComponentArtifactV4) {
+    let _ = artifact.digest();
+    let _ = artifact.generated_core_digest();
+    let _ = artifact.profile_digest();
+    let _ = artifact.prelude_digest();
+    let _ = artifact.result_i64_bool_layout_digest();
+    let _ = artifact.result_bool_bool_layout_digest();
+    artifact.digest = [0; 32];
+    artifact.generated_core_digest = [0; 32];
+    artifact.profile_digest = [0; 32];
+    artifact.prelude_digest = [0; 32];
+    artifact.result_i64_bool_layout_digest = [0; 32];
+    artifact.result_bool_bool_layout_digest = [0; 32];
+}
+
 fn main() {}
 "#,
         )
@@ -1704,6 +1732,9 @@ fn main() {}
             "generated_core_digest",
             "runtime_core_digest",
             "profile_digest",
+            "prelude_digest",
+            "result_i64_bool_layout_digest",
+            "result_bool_bool_layout_digest",
         ] {
             assert!(
                 stderr.contains("private field") && stderr.contains(field),

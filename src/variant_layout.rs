@@ -183,6 +183,11 @@ impl VariantLayout {
         self.cases.iter().find(|item| item.case == *case)
     }
 
+    #[cfg(any(test, feature = "unstable-wit-component-harness"))]
+    pub(crate) const fn digest(&self) -> [u8; 32] {
+        self.digest
+    }
+
     #[cfg(test)]
     fn digest_hex(&self) -> String {
         let mut output = String::with_capacity(64);

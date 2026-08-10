@@ -238,11 +238,20 @@ runtime/dependency graph cannot widen the public compiler graph or MSRV. The
 prelude-bound result-v3 KAT migration and standalone Wasmtime runner are hosted
 green in [run 31347109201, job
 93330959212](https://github.com/wavect/semaprax/actions/runs/31347109201/job/93330959212).
-This remains **Partial** WIT evidence
-only: source-language `Result`/`Option` are not wired into this component
-profile, and records, resources, imports, async, capabilities,
-multi-engine/browser conformance, a public WIT surface, and any `SPX-B104`
-change remain absent.
+Private Source-Result Component v4 now connects one exact verified source
+closure using ordinary `Result<i64, bool>`, postfix `?`, and
+`Result<bool, bool>` to the separate WIT 0.2 export
+`result<result<bool, bool>, status>`. Local deterministic emission, independent
+profile parsing, upstream Component validation, hostile mutation tests, and
+generated-core Node execution are green. The isolated Wasmtime runner is
+configured to cover both language-result arms and boolean payloads, residual
+short-circuiting, sticky arithmetic failure, pre/postconditions, re-entry,
+fresh instances, and out-of-band fuel failure; hosted v4 runtime evidence is
+pending. This remains **Partial** WIT evidence only: v4 admits exactly that
+private effect-free source closure. General `Result`/`Option` component
+mapping, records, resources, imports, async, capabilities, multi-engine/browser
+conformance, a public WIT surface, callable/FFI aggregate signatures, and any
+`SPX-B104` change remain absent.
 
 Not implemented yet: public native resource execution/admission,
 general-shape native/reference/Wasm trace conformance, the general Wasm resource ABI,

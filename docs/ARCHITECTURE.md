@@ -403,10 +403,33 @@ toolchain, and dependency-denial policy isolate Wasmtime from the root compiler
 dependency and MSRV graph. The current prelude-bound KAT migration and
 standalone runner are hosted green in [run 31347109201, job
 93330959212](https://github.com/wavect/semaprax/actions/runs/31347109201/job/93330959212).
-Source-language `Result`/`Option` are not connected to this
-component profile; records/resources, imports, async, capabilities,
-multi-engine/browser execution, public API, and `SPX-B104` remain outside this
-trust boundary.
+
+Private Source-Result Component v4 is a fourth, separately versioned profile.
+It admits only the exact effect-free `component.source`/`component.evaluate`
+closure whose selected signature is
+`(i64, bool, i64) -> Result<bool, bool>`. The generated core is derived from
+validated source/HIR and CleanupPlan v2; admission independently binds the
+compiler-owned prelude, exact `Result<i64, bool>` and `Result<bool, bool>`
+Wasm32 layout-v2 digests, selected closure, source revision, core bytes, and
+profile. Its WIT 0.2 interface lifts the source value as
+`result<result<bool, bool>, status>`: language `Ok` and residual `Err` remain
+the inner result, while a recognized contract/arithmetic status becomes the
+outer error. The canonical adapter checks status before reading poisoned
+source-result storage, validates boolean values, lowers into separately sized
+canonical memory, and traps on invalid internal tags or unknown statuses. It
+never transmutes the compiler's internal variant representation into WIT.
+
+The import-free component has an independent exact-profile parser, canonical
+LEB/every-byte/truncation/trailing and rehashed cross-profile/type/lift
+rejection, plus maintained upstream validation. Local core execution covers
+language values, residual short-circuiting, status precedence, poison, and
+re-entry. The isolated Wasmtime runner is extended with generated v4 bindings
+and ten exact same-instance/fresh-instance outcomes; its hosted execution is
+pending and therefore is not yet hosted evidence. V1-v3 remain unchanged.
+General source `Result`/`Option`/`?` mapping, user records/variants/resources,
+imports, async, capabilities, callable/FFI signatures, multi-engine/browser
+execution, public component API/ABI, and `SPX-B104` remain outside this trust
+boundary.
 
 ## Record lowering and backend gate
 

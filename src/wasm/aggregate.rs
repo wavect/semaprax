@@ -19,19 +19,27 @@ use super::{
     Signature, I32, I64, SCALAR_IMPORT_COUNT,
 };
 
-const SHADOW_STACK_TOP: u32 = 65_536;
-const STATUS_SUCCESS: i32 = 0;
-const STATUS_ADD_OVERFLOW: i32 = 1;
-const STATUS_SUB_OVERFLOW: i32 = 2;
-const STATUS_MUL_OVERFLOW: i32 = 3;
-const STATUS_DIV_ZERO: i32 = 4;
-const STATUS_DIV_OVERFLOW: i32 = 5;
-const STATUS_REM_ZERO: i32 = 6;
-const STATUS_REM_OVERFLOW: i32 = 7;
-const STATUS_NEG_OVERFLOW: i32 = 8;
-const STATUS_REQUIRES_FALSE: i32 = 9;
-const STATUS_ENSURES_FALSE: i32 = 10;
-const STATUS_INTERNAL_INVALID_TAG: i32 = -1;
+pub(super) const SHADOW_STACK_TOP: u32 = 65_536;
+pub(super) const STATUS_SUCCESS: i32 = 0;
+pub(super) const STATUS_ADD_OVERFLOW: i32 = 1;
+pub(super) const STATUS_SUB_OVERFLOW: i32 = 2;
+pub(super) const STATUS_MUL_OVERFLOW: i32 = 3;
+pub(super) const STATUS_DIV_ZERO: i32 = 4;
+pub(super) const STATUS_DIV_OVERFLOW: i32 = 5;
+pub(super) const STATUS_REM_ZERO: i32 = 6;
+pub(super) const STATUS_REM_OVERFLOW: i32 = 7;
+pub(super) const STATUS_NEG_OVERFLOW: i32 = 8;
+pub(super) const STATUS_REQUIRES_FALSE: i32 = 9;
+pub(super) const STATUS_ENSURES_FALSE: i32 = 10;
+pub(super) const STATUS_INTERNAL_INVALID_TAG: i32 = -1;
+
+#[cfg(any(test, feature = "unstable-wit-component-harness"))]
+pub(super) struct SelectedAggregateLowering {
+    pub(super) types: Vec<Signature>,
+    pub(super) function_type_indexes: Vec<u32>,
+    pub(super) bodies: Vec<Vec<u8>>,
+    pub(super) selected_index: u32,
+}
 
 #[derive(Clone, Copy)]
 struct Pointer {
@@ -559,6 +567,85 @@ fn scalar_size_align(ty: &ResolvedType) -> Result<(u32, u32), Diagnostic> {
             ty.identity_key()
         ))),
     }
+}
+
+#[cfg(any(test, feature = "unstable-wit-component-harness"))]
+pub(super) fn lower_selected_functions(
+    program: &ResolvedProgram,
+    ordered_function_ids: &[DeclarationId],
+    selected: &DeclarationId,
+) -> Result<SelectedAggregateLowering, Diagnostic> {
+    if ordered_function_ids.is_empty() {
+        return Err(error(
+            "selected aggregate lowering requires a function closure",
+        ));
+    }
+    if program
+        .types
+        .iter()
+        .any(|item| matches!(item.kind, ResolvedTypeDeclarationKind::Resource { .. }))
+    {
+        return Err(resource_gate());
+    }
+    let variant_layouts = VariantLayoutCache::build(program, VariantTarget::Wasm32)?;
+    let mut types = Vec::<Signature>::new();
+    let mut type_indexes = HashMap::<Signature, u32>::new();
+    let mut function_type_indexes = Vec::with_capacity(ordered_function_ids.len());
+    let mut function_indexes = HashMap::with_capacity(ordered_function_ids.len());
+    for (index, id) in ordered_function_ids.iter().enumerate() {
+        let function = program
+            .functions
+            .iter()
+            .find(|function| function.id == *id)
+            .ok_or_else(|| error(format!("selected aggregate function `{id}` is missing")))?;
+        let mut params = Vec::with_capacity(function.params.len() + 1);
+        for param in &function.params {
+            params.push(if is_aggregate(program, &param.ty)? {
+                I32
+            } else {
+                scalar_wasm_type(&param.ty)?
+            });
+        }
+        params.push(I32);
+        function_type_indexes.push(intern_type(
+            Signature {
+                params,
+                results: vec![I32],
+            },
+            &mut types,
+            &mut type_indexes,
+        ));
+        let index = u32::try_from(index)
+            .map_err(|_| error("selected aggregate function index overflows u32"))?;
+        if function_indexes.insert(id.clone(), index).is_some() {
+            return Err(error(format!(
+                "selected aggregate closure repeats function `{id}`"
+            )));
+        }
+    }
+    let selected_index = *function_indexes
+        .get(selected)
+        .ok_or_else(|| error(format!("selected aggregate closure omits `{selected}`")))?;
+    let mut bodies = Vec::with_capacity(ordered_function_ids.len());
+    for id in ordered_function_ids {
+        let function = program
+            .functions
+            .iter()
+            .find(|function| function.id == *id)
+            .ok_or_else(|| error(format!("selected aggregate function `{id}` is missing")))?;
+        bodies.push(emit_function(
+            program,
+            function,
+            &function_indexes,
+            &variant_layouts,
+        )?);
+    }
+    Ok(SelectedAggregateLowering {
+        types,
+        function_type_indexes,
+        bodies,
+        selected_index,
+    })
 }
 
 pub(super) fn emit(program: &ResolvedProgram) -> Result<Vec<u8>, Diagnostic> {

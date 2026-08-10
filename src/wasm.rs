@@ -16,11 +16,19 @@ mod aggregate;
 mod owned;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod result_component_v3;
+#[cfg(any(test, feature = "unstable-wit-component-harness"))]
+mod source_result_component_v4;
 
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 pub(crate) use result_component_v3::{
     emit_private_result_core_v3, CANONICAL_EXPORT as RESULT_COMPONENT_CANONICAL_EXPORT_V3,
     STATUS_OUT_EXPORT as RESULT_COMPONENT_STATUS_OUT_EXPORT_V3,
+};
+#[cfg(any(test, feature = "unstable-wit-component-harness"))]
+pub(crate) use source_result_component_v4::{
+    emit_private_source_result_core_v4,
+    CANONICAL_EXPORT as SOURCE_RESULT_COMPONENT_CANONICAL_EXPORT_V4,
+    STATUS_OUT_EXPORT as SOURCE_RESULT_COMPONENT_STATUS_OUT_EXPORT_V4,
 };
 
 const I32: u8 = 0x7f;
@@ -28,9 +36,9 @@ const I64: u8 = 0x7e;
 const SCALAR_IMPORT_COUNT: u32 = 7;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
-struct Signature {
-    params: Vec<u8>,
-    results: Vec<u8>,
+pub(super) struct Signature {
+    pub(super) params: Vec<u8>,
+    pub(super) results: Vec<u8>,
 }
 
 #[derive(Default)]

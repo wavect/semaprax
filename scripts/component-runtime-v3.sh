@@ -39,6 +39,7 @@ cargo fetch --locked --manifest-path "$readonly_manifest"
 export CARGO_NET_OFFLINE=true
 
 cargo test --locked --offline --manifest-path "$readonly_root/Cargo.toml" --features unstable-wit-component-harness --lib wit_component::result_v3::tests::
+cargo test --locked --offline --manifest-path "$readonly_root/Cargo.toml" --features unstable-wit-component-harness --lib wit_component::source_result_v4::tests::
 cargo test --locked --offline --manifest-path "$readonly_root/Cargo.toml" --test component_runtime_ci_contract
 cargo fmt --manifest-path "$readonly_manifest" --all -- --check
 cargo clippy --locked --offline --manifest-path "$readonly_manifest" --all-targets --all-features -- -D warnings

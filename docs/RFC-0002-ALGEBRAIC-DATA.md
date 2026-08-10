@@ -32,7 +32,11 @@ Generic functions or records, nested/resource arguments, non-copy
 propagation/matching, residual conversion, `?` in contracts, resource- or
 record-bearing variant payloads, a stable public aggregate ABI, public
 resource-bearing execution, and general aggregate execution remain outside
-that evidence.
+that evidence. A separate default-off Source-Result Component v4 locally maps
+one exact effect-free closure using this bounded `Result`/`?` slice to WIT
+`result<result<bool, bool>, status>`. That private fixture does not widen the
+language slice, public aggregate ABI, callable/FFI signatures, or general
+component mapping, and its hosted Wasmtime execution is pending.
 
 ## Canonical source
 
@@ -263,7 +267,7 @@ Existing diagnostic codes remain reserved; implementation must resolve any colli
 3. Add bounded non-generic copy variants and exhaustive copy matching. **Implemented for unit/direct-`i64`/direct-`bool` payloads, scalar `i64`/`bool` arm results, CleanupPlan v2 variant-case replay, deterministic internal Native64/Wasm32 layouts, and native C11 O0/O2 plus Node/Wasm execution.**
 4. Add generic variants, recursive-unsized rejection, and ownership-aware matching. **Partially implemented for nominal variant templates with explicit direct `i64`/`bool` arguments, exact substitution/instance identity, Graph v10, internal layout digest v2, cleanup-free copy matching, and native/Wasm execution. Nested/resource arguments and non-copy ownership modes remain open.**
 5. Add ordinary prelude `Option` and `Result`. **Implemented for compiler-owned `semaprax.prelude.v1` variants under the same direct-`i64`/`bool`, copy-only, internal-ABI limits; component/FFI mappings remain open.**
-6. Add `?` with evaluation-once and unified epilogues. **Implemented for ordinary compiler-owned direct-scalar Copy `Result<T, E>` to `Result<U, E>`, with exact CleanupPlan v2 staging, Graph v10 meaning, and native C11 O0/O2 plus Node/Wasm evidence. Option propagation, residual conversion, nested/resource/non-copy arguments, contracts, public ABI, and component mapping remain open.**
+6. Add `?` with evaluation-once and unified epilogues. **Implemented for ordinary compiler-owned direct-scalar Copy `Result<T, E>` to `Result<U, E>`, with exact CleanupPlan v2 staging, Graph v10 meaning, and native C11 O0/O2 plus Node/Wasm evidence. One private Source-Result Component v4 locally maps the exact `Result<i64, bool>` to `Result<bool, bool>` fixture to nested WIT result/status; hosted v4 execution is pending. Option propagation, residual conversion, nested/resource/non-copy arguments, contracts, public ABI, general component mapping, and callable/FFI signatures remain open.**
 7. Add member/case transactions, layout/interface hashes, and context traversal.
 
 ## Completion evidence

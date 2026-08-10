@@ -514,6 +514,12 @@ Exit criterion: ship one offline-first web/mobile validation application with sh
 
 ## 1.0 criteria
 
+The bounded Semantic Patch v2 milestone adds atomic persistent member/case
+renames and exact generic call-argument replacement without advancing Graph
+beyond v14 or CleanupPlan beyond its existing v2/v3 selection. It remains a
+single-file, trusted-patch-input capability; authenticated multi-file repair,
+generic composition, and broad type renames remain roadmap work.
+
 - Versioned language, graph, package, and component specifications.
 - Reproducible native and component builds on supported targets.
 - Stable debugger and profiler integration.

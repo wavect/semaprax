@@ -4,6 +4,14 @@ All notable changes to SEMAPRAX are documented here.
 
 ## 0.2.0 — 2026-08-07
 
+- Added bounded Semantic Patch v2 with an explicit schema line, atomic
+  persistent record/case-member and variant-case renames, exact generic-call
+  type-argument replacement, pattern-shorthand binding preservation, and a
+  mandatory selective post-HIR semantic-delta gate. Schema-less v1 behavior is
+  retained. Graph remains v14 and CleanupPlan selection is unchanged. The
+  patch file itself remains trusted input; A0 authenticates source/staging, not
+  concurrent patch-path replacement.
+
 - Hardened single-file semantic patch commits against lost updates and leaf
   substitution. Patch application authenticates a canonical regular source
   leaf, serializes cooperating writers with a create-new sibling lock, uses

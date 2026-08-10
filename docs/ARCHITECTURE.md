@@ -822,11 +822,20 @@ The web package contains `app.wasm`, `semaprax.js`, `index.html`, `package.json`
 
 ## Development integrity
 
+Semantic Patch v2 is an additive identity-scoped transaction layer over the
+existing A0 single-file commit protocol. It resolves record/case members and
+generic call arguments against verified pre-edit HIR, preserves pattern binding
+identity through shorthand expansion, and runs a selective Graph/HIR semantic
+delta gate before staging. Schema-less v1 patches retain their original path.
+See `docs/SEMANTIC-PATCH-V2.md`; Graph remains v14 and CleanupPlan is unchanged.
+
 `AGENTS.md` defines the repository invariants and change protocol. `docs/QUALITY-GATES.md` defines baseline and semantic-layer-specific evidence. CI runs formatting, strict linting, tests, release builds, native execution, Wasm instantiation, crate packaging, and the declared Rust minimum version. These gates reduce regressions; they do not turn a partial completion-matrix row into a completed one.
 
 ## Trust boundaries
 
-- Source and patch input are untrusted and fully parsed.
+- Source is authenticated and patch text is fully parsed. Patch-file path/content
+  provenance is trusted input unless the caller snapshots/authenticates it;
+  A0 does not authenticate a concurrent `read_to_string(patch_path)`.
 - Names are restricted before reaching C identifiers.
 - String data embedded into C diagnostics is escaped.
 - Generated C is compiled without shell interpolation.

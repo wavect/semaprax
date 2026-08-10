@@ -1,4 +1,6 @@
-use std::collections::BTreeSet;
+mod source_index;
+
+use std::collections::{BTreeMap, BTreeSet};
 use std::ffi::OsString;
 use std::fs::{File, Metadata, OpenOptions, Permissions};
 use std::io::{Read, Seek, SeekFrom, Write};
@@ -6,7 +8,9 @@ use std::path::{Path, PathBuf};
 
 use crate::ast::{Type, TypeDeclaration, TypeDeclarationKind};
 use crate::diagnostic::Diagnostic;
-use crate::{format, graph, lexer, parse, verify};
+use crate::{format, graph, hir, lexer, parse, verify};
+
+use self::source_index::SemanticSourceIndex;
 
 #[derive(Debug)]
 struct Rename {
@@ -14,10 +18,74 @@ struct Rename {
     new_name: String,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum PatchSchema {
+    V1,
+    V2,
+}
+
+#[derive(Debug)]
+struct RenameMember {
+    owner: String,
+    member: String,
+    new_name: String,
+}
+
+#[derive(Debug)]
+struct RenameCase {
+    owner: String,
+    case: String,
+    new_name: String,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ScalarType {
+    I64,
+    Bool,
+}
+
+impl ScalarType {
+    fn parse(value: &str) -> Option<Self> {
+        match value {
+            "i64" => Some(Self::I64),
+            "bool" => Some(Self::Bool),
+            _ => None,
+        }
+    }
+
+    fn text(self) -> &'static str {
+        match self {
+            Self::I64 => "i64",
+            Self::Bool => "bool",
+        }
+    }
+
+    fn resolved(self) -> hir::ResolvedType {
+        match self {
+            Self::I64 => hir::ResolvedType::I64,
+            Self::Bool => hir::ResolvedType::Bool,
+        }
+    }
+}
+
+#[derive(Debug)]
+struct ReplaceCallTypeArgument {
+    expression: String,
+    template: String,
+    old_instance: String,
+    index: u32,
+    from: ScalarType,
+    to: ScalarType,
+}
+
 #[derive(Debug)]
 struct SemanticPatch {
+    schema: PatchSchema,
     base: String,
     renames: Vec<Rename>,
+    member_renames: Vec<RenameMember>,
+    case_renames: Vec<RenameCase>,
+    call_type_argument_replacements: Vec<ReplaceCallTypeArgument>,
     no_new_effects: bool,
 }
 
@@ -318,6 +386,11 @@ fn apply_with_commit_hook(
         .with_help("regenerate the patch against the current semantic graph")]);
     }
 
+    let before_resolved = if patch.schema == PatchSchema::V2 {
+        Some(hir::resolve(&before)?)
+    } else {
+        None
+    };
     let before_effects = effect_set(&before);
     let mut replacements = Vec::new();
     let tokens =
@@ -371,10 +444,181 @@ fn apply_with_commit_hook(
             format!("stable id `{}` does not exist", rename.stable_id),
         )]);
     }
-    replacements.sort_by_key(|replacement| replacement.0);
-    replacements.dedup_by_key(|replacement| (replacement.0, replacement.1));
+    let source_index = match &before_resolved {
+        Some(resolved) => Some(
+            SemanticSourceIndex::build(&before, resolved, &tokens).ok_or_else(|| {
+                vec![Diagnostic::io(
+                    "SPX-G108",
+                    "semantic patch source/HIR identity index is inconsistent",
+                )]
+            })?,
+        ),
+        None => None,
+    };
+    for rename in &patch.member_renames {
+        validate_new_name(&rename.new_name)?;
+        let identity =
+            member_identity(&before, &rename.owner, &rename.member).ok_or_else(|| {
+                vec![Diagnostic::io(
+                    "SPX-G107",
+                    format!(
+                        "member `{}` does not belong to stable owner `{}`",
+                        rename.member, rename.owner
+                    ),
+                )]
+            })?;
+        if !identity.owner_explicit || !identity.member_explicit {
+            return Err(vec![Diagnostic::io(
+                "SPX-G107",
+                format!(
+                    "member `{}` and owner `{}` need explicit @id identities",
+                    rename.member, rename.owner
+                ),
+            )]);
+        }
+        let sites = source_index
+            .as_ref()
+            .expect("v2 operations have a semantic source index")
+            .members
+            .get(&(rename.owner.clone(), rename.member.clone()))
+            .ok_or_else(|| {
+                vec![Diagnostic::io(
+                    "SPX-G108",
+                    format!(
+                        "member identity `{}` under `{}` has no exact source sites",
+                        rename.member, rename.owner
+                    ),
+                )]
+            })?;
+        for site in sites {
+            let replacement = site.shorthand_binding.as_ref().map_or_else(
+                || rename.new_name.clone(),
+                |binding| format!("{}: {binding}", rename.new_name),
+            );
+            replacements.push((site.span.start, site.span.end, replacement));
+        }
+    }
+    for rename in &patch.case_renames {
+        validate_new_name(&rename.new_name)?;
+        let identity = case_identity(&before, &rename.owner, &rename.case).ok_or_else(|| {
+            vec![Diagnostic::io(
+                "SPX-G107",
+                format!(
+                    "case `{}` does not belong to stable variant `{}`",
+                    rename.case, rename.owner
+                ),
+            )]
+        })?;
+        if !identity.owner_explicit || !identity.case_explicit {
+            return Err(vec![Diagnostic::io(
+                "SPX-G107",
+                format!(
+                    "case `{}` and variant `{}` need explicit @id identities",
+                    rename.case, rename.owner
+                ),
+            )]);
+        }
+        let sites = source_index
+            .as_ref()
+            .expect("v2 operations have a semantic source index")
+            .cases
+            .get(&(rename.owner.clone(), rename.case.clone()))
+            .ok_or_else(|| {
+                vec![Diagnostic::io(
+                    "SPX-G108",
+                    format!(
+                        "case identity `{}` under `{}` has no exact source sites",
+                        rename.case, rename.owner
+                    ),
+                )]
+            })?;
+        for span in sites {
+            replacements.push((span.start, span.end, rename.new_name.clone()));
+        }
+    }
+
+    let mut expected_call_arguments = BTreeMap::<String, Vec<hir::ResolvedType>>::new();
+    for replacement in &patch.call_type_argument_replacements {
+        if replacement.from == replacement.to {
+            return Err(patch_conflict(format!(
+                "call type argument {} is already `{}`",
+                replacement.index,
+                replacement.from.text()
+            )));
+        }
+        let site = source_index
+            .as_ref()
+            .expect("v2 operations have a semantic source index")
+            .calls
+            .get(&replacement.expression)
+            .ok_or_else(|| {
+                call_selector_error(replacement, "expression does not identify a source call")
+            })?;
+        let index = usize::try_from(replacement.index).map_err(|_| {
+            call_selector_error(replacement, "type argument index is not addressable")
+        })?;
+        if site.template != replacement.template
+            || site.instance.as_deref() != Some(replacement.old_instance.as_str())
+            || site.type_arguments.get(index) != Some(&replacement.from.resolved())
+        {
+            return Err(call_selector_error(
+                replacement,
+                "expression/template/old-instance/index/from tuple does not match resolved HIR",
+            ));
+        }
+        let span = site.type_argument_spans.get(index).ok_or_else(|| {
+            call_selector_error(replacement, "type argument has no exact source token")
+        })?;
+        if source.get(span.start..span.end) != Some(replacement.from.text()) {
+            return Err(call_selector_error(
+                replacement,
+                "resolved type argument does not match its exact source token",
+            ));
+        }
+        let arguments = expected_call_arguments
+            .entry(replacement.expression.clone())
+            .or_insert_with(|| site.type_arguments.clone());
+        arguments[index] = replacement.to.resolved();
+        replacements.push((span.start, span.end, replacement.to.text().to_owned()));
+    }
+    let expected_call_instances = expected_call_arguments
+        .iter()
+        .map(|(expression, arguments)| {
+            let site = source_index
+                .as_ref()
+                .expect("v2 operations have a semantic source index")
+                .calls
+                .get(expression)
+                .expect("validated call remains indexed");
+            (
+                expression.clone(),
+                hir::FunctionInstanceId::derive(
+                    &hir::DeclarationId::new(site.template.clone()),
+                    arguments,
+                ),
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
+
+    replacements.sort_by_key(|replacement| (replacement.0, replacement.1));
+    let mut checked_replacements = Vec::with_capacity(replacements.len());
+    for replacement in replacements {
+        if let Some(previous) = checked_replacements.last() {
+            let previous: &(usize, usize, String) = previous;
+            if replacement.0 < previous.1 {
+                if replacement == *previous {
+                    continue;
+                }
+                return Err(patch_conflict(format!(
+                    "semantic patch edits overlap at source byte {}",
+                    replacement.0
+                )));
+            }
+        }
+        checked_replacements.push(replacement);
+    }
     let mut changed = source.clone();
-    for (start, end, replacement) in replacements.into_iter().rev() {
+    for (start, end, replacement) in checked_replacements.into_iter().rev() {
         changed.replace_range(start..end, &replacement);
     }
 
@@ -388,6 +632,20 @@ fn apply_with_commit_hook(
             "SPX-G105",
             "semantic patch violates requirement `no-new-effects`",
         )]);
+    }
+    if let Some(before_resolved) = &before_resolved {
+        let after_resolved = hir::resolve(&after)?;
+        validate_semantic_delta(SemanticDeltaInputs {
+            before_source: &source,
+            after_source: &changed,
+            before: &before,
+            after: &after,
+            before_resolved,
+            after_resolved: &after_resolved,
+            patch: &patch,
+            expected_call_instances: &expected_call_instances,
+            expected_call_arguments: &expected_call_arguments,
+        })?;
     }
     let canonical = format::canonical(&after);
     let canonical_bytes = canonical.as_bytes();
@@ -771,22 +1029,114 @@ fn source_changed_error() -> Vec<Diagnostic> {
 }
 
 fn parse_patch(source: &str) -> Result<SemanticPatch, Vec<Diagnostic>> {
+    let meaningful: Vec<_> = source
+        .lines()
+        .enumerate()
+        .filter_map(|(index, line)| {
+            let line = line.trim();
+            (!line.is_empty() && !line.starts_with('#')).then_some((index, line))
+        })
+        .collect();
+    let schema = match meaningful.first().map(|(_, line)| *line) {
+        Some("schema semaprax.semantic-patch.v2") => PatchSchema::V2,
+        Some(line) if line.starts_with("schema ") => {
+            return Err(vec![Diagnostic::io(
+                "SPX-G101",
+                format!("unknown semantic patch schema: {line}"),
+            )]);
+        }
+        _ => PatchSchema::V1,
+    };
     let mut base = None;
     let mut renames = Vec::new();
+    let mut member_renames = Vec::new();
+    let mut case_renames = Vec::new();
+    let mut call_type_argument_replacements = Vec::new();
     let mut no_new_effects = false;
-    for (line_index, line) in source.lines().enumerate() {
-        let line = line.trim();
-        if line.is_empty() || line.starts_with('#') {
+    let mut selectors = BTreeSet::new();
+    for (meaningful_index, (line_index, line)) in meaningful.into_iter().enumerate() {
+        if meaningful_index == 0 && schema == PatchSchema::V2 {
             continue;
         }
         let words: Vec<_> = line.split_whitespace().collect();
         match words.as_slice() {
-            ["base", revision] => base = Some((*revision).to_owned()),
-            ["rename", stable_id, "to", new_name] => renames.push(Rename {
-                stable_id: (*stable_id).to_owned(),
-                new_name: (*new_name).to_owned(),
-            }),
-            ["require", "no-new-effects"] => no_new_effects = true,
+            ["base", revision] => {
+                if schema == PatchSchema::V2 && base.is_some() {
+                    return Err(patch_conflict("duplicate `base` instruction"));
+                }
+                base = Some((*revision).to_owned());
+            }
+            ["rename", stable_id, "to", new_name] => {
+                reject_duplicate_selector(schema, &mut selectors, format!("rename:{stable_id}"))?;
+                renames.push(Rename {
+                    stable_id: (*stable_id).to_owned(),
+                    new_name: (*new_name).to_owned(),
+                });
+            }
+            ["rename-member", "owner", owner, "member", member, "to", new_name]
+                if schema == PatchSchema::V2 =>
+            {
+                reject_duplicate_selector(
+                    schema,
+                    &mut selectors,
+                    format!("member:{owner}:{member}"),
+                )?;
+                member_renames.push(RenameMember {
+                    owner: (*owner).to_owned(),
+                    member: (*member).to_owned(),
+                    new_name: (*new_name).to_owned(),
+                });
+            }
+            ["rename-case", "owner", owner, "case", case, "to", new_name]
+                if schema == PatchSchema::V2 =>
+            {
+                reject_duplicate_selector(schema, &mut selectors, format!("case:{owner}:{case}"))?;
+                case_renames.push(RenameCase {
+                    owner: (*owner).to_owned(),
+                    case: (*case).to_owned(),
+                    new_name: (*new_name).to_owned(),
+                });
+            }
+            ["replace-call-type-argument", "expression", expression, "template", template, "old-instance", old_instance, "index", index, "from", from, "to", to]
+                if schema == PatchSchema::V2 =>
+            {
+                let parsed_index = index
+                    .parse::<u32>()
+                    .ok()
+                    .filter(|value| value.to_string() == *index);
+                let (Some(index), Some(from), Some(to)) =
+                    (parsed_index, ScalarType::parse(from), ScalarType::parse(to))
+                else {
+                    return Err(vec![Diagnostic::io(
+                        "SPX-G101",
+                        format!(
+                            "invalid semantic patch instruction on line {}: {line}",
+                            line_index + 1
+                        ),
+                    )]);
+                };
+                reject_duplicate_selector(
+                    schema,
+                    &mut selectors,
+                    format!("call:{expression}:{index}"),
+                )?;
+                call_type_argument_replacements.push(ReplaceCallTypeArgument {
+                    expression: (*expression).to_owned(),
+                    template: (*template).to_owned(),
+                    old_instance: (*old_instance).to_owned(),
+                    index,
+                    from,
+                    to,
+                });
+            }
+            ["require", "no-new-effects"] => {
+                reject_duplicate_selector(
+                    schema,
+                    &mut selectors,
+                    "require:no-new-effects".to_owned(),
+                )?;
+                no_new_effects = true;
+            }
             _ => {
                 return Err(vec![Diagnostic::io(
                     "SPX-G101",
@@ -805,10 +1155,31 @@ fn parse_patch(source: &str) -> Result<SemanticPatch, Vec<Diagnostic>> {
         )]);
     };
     Ok(SemanticPatch {
+        schema,
         base,
         renames,
+        member_renames,
+        case_renames,
+        call_type_argument_replacements,
         no_new_effects,
     })
+}
+
+fn reject_duplicate_selector(
+    schema: PatchSchema,
+    selectors: &mut BTreeSet<String>,
+    selector: String,
+) -> Result<(), Vec<Diagnostic>> {
+    if schema == PatchSchema::V2 && !selectors.insert(selector.clone()) {
+        return Err(patch_conflict(format!(
+            "duplicate semantic patch selector `{selector}`"
+        )));
+    }
+    Ok(())
+}
+
+fn patch_conflict(message: impl Into<String>) -> Vec<Diagnostic> {
+    vec![Diagnostic::io("SPX-G106", message)]
 }
 
 fn effect_set(program: &crate::ast::Program) -> BTreeSet<&str> {
@@ -823,6 +1194,317 @@ fn is_identifier(value: &str) -> bool {
     let mut chars = value.chars();
     matches!(chars.next(), Some(first) if first == '_' || first.is_ascii_alphabetic())
         && chars.all(|character| character == '_' || character.is_ascii_alphanumeric())
+}
+
+fn validate_new_name(value: &str) -> Result<(), Vec<Diagnostic>> {
+    if is_identifier(value) {
+        Ok(())
+    } else {
+        Err(vec![Diagnostic::io(
+            "SPX-G103",
+            format!("`{value}` is not a valid symbol name"),
+        )])
+    }
+}
+
+struct MemberIdentity {
+    owner_explicit: bool,
+    member_explicit: bool,
+}
+
+fn member_identity(
+    program: &crate::ast::Program,
+    owner: &str,
+    member: &str,
+) -> Option<MemberIdentity> {
+    for declaration in &program.types {
+        match &declaration.kind {
+            TypeDeclarationKind::Record { fields } if declaration.stable_id == owner => {
+                let field = fields.iter().find(|field| field.stable_id == member)?;
+                return Some(MemberIdentity {
+                    owner_explicit: declaration.explicit_id,
+                    member_explicit: field.explicit_id,
+                });
+            }
+            TypeDeclarationKind::Variant { cases } => {
+                if let Some(case) = cases.iter().find(|case| case.stable_id == owner) {
+                    let field = case.fields.iter().find(|field| field.stable_id == member)?;
+                    return Some(MemberIdentity {
+                        owner_explicit: case.explicit_id,
+                        member_explicit: field.explicit_id,
+                    });
+                }
+            }
+            TypeDeclarationKind::Resource { .. } | TypeDeclarationKind::Record { .. } => {}
+        }
+    }
+    None
+}
+
+struct CaseIdentity {
+    owner_explicit: bool,
+    case_explicit: bool,
+}
+
+fn case_identity(program: &crate::ast::Program, owner: &str, case: &str) -> Option<CaseIdentity> {
+    program.types.iter().find_map(|declaration| {
+        let TypeDeclarationKind::Variant { cases } = &declaration.kind else {
+            return None;
+        };
+        if declaration.stable_id != owner {
+            return None;
+        }
+        let case = cases.iter().find(|candidate| candidate.stable_id == case)?;
+        Some(CaseIdentity {
+            owner_explicit: declaration.explicit_id,
+            case_explicit: case.explicit_id,
+        })
+    })
+}
+
+fn call_selector_error(replacement: &ReplaceCallTypeArgument, reason: &str) -> Vec<Diagnostic> {
+    vec![Diagnostic::io(
+        "SPX-G108",
+        format!(
+            "generic call selector for expression `{}` is stale or invalid: {reason}",
+            replacement.expression
+        ),
+    )
+    .with_help("regenerate the patch from the current semantic graph")]
+}
+
+struct SemanticDeltaInputs<'a> {
+    before_source: &'a str,
+    after_source: &'a str,
+    before: &'a crate::ast::Program,
+    after: &'a crate::ast::Program,
+    before_resolved: &'a hir::ResolvedProgram,
+    after_resolved: &'a hir::ResolvedProgram,
+    patch: &'a SemanticPatch,
+    expected_call_instances: &'a BTreeMap<String, hir::FunctionInstanceId>,
+    expected_call_arguments: &'a BTreeMap<String, Vec<hir::ResolvedType>>,
+}
+
+fn validate_semantic_delta(inputs: SemanticDeltaInputs<'_>) -> Result<(), Vec<Diagnostic>> {
+    let SemanticDeltaInputs {
+        before_source,
+        after_source,
+        before,
+        after,
+        before_resolved,
+        after_resolved,
+        patch,
+        expected_call_instances,
+        expected_call_arguments,
+    } = inputs;
+    let targeted = expected_call_instances
+        .keys()
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    let mut allowed_instances = expected_call_instances
+        .values()
+        .map(|instance| instance.as_str().to_owned())
+        .collect::<BTreeSet<_>>();
+    allowed_instances.extend(
+        patch
+            .call_type_argument_replacements
+            .iter()
+            .map(|replacement| replacement.old_instance.clone()),
+    );
+    let renamed_declarations = patch
+        .renames
+        .iter()
+        .map(|rename| rename.stable_id.clone())
+        .chain(
+            patch
+                .member_renames
+                .iter()
+                .map(|rename| rename.member.clone()),
+        )
+        .chain(patch.case_renames.iter().map(|rename| rename.case.clone()))
+        .collect::<BTreeSet<_>>();
+    let before_graph =
+        normalized_semantic_graph(before, &targeted, &allowed_instances, &renamed_declarations)?;
+    let after_graph =
+        normalized_semantic_graph(after, &targeted, &allowed_instances, &renamed_declarations)?;
+    if before_graph != after_graph {
+        return Err(vec![Diagnostic::io(
+            "SPX-G108",
+            "semantic patch changed meaning outside its admitted identity-scoped delta",
+        )]);
+    }
+
+    if patch.call_type_argument_replacements.is_empty() {
+        return Ok(());
+    }
+    let before_instances = before_resolved
+        .function_instances
+        .iter()
+        .map(|instance| instance.id.as_str().to_owned())
+        .collect::<BTreeSet<_>>();
+    let after_instances = after_resolved
+        .function_instances
+        .iter()
+        .map(|instance| instance.id.as_str().to_owned())
+        .collect::<BTreeSet<_>>();
+    if before_instances
+        .symmetric_difference(&after_instances)
+        .any(|instance| !allowed_instances.contains(instance))
+    {
+        return Err(vec![Diagnostic::io(
+            "SPX-G108",
+            "generic call patch changed an unaddressed reachable function instance",
+        )]);
+    }
+    let after_tokens =
+        lexer::lex(after_source, "<semantic-delta>").map_err(|diagnostic| vec![diagnostic])?;
+    let after_index =
+        SemanticSourceIndex::build(after, after_resolved, &after_tokens).ok_or_else(|| {
+            vec![Diagnostic::io(
+                "SPX-G108",
+                "post-patch source/HIR identity index is inconsistent",
+            )]
+        })?;
+    let before_tokens =
+        lexer::lex(before_source, "<semantic-delta>").map_err(|diagnostic| vec![diagnostic])?;
+    let before_index = SemanticSourceIndex::build(before, before_resolved, &before_tokens)
+        .ok_or_else(|| {
+            vec![Diagnostic::io(
+                "SPX-G108",
+                "pre-patch source/HIR identity index is inconsistent",
+            )]
+        })?;
+
+    for replacement in &patch.call_type_argument_replacements {
+        let before_call = before_index
+            .calls
+            .get(&replacement.expression)
+            .ok_or_else(|| call_selector_error(replacement, "pre-patch call disappeared"))?;
+        let after_call = after_index
+            .calls
+            .get(&replacement.expression)
+            .ok_or_else(|| call_selector_error(replacement, "post-patch call disappeared"))?;
+        let index = replacement.index as usize;
+        let expected = expected_call_instances
+            .get(&replacement.expression)
+            .expect("each replacement records an expected instance");
+        let expected_arguments = expected_call_arguments
+            .get(&replacement.expression)
+            .expect("each replacement records expected arguments");
+        if after_call.template != before_call.template
+            || after_call.instance.as_deref() != Some(expected.as_str())
+            || &after_call.type_arguments != expected_arguments
+            || expected_arguments.get(index) != Some(&replacement.to.resolved())
+        {
+            return Err(call_selector_error(
+                replacement,
+                "post-HIR call delta exceeds the selected argument and derived instance",
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn normalized_semantic_graph(
+    program: &crate::ast::Program,
+    targeted_calls: &BTreeSet<String>,
+    allowed_instances: &BTreeSet<String>,
+    renamed_declarations: &BTreeSet<String>,
+) -> Result<serde_json::Value, Vec<Diagnostic>> {
+    let source = graph::to_json(program)?;
+    let mut value: serde_json::Value = serde_json::from_str(&source).map_err(|error| {
+        vec![Diagnostic::io(
+            "SPX-G108",
+            format!("cannot inspect semantic graph delta: {error}"),
+        )]
+    })?;
+    scrub_semantic_graph(
+        &mut value,
+        targeted_calls,
+        allowed_instances,
+        renamed_declarations,
+    );
+    Ok(value)
+}
+
+fn scrub_semantic_graph(
+    value: &mut serde_json::Value,
+    targeted_calls: &BTreeSet<String>,
+    allowed_instances: &BTreeSet<String>,
+    renamed_declarations: &BTreeSet<String>,
+) {
+    match value {
+        serde_json::Value::Array(values) => {
+            values.retain(|value| {
+                let materialized_instance = value.get("kind").and_then(serde_json::Value::as_str)
+                    == Some("function_instance")
+                    && value.get("params").is_some()
+                    && value.get("result_id").is_some();
+                !materialized_instance
+                    || !value
+                        .get("instance")
+                        .and_then(serde_json::Value::as_str)
+                        .is_some_and(|instance| allowed_instances.contains(instance))
+            });
+            for value in values {
+                scrub_semantic_graph(
+                    value,
+                    targeted_calls,
+                    allowed_instances,
+                    renamed_declarations,
+                );
+            }
+        }
+        serde_json::Value::Object(object) => {
+            object.remove("revision");
+            let kind = object
+                .get("kind")
+                .and_then(serde_json::Value::as_str)
+                .map(str::to_owned);
+            let id = object
+                .get("id")
+                .and_then(serde_json::Value::as_str)
+                .map(str::to_owned);
+            let declaration_kind = matches!(
+                kind.as_deref(),
+                Some(
+                    "function"
+                        | "function_template"
+                        | "resource"
+                        | "record"
+                        | "field"
+                        | "variant"
+                        | "variant_case"
+                        | "case_field"
+                )
+            );
+            if declaration_kind
+                && id
+                    .as_deref()
+                    .is_some_and(|id| renamed_declarations.contains(id))
+            {
+                object.remove("name");
+            }
+            if kind.as_deref() == Some("call_instance")
+                && id.as_deref().is_some_and(|id| targeted_calls.contains(id))
+            {
+                object.remove("instance");
+                object.remove("type_arguments");
+            }
+            for value in object.values_mut() {
+                scrub_semantic_graph(
+                    value,
+                    targeted_calls,
+                    allowed_instances,
+                    renamed_declarations,
+                );
+            }
+        }
+        serde_json::Value::Null
+        | serde_json::Value::Bool(_)
+        | serde_json::Value::Number(_)
+        | serde_json::Value::String(_) => {}
+    }
 }
 
 fn function_name_positions(

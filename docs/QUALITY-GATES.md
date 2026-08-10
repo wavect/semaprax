@@ -240,6 +240,15 @@ proved the separate arm64-Simulator provider/loader/host O0/O2 runtime contract.
 
 ## Evidence strength
 
+Semantic Patch v2 changes additionally require the exact grammar/schema
+confusion matrix, persistent owner/member/case identity and wrong-domain tests,
+pre-state batch resolution, pattern-shorthand binding/Place preservation,
+complete generic call tuple mismatch coverage, selective post-HIR Graph delta,
+unchanged layout/CleanupPlan facts, stale/failure no-write evidence, the legacy
+v1 and A0 suites, a canonical post-edit revision KAT, and the existing strict
+Native O0/O2 plus Node/Wasm backend equivalence gates. The focused transaction
+suite is `cargo test --locked -p semaprax --all-features --test semantic_patch_v2`.
+
 - A design document proves intent, not implementation.
 - A compiler unit test proves only the covered semantic case.
 - A generated artifact proves emission, not successful loading or execution.

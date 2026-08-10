@@ -22,8 +22,9 @@ Status: in progress. Resource ownership boundaries and explicit
 lifecycle/interface contracts, lexical `let`, typed `if/else`, partial-place
 diagnostics, record construction/projection/immutable-update semantics, bounded
 generic copy variants/exhaustive matching, ordinary prelude `Option`/`Result`,
-bounded direct-scalar `Result` propagation, Graph v10, validated stable-ID HIR/type
-facts, a mandatory replay-validated CleanupPlan v2, versioned normalized-status
+bounded direct-scalar `Result` and `Option` propagation, feature-minimal Graph
+v11 for Option propagation while legacy/Result output remains v10, validated
+stable-ID HIR/type facts, mandatory replay-validated CleanupPlan v2/v3 plans, versioned normalized-status
 and semantic-event-dictionary types, native scalar status/out execution, a
 browser-loadable scalar Wasm backend, and one narrow direct-trivial-resource
 Wasm owned ABI are implemented. A private generated-callable native host now
@@ -81,19 +82,20 @@ matrix is hosted green in [run
 generic/prelude verification is hosted green in [run
 31347109201](https://github.com/wavect/semaprax/actions/runs/31347109201).
 
-The hosted typed-`?` tranche accepts only compiler-owned direct-scalar
-Copy `Result<T, E>` and an enclosing `Result<U, E>`. It evaluates the operand
-once, stages `Err` as a normal outer result rather than a physical status,
-skips later body expressions, and joins the ordinary path before shared
-postconditions and publication. CleanupPlan v2 independently authenticates
-the exact Try/operand IDs, source/target instances, prelude members, and one
-body-or-residual stage; Graph v10 projects that meaning. Native C11 O0/O2 and
-Node/Wasm prove different source/outer layouts, status separation, poison,
-invalid-tag closure, and re-entry. This does not open generic functions/records,
+The bounded typed-`?` tranche accepts only compiler-owned direct-scalar Copy
+`Result<T, E>` into `Result<U, E>` with exact `E`, or `Option<T>` into
+`Option<U>`. It evaluates the operand once, stages `Err` or payload-free `None`
+as a normal outer result rather than a physical status, skips later body
+expressions, and joins the ordinary path before shared postconditions and
+publication. Result retains CleanupPlan v2/Graph v10; Option uses per-function
+CleanupPlan v3 and program-bound Graph v11. Native C11 O0/O2 and Node/Wasm
+prove different source/outer layouts, status separation, poison, invalid-tag
+closure, and re-entry. Result is hosted green; Option hosted-matrix evidence is
+pending. This does not open generic functions/records,
 nested/resource arguments, resource- or record-bearing payloads, non-copy
 ownership/propagation, residual conversion, `?` in contracts, a stable public
 aggregate ABI, callable/component signatures, or public resource admission.
-The configured matrix is green in [run
+The Result configured matrix is green in [run
 31353051690](https://github.com/wavect/semaprax/actions/runs/31353051690).
 
 Phase 3 now composes its formerly separate native evidence layers for the
@@ -201,7 +203,15 @@ source locks are green. Its isolated typed Wasmtime matrix executes with
 zero imports, empty linker/no WASI, repeated/fresh instances, and out-of-band
 fuel failure and is hosted green in [run 31356536123, job
 93357169796](https://github.com/wavect/semaprax/actions/runs/31356536123/job/93357169796).
-General source
+Private Scalar Algebraic Component v5 adds a separate default-off WIT 0.3
+profile with six fixed exports for `Option<i64>`, `Option<bool>`, and the
+complete direct-copy `Result<T, E>` matrix over `i64`/`bool`, each nested inside
+outer physical status. Exact source/core/profile/component/layout/mapping KATs,
+canonical reconstruction, hostile reindexing/mutation/cross-version closure,
+upstream validation, and zero-import runner source locks are locally green;
+typed Wasmtime execution on pinned Rust 1.97.1 is hosted pending. It does not
+open general source selection, resources/non-copy carriers, imports,
+capabilities, async, public ABI, or `SPX-B104`/`SPX-W111`. General source
 `Result`/`Option`/`?` mapping, records/resources/imports, async/capabilities,
 callable/FFI aggregate signatures, multi-engine/browser execution, public
 component API/ABI, and `SPX-B104` remain later gates.

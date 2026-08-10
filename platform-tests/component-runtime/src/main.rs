@@ -24,6 +24,15 @@ mod v4_bindings {
     });
 }
 
+mod v5_bindings {
+    wasmtime::component::bindgen!({
+        path: "wit/semaprax-private-v5.wit",
+        world: "semaprax-private-v5",
+        ownership: Owning,
+        additional_derives: [Eq, PartialEq],
+    });
+}
+
 use exports::semaprax::private::evaluation::Status;
 
 type HostResult<T> = Result<T, Box<dyn Error>>;
@@ -67,6 +76,8 @@ fn main() -> i64
 }
 "#;
 
+const SOURCE_V5: &str = include_str!("../v5.spx");
+
 // These independent known answers are replaced only alongside a reviewed
 // component-profile version change. Artifact accessor metadata is never used
 // as runtime authority.
@@ -95,6 +106,16 @@ const EXPECTED_GENERATED_CORE_V4_SHA256: [u8; 32] = [
 ];
 const EXPECTED_SOURCE_REVISION_V4: &str =
     "sha256:4391bc27b5db547f2b162c2b5467c2b75797e8a5ef64e4ffe4abef15678c6254";
+const EXPECTED_COMPONENT_V5_SHA256: [u8; 32] = [
+    0x6c, 0xeb, 0x9e, 0x30, 0x96, 0x94, 0xa5, 0xb9, 0x60, 0x94, 0x49, 0x58, 0xa4, 0xb0, 0x52, 0x7e,
+    0x29, 0xef, 0xa6, 0xba, 0xe8, 0xf7, 0xfc, 0x27, 0xe9, 0x4a, 0xd0, 0x1a, 0x84, 0x7b, 0xad, 0xca,
+];
+const EXPECTED_GENERATED_CORE_V5_SHA256: [u8; 32] = [
+    0x08, 0x25, 0xf2, 0x70, 0xcf, 0x2c, 0x94, 0xbd, 0x75, 0x19, 0x01, 0xd0, 0x5d, 0x74, 0x29, 0x3e,
+    0x52, 0xb6, 0x9b, 0xda, 0x00, 0xa1, 0xaf, 0x99, 0xcd, 0xfb, 0xc4, 0x72, 0x53, 0x5a, 0xf3, 0x1b,
+];
+const EXPECTED_SOURCE_REVISION_V5: &str =
+    "sha256:86411224efe3adace5ffdd410c243306859edc280dbe3342adcf830588b62259";
 
 #[derive(Clone, Copy)]
 enum Expected {
@@ -575,9 +596,258 @@ fn run_v4() -> HostResult<()> {
     Ok(())
 }
 
+fn run_v5_instance(engine: &Engine, component: &Component) -> HostResult<()> {
+    let linker = Linker::<()>::new(engine);
+    let mut store = Store::new(engine, ());
+    store.set_fuel(30_000_000)?;
+    let bindings = v5_bindings::SemapraxPrivateV5::instantiate(&mut store, component, &linker)?;
+    let api = bindings.semaprax_private_scalar_algebra();
+
+    macro_rules! expect_value {
+        ($call:expr, $pattern:pat, $name:literal) => {
+            match $call? {
+                $pattern => {}
+                _ => return Err(failure(concat!("unexpected v5 value for ", $name))),
+            }
+        };
+    }
+    macro_rules! expect_status {
+        ($call:expr, $domain:literal, $code:literal, $class:literal, $name:literal) => {
+            match $call? {
+                Err(status)
+                    if status.domain == $domain
+                        && status.code == $code
+                        && status.class == $class
+                        && status.retryable == Some(false) => {}
+                _ => return Err(failure(concat!("unexpected v5 status for ", $name))),
+            }
+        };
+    }
+
+    expect_value!(
+        api.call_option_i64(&mut store, 83, true, 2),
+        Ok(Some(42)),
+        "option-i64 some"
+    );
+    expect_value!(
+        api.call_option_i64(&mut store, 1, false, 0),
+        Ok(None),
+        "option-i64 none skip"
+    );
+    expect_value!(
+        api.call_option_bool(&mut store, 83, true, 2),
+        Ok(Some(true)),
+        "option-bool true"
+    );
+    expect_value!(
+        api.call_option_bool(&mut store, -3, true, 2),
+        Ok(Some(false)),
+        "option-bool false"
+    );
+    expect_value!(
+        api.call_option_bool(&mut store, 1, false, 0),
+        Ok(None),
+        "option-bool none skip"
+    );
+
+    expect_value!(
+        api.call_result_i64_i64(&mut store, 83, false, 2),
+        Ok(Ok(42)),
+        "result-i64-i64 ok"
+    );
+    expect_value!(
+        api.call_result_i64_i64(&mut store, 83, true, 0),
+        Ok(Err(83)),
+        "result-i64-i64 err skip"
+    );
+    expect_value!(
+        api.call_result_i64_bool(&mut store, 83, false, 2),
+        Ok(Ok(42)),
+        "result-i64-bool ok"
+    );
+    expect_value!(
+        api.call_result_i64_bool(&mut store, 1, true, 0),
+        Ok(Err(true)),
+        "result-i64-bool err true"
+    );
+    expect_value!(
+        api.call_result_i64_bool(&mut store, -1, true, 0),
+        Ok(Err(false)),
+        "result-i64-bool err false"
+    );
+    expect_value!(
+        api.call_result_bool_i64(&mut store, 83, false, 2),
+        Ok(Ok(true)),
+        "result-bool-i64 ok true"
+    );
+    expect_value!(
+        api.call_result_bool_i64(&mut store, -3, false, 2),
+        Ok(Ok(false)),
+        "result-bool-i64 ok false"
+    );
+    expect_value!(
+        api.call_result_bool_i64(&mut store, 83, true, 0),
+        Ok(Err(83)),
+        "result-bool-i64 err skip"
+    );
+    expect_value!(
+        api.call_result_bool_bool(&mut store, 83, false, 2),
+        Ok(Ok(true)),
+        "result-bool-bool ok true"
+    );
+    expect_value!(
+        api.call_result_bool_bool(&mut store, -3, false, 2),
+        Ok(Ok(false)),
+        "result-bool-bool ok false"
+    );
+    expect_value!(
+        api.call_result_bool_bool(&mut store, 1, true, 0),
+        Ok(Err(true)),
+        "result-bool-bool err true"
+    );
+    expect_value!(
+        api.call_result_bool_bool(&mut store, -1, true, 0),
+        Ok(Err(false)),
+        "result-bool-bool err false"
+    );
+
+    expect_status!(
+        api.call_option_i64(&mut store, i64::MAX, true, 0),
+        "semaprax.arithmetic.v1",
+        1,
+        2,
+        "sticky add"
+    );
+    expect_status!(
+        api.call_option_bool(&mut store, 1, true, 0),
+        "semaprax.arithmetic.v1",
+        4,
+        2,
+        "division zero"
+    );
+    expect_status!(
+        api.call_result_i64_i64(&mut store, -99, false, 1),
+        "semaprax.contract.v1",
+        1,
+        1,
+        "requires"
+    );
+    expect_status!(
+        api.call_result_i64_bool(&mut store, 1, true, 13),
+        "semaprax.contract.v1",
+        2,
+        1,
+        "ensures after err"
+    );
+    expect_status!(
+        api.call_result_bool_i64(&mut store, 1, false, 13),
+        "semaprax.contract.v1",
+        2,
+        1,
+        "ensures after ok"
+    );
+    expect_status!(
+        api.call_result_bool_bool(&mut store, 1, false, 0),
+        "semaprax.arithmetic.v1",
+        4,
+        2,
+        "result division zero"
+    );
+    Ok(())
+}
+
+fn prove_engine_failure_is_out_of_band_v5(
+    engine: &Engine,
+    component: &Component,
+) -> HostResult<()> {
+    let linker = Linker::<()>::new(engine);
+    let mut store = Store::new(engine, ());
+    store.set_fuel(1_000_000)?;
+    let bindings = v5_bindings::SemapraxPrivateV5::instantiate(&mut store, component, &linker)?;
+    store.set_fuel(0)?;
+    if bindings
+        .semaprax_private_scalar_algebra()
+        .call_option_i64(&mut store, 83, true, 2)
+        .is_ok()
+    {
+        return Err(failure("v5 fuel exhaustion became a typed status"));
+    }
+    Ok(())
+}
+
+fn run_v5() -> HostResult<()> {
+    let program = ::semaprax::check(SOURCE_V5, Path::new("component-scalar-algebra-v5.spx"))
+        .map_err(|diagnostics| {
+            failure(format!("v5 fixture verification failed: {diagnostics:?}"))
+        })?;
+    let artifact = ::semaprax::wit_component::emit_private_scalar_algebra_component_v5(&program)
+        .map_err(|diagnostic| failure(format!("v5 component emission failed: {diagnostic:?}")))?;
+    if artifact.wit() != include_str!("../wit/semaprax-private-v5.wit") {
+        return Err(failure("checked-in Wasmtime v5 WIT drifted"));
+    }
+    let bytes: Box<[u8]> = artifact.bytes().to_vec().into_boxed_slice();
+    let before: [u8; 32] = Sha256::digest(&bytes).into();
+    if before != EXPECTED_COMPONENT_V5_SHA256
+        || artifact.generated_core_digest() != EXPECTED_GENERATED_CORE_V5_SHA256
+    {
+        return Err(failure("v5 independent component/core KAT changed"));
+    }
+    let expected_revision = ::semaprax::graph::revision(&program);
+    if expected_revision != EXPECTED_SOURCE_REVISION_V5 {
+        return Err(failure("v5 source revision KAT changed"));
+    }
+    let validated = ::semaprax::wit_component::validate_private_scalar_algebra_component_v5(
+        &bytes,
+        EXPECTED_SOURCE_REVISION_V5,
+        EXPECTED_GENERATED_CORE_V5_SHA256,
+    )
+    .map_err(|error| failure(format!("v5 profile validation failed: {error:?}")))?;
+    if validated.interface_export_name() != "semaprax:private/scalar-algebra@0.3.0"
+        || validated.function_export_names()
+            != [
+                "option-i64",
+                "option-bool",
+                "result-i64-i64",
+                "result-i64-bool",
+                "result-bool-i64",
+                "result-bool-bool",
+            ]
+        || validated.type_export_names()
+            != [
+                "maybe-i64",
+                "maybe-bool",
+                "language-result-i64-i64",
+                "language-result-i64-bool",
+                "language-result-bool-i64",
+                "language-result-bool-bool",
+            ]
+        || <[u8; 32]>::from(Sha256::digest(validated.generated_core()))
+            != EXPECTED_GENERATED_CORE_V5_SHA256
+    {
+        return Err(failure("v5 typed export table changed"));
+    }
+    let mut config = Config::new();
+    config.wasm_component_model(true);
+    config.consume_fuel(true);
+    let engine = Engine::new(&config)?;
+    let component = Component::new(&engine, &bytes)?;
+    if component.component_type().imports(&engine).len() != 0 {
+        return Err(failure("v5 requested ambient imports"));
+    }
+    run_v5_instance(&engine, &component)?;
+    run_v5_instance(&engine, &component)?;
+    prove_engine_failure_is_out_of_band_v5(&engine, &component)?;
+    if <[u8; 32]>::from(Sha256::digest(&bytes)) != before {
+        return Err(failure("authenticated v5 bytes changed during execution"));
+    }
+    println!("semaprax-private-component-runtime-v5-ok");
+    Ok(())
+}
+
 fn run() -> HostResult<()> {
     run_v3()?;
-    run_v4()
+    run_v4()?;
+    run_v5()
 }
 
 fn main() -> HostResult<()> {

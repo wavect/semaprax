@@ -249,7 +249,7 @@ impl FunctionPlan {
             ResolvedExprKind::Unary { value, .. } => {
                 self.collect_expr(program, variant_layouts, value, parameter_count, frame)?;
             }
-            ResolvedExprKind::Try { operand, .. } => {
+            ResolvedExprKind::Try { operand, .. } | ResolvedExprKind::TryOption { operand, .. } => {
                 self.collect_expr(program, variant_layouts, operand, parameter_count, frame)?;
             }
             ResolvedExprKind::Binary { left, right, .. } => {
@@ -403,7 +403,7 @@ impl FunctionPlan {
 
 fn expression_has_try(expression: &ResolvedExpr) -> bool {
     match &expression.kind {
-        ResolvedExprKind::Try { .. } => true,
+        ResolvedExprKind::Try { .. } | ResolvedExprKind::TryOption { .. } => true,
         ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_try),
         ResolvedExprKind::Unary { value, .. } | ResolvedExprKind::Project { base: value, .. } => {
             expression_has_try(value)
@@ -1403,6 +1403,118 @@ impl Emitter<'_> {
                     ty: operand_ok.1.ty.clone(),
                 };
                 self.copy_value(&destination, &source, "copy-result Ok extraction")?;
+                Ok(destination)
+            }
+            ResolvedExprKind::TryOption {
+                operand,
+                option,
+                some_case,
+                some_field,
+                none_case,
+                residual_type,
+            } => {
+                if !self.try_target_enabled {
+                    return Err(error(
+                        "copy-Option propagation is allowed only in a function body",
+                    ));
+                }
+                require_type(
+                    residual_type,
+                    self.return_type,
+                    "copy-Option residual target",
+                )?;
+                let operand_layout = variant_layout(self.variant_layouts, &operand.ty)?;
+                let residual_layout = variant_layout(self.variant_layouts, residual_type)?;
+                if operand_layout.variant != *option || residual_layout.variant != *option {
+                    return Err(error(
+                        "copy-Option propagation does not reference its resolved Option declaration",
+                    ));
+                }
+                let operand_some = operand_layout
+                    .case(some_case)
+                    .and_then(|case| case.field(some_field).map(|field| (case, field)))
+                    .ok_or_else(|| error("copy-Option propagation has no resolved Some payload"))?;
+                let operand_none = operand_layout
+                    .case(none_case)
+                    .ok_or_else(|| error("copy-Option propagation has no resolved None case"))?;
+                let residual_none = residual_layout
+                    .case(none_case)
+                    .ok_or_else(|| error("copy-Option residual has no resolved None case"))?;
+                if !operand_none.fields.is_empty() || !residual_none.fields.is_empty() {
+                    return Err(error("copy-Option None case unexpectedly has a payload"));
+                }
+                require_type(&operand_some.1.ty, &expr.ty, "copy-Option Some payload")?;
+
+                let operand_value = self.emit_expr(operand)?;
+                let Value::Aggregate {
+                    pointer: operand_pointer,
+                    ty: operand_type,
+                } = operand_value
+                else {
+                    return Err(error("copy-Option operand is not aggregate storage"));
+                };
+                require_type(&operand_type, &operand.ty, "copy-Option operand")?;
+                self.emit_pointer(operand_pointer);
+                self.output.extend([0x28, 0x02, 0x00, 0x41]);
+                write_i64(
+                    self.output,
+                    i64::try_from(operand_layout.cases.len())
+                        .map_err(|_| error("Option case count overflows i64"))?,
+                );
+                self.output.push(0x4f);
+                self.fail_if(STATUS_INTERNAL_INVALID_TAG);
+
+                self.emit_pointer(operand_pointer);
+                self.output.extend([0x28, 0x02, 0x00, 0x41]);
+                write_i64(self.output, i64::from(operand_none.tag));
+                self.output.extend([0x46, 0x04, 0x40]);
+                let residual_offset = self
+                    .plan
+                    .result_stage_aggregate
+                    .ok_or_else(|| error("copy-Option residual has no result staging slot"))?;
+                let residual_pointer = Pointer {
+                    local: self.plan.frame_base,
+                    offset: residual_offset,
+                };
+                self.emit_pointer(residual_pointer);
+                self.output.extend([0x41, 0x00, 0x41]);
+                write_i64(self.output, i64::from(residual_layout.size));
+                self.output.extend([0xfc, 0x0b, 0x00]);
+                self.emit_pointer(residual_pointer);
+                self.output.push(0x41);
+                write_i64(self.output, i64::from(residual_none.tag));
+                self.output.extend([0x36, 0x02, 0x00]);
+                let result_staged = self
+                    .plan
+                    .result_staged
+                    .ok_or_else(|| error("copy-Option propagation has no result-state local"))?;
+                self.output.extend([0x41, 0x01, 0x21]);
+                write_u32(self.output, result_staged);
+                self.output.push(0x0c);
+                write_u32(self.output, self.control_depth + 1);
+                self.output.push(0x0b);
+
+                self.emit_pointer(operand_pointer);
+                self.output.extend([0x28, 0x02, 0x00, 0x41]);
+                write_i64(self.output, i64::from(operand_some.0.tag));
+                self.output.push(0x47);
+                self.fail_if(STATUS_INTERNAL_INVALID_TAG);
+                let destination = Value::Scalar {
+                    local: self.plan.expr_scalar(expr)?,
+                    ty: expr.ty.clone(),
+                };
+                let source = Value::ScalarMemory {
+                    pointer: Pointer {
+                        local: operand_pointer.local,
+                        offset: operand_pointer
+                            .offset
+                            .checked_add(operand_layout.payload_offset)
+                            .and_then(|offset| offset.checked_add(operand_some.1.offset))
+                            .ok_or_else(|| error("Option Some pointer overflows u32"))?,
+                    },
+                    ty: operand_some.1.ty.clone(),
+                };
+                self.copy_value(&destination, &source, "copy-Option Some extraction")?;
                 Ok(destination)
             }
             ResolvedExprKind::Project { base, field } => {

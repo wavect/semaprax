@@ -102,12 +102,15 @@ Implemented today:
   Node/Wasm prove construction, matching, poison preservation, invalid-tag
   closure, and distinct `i64`/`bool` instances. CleanupPlan v2 replays the
   cleanup-free copy branches by exact scrutinee expression and stable case ID.
-  The bounded postfix `?` slice propagates only ordinary compiler-owned
-  `Result<T, E>` values whose type arguments are direct `i64`/`bool`: it
-  evaluates the operand once, reconstructs an outer `Result<U, E>` on `Err`,
-  skips later body expressions, and reaches the same postconditions and final
-  publication join as the ordinary body value. Native C11 at O0/O2 and real
-  Node/Wasm prove different source/outer layouts, exact `Err` propagation,
+  The bounded postfix `?` slice propagates ordinary compiler-owned
+  direct-scalar Copy `Result<T, E>` into `Result<U, E>` with exact `E`, and
+  direct-scalar Copy `Option<T>` into `Option<U>`. It evaluates the operand
+  once, reconstructs the exact outer `Err` or payload-free `None`, skips later
+  body expressions, and reaches the same postconditions and final publication
+  join as the ordinary body value. Option propagation upgrades only affected
+  function cleanup plans to v3 and only programs containing it to Graph v11;
+  Result-only and propagation-free output remains CleanupPlan v2/Graph v10.
+  Native C11 at O0/O2 and real Node/Wasm prove different source/outer layouts,
   physical-status separation, complete caller-output poison, invalid-tag
   closure, and Wasm re-entry. Resource/nested arguments, generic functions or
   records, non-copy matching or propagation, residual conversion, `?` in
@@ -133,12 +136,13 @@ Implemented today:
 - Persistent declaration identity through `@id`.
 - NUL-free persistent semantic identities across source, resolved HIR, cleanup metadata, graph serialization, and native C literals.
 - Deterministic formatting and domain-separated SHA-256 graph revisions.
-- JSON semantic Graph v10 with owner/index-stable generic parameters, exact
+- JSON semantic Graph v10, conditionally v11 for bounded Option propagation,
+  with owner/index-stable generic parameters, exact
   concrete nominal arguments, an authenticated compiler-owned prelude,
   persistent variant/case/payload identities, revision-scoped
   construction/match/pattern structure, immutable record update, exact
-  evaluation-once `try_result` source/residual instances and shared-epilogue
-  meaning, complete CleanupPlan v2 staging, and dependency-bounded context
+  evaluation-once `try_result`/`try_option` source/target instances and
+  shared-epilogue meaning, complete CleanupPlan v2/v3 staging, and dependency-bounded context
   slices. Revision v2 binds both canonical source and the exact prelude
   contract.
 - JSON-line diagnostics for agent consumption.
@@ -249,8 +253,15 @@ short-circuiting, sticky arithmetic failure, pre/postconditions, re-entry,
 fresh instances, and out-of-band fuel failure; that v4 runtime evidence is
 hosted green in [run 31356536123, job
 93357169796](https://github.com/wavect/semaprax/actions/runs/31356536123/job/93357169796).
-This remains **Partial** WIT evidence only: v4 admits exactly that
-private effect-free source closure. General `Result`/`Option` component
+Private Scalar Algebraic Component v5 separately freezes six exports covering
+`Option<i64>`, `Option<bool>`, and every direct-copy `Result<T, E>` combination
+for `T, E` in `i64`/`bool`, each nested inside an unchanged outer physical
+status result. Exact source/core/profile/component KATs, stable-ID-to-export
+mapping, canonical layouts, hostile reindexing/mutation closure, upstream
+validation, and zero-import isolated-runner source locks are locally green;
+the pinned Rust 1.97.1 typed Wasmtime execution is hosted pending. V1-v4 bytes
+remain unchanged. This remains **Partial** WIT evidence only: v4/v5 admit only
+their exact private closures. General `Result`/`Option` component
 mapping, records, resources, imports, async, capabilities, multi-engine/browser
 conformance, a public WIT surface, callable/FFI aggregate signatures, and any
 `SPX-B104` change remain absent.

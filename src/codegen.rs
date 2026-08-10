@@ -1707,7 +1707,7 @@ fn contract_label<'a>(
 
 fn expression_has_try(expression: &ResolvedExpr) -> bool {
     match &expression.kind {
-        ResolvedExprKind::Try { .. } => true,
+        ResolvedExprKind::Try { .. } | ResolvedExprKind::TryOption { .. } => true,
         ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_try),
         ResolvedExprKind::Unary { value, .. } | ResolvedExprKind::Project { base: value, .. } => {
             expression_has_try(value)
@@ -2345,6 +2345,87 @@ impl<'a> CEmitter<'a> {
                     "{output} = {operand_stage}.spx_payload.{}.{};",
                     c_case_symbol(ok_case),
                     c_field_symbol(ok_field),
+                ));
+                CValue {
+                    code: output,
+                    ty: expr.ty.clone(),
+                }
+            }
+            ResolvedExprKind::TryOption {
+                operand,
+                option,
+                some_case,
+                some_field,
+                none_case,
+                residual_type,
+            } => {
+                if !self.try_target_enabled {
+                    return Err(backend_error(
+                        "copy-Option propagation is allowed only in a function body",
+                    ));
+                }
+                self.require_type(
+                    residual_type,
+                    self.return_type,
+                    "copy-Option residual target",
+                )?;
+                let operand_layout = self.variant_layout(&operand.ty)?;
+                let residual_layout = self.variant_layout(residual_type)?;
+                if operand_layout.variant != *option || residual_layout.variant != *option {
+                    return Err(backend_error(
+                        "copy-Option propagation does not reference its resolved Option declaration",
+                    ));
+                }
+                let operand_some = operand_layout
+                    .case(some_case)
+                    .and_then(|case| case.field(some_field).map(|field| (case, field)))
+                    .ok_or_else(|| {
+                        backend_error("copy-Option propagation has no resolved Some payload")
+                    })?;
+                let operand_none = operand_layout.case(none_case).ok_or_else(|| {
+                    backend_error("copy-Option propagation has no resolved None case")
+                })?;
+                let residual_none = residual_layout.case(none_case).ok_or_else(|| {
+                    backend_error("copy-Option residual has no resolved None case")
+                })?;
+                if !operand_none.fields.is_empty() || !residual_none.fields.is_empty() {
+                    return Err(backend_error(
+                        "copy-Option None case unexpectedly has a payload",
+                    ));
+                }
+                self.require_type(&operand_some.1.ty, &expr.ty, "copy-Option Some payload")?;
+
+                let operand_value = self.emit_expr(operand)?;
+                self.require_type(&operand_value.ty, &operand.ty, "copy-Option operand")?;
+                let operand_stage = self.temporary(&operand.ty)?;
+                self.line(&format!("{operand_stage} = {};", operand_value.code));
+                self.line(&format!(
+                    "if ({operand_stage}.spx_tag >= UINT32_C({})) spx_runtime_invariant_failure(\"invalid variant tag\");",
+                    operand_layout.cases.len()
+                ));
+                self.line(&format!(
+                    "if ({operand_stage}.spx_tag == UINT32_C({})) {{",
+                    operand_none.tag
+                ));
+                self.indent += 1;
+                self.line("memset(&spx_result, 0, sizeof(spx_result));");
+                self.line(&format!(
+                    "spx_result.spx_tag = UINT32_C({});",
+                    residual_none.tag
+                ));
+                self.line("spx_result_staged = true;");
+                self.line("goto spx_postconditions;");
+                self.indent -= 1;
+                self.line("}");
+                self.line(&format!(
+                    "if ({operand_stage}.spx_tag != UINT32_C({})) spx_runtime_invariant_failure(\"invalid Option tag\");",
+                    operand_some.0.tag
+                ));
+                let output = self.temporary(&expr.ty)?;
+                self.line(&format!(
+                    "{output} = {operand_stage}.spx_payload.{}.{};",
+                    c_case_symbol(some_case),
+                    c_field_symbol(some_field),
                 ));
                 CValue {
                     code: output,

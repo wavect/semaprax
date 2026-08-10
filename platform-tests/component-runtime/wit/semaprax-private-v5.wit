@@ -1,0 +1,21 @@
+package semaprax:private@0.3.0;
+
+interface scalar-algebra {
+  record status { domain: string, code: u32, class: u8, retryable: option<bool> }
+  type maybe-i64 = option<s64>;
+  type maybe-bool = option<bool>;
+  type language-result-i64-i64 = result<s64, s64>;
+  type language-result-i64-bool = result<s64, bool>;
+  type language-result-bool-i64 = result<bool, s64>;
+  type language-result-bool-bool = result<bool, bool>;
+  option-i64: func(value: s64, select: bool, divisor: s64) -> result<maybe-i64, status>;
+  option-bool: func(value: s64, select: bool, divisor: s64) -> result<maybe-bool, status>;
+  result-i64-i64: func(value: s64, select: bool, divisor: s64) -> result<language-result-i64-i64, status>;
+  result-i64-bool: func(value: s64, select: bool, divisor: s64) -> result<language-result-i64-bool, status>;
+  result-bool-i64: func(value: s64, select: bool, divisor: s64) -> result<language-result-bool-i64, status>;
+  result-bool-bool: func(value: s64, select: bool, divisor: s64) -> result<language-result-bool-bool, status>;
+}
+
+world semaprax-private-v5 {
+  export scalar-algebra;
+}

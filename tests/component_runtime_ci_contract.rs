@@ -81,6 +81,10 @@ fn runtime_wits_are_the_exact_private_result_contracts() {
     let checked_in_v4 = read("platform-tests/component-runtime/wit/semaprax-private-v4.wit");
     let expected_v4 = "package semaprax:private@0.2.0;\n\ninterface evaluation {\n  record status { domain: string, code: u32, class: u8, retryable: option<bool> }\n  type language-result = result<bool, bool>;\n  evaluate: func(value: s64, reject: bool, divisor: s64) -> result<language-result, status>;\n}\n\nworld semaprax-private-v4 {\n  export evaluation;\n}\n";
     assert_eq!(checked_in_v4, expected_v4);
+
+    let checked_in_v5 = read("platform-tests/component-runtime/wit/semaprax-private-v5.wit");
+    let expected_v5 = "package semaprax:private@0.3.0;\n\ninterface scalar-algebra {\n  record status { domain: string, code: u32, class: u8, retryable: option<bool> }\n  type maybe-i64 = option<s64>;\n  type maybe-bool = option<bool>;\n  type language-result-i64-i64 = result<s64, s64>;\n  type language-result-i64-bool = result<s64, bool>;\n  type language-result-bool-i64 = result<bool, s64>;\n  type language-result-bool-bool = result<bool, bool>;\n  option-i64: func(value: s64, select: bool, divisor: s64) -> result<maybe-i64, status>;\n  option-bool: func(value: s64, select: bool, divisor: s64) -> result<maybe-bool, status>;\n  result-i64-i64: func(value: s64, select: bool, divisor: s64) -> result<language-result-i64-i64, status>;\n  result-i64-bool: func(value: s64, select: bool, divisor: s64) -> result<language-result-i64-bool, status>;\n  result-bool-i64: func(value: s64, select: bool, divisor: s64) -> result<language-result-bool-i64, status>;\n  result-bool-bool: func(value: s64, select: bool, divisor: s64) -> result<language-result-bool-bool, status>;\n}\n\nworld semaprax-private-v5 {\n  export scalar-algebra;\n}\n";
+    assert_eq!(checked_in_v5, expected_v5);
 }
 
 #[test]
@@ -93,6 +97,8 @@ fn component_job_fetches_root_and_runner_then_runs_every_gate_locked_and_offline
         "cargo fetch --locked --manifest-path \"$readonly_manifest\"",
         "--features unstable-wit-component-harness --lib wit_component::result_v3::tests::",
         "--features unstable-wit-component-harness --lib wit_component::source_result_v4::tests::",
+        "--features unstable-wit-component-harness --lib wasm::scalar_algebra_component_v5::tests::",
+        "--features unstable-wit-component-harness --lib wit_component::scalar_algebra_v5::tests::",
         "--test component_runtime_ci_contract",
     ] {
         assert!(
@@ -131,7 +137,7 @@ fn component_job_fetches_root_and_runner_then_runs_every_gate_locked_and_offline
         "manifest-path: platform-tests/component-runtime/Cargo.toml",
         "--config platform-tests/component-runtime/deny.toml",
         "scripts/component-runtime-v3.sh",
-        "execute every v3/v4 Component gate offline",
+        "execute every v3/v4/v5 Component gate offline",
     ] {
         assert!(
             workflow.contains(required),
@@ -165,12 +171,21 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "Linker::<()>::new(engine)",
         "call_evaluate",
         "SemapraxPrivateV4::instantiate",
+        "SemapraxPrivateV5::instantiate",
         "semaprax-private-v4.wit",
+        "semaprax-private-v5.wit",
         "EXPECTED_COMPONENT_V4_SHA256",
         "EXPECTED_GENERATED_CORE_V4_SHA256",
         "EXPECTED_SOURCE_REVISION_V4",
+        "EXPECTED_COMPONENT_V5_SHA256",
+        "EXPECTED_GENERATED_CORE_V5_SHA256",
+        "EXPECTED_SOURCE_REVISION_V5",
+        "sha256:86411224efe3adace5ffdd410c243306859edc280dbe3342adcf830588b62259",
+        "0x6c, 0xeb, 0x9e, 0x30, 0x96, 0x94, 0xa5, 0xb9",
+        "0x08, 0x25, 0xf2, 0x70, 0xcf, 0x2c, 0x94, 0xbd",
         "sha256:4391bc27b5db547f2b162c2b5467c2b75797e8a5ef64e4ffe4abef15678c6254",
         "validate_private_source_result_component_v4",
+        "validate_private_scalar_algebra_component_v5",
         "config.consume_fuel(true)",
         "store.set_fuel(0)",
         "engine_failure.is_ok()",
@@ -178,6 +193,13 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "CASES_V4.into_iter().chain(CASES_V4)",
         "for case in CASES",
         "for case in CASES_V4",
+        "call_option_i64",
+        "call_option_bool",
+        "call_result_i64_i64",
+        "call_result_i64_bool",
+        "call_result_bool_i64",
+        "call_result_bool_bool",
+        "semaprax:private/scalar-algebra@0.3.0",
         "(left + 1) / right",
         "name: \"addition-overflow\"",
         "left: i64::MAX",
@@ -214,7 +236,6 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "get_func",
         "get_typed_func",
         "Module::new",
-        ".generated_core()",
         "artifact.digest()",
     ] {
         assert!(

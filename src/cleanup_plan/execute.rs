@@ -301,7 +301,8 @@ fn collect_variant_domains(
                     visit(program, &field.value, domains)?;
                 }
             }
-            hir::ResolvedExprKind::Try { operand, .. } => {
+            hir::ResolvedExprKind::Try { operand, .. }
+            | hir::ResolvedExprKind::TryOption { operand, .. } => {
                 visit(program, operand, domains)?;
                 let ResolvedType::Nominal { declaration, .. } = &operand.ty else {
                     return Err(invariant(format!(
@@ -496,13 +497,91 @@ fn validate_staged_copy_source(
                 ));
             }
         }
+        StagedCopyResultSource::TryOptionNone {
+            expression,
+            operand,
+            source_instance,
+            target_instance,
+            option,
+            some_case,
+            some_field,
+            none_case,
+        } => {
+            if option.as_str() != prelude::OPTION_ID
+                || some_case.as_str() != prelude::OPTION_SOME_ID
+                || some_field.as_str() != prelude::OPTION_SOME_VALUE_ID
+                || none_case.as_str() != prelude::OPTION_NONE_ID
+                || target_instance != &function.return_type
+            {
+                return Err(invariant(
+                    "Option Try residual stage changes Option identities or target instance",
+                ));
+            }
+            for id in [option, some_case, some_field, none_case] {
+                if program
+                    .declarations
+                    .declaration(id)
+                    .is_none_or(|declaration| {
+                        declaration.identity_origin != IdentityOrigin::CompilerOwned
+                    })
+                {
+                    return Err(invariant(format!(
+                        "Option Try residual identity `{id}` is not compiler-owned"
+                    )));
+                }
+            }
+            let actual = find_expression(&function.body, expression).ok_or_else(|| {
+                invariant("Option Try residual stage names an unknown expression")
+            })?;
+            let hir::ResolvedExprKind::TryOption {
+                operand: actual_operand,
+                option: actual_option,
+                some_case: actual_some_case,
+                some_field: actual_some_field,
+                none_case: actual_none_case,
+                residual_type,
+            } = &actual.kind
+            else {
+                return Err(invariant(
+                    "Option Try residual stage does not name a TryOption expression",
+                ));
+            };
+            if &actual_operand.id != operand
+                || &actual_operand.ty != source_instance
+                || residual_type != target_instance
+                || actual_option != option
+                || actual_some_case != some_case
+                || actual_some_field != some_field
+                || actual_none_case != none_case
+            {
+                return Err(invariant(
+                    "Option Try residual stage disagrees with exact typed HIR",
+                ));
+            }
+            let selected = program
+                .declarations
+                .type_facts(source_instance)
+                .zip(program.declarations.type_facts(target_instance));
+            if selected.is_none_or(|(source, target)| {
+                [source, target].into_iter().any(|facts| {
+                    !facts.copy || !facts.sized || facts.contains_resource || facts.needs_drop
+                })
+            }) {
+                return Err(invariant(
+                    "Option Try residual stage is outside the Copy Option slice",
+                ));
+            }
+        }
     }
     Ok(())
 }
 
 fn expression_has_try(expression: &hir::ResolvedExpr) -> bool {
     find_expression_by(expression, &|candidate| {
-        matches!(candidate.kind, hir::ResolvedExprKind::Try { .. })
+        matches!(
+            candidate.kind,
+            hir::ResolvedExprKind::Try { .. } | hir::ResolvedExprKind::TryOption { .. }
+        )
     })
     .is_some()
 }
@@ -527,7 +606,10 @@ fn find_expression_by<'a>(
             .find_map(|argument| find_expression_by(argument, predicate)),
         hir::ResolvedExprKind::Unary { value, .. }
         | hir::ResolvedExprKind::Project { base: value, .. }
-        | hir::ResolvedExprKind::Try { operand: value, .. } => find_expression_by(value, predicate),
+        | hir::ResolvedExprKind::Try { operand: value, .. }
+        | hir::ResolvedExprKind::TryOption { operand: value, .. } => {
+            find_expression_by(value, predicate)
+        }
         hir::ResolvedExprKind::Binary { left, right, .. } => {
             find_expression_by(left, predicate).or_else(|| find_expression_by(right, predicate))
         }

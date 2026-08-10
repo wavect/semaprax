@@ -4,6 +4,19 @@ All notable changes to SEMAPRAX are documented here.
 
 ## 0.2.0 — 2026-08-07
 
+- Added default-off Private Scalar Algebraic Component v5 with six fixed WIT
+  0.3 exports for `Option<i64>`, `Option<bool>`, and the complete direct-copy
+  `Result<T, E>` matrix over `i64`/`bool`. Language carrier arms remain ordinary
+  values nested inside the unchanged outer physical-status result. The exact
+  capability-free source table/order, prelude layouts, stable-ID/core-index/WIT
+  mapping, canonical memory, and source/core/profile/component DAG are
+  authenticated without inferring identity from equal signatures or layouts.
+  Local core/component KATs, hostile mutation/reindexing/cross-version closure,
+  upstream validation, invalid-value traps, default-consumer hiding, and
+  isolated runner source locks are green. Typed Wasmtime execution on pinned
+  Rust 1.97.1 is hosted pending. V1-v4 bytes remain unchanged; this adds no
+  general exporter, resources/non-copy carriers, imports/capabilities, async,
+  public API/ABI, callable/FFI mapping, or `SPX-B104`/`SPX-W111` widening.
 - Added default-off Private Source-Result Component v4 for one exact
   effect-free source closure. It compiles ordinary compiler-owned
   `Result<i64, bool>` plus postfix `?` into `Result<bool, bool>`, then lifts the
@@ -22,6 +35,21 @@ All notable changes to SEMAPRAX are documented here.
   not alter v1-v3 artifacts, public component/aggregate ABI, resources,
   imports/capabilities, general `Result`/`Option`/`?`, callable/FFI signatures,
   or `SPX-B104`.
+- Added bounded postfix `?` for ordinary compiler-owned direct-scalar Copy
+  `Option<T>` into `Option<U>`. `Some` extracts the exact source payload;
+  payload-free `None` reconstructs the exact outer instance as a normal
+  status-zero result, skips later body work, and still traverses shared
+  postconditions before success-only publication. CleanupPlan v3 authenticates
+  the Option source, members, and source/target instances; Graph v11 emits
+  `try_option`. Both schemas are feature-minimal: Result-only and
+  propagation-free programs remain byte-compatible CleanupPlan v2/Graph v10,
+  and agent context uses the program-wide graph schema even for a legacy root.
+  Local strict C11 O0/O2 and Node/Wasm evidence covers `i64` to `bool`, `bool`
+  to `i64`, `Some`, `None`, skipped failure, postcondition/physical-status
+  separation, poison, invalid tags, and repeated Wasm entry. Hosted matrix
+  evidence is pending. Nested/resource/non-copy arguments, residual conversion,
+  `?` in contracts, public aggregate ABI, callable/component aggregate
+  signatures, and public resource admission remain closed.
 - Added bounded typed postfix `?` for ordinary compiler-owned
   `Result<T, E>` with direct `i64`/`bool` arguments. Source and HIR authenticate
   the exact prelude members, source and outer instances, one operand

@@ -17,12 +17,20 @@ mod owned;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod result_component_v3;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
+mod scalar_algebra_component_v5;
+#[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod source_result_component_v4;
 
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 pub(crate) use result_component_v3::{
     emit_private_result_core_v3, CANONICAL_EXPORT as RESULT_COMPONENT_CANONICAL_EXPORT_V3,
     STATUS_OUT_EXPORT as RESULT_COMPONENT_STATUS_OUT_EXPORT_V3,
+};
+#[cfg(any(test, feature = "unstable-wit-component-harness"))]
+pub(crate) use scalar_algebra_component_v5::{
+    emit_private_scalar_algebra_core_v5,
+    CANONICAL_EXPORTS as SCALAR_ALGEBRA_COMPONENT_CANONICAL_EXPORTS_V5,
+    SOURCE_V5 as SCALAR_ALGEBRA_COMPONENT_SOURCE_V5,
 };
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 pub(crate) use source_result_component_v4::{
@@ -472,7 +480,7 @@ fn collect_locals(
         ResolvedExprKind::Unary { value, .. } => {
             collect_locals(value, parameter_count, layout)?;
         }
-        ResolvedExprKind::Try { operand, .. } => {
+        ResolvedExprKind::Try { operand, .. } | ResolvedExprKind::TryOption { operand, .. } => {
             collect_locals(operand, parameter_count, layout)?;
         }
         ResolvedExprKind::Binary { left, right, .. } => {
@@ -732,6 +740,7 @@ fn emit_expr(
         | ResolvedExprKind::ConstructVariant { .. }
         | ResolvedExprKind::Match { .. }
         | ResolvedExprKind::Try { .. }
+        | ResolvedExprKind::TryOption { .. }
         | ResolvedExprKind::Project { .. }
         | ResolvedExprKind::UpdateRecord { .. } => {
             return Err(Diagnostic::io(

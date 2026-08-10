@@ -1,0 +1,52 @@
+module test.component_scalar_algebra_v5;
+
+@id("component.option-i64")
+fn option_i64(value: i64, select: bool, divisor: i64) -> Option<i64>
+    requires value != -99
+    ensures divisor != 13
+{
+    if select { Option<i64>::Some { value: (value + 1) / divisor } } else { Option<i64>::None {} }
+}
+
+@id("component.option-bool")
+fn option_bool(value: i64, select: bool, divisor: i64) -> Option<bool>
+    requires value != -99
+    ensures divisor != 13
+{
+    if select { Option<bool>::Some { value: (value + 1) / divisor > 0 } } else { Option<bool>::None {} }
+}
+
+@id("component.result-i64-i64")
+fn result_i64_i64(value: i64, select: bool, divisor: i64) -> Result<i64, i64>
+    requires value != -99
+    ensures divisor != 13
+{
+    if select { Result<i64, i64>::Err { error: value } } else { Result<i64, i64>::Ok { value: (value + 1) / divisor } }
+}
+
+@id("component.result-i64-bool")
+fn result_i64_bool(value: i64, select: bool, divisor: i64) -> Result<i64, bool>
+    requires value != -99
+    ensures divisor != 13
+{
+    if select { Result<i64, bool>::Err { error: value > 0 } } else { Result<i64, bool>::Ok { value: (value + 1) / divisor } }
+}
+
+@id("component.result-bool-i64")
+fn result_bool_i64(value: i64, select: bool, divisor: i64) -> Result<bool, i64>
+    requires value != -99
+    ensures divisor != 13
+{
+    if select { Result<bool, i64>::Err { error: value } } else { Result<bool, i64>::Ok { value: (value + 1) / divisor > 0 } }
+}
+
+@id("component.result-bool-bool")
+fn result_bool_bool(value: i64, select: bool, divisor: i64) -> Result<bool, bool>
+    requires value != -99
+    ensures divisor != 13
+{
+    if select { Result<bool, bool>::Err { error: value > 0 } } else { Result<bool, bool>::Ok { value: (value + 1) / divisor > 0 } }
+}
+
+@id("app.main")
+fn main() -> i64 { 0 }

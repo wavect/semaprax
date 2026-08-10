@@ -21,7 +21,7 @@ use super::{
     BlockId, CleanupPlace, CleanupRegionId, CleanupResultSource, CleanupTerminator,
     CleanupTransition, EdgeCondition, EdgeId, ExitContinuation, ExitTarget, StagedCopyResultSource,
     StatusCase, StatusLane, StatusProducer, StatusSource, StatusSourceId, StorageId,
-    CLEANUP_PLAN_SCHEMA_V2,
+    CLEANUP_PLAN_SCHEMA_V2, CLEANUP_PLAN_SCHEMA_V3,
 };
 
 const MAX_REPLAY_PATHS: usize = 65_536;
@@ -151,10 +151,21 @@ fn validate_structure_with_budget(
     budget: &mut ReplayBudget,
 ) -> Result<(), Diagnostic> {
     let plan = &function.cleanup_plan;
-    if plan.schema != CLEANUP_PLAN_SCHEMA_V2 {
+    let expected_schema = if function.requires.iter().any(expression_has_option_try)
+        || function.ensures.iter().any(expression_has_option_try)
+        || expression_has_option_try(&function.body)
+    {
+        CLEANUP_PLAN_SCHEMA_V3
+    } else {
+        CLEANUP_PLAN_SCHEMA_V2
+    };
+    if plan.schema != expected_schema {
         return Err(replay_error(
             function,
-            "uses an unknown cleanup-plan schema",
+            format!(
+                "uses cleanup-plan schema `{}` instead of HIR-derived `{expected_schema}`",
+                plan.schema
+            ),
         ));
     }
 
@@ -296,7 +307,7 @@ fn expression_boolean_splits(expression: &ResolvedExpr) -> usize {
                 total.saturating_add(expression_boolean_splits(&field.value))
             })
         }
-        ResolvedExprKind::Try { operand, .. } => {
+        ResolvedExprKind::Try { operand, .. } | ResolvedExprKind::TryOption { operand, .. } => {
             expression_boolean_splits(operand).saturating_add(1)
         }
         ResolvedExprKind::Match { scrutinee, arms } => arms.iter().fold(
@@ -522,7 +533,7 @@ fn collect_supplemental_slots(
                 collect_supplemental_slots(program, function, &field.value, next_flag, slots)?;
             }
         }
-        ResolvedExprKind::Try { operand, .. } => {
+        ResolvedExprKind::Try { operand, .. } | ResolvedExprKind::TryOption { operand, .. } => {
             collect_supplemental_slots(program, function, operand, next_flag, slots)?;
         }
         ResolvedExprKind::Match { scrutinee, arms } => {
@@ -761,7 +772,7 @@ fn collect_expression_statuses(
                 collect_expression_statuses(program, function, &field.value, statuses)?;
             }
         }
-        ResolvedExprKind::Try { operand, .. } => {
+        ResolvedExprKind::Try { operand, .. } | ResolvedExprKind::TryOption { operand, .. } => {
             collect_expression_statuses(program, function, operand, statuses)?;
         }
         ResolvedExprKind::Match { scrutinee, arms } => {
@@ -1231,6 +1242,11 @@ fn validate_blocks_and_edges(
                             }
                         }
                         StagedCopyResultSource::TryResidual {
+                            expression,
+                            operand,
+                            ..
+                        }
+                        | StagedCopyResultSource::TryOptionNone {
                             expression,
                             operand,
                             ..
@@ -1798,6 +1814,56 @@ fn expression_skeleton(
             }
             Ok(paths)
         }
+        ResolvedExprKind::TryOption {
+            operand,
+            option,
+            some_case,
+            some_field,
+            none_case,
+            residual_type,
+        } => {
+            let source = authenticated_try_option_stage_source(
+                program,
+                function,
+                expression,
+                operand,
+                option,
+                some_case,
+                some_field,
+                none_case,
+                residual_type,
+            )?;
+            let operand_paths = expression_skeleton(program, function, operand)?;
+            let mut paths = Vec::with_capacity(operand_paths.len().saturating_mul(2));
+            for path in operand_paths {
+                if path.failed || path.residual {
+                    paths.push(path);
+                    continue;
+                }
+                let mut success = path.clone();
+                success.observations.push(SkeletonObservation::VariantCase {
+                    scrutinee: operand.id.clone(),
+                    case: some_case.clone(),
+                    matches: true,
+                });
+                paths.push(success);
+
+                let mut residual = path;
+                residual
+                    .observations
+                    .push(SkeletonObservation::VariantCase {
+                        scrutinee: operand.id.clone(),
+                        case: some_case.clone(),
+                        matches: false,
+                    });
+                residual
+                    .observations
+                    .push(SkeletonObservation::StageCopyResult(source.clone()));
+                residual.residual = true;
+                paths.push(residual);
+            }
+            Ok(paths)
+        }
         ResolvedExprKind::Match { scrutinee, arms } => {
             match_skeleton(program, function, expression, scrutinee, arms)
         }
@@ -2035,6 +2101,81 @@ fn authenticated_try_stage_source(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
+fn authenticated_try_option_stage_source(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    expression: &ResolvedExpr,
+    operand: &ResolvedExpr,
+    option: &DeclarationId,
+    some_case: &DeclarationId,
+    some_field: &DeclarationId,
+    none_case: &DeclarationId,
+    residual_type: &ResolvedType,
+) -> Result<StagedCopyResultSource, Diagnostic> {
+    if option.as_str() != prelude::OPTION_ID
+        || some_case.as_str() != prelude::OPTION_SOME_ID
+        || some_field.as_str() != prelude::OPTION_SOME_VALUE_ID
+        || none_case.as_str() != prelude::OPTION_NONE_ID
+    {
+        return Err(replay_error(
+            function,
+            "Option postfix `?` does not authenticate the ordinary Option prelude",
+        ));
+    }
+    for id in [option, some_case, some_field, none_case] {
+        let declaration = program.declarations.declaration(id).ok_or_else(|| {
+            replay_error(
+                function,
+                format!("Option postfix `?` references unknown `{id}`"),
+            )
+        })?;
+        if declaration.identity_origin != IdentityOrigin::CompilerOwned {
+            return Err(replay_error(
+                function,
+                format!("Option postfix `?` reference `{id}` is not compiler-owned"),
+            ));
+        }
+    }
+    let source_arguments = replay_option_arguments(function, &operand.ty, option)?;
+    let target_arguments = replay_option_arguments(function, residual_type, option)?;
+    if source_arguments.len() != 1
+        || target_arguments.len() != 1
+        || source_arguments
+            .iter()
+            .chain(target_arguments.iter())
+            .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
+        || expression.ty != source_arguments[0]
+        || residual_type != &function.return_type
+    {
+        return Err(replay_error(
+            function,
+            "Option postfix `?` source, value, residual, or function type is inconsistent",
+        ));
+    }
+    for ty in [&operand.ty, residual_type] {
+        let facts = program.declarations.type_facts(ty).ok_or_else(|| {
+            replay_error(function, "Option postfix `?` instance has no type facts")
+        })?;
+        if !facts.copy || !facts.sized || facts.contains_resource || facts.needs_drop {
+            return Err(replay_error(
+                function,
+                "Option postfix `?` is outside the Copy Option cleanup slice",
+            ));
+        }
+    }
+    Ok(StagedCopyResultSource::TryOptionNone {
+        expression: expression.id.clone(),
+        operand: operand.id.clone(),
+        source_instance: operand.ty.clone(),
+        target_instance: residual_type.clone(),
+        option: option.clone(),
+        some_case: some_case.clone(),
+        some_field: some_field.clone(),
+        none_case: none_case.clone(),
+    })
+}
+
 fn replay_result_arguments<'a>(
     function: &ResolvedFunction,
     ty: &'a ResolvedType,
@@ -2051,6 +2192,30 @@ fn replay_result_arguments<'a>(
         return Err(replay_error(
             function,
             "postfix `?` type is not the authenticated Result",
+        ));
+    }
+    Ok(arguments)
+}
+
+fn replay_option_arguments<'a>(
+    function: &ResolvedFunction,
+    ty: &'a ResolvedType,
+    option: &DeclarationId,
+) -> Result<&'a [ResolvedType], Diagnostic> {
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = ty
+    else {
+        return Err(replay_error(
+            function,
+            "Option postfix `?` type is not nominal Option",
+        ));
+    };
+    if declaration != option {
+        return Err(replay_error(
+            function,
+            "Option postfix `?` type is not the authenticated Option",
         ));
     }
     Ok(arguments)
@@ -3126,6 +3291,9 @@ fn validate_staged_target(
         }
         StagedCopyResultSource::TryResidual {
             target_instance, ..
+        }
+        | StagedCopyResultSource::TryOptionNone {
+            target_instance, ..
         } => target_instance,
     };
     if target != &function.return_type {
@@ -3139,7 +3307,7 @@ fn validate_staged_target(
 
 fn expression_has_try(expression: &ResolvedExpr) -> bool {
     match &expression.kind {
-        ResolvedExprKind::Try { .. } => true,
+        ResolvedExprKind::Try { .. } | ResolvedExprKind::TryOption { .. } => true,
         ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_try),
         ResolvedExprKind::Unary { value, .. } | ResolvedExprKind::Project { base: value, .. } => {
             expression_has_try(value)
@@ -3171,6 +3339,49 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
         }
         ResolvedExprKind::UpdateRecord { base, fields, .. } => {
             expression_has_try(base) || fields.iter().any(|field| expression_has_try(&field.value))
+        }
+        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => false,
+    }
+}
+
+fn expression_has_option_try(expression: &ResolvedExpr) -> bool {
+    match &expression.kind {
+        ResolvedExprKind::TryOption { .. } => true,
+        ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_option_try),
+        ResolvedExprKind::Unary { value, .. }
+        | ResolvedExprKind::Try { operand: value, .. }
+        | ResolvedExprKind::Project { base: value, .. } => expression_has_option_try(value),
+        ResolvedExprKind::Binary { left, right, .. } => {
+            expression_has_option_try(left) || expression_has_option_try(right)
+        }
+        ResolvedExprKind::Block { statements, tail } => {
+            statements.iter().any(|statement| {
+                let ResolvedStatement::Let { value, .. } = statement;
+                expression_has_option_try(value)
+            }) || expression_has_option_try(tail)
+        }
+        ResolvedExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            expression_has_option_try(condition)
+                || expression_has_option_try(then_branch)
+                || expression_has_option_try(else_branch)
+        }
+        ResolvedExprKind::ConstructRecord { fields, .. }
+        | ResolvedExprKind::ConstructVariant { fields, .. } => fields
+            .iter()
+            .any(|field| expression_has_option_try(&field.value)),
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            expression_has_option_try(scrutinee)
+                || arms.iter().any(|arm| expression_has_option_try(&arm.value))
+        }
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            expression_has_option_try(base)
+                || fields
+                    .iter()
+                    .any(|field| expression_has_option_try(&field.value))
         }
         ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => false,
     }
@@ -3551,7 +3762,7 @@ fn collect_expression_facts(
                 collect_expression_facts(function, &field.value, facts)?;
             }
         }
-        ResolvedExprKind::Try { operand, .. } => {
+        ResolvedExprKind::Try { operand, .. } | ResolvedExprKind::TryOption { operand, .. } => {
             collect_expression_facts(function, operand, facts)?;
         }
         ResolvedExprKind::Match { scrutinee, arms } => {
@@ -4614,7 +4825,8 @@ fn main() -> i64 { 0 }
             .iter()
             .find_map(|source| match source {
                 StagedCopyResultSource::TryResidual { .. } => Some((*source).clone()),
-                StagedCopyResultSource::Body { .. } => None,
+                StagedCopyResultSource::Body { .. }
+                | StagedCopyResultSource::TryOptionNone { .. } => None,
             })
             .unwrap();
         let StagedCopyResultSource::TryResidual {

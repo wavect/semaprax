@@ -241,6 +241,26 @@ fn staged_copy_result_source_json(source: &StagedCopyResultSource) -> String {
             quote_json(err_case.as_str()),
             quote_json(err_field.as_str()),
         ),
+        StagedCopyResultSource::TryOptionNone {
+            expression,
+            operand,
+            source_instance,
+            target_instance,
+            option,
+            some_case,
+            some_field,
+            none_case,
+        } => format!(
+            "{{\"kind\":\"try_option_none\",\"expression\":{},\"operand\":{},\"source_instance\":{},\"target_instance\":{},\"option\":{},\"some_case\":{},\"some_field\":{},\"none_case\":{}}}",
+            quote_json(expression.as_str()),
+            quote_json(operand.as_str()),
+            type_json(source_instance),
+            type_json(target_instance),
+            quote_json(option.as_str()),
+            quote_json(some_case.as_str()),
+            quote_json(some_field.as_str()),
+            quote_json(none_case.as_str()),
+        ),
     }
 }
 

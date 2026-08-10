@@ -20,6 +20,7 @@ use super::{
     CleanupSlotId, CleanupTerminator, CleanupTransition, ContractPhase, EdgeCondition, EdgeId,
     ExitContinuation, ExitTarget, ExitTargetId, FinalizeAction, StagedCopyResultSource, StatusCase,
     StatusLane, StatusProducer, StatusSource, StatusSourceId, StorageId, CLEANUP_PLAN_SCHEMA_V2,
+    CLEANUP_PLAN_SCHEMA_V3,
 };
 
 const UNRESOLVED_EXIT: ExitTargetId = ExitTargetId(u32::MAX);
@@ -102,6 +103,7 @@ struct PlanBuilder<'a> {
     entry_state: CleanupEntryState,
     initial_state: FlowState,
     pending_try_residuals: Vec<PendingTryResidual>,
+    schema: &'static str,
 }
 
 impl<'a> PlanBuilder<'a> {
@@ -205,6 +207,7 @@ impl<'a> PlanBuilder<'a> {
                 live_order: Vec::new(),
             },
             pending_try_residuals: Vec::new(),
+            schema: CLEANUP_PLAN_SCHEMA_V2,
         };
         builder.seed_entry(root)?;
         Ok(builder)
@@ -356,7 +359,7 @@ impl<'a> PlanBuilder<'a> {
             })
             .collect::<Result<Vec<_>, Diagnostic>>()?;
         Ok(CleanupPlan {
-            schema: CLEANUP_PLAN_SCHEMA_V2,
+            schema: self.schema,
             entry: BlockId(0),
             entry_state: self.entry_state,
             slots: self.slots,
@@ -1270,6 +1273,25 @@ impl<'a> PlanBuilder<'a> {
                 state,
                 region,
             ),
+            ResolvedExprKind::TryOption {
+                operand,
+                option,
+                some_case,
+                some_field,
+                none_case,
+                residual_type,
+            } => self.lower_try_option(
+                expression,
+                operand,
+                option,
+                some_case,
+                some_field,
+                none_case,
+                residual_type,
+                block,
+                state,
+                region,
+            ),
             ResolvedExprKind::Match { scrutinee, arms } => {
                 self.lower_match(scrutinee, arms, block, state, region)
             }
@@ -1791,6 +1813,125 @@ impl<'a> PlanBuilder<'a> {
         })
     }
 
+    #[allow(clippy::too_many_arguments)]
+    fn lower_try_option(
+        &mut self,
+        expression: &ResolvedExpr,
+        operand: &ResolvedExpr,
+        option: &DeclarationId,
+        some_case: &DeclarationId,
+        some_field: &DeclarationId,
+        none_case: &DeclarationId,
+        residual_type: &ResolvedType,
+        block: BlockId,
+        state: FlowState,
+        region: CleanupRegionId,
+    ) -> Result<EvalResult, Diagnostic> {
+        self.schema = CLEANUP_PLAN_SCHEMA_V3;
+        if option.as_str() != prelude::OPTION_ID
+            || some_case.as_str() != prelude::OPTION_SOME_ID
+            || some_field.as_str() != prelude::OPTION_SOME_VALUE_ID
+            || none_case.as_str() != prelude::OPTION_NONE_ID
+        {
+            return Err(plan_error(
+                "Option postfix `?` does not authenticate the ordinary Option prelude",
+            ));
+        }
+        for id in [option, some_case, some_field, none_case] {
+            let declaration = self.program.declarations.declaration(id).ok_or_else(|| {
+                plan_error(format!("Option postfix `?` references unknown `{id}`"))
+            })?;
+            if declaration.identity_origin != IdentityOrigin::CompilerOwned {
+                return Err(plan_error(format!(
+                    "Option postfix `?` reference `{id}` is not compiler-owned"
+                )));
+            }
+        }
+        let source_arguments = option_arguments(&operand.ty, option)?;
+        let target_arguments = option_arguments(residual_type, option)?;
+        if source_arguments.len() != 1
+            || target_arguments.len() != 1
+            || source_arguments
+                .iter()
+                .chain(target_arguments.iter())
+                .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
+            || expression.ty != source_arguments[0]
+            || residual_type != &self.function.return_type
+        {
+            return Err(plan_error(
+                "Option postfix `?` has inconsistent source, value, residual, or function types",
+            ));
+        }
+        for ty in [&operand.ty, residual_type] {
+            let facts = self
+                .program
+                .declarations
+                .type_facts(ty)
+                .ok_or_else(|| plan_error("Option postfix `?` instance has no type facts"))?;
+            if !facts.copy || !facts.sized || facts.contains_resource || facts.needs_drop {
+                return Err(plan_error(
+                    "Option postfix `?` reached cleanup planning outside the Copy Option slice",
+                ));
+            }
+        }
+
+        let evaluated = self.lower_expr(operand, block, state, region)?;
+        if evaluated.owned_source.is_some() {
+            return Err(plan_error(
+                "Option postfix `?` operand reached the Copy slice with cleanup storage",
+            ));
+        }
+        let success = self.new_block(region)?;
+        let residual = self.new_block(region)?;
+        let success_edge = self.new_edge(
+            evaluated.block,
+            success,
+            EdgeCondition::VariantCase {
+                scrutinee: operand.id.clone(),
+                case: some_case.clone(),
+                matches: true,
+            },
+        )?;
+        let residual_edge = self.new_edge(
+            evaluated.block,
+            residual,
+            EdgeCondition::VariantCase {
+                scrutinee: operand.id.clone(),
+                case: some_case.clone(),
+                matches: false,
+            },
+        )?;
+        self.terminate(
+            evaluated.block,
+            CleanupTerminator::Branch(vec![success_edge, residual_edge]),
+        )?;
+        self.push_transition(
+            residual,
+            CleanupTransition::StageCopyResult {
+                source: StagedCopyResultSource::TryOptionNone {
+                    expression: expression.id.clone(),
+                    operand: operand.id.clone(),
+                    source_instance: operand.ty.clone(),
+                    target_instance: residual_type.clone(),
+                    option: option.clone(),
+                    some_case: some_case.clone(),
+                    some_field: some_field.clone(),
+                    none_case: none_case.clone(),
+                },
+            },
+        );
+        self.pending_try_residuals.push(PendingTryResidual {
+            block: residual,
+            state: evaluated.state.clone(),
+            region,
+        });
+        Ok(EvalResult {
+            block: success,
+            state: evaluated.state,
+            owned_source: None,
+        })
+    }
+
     fn lower_match(
         &mut self,
         scrutinee: &ResolvedExpr,
@@ -2022,6 +2163,27 @@ fn result_arguments<'a>(
     if declaration != result {
         return Err(plan_error(
             "postfix `?` operand or residual is not the authenticated Result",
+        ));
+    }
+    Ok(arguments)
+}
+
+fn option_arguments<'a>(
+    ty: &'a ResolvedType,
+    option: &DeclarationId,
+) -> Result<&'a [ResolvedType], Diagnostic> {
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = ty
+    else {
+        return Err(plan_error(
+            "Option postfix `?` operand is not a nominal Option",
+        ));
+    };
+    if declaration != option {
+        return Err(plan_error(
+            "Option postfix `?` operand or residual is not the authenticated Option",
         ));
     }
     Ok(arguments)

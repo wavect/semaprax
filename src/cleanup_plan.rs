@@ -18,6 +18,7 @@ use crate::cleanup::{FieldLivenessShape, LivenessFlagId};
 use crate::hir::{DeclarationId, ExpressionId, ResolvedType, ValueId};
 
 pub const CLEANUP_PLAN_SCHEMA_V2: &str = "semaprax.cleanup-plan.v2";
+pub const CLEANUP_PLAN_SCHEMA_V3: &str = "semaprax.cleanup-plan.v3";
 
 macro_rules! numeric_id {
     ($name:ident) => {
@@ -151,6 +152,20 @@ pub enum StagedCopyResultSource {
         ok_field: DeclarationId,
         err_case: DeclarationId,
         err_field: DeclarationId,
+    },
+    /// A compiler-synthesized outer `Option::None` produced by postfix `?`.
+    ///
+    /// `None` has no payload identity. Source and target instances remain
+    /// explicit because their concrete layouts may differ.
+    TryOptionNone {
+        expression: ExpressionId,
+        operand: ExpressionId,
+        source_instance: ResolvedType,
+        target_instance: ResolvedType,
+        option: DeclarationId,
+        some_case: DeclarationId,
+        some_field: DeclarationId,
+        none_case: DeclarationId,
     },
 }
 

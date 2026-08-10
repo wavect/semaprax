@@ -9,11 +9,16 @@ use sha2::{Digest, Sha256};
 use crate::{ast::Program, diagnostic::Diagnostic, graph, wasm};
 
 mod result_v3;
+mod scalar_algebra_v5;
 mod source_result_v4;
 
 pub use result_v3::{
     emit_private_result_component_v3, validate_private_result_component_v3,
     PrivateResultComponentArtifactV3, ValidatedPrivateResultComponentV3,
+};
+pub use scalar_algebra_v5::{
+    emit_private_scalar_algebra_component_v5, validate_private_scalar_algebra_component_v5,
+    PrivateScalarAlgebraComponentArtifactV5, ValidatedPrivateScalarAlgebraComponentV5,
 };
 pub use source_result_v4::{
     emit_private_source_result_component_v4, validate_private_source_result_component_v4,
@@ -1613,11 +1618,13 @@ semaprax = {{ path = "{manifest_root}", default-features = false }}
     emit_private_checked_component_v2,
     emit_private_component_v1,
     emit_private_result_component_v3,
+    emit_private_scalar_algebra_component_v5,
     emit_private_source_result_component_v4,
     private_checked_component_runtime_javascript_v2,
     validate_private_checked_component_v2,
     validate_private_component_v1,
     validate_private_result_component_v3,
+    validate_private_scalar_algebra_component_v5,
     validate_private_source_result_component_v4,
 };
 
@@ -1629,6 +1636,8 @@ fn main() {
     let _ = validate_private_checked_component_v2;
     let _ = emit_private_result_component_v3;
     let _ = validate_private_result_component_v3;
+    let _ = emit_private_scalar_algebra_component_v5;
+    let _ = validate_private_scalar_algebra_component_v5;
     let _ = emit_private_source_result_component_v4;
     let _ = validate_private_source_result_component_v4;
 }

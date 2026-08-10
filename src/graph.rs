@@ -39,7 +39,9 @@ pub fn revision(program: &Program) -> String {
     format!("sha256:{:x}", hasher.finalize())
 }
 
-/// Resolve and serialize a parsed program as `semaprax.graph.v10`.
+/// Resolve and serialize a parsed program as `semaprax.graph.v10`, or as
+/// `semaprax.graph.v11` when the validated program contains bounded Option
+/// propagation.
 ///
 /// Resolution is deliberately part of this public boundary. Invalid source
 /// cannot be mistaken for a checked semantic graph by library callers.
@@ -516,7 +518,7 @@ fn collect_result_propagations<'a>(
     propagations: &mut Vec<&'a ResolvedExpr>,
 ) {
     match &expression.kind {
-        ResolvedExprKind::Try { operand, .. } => {
+        ResolvedExprKind::Try { operand, .. } | ResolvedExprKind::TryOption { operand, .. } => {
             propagations.push(expression);
             collect_result_propagations(operand, propagations);
         }
@@ -571,33 +573,75 @@ fn collect_result_propagations<'a>(
 }
 
 fn result_propagation_json(expression: &ResolvedExpr) -> String {
-    let ResolvedExprKind::Try {
-        operand,
-        result,
-        ok_case,
-        ok_field,
-        err_case,
-        err_field,
-        residual_type,
-    } = &expression.kind
-    else {
-        unreachable!("result propagation collection returns only Try nodes");
-    };
-    format!(
-        "{{\"id\":{},\"kind\":\"try_result\",\"evaluation\":\"once\",\"operand\":{},\"source_result_type_id\":{},\"source_result_type\":{},\"result_type_id\":{},\"residual_result_type_id\":{},\"residual_result_type\":{},\"result\":{},\"ok_case\":{},\"ok_field\":{},\"err_case\":{},\"err_field\":{},\"err_exit\":\"normal_result\",\"epilogue\":\"shared_postconditions\"}}",
-        quote_json(expression.id.as_str()),
-        quote_json(operand.id.as_str()),
-        quote_json(&operand.ty.identity_key()),
-        type_json(&operand.ty),
-        quote_json(&expression.ty.identity_key()),
-        quote_json(&residual_type.identity_key()),
-        type_json(residual_type),
-        quote_json(result.as_str()),
-        quote_json(ok_case.as_str()),
-        quote_json(ok_field.as_str()),
-        quote_json(err_case.as_str()),
-        quote_json(err_field.as_str())
-    )
+    match &expression.kind {
+        ResolvedExprKind::Try {
+            operand,
+            result,
+            ok_case,
+            ok_field,
+            err_case,
+            err_field,
+            residual_type,
+        } => format!(
+            "{{\"id\":{},\"kind\":\"try_result\",\"evaluation\":\"once\",\"operand\":{},\"source_result_type_id\":{},\"source_result_type\":{},\"result_type_id\":{},\"residual_result_type_id\":{},\"residual_result_type\":{},\"result\":{},\"ok_case\":{},\"ok_field\":{},\"err_case\":{},\"err_field\":{},\"err_exit\":\"normal_result\",\"epilogue\":\"shared_postconditions\"}}",
+            quote_json(expression.id.as_str()),
+            quote_json(operand.id.as_str()),
+            quote_json(&operand.ty.identity_key()),
+            type_json(&operand.ty),
+            quote_json(&expression.ty.identity_key()),
+            quote_json(&residual_type.identity_key()),
+            type_json(residual_type),
+            quote_json(result.as_str()),
+            quote_json(ok_case.as_str()),
+            quote_json(ok_field.as_str()),
+            quote_json(err_case.as_str()),
+            quote_json(err_field.as_str())
+        ),
+        ResolvedExprKind::TryOption {
+            operand,
+            option,
+            some_case,
+            some_field,
+            none_case,
+            residual_type,
+        } => format!(
+            "{{\"id\":{},\"kind\":\"try_option\",\"evaluation\":\"once\",\"operand\":{},\"source_option_type_id\":{},\"source_option_type\":{},\"result_type_id\":{},\"residual_option_type_id\":{},\"residual_option_type\":{},\"option\":{},\"some_case\":{},\"some_field\":{},\"none_case\":{},\"none_exit\":\"normal_result\",\"epilogue\":\"shared_postconditions\"}}",
+            quote_json(expression.id.as_str()),
+            quote_json(operand.id.as_str()),
+            quote_json(&operand.ty.identity_key()),
+            type_json(&operand.ty),
+            quote_json(&expression.ty.identity_key()),
+            quote_json(&residual_type.identity_key()),
+            type_json(residual_type),
+            quote_json(option.as_str()),
+            quote_json(some_case.as_str()),
+            quote_json(some_field.as_str()),
+            quote_json(none_case.as_str())
+        ),
+        _ => unreachable!("propagation collection returns only Try nodes"),
+    }
+}
+
+fn graph_schema(program: &ResolvedProgram) -> &'static str {
+    let has_option_try = program.functions.iter().any(|function| {
+        function
+            .requires
+            .iter()
+            .chain(std::iter::once(&function.body))
+            .chain(&function.ensures)
+            .any(|expression| {
+                let mut propagations = Vec::new();
+                collect_result_propagations(expression, &mut propagations);
+                propagations
+                    .iter()
+                    .any(|candidate| matches!(candidate.kind, ResolvedExprKind::TryOption { .. }))
+            })
+    });
+    if has_option_try {
+        "semaprax.graph.v11"
+    } else {
+        "semaprax.graph.v10"
+    }
 }
 
 fn agent_reference_index_json(
@@ -679,7 +723,7 @@ fn collect_agent_contract_values(expression: &ResolvedExpr, values: &mut BTreeSe
                 collect_agent_contract_values(&arm.value, values);
             }
         }
-        ResolvedExprKind::Try { operand, .. } => {
+        ResolvedExprKind::Try { operand, .. } | ResolvedExprKind::TryOption { operand, .. } => {
             collect_agent_contract_values(operand, values);
         }
         ResolvedExprKind::UpdateRecord { base, fields, .. } => {
@@ -814,6 +858,25 @@ fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnos
             quote_json(ok_field.as_str()),
             quote_json(err_case.as_str()),
             quote_json(err_field.as_str())
+        ),
+        ResolvedExprKind::TryOption {
+            operand,
+            option,
+            some_case,
+            some_field,
+            none_case,
+            residual_type,
+        } => format!(
+            "{{\"kind\":\"try_option\",\"evaluation\":\"once\",\"operand\":{},\"source_option_type_id\":{},\"source_option_type\":{},\"residual_option_type_id\":{},\"residual_option_type\":{},\"option\":{},\"some_case\":{},\"some_field\":{},\"none_case\":{},\"none_exit\":\"normal_result\",\"epilogue\":\"shared_postconditions\"}}",
+            agent_contract_expr_json(operand)?,
+            quote_json(&operand.ty.identity_key()),
+            type_json(&operand.ty),
+            quote_json(&residual_type.identity_key()),
+            type_json(residual_type),
+            quote_json(option.as_str()),
+            quote_json(some_case.as_str()),
+            quote_json(some_field.as_str()),
+            quote_json(none_case.as_str())
         ),
         ResolvedExprKind::UpdateRecord {
             base,
@@ -1088,7 +1151,8 @@ fn render_agent_context(
         .unwrap_or(0);
     let render = |used_bytes: usize| {
         format!(
-            "{{\"schema\":\"semaprax.agent-context.v1\",\"source_graph_schema\":\"semaprax.graph.v10\",\"revision\":{},\"prelude\":{{\"schema\":{},\"digest\":{}}},\"module\":{},\"root\":{},\"query\":{{\"depth\":{},\"max_bytes\":{},\"max_nodes\":{},\"filters\":[{}]}},\"filter_support\":{{\"included\":[{}],\"unavailable\":[{}]}},\"budget\":{{\"used_bytes\":{},\"used_nodes\":{},\"max_depth_used\":{}}},\"truncation\":{{\"truncated\":{},\"reasons\":[{}],\"omitted_known_nodes\":{},\"deferred_known_nodes\":{},\"omitted_fact_bytes\":{},\"unavailable_filter_count\":{}}},\"resume_contract\":{{\"depth\":\"query.depth\",\"max_nodes\":\"query.max_nodes\",\"filters\":\"query.filters\",\"max_bytes\":\"frontier.resume.min_bytes\"}},\"frontier\":[{}],\"facts\":[{}]}}",
+            "{{\"schema\":\"semaprax.agent-context.v1\",\"source_graph_schema\":{},\"revision\":{},\"prelude\":{{\"schema\":{},\"digest\":{}}},\"module\":{},\"root\":{},\"query\":{{\"depth\":{},\"max_bytes\":{},\"max_nodes\":{},\"filters\":[{}]}},\"filter_support\":{{\"included\":[{}],\"unavailable\":[{}]}},\"budget\":{{\"used_bytes\":{},\"used_nodes\":{},\"max_depth_used\":{}}},\"truncation\":{{\"truncated\":{},\"reasons\":[{}],\"omitted_known_nodes\":{},\"deferred_known_nodes\":{},\"omitted_fact_bytes\":{},\"unavailable_filter_count\":{}}},\"resume_contract\":{{\"depth\":\"query.depth\",\"max_nodes\":\"query.max_nodes\",\"filters\":\"query.filters\",\"max_bytes\":\"frontier.resume.min_bytes\"}},\"frontier\":[{}],\"facts\":[{}]}}",
+            quote_json(graph_schema(program)),
             quote_json(source_revision),
             quote_json(prelude::SCHEMA_V1),
             quote_json(&prelude::digest_text_v1()),
@@ -1294,7 +1358,8 @@ fn graph_json(
     let mut output = String::new();
     write!(
         output,
-        "{{\"schema\":\"semaprax.graph.v10\",\"revision\":{},\"prelude\":{{\"schema\":{},\"digest\":{}}},\"view\":{},\"identity\":{{\"declarations\":\"explicit-persistent-or-automatic-unstable\",\"values\":\"revision-scoped-structural\",\"expressions\":\"revision-scoped-structural\",\"match_arms\":\"revision-scoped-structural\",\"patterns\":\"revision-scoped-structural\",\"type_parameters\":\"owner-and-index-stable\"}},\"module\":{},\"permits\":{},\"entrypoint\":{},\"type_facts\":[{}],\"nodes\":[",
+        "{{\"schema\":{},\"revision\":{},\"prelude\":{{\"schema\":{},\"digest\":{}}},\"view\":{},\"identity\":{{\"declarations\":\"explicit-persistent-or-automatic-unstable\",\"values\":\"revision-scoped-structural\",\"expressions\":\"revision-scoped-structural\",\"match_arms\":\"revision-scoped-structural\",\"patterns\":\"revision-scoped-structural\",\"type_parameters\":\"owner-and-index-stable\"}},\"module\":{},\"permits\":{},\"entrypoint\":{},\"type_facts\":[{}],\"nodes\":[",
+        quote_json(graph_schema(program)),
         quote_json(source_revision),
         quote_json(prelude::SCHEMA_V1),
         quote_json(&prelude::digest_text_v1()),
@@ -1761,7 +1826,9 @@ fn visit_expr_calls(expression: &ResolvedExpr, visit: &mut impl FnMut(&Declarati
                 visit_expr_calls(&arm.value, visit);
             }
         }
-        ResolvedExprKind::Try { operand, .. } => visit_expr_calls(operand, visit),
+        ResolvedExprKind::Try { operand, .. } | ResolvedExprKind::TryOption { operand, .. } => {
+            visit_expr_calls(operand, visit)
+        }
         ResolvedExprKind::UpdateRecord { base, fields, .. } => {
             visit_expr_calls(base, visit);
             for initializer in fields {
@@ -1861,6 +1928,16 @@ fn collect_expr_type_declarations(
             ..
         } => {
             declarations.insert(result.clone());
+            collect_expr_type_declarations(operand, declarations);
+            collect_nominal_declarations(residual_type, declarations);
+        }
+        ResolvedExprKind::TryOption {
+            operand,
+            option,
+            residual_type,
+            ..
+        } => {
+            declarations.insert(option.clone());
             collect_expr_type_declarations(operand, declarations);
             collect_nominal_declarations(residual_type, declarations);
         }
@@ -2063,6 +2140,25 @@ fn expr_json(program: &ResolvedProgram, expression: &ResolvedExpr) -> Result<Str
             quote_json(err_case.as_str()),
             quote_json(err_field.as_str())
         ),
+        ResolvedExprKind::TryOption {
+            operand,
+            option,
+            some_case,
+            some_field,
+            none_case,
+            residual_type,
+        } => format!(
+            "{{{header},\"kind\":\"try_option\",\"evaluation\":\"once\",\"operand\":{},\"source_option_type_id\":{},\"source_option_type\":{},\"residual_option_type_id\":{},\"residual_option_type\":{},\"option\":{},\"some_case\":{},\"some_field\":{},\"none_case\":{},\"none_exit\":\"normal_result\",\"epilogue\":\"shared_postconditions\"}}",
+            expr_json(program, operand)?,
+            quote_json(&operand.ty.identity_key()),
+            type_json(&operand.ty),
+            quote_json(&residual_type.identity_key()),
+            type_json(residual_type),
+            quote_json(option.as_str()),
+            quote_json(some_case.as_str()),
+            quote_json(some_field.as_str()),
+            quote_json(none_case.as_str())
+        ),
         ResolvedExprKind::UpdateRecord {
             base,
             record,
@@ -2252,6 +2348,11 @@ fn collect_expr_types(expression: &ResolvedExpr, types: &mut BTreeMap<String, Re
             }
         }
         ResolvedExprKind::Try {
+            operand,
+            residual_type,
+            ..
+        }
+        | ResolvedExprKind::TryOption {
             operand,
             residual_type,
             ..

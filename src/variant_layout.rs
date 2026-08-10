@@ -428,6 +428,11 @@ fn collect_expr_variant_types(
             operand,
             residual_type,
             ..
+        }
+        | ResolvedExprKind::TryOption {
+            operand,
+            residual_type,
+            ..
         } => {
             collect_expr_variant_types(program, operand, instances)?;
             collect_variant_type(program, residual_type, instances)?;

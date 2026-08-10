@@ -1,8 +1,9 @@
-# Private Component Model result runtimes v3/v4
+# Private Component Model result runtimes v3/v4/v5
 
 This unpublished, standalone Rust crate is hosted evidence for one exact
-SEMAPRAX v3 `result<s64, status>` component and one exact v4
-`result<result<bool, bool>, status>` component. It is intentionally excluded
+SEMAPRAX v3 `result<s64, status>` component, one exact v4
+`result<result<bool, bool>, status>` component, and one exact v5 six-export
+direct-scalar `Option`/`Result` matrix. It is intentionally excluded
 from the root workspace so Wasmtime cannot widen the compiler's MSRV or
 publish dependency graph.
 
@@ -12,7 +13,9 @@ instantiates with an empty component linker, and invokes the checked-in WIT
 through generated typed bindings. The v4 gate covers both inner result arms,
 both boolean payloads, a rejected call that skips a would-be division by zero,
 arithmetic and contract statuses, repeated calls on one instance, fresh
-instances, and an out-of-band fuel failure. It supplies no WASI context or host
+instances, and an out-of-band fuel failure. V5 covers all six carrier types,
+both tags and boolean values, skipped arithmetic, status precedence, repeated
+multi-function calls, fresh instances, and fuel failure. It supplies no WASI context or host
 callback and grants no filesystem, network, environment, clock, randomness,
 process, logging, or mutable ambient authority.
 
@@ -29,5 +32,5 @@ root profile/source-lock test and isolated formatting, lint, test, build, and
 execution command offline, with every dependency-resolving command locked. The
 complete script is an exact x86_64 Ubuntu toolchain gate; non-Linux contributors
 can run its Cargo commands individually with the pinned Rust release. This
-remains private copy-result evidence: it adds no resources, imports,
+remains private copy-algebra evidence: it adds no resources, imports,
 futures/streams, public backend, or `SPX-B104` admission.

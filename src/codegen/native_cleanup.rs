@@ -786,6 +786,16 @@ fn validate_expression(
                 ),
             ));
         }
+        ResolvedExprKind::TryOption { operand, .. } => {
+            validate_expression(program, function, operand)?;
+            return Err(unsupported(
+                function,
+                format!(
+                    "uses copy-Option propagation expression `{}`",
+                    expression.id
+                ),
+            ));
+        }
     }
     Ok(())
 }

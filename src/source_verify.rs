@@ -1331,6 +1331,16 @@ fn ordinary_result_arguments(ty: &Type) -> Option<(&Type, &Type)> {
     Some((&arguments[0], &arguments[1]))
 }
 
+fn ordinary_option_argument(ty: &Type) -> Option<&Type> {
+    let Type::Named { name, arguments } = ty else {
+        return None;
+    };
+    if name != "Option" || arguments.len() != 1 {
+        return None;
+    }
+    Some(&arguments[0])
+}
+
 #[allow(clippy::too_many_arguments)]
 fn check_expr(
     program: &Program,
@@ -2062,43 +2072,67 @@ fn check_expr(
                     expr.span,
                 ));
             }
-            let Some((ok, error_ty)) = ordinary_result_arguments(&operand.ty) else {
-                diagnostics.push(error(
-                    program,
-                    "SPX-T218",
-                    format!(
-                        "`?` operand must be the ordinary compiler-owned Result, received {}",
-                        operand.ty
-                    ),
-                    expr.span,
-                ));
-                return None;
-            };
-            let Some((_, residual_error_ty)) =
-                ordinary_result_arguments(&current.return_type)
-            else {
-                diagnostics.push(error(
-                    program,
-                    "SPX-T218",
-                    format!(
-                        "function `{}` must return the ordinary compiler-owned Result to use `?`",
-                        current.name
-                    ),
-                    expr.span,
-                ));
+            if let Some((ok, error_ty)) = ordinary_result_arguments(&operand.ty) {
+                let Some((_, residual_error_ty)) =
+                    ordinary_result_arguments(&current.return_type)
+                else {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T218",
+                        format!(
+                            "function `{}` must return the ordinary compiler-owned Result to propagate a Result with `?`",
+                            current.name
+                        ),
+                        expr.span,
+                    ));
+                    return Some(CheckedValue::value(ok.clone()));
+                };
+                if error_ty != residual_error_ty {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T219",
+                        format!(
+                            "`?` cannot propagate error type {error_ty} into Result error type {residual_error_ty}"
+                        ),
+                        expr.span,
+                    ));
+                }
                 return Some(CheckedValue::value(ok.clone()));
-            };
-            if error_ty != residual_error_ty {
-                diagnostics.push(error(
-                    program,
-                    "SPX-T219",
-                    format!(
-                        "`?` cannot propagate error type {error_ty} into Result error type {residual_error_ty}"
-                    ),
-                    expr.span,
-                ));
             }
-            Some(CheckedValue::value(ok.clone()))
+            if let Some(some) = ordinary_option_argument(&operand.ty) {
+                let outer = ordinary_option_argument(&current.return_type);
+                if outer.is_none() {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T218",
+                        format!(
+                            "function `{}` must return the ordinary compiler-owned Option to propagate an Option with `?`",
+                            current.name
+                        ),
+                        expr.span,
+                    ));
+                } else if !matches!(some, Type::I64 | Type::Bool)
+                    || outer.is_some_and(|value| !matches!(value, Type::I64 | Type::Bool))
+                {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T218",
+                        "Option `?` accepts only direct `i64` or `bool` source and enclosing payloads",
+                        expr.span,
+                    ));
+                }
+                return Some(CheckedValue::value(some.clone()));
+            }
+            diagnostics.push(error(
+                program,
+                "SPX-T218",
+                format!(
+                    "`?` operand must be an ordinary compiler-owned Result or Option, received {}",
+                    operand.ty
+                ),
+                expr.span,
+            ));
+            None
         }
         ExprKind::UpdateRecord { base, fields } => {
             let base_value = check_expr(

@@ -1,0 +1,12 @@
+package semaprax:private@0.8.0;
+
+interface option-propagation {
+  record status { domain: string, code: u32, class: u8, retryable: option<bool> }
+  type source-option = option<s64>;
+  type target-option = option<bool>;
+  evaluate: func(input: source-option, divisor: s64) -> result<target-option, status>;
+}
+
+world semaprax-private-v10 {
+  export option-propagation;
+}

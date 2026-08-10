@@ -50,6 +50,8 @@ cargo test --locked --offline --manifest-path "$readonly_root/Cargo.toml" --feat
 cargo test --locked --offline --manifest-path "$readonly_root/Cargo.toml" --features unstable-wit-component-harness --lib wit_component::record_pattern_v8::tests::
 cargo test --locked --offline --manifest-path "$readonly_root/Cargo.toml" --features unstable-wit-component-harness --lib wasm::generic_function_component_v9::tests::
 cargo test --locked --offline --manifest-path "$readonly_root/Cargo.toml" --features unstable-wit-component-harness --lib wit_component::generic_function_v9::tests::
+cargo test --locked --offline --manifest-path "$readonly_root/Cargo.toml" --features unstable-wit-component-harness --lib wasm::option_propagation_component_v10::tests::
+cargo test --locked --offline --manifest-path "$readonly_root/Cargo.toml" --features unstable-wit-component-harness --lib wit_component::option_propagation_v10::tests::
 cargo test --locked --offline --manifest-path "$readonly_root/Cargo.toml" --test component_runtime_ci_contract
 cargo fmt --manifest-path "$readonly_manifest" --all -- --check
 cargo clippy --locked --offline --manifest-path "$readonly_manifest" --all-targets --all-features -- -D warnings

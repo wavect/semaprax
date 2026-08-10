@@ -69,6 +69,15 @@ mod v9_bindings {
     });
 }
 
+mod v10_bindings {
+    wasmtime::component::bindgen!({
+        path: "wit/semaprax-private-v10.wit",
+        world: "semaprax-private-v10",
+        ownership: Owning,
+        additional_derives: [Eq, PartialEq],
+    });
+}
+
 use exports::semaprax::private::evaluation::Status;
 
 type HostResult<T> = Result<T, Box<dyn Error>>;
@@ -117,6 +126,7 @@ const SOURCE_V6: &str = include_str!("../v6.spx");
 const SOURCE_V7: &str = include_str!("../v7.spx");
 const SOURCE_V8: &str = include_str!("../v8.spx");
 const SOURCE_V9: &str = include_str!("../v9.spx");
+const SOURCE_V10: &str = include_str!("../v10.spx");
 
 // These independent known answers are replaced only alongside a reviewed
 // component-profile version change. Artifact accessor metadata is never used
@@ -196,6 +206,16 @@ const EXPECTED_GENERATED_CORE_V9_SHA256: [u8; 32] = [
 ];
 const EXPECTED_SOURCE_REVISION_V9: &str =
     "sha256:218085fb5ea1bcc090c04ac0acb3395912d0dad09027b9118d8817978b2fde0c";
+const EXPECTED_COMPONENT_V10_SHA256: [u8; 32] = [
+    0xf5, 0x77, 0x0b, 0xdf, 0xdb, 0xc8, 0x62, 0xea, 0x39, 0x64, 0x0b, 0x2c, 0x70, 0x6c, 0x1d, 0x9e,
+    0xa1, 0x71, 0x16, 0x4c, 0x22, 0x0d, 0x18, 0x36, 0x6e, 0x25, 0xb3, 0x21, 0x94, 0x43, 0xad, 0x0d,
+];
+const EXPECTED_GENERATED_CORE_V10_SHA256: [u8; 32] = [
+    0x16, 0xd1, 0xd3, 0x40, 0x24, 0xe3, 0xfa, 0xd9, 0x20, 0xd8, 0xd0, 0x0a, 0x61, 0xd7, 0xcb, 0x3b,
+    0xd0, 0x10, 0x33, 0x5c, 0xa3, 0x82, 0xf2, 0x36, 0x15, 0xb3, 0xb3, 0xda, 0x41, 0x43, 0xaa, 0xec,
+];
+const EXPECTED_SOURCE_REVISION_V10: &str =
+    "sha256:98b8fc892c183499153142d5bbdb4162e31bda95ef145d34dbb1ff57c9b8fc72";
 
 #[derive(Clone, Copy)]
 enum Expected {
@@ -2279,6 +2299,251 @@ fn run_v9() -> HostResult<()> {
     Ok(())
 }
 
+fn expect_v10_status<T>(
+    value: Result<T, v10_bindings::exports::semaprax::private::option_propagation::Status>,
+    domain: &str,
+    code: u32,
+    class: u8,
+    name: &str,
+) -> HostResult<()> {
+    match value {
+        Err(status)
+            if status.domain == domain
+                && status.code == code
+                && status.class == class
+                && status.retryable == Some(false) =>
+        {
+            Ok(())
+        }
+        _ => Err(failure(format!("unexpected v10 status for {name}"))),
+    }
+}
+
+fn run_v10_instance(engine: &Engine, component: &Component) -> HostResult<()> {
+    let linker = Linker::<()>::new(engine);
+    let mut store = Store::new(engine, ());
+    store.set_fuel(80_000_000)?;
+    let bindings = v10_bindings::SemapraxPrivateV10::instantiate(&mut store, component, &linker)?;
+    let api = bindings.semaprax_private_option_propagation();
+    if api.call_evaluate(&mut store, Some(83), 2)? != Ok(Some(true))
+        || api.call_evaluate(&mut store, Some(-5), 2)? != Ok(Some(false))
+        || api.call_evaluate(&mut store, None, 0)? != Ok(None)
+    {
+        return Err(failure("v10 typed Some/None mapping changed"));
+    }
+    expect_v10_status(
+        api.call_evaluate(&mut store, Some(1), -99)?,
+        "semaprax.contract.v1",
+        1,
+        1,
+        "requires Some",
+    )?;
+    expect_v10_status(
+        api.call_evaluate(&mut store, None, -99)?,
+        "semaprax.contract.v1",
+        1,
+        1,
+        "requires None",
+    )?;
+    expect_v10_status(
+        api.call_evaluate(&mut store, None, 13)?,
+        "semaprax.contract.v1",
+        2,
+        1,
+        "None shared ensures",
+    )?;
+    expect_v10_status(
+        api.call_evaluate(&mut store, Some(i64::MAX), 0)?,
+        "semaprax.arithmetic.v1",
+        1,
+        2,
+        "sticky add before division",
+    )?;
+    expect_v10_status(
+        api.call_evaluate(&mut store, Some(1), 0)?,
+        "semaprax.arithmetic.v1",
+        4,
+        2,
+        "division by zero",
+    )?;
+    for index in 0..512 {
+        let input = (index & 1 == 0).then_some(7);
+        if api.call_evaluate(&mut store, input, 2)? != Ok(input.map(|_| true)) {
+            return Err(failure("v10 typed reentry changed"));
+        }
+    }
+    Ok(())
+}
+
+fn expect_raw_v10_status(
+    bytes: &[u8; 20],
+    domain_pointer: u32,
+    domain_length: u32,
+    code: u32,
+    class: u8,
+    name: &str,
+) -> HostResult<()> {
+    if bytes[0] != 1
+        || bytes[1..4] != [0xa5; 3]
+        || u32::from_le_bytes(bytes[4..8].try_into()?) != domain_pointer
+        || u32::from_le_bytes(bytes[8..12].try_into()?) != domain_length
+        || u32::from_le_bytes(bytes[12..16].try_into()?) != code
+        || bytes[16] != class
+        || bytes[17] != 1
+        || bytes[18] != 0
+        || bytes[19] != 0xa5
+    {
+        return Err(failure(format!("v10 raw status/poison changed for {name}")));
+    }
+    Ok(())
+}
+
+fn prove_raw_core_v10_mapping_poison_tags_and_reentry(
+    engine: &Engine,
+    core: &[u8],
+) -> HostResult<()> {
+    let module = Module::new(engine, core)?;
+    if module.imports().next().is_some() {
+        return Err(failure("v10 raw core requested ambient imports"));
+    }
+    let mut store = Store::new(engine, ());
+    store.set_fuel(80_000_000)?;
+    let instance = Instance::new(&mut store, &module, &[])?;
+    let evaluate = instance.get_typed_func::<(i32, i64, i64), i32>(
+        &mut store,
+        "cabi_evaluate_option_propagation_v10",
+    )?;
+    let memory = instance
+        .get_memory(&mut store, "memory")
+        .ok_or_else(|| failure("v10 raw core memory export missing"))?;
+    let mut bytes = [0_u8; 20];
+
+    let pointer = usize::try_from(evaluate.call(&mut store, (1, 83, 2))?)
+        .map_err(|_| failure("v10 raw Some pointer was negative"))?;
+    if pointer != 256 {
+        return Err(failure("v10 raw result pointer changed"));
+    }
+    memory.read(&store, pointer, &mut bytes)?;
+    if bytes[0] != 0
+        || bytes[1..4] != [0xa5; 3]
+        || bytes[4] != 1
+        || bytes[5] != 1
+        || bytes[6..] != [0xa5; 14]
+    {
+        return Err(failure("v10 raw Some reconstruction changed"));
+    }
+    let pointer = usize::try_from(evaluate.call(&mut store, (0, 0, 0))?)
+        .map_err(|_| failure("v10 raw None pointer was negative"))?;
+    memory.read(&store, pointer, &mut bytes)?;
+    if bytes[0] != 0 || bytes[1..4] != [0xa5; 3] || bytes[4] != 0 || bytes[5..] != [0xa5; 15] {
+        return Err(failure("v10 raw None read or published a payload"));
+    }
+    for index in 0..4096 {
+        let tag = i32::from(index & 1 != 0);
+        let pointer = usize::try_from(evaluate.call(&mut store, (tag, 7, 2))?)
+            .map_err(|_| failure("v10 raw reentry pointer was negative"))?;
+        memory.read(&store, pointer, &mut bytes)?;
+        if bytes[0] != 0 || bytes[4] != u8::try_from(tag)? {
+            return Err(failure("v10 raw reentry identity changed"));
+        }
+    }
+    for (input, divisor, domain_pointer, domain_length, code, class, name) in [
+        ((1, 1), -99, 0, 20, 1, 1, "requires"),
+        ((0, 0), 13, 0, 20, 2, 1, "None ensures"),
+        ((1, i64::MAX), 0, 32, 22, 1, 2, "sticky add"),
+        ((1, 1), 0, 32, 22, 4, 2, "division by zero"),
+    ] {
+        let pointer = usize::try_from(evaluate.call(&mut store, (input.0, input.1, divisor))?)
+            .map_err(|_| failure("v10 raw status pointer was negative"))?;
+        memory.read(&store, pointer, &mut bytes)?;
+        expect_raw_v10_status(&bytes, domain_pointer, domain_length, code, class, name)?;
+    }
+    if evaluate.call(&mut store, (2, 0, 1)).is_ok() {
+        return Err(failure("v10 raw invalid input tag did not trap"));
+    }
+    memory.read(&store, 256, &mut bytes)?;
+    if bytes != [0xa5; 20] {
+        return Err(failure("v10 raw invalid input tag retained stale output"));
+    }
+    Ok(())
+}
+
+fn prove_engine_failure_is_out_of_band_v10(
+    engine: &Engine,
+    component: &Component,
+) -> HostResult<()> {
+    let linker = Linker::<()>::new(engine);
+    let mut store = Store::new(engine, ());
+    store.set_fuel(1_000_000)?;
+    let bindings = v10_bindings::SemapraxPrivateV10::instantiate(&mut store, component, &linker)?;
+    store.set_fuel(0)?;
+    if bindings
+        .semaprax_private_option_propagation()
+        .call_evaluate(&mut store, Some(83), 2)
+        .is_ok()
+    {
+        return Err(failure("v10 fuel exhaustion became a typed status"));
+    }
+    Ok(())
+}
+
+#[allow(clippy::too_many_lines)]
+fn run_v10() -> HostResult<()> {
+    let program = ::semaprax::check(
+        SOURCE_V10,
+        Path::new("component-option-propagation-v10.spx"),
+    )
+    .map_err(|diagnostics| failure(format!("v10 fixture verification failed: {diagnostics:?}")))?;
+    let artifact =
+        ::semaprax::wit_component::emit_private_option_propagation_component_v10(&program)
+            .map_err(|diagnostic| {
+                failure(format!("v10 component emission failed: {diagnostic:?}"))
+            })?;
+    if artifact.wit() != include_str!("../wit/semaprax-private-v10.wit") {
+        return Err(failure("checked-in Wasmtime v10 WIT drifted"));
+    }
+    let bytes: Box<[u8]> = artifact.bytes().to_vec().into_boxed_slice();
+    let before: [u8; 32] = Sha256::digest(&bytes).into();
+    if before != EXPECTED_COMPONENT_V10_SHA256
+        || artifact.generated_core_digest() != EXPECTED_GENERATED_CORE_V10_SHA256
+        || artifact.source_revision() != EXPECTED_SOURCE_REVISION_V10
+    {
+        return Err(failure("v10 independent source/component/core KAT changed"));
+    }
+    let validated = ::semaprax::wit_component::validate_private_option_propagation_component_v10(
+        &bytes,
+        EXPECTED_SOURCE_REVISION_V10,
+        EXPECTED_GENERATED_CORE_V10_SHA256,
+    )
+    .map_err(|error| failure(format!("v10 profile validation failed: {error:?}")))?;
+    if validated.interface_export_name() != "semaprax:private/option-propagation@0.8.0"
+        || validated.function_export_name() != "evaluate"
+        || validated.source_option_export_name() != "source-option"
+        || validated.target_option_export_name() != "target-option"
+        || validated.source_revision() != EXPECTED_SOURCE_REVISION_V10
+    {
+        return Err(failure("v10 typed export table changed"));
+    }
+    let mut config = Config::new();
+    config.wasm_component_model(true);
+    config.consume_fuel(true);
+    let engine = Engine::new(&config)?;
+    let component = Component::new(&engine, &bytes)?;
+    if component.component_type().imports(&engine).len() != 0 {
+        return Err(failure("v10 requested ambient imports"));
+    }
+    for _ in 0..4 {
+        run_v10_instance(&engine, &component)?;
+    }
+    prove_raw_core_v10_mapping_poison_tags_and_reentry(&engine, validated.generated_core())?;
+    prove_engine_failure_is_out_of_band_v10(&engine, &component)?;
+    if <[u8; 32]>::from(Sha256::digest(&bytes)) != before {
+        return Err(failure("authenticated v10 bytes changed during execution"));
+    }
+    println!("semaprax-private-component-runtime-v10-ok");
+    Ok(())
+}
+
 fn run() -> HostResult<()> {
     run_v3()?;
     run_v4()?;
@@ -2286,7 +2551,8 @@ fn run() -> HostResult<()> {
     run_v6()?;
     run_v7()?;
     run_v8()?;
-    run_v9()
+    run_v9()?;
+    run_v10()
 }
 
 fn main() -> HostResult<()> {

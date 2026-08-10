@@ -265,6 +265,30 @@ fn materialize() -> bool {
 fn main() -> i64 { if materialize() { 0 } else { 1 } }
 "#;
     assert_eq!(checked_in_source_v9, expected_source_v9);
+
+    let checked_in_v10 = read("platform-tests/component-runtime/wit/semaprax-private-v10.wit");
+    let expected_v10 = "package semaprax:private@0.8.0;\n\ninterface option-propagation {\n  record status { domain: string, code: u32, class: u8, retryable: option<bool> }\n  type source-option = option<s64>;\n  type target-option = option<bool>;\n  evaluate: func(input: source-option, divisor: s64) -> result<target-option, status>;\n}\n\nworld semaprax-private-v10 {\n  export option-propagation;\n}\n";
+    assert_eq!(checked_in_v10, expected_v10);
+
+    let checked_in_source_v10 = read("platform-tests/component-runtime/v10.spx");
+    let expected_source_v10 = r#"module test.component_option_propagation_v10;
+
+@id("component.option-propagation.evaluate")
+fn evaluate(input: Option<i64>, divisor: i64) -> Option<bool>
+    requires divisor != -99
+    ensures divisor != 13
+{
+    let checked = input?;
+    Option<bool>::Some { value: (checked + 1) / divisor > 0 }
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    0
+}
+"#;
+    assert_eq!(checked_in_source_v10, expected_source_v10);
 }
 
 #[test]
@@ -287,6 +311,8 @@ fn component_job_fetches_root_and_runner_then_runs_every_gate_locked_and_offline
         "--features unstable-wit-component-harness --lib wit_component::record_pattern_v8::tests::",
         "--features unstable-wit-component-harness --lib wasm::generic_function_component_v9::tests::",
         "--features unstable-wit-component-harness --lib wit_component::generic_function_v9::tests::",
+        "--features unstable-wit-component-harness --lib wasm::option_propagation_component_v10::tests::",
+        "--features unstable-wit-component-harness --lib wit_component::option_propagation_v10::tests::",
         "--test component_runtime_ci_contract",
     ] {
         assert!(
@@ -325,7 +351,7 @@ fn component_job_fetches_root_and_runner_then_runs_every_gate_locked_and_offline
         "manifest-path: platform-tests/component-runtime/Cargo.toml",
         "--config platform-tests/component-runtime/deny.toml",
         "scripts/component-runtime-v3.sh",
-        "execute every v3/v4/v5/v6/v7/v8/v9 Component gate offline",
+        "execute every v3/v4/v5/v6/v7/v8/v9/v10 Component gate offline",
     ] {
         assert!(
             workflow.contains(required),
@@ -364,11 +390,13 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "SemapraxPrivateV7::instantiate",
         "SemapraxPrivateV8::instantiate",
         "SemapraxPrivateV9::instantiate",
+        "SemapraxPrivateV10::instantiate",
         "#[allow(clippy::too_many_lines)]\nfn run_v5_instance",
         "#[allow(clippy::too_many_lines)]\nfn run_v6_instance",
         "#[allow(clippy::too_many_lines)]\nfn run_v7_instance",
         "#[allow(clippy::too_many_lines)]\nfn run_v8",
         "#[allow(clippy::too_many_lines)]\nfn run_v9",
+        "#[allow(clippy::too_many_lines)]\nfn run_v10",
         "Keep the exact source-instance-to-WIT mapping reviewable in one function.",
         "Keep the exact nested-record field and status matrix visible in one reviewable",
         "This is deliberately a flat, reviewable six-export protocol matrix.",
@@ -378,6 +406,7 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "semaprax-private-v7.wit",
         "semaprax-private-v8.wit",
         "semaprax-private-v9.wit",
+        "semaprax-private-v10.wit",
         "EXPECTED_COMPONENT_V4_SHA256",
         "EXPECTED_GENERATED_CORE_V4_SHA256",
         "EXPECTED_SOURCE_REVISION_V4",
@@ -396,6 +425,9 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "EXPECTED_COMPONENT_V9_SHA256",
         "EXPECTED_GENERATED_CORE_V9_SHA256",
         "EXPECTED_SOURCE_REVISION_V9",
+        "EXPECTED_COMPONENT_V10_SHA256",
+        "EXPECTED_GENERATED_CORE_V10_SHA256",
+        "EXPECTED_SOURCE_REVISION_V10",
         "sha256:86411224efe3adace5ffdd410c243306859edc280dbe3342adcf830588b62259",
         "0x6c, 0xeb, 0x9e, 0x30, 0x96, 0x94, 0xa5, 0xb9",
         "0x08, 0x25, 0xf2, 0x70, 0xcf, 0x2c, 0x94, 0xbd",
@@ -406,6 +438,7 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "validate_private_generic_record_component_v7",
         "validate_private_record_pattern_component_v8",
         "validate_private_generic_function_component_v9",
+        "validate_private_option_propagation_component_v10",
         "config.consume_fuel(true)",
         "store.set_fuel(0)",
         "engine_failure.is_ok()",
@@ -424,6 +457,7 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "semaprax:private/generic-records@0.5.0",
         "semaprax:private/record-pattern-projections@0.6.0",
         "semaprax:private/generic-function-instances@0.7.0",
+        "semaprax:private/option-propagation@0.8.0",
         "cabi_transform_nested_record_v6",
         "call_transform",
         "call_transform_i64_bool",
@@ -466,6 +500,10 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "v9 polarity-changing pair swap was not observable",
         "v9 pair-swap 15/8/7 partition changed",
         "v9 raw invalid bool retained stale output",
+        "cabi_evaluate_option_propagation_v10",
+        "prove_raw_core_v10_mapping_poison_tags_and_reentry",
+        "v10 raw None read or published a payload",
+        "v10 raw invalid input tag retained stale output",
         "bytes != [0xa5; 20]",
         "sha256:d1fcbc45b3d86fa1d7910378578828df3c557dba92f90ed9459f928c5bf2fe8a",
         "0xad, 0x40, 0x8a, 0x7a, 0x6a, 0x35, 0x96, 0xa0",
@@ -479,6 +517,9 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "sha256:218085fb5ea1bcc090c04ac0acb3395912d0dad09027b9118d8817978b2fde0c",
         "0x3c, 0xf6, 0xc7, 0xd7, 0xd0, 0x2e, 0x83, 0x8f",
         "0x9f, 0x17, 0x82, 0x07, 0xa0, 0x40, 0x6f, 0x74",
+        "sha256:98b8fc892c183499153142d5bbdb4162e31bda95ef145d34dbb1ff57c9b8fc72",
+        "0xf5, 0x77, 0x0b, 0xdf, 0xdb, 0xc8, 0x62, 0xea",
+        "0x16, 0xd1, 0xd3, 0x40, 0x24, 0xe3, 0xfa, 0xd9",
         "(left + 1) / right",
         "name: \"addition-overflow\"",
         "left: i64::MAX",
@@ -534,13 +575,20 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "only the authenticated v8/v9 raw signatures may bypass typed bindings"
     );
     assert_eq!(
+        runner
+            .matches("get_typed_func::<(i32, i64, i64), i32>")
+            .count(),
+        1,
+        "only the authenticated v10 Option raw signature may bypass typed bindings"
+    );
+    assert_eq!(
         runner.matches("Module::new").count(),
-        4,
-        "only authenticated v6/v7/v8/v9 embedded cores may be instantiated directly"
+        5,
+        "only authenticated v6/v7/v8/v9/v10 embedded cores may be instantiated directly"
     );
     assert_eq!(
         runner.matches("usize::try_from(").count(),
-        14,
-        "every v6/v7/v8/v9 raw result pointer must be converted without signed truncation"
+        18,
+        "every v6/v7/v8/v9/v10 raw result pointer must be converted without signed truncation"
     );
 }

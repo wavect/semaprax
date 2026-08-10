@@ -19,6 +19,8 @@ mod generic_function_component_v9;
 mod generic_record_component_v7;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod nested_record_component_v6;
+#[cfg(any(test, feature = "unstable-wit-component-harness"))]
+mod option_propagation_component_v10;
 mod owned;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod record_pattern_component_v8;
@@ -46,6 +48,13 @@ pub(crate) use nested_record_component_v6::{
     emit_private_nested_record_core_v6,
     CANONICAL_EXPORT as NESTED_RECORD_COMPONENT_CANONICAL_EXPORT_V6,
     SOURCE_V6 as NESTED_RECORD_COMPONENT_SOURCE_V6,
+};
+#[cfg(any(test, feature = "unstable-wit-component-harness"))]
+pub(crate) use option_propagation_component_v10::{
+    emit_private_option_propagation_core_v10,
+    CANONICAL_EXPORT as OPTION_PROPAGATION_COMPONENT_CANONICAL_EXPORT_V10,
+    SOURCE_V10 as OPTION_PROPAGATION_SOURCE_V10,
+    STATUS_OUT_EXPORT as OPTION_PROPAGATION_COMPONENT_STATUS_OUT_EXPORT_V10,
 };
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 pub(crate) use record_pattern_component_v8::{

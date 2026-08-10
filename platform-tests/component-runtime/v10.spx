@@ -1,0 +1,16 @@
+module test.component_option_propagation_v10;
+
+@id("component.option-propagation.evaluate")
+fn evaluate(input: Option<i64>, divisor: i64) -> Option<bool>
+    requires divisor != -99
+    ensures divisor != 13
+{
+    let checked = input?;
+    Option<bool>::Some { value: (checked + 1) / divisor > 0 }
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    0
+}

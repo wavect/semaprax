@@ -51,6 +51,15 @@ mod v7_bindings {
     });
 }
 
+mod v8_bindings {
+    wasmtime::component::bindgen!({
+        path: "wit/semaprax-private-v8.wit",
+        world: "semaprax-private-v8",
+        ownership: Owning,
+        additional_derives: [Eq, PartialEq],
+    });
+}
+
 use exports::semaprax::private::evaluation::Status;
 
 type HostResult<T> = Result<T, Box<dyn Error>>;
@@ -97,6 +106,7 @@ fn main() -> i64
 const SOURCE_V5: &str = include_str!("../v5.spx");
 const SOURCE_V6: &str = include_str!("../v6.spx");
 const SOURCE_V7: &str = include_str!("../v7.spx");
+const SOURCE_V8: &str = include_str!("../v8.spx");
 
 // These independent known answers are replaced only alongside a reviewed
 // component-profile version change. Artifact accessor metadata is never used
@@ -156,6 +166,16 @@ const EXPECTED_GENERATED_CORE_V7_SHA256: [u8; 32] = [
 ];
 const EXPECTED_SOURCE_REVISION_V7: &str =
     "sha256:2c2c38ae4a6400730bc6c91de659675074020651b9b58bb6a39d047630ef7303";
+const EXPECTED_COMPONENT_V8_SHA256: [u8; 32] = [
+    0xd8, 0x85, 0x90, 0x75, 0x2e, 0xd7, 0xb0, 0x8b, 0x0f, 0x0a, 0x32, 0x01, 0x9b, 0xa8, 0xb4, 0xc5,
+    0xfc, 0x48, 0x9d, 0x59, 0xf0, 0x6b, 0x96, 0x98, 0x6d, 0x7a, 0xd6, 0x9e, 0x25, 0x54, 0xa1, 0x0e,
+];
+const EXPECTED_GENERATED_CORE_V8_SHA256: [u8; 32] = [
+    0xb6, 0xe1, 0xdb, 0xf9, 0x52, 0x2d, 0xbb, 0x98, 0xdf, 0x9b, 0x6f, 0xcd, 0x37, 0x0b, 0x56, 0x2a,
+    0x9a, 0x72, 0x2f, 0xcc, 0x67, 0x2d, 0x44, 0x48, 0x8a, 0xed, 0x80, 0xf1, 0x3b, 0x7a, 0xd3, 0x9e,
+];
+const EXPECTED_SOURCE_REVISION_V8: &str =
+    "sha256:2baac0c0920dbb153789767bf506a4a81713081586a81444d8e5f5a8f5a8516d";
 
 #[derive(Clone, Copy)]
 enum Expected {
@@ -1627,12 +1647,318 @@ fn run_v7() -> HostResult<()> {
     Ok(())
 }
 
+fn expect_v8_status<T>(
+    value: Result<T, v8_bindings::exports::semaprax::private::record_pattern_projections::Status>,
+    code: u32,
+    name: &str,
+) -> HostResult<()> {
+    match value {
+        Err(status)
+            if status.domain == "semaprax.contract.v1"
+                && status.code == code
+                && status.class == 1
+                && status.retryable == Some(false) =>
+        {
+            Ok(())
+        }
+        _ => Err(failure(format!("unexpected v8 status for {name}"))),
+    }
+}
+
+fn run_v8_instance(engine: &Engine, component: &Component) -> HostResult<()> {
+    use v8_bindings::exports::semaprax::private::record_pattern_projections::{
+        PhantomBool, PhantomI64,
+    };
+
+    let linker = Linker::<()>::new(engine);
+    let mut store = Store::new(engine, ());
+    store.set_fuel(20_000_000)?;
+    let bindings = v8_bindings::SemapraxPrivateV8::instantiate(&mut store, component, &linker)?;
+    let api = bindings.semaprax_private_record_pattern_projections();
+    for marker in [false, true] {
+        if api.call_preserve_phantom_i64(&mut store, PhantomI64 { marker }, 0)? != Ok(marker)
+            || api.call_invert_phantom_i64(&mut store, PhantomI64 { marker }, 0)? != Ok(!marker)
+            || api.call_preserve_phantom_bool(&mut store, PhantomBool { marker }, 0)? != Ok(marker)
+            || api.call_invert_phantom_bool(&mut store, PhantomBool { marker }, 0)? != Ok(!marker)
+        {
+            return Err(failure("v8 exact record-pattern projection changed"));
+        }
+    }
+    expect_v8_status(
+        api.call_preserve_phantom_i64(&mut store, PhantomI64 { marker: true }, -99)?,
+        1,
+        "preserve Phantom<i64> requires",
+    )?;
+    expect_v8_status(
+        api.call_invert_phantom_i64(&mut store, PhantomI64 { marker: true }, -99)?,
+        1,
+        "invert Phantom<i64> requires",
+    )?;
+    expect_v8_status(
+        api.call_preserve_phantom_bool(&mut store, PhantomBool { marker: true }, -99)?,
+        1,
+        "preserve Phantom<bool> requires",
+    )?;
+    expect_v8_status(
+        api.call_invert_phantom_bool(&mut store, PhantomBool { marker: true }, -99)?,
+        1,
+        "invert Phantom<bool> requires",
+    )?;
+    expect_v8_status(
+        api.call_preserve_phantom_i64(&mut store, PhantomI64 { marker: true }, 13)?,
+        2,
+        "preserve Phantom<i64> ensures",
+    )?;
+    expect_v8_status(
+        api.call_invert_phantom_i64(&mut store, PhantomI64 { marker: true }, 13)?,
+        2,
+        "invert Phantom<i64> ensures",
+    )?;
+    expect_v8_status(
+        api.call_preserve_phantom_bool(&mut store, PhantomBool { marker: true }, 13)?,
+        2,
+        "preserve Phantom<bool> ensures",
+    )?;
+    expect_v8_status(
+        api.call_invert_phantom_bool(&mut store, PhantomBool { marker: true }, 13)?,
+        2,
+        "invert Phantom<bool> ensures",
+    )?;
+    Ok(())
+}
+
+fn expect_raw_v8_status(bytes: &[u8; 20], code: u32, name: &str) -> HostResult<()> {
+    if bytes[0] != 1
+        || bytes[1..4] != [0xa5; 3]
+        || u32::from_le_bytes(bytes[4..8].try_into()?) != 0
+        || u32::from_le_bytes(bytes[8..12].try_into()?) != 20
+        || u32::from_le_bytes(bytes[12..16].try_into()?) != code
+        || bytes[16] != 1
+        || bytes[17] != 1
+        || bytes[18] != 0
+        || bytes[19] != 0xa5
+    {
+        return Err(failure(format!("v8 raw status/poison changed for {name}")));
+    }
+    Ok(())
+}
+
+fn prove_raw_core_v8_mapping_poison_and_invalid_bools(
+    engine: &Engine,
+    core: &[u8],
+) -> HostResult<()> {
+    let module = Module::new(engine, core)?;
+    if module.imports().next().is_some() {
+        return Err(failure("v8 raw core requested ambient imports"));
+    }
+    let mut store = Store::new(engine, ());
+    store.set_fuel(20_000_000)?;
+    let instance = Instance::new(&mut store, &module, &[])?;
+    let functions = [
+        instance.get_typed_func::<(i32, i64), i32>(
+            &mut store,
+            "cabi_preserve_pattern_phantom_i64_v8",
+        )?,
+        instance
+            .get_typed_func::<(i32, i64), i32>(&mut store, "cabi_invert_pattern_phantom_i64_v8")?,
+        instance.get_typed_func::<(i32, i64), i32>(
+            &mut store,
+            "cabi_preserve_pattern_phantom_bool_v8",
+        )?,
+        instance
+            .get_typed_func::<(i32, i64), i32>(&mut store, "cabi_invert_pattern_phantom_bool_v8")?,
+    ];
+    let results = [160_usize, 224, 288, 352];
+    let memory = instance
+        .get_memory(&mut store, "memory")
+        .ok_or_else(|| failure("v8 raw core memory export missing"))?;
+    let mut bytes = [0_u8; 20];
+    for (index, function) in functions.iter().enumerate() {
+        let pointer = usize::try_from(function.call(&mut store, (1, 0))?)
+            .map_err(|_| failure("v8 raw success pointer was negative"))?;
+        if pointer != results[index] {
+            return Err(failure("v8 raw result pointer map changed"));
+        }
+        memory.read(&store, pointer, &mut bytes)?;
+        if bytes[0] != 0
+            || bytes[1..4] != [0xa5; 3]
+            || bytes[4] != u8::from(index % 2 == 0)
+            || bytes[5..] != [0xa5; 15]
+        {
+            return Err(failure("v8 raw fieldwise reconstruction changed"));
+        }
+
+        let pointer = usize::try_from(function.call(&mut store, (1, -99))?)
+            .map_err(|_| failure("v8 raw requires pointer was negative"))?;
+        memory.read(&store, pointer, &mut bytes)?;
+        expect_raw_v8_status(&bytes, 1, "requires")?;
+        let pointer = usize::try_from(function.call(&mut store, (1, 13))?)
+            .map_err(|_| failure("v8 raw ensures pointer was negative"))?;
+        memory.read(&store, pointer, &mut bytes)?;
+        expect_raw_v8_status(&bytes, 2, "ensures")?;
+
+        if function.call(&mut store, (2, 0)).is_ok() {
+            return Err(failure("v8 raw invalid bool did not trap"));
+        }
+        memory.read(&store, results[index], &mut bytes)?;
+        if bytes != [0xa5; 20] {
+            return Err(failure("v8 raw invalid bool retained stale output"));
+        }
+    }
+    Ok(())
+}
+
+fn prove_engine_failure_is_out_of_band_v8(
+    engine: &Engine,
+    component: &Component,
+) -> HostResult<()> {
+    use v8_bindings::exports::semaprax::private::record_pattern_projections::PhantomBool;
+
+    let linker = Linker::<()>::new(engine);
+    let mut store = Store::new(engine, ());
+    store.set_fuel(1_000_000)?;
+    let bindings = v8_bindings::SemapraxPrivateV8::instantiate(&mut store, component, &linker)?;
+    store.set_fuel(0)?;
+    if bindings
+        .semaprax_private_record_pattern_projections()
+        .call_invert_phantom_bool(&mut store, PhantomBool { marker: true }, 0)
+        .is_ok()
+    {
+        return Err(failure("v8 fuel exhaustion became a typed status"));
+    }
+    Ok(())
+}
+
+fn prove_all_pair_swaps_reject_and_polarity_swaps_are_observable_v8(
+    engine: &Engine,
+    bytes: &[u8],
+) -> HostResult<()> {
+    use v8_bindings::exports::semaprax::private::record_pattern_projections::{
+        PhantomBool, PhantomI64,
+    };
+
+    let mut canonical_anchor = Vec::new();
+    for (index, ty) in [5_u8, 5, 6, 6].into_iter().enumerate() {
+        canonical_anchor.extend([0x00, 0x00, index as u8, 0x02, 0x00, 0x03, 0x00, ty]);
+    }
+    let canonical_at = bytes
+        .windows(canonical_anchor.len())
+        .position(|window| window == canonical_anchor)
+        .ok_or_else(|| failure("v8 pair-swap canonical anchor drifted"))?;
+    for left in 0..4 {
+        for right in left + 1..4 {
+            let mut hostile = bytes.to_vec();
+            hostile.swap(canonical_at + 2 + left * 8, canonical_at + 2 + right * 8);
+            if ::semaprax::wit_component::validate_private_record_pattern_component_v8(
+                &hostile,
+                EXPECTED_SOURCE_REVISION_V8,
+                EXPECTED_GENERATED_CORE_V8_SHA256,
+            )
+            .is_ok()
+            {
+                return Err(failure("v8 exact validator admitted pair swap"));
+            }
+            if left % 2 == right % 2 {
+                continue;
+            }
+            let component = Component::new(engine, &hostile)?;
+            if component.component_type().imports(engine).len() != 0 {
+                return Err(failure("v8 pair-swap hostile requested imports"));
+            }
+            let linker = Linker::<()>::new(engine);
+            let mut store = Store::new(engine, ());
+            store.set_fuel(10_000_000)?;
+            let bindings =
+                v8_bindings::SemapraxPrivateV8::instantiate(&mut store, &component, &linker)?;
+            let api = bindings.semaprax_private_record_pattern_projections();
+            let observed = match left {
+                0 => api.call_preserve_phantom_i64(&mut store, PhantomI64 { marker: true }, 0)?,
+                1 => api.call_invert_phantom_i64(&mut store, PhantomI64 { marker: true }, 0)?,
+                2 => api.call_preserve_phantom_bool(&mut store, PhantomBool { marker: true }, 0)?,
+                3 => api.call_invert_phantom_bool(&mut store, PhantomBool { marker: true }, 0)?,
+                _ => unreachable!(),
+            };
+            if observed != Ok(right % 2 == 0) {
+                return Err(failure("v8 polarity-changing pair swap was not observable"));
+            }
+        }
+    }
+    Ok(())
+}
+
+#[allow(clippy::too_many_lines)]
+fn run_v8() -> HostResult<()> {
+    let program = ::semaprax::check(SOURCE_V8, Path::new("component-record-pattern-v8.spx"))
+        .map_err(|diagnostics| {
+            failure(format!("v8 fixture verification failed: {diagnostics:?}"))
+        })?;
+    let artifact = ::semaprax::wit_component::emit_private_record_pattern_component_v8(&program)
+        .map_err(|diagnostic| failure(format!("v8 component emission failed: {diagnostic:?}")))?;
+    if artifact.wit() != include_str!("../wit/semaprax-private-v8.wit") {
+        return Err(failure("checked-in Wasmtime v8 WIT drifted"));
+    }
+    let bytes: Box<[u8]> = artifact.bytes().to_vec().into_boxed_slice();
+    let before: [u8; 32] = Sha256::digest(&bytes).into();
+    if before != EXPECTED_COMPONENT_V8_SHA256
+        || artifact.generated_core_digest() != EXPECTED_GENERATED_CORE_V8_SHA256
+    {
+        return Err(failure("v8 independent component/core KAT changed"));
+    }
+    let expected_revision = ::semaprax::graph::revision(&program);
+    if expected_revision != EXPECTED_SOURCE_REVISION_V8 {
+        return Err(failure("v8 source revision KAT changed"));
+    }
+    let validated = ::semaprax::wit_component::validate_private_record_pattern_component_v8(
+        &bytes,
+        EXPECTED_SOURCE_REVISION_V8,
+        EXPECTED_GENERATED_CORE_V8_SHA256,
+    )
+    .map_err(|error| failure(format!("v8 profile validation failed: {error:?}")))?;
+    if validated.interface_export_name() != "semaprax:private/record-pattern-projections@0.6.0"
+        || validated.function_export_names()
+            != [
+                "preserve-phantom-i64",
+                "invert-phantom-i64",
+                "preserve-phantom-bool",
+                "invert-phantom-bool",
+            ]
+        || validated.type_export_names() != ["status", "phantom-i64", "phantom-bool"]
+        || validated.source_revision() != EXPECTED_SOURCE_REVISION_V8
+        || <[u8; 32]>::from(Sha256::digest(validated.generated_core()))
+            != EXPECTED_GENERATED_CORE_V8_SHA256
+    {
+        return Err(failure("v8 typed export table changed"));
+    }
+    let mut config = Config::new();
+    config.wasm_component_model(true);
+    config.consume_fuel(true);
+    let engine = Engine::new(&config)?;
+    let component = Component::new(&engine, &bytes)?;
+    if component.component_type().imports(&engine).len() != 0 {
+        return Err(failure("v8 requested ambient imports"));
+    }
+    run_v8_instance(&engine, &component)?;
+    run_v8_instance(&engine, &component)?;
+    for _ in 0..2 {
+        run_v8_instance(&engine, &component)?;
+    }
+    prove_raw_core_v8_mapping_poison_and_invalid_bools(&engine, validated.generated_core())?;
+    prove_all_pair_swaps_reject_and_polarity_swaps_are_observable_v8(&engine, &bytes)?;
+    prove_engine_failure_is_out_of_band_v8(&engine, &component)?;
+    if <[u8; 32]>::from(Sha256::digest(&bytes)) != before {
+        return Err(failure("authenticated v8 bytes changed during execution"));
+    }
+    println!("semaprax-private-component-runtime-v8-ok");
+    Ok(())
+}
+
 fn run() -> HostResult<()> {
     run_v3()?;
     run_v4()?;
     run_v5()?;
     run_v6()?;
-    run_v7()
+    run_v7()?;
+    run_v8()
 }
 
 fn main() -> HostResult<()> {

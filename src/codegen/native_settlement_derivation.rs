@@ -130,6 +130,11 @@ pub(super) fn derive_native_settlement(
     function_id: &DeclarationId,
 ) -> Result<NativeSettlementDerivation, Diagnostic> {
     crate::hir::validate(program)?;
+    if !program.function_templates.is_empty() || !program.function_instances.is_empty() {
+        return Err(derivation_error(
+            "native settlement does not admit generic function templates or instances",
+        ));
+    }
     let function = program
         .functions
         .iter()

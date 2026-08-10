@@ -216,6 +216,11 @@ fn derive_for_target(
 ) -> Result<NativeCallableV3Descriptor, Diagnostic> {
     validate_target_profile(target, linkage_profile)?;
     crate::hir::validate(program)?;
+    if !program.function_templates.is_empty() || !program.function_instances.is_empty() {
+        return Err(v3_error(
+            "callable-v3 does not admit generic function templates or instances",
+        ));
+    }
 
     let resource_abi = native_resource::build_resource_abi(program)?;
     let function = program

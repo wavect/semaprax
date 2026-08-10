@@ -1,0 +1,41 @@
+module test.component_record_pattern_v8;
+
+@id("component.pattern.phantom")
+record Phantom<T> {
+    @id("component.pattern.phantom.marker") marker: bool,
+}
+
+@id("component.pattern.preserve-phantom-i64")
+fn preserve_phantom_i64(input: Phantom<i64>, control: i64) -> bool
+    requires control != -99
+    ensures control != 13
+{
+    match input { Phantom { marker } => marker, }
+}
+
+@id("component.pattern.invert-phantom-i64")
+fn invert_phantom_i64(input: Phantom<i64>, control: i64) -> bool
+    requires control != -99
+    ensures control != 13
+{
+    match input { Phantom { marker } => !marker, }
+}
+
+@id("component.pattern.preserve-phantom-bool")
+fn preserve_phantom_bool(input: Phantom<bool>, control: i64) -> bool
+    requires control != -99
+    ensures control != 13
+{
+    match input { Phantom { marker } => marker, }
+}
+
+@id("component.pattern.invert-phantom-bool")
+fn invert_phantom_bool(input: Phantom<bool>, control: i64) -> bool
+    requires control != -99
+    ensures control != 13
+{
+    match input { Phantom { marker } => !marker, }
+}
+
+@id("app.main")
+fn main() -> i64 { 0 }

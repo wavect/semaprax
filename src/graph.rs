@@ -1,7 +1,7 @@
 //! Deterministic semantic graph serialization and bounded context queries.
 //!
 //! Human source supplies the revision. Resolved HIR supplies every semantic
-//! identity and fact in graph v10-v13; spans and display names are metadata only.
+//! identity and fact in graph v10-v14; spans and display names are metadata only.
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fmt::Write;
@@ -12,10 +12,10 @@ use crate::ast::{BinaryOp, Program, UnaryOp};
 use crate::diagnostic::{quote_json, Diagnostic};
 use crate::format;
 use crate::hir::{
-    self, DeclarationId, IdentityOrigin, OwnershipMode, Place, PlaceProjection, ResolvedExpr,
-    ResolvedExprKind, ResolvedFunction, ResolvedImportFailure, ResolvedProgram,
-    ResolvedResourceDropKind, ResolvedStatement, ResolvedType, ResolvedTypeDeclarationKind,
-    TypeFacts, ValueId,
+    self, DeclarationId, FunctionExecutionId, FunctionInstanceId, IdentityOrigin, OwnershipMode,
+    Place, PlaceProjection, ResolvedExpr, ResolvedExprKind, ResolvedFunction,
+    ResolvedImportFailure, ResolvedProgram, ResolvedResourceDropKind, ResolvedStatement,
+    ResolvedType, ResolvedTypeDeclarationKind, TypeFacts, ValueId,
 };
 use crate::prelude;
 
@@ -42,7 +42,8 @@ pub fn revision(program: &Program) -> String {
 /// Resolve and serialize a parsed program as `semaprax.graph.v10`, as v11 when
 /// the validated program contains bounded Option propagation, as v12 when it
 /// declares a bounded generic record, or as v13 when it contains an explicit
-/// authenticated record pattern.
+/// authenticated record pattern, or as v14 when it declares a bounded generic
+/// function.
 ///
 /// Resolution is deliberately part of this public boundary. Invalid source
 /// cannot be mistaken for a checked semantic graph by library callers.
@@ -261,19 +262,26 @@ fn agent_context_hir_json(
         .iter()
         .map(|function| (function.id.clone(), function))
         .collect::<BTreeMap<_, _>>();
+    let templates = program
+        .function_templates
+        .iter()
+        .map(|template| (template.id.clone(), template))
+        .collect::<BTreeMap<_, _>>();
     let mut seen = BTreeSet::from([root.clone()]);
     let mut queue = VecDeque::from([(root.clone(), 0_usize)]);
     let mut ordered = Vec::new();
     let mut depth_frontier = BTreeSet::new();
     while let Some((function_id, current_depth)) = queue.pop_front() {
-        let function = functions
-            .get(&function_id)
-            .copied()
-            .ok_or_else(|| graph_reference_error("function", &function_id))?;
         ordered.push((function_id.clone(), current_depth));
-        let calls = function_calls(function);
+        let calls = if let Some(function) = functions.get(&function_id) {
+            function_calls(function)
+        } else if let Some(template) = templates.get(&function_id) {
+            template_calls(template)
+        } else {
+            return Err(graph_reference_error("function", &function_id));
+        };
         for callee in calls {
-            if !functions.contains_key(&callee) {
+            if !functions.contains_key(&callee) && !templates.contains_key(&callee) {
                 continue;
             }
             if current_depth >= options.depth {
@@ -288,15 +296,24 @@ fn agent_context_hir_json(
 
     let mut facts = Vec::with_capacity(ordered.len());
     for (id, depth) in ordered {
-        let function = functions
-            .get(&id)
-            .copied()
-            .ok_or_else(|| graph_reference_error("function", &id))?;
+        let (calls, json) = if let Some(function) = functions.get(&id) {
+            (
+                agent_function_calls(program, function),
+                agent_function_json(program, function, &options.filters)?,
+            )
+        } else if let Some(template) = templates.get(&id) {
+            (
+                template_calls(template),
+                agent_template_json(program, template, &options.filters)?,
+            )
+        } else {
+            return Err(graph_reference_error("function", &id));
+        };
         facts.push(AgentFunctionFact {
             id,
             depth,
-            calls: agent_function_calls(program, function),
-            json: agent_function_json(program, function, &options.filters)?,
+            calls,
+            json,
         });
     }
 
@@ -386,6 +403,13 @@ fn find_context_root(program: &ResolvedProgram, symbol: &str) -> Option<Declarat
         .iter()
         .find(|function| function.id.as_str() == symbol)
         .map(|function| function.id.clone())
+        .or_else(|| {
+            program
+                .function_templates
+                .iter()
+                .find(|template| template.id.as_str() == symbol)
+                .map(|template| template.id.clone())
+        })
         .or_else(|| program.declarations.function_id(symbol).cloned())
 }
 
@@ -397,6 +421,21 @@ fn function_calls(function: &ResolvedFunction) -> BTreeSet<DeclarationId> {
     calls
 }
 
+fn template_calls(template: &crate::hir::ResolvedFunctionTemplate) -> BTreeSet<DeclarationId> {
+    let mut calls = BTreeSet::new();
+    for expression in template
+        .requires
+        .iter()
+        .chain(std::iter::once(&template.body))
+        .chain(&template.ensures)
+    {
+        visit_expr_calls(expression, &mut |callee| {
+            calls.insert(callee.clone());
+        });
+    }
+    calls
+}
+
 fn agent_function_calls(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
@@ -405,6 +444,12 @@ fn agent_function_calls(
         .functions
         .iter()
         .map(|candidate| candidate.id.clone())
+        .chain(
+            program
+                .function_templates
+                .iter()
+                .map(|template| template.id.clone()),
+        )
         .collect::<BTreeSet<_>>();
     function_calls(function)
         .into_iter()
@@ -432,6 +477,15 @@ fn agent_function_json(
         ),
         agent_reference_index_json(program, function)?
     );
+    if graph_schema(program) == "semaprax.graph.v14" {
+        write!(
+            output,
+            ",\"call_instances\":[{}],\"body\":{}",
+            agent_call_instances_json(function),
+            agent_contract_expr_json(&function.body)?,
+        )
+        .expect("writing to a string cannot fail");
+    }
     if !propagations.is_empty() {
         write!(
             output,
@@ -507,6 +561,114 @@ fn agent_function_json(
             quote_json(&function.return_type.identity_key()),
             type_facts_array(program, &selected_functions, &selected_types)?,
             agent_type_declarations_json(program, &selected_types)?
+        )
+        .expect("writing to a string cannot fail");
+    }
+    output.push('}');
+    Ok(output)
+}
+
+fn agent_call_instances_json(function: &ResolvedFunction) -> String {
+    let mut calls = Vec::new();
+    for expression in function
+        .requires
+        .iter()
+        .chain(std::iter::once(&function.body))
+        .chain(&function.ensures)
+    {
+        visit_expr_call_instances(
+            expression,
+            &mut |expression, callee, type_arguments, instance| {
+                calls.push(format!(
+                    "{{\"expression\":{},\"template\":{},\"instance\":{},\"type_arguments\":[{}]}}",
+                    quote_json(expression.id.as_str()),
+                    quote_json(callee.as_str()),
+                    quote_json(instance.as_str()),
+                    type_arguments
+                        .iter()
+                        .map(type_json)
+                        .collect::<Vec<_>>()
+                        .join(",")
+                ));
+            },
+        );
+    }
+    calls.join(",")
+}
+
+fn agent_template_json(
+    program: &ResolvedProgram,
+    template: &crate::hir::ResolvedFunctionTemplate,
+    filters: &BTreeSet<AgentContextFilter>,
+) -> Result<String, Diagnostic> {
+    let calls = template_calls(template);
+    let instances = program
+        .function_instances
+        .iter()
+        .filter(|instance| instance.template == template.id)
+        .map(|instance| {
+            format!(
+                "{{\"id\":{},\"execution_id\":{},\"type_arguments\":[{}]}}",
+                quote_json(instance.id.as_str()),
+                quote_json(&FunctionExecutionId::Generic(instance.id.clone()).identity_key()),
+                instance
+                    .type_arguments
+                    .iter()
+                    .map(type_json)
+                    .collect::<Vec<_>>()
+                    .join(",")
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    let mut output = format!(
+        "{{\"id\":{},\"kind\":\"function_template\",\"name\":{},\"calls\":{},\"type_parameters\":{},\"instances\":[{}],\"body\":{}",
+        quote_json(template.id.as_str()),
+        quote_json(&template.name),
+        string_array(
+            &calls
+                .iter()
+                .map(|id| id.as_str().to_owned())
+                .collect::<Vec<_>>()
+        ),
+        type_parameters_json(&template.id, &template.type_parameters),
+        instances,
+        agent_contract_expr_json(&template.body)?
+    );
+    if filters.contains(&AgentContextFilter::Contracts) {
+        write!(
+            output,
+            ",\"contracts\":{{\"requires\":[{}],\"ensures\":[{}]}}",
+            template
+                .requires
+                .iter()
+                .map(agent_contract_expr_json)
+                .collect::<Result<Vec<_>, _>>()?
+                .join(","),
+            template
+                .ensures
+                .iter()
+                .map(agent_contract_expr_json)
+                .collect::<Result<Vec<_>, _>>()?
+                .join(",")
+        )
+        .expect("writing to a string cannot fail");
+    }
+    if filters.contains(&AgentContextFilter::Types) {
+        write!(
+            output,
+            ",\"types\":{{\"parameters\":[{}],\"result\":{}}}",
+            template
+                .params
+                .iter()
+                .map(|parameter| format!(
+                    "{{\"id\":{},\"type\":{}}}",
+                    quote_json(parameter.id.as_str()),
+                    type_json(&parameter.ty)
+                ))
+                .collect::<Vec<_>>()
+                .join(","),
+            type_json(&template.return_type)
         )
         .expect("writing to a string cannot fail");
     }
@@ -624,6 +786,9 @@ fn result_propagation_json(expression: &ResolvedExpr) -> String {
 }
 
 fn graph_schema(program: &ResolvedProgram) -> &'static str {
+    if !program.function_templates.is_empty() {
+        return "semaprax.graph.v14";
+    }
     if program.functions.iter().any(|function| {
         function
             .requires
@@ -836,14 +1001,33 @@ fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnos
         ResolvedExprKind::Place(place) => {
             format!("{{\"kind\":\"place\",\"place\":{}}}", place_json(place))
         }
-        ResolvedExprKind::Call { callee, args } => format!(
-            "{{\"kind\":\"call\",\"callee\":{},\"args\":[{}]}}",
-            quote_json(callee.as_str()),
-            args.iter()
+        ResolvedExprKind::Call {
+            callee,
+            type_arguments,
+            instance,
+            args,
+        } => {
+            let args = args
+                .iter()
                 .map(agent_contract_expr_json)
                 .collect::<Result<Vec<_>, _>>()?
-                .join(",")
-        ),
+                .join(",");
+            if let Some(instance) = instance {
+                format!(
+                    "{{\"kind\":\"call_instance\",\"template\":{},\"instance\":{},\"type_arguments\":[{}],\"args\":[{}]}}",
+                    quote_json(callee.as_str()),
+                    quote_json(instance.as_str()),
+                    type_arguments.iter().map(type_json).collect::<Vec<_>>().join(","),
+                    args
+                )
+            } else {
+                format!(
+                    "{{\"kind\":\"call\",\"callee\":{},\"args\":[{}]}}",
+                    quote_json(callee.as_str()),
+                    args
+                )
+            }
+        }
         ResolvedExprKind::Unary { op, value } => format!(
             "{{\"kind\":\"unary\",\"op\":{},\"value\":{}}}",
             quote_json(unary_text(*op)),
@@ -1415,6 +1599,12 @@ fn to_hir_json(program: &ResolvedProgram, source_revision: &str) -> Result<Strin
         .functions
         .iter()
         .map(|function| function.id.clone())
+        .chain(
+            program
+                .function_templates
+                .iter()
+                .map(|template| template.id.clone()),
+        )
         .collect();
     let selected_types = program
         .types
@@ -1438,14 +1628,9 @@ fn context_hir_json(
 ) -> Result<Option<String>, Diagnostic> {
     hir::validate(program)?;
 
-    // Exact declaration identity is authoritative if another function's
-    // display name happens to contain the same text.
-    let root = program
-        .functions
-        .iter()
-        .find(|function| function.id.as_str() == symbol)
-        .map(|function| function.id.clone())
-        .or_else(|| program.declarations.function_id(symbol).cloned());
+    // Exact declaration identity is authoritative if another function or
+    // template's display name happens to contain the same text.
+    let root = find_context_root(program, symbol);
     let Some(root) = root else {
         return Ok(None);
     };
@@ -1455,6 +1640,16 @@ fn context_hir_json(
         .iter()
         .map(|function| (function.id.clone(), function))
         .collect::<BTreeMap<_, _>>();
+    let templates = program
+        .function_templates
+        .iter()
+        .map(|template| (template.id.clone(), template))
+        .collect::<BTreeMap<_, _>>();
+    let known_functions = functions
+        .keys()
+        .chain(templates.keys())
+        .cloned()
+        .collect::<BTreeSet<_>>();
     let mut selected = BTreeSet::from([root.clone()]);
     let mut queue = VecDeque::from([(root.clone(), 0_usize)]);
     while let Some((function_id, current_depth)) = queue.pop_front() {
@@ -1463,10 +1658,23 @@ fn context_hir_json(
         }
         if let Some(function) = functions.get(&function_id) {
             visit_function_calls(function, &mut |callee| {
-                if functions.contains_key(callee) && selected.insert(callee.clone()) {
+                if known_functions.contains(callee) && selected.insert(callee.clone()) {
                     queue.push_back((callee.clone(), current_depth + 1));
                 }
             });
+        } else if let Some(template) = templates.get(&function_id) {
+            for expression in template
+                .requires
+                .iter()
+                .chain(std::iter::once(&template.body))
+                .chain(&template.ensures)
+            {
+                visit_expr_calls(expression, &mut |callee| {
+                    if known_functions.contains(callee) && selected.insert(callee.clone()) {
+                        queue.push_back((callee.clone(), current_depth + 1));
+                    }
+                });
+            }
         }
     }
 
@@ -1484,10 +1692,20 @@ fn context_hir_json(
             continue;
         }
         visit_function_calls(function, &mut |callee| {
-            if functions.contains_key(callee) && !selected.contains(callee) {
+            if known_functions.contains(callee) && !selected.contains(callee) {
                 frontier.insert(callee.clone());
             }
         });
+    }
+    for template in &program.function_templates {
+        if !selected.contains(&template.id) {
+            continue;
+        }
+        for callee in template_calls(template) {
+            if known_functions.contains(&callee) && !selected.contains(&callee) {
+                frontier.insert(callee);
+            }
+        }
     }
 
     graph_json(
@@ -1926,6 +2144,110 @@ fn graph_json(
         )
         .expect("writing to a string cannot fail");
     }
+    for template in &program.function_templates {
+        if !selected_functions.contains(&template.id) {
+            continue;
+        }
+        if !first {
+            output.push(',');
+        }
+        first = false;
+        let params = template
+            .params
+            .iter()
+            .map(|param| {
+                format!(
+                    "{{\"id\":{},\"name\":{},\"type\":{},\"ownership_mode\":\"value\"}}",
+                    quote_json(param.id.as_str()),
+                    quote_json(&param.name),
+                    type_json(&param.ty)
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(",");
+        let requires = template
+            .requires
+            .iter()
+            .map(|expression| expr_json(program, expression))
+            .collect::<Result<Vec<_>, _>>()?
+            .join(",");
+        let ensures = template
+            .ensures
+            .iter()
+            .map(|expression| expr_json(program, expression))
+            .collect::<Result<Vec<_>, _>>()?
+            .join(",");
+        let identity_origin = identity_origin(program, &template.id)?;
+        write!(
+            output,
+            "{{\"id\":{},\"kind\":\"function_template\",\"name\":{},\"identity_origin\":{},\"persistent\":{},\"type_parameters\":{},\"params\":[{}],\"result_id\":{},\"return_type\":{},\"effects\":{},\"requires_graph\":[{}],\"ensures_graph\":[{}],\"body\":{}}}",
+            quote_json(template.id.as_str()),
+            quote_json(&template.name),
+            quote_json(identity_origin.text()),
+            identity_origin.is_persistent(),
+            type_parameters_json(&template.id, &template.type_parameters),
+            params,
+            quote_json(template.result_id.as_str()),
+            type_json(&template.return_type),
+            string_array(&template.effects),
+            requires,
+            ensures,
+            expr_json(program, &template.body)?
+        )
+        .expect("writing to a string cannot fail");
+    }
+    for instance in &program.function_instances {
+        if !selected_functions.contains(&instance.template) {
+            continue;
+        }
+        if !first {
+            output.push(',');
+        }
+        first = false;
+        let function = &instance.function;
+        let params = function
+            .params
+            .iter()
+            .map(|param| {
+                format!(
+                    "{{\"id\":{},\"name\":{},\"type\":{},\"ownership_mode\":\"value\"}}",
+                    quote_json(param.id.as_str()),
+                    quote_json(&param.name),
+                    type_json(&param.ty)
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(",");
+        let requires = function
+            .requires
+            .iter()
+            .map(|expression| expr_json(program, expression))
+            .collect::<Result<Vec<_>, _>>()?
+            .join(",");
+        let ensures = function
+            .ensures
+            .iter()
+            .map(|expression| expr_json(program, expression))
+            .collect::<Result<Vec<_>, _>>()?
+            .join(",");
+        let execution = FunctionExecutionId::Generic(instance.id.clone()).identity_key();
+        write!(
+            output,
+            "{{\"id\":{},\"kind\":\"function_instance\",\"persistent\":false,\"template\":{},\"instance\":{},\"type_arguments\":[{}],\"params\":[{}],\"result_id\":{},\"return_type\":{},\"requires_graph\":[{}],\"ensures_graph\":[{}],\"body\":{},\"cleanup\":{}}}",
+            quote_json(&execution),
+            quote_json(instance.template.as_str()),
+            quote_json(instance.id.as_str()),
+            instance.type_arguments.iter().map(type_json).collect::<Vec<_>>().join(","),
+            params,
+            quote_json(function.result_id.as_str()),
+            type_json(&function.return_type),
+            requires,
+            ensures,
+            expr_json(program, &function.body)?,
+            crate::graph_cleanup::cleanup_plan_json(&function.cleanup_plan)
+        )
+        .expect("writing to a string cannot fail");
+    }
     output.push_str("]}");
     Ok(output)
 }
@@ -2008,10 +2330,77 @@ fn visit_function_calls(function: &ResolvedFunction, visit: &mut impl FnMut(&Dec
     }
 }
 
+fn visit_expr_call_instances(
+    expression: &ResolvedExpr,
+    visit: &mut impl FnMut(&ResolvedExpr, &DeclarationId, &[ResolvedType], &FunctionInstanceId),
+) {
+    if let ResolvedExprKind::Call {
+        callee,
+        type_arguments,
+        instance: Some(instance),
+        ..
+    } = &expression.kind
+    {
+        visit(expression, callee, type_arguments, instance);
+    }
+    match &expression.kind {
+        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
+        ResolvedExprKind::Call { args, .. } => {
+            for argument in args {
+                visit_expr_call_instances(argument, visit);
+            }
+        }
+        ResolvedExprKind::Unary { value, .. } | ResolvedExprKind::Project { base: value, .. } => {
+            visit_expr_call_instances(value, visit);
+        }
+        ResolvedExprKind::Binary { left, right, .. } => {
+            visit_expr_call_instances(left, visit);
+            visit_expr_call_instances(right, visit);
+        }
+        ResolvedExprKind::Block { statements, tail } => {
+            for statement in statements {
+                let ResolvedStatement::Let { value, .. } = statement;
+                visit_expr_call_instances(value, visit);
+            }
+            visit_expr_call_instances(tail, visit);
+        }
+        ResolvedExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            visit_expr_call_instances(condition, visit);
+            visit_expr_call_instances(then_branch, visit);
+            visit_expr_call_instances(else_branch, visit);
+        }
+        ResolvedExprKind::ConstructRecord { fields, .. }
+        | ResolvedExprKind::ConstructVariant { fields, .. } => {
+            for initializer in fields {
+                visit_expr_call_instances(&initializer.value, visit);
+            }
+        }
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            visit_expr_call_instances(scrutinee, visit);
+            for arm in arms {
+                visit_expr_call_instances(&arm.value, visit);
+            }
+        }
+        ResolvedExprKind::Try { operand, .. } | ResolvedExprKind::TryOption { operand, .. } => {
+            visit_expr_call_instances(operand, visit);
+        }
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            visit_expr_call_instances(base, visit);
+            for initializer in fields {
+                visit_expr_call_instances(&initializer.value, visit);
+            }
+        }
+    }
+}
+
 fn visit_expr_calls(expression: &ResolvedExpr, visit: &mut impl FnMut(&DeclarationId)) {
     match &expression.kind {
         ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
-        ResolvedExprKind::Call { callee, args } => {
+        ResolvedExprKind::Call { callee, args, .. } => {
             visit(callee);
             for argument in args {
                 visit_expr_calls(argument, visit);
@@ -2291,14 +2680,33 @@ fn expr_json(program: &ResolvedProgram, expression: &ResolvedExpr) -> Result<Str
             "{{{header},\"kind\":\"place\",\"place\":{}}}",
             place_json(place)
         ),
-        ResolvedExprKind::Call { callee, args } => format!(
-            "{{{header},\"kind\":\"call\",\"callee\":{},\"args\":[{}]}}",
-            quote_json(callee.as_str()),
-            args.iter()
+        ResolvedExprKind::Call {
+            callee,
+            type_arguments,
+            instance,
+            args,
+        } => {
+            let args = args
+                .iter()
                 .map(|argument| expr_json(program, argument))
                 .collect::<Result<Vec<_>, _>>()?
-                .join(",")
-        ),
+                .join(",");
+            if let Some(instance) = instance {
+                format!(
+                    "{{{header},\"kind\":\"call_instance\",\"template\":{},\"instance\":{},\"type_arguments\":[{}],\"args\":[{}]}}",
+                    quote_json(callee.as_str()),
+                    quote_json(instance.as_str()),
+                    type_arguments.iter().map(type_json).collect::<Vec<_>>().join(","),
+                    args
+                )
+            } else {
+                format!(
+                    "{{{header},\"kind\":\"call\",\"callee\":{},\"args\":[{}]}}",
+                    quote_json(callee.as_str()),
+                    args
+                )
+            }
+        }
         ResolvedExprKind::Unary { op, value } => format!(
             "{{{header},\"kind\":\"unary\",\"op\":{},\"value\":{}}}",
             quote_json(unary_text(*op)),

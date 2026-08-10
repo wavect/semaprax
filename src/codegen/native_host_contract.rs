@@ -282,6 +282,11 @@ pub(super) fn derive_from_admitted(
     values: &NativeValuePlan,
 ) -> Result<NativeHostContractTemplate, Diagnostic> {
     crate::hir::validate(program)?;
+    if !program.function_templates.is_empty() || !program.function_instances.is_empty() {
+        return Err(host_error(
+            "native host contracts do not admit generic function templates or instances",
+        ));
+    }
     let mut matches = program
         .functions
         .iter()

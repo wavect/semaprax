@@ -56,9 +56,9 @@ use crate::aggregate_layout::{AggregateLayout, AggregateLayoutCache, AggregateTa
 use crate::ast::{BinaryOp, Program, UnaryOp};
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
-    self, DeclarationId, DeclarationKind, ExpressionId, PlaceProjection, ResolvedExpr,
-    ResolvedExprKind, ResolvedFunction, ResolvedProgram, ResolvedStatement, ResolvedType,
-    ResolvedTypeDeclarationKind, ValueId,
+    self, DeclarationId, DeclarationKind, ExpressionId, FunctionExecutionId, PlaceProjection,
+    ResolvedExpr, ResolvedExprKind, ResolvedFunction, ResolvedProgram, ResolvedStatement,
+    ResolvedType, ResolvedTypeDeclarationKind, ValueId,
 };
 use crate::variant_layout::{VariantLayout, VariantLayoutCache, VariantTarget};
 
@@ -242,6 +242,11 @@ fn emit_native_callable_admission_core(
     function_id: &DeclarationId,
 ) -> Result<NativeCallableAdmissionCore, Diagnostic> {
     hir::validate(program)?;
+    if !program.function_templates.is_empty() || !program.function_instances.is_empty() {
+        return Err(backend_error(
+            "native callable admission does not accept generic function templates or instances",
+        ));
+    }
     let resource_abi = native_resource::build_resource_abi(program)?;
     let function = program
         .functions
@@ -856,6 +861,21 @@ fn contract_labels(program: &Program, resolved: &ResolvedProgram) -> HashMap<Exp
             labels.insert(expression.id.clone(), crate::format::expr(source, 0));
         }
     }
+    for instance in &resolved.function_instances {
+        let Some(source) = program
+            .functions
+            .iter()
+            .find(|candidate| candidate.stable_id == instance.template.as_str())
+        else {
+            continue;
+        };
+        for (expression, source) in instance.function.requires.iter().zip(&source.requires) {
+            labels.insert(expression.id.clone(), crate::format::expr(source, 0));
+        }
+        for (expression, source) in instance.function.ensures.iter().zip(&source.ensures) {
+            labels.insert(expression.id.clone(), crate::format::expr(source, 0));
+        }
+    }
     labels
 }
 
@@ -893,7 +913,20 @@ fn emit_hir_c_with_labels(
         variant_layouts: &variant_layouts,
     };
     for function in &program.functions {
-        emit_function(&mut output, function, &emission)?;
+        emit_function(
+            &mut output,
+            function,
+            &FunctionExecutionId::Monomorphic(function.id.clone()),
+            &emission,
+        )?;
+    }
+    for instance in &program.function_instances {
+        emit_function(
+            &mut output,
+            &instance.function,
+            &FunctionExecutionId::Generic(instance.id.clone()),
+            &emission,
+        )?;
     }
 
     let main = program
@@ -907,7 +940,7 @@ fn emit_hir_c_with_labels(
         ));
     }
     let symbol = &functions
-        .get(&main.id)
+        .get(&FunctionExecutionId::Monomorphic(main.id.clone()))
         .ok_or_else(|| backend_error("native entry point is not indexed"))?
         .symbol;
     write!(
@@ -1275,12 +1308,27 @@ fn stable_c_symbol(prefix: &str, id: &DeclarationId) -> String {
 fn emit_function_prototypes(
     output: &mut String,
     program: &ResolvedProgram,
-    functions: &HashMap<DeclarationId, CFunction>,
+    functions: &HashMap<FunctionExecutionId, CFunction>,
     resource_abi: &native_resource::NativeResourceAbi,
 ) -> Result<(), Diagnostic> {
-    for function in &program.functions {
+    for (function, execution) in program
+        .functions
+        .iter()
+        .map(|function| {
+            (
+                function,
+                FunctionExecutionId::Monomorphic(function.id.clone()),
+            )
+        })
+        .chain(program.function_instances.iter().map(|instance| {
+            (
+                &instance.function,
+                FunctionExecutionId::Generic(instance.id.clone()),
+            )
+        }))
+    {
         let metadata = functions
-            .get(&function.id)
+            .get(&execution)
             .ok_or_else(|| backend_error(format!("function `{}` is not indexed", function.id)))?;
         write!(
             output,
@@ -1309,7 +1357,7 @@ fn emit_function_prototypes(
 
 fn preflight_resource_lowering(
     program: &ResolvedProgram,
-    functions: &HashMap<DeclarationId, CFunction>,
+    functions: &HashMap<FunctionExecutionId, CFunction>,
     resource_abi: &native_resource::NativeResourceAbi,
     contract_labels: &HashMap<ExpressionId, String>,
 ) -> Result<(), Diagnostic> {
@@ -1595,7 +1643,7 @@ static __attribute__((unused)) int spx_public_failure(
 struct NativeEmissionContext<'a> {
     program: &'a ResolvedProgram,
     resource_abi: &'a native_resource::NativeResourceAbi,
-    functions: &'a HashMap<DeclarationId, CFunction>,
+    functions: &'a HashMap<FunctionExecutionId, CFunction>,
     contract_labels: &'a HashMap<ExpressionId, String>,
     record_layouts: &'a AggregateLayoutCache,
     variant_layouts: &'a VariantLayoutCache,
@@ -1604,6 +1652,7 @@ struct NativeEmissionContext<'a> {
 fn emit_function(
     output: &mut String,
     function: &ResolvedFunction,
+    execution: &FunctionExecutionId,
     emission: &NativeEmissionContext<'_>,
 ) -> Result<(), Diagnostic> {
     let program = emission.program;
@@ -1612,7 +1661,7 @@ fn emit_function(
     let contract_labels = emission.contract_labels;
     let has_try = expression_has_try(&function.body);
     let metadata = functions
-        .get(&function.id)
+        .get(execution)
         .ok_or_else(|| backend_error(format!("function `{}` is not indexed", function.id)))?;
     write!(
         output,
@@ -1820,7 +1869,7 @@ struct CFunction {
 
 fn function_index(
     program: &ResolvedProgram,
-) -> Result<HashMap<DeclarationId, CFunction>, Diagnostic> {
+) -> Result<HashMap<FunctionExecutionId, CFunction>, Diagnostic> {
     let mut functions = HashMap::new();
     for function in &program.functions {
         let declaration = program
@@ -1847,14 +1896,48 @@ fn function_index(
                 .collect(),
             return_type: function.return_type.clone(),
         };
-        if functions.insert(function.id.clone(), metadata).is_some() {
+        if functions
+            .insert(
+                FunctionExecutionId::Monomorphic(function.id.clone()),
+                metadata,
+            )
+            .is_some()
+        {
             return Err(backend_error(format!(
                 "duplicate resolved function identity `{}`",
                 function.id
             )));
         }
     }
+    for instance in &program.function_instances {
+        let function = &instance.function;
+        let execution = FunctionExecutionId::Generic(instance.id.clone());
+        let metadata = CFunction {
+            symbol: c_function_execution_symbol(&execution),
+            params: function
+                .params
+                .iter()
+                .map(|param| param.ty.clone())
+                .collect(),
+            return_type: function.return_type.clone(),
+        };
+        if functions.insert(execution, metadata).is_some() {
+            return Err(backend_error(format!(
+                "duplicate resolved function instance `{}`",
+                instance.id
+            )));
+        }
+    }
     Ok(functions)
+}
+
+fn c_function_execution_symbol(id: &FunctionExecutionId) -> String {
+    let identity = id.identity_key();
+    let mut symbol = String::from("spx_exec_");
+    for byte in identity.bytes() {
+        write!(symbol, "{byte:02x}").expect("writing to a string cannot fail");
+    }
+    symbol
 }
 
 fn c_function_symbol(id: &DeclarationId) -> String {
@@ -1891,7 +1974,7 @@ struct CEmitter<'a> {
     program: &'a ResolvedProgram,
     resource_abi: &'a native_resource::NativeResourceAbi,
     variables: HashMap<ValueId, CBinding>,
-    functions: &'a HashMap<DeclarationId, CFunction>,
+    functions: &'a HashMap<FunctionExecutionId, CFunction>,
     record_layouts: &'a AggregateLayoutCache,
     variant_layouts: &'a VariantLayoutCache,
     return_type: &'a ResolvedType,
@@ -1981,8 +2064,17 @@ impl<'a> CEmitter<'a> {
                 self.require_type(&expr.ty, &value.ty, "place expression")?;
                 value
             }
-            ResolvedExprKind::Call { callee, args } => {
-                let target = self.functions.get(callee).ok_or_else(|| {
+            ResolvedExprKind::Call {
+                callee,
+                instance,
+                args,
+                ..
+            } => {
+                let execution = instance.as_ref().map_or_else(
+                    || FunctionExecutionId::Monomorphic(callee.clone()),
+                    |instance| FunctionExecutionId::Generic(instance.clone()),
+                );
+                let target = self.functions.get(&execution).ok_or_else(|| {
                     backend_error(format!("resolved callee `{callee}` is not indexed"))
                 })?;
                 if args.len() != target.params.len() {

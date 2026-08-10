@@ -38,18 +38,83 @@ impl fmt::Display for DeclarationId {
 }
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct FunctionInstanceId(String);
+
+impl FunctionInstanceId {
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub enum FunctionExecutionId {
+    Monomorphic(DeclarationId),
+    Generic(FunctionInstanceId),
+}
+
+impl FunctionExecutionId {
+    fn diagnostic_text(&self) -> &str {
+        match self {
+            Self::Monomorphic(id) => id.as_str(),
+            Self::Generic(id) => id.as_str(),
+        }
+    }
+
+    pub fn identity_key(&self) -> String {
+        match self {
+            Self::Monomorphic(declaration) => format!(
+                "semaprax.function-execution.v1:monomorphic:{}:{}",
+                declaration.as_str().len(),
+                declaration
+            ),
+            Self::Generic(instance) => format!(
+                "semaprax.function-execution.v1:generic:{}:{}",
+                instance.as_str().len(),
+                instance
+            ),
+        }
+    }
+
+    pub fn instance(&self) -> Option<&FunctionInstanceId> {
+        match self {
+            Self::Monomorphic(_) => None,
+            Self::Generic(instance) => Some(instance),
+        }
+    }
+
+    pub fn monomorphic_declaration(&self) -> Option<&DeclarationId> {
+        match self {
+            Self::Monomorphic(declaration) => Some(declaration),
+            Self::Generic(_) => None,
+        }
+    }
+}
+
+impl fmt::Display for FunctionExecutionId {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.diagnostic_text())
+    }
+}
+
+impl fmt::Display for FunctionInstanceId {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(&self.0)
+    }
+}
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct ValueId(String);
 
 impl ValueId {
-    fn parameter(function: &DeclarationId, index: usize) -> Self {
+    fn parameter(function: &FunctionExecutionId, index: usize) -> Self {
         Self(scoped_identity(function, "value:param", &index.to_string()))
     }
 
-    fn local(function: &DeclarationId, path: &str) -> Self {
+    fn local(function: &FunctionExecutionId, path: &str) -> Self {
         Self(scoped_identity(function, "value:local", path))
     }
 
-    fn result(function: &DeclarationId) -> Self {
+    fn result(function: &FunctionExecutionId) -> Self {
         Self(scoped_identity(function, "value:result", ""))
     }
 
@@ -68,7 +133,7 @@ impl fmt::Display for ValueId {
 pub struct ExpressionId(String);
 
 impl ExpressionId {
-    fn new(function: &DeclarationId, path: &str) -> Self {
+    fn new(function: &FunctionExecutionId, path: &str) -> Self {
         Self(scoped_identity(function, "expression", path))
     }
 
@@ -77,13 +142,24 @@ impl ExpressionId {
     }
 }
 
-fn scoped_identity(owner: &DeclarationId, kind: &str, path: &str) -> String {
-    format!(
-        "declaration:{}:{}:{kind}:{}:{path}",
-        owner.as_str().len(),
-        owner,
-        path.len()
-    )
+fn scoped_identity(owner: &FunctionExecutionId, kind: &str, path: &str) -> String {
+    match owner {
+        FunctionExecutionId::Monomorphic(owner) => format!(
+            "declaration:{}:{}:{kind}:{}:{path}",
+            owner.as_str().len(),
+            owner,
+            path.len()
+        ),
+        FunctionExecutionId::Generic(_) => {
+            let owner = owner.identity_key();
+            format!(
+                "function-execution:{}:{}:{kind}:{}:{path}",
+                owner.len(),
+                owner,
+                path.len()
+            )
+        }
+    }
 }
 
 impl fmt::Display for ExpressionId {
@@ -495,9 +571,10 @@ impl DeclarationIndex {
             }
         }
         for function in &program.functions {
+            let owner = DeclarationId::new(function.stable_id.clone());
             index.insert_top_level(
                 function.name.clone(),
-                DeclarationId::new(function.stable_id.clone()),
+                owner.clone(),
                 DeclarationKind::Function,
                 if function.explicit_id {
                     IdentityOrigin::Explicit
@@ -505,6 +582,26 @@ impl DeclarationIndex {
                     IdentityOrigin::Automatic
                 },
             );
+            let parameters = function
+                .type_parameters
+                .iter()
+                .enumerate()
+                .map(|(ordinal, parameter)| {
+                    Ok(ResolvedTypeParameterDeclaration {
+                        name: parameter.name.clone(),
+                        index: u32::try_from(ordinal).map_err(|_| {
+                            Diagnostic::error(
+                                "SPX-H006",
+                                format!("function `{}` has too many parameters", function.name),
+                                function.span,
+                            )
+                            .at_path(&program.path)
+                        })?,
+                        span: parameter.span,
+                    })
+                })
+                .collect::<Result<Vec<_>, Diagnostic>>()?;
+            index.type_parameters.insert(owner, parameters);
         }
         for declaration in program.types.iter().chain(crate::prelude::declarations()) {
             let TypeDeclarationKind::Record { fields } = &declaration.kind else {
@@ -854,6 +951,24 @@ impl ResolvedType {
     }
 }
 
+impl FunctionInstanceId {
+    pub fn derive(template: &DeclarationId, arguments: &[ResolvedType]) -> Self {
+        let mut encoded_arguments = String::new();
+        for argument in arguments {
+            let key = argument.identity_key();
+            write!(encoded_arguments, "{}:{key}", key.len())
+                .expect("writing to a string cannot fail");
+        }
+        Self(format!(
+            "semaprax.function-instance.v1:{}:{}:{}:{}",
+            template.as_str().len(),
+            template,
+            arguments.len(),
+            encoded_arguments
+        ))
+    }
+}
+
 /// Substitute one concrete generic instantiation into a declaration-owned
 /// type template. Consumers share this helper so payload validation, type
 /// facts, layouts, and backends cannot disagree about parameter identity.
@@ -898,6 +1013,340 @@ pub(crate) fn substitute_type(
     }
 }
 
+fn substitute_source_function_type(
+    function: &crate::ast::Function,
+    arguments: &[Type],
+    template: &Type,
+) -> Option<Type> {
+    match template {
+        Type::I64 => Some(Type::I64),
+        Type::Bool => Some(Type::Bool),
+        Type::Named {
+            name,
+            arguments: nested,
+        } => {
+            if nested.is_empty() {
+                if let Some(index) = function
+                    .type_parameters
+                    .iter()
+                    .position(|parameter| parameter.name == *name)
+                {
+                    return arguments.get(index).cloned();
+                }
+            }
+            Some(Type::Named {
+                name: name.clone(),
+                arguments: nested
+                    .iter()
+                    .map(|nested| substitute_source_function_type(function, arguments, nested))
+                    .collect::<Option<Vec<_>>>()?,
+            })
+        }
+    }
+}
+
+fn specialize_source_function(
+    function: &crate::ast::Function,
+    arguments: &[Type],
+) -> Option<crate::ast::Function> {
+    let mut specialized = function.clone();
+    specialized.type_parameters.clear();
+    for param in &mut specialized.params {
+        param.ty = substitute_source_function_type(function, arguments, &param.ty)?;
+    }
+    specialized.return_type =
+        substitute_source_function_type(function, arguments, &function.return_type)?;
+    Some(specialized)
+}
+
+fn materialize_function_template(
+    template: &ResolvedFunctionTemplate,
+    arguments: &[ResolvedType],
+) -> Result<ResolvedFunction, Diagnostic> {
+    let instance = FunctionInstanceId::derive(&template.id, arguments);
+    let execution = FunctionExecutionId::Generic(instance);
+    let mut values = BTreeMap::new();
+    let params = template
+        .params
+        .iter()
+        .enumerate()
+        .map(|(index, parameter)| {
+            let id = ValueId::parameter(&execution, index);
+            values.insert(parameter.id.clone(), id.clone());
+            Ok(ResolvedParam {
+                id,
+                name: parameter.name.clone(),
+                ownership: parameter.ownership,
+                ty: substitute_type(&parameter.ty, &template.id, arguments)?,
+                span: parameter.span,
+            })
+        })
+        .collect::<Result<Vec<_>, Diagnostic>>()?;
+    let result_id = ValueId::result(&execution);
+    let return_type = substitute_type(&template.return_type, &template.id, arguments)?;
+    let requires = template
+        .requires
+        .iter()
+        .enumerate()
+        .map(|(index, expression)| {
+            materialize_template_expr(
+                template,
+                arguments,
+                &execution,
+                expression,
+                &values,
+                &format!("requires.{index}"),
+            )
+        })
+        .collect::<Result<_, _>>()?;
+    let body = materialize_template_expr(
+        template,
+        arguments,
+        &execution,
+        &template.body,
+        &values,
+        "body",
+    )?;
+    let mut ensures_values = values;
+    ensures_values.insert(template.result_id.clone(), result_id.clone());
+    let ensures = template
+        .ensures
+        .iter()
+        .enumerate()
+        .map(|(index, expression)| {
+            materialize_template_expr(
+                template,
+                arguments,
+                &execution,
+                expression,
+                &ensures_values,
+                &format!("ensures.{index}"),
+            )
+        })
+        .collect::<Result<_, _>>()?;
+    Ok(ResolvedFunction {
+        id: template.id.clone(),
+        name: template.name.clone(),
+        params,
+        result_id,
+        return_type,
+        effects: template.effects.clone(),
+        requires,
+        ensures,
+        body,
+        cleanup: CleanupInventory::unresolved(),
+        cleanup_plan: CleanupPlan::unresolved(),
+        span: template.span,
+    })
+}
+
+fn resolved_scalar_substitutions(parameter_count: usize) -> Vec<Vec<ResolvedType>> {
+    debug_assert!((1..=2).contains(&parameter_count));
+    (0..(1_usize << parameter_count))
+        .map(|bits| {
+            (0..parameter_count)
+                .map(|index| {
+                    if bits & (1 << index) == 0 {
+                        ResolvedType::I64
+                    } else {
+                        ResolvedType::Bool
+                    }
+                })
+                .collect()
+        })
+        .collect()
+}
+
+fn same_function_meaning(expected: &ResolvedFunction, actual: &ResolvedFunction) -> bool {
+    expected.id == actual.id
+        && expected.name == actual.name
+        && expected.params == actual.params
+        && expected.result_id == actual.result_id
+        && expected.return_type == actual.return_type
+        && expected.effects == actual.effects
+        && expected.requires == actual.requires
+        && expected.ensures == actual.ensures
+        && expected.body == actual.body
+        && expected.span == actual.span
+}
+
+fn materialize_template_expr(
+    template: &ResolvedFunctionTemplate,
+    arguments: &[ResolvedType],
+    execution: &FunctionExecutionId,
+    expression: &ResolvedExpr,
+    values: &BTreeMap<ValueId, ValueId>,
+    path: &str,
+) -> Result<ResolvedExpr, Diagnostic> {
+    let kind = match &expression.kind {
+        ResolvedExprKind::Int(value) => ResolvedExprKind::Int(*value),
+        ResolvedExprKind::Bool(value) => ResolvedExprKind::Bool(*value),
+        ResolvedExprKind::Place(place) => ResolvedExprKind::Place(Place {
+            root: values
+                .get(&place.root)
+                .cloned()
+                .ok_or_else(|| hir_error("generic template place is out of scope"))?,
+            projections: place.projections.clone(),
+        }),
+        ResolvedExprKind::Call {
+            callee,
+            type_arguments,
+            instance,
+            args,
+        } => {
+            if instance.is_some() || !type_arguments.is_empty() {
+                return Err(hir_error(
+                    "generic templates cannot call generic function instances",
+                ));
+            }
+            ResolvedExprKind::Call {
+                callee: callee.clone(),
+                type_arguments: Vec::new(),
+                instance: None,
+                args: args
+                    .iter()
+                    .enumerate()
+                    .map(|(index, argument)| {
+                        materialize_template_expr(
+                            template,
+                            arguments,
+                            execution,
+                            argument,
+                            values,
+                            &format!("{path}.arg.{index}"),
+                        )
+                    })
+                    .collect::<Result<_, _>>()?,
+            }
+        }
+        ResolvedExprKind::Unary { op, value } => ResolvedExprKind::Unary {
+            op: *op,
+            value: Box::new(materialize_template_expr(
+                template,
+                arguments,
+                execution,
+                value,
+                values,
+                &format!("{path}.value"),
+            )?),
+        },
+        ResolvedExprKind::Binary { op, left, right } => ResolvedExprKind::Binary {
+            op: *op,
+            left: Box::new(materialize_template_expr(
+                template,
+                arguments,
+                execution,
+                left,
+                values,
+                &format!("{path}.left"),
+            )?),
+            right: Box::new(materialize_template_expr(
+                template,
+                arguments,
+                execution,
+                right,
+                values,
+                &format!("{path}.right"),
+            )?),
+        },
+        ResolvedExprKind::Block { statements, tail } => {
+            let mut block_values = values.clone();
+            let mut materialized = Vec::with_capacity(statements.len());
+            for (index, statement) in statements.iter().enumerate() {
+                let statement_path = format!("{path}.s{index}");
+                match statement {
+                    ResolvedStatement::Let {
+                        binding,
+                        value,
+                        span,
+                    } => {
+                        let value = materialize_template_expr(
+                            template,
+                            arguments,
+                            execution,
+                            value,
+                            &block_values,
+                            &format!("{statement_path}.value"),
+                        )?;
+                        let id = ValueId::local(execution, &statement_path);
+                        block_values.insert(binding.id.clone(), id.clone());
+                        materialized.push(ResolvedStatement::Let {
+                            binding: ResolvedBinding {
+                                id,
+                                name: binding.name.clone(),
+                                ownership: binding.ownership,
+                                ty: substitute_type(&binding.ty, &template.id, arguments)?,
+                                span: binding.span,
+                            },
+                            value,
+                            span: *span,
+                        });
+                    }
+                }
+            }
+            ResolvedExprKind::Block {
+                statements: materialized,
+                tail: Box::new(materialize_template_expr(
+                    template,
+                    arguments,
+                    execution,
+                    tail,
+                    &block_values,
+                    &format!("{path}.tail"),
+                )?),
+            }
+        }
+        ResolvedExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => ResolvedExprKind::If {
+            condition: Box::new(materialize_template_expr(
+                template,
+                arguments,
+                execution,
+                condition,
+                values,
+                &format!("{path}.condition"),
+            )?),
+            then_branch: Box::new(materialize_template_expr(
+                template,
+                arguments,
+                execution,
+                then_branch,
+                values,
+                &format!("{path}.then"),
+            )?),
+            else_branch: Box::new(materialize_template_expr(
+                template,
+                arguments,
+                execution,
+                else_branch,
+                values,
+                &format!("{path}.else"),
+            )?),
+        },
+        ResolvedExprKind::ConstructRecord { .. }
+        | ResolvedExprKind::ConstructVariant { .. }
+        | ResolvedExprKind::Match { .. }
+        | ResolvedExprKind::Try { .. }
+        | ResolvedExprKind::TryOption { .. }
+        | ResolvedExprKind::UpdateRecord { .. }
+        | ResolvedExprKind::Project { .. } => {
+            return Err(hir_error(
+                "generic template uses an expression outside the direct-scalar slice",
+            ));
+        }
+    };
+    Ok(ResolvedExpr {
+        id: ExpressionId::new(execution, path),
+        ty: substitute_type(&expression.ty, &template.id, arguments)?,
+        ownership: expression.ownership,
+        kind,
+        span: expression.span,
+    })
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TypeFacts {
     pub copy: bool,
@@ -934,7 +1383,29 @@ pub struct ResolvedProgram {
     pub declarations: DeclarationIndex,
     pub types: Vec<ResolvedTypeDeclaration>,
     pub interfaces: Vec<ResolvedInterface>,
+    pub function_templates: Vec<ResolvedFunctionTemplate>,
     pub functions: Vec<ResolvedFunction>,
+    pub function_instances: Vec<ResolvedFunctionInstance>,
+}
+
+impl ResolvedProgram {
+    pub fn resolve_call_target(
+        &self,
+        callee: &DeclarationId,
+        instance: Option<&FunctionInstanceId>,
+    ) -> Option<&ResolvedFunction> {
+        match instance {
+            None => self
+                .functions
+                .iter()
+                .find(|function| function.id == *callee),
+            Some(instance) => self
+                .function_instances
+                .iter()
+                .find(|candidate| candidate.id == *instance && candidate.template == *callee)
+                .map(|candidate| &candidate.function),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -1070,6 +1541,29 @@ pub struct ResolvedFunction {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResolvedFunctionInstance {
+    pub id: FunctionInstanceId,
+    pub template: DeclarationId,
+    pub type_arguments: Vec<ResolvedType>,
+    pub function: ResolvedFunction,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResolvedFunctionTemplate {
+    pub id: DeclarationId,
+    pub name: String,
+    pub type_parameters: Vec<ResolvedTypeParameterDeclaration>,
+    pub params: Vec<ResolvedParam>,
+    pub result_id: ValueId,
+    pub return_type: ResolvedType,
+    pub effects: Vec<String>,
+    pub requires: Vec<ResolvedExpr>,
+    pub ensures: Vec<ResolvedExpr>,
+    pub body: ResolvedExpr,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ResolvedParam {
     pub id: ValueId,
     pub name: String,
@@ -1103,6 +1597,8 @@ pub enum ResolvedExprKind {
     Place(Place),
     Call {
         callee: DeclarationId,
+        type_arguments: Vec<ResolvedType>,
+        instance: Option<FunctionInstanceId>,
         args: Vec<ResolvedExpr>,
     },
     Unary {
@@ -1365,6 +1861,20 @@ struct HirValidator<'a> {
 }
 
 impl<'a> HirValidator<'a> {
+    fn execution_function(&self, id: &FunctionExecutionId) -> Option<&ResolvedFunction> {
+        match id {
+            FunctionExecutionId::Monomorphic(declaration) => {
+                self.functions.get(declaration).copied()
+            }
+            FunctionExecutionId::Generic(instance) => self
+                .program
+                .function_instances
+                .iter()
+                .find(|candidate| candidate.id == *instance)
+                .map(|candidate| &candidate.function),
+        }
+    }
+
     fn new(program: &'a ResolvedProgram) -> Result<Self, Diagnostic> {
         validate_nul_free_identities(program)?;
         let mut functions = BTreeMap::new();
@@ -1537,6 +2047,84 @@ impl<'a> HirValidator<'a> {
                         )));
                     }
                 }
+            }
+        }
+        let mut template_ids = BTreeSet::new();
+        for template in &self.program.function_templates {
+            if !template_ids.insert(template.id.clone())
+                || self.functions.contains_key(&template.id)
+            {
+                return Err(hir_error(format!(
+                    "duplicate or executable generic template `{}`",
+                    template.id
+                )));
+            }
+            match self.program.declarations.declaration(&template.id) {
+                Some(declaration)
+                    if declaration.kind == DeclarationKind::Function
+                        && declaration.name == template.name => {}
+                _ => {
+                    return Err(hir_error(format!(
+                        "generic template `{}` disagrees with its declaration",
+                        template.id
+                    )));
+                }
+            }
+            if !(1..=2).contains(&template.type_parameters.len()) || !template.effects.is_empty() {
+                return Err(hir_error(format!(
+                    "generic template `{}` is outside the bounded slice",
+                    template.id
+                )));
+            }
+            if self.program.declarations.type_parameters(&template.id)
+                != Some(template.type_parameters.as_slice())
+            {
+                return Err(hir_error(format!(
+                    "generic template `{}` has non-canonical type-parameter metadata",
+                    template.id
+                )));
+            }
+            for (index, parameter) in template.type_parameters.iter().enumerate() {
+                if usize::try_from(parameter.index) != Ok(index) {
+                    return Err(hir_error(format!(
+                        "generic template `{}` has non-canonical parameter indices",
+                        template.id
+                    )));
+                }
+            }
+            let execution = FunctionExecutionId::Monomorphic(template.id.clone());
+            for (index, parameter) in template.params.iter().enumerate() {
+                if parameter.id != ValueId::parameter(&execution, index)
+                    || parameter.ownership != OwnershipMode::Value
+                {
+                    return Err(hir_error(format!(
+                        "generic template `{}` has invalid parameter identity or ownership",
+                        template.id
+                    )));
+                }
+                self.validate_function_template_type(template, &parameter.ty)?;
+            }
+            self.validate_function_template_type(template, &template.return_type)?;
+            if template.result_id != ValueId::result(&execution) {
+                return Err(hir_error(format!(
+                    "generic template `{}` has invalid result identity",
+                    template.id
+                )));
+            }
+            self.validate_template_expressions(template, &execution)?;
+            for arguments in resolved_scalar_substitutions(template.type_parameters.len()) {
+                let materialized = materialize_function_template(template, &arguments)?;
+                let saved_expression_ids = self.expression_ids.clone();
+                let saved_value_ids = self.value_ids.clone();
+                self.validate_function(
+                    &materialized,
+                    &FunctionExecutionId::Generic(FunctionInstanceId::derive(
+                        &template.id,
+                        &arguments,
+                    )),
+                )?;
+                self.expression_ids = saved_expression_ids;
+                self.value_ids = saved_value_ids;
             }
         }
         let mut resource_drop_ids = BTreeSet::new();
@@ -1922,7 +2510,10 @@ impl<'a> HirValidator<'a> {
                         declaration.id
                     )));
                 }
-                DeclarationKind::Function if !self.functions.contains_key(&declaration.id) => {
+                DeclarationKind::Function
+                    if !self.functions.contains_key(&declaration.id)
+                        && !template_ids.contains(&declaration.id) =>
+                {
                     return Err(hir_error(format!(
                         "function `{}` has no resolved function body",
                         declaration.id
@@ -1960,12 +2551,339 @@ impl<'a> HirValidator<'a> {
         }
 
         for function in &self.program.functions {
-            self.validate_function(function)?;
+            self.validate_function(
+                function,
+                &FunctionExecutionId::Monomorphic(function.id.clone()),
+            )?;
+        }
+        let mut instance_ids = BTreeSet::new();
+        let expected_instances = self.reachable_function_instances()?;
+        if expected_instances.len() != self.program.function_instances.len()
+            || expected_instances
+                .iter()
+                .zip(&self.program.function_instances)
+                .any(|((id, template, arguments), actual)| {
+                    id != &actual.id
+                        || template != &actual.template
+                        || arguments != &actual.type_arguments
+                })
+        {
+            return Err(hir_error(
+                "materialized generic function instances are not the exact reachable sequence",
+            ));
+        }
+        for instance in &self.program.function_instances {
+            if !instance_ids.insert(instance.id.clone())
+                || FunctionInstanceId::derive(&instance.template, &instance.type_arguments)
+                    != instance.id
+                || instance.function.id != instance.template
+                || instance
+                    .type_arguments
+                    .iter()
+                    .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
+            {
+                return Err(hir_error(
+                    "generic function instance identity is inconsistent",
+                ));
+            }
+            let template = self
+                .program
+                .function_templates
+                .iter()
+                .find(|template| template.id == instance.template)
+                .ok_or_else(|| hir_error("generic function instance has no template"))?;
+            if template.type_parameters.len() != instance.type_arguments.len()
+                || template.params.len() != instance.function.params.len()
+            {
+                return Err(hir_error("generic function instance has invalid arity"));
+            }
+            for (template_param, concrete_param) in
+                template.params.iter().zip(&instance.function.params)
+            {
+                let expected =
+                    substitute_type(&template_param.ty, &template.id, &instance.type_arguments)?;
+                if concrete_param.ty != expected {
+                    return Err(hir_error(
+                        "generic function instance parameter substitution is inconsistent",
+                    ));
+                }
+            }
+            let expected_return = substitute_type(
+                &template.return_type,
+                &template.id,
+                &instance.type_arguments,
+            )?;
+            if instance.function.return_type != expected_return {
+                return Err(hir_error(
+                    "generic function instance result substitution is inconsistent",
+                ));
+            }
+            let expected_function =
+                materialize_function_template(template, &instance.type_arguments)?;
+            if !same_function_meaning(&expected_function, &instance.function) {
+                return Err(hir_error(
+                    "generic function instance is not the exact template substitution",
+                ));
+            }
+            self.validate_function(
+                &instance.function,
+                &FunctionExecutionId::Generic(instance.id.clone()),
+            )?;
         }
         Ok(())
     }
 
-    fn validate_function(&mut self, function: &ResolvedFunction) -> Result<(), Diagnostic> {
+    fn validate_function_template_type(
+        &self,
+        template: &ResolvedFunctionTemplate,
+        ty: &ResolvedType,
+    ) -> Result<(), Diagnostic> {
+        match ty {
+            ResolvedType::I64 | ResolvedType::Bool => Ok(()),
+            ResolvedType::TypeParameter { owner, index }
+                if owner == &template.id
+                    && usize::try_from(*index)
+                        .ok()
+                        .is_some_and(|index| index < template.type_parameters.len()) =>
+            {
+                Ok(())
+            }
+            ResolvedType::TypeParameter { .. } | ResolvedType::Nominal { .. } => {
+                Err(hir_error(format!(
+                    "generic template `{}` has an invalid direct-scalar signature slot",
+                    template.id
+                )))
+            }
+        }
+    }
+
+    fn validate_template_expressions(
+        &mut self,
+        template: &ResolvedFunctionTemplate,
+        execution: &FunctionExecutionId,
+    ) -> Result<(), Diagnostic> {
+        let mut values = BTreeMap::new();
+        for parameter in &template.params {
+            self.insert_value(&parameter.id)?;
+            values.insert(parameter.id.clone(), parameter.ty.clone());
+        }
+        for (index, expression) in template.requires.iter().enumerate() {
+            let mut contract_values = values.clone();
+            self.validate_template_expr(
+                template,
+                execution,
+                expression,
+                &mut contract_values,
+                &format!("requires.{index}"),
+            )?;
+        }
+        self.validate_template_expr(template, execution, &template.body, &mut values, "body")?;
+        self.insert_value(&template.result_id)?;
+        values.insert(template.result_id.clone(), template.return_type.clone());
+        for (index, expression) in template.ensures.iter().enumerate() {
+            let mut contract_values = values.clone();
+            self.validate_template_expr(
+                template,
+                execution,
+                expression,
+                &mut contract_values,
+                &format!("ensures.{index}"),
+            )?;
+        }
+        Ok(())
+    }
+
+    fn validate_template_expr(
+        &mut self,
+        template: &ResolvedFunctionTemplate,
+        execution: &FunctionExecutionId,
+        expression: &ResolvedExpr,
+        values: &mut BTreeMap<ValueId, ResolvedType>,
+        path: &str,
+    ) -> Result<(), Diagnostic> {
+        if expression.id != ExpressionId::new(execution, path)
+            || !self.expression_ids.insert(expression.id.clone())
+            || expression.ownership != OwnershipMode::Value
+        {
+            return Err(hir_error(format!(
+                "generic template `{}` has invalid expression identity or ownership",
+                template.id
+            )));
+        }
+        self.validate_function_template_type(template, &expression.ty)?;
+        match &expression.kind {
+            ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) => {}
+            ResolvedExprKind::Place(place) => {
+                if !place.projections.is_empty() || values.get(&place.root) != Some(&expression.ty)
+                {
+                    return Err(hir_error(
+                        "generic template place is out of scope or has the wrong type",
+                    ));
+                }
+            }
+            ResolvedExprKind::Call {
+                callee,
+                type_arguments,
+                instance,
+                args,
+            } => {
+                if instance.is_some()
+                    || !type_arguments.is_empty()
+                    || self
+                        .program
+                        .functions
+                        .iter()
+                        .all(|target| target.id != *callee)
+                {
+                    return Err(hir_error(
+                        "generic template call is not a monomorphic executable target",
+                    ));
+                }
+                for (index, argument) in args.iter().enumerate() {
+                    self.validate_template_expr(
+                        template,
+                        execution,
+                        argument,
+                        values,
+                        &format!("{path}.arg.{index}"),
+                    )?;
+                }
+            }
+            ResolvedExprKind::Unary { value, .. } => self.validate_template_expr(
+                template,
+                execution,
+                value,
+                values,
+                &format!("{path}.value"),
+            )?,
+            ResolvedExprKind::Binary { left, right, .. } => {
+                self.validate_template_expr(
+                    template,
+                    execution,
+                    left,
+                    values,
+                    &format!("{path}.left"),
+                )?;
+                self.validate_template_expr(
+                    template,
+                    execution,
+                    right,
+                    values,
+                    &format!("{path}.right"),
+                )?;
+            }
+            ResolvedExprKind::Block { statements, tail } => {
+                let mut block_values = values.clone();
+                for (index, statement) in statements.iter().enumerate() {
+                    let statement_path = format!("{path}.s{index}");
+                    match statement {
+                        ResolvedStatement::Let { binding, value, .. } => {
+                            self.validate_template_expr(
+                                template,
+                                execution,
+                                value,
+                                &mut block_values,
+                                &format!("{statement_path}.value"),
+                            )?;
+                            if binding.id != ValueId::local(execution, &statement_path)
+                                || binding.ownership != OwnershipMode::Value
+                                || binding.ty != value.ty
+                            {
+                                return Err(hir_error("generic template binding is not canonical"));
+                            }
+                            self.validate_function_template_type(template, &binding.ty)?;
+                            self.insert_value(&binding.id)?;
+                            block_values.insert(binding.id.clone(), binding.ty.clone());
+                        }
+                    }
+                }
+                self.validate_template_expr(
+                    template,
+                    execution,
+                    tail,
+                    &mut block_values,
+                    &format!("{path}.tail"),
+                )?;
+            }
+            ResolvedExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                self.validate_template_expr(
+                    template,
+                    execution,
+                    condition,
+                    &mut values.clone(),
+                    &format!("{path}.condition"),
+                )?;
+                self.validate_template_expr(
+                    template,
+                    execution,
+                    then_branch,
+                    &mut values.clone(),
+                    &format!("{path}.then"),
+                )?;
+                self.validate_template_expr(
+                    template,
+                    execution,
+                    else_branch,
+                    &mut values.clone(),
+                    &format!("{path}.else"),
+                )?;
+            }
+            ResolvedExprKind::ConstructRecord { .. }
+            | ResolvedExprKind::ConstructVariant { .. }
+            | ResolvedExprKind::Match { .. }
+            | ResolvedExprKind::Try { .. }
+            | ResolvedExprKind::TryOption { .. }
+            | ResolvedExprKind::UpdateRecord { .. }
+            | ResolvedExprKind::Project { .. } => {
+                return Err(hir_error(
+                    "generic template expression is outside the direct-scalar slice",
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    fn reachable_function_instances(
+        &self,
+    ) -> Result<Vec<(FunctionInstanceId, DeclarationId, Vec<ResolvedType>)>, Diagnostic> {
+        let mut seen = BTreeSet::new();
+        let mut reachable = Vec::new();
+        for function in &self.program.functions {
+            for expression in function
+                .requires
+                .iter()
+                .chain(std::iter::once(&function.body))
+                .chain(&function.ensures)
+            {
+                visit_resolved_calls(expression, &mut |callee, instance, arguments| {
+                    let Some(instance) = instance else {
+                        return;
+                    };
+                    if seen.insert(instance.clone()) {
+                        reachable.push((instance.clone(), callee.clone(), arguments.to_vec()));
+                    }
+                });
+            }
+        }
+        for (instance, template, arguments) in &reachable {
+            if FunctionInstanceId::derive(template, arguments) != *instance {
+                return Err(hir_error(
+                    "reachable generic function instance identity is inconsistent",
+                ));
+            }
+        }
+        Ok(reachable)
+    }
+
+    fn validate_function(
+        &mut self,
+        function: &ResolvedFunction,
+        execution: &FunctionExecutionId,
+    ) -> Result<(), Diagnostic> {
         self.validate_type(&function.return_type)?;
         let permits = self
             .program
@@ -1994,11 +2912,13 @@ impl<'a> HirValidator<'a> {
             &function.return_type,
         )?);
         let mut callees = Vec::new();
-        visit_resolved_calls(&function.body, &mut |callee| callees.push(callee.clone()));
-        for callee in callees {
+        visit_resolved_calls(&function.body, &mut |callee, instance, _| {
+            callees.push((callee.clone(), instance.cloned()));
+        });
+        for (callee, instance) in callees {
             let target = self
-                .functions
-                .get(&callee)
+                .program
+                .resolve_call_target(&callee, instance.as_ref())
                 .ok_or_else(|| hir_error(format!("function `{callee}` is not indexed")))?;
             required_lifecycle_effects.extend(resolved_lifecycle_effects(
                 self.program,
@@ -2017,7 +2937,7 @@ impl<'a> HirValidator<'a> {
         let mut scope = BTreeMap::new();
         for (index, param) in function.params.iter().enumerate() {
             reject_nul_identity("resolved value", param.id.as_str())?;
-            let expected = ValueId::parameter(&function.id, index);
+            let expected = ValueId::parameter(execution, index);
             if param.id != expected {
                 return Err(hir_error(format!(
                     "parameter {} of `{}` has a non-canonical identity",
@@ -2039,7 +2959,7 @@ impl<'a> HirValidator<'a> {
             );
         }
         reject_nul_identity("resolved value", function.result_id.as_str())?;
-        if function.result_id != ValueId::result(&function.id) {
+        if function.result_id != ValueId::result(execution) {
             return Err(hir_error(format!(
                 "function `{}` has a non-canonical result identity",
                 function.id
@@ -2050,7 +2970,7 @@ impl<'a> HirValidator<'a> {
         for (index, contract) in function.requires.iter().enumerate() {
             let mut contract_scope = scope.clone();
             self.validate_expr(
-                &function.id,
+                execution,
                 contract,
                 &mut contract_scope,
                 &format!("requires.{index}"),
@@ -2060,7 +2980,7 @@ impl<'a> HirValidator<'a> {
             self.require_type(&contract.ty, &ResolvedType::Bool, "precondition")?;
         }
         self.validate_expr(
-            &function.id,
+            execution,
             &function.body,
             &mut scope,
             "body",
@@ -2090,7 +3010,7 @@ impl<'a> HirValidator<'a> {
         for (index, contract) in function.ensures.iter().enumerate() {
             let mut contract_scope = ensures_scope.clone();
             self.validate_expr(
-                &function.id,
+                execution,
                 contract,
                 &mut contract_scope,
                 &format!("ensures.{index}"),
@@ -2105,7 +3025,7 @@ impl<'a> HirValidator<'a> {
     #[allow(clippy::too_many_arguments)]
     fn validate_record_match_pattern(
         &mut self,
-        function: &DeclarationId,
+        function: &FunctionExecutionId,
         expected: &ResolvedType,
         record: &DeclarationId,
         instance: &ResolvedType,
@@ -2219,7 +3139,7 @@ impl<'a> HirValidator<'a> {
 
     fn validate_expr(
         &mut self,
-        function: &DeclarationId,
+        function: &FunctionExecutionId,
         expression: &ResolvedExpr,
         scope: &mut BTreeMap<ValueId, ValidationBinding>,
         path: &str,
@@ -2296,10 +3216,45 @@ impl<'a> HirValidator<'a> {
                 }
                 self.resolve_place(place, binding)?
             }
-            ResolvedExprKind::Call { callee, args } => {
-                let target = self.functions.get(callee).copied().ok_or_else(|| {
-                    hir_error(format!("resolved callee `{callee}` is not indexed"))
-                })?;
+            ResolvedExprKind::Call {
+                callee,
+                type_arguments,
+                instance,
+                args,
+            } => {
+                match instance {
+                    None if !type_arguments.is_empty() => {
+                        return Err(hir_error(
+                            "monomorphic resolved call carries generic type arguments",
+                        ));
+                    }
+                    Some(instance)
+                        if FunctionInstanceId::derive(callee, type_arguments) != *instance =>
+                    {
+                        return Err(hir_error(
+                            "resolved call instance disagrees with its template and arguments",
+                        ));
+                    }
+                    Some(_) if type_arguments.is_empty() => {
+                        return Err(hir_error(
+                            "generic resolved call has no concrete type arguments",
+                        ));
+                    }
+                    None | Some(_) => {}
+                }
+                for argument in type_arguments {
+                    if !matches!(argument, ResolvedType::I64 | ResolvedType::Bool) {
+                        return Err(hir_error(
+                            "resolved call has a non-scalar generic type argument",
+                        ));
+                    }
+                }
+                let target = self
+                    .program
+                    .resolve_call_target(callee, instance.as_ref())
+                    .ok_or_else(|| {
+                        hir_error(format!("resolved callee `{callee}` is not indexed"))
+                    })?;
                 if args.len() != target.params.len() {
                     return Err(hir_error(format!(
                         "call to `{callee}` has {} arguments but expects {}",
@@ -2992,10 +3947,7 @@ impl<'a> HirValidator<'a> {
                     ));
                 }
                 let enclosing_return = self
-                    .program
-                    .functions
-                    .iter()
-                    .find(|candidate| candidate.id == *function)
+                    .execution_function(function)
                     .map(|candidate| &candidate.return_type)
                     .ok_or_else(|| hir_error("resolved `?` has no enclosing function"))?;
                 self.require_type(residual_type, enclosing_return, "`?` residual")?;
@@ -3096,10 +4048,7 @@ impl<'a> HirValidator<'a> {
                     ));
                 }
                 let enclosing_return = self
-                    .program
-                    .functions
-                    .iter()
-                    .find(|candidate| candidate.id == *function)
+                    .execution_function(function)
                     .map(|candidate| &candidate.return_type)
                     .ok_or_else(|| hir_error("resolved Option `?` has no enclosing function"))?;
                 self.require_type(residual_type, enclosing_return, "Option `?` residual")?;
@@ -3922,7 +4871,7 @@ fn audit_resolved_expression(root: &ResolvedExpr) -> Result<(), Diagnostic> {
         match &expression.kind {
             ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) => {}
             ResolvedExprKind::Place(place) => audit_hir_place(place)?,
-            ResolvedExprKind::Call { callee, args } => {
+            ResolvedExprKind::Call { callee, args, .. } => {
                 reject_nul_identity("resolved call target", callee.as_str())?;
                 pending.extend(args);
             }
@@ -4423,10 +5372,18 @@ fn resolved_lifecycle_effects(
     Ok(effects)
 }
 
-fn visit_resolved_calls(expression: &ResolvedExpr, visit: &mut impl FnMut(&DeclarationId)) {
+fn visit_resolved_calls(
+    expression: &ResolvedExpr,
+    visit: &mut impl FnMut(&DeclarationId, Option<&FunctionInstanceId>, &[ResolvedType]),
+) {
     match &expression.kind {
-        ResolvedExprKind::Call { callee, args } => {
-            visit(callee);
+        ResolvedExprKind::Call {
+            callee,
+            instance,
+            type_arguments,
+            args,
+        } => {
+            visit(callee, instance.as_ref(), type_arguments);
             for arg in args {
                 visit_resolved_calls(arg, visit);
             }
@@ -4671,8 +5628,17 @@ impl Resolver<'_> {
             .program
             .functions
             .iter()
+            .filter(|function| function.type_parameters.is_empty())
             .map(|function| self.resolve_function(function))
             .collect::<Result<_, _>>()?;
+        let function_templates = self
+            .program
+            .functions
+            .iter()
+            .filter(|function| !function.type_parameters.is_empty())
+            .map(|function| self.resolve_function_template(function))
+            .collect::<Result<_, _>>()?;
+        let function_instances = self.discover_function_instances()?;
         let mut resolved = ResolvedProgram {
             module: self.program.module.clone(),
             permits: self.program.permits.clone(),
@@ -4680,7 +5646,9 @@ impl Resolver<'_> {
             declarations: self.declarations,
             types,
             interfaces,
+            function_templates,
             functions,
+            function_instances,
         };
         let inventories = resolved
             .functions
@@ -4690,6 +5658,18 @@ impl Resolver<'_> {
         for (function, inventory) in resolved.functions.iter_mut().zip(inventories) {
             function.cleanup = inventory;
         }
+        let instance_inventories = resolved
+            .function_instances
+            .iter()
+            .map(|instance| crate::cleanup::build_inventory(&resolved, &instance.function))
+            .collect::<Result<Vec<_>, _>>()?;
+        for (instance, inventory) in resolved
+            .function_instances
+            .iter_mut()
+            .zip(instance_inventories)
+        {
+            instance.function.cleanup = inventory;
+        }
         let cleanup_plans = resolved
             .functions
             .iter()
@@ -4697,6 +5677,18 @@ impl Resolver<'_> {
             .collect::<Result<Vec<_>, _>>()?;
         for (function, cleanup_plan) in resolved.functions.iter_mut().zip(cleanup_plans) {
             function.cleanup_plan = cleanup_plan;
+        }
+        let instance_cleanup_plans = resolved
+            .function_instances
+            .iter()
+            .map(|instance| crate::cleanup_plan::build_plan(&resolved, &instance.function))
+            .collect::<Result<Vec<_>, _>>()?;
+        for (instance, cleanup_plan) in resolved
+            .function_instances
+            .iter_mut()
+            .zip(instance_cleanup_plans)
+        {
+            instance.function.cleanup_plan = cleanup_plan;
         }
         validate(&resolved)?;
         Ok(resolved)
@@ -4732,7 +5724,181 @@ impl Resolver<'_> {
         &self,
         function: &crate::ast::Function,
     ) -> Result<ResolvedFunction, Diagnostic> {
+        let template_id = DeclarationId::new(function.stable_id.clone());
+        let function_scope = FunctionExecutionId::Monomorphic(template_id.clone());
+        self.resolve_function_in_scope(function, &function_scope, template_id)
+    }
+
+    fn resolve_function_template(
+        &self,
+        function: &crate::ast::Function,
+    ) -> Result<ResolvedFunctionTemplate, Diagnostic> {
         let function_id = DeclarationId::new(function.stable_id.clone());
+        let function_scope = FunctionExecutionId::Monomorphic(function_id.clone());
+        let type_parameters = function
+            .type_parameters
+            .iter()
+            .enumerate()
+            .map(|(index, parameter)| {
+                Ok(ResolvedTypeParameterDeclaration {
+                    name: parameter.name.clone(),
+                    index: u32::try_from(index).map_err(|_| {
+                        self.error(
+                            "SPX-H006",
+                            format!("function `{}` has too many type parameters", function.name),
+                            parameter.span,
+                        )
+                    })?,
+                    span: parameter.span,
+                })
+            })
+            .collect::<Result<Vec<_>, Diagnostic>>()?;
+        let mut bindings = BTreeMap::new();
+        let params = function
+            .params
+            .iter()
+            .enumerate()
+            .map(|(index, param)| {
+                let ty = self.resolve_function_type(function, &param.ty, param.span)?;
+                let id = ValueId::parameter(&function_scope, index);
+                bindings.insert(
+                    param.name.clone(),
+                    Binding {
+                        id: id.clone(),
+                        ty: ty.clone(),
+                        ownership: OwnershipMode::Value,
+                    },
+                );
+                Ok(ResolvedParam {
+                    id,
+                    name: param.name.clone(),
+                    ownership: OwnershipMode::Value,
+                    ty,
+                    span: param.span,
+                })
+            })
+            .collect::<Result<Vec<_>, Diagnostic>>()?;
+        let return_type =
+            self.resolve_function_type(function, &function.return_type, function.span)?;
+        let result_id = ValueId::result(&function_scope);
+        let requires = function
+            .requires
+            .iter()
+            .enumerate()
+            .map(|(index, expression)| {
+                self.resolve_expr(
+                    &function_scope,
+                    expression,
+                    &bindings,
+                    &format!("requires.{index}"),
+                )
+            })
+            .collect::<Result<_, _>>()?;
+        let body = self.resolve_expr(&function_scope, &function.body, &bindings, "body")?;
+        let mut ensures_bindings = bindings;
+        ensures_bindings.insert(
+            "result".to_owned(),
+            Binding {
+                id: result_id.clone(),
+                ty: return_type.clone(),
+                ownership: OwnershipMode::Value,
+            },
+        );
+        let ensures = function
+            .ensures
+            .iter()
+            .enumerate()
+            .map(|(index, expression)| {
+                self.resolve_expr(
+                    &function_scope,
+                    expression,
+                    &ensures_bindings,
+                    &format!("ensures.{index}"),
+                )
+            })
+            .collect::<Result<_, _>>()?;
+        Ok(ResolvedFunctionTemplate {
+            id: function_id,
+            name: function.name.clone(),
+            type_parameters,
+            params,
+            result_id,
+            return_type,
+            effects: function.effects.clone(),
+            requires,
+            ensures,
+            body,
+            span: function.span,
+        })
+    }
+
+    fn discover_function_instances(&self) -> Result<Vec<ResolvedFunctionInstance>, Diagnostic> {
+        let mut calls = Vec::new();
+        for function in self
+            .program
+            .functions
+            .iter()
+            .filter(|function| function.type_parameters.is_empty())
+        {
+            for expression in function
+                .requires
+                .iter()
+                .chain(std::iter::once(&function.body))
+                .chain(&function.ensures)
+            {
+                expression.visit_call_instances(&mut |name, arguments, span| {
+                    calls.push((name.to_owned(), arguments.to_vec(), span));
+                });
+            }
+        }
+
+        let mut seen = BTreeSet::new();
+        let mut instances = Vec::new();
+        for (name, source_arguments, span) in calls {
+            let Some(template) = self
+                .program
+                .functions
+                .iter()
+                .find(|function| function.name == name && !function.type_parameters.is_empty())
+            else {
+                continue;
+            };
+            let type_arguments = source_arguments
+                .iter()
+                .map(|argument| self.resolve_type(argument, span))
+                .collect::<Result<Vec<_>, _>>()?;
+            let template_id = DeclarationId::new(template.stable_id.clone());
+            let id = FunctionInstanceId::derive(&template_id, &type_arguments);
+            if !seen.insert(id.clone()) {
+                continue;
+            }
+            let specialized =
+                specialize_source_function(template, &source_arguments).ok_or_else(|| {
+                    self.error(
+                        "SPX-H006",
+                        format!("generic function `{}` specialization failed", template.name),
+                        span,
+                    )
+                })?;
+            let execution = FunctionExecutionId::Generic(id.clone());
+            let function =
+                self.resolve_function_in_scope(&specialized, &execution, template_id.clone())?;
+            instances.push(ResolvedFunctionInstance {
+                id,
+                template: template_id,
+                type_arguments,
+                function,
+            });
+        }
+        Ok(instances)
+    }
+
+    fn resolve_function_in_scope(
+        &self,
+        function: &crate::ast::Function,
+        function_scope: &FunctionExecutionId,
+        function_id: DeclarationId,
+    ) -> Result<ResolvedFunction, Diagnostic> {
         let mut bindings = BTreeMap::new();
         let params = function
             .params
@@ -4740,7 +5906,7 @@ impl Resolver<'_> {
             .enumerate()
             .map(|(index, param)| {
                 let ty = self.resolve_type(&param.ty, param.span)?;
-                let id = ValueId::parameter(&function_id, index);
+                let id = ValueId::parameter(function_scope, index);
                 let ownership = param.mode.into();
                 bindings.insert(
                     param.name.clone(),
@@ -4760,7 +5926,7 @@ impl Resolver<'_> {
             })
             .collect::<Result<Vec<_>, Diagnostic>>()?;
         let return_type = self.resolve_type(&function.return_type, function.span)?;
-        let result_id = ValueId::result(&function_id);
+        let result_id = ValueId::result(function_scope);
 
         let requires = function
             .requires
@@ -4768,14 +5934,14 @@ impl Resolver<'_> {
             .enumerate()
             .map(|(index, expression)| {
                 self.resolve_expr(
-                    &function_id,
+                    function_scope,
                     expression,
                     &bindings,
                     &format!("requires.{index}"),
                 )
             })
             .collect::<Result<_, _>>()?;
-        let body = self.resolve_expr(&function_id, &function.body, &bindings, "body")?;
+        let body = self.resolve_expr(function_scope, &function.body, &bindings, "body")?;
 
         let mut ensures_bindings = bindings;
         ensures_bindings.insert(
@@ -4796,7 +5962,7 @@ impl Resolver<'_> {
             .enumerate()
             .map(|(index, expression)| {
                 self.resolve_expr(
-                    &function_id,
+                    function_scope,
                     expression,
                     &ensures_bindings,
                     &format!("ensures.{index}"),
@@ -4862,10 +6028,42 @@ impl Resolver<'_> {
         }
     }
 
+    fn resolve_function_type(
+        &self,
+        function: &crate::ast::Function,
+        ty: &Type,
+        span: Span,
+    ) -> Result<ResolvedType, Diagnostic> {
+        if let Type::Named { name, arguments } = ty {
+            if arguments.is_empty() {
+                if let Some(index) = function
+                    .type_parameters
+                    .iter()
+                    .position(|parameter| parameter.name == *name)
+                {
+                    return Ok(ResolvedType::TypeParameter {
+                        owner: DeclarationId::new(function.stable_id.clone()),
+                        index: u32::try_from(index).map_err(|_| {
+                            self.error(
+                                "SPX-H006",
+                                format!(
+                                    "function `{}` type parameter index does not fit u32",
+                                    function.name
+                                ),
+                                span,
+                            )
+                        })?,
+                    });
+                }
+            }
+        }
+        self.resolve_type(ty, span)
+    }
+
     #[allow(clippy::too_many_arguments)]
     fn resolve_record_match_pattern(
         &self,
-        function: &DeclarationId,
+        function: &FunctionExecutionId,
         expected: &ResolvedType,
         type_name: &str,
         fields: &[crate::ast::RecordMatchPatternField],
@@ -4991,7 +6189,7 @@ impl Resolver<'_> {
 
     fn resolve_expr(
         &self,
-        function: &DeclarationId,
+        function: &FunctionExecutionId,
         expr: &Expr,
         bindings: &BTreeMap<String, Binding>,
         path: &str,
@@ -5021,8 +6219,12 @@ impl Resolver<'_> {
                     binding.ownership,
                 )
             }
-            ExprKind::Call { name, args } => {
-                let callee = self
+            ExprKind::Call {
+                name,
+                type_arguments,
+                args,
+            } => {
+                let template = self
                     .declarations
                     .function_id(name)
                     .cloned()
@@ -5037,14 +6239,54 @@ impl Resolver<'_> {
                     .program
                     .functions
                     .iter()
-                    .find(|function| function.stable_id == callee.as_str())
+                    .find(|function| function.stable_id == template.as_str())
                     .ok_or_else(|| {
                         self.error(
                             "SPX-H003",
-                            format!("function identity `{callee}` has no declaration"),
+                            format!("function identity `{template}` has no declaration"),
                             expr.span,
                         )
                     })?;
+                let resolved_arguments = type_arguments
+                    .iter()
+                    .map(|argument| self.resolve_type(argument, expr.span))
+                    .collect::<Result<Vec<_>, _>>()?;
+                let (callee, instance, return_source_type) = if target.type_parameters.is_empty() {
+                    if !resolved_arguments.is_empty() {
+                        return Err(self.error(
+                            "SPX-H006",
+                            format!("monomorphic function `{template}` has type arguments"),
+                            expr.span,
+                        ));
+                    }
+                    (template.clone(), None, target.return_type.clone())
+                } else {
+                    if resolved_arguments.len() != target.type_parameters.len()
+                        || resolved_arguments.iter().any(|argument| {
+                            !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
+                        })
+                    {
+                        return Err(self.error(
+                            "SPX-H006",
+                            format!("generic function `{template}` has invalid type arguments"),
+                            expr.span,
+                        ));
+                    }
+                    let instance = FunctionInstanceId::derive(&template, &resolved_arguments);
+                    let return_type = substitute_source_function_type(
+                        target,
+                        type_arguments,
+                        &target.return_type,
+                    )
+                    .ok_or_else(|| {
+                        self.error(
+                            "SPX-H006",
+                            format!("generic function `{template}` return substitution failed"),
+                            expr.span,
+                        )
+                    })?;
+                    (template.clone(), Some(instance), return_type)
+                };
                 let args = args
                     .iter()
                     .enumerate()
@@ -5057,9 +6299,18 @@ impl Resolver<'_> {
                         )
                     })
                     .collect::<Result<_, _>>()?;
-                let ty = self.resolve_type(&target.return_type, target.span)?;
+                let ty = self.resolve_type(&return_source_type, target.span)?;
                 let ownership = self.expression_ownership(&ty, OwnershipMode::Own, target.span)?;
-                (ResolvedExprKind::Call { callee, args }, ty, ownership)
+                (
+                    ResolvedExprKind::Call {
+                        callee,
+                        type_arguments: resolved_arguments,
+                        instance,
+                        args,
+                    },
+                    ty,
+                    ownership,
+                )
             }
             ExprKind::Unary { op, value } => {
                 let value =
@@ -5535,7 +6786,13 @@ impl Resolver<'_> {
                     .program
                     .functions
                     .iter()
-                    .find(|candidate| candidate.stable_id == function.as_str())
+                    .find(|candidate| {
+                        matches!(
+                            function,
+                            FunctionExecutionId::Monomorphic(declaration)
+                                if candidate.stable_id == declaration.as_str()
+                        )
+                    })
                     .ok_or_else(|| {
                         self.error(
                             "SPX-H006",

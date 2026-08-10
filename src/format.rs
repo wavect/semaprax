@@ -142,7 +142,13 @@ pub fn canonical(program: &Program) -> String {
         if function.explicit_id {
             writeln!(output, "@id(\"{}\")", escape_string(&function.stable_id)).unwrap();
         }
-        write!(output, "fn {}(", function.name).unwrap();
+        write!(
+            output,
+            "fn {}{}(",
+            function.name,
+            type_parameter_suffix(&function.type_parameters)
+        )
+        .unwrap();
         for (index, param) in function.params.iter().enumerate() {
             if index > 0 {
                 output.push_str(", ");
@@ -201,9 +207,25 @@ pub fn expr(value: &Expr, parent_precedence: u8) -> String {
         ExprKind::Int(number) => number.to_string(),
         ExprKind::Bool(value) => value.to_string(),
         ExprKind::Var(name) => name.clone(),
-        ExprKind::Call { name, args } => format!(
-            "{}({})",
+        ExprKind::Call {
             name,
+            type_arguments,
+            args,
+        } => format!(
+            "{}{}({})",
+            name,
+            if type_arguments.is_empty() {
+                String::new()
+            } else {
+                format!(
+                    "<{}>",
+                    type_arguments
+                        .iter()
+                        .map(ToString::to_string)
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            },
             args.iter()
                 .map(|arg| expr(arg, 0))
                 .collect::<Vec<_>>()

@@ -1,0 +1,15 @@
+package semaprax:private@0.6.0;
+
+interface record-pattern-projections {
+  record status { domain: string, code: u32, class: u8, retryable: option<bool> }
+  record phantom-i64 { marker: bool }
+  record phantom-bool { marker: bool }
+  preserve-phantom-i64: func(input: phantom-i64, control: s64) -> result<bool, status>;
+  invert-phantom-i64: func(input: phantom-i64, control: s64) -> result<bool, status>;
+  preserve-phantom-bool: func(input: phantom-bool, control: s64) -> result<bool, status>;
+  invert-phantom-bool: func(input: phantom-bool, control: s64) -> result<bool, status>;
+}
+
+world semaprax-private-v8 {
+  export record-pattern-projections;
+}

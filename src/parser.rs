@@ -399,6 +399,7 @@ impl Parser {
         let start = self.current().span;
         self.keyword("fn")?;
         let (name, name_span) = self.ident("function name")?;
+        let type_parameters = self.type_parameters()?;
         let explicit_id = stable_id.is_some();
         let stable_id = stable_id.unwrap_or_else(|| format!("auto:{module}.{name}"));
         self.expect(&TokenKind::LParen, "`(` after function name")?;
@@ -461,6 +462,7 @@ impl Parser {
             explicit_id,
             name,
             name_span,
+            type_parameters,
             params,
             return_type,
             effects,
@@ -558,6 +560,7 @@ impl Parser {
             let type_arguments = if self.at(&TokenKind::Lt)
                 && matches!(&expression.kind, ExprKind::Var(_))
                 && (self.looks_like_generic_variant_qualifier()
+                    || self.looks_like_generic_function_call()
                     || (allow_record_literals && self.looks_like_generic_record_qualifier()))
             {
                 self.type_arguments()?
@@ -694,7 +697,11 @@ impl Parser {
                     .expect(&TokenKind::RParen, "`)` after call arguments")?
                     .span;
                 expression = Expr {
-                    kind: ExprKind::Call { name, args },
+                    kind: ExprKind::Call {
+                        name,
+                        type_arguments,
+                        args,
+                    },
                     span: expression.span.merge(end),
                 };
                 continue;
@@ -1030,11 +1037,42 @@ impl Parser {
         self.looks_like_generic_qualifier(TokenKind::LBrace)
     }
 
+    fn looks_like_generic_function_call(&self) -> bool {
+        self.looks_like_generic_qualifier(TokenKind::LParen)
+    }
+
     fn looks_like_generic_qualifier(&self, terminator: TokenKind) -> bool {
+        if self.tokens.get(self.cursor).map(|token| &token.kind) != Some(&TokenKind::Lt) {
+            return false;
+        }
+        let malformed_qualifier = self.looks_like_malformed_generic_qualifier(&terminator);
+        let mut cursor = self.cursor + 1;
+        if self.tokens.get(cursor).map(|token| &token.kind) == Some(&TokenKind::Gt) {
+            return malformed_qualifier;
+        }
+        loop {
+            let Some(next) = self.generic_type_end(cursor) else {
+                return malformed_qualifier;
+            };
+            cursor = next;
+            match self.tokens.get(cursor).map(|token| &token.kind) {
+                Some(TokenKind::Comma) => cursor += 1,
+                Some(TokenKind::Gt) => {
+                    return self
+                        .tokens
+                        .get(cursor + 1)
+                        .is_some_and(|next| next.kind == terminator);
+                }
+                _ => return malformed_qualifier,
+            }
+        }
+    }
+
+    fn looks_like_malformed_generic_qualifier(&self, terminator: &TokenKind) -> bool {
         let mut depth = 0_usize;
         for (offset, token) in self.tokens[self.cursor..].iter().enumerate() {
             match token.kind {
-                TokenKind::Lt => depth = depth.saturating_add(1),
+                TokenKind::Lt => depth += 1,
                 TokenKind::Gt => {
                     let Some(next_depth) = depth.checked_sub(1) else {
                         return false;
@@ -1044,14 +1082,43 @@ impl Parser {
                         return self
                             .tokens
                             .get(self.cursor + offset + 1)
-                            .is_some_and(|next| next.kind == terminator);
+                            .is_some_and(|next| &next.kind == terminator);
                     }
                 }
-                TokenKind::Eof | TokenKind::Semicolon | TokenKind::LBrace => return false,
-                _ => {}
+                TokenKind::Ident(_) | TokenKind::Dot | TokenKind::Comma => {}
+                _ => return false,
             }
         }
         false
+    }
+
+    fn generic_type_end(&self, mut cursor: usize) -> Option<usize> {
+        if !matches!(self.tokens.get(cursor)?.kind, TokenKind::Ident(_)) {
+            return None;
+        }
+        cursor += 1;
+        while self.tokens.get(cursor).map(|token| &token.kind) == Some(&TokenKind::Dot) {
+            cursor += 1;
+            if !matches!(self.tokens.get(cursor)?.kind, TokenKind::Ident(_)) {
+                return None;
+            }
+            cursor += 1;
+        }
+        if self.tokens.get(cursor).map(|token| &token.kind) != Some(&TokenKind::Lt) {
+            return Some(cursor);
+        }
+        cursor += 1;
+        if self.tokens.get(cursor).map(|token| &token.kind) == Some(&TokenKind::Gt) {
+            return None;
+        }
+        loop {
+            cursor = self.generic_type_end(cursor)?;
+            match self.tokens.get(cursor).map(|token| &token.kind) {
+                Some(TokenKind::Comma) => cursor += 1,
+                Some(TokenKind::Gt) => return Some(cursor + 1),
+                _ => return None,
+            }
+        }
     }
 
     fn binary_op(&self) -> Option<BinaryOp> {

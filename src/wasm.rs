@@ -7,7 +7,7 @@ use crate::ast::{BinaryOp, Program, UnaryOp};
 use crate::diagnostic::{quote_json, Diagnostic};
 use crate::graph;
 use crate::hir::{
-    self, DeclarationId, IdentityOrigin, ResolvedExpr, ResolvedExprKind, ResolvedProgram,
+    self, FunctionExecutionId, IdentityOrigin, ResolvedExpr, ResolvedExprKind, ResolvedProgram,
     ResolvedStatement, ResolvedType, ResolvedTypeDeclarationKind, ValueId,
 };
 use crate::variant_layout::{VariantLayoutCache, VariantTarget};
@@ -18,6 +18,8 @@ mod generic_record_component_v7;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod nested_record_component_v6;
 mod owned;
+#[cfg(any(test, feature = "unstable-wit-component-harness"))]
+mod record_pattern_component_v8;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod result_component_v3;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
@@ -36,6 +38,12 @@ pub(crate) use nested_record_component_v6::{
     emit_private_nested_record_core_v6,
     CANONICAL_EXPORT as NESTED_RECORD_COMPONENT_CANONICAL_EXPORT_V6,
     SOURCE_V6 as NESTED_RECORD_COMPONENT_SOURCE_V6,
+};
+#[cfg(any(test, feature = "unstable-wit-component-harness"))]
+pub(crate) use record_pattern_component_v8::{
+    emit_private_record_pattern_core_v8,
+    CANONICAL_EXPORTS as RECORD_PATTERN_COMPONENT_CANONICAL_EXPORTS_V8,
+    SOURCE_V8 as RECORD_PATTERN_COMPONENT_SOURCE_V8,
 };
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 pub(crate) use result_component_v3::{
@@ -230,8 +238,24 @@ pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagno
         ])
     };
 
+    let executable_functions = program
+        .functions
+        .iter()
+        .map(|function| {
+            (
+                function,
+                FunctionExecutionId::Monomorphic(function.id.clone()),
+            )
+        })
+        .chain(program.function_instances.iter().map(|instance| {
+            (
+                &instance.function,
+                FunctionExecutionId::Generic(instance.id.clone()),
+            )
+        }))
+        .collect::<Vec<_>>();
     let mut function_types = Vec::new();
-    for function in &program.functions {
+    for (function, _) in &executable_functions {
         let signature = Signature {
             params: function
                 .params
@@ -250,11 +274,10 @@ pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagno
         })
         .collect::<Vec<_>>();
 
-    let function_indexes: HashMap<_, _> = program
-        .functions
+    let function_indexes: HashMap<_, _> = executable_functions
         .iter()
         .enumerate()
-        .map(|(index, function)| (function.id.clone(), import_count + index as u32))
+        .map(|(index, (_, execution))| (execution.clone(), import_count + index as u32))
         .collect();
 
     let mut module = b"\0asm\x01\0\0\0".to_vec();
@@ -326,7 +349,7 @@ pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagno
         exports.push(0x02);
         write_u32(&mut exports, 0);
     }
-    let adapter_base = import_count + program.functions.len() as u32;
+    let adapter_base = import_count + executable_functions.len() as u32;
     for (ordinal, plan) in owned_plans.iter().enumerate() {
         write_name(&mut exports, &plan.export);
         exports.push(0x00);
@@ -337,9 +360,9 @@ pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagno
     let mut code = Vec::new();
     write_u32(
         &mut code,
-        (program.functions.len() + owned_plans.len()) as u32,
+        (executable_functions.len() + owned_plans.len()) as u32,
     );
-    for function in &program.functions {
+    for (function, _) in &executable_functions {
         let mut body = Vec::new();
         let result_local = function.params.len() as u32;
         let mut value_indexes: HashMap<_, _> = function
@@ -564,7 +587,7 @@ fn emit_expr(
     output: &mut Vec<u8>,
     expr: &ResolvedExpr,
     value_indexes: &HashMap<ValueId, u32>,
-    function_indexes: &HashMap<DeclarationId, u32>,
+    function_indexes: &HashMap<FunctionExecutionId, u32>,
     layout: &LocalLayout,
     result: Option<(u32, &str)>,
 ) -> Result<(), Diagnostic> {
@@ -598,14 +621,23 @@ fn emit_expr(
             output.push(0x20);
             write_u32(output, index);
         }
-        ResolvedExprKind::Call { callee, args } => {
+        ResolvedExprKind::Call {
+            callee,
+            instance,
+            args,
+            ..
+        } => {
             for arg in args {
                 emit_expr(output, arg, value_indexes, function_indexes, layout, result)?;
             }
             output.push(0x10);
+            let execution = instance.as_ref().map_or_else(
+                || FunctionExecutionId::Monomorphic(callee.clone()),
+                |instance| FunctionExecutionId::Generic(instance.clone()),
+            );
             write_u32(
                 output,
-                *function_indexes.get(callee).ok_or_else(|| {
+                *function_indexes.get(&execution).ok_or_else(|| {
                     Diagnostic::io("SPX-W104", format!("unknown function identity `{callee}`"))
                 })?,
             );
@@ -773,7 +805,7 @@ fn emit_short_circuit(
     op: BinaryOp,
     right: &ResolvedExpr,
     value_indexes: &HashMap<ValueId, u32>,
-    function_indexes: &HashMap<DeclarationId, u32>,
+    function_indexes: &HashMap<FunctionExecutionId, u32>,
     layout: &LocalLayout,
     result: Option<(u32, &str)>,
 ) -> Result<(), Diagnostic> {

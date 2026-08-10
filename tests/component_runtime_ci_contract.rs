@@ -169,6 +169,55 @@ fn invert_phantom_bool(input: Phantom<bool>) -> Phantom<bool> {
 fn main() -> i64 { 0 }
 "#;
     assert_eq!(checked_in_source_v7, expected_source_v7);
+
+    let checked_in_v8 = read("platform-tests/component-runtime/wit/semaprax-private-v8.wit");
+    let expected_v8 = "package semaprax:private@0.6.0;\n\ninterface record-pattern-projections {\n  record status { domain: string, code: u32, class: u8, retryable: option<bool> }\n  record phantom-i64 { marker: bool }\n  record phantom-bool { marker: bool }\n  preserve-phantom-i64: func(input: phantom-i64, control: s64) -> result<bool, status>;\n  invert-phantom-i64: func(input: phantom-i64, control: s64) -> result<bool, status>;\n  preserve-phantom-bool: func(input: phantom-bool, control: s64) -> result<bool, status>;\n  invert-phantom-bool: func(input: phantom-bool, control: s64) -> result<bool, status>;\n}\n\nworld semaprax-private-v8 {\n  export record-pattern-projections;\n}\n";
+    assert_eq!(checked_in_v8, expected_v8);
+
+    let checked_in_source_v8 = read("platform-tests/component-runtime/v8.spx");
+    let expected_source_v8 = r#"module test.component_record_pattern_v8;
+
+@id("component.pattern.phantom")
+record Phantom<T> {
+    @id("component.pattern.phantom.marker") marker: bool,
+}
+
+@id("component.pattern.preserve-phantom-i64")
+fn preserve_phantom_i64(input: Phantom<i64>, control: i64) -> bool
+    requires control != -99
+    ensures control != 13
+{
+    match input { Phantom { marker } => marker, }
+}
+
+@id("component.pattern.invert-phantom-i64")
+fn invert_phantom_i64(input: Phantom<i64>, control: i64) -> bool
+    requires control != -99
+    ensures control != 13
+{
+    match input { Phantom { marker } => !marker, }
+}
+
+@id("component.pattern.preserve-phantom-bool")
+fn preserve_phantom_bool(input: Phantom<bool>, control: i64) -> bool
+    requires control != -99
+    ensures control != 13
+{
+    match input { Phantom { marker } => marker, }
+}
+
+@id("component.pattern.invert-phantom-bool")
+fn invert_phantom_bool(input: Phantom<bool>, control: i64) -> bool
+    requires control != -99
+    ensures control != 13
+{
+    match input { Phantom { marker } => !marker, }
+}
+
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+    assert_eq!(checked_in_source_v8, expected_source_v8);
 }
 
 #[test]
@@ -187,6 +236,8 @@ fn component_job_fetches_root_and_runner_then_runs_every_gate_locked_and_offline
         "--features unstable-wit-component-harness --lib wit_component::nested_record_v6::tests::",
         "--features unstable-wit-component-harness --lib wasm::generic_record_component_v7::tests::",
         "--features unstable-wit-component-harness --lib wit_component::generic_record_v7::tests::",
+        "--features unstable-wit-component-harness --lib wasm::record_pattern_component_v8::tests::",
+        "--features unstable-wit-component-harness --lib wit_component::record_pattern_v8::tests::",
         "--test component_runtime_ci_contract",
     ] {
         assert!(
@@ -225,7 +276,7 @@ fn component_job_fetches_root_and_runner_then_runs_every_gate_locked_and_offline
         "manifest-path: platform-tests/component-runtime/Cargo.toml",
         "--config platform-tests/component-runtime/deny.toml",
         "scripts/component-runtime-v3.sh",
-        "execute every v3/v4/v5/v6/v7 Component gate offline",
+        "execute every v3/v4/v5/v6/v7/v8 Component gate offline",
     ] {
         assert!(
             workflow.contains(required),
@@ -262,9 +313,11 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "SemapraxPrivateV5::instantiate",
         "SemapraxPrivateV6::instantiate",
         "SemapraxPrivateV7::instantiate",
+        "SemapraxPrivateV8::instantiate",
         "#[allow(clippy::too_many_lines)]\nfn run_v5_instance",
         "#[allow(clippy::too_many_lines)]\nfn run_v6_instance",
         "#[allow(clippy::too_many_lines)]\nfn run_v7_instance",
+        "#[allow(clippy::too_many_lines)]\nfn run_v8",
         "Keep the exact source-instance-to-WIT mapping reviewable in one function.",
         "Keep the exact nested-record field and status matrix visible in one reviewable",
         "This is deliberately a flat, reviewable six-export protocol matrix.",
@@ -272,6 +325,7 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "semaprax-private-v5.wit",
         "semaprax-private-v6.wit",
         "semaprax-private-v7.wit",
+        "semaprax-private-v8.wit",
         "EXPECTED_COMPONENT_V4_SHA256",
         "EXPECTED_GENERATED_CORE_V4_SHA256",
         "EXPECTED_SOURCE_REVISION_V4",
@@ -284,6 +338,9 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "EXPECTED_COMPONENT_V7_SHA256",
         "EXPECTED_GENERATED_CORE_V7_SHA256",
         "EXPECTED_SOURCE_REVISION_V7",
+        "EXPECTED_COMPONENT_V8_SHA256",
+        "EXPECTED_GENERATED_CORE_V8_SHA256",
+        "EXPECTED_SOURCE_REVISION_V8",
         "sha256:86411224efe3adace5ffdd410c243306859edc280dbe3342adcf830588b62259",
         "0x6c, 0xeb, 0x9e, 0x30, 0x96, 0x94, 0xa5, 0xb9",
         "0x08, 0x25, 0xf2, 0x70, 0xcf, 0x2c, 0x94, 0xbd",
@@ -292,6 +349,7 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "validate_private_scalar_algebra_component_v5",
         "validate_private_nested_record_component_v6",
         "validate_private_generic_record_component_v7",
+        "validate_private_record_pattern_component_v8",
         "config.consume_fuel(true)",
         "store.set_fuel(0)",
         "engine_failure.is_ok()",
@@ -308,6 +366,7 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "semaprax:private/scalar-algebra@0.3.0",
         "semaprax:private/nested-records@0.4.0",
         "semaprax:private/generic-records@0.5.0",
+        "semaprax:private/record-pattern-projections@0.6.0",
         "cabi_transform_nested_record_v6",
         "call_transform",
         "call_transform_i64_bool",
@@ -329,12 +388,25 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "v7 same-signature Phantom swap was not observably crossed",
         "v7 raw invalid bool retained stale output",
         "bytes != [0xa5; 24]",
+        "cabi_preserve_pattern_phantom_i64_v8",
+        "cabi_invert_pattern_phantom_i64_v8",
+        "cabi_preserve_pattern_phantom_bool_v8",
+        "cabi_invert_pattern_phantom_bool_v8",
+        "prove_raw_core_v8_mapping_poison_and_invalid_bools",
+        "prove_all_pair_swaps_reject_and_polarity_swaps_are_observable_v8",
+        "v8 exact validator admitted pair swap",
+        "v8 polarity-changing pair swap was not observable",
+        "v8 raw invalid bool retained stale output",
+        "bytes != [0xa5; 20]",
         "sha256:d1fcbc45b3d86fa1d7910378578828df3c557dba92f90ed9459f928c5bf2fe8a",
         "0xad, 0x40, 0x8a, 0x7a, 0x6a, 0x35, 0x96, 0xa0",
         "0x42, 0x83, 0x5d, 0xcb, 0xf9, 0x80, 0x78, 0xac",
         "sha256:2c2c38ae4a6400730bc6c91de659675074020651b9b58bb6a39d047630ef7303",
         "0x78, 0x0a, 0x0c, 0xcf, 0xc3, 0x5c, 0x7f, 0xf6",
         "0xd2, 0x18, 0xff, 0x1e, 0xaf, 0xf5, 0xf3, 0xf6",
+        "sha256:2baac0c0920dbb153789767bf506a4a81713081586a81444d8e5f5a8f5a8516d",
+        "0xd8, 0x85, 0x90, 0x75, 0x2e, 0xd7, 0xb0, 0x8b",
+        "0xb6, 0xe1, 0xdb, 0xf9, 0x52, 0x2d, 0xbb, 0x98",
         "(left + 1) / right",
         "name: \"addition-overflow\"",
         "left: i64::MAX",
@@ -385,13 +457,18 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "only the exact v6/v7 i64-first raw signatures may bypass typed bindings"
     );
     assert_eq!(
+        runner.matches("get_typed_func::<(i32, i64), i32>").count(),
+        4,
+        "only the four authenticated v8 raw signatures may bypass typed bindings"
+    );
+    assert_eq!(
         runner.matches("Module::new").count(),
-        2,
-        "only authenticated v6/v7 embedded cores may be instantiated directly"
+        3,
+        "only authenticated v6/v7/v8 embedded cores may be instantiated directly"
     );
     assert_eq!(
         runner.matches("usize::try_from(").count(),
-        8,
-        "every v6/v7 raw result pointer must be converted without signed truncation"
+        11,
+        "every v6/v7/v8 raw result pointer must be converted without signed truncation"
     );
 }

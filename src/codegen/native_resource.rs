@@ -140,6 +140,19 @@ pub(super) fn build_resource_abi(
 ) -> Result<NativeResourceAbi, Diagnostic> {
     hir::validate(program)?;
 
+    if (!program.function_templates.is_empty() || !program.function_instances.is_empty())
+        && program.types.iter().any(|declaration| {
+            matches!(
+                declaration.kind,
+                ResolvedTypeDeclarationKind::Resource { .. }
+            )
+        })
+    {
+        return Err(resource_error(
+            "native resource ABI does not admit mixed generic functions and resources",
+        ));
+    }
+
     let imports = import_index(program)?;
     let mut identifiers = BTreeMap::<String, String>::new();
     let mut lifecycle_ids = BTreeSet::new();

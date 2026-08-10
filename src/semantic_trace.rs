@@ -375,6 +375,11 @@ pub fn build_semantic_event_dictionary(
     function_id: &DeclarationId,
 ) -> Result<SemanticEventDictionary, Diagnostic> {
     hir::validate(program)?;
+    if !program.function_templates.is_empty() || !program.function_instances.is_empty() {
+        return Err(dictionary_error(
+            "semantic trace dictionaries do not admit generic function templates or instances",
+        ));
+    }
     let function = program
         .functions
         .iter()

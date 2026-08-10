@@ -67,6 +67,26 @@ Wasm projects from one frame value and copies whole-record bindings into their
 own frame slots. Refutable/literal/guard/or/rest/nested-variant patterns,
 resource/non-Copy modes, and aggregate arm results remain outside admission.
 
+The bounded generic-function tranche is likewise direct-scalar and Copy-only.
+Source admits one or two owner/index-stable function type parameters and
+requires explicit ordered `i64`/`bool` arguments at every call. Parameter and
+result slots are by-value direct scalars or parameters owned by that function;
+templates are effect-free and reject aggregate/resource syntax, ownership
+modes, generic-to-generic calls, transitive generic cycles, recursion, and a
+generic entrypoint. Verification checks every unused template over all `2^N`
+direct-scalar substitutions without creating executable evidence. Resolved HIR
+keeps monomorphic functions, function templates, and explicitly referenced
+concrete instances in separate vectors. A concrete `FunctionInstanceId`
+derives from the persistent template ID plus ordered arguments, and its
+domain-separated execution identity scopes parameter/result/expression IDs;
+same-signature templates and instances cannot substitute for one another.
+Only explicitly referenced instances lower to native or Wasm. Their attached
+CleanupPlan remains canonical v2 and its propagated-call status producer stays
+template-ID-only; HIR validates the exact concrete instance before independent
+plan replay, while Graph v14 carries the exact instance meaning. Generic
+functions grant no callable, settlement, semantic-trace, resource/owned, FFI,
+or component authority.
+
 The target-neutral runtime protocol is split from physical target state. `semaprax.status.v1` contains only a stable `domain_id`, nonzero code, class, and retryability; the invocation-local arena assigns immutable one-based tokens while reserving zero for success and rejects cross-context and same-nonce cross-arena resolution. `semaprax.conformance-trace.v1` records semantic ownership, import, write-once failure selection, finalization, and result publication without pointers, handles, tokens, offsets, or host exceptions. Attached plans are independently checked against inventory and exact typed-HIR control/event coverage, then exhaustively replayed across the current acyclic CFG for ordered liveness, sticky failures, exact region-leave chains, reverse cleanup, and typed whole-result publication. The deterministic single-frame reference executor models an uninitialized/published caller out slot; record results remain rejected until the trace schema can preserve aggregate semantic values. The native scalar C lane shares one caller-supplied context across nested calls, returns exact compiler statuses, and commits its out slot only after postconditions.
 
 For callable-v2 admission, `semaprax.trace-path-certificate.v1` compiles that
@@ -506,6 +526,31 @@ mapping, imports/capabilities/callbacks/async, callable/FFI or public ABI,
 browser/multi-engine claim, package negotiation, or `SPX-B104`/`SPX-W111`
 widening.
 
+Private Record-Pattern Projection Component v8 is an eighth separate
+default-off profile for WIT package `semaprax:private@0.6.0`, interface
+`record-pattern-projections`, and world `semaprax-private-v8`. Its exact source
+declares generic record `Phantom<T> { marker: bool }`, but all four exported
+functions are monomorphic and the profile rejects every generic function
+template or instance. Ordered preserve/invert exports cover exact
+`Phantom<i64>` and `Phantom<bool>` inputs plus a scalar control and return the
+projected boolean inside the unchanged outer status result. Admission binds
+the exact source, generated core, two distinct same-layout Wasm32 instance
+digests, Graph v13, stable function/core-index/named-WIT-type mapping, fixed
+scratch/result plan, profile, component, and artifact DAG. The canonical
+adapter validates input booleans before calling, checks physical status before
+reading output, reconstructs fieldwise, publishes the result tag last, and
+keeps the complete 20-byte result poisoned on failure or invalid values.
+Independent/upstream validation rejects every byte mutation and all six
+same-signature function-index swaps; only the four polarity-changing swaps are
+behaviorally distinguishable, while the two same-polarity cross-instance swaps
+remain identity/KAT evidence. Local Node execution, source locks, strict gates,
+and independent security review are green. The zero-import, empty-linker,
+no-WASI pinned Rust 1.97.1/Wasmtime 47 runner is configured in CI; hosted
+execution is pending. V1-v7 bytes remain unchanged. V8 provides no generic-
+function component, general source selection, imports/capabilities/resources,
+callable/FFI or public ABI, browser/multi-engine claim, package negotiation, or
+`SPX-B104`/`SPX-W111` widening.
+
 ## Record lowering and backend gate
 
 Canonical source accepts nominal records with persistent field IDs, source-ordered construction, shorthand expansion, chained projection, and immutable `with` update. The verifier reports unknown, duplicate, missing, or mismatched fields deterministically and rejects direct or indirect by-value layout cycles. Resolved HIR distinguishes place projections from projections of temporary values, preserves base-first and authored replacement order for update, and its validator rejects foreign/reordered fields and inconsistent facts.
@@ -566,7 +611,33 @@ is still absent.
 
 ## Semantic graph
 
-Graph serialization is exclusively from validated resolved HIR. The program-wide schema lattice is `semaprax.graph.v13` when any authenticated explicit record-pattern node exists, otherwise v12 when any authenticated generic record declaration exists, otherwise v11 when any function contains authenticated Option propagation, otherwise byte-compatible v10. A record-scrutinee top-level wildcard is schema-neutral. Every bounded context reports the same program-level choice even when rooted at a legacy or wildcard-only function. V13 pattern nodes recursively bind the exact concrete record type, stable record/field IDs, and canonical bindings; v12 record nodes carry ordered owner/index parameters and no fabricated empty-instance type ID, and generic constructors carry the exact structured concrete record type in addition to the ordinary exact expression type ID. The graph otherwise contains the canonical human-source revision, authenticated `semaprax.prelude.v1` schema/digest, module capabilities, entrypoint declaration ID, explicit/automatic/compiler-owned declaration identity origin, exact concrete nominal arguments, resource/lifecycle/interface/import/record/field/variant/case/payload-field/function nodes, typed ownership and result-publication contracts, effects/authority/failure meaning, structural contracts, sorted declaration-ID call dependencies, the structural body graph including base-first/authored-order immutable record updates, variant construction/match arms/pattern bindings, recursive record patterns, `try_result` nodes, and v11-v13 `try_option` nodes with exact source/target types and compiler-owned members, evaluation-once, normal-result early exit, and shared-postcondition epilogue meaning, plus the complete per-function CleanupPlan v2 or v3. Cleanup vectors preserve canonical execution order and use tagged storage/place/status/transition/edge/region/exit forms; variant-case edges bind the exact scrutinee expression and stable case ID, while record matches remain straight-line and `stage_copy_result` binds an exact body, Result residual, or Option-None producer and concrete target instance. Serialization never sorts malformed input into apparent validity. Context closure follows resources through lifecycle/interface/import contracts and closes record or concrete variant declarations through their member types and selected functions' self-contained cleanup plans; compiler-owned prelude declarations appear only when referenced. Graph revision v2 hashes the canonical source together with the length-delimited prelude schema and contract bytes, so an implicit-prelude change cannot retain an old semantic revision. Caches key by graph schema, revision, and authenticated prelude contract.
+Graph serialization is exclusively from validated resolved HIR. The
+program-wide schema lattice is `semaprax.graph.v14` when any authenticated
+generic function declaration exists, even when unused; otherwise v13 applies
+to an explicit record pattern, v12 to a generic record declaration, v11 to
+Option propagation, and byte-compatible v10 to legacy/Result programs. Every
+bounded and Agent Context reports the same program choice. V14 adds persistent
+or visibly automatic `function_template` declarations, nonpersistent exact
+`function_instance` nodes, and `call_instance` expressions carrying the
+template, derived instance ID, and ordered concrete arguments. Unused templates
+have no fabricated instance; v10-v13 bytes remain unchanged when no generic
+function is declared. The frozen v14 SHA-256 KATs are module
+`449c74b9284a1e5f00a6823c1e01f87e15fe76882e9fc76512b0d22dc0ce9941`,
+Agent Context
+`54cfc493bc285fb43767ea37f558e9d59c1c36e32915ab35e640edf422efc28c`,
+and bounded context
+`880a5f21a12e3c945ec75f08af4889c98a75925dec23f491e01ce4317cea6e1c`.
+V13 pattern nodes bind exact concrete record/member/binding identity; v12 record
+nodes carry ordered owner/index parameters; v11 authenticates Option
+propagation. The graph otherwise retains the canonical source/prelude revision,
+declarations, exact types, structural bodies/contracts/calls, and complete
+per-function CleanupPlan v2/v3. Cleanup vectors preserve canonical execution
+order and never repair malformed input. Generic-function CleanupPlan v2 status
+producers intentionally remain template-ID-only; exact instance meaning is
+carried by validated HIR and v14 call/instance nodes. Context closure includes
+selected function templates and their exact referenced instances without
+inventing executable evidence for an unused template. Graph revision v2 and
+cache binding remain unchanged.
 
 Integer literals are decimal JSON strings rather than JSON numbers, so JavaScript and TypeScript agents preserve every `i64` value exactly. `let` bindings expose one value identity; the enclosing statement does not reuse that ID as a second identity domain.
 
@@ -629,7 +700,7 @@ The protocol will evolve toward structured JSON/CBOR operations with typed paylo
 
 The v0.2 native backend emits readable C11, then invokes Clang. C is an implementation IR, not a promised ecosystem boundary. This gives the prototype real native binaries, easy inspection, sanitizers, and broad host support with almost no backend dependency surface.
 
-The C emitter materializes subexpressions in source order before calls and operators. This is required because C does not define function-argument evaluation order, while SEMAPRAX does. Lazy boolean operators and `if` expressions lower to explicit branches, and generated local names cannot collide with source identifiers. Generic record structs use exact-instance symbols derived from the full length-delimited declaration ID and ordered concrete arguments; same-layout instances remain distinct. The bounded copy-variant lane emits deterministic structs with an explicit `uint32_t` tag, a declaration-order payload union, and compile-time size/alignment/offset assertions. Constructors evaluate payloads in authored order, zero the full representation, write payload fields, and publish the tag last. Matches stage the scrutinee once, validate the tag before union access, and execute only the selected arm. Invalid tags terminate through the runtime-invariant path rather than becoming a semantic status. Every function uses `(context, parameters..., result_out) -> status_token`, with internal aggregate parameters passed by pointer and caller-owned aggregate results; nested calls share one invocation-local arena, zero means success, contract and checked-arithmetic failures return exact normalized records, and `result_out` is written only at the final success commit. The executable wrapper translates a completed root failure back into the existing process diagnostics and exit codes.
+The C emitter materializes subexpressions in source order before calls and operators. This is required because C does not define function-argument evaluation order, while SEMAPRAX does. Lazy boolean operators and `if` expressions lower to explicit branches, and generated local names cannot collide with source identifiers. Generic function symbols derive from the domain-separated exact template-plus-ordered-argument execution identity, so same-signature templates and `i64`/`bool` instances remain distinct; only explicitly referenced instances are emitted. Generic record structs likewise use exact-instance symbols. The bounded copy-variant lane emits deterministic structs with an explicit `uint32_t` tag, a declaration-order payload union, and compile-time size/alignment/offset assertions. Constructors evaluate payloads in authored order, zero the full representation, write payload fields, and publish the tag last. Matches stage the scrutinee once, validate the tag before union access, and execute only the selected arm. Invalid tags terminate through the runtime-invariant path rather than becoming a semantic status. Every function uses `(context, parameters..., result_out) -> status_token`, with internal aggregate parameters passed by pointer and caller-owned aggregate results; nested calls share one invocation-local arena, zero means success, contract and checked-arithmetic failures return exact normalized records, and `result_out` is written only at the final success commit. The executable wrapper translates a completed root failure back into the existing process diagnostics and exit codes.
 
 The planned development backend is Cranelift. The planned optimizing pipeline uses multi-level IR with LLVM, while portable components lower through the WebAssembly Component Model. Backend changes must preserve the graph and verification contracts.
 
@@ -641,7 +712,7 @@ This is the first ownership IR, not a complete borrow checker. Mutable alias exc
 
 ## WebAssembly bootstrap backend
 
-The direct Wasm encoder emits standard WebAssembly core modules without requiring a Rust target installation or an external assembler. User functions compile to typed Wasm functions and `main` is exported as `semaprax_main`. The aggregate profile lowers bounded copy variants into checked Wasm32 frame layouts with a `u32` tag and aligned maximum payload, zero-fills before tag-last publication, evaluates a match scrutinee once, and evaluates only the selected scalar arm. An invalid tag uses a private negative sentinel, restores the shadow stack, and traps out of band at the public wrapper; it is never mapped to a language failure. Contracts trap through a host import. Arithmetic lowers to a small generated JavaScript host that performs checked `i64` operations with `BigInt`, preserving the safe arithmetic semantics instead of silently accepting Wasm's wrapping operators.
+The direct Wasm encoder emits standard WebAssembly core modules without requiring a Rust target installation or an external assembler. Monomorphic functions and explicitly referenced generic-function instances compile to distinct typed Wasm functions; unused templates allocate no index, and `main` remains exported as `semaprax_main`. The aggregate profile lowers bounded copy variants into checked Wasm32 frame layouts with a `u32` tag and aligned maximum payload, zero-fills before tag-last publication, evaluates a match scrutinee once, and evaluates only the selected scalar arm. An invalid tag uses a private negative sentinel, restores the shadow stack, and traps out of band at the public wrapper; it is never mapped to a language failure. Contracts trap through a host import. Arithmetic lowers to a small generated JavaScript host that performs checked `i64` operations with `BigInt`, preserving the safe arithmetic semantics instead of silently accepting Wasm's wrapping operators.
 
 The web package contains `app.wasm`, `semaprax.js`, `index.html`, `package.json`, and a `semaprax.web.v3` graph-revision/capability manifest. Version 3 adds a required `semaprax.wasm-owned.v1` function map; scalar-only packages carry an empty map and do not allocate owned-runtime identity. This is real browser-executable output; it is not yet the UI dialect, DOM renderer, SSR/hydration system, WASI target, or Component Model backend.
 

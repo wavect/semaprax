@@ -169,6 +169,15 @@ pub(crate) fn validate_program(program: &ResolvedProgram) -> Result<(), Diagnost
             )));
         }
     }
+    for instance in &program.function_instances {
+        let expected = build_inventory(program, &instance.function)?;
+        if instance.function.cleanup != expected {
+            return Err(cleanup_error(format!(
+                "function instance `{}` has a non-canonical cleanup inventory",
+                instance.id
+            )));
+        }
+    }
     Ok(())
 }
 

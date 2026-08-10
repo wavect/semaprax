@@ -10,6 +10,7 @@ use crate::{ast::Program, diagnostic::Diagnostic, graph, wasm};
 
 mod generic_record_v7;
 mod nested_record_v6;
+mod record_pattern_v8;
 mod result_v3;
 mod scalar_algebra_v5;
 mod source_result_v4;
@@ -21,6 +22,10 @@ pub use generic_record_v7::{
 pub use nested_record_v6::{
     emit_private_nested_record_component_v6, validate_private_nested_record_component_v6,
     PrivateNestedRecordComponentArtifactV6, ValidatedPrivateNestedRecordComponentV6,
+};
+pub use record_pattern_v8::{
+    emit_private_record_pattern_component_v8, validate_private_record_pattern_component_v8,
+    PrivateRecordPatternComponentArtifactV8, ValidatedPrivateRecordPatternComponentV8,
 };
 pub use result_v3::{
     emit_private_result_component_v3, validate_private_result_component_v3,

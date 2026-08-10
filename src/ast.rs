@@ -194,6 +194,7 @@ pub struct Function {
     pub explicit_id: bool,
     pub name: String,
     pub name_span: Span,
+    pub type_parameters: Vec<TypeParameterDeclaration>,
     pub params: Vec<Param>,
     pub return_type: Type,
     pub effects: Vec<String>,
@@ -224,6 +225,7 @@ pub enum ExprKind {
     Var(String),
     Call {
         name: String,
+        type_arguments: Vec<Type>,
         args: Vec<Expr>,
     },
     Unary {
@@ -433,7 +435,7 @@ impl BinaryOp {
 impl Expr {
     pub fn visit_calls(&self, visit: &mut impl FnMut(&str, Span)) {
         match &self.kind {
-            ExprKind::Call { name, args } => {
+            ExprKind::Call { name, args, .. } => {
                 visit(name, self.span);
                 for arg in args {
                     arg.visit_calls(visit);
@@ -485,6 +487,64 @@ impl Expr {
                 }
             }
             ExprKind::Project { base, .. } => base.visit_calls(visit),
+            ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Var(_) => {}
+        }
+    }
+
+    pub fn visit_call_instances(&self, visit: &mut impl FnMut(&str, &[Type], Span)) {
+        match &self.kind {
+            ExprKind::Call {
+                name,
+                type_arguments,
+                args,
+            } => {
+                visit(name, type_arguments, self.span);
+                for arg in args {
+                    arg.visit_call_instances(visit);
+                }
+            }
+            ExprKind::Unary { value, .. } => value.visit_call_instances(visit),
+            ExprKind::Binary { left, right, .. } => {
+                left.visit_call_instances(visit);
+                right.visit_call_instances(visit);
+            }
+            ExprKind::Block { statements, tail } => {
+                for statement in statements {
+                    match statement {
+                        Statement::Let { value, .. } => value.visit_call_instances(visit),
+                    }
+                }
+                tail.visit_call_instances(visit);
+            }
+            ExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                condition.visit_call_instances(visit);
+                then_branch.visit_call_instances(visit);
+                else_branch.visit_call_instances(visit);
+            }
+            ExprKind::ConstructRecord { fields, .. }
+            | ExprKind::ConstructVariant { fields, .. } => {
+                for field in fields {
+                    field.value.visit_call_instances(visit);
+                }
+            }
+            ExprKind::Match { scrutinee, arms } => {
+                scrutinee.visit_call_instances(visit);
+                for arm in arms {
+                    arm.value.visit_call_instances(visit);
+                }
+            }
+            ExprKind::Try { operand } => operand.visit_call_instances(visit),
+            ExprKind::UpdateRecord { base, fields } => {
+                base.visit_call_instances(visit);
+                for field in fields {
+                    field.value.visit_call_instances(visit);
+                }
+            }
+            ExprKind::Project { base, .. } => base.visit_call_instances(visit),
             ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Var(_) => {}
         }
     }

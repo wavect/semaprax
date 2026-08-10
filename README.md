@@ -95,16 +95,30 @@ Implemented today:
   pass/return, multi-parameter order, poison-preserving failure, and repeated
   entry and is hosted green in [run 31365363898, Ubuntu job
   93383304995](https://github.com/wavect/semaprax/actions/runs/31365363898/job/93383304995).
-  Generic functions/inference, nested/resource/non-Copy arguments, and public
+  Generic-record inference, nested/resource/non-Copy arguments, and public
   aggregate/callable/FFI ABI admission remain closed.
+- Bounded generic Copy functions admit one or two owner/index-stable type
+  parameters, direct `i64`/`bool` or own-parameter by-value signature slots,
+  and explicit direct-scalar call arguments such as `id<i64>(value)`. Every
+  unused template is checked over all direct-scalar substitutions without
+  creating executable instances; only explicitly referenced concrete
+  instances receive domain-separated HIR execution identities, Graph v14
+  instance nodes, exact native symbols, and exact Wasm function indices.
+  Canonical source/HIR/Graph KATs and local strict C11 O0/O2 plus 4,096-entry
+  Node/Wasm evidence are green; hosted matrix evidence is pending. Inference,
+  constraints, aggregate/resource/non-Copy signatures, effects, generic-to-
+  generic calls, recursion, generic entrypoints, callable/resource/component
+  admission, and a stable public ABI remain closed.
 - Bounded irrefutable Copy-record destructuring extends `match` with exact
   named-field record patterns, recursive record subpatterns, renamed or
   shorthand bindings, ignored fields, and whole Copy-record bindings. The
   scrutinee is evaluated once and the sole arm returns only `i64` or `bool`.
   Exact concrete record/member/binding identities are authenticated in HIR and
-  Graph v13; v13 is selected program-wide only by an explicit record pattern
-  and takes precedence over v12/v11/v10. A sole top-level `_` remains binding-
-  free and schema-neutral. CleanupPlan v2/v3 does not migrate because admitted
+  Graph v13; absent a generic function declaration, v13 is selected program-
+  wide only by an explicit record pattern and takes precedence over v12/v11/
+  v10. Graph v14 takes precedence when a generic function is present. A sole
+  top-level `_` remains binding-free and schema-neutral. CleanupPlan v2/v3 does
+  not migrate because admitted
   record patterns are straight-line and Copy-only. Strict C11 O0/O2 and
   4,096-entry Node/Wasm evidence covers nested and generic instances, whole-
   record bindings, one-evaluation failure order, poison, and postconditions;
@@ -139,8 +153,8 @@ Implemented today:
   Result-only and propagation-free output remains CleanupPlan v2/Graph v10.
   Native C11 at O0/O2 and real Node/Wasm prove different source/outer layouts,
   physical-status separation, complete caller-output poison, invalid-tag
-  closure, and Wasm re-entry. Resource/nested arguments, generic functions,
-  non-copy matching or propagation, residual conversion, `?` in
+  closure, and Wasm re-entry. Resource/nested arguments, generic-function use
+  of `?`, non-copy matching or propagation, residual conversion, `?` in
   contracts, stable public aggregate ABI, and callable/component aggregate
   admission remain closed. Generic/prelude verification is hosted green in
   [run 31347109201](https://github.com/wavect/semaprax/actions/runs/31347109201),
@@ -164,15 +178,17 @@ Implemented today:
 - NUL-free persistent semantic identities across source, resolved HIR, cleanup metadata, graph serialization, and native C literals.
 - Deterministic formatting and domain-separated SHA-256 graph revisions.
 - JSON semantic Graph v10, conditionally v11 for bounded Option propagation,
-  v12 when any authenticated generic record declaration is present, or v13
-  when any authenticated explicit record pattern is present,
+  v12 when any authenticated generic record declaration is present, v13 when
+  any authenticated explicit record pattern is present, or v14 when any
+  authenticated generic function declaration is present,
   with owner/index-stable generic parameters, exact
   concrete nominal arguments, an authenticated compiler-owned prelude,
   persistent variant/case/payload identities, revision-scoped
   construction/match/pattern structure, immutable record update, exact
   evaluation-once `try_result`/`try_option` source/target instances and
   shared-epilogue meaning, exact generic-record templates/instances, recursive
-  exact-instance record-pattern fields/bindings, complete
+  exact-instance record-pattern fields/bindings, exact generic-function
+  templates/instances/call sites, complete
   CleanupPlan v2/v3 staging, and dependency-bounded context
   slices. Revision v2 binds both canonical source and the exact prelude
   contract.
@@ -324,11 +340,28 @@ source selection, nested/resource/non-Copy records, imports/capabilities,
 callbacks/async, callable/FFI ABI, browser/multi-engine conformance, package
 negotiation, public API/ABI, or `SPX-B104`/`SPX-W111` gate.
 
+Private Record-Pattern Projection Component v8 is a separate default-off exact
+fixture for WIT package `semaprax:private@0.6.0`, interface
+`record-pattern-projections`, and world `semaprax-private-v8`. Four ordered
+monomorphic exports preserve or invert the `marker` field of the distinct
+same-layout `Phantom<i64>` and `Phantom<bool>` instances. The exact source,
+generated core, two layouts, Graph v13, projection plan, profile, component,
+and artifact DAG are frozen. Local independent/upstream validation, all-pair
+identity-swap rejection, generated-core Node behavior/poison/invalid-value
+closure, default-consumer hiding, source locks, strict gates, and independent
+security review are green. The isolated pinned Rust 1.97.1/Wasmtime 47 runner
+is configured in CI; hosted execution evidence is pending. V1-v7 bytes remain
+unchanged. V8 is monomorphic record-pattern evidence, not generic-function or
+general source-selection/component support, and it opens no imports,
+capabilities, resources, callable/FFI or public ABI, browser/multi-engine
+claim, package negotiation, or `SPX-B104`/`SPX-W111` gate.
+
 Not implemented yet: public native resource execution/admission,
 general-shape native/reference/Wasm trace conformance, the general Wasm resource ABI,
 recursive reference execution, callable imports/adapters, a stable public aggregate
 ABI and general aggregate execution, nested or resource-bearing generic
-arguments, generic functions, resource-bearing variants,
+arguments, generic-function inference/constraints or aggregate/resource/non-Copy
+signatures, resource-bearing variants,
 refutable and ownership-aware/non-Copy matching, general/non-copy/residual-converting `?`, lifetime
 and alias analysis, user-facing
 regions, effect handlers, static contract proofs, Cranelift, LLVM/MLIR IR,

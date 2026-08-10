@@ -1168,9 +1168,18 @@ impl<'a> PlanBuilder<'a> {
                     owned_source,
                 })
             }
-            ResolvedExprKind::Call { callee, args } => {
-                self.lower_call(expression, callee, args, block, state, region)
-            }
+            ResolvedExprKind::Call {
+                callee,
+                instance,
+                args,
+                ..
+            } => self.lower_call(
+                expression,
+                callee,
+                instance.as_ref(),
+                args,
+                (block, state, region),
+            ),
             ResolvedExprKind::Unary { op, value } => {
                 let evaluated = self.lower_expr(value, block, state, region)?;
                 let (block, state) = match op {
@@ -1330,16 +1339,14 @@ impl<'a> PlanBuilder<'a> {
         &mut self,
         expression: &ResolvedExpr,
         callee: &DeclarationId,
+        instance: Option<&crate::hir::FunctionInstanceId>,
         args: &[ResolvedExpr],
-        block: BlockId,
-        state: FlowState,
-        region: CleanupRegionId,
+        flow: (BlockId, FlowState, CleanupRegionId),
     ) -> Result<EvalResult, Diagnostic> {
+        let (block, state, region) = flow;
         let target = self
             .program
-            .functions
-            .iter()
-            .find(|function| function.id == *callee)
+            .resolve_call_target(callee, instance)
             .ok_or_else(|| plan_error(format!("unknown cleanup call target `{callee}`")))?;
         if target.params.len() != args.len() {
             return Err(plan_error(format!(

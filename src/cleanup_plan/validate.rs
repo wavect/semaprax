@@ -9,6 +9,14 @@ pub(crate) fn validate_program(program: &ResolvedProgram) -> Result<(), Diagnost
         let expected = build_plan(program, function)?;
         validate_canonical_plan(&function.id, &function.cleanup_plan, &expected)?;
     }
+    for instance in &program.function_instances {
+        let expected = build_plan(program, &instance.function)?;
+        validate_canonical_plan(
+            &instance.template,
+            &instance.function.cleanup_plan,
+            &expected,
+        )?;
+    }
     super::replay::validate_program(program)
 }
 

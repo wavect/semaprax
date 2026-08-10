@@ -4,12 +4,58 @@ All notable changes to SEMAPRAX are documented here.
 
 ## 0.2.0 — 2026-08-07
 
+- Added bounded explicitly instantiated generic Copy functions. One or two
+  owner/index-stable parameters may appear directly in by-value scalar
+  signatures, concrete calls must supply ordered `i64`/`bool` arguments, and
+  templates remain effect-free and outside generic-to-generic call chains or
+  recursion. Unused templates are verified over every direct-scalar
+  substitution without being materialized; explicitly referenced instances
+  receive exact domain-separated HIR identities, native symbols, and Wasm
+  indices. Program-wide Graph v14 takes precedence over v13/v12/v11/v10 and
+  serializes exact function-template, function-instance, and call-instance
+  meaning. Its frozen SHA-256 KATs are module
+  `449c74b9284a1e5f00a6823c1e01f87e15fe76882e9fc76512b0d22dc0ce9941`,
+  Agent Context
+  `54cfc493bc285fb43767ea37f558e9d59c1c36e32915ab35e640edf422efc28c`,
+  and bounded context
+  `880a5f21a12e3c945ec75f08af4889c98a75925dec23f491e01ce4317cea6e1c`.
+  Local strict C11 O0/O2 and 4,096-entry Node/Wasm evidence plus independent
+  security review are green; hosted matrix evidence is pending. CleanupPlan v2
+  remains byte/schema/meaning compatible and template-ID-only; HIR and Graph
+  authenticate the exact instance before replay. Inference, constraints,
+  aggregate/resource/non-Copy signatures, effects, generic entrypoints,
+  callable/resource/component admission, and stable public ABI remain closed.
+- Added default-off Private Record-Pattern Projection Component v8 for exact
+  WIT package `semaprax:private@0.6.0`, interface
+  `record-pattern-projections`, world `semaprax-private-v8`, and four ordered
+  monomorphic preserve/invert exports over the distinct same-layout
+  `Phantom<i64>` and `Phantom<bool>` instances. It binds exact source, generated
+  core, two Wasm32 layouts, Graph v13, projection plan, profile, component, and
+  artifact DAG. Primary KATs are source revision
+  `sha256:2baac0c0920dbb153789767bf506a4a81713081586a81444d8e5f5a8f5a8516d`,
+  generated core
+  `b6e1dbf9522dbb98df9b6fcd370b562a9a722fcc672d44488aed80f13b7ad39e`,
+  profile `79d4bade38dd3fff9c7145b406bb0bb265ff3ef7cf084edac83384c84610bce2`,
+  component bytes
+  `d88590752ed7b08b0f0a32019ba8b4c5fc489d59f06b96986d7ad69e2554a10e`,
+  and artifact DAG
+  `e32fe0a15a3458f16aa4da59d87683013dbeba03754966f35e0cb63600e613a3`.
+  Local exact/upstream validation, all six identity-swap rejections, four
+  behaviorally observable polarity swaps, generated-core Node behavior,
+  poison/invalid-value closure, source locks, strict gates, and independent
+  security review are green. The isolated pinned Rust 1.97.1/Wasmtime 47 typed
+  runner is configured in CI; hosted execution evidence is pending. V1-v7
+  bytes remain unchanged; v8 adds no generic-function component, general
+  exporter, imports/capabilities/resources, public ABI, browser/multi-engine,
+  package-negotiation, or `SPX-B104`/`SPX-W111` claim.
+
 - Added bounded irrefutable Copy-record destructuring in `match`. Exact named
   fields may recursively destructure records, bind scalar or whole Copy-record
   values with shorthand or renamed bindings, or ignore fields; one top-level
   wildcard remains binding-free. Source/HIR reject missing, duplicate, foreign,
   resource/non-Copy, multi-arm, and non-scalar-result forms. Explicit record
-  patterns select program-wide Graph v13 above v12/v11/v10 and serialize exact
+  patterns select program-wide Graph v13 above v12/v11/v10 when no generic
+  function declaration selects v14, and serialize exact
   concrete instances, stable field IDs, and binding identities; wildcard-only
   record matches preserve the prior schema. CleanupPlan v2/v3 remains unchanged
   and straight-line. Native C11 O0/O2 and Node/Wasm 4,096-entry evidence covers
@@ -65,7 +111,7 @@ All notable changes to SEMAPRAX are documented here.
   failure order, and poisoned outputs and are hosted green in [run 31365363898,
   Ubuntu job
   93383304995](https://github.com/wavect/semaprax/actions/runs/31365363898/job/93383304995).
-  Generic functions/inference,
+  Generic-record inference and broader generic-function signatures,
   nested/resource/non-Copy arguments or fields, record patterns/matching,
   public aggregate/callable/FFI ABIs, and resource admission remain closed.
 - Added default-off Private Scalar Algebraic Component v5 with six fixed WIT
@@ -125,8 +171,8 @@ All notable changes to SEMAPRAX are documented here.
   real Node/Wasm cover different source/outer layouts, later-expression skip,
   physical-status separation, postcondition failures, poison, invalid tags,
   and re-entry. The conformance-trace protocol remains closed to aggregate
-  values. Resource/nested arguments, generic functions, broader non-Copy
-  generic records, non-copy
+  values. Resource/nested arguments, generic-function use of `?`, broader
+  non-Copy generic records, non-copy
   propagation, residual conversion, `?` in contracts, public aggregate ABI,
   callable/component aggregate signatures, and public resource admission are
   unchanged nonclaims.
@@ -163,8 +209,9 @@ All notable changes to SEMAPRAX are documented here.
   prelude contract. Internal Native64/Wasm32 layout digest v2 and distinct
   concrete-instance symbols prevent instance confusion. Native C11 O0/O2 and
   real Node/Wasm execute the generic and prelude cases with deterministic
-  layout, poison, invalid-tag, and repeated-call evidence. Generic functions
-  or records, nested/resource arguments, non-copy matching, stable public
+  layout, poison, invalid-tag, and repeated-call evidence. That earlier tranche
+  did not include generic functions or records, nested/resource arguments,
+  non-copy matching, stable public
   aggregate ABI, and callable/component aggregate admission remain closed.
 - Added bounded executable copy variants and exhaustive `match`: non-generic
   nominal unit/direct-`i64`/direct-`bool` cases, explicit construction,

@@ -9,8 +9,9 @@ use crate::aggregate_layout::{AggregateLayout, AggregateLayoutCache, AggregateTa
 use crate::ast::{BinaryOp, UnaryOp};
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
-    DeclarationId, ExpressionId, PlaceProjection, ResolvedExpr, ResolvedExprKind, ResolvedFunction,
-    ResolvedProgram, ResolvedStatement, ResolvedType, ResolvedTypeDeclarationKind, ValueId,
+    DeclarationId, ExpressionId, FunctionExecutionId, PlaceProjection, ResolvedExpr,
+    ResolvedExprKind, ResolvedFunction, ResolvedProgram, ResolvedStatement, ResolvedType,
+    ResolvedTypeDeclarationKind, ValueId,
 };
 use crate::variant_layout::{VariantLayout, VariantLayoutCache, VariantTarget};
 
@@ -673,14 +674,17 @@ pub(super) fn lower_selected_functions(
         ));
         let index = u32::try_from(index)
             .map_err(|_| error("selected aggregate function index overflows u32"))?;
-        if function_indexes.insert(id.clone(), index).is_some() {
+        if function_indexes
+            .insert(FunctionExecutionId::Monomorphic(id.clone()), index)
+            .is_some()
+        {
             return Err(error(format!(
                 "selected aggregate closure repeats function `{id}`"
             )));
         }
     }
     let selected_index = *function_indexes
-        .get(selected)
+        .get(&FunctionExecutionId::Monomorphic(selected.clone()))
         .ok_or_else(|| error(format!("selected aggregate closure omits `{selected}`")))?;
     let mut bodies = Vec::with_capacity(ordered_function_ids.len());
     for id in ordered_function_ids {
@@ -761,8 +765,24 @@ fn emit_profile(program: &ResolvedProgram, test_exports: bool) -> Result<Vec<u8>
         &mut type_indexes,
     );
 
-    let mut function_types = Vec::with_capacity(program.functions.len());
-    for function in &program.functions {
+    let executable_functions = program
+        .functions
+        .iter()
+        .map(|function| {
+            (
+                function,
+                FunctionExecutionId::Monomorphic(function.id.clone()),
+            )
+        })
+        .chain(program.function_instances.iter().map(|instance| {
+            (
+                &instance.function,
+                FunctionExecutionId::Generic(instance.id.clone()),
+            )
+        }))
+        .collect::<Vec<_>>();
+    let mut function_types = Vec::with_capacity(executable_functions.len());
+    for (function, _) in &executable_functions {
         let mut params = Vec::with_capacity(function.params.len() + 1);
         for param in &function.params {
             params.push(if is_aggregate(program, &param.ty)? {
@@ -789,13 +809,12 @@ fn emit_profile(program: &ResolvedProgram, test_exports: bool) -> Result<Vec<u8>
         &mut types,
         &mut type_indexes,
     );
-    let function_indexes = program
-        .functions
+    let function_indexes = executable_functions
         .iter()
         .enumerate()
-        .map(|(index, function)| {
+        .map(|(index, (_, execution))| {
             (
-                function.id.clone(),
+                execution.clone(),
                 SCALAR_IMPORT_COUNT + u32::try_from(index).unwrap_or(u32::MAX),
             )
         })
@@ -846,7 +865,7 @@ fn emit_profile(program: &ResolvedProgram, test_exports: bool) -> Result<Vec<u8>
 
     let mut exports = Vec::new();
     let extra_exports = if test_exports {
-        u32::try_from(program.functions.len())
+        u32::try_from(executable_functions.len())
             .map_err(|_| error("too many aggregate test exports"))?
             .checked_add(2)
             .ok_or_else(|| error("aggregate test export count overflows u32"))?
@@ -858,7 +877,7 @@ fn emit_profile(program: &ResolvedProgram, test_exports: bool) -> Result<Vec<u8>
     exports.push(0x00);
     let wrapper_index = SCALAR_IMPORT_COUNT
         .checked_add(
-            u32::try_from(program.functions.len()).map_err(|_| error("too many functions"))?,
+            u32::try_from(executable_functions.len()).map_err(|_| error("too many functions"))?,
         )
         .ok_or_else(|| error("aggregate wrapper index overflows u32"))?;
     write_u32(&mut exports, wrapper_index);
@@ -869,16 +888,16 @@ fn emit_profile(program: &ResolvedProgram, test_exports: bool) -> Result<Vec<u8>
         write_name(&mut exports, "__spx_test_shadow_stack");
         exports.push(0x03);
         write_u32(&mut exports, 0);
-        for function in &program.functions {
+        for (_function, execution) in &executable_functions {
             write_name(
                 &mut exports,
-                &format!("__spx_test_{}", hex_identity(&function.id)),
+                &format!("__spx_test_{}", hex_execution_identity(execution)),
             );
             exports.push(0x00);
             write_u32(
                 &mut exports,
                 *function_indexes
-                    .get(&function.id)
+                    .get(execution)
                     .ok_or_else(|| error("aggregate test function is not indexed"))?,
             );
         }
@@ -888,17 +907,17 @@ fn emit_profile(program: &ResolvedProgram, test_exports: bool) -> Result<Vec<u8>
     let mut code = Vec::new();
     write_u32(
         &mut code,
-        u32::try_from(program.functions.len() + 1)
+        u32::try_from(executable_functions.len() + 1)
             .map_err(|_| error("too many aggregate function bodies"))?,
     );
-    for function in &program.functions {
+    for (function, _) in &executable_functions {
         let body = emit_function(program, function, &function_indexes, &variant_layouts)?;
         write_u32(&mut code, body.len() as u32);
         code.extend(body);
     }
     let wrapper = emit_wrapper(
         *function_indexes
-            .get(&main.id)
+            .get(&FunctionExecutionId::Monomorphic(main.id.clone()))
             .ok_or_else(|| error("aggregate main function is not indexed"))?,
     );
     write_u32(&mut code, wrapper.len() as u32);
@@ -916,10 +935,22 @@ fn hex_identity(id: &DeclarationId) -> String {
     output
 }
 
+fn hex_execution_identity(id: &FunctionExecutionId) -> String {
+    if let FunctionExecutionId::Monomorphic(declaration) = id {
+        return hex_identity(declaration);
+    }
+    let mut output = String::new();
+    for byte in id.identity_key().bytes() {
+        use std::fmt::Write as _;
+        write!(output, "{byte:02x}").expect("writing to String cannot fail");
+    }
+    output
+}
+
 fn emit_function(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
-    function_indexes: &HashMap<DeclarationId, u32>,
+    function_indexes: &HashMap<FunctionExecutionId, u32>,
     variant_layouts: &VariantLayoutCache,
 ) -> Result<Vec<u8>, Diagnostic> {
     let plan = FunctionPlan::build(program, function, variant_layouts)?;
@@ -1091,7 +1122,7 @@ struct Emitter<'a> {
     output: &'a mut Vec<u8>,
     program: &'a ResolvedProgram,
     variant_layouts: &'a VariantLayoutCache,
-    function_indexes: &'a HashMap<DeclarationId, u32>,
+    function_indexes: &'a HashMap<FunctionExecutionId, u32>,
     plan: &'a FunctionPlan,
     return_type: &'a ResolvedType,
     bindings: HashMap<ValueId, Value>,
@@ -1129,7 +1160,12 @@ impl Emitter<'_> {
                 let value = self.place_value(place)?;
                 self.materialize(expr, &value)
             }
-            ResolvedExprKind::Call { callee, args } => self.emit_call(expr, callee, args),
+            ResolvedExprKind::Call {
+                callee,
+                instance,
+                args,
+                ..
+            } => self.emit_call(expr, callee, instance.as_ref(), args),
             ResolvedExprKind::Unary { op, value } => self.emit_unary(expr, *op, value),
             ResolvedExprKind::Binary { op, left, right } => {
                 self.emit_binary(expr, *op, left, right)
@@ -1845,13 +1881,12 @@ impl Emitter<'_> {
         &mut self,
         expr: &ResolvedExpr,
         callee: &DeclarationId,
+        instance: Option<&crate::hir::FunctionInstanceId>,
         args: &[ResolvedExpr],
     ) -> Result<Value, Diagnostic> {
         let target = self
             .program
-            .functions
-            .iter()
-            .find(|function| function.id == *callee)
+            .resolve_call_target(callee, instance)
             .ok_or_else(|| error(format!("unknown aggregate callee `{callee}`")))?;
         if target.params.len() != args.len() {
             return Err(error(format!(
@@ -1904,11 +1939,15 @@ impl Emitter<'_> {
             };
         self.emit_pointer(result_pointer);
         self.output.push(0x10);
+        let execution = instance.map_or_else(
+            || FunctionExecutionId::Monomorphic(callee.clone()),
+            |instance| FunctionExecutionId::Generic(instance.clone()),
+        );
         write_u32(
             self.output,
             *self
                 .function_indexes
-                .get(callee)
+                .get(&execution)
                 .ok_or_else(|| error(format!("callee `{callee}` is not indexed")))?,
         );
         self.output.push(0x22);

@@ -188,6 +188,11 @@ pub fn build_trace_path_certificate(
     dictionary: &SemanticEventDictionary,
 ) -> Result<TracePathCertificate, Diagnostic> {
     crate::hir::validate(program)?;
+    if !program.function_templates.is_empty() || !program.function_instances.is_empty() {
+        return Err(certificate_error(
+            "trace-path certificates do not admit generic function templates or instances",
+        ));
+    }
     if !program
         .functions
         .iter()

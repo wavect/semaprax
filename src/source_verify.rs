@@ -1019,6 +1019,19 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                 format!("function `{}`", function.name),
                 function.span,
             ));
+        } else if function
+            .stable_id
+            .starts_with("semaprax.function-execution.v1:")
+        {
+            diagnostics.push(error(
+                program,
+                "SPX-T225",
+                format!(
+                    "function `{}` uses the reserved generic execution identity domain",
+                    function.name
+                ),
+                function.span,
+            ));
         } else if !ids.insert(function.stable_id.as_str()) {
             diagnostics.push(error(
                 program,
@@ -1041,144 +1054,332 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                 .with_help("add @id(\"your.namespace.symbol\") before the declaration"),
             );
         }
-    }
-
-    for function in &program.functions {
-        check_declared_type(
-            program,
-            &function.return_type,
-            function.span,
-            &types,
-            &HashSet::new(),
-            &mut diagnostics,
-        );
-        let mut variables = HashMap::new();
-        for param in &function.params {
-            if !source_identifier(&param.name) {
+        if !function.type_parameters.is_empty() {
+            if !(1..=2).contains(&function.type_parameters.len()) {
                 diagnostics.push(error(
                     program,
-                    "SPX-S105",
-                    format!("`{}` is not a valid parameter identifier", param.name),
-                    param.span,
+                    "SPX-T224",
+                    format!(
+                        "generic function `{}` requires one or two type parameters",
+                        function.name
+                    ),
+                    function.span,
                 ));
             }
+            let mut parameter_names = HashSet::new();
+            for parameter in &function.type_parameters {
+                if !source_identifier(&parameter.name)
+                    || !parameter_names.insert(parameter.name.as_str())
+                {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T224",
+                        format!(
+                            "invalid or duplicate type parameter `{}` on function `{}`",
+                            parameter.name, function.name
+                        ),
+                        parameter.span,
+                    ));
+                }
+            }
+            if !function.effects.is_empty() {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T226",
+                    format!(
+                        "generic function `{}` must be effect-free in this slice",
+                        function.name
+                    ),
+                    function.span,
+                ));
+            }
+            for param in &function.params {
+                if param.mode != ParamMode::Value
+                    || !generic_function_signature_slot(&param.ty, &parameter_names)
+                {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T224",
+                        format!(
+                            "generic function `{}.{}` must use a direct `i64`, `bool`, or an in-scope function type parameter by value",
+                            function.name, param.name
+                        ),
+                        param.span,
+                    ));
+                }
+            }
+            if !generic_function_signature_slot(&function.return_type, &parameter_names) {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T224",
+                    format!(
+                        "generic function `{}` must return direct `i64`, `bool`, or an in-scope function type parameter",
+                        function.name
+                    ),
+                    function.span,
+                ));
+            }
+            if function
+                .requires
+                .iter()
+                .chain(std::iter::once(&function.body))
+                .chain(&function.ensures)
+                .any(|expression| !generic_function_expression_is_direct_scalar(expression))
+            {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T226",
+                    format!(
+                        "generic function `{}` uses an expression outside the direct-scalar slice",
+                        function.name
+                    ),
+                    function.span,
+                ));
+            }
+        }
+    }
+
+    let call_graph = program
+        .functions
+        .iter()
+        .map(|function| {
+            let mut callees = Vec::new();
+            for contract in &function.requires {
+                contract.visit_calls(&mut |callee, _| callees.push(callee.to_owned()));
+            }
+            function
+                .body
+                .visit_calls(&mut |callee, _| callees.push(callee.to_owned()));
+            for contract in &function.ensures {
+                contract.visit_calls(&mut |callee, _| callees.push(callee.to_owned()));
+            }
+            (function.name.clone(), callees)
+        })
+        .collect::<HashMap<_, _>>();
+    let generic_functions = program
+        .functions
+        .iter()
+        .filter(|function| !function.type_parameters.is_empty())
+        .map(|function| function.name.as_str())
+        .collect::<HashSet<_>>();
+    for function in program
+        .functions
+        .iter()
+        .filter(|function| !function.type_parameters.is_empty())
+    {
+        let participates_in_cycle = call_graph.get(&function.name).is_some_and(|callees| {
+            callees.iter().any(|callee| {
+                function_reaches(&call_graph, callee, &function.name, &mut HashSet::new())
+            })
+        });
+        if participates_in_cycle {
+            diagnostics.push(error(
+                program,
+                "SPX-T226",
+                format!(
+                    "generic function `{}` participates in a recursive call cycle",
+                    function.name
+                ),
+                function.span,
+            ));
+        }
+        let direct_generic_call = call_graph.get(&function.name).is_some_and(|callees| {
+            callees
+                .iter()
+                .any(|callee| generic_functions.contains(callee.as_str()))
+        });
+        let reaches_other_generic = call_graph.get(&function.name).is_some_and(|callees| {
+            callees.iter().any(|callee| {
+                function_reaches_any(&call_graph, callee, &generic_functions, &mut HashSet::new())
+            })
+        });
+        if reaches_other_generic && !direct_generic_call && !participates_in_cycle {
+            diagnostics.push(error(
+                program,
+                "SPX-T226",
+                format!(
+                    "generic function `{}` transitively reaches another generic function",
+                    function.name
+                ),
+                function.span,
+            ));
+        }
+    }
+
+    for template in &program.functions {
+        let type_parameters = template
+            .type_parameters
+            .iter()
+            .map(|parameter| parameter.name.as_str())
+            .collect::<HashSet<_>>();
+        check_declared_type(
+            program,
+            &template.return_type,
+            template.span,
+            &types,
+            &type_parameters,
+            &mut diagnostics,
+        );
+        for param in &template.params {
             check_declared_type(
                 program,
                 &param.ty,
                 param.span,
                 &types,
-                &HashSet::new(),
+                &type_parameters,
                 &mut diagnostics,
             );
-            check_ownership_mode(program, function, param, &types, &mut diagnostics);
-            if variables
-                .insert(
-                    param.name.clone(),
-                    Binding {
-                        ty: param.ty.clone(),
-                        mode: param.mode,
-                        availability: Availability::Available,
-                        moved_places: HashMap::new(),
-                        definitely_partial: HashSet::new(),
-                    },
-                )
-                .is_some()
-            {
-                diagnostics.push(error(
-                    program,
-                    "SPX-T102",
-                    format!("duplicate parameter `{}`", param.name),
-                    param.span,
-                ));
-            }
         }
+        let generic_parameter_list_is_valid = (1..=2).contains(&template.type_parameters.len())
+            && template
+                .type_parameters
+                .iter()
+                .all(|parameter| source_identifier(&parameter.name))
+            && template
+                .type_parameters
+                .iter()
+                .map(|parameter| parameter.name.as_str())
+                .collect::<HashSet<_>>()
+                .len()
+                == template.type_parameters.len();
+        let specializations = if template.type_parameters.is_empty() {
+            vec![template.clone()]
+        } else if generic_parameter_list_is_valid {
+            // These clones exist only to validate every admitted direct-scalar
+            // substitution. Executable HIR instances are discovered separately
+            // from reachable explicit calls and never originate here.
+            scalar_function_substitutions(template.type_parameters.len())
+                .iter()
+                .filter_map(|arguments| validation_specialize_function(template, arguments))
+                .collect()
+        } else {
+            Vec::new()
+        };
+        let mut specialized_diagnostics = HashSet::new();
+        for function in &specializations {
+            let specialized_diagnostic_start = diagnostics.len();
+            let mut variables = HashMap::new();
+            for param in &function.params {
+                if !source_identifier(&param.name) {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-S105",
+                        format!("`{}` is not a valid parameter identifier", param.name),
+                        param.span,
+                    ));
+                }
+                check_ownership_mode(program, function, param, &types, &mut diagnostics);
+                if variables
+                    .insert(
+                        param.name.clone(),
+                        Binding {
+                            ty: param.ty.clone(),
+                            mode: param.mode,
+                            availability: Availability::Available,
+                            moved_places: HashMap::new(),
+                            definitely_partial: HashSet::new(),
+                        },
+                    )
+                    .is_some()
+                {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T102",
+                        format!("duplicate parameter `{}`", param.name),
+                        param.span,
+                    ));
+                }
+            }
 
-        let entry_variables = variables.clone();
-        for contract in &function.requires {
-            require_bool(
+            let entry_variables = variables.clone();
+            for contract in &function.requires {
+                require_bool(
+                    program,
+                    function,
+                    contract,
+                    &entry_variables,
+                    &functions,
+                    &types,
+                    None,
+                    &mut diagnostics,
+                    "precondition",
+                );
+            }
+
+            if let Some(actual) = check_expr(
                 program,
                 function,
-                contract,
-                &entry_variables,
+                &function.body,
+                &mut variables,
                 &functions,
                 &types,
                 None,
+                true,
                 &mut diagnostics,
-                "precondition",
-            );
-        }
-
-        if let Some(actual) = check_expr(
-            program,
-            function,
-            &function.body,
-            &mut variables,
-            &functions,
-            &types,
-            None,
-            true,
-            &mut diagnostics,
-        ) {
-            if actual.ty != function.return_type {
-                diagnostics.push(error(
-                    program,
-                    "SPX-T103",
-                    format!(
-                        "function `{}` returns {}, but its signature declares {}",
-                        function.name, actual.ty, function.return_type
-                    ),
-                    function.body.span,
-                ));
-            }
-            if types.contains_resource(&function.return_type) && actual.mode != ParamMode::Own {
-                diagnostics.push(
-                    error(
+            ) {
+                if actual.ty != function.return_type {
+                    diagnostics.push(error(
                         program,
-                        "SPX-O104",
+                        "SPX-T103",
                         format!(
-                            "function `{}` cannot return a {} resource as owned",
-                            function.name,
-                            actual.mode.text()
+                            "function `{}` returns {}, but its signature declares {}",
+                            function.name, actual.ty, function.return_type
                         ),
                         function.body.span,
-                    )
-                    .with_help("return an owned resource or declare a future lifetime-bound view"),
+                    ));
+                }
+                if types.contains_resource(&function.return_type) && actual.mode != ParamMode::Own {
+                    diagnostics.push(
+                        error(
+                            program,
+                            "SPX-O104",
+                            format!(
+                                "function `{}` cannot return a {} resource as owned",
+                                function.name,
+                                actual.mode.text()
+                            ),
+                            function.body.span,
+                        )
+                        .with_help(
+                            "return an owned resource or declare a future lifetime-bound view",
+                        ),
+                    );
+                }
+            }
+
+            for contract in &function.ensures {
+                require_bool(
+                    program,
+                    function,
+                    contract,
+                    &variables,
+                    &functions,
+                    &types,
+                    Some(&function.return_type),
+                    &mut diagnostics,
+                    "postcondition",
                 );
             }
-        }
 
-        for contract in &function.ensures {
-            require_bool(
-                program,
-                function,
-                contract,
-                &variables,
-                &functions,
-                &types,
-                Some(&function.return_type),
-                &mut diagnostics,
-                "postcondition",
-            );
-        }
-
-        let declared: HashSet<_> = function.effects.iter().map(String::as_str).collect();
-        let mut required_lifecycle_effects = BTreeSet::new();
-        for param in &function.params {
-            if param.mode == ParamMode::Own {
-                required_lifecycle_effects.extend(types.lifecycle_effects(&param.ty, &import_keys));
+            let declared: HashSet<_> = function.effects.iter().map(String::as_str).collect();
+            let mut required_lifecycle_effects = BTreeSet::new();
+            for param in &function.params {
+                if param.mode == ParamMode::Own {
+                    required_lifecycle_effects
+                        .extend(types.lifecycle_effects(&param.ty, &import_keys));
+                }
             }
-        }
-        required_lifecycle_effects
-            .extend(types.lifecycle_effects(&function.return_type, &import_keys));
-        function.body.visit_calls(&mut |callee, _| {
-            if let Some(target) = functions.get(callee) {
-                required_lifecycle_effects
-                    .extend(types.lifecycle_effects(&target.return_type, &import_keys));
-            }
-        });
-        for effect in required_lifecycle_effects {
-            if !declared.contains(effect.as_str()) {
-                diagnostics.push(
+            required_lifecycle_effects
+                .extend(types.lifecycle_effects(&function.return_type, &import_keys));
+            function.body.visit_calls(&mut |callee, _| {
+                if let Some(target) = functions.get(callee) {
+                    required_lifecycle_effects
+                        .extend(types.lifecycle_effects(&target.return_type, &import_keys));
+                }
+            });
+            for effect in required_lifecycle_effects {
+                if !declared.contains(effect.as_str()) {
+                    diagnostics.push(
                     error(
                         program,
                         "SPX-E103",
@@ -1192,46 +1393,60 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                         "add `{effect}` to the function's `uses` set and module permits"
                     )),
                 );
+                }
             }
-        }
-        for effect in &function.effects {
-            if !program.permits.iter().any(|permit| permit == effect) {
-                diagnostics.push(error(
-                    program,
-                    "SPX-E101",
-                    format!(
-                        "function `{}` uses `{effect}` but module `{}` does not permit it",
-                        function.name, program.module
-                    ),
-                    function.span,
-                ));
+            for effect in &function.effects {
+                if !program.permits.iter().any(|permit| permit == effect) {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-E101",
+                        format!(
+                            "function `{}` uses `{effect}` but module `{}` does not permit it",
+                            function.name, program.module
+                        ),
+                        function.span,
+                    ));
+                }
             }
-        }
-        function.body.visit_calls(&mut |callee, span| {
-            if let Some(target) = functions.get(callee) {
-                for effect in &target.effects {
-                    if !declared.contains(effect.as_str()) {
-                        diagnostics.push(error(
-                            program,
-                            "SPX-E102",
-                            format!(
-                                "call to `{callee}` requires effect `{effect}`; add it to `{}`",
-                                function.name
-                            ),
-                            span,
-                        ));
+            function.body.visit_calls(&mut |callee, span| {
+                if let Some(target) = functions.get(callee) {
+                    for effect in &target.effects {
+                        if !declared.contains(effect.as_str()) {
+                            diagnostics.push(error(
+                                program,
+                                "SPX-E102",
+                                format!(
+                                    "call to `{callee}` requires effect `{effect}`; add it to `{}`",
+                                    function.name
+                                ),
+                                span,
+                            ));
+                        }
+                    }
+                }
+            });
+            if !template.type_parameters.is_empty() {
+                let added = diagnostics
+                    .drain(specialized_diagnostic_start..)
+                    .collect::<Vec<_>>();
+                for diagnostic in added {
+                    if specialized_diagnostics.insert(diagnostic.json()) {
+                        diagnostics.push(diagnostic);
                     }
                 }
             }
-        });
+        }
     }
 
     if let Some(main) = functions.get("main") {
-        if !main.params.is_empty() || main.return_type != Type::I64 {
+        if !main.type_parameters.is_empty()
+            || !main.params.is_empty()
+            || main.return_type != Type::I64
+        {
             diagnostics.push(error(
                 program,
                 "SPX-T104",
-                "entry function must have signature `fn main() -> i64`",
+                "entry function must be monomorphic with signature `fn main() -> i64`",
                 main.span,
             ));
         }
@@ -1370,6 +1585,151 @@ fn check_declared_type(
             check_declared_type(program, argument, span, types, parameters, diagnostics);
         }
     }
+}
+
+fn direct_function_type_argument(ty: &Type) -> bool {
+    matches!(ty, Type::I64 | Type::Bool)
+}
+
+fn generic_function_signature_slot(ty: &Type, parameters: &HashSet<&str>) -> bool {
+    match ty {
+        Type::I64 | Type::Bool => true,
+        Type::Named { name, arguments } => {
+            arguments.is_empty() && parameters.contains(name.as_str())
+        }
+    }
+}
+
+fn substitute_function_type(
+    function: &Function,
+    arguments: &[Type],
+    template: &Type,
+) -> Option<Type> {
+    match template {
+        Type::I64 => Some(Type::I64),
+        Type::Bool => Some(Type::Bool),
+        Type::Named {
+            name,
+            arguments: nested,
+        } => {
+            if nested.is_empty() {
+                if let Some(index) = function
+                    .type_parameters
+                    .iter()
+                    .position(|parameter| parameter.name == *name)
+                {
+                    return arguments.get(index).cloned();
+                }
+            }
+            Some(Type::Named {
+                name: name.clone(),
+                arguments: nested
+                    .iter()
+                    .map(|nested| substitute_function_type(function, arguments, nested))
+                    .collect::<Option<Vec<_>>>()?,
+            })
+        }
+    }
+}
+
+fn scalar_function_substitutions(parameter_count: usize) -> Vec<Vec<Type>> {
+    let count = 1_usize << parameter_count;
+    (0..count)
+        .map(|bits| {
+            (0..parameter_count)
+                .map(|index| {
+                    if bits & (1 << index) == 0 {
+                        Type::I64
+                    } else {
+                        Type::Bool
+                    }
+                })
+                .collect()
+        })
+        .collect()
+}
+
+fn generic_function_expression_is_direct_scalar(expression: &Expr) -> bool {
+    match &expression.kind {
+        ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Var(_) => true,
+        ExprKind::Call { args, .. } => args
+            .iter()
+            .all(generic_function_expression_is_direct_scalar),
+        ExprKind::Unary { value, .. } => generic_function_expression_is_direct_scalar(value),
+        ExprKind::Binary { left, right, .. } => {
+            generic_function_expression_is_direct_scalar(left)
+                && generic_function_expression_is_direct_scalar(right)
+        }
+        ExprKind::Block { statements, tail } => {
+            statements.iter().all(|statement| match statement {
+                crate::ast::Statement::Let { value, .. } => {
+                    generic_function_expression_is_direct_scalar(value)
+                }
+            }) && generic_function_expression_is_direct_scalar(tail)
+        }
+        ExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            generic_function_expression_is_direct_scalar(condition)
+                && generic_function_expression_is_direct_scalar(then_branch)
+                && generic_function_expression_is_direct_scalar(else_branch)
+        }
+        ExprKind::ConstructRecord { .. }
+        | ExprKind::ConstructVariant { .. }
+        | ExprKind::Match { .. }
+        | ExprKind::Try { .. }
+        | ExprKind::UpdateRecord { .. }
+        | ExprKind::Project { .. } => false,
+    }
+}
+
+fn function_reaches(
+    graph: &HashMap<String, Vec<String>>,
+    current: &str,
+    target: &str,
+    visited: &mut HashSet<String>,
+) -> bool {
+    if current == target {
+        return true;
+    }
+    if !visited.insert(current.to_owned()) {
+        return false;
+    }
+    graph.get(current).is_some_and(|callees| {
+        callees
+            .iter()
+            .any(|callee| function_reaches(graph, callee, target, visited))
+    })
+}
+
+fn function_reaches_any(
+    graph: &HashMap<String, Vec<String>>,
+    current: &str,
+    targets: &HashSet<&str>,
+    visited: &mut HashSet<String>,
+) -> bool {
+    if targets.contains(current) {
+        return true;
+    }
+    if !visited.insert(current.to_owned()) {
+        return false;
+    }
+    graph.get(current).is_some_and(|callees| {
+        callees
+            .iter()
+            .any(|callee| function_reaches_any(graph, callee, targets, visited))
+    })
+}
+
+fn validation_specialize_function(function: &Function, arguments: &[Type]) -> Option<Function> {
+    let mut specialized = function.clone();
+    for param in &mut specialized.params {
+        param.ty = substitute_function_type(function, arguments, &param.ty)?;
+    }
+    specialized.return_type = substitute_function_type(function, arguments, &function.return_type)?;
+    Some(specialized)
 }
 
 fn check_ownership_mode(
@@ -1633,7 +1993,11 @@ fn check_expr(
                 ));
                 None
             }),
-        ExprKind::Call { name, args } => {
+        ExprKind::Call {
+            name,
+            type_arguments,
+            args,
+        } => {
             let target = functions.get(name.as_str()).copied();
             if target.is_none() {
                 diagnostics.push(error(
@@ -1656,6 +2020,56 @@ fn check_expr(
                     expr.span,
                 ));
             }
+            let specialized_target = target.and_then(|target| {
+                if target.type_parameters.is_empty() {
+                    if !type_arguments.is_empty() {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T225",
+                            format!("monomorphic function `{name}` does not accept type arguments"),
+                            expr.span,
+                        ));
+                        return None;
+                    }
+                    return Some(target.clone());
+                }
+                if !current.type_parameters.is_empty() {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T226",
+                        format!(
+                            "generic function `{}` cannot call generic function `{name}` in this slice",
+                            current.name
+                        ),
+                        expr.span,
+                    ));
+                }
+                if type_arguments.len() != target.type_parameters.len() {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T225",
+                        format!(
+                            "generic function `{name}` expects {} explicit type arguments, received {}",
+                            target.type_parameters.len(),
+                            type_arguments.len()
+                        ),
+                        expr.span,
+                    ));
+                    return None;
+                }
+                if type_arguments.iter().any(|argument| !direct_function_type_argument(argument)) {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T225",
+                        format!(
+                            "generic function `{name}` accepts only direct `i64` or `bool` type arguments"
+                        ),
+                        expr.span,
+                    ));
+                    return None;
+                }
+                    validation_specialize_function(target, type_arguments)
+            });
             for (index, arg) in args.iter().enumerate() {
                 let actual = check_expr(
                     program,
@@ -1668,7 +2082,10 @@ fn check_expr(
                     allow_moves,
                     diagnostics,
                 );
-                let Some(param) = target.and_then(|target| target.params.get(index)) else {
+                let Some(param) = specialized_target
+                    .as_ref()
+                    .and_then(|target| target.params.get(index))
+                else {
                     continue;
                 };
                 if actual.as_ref().is_some_and(|actual| actual.ty != param.ty) {
@@ -1697,7 +2114,7 @@ fn check_expr(
                     diagnostics,
                 );
             }
-            target.map(|target| {
+            specialized_target.map(|target| {
                 CheckedValue::returned(
                     target.return_type.clone(),
                     types.contains_resource(&target.return_type),

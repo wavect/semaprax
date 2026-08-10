@@ -3,7 +3,7 @@
 Status: implemented, additive semantic-query contract. It bounds deterministic
 UTF-8 JSON bytes and function facts; it does not claim an exact model-token
 budget, relevance ranking, repository-wide impact analysis, or facts absent
-from Graph v10.
+from the current Graph v10-v14 lattice.
 
 `semaprax.agent-context.v1` is the current CLI projection for:
 
@@ -17,7 +17,7 @@ Options are closed, single-use, and require canonical decimal integers.
 Unknown options and filters, duplicates, missing values, leading-zero numbers,
 empty filters, `max_nodes = 0`, and values outside the published bounds fail
 before semantic output. Defaults are depth 1, 64 KiB, 256 function facts, and
-the four Graph-v10-supported filters.
+the four supported filters shared across Graph v10-v14.
 
 ## Envelope and budgets
 
@@ -55,14 +55,24 @@ dependencies, each of which is present as a fact or frontier ID. Import calls
 are not exposed as dangling IDs in this contract; their semantic subgraph is a
 future facet.
 
+For `semaprax.graph.v14` sources, function facts additionally distinguish
+`function_template` from monomorphic `function`. Template facts carry
+owner/index parameters plus the exact explicitly referenced concrete instances;
+an unused template has an empty instance list. Monomorphic caller facts carry
+exact `call_instances` with expression, template, derived instance, and ordered
+`i64`/`bool` arguments. These additions do not fabricate a separately budgeted
+function fact for each concrete instance. Every result, including a legacy
+root, reports the program-wide v14 `source_graph_schema`.
+
 ## Filters and limits
 
-Graph v10 supports exact compact `contracts`, parameter/result `ownership`,
+Graph v10-v14 support exact compact `contracts`, parameter/result `ownership`,
 `effects`, and `types` facets. Each emitted function carries a reference index
 for contract value roots and referenced nominal declarations; resource drop
 meaning is embedded as a closed strategy rather than an unresolved lifecycle
 or import reference. Cleanup, lifecycle, and import subgraphs are intentionally
-not claimed by this v1 projection. Graph v10 has no target, diagnostic, or test nodes.
+not claimed by this v1 projection. The current lattice has no target,
+diagnostic, or test nodes.
 Those names are closed and accepted, but are listed under
 `filter_support.unavailable`; no facts are inferred from filenames, CI, or
 source text.

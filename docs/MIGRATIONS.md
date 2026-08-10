@@ -259,6 +259,38 @@ variant patterns,
 ownership modes, resource/non-Copy matching, aggregate-valued arm results,
 generic functions/inference, or public aggregate/callable/FFI ABI.
 
+## Graph v13 to v14 for bounded generic Copy functions
+
+Any validated generic function declaration selects `semaprax.graph.v14`,
+including an unused template; otherwise explicit record patterns select v13,
+generic records v12, Option propagation v11, and legacy/Result programs v10.
+Every legacy and Agent Context root reports that same program-wide source
+schema, and consumers must reject relabeling among v10-v14.
+
+V14 adds exact `function_template`, `function_instance`, and `call_instance`
+meaning. Template parameters retain owner/index identity. A nonpersistent
+concrete instance derives from the template declaration ID plus exact ordered
+`i64`/`bool` arguments, and its domain-separated execution identity scopes
+values and expressions. Only explicitly referenced instances are serialized
+and lowered. An unused template is checked over every direct-scalar
+substitution and selects v14 without fabricating an instance. Frozen SHA-256
+KATs are:
+
+```text
+module:        449c74b9284a1e5f00a6823c1e01f87e15fe76882e9fc76512b0d22dc0ce9941
+Agent Context: 54cfc493bc285fb43767ea37f558e9d59c1c36e32915ab35e640edf422efc28c
+context:       880a5f21a12e3c945ec75f08af4889c98a75925dec23f491e01ce4317cea6e1c
+```
+
+CleanupPlan does not migrate: canonical v2 remains byte/schema/meaning
+unchanged and propagated-call status producers retain the persistent template
+ID. Exact instance authentication belongs to validated HIR and Graph v14.
+Programs without a generic function preserve prior v10-v13 bytes and known
+answers. This migration opens no inference, constraints, aggregate/resource/
+non-Copy signatures, generic-to-generic calls, recursion, effects, generic
+entrypoint, callable/resource/component admission, stable ABI, or CleanupPlan
+v4 claim.
+
 ## Internal variant-layout digest v1 to v2
 
 The compiler-internal Native64/Wasm32 variant-layout digest now uses the exact
@@ -679,6 +711,40 @@ unchanged. V7 does not establish general source selection or generic-record
 mapping, empty/nested/resource/non-Copy records, imports or capabilities,
 callbacks/reentrancy/async, callable/FFI/public ABI, browser/multi-engine
 conformance, package/version negotiation, or `SPX-B104`/`SPX-W111` widening.
+
+## Private record-pattern projection component v8
+
+Private Component v8 is another separate default-off profile, not an in-place
+change to v1-v7. It freezes WIT package `semaprax:private@0.6.0`, interface
+`record-pattern-projections`, world `semaprax-private-v8`, and four ordered
+monomorphic preserve/invert exports over exact `Phantom<i64>` and
+`Phantom<bool>` records. The two named records deliberately share physical
+fields while retaining distinct source-instance, layout, WIT-type, and export
+identity. Its primary known answers are:
+
+```text
+source revision: sha256:2baac0c0920dbb153789767bf506a4a81713081586a81444d8e5f5a8f5a8516d
+generated core:  b6e1dbf9522dbb98df9b6fcd370b562a9a722fcc672d44488aed80f13b7ad39e
+Graph v13:      c587415819395e3d618b1e724d639d650e7c55b046f4b77b8bcb5de4ff95682b
+plan:           c77c4060fb0b0051af125f4ca353df3a6f5dbd367cdc5ffd61347a7c22847059
+Phantom<i64>:   d2ff6084bcfc95701b1dd59835d0ac3af96362e05e56dcadcbd4b8e5dc7d9d80
+Phantom<bool>:  3e09cefc7d1ae9bc52ec827debdbcd0753d63bcca994ef776eadb66ba254e67a
+profile:         79d4bade38dd3fff9c7145b406bb0bb265ff3ef7cf084edac83384c84610bce2
+component bytes: d88590752ed7b08b0f0a32019ba8b4c5fc489d59f06b96986d7ad69e2554a10e
+artifact DAG:    e32fe0a15a3458f16aa4da59d87683013dbeba03754966f35e0cb63600e613a3
+```
+
+Admission binds exact source, generated core, two concrete layouts, Graph v13,
+scratch/result plan, profile, component, and DAG. The exact validator rejects
+all six same-signature function-index swaps; only the four polarity-changing
+swaps are claimed behaviorally observable. Local independent/upstream,
+every-byte, invalid-value/poison, Node/core, source-lock, strict, and security
+gates are green. The isolated pinned Rust 1.97.1/Wasmtime 47 zero-import,
+empty-linker, no-WASI typed runner is configured in CI; hosted evidence is
+pending. V1-v7 bytes and KATs remain unchanged. V8 provides no generic-function
+component, general source selection or record mapping, imports/capabilities/
+resources, callbacks/async, callable/FFI/public ABI, browser/multi-engine
+conformance, package negotiation, or `SPX-B104`/`SPX-W111` widening.
 
 ## Revision token FNV-1a64 to SHA-256
 

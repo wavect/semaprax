@@ -11,9 +11,10 @@ use crate::ast::{BinaryOp, UnaryOp};
 use crate::cleanup::{CleanupStorageOrigin, FieldLiveness, FieldLivenessShape, LivenessFlagId};
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
-    DeclarationId, DeclarationKind, ExpressionId, IdentityOrigin, OwnershipMode, PlaceProjection,
-    ResolvedExpr, ResolvedExprKind, ResolvedFunction, ResolvedMatchArm, ResolvedMatchPattern,
-    ResolvedProgram, ResolvedStatement, ResolvedType, ResolvedTypeDeclarationKind,
+    DeclarationId, DeclarationKind, ExpressionId, FunctionInstanceId, IdentityOrigin,
+    OwnershipMode, PlaceProjection, ResolvedExpr, ResolvedExprKind, ResolvedFunction,
+    ResolvedMatchArm, ResolvedMatchPattern, ResolvedProgram, ResolvedStatement, ResolvedType,
+    ResolvedTypeDeclarationKind,
 };
 use crate::prelude;
 
@@ -63,6 +64,7 @@ struct Leaf {
 #[derive(Clone)]
 struct CallFact {
     callee: DeclarationId,
+    instance: Option<FunctionInstanceId>,
     arguments: Vec<ExpressionId>,
 }
 
@@ -141,6 +143,9 @@ pub(super) fn validate_program(program: &ResolvedProgram) -> Result<(), Diagnost
     let mut budget = ReplayBudget::new();
     for function in &program.functions {
         validate_structure_with_budget(program, function, &mut budget)?;
+    }
+    for instance in &program.function_instances {
+        validate_structure_with_budget(program, &instance.function, &mut budget)?;
     }
     Ok(())
 }
@@ -458,11 +463,14 @@ fn collect_supplemental_slots(
     slots: &mut Vec<ExpectedSupplementalSlot>,
 ) -> Result<(), Diagnostic> {
     match &expression.kind {
-        ResolvedExprKind::Call { callee, args } => {
+        ResolvedExprKind::Call {
+            callee,
+            instance,
+            args,
+            ..
+        } => {
             let target = program
-                .functions
-                .iter()
-                .find(|target| target.id == *callee)
+                .resolve_call_target(callee, instance.as_ref())
                 .ok_or_else(|| {
                     replay_error(
                         function,
@@ -682,11 +690,19 @@ fn collect_expression_statuses(
     statuses: &mut Vec<StatusSource>,
 ) -> Result<(), Diagnostic> {
     match &expression.kind {
-        ResolvedExprKind::Call { callee, args } => {
+        ResolvedExprKind::Call {
+            callee,
+            instance,
+            args,
+            ..
+        } => {
             for argument in args {
                 collect_expression_statuses(program, function, argument, statuses)?;
             }
-            if !program.functions.iter().any(|target| target.id == *callee) {
+            if program
+                .resolve_call_target(callee, instance.as_ref())
+                .is_none()
+            {
                 return Err(replay_error(
                     function,
                     format!("status source call has unknown callee `{callee}`"),
@@ -1139,9 +1155,7 @@ fn validate_blocks_and_edges(
                         ));
                     }
                     let target = program
-                        .functions
-                        .iter()
-                        .find(|target| target.id == fact.callee)
+                        .resolve_call_target(&fact.callee, fact.instance.as_ref())
                         .ok_or_else(|| {
                             replay_error(
                                 function,
@@ -1667,9 +1681,19 @@ fn expression_skeleton(
                 residual: false,
             }])
         }
-        ResolvedExprKind::Call { callee, args } => {
-            call_skeleton(program, function, expression, callee, args)
-        }
+        ResolvedExprKind::Call {
+            callee,
+            instance,
+            args,
+            ..
+        } => call_skeleton(
+            program,
+            function,
+            expression,
+            callee,
+            instance.as_ref(),
+            args,
+        ),
         ResolvedExprKind::Unary { op, value } => {
             let paths = sequence_expression(program, function, vec![empty_expr_path()], value)?;
             if *op == UnaryOp::Neg {
@@ -2327,12 +2351,11 @@ fn call_skeleton(
     function: &ResolvedFunction,
     expression: &ResolvedExpr,
     callee: &DeclarationId,
+    instance: Option<&FunctionInstanceId>,
     args: &[ResolvedExpr],
 ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
     let target = program
-        .functions
-        .iter()
-        .find(|target| target.id == *callee)
+        .resolve_call_target(callee, instance)
         .ok_or_else(|| replay_error(function, format!("unknown skeleton callee `{callee}`")))?;
     let mut states = vec![(empty_expr_path(), Vec::<(u32, CleanupPlace)>::new())];
     for (index, (argument, parameter)) in args.iter().zip(&target.params).enumerate() {
@@ -3747,8 +3770,14 @@ fn collect_expression_facts(
     facts: &mut BTreeMap<ExpressionId, Option<CallFact>>,
 ) -> Result<(), Diagnostic> {
     let fact = match &expression.kind {
-        ResolvedExprKind::Call { callee, args } => Some(CallFact {
+        ResolvedExprKind::Call {
+            callee,
+            instance,
+            args,
+            ..
+        } => Some(CallFact {
             callee: callee.clone(),
+            instance: instance.clone(),
             arguments: args.iter().map(|argument| argument.id.clone()).collect(),
         }),
         _ => None,

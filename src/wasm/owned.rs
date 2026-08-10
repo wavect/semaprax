@@ -427,6 +427,9 @@ pub(super) fn plan(program: &ResolvedProgram) -> Result<Vec<OwnedPlan>, Diagnost
     if resources.is_empty() {
         return Ok(Vec::new());
     }
+    if !program.function_templates.is_empty() || !program.function_instances.is_empty() {
+        return Err(unsupported());
+    }
     if resources
         .values()
         .any(|(_, kind)| !matches!(kind, ResolvedResourceDropKind::Trivial))

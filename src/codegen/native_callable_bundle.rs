@@ -164,6 +164,11 @@ pub fn preflight_native_callable_bundle(
         ));
     }
     let resolved = hir::resolve(program).map_err(first_backend_diagnostic)?;
+    if !resolved.function_templates.is_empty() || !resolved.function_instances.is_empty() {
+        return Err(bundle_error(
+            "native-callable bundles do not admit generic function templates or instances",
+        ));
+    }
     let function_id = DeclarationId::new(function_id);
     let declaration = resolved
         .declarations

@@ -251,6 +251,8 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "cabi_transform_nested_record_v6",
         "call_transform",
         "prove_raw_core_v6_poison_status_and_invalid_bool",
+        "v6 raw result pointer was negative",
+        "v6 raw status pointer changed",
         "status[24..32] != [0xa5; 8]",
         "poison != [0xa5; 32]",
         "sha256:d1fcbc45b3d86fa1d7910378578828df3c557dba92f90ed9459f928c5bf2fe8a",
@@ -291,6 +293,7 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "add_to_linker",
         "get_func",
         "artifact.digest()",
+        "pointer as usize",
     ] {
         assert!(
             !runner.contains(forbidden),
@@ -308,5 +311,10 @@ fn capability_and_dependency_policy_are_fail_closed() {
         runner.matches("Module::new").count(),
         1,
         "only the authenticated v6 embedded core may be instantiated directly"
+    );
+    assert_eq!(
+        runner.matches("usize::try_from(pointer)").count(),
+        2,
+        "both v6 raw result pointers must be converted without signed truncation"
     );
 }

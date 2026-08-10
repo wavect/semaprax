@@ -1008,11 +1008,13 @@ fn prove_raw_core_v6_poison_status_and_invalid_bool(
         .ok_or_else(|| failure("v6 raw core memory export missing"))?;
 
     let pointer = transform.call(&mut store, (18, 1, 22, 2))?;
+    let pointer =
+        usize::try_from(pointer).map_err(|_| failure("v6 raw result pointer was negative"))?;
     if pointer != 256 {
         return Err(failure("v6 raw result pointer changed"));
     }
     let mut success = [0_u8; 32];
-    memory.read(&store, pointer as usize, &mut success)?;
+    memory.read(&store, pointer, &mut success)?;
     if success[0] != 0
         || i64::from_le_bytes(success[8..16].try_into()?) != 20
         || success[16] != 1
@@ -1022,8 +1024,13 @@ fn prove_raw_core_v6_poison_status_and_invalid_bool(
     }
 
     let pointer = transform.call(&mut store, (18, 1, 22, 1))?;
+    let pointer =
+        usize::try_from(pointer).map_err(|_| failure("v6 raw result pointer was negative"))?;
+    if pointer != 256 {
+        return Err(failure("v6 raw status pointer changed"));
+    }
     let mut status = [0_u8; 32];
-    memory.read(&store, pointer as usize, &mut status)?;
+    memory.read(&store, pointer, &mut status)?;
     if status[0] != 1
         || u32::from_le_bytes(status[16..20].try_into()?) != 4
         || status[20] != 2

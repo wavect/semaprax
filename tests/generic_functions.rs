@@ -247,6 +247,7 @@ module test.malformed_generic_postfix;
 fn graph_v14_is_program_wide_and_context_authenticates_exact_instances() {
     let program = parse_source(SOURCE);
     let json = graph::to_json(&program).unwrap();
+    let module_value: serde_json::Value = serde_json::from_str(&json).unwrap();
     assert!(json.starts_with("{\"schema\":\"semaprax.graph.v14\","));
     assert!(json.contains("\"kind\":\"function_template\""));
     assert!(json.contains("\"kind\":\"function_instance\""));
@@ -255,6 +256,16 @@ fn graph_v14_is_program_wide_and_context_authenticates_exact_instances() {
     assert!(json.contains(
         "\"type_arguments\":[{\"kind\":\"primitive\",\"name\":\"i64\"},{\"kind\":\"primitive\",\"name\":\"bool\"}]"
     ));
+    let first_template = module_value["nodes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|node| node["id"] == "test.first")
+        .unwrap();
+    assert_eq!(
+        first_template["type_parameters"].as_array().unwrap().len(),
+        2
+    );
 
     let options = AgentContextOptions::new(
         1,
@@ -266,6 +277,7 @@ fn graph_v14_is_program_wide_and_context_authenticates_exact_instances() {
     let caller = graph::agent_context_json(&program, "app.main", &options)
         .unwrap()
         .unwrap();
+    serde_json::from_str::<serde_json::Value>(&caller).unwrap();
     assert!(caller.contains("\"source_graph_schema\":\"semaprax.graph.v14\""));
     assert!(caller.contains("\"kind\":\"call_instance\""));
     let call_instances = caller
@@ -287,8 +299,16 @@ fn graph_v14_is_program_wide_and_context_authenticates_exact_instances() {
     let template = graph::agent_context_json(&program, "test.first", &options)
         .unwrap()
         .unwrap();
+    let template_value: serde_json::Value = serde_json::from_str(&template).unwrap();
     assert!(template.contains("\"kind\":\"function_template\""));
     assert!(template.contains("\"instances\":["));
+    assert_eq!(
+        template_value["facts"][0]["type_parameters"]
+            .as_array()
+            .unwrap()
+            .len(),
+        2
+    );
 
     let unused = r#"
 module test.unused_generic_graph;
@@ -305,6 +325,12 @@ module test.unused_generic_graph;
         .unwrap()
         .unwrap();
     assert!(full_template_context.contains("\"root\":\"test.first\""));
+    serde_json::from_str::<serde_json::Value>(&full_template_context).unwrap();
+
+    let bounded_caller_context = graph::context_json(&program, "app.main", 1)
+        .unwrap()
+        .unwrap();
+    serde_json::from_str::<serde_json::Value>(&bounded_caller_context).unwrap();
 
     let automatic = parse_source(
         r#"
@@ -355,15 +381,15 @@ fn graph_v14_has_literal_module_and_context_kats_and_wins_the_schema_lattice() {
         .unwrap();
     assert_eq!(
         sha256_text(&module),
-        "449c74b9284a1e5f00a6823c1e01f87e15fe76882e9fc76512b0d22dc0ce9941"
+        "7a61fa6229f2db7aca6a035fd961720e8a401c138cc66c9cd71c64d45bed5efd"
     );
     assert_eq!(
         sha256_text(&agent),
-        "54cfc493bc285fb43767ea37f558e9d59c1c36e32915ab35e640edf422efc28c"
+        "2841401e7ba85fa8e47b3c35a15ae401b4a271d2500d70bbf3627f1453869eb6"
     );
     assert_eq!(
         sha256_text(&context),
-        "880a5f21a12e3c945ec75f08af4889c98a75925dec23f491e01ce4317cea6e1c"
+        "d7bda2be1fc366195ffb00a9e20b2b03204b4dd6f46e8019842dd84f70b54ab8"
     );
 
     let mixed = parse_source(

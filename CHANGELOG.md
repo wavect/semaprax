@@ -13,14 +13,19 @@ All notable changes to SEMAPRAX are documented here.
   receive exact domain-separated HIR identities, native symbols, and Wasm
   indices. Program-wide Graph v14 takes precedence over v13/v12/v11/v10 and
   serializes exact function-template, function-instance, and call-instance
-  meaning. Its frozen SHA-256 KATs are module
-  `449c74b9284a1e5f00a6823c1e01f87e15fe76882e9fc76512b0d22dc0ce9941`,
+  meaning. Corrected same-schema Graph v14 function-template serialization by
+  adding the missing array delimiters around `type_parameters`; two-parameter
+  templates previously produced invalid JSON in module, Agent Context, and
+  bounded-context projections. Its migrated frozen SHA-256 KATs are module
+  `7a61fa6229f2db7aca6a035fd961720e8a401c138cc66c9cd71c64d45bed5efd`,
   Agent Context
-  `54cfc493bc285fb43767ea37f558e9d59c1c36e32915ab35e640edf422efc28c`,
+  `2841401e7ba85fa8e47b3c35a15ae401b4a271d2500d70bbf3627f1453869eb6`,
   and bounded context
-  `880a5f21a12e3c945ec75f08af4889c98a75925dec23f491e01ce4317cea6e1c`.
-  Local strict C11 O0/O2 and 4,096-entry Node/Wasm evidence plus independent
-  security review are green; the hosted matrix is green in [run 31385406865,
+  `d7bda2be1fc366195ffb00a9e20b2b03204b4dd6f46e8019842dd84f70b54ab8`.
+  The corrected JSON parse regressions and KATs are locally green; hosted
+  evidence for those corrected bytes is pending a new CI run. Separate strict
+  C11 O0/O2 and 4,096-entry Node/Wasm execution evidence plus its independent
+  security review are green locally and were hosted in [run 31385406865,
   Ubuntu job
   93445428338](https://github.com/wavect/semaprax/actions/runs/31385406865/job/93445428338). CleanupPlan v2
   remains byte/schema/meaning compatible and template-ID-only; HIR and Graph

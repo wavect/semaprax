@@ -622,7 +622,7 @@ fn agent_template_json(
         .collect::<Vec<_>>()
         .join(",");
     let mut output = format!(
-        "{{\"id\":{},\"kind\":\"function_template\",\"name\":{},\"calls\":{},\"type_parameters\":{},\"instances\":[{}],\"body\":{}",
+        "{{\"id\":{},\"kind\":\"function_template\",\"name\":{},\"calls\":{},\"type_parameters\":[{}],\"instances\":[{}],\"body\":{}",
         quote_json(template.id.as_str()),
         quote_json(&template.name),
         string_array(
@@ -2180,7 +2180,7 @@ fn graph_json(
         let identity_origin = identity_origin(program, &template.id)?;
         write!(
             output,
-            "{{\"id\":{},\"kind\":\"function_template\",\"name\":{},\"identity_origin\":{},\"persistent\":{},\"type_parameters\":{},\"params\":[{}],\"result_id\":{},\"return_type\":{},\"effects\":{},\"requires_graph\":[{}],\"ensures_graph\":[{}],\"body\":{}}}",
+            "{{\"id\":{},\"kind\":\"function_template\",\"name\":{},\"identity_origin\":{},\"persistent\":{},\"type_parameters\":[{}],\"params\":[{}],\"result_id\":{},\"return_type\":{},\"effects\":{},\"requires_graph\":[{}],\"ensures_graph\":[{}],\"body\":{}}}",
             quote_json(template.id.as_str()),
             quote_json(&template.name),
             quote_json(identity_origin.text()),

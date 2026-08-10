@@ -621,14 +621,21 @@ Option propagation, and byte-compatible v10 to legacy/Result programs. Every
 bounded and Agent Context reports the same program choice. V14 adds persistent
 or visibly automatic `function_template` declarations, nonpersistent exact
 `function_instance` nodes, and `call_instance` expressions carrying the
-template, derived instance ID, and ordered concrete arguments. Unused templates
+template, derived instance ID, and ordered concrete arguments. A same-schema
+v14 serialization correction adds the previously missing array delimiters
+around function-template `type_parameters`; without them, two-parameter
+templates produced invalid JSON in module, bounded-context, and Agent Context
+projections. Unused templates
 have no fabricated instance; v10-v13 bytes remain unchanged when no generic
 function is declared. The frozen v14 SHA-256 KATs are module
-`449c74b9284a1e5f00a6823c1e01f87e15fe76882e9fc76512b0d22dc0ce9941`,
+`7a61fa6229f2db7aca6a035fd961720e8a401c138cc66c9cd71c64d45bed5efd`,
 Agent Context
-`54cfc493bc285fb43767ea37f558e9d59c1c36e32915ab35e640edf422efc28c`,
+`2841401e7ba85fa8e47b3c35a15ae401b4a271d2500d70bbf3627f1453869eb6`,
 and bounded context
-`880a5f21a12e3c945ec75f08af4889c98a75925dec23f491e01ce4317cea6e1c`.
+`d7bda2be1fc366195ffb00a9e20b2b03204b4dd6f46e8019842dd84f70b54ab8`.
+These corrected projections parse under `serde_json` locally; hosted evidence
+for the corrected bytes is pending a new CI run. The earlier hosted generic
+execution run predates this serializer correction.
 V13 pattern nodes bind exact concrete record/member/binding identity; v12 record
 nodes carry ordered owner/index parameters; v11 authenticates Option
 propagation. The graph otherwise retains the canonical source/prelude revision,

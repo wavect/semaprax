@@ -268,19 +268,27 @@ Every legacy and Agent Context root reports that same program-wide source
 schema, and consumers must reject relabeling among v10-v14.
 
 V14 adds exact `function_template`, `function_instance`, and `call_instance`
-meaning. Template parameters retain owner/index identity. A nonpersistent
+meaning. A same-schema v14 correction adds the previously missing array
+delimiters around function-template `type_parameters`; two-parameter templates
+previously produced invalid JSON in module, bounded-context, and Agent Context
+projections. Template parameters still retain owner/index identity. A nonpersistent
 concrete instance derives from the template declaration ID plus exact ordered
 `i64`/`bool` arguments, and its domain-separated execution identity scopes
 values and expressions. Only explicitly referenced instances are serialized
 and lowered. An unused template is checked over every direct-scalar
-substitution and selects v14 without fabricating an instance. Frozen SHA-256
-KATs are:
+substitution and selects v14 without fabricating an instance. Because the
+schema name remains v14 while the corrected canonical bytes change, consumers
+must migrate to these frozen SHA-256 KATs:
 
 ```text
-module:        449c74b9284a1e5f00a6823c1e01f87e15fe76882e9fc76512b0d22dc0ce9941
-Agent Context: 54cfc493bc285fb43767ea37f558e9d59c1c36e32915ab35e640edf422efc28c
-context:       880a5f21a12e3c945ec75f08af4889c98a75925dec23f491e01ce4317cea6e1c
+module:        7a61fa6229f2db7aca6a035fd961720e8a401c138cc66c9cd71c64d45bed5efd
+Agent Context: 2841401e7ba85fa8e47b3c35a15ae401b4a271d2500d70bbf3627f1453869eb6
+context:       d7bda2be1fc366195ffb00a9e20b2b03204b4dd6f46e8019842dd84f70b54ab8
 ```
+
+These corrected projections are parse-verified locally. Hosted evidence for
+the corrected bytes is pending a new CI run; the earlier hosted generic
+execution run predates this serializer correction.
 
 CleanupPlan does not migrate: canonical v2 remains byte/schema/meaning
 unchanged and propagated-call status producers retain the persistent template

@@ -18,6 +18,11 @@ All notable changes to SEMAPRAX are documented here.
   propagation, residual conversion, `?` in contracts, public aggregate ABI,
   callable/component aggregate signatures, and public resource admission are
   unchanged nonclaims.
+- Hosted [run 31353051690](https://github.com/wavect/semaprax/actions/runs/31353051690)
+  is fully green for the typed-`?` tranche across Linux, macOS, Windows, MSRV,
+  sanitizers, the isolated Wasmtime runner, and the private mobile/application
+  jobs. The macOS provider export lock is bound to the Graph-v10-derived exact
+  descriptor/execute/settle symbols and has a hostile source-lock regression.
 - Hosted [run 31347109201](https://github.com/wavect/semaprax/actions/runs/31347109201)
   supersedes the pending generic/prelude and component-runner notes below. It
   is fully green across the configured matrix; the isolated prelude-bound

@@ -113,9 +113,9 @@ Implemented today:
   records, non-copy matching or propagation, residual conversion, `?` in
   contracts, stable public aggregate ABI, and callable/component aggregate
   admission remain closed. Generic/prelude verification is hosted green in
-  [run 31347109201](https://github.com/wavect/semaprax/actions/runs/31347109201);
-  the typed-`?` tranche is current local executable evidence, not yet a hosted
-  claim.
+  [run 31347109201](https://github.com/wavect/semaprax/actions/runs/31347109201),
+  and the typed-`?` tranche is hosted green across the configured matrix in
+  [run 31353051690](https://github.com/wavect/semaprax/actions/runs/31353051690).
 - A validated stable-ID HIR shared by native and Wasm lowering, with explicit entry, result, binding, expression, and place identities.
 - A mandatory target-neutral cleanup CFG for every function, independently rebuilt and independently replayed against core HIR/inventory, with exhaustive current-CFG path-state checks plus a scenario-driven reference trace executor.
 - Versioned target-neutral normalized-status, conformance-trace,

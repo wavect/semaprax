@@ -20,13 +20,15 @@ O0/O2 plus Node/Wasm execution. Compiler-owned ordinary `Option<T>` and
 `Result<T, E>` use the same generic-variant machinery. Generic/prelude evidence
 is hosted green in [run
 31347109201](https://github.com/wavect/semaprax/actions/runs/31347109201).
-The current local postfix-`?` slice accepts only direct-`i64`/direct-`bool`
+The hosted postfix-`?` slice accepts only direct-`i64`/direct-`bool`
 Copy `Result<T, E>` and an enclosing `Result<U, E>`. It authenticates every
 compiler-owned Result member, evaluates the operand once, stages `Err` as a
 normal outer result, skips later body expressions, and joins shared
 postconditions/publication. Native C11 O0/O2 and Node/Wasm cover different
 source/outer layouts, physical-status separation, poison, invalid tags, and
-re-entry. Generic functions or records, nested/resource arguments, non-copy
+re-entry in [run
+31353051690](https://github.com/wavect/semaprax/actions/runs/31353051690).
+Generic functions or records, nested/resource arguments, non-copy
 propagation/matching, residual conversion, `?` in contracts, resource- or
 record-bearing variant payloads, a stable public aggregate ABI, public
 resource-bearing execution, and general aggregate execution remain outside

@@ -81,7 +81,7 @@ matrix is hosted green in [run
 generic/prelude verification is hosted green in [run
 31347109201](https://github.com/wavect/semaprax/actions/runs/31347109201).
 
-The current local typed-`?` tranche accepts only compiler-owned direct-scalar
+The hosted typed-`?` tranche accepts only compiler-owned direct-scalar
 Copy `Result<T, E>` and an enclosing `Result<U, E>`. It evaluates the operand
 once, stages `Err` as a normal outer result rather than a physical status,
 skips later body expressions, and joins the ordinary path before shared
@@ -93,6 +93,8 @@ invalid-tag closure, and re-entry. This does not open generic functions/records,
 nested/resource arguments, resource- or record-bearing payloads, non-copy
 ownership/propagation, residual conversion, `?` in contracts, a stable public
 aggregate ABI, callable/component signatures, or public resource admission.
+The configured matrix is green in [run
+31353051690](https://github.com/wavect/semaprax/actions/runs/31353051690).
 
 Phase 3 now composes its formerly separate native evidence layers for the
 private direct-trivial slice. Feature-gated compiler emission produces the

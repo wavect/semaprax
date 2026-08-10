@@ -197,6 +197,7 @@ impl ReviewSupportingEvidence {
 }
 
 pub(crate) struct ReviewBuild {
+    preflight: patch::PatchPreflight,
     report: String,
     source_graph_schema: &'static str,
     base_revision: String,
@@ -210,6 +211,10 @@ pub(crate) struct ReviewBuild {
 }
 
 impl ReviewBuild {
+    pub(crate) fn preflight(&self) -> &patch::PatchPreflight {
+        &self.preflight
+    }
+
     pub(crate) fn report(&self) -> &str {
         &self.report
     }
@@ -348,6 +353,7 @@ pub(crate) fn build_owned(
             digest: evidence.digest,
         },
         usage,
+        preflight,
     })
 }
 

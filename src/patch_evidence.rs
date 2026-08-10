@@ -92,11 +92,89 @@ pub fn verify(
     verify_with_hook(source_path, patch_path, evidence_path, |_, _, _| Ok(()))
 }
 
+pub fn apply(
+    source_path: &Path,
+    patch_path: &Path,
+    evidence_path: &Path,
+) -> Result<String, Vec<Diagnostic>> {
+    apply_with_hook(source_path, patch_path, evidence_path, |_, _, _| Ok(()))
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum ReadPhase {
     EvidenceRead,
     PatchRead,
     FinalCheck,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum ApplyPhase {
+    PatchRead,
+    EvidenceRead,
+    BeforeStage,
+    BeforeFinalCheck,
+    BeforeRename,
+}
+
+fn apply_with_hook(
+    source_path: &Path,
+    patch_path: &Path,
+    evidence_path: &Path,
+    mut hook: impl FnMut(ApplyPhase, &Path, &Path) -> std::io::Result<()>,
+) -> Result<String, Vec<Diagnostic>> {
+    let guard = patch::acquire_a0_commit_guard(source_path)?;
+    let patch_source = read_patch_bounded(patch_path)?;
+    hook(ApplyPhase::PatchRead, patch_path, source_path).map_err(|error| {
+        vec![Diagnostic::io(
+            "SPX-I202",
+            format!("semantic patch evidence apply patch-read hook failed: {error}"),
+        )]
+    })?;
+    let submitted = read_evidence_bounded(evidence_path)?;
+    hook(ApplyPhase::EvidenceRead, evidence_path, source_path).map_err(|error| {
+        vec![Diagnostic::io(
+            "SPX-I208",
+            format!("semantic patch evidence apply read hook failed: {error}"),
+        )]
+    })?;
+    let submitted_facts = parse_canonical_capsule(&submitted)?;
+    let authenticated =
+        patch::authenticate_a0_source(&guard, Some((review::MAX_SOURCE_BYTES, "SPX-G131")))?;
+    let build = review::build_owned(
+        authenticated.source().to_owned(),
+        patch_source,
+        source_path.to_path_buf(),
+    )
+    .map_err(map_review_diagnostics)?;
+    let expected_facts = facts_from_review(&build)?;
+    let expected = render_capsule_bounded(&expected_facts)?;
+    if submitted != expected || !same_bindings(&submitted_facts, &expected_facts) {
+        return Err(vec![mismatch_error(
+            "submitted Semantic Patch Evidence differs from independent canonical replay",
+        )]);
+    }
+    hook(
+        ApplyPhase::BeforeStage,
+        guard.canonical_source_path(),
+        source_path,
+    )
+    .map_err(|error| {
+        vec![Diagnostic::io(
+            "SPX-I203",
+            format!("semantic patch evidence pre-stage hook failed: {error}"),
+        )]
+    })?;
+    let prepared = patch::prepare_a0_commit(&authenticated, build.preflight())?;
+    patch::commit_prepared_a0(prepared, |phase, source, staging| {
+        hook(
+            match phase {
+                patch::CommitPhase::BeforeFinalCheck => ApplyPhase::BeforeFinalCheck,
+                patch::CommitPhase::BeforeRename => ApplyPhase::BeforeRename,
+            },
+            source,
+            staging,
+        )
+    })
 }
 
 fn generate_with_hook(
@@ -1067,6 +1145,16 @@ mod tests {
         (directory, source_path, patch_path, evidence_path)
     }
 
+    fn assert_no_a0_artifacts(source_path: &Path) {
+        assert!(std::fs::read_dir(source_path.parent().unwrap())
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+            .all(|name| {
+                !(name.ends_with(".semaprax-patch.lock")
+                    || name.contains(".semaprax-stage.") && name.ends_with(".tmp"))
+            }));
+    }
+
     #[test]
     fn verification_rejects_oversize_before_source_semantics() {
         let (directory, source, patch, evidence) = fixture("not source", "not patch");
@@ -1191,6 +1279,228 @@ mod tests {
         )
         .unwrap();
         assert_eq!(actual_receipt, expected_receipt);
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn evidence_apply_uses_owned_patch_and_evidence_bytes_exactly_once() {
+        let source = "module evidence.apply_owned;\n@id(\"evidence.helper\") fn helper()->i64{1}\n@id(\"app.main\") fn main()->i64{helper()}\n";
+        let patch_source = format!(
+            "base {}\nrename evidence.helper to renamed\n",
+            graph::revision(&parse(source, Path::new("evidence.spx")).unwrap())
+        );
+        let (directory, source_path, patch_path, evidence_path) = fixture(source, &patch_source);
+        let capsule = generate(&source_path, &patch_path).unwrap();
+        let candidate = serde_json::from_str::<serde_json::Value>(&capsule).unwrap()
+            ["candidate_revision"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        std::fs::write(&evidence_path, &capsule).unwrap();
+        let revision = apply_with_hook(
+            &source_path,
+            &patch_path,
+            &evidence_path,
+            |phase, path, _| {
+                if phase == ApplyPhase::PatchRead || phase == ApplyPhase::EvidenceRead {
+                    std::fs::write(path, "mutated after owned read\n")?;
+                }
+                Ok(())
+            },
+        )
+        .unwrap();
+        assert_eq!(revision, candidate);
+        assert!(std::fs::read_to_string(&source_path)
+            .unwrap()
+            .contains("fn renamed"));
+        assert_no_a0_artifacts(&source_path);
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn evidence_apply_rechecks_source_at_every_a0_boundary() {
+        let source = "module evidence.apply_drift;\n@id(\"evidence.helper\") fn helper()->i64{1}\n@id(\"app.main\") fn main()->i64{helper()}\n";
+        for (label, selected) in [
+            ("before-stage", ApplyPhase::BeforeStage),
+            ("first-final", ApplyPhase::BeforeFinalCheck),
+            ("second-final", ApplyPhase::BeforeRename),
+        ] {
+            let patch_source = format!(
+                "base {}\nrename evidence.helper to renamed\n",
+                graph::revision(&parse(source, Path::new("evidence.spx")).unwrap())
+            );
+            let (directory, source_path, patch_path, evidence_path) =
+                fixture(source, &patch_source);
+            let capsule = generate(&source_path, &patch_path).unwrap();
+            std::fs::write(&evidence_path, capsule).unwrap();
+            let changed = source.replace("{1}", "{2}");
+            let error = apply_with_hook(
+                &source_path,
+                &patch_path,
+                &evidence_path,
+                |phase, path, _| {
+                    if phase == selected {
+                        std::fs::write(path, &changed)?;
+                    }
+                    Ok(())
+                },
+            )
+            .unwrap_err();
+            assert_eq!(error[0].code, "SPX-I207", "{label}");
+            assert_eq!(std::fs::read_to_string(&source_path).unwrap(), changed);
+            assert_no_a0_artifacts(&source_path);
+            std::fs::remove_dir_all(directory).unwrap();
+        }
+    }
+
+    #[test]
+    fn evidence_apply_rejects_same_bytes_with_replaced_source_identity() {
+        let source = "module evidence.apply_identity;\n@id(\"evidence.helper\") fn helper()->i64{1}\n@id(\"app.main\") fn main()->i64{helper()}\n";
+        let patch_source = format!(
+            "base {}\nrename evidence.helper to renamed\n",
+            graph::revision(&parse(source, Path::new("evidence.spx")).unwrap())
+        );
+        let (directory, source_path, patch_path, evidence_path) = fixture(source, &patch_source);
+        let capsule = generate(&source_path, &patch_path).unwrap();
+        std::fs::write(&evidence_path, capsule).unwrap();
+        let backup = source_path.with_extension("original.spx");
+        let error = apply_with_hook(
+            &source_path,
+            &patch_path,
+            &evidence_path,
+            |phase, path, _| {
+                if phase == ApplyPhase::BeforeRename {
+                    std::fs::rename(path, &backup)?;
+                    std::fs::write(path, source)?;
+                }
+                Ok(())
+            },
+        )
+        .unwrap_err();
+        assert_eq!(error[0].code, "SPX-I207");
+        assert_eq!(std::fs::read_to_string(&source_path).unwrap(), source);
+        assert_eq!(std::fs::read_to_string(&backup).unwrap(), source);
+        assert_no_a0_artifacts(&source_path);
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn evidence_apply_bounds_both_final_source_reads_and_cleans_stage() {
+        let source = "module evidence.apply_growth;\n@id(\"evidence.helper\") fn helper()->i64{1}\n@id(\"app.main\") fn main()->i64{helper()}\n";
+        for selected in [ApplyPhase::BeforeFinalCheck, ApplyPhase::BeforeRename] {
+            let patch_source = format!(
+                "base {}\nrename evidence.helper to renamed\n",
+                graph::revision(&parse(source, Path::new("evidence.spx")).unwrap())
+            );
+            let (directory, source_path, patch_path, evidence_path) =
+                fixture(source, &patch_source);
+            let capsule = generate(&source_path, &patch_path).unwrap();
+            std::fs::write(&evidence_path, capsule).unwrap();
+            let oversized = vec![b'x'; review::MAX_SOURCE_BYTES + 1];
+            let error = apply_with_hook(
+                &source_path,
+                &patch_path,
+                &evidence_path,
+                |phase, path, _| {
+                    if phase == selected {
+                        std::fs::write(path, &oversized)?;
+                    }
+                    Ok(())
+                },
+            )
+            .unwrap_err();
+            assert_eq!(error[0].code, "SPX-I207");
+            assert_eq!(
+                std::fs::metadata(&source_path).unwrap().len(),
+                (review::MAX_SOURCE_BYTES + 1) as u64
+            );
+            assert_no_a0_artifacts(&source_path);
+            std::fs::remove_dir_all(directory).unwrap();
+        }
+    }
+
+    #[test]
+    fn evidence_apply_rejects_stage_mutation_and_injected_rename_failure() {
+        let source = "module evidence.apply_stage;\n@id(\"evidence.helper\") fn helper()->i64{1}\n@id(\"app.main\") fn main()->i64{helper()}\n";
+        for (label, selected, expected) in [
+            ("stage", ApplyPhase::BeforeFinalCheck, "SPX-I203"),
+            ("rename", ApplyPhase::BeforeRename, "SPX-I204"),
+        ] {
+            let patch_source = format!(
+                "base {}\nrename evidence.helper to renamed\n",
+                graph::revision(&parse(source, Path::new("evidence.spx")).unwrap())
+            );
+            let (directory, source_path, patch_path, evidence_path) =
+                fixture(source, &patch_source);
+            let capsule = generate(&source_path, &patch_path).unwrap();
+            std::fs::write(&evidence_path, capsule).unwrap();
+            let error = apply_with_hook(
+                &source_path,
+                &patch_path,
+                &evidence_path,
+                |phase, _, staging| {
+                    if phase == selected {
+                        if selected == ApplyPhase::BeforeFinalCheck {
+                            std::fs::write(staging, "mutated stage")?;
+                        } else {
+                            return Err(std::io::Error::new(
+                                std::io::ErrorKind::PermissionDenied,
+                                "injected rename rejection",
+                            ));
+                        }
+                    }
+                    Ok(())
+                },
+            )
+            .unwrap_err();
+            assert_eq!(error[0].code, expected, "{label}");
+            assert_eq!(std::fs::read_to_string(&source_path).unwrap(), source);
+            assert_no_a0_artifacts(&source_path);
+            std::fs::remove_dir_all(directory).unwrap();
+        }
+    }
+
+    #[test]
+    fn evidence_apply_never_deletes_a_foreign_stage_path_replacement() {
+        let source = "module evidence.apply_stage_identity;\n@id(\"evidence.helper\") fn helper()->i64{1}\n@id(\"app.main\") fn main()->i64{helper()}\n";
+        let patch_source = format!(
+            "base {}\nrename evidence.helper to renamed\n",
+            graph::revision(&parse(source, Path::new("evidence.spx")).unwrap())
+        );
+        let (directory, source_path, patch_path, evidence_path) = fixture(source, &patch_source);
+        let capsule = generate(&source_path, &patch_path).unwrap();
+        std::fs::write(&evidence_path, capsule).unwrap();
+        let displaced = source_path.with_extension("owned-stage");
+        let mut foreign = None;
+        let error = apply_with_hook(
+            &source_path,
+            &patch_path,
+            &evidence_path,
+            |phase, _, staging| {
+                if phase == ApplyPhase::BeforeRename {
+                    std::fs::rename(staging, &displaced)?;
+                    std::fs::write(staging, "foreign path object")?;
+                    foreign = Some(staging.to_path_buf());
+                }
+                Ok(())
+            },
+        )
+        .unwrap_err();
+        assert_eq!(error[0].code, "SPX-I203");
+        let foreign = foreign.unwrap();
+        assert_eq!(
+            std::fs::read_to_string(&foreign).unwrap(),
+            "foreign path object"
+        );
+        assert!(displaced.exists());
+        assert_eq!(std::fs::read_to_string(&source_path).unwrap(), source);
+        assert!(std::fs::read_dir(&directory)
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+            .all(|name| !name.ends_with(".semaprax-patch.lock")));
+        std::fs::remove_file(foreign).unwrap();
+        std::fs::remove_file(displaced).unwrap();
+        assert_no_a0_artifacts(&source_path);
         std::fs::remove_dir_all(directory).unwrap();
     }
 }

@@ -225,6 +225,21 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             print!("{receipt}");
             Ok(())
         }
+        "patch-with-evidence" => {
+            if args.len() != 4 {
+                eprintln!(
+                    "patch-with-evidence requires exactly <file> <patch.spatch> <evidence.json>"
+                );
+                return Err(2);
+            }
+            let source_path = required_path(&args, 1)?;
+            let patch_path = required_path(&args, 2)?;
+            let evidence_path = required_path(&args, 3)?;
+            let revision = patch_evidence::apply(&source_path, &patch_path, &evidence_path)
+                .map_err(|errors| report(&errors, false))?;
+            println!("applied semantic patch with exact evidence replay; graph is now {revision}");
+            Ok(())
+        }
         "repairs" => {
             if args.len() != 4 || args[2] != "assign-function-id" {
                 eprintln!("repairs requires <file> assign-function-id <automatic-function-id>");
@@ -500,6 +515,7 @@ fn print_help() {
            semaprax review <file> <patch.spatch>\n\
            semaprax patch-evidence <file> <patch.spatch>\n\
            semaprax verify-patch-evidence <file> <patch.spatch> <evidence.json>\n\
+           semaprax patch-with-evidence <file> <patch.spatch> <evidence.json>\n\
            semaprax repairs <file> assign-function-id <automatic-function-id>\n\
            semaprax repair <file> <repair-id> --persistent-id <persistent-id>\n\
            semaprax version"

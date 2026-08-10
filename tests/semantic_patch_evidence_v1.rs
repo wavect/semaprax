@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use semaprax::{graph, parse, patch_evidence, repair};
+use semaprax::{graph, parse, patch, patch_evidence, repair};
 use sha2::{Digest, Sha256};
 
 static NEXT_FIXTURE: AtomicUsize = AtomicUsize::new(0);
@@ -41,6 +41,13 @@ impl Fixture {
             .unwrap()
             .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
             .collect()
+    }
+
+    fn assert_no_a0_artifacts(&self) {
+        assert!(self.inventory().iter().all(|name| {
+            !(name.ends_with(".semaprax-patch.lock")
+                || name.contains(".semaprax-stage.") && name.ends_with(".tmp"))
+        }));
     }
 }
 
@@ -937,4 +944,157 @@ fn declaration_and_call_site_boundaries_are_checked_before_hir() {
     let over = Fixture::new("calls-over", &over_calls, "base irrelevant\n");
     let error = patch_evidence::generate(&over.source, &over.patch).unwrap_err();
     assert_eq!(error[0].code, "SPX-G131");
+}
+
+#[test]
+fn evidence_apply_matches_a0_for_patch_v1_v2_and_v3_then_rejects_replay() {
+    let evidence_fixtures = [
+        v1_fixture("apply-v1-evidence"),
+        v2_fixture("apply-v2-evidence"),
+        v3_fixture("apply-v3-evidence"),
+    ];
+    for (index, evidence_fixture) in evidence_fixtures.into_iter().enumerate() {
+        let source = std::fs::read_to_string(&evidence_fixture.source).unwrap();
+        let patch_source = std::fs::read_to_string(&evidence_fixture.patch).unwrap();
+        let plain_fixture = Fixture::new(&format!("apply-plain-{index}"), &source, &patch_source);
+        let capsule =
+            patch_evidence::generate(&evidence_fixture.source, &evidence_fixture.patch).unwrap();
+        std::fs::write(&evidence_fixture.evidence, capsule).unwrap();
+        let evidence_revision = patch_evidence::apply(
+            &evidence_fixture.source,
+            &evidence_fixture.patch,
+            &evidence_fixture.evidence,
+        )
+        .unwrap();
+        let plain_revision = patch::apply(&plain_fixture.source, &plain_fixture.patch).unwrap();
+        assert_eq!(evidence_revision, plain_revision);
+        assert_eq!(
+            std::fs::read(&evidence_fixture.source).unwrap(),
+            std::fs::read(&plain_fixture.source).unwrap()
+        );
+        let committed = std::fs::read(&evidence_fixture.source).unwrap();
+        let error = patch_evidence::apply(
+            &evidence_fixture.source,
+            &evidence_fixture.patch,
+            &evidence_fixture.evidence,
+        )
+        .unwrap_err();
+        assert_eq!(error[0].code, "SPX-G409");
+        assert_eq!(std::fs::read(&evidence_fixture.source).unwrap(), committed);
+        evidence_fixture.assert_no_a0_artifacts();
+        plain_fixture.assert_no_a0_artifacts();
+    }
+}
+
+#[test]
+fn mismatch_and_receipt_confusion_fail_before_staging() {
+    let fixture = v1_fixture("apply-mismatch");
+    let source = std::fs::read(&fixture.source).unwrap();
+    let capsule = patch_evidence::generate(&fixture.source, &fixture.patch).unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(&capsule).unwrap();
+    let digest = parsed["review"]["digest"].as_str().unwrap();
+    let changed = replace_and_reaccount(
+        &capsule,
+        &format!("\"review\":{{\"schema\":\"semaprax.semantic-review.v1\",\"digest\":\"{digest}\""),
+        &format!(
+            "\"review\":{{\"schema\":\"semaprax.semantic-review.v1\",\"digest\":\"{}\"",
+            changed_digest(digest)
+        ),
+    );
+    std::fs::write(&fixture.evidence, changed).unwrap();
+    let inventory = fixture.inventory();
+    let error =
+        patch_evidence::apply(&fixture.source, &fixture.patch, &fixture.evidence).unwrap_err();
+    assert_eq!(error[0].code, "SPX-G132");
+    assert_eq!(fixture.inventory(), inventory);
+    assert_eq!(std::fs::read(&fixture.source).unwrap(), source);
+    fixture.assert_no_a0_artifacts();
+
+    std::fs::write(&fixture.evidence, &capsule).unwrap();
+    let receipt =
+        patch_evidence::verify(&fixture.source, &fixture.patch, &fixture.evidence).unwrap();
+    std::fs::write(&fixture.evidence, receipt).unwrap();
+    let inventory = fixture.inventory();
+    let error =
+        patch_evidence::apply(&fixture.source, &fixture.patch, &fixture.evidence).unwrap_err();
+    assert_eq!(error[0].code, "SPX-G130");
+    assert_eq!(fixture.inventory(), inventory);
+    assert_eq!(std::fs::read(&fixture.source).unwrap(), source);
+    fixture.assert_no_a0_artifacts();
+}
+
+#[test]
+fn a0_lock_is_acquired_before_patch_or_evidence_authority_work() {
+    let fixture = Fixture::new("apply-lock-first", "not source", "not patch");
+    let lock = fixture.directory.join(format!(
+        ".{}.semaprax-patch.lock",
+        fixture.source.file_name().unwrap().to_string_lossy()
+    ));
+    std::fs::write(&lock, "held").unwrap();
+    let error =
+        patch_evidence::apply(&fixture.source, &fixture.patch, &fixture.evidence).unwrap_err();
+    assert_eq!(error[0].code, "SPX-I205");
+    assert_eq!(std::fs::read_to_string(&lock).unwrap(), "held");
+    std::fs::remove_file(lock).unwrap();
+    fixture.assert_no_a0_artifacts();
+}
+
+#[test]
+fn patch_with_evidence_cli_has_exact_arity_and_success_output() {
+    let fixture = v1_fixture("apply-cli");
+    let capsule = patch_evidence::generate(&fixture.source, &fixture.patch).unwrap();
+    let candidate = serde_json::from_str::<serde_json::Value>(&capsule).unwrap()
+        ["candidate_revision"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    std::fs::write(&fixture.evidence, capsule).unwrap();
+    let binary = env!("CARGO_BIN_EXE_semaprax");
+    let output = Command::new(binary)
+        .arg("patch-with-evidence")
+        .arg(&fixture.source)
+        .arg(&fixture.patch)
+        .arg(&fixture.evidence)
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    assert_eq!(
+        output.stdout,
+        format!("applied semantic patch with exact evidence replay; graph is now {candidate}\n")
+            .as_bytes()
+    );
+    fixture.assert_no_a0_artifacts();
+
+    let rejected = Command::new(binary)
+        .arg("patch-with-evidence")
+        .arg(&fixture.source)
+        .arg(&fixture.patch)
+        .arg(&fixture.evidence)
+        .arg("--extra")
+        .output()
+        .unwrap();
+    assert_eq!(rejected.status.code(), Some(2));
+}
+
+#[cfg(unix)]
+#[test]
+fn evidence_apply_preserves_source_permissions() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let fixture = v1_fixture("apply-permissions");
+    let mut permissions = std::fs::metadata(&fixture.source).unwrap().permissions();
+    permissions.set_mode(0o640);
+    std::fs::set_permissions(&fixture.source, permissions).unwrap();
+    let capsule = patch_evidence::generate(&fixture.source, &fixture.patch).unwrap();
+    std::fs::write(&fixture.evidence, capsule).unwrap();
+    patch_evidence::apply(&fixture.source, &fixture.patch, &fixture.evidence).unwrap();
+    assert_eq!(
+        std::fs::metadata(&fixture.source)
+            .unwrap()
+            .permissions()
+            .mode()
+            & 0o777,
+        0o640
+    );
+    fixture.assert_no_a0_artifacts();
 }

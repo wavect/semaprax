@@ -796,9 +796,87 @@ impl Drop for OwnedSiblingFile {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum CommitPhase {
+pub(crate) enum CommitPhase {
     BeforeFinalCheck,
     BeforeRename,
+}
+
+pub(crate) struct A0CommitGuard {
+    canonical_source_path: PathBuf,
+    diagnostic_path: PathBuf,
+    _lock: OwnedSiblingFile,
+}
+
+impl A0CommitGuard {
+    pub(crate) fn canonical_source_path(&self) -> &Path {
+        &self.canonical_source_path
+    }
+}
+
+pub(crate) fn acquire_a0_commit_guard(
+    source_path: &Path,
+) -> Result<A0CommitGuard, Vec<Diagnostic>> {
+    let canonical_source_path = canonical_source_path(source_path)?;
+    let lock_path = sibling_path(&canonical_source_path, ".semaprax-patch.lock")?;
+    let lock = OwnedSiblingFile::create(lock_path, "SPX-I205", "semantic patch lock", false)?
+        .expect("existing lock is reported as an error");
+    Ok(A0CommitGuard {
+        canonical_source_path,
+        diagnostic_path: source_path.to_path_buf(),
+        _lock: lock,
+    })
+}
+
+pub(crate) struct A0AuthenticatedSource<'a> {
+    guard: &'a A0CommitGuard,
+    snapshot: SourceSnapshot,
+    max_source_bytes: Option<usize>,
+}
+
+impl A0AuthenticatedSource<'_> {
+    pub(crate) fn source(&self) -> &str {
+        self.snapshot.source()
+    }
+}
+
+pub(crate) fn authenticate_a0_source<'a>(
+    guard: &'a A0CommitGuard,
+    limit: Option<(usize, &'static str)>,
+) -> Result<A0AuthenticatedSource<'a>, Vec<Diagnostic>> {
+    let snapshot = match limit {
+        Some((max_source_bytes, diagnostic_code)) => read_source_snapshot_bounded(
+            guard.canonical_source_path(),
+            max_source_bytes,
+            diagnostic_code,
+        ),
+        None => read_source_snapshot(guard.canonical_source_path()),
+    }?;
+    Ok(A0AuthenticatedSource {
+        guard,
+        snapshot,
+        max_source_bytes: limit.map(|(max_source_bytes, _)| max_source_bytes),
+    })
+}
+
+pub(crate) struct A0PreparedCommit<'a> {
+    authenticated: &'a A0AuthenticatedSource<'a>,
+    preflight: &'a PatchPreflight,
+}
+
+pub(crate) fn prepare_a0_commit<'a>(
+    authenticated: &'a A0AuthenticatedSource<'a>,
+    preflight: &'a PatchPreflight,
+) -> Result<A0PreparedCommit<'a>, Vec<Diagnostic>> {
+    if preflight.source() != authenticated.snapshot.source() {
+        return Err(vec![Diagnostic::io(
+            "SPX-G133",
+            "semantic patch preflight source is not bound to the authenticated A0 snapshot",
+        )]);
+    }
+    Ok(A0PreparedCommit {
+        authenticated,
+        preflight,
+    })
 }
 
 pub fn apply(source_path: &Path, patch_path: &Path) -> Result<String, Vec<Diagnostic>> {
@@ -1324,12 +1402,9 @@ fn preflight_parsed_owned(
 fn apply_with_commit_hook(
     source_path: &Path,
     patch_path: &Path,
-    mut hook: impl FnMut(CommitPhase, &Path, &Path) -> std::io::Result<()>,
+    hook: impl FnMut(CommitPhase, &Path, &Path) -> std::io::Result<()>,
 ) -> Result<String, Vec<Diagnostic>> {
-    let canonical_source_path = canonical_source_path(source_path)?;
-    let lock_path = sibling_path(&canonical_source_path, ".semaprax-patch.lock")?;
-    let _lock = OwnedSiblingFile::create(lock_path, "SPX-I205", "semantic patch lock", false)?
-        .expect("existing lock is reported as an error");
+    let guard = acquire_a0_commit_guard(source_path)?;
     let patch_source = std::fs::read_to_string(patch_path).map_err(|error| {
         vec![Diagnostic::io(
             "SPX-I202",
@@ -1338,24 +1413,32 @@ fn apply_with_commit_hook(
     })?;
     let parsed_patch = parse_patch(&patch_source)?;
     let bounded_v3 = parsed_patch.schema == PatchSchema::V3;
-    let before_snapshot = if bounded_v3 {
-        read_source_snapshot_bounded(
-            &canonical_source_path,
-            crate::repair::MAX_SOURCE_BYTES,
-            "SPX-R101",
-        )?
+    let authenticated = if bounded_v3 {
+        authenticate_a0_source(&guard, Some((crate::repair::MAX_SOURCE_BYTES, "SPX-R101")))?
     } else {
-        read_source_snapshot(&canonical_source_path)?
+        authenticate_a0_source(&guard, None)?
     };
-    let source = before_snapshot.source.clone();
+    let source = authenticated.source().to_owned();
     let preflight = preflight_parsed_owned(
         source,
         patch_source,
         source_path.to_path_buf(),
         parsed_patch,
     )?;
+    let prepared = prepare_a0_commit(&authenticated, &preflight)?;
+    commit_prepared_a0(prepared, hook)
+}
+
+pub(crate) fn commit_prepared_a0(
+    prepared: A0PreparedCommit<'_>,
+    mut hook: impl FnMut(CommitPhase, &Path, &Path) -> std::io::Result<()>,
+) -> Result<String, Vec<Diagnostic>> {
+    let authenticated = prepared.authenticated;
+    let guard = authenticated.guard;
+    let preflight = prepared.preflight;
+    let canonical_source_path = guard.canonical_source_path();
     let canonical_bytes = preflight.canonical_candidate().as_bytes();
-    let mut staging = create_staging_file(&canonical_source_path)?;
+    let mut staging = create_staging_file(canonical_source_path)?;
     {
         let file = staging.file_mut()?;
         file.write_all(canonical_bytes).map_err(|error| {
@@ -1370,7 +1453,7 @@ fn apply_with_commit_hook(
                 format!("cannot flush semantic patch staging file: {error}"),
             )]
         })?;
-        file.set_permissions(before_snapshot.permissions.clone())
+        file.set_permissions(authenticated.snapshot.permissions.clone())
             .map_err(|error| {
                 vec![Diagnostic::io(
                     "SPX-I203",
@@ -1387,7 +1470,7 @@ fn apply_with_commit_hook(
     staging.validate_contents(canonical_bytes)?;
     hook(
         CommitPhase::BeforeFinalCheck,
-        &canonical_source_path,
+        canonical_source_path,
         &staging.path,
     )
     .map_err(|error| {
@@ -1396,17 +1479,17 @@ fn apply_with_commit_hook(
             format!("semantic patch pre-commit check failed: {error}"),
         )]
     })?;
-    validate_apply_source_unchanged(
-        &canonical_source_path,
-        source_path,
-        &before_snapshot,
+    validate_commit_source_unchanged(
+        canonical_source_path,
+        &guard.diagnostic_path,
+        &authenticated.snapshot,
         preflight.base_revision(),
-        bounded_v3,
+        authenticated.max_source_bytes,
     )?;
     staging.validate_contents(canonical_bytes)?;
     hook(
         CommitPhase::BeforeRename,
-        &canonical_source_path,
+        canonical_source_path,
         &staging.path,
     )
     .map_err(|error| {
@@ -1415,15 +1498,15 @@ fn apply_with_commit_hook(
             format!("cannot atomically commit semantic patch: {error}"),
         )]
     })?;
-    validate_apply_source_unchanged(
-        &canonical_source_path,
-        source_path,
-        &before_snapshot,
+    validate_commit_source_unchanged(
+        canonical_source_path,
+        &guard.diagnostic_path,
+        &authenticated.snapshot,
         preflight.base_revision(),
-        bounded_v3,
+        authenticated.max_source_bytes,
     )?;
     staging.validate_contents(canonical_bytes)?;
-    std::fs::rename(&staging.path, &canonical_source_path).map_err(|error| {
+    std::fs::rename(&staging.path, canonical_source_path).map_err(|error| {
         vec![Diagnostic::io(
             "SPX-I204",
             format!("cannot atomically commit semantic patch: {error}"),
@@ -1433,20 +1516,20 @@ fn apply_with_commit_hook(
     Ok(preflight.candidate_revision().to_owned())
 }
 
-fn validate_apply_source_unchanged(
+fn validate_commit_source_unchanged(
     canonical_source_path: &Path,
     diagnostic_path: &Path,
     before: &SourceSnapshot,
     revision: &str,
-    bounded_v3: bool,
+    max_source_bytes: Option<usize>,
 ) -> Result<(), Vec<Diagnostic>> {
-    if bounded_v3 {
+    if let Some(max_source_bytes) = max_source_bytes {
         validate_source_unchanged_bounded(
             canonical_source_path,
             diagnostic_path,
             before,
             revision,
-            crate::repair::MAX_SOURCE_BYTES,
+            max_source_bytes,
         )
     } else {
         validate_source_unchanged(canonical_source_path, diagnostic_path, before, revision)
@@ -2866,6 +2949,32 @@ fn main() -> i64
 
         assert_eq!(error[0].code, "SPX-I204");
         assert_eq!(std::fs::read_to_string(&source_path).unwrap(), SOURCE);
+        assert_owned_artifacts_removed(&source_path);
+    }
+
+    #[test]
+    fn prepared_commit_rejects_a_preflight_from_another_snapshot_before_staging() {
+        let (source_path, _) = fixture("sealed-prepared-commit");
+        let guard = acquire_a0_commit_guard(&source_path).unwrap();
+        let authenticated =
+            authenticate_a0_source(&guard, Some((crate::review::MAX_SOURCE_BYTES, "SPX-G131")))
+                .unwrap();
+        let other_source = SOURCE.replace("42", "41");
+        let other_revision = graph::revision(&parse(&other_source, &source_path).unwrap());
+        let other_patch = format!("base {other_revision}\nrename helper.answer to computed\n");
+        let other_preflight =
+            preflight_review_owned(other_source, other_patch, source_path.clone(), 1).unwrap();
+        let Err(error) = prepare_a0_commit(&authenticated, &other_preflight) else {
+            panic!("mismatched preflight must not prepare a commit");
+        };
+        assert_eq!(error[0].code, "SPX-G133");
+        assert!(std::fs::read_dir(source_path.parent().unwrap())
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+            .all(|name| !name.contains(".semaprax-stage.")));
+        assert_eq!(std::fs::read_to_string(&source_path).unwrap(), SOURCE);
+        drop(authenticated);
+        drop(guard);
         assert_owned_artifacts_removed(&source_path);
     }
 

@@ -9,7 +9,12 @@ Status: implemented in this repository.
 - Canonical source and typed expression core.
 - Stable declaration identities.
 - Revisioned semantic graph and context slices.
-- Versioned byte/node-bounded agent context with stable replay frontiers.
+- Versioned byte/node-bounded Agent Context v1 with stable replay frontiers,
+  plus additive forward/reverse/both Agent Context v2 call traversal with
+  separate traversal/reference frontiers and direction-bound replay. V1
+  remains byte-compatible by default; v2 and v1-preservation gates are hosted
+  green in [run 31397881268, Ubuntu job
+  93485198327](https://github.com/wavect/semaprax/actions/runs/31397881268/job/93485198327).
 - Offline context economics with exact goldens and conservative quality routing.
 - Effects, module permits, and contract guards.
 - Machine-readable diagnostics.
@@ -518,7 +523,11 @@ The bounded Semantic Patch v2 milestone adds atomic persistent member/case
 renames and exact generic call-argument replacement without advancing Graph
 beyond v14 or CleanupPlan beyond its existing v2/v3 selection. It remains a
 single-file, trusted-patch-input capability; authenticated multi-file repair,
-generic composition, and broad type renames remain roadmap work.
+generic composition, and broad type renames remain roadmap work. Its exact
+`f95d243` full matrix is hosted green in [run 31401200449 attempt
+2](https://github.com/wavect/semaprax/actions/runs/31401200449/attempts/2),
+including [Ubuntu job
+93505622044](https://github.com/wavect/semaprax/actions/runs/31401200449/job/93505622044).
 
 - Versioned language, graph, package, and component specifications.
 - Reproducible native and component builds on supported targets.

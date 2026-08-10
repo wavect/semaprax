@@ -12,6 +12,59 @@ unavailable target/diagnostic/test filters as empty facts. The legacy Rust
 consumers use `graph::agent_context_json` with `AgentContextOptions`. There is
 no schema negotiation or silent fallback.
 
+## Agent Context v1 to v2 directional queries
+
+Agent Context v1 remains the exact CLI and Rust API default. An explicit
+`--direction forward|reverse|both` selects `semaprax.agent-context.v2`; Rust
+consumers use `AgentContextV2Options` and `agent_context_v2_json`. Consumers
+must bind replay to the query direction and treat `frontier` as omitted
+selected-direction traversal nodes while treating `reference_frontier` as
+referenced non-selected relation targets. Reference closure is not a
+truncation reason and does not contribute to traversal omitted/deferred counts.
+
+V2 retains the v1 byte, node, depth, filter, and fail-closed limits. It reports
+the same program-selected Graph v10/v11/v12/v13/v14 schema and changes no Graph
+bytes, source revision, HIR, or CleanupPlan. Frozen SHA-256 KATs are forward
+`922404133444942ab86607772362098e0f5656add6bea607a890be2bcfe5b7c9`,
+reverse `9a2ebfe569926e67f436379cf2b5c96d510daadd11d0a295ed54903cb612627b`,
+and both `4ec8a62a17551e87dc301d08f0a09c6159445757bca6dd9920a7db4e3790ce17`.
+V1 golden preservation and v2 execution are hosted green in [run 31397881268,
+Ubuntu job
+93485198327](https://github.com/wavect/semaprax/actions/runs/31397881268/job/93485198327).
+V2 is not general impact analysis or a reverse index for non-call semantics.
+
+## Semantic Patch v1 to v2
+
+Schema-less patches retain the exact v1 parser and operation domain: one
+revision base, explicit function/resource renames, and `require
+no-new-effects`. The first non-comment line `schema
+semaprax.semantic-patch.v2` opts into persistent record/case-member and
+variant-case renames plus exact addressed `i64`/`bool` generic-call
+type-argument replacement. V2 rejects schema placement confusion, duplicate or
+overlapping selectors, automatic/compiler-owned identities, stale call tuples,
+and any post-HIR semantic delta outside the selected identities. Pattern
+shorthand expands its label while preserving the original binding, `ValueId`,
+and `Place` root.
+
+V2 does not migrate Graph or CleanupPlan: the program-selected Graph
+v10/v11/v12/v13/v14 schema and CleanupPlan v2/v3 remain authoritative. It also
+does not authenticate patch-file path/content provenance, add multi-file
+commit, or open general type, shape, generic-composition, repair, or impact
+operations. The frozen mixed-transaction post-edit revision and old/new
+function-instance KATs remain recorded in
+[the v2 contract](SEMANTIC-PATCH-V2.md).
+
+The implementation commit `b92ce68` did not have a green hosted matrix: [run
+31400888352](https://github.com/wavect/semaprax/actions/runs/31400888352) was
+cancelled after its isolated Wasmtime job failed on stale runtime-lock state.
+Commit `f95d243` reconciled that lock. Attempt 1 of its workflow was cancelled
+and is not evidence; the exact head's [run 31401200449 attempt
+2](https://github.com/wavect/semaprax/actions/runs/31401200449/attempts/2) is
+terminal green, including [Ubuntu job
+93505622044](https://github.com/wavect/semaprax/actions/runs/31401200449/job/93505622044)
+and [Wasmtime job
+93505622110](https://github.com/wavect/semaprax/actions/runs/31401200449/job/93505622110).
+
 ## Persistent identities are NUL-free
 
 Persistent semantic identities and logical import keys may not contain a literal NUL byte. Source validation reports the declaration-specific stable diagnostic before resolution or graph serialization; `\0` remains an unsupported source-string escape. Public consumers of transformed resolved HIR must likewise reject NUL in declaration IDs, types, expressions, places, call/record/field references, and attached cleanup inventory or plan metadata before code generation or serialization. Regenerate or rename any pre-alpha fixture that constructed such an identity directly.

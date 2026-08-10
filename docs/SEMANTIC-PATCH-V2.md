@@ -90,8 +90,13 @@ Its exact old/new call-instance KATs are
 `semaprax.function-instance.v1:14:generic.marker:2:3:i644:bool` and
 `semaprax.function-instance.v1:14:generic.marker:2:4:bool3:i64`. The focused
 suite also applies a v2 call patch and executes the changed source under Clang
-`-O0`/`-O2` and Node/Wasm (256 re-entries); this is local executable evidence,
-not a new hosted-platform claim.
+`-O0`/`-O2` and Node/Wasm (256 re-entries). The focused suite is 9/9. The exact
+`f95d243` full matrix is hosted green in [run 31401200449 attempt
+2](https://github.com/wavect/semaprax/actions/runs/31401200449/attempts/2),
+including [Ubuntu job
+93505622044](https://github.com/wavect/semaprax/actions/runs/31401200449/job/93505622044);
+the lock-reconciled isolated runtime is green in [Wasmtime job
+93505622110](https://github.com/wavect/semaprax/actions/runs/31401200449/job/93505622110).
 
 Focused gates:
 

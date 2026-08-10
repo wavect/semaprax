@@ -5,13 +5,17 @@ UTF-8 JSON bytes and function facts; it does not claim an exact model-token
 budget, relevance ranking, repository-wide impact analysis, or facts absent
 from the current Graph v10-v14 lattice.
 
-`semaprax.agent-context.v1` is the current CLI projection for:
+`semaprax.agent-context.v1` is the exact default CLI projection for:
 
 ```text
 semaprax context <file> <symbol|stable-id>
   [--depth N] [--max-bytes N] [--max-nodes N]
   [--filters contracts,ownership,effects,types,targets,diagnostics,tests]
 ```
+
+Supplying an explicit `--direction forward|reverse|both` selects the additive
+[`semaprax.agent-context.v2`](AGENT-CONTEXT-V2.md) contract; omitting it retains
+the v1 API, CLI behavior, and bytes.
 
 Options are closed, single-use, and require canonical decimal integers.
 Unknown options and filters, duplicates, missing values, leading-zero numbers,

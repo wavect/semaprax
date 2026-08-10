@@ -4,13 +4,36 @@ All notable changes to SEMAPRAX are documented here.
 
 ## 0.2.0 — 2026-08-07
 
+- Added [`semaprax.agent-context.v2`](docs/AGENT-CONTEXT-V2.md) as an
+  explicit-direction extension of the byte/node-bounded context query. V1
+  remains the exact default when `--direction` is absent; `forward`, `reverse`,
+  and `both` select deterministic breadth-first call traversal with global
+  stable-ID ordering, minimum-depth direction provenance, and separate
+  traversal and reference frontiers. Frozen SHA-256 KATs are forward
+  `922404133444942ab86607772362098e0f5656add6bea607a890be2bcfe5b7c9`,
+  reverse `9a2ebfe569926e67f436379cf2b5c96d510daadd11d0a295ed54903cb612627b`,
+  and both `4ec8a62a17551e87dc301d08f0a09c6159445757bca6dd9920a7db4e3790ce17`.
+  Local v2 and legacy-v1 gates are 8/8 and 8/8; the full hosted matrix is green
+  in [run 31397881268, including Ubuntu job
+  93485198327](https://github.com/wavect/semaprax/actions/runs/31397881268/job/93485198327).
+  V2 remains a call-graph query and does not claim general reverse semantic
+  edges, impact analysis, ranking, repository indexing, persistence, or a
+  graph daemon.
+
 - Added bounded Semantic Patch v2 with an explicit schema line, atomic
   persistent record/case-member and variant-case renames, exact generic-call
   type-argument replacement, pattern-shorthand binding preservation, and a
   mandatory selective post-HIR semantic-delta gate. Schema-less v1 behavior is
   retained. Graph remains v14 and CleanupPlan selection is unchanged. The
   patch file itself remains trusted input; A0 authenticates source/staging, not
-  concurrent patch-path replacement.
+  concurrent patch-path replacement. The focused Patch v2 suite is 9/9, and
+  the exact `f95d243` full matrix is hosted green in [run 31401200449 attempt
+  2](https://github.com/wavect/semaprax/actions/runs/31401200449/attempts/2),
+  including [Ubuntu job
+  93505622044](https://github.com/wavect/semaprax/actions/runs/31401200449/job/93505622044).
+  The isolated runtime lock repair is included in that exact green head;
+  Patch v2 also remains covered by the green [Wasmtime job
+  93505622110](https://github.com/wavect/semaprax/actions/runs/31401200449/job/93505622110).
 
 - Hardened single-file semantic patch commits against lost updates and leaf
   substitution. Patch application authenticates a canonical regular source

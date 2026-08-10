@@ -72,6 +72,10 @@ reverse, and both SHA-256 known answers are:
 - reverse: `9a2ebfe569926e67f436379cf2b5c96d510daadd11d0a295ed54903cb612627b`
 - both: `4ec8a62a17551e87dc301d08f0a09c6159445757bca6dd9920a7db4e3790ce17`
 
+Local v2 and legacy-v1 gates are 8/8 and 8/8. The full hosted matrix is green
+in [run 31397881268, including Ubuntu job
+93485198327](https://github.com/wavect/semaprax/actions/runs/31397881268/job/93485198327).
+
 The executable gates cover deterministic JSON parsing, global per-depth order,
 minimum-depth cycle handling, generic-template callers, direction-bound
 traversal and reference replay, byte/node/depth truncation, permanent

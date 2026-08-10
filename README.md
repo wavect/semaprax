@@ -197,11 +197,19 @@ Implemented today:
   shared-epilogue meaning, exact generic-record templates/instances, recursive
   exact-instance record-pattern fields/bindings, exact generic-function
   templates/instances/call sites, complete
-  CleanupPlan v2/v3 staging, and dependency-bounded context
-  slices. Revision v2 binds both canonical source and the exact prelude
-  contract.
+  CleanupPlan v2/v3 staging, dependency-bounded Agent Context v1 slices, and
+  additive forward/reverse/both Agent Context v2 call traversal with separate
+  traversal/reference frontiers. V1 remains the exact CLI default. Revision v2
+  binds both canonical source and the exact prelude contract.
 - JSON-line diagnostics for agent consumption.
-- Atomic semantic rename patches with stale-revision rejection.
+- Atomic Semantic Patch v1 function/resource renames plus bounded
+  [`semaprax.semantic-patch.v2`](docs/SEMANTIC-PATCH-V2.md) persistent
+  member/case renames and exact generic-call type-argument replacement, with
+  stale-revision rejection and a selective post-HIR semantic-delta gate. The
+  exact v2 matrix is hosted green in [run 31401200449 attempt
+  2](https://github.com/wavect/semaprax/actions/runs/31401200449/attempts/2),
+  including [Ubuntu job
+  93505622044](https://github.com/wavect/semaprax/actions/runs/31401200449/job/93505622044).
 - Native AOT output through a readable C11 lowering and Clang.
 - Direct WebAssembly core output with a generated ES-module runtime, HTML entry point, capability manifest, checked arithmetic, and contract traps.
 - A deliberately narrow `semaprax.wasm-owned.v1` Core Wasm path for one direct
@@ -591,6 +599,13 @@ An agent can request only the meaning around one symbol:
 semaprax context examples/meaning.spx app.main --depth 1 --max-bytes 65536 --max-nodes 256
 ```
 
+That command retains the exact `semaprax.agent-context.v1` default. Supplying
+an explicit direction selects the additive v2 call-graph query:
+
+```sh
+semaprax context examples/meaning.spx app.main --direction reverse --depth 1
+```
+
 It can then submit a transaction:
 
 ```text
@@ -598,6 +613,12 @@ base sha256:<64-lowercase-hex-digits>
 rename math.add to checked_add
 require no-new-effects
 ```
+
+That schema-less form retains exact v1 function/resource rename behavior.
+Persistent record/case-member, variant-case, and generic-call type-argument
+edits opt into the bounded v2 grammar with first non-comment line
+`schema semaprax.semantic-patch.v2`; see [Semantic Patch
+v2](docs/SEMANTIC-PATCH-V2.md).
 
 ```sh
 semaprax patch examples/meaning.spx change.spatch
@@ -624,7 +645,7 @@ durability, multi-file commits, and general typed repair/impact remain open.
 | --- | --- |
 | `check <file> [--json]` | Parse, type-check, verify contracts and effects |
 | `graph <file>` | Emit the revisioned semantic program graph |
-| `context <file> <symbol> [bounded options]` | Emit deterministic [`semaprax.agent-context.v1`](docs/AGENT-CONTEXT-V1.md) JSON with budgets, filters, omitted counts, and replay frontier |
+| `context <file> <symbol> [bounded options]` | Emit deterministic default [`semaprax.agent-context.v1`](docs/AGENT-CONTEXT-V1.md) JSON, or additive [`semaprax.agent-context.v2`](docs/AGENT-CONTEXT-V2.md) forward/reverse/both call context with `--direction` |
 | `context-benchmark <manifest>` | Run deterministic offline [`semaprax.agent-context-economics.v1`](docs/AGENT-ECONOMICS-V1.md) byte/node/non-model lexical-unit and evidence scoring |
 | `build <file> [--target native\|native-callable\|web] [--function stable-id] [-o path]` | Produce a native executable, build-only callable bundle, or browser/Wasm package |
 | `run <file>` | Build and run in one step |

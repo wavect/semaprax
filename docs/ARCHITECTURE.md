@@ -727,7 +727,7 @@ Expression and value IDs are deterministic but revision-scoped; only explicitly 
 Context slicing starts from a display name or exact declaration ID, with exact IDs taking precedence on collisions. It walks declaration-ID call dependencies from preconditions, bodies, and postconditions to a bounded depth and closes referenced record types transitively through their field types. Unrelated declarations remain excluded. Every result declares a `module` or `context` view. Context views record root, depth, truncation, and frontier IDs so an omitted call dependency is distinguishable from a dangling reference. Callers, tests, packages, targets, and generated artifacts will become additional typed edges.
 
 The additive [`semaprax.agent-context.v1`](AGENT-CONTEXT-V1.md) projection is
-the current CLI context contract. It applies exact whole-document byte and
+the exact default CLI context contract. It applies exact whole-document byte and
 function-node budgets, reports used/omitted budgets, and turns known omitted
 functions into stable-ID progress frontiers, with exact deferred counts,
 non-dangling emitted call edges, a query-bound minimum-byte cursor, aggregate
@@ -738,6 +738,25 @@ lifecycle, and import subgraphs are not claimed by this projection. Graph v10
 has no target, diagnostic, or test nodes, so those requests are marked
 unavailable rather than inferred. The legacy Rust depth-slice API over Graph v10
 remains compatible.
+
+Supplying `--direction forward|reverse|both` selects the additive
+[`semaprax.agent-context.v2`](AGENT-CONTEXT-V2.md) contract. V2 builds an
+independent caller index over validated HIR, traverses the selected call-edge
+direction breadth-first with global stable-ID order at each depth, and records
+only minimum-depth direction provenance. Its `frontier` contains omitted
+selected-direction traversal nodes, while `reference_frontier` contains
+non-selected relation targets referenced by emitted facts; their counts and
+resume contracts remain separate and direction-bound. Exact forward, reverse,
+and both SHA-256 KATs are
+`922404133444942ab86607772362098e0f5656add6bea607a890be2bcfe5b7c9`,
+`9a2ebfe569926e67f436379cf2b5c96d510daadd11d0a295ed54903cb612627b`,
+and `4ec8a62a17551e87dc301d08f0a09c6159445757bca6dd9920a7db4e3790ce17`.
+The full hosted matrix is green in [run 31397881268, Ubuntu job
+93485198327](https://github.com/wavect/semaprax/actions/runs/31397881268/job/93485198327).
+V2 does not change Graph v10-v14, source revisions, HIR, type/layout facts, or
+CleanupPlan v2/v3. It remains a call-graph query, not general reverse semantic
+edges, impact analysis, ranking, repository indexing, persistence, or a graph
+daemon.
 
 The additive [`semaprax.agent-context-economics.v1`](AGENT-ECONOMICS-V1.md)
 layer runs strict checked-in maintenance manifests offline. Canonical
@@ -828,6 +847,13 @@ generic call arguments against verified pre-edit HIR, preserves pattern binding
 identity through shorthand expansion, and runs a selective Graph/HIR semantic
 delta gate before staging. Schema-less v1 patches retain their original path.
 See `docs/SEMANTIC-PATCH-V2.md`; Graph remains v14 and CleanupPlan is unchanged.
+The focused v2 suite is 9/9, and the exact `f95d243` full hosted matrix is green
+in [run 31401200449 attempt
+2](https://github.com/wavect/semaprax/actions/runs/31401200449/attempts/2),
+including [Ubuntu job
+93505622044](https://github.com/wavect/semaprax/actions/runs/31401200449/job/93505622044)
+and the isolated runtime lock in green [Wasmtime job
+93505622110](https://github.com/wavect/semaprax/actions/runs/31401200449/job/93505622110).
 
 `AGENTS.md` defines the repository invariants and change protocol. `docs/QUALITY-GATES.md` defines baseline and semantic-layer-specific evidence. CI runs formatting, strict linting, tests, release builds, native execution, Wasm instantiation, crate packaging, and the declared Rust minimum version. These gates reduce regressions; they do not turn a partial completion-matrix row into a completed one.
 

@@ -370,7 +370,7 @@ Schema selection is program-wide: any authenticated generic function
 declaration selects v14, including an unused template; otherwise an explicit
 record pattern selects v13, a generic record declaration selects v12, Option
 propagation selects v11, and legacy/Result-only programs use v10. Agent Context
-v1 reports the same program-level source schema regardless of root. V14 adds
+v1 and v2 report the same program-level source schema regardless of root. V14 adds
 exact function-template, concrete-instance, and call-instance nodes without
 fabricating an unused instance. V13 adds exact recursive record-pattern nodes carrying concrete record
 instances, stable record/field IDs, canonical binding IDs, and authored field
@@ -399,6 +399,19 @@ Semantic renames preserve meaning:
 - shorthand `{ value }` becomes `{ renamed_field: value }` if necessary to preserve the local binding;
 - stale, colliding, or unverifiable changes leave every source byte unchanged.
 
+Bounded `semaprax.semantic-patch.v2` makes persistent field/payload-member and
+variant-case renames executable, expands shorthand without changing binding or
+place identity, and admits exact addressed direct-scalar generic-call argument
+replacement under one pre-state transaction and a selective post-HIR semantic
+delta gate. Schema-less v1 remains exact. The focused suite is 9/9, and the
+exact `f95d243` matrix is hosted green in [run 31401200449 attempt
+2](https://github.com/wavect/semaprax/actions/runs/31401200449/attempts/2),
+including [Ubuntu job
+93505622044](https://github.com/wavect/semaprax/actions/runs/31401200449/job/93505622044).
+Graph remains v10-v14 and CleanupPlan remains v2/v3. Patch-file provenance,
+shape edits, layout/interface hashes, general type/generic edits, and
+multi-file repair remain open.
+
 Shape edits later carry match obligations and typed repairs; they are not textual insertion operations.
 
 ## Diagnostics
@@ -423,6 +436,11 @@ Shape edits later carry match obligations and typed repairs; they are not textua
 - `SPX-O109` use of partially moved place.
 - `SPX-O110` place conditionally moved by another arm.
 - `SPX-O111` non-copy match without an explicit ownership mode.
+- `SPX-G106` duplicate, conflicting, no-op, or overlapping Patch v2 edit.
+- `SPX-G107` Patch v2 wrong owner/kind/persistence domain or compiler-owned
+  identity.
+- `SPX-G108` Patch v2 stale generic-call tuple, source/HIR index mismatch, or
+  excessive semantic delta.
 
 Existing diagnostic codes remain reserved; implementation must resolve any collision before landing.
 
@@ -447,6 +465,15 @@ Existing diagnostic codes remain reserved; implementation must resolve any colli
    callable/resource admission, general/public Component mapping, and stable
    ABI remain open.**
 8. Add member/case transactions, layout/interface hashes, and context traversal.
+   **Partially implemented: bounded persistent member/case transactions and
+   exact direct-scalar generic-call argument replacement are hosted green in
+   [run 31401200449 attempt
+   2](https://github.com/wavect/semaprax/actions/runs/31401200449/attempts/2),
+   including [Ubuntu job
+   93505622044](https://github.com/wavect/semaprax/actions/runs/31401200449/job/93505622044),
+   while additive Agent Context v2 provides bounded directional call traversal.
+   Layout/interface hashes, authenticated patch provenance, multi-file repair,
+   and general traversal/impact remain open.**
 
 ## Completion evidence
 

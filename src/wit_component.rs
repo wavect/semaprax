@@ -1331,6 +1331,27 @@ fn main() -> i64 { 42 }
     }
 
     #[test]
+    fn checked_component_v2_ignores_only_implicit_prelude_templates() {
+        for source in [
+            r#"module authored_record;
+@id("record.type") record Payload { @id("record.value") value: i64, }
+@id("app.main") fn main() -> i64 { 42 }
+"#,
+            r#"module authored_variant;
+@id("variant.type") variant Choice { @id("variant.none") None, }
+@id("app.main") fn main() -> i64 { 42 }
+"#,
+        ] {
+            let program = crate::parse(source, Path::new("authored-aggregate-v2.spx")).unwrap();
+            let error = emit_private_checked_component_v2(&program).unwrap_err();
+            assert_eq!(error.code, "SPX-WIT106");
+        }
+
+        emit_private_checked_component_v2(&checked_component_program())
+            .expect("implicit Option/Result templates must preserve the scalar profile");
+    }
+
+    #[test]
     fn node_executes_generated_core_with_the_embedded_checked_runtime() {
         let artifact = emit_private_checked_component_v2(&checked_component_program()).unwrap();
         let validated = validate_private_checked_component_v2(

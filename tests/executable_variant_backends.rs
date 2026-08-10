@@ -4,6 +4,7 @@ use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use semaprax::{codegen, parse, wasm};
+use sha2::{Digest as _, Sha256};
 
 static NEXT_ID: AtomicU64 = AtomicU64::new(0);
 
@@ -91,12 +92,94 @@ fn post(choice: Choice) -> i64 ensures false { select(choice) }
 fn main() -> i64 { select(make(42)) }
 "#;
 
+const GENERIC_SOURCE: &str = r#"
+module test.generic_variant_backends;
+@id("choice.generic")
+variant Choice<T> {
+    @id("choice.generic.none") None,
+    @id("choice.generic.value") Value {
+        @id("choice.generic.value.value") value: T,
+    },
+}
+@id("choice.make_i64")
+fn make_i64() -> Choice<i64> { Choice<i64>::Value { value: 40 } }
+@id("choice.read_i64")
+fn read_i64(choice: Choice<i64>) -> i64 {
+    match choice {
+        Choice::None {} => 0,
+        Choice::Value { value } => value,
+    }
+}
+@id("choice.make_bool")
+fn make_bool() -> Choice<bool> { Choice<bool>::Value { value: true } }
+@id("choice.read_bool")
+fn read_bool(choice: Choice<bool>) -> i64 {
+    match choice {
+        Choice::None {} => 0,
+        Choice::Value { value } => if value { 1 } else { 0 },
+    }
+}
+@id("option.make_i64")
+fn make_option_i64() -> Option<i64> { Option<i64>::Some { value: 1 } }
+@id("option.read_i64")
+fn read_option_i64(value: Option<i64>) -> i64 {
+    match value {
+        Option::None {} => 0,
+        Option::Some { value: inner } => inner,
+    }
+}
+@id("option.make_bool")
+fn make_option_bool() -> Option<bool> { Option<bool>::None {} }
+@id("option.read_bool")
+fn read_option_bool(value: Option<bool>) -> i64 {
+    match value {
+        Option::None {} => 1,
+        Option::Some { value: inner } => if inner { 2 } else { 3 },
+    }
+}
+@id("result.make_err")
+fn make_err() -> Result<i64, bool> { Result<i64, bool>::Err { error: true } }
+@id("result.read")
+fn read_result(value: Result<i64, bool>) -> i64 {
+    match value {
+        Result::Ok { value: success } => success,
+        Result::Err { error } => if error { 1 } else { 0 },
+    }
+}
+@id("result.failure")
+fn result_failure() -> Result<i64, bool> {
+    Result<i64, bool>::Ok { value: 9223372036854775807 + 1 }
+}
+@id("app.main")
+fn main() -> i64 {
+    read_i64(make_i64()) + read_bool(make_bool()) +
+        read_option_i64(make_option_i64()) + read_option_bool(make_option_bool()) +
+        read_result(make_err())
+}
+"#;
+
 fn hex_identity(value: &str) -> String {
     let mut output = String::with_capacity(value.len() * 2);
     for byte in value.bytes() {
         write!(output, "{byte:02x}").expect("writing to String cannot fail");
     }
     output
+}
+
+fn generic_variant_symbol(id: &str, arguments: &[&str]) -> String {
+    let mut encoded = String::new();
+    for argument in arguments {
+        write!(encoded, "{}:{argument}", argument.len()).expect("writing to String cannot fail");
+    }
+    let identity = format!("nominal:{}:{id}:{}:{encoded}", id.len(), arguments.len());
+    let mut digest = Sha256::new();
+    digest.update(b"semaprax.native-variant-instance.v1\0");
+    digest.update(identity.as_bytes());
+    let mut suffix = String::with_capacity(64);
+    for byte in digest.finalize() {
+        write!(suffix, "{byte:02x}").expect("writing to String cannot fail");
+    }
+    format!("spx_variant_{}_inst_{suffix}", hex_identity(id))
 }
 
 fn command_available(command: &str) -> bool {
@@ -242,6 +325,168 @@ int main(int argc, char **argv) {{
         );
         assert!(String::from_utf8_lossy(&invalid.stderr).contains("invalid variant tag"));
     }
+}
+
+#[test]
+fn native_generic_and_prelude_variants_execute_at_o0_o2_without_status_confusion() {
+    if !command_available("clang") {
+        return;
+    }
+    let program = parse(GENERIC_SOURCE, Path::new("generic-variant-native.spx")).unwrap();
+    let generated = codegen::emit_c(&program).unwrap();
+    assert_eq!(generated, codegen::emit_c(&program).unwrap());
+
+    let choice_i64 = generic_variant_symbol("choice.generic", &["i64"]);
+    let choice_bool = generic_variant_symbol("choice.generic", &["bool"]);
+    let result = generic_variant_symbol("core.result", &["i64", "bool"]);
+    assert_ne!(choice_i64, choice_bool);
+    assert!(generated.contains(&format!("struct {choice_i64} {{")));
+    assert!(generated.contains(&format!("struct {choice_bool} {{")));
+    assert!(generated.contains(&format!(
+        "_Static_assert(sizeof(struct {result}) == UINT32_C(16)"
+    )));
+
+    let symbol = |id: &str| format!("spx_decl_{}", hex_identity(id));
+    let err_case = format!("spx_case_{}", hex_identity("core.result.err"));
+    let err_field = format!("spx_field_{}", hex_identity("core.result.err.error"));
+    let probe = format!(
+        r#"
+#include <string.h>
+static int spx_test_poison(const unsigned char *bytes, size_t length) {{
+    for (size_t index = 0; index < length; index += 1) {{
+        if (bytes[index] != UINT8_C(165)) return 0;
+    }}
+    return 1;
+}}
+int main(int argc, char **argv) {{
+    struct spx_status_entry entries[UINT32_C(8)];
+    struct spx_context context = {{0}};
+    if (!spx_context_init(&context, UINT64_C(99), entries, UINT32_C(8), NULL, NULL, NULL)) return 10;
+    struct {result} output;
+    if (argc > 1) {{
+        (void)argv;
+        memset(&output, 0, sizeof(output));
+        output.spx_tag = UINT32_MAX;
+        int64_t invalid_out = INT64_C(0x2525252525252525);
+        (void){read_result}(&context, &output, &invalid_out);
+        return 90;
+    }}
+    memset(&output, 0xa5, sizeof(output));
+    if ({make_err}(&context, &output) != SPX_STATUS_SUCCESS) return 11;
+    if (output.spx_tag != UINT32_C(1) || !output.spx_payload.{err_case}.{err_field}) return 12;
+    memset(&output, 0xa5, sizeof(output));
+    spx_status_token status = {failure}(&context, &output);
+    const struct spx_normalized_status *resolved = spx_status_resolve(&context, status);
+    if (resolved == NULL || strcmp(resolved->domain_id, "semaprax.arithmetic.v1") != 0 ||
+        resolved->code != UINT32_C(1)) return 13;
+    if (!spx_test_poison((const unsigned char *)&output, sizeof(output))) return 14;
+    int64_t scalar = INT64_C(0);
+    if ({main_fn}(&context, &scalar) != SPX_STATUS_SUCCESS || scalar != INT64_C(44)) return 15;
+    return 0;
+}}
+"#,
+        make_err = symbol("result.make_err"),
+        failure = symbol("result.failure"),
+        read_result = symbol("result.read"),
+        main_fn = symbol("app.main"),
+    );
+
+    for optimization in ["-O0", "-O2"] {
+        let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
+        let stem = format!(
+            "semaprax-generic-variant-native-{}-{id}",
+            std::process::id()
+        );
+        let source = std::env::temp_dir().join(format!("{stem}.c"));
+        let executable =
+            std::env::temp_dir().join(format!("{stem}{}", std::env::consts::EXE_SUFFIX));
+        std::fs::write(&source, format!("{generated}\n{probe}")).unwrap();
+        let compiled = Command::new("clang")
+            .args([
+                "-std=c11",
+                optimization,
+                "-Wall",
+                "-Wextra",
+                "-Werror",
+                "-DSPX_NO_ENTRY_WRAPPER",
+            ])
+            .arg(&source)
+            .arg("-o")
+            .arg(&executable)
+            .output()
+            .unwrap();
+        assert!(
+            compiled.status.success(),
+            "generic variant C failed at {optimization}: {}",
+            String::from_utf8_lossy(&compiled.stderr)
+        );
+        let executed = Command::new(&executable).output().unwrap();
+        let invalid = Command::new(&executable)
+            .arg("invalid-tag")
+            .output()
+            .unwrap();
+        let _ = std::fs::remove_file(&source);
+        let _ = std::fs::remove_file(&executable);
+        assert!(
+            executed.status.success(),
+            "generic variant C failed at {optimization}: status={:?} stderr={}",
+            executed.status.code(),
+            String::from_utf8_lossy(&executed.stderr)
+        );
+        assert!(
+            !invalid.status.success(),
+            "invalid native generic Result tag did not fail closed at {optimization}"
+        );
+        assert!(String::from_utf8_lossy(&invalid.stderr).contains("invalid variant tag"));
+    }
+}
+
+#[test]
+fn public_generic_and_prelude_variants_are_equivalent_in_node_wasm() {
+    if !command_available("node") {
+        return;
+    }
+    let program = parse(GENERIC_SOURCE, Path::new("generic-variant-wasm.spx")).unwrap();
+    let bytes = wasm::emit_module(&program).unwrap();
+    assert_eq!(bytes, wasm::emit_module(&program).unwrap());
+    let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
+    let stem = format!("semaprax-generic-variant-wasm-{}-{id}", std::process::id());
+    let wasm_path = std::env::temp_dir().join(format!("{stem}.wasm"));
+    let script_path = std::env::temp_dir().join(format!("{stem}.mjs"));
+    std::fs::write(&wasm_path, bytes).unwrap();
+    std::fs::write(
+        &script_path,
+        r#"import { readFile } from "node:fs/promises";
+const fail = (name) => () => { throw new Error(`unexpected host import ${name}`); };
+const bytes = await readFile(process.argv[2]);
+const { instance } = await WebAssembly.instantiate(bytes, { env: {
+  spx_add: fail("spx_add"), spx_sub: fail("spx_sub"), spx_mul: fail("spx_mul"),
+  spx_div: fail("spx_div"), spx_rem: fail("spx_rem"), spx_neg: fail("spx_neg"),
+  spx_contract_fail: fail("spx_contract_fail"),
+} });
+for (let index = 0; index < 4096; index += 1) {
+  if (instance.exports.semaprax_main() !== 44n) throw new Error("generic/prelude result mismatch");
+}
+console.log("generic-variant-wasm-v2-ok");
+"#,
+    )
+    .unwrap();
+    let output = Command::new("node")
+        .arg(&script_path)
+        .arg(&wasm_path)
+        .output()
+        .unwrap();
+    let _ = std::fs::remove_file(&script_path);
+    let _ = std::fs::remove_file(&wasm_path);
+    assert!(
+        output.status.success(),
+        "Node generic/prelude variant failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout).trim(),
+        "generic-variant-wasm-v2-ok"
+    );
 }
 
 #[test]

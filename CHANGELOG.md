@@ -14,9 +14,24 @@ All notable changes to SEMAPRAX are documented here.
   ([job 93309086228](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086228)),
   and the private Android JNI/Kotlin app
   ([job 93309086206](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086206)).
-  Windows desktop package/runtime remains pending after
-  [failed run 31341453652, job 93315816975](https://github.com/wavect/semaprax/actions/runs/31341453652/job/93315816975).
-  The local `llvm-readobj` package-inspection fix is not hosted evidence.
+  A later full-matrix [run 31343897595](https://github.com/wavect/semaprax/actions/runs/31343897595)
+  is green, including the Windows engine and Win32 UI package/runtime
+  ([job 93322134480](https://github.com/wavect/semaprax/actions/runs/31343897595/job/93322134480))
+  and the bounded Copy Variants + Match v1 tests on Linux, macOS, and Windows.
+- Superseding the earlier non-generic/Graph-v8 boundary below, copy variants now
+  admit explicitly instantiated nominal templates with direct `i64`/`bool`
+  arguments. Compiler-owned ordinary `Option<T>` and `Result<T, E>` are the
+  same versioned generic-variant mechanism, not backend intrinsics. Graph v9
+  authenticates owner/index-stable parameters, exact concrete arguments, and
+  `semaprax.prelude.v1`; graph revision v2 binds canonical source plus the
+  prelude contract. Internal Native64/Wasm32 layout digest v2 and distinct
+  concrete-instance symbols prevent instance confusion. Native C11 O0/O2 and
+  real Node/Wasm execute the generic and prelude cases with deterministic
+  layout, poison, invalid-tag, and repeated-call evidence. Generic functions
+  or records, nested/resource arguments, non-copy matching, `?`, stable public
+  aggregate ABI, and callable/component aggregate admission remain closed.
+  The current prelude-bound Portable Result Component v3 KATs and standalone
+  Wasmtime runner are locally green but await hosted CI.
 - Added bounded executable copy variants and exhaustive `match`: non-generic
   nominal unit/direct-`i64`/direct-`bool` cases, explicit construction,
   persistent case/payload identities, declaration-order `u32` tags, checked
@@ -27,6 +42,8 @@ All notable changes to SEMAPRAX are documented here.
   `Option`, `Result`, `?`, resource-bearing payloads, non-copy ownership modes,
   stable public aggregate ABI, callable/component signatures, and public
   resource admission remain closed.
+  The complete hosted matrix is green in
+  [run 31343897595](https://github.com/wavect/semaprax/actions/runs/31343897595).
 - Graph v7 added
   canonical immutable record update across source, resolved HIR, Graph, and
   context traversal. Update meaning is base-first with replacement expressions

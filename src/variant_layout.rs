@@ -5,7 +5,7 @@
 //! payloads. Backends validate an independently reconstructed layout before
 //! consuming it.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 #[cfg(test)]
 use std::fmt::Write as _;
 
@@ -14,17 +14,18 @@ use sha2::{Digest, Sha256};
 use crate::aggregate_layout::{scalar_size_align, AggregateTarget};
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
-    DeclarationId, ResolvedProgram, ResolvedType, ResolvedTypeDeclarationKind,
-    ResolvedVariantCaseDeclaration,
+    substitute_type, DeclarationId, ResolvedExpr, ResolvedExprKind, ResolvedProgram, ResolvedType,
+    ResolvedTypeDeclarationKind, ResolvedVariantCaseDeclaration,
 };
 
-const VARIANT_LAYOUT_DOMAIN: &[u8] = b"semaprax.variant-layout.v1\0";
+const VARIANT_LAYOUT_DOMAIN: &[u8] = b"semaprax.variant-layout.v2\0";
 
 pub(crate) type VariantTarget = AggregateTarget;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct VariantFieldLayout {
     pub(crate) field: DeclarationId,
+    pub(crate) template_ty: ResolvedType,
     pub(crate) ty: ResolvedType,
     pub(crate) offset: u32,
     pub(crate) size: u32,
@@ -50,6 +51,7 @@ impl VariantCaseLayout {
 pub(crate) struct VariantLayout {
     pub(crate) target: VariantTarget,
     pub(crate) variant: DeclarationId,
+    pub(crate) instance: ResolvedType,
     pub(crate) size: u32,
     pub(crate) align: u32,
     pub(crate) tag_size: u32,
@@ -60,15 +62,50 @@ pub(crate) struct VariantLayout {
 }
 
 impl VariantLayout {
+    #[cfg(test)]
     pub(crate) fn for_variant(
         program: &ResolvedProgram,
         target: VariantTarget,
         variant: &DeclarationId,
     ) -> Result<Self, Diagnostic> {
+        Self::for_type(
+            program,
+            target,
+            &ResolvedType::Nominal {
+                declaration: variant.clone(),
+                arguments: Vec::new(),
+            },
+        )
+    }
+
+    pub(crate) fn for_type(
+        program: &ResolvedProgram,
+        target: VariantTarget,
+        instance: &ResolvedType,
+    ) -> Result<Self, Diagnostic> {
+        let ResolvedType::Nominal {
+            declaration: variant,
+            arguments,
+        } = instance
+        else {
+            return Err(layout_error(format!(
+                "variant layout requires a nominal instance, found `{}`",
+                instance.identity_key()
+            )));
+        };
         let declaration = unique_variant(program, variant)?;
         let ResolvedTypeDeclarationKind::Variant { cases } = &declaration.kind else {
             return Err(layout_error(format!("`{variant}` is not a variant")));
         };
+        if arguments.len() != declaration.type_parameters.len()
+            || arguments
+                .iter()
+                .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
+        {
+            return Err(layout_error(format!(
+                "variant `{variant}` has invalid concrete arguments"
+            )));
+        }
         if cases.is_empty() {
             return Err(layout_error(format!(
                 "variant `{variant}` has no executable cases"
@@ -92,7 +129,7 @@ impl VariantLayout {
                     case.id
                 )));
             }
-            let layout = layout_case(target, variant, case, tag)?;
+            let layout = layout_case(target, variant, arguments, case, tag)?;
             payload_size = payload_size.max(layout.size);
             payload_align = payload_align.max(layout.align);
             layouts.push(layout);
@@ -109,6 +146,7 @@ impl VariantLayout {
         let digest = digest_layout(
             target,
             variant,
+            instance,
             size,
             align,
             tag_size,
@@ -119,6 +157,7 @@ impl VariantLayout {
         Ok(Self {
             target,
             variant: variant.clone(),
+            instance: instance.clone(),
             size,
             align,
             tag_size,
@@ -130,7 +169,7 @@ impl VariantLayout {
     }
 
     pub(crate) fn validate(&self, program: &ResolvedProgram) -> Result<(), Diagnostic> {
-        let expected = Self::for_variant(program, self.target, &self.variant)?;
+        let expected = Self::for_type(program, self.target, &self.instance)?;
         if *self != expected {
             return Err(layout_error(format!(
                 "variant `{}` layout is not the canonical {:?} layout",
@@ -154,9 +193,65 @@ impl VariantLayout {
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct VariantLayoutCache {
+    target: VariantTarget,
+    layouts: BTreeMap<ResolvedType, VariantLayout>,
+}
+
+impl VariantLayoutCache {
+    pub(crate) fn build(
+        program: &ResolvedProgram,
+        target: VariantTarget,
+    ) -> Result<Self, Diagnostic> {
+        let mut instances = BTreeSet::new();
+        for function in &program.functions {
+            for parameter in &function.params {
+                collect_variant_type(program, &parameter.ty, &mut instances)?;
+            }
+            collect_variant_type(program, &function.return_type, &mut instances)?;
+            for contract in &function.requires {
+                collect_expr_variant_types(program, contract, &mut instances)?;
+            }
+            collect_expr_variant_types(program, &function.body, &mut instances)?;
+            for contract in &function.ensures {
+                collect_expr_variant_types(program, contract, &mut instances)?;
+            }
+        }
+        let mut layouts = BTreeMap::new();
+        for instance in instances {
+            let layout = VariantLayout::for_type(program, target, &instance)?;
+            layout.validate(program)?;
+            if layouts.insert(instance, layout).is_some() {
+                return Err(layout_error("duplicate concrete variant instance"));
+            }
+        }
+        Ok(Self { target, layouts })
+    }
+
+    pub(crate) fn layout(&self, instance: &ResolvedType) -> Result<&VariantLayout, Diagnostic> {
+        self.layouts.get(instance).ok_or_else(|| {
+            layout_error(format!(
+                "missing {:?} layout for concrete variant `{}`",
+                self.target,
+                instance.identity_key()
+            ))
+        })
+    }
+
+    pub(crate) fn layouts(&self) -> impl ExactSizeIterator<Item = &VariantLayout> {
+        self.layouts.values()
+    }
+
+    pub(crate) fn is_empty(&self) -> bool {
+        self.layouts.is_empty()
+    }
+}
+
 fn layout_case(
     target: VariantTarget,
     variant: &DeclarationId,
+    arguments: &[ResolvedType],
     case: &ResolvedVariantCaseDeclaration,
     tag: u32,
 ) -> Result<VariantCaseLayout, Diagnostic> {
@@ -179,7 +274,8 @@ fn layout_case(
                 case.id, field.id
             )));
         }
-        let (size, field_align) = scalar_size_align(target, &field.ty).map_err(|_| {
+        let concrete_ty = substitute_type(&field.ty, variant, arguments)?;
+        let (size, field_align) = scalar_size_align(target, &concrete_ty).map_err(|_| {
             layout_error(format!(
                 "variant `{variant}` case `{}` field `{}` is not direct i64/bool",
                 case.id, field.id
@@ -188,7 +284,8 @@ fn layout_case(
         offset = align_up(offset, field_align)?;
         fields.push(VariantFieldLayout {
             field: field.id.clone(),
-            ty: field.ty.clone(),
+            template_ty: field.ty.clone(),
+            ty: concrete_ty,
             offset,
             size,
             align: field_align,
@@ -239,6 +336,7 @@ fn align_up(value: u32, align: u32) -> Result<u32, Diagnostic> {
 fn digest_layout(
     target: VariantTarget,
     variant: &DeclarationId,
+    instance: &ResolvedType,
     size: u32,
     align: u32,
     tag_size: u32,
@@ -253,6 +351,7 @@ fn digest_layout(
         VariantTarget::Wasm32 => 2,
     }]);
     digest_string(&mut digest, variant.as_str());
+    digest_string(&mut digest, &instance.identity_key());
     for value in [size, align, tag_size, payload_offset, payload_size] {
         digest.update(value.to_le_bytes());
     }
@@ -269,6 +368,7 @@ fn digest_layout(
         );
         for field in &case.fields {
             digest_string(&mut digest, field.field.as_str());
+            digest_string(&mut digest, &field.template_ty.identity_key());
             digest_string(&mut digest, &field.ty.identity_key());
             for value in [field.offset, field.size, field.align] {
                 digest.update(value.to_le_bytes());
@@ -276,6 +376,96 @@ fn digest_layout(
         }
     }
     digest.finalize().into()
+}
+
+fn collect_variant_type(
+    program: &ResolvedProgram,
+    ty: &ResolvedType,
+    instances: &mut BTreeSet<ResolvedType>,
+) -> Result<(), Diagnostic> {
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = ty
+    else {
+        return Ok(());
+    };
+    for argument in arguments {
+        collect_variant_type(program, argument, instances)?;
+    }
+    let item = program
+        .types
+        .iter()
+        .find(|item| item.id == *declaration)
+        .ok_or_else(|| layout_error(format!("unknown concrete type `{declaration}`")))?;
+    if matches!(item.kind, ResolvedTypeDeclarationKind::Variant { .. }) {
+        instances.insert(ty.clone());
+    }
+    Ok(())
+}
+
+fn collect_expr_variant_types(
+    program: &ResolvedProgram,
+    expression: &ResolvedExpr,
+    instances: &mut BTreeSet<ResolvedType>,
+) -> Result<(), Diagnostic> {
+    collect_variant_type(program, &expression.ty, instances)?;
+    match &expression.kind {
+        ResolvedExprKind::Call { args, .. } => {
+            for argument in args {
+                collect_expr_variant_types(program, argument, instances)?;
+            }
+        }
+        ResolvedExprKind::Unary { value, .. } | ResolvedExprKind::Project { base: value, .. } => {
+            collect_expr_variant_types(program, value, instances)?;
+        }
+        ResolvedExprKind::Binary { left, right, .. } => {
+            collect_expr_variant_types(program, left, instances)?;
+            collect_expr_variant_types(program, right, instances)?;
+        }
+        ResolvedExprKind::Block { statements, tail } => {
+            for statement in statements {
+                let crate::hir::ResolvedStatement::Let { binding, value, .. } = statement;
+                collect_variant_type(program, &binding.ty, instances)?;
+                collect_expr_variant_types(program, value, instances)?;
+            }
+            collect_expr_variant_types(program, tail, instances)?;
+        }
+        ResolvedExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            collect_expr_variant_types(program, condition, instances)?;
+            collect_expr_variant_types(program, then_branch, instances)?;
+            collect_expr_variant_types(program, else_branch, instances)?;
+        }
+        ResolvedExprKind::ConstructRecord { fields, .. }
+        | ResolvedExprKind::ConstructVariant { fields, .. } => {
+            for field in fields {
+                collect_expr_variant_types(program, &field.value, instances)?;
+            }
+        }
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            collect_expr_variant_types(program, scrutinee, instances)?;
+            for arm in arms {
+                if let crate::hir::ResolvedMatchPattern::Variant { fields, .. } = &arm.pattern {
+                    for field in fields {
+                        collect_variant_type(program, &field.binding.ty, instances)?;
+                    }
+                }
+                collect_expr_variant_types(program, &arm.value, instances)?;
+            }
+        }
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            collect_expr_variant_types(program, base, instances)?;
+            for field in fields {
+                collect_expr_variant_types(program, &field.value, instances)?;
+            }
+        }
+        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
+    }
+    Ok(())
 }
 
 fn digest_string(digest: &mut Sha256, value: &str) {
@@ -291,8 +481,8 @@ fn layout_error(message: impl Into<String>) -> Diagnostic {
 mod tests {
     use std::path::Path;
 
-    use super::{VariantLayout, VariantTarget};
-    use crate::hir::{self, DeclarationId, ResolvedTypeDeclarationKind};
+    use super::{VariantLayout, VariantLayoutCache, VariantTarget};
+    use crate::hir::{self, DeclarationId, ResolvedType, ResolvedTypeDeclarationKind};
     use crate::parse;
 
     const SOURCE: &str = r#"
@@ -312,9 +502,149 @@ variant Choice {
 fn main() -> i64 { 0 }
 "#;
 
+    const GENERIC_SOURCE: &str = r#"
+module test.generic_variant_layout;
+@id("choice.generic")
+variant Choice<T> {
+    @id("choice.generic.none") None,
+    @id("choice.generic.value") Value {
+        @id("choice.generic.value.value") value: T,
+    },
+}
+@id("choice.i64")
+fn choice_i64() -> Choice<i64> { Choice<i64>::Value { value: 42 } }
+@id("choice.bool")
+fn choice_bool() -> Choice<bool> { Choice<bool>::Value { value: true } }
+@id("option.i64")
+fn option_i64() -> Option<i64> { Option<i64>::Some { value: 7 } }
+@id("option.bool")
+fn option_bool() -> Option<bool> { Option<bool>::None {} }
+@id("result.value")
+fn result_value() -> Result<i64, bool> { Result<i64, bool>::Err { error: true } }
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+
     fn resolved() -> hir::ResolvedProgram {
         let parsed = parse(SOURCE, Path::new("variant-layout.spx")).unwrap();
         hir::resolve(&parsed).unwrap()
+    }
+
+    fn nominal(id: &str, arguments: Vec<ResolvedType>) -> ResolvedType {
+        ResolvedType::Nominal {
+            declaration: DeclarationId::new(id),
+            arguments,
+        }
+    }
+
+    #[test]
+    fn concrete_generic_and_prelude_instances_have_distinct_cached_layouts() {
+        let parsed = parse(GENERIC_SOURCE, Path::new("generic-variant-layout.spx")).unwrap();
+        let program = hir::resolve(&parsed).unwrap();
+        let native = VariantLayoutCache::build(&program, VariantTarget::Native64).unwrap();
+        let wasm = VariantLayoutCache::build(&program, VariantTarget::Wasm32).unwrap();
+
+        let choice_i64 = nominal("choice.generic", vec![ResolvedType::I64]);
+        let choice_bool = nominal("choice.generic", vec![ResolvedType::Bool]);
+        let option_i64 = nominal("core.option", vec![ResolvedType::I64]);
+        let option_bool = nominal("core.option", vec![ResolvedType::Bool]);
+        let result = nominal("core.result", vec![ResolvedType::I64, ResolvedType::Bool]);
+        assert_eq!(native.layouts().len(), 5);
+        assert_eq!(wasm.layouts().len(), 5);
+
+        for cache in [&native, &wasm] {
+            let integer = cache.layout(&choice_i64).unwrap();
+            assert_eq!(
+                (integer.payload_offset, integer.size, integer.align),
+                (8, 16, 8)
+            );
+            assert_eq!(
+                integer
+                    .case(&DeclarationId::new("choice.generic.value"))
+                    .unwrap()
+                    .fields[0]
+                    .ty,
+                ResolvedType::I64
+            );
+            let result = cache.layout(&result).unwrap();
+            assert_eq!(
+                (result.payload_offset, result.size, result.align),
+                (8, 16, 8)
+            );
+            assert_eq!(
+                result.cases.iter().map(|case| case.tag).collect::<Vec<_>>(),
+                vec![0, 1]
+            );
+        }
+
+        let native_bool = native.layout(&choice_bool).unwrap();
+        let wasm_bool = wasm.layout(&choice_bool).unwrap();
+        assert_eq!((native_bool.payload_offset, native_bool.size), (4, 8));
+        assert_eq!((wasm_bool.payload_offset, wasm_bool.size), (4, 8));
+        assert_ne!(
+            native.layout(&choice_i64).unwrap().digest_hex(),
+            native_bool.digest_hex()
+        );
+        assert_ne!(
+            native.layout(&option_i64).unwrap().digest_hex(),
+            native.layout(&option_bool).unwrap().digest_hex()
+        );
+        assert_eq!(
+            native.layout(&option_i64).unwrap().digest_hex(),
+            "e728ce973bb0fa9d86027841615dcd25b9a1700cb15e4fd1704da163e658d60c"
+        );
+        assert_eq!(
+            wasm.layout(&option_i64).unwrap().digest_hex(),
+            "79194fc88011ac060877e60293d0a4272429dd9e2d720674d0d54e804562deda"
+        );
+        assert_eq!(
+            native.layout(&result).unwrap().digest_hex(),
+            "03ac11743e029e151b8cbc12420e899b2edfe42cbf7c68d5f6fb3ab0e043b3dc"
+        );
+        assert_eq!(
+            wasm.layout(&result).unwrap().digest_hex(),
+            "c01112f909a074343ae4eb3abde6ad70930280e4a8016c165e05f317bed9f199"
+        );
+
+        let mut confused = native.layout(&choice_i64).unwrap().clone();
+        confused.instance = choice_bool;
+        assert!(confused.validate(&program).is_err());
+        let reversed_result = nominal("core.result", vec![ResolvedType::Bool, ResolvedType::I64]);
+        assert_ne!(
+            VariantLayout::for_type(&program, VariantTarget::Native64, &reversed_result)
+                .unwrap()
+                .digest_hex(),
+            native.layout(&result).unwrap().digest_hex()
+        );
+        let wrong_arity = nominal("core.result", vec![ResolvedType::I64]);
+        assert!(VariantLayout::for_type(&program, VariantTarget::Wasm32, &wrong_arity).is_err());
+        let nested_argument = nominal("choice.generic", vec![option_i64.clone()]);
+        assert!(
+            VariantLayout::for_type(&program, VariantTarget::Wasm32, &nested_argument).is_err()
+        );
+
+        let mut missing = native.clone();
+        missing.layouts.remove(&choice_i64);
+        assert!(missing.layout(&choice_i64).is_err());
+
+        for (owner, index) in [("foreign.owner", 0), ("choice.generic", 1)] {
+            let mut hostile = program.clone();
+            let declaration = hostile
+                .types
+                .iter_mut()
+                .find(|item| item.id.as_str() == "choice.generic")
+                .unwrap();
+            let ResolvedTypeDeclarationKind::Variant { cases } = &mut declaration.kind else {
+                panic!("generic choice is a variant")
+            };
+            cases[1].fields[0].ty = ResolvedType::TypeParameter {
+                owner: DeclarationId::new(owner),
+                index,
+            };
+            assert!(
+                VariantLayout::for_type(&hostile, VariantTarget::Native64, &choice_i64).is_err()
+            );
+        }
     }
 
     #[test]
@@ -367,11 +697,11 @@ fn main() -> i64 { 0 }
         );
         assert_eq!(
             native.digest_hex(),
-            "81abd9e45c4fcacef2ef8485192d0ecb57fcd99dbc2269d17617183e2e0c82e2"
+            "60ff105b799ae1a6ec24b72587901bfa1a6be6a97dad8685c75f56db9423e1e1"
         );
         assert_eq!(
             wasm.digest_hex(),
-            "0c7b1db30be96256aee8e4cc74216438bfb4e5cc713fbe22bc1c32b3c53d5917"
+            "4a1c07d4b2011b11c43acb27aa9951b0cb6a55af24e079c73833f7047c3700e6"
         );
     }
 

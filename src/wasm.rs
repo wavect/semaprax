@@ -7,9 +7,10 @@ use crate::ast::{BinaryOp, Program, UnaryOp};
 use crate::diagnostic::{quote_json, Diagnostic};
 use crate::graph;
 use crate::hir::{
-    self, DeclarationId, ResolvedExpr, ResolvedExprKind, ResolvedProgram, ResolvedStatement,
-    ResolvedType, ResolvedTypeDeclarationKind, ValueId,
+    self, DeclarationId, IdentityOrigin, ResolvedExpr, ResolvedExprKind, ResolvedProgram,
+    ResolvedStatement, ResolvedType, ResolvedTypeDeclarationKind, ValueId,
 };
+use crate::variant_layout::{VariantLayoutCache, VariantTarget};
 
 mod aggregate;
 mod owned;
@@ -55,13 +56,18 @@ pub fn emit_module(program: &Program) -> Result<Vec<u8>, Diagnostic> {
 /// hold HIR and keeps all backend lowering independent of source-level names.
 pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagnostic> {
     hir::validate(program)?;
-    if program.types.iter().any(|declaration| {
+    let concrete_variants = VariantLayoutCache::build(program, VariantTarget::Wasm32)?;
+    let has_authored_aggregate = program.types.iter().any(|declaration| {
         matches!(
             &declaration.kind,
             ResolvedTypeDeclarationKind::Record { .. }
                 | ResolvedTypeDeclarationKind::Variant { .. }
-        )
-    }) {
+        ) && !program
+            .declarations
+            .declaration(&declaration.id)
+            .is_some_and(|item| item.identity_origin == IdentityOrigin::CompilerOwned)
+    });
+    if has_authored_aggregate || !concrete_variants.is_empty() {
         return aggregate::emit(program);
     }
     let owned_plans = owned::plan(program)?;

@@ -169,6 +169,8 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "name: \"sticky-add-overflow-before-division-by-zero\"",
         "name: \"false-precondition\"",
         "name: \"false-postcondition\"",
+        "0x7d, 0x86, 0x44, 0x38, 0x49, 0x48, 0xf5, 0x91",
+        "0xd5, 0x5f, 0x76, 0xa0, 0xe6, 0x97, 0x47, 0x77",
     ] {
         assert!(
             runner.contains(required),

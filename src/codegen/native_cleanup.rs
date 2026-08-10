@@ -31,8 +31,9 @@ use crate::cleanup_plan::{
 };
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
-    DeclarationId, ResolvedExpr, ResolvedExprKind, ResolvedFunction, ResolvedProgram,
-    ResolvedResourceDropKind, ResolvedStatement, ResolvedType, ResolvedTypeDeclarationKind,
+    DeclarationId, IdentityOrigin, ResolvedExpr, ResolvedExprKind, ResolvedFunction,
+    ResolvedProgram, ResolvedResourceDropKind, ResolvedStatement, ResolvedType,
+    ResolvedTypeDeclarationKind,
 };
 
 /// One direct resource leaf, in canonical cleanup-slot order.
@@ -498,6 +499,11 @@ fn validate_program_types(
                     format!("does not support record declaration `{}`", declaration.id),
                 ));
             }
+            ResolvedTypeDeclarationKind::Variant { .. }
+                if program
+                    .declarations
+                    .declaration(&declaration.id)
+                    .is_some_and(|item| item.identity_origin == IdentityOrigin::CompilerOwned) => {}
             ResolvedTypeDeclarationKind::Variant { .. } => {
                 return Err(unsupported(
                     function,

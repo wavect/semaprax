@@ -368,7 +368,7 @@ fn main() -> i64 { 0 }
         assert_eq!(first.wit(), WIT);
         assert_eq!(
             first.source_revision(),
-            "sha256:1252335610de30df759f6e9ac038217853b60d381a0703f4f08518cb20b30cd8",
+            "sha256:c911665ec227ca17a23964578fa0911a98d64049362a03f9dd86287902891317",
             "source revision KAT changed"
         );
         let validated = validate_private_result_component_v3(
@@ -391,8 +391,8 @@ fn main() -> i64 { 0 }
         assert_eq!(
             first.generated_core_digest(),
             [
-                87, 58, 161, 216, 27, 99, 78, 246, 233, 126, 84, 6, 47, 151, 216, 116, 126, 83,
-                153, 79, 217, 248, 64, 54, 227, 208, 141, 103, 231, 171, 226, 186,
+                213, 95, 118, 160, 230, 151, 71, 119, 92, 50, 147, 253, 97, 110, 47, 240, 58, 146,
+                28, 101, 12, 190, 169, 5, 94, 200, 202, 151, 119, 184, 115, 108,
             ],
             "generated-core KAT changed"
         );
@@ -407,16 +407,16 @@ fn main() -> i64 { 0 }
         assert_eq!(
             first.digest(),
             [
-                50, 186, 5, 139, 50, 203, 180, 108, 209, 87, 28, 38, 121, 87, 59, 85, 213, 41, 161,
-                85, 125, 176, 135, 0, 215, 82, 104, 130, 251, 39, 250, 13,
+                200, 43, 157, 77, 32, 150, 242, 75, 185, 143, 204, 106, 147, 125, 158, 51, 172, 39,
+                106, 223, 217, 130, 219, 212, 83, 17, 7, 156, 163, 222, 26, 12,
             ],
             "component DAG KAT changed"
         );
         assert_eq!(
             <[u8; 32]>::from(Sha256::digest(first.bytes())),
             [
-                76, 193, 105, 178, 43, 191, 66, 248, 252, 44, 187, 138, 55, 151, 11, 17, 103, 107,
-                195, 125, 215, 227, 26, 159, 128, 213, 167, 220, 118, 41, 127, 177,
+                125, 134, 68, 56, 73, 72, 245, 145, 214, 254, 121, 41, 208, 207, 237, 158, 171,
+                121, 209, 117, 40, 202, 86, 16, 7, 238, 69, 88, 226, 147, 48, 39,
             ],
             "exact component-byte SHA-256 KAT changed"
         );
@@ -697,6 +697,8 @@ for (const [left,right,status,value] of {js_cases}) {{
             r#"module bad; permit { clock.read } @id("component.evaluate") fn evaluate(left: i64, right: i64) -> i64 uses { clock.read } { left } @id("app.main") fn main() -> i64 { 0 }"#,
             r#"module bad; @id("component.evaluate") fn evaluate(left: i64) -> i64 { left } @id("app.main") fn main() -> i64 { 0 }"#,
             r#"module bad; @id("component.evaluate") fn evaluate(left: i64, right: i64) -> i64 { if true { left } else { right } } @id("app.main") fn main() -> i64 { 0 }"#,
+            r#"module bad; @id("payload.type") record Payload { @id("payload.value") value: i64, } @id("component.evaluate") fn evaluate(left: i64, right: i64) -> i64 { left } @id("app.main") fn main() -> i64 { 0 }"#,
+            r#"module bad; @id("choice.type") variant Choice { @id("choice.none") None, } @id("component.evaluate") fn evaluate(left: i64, right: i64) -> i64 { left } @id("app.main") fn main() -> i64 { 0 }"#,
         ] {
             let program = crate::parse(source, Path::new("excluded-result-v3.spx")).unwrap();
             let error = emit_private_result_component_v3(&program).unwrap_err();

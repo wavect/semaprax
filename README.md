@@ -78,7 +78,7 @@ Implemented today:
 - Resources with explicit, persistent trivial/imported lifecycles, declaration-only interface/import contracts, and `own`, `borrow`, and `shared` function boundaries.
 - Lexical `let` bindings and typed `if/else` expressions.
 - Control-flow-aware move checking with prefix-aware record-field state and definite or conditional use-after-move diagnostics.
-- Canonical record declarations, construction, projection, and immutable update in `check`, resolved HIR, and semantic Graph v8, with persistent record/field IDs and authored-order replacement semantics.
+- Canonical record declarations, construction, projection, and immutable update in `check`, resolved HIR, and semantic Graph v9, with persistent record/field IDs and authored-order replacement semantics.
 - Checked deterministic Native64 and Wasm32 record layouts plus target-neutral cleanup plans for partial construction and immutable update. These are compiler groundwork; backend execution is claimed only where its dedicated artifact gates pass.
 - The bounded public scalar-record slice lowers nested `i64`/`bool` construction,
   projection, and immutable update through native C11/Clang at O0/O2 and browser
@@ -91,14 +91,20 @@ Implemented today:
   final liveness. It is proof scaffolding only: public resource-bearing record
   admission, callable/component aggregate signatures, and `SPX-B104`/`SPX-W111`
   remain unchanged.
-- A bounded copy-variant slice supports non-generic nominal variants with unit,
-  direct `i64`, and direct `bool` payload fields; explicit qualified
-  construction; and exhaustive copy-only `match` with scalar `i64`/`bool` arm
-  results. Declaration-order `u32` tags and checked deterministic Native64 and
-  Wasm32 internal layouts lower through native C11/Clang at O0/O2 and real
-  Node/Wasm. Both targets evaluate the scrutinee once, execute only the selected
-  arm, preserve the complete caller result on failure, and reject invalid tags
-  out of band. CleanupPlan v1 replays variant-case branches by stable case ID.
+- A bounded copy-variant slice supports nominal variant templates instantiated
+  explicitly with direct `i64`/`bool` arguments, plus monomorphic unit and
+  direct-scalar variants. It includes qualified construction and exhaustive
+  copy-only `match` with scalar `i64`/`bool` arm results. Compiler-owned ordinary
+  `Option<T>` and `Result<T, E>` use this same mechanism rather than backend
+  intrinsics. Concrete instances have independently authenticated internal
+  Native64/Wasm32 layouts and physical symbols while retaining the template's
+  persistent case/field identities. Native C11/Clang at O0/O2 and real
+  Node/Wasm prove construction, matching, poison preservation, invalid-tag
+  closure, and distinct `i64`/`bool` instances. CleanupPlan v1 replays the
+  cleanup-free copy branches by exact scrutinee expression and stable case ID.
+  Resource/nested arguments, generic functions or records, non-copy matching,
+  `?`, stable public aggregate ABI, and callable/component aggregate admission
+  remain closed.
 - A validated stable-ID HIR shared by native and Wasm lowering, with explicit entry, result, binding, expression, and place identities.
 - A mandatory target-neutral cleanup CFG for every function, independently rebuilt and independently replayed against core HIR/inventory, with exhaustive current-CFG path-state checks plus a scenario-driven reference trace executor.
 - Versioned target-neutral normalized-status, conformance-trace,
@@ -116,9 +122,12 @@ Implemented today:
 - Persistent declaration identity through `@id`.
 - NUL-free persistent semantic identities across source, resolved HIR, cleanup metadata, graph serialization, and native C literals.
 - Deterministic formatting and domain-separated SHA-256 graph revisions.
-- JSON semantic Graph v8 with persistent variant/case/payload identities,
-  revision-scoped construction/match/pattern structure, immutable record update,
-  complete cleanup plans, and dependency-bounded context slices.
+- JSON semantic Graph v9 with owner/index-stable generic parameters, exact
+  concrete nominal arguments, an authenticated compiler-owned prelude,
+  persistent variant/case/payload identities, revision-scoped
+  construction/match/pattern structure, immutable record update, complete
+  cleanup plans, and dependency-bounded context slices. Revision v2 binds both
+  canonical source and the exact prelude contract.
 - JSON-line diagnostics for agent consumption.
 - Atomic semantic rename patches with stale-revision rejection.
 - Native AOT output through a readable C11 lowering and Clang.
@@ -213,18 +222,21 @@ private `result<s64, status>` projection and locally executes typed success,
 addition-overflow, division-by-zero, precondition, and postcondition outcomes
 through Wasmtime with zero imports, an empty linker, and no WASI. The standalone
 runtime/dependency graph cannot widen the public compiler graph or MSRV. The
-exact hosted Wasmtime gate is green in [run 31338834586, job
+previous exact hosted Wasmtime profile is green in [run 31338834586, job
 93309086213](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086213).
-This remains **Partial** WIT
-evidence only: there is no source-language `Result`/`Option`, records,
-resources, imports, async, capabilities, multi-engine/browser conformance,
-public WIT surface, or `SPX-B104` change.
+The current prelude-bound result-v3 KAT migration and standalone Wasmtime runner
+are green locally and await hosted CI. This remains **Partial** WIT evidence
+only: source-language `Result`/`Option` are not wired into this component
+profile, and records, resources, imports, async, capabilities,
+multi-engine/browser conformance, a public WIT surface, and any `SPX-B104`
+change remain absent.
 
 Not implemented yet: public native resource execution/admission,
 general-shape native/reference/Wasm trace conformance, the general Wasm resource ABI,
 recursive reference execution, callable imports/adapters, a stable public aggregate
-ABI and general aggregate execution, generic or resource-bearing variants,
-ownership-aware matching, `Option`, `Result`, `?`, lifetime and alias analysis, user-facing
+ABI and general aggregate execution, nested or resource-bearing generic
+arguments, generic functions or records, resource-bearing variants,
+ownership-aware matching, `?`, lifetime and alias analysis, user-facing
 regions, effect handlers, static contract proofs, Cranelift, LLVM/MLIR IR,
 composed engine-native WebAssembly Component backend, packages, concurrency,
 or cross-platform UI. Native
@@ -270,9 +282,9 @@ a headless macOS `APPL` bundle or Windows portable PE application directory.
 The macOS engine package/runtime is green in [run 31338834586, job
 93309086230](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086230),
 including two generation-rotating owned calls and exact receipt replay. The
-Windows package/runtime remains pending after [failed run 31341453652, job
-93315816975](https://github.com/wavect/semaprax/actions/runs/31341453652/job/93315816975);
-the local `llvm-readobj` inspection fix has not yet passed hosted CI.
+Windows engine package/runtime is green in [run 31343897595, job
+93322134480](https://github.com/wavect/semaprax/actions/runs/31343897595/job/93322134480),
+including the strict PE inspection and two generation-rotating owned calls.
 This is not UI, accessibility, lifecycle,
 installer/signing, or public admission evidence. `SPX-B104` therefore remains
 unchanged.
@@ -285,9 +297,9 @@ verify the packaged engine bytes against a deterministic SHA-256 manifest before
 launch, and close through the native lifecycle. AppKit also enforces a bounded
 engine deadline. The macOS AppKit package/runtime is green in [run 31338834586,
 job 93309086230](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086230).
-Windows remains pending after [failed run 31341453652, job
-93315816975](https://github.com/wavect/semaprax/actions/runs/31341453652/job/93315816975).
-The local `llvm-readobj` inspection fix is unhosted. The colocated
+The Windows Win32 package/runtime is green in [run 31343897595, job
+93322134480](https://github.com/wavect/semaprax/actions/runs/31343897595/job/93322134480).
+The colocated
 manifest is consistency evidence, not signed provenance. This is a bounded
 private fixture, not SEMAPRAX UI syntax, SwiftUI/WinUI, a full accessibility or
 lifecycle claim, distribution, or public admission.

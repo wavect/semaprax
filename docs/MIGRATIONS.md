@@ -146,6 +146,50 @@ its envelope schema but now declares `semaprax.graph.v8` as its
 `Result`, `?`, resource-bearing payloads, ownership-aware matching, a stable
 public ABI, callable/component aggregate support, or public resource admission.
 
+## Graph v8 to v9, revision v2, and the ordinary prelude
+
+Graph v9 adds owner/index-stable generic type parameters, exact ordered nominal
+argument trees, compiler-owned declaration provenance, and the authenticated
+`semaprax.prelude.v1` contract. The ordinary compiler-owned `Option<T>` and
+`Result<T, E>` declarations, cases, and payload fields use persistent reserved
+IDs. Authored source must not redeclare their names or IDs, and consumers must
+not reinterpret them as backend intrinsics or user declarations.
+
+Graph revision v2 uses the domain `semaprax.graph-revision.v2\0` and
+length-delimits canonical source, prelude schema, and exact prelude contract
+bytes. Therefore even source that does not mention generic variants can receive
+a different revision from the v1 algorithm. A prelude-contract change cannot
+silently retain an old semantic revision. Cache and protocol keys must include
+the exact graph schema and revision; consumers that persist compiler-owned
+facts should also authenticate the prelude schema/digest carried by Graph v9.
+
+A v8 consumer must reject `semaprax.graph.v9`; a v9 consumer must reject
+`semaprax.graph.v8`, an unknown prelude schema/digest, malformed type-parameter
+identity, and every unsupported argument tree. Agent Context v1 retains its
+envelope schema and now declares `semaprax.graph.v9` as its
+`source_graph_schema`, including referenced compiler-owned prelude declarations
+only when the bounded context closes over them. Graph v9 does not imply generic
+functions or records, nested/resource arguments, `?`, non-copy matching, a
+stable public aggregate ABI, callable/component aggregate support, or public
+resource admission.
+
+## Internal variant-layout digest v1 to v2
+
+The compiler-internal Native64/Wasm32 variant-layout digest now uses the exact
+domain `semaprax.variant-layout.v2\0`. Its authenticated preimage adds the full
+concrete nominal instance identity plus each payload field's template and
+substituted type identities. This prevents two instantiations that share the
+same persistent variant/case/field declarations from sharing layout evidence.
+Cached v1 digests and known answers are incompatible and must be regenerated;
+consumers must not relabel a v1 digest as v2.
+
+This migration changes only the internal evidence digest. Declaration-order
+`u32` tags, target-specific size/alignment/offset rules, the one-byte empty
+payload policy, and emitted physical representations are unchanged. Neither
+digest version is a stable public aggregate ABI, and v2 does not open public
+aggregate signatures, resource-bearing variants, or callable/component
+admission.
+
 ## Normalized status v1 and conformance trace v1
 
 This release introduces two independent public protocol schemas:

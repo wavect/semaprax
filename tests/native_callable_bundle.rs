@@ -88,7 +88,7 @@ fn public_preflight_is_deterministic_authority_free_and_keeps_native_b104() {
     assert_eq!(first.function_id(), FUNCTION_ID);
     assert_eq!(
         first.graph_revision(),
-        "sha256:bbe9203bbb86130757a3ba48ccc73d6dba8d1f83a717d0da4e4757bbaab4be8c"
+        "sha256:f9a281e669cc53336974e88ec096a702b9cfb5e5c2a82df733ddf798d6a3d5ea"
     );
     assert_eq!(first.descriptor(), second.descriptor());
     assert_eq!(first.getter_symbol(), second.getter_symbol());

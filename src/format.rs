@@ -18,11 +18,12 @@ pub fn canonical(program: &Program) -> String {
         }
         match &declaration.kind {
             TypeDeclarationKind::Resource { lifecycles } => {
+                let parameters = type_parameter_suffix(&declaration.type_parameters);
                 if lifecycles.is_empty() {
-                    writeln!(output, "resource {};", declaration.name).unwrap();
+                    writeln!(output, "resource {}{};", declaration.name, parameters).unwrap();
                     continue;
                 }
-                writeln!(output, "resource {} {{", declaration.name).unwrap();
+                writeln!(output, "resource {}{} {{", declaration.name, parameters).unwrap();
                 for lifecycle in lifecycles {
                     if let Some(stable_id) = &lifecycle.stable_id {
                         writeln!(output, "    @id(\"{}\")", escape_string(stable_id)).unwrap();
@@ -40,7 +41,13 @@ pub fn canonical(program: &Program) -> String {
                 writeln!(output, "}}").unwrap();
             }
             TypeDeclarationKind::Record { fields } => {
-                writeln!(output, "record {} {{", declaration.name).unwrap();
+                writeln!(
+                    output,
+                    "record {}{} {{",
+                    declaration.name,
+                    type_parameter_suffix(&declaration.type_parameters)
+                )
+                .unwrap();
                 for field in fields {
                     if field.explicit_id {
                         writeln!(output, "    @id(\"{}\")", escape_string(&field.stable_id))
@@ -51,7 +58,8 @@ pub fn canonical(program: &Program) -> String {
                 writeln!(output, "}}").unwrap();
             }
             TypeDeclarationKind::Variant { cases } => {
-                writeln!(output, "variant {} {{", declaration.name).unwrap();
+                let parameters = type_parameter_suffix(&declaration.type_parameters);
+                writeln!(output, "variant {}{} {{", declaration.name, parameters).unwrap();
                 for case in cases {
                     if case.explicit_id {
                         writeln!(output, "    @id(\"{}\")", escape_string(&case.stable_id))
@@ -173,6 +181,21 @@ pub fn canonical(program: &Program) -> String {
     output
 }
 
+fn type_parameter_suffix(parameters: &[crate::ast::TypeParameterDeclaration]) -> String {
+    if parameters.is_empty() {
+        String::new()
+    } else {
+        format!(
+            "<{}>",
+            parameters
+                .iter()
+                .map(|parameter| parameter.name.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    }
+}
+
 pub fn expr(value: &Expr, parent_precedence: u8) -> String {
     match &value.kind {
         ExprKind::Int(number) => number.to_string(),
@@ -247,15 +270,29 @@ pub fn expr(value: &Expr, parent_precedence: u8) -> String {
         }
         ExprKind::ConstructVariant {
             type_name,
+            type_arguments,
             case_name,
             fields,
             ..
         } => {
-            if fields.is_empty() {
-                format!("{type_name}::{case_name} {{}}")
+            let qualifier = if type_arguments.is_empty() {
+                type_name.clone()
             } else {
                 format!(
-                    "{type_name}::{case_name} {{ {} }}",
+                    "{}<{}>",
+                    type_name,
+                    type_arguments
+                        .iter()
+                        .map(ToString::to_string)
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            };
+            if fields.is_empty() {
+                format!("{qualifier}::{case_name} {{}}")
+            } else {
+                format!(
+                    "{qualifier}::{case_name} {{ {} }}",
                     fields
                         .iter()
                         .map(|field| format!("{}: {}", field.name, expr(&field.value, 0)))

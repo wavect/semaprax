@@ -35,10 +35,10 @@ fn program() -> semaprax::ast::Program {
 }
 
 #[test]
-fn graph_v8_exposes_variant_case_field_construction_and_match_meaning() {
+fn graph_v9_exposes_variant_case_field_construction_and_match_meaning() {
     let json = graph::to_json(&program()).unwrap();
-    assert!(json.starts_with("{\"schema\":\"semaprax.graph.v8\""));
-    assert!(!json.contains("semaprax.graph.v7"));
+    assert!(json.starts_with("{\"schema\":\"semaprax.graph.v9\""));
+    assert!(!json.contains("semaprax.graph.v8"));
     assert!(json.contains("\"match_arms\":\"revision-scoped-structural\""));
     assert!(json.contains("\"patterns\":\"revision-scoped-structural\""));
     assert!(json.contains("\"id\":\"test.choice\",\"kind\":\"variant\",\"name\":\"Choice\""));
@@ -63,7 +63,7 @@ fn graph_v8_exposes_variant_case_field_construction_and_match_meaning() {
     assert_eq!(digest.len(), 64);
     assert_eq!(
         digest,
-        "e8bbf30921e3f1abcdb6583d8306ee498c4a1079de87bc50d44ef4cdb9ee42e2"
+        "521084075c44e6887426871eeb265ecca202db099154f2899146472c9009a412"
     );
     assert_eq!(json, graph::to_json(&program()).unwrap());
 }
@@ -100,23 +100,23 @@ fn graph_and_agent_context_close_over_referenced_variants_only() {
         .unwrap()
         .unwrap();
     assert!(agent.contains("\"schema\":\"semaprax.agent-context.v1\""));
-    assert!(agent.contains("\"source_graph_schema\":\"semaprax.graph.v8\""));
+    assert!(agent.contains("\"source_graph_schema\":\"semaprax.graph.v9\""));
     assert!(agent.contains("\"kind\":\"variant\""));
     assert!(agent.contains("test.choice.number.value"));
     assert!(!agent.contains("test.unrelated"));
 }
 
 #[test]
-fn graph_v7_version_confusion_is_rejected_by_the_exact_v8_contract() {
-    fn accepts_v8(bytes: &str) -> bool {
-        bytes.starts_with("{\"schema\":\"semaprax.graph.v8\",")
-            && !bytes.contains("\"schema\":\"semaprax.graph.v7\"")
+fn graph_v8_version_confusion_is_rejected_by_the_exact_v9_contract() {
+    fn accepts_v9(bytes: &str) -> bool {
+        bytes.starts_with("{\"schema\":\"semaprax.graph.v9\",")
+            && !bytes.contains("\"schema\":\"semaprax.graph.v8\"")
             && bytes.ends_with('}')
     }
 
     let graph = graph::to_json(&program()).unwrap();
-    assert!(accepts_v8(&graph));
-    let hostile = graph.replacen("semaprax.graph.v8", "semaprax.graph.v7", 1);
-    assert!(!accepts_v8(&hostile));
-    assert!(!accepts_v8(&format!("{graph}x")));
+    assert!(accepts_v9(&graph));
+    let hostile = graph.replacen("semaprax.graph.v9", "semaprax.graph.v8", 1);
+    assert!(!accepts_v9(&hostile));
+    assert!(!accepts_v9(&format!("{graph}x")));
 }

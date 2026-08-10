@@ -288,19 +288,24 @@ fn collect_variant_domains(
             }
             hir::ResolvedExprKind::Match { scrutinee, arms } => {
                 visit(program, scrutinee, domains)?;
-                let ResolvedType::Nominal {
-                    declaration,
-                    arguments,
-                } = &scrutinee.ty
-                else {
+                let ResolvedType::Nominal { declaration, .. } = &scrutinee.ty else {
                     return Err(invariant(format!(
                         "match scrutinee `{}` is not a nominal variant",
                         scrutinee.id
                     )));
                 };
-                if !arguments.is_empty() {
+                let facts = program
+                    .declarations
+                    .type_facts(&scrutinee.ty)
+                    .ok_or_else(|| {
+                        invariant(format!(
+                            "match scrutinee `{}` has no concrete type facts",
+                            scrutinee.id
+                        ))
+                    })?;
+                if !facts.copy || facts.contains_resource || !facts.sized || facts.needs_drop {
                     return Err(invariant(format!(
-                        "generic match scrutinee `{}` reached copy-variant executor",
+                        "match scrutinee `{}` is outside the copy-only variant executor",
                         scrutinee.id
                     )));
                 }
@@ -1226,6 +1231,18 @@ variant Choice {
     None,
 }
 
+@id("generic.choice")
+variant GenericChoice<T> {
+    @id("generic.choice.none")
+    None,
+
+    @id("generic.choice.value")
+    Value {
+        @id("generic.choice.value.value")
+        value: T,
+    },
+}
+
 @id("file.type")
 resource File {
     @id("file.drop")
@@ -1263,6 +1280,18 @@ fn checked_choice(choice: Choice, zero: i64) -> i64 {
         Choice::Left { value } => value,
         Choice::Right { flag } => if flag { 1 } else { 0 },
         Choice::None {} => 1 / zero,
+    }
+}
+
+@id("generic.dual")
+fn generic_dual(left: GenericChoice<i64>, right: GenericChoice<bool>) -> i64 {
+    let first = match left {
+        GenericChoice::Value { value } => value,
+        GenericChoice::None {} => 0,
+    };
+    match right {
+        GenericChoice::Value { value } => first,
+        GenericChoice::None {} => 0,
     }
 }
 
@@ -1328,6 +1357,74 @@ fn main() -> i64 { 0 }
         scenario
             .variant_cases
             .insert(scrutinee.id.clone(), DeclarationId::new("choice.left"));
+        let trace = execute_for_conformance(&program, &function.id, scenario).unwrap();
+        assert_eq!(
+            trace.outcome,
+            TraceOutcome::Success {
+                result: TraceResult::I64(42),
+            }
+        );
+        assert_eq!(
+            trace
+                .events
+                .iter()
+                .filter(|event| matches!(event.event, TraceEventKind::ResultCommit { .. }))
+                .count(),
+            1
+        );
+    }
+
+    #[test]
+    fn concrete_generic_instances_share_cases_without_sharing_cleanup_decisions() {
+        let program = program();
+        let function = function(&program, "generic.dual");
+        let hir::ResolvedExprKind::Block { statements, tail } = &function.body.kind else {
+            panic!("generic fixture must have a block body")
+        };
+        let hir::ResolvedStatement::Let { value: first, .. } = &statements[0];
+        let hir::ResolvedExprKind::Match {
+            scrutinee: first_scrutinee,
+            ..
+        } = &first.kind
+        else {
+            panic!("generic fixture first binding must be a match")
+        };
+        let hir::ResolvedExprKind::Match {
+            scrutinee: second_scrutinee,
+            ..
+        } = &tail.kind
+        else {
+            panic!("generic fixture tail must be a match")
+        };
+
+        assert_ne!(first_scrutinee.id, second_scrutinee.id);
+        let (
+            ResolvedType::Nominal {
+                declaration: first_declaration,
+                arguments: first_arguments,
+            },
+            ResolvedType::Nominal {
+                declaration: second_declaration,
+                arguments: second_arguments,
+            },
+        ) = (&first_scrutinee.ty, &second_scrutinee.ty)
+        else {
+            panic!("generic match scrutinees must have concrete nominal types")
+        };
+        assert_eq!(first_declaration, second_declaration);
+        assert_eq!(first_arguments, &[ResolvedType::I64]);
+        assert_eq!(second_arguments, &[ResolvedType::Bool]);
+        assert!(function.cleanup.slots.is_empty());
+        assert!(function.cleanup_plan.slots.is_empty());
+
+        let shared_case = DeclarationId::new("generic.choice.value");
+        let mut scenario = CleanupScenario::new("generic-instances", Some(TraceResult::I64(42)));
+        scenario
+            .variant_cases
+            .insert(first_scrutinee.id.clone(), shared_case.clone());
+        scenario
+            .variant_cases
+            .insert(second_scrutinee.id.clone(), shared_case);
         let trace = execute_for_conformance(&program, &function.id, scenario).unwrap();
         assert_eq!(
             trace.outcome,

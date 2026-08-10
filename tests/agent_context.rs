@@ -94,11 +94,11 @@ fn budgets_emit_exact_counts_reasons_and_reexpandable_frontier() {
         assert!(expanded.contains(&format!("\"id\":\"{id}\",\"kind\":\"function\"")));
     }
 
-    let byte_bounded = options(1, 1024, 8, &[AgentContextFilter::Ownership]);
+    let byte_bounded = options(1, 1150, 8, &[AgentContextFilter::Ownership]);
     let json = graph::agent_context_json(&program, "ctx.root", &byte_bounded)
         .unwrap()
         .unwrap();
-    assert!(json.len() <= 1024);
+    assert!(json.len() <= 1150);
     assert_eq!(json.len(), used_bytes(&json));
     assert!(json.contains("\"reasons\":[\"max_bytes\"]"));
     assert!(json.contains("\"omitted_fact_bytes\":"));
@@ -109,11 +109,11 @@ fn budgets_emit_exact_counts_reasons_and_reexpandable_frontier() {
         Path::new("meaning.spx"),
     )
     .unwrap();
-    let minimum = options(1, 1024, 256, &[AgentContextFilter::Ownership]);
+    let minimum = options(1, 1150, 256, &[AgentContextFilter::Ownership]);
     let minimum_json = graph::agent_context_json(&meaning, "app.main", &minimum)
         .unwrap()
         .unwrap();
-    assert!(minimum_json.len() <= 1024);
+    assert!(minimum_json.len() <= 1150);
     assert_eq!(minimum_json.len(), used_bytes(&minimum_json));
     assert!(minimum_json.contains("\"used_nodes\":0"));
     assert!(minimum_json.contains(

@@ -60,7 +60,7 @@ use crate::hir::{
     ResolvedExprKind, ResolvedFunction, ResolvedProgram, ResolvedStatement, ResolvedType,
     ResolvedTypeDeclarationKind, ValueId,
 };
-use crate::variant_layout::{VariantLayout, VariantTarget};
+use crate::variant_layout::{VariantLayout, VariantLayoutCache, VariantTarget};
 
 /// Resolve a parsed program fail-closed, then emit its checked native bootstrap IR.
 pub fn emit_c(program: &Program) -> Result<String, Diagnostic> {
@@ -865,6 +865,7 @@ fn emit_hir_c_with_labels(
 ) -> Result<String, Diagnostic> {
     hir::validate(program)?;
     let resource_abi = native_resource::build_resource_abi(program)?;
+    let variant_layouts = VariantLayoutCache::build(program, VariantTarget::Native64)?;
     let functions = function_index(program)?;
     if !resource_abi.resources.is_empty() {
         let _preflight =
@@ -873,7 +874,7 @@ fn emit_hir_c_with_labels(
     }
     let mut output = String::new();
     emit_native_prelude(&mut output, &resource_abi);
-    emit_aggregate_declarations(&mut output, program, &resource_abi)?;
+    emit_aggregate_declarations(&mut output, program, &resource_abi, &variant_layouts)?;
     emit_function_prototypes(&mut output, program, &functions, &resource_abi)?;
 
     for function in &program.functions {
@@ -884,6 +885,7 @@ fn emit_hir_c_with_labels(
             &functions,
             function,
             contract_labels,
+            &variant_layouts,
         )?;
     }
 
@@ -934,6 +936,7 @@ fn emit_aggregate_declarations(
     output: &mut String,
     program: &ResolvedProgram,
     resource_abi: &native_resource::NativeResourceAbi,
+    variant_layouts: &VariantLayoutCache,
 ) -> Result<(), Diagnostic> {
     let records = program
         .types
@@ -941,12 +944,7 @@ fn emit_aggregate_declarations(
         .filter(|item| matches!(item.kind, ResolvedTypeDeclarationKind::Record { .. }))
         .map(|item| item.id.clone())
         .collect::<Vec<_>>();
-    let variants = program
-        .types
-        .iter()
-        .filter(|item| matches!(item.kind, ResolvedTypeDeclarationKind::Variant { .. }))
-        .map(|item| item.id.clone())
-        .collect::<Vec<_>>();
+    let variants = variant_layouts.layouts().collect::<Vec<_>>();
     if records.is_empty() && variants.is_empty() {
         return Ok(());
     }
@@ -957,7 +955,7 @@ fn emit_aggregate_declarations(
             .expect("writing to a string cannot fail");
     }
     for variant in &variants {
-        writeln!(output, "struct {};", c_variant_symbol(variant))
+        writeln!(output, "struct {};", c_variant_symbol(&variant.instance))
             .expect("writing to a string cannot fail");
     }
     output.push('\n');
@@ -1061,11 +1059,10 @@ fn emit_variant_declaration(
     output: &mut String,
     program: &ResolvedProgram,
     resource_abi: &native_resource::NativeResourceAbi,
-    variant: &DeclarationId,
+    layout: &VariantLayout,
 ) -> Result<(), Diagnostic> {
-    let layout = VariantLayout::for_variant(program, VariantTarget::Native64, variant)?;
     layout.validate(program)?;
-    let symbol = c_variant_symbol(variant);
+    let symbol = c_variant_symbol(&layout.instance);
     writeln!(output, "struct {symbol} {{").expect("writing to a string cannot fail");
     output.push_str("    uint32_t spx_tag;\n    union {\n");
     for case in &layout.cases {
@@ -1137,8 +1134,8 @@ fn c_value_type(
 ) -> Result<String, Diagnostic> {
     if let Some(record) = record_declaration_id(program, ty)? {
         Ok(format!("struct {}", c_record_symbol(record)))
-    } else if let Some(variant) = variant_declaration_id(program, ty)? {
-        Ok(format!("struct {}", c_variant_symbol(variant)))
+    } else if variant_declaration_id(program, ty)?.is_some() {
+        Ok(format!("struct {}", c_variant_symbol(ty)))
     } else {
         resource_abi.c_type(program, ty).map(str::to_owned)
     }
@@ -1160,18 +1157,21 @@ fn record_declaration_id<'a>(
     else {
         return Ok(None);
     };
-    if !arguments.is_empty() {
-        return Err(backend_error(format!(
-            "native aggregate representation is unavailable for generic type `{}`",
-            ty.identity_key()
-        )));
-    }
     let item = program
         .types
         .iter()
         .find(|item| item.id == *declaration)
         .ok_or_else(|| backend_error(format!("unknown native type `{declaration}`")))?;
-    Ok(matches!(item.kind, ResolvedTypeDeclarationKind::Record { .. }).then_some(declaration))
+    if !matches!(item.kind, ResolvedTypeDeclarationKind::Record { .. }) {
+        return Ok(None);
+    }
+    if !arguments.is_empty() {
+        return Err(backend_error(format!(
+            "native record representation is unavailable for generic type `{}`",
+            ty.identity_key()
+        )));
+    }
+    Ok(Some(declaration))
 }
 
 fn variant_declaration_id<'a>(
@@ -1185,26 +1185,50 @@ fn variant_declaration_id<'a>(
     else {
         return Ok(None);
     };
-    if !arguments.is_empty() {
-        return Err(backend_error(format!(
-            "native aggregate representation is unavailable for generic type `{}`",
-            ty.identity_key()
-        )));
-    }
     let item = program
         .types
         .iter()
         .find(|item| item.id == *declaration)
         .ok_or_else(|| backend_error(format!("unknown native type `{declaration}`")))?;
-    Ok(matches!(item.kind, ResolvedTypeDeclarationKind::Variant { .. }).then_some(declaration))
+    if !matches!(item.kind, ResolvedTypeDeclarationKind::Variant { .. }) {
+        return Ok(None);
+    }
+    if arguments.len() != item.type_parameters.len()
+        || arguments
+            .iter()
+            .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
+    {
+        return Err(backend_error(format!(
+            "native variant representation requires exact concrete i64/bool arguments for `{}`",
+            ty.identity_key()
+        )));
+    }
+    Ok(Some(declaration))
 }
 
 fn c_record_symbol(id: &DeclarationId) -> String {
     stable_c_symbol("spx_record_", id)
 }
 
-fn c_variant_symbol(id: &DeclarationId) -> String {
-    stable_c_symbol("spx_variant_", id)
+fn c_variant_symbol(ty: &ResolvedType) -> String {
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = ty
+    else {
+        unreachable!("variant C symbols require nominal types");
+    };
+    let mut symbol = stable_c_symbol("spx_variant_", declaration);
+    if !arguments.is_empty() {
+        let mut digest = Sha256::new();
+        digest.update(b"semaprax.native-variant-instance.v1\0");
+        digest.update(ty.identity_key().as_bytes());
+        symbol.push_str("_inst_");
+        for byte in digest.finalize() {
+            write!(symbol, "{byte:02x}").expect("writing to a string cannot fail");
+        }
+    }
+    symbol
 }
 
 fn c_case_symbol(id: &DeclarationId) -> String {
@@ -1550,6 +1574,7 @@ fn emit_function(
     functions: &HashMap<DeclarationId, CFunction>,
     function: &ResolvedFunction,
     contract_labels: &HashMap<ExpressionId, String>,
+    variant_layouts: &VariantLayoutCache,
 ) -> Result<(), Diagnostic> {
     let metadata = functions
         .get(&function.id)
@@ -1591,7 +1616,14 @@ fn emit_function(
             },
         );
     }
-    let mut emitter = CEmitter::new(output, program, resource_abi, variables, functions);
+    let mut emitter = CEmitter::new(
+        output,
+        program,
+        resource_abi,
+        variables,
+        functions,
+        variant_layouts,
+    );
     emitter.line("spx_status_token spx_status = SPX_STATUS_SUCCESS;");
     emitter.line("(void)spx_ctx;");
     emitter.line(&format!(
@@ -1781,6 +1813,7 @@ struct CEmitter<'a> {
     resource_abi: &'a native_resource::NativeResourceAbi,
     variables: HashMap<ValueId, CBinding>,
     functions: &'a HashMap<DeclarationId, CFunction>,
+    variant_layouts: &'a VariantLayoutCache,
     next_local: usize,
     indent: usize,
 }
@@ -1792,6 +1825,7 @@ impl<'a> CEmitter<'a> {
         resource_abi: &'a native_resource::NativeResourceAbi,
         variables: HashMap<ValueId, CBinding>,
         functions: &'a HashMap<DeclarationId, CFunction>,
+        variant_layouts: &'a VariantLayoutCache,
     ) -> Self {
         Self {
             output,
@@ -1799,6 +1833,7 @@ impl<'a> CEmitter<'a> {
             resource_abi,
             variables,
             functions,
+            variant_layouts,
             next_local: 0,
             indent: 1,
         }
@@ -2253,13 +2288,13 @@ impl<'a> CEmitter<'a> {
     }
 
     fn variant_layout(&self, ty: &ResolvedType) -> Result<VariantLayout, Diagnostic> {
-        let variant = variant_declaration_id(self.program, ty)?.ok_or_else(|| {
+        variant_declaration_id(self.program, ty)?.ok_or_else(|| {
             backend_error(format!(
                 "native variant operation requires a variant, found `{}`",
                 ty.identity_key()
             ))
         })?;
-        let layout = VariantLayout::for_variant(self.program, VariantTarget::Native64, variant)?;
+        let layout = self.variant_layouts.layout(ty)?.clone();
         layout.validate(self.program)?;
         Ok(layout)
     }

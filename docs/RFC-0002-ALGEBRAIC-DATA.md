@@ -10,21 +10,26 @@ prefix-aware ownership, checked Native64/Wasm32 layouts, and independently
 rebuilt and replayed cleanup plans. Its bounded public backend slice executes
 nested `i64`/`bool` records through native C11/Clang at O0/O2 and browser Wasm
 under Node; the empty product has frozen size and alignment one on both layout
-profiles. The implemented copy-variant slice adds non-generic nominal variants
-with unit and direct `i64`/`bool` payload fields, explicit qualified
-construction, exhaustive copy-only `match`, scalar `i64`/`bool` arm results,
-persistent case/payload identities, CleanupPlan v1 stable-case branching,
-Graph v8, checked deterministic internal Native64/Wasm32 layouts, and native
-C11 O0/O2 plus Node/Wasm execution. Generics, `Option`, `Result`, `?`,
-resource- or record-bearing variant payloads, non-copy match ownership modes, a
-stable public aggregate ABI, public resource-bearing execution, and general
-aggregate execution remain outside that evidence.
+profiles. The implemented copy-variant slice adds nominal variant templates
+with explicit direct `i64`/`bool` arguments, monomorphic unit/direct-scalar
+cases, explicit qualified construction, exhaustive copy-only `match`, scalar
+`i64`/`bool` arm results, persistent template case/payload identities,
+CleanupPlan v1 exact-scrutinee/stable-case branching, Graph v9/revision v2,
+checked deterministic internal Native64/Wasm32 layout digest v2, and native C11
+O0/O2 plus Node/Wasm execution. Compiler-owned ordinary `Option<T>` and
+`Result<T, E>` use the same generic-variant machinery. The preceding
+non-generic tranche is hosted green in [run
+31343897595](https://github.com/wavect/semaprax/actions/runs/31343897595);
+current generic/prelude hosted verification is pending. Generic functions or
+records, nested/resource arguments, `?`, resource- or record-bearing variant
+payloads, non-copy match ownership modes, a stable public aggregate ABI, public
+resource-bearing execution, and general aggregate execution remain outside
+that evidence.
 
 ## Canonical source
 
-Public types and members carry persistent identities. This generic `Option`
-example is the intended full-language syntax, not part of the bounded
-non-generic executable slice:
+Public types and members carry persistent identities. Authored generic variant
+templates use the bounded syntax below:
 
 ```semaprax
 @id("geometry.point")
@@ -36,14 +41,14 @@ record Point {
     y: i64,
 }
 
-@id("core.option")
-variant Option<T> {
-    @id("core.option.none")
+@id("geometry.choice")
+variant Choice<T> {
+    @id("geometry.choice.none")
     None,
 
-    @id("core.option.some")
-    Some {
-        @id("core.option.some.value")
+    @id("geometry.choice.value")
+    Value {
+        @id("geometry.choice.value.value")
         value: T,
     },
 }
@@ -65,16 +70,24 @@ fn example(point: Point, value: Option<i64>) -> i64 {
 - Record construction is `Point { x: expression, y: expression }`.
 - Immutable update is `point with { y: expression }`.
 - Projection is `point.x`.
-- Cases are qualified: `Option::Some { value: expression }` and `Option::None {}`.
+- Generic constructors carry explicit concrete arguments:
+  `Choice<i64>::Value { value: expression }` and `Option<i64>::None {}`.
+  Patterns use the checked scrutinee instance, for example
+  `Option::Some { value }` and `Option::None {}`.
 - `_` is a wildcard. The current bounded slice requires exact named payload
   fields, optionally written `field: binding`; bare nested bindings and `..`
   remain future work.
 - The current slice has no guards, or-patterns, or nested patterns.
 - Future non-copy scrutinees require `match own`, `match borrow`, or
   `match shared`; the implemented plain `match` is copy-only.
-- Ambiguous generic construction requires a type annotation.
+- The bounded slice requires explicit generic constructor arguments rather than
+  inference.
 
-`Option<T>` and `Result<T, E>` are ordinary versioned prelude variants, not hidden backend primitives. Only postfix `?` receives dedicated typed lowering.
+`Option<T>` and `Result<T, E>` are ordinary compiler-owned variants from the
+authenticated versioned prelude, not hidden backend primitives. Their reserved
+names and stable IDs cannot be redeclared by source. Only direct `i64`/`bool`
+arguments are admitted today. Postfix `?` remains unimplemented and will
+receive dedicated typed lowering later.
 
 ## Resolved semantics
 
@@ -154,12 +167,15 @@ C type names derive from stable IDs plus a deterministic collision suffix. Recor
 
 Do not niche-optimize initially. Explicit representation is easier to audit and keeps native/Wasm semantics aligned.
 
-Executable Copy Variants v1 implements this only as a compiler-internal
-Native64 profile: constructors evaluate authored payload expressions first,
-zero the complete representation, write the selected payload, and publish the
-tag last. Generated `_Static_assert`s bind size, alignment, tag, payload, and
-field offsets. Aggregate parameters are internal `const struct *` values and
-results are caller-owned; none of this freezes a public C ABI.
+Executable Copy Variants implements this as compiler-internal Native64 and
+Wasm32 profiles. Layout digest v2 authenticates the complete concrete nominal
+instance plus template and substituted payload-field types; full-hash native
+symbols keep distinct instantiations separate. Constructors evaluate authored
+payload expressions first, zero the complete representation, write the selected
+payload, and publish the tag last. Generated `_Static_assert`s bind size,
+alignment, tag, payload, and field offsets. Aggregate parameters are internal
+`const struct *` values and results are caller-owned; none of this freezes a
+public C ABI.
 
 ### WebAssembly bootstrap
 
@@ -184,7 +200,15 @@ The browser export `semaprax_main -> i64` remains stable during this tranche.
 
 ## Agent graph and transactions
 
-Graph v8 adds persistent `variant`, `variant_case`, and `case_field` nodes to the existing record/resource declarations. Revision-scoped expression nodes cover variant construction, match arms, variant/wildcard patterns, and payload bindings; cleanup edges select stable case IDs for one scrutinee expression. Future generic and propagation nodes/edges remain design rather than implemented evidence.
+Graph v9 adds owner/index-stable type-parameter nodes, exact concrete nominal
+argument trees, compiler-owned identity provenance, and an authenticated
+`semaprax.prelude.v1` contract to the persistent `variant`, `variant_case`, and
+`case_field` declarations introduced in v8. Revision-scoped expression nodes
+cover variant construction, match arms, variant/wildcard patterns, and payload
+bindings; cleanup edges select stable template case IDs for one exact scrutinee
+expression. Graph revision v2 length-delimits and hashes canonical source plus
+the prelude schema/contract. Future propagation nodes/edges remain design rather
+than implemented evidence.
 
 Context traversal follows signature types, constructors, projections, cases, patterns, contracts, and calls.
 
@@ -223,9 +247,9 @@ Existing diagnostic codes remain reserved; implementation must resolve any colli
 
 1. Add resolved nominal types, HIR, type facts, place paths, and deterministic layout keys without changing source behavior. **Implemented.**
 2. Add records through parser, formatter, resolver, verifier, Graph, transactions, C, and Wasm. **Frontend, Graph v7 record-update meaning, deterministic target layouts, target-neutral cleanup, and bounded public nested-scalar C11/Wasm execution are implemented; transaction breadth, resource-bearing public execution, a stable aggregate ABI, and general backend completion remain evidence-gated.**
-3. Add bounded non-generic copy variants and exhaustive copy matching. **Implemented for unit/direct-`i64`/direct-`bool` payloads, scalar `i64`/`bool` arm results, CleanupPlan v1 variant-case replay, Graph v8, deterministic internal Native64/Wasm32 layouts, and native C11 O0/O2 plus Node/Wasm execution.**
-4. Add generic variants, recursive-unsized rejection, and ownership-aware matching. **Not implemented.**
-5. Add ordinary prelude `Option` and `Result`.
+3. Add bounded non-generic copy variants and exhaustive copy matching. **Implemented for unit/direct-`i64`/direct-`bool` payloads, scalar `i64`/`bool` arm results, CleanupPlan v1 variant-case replay, deterministic internal Native64/Wasm32 layouts, and native C11 O0/O2 plus Node/Wasm execution.**
+4. Add generic variants, recursive-unsized rejection, and ownership-aware matching. **Partially implemented for nominal variant templates with explicit direct `i64`/`bool` arguments, exact substitution/instance identity, Graph v9, internal layout digest v2, cleanup-free copy matching, and native/Wasm execution. Nested/resource arguments and non-copy ownership modes remain open.**
+5. Add ordinary prelude `Option` and `Result`. **Implemented for compiler-owned `semaprax.prelude.v1` variants under the same direct-`i64`/`bool`, copy-only, internal-ABI limits; component/FFI mappings remain open.**
 6. Add `?` with evaluation-once and unified epilogues.
 7. Add member/case transactions, layout/interface hashes, and context traversal.
 

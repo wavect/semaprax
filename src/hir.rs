@@ -110,6 +110,7 @@ pub enum DeclarationKind {
 pub enum IdentityOrigin {
     Explicit,
     Automatic,
+    CompilerOwned,
 }
 
 impl IdentityOrigin {
@@ -117,11 +118,12 @@ impl IdentityOrigin {
         match self {
             Self::Explicit => "explicit",
             Self::Automatic => "automatic",
+            Self::CompilerOwned => "compiler_owned",
         }
     }
 
     pub fn is_persistent(self) -> bool {
-        matches!(self, Self::Explicit)
+        matches!(self, Self::Explicit | Self::CompilerOwned)
     }
 }
 
@@ -148,6 +150,7 @@ pub struct DeclarationIndex {
     cases_by_owner_name: BTreeMap<(DeclarationId, String), DeclarationId>,
     variant_cases: BTreeMap<DeclarationId, Vec<ResolvedVariantCaseDeclaration>>,
     case_fields: BTreeMap<DeclarationId, Vec<ResolvedFieldDeclaration>>,
+    type_parameters: BTreeMap<DeclarationId, Vec<ResolvedTypeParameterDeclaration>>,
     imports_by_key: BTreeMap<String, DeclarationId>,
     type_facts_by_id: BTreeMap<String, TypeFacts>,
 }
@@ -190,6 +193,13 @@ impl DeclarationIndex {
         self.case_fields.get(case).map(Vec::as_slice)
     }
 
+    pub fn type_parameters(
+        &self,
+        declaration: &DeclarationId,
+    ) -> Option<&[ResolvedTypeParameterDeclaration]> {
+        self.type_parameters.get(declaration).map(Vec::as_slice)
+    }
+
     pub fn import_id(&self, key: &str) -> Option<&DeclarationId> {
         self.imports_by_key.get(key)
     }
@@ -203,7 +213,10 @@ impl DeclarationIndex {
     /// `None` is reserved for unresolved type parameters and future malformed
     /// HIR. Every type produced for today's verified language has facts.
     pub fn type_facts(&self, ty: &ResolvedType) -> Option<TypeFacts> {
-        self.type_facts_by_id.get(&ty.identity_key()).cloned()
+        self.type_facts_by_id
+            .get(&ty.identity_key())
+            .cloned()
+            .or_else(|| self.recompute_type_facts(ty))
     }
 
     fn compute_type_facts(
@@ -287,7 +300,13 @@ impl DeclarationIndex {
                         })
                     }
                     DeclarationKind::Variant => {
-                        if !arguments.is_empty() || !visiting.insert(declaration.id.clone()) {
+                        let parameters = self.type_parameters.get(&declaration.id)?;
+                        if arguments.len() != parameters.len()
+                            || arguments.iter().any(|argument| {
+                                !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
+                            })
+                            || !visiting.insert(declaration.id.clone())
+                        {
                             return None;
                         }
                         let cases = self.variant_cases.get(&declaration.id)?;
@@ -302,7 +321,9 @@ impl DeclarationIndex {
                             )
                             .expect("writing to a string cannot fail");
                             for field in &case.fields {
-                                let facts = self.compute_type_facts(&field.ty, visiting, memo)?;
+                                let field_ty =
+                                    substitute_type(&field.ty, &declaration.id, arguments).ok()?;
+                                let facts = self.compute_type_facts(&field_ty, visiting, memo)?;
                                 if !facts.copy || facts.contains_resource || facts.needs_drop {
                                     return None;
                                 }
@@ -357,6 +378,13 @@ impl DeclarationIndex {
         }
         let declarations = self.types_by_name.values().cloned().collect::<Vec<_>>();
         for declaration in declarations {
+            if self
+                .type_parameters
+                .get(&declaration)
+                .is_some_and(|parameters| !parameters.is_empty())
+            {
+                continue;
+            }
             let ty = ResolvedType::Nominal {
                 declaration,
                 arguments: Vec::new(),
@@ -378,7 +406,7 @@ impl DeclarationIndex {
 
     fn from_verified(program: &Program) -> Result<Self, Diagnostic> {
         let mut index = Self::default();
-        for declaration in &program.types {
+        for declaration in program.types.iter().chain(crate::prelude::declarations()) {
             let kind = match declaration.kind {
                 TypeDeclarationKind::Resource { .. } => DeclarationKind::Resource,
                 TypeDeclarationKind::Record { .. } => DeclarationKind::Record,
@@ -388,12 +416,35 @@ impl DeclarationIndex {
                 declaration.name.clone(),
                 DeclarationId::new(declaration.stable_id.clone()),
                 kind,
-                if declaration.explicit_id {
+                if crate::prelude::is_compiler_owned_id(&declaration.stable_id) {
+                    IdentityOrigin::CompilerOwned
+                } else if declaration.explicit_id {
                     IdentityOrigin::Explicit
                 } else {
                     IdentityOrigin::Automatic
                 },
             );
+            let owner = DeclarationId::new(declaration.stable_id.clone());
+            let parameters = declaration
+                .type_parameters
+                .iter()
+                .enumerate()
+                .map(|(ordinal, parameter)| {
+                    Ok(ResolvedTypeParameterDeclaration {
+                        name: parameter.name.clone(),
+                        index: u32::try_from(ordinal).map_err(|_| {
+                            Diagnostic::error(
+                                "SPX-H006",
+                                format!("type `{}` has too many parameters", declaration.name),
+                                declaration.span,
+                            )
+                            .at_path(&program.path)
+                        })?,
+                        span: parameter.span,
+                    })
+                })
+                .collect::<Result<Vec<_>, Diagnostic>>()?;
+            index.type_parameters.insert(owner, parameters);
         }
         for interface in &program.interfaces {
             let interface_id = DeclarationId::new(interface.stable_id.clone());
@@ -417,7 +468,7 @@ impl DeclarationIndex {
                 );
             }
         }
-        for declaration in &program.types {
+        for declaration in program.types.iter().chain(crate::prelude::declarations()) {
             let TypeDeclarationKind::Resource { lifecycles } = &declaration.kind else {
                 continue;
             };
@@ -447,14 +498,14 @@ impl DeclarationIndex {
                 },
             );
         }
-        for declaration in &program.types {
+        for declaration in program.types.iter().chain(crate::prelude::declarations()) {
             let TypeDeclarationKind::Record { fields } = &declaration.kind else {
                 continue;
             };
             let owner = DeclarationId::new(declaration.stable_id.clone());
             let mut resolved_fields = Vec::with_capacity(fields.len());
             for (ordinal, field) in fields.iter().enumerate() {
-                let ty = index.resolve_source_type(&field.ty).ok_or_else(|| {
+                let ty = index.resolve_source_type(&field.ty, None).ok_or_else(|| {
                     Diagnostic::error(
                         "SPX-H001",
                         format!("unresolved field type `{}`", field.ty),
@@ -490,7 +541,7 @@ impl DeclarationIndex {
             }
             index.record_fields.insert(owner, resolved_fields);
         }
-        for declaration in &program.types {
+        for declaration in program.types.iter().chain(crate::prelude::declarations()) {
             let TypeDeclarationKind::Variant { cases } = &declaration.kind else {
                 continue;
             };
@@ -510,7 +561,9 @@ impl DeclarationIndex {
                     owner.clone(),
                     case.name.clone(),
                     case_id.clone(),
-                    if case.explicit_id {
+                    if crate::prelude::is_compiler_owned_id(&case.stable_id) {
+                        IdentityOrigin::CompilerOwned
+                    } else if case.explicit_id {
                         IdentityOrigin::Explicit
                     } else {
                         IdentityOrigin::Automatic
@@ -518,14 +571,16 @@ impl DeclarationIndex {
                 );
                 let mut resolved_fields = Vec::with_capacity(case.fields.len());
                 for (field_ordinal, field) in case.fields.iter().enumerate() {
-                    let ty = index.resolve_source_type(&field.ty).ok_or_else(|| {
-                        Diagnostic::error(
-                            "SPX-H001",
-                            format!("unresolved case field type `{}`", field.ty),
-                            field.span,
-                        )
-                        .at_path(&program.path)
-                    })?;
+                    let ty = index
+                        .resolve_source_type(&field.ty, Some(&owner))
+                        .ok_or_else(|| {
+                            Diagnostic::error(
+                                "SPX-H001",
+                                format!("unresolved case field type `{}`", field.ty),
+                                field.span,
+                            )
+                            .at_path(&program.path)
+                        })?;
                     let field_index = u32::try_from(field_ordinal).map_err(|_| {
                         Diagnostic::error(
                             "SPX-H006",
@@ -547,7 +602,9 @@ impl DeclarationIndex {
                     index.insert_case_field(
                         case_id.clone(),
                         resolved.clone(),
-                        if field.explicit_id {
+                        if crate::prelude::is_compiler_owned_id(&field.stable_id) {
+                            IdentityOrigin::CompilerOwned
+                        } else if field.explicit_id {
                             IdentityOrigin::Explicit
                         } else {
                             IdentityOrigin::Automatic
@@ -695,17 +752,37 @@ impl DeclarationIndex {
         );
     }
 
-    fn resolve_source_type(&self, ty: &Type) -> Option<ResolvedType> {
+    fn resolve_source_type(
+        &self,
+        ty: &Type,
+        parameter_owner: Option<&DeclarationId>,
+    ) -> Option<ResolvedType> {
         match ty {
             Type::I64 => Some(ResolvedType::I64),
             Type::Bool => Some(ResolvedType::Bool),
-            Type::Named(name) => {
-                self.type_id(name)
-                    .cloned()
-                    .map(|declaration| ResolvedType::Nominal {
-                        declaration,
-                        arguments: Vec::new(),
-                    })
+            Type::Named { name, arguments } => {
+                if arguments.is_empty() {
+                    if let Some(owner) = parameter_owner {
+                        if let Some(parameter) = self
+                            .type_parameters(owner)?
+                            .iter()
+                            .find(|parameter| parameter.name == *name)
+                        {
+                            return Some(ResolvedType::TypeParameter {
+                                owner: owner.clone(),
+                                index: parameter.index,
+                            });
+                        }
+                    }
+                }
+                let declaration = self.type_id(name)?.clone();
+                Some(ResolvedType::Nominal {
+                    declaration,
+                    arguments: arguments
+                        .iter()
+                        .map(|argument| self.resolve_source_type(argument, parameter_owner))
+                        .collect::<Option<Vec<_>>>()?,
+                })
             }
         }
     }
@@ -767,6 +844,50 @@ impl ResolvedType {
     }
 }
 
+/// Substitute one concrete generic instantiation into a declaration-owned
+/// type template. Consumers share this helper so payload validation, type
+/// facts, layouts, and backends cannot disagree about parameter identity.
+pub(crate) fn substitute_type(
+    template: &ResolvedType,
+    owner: &DeclarationId,
+    arguments: &[ResolvedType],
+) -> Result<ResolvedType, Diagnostic> {
+    match template {
+        ResolvedType::I64 => Ok(ResolvedType::I64),
+        ResolvedType::Bool => Ok(ResolvedType::Bool),
+        ResolvedType::TypeParameter {
+            owner: parameter_owner,
+            index,
+        } => {
+            if parameter_owner != owner {
+                return Err(hir_error(format!(
+                    "type template for `{owner}` contains foreign parameter owner `{parameter_owner}`"
+                )));
+            }
+            arguments
+                .get(usize::try_from(*index).map_err(|_| {
+                    hir_error(format!("type parameter index {index} does not fit usize"))
+                })?)
+                .cloned()
+                .ok_or_else(|| {
+                    hir_error(format!(
+                        "type template for `{owner}` references missing parameter {index}"
+                    ))
+                })
+        }
+        ResolvedType::Nominal {
+            declaration,
+            arguments: nested,
+        } => Ok(ResolvedType::Nominal {
+            declaration: declaration.clone(),
+            arguments: nested
+                .iter()
+                .map(|argument| substitute_type(argument, owner, arguments))
+                .collect::<Result<Vec<_>, _>>()?,
+        }),
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TypeFacts {
     pub copy: bool,
@@ -810,7 +931,15 @@ pub struct ResolvedProgram {
 pub struct ResolvedTypeDeclaration {
     pub id: DeclarationId,
     pub name: String,
+    pub type_parameters: Vec<ResolvedTypeParameterDeclaration>,
     pub kind: ResolvedTypeDeclarationKind,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResolvedTypeParameterDeclaration {
+    pub name: String,
+    pub index: u32,
     pub span: Span,
 }
 
@@ -1389,6 +1518,39 @@ impl<'a> HirValidator<'a> {
                     )));
                 }
             }
+            let indexed_parameters = self
+                .program
+                .declarations
+                .type_parameters(&declaration.id)
+                .ok_or_else(|| {
+                    hir_error(format!(
+                        "type `{}` has no indexed parameter sequence",
+                        declaration.id
+                    ))
+                })?;
+            if indexed_parameters != declaration.type_parameters.as_slice()
+                || declaration
+                    .type_parameters
+                    .iter()
+                    .enumerate()
+                    .any(|(index, parameter)| usize::try_from(parameter.index) != Ok(index))
+                || declaration
+                    .type_parameters
+                    .iter()
+                    .map(|parameter| &parameter.name)
+                    .collect::<BTreeSet<_>>()
+                    .len()
+                    != declaration.type_parameters.len()
+                || (!matches!(
+                    declaration.kind,
+                    ResolvedTypeDeclarationKind::Variant { .. }
+                ) && !declaration.type_parameters.is_empty())
+            {
+                return Err(hir_error(format!(
+                    "type `{}` has invalid generic parameter metadata",
+                    declaration.id
+                )));
+            }
             if let ResolvedTypeDeclarationKind::Resource { drop } = &declaration.kind {
                 if !resource_drop_ids.insert(drop.id.clone()) {
                     return Err(hir_error(format!(
@@ -1571,7 +1733,12 @@ impl<'a> HirValidator<'a> {
                             || usize::try_from(field.index) != Ok(field_position)
                             || field.index != indexed_field.index
                             || field.ty != indexed_field.ty
-                            || !matches!(field.ty, ResolvedType::I64 | ResolvedType::Bool)
+                            || !matches!(
+                                field.ty,
+                                ResolvedType::I64
+                                    | ResolvedType::Bool
+                                    | ResolvedType::TypeParameter { .. }
+                            )
                         {
                             return Err(hir_error(format!(
                                 "field {field_position} of case `{}` is invalid or disagrees with its declaration index",
@@ -1595,25 +1762,46 @@ impl<'a> HirValidator<'a> {
                                 )));
                             }
                         }
-                        self.validate_type(&field.ty)?;
+                        match &field.ty {
+                            ResolvedType::I64 | ResolvedType::Bool => {}
+                            ResolvedType::TypeParameter { owner, index }
+                                if owner == &declaration.id
+                                    && declaration
+                                        .type_parameters
+                                        .get(usize::try_from(*index).map_err(|_| {
+                                            hir_error("type parameter index does not fit usize")
+                                        })?)
+                                        .is_some() => {}
+                            ResolvedType::TypeParameter { .. } | ResolvedType::Nominal { .. } => {
+                                return Err(hir_error(format!(
+                                    "field `{}` has an invalid generic copy payload template",
+                                    field.id
+                                )));
+                            }
+                        }
                     }
                 }
-                let variant_ty = ResolvedType::Nominal {
-                    declaration: declaration.id.clone(),
-                    arguments: Vec::new(),
-                };
-                let cached = self.program.declarations.type_facts(&variant_ty);
-                let recomputed = self.program.declarations.recompute_type_facts(&variant_ty);
-                if cached.is_none()
-                    || cached != recomputed
-                    || cached.as_ref().is_none_or(|facts| {
-                        !facts.copy || facts.contains_resource || facts.needs_drop || !facts.sized
-                    })
-                {
-                    return Err(hir_error(format!(
-                        "variant `{}` has invalid or stale type facts",
-                        declaration.id
-                    )));
+                if declaration.type_parameters.is_empty() {
+                    let variant_ty = ResolvedType::Nominal {
+                        declaration: declaration.id.clone(),
+                        arguments: Vec::new(),
+                    };
+                    let cached = self.program.declarations.type_facts(&variant_ty);
+                    let recomputed = self.program.declarations.recompute_type_facts(&variant_ty);
+                    if cached.is_none()
+                        || cached != recomputed
+                        || cached.as_ref().is_none_or(|facts| {
+                            !facts.copy
+                                || facts.contains_resource
+                                || facts.needs_drop
+                                || !facts.sized
+                        })
+                    {
+                        return Err(hir_error(format!(
+                            "variant `{}` has invalid or stale type facts",
+                            declaration.id
+                        )));
+                    }
                 }
             }
         }
@@ -2210,6 +2398,18 @@ impl<'a> HirValidator<'a> {
                 case,
                 fields,
             } => {
+                let ResolvedType::Nominal {
+                    declaration: instance_variant,
+                    arguments,
+                } = &expression.ty
+                else {
+                    return Err(hir_error("variant constructor has a non-nominal result"));
+                };
+                if instance_variant != variant {
+                    return Err(hir_error(
+                        "variant constructor result disagrees with its declaration",
+                    ));
+                }
                 let declaration = self
                     .program
                     .declarations
@@ -2256,7 +2456,8 @@ impl<'a> HirValidator<'a> {
                         allow_moves,
                         allowed_effects,
                     )?;
-                    self.require_type(&initializer.value.ty, &field.ty, "variant payload field")?;
+                    let field_ty = substitute_type(&field.ty, variant, arguments)?;
+                    self.require_type(&initializer.value.ty, &field_ty, "variant payload field")?;
                     if initializer.value.ownership != OwnershipMode::Value {
                         return Err(hir_error(format!(
                             "variant payload field `{}` is not a Copy value",
@@ -2269,13 +2470,7 @@ impl<'a> HirValidator<'a> {
                         "constructor for `{case}` is missing required payload fields"
                     )));
                 }
-                (
-                    ResolvedType::Nominal {
-                        declaration: variant.clone(),
-                        arguments: Vec::new(),
-                    },
-                    OwnershipMode::Value,
-                )
+                (expression.ty.clone(), OwnershipMode::Value)
             }
             ResolvedExprKind::Match { scrutinee, arms } => {
                 self.validate_expr(
@@ -2293,8 +2488,7 @@ impl<'a> HirValidator<'a> {
                 else {
                     return Err(hir_error("resolved match scrutinee is not nominal"));
                 };
-                if !arguments.is_empty()
-                    || scrutinee.ownership != OwnershipMode::Value
+                if scrutinee.ownership != OwnershipMode::Value
                     || self
                         .program
                         .declarations
@@ -2302,7 +2496,7 @@ impl<'a> HirValidator<'a> {
                         .is_none_or(|item| item.kind != DeclarationKind::Variant)
                 {
                     return Err(hir_error(
-                        "resolved match scrutinee is not a non-generic Copy variant",
+                        "resolved match scrutinee is not a concrete Copy variant",
                     ));
                 }
                 let cases = self
@@ -2361,6 +2555,8 @@ impl<'a> HirValidator<'a> {
                                             pattern_field.field
                                         ))
                                     })?;
+                                let binding_ty =
+                                    substitute_type(&declared_field.ty, variant, arguments)?;
                                 if !seen_fields.insert(pattern_field.field.clone())
                                     || pattern_field.binding.id
                                         != ValueId::local(
@@ -2369,7 +2565,7 @@ impl<'a> HirValidator<'a> {
                                                 "{path}.arm.{arm_index}.binding.{field_index}"
                                             ),
                                         )
-                                    || pattern_field.binding.ty != declared_field.ty
+                                    || pattern_field.binding.ty != binding_ty
                                     || pattern_field.binding.ownership != OwnershipMode::Value
                                 {
                                     return Err(hir_error(
@@ -2857,26 +3053,44 @@ impl<'a> HirValidator<'a> {
                 declaration,
                 arguments,
             } => {
-                if self
+                let kind = self
                     .program
                     .declarations
                     .declaration(declaration)
-                    .is_none_or(|item| {
-                        !matches!(
-                            item.kind,
+                    .map(|item| item.kind)
+                    .filter(|kind| {
+                        matches!(
+                            kind,
                             DeclarationKind::Resource
                                 | DeclarationKind::Record
                                 | DeclarationKind::Variant
                         )
                     })
-                {
+                    .ok_or_else(|| {
+                        hir_error(format!(
+                            "nominal type `{declaration}` is not a resolved type declaration"
+                        ))
+                    })?;
+                let parameters = self
+                    .program
+                    .declarations
+                    .type_parameters(declaration)
+                    .ok_or_else(|| {
+                        hir_error(format!("nominal type `{declaration}` has no parameters"))
+                    })?;
+                if arguments.len() != parameters.len() {
                     return Err(hir_error(format!(
-                        "nominal type `{declaration}` is not a resolved type declaration"
+                        "nominal type `{declaration}` has incorrect argument arity"
                     )));
                 }
-                if !arguments.is_empty() {
+                if !arguments.is_empty()
+                    && (kind != DeclarationKind::Variant
+                        || arguments.iter().any(|argument| {
+                            !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
+                        }))
+                {
                     return Err(hir_error(format!(
-                        "nominal type `{declaration}` does not declare type parameters"
+                        "nominal type `{declaration}` has unsupported generic arguments"
                     )));
                 }
                 for argument in arguments {
@@ -3633,6 +3847,7 @@ impl Resolver<'_> {
             .program
             .types
             .iter()
+            .chain(crate::prelude::declarations())
             .map(|declaration| {
                 let id = DeclarationId::new(declaration.stable_id.clone());
                 let kind = match &declaration.kind {
@@ -3712,6 +3927,17 @@ impl Resolver<'_> {
                     }
                 };
                 Ok(ResolvedTypeDeclaration {
+                    type_parameters: self
+                        .declarations
+                        .type_parameters(&id)
+                        .ok_or_else(|| {
+                            self.error(
+                                "SPX-H006",
+                                format!("type `{id}` has no parameter metadata"),
+                                declaration.span,
+                            )
+                        })?
+                        .to_vec(),
                     id,
                     name: declaration.name.clone(),
                     kind,
@@ -3931,15 +4157,41 @@ impl Resolver<'_> {
         match ty {
             Type::I64 => Ok(ResolvedType::I64),
             Type::Bool => Ok(ResolvedType::Bool),
-            Type::Named(name) => self
-                .declarations
-                .type_id(name)
-                .cloned()
-                .map(|declaration| ResolvedType::Nominal {
+            Type::Named { name, arguments } => {
+                let declaration = self.declarations.type_id(name).cloned().ok_or_else(|| {
+                    self.error("SPX-H001", format!("unresolved type `{name}`"), span)
+                })?;
+                let arguments = arguments
+                    .iter()
+                    .map(|argument| self.resolve_type(argument, span))
+                    .collect::<Result<Vec<_>, _>>()?;
+                let parameters =
+                    self.declarations
+                        .type_parameters(&declaration)
+                        .ok_or_else(|| {
+                            self.error(
+                                "SPX-H006",
+                                format!("type `{declaration}` has no parameter metadata"),
+                                span,
+                            )
+                        })?;
+                if arguments.len() != parameters.len()
+                    || (!arguments.is_empty()
+                        && arguments.iter().any(|argument| {
+                            !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
+                        }))
+                {
+                    return Err(self.error(
+                        "SPX-H006",
+                        format!("type `{declaration}` has invalid concrete arguments"),
+                        span,
+                    ));
+                }
+                Ok(ResolvedType::Nominal {
                     declaration,
-                    arguments: Vec::new(),
+                    arguments,
                 })
-                .ok_or_else(|| self.error("SPX-H001", format!("unresolved type `{name}`"), span)),
+            }
         }
     }
 
@@ -4198,6 +4450,7 @@ impl Resolver<'_> {
             }
             ExprKind::ConstructVariant {
                 type_name,
+                type_arguments,
                 case_name,
                 fields,
                 ..
@@ -4261,7 +4514,10 @@ impl Resolver<'_> {
                 }
                 let ty = ResolvedType::Nominal {
                     declaration: variant.clone(),
-                    arguments: Vec::new(),
+                    arguments: type_arguments
+                        .iter()
+                        .map(|argument| self.resolve_type(argument, expr.span))
+                        .collect::<Result<Vec<_>, _>>()?,
                 };
                 (
                     ResolvedExprKind::ConstructVariant {
@@ -4287,11 +4543,10 @@ impl Resolver<'_> {
                         expr.span,
                     ));
                 };
-                if !arguments.is_empty()
-                    || self
-                        .declarations
-                        .declaration(variant)
-                        .is_none_or(|item| item.kind != DeclarationKind::Variant)
+                if self
+                    .declarations
+                    .declaration(variant)
+                    .is_none_or(|item| item.kind != DeclarationKind::Variant)
                 {
                     return Err(self.error(
                         "SPX-H001",
@@ -4299,6 +4554,7 @@ impl Resolver<'_> {
                         expr.span,
                     ));
                 }
+                let instance_arguments = arguments.clone();
                 let variant = variant.clone();
                 let mut resolved_arms = Vec::with_capacity(arms.len());
                 for (arm_index, arm) in arms.iter().enumerate() {
@@ -4335,7 +4591,7 @@ impl Resolver<'_> {
                                             field.span,
                                         )
                                     })?;
-                                let field_ty = self
+                                let field_template = self
                                     .declarations
                                     .case_fields(&case)
                                     .and_then(|items| items.iter().find(|item| item.id == field_id))
@@ -4347,6 +4603,11 @@ impl Resolver<'_> {
                                             field.span,
                                         )
                                     })?;
+                                let field_ty = substitute_type(
+                                    &field_template,
+                                    &variant,
+                                    &instance_arguments,
+                                )?;
                                 let binding = ResolvedBinding {
                                     id: ValueId::local(
                                         function,

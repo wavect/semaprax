@@ -458,7 +458,7 @@ fn parse_filters(value: &str, line: usize) -> Result<Vec<AgentContextFilter>, Di
                 | AgentContextFilter::Types
         ) {
             return Err(benchmark_error(format!(
-                "benchmark manifest line {line} cannot score unavailable Graph v8 filter `{name}`"
+                "benchmark manifest line {line} cannot score unavailable Graph v9 filter `{name}`"
             )));
         }
         if !seen.insert(filter) {

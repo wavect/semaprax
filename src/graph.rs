@@ -1,7 +1,7 @@
 //! Deterministic semantic graph serialization and bounded context queries.
 //!
 //! Human source supplies the revision. Resolved HIR supplies every semantic
-//! identity and fact in graph v8; spans and display names are metadata only.
+//! identity and fact in graph v9; spans and display names are metadata only.
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fmt::Write;
@@ -17,21 +17,29 @@ use crate::hir::{
     ResolvedResourceDropKind, ResolvedStatement, ResolvedType, ResolvedTypeDeclarationKind,
     TypeFacts, ValueId,
 };
+use crate::prelude;
 
-/// Hash the canonical human-readable source projection.
+/// Hash the canonical human-readable source projection and implicit prelude.
 ///
 /// This revision intentionally does not depend on HIR spans, display metadata,
 /// or the graph wire format. Semantic transactions therefore remain bound to
-/// the exact canonical source meaning that a human can review in Git.
+/// the exact canonical source meaning that a human can review in Git plus the
+/// compiler-owned ordinary prelude that participates in checked meaning.
 pub fn revision(program: &Program) -> String {
     let source = format::canonical(program);
+    let prelude_contract = prelude::contract_bytes_v1();
     let mut hasher = Sha256::new();
-    hasher.update(b"semaprax.graph-revision.v1\0");
+    hasher.update(b"semaprax.graph-revision.v2\0");
+    hasher.update((source.len() as u64).to_le_bytes());
     hasher.update(source.as_bytes());
+    hasher.update((prelude::SCHEMA_V1.len() as u64).to_le_bytes());
+    hasher.update(prelude::SCHEMA_V1.as_bytes());
+    hasher.update((prelude_contract.len() as u64).to_le_bytes());
+    hasher.update(&prelude_contract);
     format!("sha256:{:x}", hasher.finalize())
 }
 
-/// Resolve and serialize a parsed program as `semaprax.graph.v8`.
+/// Resolve and serialize a parsed program as `semaprax.graph.v9`.
 ///
 /// Resolution is deliberately part of this public boundary. Invalid source
 /// cannot be mistaken for a checked semantic graph by library callers.
@@ -110,7 +118,7 @@ impl AgentContextFilter {
         Self::ALL.into_iter().find(|filter| filter.name() == name)
     }
 
-    const fn supported_by_graph_v8(self) -> bool {
+    const fn supported_by_graph_v9(self) -> bool {
         matches!(
             self,
             Self::Contracts | Self::Ownership | Self::Effects | Self::Types
@@ -797,8 +805,9 @@ fn agent_type_declarations_json(
                     .join(",")
             )),
             ResolvedTypeDeclarationKind::Variant { cases } => Ok(format!(
-                "{{\"id\":{},\"kind\":\"variant\",\"cases\":[{}]}}",
+                "{{\"id\":{},\"kind\":\"variant\",\"type_parameters\":[{}],\"cases\":[{}]}}",
                 quote_json(declaration.id.as_str()),
+                type_parameters_json(&declaration.id, &declaration.type_parameters),
                 cases
                     .iter()
                     .map(|case| format!(
@@ -886,7 +895,7 @@ fn render_agent_context(
     let unavailable_count = options
         .filters
         .iter()
-        .filter(|filter| !filter.supported_by_graph_v8())
+        .filter(|filter| !filter.supported_by_graph_v9())
         .count();
     if unavailable_count != 0 {
         reasons.insert("unavailable_filters");
@@ -904,14 +913,14 @@ fn render_agent_context(
     let included = options
         .filters
         .iter()
-        .filter(|filter| filter.supported_by_graph_v8())
+        .filter(|filter| filter.supported_by_graph_v9())
         .map(|filter| quote_json(filter.name()))
         .collect::<Vec<_>>()
         .join(",");
     let unavailable = options
         .filters
         .iter()
-        .filter(|filter| !filter.supported_by_graph_v8())
+        .filter(|filter| !filter.supported_by_graph_v9())
         .map(|filter| quote_json(filter.name()))
         .collect::<Vec<_>>()
         .join(",");
@@ -952,8 +961,10 @@ fn render_agent_context(
         .unwrap_or(0);
     let render = |used_bytes: usize| {
         format!(
-            "{{\"schema\":\"semaprax.agent-context.v1\",\"source_graph_schema\":\"semaprax.graph.v8\",\"revision\":{},\"module\":{},\"root\":{},\"query\":{{\"depth\":{},\"max_bytes\":{},\"max_nodes\":{},\"filters\":[{}]}},\"filter_support\":{{\"included\":[{}],\"unavailable\":[{}]}},\"budget\":{{\"used_bytes\":{},\"used_nodes\":{},\"max_depth_used\":{}}},\"truncation\":{{\"truncated\":{},\"reasons\":[{}],\"omitted_known_nodes\":{},\"deferred_known_nodes\":{},\"omitted_fact_bytes\":{},\"unavailable_filter_count\":{}}},\"resume_contract\":{{\"depth\":\"query.depth\",\"max_nodes\":\"query.max_nodes\",\"filters\":\"query.filters\",\"max_bytes\":\"frontier.resume.min_bytes\"}},\"frontier\":[{}],\"facts\":[{}]}}",
+            "{{\"schema\":\"semaprax.agent-context.v1\",\"source_graph_schema\":\"semaprax.graph.v9\",\"revision\":{},\"prelude\":{{\"schema\":{},\"digest\":{}}},\"module\":{},\"root\":{},\"query\":{{\"depth\":{},\"max_bytes\":{},\"max_nodes\":{},\"filters\":[{}]}},\"filter_support\":{{\"included\":[{}],\"unavailable\":[{}]}},\"budget\":{{\"used_bytes\":{},\"used_nodes\":{},\"max_depth_used\":{}}},\"truncation\":{{\"truncated\":{},\"reasons\":[{}],\"omitted_known_nodes\":{},\"deferred_known_nodes\":{},\"omitted_fact_bytes\":{},\"unavailable_filter_count\":{}}},\"resume_contract\":{{\"depth\":\"query.depth\",\"max_nodes\":\"query.max_nodes\",\"filters\":\"query.filters\",\"max_bytes\":\"frontier.resume.min_bytes\"}},\"frontier\":[{}],\"facts\":[{}]}}",
             quote_json(source_revision),
+            quote_json(prelude::SCHEMA_V1),
+            quote_json(&prelude::digest_text_v1()),
             quote_json(&program.module),
             quote_json(root.as_str()),
             options.depth,
@@ -1156,8 +1167,10 @@ fn graph_json(
     let mut output = String::new();
     write!(
         output,
-        "{{\"schema\":\"semaprax.graph.v8\",\"revision\":{},\"view\":{},\"identity\":{{\"declarations\":\"explicit-persistent-or-automatic-unstable\",\"values\":\"revision-scoped-structural\",\"expressions\":\"revision-scoped-structural\",\"match_arms\":\"revision-scoped-structural\",\"patterns\":\"revision-scoped-structural\"}},\"module\":{},\"permits\":{},\"entrypoint\":{},\"type_facts\":[{}],\"nodes\":[",
+        "{{\"schema\":\"semaprax.graph.v9\",\"revision\":{},\"prelude\":{{\"schema\":{},\"digest\":{}}},\"view\":{},\"identity\":{{\"declarations\":\"explicit-persistent-or-automatic-unstable\",\"values\":\"revision-scoped-structural\",\"expressions\":\"revision-scoped-structural\",\"match_arms\":\"revision-scoped-structural\",\"patterns\":\"revision-scoped-structural\",\"type_parameters\":\"owner-and-index-stable\"}},\"module\":{},\"permits\":{},\"entrypoint\":{},\"type_facts\":[{}],\"nodes\":[",
         quote_json(source_revision),
+        quote_json(prelude::SCHEMA_V1),
+        quote_json(&prelude::digest_text_v1()),
         view_json(view),
         quote_json(&program.module),
         string_array(&program.permits),
@@ -1265,14 +1278,20 @@ fn graph_json(
                 }
             }
             ResolvedTypeDeclarationKind::Variant { cases } => {
+                let type_id = if declaration.type_parameters.is_empty() {
+                    quote_json(&ty.identity_key())
+                } else {
+                    "null".to_owned()
+                };
                 write!(
                     output,
-                    "{{\"id\":{},\"kind\":\"variant\",\"name\":{},\"identity_origin\":{},\"persistent\":{},\"type_id\":{},\"cases\":[{}]}}",
+                    "{{\"id\":{},\"kind\":\"variant\",\"name\":{},\"identity_origin\":{},\"persistent\":{},\"type_parameters\":[{}],\"type_id\":{},\"cases\":[{}]}}",
                     quote_json(declaration.id.as_str()),
                     quote_json(&declaration.name),
                     quote_json(type_origin.text()),
                     type_origin.is_persistent(),
-                    quote_json(&ty.identity_key()),
+                    type_parameters_json(&declaration.id, &declaration.type_parameters),
+                    type_id,
                     cases
                         .iter()
                         .map(|case| quote_json(case.id.as_str()))
@@ -1967,22 +1986,26 @@ fn type_facts_array(
         if !selected_types.contains(&declaration.id) {
             continue;
         }
-        collect_type(
-            &ResolvedType::Nominal {
-                declaration: declaration.id.clone(),
-                arguments: Vec::new(),
-            },
-            &mut types,
-        );
+        if declaration.type_parameters.is_empty() {
+            collect_type(
+                &ResolvedType::Nominal {
+                    declaration: declaration.id.clone(),
+                    arguments: Vec::new(),
+                },
+                &mut types,
+            );
+        }
         if let ResolvedTypeDeclarationKind::Record { fields } = &declaration.kind {
             for field in fields {
                 collect_type(&field.ty, &mut types);
             }
         }
-        if let ResolvedTypeDeclarationKind::Variant { cases } = &declaration.kind {
-            for case in cases {
-                for field in &case.fields {
-                    collect_type(&field.ty, &mut types);
+        if declaration.type_parameters.is_empty() {
+            if let ResolvedTypeDeclarationKind::Variant { cases } = &declaration.kind {
+                for case in cases {
+                    for field in &case.fields {
+                        collect_type(&field.ty, &mut types);
+                    }
                 }
             }
         }
@@ -2109,6 +2132,29 @@ fn type_json(ty: &ResolvedType) -> String {
                 .join(",")
         ),
     }
+}
+
+fn type_parameters_json(
+    owner: &DeclarationId,
+    parameters: &[crate::hir::ResolvedTypeParameterDeclaration],
+) -> String {
+    parameters
+        .iter()
+        .map(|parameter| {
+            let ty = ResolvedType::TypeParameter {
+                owner: owner.clone(),
+                index: parameter.index,
+            };
+            format!(
+                "{{\"id\":{},\"owner\":{},\"index\":{},\"name\":{}}}",
+                quote_json(&ty.identity_key()),
+                quote_json(owner.as_str()),
+                parameter.index,
+                quote_json(&parameter.name)
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",")
 }
 
 fn facts_json(program: &ResolvedProgram, ty: &ResolvedType) -> Result<String, Diagnostic> {

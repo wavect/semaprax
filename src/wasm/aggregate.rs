@@ -12,7 +12,7 @@ use crate::hir::{
     DeclarationId, ExpressionId, PlaceProjection, ResolvedExpr, ResolvedExprKind, ResolvedFunction,
     ResolvedProgram, ResolvedStatement, ResolvedType, ResolvedTypeDeclarationKind, ValueId,
 };
-use crate::variant_layout::{VariantLayout, VariantTarget};
+use crate::variant_layout::{VariantLayout, VariantLayoutCache, VariantTarget};
 
 use super::{
     function_import, intern_type, section, write_bytes, write_i64, write_name, write_u32,
@@ -97,7 +97,11 @@ struct FunctionPlan {
 }
 
 impl FunctionPlan {
-    fn build(program: &ResolvedProgram, function: &ResolvedFunction) -> Result<Self, Diagnostic> {
+    fn build(
+        program: &ResolvedProgram,
+        function: &ResolvedFunction,
+        variant_layouts: &VariantLayoutCache,
+    ) -> Result<Self, Diagnostic> {
         let parameter_count = u32::try_from(function.params.len())
             .map_err(|_| error("aggregate function has too many parameters"))?;
         let result_out = parameter_count;
@@ -118,7 +122,8 @@ impl FunctionPlan {
         let mut frame = FrameAllocator::default();
         let (result_stage_scalar, result_stage_aggregate) =
             if is_aggregate(program, &function.return_type)? {
-                let (size, align) = aggregate_size_align(program, &function.return_type)?;
+                let (size, align) =
+                    aggregate_size_align(program, variant_layouts, &function.return_type)?;
                 (None, Some(frame.allocate(size, align)?))
             } else {
                 (
@@ -142,11 +147,29 @@ impl FunctionPlan {
             frame_size: 0,
         };
         for contract in &function.requires {
-            plan.collect_expr(program, contract, parameter_count, &mut frame)?;
+            plan.collect_expr(
+                program,
+                variant_layouts,
+                contract,
+                parameter_count,
+                &mut frame,
+            )?;
         }
-        plan.collect_expr(program, &function.body, parameter_count, &mut frame)?;
+        plan.collect_expr(
+            program,
+            variant_layouts,
+            &function.body,
+            parameter_count,
+            &mut frame,
+        )?;
         for contract in &function.ensures {
-            plan.collect_expr(program, contract, parameter_count, &mut frame)?;
+            plan.collect_expr(
+                program,
+                variant_layouts,
+                contract,
+                parameter_count,
+                &mut frame,
+            )?;
         }
         plan.frame_size = frame.finish()?;
         Ok(plan)
@@ -165,12 +188,13 @@ impl FunctionPlan {
     fn collect_expr(
         &mut self,
         program: &ResolvedProgram,
+        variant_layouts: &VariantLayoutCache,
         expr: &ResolvedExpr,
         parameter_count: u32,
         frame: &mut FrameAllocator,
     ) -> Result<(), Diagnostic> {
         if is_aggregate(program, &expr.ty)? {
-            let (size, align) = aggregate_size_align(program, &expr.ty)?;
+            let (size, align) = aggregate_size_align(program, variant_layouts, &expr.ty)?;
             let offset = frame.allocate(size, align)?;
             if self
                 .aggregate_expressions
@@ -205,22 +229,23 @@ impl FunctionPlan {
         match &expr.kind {
             ResolvedExprKind::Call { args, .. } => {
                 for arg in args {
-                    self.collect_expr(program, arg, parameter_count, frame)?;
+                    self.collect_expr(program, variant_layouts, arg, parameter_count, frame)?;
                 }
             }
             ResolvedExprKind::Unary { value, .. } => {
-                self.collect_expr(program, value, parameter_count, frame)?;
+                self.collect_expr(program, variant_layouts, value, parameter_count, frame)?;
             }
             ResolvedExprKind::Binary { left, right, .. } => {
-                self.collect_expr(program, left, parameter_count, frame)?;
-                self.collect_expr(program, right, parameter_count, frame)?;
+                self.collect_expr(program, variant_layouts, left, parameter_count, frame)?;
+                self.collect_expr(program, variant_layouts, right, parameter_count, frame)?;
             }
             ResolvedExprKind::Block { statements, tail } => {
                 for statement in statements {
                     let ResolvedStatement::Let { binding, value, .. } = statement;
-                    self.collect_expr(program, value, parameter_count, frame)?;
+                    self.collect_expr(program, variant_layouts, value, parameter_count, frame)?;
                     if is_aggregate(program, &binding.ty)? {
-                        let (size, align) = aggregate_size_align(program, &binding.ty)?;
+                        let (size, align) =
+                            aggregate_size_align(program, variant_layouts, &binding.ty)?;
                         let offset = frame.allocate(size, align)?;
                         if self
                             .aggregate_bindings
@@ -247,29 +272,53 @@ impl FunctionPlan {
                         }
                     }
                 }
-                self.collect_expr(program, tail, parameter_count, frame)?;
+                self.collect_expr(program, variant_layouts, tail, parameter_count, frame)?;
             }
             ResolvedExprKind::If {
                 condition,
                 then_branch,
                 else_branch,
             } => {
-                self.collect_expr(program, condition, parameter_count, frame)?;
-                self.collect_expr(program, then_branch, parameter_count, frame)?;
-                self.collect_expr(program, else_branch, parameter_count, frame)?;
+                self.collect_expr(program, variant_layouts, condition, parameter_count, frame)?;
+                self.collect_expr(
+                    program,
+                    variant_layouts,
+                    then_branch,
+                    parameter_count,
+                    frame,
+                )?;
+                self.collect_expr(
+                    program,
+                    variant_layouts,
+                    else_branch,
+                    parameter_count,
+                    frame,
+                )?;
             }
             ResolvedExprKind::ConstructRecord { fields, .. } => {
                 for field in fields {
-                    self.collect_expr(program, &field.value, parameter_count, frame)?;
+                    self.collect_expr(
+                        program,
+                        variant_layouts,
+                        &field.value,
+                        parameter_count,
+                        frame,
+                    )?;
                 }
             }
             ResolvedExprKind::ConstructVariant { fields, .. } => {
                 for field in fields {
-                    self.collect_expr(program, &field.value, parameter_count, frame)?;
+                    self.collect_expr(
+                        program,
+                        variant_layouts,
+                        &field.value,
+                        parameter_count,
+                        frame,
+                    )?;
                 }
             }
             ResolvedExprKind::Match { scrutinee, arms } => {
-                self.collect_expr(program, scrutinee, parameter_count, frame)?;
+                self.collect_expr(program, variant_layouts, scrutinee, parameter_count, frame)?;
                 for arm in arms {
                     if let crate::hir::ResolvedMatchPattern::Variant { fields, .. } = &arm.pattern {
                         for field in fields {
@@ -287,16 +336,28 @@ impl FunctionPlan {
                             }
                         }
                     }
-                    self.collect_expr(program, &arm.value, parameter_count, frame)?;
+                    self.collect_expr(
+                        program,
+                        variant_layouts,
+                        &arm.value,
+                        parameter_count,
+                        frame,
+                    )?;
                 }
             }
             ResolvedExprKind::Project { base, .. } => {
-                self.collect_expr(program, base, parameter_count, frame)?;
+                self.collect_expr(program, variant_layouts, base, parameter_count, frame)?;
             }
             ResolvedExprKind::UpdateRecord { base, fields, .. } => {
-                self.collect_expr(program, base, parameter_count, frame)?;
+                self.collect_expr(program, variant_layouts, base, parameter_count, frame)?;
                 for field in fields {
-                    self.collect_expr(program, &field.value, parameter_count, frame)?;
+                    self.collect_expr(
+                        program,
+                        variant_layouts,
+                        &field.value,
+                        parameter_count,
+                        frame,
+                    )?;
                 }
             }
             ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
@@ -342,21 +403,21 @@ fn is_record(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagn
     else {
         return Ok(false);
     };
+    let item = program
+        .types
+        .iter()
+        .find(|item| item.id == *declaration)
+        .ok_or_else(|| error(format!("unknown aggregate type `{declaration}`")))?;
+    if !matches!(item.kind, ResolvedTypeDeclarationKind::Record { .. }) {
+        return Ok(false);
+    }
     if !arguments.is_empty() {
         return Err(error(format!(
             "generic aggregate type `{}` is outside executable records v1",
             ty.identity_key()
         )));
     }
-    let item = program
-        .types
-        .iter()
-        .find(|item| item.id == *declaration)
-        .ok_or_else(|| error(format!("unknown aggregate type `{declaration}`")))?;
-    Ok(matches!(
-        item.kind,
-        ResolvedTypeDeclarationKind::Record { .. }
-    ))
+    Ok(true)
 }
 
 fn is_variant(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic> {
@@ -367,21 +428,25 @@ fn is_variant(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diag
     else {
         return Ok(false);
     };
-    if !arguments.is_empty() {
-        return Err(error(format!(
-            "generic aggregate type `{}` is outside executable copy variants v1",
-            ty.identity_key()
-        )));
-    }
     let item = program
         .types
         .iter()
         .find(|item| item.id == *declaration)
         .ok_or_else(|| error(format!("unknown aggregate type `{declaration}`")))?;
-    Ok(matches!(
-        item.kind,
-        ResolvedTypeDeclarationKind::Variant { .. }
-    ))
+    if !matches!(item.kind, ResolvedTypeDeclarationKind::Variant { .. }) {
+        return Ok(false);
+    }
+    if arguments.len() != item.type_parameters.len()
+        || arguments
+            .iter()
+            .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
+    {
+        return Err(error(format!(
+            "Wasm variant representation requires exact concrete i64/bool arguments for `{}`",
+            ty.identity_key()
+        )));
+    }
+    Ok(true)
 }
 
 fn is_aggregate(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic> {
@@ -401,29 +466,22 @@ fn layout(program: &ResolvedProgram, ty: &ResolvedType) -> Result<AggregateLayou
 }
 
 fn variant_layout(
-    program: &ResolvedProgram,
+    variant_layouts: &VariantLayoutCache,
     ty: &ResolvedType,
 ) -> Result<VariantLayout, Diagnostic> {
-    let ResolvedType::Nominal { declaration, .. } = ty else {
-        return Err(error(format!(
-            "variant layout requested for scalar `{}`",
-            ty.identity_key()
-        )));
-    };
-    let layout = VariantLayout::for_variant(program, VariantTarget::Wasm32, declaration)?;
-    layout.validate(program)?;
-    Ok(layout)
+    Ok(variant_layouts.layout(ty)?.clone())
 }
 
 fn aggregate_size_align(
     program: &ResolvedProgram,
+    variant_layouts: &VariantLayoutCache,
     ty: &ResolvedType,
 ) -> Result<(u32, u32), Diagnostic> {
     if is_record(program, ty)? {
         let layout = layout(program, ty)?;
         Ok((layout.size, layout.align))
     } else if is_variant(program, ty)? {
-        let layout = variant_layout(program, ty)?;
+        let layout = variant_layout(variant_layouts, ty)?;
         Ok((layout.size, layout.align))
     } else {
         Err(error(format!(
@@ -467,12 +525,9 @@ fn emit_profile(program: &ResolvedProgram, test_exports: bool) -> Result<Vec<u8>
     {
         return Err(resource_gate());
     }
+    let variant_layouts = VariantLayoutCache::build(program, VariantTarget::Wasm32)?;
     for item in &program.types {
-        if matches!(
-            item.kind,
-            ResolvedTypeDeclarationKind::Record { .. }
-                | ResolvedTypeDeclarationKind::Variant { .. }
-        ) {
+        if matches!(item.kind, ResolvedTypeDeclarationKind::Record { .. }) {
             let ty = ResolvedType::Nominal {
                 declaration: item.id.clone(),
                 arguments: Vec::new(),
@@ -484,11 +539,7 @@ fn emit_profile(program: &ResolvedProgram, test_exports: bool) -> Result<Vec<u8>
             if facts.contains_resource {
                 return Err(resource_gate());
             }
-            if is_record(program, &ty)? {
-                layout(program, &ty)?;
-            } else {
-                variant_layout(program, &ty)?;
-            }
+            layout(program, &ty)?;
         }
     }
 
@@ -662,7 +713,7 @@ fn emit_profile(program: &ResolvedProgram, test_exports: bool) -> Result<Vec<u8>
             .map_err(|_| error("too many aggregate function bodies"))?,
     );
     for function in &program.functions {
-        let body = emit_function(program, function, &function_indexes)?;
+        let body = emit_function(program, function, &function_indexes, &variant_layouts)?;
         write_u32(&mut code, body.len() as u32);
         code.extend(body);
     }
@@ -690,8 +741,9 @@ fn emit_function(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
     function_indexes: &HashMap<DeclarationId, u32>,
+    variant_layouts: &VariantLayoutCache,
 ) -> Result<Vec<u8>, Diagnostic> {
-    let plan = FunctionPlan::build(program, function)?;
+    let plan = FunctionPlan::build(program, function, variant_layouts)?;
     let mut body = Vec::new();
     write_u32(&mut body, plan.local_types.len() as u32);
     for ty in &plan.local_types {
@@ -745,6 +797,7 @@ fn emit_function(
     let mut emitter = Emitter {
         output: &mut body,
         program,
+        variant_layouts,
         function_indexes,
         plan: &plan,
         bindings,
@@ -836,6 +889,7 @@ fn emit_function(
 struct Emitter<'a> {
     output: &'a mut Vec<u8>,
     program: &'a ResolvedProgram,
+    variant_layouts: &'a VariantLayoutCache,
     function_indexes: &'a HashMap<DeclarationId, u32>,
     plan: &'a FunctionPlan,
     bindings: HashMap<ValueId, Value>,
@@ -967,7 +1021,7 @@ impl Emitter<'_> {
                 case,
                 fields,
             } => {
-                let layout = variant_layout(self.program, &expr.ty)?;
+                let layout = variant_layout(self.variant_layouts, &expr.ty)?;
                 if layout.variant != *variant {
                     return Err(error(format!(
                         "variant constructor `{variant}` has result type `{}`",
@@ -1034,7 +1088,7 @@ impl Emitter<'_> {
                 let Value::Aggregate { pointer, ty } = &scrutinee else {
                     return Err(error("variant match scrutinee is not aggregate storage"));
                 };
-                let layout = variant_layout(self.program, ty)?;
+                let layout = variant_layout(self.variant_layouts, ty)?;
                 self.emit_pointer(*pointer);
                 self.output.extend([0x28, 0x02, 0x00, 0x41]);
                 write_i64(
@@ -1688,7 +1742,7 @@ impl Emitter<'_> {
                         "{context} mixes scalar and aggregate values"
                     )));
                 };
-                let (size, _) = aggregate_size_align(self.program, ty)?;
+                let (size, _) = aggregate_size_align(self.program, self.variant_layouts, ty)?;
                 self.emit_pointer(*destination);
                 self.emit_pointer(*source);
                 self.output.push(0x41);
@@ -2048,6 +2102,62 @@ fn post(choice: Choice) -> i64 ensures false { select(choice) }
 fn main() -> i64 { select(make(42)) }
 "#;
 
+    const GENERIC_VARIANT_SOURCE: &str = r#"
+module test.generic_variant_wasm;
+@id("choice.generic")
+variant Choice<T> {
+    @id("choice.generic.none") None,
+    @id("choice.generic.value") Value {
+        @id("choice.generic.value.value") value: T,
+    },
+}
+@id("choice.i64")
+fn choice_i64() -> Choice<i64> { Choice<i64>::Value { value: 40 } }
+@id("choice.bool")
+fn choice_bool() -> Choice<bool> { Choice<bool>::Value { value: true } }
+@id("choice.read_i64")
+fn read_choice_i64(value: Choice<i64>) -> i64 {
+    match value {
+        Choice::None {} => 0,
+        Choice::Value { value: inner } => inner,
+    }
+}
+@id("choice.read_bool")
+fn read_choice_bool(value: Choice<bool>) -> i64 {
+    match value {
+        Choice::None {} => 0,
+        Choice::Value { value: inner } => if inner { 1 } else { 0 },
+    }
+}
+@id("option.some")
+fn option_some() -> Option<i64> { Option<i64>::Some { value: 1 } }
+@id("option.read")
+fn read_option(value: Option<i64>) -> i64 {
+    match value {
+        Option::None {} => 0,
+        Option::Some { value: inner } => inner,
+    }
+}
+@id("result.err")
+fn result_err() -> Result<i64, bool> { Result<i64, bool>::Err { error: true } }
+@id("result.read")
+fn read_result(value: Result<i64, bool>) -> i64 {
+    match value {
+        Result::Ok { value: success } => success,
+        Result::Err { error } => if error { 1 } else { 0 },
+    }
+}
+@id("result.failure")
+fn result_failure() -> Result<i64, bool> {
+    Result<i64, bool>::Ok { value: 9223372036854775807 + 1 }
+}
+@id("app.main")
+fn main() -> i64 {
+    read_choice_i64(choice_i64()) + read_choice_bool(choice_bool()) +
+        read_option(option_some()) + read_result(result_err())
+}
+"#;
+
     #[test]
     fn node_executes_aggregate_status_out_poison_order_and_shadow_stack_reentry() {
         if Command::new("node").arg("--version").output().is_err() {
@@ -2242,6 +2352,90 @@ console.log("variant-wasm-v1-ok");
         assert_eq!(
             String::from_utf8_lossy(&output.stdout).trim(),
             "variant-wasm-v1-ok"
+        );
+    }
+
+    #[test]
+    fn node_executes_generic_option_result_and_preserves_full_failure_poison() {
+        if Command::new("node").arg("--version").output().is_err() {
+            return;
+        }
+        let program = parse(
+            GENERIC_VARIANT_SOURCE,
+            Path::new("generic-variant-wasm.spx"),
+        )
+        .unwrap();
+        let resolved = hir::resolve(&program).unwrap();
+        let bytes = emit_profile(&resolved, true).unwrap();
+        assert_eq!(bytes, emit_profile(&resolved, true).unwrap());
+        let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
+        let stem = format!("semaprax-generic-variant-wasm-{}-{id}", std::process::id());
+        let wasm_path = std::env::temp_dir().join(format!("{stem}.wasm"));
+        let script_path = std::env::temp_dir().join(format!("{stem}.mjs"));
+        std::fs::write(&wasm_path, bytes).unwrap();
+
+        let export = |id: &str| format!("__spx_test_{}", hex_identity(&DeclarationId::new(id)));
+        let script = format!(
+            r#"import {{ readFile }} from "node:fs/promises";
+const fail = (name) => () => {{ throw new Error(`unexpected host import ${{name}}`); }};
+const bytes = await readFile(process.argv[2]);
+const {{ instance }} = await WebAssembly.instantiate(bytes, {{ env: {{
+  spx_add: fail("spx_add"), spx_sub: fail("spx_sub"), spx_mul: fail("spx_mul"),
+  spx_div: fail("spx_div"), spx_rem: fail("spx_rem"), spx_neg: fail("spx_neg"),
+  spx_contract_fail: fail("spx_contract_fail"),
+}} }});
+const memory = instance.exports.__spx_test_memory;
+const stack = instance.exports.__spx_test_shadow_stack;
+const view = new DataView(memory.buffer);
+const input = 1024;
+const output = 2048;
+const poison = 0xa5;
+const poisonOutput = (length) => new Uint8Array(memory.buffer, output, length).fill(poison);
+const assertPoison = (length) => {{
+  for (const byte of new Uint8Array(memory.buffer, output, length)) if (byte !== poison) throw new Error("generic failure published output");
+}};
+const assertStack = (label) => {{ if (stack.value !== {stack_top}) throw new Error(`${{label}} stack restore`); }};
+poisonOutput(16);
+if (instance.exports["{result_err}"](output) !== 0) throw new Error("Result Err status");
+if (view.getUint32(output, true) !== 1 || view.getInt32(output + 8, true) !== 1) throw new Error("Result Err publication");
+for (const offset of [4, 5, 6, 7, 12, 13, 14, 15]) if (view.getUint8(output + offset) !== 0) throw new Error("Result padding not zero");
+assertStack("Result Err");
+for (let index = 0; index < 4096; index += 1) {{
+  poisonOutput(16);
+  if (instance.exports["{result_failure}"](output) !== 1) throw new Error("Result failure status");
+  assertPoison(16);
+  assertStack("Result failure");
+}}
+view.setUint32(input, 0xffffffff, true);
+poisonOutput(8);
+if (instance.exports["{read_result}"](input, output) !== -1) throw new Error("invalid generic Result tag");
+assertPoison(8);
+assertStack("invalid Result tag");
+if (instance.exports.semaprax_main() !== 43n) throw new Error("generic/prelude public result");
+assertStack("public generic result");
+console.log("generic-variant-wasm-v2-ok");
+"#,
+            result_err = export("result.err"),
+            result_failure = export("result.failure"),
+            read_result = export("result.read"),
+            stack_top = SHADOW_STACK_TOP,
+        );
+        std::fs::write(&script_path, script).unwrap();
+        let output = Command::new("node")
+            .arg(&script_path)
+            .arg(&wasm_path)
+            .output()
+            .unwrap();
+        let _ = std::fs::remove_file(&script_path);
+        let _ = std::fs::remove_file(&wasm_path);
+        assert!(
+            output.status.success(),
+            "Node generic/prelude variant runtime failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert_eq!(
+            String::from_utf8_lossy(&output.stdout).trim(),
+            "generic-variant-wasm-v2-ok"
         );
     }
 

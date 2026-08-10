@@ -5,7 +5,9 @@ use std::collections::HashMap;
 use crate::ast::{BinaryOp, Program, UnaryOp};
 use crate::diagnostic::Diagnostic;
 use crate::graph;
-use crate::hir::{self, DeclarationId, ResolvedExpr, ResolvedExprKind, ResolvedType, ValueId};
+use crate::hir::{
+    self, DeclarationId, IdentityOrigin, ResolvedExpr, ResolvedExprKind, ResolvedType, ValueId,
+};
 
 use super::{section, write_bytes, write_i64, write_name, write_u32, I32, I64};
 
@@ -68,7 +70,12 @@ pub(crate) fn emit_private_result_core_v3(
             .any(|parameter| parameter.ty != ResolvedType::I64)
         || function.return_type != ResolvedType::I64
         || !function.effects.is_empty()
-        || !resolved.types.is_empty()
+        || resolved.types.iter().any(|declaration| {
+            !resolved
+                .declarations
+                .declaration(&declaration.id)
+                .is_some_and(|item| item.identity_origin == IdentityOrigin::CompilerOwned)
+        })
         || !resolved.interfaces.is_empty()
     {
         return Err(Diagnostic::io(

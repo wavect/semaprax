@@ -4,7 +4,8 @@ use crate::ast::{
     BinaryOp, Expr, ExprKind, FieldDeclaration, FieldInitializer, Function, ImportDeclaration,
     ImportFailure, InterfaceDeclaration, MatchArm, MatchPattern, MatchPatternField, Param,
     ParamMode, Program, ResourceLifecycleDeclaration, ResourceLifecycleKind, Span, Statement, Type,
-    TypeDeclaration, TypeDeclarationKind, UnaryOp, VariantCaseDeclaration,
+    TypeDeclaration, TypeDeclarationKind, TypeParameterDeclaration, UnaryOp,
+    VariantCaseDeclaration,
 };
 use crate::diagnostic::Diagnostic;
 use crate::lexer::{lex, Token, TokenKind};
@@ -94,6 +95,7 @@ impl Parser {
     ) -> Result<TypeDeclaration, Diagnostic> {
         let start = self.keyword("resource")?.span;
         let (name, name_span) = self.ident("resource name")?;
+        let type_parameters = self.type_parameters()?;
         let explicit_id = stable_id.is_some();
         let stable_id = stable_id.unwrap_or_else(|| format!("auto:resource:{module}.{name}"));
         let (lifecycles, end) = if self.take(&TokenKind::Semicolon) {
@@ -148,6 +150,7 @@ impl Parser {
             explicit_id,
             name,
             name_span,
+            type_parameters,
             kind: TypeDeclarationKind::Resource { lifecycles },
             span: start.merge(end),
         })
@@ -274,6 +277,7 @@ impl Parser {
     ) -> Result<TypeDeclaration, Diagnostic> {
         let start = self.keyword("record")?.span;
         let (name, name_span) = self.ident("record name")?;
+        let type_parameters = self.type_parameters()?;
         let explicit_id = stable_id.is_some();
         let stable_id = stable_id.unwrap_or_else(|| format!("auto:record:{module}.{name}"));
         self.expect(&TokenKind::LBrace, "`{` before record fields")?;
@@ -309,6 +313,7 @@ impl Parser {
             explicit_id,
             name,
             name_span,
+            type_parameters,
             kind: TypeDeclarationKind::Record { fields },
             span: start.merge(end),
         })
@@ -321,6 +326,7 @@ impl Parser {
     ) -> Result<TypeDeclaration, Diagnostic> {
         let start = self.keyword("variant")?.span;
         let (name, name_span) = self.ident("variant name")?;
+        let type_parameters = self.type_parameters()?;
         let explicit_id = stable_id.is_some();
         let stable_id = stable_id.unwrap_or_else(|| format!("auto:variant:{module}.{name}"));
         self.expect(&TokenKind::LBrace, "`{` before variant cases")?;
@@ -379,6 +385,7 @@ impl Parser {
             explicit_id,
             name,
             name_span,
+            type_parameters,
             kind: TypeDeclarationKind::Variant { cases },
             span: start.merge(end),
         })
@@ -548,6 +555,14 @@ impl Parser {
         };
 
         loop {
+            let type_arguments = if self.at(&TokenKind::Lt)
+                && matches!(&expression.kind, ExprKind::Var(_))
+                && self.looks_like_generic_variant_qualifier()
+            {
+                self.type_arguments()?
+            } else {
+                Vec::new()
+            };
             if self.take(&TokenKind::ColonColon) {
                 let ExprKind::Var(type_name) = expression.kind else {
                     return Err(self.error_previous(
@@ -566,6 +581,7 @@ impl Parser {
                     kind: ExprKind::ConstructVariant {
                         type_name,
                         type_span,
+                        type_arguments,
                         case_name,
                         case_span,
                         fields,
@@ -870,10 +886,92 @@ impl Parser {
     fn ty(&mut self) -> Result<Type, Diagnostic> {
         let (name, _) = self.qualified_ident("type")?;
         match name.as_str() {
-            "i64" => Ok(Type::I64),
-            "bool" => Ok(Type::Bool),
-            _ => Ok(Type::Named(name)),
+            "i64" if !self.at(&TokenKind::Lt) => Ok(Type::I64),
+            "bool" if !self.at(&TokenKind::Lt) => Ok(Type::Bool),
+            _ => Ok(Type::Named {
+                name,
+                arguments: self.type_arguments()?,
+            }),
         }
+    }
+
+    fn type_parameters(&mut self) -> Result<Vec<TypeParameterDeclaration>, Diagnostic> {
+        if !self.take(&TokenKind::Lt) {
+            return Ok(Vec::new());
+        }
+        if self.at(&TokenKind::Gt) {
+            return Err(self.error_here("SPX-P106", "generic parameter list cannot be empty"));
+        }
+        let mut parameters = Vec::new();
+        loop {
+            if !matches!(self.current().kind, TokenKind::Ident(_)) {
+                return Err(self.error_here("SPX-P106", "expected generic type parameter"));
+            }
+            let (name, span) = self.ident("generic type parameter")?;
+            parameters.push(TypeParameterDeclaration { name, span });
+            if self.at(&TokenKind::Gt) {
+                break;
+            }
+            if !self.take(&TokenKind::Comma) || self.at(&TokenKind::Gt) {
+                return Err(self.error_here(
+                    "SPX-P106",
+                    "generic type parameters require comma-separated names without a trailing comma",
+                ));
+            }
+        }
+        self.expect(&TokenKind::Gt, "`>` after generic type parameters")?;
+        Ok(parameters)
+    }
+
+    fn type_arguments(&mut self) -> Result<Vec<Type>, Diagnostic> {
+        if !self.take(&TokenKind::Lt) {
+            return Ok(Vec::new());
+        }
+        if self.at(&TokenKind::Gt) {
+            return Err(self.error_here("SPX-P106", "generic argument list cannot be empty"));
+        }
+        let mut arguments = Vec::new();
+        loop {
+            if !matches!(self.current().kind, TokenKind::Ident(_)) {
+                return Err(self.error_here("SPX-P106", "expected generic type argument"));
+            }
+            arguments.push(self.ty()?);
+            if self.at(&TokenKind::Gt) {
+                break;
+            }
+            if !self.take(&TokenKind::Comma) || self.at(&TokenKind::Gt) {
+                return Err(self.error_here(
+                    "SPX-P106",
+                    "generic type arguments require comma-separated types without a trailing comma",
+                ));
+            }
+        }
+        self.expect(&TokenKind::Gt, "`>` after generic type arguments")?;
+        Ok(arguments)
+    }
+
+    fn looks_like_generic_variant_qualifier(&self) -> bool {
+        let mut depth = 0_usize;
+        for (offset, token) in self.tokens[self.cursor..].iter().enumerate() {
+            match token.kind {
+                TokenKind::Lt => depth = depth.saturating_add(1),
+                TokenKind::Gt => {
+                    let Some(next_depth) = depth.checked_sub(1) else {
+                        return false;
+                    };
+                    depth = next_depth;
+                    if depth == 0 {
+                        return self
+                            .tokens
+                            .get(self.cursor + offset + 1)
+                            .is_some_and(|next| next.kind == TokenKind::ColonColon);
+                    }
+                }
+                TokenKind::Eof | TokenKind::Semicolon | TokenKind::LBrace => return false,
+                _ => {}
+            }
+        }
+        false
     }
 
     fn binary_op(&self) -> Option<BinaryOp> {

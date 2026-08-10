@@ -23,7 +23,7 @@ impl Span {
 pub enum Type {
     I64,
     Bool,
-    Named(String),
+    Named { name: String, arguments: Vec<Type> },
 }
 
 impl fmt::Display for Type {
@@ -31,14 +31,27 @@ impl fmt::Display for Type {
         match self {
             Type::I64 => write!(f, "i64"),
             Type::Bool => write!(f, "bool"),
-            Type::Named(name) => write!(f, "{name}"),
+            Type::Named { name, arguments } => {
+                write!(f, "{name}")?;
+                if !arguments.is_empty() {
+                    write!(f, "<")?;
+                    for (index, argument) in arguments.iter().enumerate() {
+                        if index != 0 {
+                            write!(f, ", ")?;
+                        }
+                        write!(f, "{argument}")?;
+                    }
+                    write!(f, ">")?;
+                }
+                Ok(())
+            }
         }
     }
 }
 
 impl Type {
     pub fn is_named(&self) -> bool {
-        matches!(self, Type::Named(_))
+        matches!(self, Type::Named { .. })
     }
 }
 
@@ -87,7 +100,14 @@ pub struct TypeDeclaration {
     pub explicit_id: bool,
     pub name: String,
     pub name_span: Span,
+    pub type_parameters: Vec<TypeParameterDeclaration>,
     pub kind: TypeDeclarationKind,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TypeParameterDeclaration {
+    pub name: String,
     pub span: Span,
 }
 
@@ -232,6 +252,7 @@ pub enum ExprKind {
     ConstructVariant {
         type_name: String,
         type_span: Span,
+        type_arguments: Vec<Type>,
         case_name: String,
         case_span: Span,
         fields: Vec<FieldInitializer>,

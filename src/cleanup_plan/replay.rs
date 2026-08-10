@@ -3353,6 +3353,18 @@ variant Choice {
     None,
 }
 
+@id("generic.choice")
+variant GenericChoice<T> {
+    @id("generic.choice.none")
+    None,
+
+    @id("generic.choice.value")
+    Value {
+        @id("generic.choice.value.value")
+        value: T,
+    },
+}
+
 @id("tokens.discard")
 fn discard(left: own Token, right: own Token) -> i64 { 0 }
 
@@ -3403,6 +3415,18 @@ fn select(choice: Choice, zero: i64) -> i64 {
         Choice::Left { value } => value + 1,
         Choice::Right { flag } => if flag { 1 } else { 0 },
         Choice::None {} => 1 / zero,
+    }
+}
+
+@id("generic.dual")
+fn generic_dual(left: GenericChoice<i64>, right: GenericChoice<bool>) -> i64 {
+    let first = match left {
+        GenericChoice::Value { value } => value,
+        GenericChoice::None {} => 0,
+    };
+    match right {
+        GenericChoice::Value { value } => first,
+        GenericChoice::None {} => 0,
     }
 }
 
@@ -3512,6 +3536,90 @@ fn main() -> i64 { 0 }
             ]
         );
         validate_structure(&program, &function).unwrap();
+    }
+
+    #[test]
+    fn generic_instance_matches_are_cleanup_free_and_replay_rejects_scrutinee_confusion() {
+        let program = program();
+        let original = function(&program, "generic.dual");
+        let ResolvedExprKind::Block { statements, tail } = &original.body.kind else {
+            panic!("generic fixture must have a block body")
+        };
+        let ResolvedStatement::Let { value: first, .. } = &statements[0];
+        let ResolvedExprKind::Match {
+            scrutinee: first_scrutinee,
+            ..
+        } = &first.kind
+        else {
+            panic!("generic fixture first binding must be a match")
+        };
+        let ResolvedExprKind::Match {
+            scrutinee: second_scrutinee,
+            ..
+        } = &tail.kind
+        else {
+            panic!("generic fixture tail must be a match")
+        };
+        let first_id = first_scrutinee.id.clone();
+        let second_id = second_scrutinee.id.clone();
+
+        assert_ne!(first_id, second_id);
+        let (
+            ResolvedType::Nominal {
+                declaration: first_declaration,
+                arguments: first_arguments,
+            },
+            ResolvedType::Nominal {
+                declaration: second_declaration,
+                arguments: second_arguments,
+            },
+        ) = (&first_scrutinee.ty, &second_scrutinee.ty)
+        else {
+            panic!("generic match scrutinees must have concrete nominal types")
+        };
+        assert_eq!(first_declaration, second_declaration);
+        assert_eq!(first_arguments, &[ResolvedType::I64]);
+        assert_eq!(second_arguments, &[ResolvedType::Bool]);
+        assert!(original.cleanup.slots.is_empty());
+        assert!(original.cleanup_plan.slots.is_empty());
+        let first_cases = original
+            .cleanup_plan
+            .edges
+            .iter()
+            .filter_map(|edge| match &edge.condition {
+                EdgeCondition::VariantCase {
+                    scrutinee, case, ..
+                } if scrutinee == &first_id => Some(case.clone()),
+                _ => None,
+            })
+            .collect::<BTreeSet<_>>();
+        let second_cases = original
+            .cleanup_plan
+            .edges
+            .iter()
+            .filter_map(|edge| match &edge.condition {
+                EdgeCondition::VariantCase {
+                    scrutinee, case, ..
+                } if scrutinee == &second_id => Some(case.clone()),
+                _ => None,
+            })
+            .collect::<BTreeSet<_>>();
+        assert_eq!(first_cases, second_cases);
+        assert_eq!(
+            first_cases,
+            BTreeSet::from([DeclarationId::new("generic.choice.value")])
+        );
+        validate_structure(&program, &original).unwrap();
+
+        let mut confused = original;
+        for edge in &mut confused.cleanup_plan.edges {
+            if let EdgeCondition::VariantCase { scrutinee, .. } = &mut edge.condition {
+                if scrutinee == &first_id {
+                    *scrutinee = second_id.clone();
+                }
+            }
+        }
+        assert_independent_replay_rejects(&program, &confused);
     }
 
     #[test]

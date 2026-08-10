@@ -56,6 +56,6 @@ fn meaning_revision_matches_the_domain_separated_sha256_contract() {
 
     assert_eq!(
         graph::revision(&program),
-        "sha256:ab81beaac718d4cdaf2c79740391a7280e593dea9178275af7a1bc177f3a44c3"
+        "sha256:42aeae2650d15b1e44b8fd6d8a7ce6018d61f43e0e7988a58da2426b2f0c1657"
     );
 }

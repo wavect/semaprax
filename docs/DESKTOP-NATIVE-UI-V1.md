@@ -1,8 +1,8 @@
 # Private native desktop UI v1
 
-Status: implemented and source-locked. Strict local AppKit compilation is
-green; packaged macOS and Windows execution is CI-configured and does not count
-as hosted evidence until the corresponding job is green.
+Status: implemented, source-locked, and hosted green for the bounded AppKit and
+Win32 packages: macOS in [run 31338834586, job 93309086230](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086230)
+and Windows in [run 31343897595, job 93322134480](https://github.com/wavect/semaprax/actions/runs/31343897595/job/93322134480).
 
 This milestone composes the existing private callable-v3 desktop engine with a
 small real OS-native frontend. It remains outside the public compiler and is

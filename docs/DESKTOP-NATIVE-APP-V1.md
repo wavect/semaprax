@@ -1,7 +1,8 @@
 # Private native desktop application v1
 
-Status: the macOS package/runtime path is locally green. The Windows path and
-hosted macOS/Windows executions are CI-configured and pending.
+Status: the bounded macOS and Windows package/runtime paths are hosted green:
+macOS in [run 31338834586, job 93309086230](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086230)
+and Windows in [run 31343897595, job 93322134480](https://github.com/wavect/semaprax/actions/runs/31343897595/job/93322134480).
 
 This milestone packages one exact graph-derived callable-v3 owned-identity
 provider with the unpublished SEMAPRAX native host. It is deliberately behind
@@ -21,8 +22,8 @@ When executed, each packaged process admits the descriptor and provider through
 the existing root-provenance loader, constructs the OS-seeded receipt authority
 and ledger, executes two owned calls with payloads 41 and 43, rotates the
 authoritative generation between them, and requires byte-identical replay of
-the first committed result. That path is locally proven on macOS; Windows
-execution remains pending. Success prints one exact platform-tagged line.
+the first committed result. That path is proven in hosted CI on both platforms.
+Success prints one exact platform-tagged line.
 
 ## Evidence contract
 

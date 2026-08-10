@@ -166,7 +166,13 @@ fn main() -> i64 { if true { 1 } else { Box { value: item }.value } }
     let TypeDeclarationKind::Record { fields } = &program.types[0].kind else {
         panic!("Box should parse as a record")
     };
-    assert_eq!(fields[0].ty, Type::Named("ecosystem.Value".to_owned()));
+    assert_eq!(
+        fields[0].ty,
+        Type::Named {
+            name: "ecosystem.Value".to_owned(),
+            arguments: Vec::new(),
+        }
+    );
 }
 
 #[test]

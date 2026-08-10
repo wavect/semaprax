@@ -45,6 +45,7 @@ pub mod wit_component;
 
 mod graph_cleanup;
 mod host_ownership;
+mod prelude;
 mod source_verify;
 
 use std::path::Path;

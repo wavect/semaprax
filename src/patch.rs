@@ -228,7 +228,10 @@ fn resource_type_positions(
     resource: &TypeDeclaration,
 ) -> BTreeSet<(usize, usize)> {
     let mut positions = BTreeSet::from([(resource.name_span.start, resource.name_span.end)]);
-    let resource_type = Type::Named(resource.name.clone());
+    let resource_type = Type::Named {
+        name: resource.name.clone(),
+        arguments: Vec::new(),
+    };
 
     for declaration in &program.types {
         let TypeDeclarationKind::Record { fields } = &declaration.kind else {

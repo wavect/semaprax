@@ -858,20 +858,17 @@ fn validate_json_structure(source: &str) -> Result<(), Vec<Diagnostic>> {
                 }
                 stack.push(byte);
             }
-            b'}' => {
-                if stack.pop() != Some(b'{') {
-                    return Err(vec![format_error(
-                        "Semantic Patch Evidence JSON structure is unbalanced",
-                    )]);
-                }
+            b'}' if stack.pop() != Some(b'{') => {
+                return Err(vec![format_error(
+                    "Semantic Patch Evidence JSON structure is unbalanced",
+                )]);
             }
-            b']' => {
-                if stack.pop() != Some(b'[') {
-                    return Err(vec![format_error(
-                        "Semantic Patch Evidence JSON structure is unbalanced",
-                    )]);
-                }
+            b']' if stack.pop() != Some(b'[') => {
+                return Err(vec![format_error(
+                    "Semantic Patch Evidence JSON structure is unbalanced",
+                )]);
             }
+            b'}' | b']' => {}
             _ => {}
         }
     }

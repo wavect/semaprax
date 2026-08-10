@@ -75,6 +75,13 @@ candidate revision without committing it. That preview's digest binds the
 exact patch bytes it processed, but it does not authenticate the continuing
 patch path or widen Patch v2's operation, Graph, CleanupPlan, or commit scope.
 
+The separate [Diagnostic Repair v1](DIAGNOSTIC-REPAIR-V1.md) tranche defines
+an isolated Semantic Patch v3 with exactly one canonical three-line
+`assign-function-id` operation. V3 does not compose with or widen v2, and
+Impact v1 rejects every syntactically valid, canonical v3 as `SPX-G110` before
+semantic selector interpretation; malformed or noncanonical v3 remains
+`SPX-G101`.
+
 This milestone does not add construction/update shorthand, full type renames,
 aggregate/resource generic arguments, generic-template-to-generic-template
 composition, transitive generic instance materialization, multi-file commits,

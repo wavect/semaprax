@@ -23,6 +23,15 @@ struct Rename {
 enum PatchSchema {
     V1,
     V2,
+    V3,
+}
+
+#[derive(Debug)]
+struct AssignFunctionId {
+    repair_id: String,
+    target: String,
+    name: String,
+    to: String,
 }
 
 #[derive(Debug)]
@@ -91,11 +100,19 @@ struct SemanticPatch {
     case_renames: Vec<RenameCase>,
     call_type_argument_replacements: Vec<ReplaceCallTypeArgument>,
     no_new_effects: bool,
+    assign_function_id: Option<AssignFunctionId>,
     operations: Vec<PreflightOperation>,
 }
 
 #[derive(Clone, Debug)]
 pub(crate) enum PreflightOperation {
+    AssignFunctionId {
+        index: usize,
+        repair_id: String,
+        target: String,
+        name: String,
+        to: String,
+    },
     Rename {
         index: usize,
         target: String,
@@ -260,6 +277,7 @@ impl PatchPreflight {
         match self.patch.schema {
             PatchSchema::V1 => "semaprax.semantic-patch.v1",
             PatchSchema::V2 => "semaprax.semantic-patch.v2",
+            PatchSchema::V3 => "semaprax.semantic-patch.v3",
         }
     }
 
@@ -782,12 +800,27 @@ pub fn apply(source_path: &Path, patch_path: &Path) -> Result<String, Vec<Diagno
     apply_with_commit_hook(source_path, patch_path, |_, _, _| Ok(()))
 }
 
-pub(crate) fn preflight_owned(
+pub(crate) fn preflight_impact_owned(
     source: String,
     patch_source: String,
     diagnostic_path: PathBuf,
 ) -> Result<PatchPreflight, Vec<Diagnostic>> {
     let patch = parse_patch(&patch_source)?;
+    if patch.schema == PatchSchema::V3 {
+        return Err(vec![Diagnostic::io(
+            "SPX-G110",
+            "Semantic Impact v1 accepts only Semantic Patch v1/v2",
+        )]);
+    }
+    preflight_parsed_owned(source, patch_source, diagnostic_path, patch)
+}
+
+fn preflight_parsed_owned(
+    source: String,
+    patch_source: String,
+    diagnostic_path: PathBuf,
+    patch: SemanticPatch,
+) -> Result<PatchPreflight, Vec<Diagnostic>> {
     let before = parse(&source, &diagnostic_path).map_err(|error| vec![error])?;
     let base_revision = graph::revision(&before);
     if base_revision != patch.base {
@@ -801,11 +834,49 @@ pub(crate) fn preflight_owned(
         .with_help("regenerate the patch against the current semantic graph")]);
     }
 
-    let before_resolved = if patch.schema == PatchSchema::V2 {
+    if patch.schema == PatchSchema::V3 {
+        crate::repair::precheck_program(&before)?;
+    }
+
+    let before_resolved = if matches!(patch.schema, PatchSchema::V2 | PatchSchema::V3) {
         Some(hir::resolve(&before)?)
     } else {
         None
     };
+    if patch.schema == PatchSchema::V3 {
+        let assignment = patch
+            .assign_function_id
+            .as_ref()
+            .expect("v3 grammar admits exactly one assignment");
+        let candidate =
+            crate::repair::preflight_patch_assignment(crate::repair::PatchAssignmentInput {
+                source: &source,
+                source_path: &diagnostic_path,
+                before: &before,
+                before_resolved: before_resolved
+                    .as_ref()
+                    .expect("v3 resolves before assignment"),
+                base_revision: &base_revision,
+                repair_id: &assignment.repair_id,
+                target_id: &assignment.target,
+                target_name: &assignment.name,
+                persistent_id: &assignment.to,
+            })?;
+        let operations = patch.operations.clone();
+        return Ok(PatchPreflight {
+            source,
+            patch_source,
+            patch,
+            before,
+            candidate: candidate.candidate,
+            base_revision,
+            candidate_revision: candidate.candidate_revision,
+            canonical_candidate: candidate.canonical_candidate,
+            operations,
+            changes: Vec::new(),
+            planned_edits: Vec::new(),
+        });
+    }
     let before_effects = effect_set(&before);
     let mut replacements = Vec::new();
     let mut planned_edits = Vec::new();
@@ -1234,15 +1305,30 @@ fn apply_with_commit_hook(
     let lock_path = sibling_path(&canonical_source_path, ".semaprax-patch.lock")?;
     let _lock = OwnedSiblingFile::create(lock_path, "SPX-I205", "semantic patch lock", false)?
         .expect("existing lock is reported as an error");
-    let before_snapshot = read_source_snapshot(&canonical_source_path)?;
-    let source = before_snapshot.source.clone();
     let patch_source = std::fs::read_to_string(patch_path).map_err(|error| {
         vec![Diagnostic::io(
             "SPX-I202",
             format!("cannot read {}: {error}", patch_path.display()),
         )]
     })?;
-    let preflight = preflight_owned(source, patch_source, source_path.to_path_buf())?;
+    let parsed_patch = parse_patch(&patch_source)?;
+    let bounded_v3 = parsed_patch.schema == PatchSchema::V3;
+    let before_snapshot = if bounded_v3 {
+        read_source_snapshot_bounded(
+            &canonical_source_path,
+            crate::repair::MAX_SOURCE_BYTES,
+            "SPX-R101",
+        )?
+    } else {
+        read_source_snapshot(&canonical_source_path)?
+    };
+    let source = before_snapshot.source.clone();
+    let preflight = preflight_parsed_owned(
+        source,
+        patch_source,
+        source_path.to_path_buf(),
+        parsed_patch,
+    )?;
     let canonical_bytes = preflight.canonical_candidate().as_bytes();
     let mut staging = create_staging_file(&canonical_source_path)?;
     {
@@ -1285,11 +1371,12 @@ fn apply_with_commit_hook(
             format!("semantic patch pre-commit check failed: {error}"),
         )]
     })?;
-    validate_source_unchanged(
+    validate_apply_source_unchanged(
         &canonical_source_path,
         source_path,
         &before_snapshot,
         preflight.base_revision(),
+        bounded_v3,
     )?;
     staging.validate_contents(canonical_bytes)?;
     hook(
@@ -1303,11 +1390,12 @@ fn apply_with_commit_hook(
             format!("cannot atomically commit semantic patch: {error}"),
         )]
     })?;
-    validate_source_unchanged(
+    validate_apply_source_unchanged(
         &canonical_source_path,
         source_path,
         &before_snapshot,
         preflight.base_revision(),
+        bounded_v3,
     )?;
     staging.validate_contents(canonical_bytes)?;
     std::fs::rename(&staging.path, &canonical_source_path).map_err(|error| {
@@ -1318,6 +1406,26 @@ fn apply_with_commit_hook(
     })?;
     staging.committed();
     Ok(preflight.candidate_revision().to_owned())
+}
+
+fn validate_apply_source_unchanged(
+    canonical_source_path: &Path,
+    diagnostic_path: &Path,
+    before: &SourceSnapshot,
+    revision: &str,
+    bounded_v3: bool,
+) -> Result<(), Vec<Diagnostic>> {
+    if bounded_v3 {
+        validate_source_unchanged_bounded(
+            canonical_source_path,
+            diagnostic_path,
+            before,
+            revision,
+            crate::repair::MAX_SOURCE_BYTES,
+        )
+    } else {
+        validate_source_unchanged(canonical_source_path, diagnostic_path, before, revision)
+    }
 }
 
 pub(crate) fn canonical_source_path(source_path: &Path) -> Result<PathBuf, Vec<Diagnostic>> {
@@ -1370,8 +1478,45 @@ pub(crate) fn validate_source_unchanged(
     before: &SourceSnapshot,
     revision: &str,
 ) -> Result<(), Vec<Diagnostic>> {
-    let current =
-        read_source_snapshot(canonical_source_path).map_err(|_| source_changed_error())?;
+    validate_source_unchanged_inner(
+        canonical_source_path,
+        diagnostic_path,
+        before,
+        revision,
+        None,
+    )
+}
+
+pub(crate) fn validate_source_unchanged_bounded(
+    canonical_source_path: &Path,
+    diagnostic_path: &Path,
+    before: &SourceSnapshot,
+    revision: &str,
+    max_bytes: usize,
+) -> Result<(), Vec<Diagnostic>> {
+    validate_source_unchanged_inner(
+        canonical_source_path,
+        diagnostic_path,
+        before,
+        revision,
+        Some(max_bytes),
+    )
+}
+
+fn validate_source_unchanged_inner(
+    canonical_source_path: &Path,
+    diagnostic_path: &Path,
+    before: &SourceSnapshot,
+    revision: &str,
+    max_bytes: Option<usize>,
+) -> Result<(), Vec<Diagnostic>> {
+    let current = match max_bytes {
+        Some(max_bytes) => {
+            read_source_snapshot_bounded(canonical_source_path, max_bytes, "SPX-I207")
+        }
+        None => read_source_snapshot(canonical_source_path),
+    }
+    .map_err(|_| source_changed_error())?;
     let current_program =
         parse(&current.source, diagnostic_path).map_err(|_| source_changed_error())?;
     if current.identity != before.identity
@@ -1384,6 +1529,21 @@ pub(crate) fn validate_source_unchanged(
 }
 
 pub(crate) fn read_source_snapshot(path: &Path) -> Result<SourceSnapshot, Vec<Diagnostic>> {
+    read_source_snapshot_inner(path, None)
+}
+
+pub(crate) fn read_source_snapshot_bounded(
+    path: &Path,
+    max_bytes: usize,
+    diagnostic_code: &'static str,
+) -> Result<SourceSnapshot, Vec<Diagnostic>> {
+    read_source_snapshot_inner(path, Some((max_bytes, diagnostic_code)))
+}
+
+fn read_source_snapshot_inner(
+    path: &Path,
+    limit: Option<(usize, &'static str)>,
+) -> Result<SourceSnapshot, Vec<Diagnostic>> {
     let path_metadata = safe_symlink_metadata(path, "semantic patch source", "SPX-I201")?;
     validate_regular_metadata(&path_metadata, path, "semantic patch source", "SPX-I201")?;
     let path_identity = file_identity(&path_metadata, path, "semantic patch source", "SPX-I201")?;
@@ -1403,6 +1563,14 @@ pub(crate) fn read_source_snapshot(path: &Path) -> Result<SourceSnapshot, Vec<Di
         )]
     })?;
     validate_regular_metadata(&handle_metadata, path, "semantic patch source", "SPX-I201")?;
+    if let Some((max_bytes, diagnostic_code)) = limit {
+        if handle_metadata.len() > max_bytes as u64 {
+            return Err(vec![Diagnostic::io(
+                diagnostic_code,
+                format!("diagnostic repair source exceeds {max_bytes} bytes"),
+            )]);
+        }
+    }
     if file_handle_identity(
         &file,
         &handle_metadata,
@@ -1414,12 +1582,27 @@ pub(crate) fn read_source_snapshot(path: &Path) -> Result<SourceSnapshot, Vec<Di
         return Err(source_changed_error());
     }
     let mut source = String::new();
-    file.read_to_string(&mut source).map_err(|error| {
+    let read_result = if let Some((max_bytes, _)) = limit {
+        Read::by_ref(&mut file)
+            .take(max_bytes.saturating_add(1) as u64)
+            .read_to_string(&mut source)
+    } else {
+        file.read_to_string(&mut source)
+    };
+    read_result.map_err(|error| {
         vec![Diagnostic::io(
             "SPX-I201",
             format!("cannot read {}: {error}", path.display()),
         )]
     })?;
+    if let Some((max_bytes, diagnostic_code)) = limit {
+        if source.len() > max_bytes {
+            return Err(vec![Diagnostic::io(
+                diagnostic_code,
+                format!("diagnostic repair source exceeds {max_bytes} bytes"),
+            )]);
+        }
+    }
     let final_path_metadata = safe_symlink_metadata(path, "semantic patch source", "SPX-I201")?;
     validate_regular_metadata(
         &final_path_metadata,
@@ -1624,6 +1807,9 @@ fn source_changed_error() -> Vec<Diagnostic> {
 }
 
 fn parse_patch(source: &str) -> Result<SemanticPatch, Vec<Diagnostic>> {
+    if source.lines().next() == Some("schema semaprax.semantic-patch.v3") {
+        return parse_patch_v3(source);
+    }
     let meaningful: Vec<_> = source
         .lines()
         .enumerate()
@@ -1795,7 +1981,85 @@ fn parse_patch(source: &str) -> Result<SemanticPatch, Vec<Diagnostic>> {
         case_renames,
         call_type_argument_replacements,
         no_new_effects,
+        assign_function_id: None,
         operations,
+    })
+}
+
+fn parse_patch_v3(source: &str) -> Result<SemanticPatch, Vec<Diagnostic>> {
+    let Some(body) = source.strip_suffix('\n') else {
+        return Err(vec![Diagnostic::io(
+            "SPX-G101",
+            "semantic patch v3 must be exactly three LF-terminated lines",
+        )]);
+    };
+    if body.contains('\r') {
+        return Err(vec![Diagnostic::io(
+            "SPX-G101",
+            "semantic patch v3 must use LF line endings",
+        )]);
+    }
+    let lines = body.split('\n').collect::<Vec<_>>();
+    if lines.len() != 3 || lines[0] != "schema semaprax.semantic-patch.v3" {
+        return Err(vec![Diagnostic::io(
+            "SPX-G101",
+            "semantic patch v3 must contain exactly schema, base, and assign-function-id lines",
+        )]);
+    }
+    let base_words = lines[1].split_whitespace().collect::<Vec<_>>();
+    let ["base", base_revision] = base_words.as_slice() else {
+        return Err(vec![Diagnostic::io(
+            "SPX-G101",
+            "semantic patch v3 has an invalid base line",
+        )]);
+    };
+    if lines[1] != format!("base {base_revision}") {
+        return Err(vec![Diagnostic::io(
+            "SPX-G101",
+            "semantic patch v3 base must use one canonical separator",
+        )]);
+    }
+    let words = lines[2].split_whitespace().collect::<Vec<_>>();
+    let ["assign-function-id", "repair", repair_id, "diagnostic", "SPX-S103", "target", target, "name", name, "to", to] =
+        words.as_slice()
+    else {
+        return Err(vec![Diagnostic::io(
+            "SPX-G101",
+            "semantic patch v3 has an invalid assign-function-id line",
+        )]);
+    };
+    if lines[2]
+        != format!(
+            "assign-function-id repair {repair_id} diagnostic SPX-S103 target {target} name {name} to {to}"
+        )
+    {
+        return Err(vec![Diagnostic::io(
+            "SPX-G101",
+            "semantic patch v3 assignment must use canonical single-space separators",
+        )]);
+    }
+    let operation = PreflightOperation::AssignFunctionId {
+        index: 0,
+        repair_id: (*repair_id).to_owned(),
+        target: (*target).to_owned(),
+        name: (*name).to_owned(),
+        to: (*to).to_owned(),
+    };
+    Ok(SemanticPatch {
+        schema: PatchSchema::V3,
+        base: (*base_revision).to_owned(),
+        renames: Vec::new(),
+        member_renames: Vec::new(),
+        case_renames: Vec::new(),
+        call_type_argument_replacements: Vec::new(),
+        no_new_effects: false,
+        assign_function_id: Some(AssignFunctionId {
+            repair_id: (*repair_id).to_owned(),
+            target: (*target).to_owned(),
+            name: (*name).to_owned(),
+            to: (*to).to_owned(),
+        }),
+        operations: vec![operation],
     })
 }
 
@@ -2326,6 +2590,9 @@ fn main() -> i64
 }
 "#;
 
+    const V3_SOURCE: &str = "module patch.v3_commit;\nfn helper()->i64{1}\n@id(\"app.main\") fn main()->i64{helper()}\n";
+    const V3_CONCURRENT_SOURCE: &str = "module patch.v3_commit;\nfn helper()->i64{2}\n@id(\"app.main\") fn main()->i64{helper()}\n";
+
     fn fixture(label: &str) -> (PathBuf, PathBuf) {
         let sequence = NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed);
         let directory = std::env::temp_dir().join(format!(
@@ -2342,6 +2609,32 @@ fn main() -> i64
             format!("base {revision}\nrename helper.answer to computed\n"),
         )
         .unwrap();
+        (source_path, patch_path)
+    }
+
+    fn v3_fixture(label: &str) -> (PathBuf, PathBuf) {
+        let sequence = NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed);
+        let directory = std::env::temp_dir().join(format!(
+            "semaprax-patch-v3-commit-{}-{label}-{sequence}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&directory).unwrap();
+        let source_path = directory.join("module.spx");
+        let patch_path = directory.join("repair.spatch");
+        std::fs::write(&source_path, V3_SOURCE).unwrap();
+        let request =
+            crate::repair::DiagnosticRepairQuery::assign_function_id("auto:patch.v3_commit.helper")
+                .unwrap();
+        let report = crate::repair::query(&source_path, &request).unwrap();
+        let report: serde_json::Value = serde_json::from_str(&report).unwrap();
+        let preview = crate::repair::instantiate(
+            &source_path,
+            report["repair"]["id"].as_str().unwrap(),
+            &crate::repair::PersistentDeclarationId::new("patch.v3_commit.helper").unwrap(),
+        )
+        .unwrap();
+        let preview: serde_json::Value = serde_json::from_str(&preview).unwrap();
+        std::fs::write(&patch_path, preview["patch"]["source"].as_str().unwrap()).unwrap();
         (source_path, patch_path)
     }
 
@@ -2411,6 +2704,90 @@ fn main() -> i64
         assert_eq!(error[0].code, "SPX-I203");
         assert_eq!(std::fs::read_to_string(&source_path).unwrap(), SOURCE);
         assert_owned_artifacts_removed(&source_path);
+    }
+
+    #[test]
+    fn v3_concurrent_edit_is_preserved_and_rejected_before_commit() {
+        let (source_path, patch_path) = v3_fixture("concurrent-edit");
+        let error = apply_with_commit_hook(&source_path, &patch_path, |phase, source, _| {
+            if phase == CommitPhase::BeforeFinalCheck {
+                std::fs::write(source, V3_CONCURRENT_SOURCE)?;
+            }
+            Ok(())
+        })
+        .unwrap_err();
+
+        assert_eq!(error[0].code, "SPX-I207");
+        assert_eq!(
+            std::fs::read_to_string(&source_path).unwrap(),
+            V3_CONCURRENT_SOURCE
+        );
+        assert_owned_artifacts_removed(&source_path);
+    }
+
+    #[test]
+    fn v3_staging_mutation_is_rejected_without_source_change() {
+        let (source_path, patch_path) = v3_fixture("stage-mutation");
+        let error = apply_with_commit_hook(&source_path, &patch_path, |phase, _, staging| {
+            if phase == CommitPhase::BeforeRename {
+                std::fs::write(staging, b"attacker bytes")?;
+            }
+            Ok(())
+        })
+        .unwrap_err();
+
+        assert_eq!(error[0].code, "SPX-I203");
+        assert_eq!(std::fs::read_to_string(&source_path).unwrap(), V3_SOURCE);
+        assert_owned_artifacts_removed(&source_path);
+    }
+
+    #[test]
+    fn v3_initial_source_read_rejects_more_than_the_repair_bound() {
+        let sequence = NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed);
+        let directory = std::env::temp_dir().join(format!(
+            "semaprax-patch-v3-commit-{}-initial-bound-{sequence}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&directory).unwrap();
+        let source_path = directory.join("module.spx");
+        let patch_path = directory.join("repair.spatch");
+        let oversized = vec![b'x'; crate::repair::MAX_SOURCE_BYTES + 1];
+        std::fs::write(&source_path, &oversized).unwrap();
+        std::fs::write(
+            &patch_path,
+            "schema semaprax.semantic-patch.v3\nbase sha256:0\nassign-function-id repair sha256:0 diagnostic SPX-S103 target auto:large.helper name helper to large.helper\n",
+        )
+        .unwrap();
+
+        let error = apply(&source_path, &patch_path).unwrap_err();
+        assert_eq!(error[0].code, "SPX-R101");
+        assert_eq!(
+            std::fs::metadata(&source_path).unwrap().len(),
+            oversized.len() as u64
+        );
+        assert_owned_artifacts_removed(&source_path);
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn v3_final_recheck_bounds_concurrent_same_identity_growth() {
+        let (source_path, patch_path) = v3_fixture("final-growth");
+        let oversized = vec![b'x'; crate::repair::MAX_SOURCE_BYTES + 1];
+        let error = apply_with_commit_hook(&source_path, &patch_path, |phase, source, _| {
+            if phase == CommitPhase::BeforeFinalCheck {
+                std::fs::write(source, &oversized)?;
+            }
+            Ok(())
+        })
+        .unwrap_err();
+
+        assert_eq!(error[0].code, "SPX-I207");
+        assert_eq!(
+            std::fs::metadata(&source_path).unwrap().len(),
+            (crate::repair::MAX_SOURCE_BYTES + 1) as u64
+        );
+        assert_owned_artifacts_removed(&source_path);
+        std::fs::remove_dir_all(source_path.parent().unwrap()).unwrap();
     }
 
     #[test]

@@ -22,6 +22,11 @@ to 0..=1024, the whole JSON document to 1 KiB..=16 MiB, and nodes to
 negative or non-decimal values, duplicates, and unknown options reject before
 semantic output; the CLI exits 2.
 
+Semantic Patch v3 belongs to the separate bounded diagnostic-repair apply
+path. Impact v1 rejects every syntactically valid, canonical v3 as `SPX-G110`
+before semantic selector interpretation. Malformed or noncanonical v3 remains
+`SPX-G101`; v1/v2 report bytes and behavior remain unchanged.
+
 ## Canonical report
 
 `semaprax.semantic-impact.v1` is canonical compact UTF-8 JSON with this fixed
@@ -183,8 +188,10 @@ candidate after returning.
 - `SPX-G110` reports an Impact invariant or identity-domain failure, including
   incomplete source-consumer coverage, base/candidate Graph-schema drift, an
   inexact call selector/owner, or an automatic callable entering behavioral
-  reverse closure. Automatic declarations may still appear as exact rename
-  source consumers; they are not admitted as behavioral closure nodes.
+  reverse closure. It also rejects every syntactically valid, canonical
+  Semantic Patch v3 before any v3 semantic selector is interpreted; malformed
+  or noncanonical v3 remains `SPX-G101`. Automatic declarations may still appear as exact
+  rename source consumers; they are not admitted as behavioral closure nodes.
 - Existing Patch v1/v2 parse, stale-selector, verification, and requirement
   diagnostics pass through unchanged. In particular, `SPX-T226` continues to
   reject generic composition, recursion, effects, or other generic-function

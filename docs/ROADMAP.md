@@ -69,7 +69,9 @@ gates below are not.
   constraints, aggregate/resource/non-Copy signatures, generic composition,
   and separate compilation.
 - Modules, imports, and multi-file graph commits.
-- First-class diagnostic repair operations.
+- Diagnostic repairs beyond the implemented bounded `SPX-S103`
+  `assign-function-id` tranche: typed holes, other diagnostics/declaration
+  kinds, ranking, composition, automatic application, and multi-file repair.
 - Property tests generated from types and contracts.
 - A persistent graph daemon and JSON-RPC agent transport.
 - Complete ownership/lifetime/region analysis across control flow.
@@ -536,6 +538,18 @@ generic composition, and broad type renames remain roadmap work. Its exact
 2](https://github.com/wavect/semaprax/actions/runs/31401200449/attempts/2),
 including [Ubuntu job
 93505622044](https://github.com/wavect/semaprax/actions/runs/31401200449/job/93505622044).
+
+Bounded Diagnostic Repair v1 now discovers and instantiates one exact
+`SPX-S103` automatic-function identity repair, classified
+`breaking_identity_rebase`. Its isolated Semantic Patch v3 admits and applies
+only the canonical three-line `assign-function-id` operation through unchanged
+A0; Impact v1 remains v1/v2-only. Local Phase A integration is 13/13; the
+Phase B semantic integration corpus is 7/7; v3 A0 hook units are 4/4;
+aggregate v3 integration-plus-hook evidence is 9/9; and library 404/404,
+full-preservation, and security gates are green. Hosted evidence is pending. The breaking operation rebases Graph-v10 identity content
+and may rebase identity-bearing CleanupPlan content, but widens no schema or
+semantic shape and changes no backend/runtime semantics. General, typed-hole,
+ranked/composed, repository-wide, and multi-file repair remains roadmap work.
 
 - Versioned language, graph, package, and component specifications.
 - Reproducible native and component builds on supported targets.

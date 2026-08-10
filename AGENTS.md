@@ -15,6 +15,8 @@ Before changing semantics, read:
 For records, variants, generics, matching, `Option`, or `Result`, also read `docs/RFC-0002-ALGEBRAIC-DATA.md` before editing.
 For semantic-impact preview, patch provenance, source-consumer facts, or
 reverse-call closure, also read `docs/SEMANTIC-IMPACT-V1.md`.
+For diagnostic repair discovery/instantiation, `SPX-S103` identity assignment,
+or Semantic Patch v3, also read `docs/DIAGNOSTIC-REPAIR-V1.md`.
 For native owned-call recovery, physical failure, settlement, or quiescence,
 also read `docs/RFC-0004-NATIVE-CALL-SETTLEMENT.md`; its hidden Rust model is
 proof scaffolding, not a wired native-runtime claim.
@@ -36,6 +38,8 @@ proof scaffolding, not a wired native-runtime claim.
 - `src/graph.rs`, `patch.rs`: agent representation and atomic transactions.
 - `src/call_index.rs`, `impact.rs`: shared validated-HIR call index and bounded,
   read-only single-file Semantic Impact v1 preview.
+- `src/repair.rs`: bounded read-only Diagnostic Repair v1 discovery and
+  instantiation plus the independently replayed Patch-v3 identity-rebase gate.
 - `src/codegen.rs`, `src/codegen/native_callable_*`, `wasm.rs`: native C11/Clang, private callable-v2, and browser/Wasm lanes.
 - `src/wit_component.rs`: default-off deterministic WIT/schema/JavaScript boundary evidence; not a Component Model runtime.
 - `crates/semaprax-native-loader`, `crates/semaprax-native-host`: unpublished unsafe loader quarantine and connected callable authority/ledger host.
@@ -52,6 +56,10 @@ proof scaffolding, not a wired native-runtime claim.
 - Failed or stale semantic transactions leave source unchanged.
 - Semantic impact preview is read-only, digest-bound to its processed patch
   bytes, and fail-closed on source snapshot drift.
+- Diagnostic-repair discovery and instantiation are read-only. Semantic Patch
+  v3 commit authority is limited to one canonical `assign-function-id`
+  operation whose complete `breaking_identity_rebase` is independently
+  revalidated before unchanged A0 commit.
 - Capabilities are explicit; compiler and generated code gain no ambient authority silently.
 - Ownership errors are compile-time diagnostics, never backend accidents.
 - Cleanup inventory discovery order is structural metadata, never runtime liveness or destruction order.

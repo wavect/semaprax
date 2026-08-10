@@ -3,7 +3,8 @@ use std::process::{Command, ExitCode};
 
 use semaprax::diagnostic::{Diagnostic, Severity};
 use semaprax::{
-    agent_economics, codegen, format, graph, impact, parse, patch, quality_route, verify, wasm,
+    agent_economics, codegen, format, graph, impact, parse, patch, quality_route, repair, verify,
+    wasm,
 };
 
 fn main() -> ExitCode {
@@ -183,6 +184,38 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             let report = impact::preview(&source_path, &patch_path, &options)
                 .map_err(|errors| report(&errors, false))?;
             println!("{report}");
+            Ok(())
+        }
+        "repairs" => {
+            if args.len() != 4 || args[2] != "assign-function-id" {
+                eprintln!("repairs requires <file> assign-function-id <automatic-function-id>");
+                return Err(2);
+            }
+            let source_path = required_path(&args, 1)?;
+            let query = repair::DiagnosticRepairQuery::assign_function_id(args[3].clone())
+                .map_err(|error| {
+                    eprintln!("{error}");
+                    2
+                })?;
+            let report =
+                repair::query(&source_path, &query).map_err(|errors| report(&errors, false))?;
+            println!("{report}");
+            Ok(())
+        }
+        "repair" => {
+            if args.len() != 5 || args[3] != "--persistent-id" {
+                eprintln!("repair requires <file> <repair-id> --persistent-id <persistent-id>");
+                return Err(2);
+            }
+            let source_path = required_path(&args, 1)?;
+            let persistent_id =
+                repair::PersistentDeclarationId::new(args[4].clone()).map_err(|error| {
+                    eprintln!("{error}");
+                    2
+                })?;
+            let preview = repair::instantiate(&source_path, &args[2], &persistent_id)
+                .map_err(|errors| report(&errors, false))?;
+            println!("{preview}");
             Ok(())
         }
         "version" | "--version" | "-V" => {
@@ -425,6 +458,8 @@ fn print_help() {
            semaprax fmt <file> [--check]\n\
            semaprax patch <file> <patch.spatch>\n\
            semaprax impact <file> <patch.spatch> [--depth N] [--max-bytes N] [--max-nodes N]\n\
+           semaprax repairs <file> assign-function-id <automatic-function-id>\n\
+           semaprax repair <file> <repair-id> --persistent-id <persistent-id>\n\
            semaprax version"
     );
 }

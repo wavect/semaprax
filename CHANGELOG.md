@@ -4,6 +4,41 @@ All notable changes to SEMAPRAX are documented here.
 
 ## 0.2.0 — 2026-08-07
 
+- Added [Bounded Diagnostic Repair v1 and Semantic Patch
+  v3](docs/DIAGNOSTIC-REPAIR-V1.md). Read-only `repairs` discovery emits
+  canonical `semaprax.diagnostic-repair.v1` JSON for one exact `SPX-S103`
+  automatic-function target, and read-only `repair` instantiation emits
+  canonical `semaprax.diagnostic-repair-preview.v1` JSON after independently
+  proving the exact one-annotation HIR/normalized-Graph rebase. The operation
+  is classified `breaking_identity_rebase`. Its embedded
+  `semaprax.semantic-patch.v3` is exactly one canonical LF-terminated three-line
+  `assign-function-id` operation; `patch` revalidates every selector, the
+  closed scalar Graph-v10 repair domain, and the complete rebase before
+  applying through unchanged A0. Impact v1 rejects every syntactically valid,
+  canonical v3 as `SPX-G110` before semantic selector interpretation; malformed
+  or noncanonical v3 remains `SPX-G101`. Impact retains its v1/v2 bytes. Frozen
+  query, preview, and independently
+  authored candidate-Graph SHA-256 KATs are
+  `ef689fed2c742dea6cedb0b8ec3d449e5facd8748dd00cb8a8f2e6115be82075`,
+  `ae779749b252e5d9661172dfebcd3317211b97310eed57a0a6b7a692be1053e4`,
+  and `d255c0e88ff497436ca0737ffd139cf47c2c142cf1b4f2da071514c0515ad2b3`.
+  Local Phase A integration is 13/13; the Phase B semantic integration corpus
+  is 7/7; v3 A0 hook units are 4/4; aggregate v3 integration-plus-hook evidence
+  is 9/9 (seven semantic cases plus two bounded-work integration hooks, not the
+  separate 4/4 internal units); and the library suite is 404/404. Full preservation is green and
+  security review is clean; hosted evidence is pending. Typed holes, other diagnostics and declaration kinds, repair
+  ranking/composition/automatic application, other v3 operations, authenticated
+  patch provenance, Graph or CleanupPlan schema/version/semantic-shape
+  widening, Graph v11-v14 repair admission, backend/runtime semantic changes,
+  and general or multi-file repair remain nonclaims. The admitted breaking
+  operation does change Graph-v10 revision/identity/callee/derived-ID content
+  and may rebase identity-bearing CleanupPlan content.
+  Function and structural call-site bounds run on the parsed AST before HIR.
+  After the patch parses as v3, its A0 initial source read and both final
+  rechecks are capped at 16 MiB; initial oversize and concurrent greater-than-
+  16-MiB growth fail closed without replacing the source. V1/v2 reads are
+  unchanged.
+
 - Added [`semaprax.semantic-impact.v1`](docs/SEMANTIC-IMPACT-V1.md),
   a deterministic read-only preview for one Semantic Patch v1/v2 file. It
   reports exact operation/change provenance and source consumers, and computes

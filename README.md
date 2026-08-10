@@ -645,6 +645,31 @@ the exact processed patch bytes. It is bounded single-file call impact, not
 repository-wide or general non-call impact; see [Semantic Impact
 v1](docs/SEMANTIC-IMPACT-V1.md).
 
+An agent can discover the first bounded compiler repair for an exact automatic
+function identity and then instantiate it with a caller-selected persistent
+ID, without writing source:
+
+```sh
+semaprax repairs examples/meaning.spx assign-function-id auto:example.helper
+semaprax repair examples/meaning.spx <repair-id> --persistent-id example.helper
+```
+
+The first command returns canonical `semaprax.diagnostic-repair.v1` JSON. The
+second independently proves the one-edit identity rebase and returns canonical
+`semaprax.diagnostic-repair-preview.v1` JSON containing one exact three-line
+`semaprax.semantic-patch.v3` operation. Its classification is
+`breaking_identity_rebase`: the selected automatic declaration ID and its
+revision-scoped derived IDs intentionally change. Passing that generated patch
+to `semaprax patch` reruns the same closed repair/rebase gate and applies it
+through unchanged A0. Semantic Impact v1 rejects every syntactically valid,
+canonical v3 as `SPX-G110` before semantic selector interpretation; malformed
+or noncanonical v3 remains `SPX-G101`.
+The operation changes Graph-v10 revision/identity/callee/derived-ID content and
+may rebase identity-bearing CleanupPlan content, without widening either schema
+or semantic shape and without changing backend/runtime semantics.
+See [Bounded Diagnostic Repair v1 and Semantic Patch
+v3](docs/DIAGNOSTIC-REPAIR-V1.md).
+
 The patch updates the declaration and verified call sites together. If the
 graph changed since the agent observed it, SEMAPRAX returns `SPX-G409` and
 leaves the source untouched. Commit A0 additionally authenticates a canonical
@@ -673,6 +698,8 @@ durability, multi-file commits, and general typed repair/impact remain open.
 | `fmt <file> [--check]` | Apply or verify canonical formatting |
 | `patch <file> <patch.spatch>` | Apply an atomic semantic transaction |
 | `impact <file> <patch.spatch> [--depth N] [--max-bytes N] [--max-nodes N]` | Preview deterministic bounded single-file source consumers and reverse-call impact without applying the patch |
+| `repairs <file> assign-function-id <automatic-function-id>` | Discover the bounded read-only `SPX-S103` function-identity repair |
+| `repair <file> <repair-id> --persistent-id <persistent-id>` | Instantiate and independently prove the bounded repair as read-only Patch v3 preview JSON |
 
 ## Why SEMAPRAX
 

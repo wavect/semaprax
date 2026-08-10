@@ -27,6 +27,7 @@ pub mod owned_resource_corpus;
 pub mod parser;
 pub mod patch;
 pub mod quality_route;
+pub mod repair;
 pub mod runtime_status;
 pub mod semantic_trace;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]

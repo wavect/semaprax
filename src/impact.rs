@@ -103,7 +103,7 @@ fn preview_with_hook(
             format!("semantic impact snapshot hook failed: {error}"),
         )]
     })?;
-    let preflight = patch::preflight_owned(
+    let preflight = patch::preflight_impact_owned(
         snapshot.source().to_owned(),
         patch_source,
         source_path.to_path_buf(),
@@ -199,6 +199,16 @@ fn operations_json(operations: &[PreflightOperation]) -> String {
     operations
         .iter()
         .map(|operation| match operation {
+            PreflightOperation::AssignFunctionId {
+                index,
+                repair_id,
+                target,
+                name,
+                to,
+            } => {
+                let _ = (index, repair_id, target, name, to);
+                unreachable!("Impact v1 rejects Patch v3 before report construction")
+            }
             PreflightOperation::Rename { index, target, to } => format!(
                 "{{\"index\":{index},\"kind\":\"rename\",\"target\":{},\"to\":{}}}",
                 quote_json(target),

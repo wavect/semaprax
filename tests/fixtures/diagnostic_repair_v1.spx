@@ -1,0 +1,4 @@
+module repair.phase_a;
+fn helper(value:i64)->i64{let adjusted=value+1;if adjusted>1{adjusted}else{1}}
+@id("repair.caller") fn caller(value:i64)->i64{helper(value)}
+@id("app.main") fn main()->i64{caller(1)}

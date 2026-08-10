@@ -89,6 +89,46 @@ green in [run 31408654657 attempt
 including [Ubuntu job
 93530141404](https://github.com/wavect/semaprax/actions/runs/31408654657/job/93530141404).
 
+## SPX-S103 to Diagnostic Repair v1 and isolated Semantic Patch v3
+
+Existing `SPX-S103` diagnostics remain unchanged. The additive command
+`semaprax repairs <file> assign-function-id <automatic-function-id>` now
+returns canonical `semaprax.diagnostic-repair.v1` JSON for one eligible
+automatic function in the closed acyclic scalar Graph-v10 domain. The additive
+command `semaprax repair <file> <repair-id> --persistent-id <persistent-id>`
+returns canonical `semaprax.diagnostic-repair-preview.v1` JSON after
+independently proving the exact one-annotation candidate. Both commands are
+read-only.
+
+The preview contains an exact three-line LF-terminated
+`semaprax.semantic-patch.v3` file with one `assign-function-id` operation.
+Unlike the query and instantiation commands, `semaprax patch` may apply that
+v3 file: it reauthenticates the revision-bound repair ID, diagnostic, target,
+name, closed persistent ID, reduced program domain, and complete candidate
+identity rebase, then uses unchanged A0. V3 is isolated from schema-less v1 and
+explicit v2; it composes with neither grammar and admits no other operation.
+Semantic Impact v1 remains a Patch v1/v2 preview and rejects every
+syntactically valid, canonical v3 as `SPX-G110` before semantic selector
+interpretation. Malformed or noncanonical v3 remains `SPX-G101`.
+
+The operation classification is exactly `breaking_identity_rebase`. Consumers
+must not treat it as a stable-ID-preserving rename: the automatic function ID
+and every revision-scoped identity below the selected function intentionally
+change, while direct callers change their callee reference. Graph-v10 revision
+and identity-bearing content therefore change, and identity-bearing CleanupPlan
+content may rebase. No Graph or CleanupPlan schema/version or semantic shape is
+widened, Graph v11-v14 is not admitted for repair, and backend/runtime semantics
+do not change. The exact schemas,
+key/line order, domains, KATs, limits, and nonclaims are frozen in
+[`DIAGNOSTIC-REPAIR-V1.md`](DIAGNOSTIC-REPAIR-V1.md). Local Phase A integration
+is 13/13; the Phase B semantic integration corpus is 7/7; v3 A0 hook units are
+4/4; aggregate v3 integration-plus-hook evidence is 9/9; and library 404/404,
+full-preservation, and security gates are green. Hosted evidence is pending.
+V3 additionally runs function/call-site bounds on parsed AST before HIR and
+caps its initial A0 source read plus both final rechecks at 16 MiB. Initial
+oversize fails `SPX-R101`; concurrent final growth past the bound fails
+`SPX-I207` without replacing the grown source. Patch v1/v2 reads are unchanged.
+
 ## Persistent identities are NUL-free
 
 Persistent semantic identities and logical import keys may not contain a literal NUL byte. Source validation reports the declaration-specific stable diagnostic before resolution or graph serialization; `\0` remains an unsupported source-string escape. Public consumers of transformed resolved HIR must likewise reject NUL in declaration IDs, types, expressions, places, call/record/field references, and attached cleanup inventory or plan metadata before code generation or serialization. Regenerate or rename any pre-alpha fixture that constructed such an identity directly.

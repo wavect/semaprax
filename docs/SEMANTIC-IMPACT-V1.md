@@ -212,6 +212,12 @@ claims, summarize semantic review, authenticate patch provenance, or commit a
 change. Call edges found in contracts are ordinary call-graph edges, not a
 general contract-dependency analysis.
 
+The separate [Semantic Review v1](SEMANTIC-REVIEW-V1.md) layer embeds the
+complete, nontruncated canonical Impact v1 report for Patch v1/v2 under fixed
+Review limits. That composition does not change Impact's schema, bytes, public
+options, v1/v2-only domain, or canonical-v3 `SPX-G110` rejection; Impact itself
+still does not emit the seven review sections.
+
 ## Evidence
 
 The canonical rename-report SHA-256 KAT is

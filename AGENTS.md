@@ -17,6 +17,8 @@ For semantic-impact preview, patch provenance, source-consumer facts, or
 reverse-call closure, also read `docs/SEMANTIC-IMPACT-V1.md`.
 For diagnostic repair discovery/instantiation, `SPX-S103` identity assignment,
 or Semantic Patch v3, also read `docs/DIAGNOSTIC-REPAIR-V1.md`.
+For the fixed-section read-only Patch v1/v2/v3 review report, also read
+`docs/SEMANTIC-REVIEW-V1.md`.
 For native owned-call recovery, physical failure, settlement, or quiescence,
 also read `docs/RFC-0004-NATIVE-CALL-SETTLEMENT.md`; its hidden Rust model is
 proof scaffolding, not a wired native-runtime claim.
@@ -40,6 +42,8 @@ proof scaffolding, not a wired native-runtime claim.
   read-only single-file Semantic Impact v1 preview.
 - `src/repair.rs`: bounded read-only Diagnostic Repair v1 discovery and
   instantiation plus the independently replayed Patch-v3 identity-rebase gate.
+- `src/review.rs`: bounded read-only Semantic Review v1 over complete Impact-v1
+  or shared identity-rebase evidence.
 - `src/codegen.rs`, `src/codegen/native_callable_*`, `wasm.rs`: native C11/Clang, private callable-v2, and browser/Wasm lanes.
 - `src/wit_component.rs`: default-off deterministic WIT/schema/JavaScript boundary evidence; not a Component Model runtime.
 - `crates/semaprax-native-loader`, `crates/semaprax-native-host`: unpublished unsafe loader quarantine and connected callable authority/ledger host.

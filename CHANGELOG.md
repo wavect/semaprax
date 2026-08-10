@@ -4,6 +4,28 @@ All notable changes to SEMAPRAX are documented here.
 
 ## 0.2.0 — 2026-08-07
 
+- Added [Bounded Semantic Review v1](docs/SEMANTIC-REVIEW-V1.md), a fixed-arity
+  read-only `review <file> <patch.spatch>` command with canonical
+  `semaprax.semantic-review.v1` JSON. Patch v1/v2 reports embed complete,
+  nontruncated Semantic Impact v1 evidence under fixed limits; the sole
+  canonical Patch v3 `assign-function-id` report instead embeds the exact
+  shared Diagnostic Repair identity rebase and no Impact object. Every report
+  carries the seven fixed sections `behavior`, `api_identity`,
+  `security_authority`, `memory_ownership`, `target_artifact`, `migration`, and
+  `unsafe`, with one evidence-linked closed finding per authored operation.
+  Exact Patch v1/v2/v3 whole-report SHA-256 KATs are
+  `054c12822e9984b3f9cab06056f311f35af3b06a438af7ade0b452a823443946`,
+  `37fe056f519366fcaf6c13586e3b78afd64d51483490a1120e3e0fdc1b04c421`, and
+  `081bcb20aca2e74f724f5bc0cd2cf03770a499e11aa090d92b59650209165544`.
+  Local Review integration is 10/10, hook/limit units are 4/4, and library
+  408/408, full workspace, release, doctest, rustdoc, strict Clippy, format,
+  diff, preservation, and independent security gates are green; hosted
+  evidence is pending. This is not Agent Context, target/test execution, a
+  public verifier or proof artifact, authenticated patch provenance, human
+  approval policy/UI, A0 apply/commit authority, repository/multi-file review,
+  or general capability/security/unsafe/ABI analysis. Only the Semantic human
+  review completion row moves from Missing to Partial.
+
 - Added [Bounded Diagnostic Repair v1 and Semantic Patch
   v3](docs/DIAGNOSTIC-REPAIR-V1.md). Read-only `repairs` discovery emits
   canonical `semaprax.diagnostic-repair.v1` JSON for one exact `SPX-S103`
@@ -57,7 +79,8 @@ All notable changes to SEMAPRAX are documented here.
   Local focused integration and internal Impact/call-index suites are 12/12 and
   4/4.
   This is single-file call impact, not repository-wide, non-call, repair,
-  ranking, semantic-review, or commit authority. The exact `1b3731a` full
+  ranking, or commit authority. Impact itself emits no review sections; the
+  separate Review v1 layer embeds its complete nontruncated report. The exact `1b3731a` full
   hosted matrix is green in [run 31408654657 attempt
   2](https://github.com/wavect/semaprax/actions/runs/31408654657/attempts/2),
   including [Ubuntu job

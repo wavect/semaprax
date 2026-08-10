@@ -219,6 +219,17 @@ Implemented today:
   2](https://github.com/wavect/semaprax/actions/runs/31408654657/attempts/2),
   including [Ubuntu job
   93530141404](https://github.com/wavect/semaprax/actions/runs/31408654657/job/93530141404).
+- Read-only [Semantic Review v1](docs/SEMANTIC-REVIEW-V1.md) emits one
+  canonical fixed-section review for Patch v1/v2 or the sole canonical Patch
+  v3 identity assignment. V1/v2 embed complete nontruncated Impact v1 evidence;
+  v3 embeds the shared repair identity rebase without widening Impact. Its
+  exact Patch v1/v2/v3 report KATs are `054c12822e9984b3f9cab06056f311f35af3b06a438af7ade0b452a823443946`,
+  `37fe056f519366fcaf6c13586e3b78afd64d51483490a1120e3e0fdc1b04c421`, and
+  `081bcb20aca2e74f724f5bc0cd2cf03770a499e11aa090d92b59650209165544`.
+  Local Review integration 10/10, hook/limit 4/4, library 408/408, full
+  preservation, and security gates are green; hosted evidence is pending.
+  Review has no flags, Context, target/test execution, verifier/proof artifact,
+  human approval, authenticated patch provenance, or apply/commit authority.
 - Native AOT output through a readable C11 lowering and Clang.
 - Direct WebAssembly core output with a generated ES-module runtime, HTML entry point, capability manifest, checked arithmetic, and contract traps.
 - A deliberately narrow `semaprax.wasm-owned.v1` Core Wasm path for one direct
@@ -670,6 +681,21 @@ or semantic shape and without changing backend/runtime semantics.
 See [Bounded Diagnostic Repair v1 and Semantic Patch
 v3](docs/DIAGNOSTIC-REPAIR-V1.md).
 
+An agent or human can request the bounded deterministic review without writing
+source:
+
+```sh
+semaprax review examples/meaning.spx change.spatch
+```
+
+The seven canonical sections are `behavior`, `api_identity`,
+`security_authority`, `memory_ownership`, `target_artifact`, `migration`, and
+`unsafe`. Patch v1/v2 reports carry the complete nontruncated Impact v1 report;
+the sole canonical v3 report carries the exact shared identity-rebase evidence
+and no Impact object. This is a bounded classification report, not Context,
+target execution, a public verifier/proof artifact, human approval, or commit
+authority; see [Semantic Review v1](docs/SEMANTIC-REVIEW-V1.md).
+
 The patch updates the declaration and verified call sites together. If the
 graph changed since the agent observed it, SEMAPRAX returns `SPX-G409` and
 leaves the source untouched. Commit A0 additionally authenticates a canonical
@@ -698,6 +724,7 @@ durability, multi-file commits, and general typed repair/impact remain open.
 | `fmt <file> [--check]` | Apply or verify canonical formatting |
 | `patch <file> <patch.spatch>` | Apply an atomic semantic transaction |
 | `impact <file> <patch.spatch> [--depth N] [--max-bytes N] [--max-nodes N]` | Preview deterministic bounded single-file source consumers and reverse-call impact without applying the patch |
+| `review <file> <patch.spatch>` | Emit the fixed-section bounded Semantic Review v1 report without applying the patch |
 | `repairs <file> assign-function-id <automatic-function-id>` | Discover the bounded read-only `SPX-S103` function-identity repair |
 | `repair <file> <repair-id> --persistent-id <persistent-id>` | Instantiate and independently prove the bounded repair as read-only Patch v3 preview JSON |
 

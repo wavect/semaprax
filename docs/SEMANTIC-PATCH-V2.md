@@ -75,6 +75,12 @@ candidate revision without committing it. That preview's digest binds the
 exact patch bytes it processed, but it does not authenticate the continuing
 patch path or widen Patch v2's operation, Graph, CleanupPlan, or commit scope.
 
+The separate [Semantic Review v1](SEMANTIC-REVIEW-V1.md) command embeds one
+complete, nontruncated canonical Impact v1 report for Patch v2 and classifies
+each authored operation across seven fixed sections. Review is read-only and
+adds no Patch v2 operation, flag, Context, target execution, verifier/proof
+artifact, provenance authentication, or A0 authority.
+
 The separate [Diagnostic Repair v1](DIAGNOSTIC-REPAIR-V1.md) tranche defines
 an isolated Semantic Patch v3 with exactly one canonical three-line
 `assign-function-id` operation. V3 does not compose with or widen v2, and

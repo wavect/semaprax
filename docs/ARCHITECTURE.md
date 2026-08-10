@@ -866,6 +866,47 @@ meaning are preserved. The exact wire
 schemas, digest domains, key order, limits, KATs, and nonclaims are frozen in
 [`DIAGNOSTIC-REPAIR-V1.md`](DIAGNOSTIC-REPAIR-V1.md).
 
+## Bounded semantic human review
+
+`src/review.rs` owns the deterministic, read-only
+`semaprax.semantic-review.v1` projection. `review <file> <patch.spatch>` has
+fixed arity and no flags. It authenticates one bounded canonical regular source
+snapshot, owns the bounded patch bytes, runs the same pure Patch preflight,
+checks parsed-AST declaration/callable/call-site limits before HIR, proves the
+closed review classifications, renders one exact report, and rechecks source
+identity, bytes, revision, and size before return. It never enters A0.
+
+Patch v1/v2 review uses `impact::complete_review_evidence`: the complete
+canonical Impact v1 report is rebuilt with fixed depth 1,024, 16-MiB, and
+1,024-node options, and any truncation, omitted/deferred node, or frontier
+rejects as `SPX-G120`. The entire report is embedded and separately
+domain-digest-bound; its operation/change/source-consumer/affected-function
+facts and accounting are not summarized away. Patch v3 instead accepts only
+the canonical Diagnostic Repair `assign-function-id` operation, embeds the
+same shared `semaprax.identity-rebase.v1` object, and records zero Impact use.
+This separate v3 path does not widen Impact v1's v1/v2-only contract.
+
+Every authored operation produces one evidence-linked finding in each of seven
+fixed wire sections, in order: `behavior`, `api_identity`,
+`security_authority`, `memory_ownership`, `target_artifact`, `migration`, and
+`unsafe`. They map to RFC 0001's conceptual behavior, API, security, memory,
+target, migration, and unsafe-code categories without changing the protocol
+identifiers. Rename classifications are independently checked against a
+name-normalized before/candidate Graph including Cleanup projection. Exact
+effect/capability/import facts are compared for every v1/v2 review. The v3
+classification retains the shared structural-HIR and normalized-Graph
+`breaking_identity_rebase` proof.
+
+The seven sections are bounded facts, changes, or explicit unknowns, not a
+general security/memory/unsafe/target/migration analysis. Review creates no
+Agent Context, executes no test or target, exposes no public report-verification
+API or proof artifact, authenticates no continuing patch provenance, and owns
+no approval, lock, stage, apply, or commit authority. Exact wire, bounds,
+digests, KATs, nonclaims, and diagnostics are frozen in
+[`SEMANTIC-REVIEW-V1.md`](SEMANTIC-REVIEW-V1.md). Local Review integration is
+10/10, hook/limit units are 4/4, library 408/408, full preservation and security
+gates are green; hosted evidence is pending.
+
 ## Transactions
 
 The `.spatch` protocol is intentionally smaller than a text patch:

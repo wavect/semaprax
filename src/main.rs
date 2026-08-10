@@ -3,8 +3,8 @@ use std::process::{Command, ExitCode};
 
 use semaprax::diagnostic::{Diagnostic, Severity};
 use semaprax::{
-    agent_economics, codegen, format, graph, impact, parse, patch, quality_route, repair, verify,
-    wasm,
+    agent_economics, codegen, format, graph, impact, parse, patch, quality_route, repair, review,
+    verify, wasm,
 };
 
 fn main() -> ExitCode {
@@ -182,6 +182,18 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             let patch_path = required_path(&args, 2)?;
             let options = impact_options(&args)?;
             let report = impact::preview(&source_path, &patch_path, &options)
+                .map_err(|errors| report(&errors, false))?;
+            println!("{report}");
+            Ok(())
+        }
+        "review" => {
+            if args.len() != 3 {
+                eprintln!("review requires exactly <file> <patch.spatch>");
+                return Err(2);
+            }
+            let source_path = required_path(&args, 1)?;
+            let patch_path = required_path(&args, 2)?;
+            let report = review::preview(&source_path, &patch_path)
                 .map_err(|errors| report(&errors, false))?;
             println!("{report}");
             Ok(())
@@ -458,6 +470,7 @@ fn print_help() {
            semaprax fmt <file> [--check]\n\
            semaprax patch <file> <patch.spatch>\n\
            semaprax impact <file> <patch.spatch> [--depth N] [--max-bytes N] [--max-nodes N]\n\
+           semaprax review <file> <patch.spatch>\n\
            semaprax repairs <file> assign-function-id <automatic-function-id>\n\
            semaprax repair <file> <repair-id> --persistent-id <persistent-id>\n\
            semaprax version"

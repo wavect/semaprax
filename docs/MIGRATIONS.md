@@ -134,6 +134,36 @@ caps its initial A0 source read plus both final rechecks at 16 MiB. Initial
 oversize fails `SPX-R101`; concurrent final growth past the bound fails
 `SPX-I207` without replacing the grown source. Patch v1/v2 reads are unchanged.
 
+## Patch and repair evidence to Semantic Review v1
+
+`semaprax review <file> <patch.spatch>` is an additive, fixed-arity read-only
+command. It changes no Patch v1/v2/v3 grammar, Impact v1 report, Diagnostic
+Repair report, Graph schema, CleanupPlan schema, or A0 behavior. Consumers must
+select the new top-level schema `semaprax.semantic-review.v1` and preserve its
+exact seven `sections` keys in wire order:
+
+```text
+behavior, api_identity, security_authority, memory_ownership,
+target_artifact, migration, unsafe
+```
+
+These fields map to RFC 0001's conceptual behavior, API, security, memory,
+target, migration, and unsafe-code categories without renaming the wire keys.
+Patch v1/v2 evidence has `kind = semantic_impact_v1` and embeds one complete,
+nontruncated canonical Impact v1 report produced under the Review contract's
+fixed limits. The sole canonical Patch v3 evidence instead has
+`kind = identity_rebase_v1`, embeds the exact shared repair identity rebase,
+and contains no Impact `report` key. Impact v1 remains v1/v2-only and retains
+its canonical-v3 `SPX-G110` behavior.
+
+Review has no flags, Context request, target/test execution, public verifier,
+proof artifact, authenticated patch provenance, approval policy/UI, or
+lock/stage/apply/commit authority. The three exact report KATs and all limits,
+digests, key order, dispositions, findings, and nonclaims are frozen in
+[`SEMANTIC-REVIEW-V1.md`](SEMANTIC-REVIEW-V1.md). Local Review integration is
+10/10, hook/limit units are 4/4, library 408/408, full preservation and security
+gates are green; hosted evidence is pending.
+
 ## Persistent identities are NUL-free
 
 Persistent semantic identities and logical import keys may not contain a literal NUL byte. Source validation reports the declaration-specific stable diagnostic before resolution or graph serialization; `\0` remains an unsupported source-string escape. Public consumers of transformed resolved HIR must likewise reject NUL in declaration IDs, types, expressions, places, call/record/field references, and attached cleanup inventory or plan metadata before code generation or serialization. Regenerate or rename any pre-alpha fixture that constructed such an identity directly.

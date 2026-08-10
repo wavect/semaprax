@@ -185,6 +185,7 @@ fn instantiate_with_hook(
         target,
         persistent_id.as_str(),
     )?;
+    let identity_rebase = identity_rebase_evidence(target, persistent_id.as_str(), &candidate);
     let patch_source = format!(
         "schema {PATCH_SCHEMA}\nbase {base_revision}\nassign-function-id repair {selected_repair_id} diagnostic SPX-S103 target {} name {} to {}\n",
         target.stable_id,
@@ -199,6 +200,7 @@ fn instantiate_with_hook(
         persistent_id,
         patch_source: &patch_source,
         proof: &candidate,
+        identity_rebase: &identity_rebase,
         diagnostics: &diagnostics,
         usage,
     })?;
@@ -241,9 +243,78 @@ struct CallGraph {
 }
 
 pub(crate) struct AssignmentCandidate {
-    pub(crate) candidate: Program,
-    pub(crate) canonical_candidate: String,
-    pub(crate) candidate_revision: String,
+    candidate: Program,
+    canonical_candidate: String,
+    candidate_revision: String,
+    identity_rebase: IdentityRebaseEvidence,
+}
+
+impl AssignmentCandidate {
+    pub(crate) fn into_parts(self) -> (Program, String, String, IdentityRebaseEvidence) {
+        (
+            self.candidate,
+            self.canonical_candidate,
+            self.candidate_revision,
+            self.identity_rebase,
+        )
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct IdentityRebaseCaller {
+    id: String,
+    identity_origin: IdentityOrigin,
+    site_count: usize,
+}
+
+impl IdentityRebaseCaller {
+    pub(crate) fn id(&self) -> &str {
+        &self.id
+    }
+
+    pub(crate) fn identity_origin(&self) -> IdentityOrigin {
+        self.identity_origin
+    }
+
+    pub(crate) fn site_count(&self) -> usize {
+        self.site_count
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct IdentityRebaseEvidence {
+    before_id: String,
+    after_id: String,
+    name: String,
+    direct_callers: Vec<IdentityRebaseCaller>,
+    derived_id_count: usize,
+    derived_id_digest: String,
+}
+
+impl IdentityRebaseEvidence {
+    pub(crate) fn before_id(&self) -> &str {
+        &self.before_id
+    }
+
+    pub(crate) fn after_id(&self) -> &str {
+        &self.after_id
+    }
+
+    pub(crate) fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub(crate) fn direct_callers(&self) -> &[IdentityRebaseCaller] {
+        &self.direct_callers
+    }
+
+    pub(crate) fn derived_id_count(&self) -> usize {
+        self.derived_id_count
+    }
+
+    pub(crate) fn derived_id_digest(&self) -> &str {
+        &self.derived_id_digest
+    }
 }
 
 pub(crate) struct PatchAssignmentInput<'a> {
@@ -305,11 +376,36 @@ pub(crate) fn preflight_patch_assignment(
         target,
         persistent_id.as_str(),
     )?;
+    let identity_rebase = identity_rebase_evidence(target, persistent_id.as_str(), &proof);
     Ok(AssignmentCandidate {
         candidate: proof.candidate,
         canonical_candidate: proof.canonical_candidate,
         candidate_revision: proof.candidate_revision,
+        identity_rebase,
     })
+}
+
+fn identity_rebase_evidence(
+    target: &crate::ast::Function,
+    persistent_id: &str,
+    proof: &CandidateProof,
+) -> IdentityRebaseEvidence {
+    IdentityRebaseEvidence {
+        before_id: target.stable_id.clone(),
+        after_id: persistent_id.to_owned(),
+        name: target.name.clone(),
+        direct_callers: proof
+            .direct_callers
+            .iter()
+            .map(|(id, caller)| IdentityRebaseCaller {
+                id: id.clone(),
+                identity_origin: caller.identity_origin,
+                site_count: caller.site_count,
+            })
+            .collect(),
+        derived_id_count: proof.derived.len(),
+        derived_id_digest: derived_rebase_digest(&proof.derived),
+    }
 }
 
 fn read_eligible_source(source_path: &Path) -> Result<EligibleSource, Vec<Diagnostic>> {
@@ -1188,6 +1284,7 @@ struct PreviewRender<'a> {
     persistent_id: &'a PersistentDeclarationId,
     patch_source: &'a str,
     proof: &'a CandidateProof,
+    identity_rebase: &'a IdentityRebaseEvidence,
     diagnostics: &'a [Diagnostic],
     usage: WorkUsage,
 }
@@ -1205,15 +1302,15 @@ fn render_preview(input: PreviewRender<'_>) -> Result<String, Vec<Diagnostic>> {
             )]
         })?;
     let callers = input
-        .proof
-        .direct_callers
+        .identity_rebase
+        .direct_callers()
         .iter()
-        .map(|(id, caller)| {
+        .map(|caller| {
             format!(
                 "{{\"id\":{},\"identity_origin\":{},\"site_count\":{}}}",
-                quote_json(id),
-                quote_json(caller.identity_origin.text()),
-                caller.site_count
+                quote_json(caller.id()),
+                quote_json(caller.identity_origin().text()),
+                caller.site_count()
             )
         })
         .collect::<Vec<_>>()
@@ -1239,12 +1336,12 @@ fn render_preview(input: PreviewRender<'_>) -> Result<String, Vec<Diagnostic>> {
                 input.patch_source.as_bytes()
             )),
             quote_json(input.patch_source),
-            quote_json(&input.target.stable_id),
-            quote_json(input.persistent_id.as_str()),
-            quote_json(&input.target.name),
+            quote_json(input.identity_rebase.before_id()),
+            quote_json(input.identity_rebase.after_id()),
+            quote_json(input.identity_rebase.name()),
             callers,
-            input.proof.derived.len(),
-            quote_json(&derived_rebase_digest(&input.proof.derived)),
+            input.identity_rebase.derived_id_count(),
+            quote_json(input.identity_rebase.derived_id_digest()),
         )
     })
 }

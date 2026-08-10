@@ -18,11 +18,20 @@ Status: implemented in this repository.
 - Bounded Semantic Impact v1 previews one Patch v1/v2
   file read-only, with exact source-consumer provenance and finite reverse-call
   impact for generic call-instance changes. Repository-wide/non-call impact,
-  persistent incrementality, repair, ranking, and review remain open. Its
+  persistent incrementality, repair, ranking, and general review remain open.
+  Separate bounded Review v1 is described below; Impact itself emits no review
+  sections. Its
   exact `1b3731a` full matrix is hosted green in [run 31408654657 attempt
   2](https://github.com/wavect/semaprax/actions/runs/31408654657/attempts/2),
   including [Ubuntu job
   93530141404](https://github.com/wavect/semaprax/actions/runs/31408654657/job/93530141404).
+- Bounded Semantic Review v1 locally emits one fixed-section read-only report
+  for Patch v1/v2 through complete nontruncated Impact-v1 evidence and for the
+  sole canonical Patch v3 through the shared identity rebase. Its Patch
+  v1/v2/v3 report KATs, local 10/10 integration, 4/4 hook/limit units, library
+  408/408, full preservation, and security gates are green; hosted evidence is
+  pending. Context, target/test execution, proof/verifier/provenance, approval,
+  A0 authority, and repository/multi-file review remain open.
 - Offline context economics with exact goldens and conservative quality routing.
 - Effects, module permits, and contract guards.
 - Machine-readable diagnostics.
@@ -555,6 +564,17 @@ all 12 jobs passed. The breaking operation rebases Graph-v10 identity content
 and may rebase identity-bearing CleanupPlan content, but widens no schema or
 semantic shape and changes no backend/runtime semantics. General, typed-hole,
 ranked/composed, repository-wide, and multi-file repair remains roadmap work.
+
+Bounded Semantic Review v1 now classifies every admitted Patch v1/v2/v3
+operation across exact `behavior`, `api_identity`, `security_authority`,
+`memory_ownership`, `target_artifact`, `migration`, and `unsafe` wire sections.
+V1/v2 embed complete nontruncated Impact v1 evidence; v3 embeds the shared
+identity rebase without widening Impact. Local 10/10 integration, 4/4
+hook/limit units, library 408/408, full preservation, and security gates are
+green; hosted evidence is pending. This advances deterministic review only:
+general repository review, authenticated provenance, proof-carrying patches,
+public verification, target execution, human approval workflows, multi-file
+transactions, and the 0.2 CLI exit criterion remain open.
 
 - Versioned language, graph, package, and component specifications.
 - Reproducible native and component builds on supported targets.

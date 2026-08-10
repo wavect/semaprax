@@ -113,7 +113,7 @@ fn preview_with_hook(
             "semantic impact preflight source differs from its authenticated snapshot",
         )]);
     }
-    let report = build_report(&preflight, options)?;
+    let report = build_report(&preflight, options)?.json;
     hook(
         PreviewPhase::BeforeFinalCheck,
         &canonical_source_path,
@@ -154,10 +154,20 @@ struct BuiltChanges {
     seeds: BTreeMap<DeclarationId, BTreeSet<usize>>,
 }
 
+struct BuiltImpactReport {
+    json: String,
+    truncated: bool,
+    omitted: usize,
+    deferred: usize,
+    frontier_empty: bool,
+    used_depth: usize,
+    used_nodes: usize,
+}
+
 fn build_report(
     preflight: &PatchPreflight,
     options: &SemanticImpactOptions,
-) -> Result<String, Vec<Diagnostic>> {
+) -> Result<BuiltImpactReport, Vec<Diagnostic>> {
     let before = hir::resolve(preflight.before())?;
     let candidate = hir::resolve(preflight.candidate())?;
     hir::validate(&before).map_err(|error| vec![error])?;
@@ -192,6 +202,45 @@ fn build_report(
         all_affected: &all_affected,
         within_depth: &within_depth,
         node_selected,
+    })
+}
+
+pub(crate) struct CompleteImpactEvidence {
+    report: String,
+    used_depth: usize,
+    used_nodes: usize,
+}
+
+impl CompleteImpactEvidence {
+    pub(crate) fn report(&self) -> &str {
+        &self.report
+    }
+
+    pub(crate) fn used_depth(&self) -> usize {
+        self.used_depth
+    }
+
+    pub(crate) fn used_nodes(&self) -> usize {
+        self.used_nodes
+    }
+}
+
+pub(crate) fn complete_review_evidence(
+    preflight: &PatchPreflight,
+) -> Result<CompleteImpactEvidence, Vec<Diagnostic>> {
+    let options =
+        SemanticImpactOptions::new(1024, 16 * 1024 * 1024, 1024).map_err(|error| vec![error])?;
+    let report = build_report(preflight, &options)?;
+    if report.truncated || report.omitted != 0 || report.deferred != 0 || !report.frontier_empty {
+        return Err(vec![Diagnostic::io(
+            "SPX-G120",
+            "semantic review requires complete, nontruncated Semantic Impact v1 evidence",
+        )]);
+    }
+    Ok(CompleteImpactEvidence {
+        report: report.json,
+        used_depth: report.used_depth,
+        used_nodes: report.used_nodes,
     })
 }
 
@@ -578,7 +627,7 @@ fn truncation_reasons(inputs: &RenderInputs<'_>, selected: usize) -> String {
     reasons.join(",")
 }
 
-fn render_with_budget(inputs: RenderInputs<'_>) -> Result<String, Vec<Diagnostic>> {
+fn render_with_budget(inputs: RenderInputs<'_>) -> Result<BuiltImpactReport, Vec<Diagnostic>> {
     let affected = inputs
         .within_depth
         .iter()
@@ -695,7 +744,15 @@ fn render_with_budget(inputs: RenderInputs<'_>) -> Result<String, Vec<Diagnostic
             "semantic impact incremental byte accounting disagrees with final rendering",
         )]);
     }
-    Ok(output)
+    Ok(BuiltImpactReport {
+        json: output,
+        truncated: state.truncated,
+        omitted: state.omitted,
+        deferred: state.deferred,
+        frontier_empty: state.frontier_json.is_empty(),
+        used_depth: state.max_depth_used,
+        used_nodes: state.selected,
+    })
 }
 
 fn render_report(inputs: &RenderInputs<'_>, state: &RenderState, used_bytes: usize) -> String {

@@ -185,6 +185,11 @@ not transitive impact. Their closed `identity_origin` enum is `explicit` or
 complete admitted internal identity rebase; they are not a general proof-
 carrying-patch or semantic-review artifact.
 
+The separate [Semantic Review v1](SEMANTIC-REVIEW-V1.md) layer may embed this
+exact shared identity-rebase object as evidence for the sole canonical Patch
+v3. Diagnostic Repair itself does not emit review sections, and the reuse does
+not turn the derived digest into a proof artifact or widen repair/Impact scope.
+
 ## Work and output limits
 
 The contract has four hard limits:
@@ -346,11 +351,11 @@ does not widen any scope or nonclaim below.
 
 ## Explicit nonclaims
 
-This milestone does not implement typed holes; repairs for other diagnostics,
+Diagnostic Repair itself does not implement typed holes; repairs for other diagnostics,
 declaration kinds, members, cases, types, resources, aggregates, generics,
 effects, contracts, interfaces, imports, permits, or capabilities; repair
-ranking, composition, automatic application, proof-carrying patches, semantic
-review, repository-wide or multi-file repair; authenticated patch-file
+ranking, composition, automatic application, proof-carrying patches, review
+sections, repository-wide or multi-file repair; authenticated patch-file
 provenance; Graph or CleanupPlan schema/version or semantic-shape widening;
 Graph v11-v14 repair admission; or backend/runtime semantic change. The
 admitted Graph-v10 revision/identity/callee/derived-ID rebase, including any

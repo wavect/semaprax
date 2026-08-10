@@ -242,6 +242,7 @@ pub(crate) struct PatchPreflight {
     operations: Vec<PreflightOperation>,
     changes: Vec<PreflightChange>,
     planned_edits: Vec<PlannedEdit>,
+    identity_rebase: Option<crate::repair::IdentityRebaseEvidence>,
 }
 
 impl PatchPreflight {
@@ -291,6 +292,10 @@ impl PatchPreflight {
 
     pub(crate) fn planned_edits(&self) -> &[PlannedEdit] {
         &self.planned_edits
+    }
+
+    pub(crate) fn identity_rebase(&self) -> Option<&crate::repair::IdentityRebaseEvidence> {
+        self.identity_rebase.as_ref()
     }
 }
 
@@ -815,6 +820,22 @@ pub(crate) fn preflight_impact_owned(
     preflight_parsed_owned(source, patch_source, diagnostic_path, patch)
 }
 
+pub(crate) fn preflight_review_owned(
+    source: String,
+    patch_source: String,
+    diagnostic_path: PathBuf,
+    max_operations: usize,
+) -> Result<PatchPreflight, Vec<Diagnostic>> {
+    let patch = parse_patch(&patch_source)?;
+    if patch.operations.len() > max_operations {
+        return Err(vec![Diagnostic::io(
+            "SPX-G120",
+            format!("semantic review patch exceeds {max_operations} operations"),
+        )]);
+    }
+    preflight_parsed_owned(source, patch_source, diagnostic_path, patch)
+}
+
 fn preflight_parsed_owned(
     source: String,
     patch_source: String,
@@ -862,19 +883,22 @@ fn preflight_parsed_owned(
                 target_name: &assignment.name,
                 persistent_id: &assignment.to,
             })?;
+        let (candidate, canonical_candidate, candidate_revision, identity_rebase) =
+            candidate.into_parts();
         let operations = patch.operations.clone();
         return Ok(PatchPreflight {
             source,
             patch_source,
             patch,
             before,
-            candidate: candidate.candidate,
+            candidate,
             base_revision,
-            candidate_revision: candidate.candidate_revision,
-            canonical_candidate: candidate.canonical_candidate,
+            candidate_revision,
+            canonical_candidate,
             operations,
             changes: Vec::new(),
             planned_edits: Vec::new(),
+            identity_rebase: Some(identity_rebase),
         });
     }
     let before_effects = effect_set(&before);
@@ -1293,6 +1317,7 @@ fn preflight_parsed_owned(
         operations,
         changes,
         planned_edits: checked_planned_edits,
+        identity_rebase: None,
     })
 }
 

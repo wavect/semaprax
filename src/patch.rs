@@ -1170,9 +1170,7 @@ pub(crate) fn preflight_owned(
                 && edit.role == previous.role
                 && edit.change == previous.change
             {
-                previous
-                    .operation_indices
-                    .extend(edit.operation_indices.into_iter());
+                previous.operation_indices.extend(edit.operation_indices);
                 continue;
             }
         }

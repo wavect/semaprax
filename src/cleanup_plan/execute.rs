@@ -36,6 +36,13 @@ use super::{
 pub struct CleanupScenario {
     pub scenario_id: String,
     pub booleans: BTreeMap<ExpressionId, bool>,
+    /// Selected semantic case for each reached variant-match scrutinee.
+    ///
+    /// Case identities, rather than target tags, keep this oracle independent
+    /// of Native64/Wasm32 representation. The executor still checks that the
+    /// supplied case belongs to the scrutinee's resolved variant before
+    /// following any plan edge.
+    pub variant_cases: BTreeMap<ExpressionId, DeclarationId>,
     pub operations: BTreeMap<StatusSourceId, OperationOutcome>,
     /// A value for `CommitResult`; failure scenarios use `None`. `ReturnUnit`
     /// is reserved for a future source-level unit return type and is rejected
@@ -55,6 +62,7 @@ impl CleanupScenario {
         Self {
             scenario_id: scenario_id.into(),
             booleans: BTreeMap::new(),
+            variant_cases: BTreeMap::new(),
             operations: BTreeMap::new(),
             result,
             available_finalizer_imports: BTreeSet::new(),
@@ -73,8 +81,14 @@ pub enum CleanupExecutionError {
     FunctionNotFound(DeclarationId),
     UnsupportedResultType(String),
     MissingBooleanDecision(ExpressionId),
+    MissingVariantDecision(ExpressionId),
+    InvalidVariantDecision {
+        scrutinee: ExpressionId,
+        case: DeclarationId,
+    },
     MissingOperationOutcome(StatusSourceId),
     UnusedBooleanDecisions(Vec<ExpressionId>),
+    UnusedVariantDecisions(Vec<ExpressionId>),
     UnusedOperationOutcomes(Vec<StatusSourceId>),
     CycleDetected(BlockId),
     UnknownFinalizerBinding(DeclarationId),
@@ -99,6 +113,14 @@ impl fmt::Display for CleanupExecutionError {
                 formatter,
                 "cleanup scenario has no boolean decision for `{expression}`"
             ),
+            Self::MissingVariantDecision(scrutinee) => write!(
+                formatter,
+                "cleanup scenario has no variant decision for `{scrutinee}`"
+            ),
+            Self::InvalidVariantDecision { scrutinee, case } => write!(
+                formatter,
+                "cleanup scenario selects foreign variant case `{case}` for `{scrutinee}`"
+            ),
             Self::MissingOperationOutcome(source) => write!(
                 formatter,
                 "cleanup scenario has no operation outcome for `{}`",
@@ -107,6 +129,10 @@ impl fmt::Display for CleanupExecutionError {
             Self::UnusedBooleanDecisions(expressions) => write!(
                 formatter,
                 "cleanup scenario has unused boolean decisions: {expressions:?}"
+            ),
+            Self::UnusedVariantDecisions(expressions) => write!(
+                formatter,
+                "cleanup scenario has unused variant decisions: {expressions:?}"
             ),
             Self::UnusedOperationOutcomes(sources) => write!(
                 formatter,
@@ -196,10 +222,130 @@ fn validate_public_result_type(
         .map(|item| &item.kind)
     {
         Some(ResolvedTypeDeclarationKind::Resource { .. }) => Ok(()),
-        Some(ResolvedTypeDeclarationKind::Record { .. }) | None => Err(
-            CleanupExecutionError::UnsupportedResultType(function.return_type.identity_key()),
-        ),
+        Some(
+            ResolvedTypeDeclarationKind::Record { .. }
+            | ResolvedTypeDeclarationKind::Variant { .. },
+        )
+        | None => Err(CleanupExecutionError::UnsupportedResultType(
+            function.return_type.identity_key(),
+        )),
     }
+}
+
+fn collect_variant_domains(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+) -> Result<BTreeMap<ExpressionId, BTreeSet<DeclarationId>>, CleanupExecutionError> {
+    fn visit(
+        program: &ResolvedProgram,
+        expression: &hir::ResolvedExpr,
+        domains: &mut BTreeMap<ExpressionId, BTreeSet<DeclarationId>>,
+    ) -> Result<(), CleanupExecutionError> {
+        match &expression.kind {
+            hir::ResolvedExprKind::Int(_)
+            | hir::ResolvedExprKind::Bool(_)
+            | hir::ResolvedExprKind::Place(_) => {}
+            hir::ResolvedExprKind::Call { args, .. } => {
+                for argument in args {
+                    visit(program, argument, domains)?;
+                }
+            }
+            hir::ResolvedExprKind::Unary { value, .. }
+            | hir::ResolvedExprKind::Project { base: value, .. } => {
+                visit(program, value, domains)?;
+            }
+            hir::ResolvedExprKind::Binary { left, right, .. } => {
+                visit(program, left, domains)?;
+                visit(program, right, domains)?;
+            }
+            hir::ResolvedExprKind::Block { statements, tail } => {
+                for statement in statements {
+                    let hir::ResolvedStatement::Let { value, .. } = statement;
+                    visit(program, value, domains)?;
+                }
+                visit(program, tail, domains)?;
+            }
+            hir::ResolvedExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                visit(program, condition, domains)?;
+                visit(program, then_branch, domains)?;
+                visit(program, else_branch, domains)?;
+            }
+            hir::ResolvedExprKind::ConstructRecord { fields, .. }
+            | hir::ResolvedExprKind::ConstructVariant { fields, .. } => {
+                for field in fields {
+                    visit(program, &field.value, domains)?;
+                }
+            }
+            hir::ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+                visit(program, base, domains)?;
+                for field in fields {
+                    visit(program, &field.value, domains)?;
+                }
+            }
+            hir::ResolvedExprKind::Match { scrutinee, arms } => {
+                visit(program, scrutinee, domains)?;
+                let ResolvedType::Nominal {
+                    declaration,
+                    arguments,
+                } = &scrutinee.ty
+                else {
+                    return Err(invariant(format!(
+                        "match scrutinee `{}` is not a nominal variant",
+                        scrutinee.id
+                    )));
+                };
+                if !arguments.is_empty() {
+                    return Err(invariant(format!(
+                        "generic match scrutinee `{}` reached copy-variant executor",
+                        scrutinee.id
+                    )));
+                }
+                let cases = program
+                    .types
+                    .iter()
+                    .find(|item| item.id == *declaration)
+                    .and_then(|item| match &item.kind {
+                        ResolvedTypeDeclarationKind::Variant { cases } => Some(cases),
+                        ResolvedTypeDeclarationKind::Resource { .. }
+                        | ResolvedTypeDeclarationKind::Record { .. } => None,
+                    })
+                    .ok_or_else(|| {
+                        invariant(format!(
+                            "match scrutinee `{}` references a non-variant declaration",
+                            scrutinee.id
+                        ))
+                    })?;
+                let domain = cases
+                    .iter()
+                    .map(|case| case.id.clone())
+                    .collect::<BTreeSet<_>>();
+                if domain.is_empty() || domains.insert(scrutinee.id.clone(), domain).is_some() {
+                    return Err(invariant(format!(
+                        "match scrutinee `{}` has an invalid or duplicate case domain",
+                        scrutinee.id
+                    )));
+                }
+                for arm in arms {
+                    visit(program, &arm.value, domains)?;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    let mut domains = BTreeMap::new();
+    for expression in &function.requires {
+        visit(program, expression, &mut domains)?;
+    }
+    for expression in &function.ensures {
+        visit(program, expression, &mut domains)?;
+    }
+    visit(program, &function.body, &mut domains)?;
+    Ok(domains)
 }
 
 #[derive(Clone)]
@@ -238,6 +384,8 @@ struct Executor<'a> {
     lifecycle_bindings: BTreeMap<DeclarationId, Option<DeclarationId>>,
     live: BTreeSet<LivenessFlagId>,
     used_booleans: BTreeSet<ExpressionId>,
+    used_variant_cases: BTreeSet<ExpressionId>,
+    variant_domains: BTreeMap<ExpressionId, BTreeSet<DeclarationId>>,
     used_operations: BTreeSet<StatusSourceId>,
     visited: BTreeSet<BlockId>,
     selected: Option<SelectedFailure>,
@@ -266,6 +414,7 @@ impl<'a> Executor<'a> {
         // every imported lifecycle present anywhere in this function's plan,
         // even when the selected path would leave its guard false.
         let lifecycle_bindings = preflight_finalizer_bindings(program, function, &scenario)?;
+        let variant_domains = collect_variant_domains(program, function)?;
         let status_arena = StatusArena::new(
             StatusContextId::new(scenario.context_nonce),
             scenario.status_capacity,
@@ -278,6 +427,8 @@ impl<'a> Executor<'a> {
             lifecycle_bindings,
             live: BTreeSet::new(),
             used_booleans: BTreeSet::new(),
+            used_variant_cases: BTreeSet::new(),
+            variant_domains,
             used_operations: BTreeSet::new(),
             visited: BTreeSet::new(),
             selected: None,
@@ -566,6 +717,28 @@ impl<'a> Executor<'a> {
                 })?;
                 Ok(actual == expected)
             }
+            EdgeCondition::VariantCase {
+                scrutinee,
+                case,
+                matches,
+            } => {
+                self.used_variant_cases.insert(scrutinee.clone());
+                let actual = self.scenario.variant_cases.get(scrutinee).ok_or_else(|| {
+                    CleanupExecutionError::MissingVariantDecision(scrutinee.clone())
+                })?;
+                let domain = self.variant_domains.get(scrutinee).ok_or_else(|| {
+                    invariant(format!(
+                        "variant edge references non-match scrutinee `{scrutinee}`"
+                    ))
+                })?;
+                if !domain.contains(actual) {
+                    return Err(CleanupExecutionError::InvalidVariantDecision {
+                        scrutinee: scrutinee.clone(),
+                        case: actual.clone(),
+                    });
+                }
+                Ok((actual == case) == *matches)
+            }
             EdgeCondition::StatusZero(source) | EdgeCondition::StatusNonzero(source) => {
                 self.used_operations.insert(source.clone());
                 let outcome = self.scenario.operations.get(source).ok_or_else(|| {
@@ -575,7 +748,9 @@ impl<'a> Executor<'a> {
                 Ok(match condition {
                     EdgeCondition::StatusZero(_) => success,
                     EdgeCondition::StatusNonzero(_) => !success,
-                    EdgeCondition::Always | EdgeCondition::BooleanResult(_, _) => unreachable!(),
+                    EdgeCondition::Always
+                    | EdgeCondition::BooleanResult(_, _)
+                    | EdgeCondition::VariantCase { .. } => unreachable!(),
                 })
             }
         }
@@ -834,6 +1009,18 @@ impl<'a> Executor<'a> {
                 unused_booleans,
             ));
         }
+        let unused_variant_cases = self
+            .scenario
+            .variant_cases
+            .keys()
+            .filter(|expression| !self.used_variant_cases.contains(*expression))
+            .cloned()
+            .collect::<Vec<_>>();
+        if !unused_variant_cases.is_empty() {
+            return Err(CleanupExecutionError::UnusedVariantDecisions(
+                unused_variant_cases,
+            ));
+        }
         let unused_operations = self
             .scenario
             .operations
@@ -1021,6 +1208,24 @@ record Pair {
     second: Token,
 }
 
+@id("choice.type")
+variant Choice {
+    @id("choice.left")
+    Left {
+        @id("choice.left.value")
+        value: i64,
+    },
+
+    @id("choice.right")
+    Right {
+        @id("choice.right.flag")
+        flag: bool,
+    },
+
+    @id("choice.none")
+    None,
+}
+
 @id("file.type")
 resource File {
     @id("file.drop")
@@ -1051,6 +1256,15 @@ fn discard_token(value: own Token) -> i64 { 0 }
 
 @id("pair.identity")
 fn identity_pair(value: own Pair) -> Pair { value }
+
+@id("choice.checked")
+fn checked_choice(choice: Choice, zero: i64) -> i64 {
+    match choice {
+        Choice::Left { value } => value,
+        Choice::Right { flag } => if flag { 1 } else { 0 },
+        Choice::None {} => 1 / zero,
+    }
+}
 
 @id("file.discard")
 fn discard_file(value: own File) -> i64 uses { io.release } { 0 }
@@ -1098,6 +1312,130 @@ fn main() -> i64 { 0 }
                 ..
             }]
         ));
+    }
+
+    #[test]
+    fn copy_variant_decision_executes_selected_arm_once() {
+        let program = program();
+        let function = function(&program, "choice.checked");
+        let hir::ResolvedExprKind::Block { tail, .. } = &function.body.kind else {
+            panic!("choice fixture must have a block body")
+        };
+        let hir::ResolvedExprKind::Match { scrutinee, .. } = &tail.kind else {
+            panic!("choice fixture must end in a match")
+        };
+        let mut scenario = CleanupScenario::new("variant-left", Some(TraceResult::I64(42)));
+        scenario
+            .variant_cases
+            .insert(scrutinee.id.clone(), DeclarationId::new("choice.left"));
+        let trace = execute_for_conformance(&program, &function.id, scenario).unwrap();
+        assert_eq!(
+            trace.outcome,
+            TraceOutcome::Success {
+                result: TraceResult::I64(42),
+            }
+        );
+        assert_eq!(
+            trace
+                .events
+                .iter()
+                .filter(|event| matches!(event.event, TraceEventKind::ResultCommit { .. }))
+                .count(),
+            1
+        );
+    }
+
+    #[test]
+    fn copy_variant_decision_rejects_missing_foreign_and_unused_cases() {
+        let program = program();
+        let choice = function(&program, "choice.checked");
+        let hir::ResolvedExprKind::Block { tail, .. } = &choice.body.kind else {
+            panic!("choice fixture must have a block body")
+        };
+        let hir::ResolvedExprKind::Match { scrutinee, .. } = &tail.kind else {
+            panic!("choice fixture must end in a match")
+        };
+
+        assert!(matches!(
+            execute_for_conformance(
+                &program,
+                &choice.id,
+                CleanupScenario::new("missing-variant", Some(TraceResult::I64(0))),
+            ),
+            Err(CleanupExecutionError::MissingVariantDecision(expression))
+                if expression == scrutinee.id
+        ));
+
+        let mut foreign = CleanupScenario::new("foreign-variant", Some(TraceResult::I64(0)));
+        foreign
+            .variant_cases
+            .insert(scrutinee.id.clone(), DeclarationId::new("choice.foreign"));
+        assert!(matches!(
+            execute_for_conformance(&program, &choice.id, foreign),
+            Err(CleanupExecutionError::InvalidVariantDecision { scrutinee: expression, case })
+                if expression == scrutinee.id && case.as_str() == "choice.foreign"
+        ));
+
+        let scalar = function(&program, "scalar.success");
+        let mut unused = CleanupScenario::new("unused-variant", Some(TraceResult::I64(42)));
+        unused
+            .variant_cases
+            .insert(scrutinee.id.clone(), DeclarationId::new("choice.left"));
+        assert!(matches!(
+            execute_for_conformance(&program, &scalar.id, unused),
+            Err(CleanupExecutionError::UnusedVariantDecisions(expressions))
+                if expressions == vec![scrutinee.id.clone()]
+        ));
+    }
+
+    #[test]
+    fn failing_selected_variant_arm_keeps_the_result_poisoned() {
+        let program = program();
+        let function = function(&program, "choice.checked");
+        let hir::ResolvedExprKind::Block { tail, .. } = &function.body.kind else {
+            panic!("choice fixture must have a block body")
+        };
+        let hir::ResolvedExprKind::Match { scrutinee, .. } = &tail.kind else {
+            panic!("choice fixture must end in a match")
+        };
+        let source = function
+            .cleanup_plan
+            .status_sources
+            .iter()
+            .find(|source| {
+                matches!(
+                    source.producer,
+                    StatusProducer::CheckedArithmetic {
+                        operation: super::super::CheckedOperation::Div,
+                        ..
+                    }
+                )
+            })
+            .expect("None arm must contain checked division")
+            .id
+            .clone();
+        let mut scenario = CleanupScenario::new("variant-failure", None);
+        scenario
+            .variant_cases
+            .insert(scrutinee.id.clone(), DeclarationId::new("choice.none"));
+        scenario.operations.insert(
+            source.clone(),
+            OperationOutcome::Failure(NormalizedStatus::arithmetic(
+                super::super::StatusCase::DivisionByZero,
+            )),
+        );
+        let trace = execute_for_conformance(&program, &function.id, scenario).unwrap();
+        assert!(matches!(
+            trace.outcome,
+            TraceOutcome::Failure {
+                selected_source,
+                ..
+            } if selected_source == source
+        ));
+        assert!(!trace
+            .events
+            .iter()
+            .any(|event| matches!(event.event, TraceEventKind::ResultCommit { .. })));
     }
 
     #[test]

@@ -1,7 +1,7 @@
 //! Deterministic semantic graph serialization and bounded context queries.
 //!
 //! Human source supplies the revision. Resolved HIR supplies every semantic
-//! identity and fact in graph v7; spans and display names are metadata only.
+//! identity and fact in graph v8; spans and display names are metadata only.
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fmt::Write;
@@ -31,7 +31,7 @@ pub fn revision(program: &Program) -> String {
     format!("sha256:{:x}", hasher.finalize())
 }
 
-/// Resolve and serialize a parsed program as `semaprax.graph.v7`.
+/// Resolve and serialize a parsed program as `semaprax.graph.v8`.
 ///
 /// Resolution is deliberately part of this public boundary. Invalid source
 /// cannot be mistaken for a checked semantic graph by library callers.
@@ -110,7 +110,7 @@ impl AgentContextFilter {
         Self::ALL.into_iter().find(|filter| filter.name() == name)
     }
 
-    const fn supported_by_graph_v7(self) -> bool {
+    const fn supported_by_graph_v8(self) -> bool {
         matches!(
             self,
             Self::Contracts | Self::Ownership | Self::Effects | Self::Types
@@ -464,7 +464,7 @@ fn agent_function_json(
     if filters.contains(&AgentContextFilter::Types) {
         let mut selected_types = BTreeSet::new();
         collect_function_type_declarations(function, &mut selected_types);
-        close_record_type_declarations(program, &mut selected_types)?;
+        close_type_declarations(program, &mut selected_types)?;
         let selected_functions = BTreeSet::from([function.id.clone()]);
         write!(
             output,
@@ -504,7 +504,7 @@ fn agent_reference_index_json(
     }
     let mut declarations = BTreeSet::new();
     collect_function_type_declarations(function, &mut declarations);
-    close_record_type_declarations(program, &mut declarations)?;
+    close_type_declarations(program, &mut declarations)?;
     Ok(format!(
         "{{\"values\":[{}],\"declarations\":[{}]}}",
         values
@@ -552,6 +552,20 @@ fn collect_agent_contract_values(expression: &ResolvedExpr, values: &mut BTreeSe
         ResolvedExprKind::ConstructRecord { fields, .. } => {
             for initializer in fields {
                 collect_agent_contract_values(&initializer.value, values);
+            }
+        }
+        ResolvedExprKind::ConstructVariant { fields, .. } => {
+            for initializer in fields {
+                collect_agent_contract_values(&initializer.value, values);
+            }
+        }
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            collect_agent_contract_values(scrutinee, values);
+            for arm in arms {
+                if let crate::hir::ResolvedMatchPattern::Variant { fields, .. } = &arm.pattern {
+                    values.extend(fields.iter().map(|field| field.binding.id.clone()));
+                }
+                collect_agent_contract_values(&arm.value, values);
             }
         }
         ResolvedExprKind::UpdateRecord { base, fields, .. } => {
@@ -634,6 +648,38 @@ fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnos
                 .collect::<Result<Vec<_>, Diagnostic>>()?
                 .join(",")
         ),
+        ResolvedExprKind::ConstructVariant {
+            variant,
+            case,
+            fields,
+        } => format!(
+            "{{\"kind\":\"construct_variant\",\"variant\":{},\"case\":{},\"fields\":[{}]}}",
+            quote_json(variant.as_str()),
+            quote_json(case.as_str()),
+            fields
+                .iter()
+                .map(|initializer| {
+                    Ok(format!(
+                        "{{\"field\":{},\"value\":{}}}",
+                        quote_json(initializer.field.as_str()),
+                        agent_contract_expr_json(&initializer.value)?
+                    ))
+                })
+                .collect::<Result<Vec<_>, Diagnostic>>()?
+                .join(",")
+        ),
+        ResolvedExprKind::Match { scrutinee, arms } => format!(
+            "{{\"kind\":\"match\",\"scrutinee\":{},\"arms\":[{}]}}",
+            agent_contract_expr_json(scrutinee)?,
+            arms.iter()
+                .map(|arm| Ok(format!(
+                    "{{\"pattern\":{},\"value\":{}}}",
+                    match_pattern_json(&arm.pattern),
+                    agent_contract_expr_json(&arm.value)?
+                )))
+                .collect::<Result<Vec<_>, Diagnostic>>()?
+                .join(",")
+        ),
         ResolvedExprKind::UpdateRecord {
             base,
             record,
@@ -662,6 +708,64 @@ fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnos
     })
 }
 
+fn graph_match_pattern_json(pattern: &crate::hir::ResolvedMatchPattern, id: &str) -> String {
+    match pattern {
+        crate::hir::ResolvedMatchPattern::Wildcard => format!(
+            "{{\"id\":{},\"kind\":\"wildcard_pattern\"}}",
+            quote_json(id)
+        ),
+        crate::hir::ResolvedMatchPattern::Variant {
+            variant,
+            case,
+            fields,
+        } => format!(
+            "{{\"id\":{},\"kind\":\"variant_pattern\",\"variant\":{},\"case\":{},\"fields\":[{}]}}",
+            quote_json(id),
+            quote_json(variant.as_str()),
+            quote_json(case.as_str()),
+            fields
+                .iter()
+                .map(|field| format!(
+                    "{{\"field\":{},\"binding\":{{\"id\":{},\"name\":{},\"type_id\":{},\"ownership_mode\":{}}}}}",
+                    quote_json(field.field.as_str()),
+                    quote_json(field.binding.id.as_str()),
+                    quote_json(&field.binding.name),
+                    quote_json(&field.binding.ty.identity_key()),
+                    quote_json(ownership_text(field.binding.ownership))
+                ))
+                .collect::<Vec<_>>()
+                .join(",")
+        ),
+    }
+}
+
+fn match_pattern_json(pattern: &crate::hir::ResolvedMatchPattern) -> String {
+    match pattern {
+        crate::hir::ResolvedMatchPattern::Wildcard => "{\"kind\":\"wildcard\"}".to_owned(),
+        crate::hir::ResolvedMatchPattern::Variant {
+            variant,
+            case,
+            fields,
+        } => format!(
+            "{{\"kind\":\"variant\",\"variant\":{},\"case\":{},\"fields\":[{}]}}",
+            quote_json(variant.as_str()),
+            quote_json(case.as_str()),
+            fields
+                .iter()
+                .map(|field| format!(
+                    "{{\"field\":{},\"binding\":{{\"id\":{},\"name\":{},\"type_id\":{},\"ownership_mode\":{}}}}}",
+                    quote_json(field.field.as_str()),
+                    quote_json(field.binding.id.as_str()),
+                    quote_json(&field.binding.name),
+                    quote_json(&field.binding.ty.identity_key()),
+                    quote_json(ownership_text(field.binding.ownership))
+                ))
+                .collect::<Vec<_>>()
+                .join(",")
+        ),
+    }
+}
+
 fn agent_type_declarations_json(
     program: &ResolvedProgram,
     selected: &BTreeSet<DeclarationId>,
@@ -688,6 +792,27 @@ fn agent_type_declarations_json(
                         "{{\"id\":{},\"type_id\":{}}}",
                         quote_json(field.id.as_str()),
                         quote_json(&field.ty.identity_key())
+                    ))
+                    .collect::<Vec<_>>()
+                    .join(",")
+            )),
+            ResolvedTypeDeclarationKind::Variant { cases } => Ok(format!(
+                "{{\"id\":{},\"kind\":\"variant\",\"cases\":[{}]}}",
+                quote_json(declaration.id.as_str()),
+                cases
+                    .iter()
+                    .map(|case| format!(
+                        "{{\"id\":{},\"fields\":[{}]}}",
+                        quote_json(case.id.as_str()),
+                        case.fields
+                            .iter()
+                            .map(|field| format!(
+                                "{{\"id\":{},\"type_id\":{}}}",
+                                quote_json(field.id.as_str()),
+                                quote_json(&field.ty.identity_key())
+                            ))
+                            .collect::<Vec<_>>()
+                            .join(",")
                     ))
                     .collect::<Vec<_>>()
                     .join(",")
@@ -761,7 +886,7 @@ fn render_agent_context(
     let unavailable_count = options
         .filters
         .iter()
-        .filter(|filter| !filter.supported_by_graph_v7())
+        .filter(|filter| !filter.supported_by_graph_v8())
         .count();
     if unavailable_count != 0 {
         reasons.insert("unavailable_filters");
@@ -779,14 +904,14 @@ fn render_agent_context(
     let included = options
         .filters
         .iter()
-        .filter(|filter| filter.supported_by_graph_v7())
+        .filter(|filter| filter.supported_by_graph_v8())
         .map(|filter| quote_json(filter.name()))
         .collect::<Vec<_>>()
         .join(",");
     let unavailable = options
         .filters
         .iter()
-        .filter(|filter| !filter.supported_by_graph_v7())
+        .filter(|filter| !filter.supported_by_graph_v8())
         .map(|filter| quote_json(filter.name()))
         .collect::<Vec<_>>()
         .join(",");
@@ -827,7 +952,7 @@ fn render_agent_context(
         .unwrap_or(0);
     let render = |used_bytes: usize| {
         format!(
-            "{{\"schema\":\"semaprax.agent-context.v1\",\"source_graph_schema\":\"semaprax.graph.v7\",\"revision\":{},\"module\":{},\"root\":{},\"query\":{{\"depth\":{},\"max_bytes\":{},\"max_nodes\":{},\"filters\":[{}]}},\"filter_support\":{{\"included\":[{}],\"unavailable\":[{}]}},\"budget\":{{\"used_bytes\":{},\"used_nodes\":{},\"max_depth_used\":{}}},\"truncation\":{{\"truncated\":{},\"reasons\":[{}],\"omitted_known_nodes\":{},\"deferred_known_nodes\":{},\"omitted_fact_bytes\":{},\"unavailable_filter_count\":{}}},\"resume_contract\":{{\"depth\":\"query.depth\",\"max_nodes\":\"query.max_nodes\",\"filters\":\"query.filters\",\"max_bytes\":\"frontier.resume.min_bytes\"}},\"frontier\":[{}],\"facts\":[{}]}}",
+            "{{\"schema\":\"semaprax.agent-context.v1\",\"source_graph_schema\":\"semaprax.graph.v8\",\"revision\":{},\"module\":{},\"root\":{},\"query\":{{\"depth\":{},\"max_bytes\":{},\"max_nodes\":{},\"filters\":[{}]}},\"filter_support\":{{\"included\":[{}],\"unavailable\":[{}]}},\"budget\":{{\"used_bytes\":{},\"used_nodes\":{},\"max_depth_used\":{}}},\"truncation\":{{\"truncated\":{},\"reasons\":[{}],\"omitted_known_nodes\":{},\"deferred_known_nodes\":{},\"omitted_fact_bytes\":{},\"unavailable_filter_count\":{}}},\"resume_contract\":{{\"depth\":\"query.depth\",\"max_nodes\":\"query.max_nodes\",\"filters\":\"query.filters\",\"max_bytes\":\"frontier.resume.min_bytes\"}},\"frontier\":[{}],\"facts\":[{}]}}",
             quote_json(source_revision),
             quote_json(&program.module),
             quote_json(root.as_str()),
@@ -932,7 +1057,7 @@ fn context_hir_json(
             collect_function_type_declarations(function, &mut selected_types);
         }
     }
-    close_record_type_declarations(program, &mut selected_types)?;
+    close_type_declarations(program, &mut selected_types)?;
 
     let mut frontier = BTreeSet::new();
     for function in &program.functions {
@@ -987,7 +1112,7 @@ fn graph_json(
     };
 
     loop {
-        close_record_type_declarations(program, &mut selected_types)?;
+        close_type_declarations(program, &mut selected_types)?;
         let referenced_imports = program
             .types
             .iter()
@@ -998,6 +1123,7 @@ fn graph_json(
                     ResolvedResourceDropKind::Trivial => None,
                 },
                 ResolvedTypeDeclarationKind::Record { .. } => None,
+                ResolvedTypeDeclarationKind::Variant { .. } => None,
             })
             .collect::<BTreeSet<_>>();
         let mut changed = false;
@@ -1026,11 +1152,11 @@ fn graph_json(
             break;
         }
     }
-    close_record_type_declarations(program, &mut selected_types)?;
+    close_type_declarations(program, &mut selected_types)?;
     let mut output = String::new();
     write!(
         output,
-        "{{\"schema\":\"semaprax.graph.v7\",\"revision\":{},\"view\":{},\"identity\":{{\"declarations\":\"explicit-persistent-or-automatic-unstable\",\"values\":\"revision-scoped-structural\",\"expressions\":\"revision-scoped-structural\"}},\"module\":{},\"permits\":{},\"entrypoint\":{},\"type_facts\":[{}],\"nodes\":[",
+        "{{\"schema\":\"semaprax.graph.v8\",\"revision\":{},\"view\":{},\"identity\":{{\"declarations\":\"explicit-persistent-or-automatic-unstable\",\"values\":\"revision-scoped-structural\",\"expressions\":\"revision-scoped-structural\",\"match_arms\":\"revision-scoped-structural\",\"patterns\":\"revision-scoped-structural\"}},\"module\":{},\"permits\":{},\"entrypoint\":{},\"type_facts\":[{}],\"nodes\":[",
         quote_json(source_revision),
         view_json(view),
         quote_json(&program.module),
@@ -1136,6 +1262,85 @@ fn graph_json(
                         quote_json(&field.ty.identity_key())
                     )
                     .expect("writing to a string cannot fail");
+                }
+            }
+            ResolvedTypeDeclarationKind::Variant { cases } => {
+                write!(
+                    output,
+                    "{{\"id\":{},\"kind\":\"variant\",\"name\":{},\"identity_origin\":{},\"persistent\":{},\"type_id\":{},\"cases\":[{}]}}",
+                    quote_json(declaration.id.as_str()),
+                    quote_json(&declaration.name),
+                    quote_json(type_origin.text()),
+                    type_origin.is_persistent(),
+                    quote_json(&ty.identity_key()),
+                    cases
+                        .iter()
+                        .map(|case| quote_json(case.id.as_str()))
+                        .collect::<Vec<_>>()
+                        .join(",")
+                )
+                .expect("writing to a string cannot fail");
+                for (case_index, case) in cases.iter().enumerate() {
+                    let case_metadata = program
+                        .declarations
+                        .declaration(&case.id)
+                        .ok_or_else(|| graph_reference_error("variant case", &case.id))?;
+                    if case_metadata.kind != crate::hir::DeclarationKind::VariantCase
+                        || case_metadata.owner.as_ref() != Some(&declaration.id)
+                    {
+                        return Err(Diagnostic::io(
+                            "SPX-G003",
+                            format!(
+                                "case `{}` is not indexed under variant `{}`",
+                                case.id, declaration.id
+                            ),
+                        ));
+                    }
+                    output.push(',');
+                    write!(
+                        output,
+                        "{{\"id\":{},\"kind\":\"variant_case\",\"name\":{},\"identity_origin\":{},\"persistent\":{},\"owner\":{},\"index\":{case_index},\"fields\":[{}]}}",
+                        quote_json(case.id.as_str()),
+                        quote_json(&case.name),
+                        quote_json(case_metadata.identity_origin.text()),
+                        case_metadata.identity_origin.is_persistent(),
+                        quote_json(declaration.id.as_str()),
+                        case.fields
+                            .iter()
+                            .map(|field| quote_json(field.id.as_str()))
+                            .collect::<Vec<_>>()
+                            .join(",")
+                    )
+                    .expect("writing to a string cannot fail");
+                    for (field_index, field) in case.fields.iter().enumerate() {
+                        let field_metadata = program
+                            .declarations
+                            .declaration(&field.id)
+                            .ok_or_else(|| graph_reference_error("case field", &field.id))?;
+                        if field_metadata.kind != crate::hir::DeclarationKind::CaseField
+                            || field_metadata.owner.as_ref() != Some(&case.id)
+                        {
+                            return Err(Diagnostic::io(
+                                "SPX-G003",
+                                format!(
+                                    "field `{}` is not indexed under case `{}`",
+                                    field.id, case.id
+                                ),
+                            ));
+                        }
+                        output.push(',');
+                        write!(
+                            output,
+                            "{{\"id\":{},\"kind\":\"case_field\",\"name\":{},\"identity_origin\":{},\"persistent\":{},\"owner\":{},\"index\":{field_index},\"type_id\":{}}}",
+                            quote_json(field.id.as_str()),
+                            quote_json(&field.name),
+                            quote_json(field_metadata.identity_origin.text()),
+                            field_metadata.identity_origin.is_persistent(),
+                            quote_json(case.id.as_str()),
+                            quote_json(&field.ty.identity_key())
+                        )
+                        .expect("writing to a string cannot fail");
+                    }
                 }
             }
         }
@@ -1399,6 +1604,17 @@ fn visit_expr_calls(expression: &ResolvedExpr, visit: &mut impl FnMut(&Declarati
                 visit_expr_calls(&initializer.value, visit);
             }
         }
+        ResolvedExprKind::ConstructVariant { fields, .. } => {
+            for initializer in fields {
+                visit_expr_calls(&initializer.value, visit);
+            }
+        }
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            visit_expr_calls(scrutinee, visit);
+            for arm in arms {
+                visit_expr_calls(&arm.value, visit);
+            }
+        }
         ResolvedExprKind::UpdateRecord { base, fields, .. } => {
             visit_expr_calls(base, visit);
             for initializer in fields {
@@ -1468,6 +1684,29 @@ fn collect_expr_type_declarations(
                 collect_expr_type_declarations(&initializer.value, declarations);
             }
         }
+        ResolvedExprKind::ConstructVariant {
+            variant, fields, ..
+        } => {
+            declarations.insert(variant.clone());
+            for initializer in fields {
+                collect_expr_type_declarations(&initializer.value, declarations);
+            }
+        }
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            collect_expr_type_declarations(scrutinee, declarations);
+            for arm in arms {
+                if let crate::hir::ResolvedMatchPattern::Variant {
+                    variant, fields, ..
+                } = &arm.pattern
+                {
+                    declarations.insert(variant.clone());
+                    for field in fields {
+                        collect_nominal_declarations(&field.binding.ty, declarations);
+                    }
+                }
+                collect_expr_type_declarations(&arm.value, declarations);
+            }
+        }
         ResolvedExprKind::UpdateRecord {
             base,
             record,
@@ -1498,7 +1737,7 @@ fn collect_nominal_declarations(ty: &ResolvedType, declarations: &mut BTreeSet<D
     }
 }
 
-fn close_record_type_declarations(
+fn close_type_declarations(
     program: &ResolvedProgram,
     declarations: &mut BTreeSet<DeclarationId>,
 ) -> Result<(), Diagnostic> {
@@ -1513,14 +1752,20 @@ fn close_record_type_declarations(
             .get(&id)
             .copied()
             .ok_or_else(|| graph_reference_error("type declaration", &id))?;
-        if let ResolvedTypeDeclarationKind::Record { fields } = &declaration.kind {
-            for field in fields {
-                let mut referenced = BTreeSet::new();
-                collect_nominal_declarations(&field.ty, &mut referenced);
-                for referenced_id in referenced {
-                    if declarations.insert(referenced_id.clone()) {
-                        queue.push_back(referenced_id);
-                    }
+        let fields = match &declaration.kind {
+            ResolvedTypeDeclarationKind::Record { fields } => fields.iter().collect::<Vec<_>>(),
+            ResolvedTypeDeclarationKind::Variant { cases } => cases
+                .iter()
+                .flat_map(|case| &case.fields)
+                .collect::<Vec<_>>(),
+            ResolvedTypeDeclarationKind::Resource { .. } => Vec::new(),
+        };
+        for field in fields {
+            let mut referenced = BTreeSet::new();
+            collect_nominal_declarations(&field.ty, &mut referenced);
+            for referenced_id in referenced {
+                if declarations.insert(referenced_id.clone()) {
+                    queue.push_back(referenced_id);
                 }
             }
         }
@@ -1597,6 +1842,44 @@ fn expr_json(program: &ResolvedProgram, expression: &ResolvedExpr) -> Result<Str
                         "{{\"field\":{},\"value\":{}}}",
                         quote_json(initializer.field.as_str()),
                         expr_json(program, &initializer.value)?
+                    ))
+                })
+                .collect::<Result<Vec<_>, Diagnostic>>()?
+                .join(",")
+        ),
+        ResolvedExprKind::ConstructVariant {
+            variant,
+            case,
+            fields,
+        } => format!(
+            "{{{header},\"kind\":\"construct_variant\",\"variant\":{},\"case\":{},\"fields\":[{}]}}",
+            quote_json(variant.as_str()),
+            quote_json(case.as_str()),
+            fields
+                .iter()
+                .map(|initializer| {
+                    Ok(format!(
+                        "{{\"field\":{},\"value\":{}}}",
+                        quote_json(initializer.field.as_str()),
+                        expr_json(program, &initializer.value)?
+                    ))
+                })
+                .collect::<Result<Vec<_>, Diagnostic>>()?
+                .join(",")
+        ),
+        ResolvedExprKind::Match { scrutinee, arms } => format!(
+            "{{{header},\"kind\":\"match\",\"exhaustive\":true,\"scrutinee\":{},\"arms\":[{}]}}",
+            expr_json(program, scrutinee)?,
+            arms.iter()
+                .enumerate()
+                .map(|(index, arm)| {
+                    let arm_id = format!("{}:match-arm:{index}", expression.id.as_str());
+                    let pattern_id = format!("{arm_id}:pattern");
+                    Ok(format!(
+                        "{{\"id\":{},\"kind\":\"match_arm\",\"pattern\":{},\"value\":{}}}",
+                        quote_json(&arm_id),
+                        graph_match_pattern_json(&arm.pattern, &pattern_id),
+                        expr_json(program, &arm.value)?
                     ))
                 })
                 .collect::<Result<Vec<_>, Diagnostic>>()?
@@ -1696,6 +1979,13 @@ fn type_facts_array(
                 collect_type(&field.ty, &mut types);
             }
         }
+        if let ResolvedTypeDeclarationKind::Variant { cases } = &declaration.kind {
+            for case in cases {
+                for field in &case.fields {
+                    collect_type(&field.ty, &mut types);
+                }
+            }
+        }
     }
     for function in &program.functions {
         if !selected_functions.contains(&function.id) {
@@ -1761,6 +2051,22 @@ fn collect_expr_types(expression: &ResolvedExpr, types: &mut BTreeMap<String, Re
         ResolvedExprKind::ConstructRecord { fields, .. } => {
             for initializer in fields {
                 collect_expr_types(&initializer.value, types);
+            }
+        }
+        ResolvedExprKind::ConstructVariant { fields, .. } => {
+            for initializer in fields {
+                collect_expr_types(&initializer.value, types);
+            }
+        }
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            collect_expr_types(scrutinee, types);
+            for arm in arms {
+                if let crate::hir::ResolvedMatchPattern::Variant { fields, .. } = &arm.pattern {
+                    for field in fields {
+                        collect_type(&field.binding.ty, types);
+                    }
+                }
+                collect_expr_types(&arm.value, types);
             }
         }
         ResolvedExprKind::UpdateRecord { base, fields, .. } => {

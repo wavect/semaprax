@@ -1012,6 +1012,9 @@ fn require_trivial_resource(
         ResolvedTypeDeclarationKind::Record { .. } => {
             Err(value_error("record type is outside the staged corpus"))
         }
+        ResolvedTypeDeclarationKind::Variant { .. } => {
+            Err(value_error("variant type is outside the staged corpus"))
+        }
     }
 }
 

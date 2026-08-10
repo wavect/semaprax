@@ -99,6 +99,19 @@ pub enum TypeDeclarationKind {
     Record {
         fields: Vec<FieldDeclaration>,
     },
+    Variant {
+        cases: Vec<VariantCaseDeclaration>,
+    },
+}
+
+#[derive(Clone, Debug)]
+pub struct VariantCaseDeclaration {
+    pub stable_id: String,
+    pub explicit_id: bool,
+    pub name: String,
+    pub name_span: Span,
+    pub fields: Vec<FieldDeclaration>,
+    pub span: Span,
 }
 
 #[derive(Clone, Debug)]
@@ -216,6 +229,17 @@ pub enum ExprKind {
         type_span: Span,
         fields: Vec<FieldInitializer>,
     },
+    ConstructVariant {
+        type_name: String,
+        type_span: Span,
+        case_name: String,
+        case_span: Span,
+        fields: Vec<FieldInitializer>,
+    },
+    Match {
+        scrutinee: Box<Expr>,
+        arms: Vec<MatchArm>,
+    },
     UpdateRecord {
         base: Box<Expr>,
         fields: Vec<FieldInitializer>,
@@ -225,6 +249,45 @@ pub enum ExprKind {
         field: String,
         field_span: Span,
     },
+}
+
+#[derive(Clone, Debug)]
+pub struct MatchArm {
+    pub pattern: MatchPattern,
+    pub value: Expr,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug)]
+pub enum MatchPattern {
+    Variant {
+        type_name: String,
+        type_span: Span,
+        case_name: String,
+        case_span: Span,
+        fields: Vec<MatchPatternField>,
+        span: Span,
+    },
+    Wildcard {
+        span: Span,
+    },
+}
+
+impl MatchPattern {
+    pub fn span(&self) -> Span {
+        match self {
+            Self::Variant { span, .. } | Self::Wildcard { span } => *span,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct MatchPatternField {
+    pub name: String,
+    pub name_span: Span,
+    pub binding: String,
+    pub binding_span: Span,
+    pub span: Span,
 }
 
 #[derive(Clone, Debug)]
@@ -333,6 +396,17 @@ impl Expr {
             ExprKind::ConstructRecord { fields, .. } => {
                 for field in fields {
                     field.value.visit_calls(visit);
+                }
+            }
+            ExprKind::ConstructVariant { fields, .. } => {
+                for field in fields {
+                    field.value.visit_calls(visit);
+                }
+            }
+            ExprKind::Match { scrutinee, arms } => {
+                scrutinee.visit_calls(visit);
+                for arm in arms {
+                    arm.value.visit_calls(visit);
                 }
             }
             ExprKind::UpdateRecord { base, fields } => {

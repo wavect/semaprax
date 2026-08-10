@@ -1,8 +1,8 @@
 use std::fmt::Write;
 
 use crate::ast::{
-    Expr, ExprKind, ImportFailure, Program, ResourceLifecycleKind, Statement, TypeDeclarationKind,
-    UnaryOp,
+    Expr, ExprKind, ImportFailure, MatchPattern, Program, ResourceLifecycleKind, Statement,
+    TypeDeclarationKind, UnaryOp,
 };
 
 pub fn canonical(program: &Program) -> String {
@@ -47,6 +47,33 @@ pub fn canonical(program: &Program) -> String {
                             .unwrap();
                     }
                     writeln!(output, "    {}: {},", field.name, field.ty).unwrap();
+                }
+                writeln!(output, "}}").unwrap();
+            }
+            TypeDeclarationKind::Variant { cases } => {
+                writeln!(output, "variant {} {{", declaration.name).unwrap();
+                for case in cases {
+                    if case.explicit_id {
+                        writeln!(output, "    @id(\"{}\")", escape_string(&case.stable_id))
+                            .unwrap();
+                    }
+                    if case.fields.is_empty() {
+                        writeln!(output, "    {},", case.name).unwrap();
+                        continue;
+                    }
+                    writeln!(output, "    {} {{", case.name).unwrap();
+                    for field in &case.fields {
+                        if field.explicit_id {
+                            writeln!(
+                                output,
+                                "        @id(\"{}\")",
+                                escape_string(&field.stable_id)
+                            )
+                            .unwrap();
+                        }
+                        writeln!(output, "        {}: {},", field.name, field.ty).unwrap();
+                    }
+                    writeln!(output, "    }},").unwrap();
                 }
                 writeln!(output, "}}").unwrap();
             }
@@ -218,6 +245,37 @@ pub fn expr(value: &Expr, parent_precedence: u8) -> String {
                 )
             }
         }
+        ExprKind::ConstructVariant {
+            type_name,
+            case_name,
+            fields,
+            ..
+        } => {
+            if fields.is_empty() {
+                format!("{type_name}::{case_name} {{}}")
+            } else {
+                format!(
+                    "{type_name}::{case_name} {{ {} }}",
+                    fields
+                        .iter()
+                        .map(|field| format!("{}: {}", field.name, expr(&field.value, 0)))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            }
+        }
+        ExprKind::Match { scrutinee, arms } => format!(
+            "match {} {{ {} }}",
+            record_literal_delimited_expr(scrutinee),
+            arms.iter()
+                .map(|arm| format!(
+                    "{} => {},",
+                    match_pattern(&arm.pattern),
+                    expr(&arm.value, 0)
+                ))
+                .collect::<Vec<_>>()
+                .join(" ")
+        ),
         ExprKind::UpdateRecord { base, fields } => {
             let base = match &base.kind {
                 ExprKind::Binary { .. } | ExprKind::If { .. } | ExprKind::Block { .. } => {
@@ -259,9 +317,38 @@ fn record_literal_delimited_expr(value: &Expr) -> String {
     }
 }
 
+fn match_pattern(pattern: &MatchPattern) -> String {
+    match pattern {
+        MatchPattern::Wildcard { .. } => "_".to_owned(),
+        MatchPattern::Variant {
+            type_name,
+            case_name,
+            fields,
+            ..
+        } => {
+            let fields = fields
+                .iter()
+                .map(|field| {
+                    if field.name == field.binding {
+                        field.name.clone()
+                    } else {
+                        format!("{}: {}", field.name, field.binding)
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join(", ");
+            if fields.is_empty() {
+                format!("{type_name}::{case_name} {{}}")
+            } else {
+                format!("{type_name}::{case_name} {{ {fields} }}")
+            }
+        }
+    }
+}
+
 fn contains_record_construction(value: &Expr) -> bool {
     match &value.kind {
-        ExprKind::ConstructRecord { .. } => true,
+        ExprKind::ConstructRecord { .. } | ExprKind::ConstructVariant { .. } => true,
         ExprKind::Call { args, .. } => args.iter().any(contains_record_construction),
         ExprKind::Unary { value, .. } | ExprKind::Project { base: value, .. } => {
             contains_record_construction(value)
@@ -288,6 +375,12 @@ fn contains_record_construction(value: &Expr) -> bool {
             contains_record_construction(condition)
                 || contains_record_construction(then_branch)
                 || contains_record_construction(else_branch)
+        }
+        ExprKind::Match { scrutinee, arms } => {
+            contains_record_construction(scrutinee)
+                || arms
+                    .iter()
+                    .any(|arm| contains_record_construction(&arm.value))
         }
         ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Var(_) => false,
     }

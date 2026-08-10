@@ -219,6 +219,10 @@ fn native_ui_source_locks_reject_hostile_gate_removal() {
             "$false",
         ),
         windows.replace("$exports.FunctionCount -ne 0", "$false"),
+        windows.replace(
+            "--coff-exports --coff-resources $ui",
+            "--coff-exports --coff-resources -- $ui",
+        ),
         windows.replace("BCryptHashData(hash, buffer, bytes_read, 0)", "RemovedHashData(hash, buffer, bytes_read, 0)"),
         windows.replace("!semaprax_verify_engine_digest(engine_path, &locked_engine)", "FALSE"),
         windows.replace("[System.IO.File]::WriteAllText(", "Removed-ManifestWrite("),
@@ -357,6 +361,7 @@ fn windows_contract(source: &str) -> Result<(), String> {
             "$image.Subsystem -ne 2",
             "Get-PeImports",
             "Get-PeExports",
+            "$llvmReadObjPath --file-headers --coff-imports --coff-exports --coff-resources $ui",
             "$expectedImports = @('bcrypt.dll', 'kernel32.dll', 'ole32.dll', 'oleacc.dll', 'oleaut32.dll', 'shell32.dll', 'user32.dll')",
             "Assert-SequenceEqual 'private Windows native UI imports' $imports $expectedImports",
             "$exportDirectory.Rva -ne 0 -or $exportDirectory.Size -ne 0",

@@ -421,6 +421,7 @@ pub(super) fn plan(program: &ResolvedProgram) -> Result<Vec<OwnedPlan>, Diagnost
                 Some((declaration.id.clone(), (drop.id.clone(), &drop.kind)))
             }
             ResolvedTypeDeclarationKind::Record { .. } => None,
+            ResolvedTypeDeclarationKind::Variant { .. } => None,
         })
         .collect::<BTreeMap<_, _>>();
     if resources.is_empty() {

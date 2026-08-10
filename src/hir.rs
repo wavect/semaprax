@@ -9,8 +9,8 @@ use std::fmt;
 use std::fmt::Write as _;
 
 use crate::ast::{
-    BinaryOp, Expr, ExprKind, ImportFailure, ParamMode, Program, ResourceLifecycleKind, Span,
-    Statement, Type, TypeDeclarationKind, UnaryOp,
+    BinaryOp, Expr, ExprKind, ImportFailure, MatchPattern, ParamMode, Program,
+    ResourceLifecycleKind, Span, Statement, Type, TypeDeclarationKind, UnaryOp,
 };
 use crate::cleanup::CleanupInventory;
 use crate::cleanup_plan::CleanupPlan;
@@ -98,6 +98,9 @@ pub enum DeclarationKind {
     ResourceDrop,
     Record,
     Field,
+    Variant,
+    VariantCase,
+    CaseField,
     Interface,
     Import,
     Function,
@@ -142,6 +145,9 @@ pub struct DeclarationIndex {
     functions_by_name: BTreeMap<String, DeclarationId>,
     fields_by_owner_name: BTreeMap<(DeclarationId, String), DeclarationId>,
     record_fields: BTreeMap<DeclarationId, Vec<ResolvedFieldDeclaration>>,
+    cases_by_owner_name: BTreeMap<(DeclarationId, String), DeclarationId>,
+    variant_cases: BTreeMap<DeclarationId, Vec<ResolvedVariantCaseDeclaration>>,
+    case_fields: BTreeMap<DeclarationId, Vec<ResolvedFieldDeclaration>>,
     imports_by_key: BTreeMap<String, DeclarationId>,
     type_facts_by_id: BTreeMap<String, TypeFacts>,
 }
@@ -166,6 +172,22 @@ impl DeclarationIndex {
 
     pub fn record_fields(&self, owner: &DeclarationId) -> Option<&[ResolvedFieldDeclaration]> {
         self.record_fields.get(owner).map(Vec::as_slice)
+    }
+
+    pub fn case_id(&self, owner: &DeclarationId, name: &str) -> Option<&DeclarationId> {
+        self.cases_by_owner_name
+            .get(&(owner.clone(), name.to_owned()))
+    }
+
+    pub fn variant_cases(
+        &self,
+        owner: &DeclarationId,
+    ) -> Option<&[ResolvedVariantCaseDeclaration]> {
+        self.variant_cases.get(owner).map(Vec::as_slice)
+    }
+
+    pub fn case_fields(&self, case: &DeclarationId) -> Option<&[ResolvedFieldDeclaration]> {
+        self.case_fields.get(case).map(Vec::as_slice)
     }
 
     pub fn import_id(&self, key: &str) -> Option<&DeclarationId> {
@@ -264,9 +286,57 @@ impl DeclarationIndex {
                             ),
                         })
                     }
+                    DeclarationKind::Variant => {
+                        if !arguments.is_empty() || !visiting.insert(declaration.id.clone()) {
+                            return None;
+                        }
+                        let cases = self.variant_cases.get(&declaration.id)?;
+                        let mut encoded_cases = String::new();
+                        for case in cases {
+                            write!(
+                                encoded_cases,
+                                "{}:{}:{}:",
+                                case.id.as_str().len(),
+                                case.id,
+                                case.fields.len()
+                            )
+                            .expect("writing to a string cannot fail");
+                            for field in &case.fields {
+                                let facts = self.compute_type_facts(&field.ty, visiting, memo)?;
+                                if !facts.copy || facts.contains_resource || facts.needs_drop {
+                                    return None;
+                                }
+                                write!(
+                                    encoded_cases,
+                                    "{}:{}:{}:{}",
+                                    field.id.as_str().len(),
+                                    field.id,
+                                    facts.layout_key.len(),
+                                    facts.layout_key
+                                )
+                                .expect("writing to a string cannot fail");
+                            }
+                        }
+                        visiting.remove(&declaration.id);
+                        Some(TypeFacts {
+                            copy: true,
+                            contains_resource: false,
+                            sized: true,
+                            needs_drop: false,
+                            layout_key: format!(
+                                "variant:{}:{}:{}:{}",
+                                declaration.id.as_str().len(),
+                                declaration.id,
+                                cases.len(),
+                                encoded_cases
+                            ),
+                        })
+                    }
                     DeclarationKind::Resource
                     | DeclarationKind::ResourceDrop
                     | DeclarationKind::Field
+                    | DeclarationKind::VariantCase
+                    | DeclarationKind::CaseField
                     | DeclarationKind::Interface
                     | DeclarationKind::Import
                     | DeclarationKind::Function => None,
@@ -312,6 +382,7 @@ impl DeclarationIndex {
             let kind = match declaration.kind {
                 TypeDeclarationKind::Resource { .. } => DeclarationKind::Resource,
                 TypeDeclarationKind::Record { .. } => DeclarationKind::Record,
+                TypeDeclarationKind::Variant { .. } => DeclarationKind::Variant,
             };
             index.insert_top_level(
                 declaration.name.clone(),
@@ -419,6 +490,84 @@ impl DeclarationIndex {
             }
             index.record_fields.insert(owner, resolved_fields);
         }
+        for declaration in &program.types {
+            let TypeDeclarationKind::Variant { cases } = &declaration.kind else {
+                continue;
+            };
+            let owner = DeclarationId::new(declaration.stable_id.clone());
+            let mut resolved_cases = Vec::with_capacity(cases.len());
+            for (case_ordinal, case) in cases.iter().enumerate() {
+                let case_id = DeclarationId::new(case.stable_id.clone());
+                let case_index = u32::try_from(case_ordinal).map_err(|_| {
+                    Diagnostic::error(
+                        "SPX-H006",
+                        format!("variant `{}` has too many cases", declaration.name),
+                        declaration.span,
+                    )
+                    .at_path(&program.path)
+                })?;
+                index.insert_case(
+                    owner.clone(),
+                    case.name.clone(),
+                    case_id.clone(),
+                    if case.explicit_id {
+                        IdentityOrigin::Explicit
+                    } else {
+                        IdentityOrigin::Automatic
+                    },
+                );
+                let mut resolved_fields = Vec::with_capacity(case.fields.len());
+                for (field_ordinal, field) in case.fields.iter().enumerate() {
+                    let ty = index.resolve_source_type(&field.ty).ok_or_else(|| {
+                        Diagnostic::error(
+                            "SPX-H001",
+                            format!("unresolved case field type `{}`", field.ty),
+                            field.span,
+                        )
+                        .at_path(&program.path)
+                    })?;
+                    let field_index = u32::try_from(field_ordinal).map_err(|_| {
+                        Diagnostic::error(
+                            "SPX-H006",
+                            format!(
+                                "variant case `{}::{}` has too many fields",
+                                declaration.name, case.name
+                            ),
+                            case.span,
+                        )
+                        .at_path(&program.path)
+                    })?;
+                    let resolved = ResolvedFieldDeclaration {
+                        id: DeclarationId::new(field.stable_id.clone()),
+                        name: field.name.clone(),
+                        index: field_index,
+                        ty,
+                        span: field.span,
+                    };
+                    index.insert_case_field(
+                        case_id.clone(),
+                        resolved.clone(),
+                        if field.explicit_id {
+                            IdentityOrigin::Explicit
+                        } else {
+                            IdentityOrigin::Automatic
+                        },
+                    );
+                    resolved_fields.push(resolved);
+                }
+                index
+                    .case_fields
+                    .insert(case_id.clone(), resolved_fields.clone());
+                resolved_cases.push(ResolvedVariantCaseDeclaration {
+                    id: case_id,
+                    name: case.name.clone(),
+                    index: case_index,
+                    fields: resolved_fields,
+                    span: case.span,
+                });
+            }
+            index.variant_cases.insert(owner, resolved_cases);
+        }
         if !index.populate_type_facts() {
             return Err(Diagnostic::error(
                 "SPX-T217",
@@ -438,14 +587,18 @@ impl DeclarationIndex {
         identity_origin: IdentityOrigin,
     ) {
         match kind {
-            DeclarationKind::Resource | DeclarationKind::Record => {
+            DeclarationKind::Resource | DeclarationKind::Record | DeclarationKind::Variant => {
                 self.types_by_name.insert(name.clone(), id.clone());
             }
             DeclarationKind::Function => {
                 self.functions_by_name.insert(name.clone(), id.clone());
             }
             DeclarationKind::Interface => {}
-            DeclarationKind::ResourceDrop | DeclarationKind::Import | DeclarationKind::Field => {
+            DeclarationKind::ResourceDrop
+            | DeclarationKind::Import
+            | DeclarationKind::Field
+            | DeclarationKind::VariantCase
+            | DeclarationKind::CaseField => {
                 unreachable!("owned declarations use owner-scoped insertion")
             }
         }
@@ -495,6 +648,47 @@ impl DeclarationIndex {
                 id: field.id,
                 name: field.name,
                 kind: DeclarationKind::Field,
+                identity_origin,
+                owner: Some(owner),
+            },
+        );
+    }
+
+    fn insert_case(
+        &mut self,
+        owner: DeclarationId,
+        name: String,
+        id: DeclarationId,
+        identity_origin: IdentityOrigin,
+    ) {
+        self.cases_by_owner_name
+            .insert((owner.clone(), name.clone()), id.clone());
+        self.declarations.insert(
+            id.clone(),
+            Declaration {
+                id,
+                name,
+                kind: DeclarationKind::VariantCase,
+                identity_origin,
+                owner: Some(owner),
+            },
+        );
+    }
+
+    fn insert_case_field(
+        &mut self,
+        owner: DeclarationId,
+        field: ResolvedFieldDeclaration,
+        identity_origin: IdentityOrigin,
+    ) {
+        self.fields_by_owner_name
+            .insert((owner.clone(), field.name.clone()), field.id.clone());
+        self.declarations.insert(
+            field.id.clone(),
+            Declaration {
+                id: field.id,
+                name: field.name,
+                kind: DeclarationKind::CaseField,
                 identity_origin,
                 owner: Some(owner),
             },
@@ -628,6 +822,18 @@ pub enum ResolvedTypeDeclarationKind {
     Record {
         fields: Vec<ResolvedFieldDeclaration>,
     },
+    Variant {
+        cases: Vec<ResolvedVariantCaseDeclaration>,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResolvedVariantCaseDeclaration {
+    pub id: DeclarationId,
+    pub name: String,
+    pub index: u32,
+    pub fields: Vec<ResolvedFieldDeclaration>,
+    pub span: Span,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -782,6 +988,15 @@ pub enum ResolvedExprKind {
         record: DeclarationId,
         fields: Vec<ResolvedFieldInitializer>,
     },
+    ConstructVariant {
+        variant: DeclarationId,
+        case: DeclarationId,
+        fields: Vec<ResolvedFieldInitializer>,
+    },
+    Match {
+        scrutinee: Box<ResolvedExpr>,
+        arms: Vec<ResolvedMatchArm>,
+    },
     UpdateRecord {
         base: Box<ResolvedExpr>,
         record: DeclarationId,
@@ -791,6 +1006,29 @@ pub enum ResolvedExprKind {
         base: Box<ResolvedExpr>,
         field: DeclarationId,
     },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResolvedMatchArm {
+    pub pattern: ResolvedMatchPattern,
+    pub value: ResolvedExpr,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ResolvedMatchPattern {
+    Variant {
+        variant: DeclarationId,
+        case: DeclarationId,
+        fields: Vec<ResolvedMatchPatternField>,
+    },
+    Wildcard,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResolvedMatchPatternField {
+    pub field: DeclarationId,
+    pub binding: ResolvedBinding,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -1125,10 +1363,13 @@ impl<'a> HirValidator<'a> {
         }
         let mut resource_drop_ids = BTreeSet::new();
         let mut field_ids = BTreeSet::new();
+        let mut variant_case_ids = BTreeSet::new();
+        let mut case_field_ids = BTreeSet::new();
         for declaration in &self.program.types {
             let expected_kind = match &declaration.kind {
                 ResolvedTypeDeclarationKind::Resource { .. } => DeclarationKind::Resource,
                 ResolvedTypeDeclarationKind::Record { .. } => DeclarationKind::Record,
+                ResolvedTypeDeclarationKind::Variant { .. } => DeclarationKind::Variant,
             };
             match self.program.declarations.declaration(&declaration.id) {
                 Some(item)
@@ -1256,10 +1497,129 @@ impl<'a> HirValidator<'a> {
                     )));
                 }
             }
+            if let ResolvedTypeDeclarationKind::Variant { cases } = &declaration.kind {
+                if cases.is_empty() {
+                    return Err(hir_error(format!(
+                        "variant `{}` has no cases",
+                        declaration.id
+                    )));
+                }
+                let indexed = self
+                    .program
+                    .declarations
+                    .variant_cases(&declaration.id)
+                    .ok_or_else(|| {
+                        hir_error(format!(
+                            "variant `{}` has no indexed case sequence",
+                            declaration.id
+                        ))
+                    })?;
+                if indexed.len() != cases.len() {
+                    return Err(hir_error(format!(
+                        "variant `{}` case sequence disagrees with its declaration index",
+                        declaration.id
+                    )));
+                }
+                for (case_position, (case, indexed_case)) in cases.iter().zip(indexed).enumerate() {
+                    if !variant_case_ids.insert(case.id.clone())
+                        || case.id != indexed_case.id
+                        || case.name != indexed_case.name
+                        || usize::try_from(case.index) != Ok(case_position)
+                        || case.index != indexed_case.index
+                    {
+                        return Err(hir_error(format!(
+                            "case {case_position} of variant `{}` disagrees with its declaration index",
+                            declaration.id
+                        )));
+                    }
+                    match self.program.declarations.declaration(&case.id) {
+                        Some(item)
+                            if item.kind == DeclarationKind::VariantCase
+                                && item.name == case.name
+                                && item.owner.as_ref() == Some(&declaration.id)
+                                && self
+                                    .program
+                                    .declarations
+                                    .case_id(&declaration.id, &case.name)
+                                    == Some(&case.id) => {}
+                        _ => {
+                            return Err(hir_error(format!(
+                                "case `{}` is not indexed under variant `{}`",
+                                case.id, declaration.id
+                            )));
+                        }
+                    }
+                    let indexed_fields = self
+                        .program
+                        .declarations
+                        .case_fields(&case.id)
+                        .ok_or_else(|| {
+                            hir_error(format!("case `{}` has no indexed field sequence", case.id))
+                        })?;
+                    if indexed_fields.len() != case.fields.len() {
+                        return Err(hir_error(format!(
+                            "case `{}` field sequence disagrees with its declaration index",
+                            case.id
+                        )));
+                    }
+                    for (field_position, (field, indexed_field)) in
+                        case.fields.iter().zip(indexed_fields).enumerate()
+                    {
+                        if !case_field_ids.insert(field.id.clone())
+                            || field.id != indexed_field.id
+                            || field.name != indexed_field.name
+                            || usize::try_from(field.index) != Ok(field_position)
+                            || field.index != indexed_field.index
+                            || field.ty != indexed_field.ty
+                            || !matches!(field.ty, ResolvedType::I64 | ResolvedType::Bool)
+                        {
+                            return Err(hir_error(format!(
+                                "field {field_position} of case `{}` is invalid or disagrees with its declaration index",
+                                case.id
+                            )));
+                        }
+                        match self.program.declarations.declaration(&field.id) {
+                            Some(item)
+                                if item.kind == DeclarationKind::CaseField
+                                    && item.name == field.name
+                                    && item.owner.as_ref() == Some(&case.id)
+                                    && self
+                                        .program
+                                        .declarations
+                                        .field_id(&case.id, &field.name)
+                                        == Some(&field.id) => {}
+                            _ => {
+                                return Err(hir_error(format!(
+                                    "field `{}` is not indexed under case `{}`",
+                                    field.id, case.id
+                                )));
+                            }
+                        }
+                        self.validate_type(&field.ty)?;
+                    }
+                }
+                let variant_ty = ResolvedType::Nominal {
+                    declaration: declaration.id.clone(),
+                    arguments: Vec::new(),
+                };
+                let cached = self.program.declarations.type_facts(&variant_ty);
+                let recomputed = self.program.declarations.recompute_type_facts(&variant_ty);
+                if cached.is_none()
+                    || cached != recomputed
+                    || cached.as_ref().is_none_or(|facts| {
+                        !facts.copy || facts.contains_resource || facts.needs_drop || !facts.sized
+                    })
+                {
+                    return Err(hir_error(format!(
+                        "variant `{}` has invalid or stale type facts",
+                        declaration.id
+                    )));
+                }
+            }
         }
         for declaration in self.program.declarations.declarations() {
             match declaration.kind {
-                DeclarationKind::Resource | DeclarationKind::Record
+                DeclarationKind::Resource | DeclarationKind::Record | DeclarationKind::Variant
                     if !type_ids.contains(&declaration.id) =>
                 {
                     return Err(hir_error(format!(
@@ -1270,6 +1630,18 @@ impl<'a> HirValidator<'a> {
                 DeclarationKind::Field if !field_ids.contains(&declaration.id) => {
                     return Err(hir_error(format!(
                         "field `{}` has no resolved field declaration",
+                        declaration.id
+                    )));
+                }
+                DeclarationKind::VariantCase if !variant_case_ids.contains(&declaration.id) => {
+                    return Err(hir_error(format!(
+                        "variant case `{}` has no resolved case declaration",
+                        declaration.id
+                    )));
+                }
+                DeclarationKind::CaseField if !case_field_ids.contains(&declaration.id) => {
+                    return Err(hir_error(format!(
+                        "case field `{}` has no resolved field declaration",
                         declaration.id
                     )));
                 }
@@ -1301,6 +1673,9 @@ impl<'a> HirValidator<'a> {
                 | DeclarationKind::ResourceDrop
                 | DeclarationKind::Record
                 | DeclarationKind::Field
+                | DeclarationKind::Variant
+                | DeclarationKind::VariantCase
+                | DeclarationKind::CaseField
                 | DeclarationKind::Interface
                 | DeclarationKind::Import
                 | DeclarationKind::Function => {}
@@ -1830,6 +2205,234 @@ impl<'a> HirValidator<'a> {
                 let ownership = self.expected_ownership(&ty, OwnershipMode::Own)?;
                 (ty, ownership)
             }
+            ResolvedExprKind::ConstructVariant {
+                variant,
+                case,
+                fields,
+            } => {
+                let declaration = self
+                    .program
+                    .declarations
+                    .declaration(variant)
+                    .ok_or_else(|| hir_error(format!("variant `{variant}` is not indexed")))?;
+                if declaration.kind != DeclarationKind::Variant {
+                    return Err(hir_error(format!(
+                        "constructor target `{variant}` is not a variant"
+                    )));
+                }
+                let declared_case = self
+                    .program
+                    .declarations
+                    .variant_cases(variant)
+                    .and_then(|cases| cases.iter().find(|item| item.id == *case))
+                    .ok_or_else(|| {
+                        hir_error(format!(
+                            "constructor for `{variant}` contains foreign case `{case}`"
+                        ))
+                    })?;
+                let expected_fields = declared_case.fields.clone();
+                let mut seen = BTreeSet::new();
+                for (index, initializer) in fields.iter().enumerate() {
+                    let field = expected_fields
+                        .iter()
+                        .find(|field| field.id == initializer.field)
+                        .ok_or_else(|| {
+                            hir_error(format!(
+                                "constructor for `{case}` contains foreign field `{}`",
+                                initializer.field
+                            ))
+                        })?;
+                    if !seen.insert(initializer.field.clone()) {
+                        return Err(hir_error(format!(
+                            "constructor for `{case}` repeats field `{}`",
+                            initializer.field
+                        )));
+                    }
+                    self.validate_expr(
+                        function,
+                        &initializer.value,
+                        scope,
+                        &format!("{path}.field.{index}.value"),
+                        allow_moves,
+                        allowed_effects,
+                    )?;
+                    self.require_type(&initializer.value.ty, &field.ty, "variant payload field")?;
+                    if initializer.value.ownership != OwnershipMode::Value {
+                        return Err(hir_error(format!(
+                            "variant payload field `{}` is not a Copy value",
+                            initializer.field
+                        )));
+                    }
+                }
+                if seen.len() != expected_fields.len() {
+                    return Err(hir_error(format!(
+                        "constructor for `{case}` is missing required payload fields"
+                    )));
+                }
+                (
+                    ResolvedType::Nominal {
+                        declaration: variant.clone(),
+                        arguments: Vec::new(),
+                    },
+                    OwnershipMode::Value,
+                )
+            }
+            ResolvedExprKind::Match { scrutinee, arms } => {
+                self.validate_expr(
+                    function,
+                    scrutinee,
+                    scope,
+                    &format!("{path}.scrutinee"),
+                    allow_moves,
+                    allowed_effects,
+                )?;
+                let ResolvedType::Nominal {
+                    declaration: variant,
+                    arguments,
+                } = &scrutinee.ty
+                else {
+                    return Err(hir_error("resolved match scrutinee is not nominal"));
+                };
+                if !arguments.is_empty()
+                    || scrutinee.ownership != OwnershipMode::Value
+                    || self
+                        .program
+                        .declarations
+                        .declaration(variant)
+                        .is_none_or(|item| item.kind != DeclarationKind::Variant)
+                {
+                    return Err(hir_error(
+                        "resolved match scrutinee is not a non-generic Copy variant",
+                    ));
+                }
+                let cases = self
+                    .program
+                    .declarations
+                    .variant_cases(variant)
+                    .ok_or_else(|| hir_error(format!("variant `{variant}` has no cases")))?
+                    .to_vec();
+                if arms.is_empty() {
+                    return Err(hir_error("resolved match has no arms"));
+                }
+                let outer_ids = scope.keys().cloned().collect::<Vec<_>>();
+                let mut arm_scopes = Vec::with_capacity(arms.len());
+                let mut covered = BTreeSet::new();
+                let mut wildcard_seen = false;
+                let mut result = None::<(ResolvedType, OwnershipMode)>;
+                for (arm_index, arm) in arms.iter().enumerate() {
+                    let mut arm_scope = scope.clone();
+                    match &arm.pattern {
+                        ResolvedMatchPattern::Wildcard => {
+                            if wildcard_seen || covered.len() == cases.len() {
+                                return Err(hir_error(
+                                    "resolved match has an unreachable wildcard",
+                                ));
+                            }
+                            wildcard_seen = true;
+                        }
+                        ResolvedMatchPattern::Variant {
+                            variant: pattern_variant,
+                            case,
+                            fields,
+                        } => {
+                            if wildcard_seen
+                                || pattern_variant != variant
+                                || !covered.insert(case.clone())
+                            {
+                                return Err(hir_error(
+                                    "resolved match has an unreachable or foreign case pattern",
+                                ));
+                            }
+                            let declared_case =
+                                cases.iter().find(|item| item.id == *case).ok_or_else(|| {
+                                    hir_error(format!(
+                                        "resolved match references foreign case `{case}`"
+                                    ))
+                                })?;
+                            let mut seen_fields = BTreeSet::new();
+                            for (field_index, pattern_field) in fields.iter().enumerate() {
+                                let declared_field = declared_case
+                                    .fields
+                                    .iter()
+                                    .find(|item| item.id == pattern_field.field)
+                                    .ok_or_else(|| {
+                                        hir_error(format!(
+                                            "resolved pattern contains foreign field `{}`",
+                                            pattern_field.field
+                                        ))
+                                    })?;
+                                if !seen_fields.insert(pattern_field.field.clone())
+                                    || pattern_field.binding.id
+                                        != ValueId::local(
+                                            function,
+                                            &format!(
+                                                "{path}.arm.{arm_index}.binding.{field_index}"
+                                            ),
+                                        )
+                                    || pattern_field.binding.ty != declared_field.ty
+                                    || pattern_field.binding.ownership != OwnershipMode::Value
+                                {
+                                    return Err(hir_error(
+                                        "resolved match pattern field or binding is invalid",
+                                    ));
+                                }
+                                self.insert_value(&pattern_field.binding.id)?;
+                                self.validate_type(&pattern_field.binding.ty)?;
+                                if arm_scope.contains_key(&pattern_field.binding.id) {
+                                    return Err(hir_error(
+                                        "resolved match pattern binding shadows an existing value",
+                                    ));
+                                }
+                                arm_scope.insert(
+                                    pattern_field.binding.id.clone(),
+                                    ValidationBinding {
+                                        ty: pattern_field.binding.ty.clone(),
+                                        ownership: OwnershipMode::Value,
+                                        availability: Availability::Available,
+                                        moved_places: BTreeMap::new(),
+                                        definitely_partial: BTreeSet::new(),
+                                    },
+                                );
+                            }
+                            if seen_fields.len() != declared_case.fields.len() {
+                                return Err(hir_error(
+                                    "resolved match pattern is missing payload fields",
+                                ));
+                            }
+                        }
+                    }
+                    self.validate_expr(
+                        function,
+                        &arm.value,
+                        &mut arm_scope,
+                        &format!("{path}.arm.{arm_index}.value"),
+                        allow_moves,
+                        allowed_effects,
+                    )?;
+                    if let Some((expected_ty, expected_ownership)) = &result {
+                        self.require_type(&arm.value.ty, expected_ty, "match arm")?;
+                        if arm.value.ownership != *expected_ownership {
+                            return Err(hir_error(
+                                "resolved match arms have inconsistent ownership",
+                            ));
+                        }
+                    } else {
+                        result = Some((arm.value.ty.clone(), arm.value.ownership));
+                    }
+                    arm_scopes.push(arm_scope);
+                }
+                if !wildcard_seen && covered.len() != cases.len() {
+                    return Err(hir_error("resolved match is not exhaustive"));
+                }
+                if let Some((first, rest)) = arm_scopes.split_first() {
+                    let mut joined = first.clone();
+                    for arm_scope in rest {
+                        Self::join_conditional(&mut joined, arm_scope, &outer_ids);
+                    }
+                    Self::merge_availability(scope, &joined, &outer_ids);
+                }
+                result.ok_or_else(|| hir_error("resolved match has no result"))?
+            }
             ResolvedExprKind::UpdateRecord {
                 base,
                 record,
@@ -2081,6 +2684,22 @@ impl<'a> HirValidator<'a> {
                 self.mark_value_sources_moved(else_branch, &mut else_scope)?;
                 Self::join_branches(scope, &then_scope, &else_scope, &ids);
             }
+            ResolvedExprKind::Match { arms, .. } => {
+                let ids = scope.keys().cloned().collect::<Vec<_>>();
+                let mut arm_scopes = Vec::with_capacity(arms.len());
+                for arm in arms {
+                    let mut arm_scope = scope.clone();
+                    self.mark_value_sources_moved(&arm.value, &mut arm_scope)?;
+                    arm_scopes.push(arm_scope);
+                }
+                if let Some((first, rest)) = arm_scopes.split_first() {
+                    let mut joined = first.clone();
+                    for arm_scope in rest {
+                        Self::join_conditional(&mut joined, arm_scope, &ids);
+                    }
+                    Self::merge_availability(scope, &joined, &ids);
+                }
+            }
             ResolvedExprKind::Project { base, .. } => {
                 self.mark_value_sources_moved(base, scope)?;
             }
@@ -2090,6 +2709,7 @@ impl<'a> HirValidator<'a> {
             | ResolvedExprKind::Unary { .. }
             | ResolvedExprKind::Binary { .. }
             | ResolvedExprKind::ConstructRecord { .. }
+            | ResolvedExprKind::ConstructVariant { .. }
             | ResolvedExprKind::UpdateRecord { .. } => {}
         }
         Ok(())
@@ -2244,7 +2864,9 @@ impl<'a> HirValidator<'a> {
                     .is_none_or(|item| {
                         !matches!(
                             item.kind,
-                            DeclarationKind::Resource | DeclarationKind::Record
+                            DeclarationKind::Resource
+                                | DeclarationKind::Record
+                                | DeclarationKind::Variant
                         )
                     })
                 {
@@ -2401,10 +3023,31 @@ fn validate_nul_free_identities(program: &ResolvedProgram) -> Result<(), Diagnos
         reject_nul_identity("resolved field owner lookup", owner.as_str())?;
         reject_nul_identity("resolved field lookup", field.as_str())?;
     }
+    for ((owner, _), case) in &program.declarations.cases_by_owner_name {
+        reject_nul_identity("resolved variant owner lookup", owner.as_str())?;
+        reject_nul_identity("resolved variant case lookup", case.as_str())?;
+    }
     for (owner, fields) in &program.declarations.record_fields {
         reject_nul_identity("resolved record-field owner", owner.as_str())?;
         for field in fields {
             reject_nul_identity("resolved field", field.id.as_str())?;
+            audit_resolved_type(&field.ty)?;
+        }
+    }
+    for (owner, cases) in &program.declarations.variant_cases {
+        reject_nul_identity("resolved variant-case owner", owner.as_str())?;
+        for case in cases {
+            reject_nul_identity("resolved variant case", case.id.as_str())?;
+            for field in &case.fields {
+                reject_nul_identity("resolved case field", field.id.as_str())?;
+                audit_resolved_type(&field.ty)?;
+            }
+        }
+    }
+    for (case, fields) in &program.declarations.case_fields {
+        reject_nul_identity("resolved case-field owner", case.as_str())?;
+        for field in fields {
+            reject_nul_identity("resolved case field", field.id.as_str())?;
             audit_resolved_type(&field.ty)?;
         }
     }
@@ -2417,6 +3060,7 @@ fn validate_nul_free_identities(program: &ResolvedProgram) -> Result<(), Diagnos
         let subject = match declaration.kind {
             ResolvedTypeDeclarationKind::Resource { .. } => "resolved resource",
             ResolvedTypeDeclarationKind::Record { .. } => "resolved record",
+            ResolvedTypeDeclarationKind::Variant { .. } => "resolved variant",
         };
         reject_nul_identity(subject, declaration.id.as_str())?;
         match &declaration.kind {
@@ -2431,6 +3075,15 @@ fn validate_nul_free_identities(program: &ResolvedProgram) -> Result<(), Diagnos
                 for field in fields {
                     reject_nul_identity("resolved field", field.id.as_str())?;
                     audit_resolved_type(&field.ty)?;
+                }
+            }
+            ResolvedTypeDeclarationKind::Variant { cases } => {
+                for case in cases {
+                    reject_nul_identity("resolved variant case", case.id.as_str())?;
+                    for field in &case.fields {
+                        reject_nul_identity("resolved case field", field.id.as_str())?;
+                        audit_resolved_type(&field.ty)?;
+                    }
                 }
             }
         }
@@ -2542,6 +3195,43 @@ fn audit_resolved_expression(root: &ResolvedExpr) -> Result<(), Diagnostic> {
                     reject_nul_identity("resolved record initializer field", field.field.as_str())?;
                     pending.push(&field.value);
                 }
+            }
+            ResolvedExprKind::ConstructVariant {
+                variant,
+                case,
+                fields,
+            } => {
+                reject_nul_identity("resolved variant constructor", variant.as_str())?;
+                reject_nul_identity("resolved variant case", case.as_str())?;
+                for field in fields.iter().rev() {
+                    reject_nul_identity("resolved case initializer field", field.field.as_str())?;
+                    pending.push(&field.value);
+                }
+            }
+            ResolvedExprKind::Match { scrutinee, arms } => {
+                for arm in arms.iter().rev() {
+                    match &arm.pattern {
+                        ResolvedMatchPattern::Wildcard => {}
+                        ResolvedMatchPattern::Variant {
+                            variant,
+                            case,
+                            fields,
+                        } => {
+                            reject_nul_identity("resolved match variant", variant.as_str())?;
+                            reject_nul_identity("resolved match case", case.as_str())?;
+                            for field in fields {
+                                reject_nul_identity("resolved match field", field.field.as_str())?;
+                                reject_nul_identity(
+                                    "resolved match binding",
+                                    field.binding.id.as_str(),
+                                )?;
+                                audit_resolved_type(&field.binding.ty)?;
+                            }
+                        }
+                    }
+                    pending.push(&arm.value);
+                }
+                pending.push(scrutinee);
             }
             ResolvedExprKind::UpdateRecord {
                 base,
@@ -2731,6 +3421,12 @@ fn audit_cleanup_plan(plan: &CleanupPlan) -> Result<(), Diagnostic> {
             crate::cleanup_plan::EdgeCondition::BooleanResult(expression, _) => {
                 reject_nul_identity("cleanup-plan boolean expression", expression.as_str())?;
             }
+            crate::cleanup_plan::EdgeCondition::VariantCase {
+                scrutinee, case, ..
+            } => {
+                reject_nul_identity("cleanup-plan match scrutinee", scrutinee.as_str())?;
+                reject_nul_identity("cleanup-plan variant case", case.as_str())?;
+            }
             crate::cleanup_plan::EdgeCondition::StatusZero(source)
             | crate::cleanup_plan::EdgeCondition::StatusNonzero(source) => {
                 audit_status_source(source)?;
@@ -2770,6 +3466,9 @@ fn declaration_identity_subject(kind: DeclarationKind) -> &'static str {
         DeclarationKind::ResourceDrop => "resolved resource lifecycle declaration",
         DeclarationKind::Record => "resolved record declaration",
         DeclarationKind::Field => "resolved field declaration",
+        DeclarationKind::Variant => "resolved variant declaration",
+        DeclarationKind::VariantCase => "resolved variant case declaration",
+        DeclarationKind::CaseField => "resolved case field declaration",
         DeclarationKind::Interface => "resolved interface declaration",
         DeclarationKind::Import => "resolved import declaration",
         DeclarationKind::Function => "resolved function declaration",
@@ -2830,6 +3529,13 @@ fn resolved_lifecycle_effects(
                     collect(program, &field.ty, visiting, effects)?;
                 }
             }
+            ResolvedTypeDeclarationKind::Variant { cases } => {
+                for case in cases {
+                    for field in &case.fields {
+                        collect(program, &field.ty, visiting, effects)?;
+                    }
+                }
+            }
         }
         visiting.remove(id);
         Ok(())
@@ -2875,6 +3581,17 @@ fn visit_resolved_calls(expression: &ResolvedExpr, visit: &mut impl FnMut(&Decla
         ResolvedExprKind::ConstructRecord { fields, .. } => {
             for field in fields {
                 visit_resolved_calls(&field.value, visit);
+            }
+        }
+        ResolvedExprKind::ConstructVariant { fields, .. } => {
+            for field in fields {
+                visit_resolved_calls(&field.value, visit);
+            }
+        }
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            visit_resolved_calls(scrutinee, visit);
+            for arm in arms {
+                visit_resolved_calls(&arm.value, visit);
             }
         }
         ResolvedExprKind::UpdateRecord { base, fields, .. } => {
@@ -2978,6 +3695,20 @@ impl Resolver<'_> {
                             })?
                             .to_vec();
                         ResolvedTypeDeclarationKind::Record { fields }
+                    }
+                    TypeDeclarationKind::Variant { .. } => {
+                        let cases = self
+                            .declarations
+                            .variant_cases(&id)
+                            .ok_or_else(|| {
+                                self.error(
+                                    "SPX-H006",
+                                    format!("variant `{id}` has no resolved cases"),
+                                    declaration.span,
+                                )
+                            })?
+                            .to_vec();
+                        ResolvedTypeDeclarationKind::Variant { cases }
                     }
                 };
                 Ok(ResolvedTypeDeclaration {
@@ -3460,6 +4191,213 @@ impl Resolver<'_> {
                     ResolvedExprKind::ConstructRecord {
                         record,
                         fields: resolved_fields,
+                    },
+                    ty,
+                    ownership,
+                )
+            }
+            ExprKind::ConstructVariant {
+                type_name,
+                case_name,
+                fields,
+                ..
+            } => {
+                let variant = self
+                    .declarations
+                    .type_id(type_name)
+                    .cloned()
+                    .ok_or_else(|| {
+                        self.error(
+                            "SPX-H001",
+                            format!("unresolved variant `{type_name}`"),
+                            expr.span,
+                        )
+                    })?;
+                if self
+                    .declarations
+                    .declaration(&variant)
+                    .is_none_or(|item| item.kind != DeclarationKind::Variant)
+                {
+                    return Err(self.error(
+                        "SPX-H001",
+                        format!("constructor target `{type_name}` is not a variant"),
+                        expr.span,
+                    ));
+                }
+                let case = self
+                    .declarations
+                    .case_id(&variant, case_name)
+                    .cloned()
+                    .ok_or_else(|| {
+                        self.error(
+                            "SPX-H001",
+                            format!("unresolved case `{type_name}::{case_name}`"),
+                            expr.span,
+                        )
+                    })?;
+                let mut resolved_fields = Vec::with_capacity(fields.len());
+                for (index, initializer) in fields.iter().enumerate() {
+                    let field = self
+                        .declarations
+                        .field_id(&case, &initializer.name)
+                        .cloned()
+                        .ok_or_else(|| {
+                            self.error(
+                                "SPX-H001",
+                                format!(
+                                    "unresolved payload field `{type_name}::{case_name}.{}`",
+                                    initializer.name
+                                ),
+                                initializer.name_span,
+                            )
+                        })?;
+                    let value = self.resolve_expr(
+                        function,
+                        &initializer.value,
+                        bindings,
+                        &format!("{path}.field.{index}.value"),
+                    )?;
+                    resolved_fields.push(ResolvedFieldInitializer { field, value });
+                }
+                let ty = ResolvedType::Nominal {
+                    declaration: variant.clone(),
+                    arguments: Vec::new(),
+                };
+                (
+                    ResolvedExprKind::ConstructVariant {
+                        variant,
+                        case,
+                        fields: resolved_fields,
+                    },
+                    ty,
+                    OwnershipMode::Value,
+                )
+            }
+            ExprKind::Match { scrutinee, arms } => {
+                let scrutinee =
+                    self.resolve_expr(function, scrutinee, bindings, &format!("{path}.scrutinee"))?;
+                let ResolvedType::Nominal {
+                    declaration: variant,
+                    arguments,
+                } = &scrutinee.ty
+                else {
+                    return Err(self.error(
+                        "SPX-H001",
+                        "cannot resolve match on a non-variant value",
+                        expr.span,
+                    ));
+                };
+                if !arguments.is_empty()
+                    || self
+                        .declarations
+                        .declaration(variant)
+                        .is_none_or(|item| item.kind != DeclarationKind::Variant)
+                {
+                    return Err(self.error(
+                        "SPX-H001",
+                        "cannot resolve match on a non-variant value",
+                        expr.span,
+                    ));
+                }
+                let variant = variant.clone();
+                let mut resolved_arms = Vec::with_capacity(arms.len());
+                for (arm_index, arm) in arms.iter().enumerate() {
+                    let mut arm_bindings = bindings.clone();
+                    let pattern = match &arm.pattern {
+                        MatchPattern::Wildcard { .. } => ResolvedMatchPattern::Wildcard,
+                        MatchPattern::Variant {
+                            case_name, fields, ..
+                        } => {
+                            let case = self
+                                .declarations
+                                .case_id(&variant, case_name)
+                                .cloned()
+                                .ok_or_else(|| {
+                                    self.error(
+                                        "SPX-H001",
+                                        format!("unresolved case `{variant}::{case_name}`"),
+                                        arm.span,
+                                    )
+                                })?;
+                            let mut resolved_fields = Vec::with_capacity(fields.len());
+                            for (field_index, field) in fields.iter().enumerate() {
+                                let field_id = self
+                                    .declarations
+                                    .field_id(&case, &field.name)
+                                    .cloned()
+                                    .ok_or_else(|| {
+                                        self.error(
+                                            "SPX-H001",
+                                            format!(
+                                                "unresolved pattern field `{case}.{}`",
+                                                field.name
+                                            ),
+                                            field.span,
+                                        )
+                                    })?;
+                                let field_ty = self
+                                    .declarations
+                                    .case_fields(&case)
+                                    .and_then(|items| items.iter().find(|item| item.id == field_id))
+                                    .map(|item| item.ty.clone())
+                                    .ok_or_else(|| {
+                                        self.error(
+                                            "SPX-H001",
+                                            format!("pattern field `{field_id}` has no type"),
+                                            field.span,
+                                        )
+                                    })?;
+                                let binding = ResolvedBinding {
+                                    id: ValueId::local(
+                                        function,
+                                        &format!("{path}.arm.{arm_index}.binding.{field_index}"),
+                                    ),
+                                    name: field.binding.clone(),
+                                    ownership: OwnershipMode::Value,
+                                    ty: field_ty.clone(),
+                                    span: field.binding_span,
+                                };
+                                arm_bindings.insert(
+                                    field.binding.clone(),
+                                    Binding {
+                                        id: binding.id.clone(),
+                                        ty: field_ty,
+                                        ownership: OwnershipMode::Value,
+                                    },
+                                );
+                                resolved_fields.push(ResolvedMatchPatternField {
+                                    field: field_id,
+                                    binding,
+                                });
+                            }
+                            ResolvedMatchPattern::Variant {
+                                variant: variant.clone(),
+                                case,
+                                fields: resolved_fields,
+                            }
+                        }
+                    };
+                    let value = self.resolve_expr(
+                        function,
+                        &arm.value,
+                        &arm_bindings,
+                        &format!("{path}.arm.{arm_index}.value"),
+                    )?;
+                    resolved_arms.push(ResolvedMatchArm {
+                        pattern,
+                        value,
+                        span: arm.span,
+                    });
+                }
+                let first = resolved_arms.first().ok_or_else(|| {
+                    self.error("SPX-H006", "resolved match has no arms", expr.span)
+                })?;
+                let ty = first.value.ty.clone();
+                let ownership = first.value.ownership;
+                (
+                    ResolvedExprKind::Match {
+                        scrutinee: Box::new(scrutinee),
+                        arms: resolved_arms,
                     },
                     ty,
                     ownership,

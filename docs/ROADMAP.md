@@ -20,7 +20,8 @@ Status: implemented in this repository.
 
 Status: in progress. Resource ownership boundaries and explicit
 lifecycle/interface contracts, lexical `let`, typed `if/else`, partial-place
-diagnostics, record construction/projection/immutable-update semantics, Graph v7, validated stable-ID HIR/type
+diagnostics, record construction/projection/immutable-update semantics, bounded
+copy variants/exhaustive matching, Graph v8, validated stable-ID HIR/type
 facts, a mandatory replay-validated cleanup plan, versioned normalized-status
 and semantic-event-dictionary types, native scalar status/out execution, a
 browser-loadable scalar Wasm backend, and one narrow direct-trivial-resource
@@ -31,8 +32,8 @@ match the reference outcome, complete trace, publication, and final logical
 liveness for all 14 cases at native O0/O2; the remaining public and language
 gates below are not.
 
-- Records, variants, `Option`, and `Result`.
-- Exhaustive pattern matching.
+- Complete record breadth plus generic/resource-bearing variants, `Option`, and `Result`.
+- Ownership-aware and nested pattern matching beyond the bounded exhaustive copy slice.
 - Generic functions with constraints.
 - Modules, imports, and multi-file graph commits.
 - First-class diagnostic repair operations.
@@ -48,7 +49,7 @@ trivial/imported lifecycle syntax, declaration-only interface/import contracts,
 source/HIR validation, and a target-neutral cleanup plan. Resolved functions
 carry typed blocks/edges/regions/exits, guarded liveness, atomic call commits,
 sticky status sources, cleanup order, and result publication; validation
-independently rebuilds the plan, and Graph v7 serializes it. Checked Native64
+independently rebuilds the plan, and Graph v8 serializes it. Checked Native64
 and Wasm32 layouts cover nested `i64`, `bool`, and direct trivial-resource
 fields; immutable-update cleanup consumes the base first, evaluates authored
 replacements left-to-right, transfers untouched fields, and cleans displaced
@@ -60,6 +61,19 @@ preservation, exact evaluation order, and Wasm shadow-stack re-entry. A private
 test-only resource-record scenario is projected from the same cleanup plan into
 C and real Wasm with an exact common finalization trace and zero liveness; it
 does not open public resource execution or any aggregate ABI.
+
+Executable Copy Variants + Match v1 adds non-generic nominal unit,
+direct-`i64`, and direct-`bool` cases with explicit construction and exhaustive
+copy-only `match` returning scalar `i64`/`bool`. The internal Native64/Wasm32
+layouts use checked declaration-order `u32` tags and deterministic maximum
+payloads. Native C11 O0/O2 and Node/Wasm evidence proves authored construction
+order, one scrutinee evaluation, selected-arm-only execution, complete poisoned
+outputs on failure, invalid-tag closure, equivalent results, and Wasm
+shadow-stack re-entry. CleanupPlan v1 branches on stable case IDs and Graph v8
+projects the declarations, construction, arms, patterns, and bindings. This
+does not open generics, resource- or record-bearing payloads, non-copy ownership
+modes, `Option`, `Result`, `?`, a stable public aggregate ABI,
+callable/component signatures, or public resource admission.
 
 Phase 3 now composes its formerly separate native evidence layers for the
 private direct-trivial slice. Feature-gated compiler emission produces the
@@ -84,7 +98,8 @@ The public build-only API/CLI now emits one selected direct-trivial callable-v2
 bundle with deterministic hashed metadata, but it exposes no execution,
 admission, or adoption surface.
 Imported lifecycles, calls, general aggregates, broader control flow,
-cross-realm/worker identity, stable public aggregate ABIs, variants, matching,
+cross-realm/worker identity, stable public aggregate ABIs, generic or
+resource-bearing variants, ownership-aware matching, `Option`, `Result`, `?`,
 concurrency, and fork recovery remain subsequent work.
 
 Callable v3 is a separate bounded physical tranche: graph-derived providers
@@ -107,8 +122,9 @@ private steps opens public admission or `SPX-B104`.
 A first private native-desktop application seam has a hosted-green macOS
 package/runtime path in [run 31338834586, job
 93309086230](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086230)
-and a Windows path pending after [failed run 31340893685, job
-93314358662](https://github.com/wavect/semaprax/actions/runs/31340893685/job/93314358662). It packages one
+and a Windows path pending after [failed run 31341453652, job
+93315816975](https://github.com/wavect/semaprax/actions/runs/31341453652/job/93315816975).
+The local `llvm-readobj` inspection fix is not hosted evidence. It packages one
 exact callable-v3 owned-identity provider with the existing loader and
 authenticated receipt ledger; the macOS process rotates ownership across two
 calls and verifies exact replay. This is headless packaging evidence,
@@ -124,8 +140,9 @@ termination before publishing success. AppKit bounds engine termination; Win32
 freezes its imported DLL set and rejects every export directory. Strict AppKit compilation and source
 locks are green; packaged macOS AppKit execution is green in [job
 93309086230](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086230),
-while Windows remains pending after [failed run 31340893685, job
-93314358662](https://github.com/wavect/semaprax/actions/runs/31340893685/job/93314358662). General SEMAPRAX UI/state syntax, SwiftUI/WinUI, broad
+while Windows remains pending after [failed run 31341453652, job
+93315816975](https://github.com/wavect/semaprax/actions/runs/31341453652/job/93315816975).
+The local `llvm-readobj` fix remains unhosted. General SEMAPRAX UI/state syntax, SwiftUI/WinUI, broad
 accessibility/lifecycle, signing, installers, and distribution remain later.
 
 The bounded Apple Swift/iOS application milestone is green in [run

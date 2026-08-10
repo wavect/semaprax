@@ -12,6 +12,7 @@ use crate::hir::{
     DeclarationId, ExpressionId, PlaceProjection, ResolvedExpr, ResolvedExprKind, ResolvedFunction,
     ResolvedProgram, ResolvedStatement, ResolvedType, ResolvedTypeDeclarationKind, ValueId,
 };
+use crate::variant_layout::{VariantLayout, VariantTarget};
 
 use super::{
     function_import, intern_type, section, write_bytes, write_i64, write_name, write_u32,
@@ -30,6 +31,7 @@ const STATUS_REM_OVERFLOW: i32 = 7;
 const STATUS_NEG_OVERFLOW: i32 = 8;
 const STATUS_REQUIRES_FALSE: i32 = 9;
 const STATUS_ENSURES_FALSE: i32 = 10;
+const STATUS_INTERNAL_INVALID_TAG: i32 = -1;
 
 #[derive(Clone, Copy)]
 struct Pointer {
@@ -115,9 +117,9 @@ impl FunctionPlan {
 
         let mut frame = FrameAllocator::default();
         let (result_stage_scalar, result_stage_aggregate) =
-            if is_record(program, &function.return_type)? {
-                let layout = layout(program, &function.return_type)?;
-                (None, Some(frame.allocate(layout.size, layout.align)?))
+            if is_aggregate(program, &function.return_type)? {
+                let (size, align) = aggregate_size_align(program, &function.return_type)?;
+                (None, Some(frame.allocate(size, align)?))
             } else {
                 (
                     Some(add_local(scalar_wasm_type(&function.return_type)?)?),
@@ -167,9 +169,9 @@ impl FunctionPlan {
         parameter_count: u32,
         frame: &mut FrameAllocator,
     ) -> Result<(), Diagnostic> {
-        if is_record(program, &expr.ty)? {
-            let record = layout(program, &expr.ty)?;
-            let offset = frame.allocate(record.size, record.align)?;
+        if is_aggregate(program, &expr.ty)? {
+            let (size, align) = aggregate_size_align(program, &expr.ty)?;
+            let offset = frame.allocate(size, align)?;
             if self
                 .aggregate_expressions
                 .insert(expr.id.clone(), offset)
@@ -217,9 +219,9 @@ impl FunctionPlan {
                 for statement in statements {
                     let ResolvedStatement::Let { binding, value, .. } = statement;
                     self.collect_expr(program, value, parameter_count, frame)?;
-                    if is_record(program, &binding.ty)? {
-                        let record = layout(program, &binding.ty)?;
-                        let offset = frame.allocate(record.size, record.align)?;
+                    if is_aggregate(program, &binding.ty)? {
+                        let (size, align) = aggregate_size_align(program, &binding.ty)?;
+                        let offset = frame.allocate(size, align)?;
                         if self
                             .aggregate_bindings
                             .insert(binding.id.clone(), offset)
@@ -259,6 +261,33 @@ impl FunctionPlan {
             ResolvedExprKind::ConstructRecord { fields, .. } => {
                 for field in fields {
                     self.collect_expr(program, &field.value, parameter_count, frame)?;
+                }
+            }
+            ResolvedExprKind::ConstructVariant { fields, .. } => {
+                for field in fields {
+                    self.collect_expr(program, &field.value, parameter_count, frame)?;
+                }
+            }
+            ResolvedExprKind::Match { scrutinee, arms } => {
+                self.collect_expr(program, scrutinee, parameter_count, frame)?;
+                for arm in arms {
+                    if let crate::hir::ResolvedMatchPattern::Variant { fields, .. } = &arm.pattern {
+                        for field in fields {
+                            let local = self
+                                .add_local(parameter_count, scalar_wasm_type(&field.binding.ty)?)?;
+                            if self
+                                .scalar_bindings
+                                .insert(field.binding.id.clone(), local)
+                                .is_some()
+                            {
+                                return Err(error(format!(
+                                    "duplicate match binding identity `{}`",
+                                    field.binding.id
+                                )));
+                            }
+                        }
+                    }
+                    self.collect_expr(program, &arm.value, parameter_count, frame)?;
                 }
             }
             ResolvedExprKind::Project { base, .. } => {
@@ -330,6 +359,35 @@ fn is_record(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagn
     ))
 }
 
+fn is_variant(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic> {
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = ty
+    else {
+        return Ok(false);
+    };
+    if !arguments.is_empty() {
+        return Err(error(format!(
+            "generic aggregate type `{}` is outside executable copy variants v1",
+            ty.identity_key()
+        )));
+    }
+    let item = program
+        .types
+        .iter()
+        .find(|item| item.id == *declaration)
+        .ok_or_else(|| error(format!("unknown aggregate type `{declaration}`")))?;
+    Ok(matches!(
+        item.kind,
+        ResolvedTypeDeclarationKind::Variant { .. }
+    ))
+}
+
+fn is_aggregate(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic> {
+    Ok(is_record(program, ty)? || is_variant(program, ty)?)
+}
+
 fn layout(program: &ResolvedProgram, ty: &ResolvedType) -> Result<AggregateLayout, Diagnostic> {
     let ResolvedType::Nominal { declaration, .. } = ty else {
         return Err(error(format!(
@@ -340,6 +398,39 @@ fn layout(program: &ResolvedProgram, ty: &ResolvedType) -> Result<AggregateLayou
     let layout = AggregateLayout::for_record(program, AggregateTarget::Wasm32, declaration)?;
     layout.validate(program)?;
     Ok(layout)
+}
+
+fn variant_layout(
+    program: &ResolvedProgram,
+    ty: &ResolvedType,
+) -> Result<VariantLayout, Diagnostic> {
+    let ResolvedType::Nominal { declaration, .. } = ty else {
+        return Err(error(format!(
+            "variant layout requested for scalar `{}`",
+            ty.identity_key()
+        )));
+    };
+    let layout = VariantLayout::for_variant(program, VariantTarget::Wasm32, declaration)?;
+    layout.validate(program)?;
+    Ok(layout)
+}
+
+fn aggregate_size_align(
+    program: &ResolvedProgram,
+    ty: &ResolvedType,
+) -> Result<(u32, u32), Diagnostic> {
+    if is_record(program, ty)? {
+        let layout = layout(program, ty)?;
+        Ok((layout.size, layout.align))
+    } else if is_variant(program, ty)? {
+        let layout = variant_layout(program, ty)?;
+        Ok((layout.size, layout.align))
+    } else {
+        Err(error(format!(
+            "aggregate layout requested for scalar `{}`",
+            ty.identity_key()
+        )))
+    }
 }
 
 fn scalar_wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
@@ -377,7 +468,11 @@ fn emit_profile(program: &ResolvedProgram, test_exports: bool) -> Result<Vec<u8>
         return Err(resource_gate());
     }
     for item in &program.types {
-        if matches!(item.kind, ResolvedTypeDeclarationKind::Record { .. }) {
+        if matches!(
+            item.kind,
+            ResolvedTypeDeclarationKind::Record { .. }
+                | ResolvedTypeDeclarationKind::Variant { .. }
+        ) {
             let ty = ResolvedType::Nominal {
                 declaration: item.id.clone(),
                 arguments: Vec::new(),
@@ -389,7 +484,11 @@ fn emit_profile(program: &ResolvedProgram, test_exports: bool) -> Result<Vec<u8>
             if facts.contains_resource {
                 return Err(resource_gate());
             }
-            layout(program, &ty)?;
+            if is_record(program, &ty)? {
+                layout(program, &ty)?;
+            } else {
+                variant_layout(program, &ty)?;
+            }
         }
     }
 
@@ -436,7 +535,7 @@ fn emit_profile(program: &ResolvedProgram, test_exports: bool) -> Result<Vec<u8>
     for function in &program.functions {
         let mut params = Vec::with_capacity(function.params.len() + 1);
         for param in &function.params {
-            params.push(if is_record(program, &param.ty)? {
+            params.push(if is_aggregate(program, &param.ty)? {
                 I32
             } else {
                 scalar_wasm_type(&param.ty)?
@@ -629,7 +728,7 @@ fn emit_function(
     let mut bindings = HashMap::new();
     for (index, param) in function.params.iter().enumerate() {
         let local = u32::try_from(index).map_err(|_| error("parameter index overflows u32"))?;
-        let value = if is_record(program, &param.ty)? {
+        let value = if is_aggregate(program, &param.ty)? {
             Value::Aggregate {
                 pointer: Pointer { local, offset: 0 },
                 ty: param.ty.clone(),
@@ -692,7 +791,7 @@ fn emit_function(
         emitter.output.push(0x45);
         emitter.fail_if(STATUS_ENSURES_FALSE);
     }
-    let caller = if is_record(program, &function.return_type)? {
+    let caller = if is_aggregate(program, &function.return_type)? {
         Value::Aggregate {
             pointer: Pointer {
                 local: plan.result_out,
@@ -782,7 +881,7 @@ impl Emitter<'_> {
                 for statement in statements {
                     let ResolvedStatement::Let { binding, value, .. } = statement;
                     let value = self.emit_expr(value)?;
-                    let destination = if is_record(self.program, &binding.ty)? {
+                    let destination = if is_aggregate(self.program, &binding.ty)? {
                         let offset = self
                             .plan
                             .aggregate_bindings
@@ -863,6 +962,95 @@ impl Emitter<'_> {
                 }
                 Ok(destination)
             }
+            ResolvedExprKind::ConstructVariant {
+                variant,
+                case,
+                fields,
+            } => {
+                let layout = variant_layout(self.program, &expr.ty)?;
+                if layout.variant != *variant {
+                    return Err(error(format!(
+                        "variant constructor `{variant}` has result type `{}`",
+                        expr.ty.identity_key()
+                    )));
+                }
+                let case_layout = layout
+                    .case(case)
+                    .cloned()
+                    .ok_or_else(|| error(format!("variant `{variant}` has no case `{case}`")))?;
+                let mut values = Vec::with_capacity(fields.len());
+                for initializer in fields {
+                    let field =
+                        case_layout
+                            .field(&initializer.field)
+                            .cloned()
+                            .ok_or_else(|| {
+                                error(format!(
+                                    "variant case `{case}` has no field `{}`",
+                                    initializer.field
+                                ))
+                            })?;
+                    let value = self.emit_expr(&initializer.value)?;
+                    require_type(value_type(&value), &field.ty, "variant field initializer")?;
+                    values.push((field, value));
+                }
+                let destination = Value::Aggregate {
+                    pointer: self.plan.expr_pointer(expr)?,
+                    ty: expr.ty.clone(),
+                };
+                let Value::Aggregate { pointer, .. } = &destination else {
+                    unreachable!();
+                };
+                self.emit_pointer(*pointer);
+                self.output.extend([0x41, 0x00, 0x41]);
+                write_i64(self.output, i64::from(layout.size));
+                self.output.extend([0xfc, 0x0b, 0x00]);
+                for (field, value) in values {
+                    let destination = value_at(
+                        Pointer {
+                            local: pointer.local,
+                            offset: pointer
+                                .offset
+                                .checked_add(layout.payload_offset)
+                                .and_then(|offset| offset.checked_add(field.offset))
+                                .ok_or_else(|| error("variant field pointer overflows u32"))?,
+                        },
+                        field.ty,
+                        self.program,
+                    )?;
+                    self.copy_value(&destination, &value, "variant field initializer")?;
+                }
+                self.emit_pointer(*pointer);
+                self.output.push(0x41);
+                write_i64(self.output, i64::from(case_layout.tag));
+                self.output.extend([0x36, 0x02, 0x00]);
+                Ok(destination)
+            }
+            ResolvedExprKind::Match { scrutinee, arms } => {
+                if is_aggregate(self.program, &expr.ty)? {
+                    return Err(error("copy variant match result must be i64 or bool"));
+                }
+                let scrutinee = self.emit_expr(scrutinee)?;
+                let Value::Aggregate { pointer, ty } = &scrutinee else {
+                    return Err(error("variant match scrutinee is not aggregate storage"));
+                };
+                let layout = variant_layout(self.program, ty)?;
+                self.emit_pointer(*pointer);
+                self.output.extend([0x28, 0x02, 0x00, 0x41]);
+                write_i64(
+                    self.output,
+                    i64::try_from(layout.cases.len())
+                        .map_err(|_| error("variant case count overflows i64"))?,
+                );
+                self.output.push(0x4f);
+                self.fail_if(STATUS_INTERNAL_INVALID_TAG);
+                let destination = Value::Scalar {
+                    local: self.plan.expr_scalar(expr)?,
+                    ty: expr.ty.clone(),
+                };
+                self.emit_match_arms(&destination, *pointer, &layout, arms, 0)?;
+                Ok(destination)
+            }
             ResolvedExprKind::Project { base, field } => {
                 let base = self.emit_expr(base)?;
                 let projected = self.project_value(&base, field)?;
@@ -916,7 +1104,7 @@ impl Emitter<'_> {
     }
 
     fn materialize(&mut self, expr: &ResolvedExpr, source: &Value) -> Result<Value, Diagnostic> {
-        let destination = if is_record(self.program, &expr.ty)? {
+        let destination = if is_aggregate(self.program, &expr.ty)? {
             Value::Aggregate {
                 pointer: self.plan.expr_pointer(expr)?,
                 ty: expr.ty.clone(),
@@ -929,6 +1117,103 @@ impl Emitter<'_> {
         };
         self.copy_value(&destination, source, "expression materialization")?;
         Ok(destination)
+    }
+
+    fn emit_match_arms(
+        &mut self,
+        destination: &Value,
+        scrutinee: Pointer,
+        layout: &VariantLayout,
+        arms: &[crate::hir::ResolvedMatchArm],
+        index: usize,
+    ) -> Result<(), Diagnostic> {
+        let Some(arm) = arms.get(index) else {
+            self.output.push(0x00);
+            return Ok(());
+        };
+        let saved = self.bindings.clone();
+        match &arm.pattern {
+            crate::hir::ResolvedMatchPattern::Variant {
+                variant,
+                case,
+                fields,
+            } => {
+                if *variant != layout.variant {
+                    return Err(error(format!(
+                        "match arm variant `{variant}` disagrees with `{}`",
+                        layout.variant
+                    )));
+                }
+                let case_layout = layout
+                    .case(case)
+                    .cloned()
+                    .ok_or_else(|| error(format!("match arm references unknown case `{case}`")))?;
+                self.emit_pointer(scrutinee);
+                self.output.extend([0x28, 0x02, 0x00, 0x41]);
+                write_i64(self.output, i64::from(case_layout.tag));
+                self.output.extend([0x46, 0x04, 0x40]);
+                self.control_depth += 1;
+                for pattern_field in fields {
+                    let field = case_layout
+                        .field(&pattern_field.field)
+                        .cloned()
+                        .ok_or_else(|| {
+                            error(format!(
+                                "match case `{case}` has no field `{}`",
+                                pattern_field.field
+                            ))
+                        })?;
+                    require_type(
+                        &pattern_field.binding.ty,
+                        &field.ty,
+                        "match payload binding",
+                    )?;
+                    let pointer = Pointer {
+                        local: scrutinee.local,
+                        offset: scrutinee
+                            .offset
+                            .checked_add(layout.payload_offset)
+                            .and_then(|offset| offset.checked_add(field.offset))
+                            .ok_or_else(|| error("match payload pointer overflows u32"))?,
+                    };
+                    let local = self
+                        .plan
+                        .scalar_bindings
+                        .get(&pattern_field.binding.id)
+                        .copied()
+                        .ok_or_else(|| {
+                            error(format!(
+                                "missing match binding `{}`",
+                                pattern_field.binding.id
+                            ))
+                        })?;
+                    self.emit_pointer(pointer);
+                    self.load_scalar(&field.ty);
+                    self.output.push(0x21);
+                    write_u32(self.output, local);
+                    self.bindings.insert(
+                        pattern_field.binding.id.clone(),
+                        Value::Scalar {
+                            local,
+                            ty: field.ty,
+                        },
+                    );
+                }
+                let value = self.emit_expr(&arm.value)?;
+                self.copy_value(destination, &value, "match arm result")?;
+                self.bindings = saved.clone();
+                self.output.push(0x05);
+                self.emit_match_arms(destination, scrutinee, layout, arms, index + 1)?;
+                self.control_depth -= 1;
+                self.output.push(0x0b);
+            }
+            crate::hir::ResolvedMatchPattern::Wildcard => {
+                let value = self.emit_expr(&arm.value)?;
+                self.copy_value(destination, &value, "wildcard match arm result")?;
+            }
+        }
+        self.bindings = saved;
+        Ok(())
     }
 
     fn emit_call(
@@ -967,7 +1252,7 @@ impl Emitter<'_> {
             }
         }
         let (result, result_pointer) =
-            if is_record(self.program, &expr.ty)? {
+            if is_aggregate(self.program, &expr.ty)? {
                 let pointer = self.plan.expr_pointer(expr)?;
                 (
                     Value::Aggregate {
@@ -1106,7 +1391,7 @@ impl Emitter<'_> {
             BinaryOp::Div => self.emit_checked_div_rem(&left, &right, destination, false)?,
             BinaryOp::Rem => self.emit_checked_div_rem(&left, &right, destination, true)?,
             BinaryOp::Eq | BinaryOp::Ne => {
-                if is_record(self.program, value_type(&left))? {
+                if is_aggregate(self.program, value_type(&left))? {
                     return Err(error("record equality is outside executable records v1"));
                 }
                 require_type(value_type(&left), value_type(&right), "equality operands")?;
@@ -1154,7 +1439,7 @@ impl Emitter<'_> {
     ) -> Result<Value, Diagnostic> {
         let condition = self.emit_expr(condition)?;
         self.require_scalar(&condition, &ResolvedType::Bool, "if condition")?;
-        let destination = if is_record(self.program, &expr.ty)? {
+        let destination = if is_aggregate(self.program, &expr.ty)? {
             Value::Aggregate {
                 pointer: self.plan.expr_pointer(expr)?,
                 ty: expr.ty.clone(),
@@ -1403,11 +1688,11 @@ impl Emitter<'_> {
                         "{context} mixes scalar and aggregate values"
                     )));
                 };
-                let record = layout(self.program, ty)?;
+                let (size, _) = aggregate_size_align(self.program, ty)?;
                 self.emit_pointer(*destination);
                 self.emit_pointer(*source);
                 self.output.push(0x41);
-                write_i64(self.output, i64::from(record.size));
+                write_i64(self.output, i64::from(size));
                 self.output.extend([0xfc, 0x0a, 0x00, 0x00]);
             }
         }
@@ -1490,7 +1775,7 @@ fn value_at(
     ty: ResolvedType,
     program: &ResolvedProgram,
 ) -> Result<Value, Diagnostic> {
-    if is_record(program, &ty)? {
+    if is_aggregate(program, &ty)? {
         Ok(Value::Aggregate { pointer, ty })
     } else {
         scalar_wasm_type(&ty)?;
@@ -1554,6 +1839,12 @@ fn emit_wrapper(main_index: u32) -> Vec<u8> {
     write_u32(&mut body, old_stack);
     body.push(0x24);
     write_u32(&mut body, 0);
+
+    body.push(0x20);
+    write_u32(&mut body, status);
+    body.push(0x41);
+    write_i64(&mut body, i64::from(STATUS_INTERNAL_INVALID_TAG));
+    body.extend([0x46, 0x04, 0x40, 0x00, 0x0b]);
 
     emit_arithmetic_trap_case(&mut body, status, STATUS_ADD_OVERFLOW, 0, i64::MAX, 1);
     emit_arithmetic_trap_case(&mut body, status, STATUS_SUB_OVERFLOW, 1, i64::MIN, 1);
@@ -1673,6 +1964,90 @@ fn main() -> i64 {
 }
 "#;
 
+    const VARIANT_SOURCE: &str = r#"
+module test.variant_wasm;
+@id("choice.type")
+variant Choice {
+    @id("choice.none") None,
+    @id("choice.number") Number {
+        @id("choice.number.value") value: i64,
+    },
+    @id("choice.flag") Flag {
+        @id("choice.flag.enabled") enabled: bool,
+    },
+    @id("choice.pair") Pair {
+        @id("choice.pair.first") first: i64,
+        @id("choice.pair.second") second: i64,
+    },
+}
+@id("choice.make")
+fn make(value: i64) -> Choice { Choice::Number { value: value } }
+@id("choice.select")
+fn select(choice: Choice) -> i64 {
+    match choice {
+        Choice::None {} => 0,
+        Choice::Number { value: number } => number,
+        Choice::Flag { enabled: flag } => if flag { 1 } else { 2 },
+        Choice::Pair { first: left, second: right } => left + right,
+    }
+}
+@id("choice.as_bool")
+fn as_bool(choice: Choice) -> bool {
+    match choice {
+        Choice::None {} => false,
+        Choice::Number { value: number } => number == 42,
+        Choice::Flag { enabled: flag } => flag,
+        Choice::Pair { first: left, second: right } => left == right,
+    }
+}
+@id("choice.selected")
+fn selected_only() -> i64 {
+    match Choice::Number { value: 42 } {
+        Choice::None {} => 9223372036854775807 + 1,
+        Choice::Number { value: number } => number,
+        Choice::Flag { enabled: flag } => 1 / 0,
+        Choice::Pair { first: left, second: right } => left + right,
+    }
+}
+@id("choice.selected_failure")
+fn selected_failure() -> i64 {
+    match Choice::Flag { enabled: true } {
+        Choice::None {} => 1 / 0,
+        Choice::Number { value: number } => number,
+        Choice::Flag { enabled: flag } => 9223372036854775807 + 1,
+        Choice::Pair { first: left, second: right } => left + right,
+    }
+}
+@id("choice.construct_order")
+fn construct_order() -> i64 {
+    match Choice::Pair { second: 1 / 0, first: 9223372036854775807 + 1 } {
+        Choice::None {} => 0,
+        Choice::Number { value: number } => number,
+        Choice::Flag { enabled: flag } => if flag { 1 } else { 2 },
+        Choice::Pair { first: left, second: right } => left + right,
+    }
+}
+@id("choice.scrutinee")
+fn failing_scrutinee() -> Choice requires false { Choice::None {} }
+@id("choice.aggregate_failure")
+fn aggregate_failure() -> Choice {
+    Choice::Number { value: 9223372036854775807 + 1 }
+}
+@id("choice.scrutinee_first")
+fn scrutinee_first() -> i64 {
+    match failing_scrutinee() {
+        Choice::None {} => 9223372036854775807 + 1,
+        Choice::Number { value: number } => number,
+        Choice::Flag { enabled: flag } => if flag { 1 } else { 2 },
+        Choice::Pair { first: left, second: right } => left + right,
+    }
+}
+@id("choice.post")
+fn post(choice: Choice) -> i64 ensures false { select(choice) }
+@id("app.main")
+fn main() -> i64 { select(make(42)) }
+"#;
+
     #[test]
     fn node_executes_aggregate_status_out_poison_order_and_shadow_stack_reentry() {
         if Command::new("node").arg("--version").output().is_err() {
@@ -1752,6 +2127,121 @@ console.log("aggregate-wasm-v1-ok");
         assert_eq!(
             String::from_utf8_lossy(&output.stdout).trim(),
             "aggregate-wasm-v1-ok"
+        );
+    }
+
+    #[test]
+    fn node_executes_copy_variants_selected_arms_invalid_tags_and_reentry() {
+        if Command::new("node").arg("--version").output().is_err() {
+            return;
+        }
+        let program = parse(VARIANT_SOURCE, Path::new("variant-wasm.spx")).unwrap();
+        let resolved = hir::resolve(&program).unwrap();
+        let bytes = emit_profile(&resolved, true).unwrap();
+        assert_eq!(bytes, emit_profile(&resolved, true).unwrap());
+        let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
+        let stem = format!("semaprax-variant-wasm-{}-{id}", std::process::id());
+        let wasm_path = std::env::temp_dir().join(format!("{stem}.wasm"));
+        let script_path = std::env::temp_dir().join(format!("{stem}.mjs"));
+        std::fs::write(&wasm_path, bytes).unwrap();
+
+        let export = |id: &str| format!("__spx_test_{}", hex_identity(&DeclarationId::new(id)));
+        let script = format!(
+            r#"import {{ readFile }} from "node:fs/promises";
+const fail = (name) => () => {{ throw new Error(`unexpected host import ${{name}}`); }};
+const bytes = await readFile(process.argv[2]);
+const {{ instance }} = await WebAssembly.instantiate(bytes, {{ env: {{
+  spx_add: fail("spx_add"), spx_sub: fail("spx_sub"), spx_mul: fail("spx_mul"),
+  spx_div: fail("spx_div"), spx_rem: fail("spx_rem"), spx_neg: fail("spx_neg"),
+  spx_contract_fail: fail("spx_contract_fail"),
+}} }});
+const memory = instance.exports.__spx_test_memory;
+const stack = instance.exports.__spx_test_shadow_stack;
+const view = new DataView(memory.buffer);
+const input = 1024;
+const output = 2048;
+const poison = 0xa5;
+const poisonOutput = (length) => new Uint8Array(memory.buffer, output, length).fill(poison);
+const assertPoison = (length) => {{
+  for (const byte of new Uint8Array(memory.buffer, output, length)) if (byte !== poison) throw new Error("variant failure published output");
+}};
+const assertStack = (label) => {{ if (stack.value !== {stack_top}) throw new Error(`${{label}} stack restore`); }};
+view.setUint32(input, 1, true);
+view.setBigInt64(input + 8, 42n, true);
+poisonOutput(8);
+if (instance.exports["{select}"](input, output) !== 0 || view.getBigInt64(output, true) !== 42n) throw new Error("number match");
+assertStack("number");
+poisonOutput(4);
+if (instance.exports["{as_bool}"](input, output) !== 0 || view.getInt32(output, true) !== 1) throw new Error("bool match");
+assertStack("bool");
+poisonOutput(24);
+if (instance.exports["{failing_scrutinee}"](output) !== 9) throw new Error("aggregate failure status");
+assertPoison(24);
+assertStack("aggregate failure");
+poisonOutput(24);
+if (instance.exports["{aggregate_failure}"](output) !== 1) throw new Error("aggregate arithmetic failure status");
+assertPoison(24);
+assertStack("aggregate arithmetic failure");
+poisonOutput(24);
+if (instance.exports["{make}"](42n, output) !== 0) throw new Error("construct status");
+if (view.getUint32(output, true) !== 1 || view.getBigInt64(output + 8, true) !== 42n) throw new Error("construct payload");
+for (const offset of [4, 5, 6, 7, 16, 17, 18, 19, 20, 21, 22, 23]) if (view.getUint8(output + offset) !== 0) throw new Error("variant padding not zero");
+assertStack("construct");
+for (let index = 0; index < 4096; index += 1) {{
+  poisonOutput(8);
+  if (instance.exports["{selected}"](output) !== 0 || view.getBigInt64(output, true) !== 42n) throw new Error("selected arm");
+  assertStack("selected");
+  poisonOutput(8);
+  if (instance.exports["{selected_failure}"](output) !== 1) throw new Error("selected failure status");
+  assertPoison(8);
+  assertStack("selected failure");
+  if (instance.exports["{construct_order}"](output) !== 4) throw new Error("constructor source order status");
+  assertPoison(8);
+  assertStack("constructor order");
+  if (instance.exports["{scrutinee_first}"](output) !== 9) throw new Error("scrutinee-first status");
+  assertPoison(8);
+  assertStack("scrutinee first");
+  if (instance.exports["{post}"](input, output) !== 10) throw new Error("postcondition status");
+  assertPoison(8);
+  assertStack("postcondition");
+}}
+view.setUint32(input, 0xffffffff, true);
+poisonOutput(8);
+if (instance.exports["{select}"](input, output) !== -1) throw new Error("invalid tag did not fail out-of-band");
+assertPoison(8);
+assertStack("invalid tag");
+if (instance.exports.semaprax_main() !== 42n) throw new Error("public variant result");
+assertStack("public");
+console.log("variant-wasm-v1-ok");
+"#,
+            select = export("choice.select"),
+            as_bool = export("choice.as_bool"),
+            make = export("choice.make"),
+            selected = export("choice.selected"),
+            selected_failure = export("choice.selected_failure"),
+            construct_order = export("choice.construct_order"),
+            scrutinee_first = export("choice.scrutinee_first"),
+            post = export("choice.post"),
+            failing_scrutinee = export("choice.scrutinee"),
+            aggregate_failure = export("choice.aggregate_failure"),
+            stack_top = SHADOW_STACK_TOP,
+        );
+        std::fs::write(&script_path, script).unwrap();
+        let output = Command::new("node")
+            .arg(&script_path)
+            .arg(&wasm_path)
+            .output()
+            .unwrap();
+        let _ = std::fs::remove_file(&script_path);
+        let _ = std::fs::remove_file(&wasm_path);
+        assert!(
+            output.status.success(),
+            "Node variant runtime failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert_eq!(
+            String::from_utf8_lossy(&output.stdout).trim(),
+            "variant-wasm-v1-ok"
         );
     }
 

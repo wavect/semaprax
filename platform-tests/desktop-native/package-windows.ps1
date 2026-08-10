@@ -223,7 +223,7 @@ function Assert-ByteEqual([string]$Label, [string]$First, [string]$Second) {
 }
 
 function Invoke-LlvmReadObj([string]$Path) {
-  $ignored = @(& $llvmReadObjPath --file-headers --coff-imports --coff-exports --coff-resources -- $Path)
+  $ignored = @(& $llvmReadObjPath --file-headers --coff-imports --coff-exports --coff-resources $Path)
   if ($LASTEXITCODE -ne 0 -or $ignored.Count -eq 0) { throw "pinned llvm-readobj rejected $Path" }
 }
 

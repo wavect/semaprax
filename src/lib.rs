@@ -36,6 +36,7 @@ pub mod trace_path_certificate;
     reason = "host-only certificate inspection remains behind the unpublished feature"
 )]
 mod trace_path_certificate;
+pub(crate) mod variant_layout;
 pub mod verify;
 pub mod wasm;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]

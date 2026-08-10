@@ -10,13 +10,21 @@ prefix-aware ownership, checked Native64/Wasm32 layouts, and independently
 rebuilt and replayed cleanup plans. Its bounded public backend slice executes
 nested `i64`/`bool` records through native C11/Clang at O0/O2 and browser Wasm
 under Node; the empty product has frozen size and alignment one on both layout
-profiles. Variants, generics, matching, `Option`, `Result`, `?`, a stable public
-aggregate ABI, public resource-bearing record execution, and general aggregate
-execution remain outside that evidence.
+profiles. The implemented copy-variant slice adds non-generic nominal variants
+with unit and direct `i64`/`bool` payload fields, explicit qualified
+construction, exhaustive copy-only `match`, scalar `i64`/`bool` arm results,
+persistent case/payload identities, CleanupPlan v1 stable-case branching,
+Graph v8, checked deterministic internal Native64/Wasm32 layouts, and native
+C11 O0/O2 plus Node/Wasm execution. Generics, `Option`, `Result`, `?`,
+resource- or record-bearing variant payloads, non-copy match ownership modes, a
+stable public aggregate ABI, public resource-bearing execution, and general
+aggregate execution remain outside that evidence.
 
 ## Canonical source
 
-Public types and members carry persistent identities:
+Public types and members carry persistent identities. This generic `Option`
+example is the intended full-language syntax, not part of the bounded
+non-generic executable slice:
 
 ```semaprax
 @id("geometry.point")
@@ -49,7 +57,7 @@ fn example(point: Point, value: Option<i64>) -> i64 {
     let updated = moved with { y: 22 };
     match value {
         Option::Some { value } => updated.x + value,
-        Option::None => updated.y,
+        Option::None {} => updated.y,
     }
 }
 ```
@@ -57,10 +65,13 @@ fn example(point: Point, value: Option<i64>) -> i64 {
 - Record construction is `Point { x: expression, y: expression }`.
 - Immutable update is `point with { y: expression }`.
 - Projection is `point.x`.
-- Cases are qualified: `Option::Some { value: expression }` and `Option::None`.
-- `_` is a wildcard; a bare pattern name binds; `..` explicitly ignores remaining record fields.
-- The first slice has no guards or or-patterns.
-- Non-copy scrutinees require `match own`, `match borrow`, or `match shared`; plain `match` is for copy values.
+- Cases are qualified: `Option::Some { value: expression }` and `Option::None {}`.
+- `_` is a wildcard. The current bounded slice requires exact named payload
+  fields, optionally written `field: binding`; bare nested bindings and `..`
+  remain future work.
+- The current slice has no guards, or-patterns, or nested patterns.
+- Future non-copy scrutinees require `match own`, `match borrow`, or
+  `match shared`; the implemented plain `match` is copy-only.
 - Ambiguous generic construction requires a type annotation.
 
 `Option<T>` and `Result<T, E>` are ordinary versioned prelude variants, not hidden backend primitives. Only postfix `?` receives dedicated typed lowering.
@@ -143,6 +154,13 @@ C type names derive from stable IDs plus a deterministic collision suffix. Recor
 
 Do not niche-optimize initially. Explicit representation is easier to audit and keeps native/Wasm semantics aligned.
 
+Executable Copy Variants v1 implements this only as a compiler-internal
+Native64 profile: constructors evaluate authored payload expressions first,
+zero the complete representation, write the selected payload, and publish the
+tag last. Generated `_Static_assert`s bind size, alignment, tag, payload, and
+field offsets. Aggregate parameters are internal `const struct *` values and
+results are caller-owned; none of this freezes a public C ABI.
+
 ### WebAssembly bootstrap
 
 Keep scalars in the current direct ABI. Aggregates use caller-allocated stack-frame storage in linear memory:
@@ -155,11 +173,18 @@ Keep scalars in the current direct ABI. Aggregates use caller-allocated stack-fr
 - resources stored in aggregates remain integer handles;
 - every exit restores the frame through the unified epilogue.
 
+The current Wasm32 copy-variant profile uses a four-byte tag, target-specific
+four-byte bool payload cells, an aligned maximum payload, and a one-byte empty
+payload policy. Invalid tags select a private negative invariant sentinel,
+restore the shadow stack, and trap at the public wrapper rather than becoming
+a semantic `Result` or status. Real Node evidence covers repeated re-entry, but
+does not establish browser/multi-engine or Component Model conformance.
+
 The browser export `semaprax_main -> i64` remains stable during this tranche.
 
 ## Agent graph and transactions
 
-The graph adds persistent `record`, `field`, `variant`, `variant_case`, `case_field`, and `type_parameter` nodes. Revision-scoped expression nodes cover construction, projection, update, match arms, patterns, and propagation. Typed edges include `declares`, `has_field`, `has_case`, `payload_type`, `instantiates`, `constructs`, `projects`, `matches`, and `type_uses`.
+Graph v8 adds persistent `variant`, `variant_case`, and `case_field` nodes to the existing record/resource declarations. Revision-scoped expression nodes cover variant construction, match arms, variant/wildcard patterns, and payload bindings; cleanup edges select stable case IDs for one scrutinee expression. Future generic and propagation nodes/edges remain design rather than implemented evidence.
 
 Context traversal follows signature types, constructors, projections, cases, patterns, contracts, and calls.
 
@@ -197,9 +222,9 @@ Existing diagnostic codes remain reserved; implementation must resolve any colli
 ## Staged implementation
 
 1. Add resolved nominal types, HIR, type facts, place paths, and deterministic layout keys without changing source behavior. **Implemented.**
-2. Add records through parser, formatter, resolver, verifier, Graph, transactions, C, and Wasm. **Frontend, Graph v7, deterministic target layouts, target-neutral cleanup, and bounded public nested-scalar C11/Wasm execution are implemented; transaction breadth, resource-bearing public execution, a stable aggregate ABI, and general backend completion remain evidence-gated.**
-3. Add generic variants and reject recursive unsized layouts.
-4. Add exhaustive ownership-aware matching.
+2. Add records through parser, formatter, resolver, verifier, Graph, transactions, C, and Wasm. **Frontend, Graph v7 record-update meaning, deterministic target layouts, target-neutral cleanup, and bounded public nested-scalar C11/Wasm execution are implemented; transaction breadth, resource-bearing public execution, a stable aggregate ABI, and general backend completion remain evidence-gated.**
+3. Add bounded non-generic copy variants and exhaustive copy matching. **Implemented for unit/direct-`i64`/direct-`bool` payloads, scalar `i64`/`bool` arm results, CleanupPlan v1 variant-case replay, Graph v8, deterministic internal Native64/Wasm32 layouts, and native C11 O0/O2 plus Node/Wasm execution.**
+4. Add generic variants, recursive-unsized rejection, and ownership-aware matching. **Not implemented.**
 5. Add ordinary prelude `Option` and `Result`.
 6. Add `?` with evaluation-once and unified epilogues.
 7. Add member/case transactions, layout/interface hashes, and context traversal.

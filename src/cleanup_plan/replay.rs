@@ -12,8 +12,8 @@ use crate::cleanup::{CleanupStorageOrigin, FieldLiveness, FieldLivenessShape, Li
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
     DeclarationId, ExpressionId, OwnershipMode, PlaceProjection, ResolvedExpr, ResolvedExprKind,
-    ResolvedFunction, ResolvedProgram, ResolvedStatement, ResolvedType,
-    ResolvedTypeDeclarationKind,
+    ResolvedFunction, ResolvedMatchArm, ResolvedMatchPattern, ResolvedProgram, ResolvedStatement,
+    ResolvedType, ResolvedTypeDeclarationKind,
 };
 
 use super::{
@@ -90,6 +90,11 @@ enum SkeletonObservation {
     Boolean {
         expression: ExpressionId,
         value: bool,
+    },
+    VariantCase {
+        scrutinee: ExpressionId,
+        case: DeclarationId,
+        matches: bool,
     },
     Status {
         source: StatusSourceId,
@@ -204,7 +209,13 @@ fn validate_replay_size_budget(function: &ResolvedFunction) -> Result<(), Diagno
         .cleanup_plan
         .edges
         .iter()
-        .filter(|edge| matches!(edge.condition, EdgeCondition::BooleanResult(_, true)))
+        .filter(|edge| {
+            matches!(
+                edge.condition,
+                EdgeCondition::BooleanResult(_, true)
+                    | EdgeCondition::VariantCase { matches: true, .. }
+            )
+        })
         .count();
     let hir_boolean_splits = function
         .requires
@@ -275,6 +286,15 @@ fn expression_boolean_splits(expression: &ResolvedExpr) -> usize {
                 total.saturating_add(expression_boolean_splits(&field.value))
             })
         }
+        ResolvedExprKind::ConstructVariant { fields, .. } => {
+            fields.iter().fold(0_usize, |total, field| {
+                total.saturating_add(expression_boolean_splits(&field.value))
+            })
+        }
+        ResolvedExprKind::Match { scrutinee, arms } => arms.iter().fold(
+            expression_boolean_splits(scrutinee).saturating_add(arms.len().saturating_sub(1)),
+            |total, arm| total.saturating_add(expression_boolean_splits(&arm.value)),
+        ),
         ResolvedExprKind::UpdateRecord { base, fields, .. } => fields
             .iter()
             .fold(expression_boolean_splits(base), |total, field| {
@@ -489,6 +509,17 @@ fn collect_supplemental_slots(
                 collect_supplemental_slots(program, function, &field.value, next_flag, slots)?;
             }
         }
+        ResolvedExprKind::ConstructVariant { fields, .. } => {
+            for field in fields {
+                collect_supplemental_slots(program, function, &field.value, next_flag, slots)?;
+            }
+        }
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            collect_supplemental_slots(program, function, scrutinee, next_flag, slots)?;
+            for arm in arms {
+                collect_supplemental_slots(program, function, &arm.value, next_flag, slots)?;
+            }
+        }
         ResolvedExprKind::UpdateRecord { base, fields, .. } => {
             collect_supplemental_slots(program, function, base, next_flag, slots)?;
             for field in fields {
@@ -555,6 +586,10 @@ fn expected_shape_for_type(
                 fields: expected_fields,
             })
         }
+        ResolvedTypeDeclarationKind::Variant { .. } => Err(replay_error(
+            function,
+            "droppable variant cleanup is outside the copy-only v1 slice",
+        )),
     }
 }
 
@@ -708,6 +743,17 @@ fn collect_expression_statuses(
         ResolvedExprKind::ConstructRecord { fields, .. } => {
             for field in fields {
                 collect_expression_statuses(program, function, &field.value, statuses)?;
+            }
+        }
+        ResolvedExprKind::ConstructVariant { fields, .. } => {
+            for field in fields {
+                collect_expression_statuses(program, function, &field.value, statuses)?;
+            }
+        }
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            collect_expression_statuses(program, function, scrutinee, statuses)?;
+            for arm in arms {
+                collect_expression_statuses(program, function, &arm.value, statuses)?;
             }
         }
         ResolvedExprKind::UpdateRecord { base, fields, .. } => {
@@ -1625,6 +1671,24 @@ fn expression_skeleton(
             }
             Ok(paths)
         }
+        ResolvedExprKind::ConstructVariant { fields, .. } => {
+            let mut paths = vec![empty_expr_path()];
+            for field in fields {
+                paths = sequence_expression(program, function, paths, &field.value)?;
+                if field.value.ownership == OwnershipMode::Own
+                    && type_needs_drop(program, function, &field.value.ty)?
+                {
+                    return Err(replay_error(
+                        function,
+                        "droppable variant payload reached the copy-only cleanup skeleton",
+                    ));
+                }
+            }
+            Ok(paths)
+        }
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            match_skeleton(program, function, expression, scrutinee, arms)
+        }
         ResolvedExprKind::If {
             condition,
             then_branch,
@@ -1781,6 +1845,71 @@ fn expression_skeleton(
             Ok(paths)
         }
     }
+}
+
+fn match_skeleton(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    expression: &ResolvedExpr,
+    scrutinee: &ResolvedExpr,
+    arms: &[ResolvedMatchArm],
+) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
+    if type_needs_drop(program, function, &expression.ty)? {
+        return Err(replay_error(
+            function,
+            "droppable match result reached the copy-only cleanup skeleton",
+        ));
+    }
+    if type_needs_drop(program, function, &scrutinee.ty)? {
+        return Err(replay_error(
+            function,
+            "droppable match scrutinee reached the copy-only cleanup skeleton",
+        ));
+    }
+    if arms.is_empty() {
+        return Err(replay_error(function, "copy-variant match has no arms"));
+    }
+
+    let scrutinee_paths = expression_skeleton(program, function, scrutinee)?;
+    let mut results = Vec::new();
+    for mut path in scrutinee_paths {
+        if path.failed {
+            results.push(path);
+            continue;
+        }
+        path.owned_source = None;
+        for (index, arm) in arms.iter().enumerate() {
+            let final_arm = index + 1 == arms.len();
+            let mut selected = path.clone();
+            if !final_arm {
+                let ResolvedMatchPattern::Variant { case, .. } = &arm.pattern else {
+                    return Err(replay_error(
+                        function,
+                        "wildcard match arm must be the final exhaustive arm",
+                    ));
+                };
+                selected
+                    .observations
+                    .push(SkeletonObservation::VariantCase {
+                        scrutinee: scrutinee.id.clone(),
+                        case: case.clone(),
+                        matches: true,
+                    });
+                path.observations.push(SkeletonObservation::VariantCase {
+                    scrutinee: scrutinee.id.clone(),
+                    case: case.clone(),
+                    matches: false,
+                });
+            }
+            results.extend(sequence_expression(
+                program,
+                function,
+                vec![selected],
+                &arm.value,
+            )?);
+        }
+    }
+    Ok(results)
 }
 
 fn call_skeleton(
@@ -2143,6 +2272,15 @@ fn plan_skeleton_paths(
                                 value: *value,
                             }
                         }
+                        EdgeCondition::VariantCase {
+                            scrutinee,
+                            case,
+                            matches,
+                        } => SkeletonObservation::VariantCase {
+                            scrutinee: scrutinee.clone(),
+                            case: case.clone(),
+                            matches: *matches,
+                        },
                         EdgeCondition::StatusZero(source) => SkeletonObservation::Status {
                             source: source.clone(),
                             success: true,
@@ -2557,7 +2695,9 @@ fn state_for_edge(
                 state.pending_failure = Some(source.clone());
             }
         }
-        EdgeCondition::BooleanResult(_, true) | EdgeCondition::StatusZero(_) => {}
+        EdgeCondition::BooleanResult(_, true)
+        | EdgeCondition::VariantCase { .. }
+        | EdgeCondition::StatusZero(_) => {}
         EdgeCondition::StatusNonzero(source) => {
             state.pending_failure = Some(source.clone());
         }
@@ -2862,7 +3002,9 @@ fn validate_reference_coverage(function: &ResolvedFunction) -> Result<(), Diagno
             EdgeCondition::StatusZero(source) | EdgeCondition::StatusNonzero(source) => {
                 status_references.insert(source.clone());
             }
-            EdgeCondition::Always | EdgeCondition::BooleanResult(_, _) => {}
+            EdgeCondition::Always
+            | EdgeCondition::BooleanResult(_, _)
+            | EdgeCondition::VariantCase { .. } => {}
         }
     }
     for exit in &plan.exits {
@@ -2929,6 +3071,9 @@ fn validate_edge_condition(
         EdgeCondition::BooleanResult(expression, _) => {
             require_expression(function, expressions, expression)
         }
+        EdgeCondition::VariantCase { scrutinee, .. } => {
+            require_expression(function, expressions, scrutinee)
+        }
         EdgeCondition::StatusZero(source) | EdgeCondition::StatusNonzero(source) => {
             require_status(function, statuses, source)
         }
@@ -2944,6 +3089,18 @@ fn validate_branch_pair(
         (EdgeCondition::BooleanResult(a, av), EdgeCondition::BooleanResult(b, bv)) => {
             a == b && av != bv
         }
+        (
+            EdgeCondition::VariantCase {
+                scrutinee: a_scrutinee,
+                case: a_case,
+                matches: a_matches,
+            },
+            EdgeCondition::VariantCase {
+                scrutinee: b_scrutinee,
+                case: b_case,
+                matches: b_matches,
+            },
+        ) => a_scrutinee == b_scrutinee && a_case == b_case && a_matches != b_matches,
         (EdgeCondition::StatusZero(a), EdgeCondition::StatusNonzero(b))
         | (EdgeCondition::StatusNonzero(a), EdgeCondition::StatusZero(b)) => a == b,
         _ => false,
@@ -3076,6 +3233,17 @@ fn collect_expression_facts(
                 collect_expression_facts(function, &field.value, facts)?;
             }
         }
+        ResolvedExprKind::ConstructVariant { fields, .. } => {
+            for field in fields {
+                collect_expression_facts(function, &field.value, facts)?;
+            }
+        }
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            collect_expression_facts(function, scrutinee, facts)?;
+            for arm in arms {
+                collect_expression_facts(function, &arm.value, facts)?;
+            }
+        }
         ResolvedExprKind::UpdateRecord { base, fields, .. } => {
             collect_expression_facts(function, base, facts)?;
             for field in fields {
@@ -3167,6 +3335,24 @@ record Pair {
     second: Token,
 }
 
+@id("choice.type")
+variant Choice {
+    @id("choice.left")
+    Left {
+        @id("choice.left.value")
+        value: i64,
+    },
+
+    @id("choice.right")
+    Right {
+        @id("choice.right.flag")
+        flag: bool,
+    },
+
+    @id("choice.none")
+    None,
+}
+
 @id("tokens.discard")
 fn discard(left: own Token, right: own Token) -> i64 { 0 }
 
@@ -3211,6 +3397,27 @@ fn region_flow(flag: bool, left: i64, right: i64) -> i64 {
     if flag { { left + right } } else { 0 }
 }
 
+@id("choice.select")
+fn select(choice: Choice, zero: i64) -> i64 {
+    match choice {
+        Choice::Left { value } => value + 1,
+        Choice::Right { flag } => if flag { 1 } else { 0 },
+        Choice::None {} => 1 / zero,
+    }
+}
+
+@id("choice.make-left")
+fn make_left(input: i64) -> Choice { Choice::Left { value: input } }
+
+@id("choice.from-call")
+fn from_call(input: i64, zero: i64) -> i64 {
+    match make_left(input) {
+        Choice::Left { value } => value,
+        Choice::Right { flag } => if flag { 1 } else { 0 },
+        Choice::None {} => 1 / zero,
+    }
+}
+
 @id("app.main")
 fn main() -> i64 { 0 }
 "#;
@@ -3237,10 +3444,199 @@ fn main() -> i64 { 0 }
         tail
     }
 
+    fn match_expression(function: &ResolvedFunction) -> &ResolvedExpr {
+        let ResolvedExprKind::Block { tail, .. } = &function.body.kind else {
+            panic!("match fixture body must be a block")
+        };
+        assert!(matches!(tail.kind, ResolvedExprKind::Match { .. }));
+        tail
+    }
+
     fn assert_independent_replay_rejects(program: &ResolvedProgram, function: &ResolvedFunction) {
         let diagnostic = validate_structure(program, function).unwrap_err();
         assert_eq!(diagnostic.code, "SPX-H006");
         assert!(diagnostic.message.contains("failed independent replay"));
+    }
+
+    #[test]
+    fn copy_variant_match_is_scrutinee_once_authored_order_and_cleanup_free() {
+        let program = program();
+        let function = function(&program, "choice.select");
+        let expression = match_expression(&function);
+        let ResolvedExprKind::Match { scrutinee, arms } = &expression.kind else {
+            unreachable!()
+        };
+        assert_eq!(arms.len(), 3);
+        assert!(function.cleanup.slots.is_empty());
+        assert!(function.cleanup_plan.slots.is_empty());
+
+        let decisions = function
+            .cleanup_plan
+            .edges
+            .iter()
+            .filter_map(|edge| match &edge.condition {
+                EdgeCondition::VariantCase {
+                    scrutinee,
+                    case,
+                    matches,
+                } => Some((scrutinee.clone(), case.clone(), *matches)),
+                EdgeCondition::Always
+                | EdgeCondition::BooleanResult(_, _)
+                | EdgeCondition::StatusZero(_)
+                | EdgeCondition::StatusNonzero(_) => None,
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            decisions,
+            vec![
+                (
+                    scrutinee.id.clone(),
+                    DeclarationId::new("choice.left"),
+                    true,
+                ),
+                (
+                    scrutinee.id.clone(),
+                    DeclarationId::new("choice.left"),
+                    false,
+                ),
+                (
+                    scrutinee.id.clone(),
+                    DeclarationId::new("choice.right"),
+                    true,
+                ),
+                (
+                    scrutinee.id.clone(),
+                    DeclarationId::new("choice.right"),
+                    false,
+                ),
+            ]
+        );
+        validate_structure(&program, &function).unwrap();
+    }
+
+    #[test]
+    fn match_scrutinee_call_is_lowered_and_replayed_exactly_once() {
+        let program = program();
+        let function = function(&program, "choice.from-call");
+        let expression = match_expression(&function);
+        let ResolvedExprKind::Match { scrutinee, .. } = &expression.kind else {
+            unreachable!()
+        };
+        assert!(matches!(scrutinee.kind, ResolvedExprKind::Call { .. }));
+        assert_eq!(
+            function
+                .cleanup_plan
+                .status_sources
+                .iter()
+                .filter(|source| source.id.expression == scrutinee.id)
+                .count(),
+            1,
+            "the match scrutinee call must produce one status epoch"
+        );
+        assert!(function.cleanup_plan.edges.iter().all(|edge| {
+            !matches!(
+                &edge.condition,
+                EdgeCondition::VariantCase {
+                    scrutinee: candidate,
+                    ..
+                } if candidate != &scrutinee.id
+            )
+        }));
+        validate_structure(&program, &function).unwrap();
+    }
+
+    #[test]
+    fn match_replay_rejects_authored_case_scrutinee_and_polarity_confusion() {
+        let program = program();
+        let original = function(&program, "choice.select");
+        let match_id = match_expression(&original).id.clone();
+
+        let mut wrong_case = original.clone();
+        for edge in &mut wrong_case.cleanup_plan.edges {
+            if let EdgeCondition::VariantCase { case, .. } = &mut edge.condition {
+                if case.as_str() == "choice.left" {
+                    *case = DeclarationId::new("choice.right");
+                }
+            }
+        }
+        assert_independent_replay_rejects(&program, &wrong_case);
+
+        let mut wrong_scrutinee = original.clone();
+        for edge in &mut wrong_scrutinee.cleanup_plan.edges {
+            if let EdgeCondition::VariantCase { scrutinee, .. } = &mut edge.condition {
+                *scrutinee = match_id.clone();
+            }
+        }
+        assert_independent_replay_rejects(&program, &wrong_scrutinee);
+
+        let mut same_polarity = original;
+        let first_pair = same_polarity
+            .cleanup_plan
+            .blocks
+            .iter()
+            .find_map(|block| match &block.terminator {
+                CleanupTerminator::Branch(edges)
+                    if edges.iter().all(|id| {
+                        matches!(
+                            same_polarity.cleanup_plan.edges[id.0 as usize].condition,
+                            EdgeCondition::VariantCase { .. }
+                        )
+                    }) =>
+                {
+                    Some(edges.clone())
+                }
+                CleanupTerminator::Goto(_)
+                | CleanupTerminator::Branch(_)
+                | CleanupTerminator::Exit(_) => None,
+            })
+            .expect("first match decision must be a variant branch");
+        let EdgeCondition::VariantCase { matches, .. } =
+            &mut same_polarity.cleanup_plan.edges[first_pair[1].0 as usize].condition
+        else {
+            unreachable!()
+        };
+        *matches = true;
+        assert_independent_replay_rejects(&program, &same_polarity);
+    }
+
+    #[test]
+    fn match_checked_arm_failure_cannot_publish_the_poisoned_result() {
+        let program = program();
+        let mut function = function(&program, "choice.select");
+        let match_result = match_expression(&function).id.clone();
+        let division = function
+            .cleanup_plan
+            .status_sources
+            .iter()
+            .find(|source| {
+                matches!(
+                    source.producer,
+                    StatusProducer::CheckedArithmetic {
+                        operation: super::super::CheckedOperation::Div,
+                        ..
+                    }
+                )
+            })
+            .expect("final match arm must contain checked division")
+            .id
+            .clone();
+        let exit = function
+            .cleanup_plan
+            .exits
+            .iter_mut()
+            .find(|exit| {
+                matches!(
+                    &exit.continuation,
+                    ExitContinuation::ReturnFailure { source } if source == &division
+                )
+            })
+            .expect("checked arm must retain a failure exit");
+        exit.continuation = ExitContinuation::CommitResult {
+            source: CleanupResultSource::Scalar {
+                expression: match_result,
+            },
+        };
+        assert_independent_replay_rejects(&program, &function);
     }
 
     #[test]
@@ -3640,7 +4036,9 @@ fn main() -> i64 { 0 }
                         *source = first.clone();
                     }
                 }
-                EdgeCondition::Always | EdgeCondition::BooleanResult(_, _) => {}
+                EdgeCondition::Always
+                | EdgeCondition::BooleanResult(_, _)
+                | EdgeCondition::VariantCase { .. } => {}
             }
         }
         for block in &mut function.cleanup_plan.blocks {
@@ -3681,6 +4079,7 @@ fn main() -> i64 { 0 }
             .filter_map(|edge| match &edge.condition {
                 EdgeCondition::BooleanResult(expression, _) => Some(expression.clone()),
                 EdgeCondition::Always
+                | EdgeCondition::VariantCase { .. }
                 | EdgeCondition::StatusZero(_)
                 | EdgeCondition::StatusNonzero(_) => None,
             })

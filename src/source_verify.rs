@@ -2,8 +2,8 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 
 use crate::ast::{
     BinaryOp, Expr, ExprKind, FieldDeclaration, Function, ImportDeclaration, ImportFailure,
-    InterfaceDeclaration, ParamMode, Program, ResourceLifecycleKind, Span, Statement, Type,
-    TypeDeclaration, TypeDeclarationKind, UnaryOp,
+    InterfaceDeclaration, MatchPattern, ParamMode, Program, ResourceLifecycleKind, Span, Statement,
+    Type, TypeDeclaration, TypeDeclarationKind, UnaryOp, VariantCaseDeclaration,
 };
 use crate::conformance::STATUS_DOMAIN_MAX_BYTES_V1;
 use crate::diagnostic::Diagnostic;
@@ -83,7 +83,17 @@ impl<'a> TypeTable<'a> {
         };
         match &self.declaration(name)?.kind {
             TypeDeclarationKind::Record { fields } => Some(fields),
-            TypeDeclarationKind::Resource { .. } => None,
+            TypeDeclarationKind::Resource { .. } | TypeDeclarationKind::Variant { .. } => None,
+        }
+    }
+
+    fn variant_cases(&self, ty: &Type) -> Option<&'a [VariantCaseDeclaration]> {
+        let Type::Named(name) = ty else {
+            return None;
+        };
+        match &self.declaration(name)?.kind {
+            TypeDeclarationKind::Variant { cases } => Some(cases),
+            TypeDeclarationKind::Resource { .. } | TypeDeclarationKind::Record { .. } => None,
         }
     }
 
@@ -114,6 +124,18 @@ impl<'a> TypeTable<'a> {
                 let contains = fields
                     .iter()
                     .any(|field| self.contains_resource_inner(&field.ty, visiting));
+                visiting.remove(name);
+                contains
+            }
+            TypeDeclarationKind::Variant { cases } => {
+                if !visiting.insert(name.clone()) {
+                    return true;
+                }
+                let contains = cases.iter().any(|case| {
+                    case.fields
+                        .iter()
+                        .any(|field| self.contains_resource_inner(&field.ty, visiting))
+                });
                 visiting.remove(name);
                 contains
             }
@@ -161,6 +183,13 @@ impl<'a> TypeTable<'a> {
                     self.lifecycle_effects_inner(&field.ty, imports, visiting, effects);
                 }
             }
+            TypeDeclarationKind::Variant { cases } => {
+                for case in cases {
+                    for field in &case.fields {
+                        self.lifecycle_effects_inner(&field.ty, imports, visiting, effects);
+                    }
+                }
+            }
         }
         visiting.remove(name);
     }
@@ -177,6 +206,7 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
             let kind = match declaration.kind {
                 TypeDeclarationKind::Resource { .. } => "resource",
                 TypeDeclarationKind::Record { .. } => "record",
+                TypeDeclarationKind::Variant { .. } => "variant",
             };
             diagnostics.push(error(
                 program,
@@ -189,6 +219,7 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
             let duplicate = match declaration.kind {
                 TypeDeclarationKind::Resource { .. } => "resource",
                 TypeDeclarationKind::Record { .. } => "type",
+                TypeDeclarationKind::Variant { .. } => "type",
             };
             diagnostics.push(error(
                 program,
@@ -201,6 +232,7 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
             let kind = match declaration.kind {
                 TypeDeclarationKind::Resource { .. } => "resource",
                 TypeDeclarationKind::Record { .. } => "record",
+                TypeDeclarationKind::Variant { .. } => "variant",
             };
             diagnostics.push(invalid_stable_id(
                 program,
@@ -220,6 +252,7 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
             let (subject, help) = match declaration.kind {
                 TypeDeclarationKind::Resource { .. } => ("resource", "your.namespace.resource"),
                 TypeDeclarationKind::Record { .. } => ("record", "your.namespace.record"),
+                TypeDeclarationKind::Variant { .. } => ("variant", "your.namespace.variant"),
             };
             diagnostics.push(
                 Diagnostic::warning(
@@ -361,6 +394,143 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                         .at_path(&program.path)
                         .with_help("add @id(\"your.namespace.record.field\") before the field"),
                     );
+                }
+            }
+        }
+        if let TypeDeclarationKind::Variant { cases } = &declaration.kind {
+            if cases.is_empty() {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T215",
+                    format!(
+                        "variant `{}` must declare at least one case",
+                        declaration.name
+                    ),
+                    declaration.span,
+                ));
+            }
+            let mut case_names = HashSet::new();
+            let mut case_ids = HashSet::new();
+            for case in cases {
+                if !source_identifier(&case.name) {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-S110",
+                        format!("`{}` is not a valid variant case identifier", case.name),
+                        case.name_span,
+                    ));
+                }
+                if !case_names.insert(case.name.as_str())
+                    || !case_ids.insert(case.stable_id.as_str())
+                {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-S111",
+                        format!(
+                            "duplicate case `{}` in variant `{}`",
+                            case.name, declaration.name
+                        ),
+                        case.span,
+                    ));
+                }
+                if case.stable_id.contains('\0') {
+                    diagnostics.push(invalid_stable_id(
+                        program,
+                        "SPX-S102",
+                        format!("case `{}::{}`", declaration.name, case.name),
+                        case.span,
+                    ));
+                } else if !ids.insert(case.stable_id.as_str()) {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-S102",
+                        format!("duplicate stable id `{}`", case.stable_id),
+                        case.span,
+                    ));
+                }
+                if !case.explicit_id {
+                    diagnostics.push(
+                        Diagnostic::warning(
+                            "SPX-S112",
+                            format!(
+                                "case `{}::{}` has an automatic identity that changes when renamed",
+                                declaration.name, case.name
+                            ),
+                            case.name_span,
+                        )
+                        .at_path(&program.path)
+                        .with_help("add @id(\"your.namespace.variant.case\") before the case"),
+                    );
+                }
+                let mut field_names = HashSet::new();
+                let mut field_ids = HashSet::new();
+                for field in &case.fields {
+                    if !source_identifier(&field.name) {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-S110",
+                            format!("`{}` is not a valid case field identifier", field.name),
+                            field.name_span,
+                        ));
+                    }
+                    if !field_names.insert(field.name.as_str())
+                        || !field_ids.insert(field.stable_id.as_str())
+                    {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-S111",
+                            format!(
+                                "duplicate field `{}` in case `{}::{}`",
+                                field.name, declaration.name, case.name
+                            ),
+                            field.span,
+                        ));
+                    }
+                    if field.stable_id.contains('\0') {
+                        diagnostics.push(invalid_stable_id(
+                            program,
+                            "SPX-S102",
+                            format!(
+                                "case field `{}::{}.{}`",
+                                declaration.name, case.name, field.name
+                            ),
+                            field.span,
+                        ));
+                    } else if !ids.insert(field.stable_id.as_str()) {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-S102",
+                            format!("duplicate stable id `{}`", field.stable_id),
+                            field.span,
+                        ));
+                    }
+                    if !field.explicit_id {
+                        diagnostics.push(
+                            Diagnostic::warning(
+                                "SPX-S112",
+                                format!(
+                                    "case field `{}::{}.{}` has an automatic identity that changes when renamed",
+                                    declaration.name, case.name, field.name
+                                ),
+                                field.name_span,
+                            )
+                            .at_path(&program.path)
+                            .with_help(
+                                "add @id(\"your.namespace.variant.case.field\") before the field",
+                            ),
+                        );
+                    }
+                    if !matches!(field.ty, Type::I64 | Type::Bool) {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T215",
+                            format!(
+                                "case field `{}::{}.{}` must have direct `i64` or `bool` type in Copy Variants v1",
+                                declaration.name, case.name, field.name
+                            ),
+                            field.span,
+                        ));
+                    }
                 }
             }
         }
@@ -596,6 +766,13 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
         if let TypeDeclarationKind::Record { fields } = &declaration.kind {
             for field in fields {
                 check_declared_type(program, &field.ty, field.span, &types, &mut diagnostics);
+            }
+        }
+        if let TypeDeclarationKind::Variant { cases } = &declaration.kind {
+            for case in cases {
+                for field in &case.fields {
+                    check_declared_type(program, &field.ty, field.span, &types, &mut diagnostics);
+                }
             }
         }
     }
@@ -886,7 +1063,7 @@ fn record_layout_is_recursive(
         .declaration(name)
         .and_then(|declaration| match &declaration.kind {
             TypeDeclarationKind::Record { fields } => Some(fields),
-            TypeDeclarationKind::Resource { .. } => None,
+            TypeDeclarationKind::Resource { .. } | TypeDeclarationKind::Variant { .. } => None,
         })
         .is_some_and(|fields| {
             fields.iter().any(|field| {
@@ -1232,7 +1409,7 @@ fn check_expr(
             let declaration = types.declaration(type_name);
             let declared_fields = declaration.and_then(|declaration| match &declaration.kind {
                 TypeDeclarationKind::Record { fields } => Some(fields.as_slice()),
-                TypeDeclarationKind::Resource { .. } => None,
+                TypeDeclarationKind::Resource { .. } | TypeDeclarationKind::Variant { .. } => None,
             });
             if declared_fields.is_none() {
                 diagnostics.push(error(
@@ -1327,6 +1504,300 @@ fn check_expr(
                 let ty = Type::Named(type_name.clone());
                 CheckedValue::returned(ty.clone(), types.contains_resource(&ty))
             })
+        }
+        ExprKind::ConstructVariant {
+            type_name,
+            case_name,
+            fields,
+            ..
+        } => {
+            let declaration = types.declaration(type_name);
+            let cases = declaration.and_then(|declaration| match &declaration.kind {
+                TypeDeclarationKind::Variant { cases } => Some(cases.as_slice()),
+                TypeDeclarationKind::Resource { .. } | TypeDeclarationKind::Record { .. } => None,
+            });
+            let case = cases.and_then(|cases| cases.iter().find(|case| case.name == *case_name));
+            if cases.is_none() || case.is_none() {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T215",
+                    format!("`{type_name}::{case_name}` is not a declared variant constructor"),
+                    expr.span,
+                ));
+            }
+            let mut supplied = HashSet::new();
+            for field in fields {
+                let declared = case.and_then(|case| {
+                    case.fields
+                        .iter()
+                        .find(|candidate| candidate.name == field.name)
+                });
+                if !supplied.insert(field.name.as_str()) || declared.is_none() {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T212",
+                        format!(
+                            "unknown or duplicate payload field `{}` in `{type_name}::{case_name}` construction",
+                            field.name
+                        ),
+                        field.span,
+                    ));
+                }
+                let actual = check_expr(
+                    program,
+                    current,
+                    &field.value,
+                    variables,
+                    functions,
+                    types,
+                    result_type,
+                    allow_moves,
+                    diagnostics,
+                );
+                if let (Some(declared), Some(actual)) = (declared, actual) {
+                    if actual.ty != declared.ty {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T215",
+                            format!(
+                                "payload `{}::{}.{}` expects {}, received {}",
+                                type_name, case_name, field.name, declared.ty, actual.ty
+                            ),
+                            field.value.span,
+                        ));
+                    }
+                }
+            }
+            if let Some(case) = case {
+                for field in &case.fields {
+                    if !supplied.contains(field.name.as_str()) {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T213",
+                            format!(
+                                "variant construction `{type_name}::{case_name}` is missing payload field `{}`",
+                                field.name
+                            ),
+                            expr.span,
+                        ));
+                    }
+                }
+            }
+            case.map(|_| CheckedValue::value(Type::Named(type_name.clone())))
+        }
+        ExprKind::Match { scrutinee, arms } => {
+            let scrutinee_value = check_expr(
+                program,
+                current,
+                scrutinee,
+                variables,
+                functions,
+                types,
+                result_type,
+                allow_moves,
+                diagnostics,
+            );
+            let variant_name = scrutinee_value.as_ref().and_then(|value| match &value.ty {
+                Type::Named(name) if types.variant_cases(&value.ty).is_some() => Some(name.clone()),
+                Type::I64 | Type::Bool | Type::Named(_) => None,
+            });
+            let declared_cases = scrutinee_value
+                .as_ref()
+                .and_then(|value| types.variant_cases(&value.ty));
+            if declared_cases.is_none() {
+                diagnostics.push(error(
+                    program,
+                    "SPX-M103",
+                    format!(
+                        "match scrutinee must be a Copy variant, received {}",
+                        scrutinee_value
+                            .as_ref()
+                            .map_or_else(|| "an invalid value".to_owned(), |value| value.ty.to_string())
+                    ),
+                    scrutinee.span,
+                ));
+            }
+
+            let outer_names = variables.keys().cloned().collect::<Vec<_>>();
+            let mut arm_states = Vec::new();
+            let mut covered = HashSet::new();
+            let mut wildcard_seen = false;
+            let mut result = None::<CheckedValue>;
+            for arm in arms {
+                let mut arm_variables = variables.clone();
+                match &arm.pattern {
+                    MatchPattern::Wildcard { span } => {
+                        if wildcard_seen
+                            || declared_cases
+                                .is_some_and(|cases| covered.len() == cases.len())
+                        {
+                            diagnostics.push(error(
+                                program,
+                                "SPX-M102",
+                                "unreachable wildcard match arm",
+                                *span,
+                            ));
+                        }
+                        wildcard_seen = true;
+                    }
+                    MatchPattern::Variant {
+                        type_name,
+                        case_name,
+                        fields,
+                        span,
+                        ..
+                    } => {
+                        let compatible = variant_name.as_deref() == Some(type_name.as_str());
+                        let declared_case = compatible.then_some(declared_cases)
+                            .flatten()
+                            .and_then(|cases| cases.iter().find(|case| case.name == *case_name));
+                        if declared_case.is_none() {
+                            diagnostics.push(error(
+                                program,
+                                "SPX-M103",
+                                format!(
+                                    "pattern `{type_name}::{case_name}` is incompatible with the match scrutinee"
+                                ),
+                                *span,
+                            ));
+                        } else if wildcard_seen || !covered.insert(case_name.as_str()) {
+                            diagnostics.push(error(
+                                program,
+                                "SPX-M102",
+                                format!("unreachable duplicate case `{type_name}::{case_name}`"),
+                                *span,
+                            ));
+                        }
+                        let mut supplied = HashSet::new();
+                        let mut bindings = HashSet::new();
+                        for field in fields {
+                            let declared_field = declared_case.and_then(|case| {
+                                case.fields
+                                    .iter()
+                                    .find(|candidate| candidate.name == field.name)
+                            });
+                            if !supplied.insert(field.name.as_str()) || declared_field.is_none() {
+                                diagnostics.push(error(
+                                    program,
+                                    "SPX-M104",
+                                    format!(
+                                        "unknown or duplicate pattern field `{}` in `{type_name}::{case_name}`",
+                                        field.name
+                                    ),
+                                    field.span,
+                                ));
+                            }
+                            if !source_identifier(&field.binding)
+                                || !bindings.insert(field.binding.as_str())
+                                || arm_variables.contains_key(&field.binding)
+                            {
+                                diagnostics.push(error(
+                                    program,
+                                    "SPX-M104",
+                                    format!("invalid or duplicate pattern binding `{}`", field.binding),
+                                    field.binding_span,
+                                ));
+                                continue;
+                            }
+                            if let Some(declared_field) = declared_field {
+                                arm_variables.insert(
+                                    field.binding.clone(),
+                                    Binding {
+                                        ty: declared_field.ty.clone(),
+                                        mode: ParamMode::Value,
+                                        availability: Availability::Available,
+                                        moved_places: HashMap::new(),
+                                        definitely_partial: HashSet::new(),
+                                    },
+                                );
+                            }
+                        }
+                        if let Some(declared_case) = declared_case {
+                            for field in &declared_case.fields {
+                                if !supplied.contains(field.name.as_str()) {
+                                    diagnostics.push(error(
+                                        program,
+                                        "SPX-M104",
+                                        format!(
+                                            "pattern `{type_name}::{case_name}` is missing payload field `{}`",
+                                            field.name
+                                        ),
+                                        *span,
+                                    ));
+                                }
+                            }
+                        }
+                    }
+                }
+                let arm_value = check_expr(
+                    program,
+                    current,
+                    &arm.value,
+                    &mut arm_variables,
+                    functions,
+                    types,
+                    result_type,
+                    allow_moves,
+                    diagnostics,
+                );
+                if let Some(arm_value) = arm_value {
+                    if let Some(expected) = &result {
+                        if expected.ty != arm_value.ty || expected.mode != arm_value.mode {
+                            diagnostics.push(error(
+                                program,
+                                "SPX-T216",
+                                format!(
+                                    "match arms return incompatible values: {} and {}",
+                                    expected.ty, arm_value.ty
+                                ),
+                                arm.value.span,
+                            ));
+                        }
+                    } else {
+                        result = Some(arm_value);
+                    }
+                }
+                arm_states.push(arm_variables);
+            }
+            if !wildcard_seen {
+                if let (Some(variant_name), Some(cases)) = (&variant_name, declared_cases) {
+                    if let Some(missing) = cases
+                        .iter()
+                        .find(|case| !covered.contains(case.name.as_str()))
+                    {
+                        let witness = if missing.fields.is_empty() {
+                            format!("{variant_name}::{} {{}}", missing.name)
+                        } else {
+                            format!("{variant_name}::{} {{ .. }}", missing.name)
+                        };
+                        diagnostics.push(error(
+                            program,
+                            "SPX-M101",
+                            format!("non-exhaustive match; missing case `{witness}`"),
+                            expr.span,
+                        ));
+                    }
+                }
+            }
+            if let Some((first, rest)) = arm_states.split_first() {
+                let mut joined = first.clone();
+                for state in rest {
+                    for name in &outer_names {
+                        if let (Some(joined_binding), Some(state_binding)) =
+                            (joined.get_mut(name), state.get(name))
+                        {
+                            joined_binding.availability =
+                                joined_binding.availability.join(state_binding.availability);
+                            joined_binding.moved_places =
+                                join_moved_places(joined_binding, state_binding);
+                            joined_binding.definitely_partial =
+                                join_definitely_partial(joined_binding, state_binding);
+                        }
+                    }
+                }
+                merge_moved(variables, &joined, &outer_names);
+            }
+            result
         }
         ExprKind::UpdateRecord { base, fields } => {
             let base_value = check_expr(

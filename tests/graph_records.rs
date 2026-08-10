@@ -37,7 +37,7 @@ fn main() -> i64 {
 "#;
 
 #[test]
-fn record_graph_matches_exact_v7_snapshot() {
+fn record_graph_matches_exact_v8_snapshot() {
     let program = parse(RECORD_GRAPH, Path::new("record-graph.spx")).unwrap();
     let json = graph::to_json(&program).unwrap();
     assert_eq!(
@@ -50,7 +50,7 @@ fn record_graph_matches_exact_v7_snapshot() {
 fn record_graph_uses_persistent_field_ids_for_construction_update_and_projection() {
     let program = parse(UPDATE_RECORD_GRAPH, Path::new("record-update-graph.spx")).unwrap();
     let json = graph::to_json(&program).unwrap();
-    assert!(json.contains("\"schema\":\"semaprax.graph.v7\""));
+    assert!(json.contains("\"schema\":\"semaprax.graph.v8\""));
     assert!(!json.contains("semaprax.graph.v6"));
     assert!(json.contains("\"id\":\"geometry.point\",\"kind\":\"record\",\"name\":\"Point\""));
     assert!(json.contains(

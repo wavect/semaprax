@@ -123,11 +123,10 @@ fn layout_type(
     visiting: &mut BTreeSet<DeclarationId>,
 ) -> Result<ValueLayout, Diagnostic> {
     match ty {
-        ResolvedType::I64 => scalar_layout(target, ty, 8, 8),
-        ResolvedType::Bool => match target {
-            AggregateTarget::Native64 => scalar_layout(target, ty, 1, 1),
-            AggregateTarget::Wasm32 => scalar_layout(target, ty, 4, 4),
-        },
+        ResolvedType::I64 | ResolvedType::Bool => {
+            let (size, align) = scalar_size_align(target, ty)?;
+            scalar_layout(target, ty, size, align)
+        }
         ResolvedType::TypeParameter { .. } => Err(layout_error(
             "generic aggregate layouts are outside executable records v1",
         )),
@@ -142,6 +141,23 @@ fn layout_type(
             }
             layout_nominal(program, target, declaration, visiting)
         }
+    }
+}
+
+pub(crate) fn scalar_size_align(
+    target: AggregateTarget,
+    ty: &ResolvedType,
+) -> Result<(u32, u32), Diagnostic> {
+    match ty {
+        ResolvedType::I64 => Ok((8, 8)),
+        ResolvedType::Bool => match target {
+            AggregateTarget::Native64 => Ok((1, 1)),
+            AggregateTarget::Wasm32 => Ok((4, 4)),
+        },
+        _ => Err(layout_error(format!(
+            "type `{}` is not a scalar aggregate-layout value",
+            ty.identity_key()
+        ))),
     }
 }
 
@@ -198,6 +214,9 @@ fn layout_nominal(
             visiting.remove(declaration);
             result
         }
+        ResolvedTypeDeclarationKind::Variant { .. } => Err(layout_error(format!(
+            "variant `{declaration}` requires the variant-layout profile"
+        ))),
     }
 }
 

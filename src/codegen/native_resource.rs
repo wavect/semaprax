@@ -72,6 +72,9 @@ impl NativeResourceAbi {
                     ResolvedTypeDeclarationKind::Record { .. } => Err(resource_error(format!(
                         "native aggregate representation is unavailable for record `{declaration}`"
                     ))),
+                    ResolvedTypeDeclarationKind::Variant { .. } => Err(resource_error(format!(
+                        "native variant representation is unavailable for variant `{declaration}`"
+                    ))),
                     ResolvedTypeDeclarationKind::Resource { .. } => self
                         .resources
                         .binary_search_by(|resource| resource.resource_id.cmp(declaration))

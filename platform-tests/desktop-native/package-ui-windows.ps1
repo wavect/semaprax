@@ -193,7 +193,7 @@ if ($exportDirectory.Rva -ne 0 -or $exportDirectory.Size -ne 0 -or
 }
 if (Test-PeHasManifestResource $image) { throw 'private Windows native UI unexpectedly embeds a manifest' }
 if ($null -eq (Get-EffectiveManifest $ui $manifest)) { throw 'private Windows native UI external manifest was ineffective' }
-$ignored = @(& $llvmReadObjPath --file-headers --coff-imports --coff-exports --coff-resources -- $ui)
+$ignored = @(& $llvmReadObjPath --file-headers --coff-imports --coff-exports --coff-resources $ui)
 if ($LASTEXITCODE -ne 0 -or $ignored.Count -eq 0) { throw 'pinned llvm-readobj rejected private Windows native UI' }
 Assert-NoEmbeddedPath $ui @($repo, $scratch, $OutputRoot)
 

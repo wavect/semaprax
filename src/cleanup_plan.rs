@@ -209,6 +209,11 @@ pub struct CleanupBlock {
 pub enum EdgeCondition {
     Always,
     BooleanResult(ExpressionId, bool),
+    VariantCase {
+        scrutinee: ExpressionId,
+        case: DeclarationId,
+        matches: bool,
+    },
     StatusZero(StatusSourceId),
     StatusNonzero(StatusSourceId),
 }

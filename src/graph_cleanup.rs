@@ -1,4 +1,4 @@
-//! Deterministic Graph v7 serialization for verified cleanup plans.
+//! Deterministic Graph v8 serialization for verified cleanup plans.
 //!
 //! This module is intentionally a renderer, not a validator or canonicalizer.
 //! Every vector is emitted in the order supplied by [`CleanupPlan`]. Sorting,
@@ -16,7 +16,7 @@ use crate::cleanup_plan::{
 use crate::diagnostic::quote_json;
 use crate::hir::ResolvedType;
 
-/// Serialize one already-validated cleanup plan for embedding in Graph v7.
+/// Serialize one already-validated cleanup plan for embedding in Graph v8.
 ///
 /// Callers must validate the enclosing resolved program before invoking this
 /// function. Keeping validation out of the renderer makes it impossible for
@@ -244,6 +244,16 @@ fn edge_condition_json(condition: &EdgeCondition) -> String {
             "{{\"kind\":\"boolean_result\",\"expression\":{},\"value\":{}}}",
             quote_json(expression.as_str()),
             value
+        ),
+        EdgeCondition::VariantCase {
+            scrutinee,
+            case,
+            matches,
+        } => format!(
+            "{{\"kind\":\"variant_case\",\"scrutinee\":{},\"case\":{},\"matches\":{}}}",
+            quote_json(scrutinee.as_str()),
+            quote_json(case.as_str()),
+            matches
         ),
         EdgeCondition::StatusZero(source) => format!(
             "{{\"kind\":\"status_zero\",\"source\":{}}}",

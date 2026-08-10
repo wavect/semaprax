@@ -59,6 +59,7 @@ pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagno
         matches!(
             &declaration.kind,
             ResolvedTypeDeclarationKind::Record { .. }
+                | ResolvedTypeDeclarationKind::Variant { .. }
         )
     }) {
         return aggregate::emit(program);
@@ -493,6 +494,17 @@ fn collect_locals(
                 collect_locals(&field.value, parameter_count, layout)?;
             }
         }
+        ResolvedExprKind::ConstructVariant { fields, .. } => {
+            for field in fields {
+                collect_locals(&field.value, parameter_count, layout)?;
+            }
+        }
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            collect_locals(scrutinee, parameter_count, layout)?;
+            for arm in arms {
+                collect_locals(&arm.value, parameter_count, layout)?;
+            }
+        }
         ResolvedExprKind::Project { base, .. } => {
             collect_locals(base, parameter_count, layout)?;
         }
@@ -700,11 +712,13 @@ fn emit_expr(
             output.push(0x0b);
         }
         ResolvedExprKind::ConstructRecord { .. }
+        | ResolvedExprKind::ConstructVariant { .. }
+        | ResolvedExprKind::Match { .. }
         | ResolvedExprKind::Project { .. }
         | ResolvedExprKind::UpdateRecord { .. } => {
             return Err(Diagnostic::io(
                 "SPX-W110",
-                "record expressions require WebAssembly aggregate lowering",
+                "aggregate expressions require WebAssembly aggregate lowering",
             ));
         }
     }

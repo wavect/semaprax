@@ -2,8 +2,9 @@ use std::path::Path;
 
 use crate::ast::{
     BinaryOp, Expr, ExprKind, FieldDeclaration, FieldInitializer, Function, ImportDeclaration,
-    ImportFailure, InterfaceDeclaration, Param, ParamMode, Program, ResourceLifecycleDeclaration,
-    ResourceLifecycleKind, Span, Statement, Type, TypeDeclaration, TypeDeclarationKind, UnaryOp,
+    ImportFailure, InterfaceDeclaration, MatchArm, MatchPattern, MatchPatternField, Param,
+    ParamMode, Program, ResourceLifecycleDeclaration, ResourceLifecycleKind, Span, Statement, Type,
+    TypeDeclaration, TypeDeclarationKind, UnaryOp, VariantCaseDeclaration,
 };
 use crate::diagnostic::Diagnostic;
 use crate::lexer::{lex, Token, TokenKind};
@@ -45,6 +46,8 @@ impl Parser {
                 types.push(self.resource(&module, stable_id)?);
             } else if self.at_keyword("record") {
                 types.push(self.record(&module, stable_id)?);
+            } else if self.at_keyword("variant") {
+                types.push(self.variant(&module, stable_id)?);
             } else if self.at_keyword("interface") {
                 interfaces.push(self.interface(&module, stable_id)?);
             } else {
@@ -311,6 +314,76 @@ impl Parser {
         })
     }
 
+    fn variant(
+        &mut self,
+        module: &str,
+        stable_id: Option<String>,
+    ) -> Result<TypeDeclaration, Diagnostic> {
+        let start = self.keyword("variant")?.span;
+        let (name, name_span) = self.ident("variant name")?;
+        let explicit_id = stable_id.is_some();
+        let stable_id = stable_id.unwrap_or_else(|| format!("auto:variant:{module}.{name}"));
+        self.expect(&TokenKind::LBrace, "`{` before variant cases")?;
+        let mut cases = Vec::new();
+        while !self.at(&TokenKind::RBrace) {
+            if self.at(&TokenKind::Eof) {
+                return Err(self.error_here("SPX-P106", "expected `}` after variant cases"));
+            }
+            let case_id = self.stable_id_attribute()?;
+            let (case_name, case_name_span) = self.ident("variant case name")?;
+            let case_explicit_id = case_id.is_some();
+            let case_stable_id =
+                case_id.unwrap_or_else(|| format!("auto:case:{stable_id}.{case_name}"));
+            let mut fields = Vec::new();
+            if self.take(&TokenKind::LBrace) {
+                while !self.at(&TokenKind::RBrace) {
+                    let field_id = self.stable_id_attribute()?;
+                    let (field_name, field_name_span) = self.ident("variant payload field name")?;
+                    self.expect(&TokenKind::Colon, "`:` after variant payload field name")?;
+                    let ty = self.ty()?;
+                    let end = self
+                        .expect(&TokenKind::Comma, "`,` after variant payload field")?
+                        .span;
+                    let field_explicit_id = field_id.is_some();
+                    let field_stable_id = field_id.unwrap_or_else(|| {
+                        format!("auto:case-field:{case_stable_id}.{field_name}")
+                    });
+                    fields.push(FieldDeclaration {
+                        stable_id: field_stable_id,
+                        explicit_id: field_explicit_id,
+                        name: field_name,
+                        name_span: field_name_span,
+                        ty,
+                        span: field_name_span.merge(end),
+                    });
+                }
+                self.expect(&TokenKind::RBrace, "`}` after variant payload fields")?;
+            }
+            let end = self
+                .expect(&TokenKind::Comma, "`,` after variant case")?
+                .span;
+            cases.push(VariantCaseDeclaration {
+                stable_id: case_stable_id,
+                explicit_id: case_explicit_id,
+                name: case_name,
+                name_span: case_name_span,
+                fields,
+                span: case_name_span.merge(end),
+            });
+        }
+        let end = self
+            .expect(&TokenKind::RBrace, "`}` after variant cases")?
+            .span;
+        Ok(TypeDeclaration {
+            stable_id,
+            explicit_id,
+            name,
+            name_span,
+            kind: TypeDeclarationKind::Variant { cases },
+            span: start.merge(end),
+        })
+    }
+
     fn function(
         &mut self,
         module: &str,
@@ -434,6 +507,7 @@ impl Parser {
                 span: token.span,
             },
             TokenKind::Ident(value) if value == "if" => self.if_expression(token.span)?,
+            TokenKind::Ident(value) if value == "match" => self.match_expression(token.span)?,
             TokenKind::Ident(value) => Expr {
                 kind: ExprKind::Var(value),
                 span: token.span,
@@ -474,6 +548,33 @@ impl Parser {
         };
 
         loop {
+            if self.take(&TokenKind::ColonColon) {
+                let ExprKind::Var(type_name) = expression.kind else {
+                    return Err(self.error_previous(
+                        "SPX-P204",
+                        "variant construction requires a named variant qualifier",
+                    ));
+                };
+                let type_span = expression.span;
+                let (case_name, case_span) = self.ident("variant case name after `::`")?;
+                self.expect(&TokenKind::LBrace, "`{` after variant case name")?;
+                let fields = self.field_initializers("variant payload field")?;
+                let end = self
+                    .expect(&TokenKind::RBrace, "`}` after variant payload")?
+                    .span;
+                expression = Expr {
+                    kind: ExprKind::ConstructVariant {
+                        type_name,
+                        type_span,
+                        case_name,
+                        case_span,
+                        fields,
+                    },
+                    span: type_span.merge(end),
+                };
+                continue;
+            }
+
             if self.at_keyword("with") {
                 let start = expression.span;
                 self.bump();
@@ -652,6 +753,102 @@ impl Parser {
             },
             span,
         })
+    }
+
+    fn match_expression(&mut self, start: Span) -> Result<Expr, Diagnostic> {
+        let scrutinee = self.expression_with_record_literals(0, false)?;
+        self.expect(&TokenKind::LBrace, "`{` before match arms")?;
+        let mut arms = Vec::new();
+        while !self.at(&TokenKind::RBrace) {
+            if self.at(&TokenKind::Eof) {
+                return Err(self.error_here("SPX-P205", "expected `}` after match arms"));
+            }
+            let pattern = self.match_pattern()?;
+            self.expect(&TokenKind::FatArrow, "`=>` after match pattern")?;
+            let value = self.expression(0)?;
+            let arm_span = pattern.span().merge(value.span);
+            arms.push(MatchArm {
+                pattern,
+                value,
+                span: arm_span,
+            });
+            self.expect(&TokenKind::Comma, "`,` after match arm")?;
+        }
+        let end = self
+            .expect(&TokenKind::RBrace, "`}` after match arms")?
+            .span;
+        Ok(Expr {
+            kind: ExprKind::Match {
+                scrutinee: Box::new(scrutinee),
+                arms,
+            },
+            span: start.merge(end),
+        })
+    }
+
+    fn match_pattern(&mut self) -> Result<MatchPattern, Diagnostic> {
+        let (type_name, type_span) = self.ident("variant name or `_` in match pattern")?;
+        if type_name == "_" {
+            return Ok(MatchPattern::Wildcard { span: type_span });
+        }
+        self.expect(
+            &TokenKind::ColonColon,
+            "`::` after variant name in match pattern",
+        )?;
+        let (case_name, case_span) = self.ident("variant case name in match pattern")?;
+        self.expect(&TokenKind::LBrace, "`{` after variant case pattern")?;
+        let mut fields = Vec::new();
+        while !self.at(&TokenKind::RBrace) {
+            let (name, name_span) = self.ident("variant pattern field name")?;
+            let (binding, binding_span) = if self.take(&TokenKind::Colon) {
+                self.ident("variant pattern binding name")?
+            } else {
+                (name.clone(), name_span)
+            };
+            fields.push(MatchPatternField {
+                name,
+                name_span,
+                binding,
+                binding_span,
+                span: name_span.merge(binding_span),
+            });
+            if !self.take(&TokenKind::Comma) {
+                break;
+            }
+        }
+        let end = self
+            .expect(&TokenKind::RBrace, "`}` after variant pattern")?
+            .span;
+        Ok(MatchPattern::Variant {
+            type_name,
+            type_span,
+            case_name,
+            case_span,
+            fields,
+            span: type_span.merge(end),
+        })
+    }
+
+    fn field_initializers(
+        &mut self,
+        description: &str,
+    ) -> Result<Vec<FieldInitializer>, Diagnostic> {
+        let mut fields = Vec::new();
+        while !self.at(&TokenKind::RBrace) {
+            let (name, name_span) = self.ident(description)?;
+            self.expect(&TokenKind::Colon, "`:` after variant payload field")?;
+            let value = self.expression(0)?;
+            fields.push(FieldInitializer {
+                name,
+                name_span,
+                span: name_span.merge(value.span),
+                value,
+            });
+            if !self.take(&TokenKind::Comma) {
+                break;
+            }
+        }
+        Ok(fields)
     }
 
     fn effect_set(&mut self) -> Result<Vec<String>, Diagnostic> {

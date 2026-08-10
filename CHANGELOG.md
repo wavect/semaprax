@@ -15,11 +15,22 @@ All notable changes to SEMAPRAX are documented here.
   and the private Android JNI/Kotlin app
   ([job 93309086206](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086206)).
   Windows desktop package/runtime remains pending after
-  [failed run 31340893685, job 93314358662](https://github.com/wavect/semaprax/actions/runs/31340893685/job/93314358662).
-- Upgraded the current semantic projection to `semaprax.graph.v7` and added
+  [failed run 31341453652, job 93315816975](https://github.com/wavect/semaprax/actions/runs/31341453652/job/93315816975).
+  The local `llvm-readobj` package-inspection fix is not hosted evidence.
+- Added bounded executable copy variants and exhaustive `match`: non-generic
+  nominal unit/direct-`i64`/direct-`bool` cases, explicit construction,
+  persistent case/payload identities, declaration-order `u32` tags, checked
+  Native64/Wasm32 internal layouts, stable diagnostics, CleanupPlan v1
+  variant-case replay, native C11 O0/O2 execution, and real Node/Wasm execution
+  with selected-arm-only behavior, full poison, invalid-tag closure, and
+  shadow-stack re-entry. Graph is now `semaprax.graph.v8`. Generic variants,
+  `Option`, `Result`, `?`, resource-bearing payloads, non-copy ownership modes,
+  stable public aggregate ABI, callable/component signatures, and public
+  resource admission remain closed.
+- Graph v7 added
   canonical immutable record update across source, resolved HIR, Graph, and
   context traversal. Update meaning is base-first with replacement expressions
-  in authored order; v6/v7 schema confusion rejects as documented in
+  in authored order; v6/v7 and v7/v8 schema confusion reject as documented in
   [MIGRATIONS.md](docs/MIGRATIONS.md).
 - Added checked deterministic Native64/Wasm32 layouts for nested record fields
   in the admitted `i64`/`bool`/direct-trivial-resource slice. Cleanup-plan
@@ -52,7 +63,7 @@ All notable changes to SEMAPRAX are documented here.
   CLI now emits deterministic whole-JSON byte- and function-node-bounded facts,
   exact used/omitted/deferred accounting, closed truncation reasons, strict
   options, and query-bound stable-ID progress frontiers with non-dangling
-  emitted calls and permanent oversize rejection. Compact Graph-v7
+  emitted calls and permanent oversize rejection. Compact Graph-v8
   contracts, parameter/result ownership, effects, and reference-closed types
   are filterable; cleanup/lifecycle/import subgraphs are not claimed, and
   absent target/diagnostic/test graph facts are explicitly unavailable. This

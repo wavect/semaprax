@@ -9,8 +9,8 @@ use crate::cleanup::{
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
     DeclarationId, ExpressionId, OwnershipMode, Place, PlaceProjection, ResolvedExpr,
-    ResolvedExprKind, ResolvedFunction, ResolvedProgram, ResolvedStatement, ResolvedType,
-    ResolvedTypeDeclarationKind,
+    ResolvedExprKind, ResolvedFunction, ResolvedMatchArm, ResolvedMatchPattern, ResolvedProgram,
+    ResolvedStatement, ResolvedType, ResolvedTypeDeclarationKind,
 };
 
 use super::{
@@ -428,6 +428,9 @@ impl<'a> PlanBuilder<'a> {
                     fields: shapes,
                 })
             }
+            ResolvedTypeDeclarationKind::Variant { .. } => Err(plan_error(
+                "droppable variant cleanup is outside the copy-only v1 slice",
+            )),
         }
     }
 
@@ -1183,6 +1186,12 @@ impl<'a> PlanBuilder<'a> {
             ResolvedExprKind::ConstructRecord { fields, .. } => {
                 self.lower_record(expression, fields, block, state, region)
             }
+            ResolvedExprKind::ConstructVariant { fields, .. } => {
+                self.lower_copy_variant(fields, block, state, region)
+            }
+            ResolvedExprKind::Match { scrutinee, arms } => {
+                self.lower_match(scrutinee, arms, block, state, region)
+            }
             ResolvedExprKind::UpdateRecord { .. } => {
                 self.lower_update_record(expression, block, state, region)
             }
@@ -1550,6 +1559,120 @@ impl<'a> PlanBuilder<'a> {
             block: current,
             state: current_state,
             owned_source: destination,
+        })
+    }
+
+    fn lower_copy_variant(
+        &mut self,
+        fields: &[crate::hir::ResolvedFieldInitializer],
+        block: BlockId,
+        state: FlowState,
+        region: CleanupRegionId,
+    ) -> Result<EvalResult, Diagnostic> {
+        let mut evaluated = EvalResult {
+            block,
+            state,
+            owned_source: None,
+        };
+        for field in fields {
+            evaluated = self.lower_expr(&field.value, evaluated.block, evaluated.state, region)?;
+            if field.value.ownership == OwnershipMode::Own && self.needs_drop(&field.value.ty)? {
+                return Err(plan_error(
+                    "droppable variant payload reached the copy-only cleanup slice",
+                ));
+            }
+        }
+        evaluated.owned_source = None;
+        Ok(evaluated)
+    }
+
+    fn lower_match(
+        &mut self,
+        scrutinee: &ResolvedExpr,
+        arms: &[ResolvedMatchArm],
+        block: BlockId,
+        state: FlowState,
+        region: CleanupRegionId,
+    ) -> Result<EvalResult, Diagnostic> {
+        if arms.is_empty() {
+            return Err(plan_error("copy-variant match has no arms"));
+        }
+        if self.needs_drop(&arms[0].value.ty)? {
+            return Err(plan_error(
+                "droppable match result reached the copy-only cleanup slice",
+            ));
+        }
+
+        let scrutinee_result = self.lower_expr(scrutinee, block, state, region)?;
+        if scrutinee_result.owned_source.is_some() {
+            return Err(plan_error(
+                "droppable match scrutinee reached the copy-only cleanup slice",
+            ));
+        }
+
+        let mut decision = scrutinee_result.block;
+        let branch_state = scrutinee_result.state;
+        let mut arm_results = Vec::with_capacity(arms.len());
+        for (index, arm) in arms.iter().enumerate() {
+            let final_arm = index + 1 == arms.len();
+            let arm_entry = self.new_block(region)?;
+            if final_arm {
+                let edge = self.new_edge(decision, arm_entry, EdgeCondition::Always)?;
+                self.terminate(decision, CleanupTerminator::Goto(edge))?;
+            } else {
+                let ResolvedMatchPattern::Variant { case, .. } = &arm.pattern else {
+                    return Err(plan_error(
+                        "wildcard match arm must be the final exhaustive arm",
+                    ));
+                };
+                let next_decision = self.new_block(region)?;
+                let selected = self.new_edge(
+                    decision,
+                    arm_entry,
+                    EdgeCondition::VariantCase {
+                        scrutinee: scrutinee.id.clone(),
+                        case: case.clone(),
+                        matches: true,
+                    },
+                )?;
+                let rejected = self.new_edge(
+                    decision,
+                    next_decision,
+                    EdgeCondition::VariantCase {
+                        scrutinee: scrutinee.id.clone(),
+                        case: case.clone(),
+                        matches: false,
+                    },
+                )?;
+                self.terminate(
+                    decision,
+                    CleanupTerminator::Branch(vec![selected, rejected]),
+                )?;
+                decision = next_decision;
+            }
+
+            let result = self.lower_expr(&arm.value, arm_entry, branch_state.clone(), region)?;
+            if result.owned_source.is_some() {
+                return Err(plan_error(
+                    "droppable match arm reached the copy-only cleanup slice",
+                ));
+            }
+            arm_results.push(result);
+        }
+
+        let mut merged_state = arm_results[0].state.clone();
+        for result in &arm_results[1..] {
+            merged_state = self.merge_states(&merged_state, &result.state)?;
+        }
+        let join = self.new_block(region)?;
+        for result in arm_results {
+            let edge = self.new_edge(result.block, join, EdgeCondition::Always)?;
+            self.terminate(result.block, CleanupTerminator::Goto(edge))?;
+        }
+        Ok(EvalResult {
+            block: join,
+            state: merged_state,
+            owned_source: None,
         })
     }
 

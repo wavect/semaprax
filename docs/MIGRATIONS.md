@@ -124,6 +124,28 @@ and protocol keys must include the exact graph schema. A v6 consumer must reject
 may silently reinterpret an unknown expression kind. Agent Context v1 remains
 the context-envelope schema and now declares `semaprax.graph.v7` as its source.
 
+## Graph v7 to v8 and executable copy variants
+
+Graph v8 adds persistent `variant`, `variant_case`, and variant payload-field
+declarations plus revision-scoped `construct_variant`, `match`, `match_arm`,
+variant-pattern, wildcard-pattern, and arm-local payload-binding structure.
+Case and payload vectors remain declaration ordered. Match-arm vectors remain
+authored ordered. CleanupPlan v1 keeps its schema identity while adding the
+closed `variant_case` edge condition, which binds one scrutinee expression ID,
+one stable case declaration ID, and a boolean match polarity. Producers and
+consumers must not substitute display names, numeric tags, or boolean-result
+edges for this meaning.
+
+The source-revision algorithm remains unchanged, so identical source without
+variants may retain its revision while the graph payload changes. Cache and
+protocol keys must include the exact schema. A v7 consumer must reject
+`semaprax.graph.v8`; a v8 consumer must reject `semaprax.graph.v7` and every
+unknown declaration, expression, pattern, or edge kind. Agent Context v1 keeps
+its envelope schema but now declares `semaprax.graph.v8` as its
+`source_graph_schema`. Graph v8 does not imply generic variants, `Option`,
+`Result`, `?`, resource-bearing payloads, ownership-aware matching, a stable
+public ABI, callable/component aggregate support, or public resource admission.
+
 ## Normalized status v1 and conformance trace v1
 
 This release introduces two independent public protocol schemas:

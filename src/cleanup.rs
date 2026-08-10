@@ -275,6 +275,9 @@ impl InventoryBuilder<'_> {
                     fields: shapes,
                 })
             }
+            ResolvedTypeDeclarationKind::Variant { .. } => Err(cleanup_error(
+                "droppable variant cleanup is outside the copy-only v1 slice",
+            )),
         }
     }
 
@@ -322,6 +325,17 @@ impl InventoryBuilder<'_> {
             ResolvedExprKind::ConstructRecord { fields, .. } => {
                 for field in fields {
                     self.collect_expression(&field.value)?;
+                }
+            }
+            ResolvedExprKind::ConstructVariant { fields, .. } => {
+                for field in fields {
+                    self.collect_expression(&field.value)?;
+                }
+            }
+            ResolvedExprKind::Match { scrutinee, arms } => {
+                self.collect_expression(scrutinee)?;
+                for arm in arms {
+                    self.collect_expression(&arm.value)?;
                 }
             }
             ResolvedExprKind::UpdateRecord { base, fields, .. } => {

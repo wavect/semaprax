@@ -3,7 +3,7 @@
 Status: implemented, additive semantic-query contract. It bounds deterministic
 UTF-8 JSON bytes and function facts; it does not claim an exact model-token
 budget, relevance ranking, repository-wide impact analysis, or facts absent
-from Graph v7.
+from Graph v8.
 
 `semaprax.agent-context.v1` is the current CLI projection for:
 
@@ -17,7 +17,7 @@ Options are closed, single-use, and require canonical decimal integers.
 Unknown options and filters, duplicates, missing values, leading-zero numbers,
 empty filters, `max_nodes = 0`, and values outside the published bounds fail
 before semantic output. Defaults are depth 1, 64 KiB, 256 function facts, and
-the four Graph-v7-supported filters.
+the four Graph-v8-supported filters.
 
 ## Envelope and budgets
 
@@ -57,12 +57,12 @@ future facet.
 
 ## Filters and limits
 
-Graph v7 supports exact compact `contracts`, parameter/result `ownership`,
+Graph v8 supports exact compact `contracts`, parameter/result `ownership`,
 `effects`, and `types` facets. Each emitted function carries a reference index
 for contract value roots and referenced nominal declarations; resource drop
 meaning is embedded as a closed strategy rather than an unresolved lifecycle
 or import reference. Cleanup, lifecycle, and import subgraphs are intentionally
-not claimed by this v1 projection. Graph v7 has no target, diagnostic, or test nodes.
+not claimed by this v1 projection. Graph v8 has no target, diagnostic, or test nodes.
 Those names are closed and accepted, but are listed under
 `filter_support.unavailable`; no facts are inferred from filenames, CI, or
 source text.

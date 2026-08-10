@@ -298,6 +298,10 @@ fn windows_source_lock_rejects_hostile_gate_removal() {
         source.replace("'bcryptprimitives.dll'", "'ambient-crypto.dll'"),
         source.replace("Get-PeExports", "Removed-PeExports"),
         source.replace(
+            "--coff-exports --coff-resources $Path",
+            "--coff-exports --coff-resources -- $Path",
+        ),
+        source.replace(
             "$inspectedExeExports = Get-PeExports $exeContract.Image",
             "$inspectedExeExports = @(Get-PeExports $exeContract.Image)",
         ),
@@ -546,7 +550,7 @@ fn windows_contract(source: &str) -> Result<(), String> {
             "ActivateActCtx",
             "Assert-ExactInventory",
             "Assert-NoEmbeddedPath",
-            "$llvmReadObjPath --file-headers --coff-imports --coff-exports --coff-resources",
+            "$llvmReadObjPath --file-headers --coff-imports --coff-exports --coff-resources $Path",
             "SEMAPRAX_DESKTOP_V3_OK platform=windows",
         ],
     )?;

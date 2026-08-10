@@ -371,6 +371,7 @@ fn missing_and_unused_scenario_decisions_are_rejected() {
         .find_map(|edge| match &edge.condition {
             EdgeCondition::BooleanResult(expression, _) => Some(expression.clone()),
             EdgeCondition::Always
+            | EdgeCondition::VariantCase { .. }
             | EdgeCondition::StatusZero(_)
             | EdgeCondition::StatusNonzero(_) => None,
         })
@@ -780,6 +781,7 @@ fn untaken_owned_branch_finalizes_before_scalar_publication() {
         .find_map(|edge| match &edge.condition {
             EdgeCondition::BooleanResult(expression, _) => Some(expression.clone()),
             EdgeCondition::Always
+            | EdgeCondition::VariantCase { .. }
             | EdgeCondition::StatusZero(_)
             | EdgeCondition::StatusNonzero(_) => None,
         })

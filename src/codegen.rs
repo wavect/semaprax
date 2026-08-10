@@ -60,6 +60,7 @@ use crate::hir::{
     ResolvedExprKind, ResolvedFunction, ResolvedProgram, ResolvedStatement, ResolvedType,
     ResolvedTypeDeclarationKind, ValueId,
 };
+use crate::variant_layout::{VariantLayout, VariantTarget};
 
 /// Resolve a parsed program fail-closed, then emit its checked native bootstrap IR.
 pub fn emit_c(program: &Program) -> Result<String, Diagnostic> {
@@ -940,13 +941,23 @@ fn emit_aggregate_declarations(
         .filter(|item| matches!(item.kind, ResolvedTypeDeclarationKind::Record { .. }))
         .map(|item| item.id.clone())
         .collect::<Vec<_>>();
-    if records.is_empty() {
+    let variants = program
+        .types
+        .iter()
+        .filter(|item| matches!(item.kind, ResolvedTypeDeclarationKind::Variant { .. }))
+        .map(|item| item.id.clone())
+        .collect::<Vec<_>>();
+    if records.is_empty() && variants.is_empty() {
         return Ok(());
     }
 
     output.push_str("#include <stddef.h>\n\n");
     for record in &records {
         writeln!(output, "struct {};", c_record_symbol(record))
+            .expect("writing to a string cannot fail");
+    }
+    for variant in &variants {
+        writeln!(output, "struct {};", c_variant_symbol(variant))
             .expect("writing to a string cannot fail");
     }
     output.push('\n');
@@ -962,6 +973,9 @@ fn emit_aggregate_declarations(
             &mut visiting,
             &mut emitted,
         )?;
+    }
+    for variant in &variants {
+        emit_variant_declaration(output, program, resource_abi, variant)?;
     }
     Ok(())
 }
@@ -1043,6 +1057,79 @@ fn emit_record_declaration(
     Ok(())
 }
 
+fn emit_variant_declaration(
+    output: &mut String,
+    program: &ResolvedProgram,
+    resource_abi: &native_resource::NativeResourceAbi,
+    variant: &DeclarationId,
+) -> Result<(), Diagnostic> {
+    let layout = VariantLayout::for_variant(program, VariantTarget::Native64, variant)?;
+    layout.validate(program)?;
+    let symbol = c_variant_symbol(variant);
+    writeln!(output, "struct {symbol} {{").expect("writing to a string cannot fail");
+    output.push_str("    uint32_t spx_tag;\n    union {\n");
+    for case in &layout.cases {
+        output.push_str("        struct {\n");
+        if case.fields.is_empty() {
+            output.push_str("            uint8_t spx_empty_variant_payload;\n");
+        } else {
+            for field in &case.fields {
+                writeln!(
+                    output,
+                    "            {} {};",
+                    c_value_type(program, resource_abi, &field.ty)?,
+                    c_field_symbol(&field.field)
+                )
+                .expect("writing to a string cannot fail");
+            }
+        }
+        writeln!(output, "        }} {};", c_case_symbol(&case.case))
+            .expect("writing to a string cannot fail");
+    }
+    output.push_str("    } spx_payload;\n};\n");
+    writeln!(
+        output,
+        "_Static_assert(sizeof(struct {symbol}) == UINT32_C({}), \"SEMAPRAX native variant size\");",
+        layout.size
+    )
+    .expect("writing to a string cannot fail");
+    writeln!(
+        output,
+        "_Static_assert(_Alignof(struct {symbol}) == UINT32_C({}), \"SEMAPRAX native variant alignment\");",
+        layout.align
+    )
+    .expect("writing to a string cannot fail");
+    writeln!(
+        output,
+        "_Static_assert(offsetof(struct {symbol}, spx_tag) == UINT32_C(0), \"SEMAPRAX native variant tag offset\");"
+    )
+    .expect("writing to a string cannot fail");
+    writeln!(
+        output,
+        "_Static_assert(offsetof(struct {symbol}, spx_payload) == UINT32_C({}), \"SEMAPRAX native variant payload offset\");",
+        layout.payload_offset
+    )
+    .expect("writing to a string cannot fail");
+    for case in &layout.cases {
+        let case_symbol = c_case_symbol(&case.case);
+        for field in &case.fields {
+            let absolute_offset = layout
+                .payload_offset
+                .checked_add(field.offset)
+                .ok_or_else(|| backend_error("native variant field offset overflows u32"))?;
+            writeln!(
+                output,
+                "_Static_assert(offsetof(struct {symbol}, spx_payload.{case_symbol}.{}) == UINT32_C({}), \"SEMAPRAX native variant field offset\");",
+                c_field_symbol(&field.field),
+                absolute_offset
+            )
+            .expect("writing to a string cannot fail");
+        }
+    }
+    output.push('\n');
+    Ok(())
+}
+
 fn c_value_type(
     program: &ResolvedProgram,
     resource_abi: &native_resource::NativeResourceAbi,
@@ -1050,13 +1137,16 @@ fn c_value_type(
 ) -> Result<String, Diagnostic> {
     if let Some(record) = record_declaration_id(program, ty)? {
         Ok(format!("struct {}", c_record_symbol(record)))
+    } else if let Some(variant) = variant_declaration_id(program, ty)? {
+        Ok(format!("struct {}", c_variant_symbol(variant)))
     } else {
         resource_abi.c_type(program, ty).map(str::to_owned)
     }
 }
 
-fn is_record_type(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic> {
-    Ok(record_declaration_id(program, ty)?.is_some())
+fn is_aggregate_type(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic> {
+    Ok(record_declaration_id(program, ty)?.is_some()
+        || variant_declaration_id(program, ty)?.is_some())
 }
 
 fn record_declaration_id<'a>(
@@ -1084,8 +1174,41 @@ fn record_declaration_id<'a>(
     Ok(matches!(item.kind, ResolvedTypeDeclarationKind::Record { .. }).then_some(declaration))
 }
 
+fn variant_declaration_id<'a>(
+    program: &ResolvedProgram,
+    ty: &'a ResolvedType,
+) -> Result<Option<&'a DeclarationId>, Diagnostic> {
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = ty
+    else {
+        return Ok(None);
+    };
+    if !arguments.is_empty() {
+        return Err(backend_error(format!(
+            "native aggregate representation is unavailable for generic type `{}`",
+            ty.identity_key()
+        )));
+    }
+    let item = program
+        .types
+        .iter()
+        .find(|item| item.id == *declaration)
+        .ok_or_else(|| backend_error(format!("unknown native type `{declaration}`")))?;
+    Ok(matches!(item.kind, ResolvedTypeDeclarationKind::Variant { .. }).then_some(declaration))
+}
+
 fn c_record_symbol(id: &DeclarationId) -> String {
     stable_c_symbol("spx_record_", id)
+}
+
+fn c_variant_symbol(id: &DeclarationId) -> String {
+    stable_c_symbol("spx_variant_", id)
+}
+
+fn c_case_symbol(id: &DeclarationId) -> String {
+    stable_c_symbol("spx_case_", id)
 }
 
 fn c_field_symbol(id: &DeclarationId) -> String {
@@ -1118,7 +1241,7 @@ fn emit_function_prototypes(
         .expect("writing to a string cannot fail");
         for param in &function.params {
             let ty = c_value_type(program, resource_abi, &param.ty)?;
-            if is_record_type(program, &param.ty)? {
+            if is_aggregate_type(program, &param.ty)? {
                 write!(output, ", const {ty} *").expect("writing to a string cannot fail");
             } else {
                 write!(output, ", {ty}").expect("writing to a string cannot fail");
@@ -1439,7 +1562,7 @@ fn emit_function(
     .expect("writing to a string cannot fail");
     for (index, param) in function.params.iter().enumerate() {
         let ty = c_value_type(program, resource_abi, &param.ty)?;
-        if is_record_type(program, &param.ty)? {
+        if is_aggregate_type(program, &param.ty)? {
             write!(output, ", const {ty} *spx_param_{index}")
                 .expect("writing to a string cannot fail");
         } else {
@@ -1455,7 +1578,7 @@ fn emit_function(
 
     let mut variables = HashMap::new();
     for (index, param) in function.params.iter().enumerate() {
-        let name = if is_record_type(program, &param.ty)? {
+        let name = if is_aggregate_type(program, &param.ty)? {
             format!("(*spx_param_{index})")
         } else {
             format!("spx_param_{index}")
@@ -1752,7 +1875,7 @@ impl<'a> CEmitter<'a> {
                 for (index, (arg, expected)) in args.iter().zip(&target.params).enumerate() {
                     let argument = self.emit_expr(arg)?;
                     self.require_type(&argument.ty, expected, &format!("call argument {index}"))?;
-                    arguments.push(if is_record_type(self.program, expected)? {
+                    arguments.push(if is_aggregate_type(self.program, expected)? {
                         format!("&({})", argument.code)
                     } else {
                         argument.code
@@ -1897,6 +2020,145 @@ impl<'a> CEmitter<'a> {
                     ty: expr.ty.clone(),
                 }
             }
+            ResolvedExprKind::ConstructVariant {
+                variant,
+                case,
+                fields,
+            } => {
+                let layout = self.variant_layout(&expr.ty)?;
+                if layout.variant != *variant {
+                    return Err(backend_error(format!(
+                        "native variant constructor `{variant}` has result type `{}`",
+                        expr.ty.identity_key()
+                    )));
+                }
+                let case_layout = layout.case(case).cloned().ok_or_else(|| {
+                    backend_error(format!("native variant `{variant}` has no case `{case}`"))
+                })?;
+                let mut values = Vec::with_capacity(fields.len());
+                for initializer in fields {
+                    let field =
+                        case_layout
+                            .field(&initializer.field)
+                            .cloned()
+                            .ok_or_else(|| {
+                                backend_error(format!(
+                                    "native variant case `{case}` has no field `{}`",
+                                    initializer.field
+                                ))
+                            })?;
+                    let value = self.emit_expr(&initializer.value)?;
+                    self.require_type(&value.ty, &field.ty, "variant field initializer")?;
+                    values.push((field, value));
+                }
+                let temporary = self.temporary(&expr.ty)?;
+                self.line(&format!("memset(&{temporary}, 0, sizeof({temporary}));"));
+                let case_symbol = c_case_symbol(case);
+                for (field, value) in values {
+                    self.line(&format!(
+                        "{temporary}.spx_payload.{case_symbol}.{} = {};",
+                        c_field_symbol(&field.field),
+                        value.code
+                    ));
+                }
+                self.line(&format!(
+                    "{temporary}.spx_tag = UINT32_C({});",
+                    case_layout.tag
+                ));
+                CValue {
+                    code: temporary,
+                    ty: expr.ty.clone(),
+                }
+            }
+            ResolvedExprKind::Match { scrutinee, arms } => {
+                if is_aggregate_type(self.program, &expr.ty)? {
+                    return Err(backend_error(
+                        "copy variant match arms must produce i64 or bool",
+                    ));
+                }
+                let scrutinee = self.emit_expr(scrutinee)?;
+                let layout = self.variant_layout(&scrutinee.ty)?;
+                let staged = self.temporary(&scrutinee.ty)?;
+                self.line(&format!("{staged} = {};", scrutinee.code));
+                self.line(&format!(
+                    "if ({staged}.spx_tag >= UINT32_C({})) spx_runtime_invariant_failure(\"invalid variant tag\");",
+                    layout.cases.len()
+                ));
+                let result = self.temporary(&expr.ty)?;
+                let matched = self.temporary(&ResolvedType::Bool)?;
+                self.line(&format!("{matched} = false;"));
+                for arm in arms {
+                    let saved = self.variables.clone();
+                    match &arm.pattern {
+                        hir::ResolvedMatchPattern::Variant {
+                            variant,
+                            case,
+                            fields,
+                        } => {
+                            if *variant != layout.variant {
+                                return Err(backend_error(format!(
+                                    "match arm variant `{variant}` disagrees with `{}`",
+                                    layout.variant
+                                )));
+                            }
+                            let case_layout = layout.case(case).cloned().ok_or_else(|| {
+                                backend_error(format!("match arm references unknown case `{case}`"))
+                            })?;
+                            self.line(&format!(
+                                "if (!{matched} && {staged}.spx_tag == UINT32_C({})) {{",
+                                case_layout.tag
+                            ));
+                            self.indent += 1;
+                            self.line(&format!("{matched} = true;"));
+                            let case_symbol = c_case_symbol(case);
+                            for pattern_field in fields {
+                                let field = case_layout
+                                    .field(&pattern_field.field)
+                                    .cloned()
+                                    .ok_or_else(|| {
+                                        backend_error(format!(
+                                            "match case `{case}` has no field `{}`",
+                                            pattern_field.field
+                                        ))
+                                    })?;
+                                self.require_type(
+                                    &pattern_field.binding.ty,
+                                    &field.ty,
+                                    "match payload binding",
+                                )?;
+                                self.variables.insert(
+                                    pattern_field.binding.id.clone(),
+                                    CBinding {
+                                        name: format!(
+                                            "({staged}).spx_payload.{case_symbol}.{}",
+                                            c_field_symbol(&field.field)
+                                        ),
+                                        ty: field.ty,
+                                    },
+                                );
+                            }
+                        }
+                        hir::ResolvedMatchPattern::Wildcard => {
+                            self.line(&format!("if (!{matched}) {{"));
+                            self.indent += 1;
+                            self.line(&format!("{matched} = true;"));
+                        }
+                    }
+                    let value = self.emit_expr(&arm.value)?;
+                    self.require_type(&value.ty, &expr.ty, "match arm result")?;
+                    self.line(&format!("{result} = {};", value.code));
+                    self.variables = saved;
+                    self.indent -= 1;
+                    self.line("}");
+                }
+                self.line(&format!(
+                    "if (!{matched}) spx_runtime_invariant_failure(\"exhaustive variant match selected no arm\");"
+                ));
+                CValue {
+                    code: result,
+                    ty: expr.ty.clone(),
+                }
+            }
             ResolvedExprKind::Project { base, field } => {
                 let base = self.emit_expr(base)?;
                 let layout = self.record_layout(&base.ty)?;
@@ -1990,6 +2252,18 @@ impl<'a> CEmitter<'a> {
         Ok(layout)
     }
 
+    fn variant_layout(&self, ty: &ResolvedType) -> Result<VariantLayout, Diagnostic> {
+        let variant = variant_declaration_id(self.program, ty)?.ok_or_else(|| {
+            backend_error(format!(
+                "native variant operation requires a variant, found `{}`",
+                ty.identity_key()
+            ))
+        })?;
+        let layout = VariantLayout::for_variant(self.program, VariantTarget::Native64, variant)?;
+        layout.validate(self.program)?;
+        Ok(layout)
+    }
+
     fn emit_binary(
         &mut self,
         op: BinaryOp,
@@ -1998,9 +2272,9 @@ impl<'a> CEmitter<'a> {
         result_type: &ResolvedType,
     ) -> Result<CValue, Diagnostic> {
         let left = self.emit_expr(left)?;
-        if matches!(op, BinaryOp::Eq | BinaryOp::Ne) && is_record_type(self.program, &left.ty)? {
+        if matches!(op, BinaryOp::Eq | BinaryOp::Ne) && is_aggregate_type(self.program, &left.ty)? {
             return Err(backend_error(
-                "record equality is outside executable records v1",
+                "aggregate equality is outside executable copy variants v1",
             ));
         }
         let operand_type = match op {

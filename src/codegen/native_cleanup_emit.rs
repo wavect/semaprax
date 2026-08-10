@@ -910,6 +910,9 @@ fn edge_condition(
             "{} != SPX_STATUS_SUCCESS",
             status_binding(bindings, source)?
         )),
+        EdgeCondition::VariantCase { .. } => Err(cleanup_error(
+            "variant-case cleanup edges are outside the native owned-resource slice",
+        )),
     }
 }
 
@@ -952,6 +955,11 @@ fn validate_bindings(
             }
             EdgeCondition::StatusZero(source) | EdgeCondition::StatusNonzero(source) => {
                 expected_statuses.insert(source.clone());
+            }
+            EdgeCondition::VariantCase { .. } => {
+                return Err(cleanup_error(
+                    "variant-case cleanup edges are outside the native owned-resource slice",
+                ));
             }
             EdgeCondition::Always => {}
         }
@@ -1342,6 +1350,7 @@ fn main() -> i64 { 0 }
                         .entry(source.clone())
                         .or_insert_with(|| format!("spx_bind_status_{next}"));
                 }
+                EdgeCondition::VariantCase { .. } => {}
                 EdgeCondition::Always => {}
             }
         }

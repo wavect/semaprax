@@ -498,6 +498,12 @@ fn validate_program_types(
                     format!("does not support record declaration `{}`", declaration.id),
                 ));
             }
+            ResolvedTypeDeclarationKind::Variant { .. } => {
+                return Err(unsupported(
+                    function,
+                    format!("does not support variant declaration `{}`", declaration.id),
+                ));
+            }
             ResolvedTypeDeclarationKind::Resource { drop } => {
                 if let ResolvedResourceDropKind::Imported { import, .. } = &drop.kind {
                     return Err(unsupported(
@@ -567,6 +573,10 @@ fn validate_supported_type(
                     function,
                     format!("uses record type `{declaration}`"),
                 )),
+                ResolvedTypeDeclarationKind::Variant { .. } => Err(unsupported(
+                    function,
+                    format!("uses variant type `{declaration}`"),
+                )),
             }
         }
     }
@@ -603,6 +613,10 @@ fn direct_resource_lifecycle<'a>(
     match &item.kind {
         ResolvedTypeDeclarationKind::Resource { drop } => Ok(&drop.id),
         ResolvedTypeDeclarationKind::Record { .. } => Err(unsupported(
+            function,
+            format!("{context} `{declaration}` is not an opaque resource"),
+        )),
+        ResolvedTypeDeclarationKind::Variant { .. } => Err(unsupported(
             function,
             format!("{context} `{declaration}` is not an opaque resource"),
         )),
@@ -735,6 +749,25 @@ fn validate_expression(
             return Err(unsupported(
                 function,
                 format!("uses updated record expression `{}`", expression.id),
+            ));
+        }
+        ResolvedExprKind::ConstructVariant { fields, .. } => {
+            for field in fields {
+                validate_expression(program, function, &field.value)?;
+            }
+            return Err(unsupported(
+                function,
+                format!("uses constructed variant expression `{}`", expression.id),
+            ));
+        }
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            validate_expression(program, function, scrutinee)?;
+            for arm in arms {
+                validate_expression(program, function, &arm.value)?;
+            }
+            return Err(unsupported(
+                function,
+                format!("uses match expression `{}`", expression.id),
             ));
         }
     }

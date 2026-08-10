@@ -10,7 +10,7 @@ parent, current-directory, repeated/trailing separator, backslash,
 control-character, case-mismatched, Windows forbidden-character,
 trailing-dot/trailing-space/alternate-data-stream/reserved-device, missing, and
 symlink aliases fail as `SPX-G005`. Malformed integers, unknown or duplicate
-filters/cases/IDs, unavailable Graph v7 facets, and evidence outside the
+filters/cases/IDs, unavailable Graph v8 facets, and evidence outside the
 declared relevant set also fail closed. The command performs no network access
 and emits canonical `semaprax.agent-context-economics.v1` JSON.
 

@@ -42,7 +42,7 @@ fn main() -> i64 { 0 }
 "#;
 
 #[test]
-fn lifecycle_graph_v7_exposes_contract_and_context_closure() {
+fn lifecycle_graph_v8_exposes_contract_and_context_closure() {
     let program = parse(
         include_str!("../examples/lifecycle.spx"),
         Path::new("lifecycle-graph.spx"),
@@ -53,7 +53,7 @@ fn lifecycle_graph_v7_exposes_contract_and_context_closure() {
         json.trim(),
         include_str!("snapshots/lifecycle.graph.json").trim()
     );
-    assert!(json.contains("\"schema\":\"semaprax.graph.v7\""));
+    assert!(json.contains("\"schema\":\"semaprax.graph.v8\""));
     assert!(json.contains("\"id\":\"platform.token.drop\",\"kind\":\"resource_drop\""));
     assert!(json.contains("\"strategy\":\"imported\",\"import\":\"platform.token.finalize\""));
     assert!(json.contains("\"id\":\"platform.token.host\",\"kind\":\"interface\""));

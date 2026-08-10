@@ -18,6 +18,12 @@ use crate::conformance::STATUS_DOMAIN_MAX_BYTES_V1;
 use crate::diagnostic::Diagnostic;
 use crate::source_verify;
 
+macro_rules! format {
+    ($($argument:tt)*) => {
+        crate::bounded_output::budgeted_format(format_args!($($argument)*))
+    };
+}
+
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct DeclarationId(String);
 
@@ -349,7 +355,7 @@ impl DeclarationIndex {
                         let mut contains_resource = false;
                         let mut sized = true;
                         let mut needs_drop = false;
-                        let mut encoded_fields = String::new();
+                        let mut encoded_fields = crate::bounded_output::CappedString::new();
                         for field in fields {
                             let field_ty =
                                 substitute_type(&field.ty, &declaration.id, arguments).ok()?;
@@ -379,7 +385,7 @@ impl DeclarationIndex {
                                 declaration.id.as_str().len(),
                                 declaration.id,
                                 fields.len(),
-                                encoded_fields
+                                encoded_fields.into_string()
                             ),
                         })
                     }
@@ -394,7 +400,7 @@ impl DeclarationIndex {
                             return None;
                         }
                         let cases = self.variant_cases.get(&declaration.id)?;
-                        let mut encoded_cases = String::new();
+                        let mut encoded_cases = crate::bounded_output::CappedString::new();
                         for case in cases {
                             write!(
                                 encoded_cases,
@@ -433,7 +439,7 @@ impl DeclarationIndex {
                                 declaration.id.as_str().len(),
                                 declaration.id,
                                 cases.len(),
-                                encoded_cases
+                                encoded_cases.into_string()
                             ),
                         })
                     }
@@ -930,21 +936,18 @@ impl ResolvedType {
                 arguments,
             } => {
                 let argument_count = arguments.len();
-                let encoded_arguments =
-                    arguments
-                        .iter()
-                        .fold(String::new(), |mut output, argument| {
-                            let key = argument.identity_key();
-                            write!(output, "{}:{key}", key.len())
-                                .expect("writing to a string cannot fail");
-                            output
-                        });
+                let mut encoded_arguments = crate::bounded_output::CappedString::new();
+                for argument in arguments {
+                    let key = argument.identity_key();
+                    write!(encoded_arguments, "{}:{key}", key.len())
+                        .expect("writing to a string cannot fail");
+                }
                 format!(
                     "nominal:{}:{}:{}:{}",
                     declaration.as_str().len(),
                     declaration,
                     argument_count,
-                    encoded_arguments
+                    encoded_arguments.into_string()
                 )
             }
         }
@@ -953,7 +956,7 @@ impl ResolvedType {
 
 impl FunctionInstanceId {
     pub fn derive(template: &DeclarationId, arguments: &[ResolvedType]) -> Self {
-        let mut encoded_arguments = String::new();
+        let mut encoded_arguments = crate::bounded_output::CappedString::new();
         for argument in arguments {
             let key = argument.identity_key();
             write!(encoded_arguments, "{}:{key}", key.len())
@@ -964,7 +967,7 @@ impl FunctionInstanceId {
             template.as_str().len(),
             template,
             arguments.len(),
-            encoded_arguments
+            encoded_arguments.into_string()
         ))
     }
 }

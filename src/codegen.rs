@@ -47,6 +47,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use sha2::{Digest as _, Sha256};
 
+use crate::bounded_output::BudgetedJoin as _;
+
 pub use native_callable_bundle::{
     build_native_callable_bundle, preflight_native_callable_bundle, NativeCallableBundle,
     NativeCallableBundlePreflight,
@@ -62,11 +64,54 @@ use crate::hir::{
 };
 use crate::variant_layout::{VariantLayout, VariantLayoutCache, VariantTarget};
 
+macro_rules! format {
+    ($($argument:tt)*) => {
+        crate::bounded_output::budgeted_format(format_args!($($argument)*))
+    };
+}
+
+pub(super) trait COutput: std::fmt::Write {
+    fn push_str(&mut self, value: &str);
+    fn push(&mut self, value: char);
+}
+
+impl COutput for String {
+    fn push_str(&mut self, value: &str) {
+        String::push_str(self, value);
+    }
+
+    fn push(&mut self, value: char) {
+        String::push(self, value);
+    }
+}
+
+impl COutput for crate::bounded_output::CappedString {
+    fn push_str(&mut self, value: &str) {
+        self.push_str(value);
+    }
+
+    fn push(&mut self, value: char) {
+        self.push(value);
+    }
+}
+
 /// Resolve a parsed program fail-closed, then emit its checked native bootstrap IR.
 pub fn emit_c(program: &Program) -> Result<String, Diagnostic> {
     let resolved = hir::resolve(program).map_err(first_backend_diagnostic)?;
-    let labels = contract_labels(program, &resolved);
-    emit_hir_c_with_labels(&resolved, &labels)
+    emit_resolved_c_with_source(program, &resolved)
+}
+
+/// Emit the exact production C11 projection from an already resolved source.
+///
+/// The parsed source remains necessary only for canonical contract labels. This
+/// crate-private boundary lets semantic evidence reuse one checked HIR without
+/// changing the bytes returned by [`emit_c`].
+pub(crate) fn emit_resolved_c_with_source(
+    source: &Program,
+    resolved: &ResolvedProgram,
+) -> Result<String, Diagnostic> {
+    let labels = contract_labels(source, resolved);
+    emit_hir_c_with_labels(resolved, &labels)
 }
 
 /// Emit C11 from resolved HIR.
@@ -884,16 +929,20 @@ fn emit_hir_c_with_labels(
     contract_labels: &HashMap<ExpressionId, String>,
 ) -> Result<String, Diagnostic> {
     hir::validate(program)?;
+    if program.types.iter().any(|declaration| {
+        matches!(
+            declaration.kind,
+            ResolvedTypeDeclarationKind::Resource { .. }
+        )
+    }) {
+        return Err(resource_lowering_gate());
+    }
     let resource_abi = native_resource::build_resource_abi(program)?;
     let record_layouts = AggregateLayoutCache::build(program, AggregateTarget::Native64)?;
     let variant_layouts = VariantLayoutCache::build(program, VariantTarget::Native64)?;
     let functions = function_index(program)?;
-    if !resource_abi.resources.is_empty() {
-        let _preflight =
-            preflight_resource_lowering(program, &functions, &resource_abi, contract_labels);
-        return Err(resource_lowering_gate());
-    }
-    let mut output = String::new();
+    debug_assert!(resource_abi.resources.is_empty());
+    let mut output = crate::bounded_output::CappedString::new();
     emit_native_prelude(&mut output, &resource_abi);
     emit_aggregate_declarations(
         &mut output,
@@ -962,10 +1011,13 @@ fn emit_hir_c_with_labels(
          #endif\n"
     )
     .expect("writing to a string cannot fail");
-    Ok(output)
+    Ok(output.into_string())
 }
 
-fn emit_native_prelude(output: &mut String, resource_abi: &native_resource::NativeResourceAbi) {
+fn emit_native_prelude(
+    output: &mut impl COutput,
+    resource_abi: &native_resource::NativeResourceAbi,
+) {
     native_runtime::emit_status_runtime(output);
     output.push_str(&resource_abi.declarations);
     output.push_str("#include <stdio.h>\n\n");
@@ -973,7 +1025,7 @@ fn emit_native_prelude(output: &mut String, resource_abi: &native_resource::Nati
 }
 
 fn emit_aggregate_declarations(
-    output: &mut String,
+    output: &mut impl COutput,
     program: &ResolvedProgram,
     resource_abi: &native_resource::NativeResourceAbi,
     record_layouts: &AggregateLayoutCache,
@@ -1016,7 +1068,7 @@ fn emit_aggregate_declarations(
 }
 
 fn emit_record_declaration(
-    output: &mut String,
+    output: &mut impl COutput,
     program: &ResolvedProgram,
     resource_abi: &native_resource::NativeResourceAbi,
     layouts: &AggregateLayoutCache,
@@ -1093,7 +1145,7 @@ fn emit_record_declaration(
 }
 
 fn emit_variant_declaration(
-    output: &mut String,
+    output: &mut impl COutput,
     program: &ResolvedProgram,
     resource_abi: &native_resource::NativeResourceAbi,
     layout: &VariantLayout,
@@ -1298,15 +1350,16 @@ fn c_field_symbol(id: &DeclarationId) -> String {
 }
 
 fn stable_c_symbol(prefix: &str, id: &DeclarationId) -> String {
-    let mut symbol = prefix.to_owned();
+    let mut symbol = crate::bounded_output::CappedString::new();
+    symbol.push_str(prefix);
     for byte in id.as_str().bytes() {
         write!(symbol, "{byte:02x}").expect("writing to a string cannot fail");
     }
-    symbol
+    symbol.into_string()
 }
 
 fn emit_function_prototypes(
-    output: &mut String,
+    output: &mut impl COutput,
     program: &ResolvedProgram,
     functions: &HashMap<FunctionExecutionId, CFunction>,
     resource_abi: &native_resource::NativeResourceAbi,
@@ -1355,6 +1408,7 @@ fn emit_function_prototypes(
     Ok(())
 }
 
+#[cfg(test)]
 fn preflight_resource_lowering(
     program: &ResolvedProgram,
     functions: &HashMap<FunctionExecutionId, CFunction>,
@@ -1444,7 +1498,7 @@ fn preflight_resource_lowering(
     // constructs the gated value/cleanup bodies; the exact conformance harness
     // composes those inside strict C functions. No resource artifact may escape
     // until a public host ownership boundary is defined and proven.
-    let mut staged_output = String::new();
+    let mut staged_output = crate::bounded_output::CappedString::new();
     emit_native_prelude(&mut staged_output, resource_abi);
     if let Err(diagnostic) =
         emit_function_prototypes(&mut staged_output, program, functions, resource_abi)
@@ -1650,7 +1704,7 @@ struct NativeEmissionContext<'a> {
 }
 
 fn emit_function(
-    output: &mut String,
+    output: &mut impl COutput,
     function: &ResolvedFunction,
     execution: &FunctionExecutionId,
     emission: &NativeEmissionContext<'_>,
@@ -1932,20 +1986,33 @@ fn function_index(
 }
 
 fn c_function_execution_symbol(id: &FunctionExecutionId) -> String {
-    let identity = id.identity_key();
-    let mut symbol = String::from("spx_exec_");
+    let identity = match id {
+        FunctionExecutionId::Monomorphic(declaration) => format!(
+            "semaprax.function-execution.v1:monomorphic:{}:{}",
+            declaration.as_str().len(),
+            declaration
+        ),
+        FunctionExecutionId::Generic(instance) => format!(
+            "semaprax.function-execution.v1:generic:{}:{}",
+            instance.as_str().len(),
+            instance
+        ),
+    };
+    let mut symbol = crate::bounded_output::CappedString::new();
+    symbol.push_str("spx_exec_");
     for byte in identity.bytes() {
         write!(symbol, "{byte:02x}").expect("writing to a string cannot fail");
     }
-    symbol
+    symbol.into_string()
 }
 
 fn c_function_symbol(id: &DeclarationId) -> String {
-    let mut symbol = String::from("spx_decl_");
+    let mut symbol = crate::bounded_output::CappedString::new();
+    symbol.push_str("spx_decl_");
     for byte in id.as_str().bytes() {
         write!(symbol, "{byte:02x}").expect("writing to a string cannot fail");
     }
-    symbol
+    symbol.into_string()
 }
 
 fn c_i64(value: i64) -> String {
@@ -1969,8 +2036,8 @@ struct CValue {
     ty: ResolvedType,
 }
 
-struct CEmitter<'a> {
-    output: &'a mut String,
+struct CEmitter<'a, O: COutput> {
+    output: &'a mut O,
     program: &'a ResolvedProgram,
     resource_abi: &'a native_resource::NativeResourceAbi,
     variables: HashMap<ValueId, CBinding>,
@@ -1983,9 +2050,9 @@ struct CEmitter<'a> {
     indent: usize,
 }
 
-impl<'a> CEmitter<'a> {
+impl<'a, O: COutput> CEmitter<'a, O> {
     fn new(
-        output: &'a mut String,
+        output: &'a mut O,
         variables: HashMap<ValueId, CBinding>,
         return_type: &'a ResolvedType,
         emission: &'a NativeEmissionContext<'a>,
@@ -2101,7 +2168,7 @@ impl<'a> CEmitter<'a> {
                     "spx_status = {}(spx_ctx{}{}, &{temporary});",
                     target.symbol,
                     if arguments.is_empty() { "" } else { ", " },
-                    arguments.join(", ")
+                    arguments.budgeted_join(", ")
                 ));
                 self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
                 CValue {
@@ -2861,7 +2928,7 @@ fn backend_error(message: impl Into<String>) -> Diagnostic {
 }
 
 fn c_string(value: &str) -> String {
-    let mut escaped = String::with_capacity(value.len());
+    let mut escaped = crate::bounded_output::CappedString::new();
     for byte in value.as_bytes() {
         match *byte {
             b'\\' => escaped.push_str("\\\\"),
@@ -2875,7 +2942,7 @@ fn c_string(value: &str) -> String {
             value => escaped.push(char::from(value)),
         }
     }
-    escaped
+    escaped.into_string()
 }
 
 #[cfg(test)]

@@ -5,11 +5,29 @@ use crate::ast::{
     TypeDeclarationKind, UnaryOp,
 };
 
+macro_rules! format {
+    ($($argument:tt)*) => {
+        crate::bounded_output::budgeted_format(format_args!($($argument)*))
+    };
+}
+
 pub fn canonical(program: &Program) -> String {
-    let mut output = String::new();
+    let mut output = crate::bounded_output::CappedString::new();
     writeln!(output, "module {};", program.module).unwrap();
     if !program.permits.is_empty() {
-        writeln!(output, "\npermit {{ {} }}", program.permits.join(", ")).unwrap();
+        writeln!(
+            output,
+            "\npermit {{ {} }}",
+            crate::bounded_output::budgeted_join(
+                program
+                    .permits
+                    .iter()
+                    .map(|value| crate::bounded_output::budgeted_clone(value))
+                    .collect::<Vec<_>>(),
+                ", ",
+            )
+        )
+        .unwrap();
     }
     for declaration in &program.types {
         writeln!(output).unwrap();
@@ -93,7 +111,19 @@ pub fn canonical(program: &Program) -> String {
             writeln!(output, "@id(\"{}\")", escape_string(&interface.stable_id)).unwrap();
         }
         writeln!(output, "interface {}", interface.name).unwrap();
-        writeln!(output, "    permits {{ {} }}", interface.permits.join(", ")).unwrap();
+        writeln!(
+            output,
+            "    permits {{ {} }}",
+            crate::bounded_output::budgeted_join(
+                interface
+                    .permits
+                    .iter()
+                    .map(|value| crate::bounded_output::budgeted_clone(value))
+                    .collect::<Vec<_>>(),
+                ", ",
+            )
+        )
+        .unwrap();
         writeln!(output, "{{").unwrap();
         for import in &interface.imports {
             if import.explicit_id {
@@ -117,7 +147,14 @@ pub fn canonical(program: &Program) -> String {
             writeln!(
                 output,
                 "        effects {{ {} }}",
-                import.effects.join(", ")
+                crate::bounded_output::budgeted_join(
+                    import
+                        .effects
+                        .iter()
+                        .map(|value| crate::bounded_output::budgeted_clone(value))
+                        .collect::<Vec<_>>(),
+                    ", ",
+                )
             )
             .unwrap();
             match &import.failure {
@@ -164,7 +201,19 @@ pub fn canonical(program: &Program) -> String {
         }
         writeln!(output, ") -> {}", function.return_type).unwrap();
         if !function.effects.is_empty() {
-            writeln!(output, "    uses {{ {} }}", function.effects.join(", ")).unwrap();
+            writeln!(
+                output,
+                "    uses {{ {} }}",
+                crate::bounded_output::budgeted_join(
+                    function
+                        .effects
+                        .iter()
+                        .map(|value| crate::bounded_output::budgeted_clone(value))
+                        .collect::<Vec<_>>(),
+                    ", ",
+                )
+            )
+            .unwrap();
         }
         for contract in &function.requires {
             writeln!(
@@ -184,7 +233,7 @@ pub fn canonical(program: &Program) -> String {
         }
         write_function_body(&mut output, &function.body);
     }
-    output
+    output.into_string()
 }
 
 fn type_parameter_suffix(parameters: &[crate::ast::TypeParameterDeclaration]) -> String {
@@ -193,11 +242,13 @@ fn type_parameter_suffix(parameters: &[crate::ast::TypeParameterDeclaration]) ->
     } else {
         format!(
             "<{}>",
-            parameters
-                .iter()
-                .map(|parameter| parameter.name.as_str())
-                .collect::<Vec<_>>()
-                .join(", ")
+            crate::bounded_output::budgeted_join(
+                parameters
+                    .iter()
+                    .map(|parameter| crate::bounded_output::budgeted_clone(&parameter.name))
+                    .collect::<Vec<_>>(),
+                ", "
+            )
         )
     }
 }
@@ -206,7 +257,7 @@ pub fn expr(value: &Expr, parent_precedence: u8) -> String {
     match &value.kind {
         ExprKind::Int(number) => number.to_string(),
         ExprKind::Bool(value) => value.to_string(),
-        ExprKind::Var(name) => name.clone(),
+        ExprKind::Var(name) => crate::bounded_output::budgeted_clone(name),
         ExprKind::Call {
             name,
             type_arguments,
@@ -219,17 +270,19 @@ pub fn expr(value: &Expr, parent_precedence: u8) -> String {
             } else {
                 format!(
                     "<{}>",
-                    type_arguments
-                        .iter()
-                        .map(ToString::to_string)
-                        .collect::<Vec<_>>()
-                        .join(", ")
+                    crate::bounded_output::budgeted_join(
+                        type_arguments
+                            .iter()
+                            .map(|argument| format!("{argument}"))
+                            .collect::<Vec<_>>(),
+                        ", "
+                    )
                 )
             },
-            args.iter()
-                .map(|arg| expr(arg, 0))
-                .collect::<Vec<_>>()
-                .join(", ")
+            crate::bounded_output::budgeted_join(
+                args.iter().map(|arg| expr(arg, 0)).collect::<Vec<_>>(),
+                ", "
+            )
         ),
         ExprKind::Unary { op, value } => {
             let operator = match op {
@@ -262,7 +315,7 @@ pub fn expr(value: &Expr, parent_precedence: u8) -> String {
                 })
                 .collect::<Vec<_>>();
             parts.push(expr(tail, 0));
-            format!("{{ {} }}", parts.join(" "))
+            format!("{{ {} }}", crate::bounded_output::budgeted_join(parts, " "))
         }
         ExprKind::If {
             condition,
@@ -281,16 +334,18 @@ pub fn expr(value: &Expr, parent_precedence: u8) -> String {
             ..
         } => {
             let qualifier = if type_arguments.is_empty() {
-                type_name.clone()
+                crate::bounded_output::budgeted_clone(type_name)
             } else {
                 format!(
                     "{}<{}>",
                     type_name,
-                    type_arguments
-                        .iter()
-                        .map(ToString::to_string)
-                        .collect::<Vec<_>>()
-                        .join(", ")
+                    crate::bounded_output::budgeted_join(
+                        type_arguments
+                            .iter()
+                            .map(|argument| format!("{argument}"))
+                            .collect::<Vec<_>>(),
+                        ", "
+                    )
                 )
             };
             if fields.is_empty() {
@@ -298,11 +353,13 @@ pub fn expr(value: &Expr, parent_precedence: u8) -> String {
             } else {
                 format!(
                     "{qualifier} {{ {} }}",
-                    fields
-                        .iter()
-                        .map(|field| format!("{}: {}", field.name, expr(&field.value, 0)))
-                        .collect::<Vec<_>>()
-                        .join(", ")
+                    crate::bounded_output::budgeted_join(
+                        fields
+                            .iter()
+                            .map(|field| format!("{}: {}", field.name, expr(&field.value, 0)))
+                            .collect::<Vec<_>>(),
+                        ", "
+                    )
                 )
             }
         }
@@ -314,16 +371,18 @@ pub fn expr(value: &Expr, parent_precedence: u8) -> String {
             ..
         } => {
             let qualifier = if type_arguments.is_empty() {
-                type_name.clone()
+                crate::bounded_output::budgeted_clone(type_name)
             } else {
                 format!(
                     "{}<{}>",
                     type_name,
-                    type_arguments
-                        .iter()
-                        .map(ToString::to_string)
-                        .collect::<Vec<_>>()
-                        .join(", ")
+                    crate::bounded_output::budgeted_join(
+                        type_arguments
+                            .iter()
+                            .map(|argument| format!("{argument}"))
+                            .collect::<Vec<_>>(),
+                        ", "
+                    )
                 )
             };
             if fields.is_empty() {
@@ -331,25 +390,29 @@ pub fn expr(value: &Expr, parent_precedence: u8) -> String {
             } else {
                 format!(
                     "{qualifier}::{case_name} {{ {} }}",
-                    fields
-                        .iter()
-                        .map(|field| format!("{}: {}", field.name, expr(&field.value, 0)))
-                        .collect::<Vec<_>>()
-                        .join(", ")
+                    crate::bounded_output::budgeted_join(
+                        fields
+                            .iter()
+                            .map(|field| format!("{}: {}", field.name, expr(&field.value, 0)))
+                            .collect::<Vec<_>>(),
+                        ", "
+                    )
                 )
             }
         }
         ExprKind::Match { scrutinee, arms } => format!(
             "match {} {{ {} }}",
             record_literal_delimited_expr(scrutinee),
-            arms.iter()
-                .map(|arm| format!(
-                    "{} => {},",
-                    match_pattern(&arm.pattern),
-                    expr(&arm.value, 0)
-                ))
-                .collect::<Vec<_>>()
-                .join(" ")
+            crate::bounded_output::budgeted_join(
+                arms.iter()
+                    .map(|arm| format!(
+                        "{} => {},",
+                        match_pattern(&arm.pattern),
+                        expr(&arm.value, 0)
+                    ))
+                    .collect::<Vec<_>>(),
+                " "
+            )
         ),
         ExprKind::Try { operand } => {
             let operand = match &operand.kind {
@@ -372,11 +435,13 @@ pub fn expr(value: &Expr, parent_precedence: u8) -> String {
             } else {
                 format!(
                     "{base} with {{ {} }}",
-                    fields
-                        .iter()
-                        .map(|field| format!("{}: {}", field.name, expr(&field.value, 0)))
-                        .collect::<Vec<_>>()
-                        .join(", ")
+                    crate::bounded_output::budgeted_join(
+                        fields
+                            .iter()
+                            .map(|field| format!("{}: {}", field.name, expr(&field.value, 0)))
+                            .collect::<Vec<_>>(),
+                        ", "
+                    )
                 )
             }
         }
@@ -410,17 +475,19 @@ fn match_pattern(pattern: &MatchPattern) -> String {
             fields,
             ..
         } => {
-            let fields = fields
-                .iter()
-                .map(|field| {
-                    if field.name == field.binding {
-                        field.name.clone()
-                    } else {
-                        format!("{}: {}", field.name, field.binding)
-                    }
-                })
-                .collect::<Vec<_>>()
-                .join(", ");
+            let fields = crate::bounded_output::budgeted_join(
+                fields
+                    .iter()
+                    .map(|field| {
+                        if field.name == field.binding {
+                            crate::bounded_output::budgeted_clone(&field.name)
+                        } else {
+                            format!("{}: {}", field.name, field.binding)
+                        }
+                    })
+                    .collect::<Vec<_>>(),
+                ", ",
+            );
             if fields.is_empty() {
                 format!("{type_name}::{case_name} {{}}")
             } else {
@@ -434,28 +501,32 @@ fn match_pattern(pattern: &MatchPattern) -> String {
 }
 
 fn record_match_pattern(type_name: &str, fields: &[crate::ast::RecordMatchPatternField]) -> String {
-    let fields = fields
-        .iter()
-        .map(|field| match &field.pattern {
-            crate::ast::RecordMatchFieldPattern::Binding { name, .. } if name == &field.name => {
-                field.name.clone()
-            }
-            crate::ast::RecordMatchFieldPattern::Binding { name, .. } => {
-                format!("{}: {name}", field.name)
-            }
-            crate::ast::RecordMatchFieldPattern::Wildcard { .. } => {
-                format!("{}: _", field.name)
-            }
-            crate::ast::RecordMatchFieldPattern::Record {
-                type_name, fields, ..
-            } => format!(
-                "{}: {}",
-                field.name,
-                record_match_pattern(type_name, fields)
-            ),
-        })
-        .collect::<Vec<_>>()
-        .join(", ");
+    let fields = crate::bounded_output::budgeted_join(
+        fields
+            .iter()
+            .map(|field| match &field.pattern {
+                crate::ast::RecordMatchFieldPattern::Binding { name, .. }
+                    if name == &field.name =>
+                {
+                    crate::bounded_output::budgeted_clone(&field.name)
+                }
+                crate::ast::RecordMatchFieldPattern::Binding { name, .. } => {
+                    format!("{}: {name}", field.name)
+                }
+                crate::ast::RecordMatchFieldPattern::Wildcard { .. } => {
+                    format!("{}: _", field.name)
+                }
+                crate::ast::RecordMatchFieldPattern::Record {
+                    type_name, fields, ..
+                } => format!(
+                    "{}: {}",
+                    field.name,
+                    record_match_pattern(type_name, fields)
+                ),
+            })
+            .collect::<Vec<_>>(),
+        ", ",
+    );
     if fields.is_empty() {
         format!("{type_name} {{}}")
     } else {
@@ -503,7 +574,7 @@ fn contains_record_construction(value: &Expr) -> bool {
     }
 }
 
-fn write_function_body(output: &mut String, body: &Expr) {
+fn write_function_body(output: &mut impl std::fmt::Write, body: &Expr) {
     writeln!(output, "{{").unwrap();
     if let ExprKind::Block { statements, tail } = &body.kind {
         for statement in statements {
@@ -521,5 +592,13 @@ fn write_function_body(output: &mut String, body: &Expr) {
 }
 
 fn escape_string(value: &str) -> String {
-    value.replace('\\', "\\\\").replace('"', "\\\"")
+    let mut escaped = crate::bounded_output::CappedString::new();
+    for value in value.chars() {
+        match value {
+            '\\' => escaped.push_str("\\\\"),
+            '"' => escaped.push_str("\\\""),
+            value => escaped.push(value),
+        }
+    }
+    escaped.into_string()
 }

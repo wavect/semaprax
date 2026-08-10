@@ -4,7 +4,7 @@ use std::process::{Command, ExitCode};
 use semaprax::diagnostic::{Diagnostic, Severity};
 use semaprax::{
     agent_economics, codegen, format, graph, impact, parse, patch, patch_evidence, quality_route,
-    repair, review, verify, wasm,
+    repair, review, target_evidence, verify, wasm,
 };
 
 fn main() -> ExitCode {
@@ -198,6 +198,18 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             println!("{report}");
             Ok(())
         }
+        "target-evidence" => {
+            if args.len() != 3 {
+                eprintln!("target-evidence requires exactly <file> <patch.spatch>");
+                return Err(2);
+            }
+            let source_path = required_path(&args, 1)?;
+            let patch_path = required_path(&args, 2)?;
+            let report = target_evidence::preview(&source_path, &patch_path)
+                .map_err(|errors| report(&errors, false))?;
+            println!("{report}");
+            Ok(())
+        }
         "patch-evidence" => {
             if args.len() != 3 {
                 eprintln!("patch-evidence requires exactly <file> <patch.spatch>");
@@ -206,6 +218,18 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             let source_path = required_path(&args, 1)?;
             let patch_path = required_path(&args, 2)?;
             let evidence = patch_evidence::generate(&source_path, &patch_path)
+                .map_err(|errors| report(&errors, false))?;
+            print!("{evidence}");
+            Ok(())
+        }
+        "patch-evidence-v2" => {
+            if args.len() != 3 {
+                eprintln!("patch-evidence-v2 requires exactly <file> <patch.spatch>");
+                return Err(2);
+            }
+            let source_path = required_path(&args, 1)?;
+            let patch_path = required_path(&args, 2)?;
+            let evidence = patch_evidence::generate_v2(&source_path, &patch_path)
                 .map_err(|errors| report(&errors, false))?;
             print!("{evidence}");
             Ok(())
@@ -225,6 +249,21 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             print!("{receipt}");
             Ok(())
         }
+        "verify-patch-evidence-v2" => {
+            if args.len() != 4 {
+                eprintln!(
+                    "verify-patch-evidence-v2 requires exactly <file> <patch.spatch> <evidence.json>"
+                );
+                return Err(2);
+            }
+            let source_path = required_path(&args, 1)?;
+            let patch_path = required_path(&args, 2)?;
+            let evidence_path = required_path(&args, 3)?;
+            let receipt = patch_evidence::verify_v2(&source_path, &patch_path, &evidence_path)
+                .map_err(|errors| report(&errors, false))?;
+            print!("{receipt}");
+            Ok(())
+        }
         "patch-with-evidence" => {
             if args.len() != 4 {
                 eprintln!(
@@ -236,6 +275,21 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             let patch_path = required_path(&args, 2)?;
             let evidence_path = required_path(&args, 3)?;
             let revision = patch_evidence::apply(&source_path, &patch_path, &evidence_path)
+                .map_err(|errors| report(&errors, false))?;
+            println!("applied semantic patch with exact evidence replay; graph is now {revision}");
+            Ok(())
+        }
+        "patch-with-evidence-v2" => {
+            if args.len() != 4 {
+                eprintln!(
+                    "patch-with-evidence-v2 requires exactly <file> <patch.spatch> <evidence.json>"
+                );
+                return Err(2);
+            }
+            let source_path = required_path(&args, 1)?;
+            let patch_path = required_path(&args, 2)?;
+            let evidence_path = required_path(&args, 3)?;
+            let revision = patch_evidence::apply_v2(&source_path, &patch_path, &evidence_path)
                 .map_err(|errors| report(&errors, false))?;
             println!("applied semantic patch with exact evidence replay; graph is now {revision}");
             Ok(())
@@ -513,9 +567,13 @@ fn print_help() {
            semaprax patch <file> <patch.spatch>\n\
            semaprax impact <file> <patch.spatch> [--depth N] [--max-bytes N] [--max-nodes N]\n\
            semaprax review <file> <patch.spatch>\n\
+           semaprax target-evidence <file> <patch.spatch>\n\
            semaprax patch-evidence <file> <patch.spatch>\n\
+           semaprax patch-evidence-v2 <file> <patch.spatch>\n\
            semaprax verify-patch-evidence <file> <patch.spatch> <evidence.json>\n\
+           semaprax verify-patch-evidence-v2 <file> <patch.spatch> <evidence.json>\n\
            semaprax patch-with-evidence <file> <patch.spatch> <evidence.json>\n\
+           semaprax patch-with-evidence-v2 <file> <patch.spatch> <evidence.json>\n\
            semaprax repairs <file> assign-function-id <automatic-function-id>\n\
            semaprax repair <file> <repair-id> --persistent-id <persistent-id>\n\
            semaprax version"

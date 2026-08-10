@@ -9,6 +9,7 @@ use std::fmt::Write;
 use sha2::{Digest, Sha256};
 
 use crate::ast::{BinaryOp, Program, UnaryOp};
+use crate::bounded_output::BudgetedJoin as _;
 use crate::call_index::PersistentCallIndex;
 use crate::diagnostic::{quote_json, Diagnostic};
 use crate::format;
@@ -19,6 +20,12 @@ use crate::hir::{
     ResolvedType, ResolvedTypeDeclarationKind, TypeFacts, ValueId,
 };
 use crate::prelude;
+
+macro_rules! format {
+    ($($argument:tt)*) => {
+        crate::bounded_output::budgeted_format(format_args!($($argument)*))
+    };
+}
 
 /// Hash the canonical human-readable source projection and implicit prelude.
 ///
@@ -888,7 +895,7 @@ fn agent_function_json(
                 .into_iter()
                 .map(result_propagation_json)
                 .collect::<Vec<_>>()
-                .join(",")
+                .budgeted_join(",")
         )
         .expect("writing to a string cannot fail");
     }
@@ -901,13 +908,13 @@ fn agent_function_json(
                 .iter()
                 .map(agent_contract_expr_json)
                 .collect::<Result<Vec<_>, _>>()?
-                .join(","),
+                .budgeted_join(","),
             function
                 .ensures
                 .iter()
                 .map(agent_contract_expr_json)
                 .collect::<Result<Vec<_>, _>>()?
-                .join(",")
+                .budgeted_join(",")
         )
         .expect("writing to a string cannot fail");
     }
@@ -925,7 +932,7 @@ fn agent_function_json(
                     quote_json(ownership_text(parameter.ownership))
                 ))
                 .collect::<Vec<_>>()
-                .join(","),
+                .budgeted_join(","),
             quote_json(ownership_text(result))
         )
         .expect("writing to a string cannot fail");
@@ -951,7 +958,7 @@ fn agent_function_json(
                     quote_json(&parameter.ty.identity_key())
                 ))
                 .collect::<Vec<_>>()
-                .join(","),
+                .budgeted_join(","),
             quote_json(&function.return_type.identity_key()),
             type_facts_array(program, &selected_functions, &selected_types)?,
             agent_type_declarations_json(program, &selected_types)?
@@ -982,12 +989,12 @@ fn agent_call_instances_json(function: &ResolvedFunction) -> String {
                         .iter()
                         .map(type_json)
                         .collect::<Vec<_>>()
-                        .join(",")
+                        .budgeted_join(",")
                 ));
             },
         );
     }
-    calls.join(",")
+    calls.budgeted_join(",")
 }
 
 fn agent_template_json(
@@ -1010,11 +1017,11 @@ fn agent_template_json(
                     .iter()
                     .map(type_json)
                     .collect::<Vec<_>>()
-                    .join(",")
+                    .budgeted_join(",")
             )
         })
         .collect::<Vec<_>>()
-        .join(",");
+        .budgeted_join(",");
     let mut output = format!(
         "{{\"id\":{},\"kind\":\"function_template\",\"name\":{},\"calls\":{},\"type_parameters\":[{}],\"instances\":[{}],\"body\":{}",
         quote_json(template.id.as_str()),
@@ -1038,13 +1045,13 @@ fn agent_template_json(
                 .iter()
                 .map(agent_contract_expr_json)
                 .collect::<Result<Vec<_>, _>>()?
-                .join(","),
+                .budgeted_join(","),
             template
                 .ensures
                 .iter()
                 .map(agent_contract_expr_json)
                 .collect::<Result<Vec<_>, _>>()?
-                .join(",")
+                .budgeted_join(",")
         )
         .expect("writing to a string cannot fail");
     }
@@ -1061,7 +1068,7 @@ fn agent_template_json(
                     type_json(&parameter.ty)
                 ))
                 .collect::<Vec<_>>()
-                .join(","),
+                .budgeted_join(","),
             type_json(&template.return_type)
         )
         .expect("writing to a string cannot fail");
@@ -1309,7 +1316,7 @@ fn agent_reference_index_json(
             .iter()
             .map(|id| quote_json(id.as_str()))
             .collect::<Vec<_>>()
-            .join(","),
+            .budgeted_join(","),
         agent_type_declarations_json(program, &declarations)?
     ))
 }
@@ -1405,13 +1412,13 @@ fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnos
                 .iter()
                 .map(agent_contract_expr_json)
                 .collect::<Result<Vec<_>, _>>()?
-                .join(",");
+                .budgeted_join(",");
             if let Some(instance) = instance {
                 format!(
                     "{{\"kind\":\"call_instance\",\"template\":{},\"instance\":{},\"type_arguments\":[{}],\"args\":[{}]}}",
                     quote_json(callee.as_str()),
                     quote_json(instance.as_str()),
-                    type_arguments.iter().map(type_json).collect::<Vec<_>>().join(","),
+                    type_arguments.iter().map(type_json).collect::<Vec<_>>().budgeted_join(","),
                     args
                 )
             } else {
@@ -1446,7 +1453,7 @@ fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnos
                     ))
                 })
                 .collect::<Result<Vec<_>, Diagnostic>>()?
-                .join(","),
+                .budgeted_join(","),
             agent_contract_expr_json(tail)?
         ),
         ResolvedExprKind::If {
@@ -1479,7 +1486,7 @@ fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnos
                         ))
                     })
                     .collect::<Result<Vec<_>, Diagnostic>>()?
-                    .join(",")
+                    .budgeted_join(",")
             )
         }
         ResolvedExprKind::ConstructVariant {
@@ -1500,7 +1507,7 @@ fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnos
                     ))
                 })
                 .collect::<Result<Vec<_>, Diagnostic>>()?
-                .join(",")
+                .budgeted_join(",")
         ),
         ResolvedExprKind::Match { scrutinee, arms } => format!(
             "{{\"kind\":\"match\",\"scrutinee\":{},\"arms\":[{}]}}",
@@ -1512,7 +1519,7 @@ fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnos
                     agent_contract_expr_json(&arm.value)?
                 )))
                 .collect::<Result<Vec<_>, Diagnostic>>()?
-                .join(",")
+                .budgeted_join(",")
         ),
         ResolvedExprKind::Try {
             operand,
@@ -1572,7 +1579,7 @@ fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnos
                     ))
                 })
                 .collect::<Result<Vec<_>, Diagnostic>>()?
-                .join(",")
+                .budgeted_join(",")
         ),
         ResolvedExprKind::Project { base, field } => format!(
             "{{\"kind\":\"project\",\"base\":{},\"field\":{}}}",
@@ -1608,7 +1615,7 @@ fn graph_match_pattern_json(pattern: &crate::hir::ResolvedMatchPattern, id: &str
                     quote_json(ownership_text(field.binding.ownership))
                 ))
                 .collect::<Vec<_>>()
-                .join(",")
+                .budgeted_join(",")
         ),
         crate::hir::ResolvedMatchPattern::Record {
             record,
@@ -1625,7 +1632,7 @@ fn graph_match_pattern_json(pattern: &crate::hir::ResolvedMatchPattern, id: &str
                 .enumerate()
                 .map(|(index, field)| graph_record_match_field_json(field, &format!("{id}.field.{index}")))
                 .collect::<Vec<_>>()
-                .join(",")
+                .budgeted_join(",")
         ),
     }
 }
@@ -1662,7 +1669,7 @@ fn graph_record_match_field_json(
                 .enumerate()
                 .map(|(index, field)| graph_record_match_field_json(field, &format!("{id}.pattern.field.{index}")))
                 .collect::<Vec<_>>()
-                .join(",")
+                .budgeted_join(",")
         ),
     };
     format!(
@@ -1694,7 +1701,7 @@ fn match_pattern_json(pattern: &crate::hir::ResolvedMatchPattern) -> String {
                     quote_json(ownership_text(field.binding.ownership))
                 ))
                 .collect::<Vec<_>>()
-                .join(",")
+                .budgeted_join(",")
         ),
         crate::hir::ResolvedMatchPattern::Record {
             record,
@@ -1709,7 +1716,7 @@ fn match_pattern_json(pattern: &crate::hir::ResolvedMatchPattern) -> String {
                 .iter()
                 .map(record_match_field_json)
                 .collect::<Vec<_>>()
-                .join(",")
+                .budgeted_join(",")
         ),
     }
 }
@@ -1740,7 +1747,7 @@ fn record_match_field_json(field: &crate::hir::ResolvedRecordMatchPatternField) 
                 .iter()
                 .map(record_match_field_json)
                 .collect::<Vec<_>>()
-                .join(",")
+                .budgeted_join(",")
         ),
     };
     format!(
@@ -1786,7 +1793,7 @@ fn agent_type_declarations_json(
                             quote_json(&field.ty.identity_key())
                         ))
                         .collect::<Vec<_>>()
-                        .join(",")
+                        .budgeted_join(",")
                 ))
             }
             ResolvedTypeDeclarationKind::Variant { cases } => Ok(format!(
@@ -1806,14 +1813,14 @@ fn agent_type_declarations_json(
                                 quote_json(&field.ty.identity_key())
                             ))
                             .collect::<Vec<_>>()
-                            .join(",")
+                            .budgeted_join(",")
                     ))
                     .collect::<Vec<_>>()
-                    .join(",")
+                    .budgeted_join(",")
             )),
         })
         .collect::<Result<Vec<_>, Diagnostic>>()
-        .map(|items| items.join(","))
+        .map(|items| items.budgeted_join(","))
 }
 
 fn render_agent_context(
@@ -1894,21 +1901,21 @@ fn render_agent_context(
         .iter()
         .map(|filter| quote_json(filter.name()))
         .collect::<Vec<_>>()
-        .join(",");
+        .budgeted_join(",");
     let included = options
         .filters
         .iter()
         .filter(|filter| filter.supported_by_graph_v10())
         .map(|filter| quote_json(filter.name()))
         .collect::<Vec<_>>()
-        .join(",");
+        .budgeted_join(",");
     let unavailable = options
         .filters
         .iter()
         .filter(|filter| !filter.supported_by_graph_v10())
         .map(|filter| quote_json(filter.name()))
         .collect::<Vec<_>>()
-        .join(",");
+        .budgeted_join(",");
     let frontier_json = frontier
         .iter()
         .map(|(id, why)| {
@@ -1921,24 +1928,24 @@ fn render_agent_context(
                 why.iter()
                     .map(|reason| quote_json(reason))
                     .collect::<Vec<_>>()
-                    .join(","),
+                    .budgeted_join(","),
                 quote_json(resume_symbol.as_str()),
                 quote_json(id.as_str()),
                 resume_bytes
             )
         })
         .collect::<Vec<_>>()
-        .join(",");
+        .budgeted_join(",");
     let reason_json = reasons
         .iter()
         .map(|reason| quote_json(reason))
         .collect::<Vec<_>>()
-        .join(",");
+        .budgeted_join(",");
     let facts_json = facts[..selected]
         .iter()
         .map(|fact| fact.json.as_str())
         .collect::<Vec<_>>()
-        .join(",");
+        .budgeted_join(",");
     let max_depth_used = facts[..selected]
         .iter()
         .map(|fact| fact.depth)
@@ -2099,7 +2106,7 @@ fn render_agent_context_v2(
         .iter()
         .map(|filter| quote_json(filter.name()))
         .collect::<Vec<_>>()
-        .join(",");
+        .budgeted_join(",");
     let included = options
         .base
         .filters
@@ -2107,7 +2114,7 @@ fn render_agent_context_v2(
         .filter(|filter| filter.supported_by_graph_v10())
         .map(|filter| quote_json(filter.name()))
         .collect::<Vec<_>>()
-        .join(",");
+        .budgeted_join(",");
     let unavailable = options
         .base
         .filters
@@ -2115,7 +2122,7 @@ fn render_agent_context_v2(
         .filter(|filter| !filter.supported_by_graph_v10())
         .map(|filter| quote_json(filter.name()))
         .collect::<Vec<_>>()
-        .join(",");
+        .budgeted_join(",");
     let frontier_json = frontier
         .iter()
         .map(|(id, item)| {
@@ -2135,7 +2142,7 @@ fn render_agent_context_v2(
             )
         })
         .collect::<Vec<_>>()
-        .join(",");
+        .budgeted_join(",");
     let reference_frontier_json = reference_frontier
         .iter()
         .map(|(id, relations)| {
@@ -2150,12 +2157,12 @@ fn render_agent_context_v2(
             )
         })
         .collect::<Vec<_>>()
-        .join(",");
+        .budgeted_join(",");
     let facts_json = facts[..selected]
         .iter()
         .map(|fact| fact.json.as_str())
         .collect::<Vec<_>>()
-        .join(",");
+        .budgeted_join(",");
     let max_depth_used = facts[..selected]
         .iter()
         .map(|fact| fact.depth)
@@ -2223,7 +2230,7 @@ fn agent_directions_json(directions: &BTreeSet<AgentContextDirection>) -> String
         .iter()
         .map(|direction| quote_json(direction.name()))
         .collect::<Vec<_>>()
-        .join(",")
+        .budgeted_join(",")
 }
 
 fn ordered_agent_reasons(reasons: &BTreeSet<&'static str>) -> String {
@@ -2232,7 +2239,7 @@ fn ordered_agent_reasons(reasons: &BTreeSet<&'static str>) -> String {
         .filter(|reason| reasons.contains(reason))
         .map(quote_json)
         .collect::<Vec<_>>()
-        .join(",")
+        .budgeted_join(",")
 }
 
 fn ordered_agent_relations(relations: &BTreeSet<&'static str>) -> String {
@@ -2241,14 +2248,17 @@ fn ordered_agent_relations(relations: &BTreeSet<&'static str>) -> String {
         .filter(|relation| relations.contains(relation))
         .map(quote_json)
         .collect::<Vec<_>>()
-        .join(",")
+        .budgeted_join(",")
 }
 
 fn agent_context_option_error(message: String) -> Diagnostic {
     Diagnostic::io("SPX-G004", message)
 }
 
-fn to_hir_json(program: &ResolvedProgram, source_revision: &str) -> Result<String, Diagnostic> {
+pub(crate) fn to_hir_json(
+    program: &ResolvedProgram,
+    source_revision: &str,
+) -> Result<String, Diagnostic> {
     hir::validate(program)?;
     let selected_functions = program
         .functions
@@ -2445,7 +2455,7 @@ fn graph_json(
         }
     }
     close_type_declarations(program, &mut selected_types)?;
-    let mut output = String::new();
+    let mut output = crate::bounded_output::CappedString::new();
     write!(
         output,
         "{{\"schema\":{},\"revision\":{},\"prelude\":{{\"schema\":{},\"digest\":{}}},\"view\":{},\"identity\":{{\"declarations\":\"explicit-persistent-or-automatic-unstable\",\"values\":\"revision-scoped-structural\",\"expressions\":\"revision-scoped-structural\",\"match_arms\":\"revision-scoped-structural\",\"patterns\":\"revision-scoped-structural\",\"type_parameters\":\"owner-and-index-stable\"}},\"module\":{},\"permits\":{},\"entrypoint\":{},\"type_facts\":[{}],\"nodes\":[",
@@ -2536,7 +2546,7 @@ fn graph_json(
                         .iter()
                         .map(|field| quote_json(field.id.as_str()))
                         .collect::<Vec<_>>()
-                        .join(",")
+                        .budgeted_join(",")
                 )
                 .expect("writing to a string cannot fail");
 
@@ -2589,7 +2599,7 @@ fn graph_json(
                         .iter()
                         .map(|case| quote_json(case.id.as_str()))
                         .collect::<Vec<_>>()
-                        .join(",")
+                        .budgeted_join(",")
                 )
                 .expect("writing to a string cannot fail");
                 for (case_index, case) in cases.iter().enumerate() {
@@ -2621,7 +2631,7 @@ fn graph_json(
                             .iter()
                             .map(|field| quote_json(field.id.as_str()))
                             .collect::<Vec<_>>()
-                            .join(",")
+                            .budgeted_join(",")
                     )
                     .expect("writing to a string cannot fail");
                     for (field_index, field) in case.fields.iter().enumerate() {
@@ -2680,7 +2690,7 @@ fn graph_json(
                 .iter()
                 .map(|import| quote_json(import.id.as_str()))
                 .collect::<Vec<_>>()
-                .join(",")
+                .budgeted_join(",")
         )
         .expect("writing to a string cannot fail");
         for import in &interface.imports {
@@ -2698,7 +2708,7 @@ fn graph_json(
                     )
                 })
                 .collect::<Vec<_>>()
-                .join(",");
+                .budgeted_join(",");
             let failure = match &import.failure {
                 ResolvedImportFailure::Infallible => "{\"kind\":\"infallible\"}".to_owned(),
                 ResolvedImportFailure::Status {
@@ -2758,19 +2768,19 @@ fn graph_json(
                 ))
             })
             .collect::<Result<Vec<_>, Diagnostic>>()?
-            .join(",");
+            .budgeted_join(",");
         let requires = function
             .requires
             .iter()
             .map(|expression| expr_json(program, expression))
             .collect::<Result<Vec<_>, _>>()?
-            .join(",");
+            .budgeted_join(",");
         let ensures = function
             .ensures
             .iter()
             .map(|expression| expr_json(program, expression))
             .collect::<Result<Vec<_>, _>>()?
-            .join(",");
+            .budgeted_join(",");
         let body = expr_json(program, &function.body)?;
         let cleanup = crate::graph_cleanup::cleanup_plan_json(&function.cleanup_plan);
         let identity_origin = identity_origin(program, &function.id)?;
@@ -2819,19 +2829,19 @@ fn graph_json(
                 )
             })
             .collect::<Vec<_>>()
-            .join(",");
+            .budgeted_join(",");
         let requires = template
             .requires
             .iter()
             .map(|expression| expr_json(program, expression))
             .collect::<Result<Vec<_>, _>>()?
-            .join(",");
+            .budgeted_join(",");
         let ensures = template
             .ensures
             .iter()
             .map(|expression| expr_json(program, expression))
             .collect::<Result<Vec<_>, _>>()?
-            .join(",");
+            .budgeted_join(",");
         let identity_origin = identity_origin(program, &template.id)?;
         write!(
             output,
@@ -2872,19 +2882,19 @@ fn graph_json(
                 )
             })
             .collect::<Vec<_>>()
-            .join(",");
+            .budgeted_join(",");
         let requires = function
             .requires
             .iter()
             .map(|expression| expr_json(program, expression))
             .collect::<Result<Vec<_>, _>>()?
-            .join(",");
+            .budgeted_join(",");
         let ensures = function
             .ensures
             .iter()
             .map(|expression| expr_json(program, expression))
             .collect::<Result<Vec<_>, _>>()?
-            .join(",");
+            .budgeted_join(",");
         let execution = FunctionExecutionId::Generic(instance.id.clone()).identity_key();
         write!(
             output,
@@ -2892,7 +2902,7 @@ fn graph_json(
             quote_json(&execution),
             quote_json(instance.template.as_str()),
             quote_json(instance.id.as_str()),
-            instance.type_arguments.iter().map(type_json).collect::<Vec<_>>().join(","),
+            instance.type_arguments.iter().map(type_json).collect::<Vec<_>>().budgeted_join(","),
             params,
             quote_json(function.result_id.as_str()),
             type_json(&function.return_type),
@@ -2904,7 +2914,7 @@ fn graph_json(
         .expect("writing to a string cannot fail");
     }
     output.push_str("]}");
-    Ok(output)
+    Ok(output.into_string())
 }
 
 fn result_ownership(
@@ -2947,7 +2957,7 @@ fn view_json(view: &GraphView<'_>) -> String {
                 .iter()
                 .map(|id| quote_json(id.as_str()))
                 .collect::<Vec<_>>()
-                .join(",")
+                .budgeted_join(",")
         ),
     }
 }
@@ -3345,13 +3355,13 @@ fn expr_json(program: &ResolvedProgram, expression: &ResolvedExpr) -> Result<Str
                 .iter()
                 .map(|argument| expr_json(program, argument))
                 .collect::<Result<Vec<_>, _>>()?
-                .join(",");
+                .budgeted_join(",");
             if let Some(instance) = instance {
                 format!(
                     "{{{header},\"kind\":\"call_instance\",\"template\":{},\"instance\":{},\"type_arguments\":[{}],\"args\":[{}]}}",
                     quote_json(callee.as_str()),
                     quote_json(instance.as_str()),
-                    type_arguments.iter().map(type_json).collect::<Vec<_>>().join(","),
+                    type_arguments.iter().map(type_json).collect::<Vec<_>>().budgeted_join(","),
                     args
                 )
             } else {
@@ -3379,7 +3389,7 @@ fn expr_json(program: &ResolvedProgram, expression: &ResolvedExpr) -> Result<Str
                 .iter()
                 .map(|statement| statement_json(program, statement))
                 .collect::<Result<Vec<_>, _>>()?
-                .join(","),
+                .budgeted_join(","),
             expr_json(program, tail)?
         ),
         ResolvedExprKind::If {
@@ -3412,7 +3422,7 @@ fn expr_json(program: &ResolvedProgram, expression: &ResolvedExpr) -> Result<Str
                         ))
                     })
                     .collect::<Result<Vec<_>, Diagnostic>>()?
-                    .join(",")
+                    .budgeted_join(",")
             )
         }
         ResolvedExprKind::ConstructVariant {
@@ -3433,7 +3443,7 @@ fn expr_json(program: &ResolvedProgram, expression: &ResolvedExpr) -> Result<Str
                     ))
                 })
                 .collect::<Result<Vec<_>, Diagnostic>>()?
-                .join(",")
+                .budgeted_join(",")
         ),
         ResolvedExprKind::Match { scrutinee, arms } => format!(
             "{{{header},\"kind\":\"match\",\"exhaustive\":true,\"scrutinee\":{},\"arms\":[{}]}}",
@@ -3451,7 +3461,7 @@ fn expr_json(program: &ResolvedProgram, expression: &ResolvedExpr) -> Result<Str
                     ))
                 })
                 .collect::<Result<Vec<_>, Diagnostic>>()?
-                .join(",")
+                .budgeted_join(",")
         ),
         ResolvedExprKind::Try {
             operand,
@@ -3511,7 +3521,7 @@ fn expr_json(program: &ResolvedProgram, expression: &ResolvedExpr) -> Result<Str
                     ))
                 })
                 .collect::<Result<Vec<_>, Diagnostic>>()?
-                .join(",")
+                .budgeted_join(",")
         ),
         ResolvedExprKind::Project { base, field } => format!(
             "{{{header},\"kind\":\"project\",\"base\":{},\"field\":{}}}",
@@ -3547,7 +3557,7 @@ fn place_json(place: &Place) -> String {
             .iter()
             .map(projection_json)
             .collect::<Vec<_>>()
-            .join(",")
+            .budgeted_join(",")
     )
 }
 
@@ -3628,7 +3638,7 @@ fn type_facts_array(
             ))
         })
         .collect::<Result<Vec<_>, Diagnostic>>()
-        .map(|items| items.join(","))
+        .map(|items| items.budgeted_join(","))
 }
 
 fn collect_expr_types(expression: &ResolvedExpr, types: &mut BTreeMap<String, ResolvedType>) {
@@ -3758,7 +3768,7 @@ fn type_json(ty: &ResolvedType) -> String {
                 .iter()
                 .map(type_json)
                 .collect::<Vec<_>>()
-                .join(",")
+                .budgeted_join(",")
         ),
     }
 }
@@ -3783,7 +3793,7 @@ fn type_parameters_json(
             )
         })
         .collect::<Vec<_>>()
-        .join(",")
+        .budgeted_join(",")
 }
 
 fn facts_json(program: &ResolvedProgram, ty: &ResolvedType) -> Result<String, Diagnostic> {
@@ -3840,7 +3850,7 @@ fn string_array(values: &[String]) -> String {
             .iter()
             .map(|value| quote_json(value))
             .collect::<Vec<_>>()
-            .join(",")
+            .budgeted_join(",")
     )
 }
 

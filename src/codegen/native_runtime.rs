@@ -9,7 +9,7 @@
 /// The emitted arena is caller-provided, invocation-local storage. Token zero
 /// is success, nonzero tokens are immutable one-based record indices, and
 /// allocation failure is reported outside the language status-token channel.
-pub(super) fn emit_status_runtime(output: &mut String) {
+pub(super) fn emit_status_runtime(output: &mut impl super::COutput) {
     output.push_str(STATUS_RUNTIME_C);
 }
 

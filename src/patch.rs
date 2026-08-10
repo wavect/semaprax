@@ -895,7 +895,7 @@ pub(crate) fn preflight_impact_owned(
             "Semantic Impact v1 accepts only Semantic Patch v1/v2",
         )]);
     }
-    preflight_parsed_owned(source, patch_source, diagnostic_path, patch)
+    preflight_parsed_owned(source, patch_source, diagnostic_path, patch, None)
 }
 
 pub(crate) fn preflight_review_owned(
@@ -911,7 +911,30 @@ pub(crate) fn preflight_review_owned(
             format!("semantic review patch exceeds {max_operations} operations"),
         )]);
     }
-    preflight_parsed_owned(source, patch_source, diagnostic_path, patch)
+    preflight_parsed_owned(source, patch_source, diagnostic_path, patch, None)
+}
+
+pub(crate) fn preflight_target_owned(
+    source: String,
+    patch_source: String,
+    diagnostic_path: PathBuf,
+    max_operations: usize,
+    max_candidate_bytes: usize,
+) -> Result<PatchPreflight, Vec<Diagnostic>> {
+    let patch = parse_patch(&patch_source)?;
+    if patch.operations.len() > max_operations {
+        return Err(vec![Diagnostic::io(
+            "SPX-G140",
+            format!("semantic target evidence patch exceeds {max_operations} operations"),
+        )]);
+    }
+    preflight_parsed_owned(
+        source,
+        patch_source,
+        diagnostic_path,
+        patch,
+        Some(max_candidate_bytes),
+    )
 }
 
 fn preflight_parsed_owned(
@@ -919,6 +942,7 @@ fn preflight_parsed_owned(
     patch_source: String,
     diagnostic_path: PathBuf,
     patch: SemanticPatch,
+    max_candidate_bytes: Option<usize>,
 ) -> Result<PatchPreflight, Vec<Diagnostic>> {
     let before = parse(&source, &diagnostic_path).map_err(|error| vec![error])?;
     let base_revision = graph::revision(&before);
@@ -963,6 +987,12 @@ fn preflight_parsed_owned(
             })?;
         let (candidate, canonical_candidate, candidate_revision, identity_rebase) =
             candidate.into_parts();
+        if max_candidate_bytes.is_some_and(|limit| canonical_candidate.len() > limit) {
+            return Err(vec![Diagnostic::io(
+                "SPX-G140",
+                "semantic target evidence candidate exceeds its bounded construction limit",
+            )]);
+        }
         let operations = patch.operations.clone();
         return Ok(PatchPreflight {
             source,
@@ -1350,10 +1380,42 @@ fn preflight_parsed_owned(
         checked_planned_edits.push(edit);
     }
     assign_source_consumers(&before, &mut checked_planned_edits);
-    let mut changed = source.clone();
-    for (start, end, replacement) in checked_replacements.into_iter().rev() {
-        changed.replace_range(start..end, &replacement);
-    }
+    let predicted_candidate_bytes = if let Some(limit) = max_candidate_bytes {
+        let predicted = checked_replacements
+            .iter()
+            .try_fold(source.len(), |length, edit| {
+                length
+                    .checked_sub(edit.1 - edit.0)
+                    .and_then(|value| value.checked_add(edit.2.len()))
+            });
+        if predicted.is_none_or(|length| length > limit) {
+            return Err(vec![Diagnostic::io(
+                "SPX-G140",
+                "semantic target evidence candidate exceeds its bounded construction limit",
+            )]);
+        }
+        predicted
+    } else {
+        None
+    };
+    let changed = if let Some(predicted) = predicted_candidate_bytes {
+        let mut changed = String::with_capacity(predicted);
+        let mut cursor = 0usize;
+        for (start, end, replacement) in &checked_replacements {
+            changed.push_str(&source[cursor..*start]);
+            changed.push_str(replacement);
+            cursor = *end;
+        }
+        changed.push_str(&source[cursor..]);
+        debug_assert_eq!(changed.len(), predicted);
+        changed
+    } else {
+        let mut changed = source.clone();
+        for (start, end, replacement) in checked_replacements.into_iter().rev() {
+            changed.replace_range(start..end, &replacement);
+        }
+        changed
+    };
 
     let candidate = parse(&changed, &diagnostic_path).map_err(|error| vec![error])?;
     let diagnostics = verify::verify(&candidate);
@@ -1424,6 +1486,7 @@ fn apply_with_commit_hook(
         patch_source,
         source_path.to_path_buf(),
         parsed_patch,
+        None,
     )?;
     let prepared = prepare_a0_commit(&authenticated, &preflight)?;
     commit_prepared_a0(prepared, hook)
@@ -2976,6 +3039,33 @@ fn main() -> i64
         drop(authenticated);
         drop(guard);
         assert_owned_artifacts_removed(&source_path);
+    }
+
+    #[test]
+    fn target_preflight_constructs_four_thousand_edits_in_one_source_pass() {
+        let mut source = String::from(
+            "module patch.many_edits;\n@id(\"target.helper\") fn helper()->i64{1}\n@id(\"app.main\") fn main()->i64{\n",
+        );
+        for index in 0..4096 {
+            source.push_str(&format!("let value{index}=helper();\n"));
+        }
+        source.push_str("value4095}\n");
+        let patch = format!(
+            "base {}\nrename target.helper to renamed\n",
+            graph::revision(&parse(&source, "many-edits.spx").unwrap())
+        );
+        let preflight = preflight_target_owned(
+            source,
+            patch,
+            std::path::PathBuf::from("many-edits.spx"),
+            crate::review::MAX_OPERATIONS,
+            crate::target_evidence::MAX_NATIVE_C11_BYTES,
+        )
+        .unwrap();
+        assert_eq!(
+            preflight.canonical_candidate().matches("renamed()").count(),
+            4097
+        );
     }
 
     #[cfg(windows)]

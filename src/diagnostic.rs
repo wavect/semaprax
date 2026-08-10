@@ -125,7 +125,7 @@ impl fmt::Display for Diagnostic {
 }
 
 pub fn quote_json(value: &str) -> String {
-    let mut output = String::with_capacity(value.len() + 2);
+    let mut output = crate::bounded_output::CappedString::new();
     output.push('"');
     for character in value.chars() {
         match character {
@@ -141,5 +141,5 @@ pub fn quote_json(value: &str) -> String {
         }
     }
     output.push('"');
-    output
+    output.into_string()
 }

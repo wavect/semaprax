@@ -17,6 +17,12 @@ use crate::cleanup_plan::{
 use crate::diagnostic::quote_json;
 use crate::hir::ResolvedType;
 
+macro_rules! format {
+    ($($argument:tt)*) => {
+        crate::bounded_output::budgeted_format(format_args!($($argument)*))
+    };
+}
+
 /// Serialize one already-validated cleanup plan for embedding in Graph v10.
 ///
 /// Callers must validate the enclosing resolved program before invoking this
@@ -448,5 +454,5 @@ fn contract_phase_text(phase: ContractPhase) -> &'static str {
 
 fn array_json<T>(values: &[T], mut render: impl FnMut(&T) -> String) -> String {
     let items = values.iter().map(&mut render).collect::<Vec<_>>();
-    format!("[{}]", items.join(","))
+    format!("[{}]", crate::bounded_output::budgeted_join(items, ","))
 }

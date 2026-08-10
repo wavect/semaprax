@@ -7,6 +7,7 @@
 pub mod agent_economics;
 pub(crate) mod aggregate_layout;
 pub mod ast;
+pub(crate) mod bounded_output;
 pub(crate) mod call_index;
 pub mod cleanup;
 pub mod cleanup_plan;
@@ -32,6 +33,7 @@ pub mod repair;
 pub mod review;
 pub mod runtime_status;
 pub mod semantic_trace;
+pub mod target_evidence;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
 #[doc(hidden)]
 pub mod trace_path_certificate;

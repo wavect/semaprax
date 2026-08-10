@@ -198,6 +198,8 @@ impl ReviewSupportingEvidence {
 
 pub(crate) struct ReviewBuild {
     preflight: patch::PatchPreflight,
+    before_resolved: hir::ResolvedProgram,
+    candidate_resolved: hir::ResolvedProgram,
     report: String,
     source_graph_schema: &'static str,
     base_revision: String,
@@ -213,6 +215,14 @@ pub(crate) struct ReviewBuild {
 impl ReviewBuild {
     pub(crate) fn preflight(&self) -> &patch::PatchPreflight {
         &self.preflight
+    }
+
+    pub(crate) fn before_resolved(&self) -> &hir::ResolvedProgram {
+        &self.before_resolved
+    }
+
+    pub(crate) fn candidate_resolved(&self) -> &hir::ResolvedProgram {
+        &self.candidate_resolved
     }
 
     pub(crate) fn report(&self) -> &str {
@@ -299,14 +309,72 @@ pub(crate) fn build_owned(
     patch_source: String,
     diagnostic_path: std::path::PathBuf,
 ) -> Result<ReviewBuild, Vec<Diagnostic>> {
+    build_owned_with_candidate_limit(source, patch_source, diagnostic_path, None)
+}
+
+pub(crate) fn build_target_owned(
+    source: String,
+    patch_source: String,
+    diagnostic_path: std::path::PathBuf,
+    max_candidate_bytes: usize,
+) -> Result<ReviewBuild, Vec<Diagnostic>> {
+    build_owned_with_candidate_limit(
+        source,
+        patch_source,
+        diagnostic_path,
+        Some(max_candidate_bytes),
+    )
+}
+
+fn build_owned_with_candidate_limit(
+    source: String,
+    patch_source: String,
+    diagnostic_path: std::path::PathBuf,
+    max_candidate_bytes: Option<usize>,
+) -> Result<ReviewBuild, Vec<Diagnostic>> {
     let parsed = parse(&source, &diagnostic_path).map_err(|error| vec![error])?;
     let ast_usage = precheck_program(&parsed)?;
-    let preflight =
-        patch::preflight_review_owned(source, patch_source, diagnostic_path, MAX_OPERATIONS)?;
-    let before_resolved = hir::resolve(preflight.before())?;
-    let candidate_resolved = hir::resolve(preflight.candidate())?;
-    hir::validate(&before_resolved).map_err(|error| vec![error])?;
-    hir::validate(&candidate_resolved).map_err(|error| vec![error])?;
+    let preflight = if let Some(max_candidate_bytes) = max_candidate_bytes {
+        let (result, overflowed) = crate::bounded_output::with_limit(max_candidate_bytes, || {
+            patch::preflight_target_owned(
+                source,
+                patch_source,
+                diagnostic_path,
+                MAX_OPERATIONS,
+                max_candidate_bytes,
+            )
+        });
+        if overflowed {
+            return Err(vec![Diagnostic::io(
+                "SPX-G140",
+                format!(
+                    "Semantic Target Evidence source canonicalization exceeds {max_candidate_bytes} bytes"
+                ),
+            )]);
+        }
+        result?
+    } else {
+        patch::preflight_review_owned(source, patch_source, diagnostic_path, MAX_OPERATIONS)?
+    };
+    let resolve_checked = || -> Result<_, Vec<Diagnostic>> {
+        let before_resolved = hir::resolve(preflight.before())?;
+        let candidate_resolved = hir::resolve(preflight.candidate())?;
+        hir::validate(&before_resolved).map_err(|error| vec![error])?;
+        hir::validate(&candidate_resolved).map_err(|error| vec![error])?;
+        Ok((before_resolved, candidate_resolved))
+    };
+    let (before_resolved, candidate_resolved) = if let Some(limit) = max_candidate_bytes {
+        let (result, overflowed) = crate::bounded_output::with_limit(limit, resolve_checked);
+        if overflowed {
+            return Err(vec![Diagnostic::io(
+                "SPX-G140",
+                format!("Semantic Target Evidence HIR identity construction exceeds {limit} bytes"),
+            )]);
+        }
+        result?
+    } else {
+        resolve_checked()?
+    };
     let source_graph_schema = graph::graph_schema(&before_resolved);
     if graph::graph_schema(&candidate_resolved) != source_graph_schema {
         return Err(vec![invariant_error(
@@ -339,6 +407,8 @@ pub(crate) fn build_owned(
         usage,
     )?;
     Ok(ReviewBuild {
+        before_resolved,
+        candidate_resolved,
         report,
         source_graph_schema,
         base_revision: preflight.base_revision().to_owned(),
@@ -357,7 +427,7 @@ pub(crate) fn build_owned(
     })
 }
 
-fn read_patch_bounded(path: &Path) -> Result<String, Vec<Diagnostic>> {
+pub(crate) fn read_patch_bounded(path: &Path) -> Result<String, Vec<Diagnostic>> {
     let file = File::open(path).map_err(|error| {
         vec![Diagnostic::io(
             "SPX-I202",

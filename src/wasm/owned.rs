@@ -207,7 +207,7 @@ impl OwnedPlan {
         )
     }
 
-    pub(super) fn emit_body(&self) -> Vec<u8> {
+    pub(super) fn emit_body_into(&self, body: &mut impl super::ByteOutput) {
         let original_params = self.params.len() as u32;
         let out_pointer = original_params + 1;
         let first_local = original_params + 2;
@@ -217,21 +217,20 @@ impl OwnedPlan {
         let right_local = left_local + 1;
         let first_live_local = right_local + 1;
 
-        let mut body = Vec::new();
         // status, then result/checked-add operands, then one independent
         // liveness bit per owned parameter. Result/operands are i64 even for
         // resource results; that keeps local layout deterministic.
-        write_u32(&mut body, 3);
-        write_u32(&mut body, 1);
+        write_u32(body, 3);
+        write_u32(body, 1);
         body.push(I32);
-        write_u32(&mut body, 3);
+        write_u32(body, 3);
         body.push(I64);
-        write_u32(&mut body, self.owned_params.len() as u32);
+        write_u32(body, self.owned_params.len() as u32);
         body.push(I32);
 
-        emit_import_status_guard(&mut body, BEGIN_IMPORT, &[0], status_local, None);
+        emit_import_status_guard(body, BEGIN_IMPORT, &[0], status_local, None);
         emit_out_pointer_preflight(
-            &mut body,
+            body,
             out_pointer,
             status_local,
             match self.result {
@@ -241,7 +240,7 @@ impl OwnedPlan {
         );
         for parameter in &self.owned_params {
             emit_import_status_guard(
-                &mut body,
+                body,
                 STAGE_IMPORT,
                 &[0, *parameter as u32 + 1],
                 status_local,
@@ -250,76 +249,70 @@ impl OwnedPlan {
         }
         if self.result == OwnedResultKind::Resource {
             emit_import_status_guard(
-                &mut body,
+                body,
                 RESERVE_RESULT_IMPORT,
                 &[0],
                 status_local,
                 Some(ABORT_IMPORT),
             );
         }
-        emit_import_status_guard(
-            &mut body,
-            COMMIT_IMPORT,
-            &[0],
-            status_local,
-            Some(ABORT_IMPORT),
-        );
+        emit_import_status_guard(body, COMMIT_IMPORT, &[0], status_local, Some(ABORT_IMPORT));
         for ordinal in 0..self.owned_params.len() {
-            body.extend([0x41, 0x01, 0x21]);
-            write_u32(&mut body, first_live_local + ordinal as u32);
+            body.extend_bytes(&[0x41, 0x01, 0x21]);
+            write_u32(body, first_live_local + ordinal as u32);
         }
 
         for guard in &self.requires {
-            emit_scalar_expr(&mut body, &guard.expression);
+            emit_scalar_expr(body, &guard.expression);
             body.push(0x45); // i32.eqz
-            body.extend([0x04, 0x40]);
-            emit_status_record(&mut body, guard.phase, status_local);
-            emit_semantic_event(&mut body, self.function_ordinal, guard.failure_ordinal);
+            body.extend_bytes(&[0x04, 0x40]);
+            emit_status_record(body, guard.phase, status_local);
+            emit_semantic_event(body, self.function_ordinal, guard.failure_ordinal);
             emit_cleanup(
-                &mut body,
+                body,
                 &guard.finalizers,
                 &self.owned_params,
                 first_live_local,
                 self.function_ordinal,
             );
-            emit_cancel_result(&mut body, self.result);
-            emit_return_status_local(&mut body, status_local);
+            emit_cancel_result(body, self.result);
+            emit_return_status_local(body, status_local);
             body.push(0x0b);
         }
 
         match &self.body {
             Body::I64(ScalarExpr::Add(left, right)) => {
-                emit_scalar_expr(&mut body, left);
+                emit_scalar_expr(body, left);
                 body.push(0x21);
-                write_u32(&mut body, left_local);
-                emit_scalar_expr(&mut body, right);
+                write_u32(body, left_local);
+                emit_scalar_expr(body, right);
                 body.push(0x21);
-                write_u32(&mut body, right_local);
+                write_u32(body, right_local);
                 body.push(0x20);
-                write_u32(&mut body, left_local);
+                write_u32(body, left_local);
                 body.push(0x20);
-                write_u32(&mut body, right_local);
+                write_u32(body, right_local);
                 body.push(0x7c); // i64.add
                 body.push(0x21);
-                write_u32(&mut body, result_local);
+                write_u32(body, result_local);
                 // Signed overflow iff ((left ^ result) & (right ^ result)) < 0.
                 body.push(0x20);
-                write_u32(&mut body, left_local);
+                write_u32(body, left_local);
                 body.push(0x20);
-                write_u32(&mut body, result_local);
+                write_u32(body, result_local);
                 body.push(0x85); // i64.xor
                 body.push(0x20);
-                write_u32(&mut body, right_local);
+                write_u32(body, right_local);
                 body.push(0x20);
-                write_u32(&mut body, result_local);
+                write_u32(body, result_local);
                 body.push(0x85);
                 body.push(0x83); // i64.and
                 body.push(0x42);
-                write_i64(&mut body, 0);
+                write_i64(body, 0);
                 body.push(0x53); // i64.lt_s
-                body.extend([0x04, 0x40]);
+                body.extend_bytes(&[0x04, 0x40]);
                 emit_raw_status_record(
-                    &mut body,
+                    body,
                     STATUS_CLASS_ARITHMETIC,
                     STATUS_CODE_ADD_OVERFLOW,
                     status_local,
@@ -328,62 +321,62 @@ impl OwnedPlan {
                     .arithmetic_failure
                     .as_ref()
                     .expect("checked add admission records a failure exit");
-                emit_semantic_event(&mut body, self.function_ordinal, failure.failure_ordinal);
+                emit_semantic_event(body, self.function_ordinal, failure.failure_ordinal);
                 emit_cleanup(
-                    &mut body,
+                    body,
                     &failure.finalizers,
                     &self.owned_params,
                     first_live_local,
                     self.function_ordinal,
                 );
-                emit_cancel_result(&mut body, self.result);
-                emit_return_status_local(&mut body, status_local);
+                emit_cancel_result(body, self.result);
+                emit_return_status_local(body, status_local);
                 body.push(0x0b);
             }
             Body::I64(expression) => {
-                emit_scalar_expr(&mut body, expression);
+                emit_scalar_expr(body, expression);
                 body.push(0x21);
-                write_u32(&mut body, result_local);
+                write_u32(body, result_local);
             }
             Body::OwnedParameter(_) => {}
         }
 
         for ordinal in &self.transfer_ordinals {
-            emit_semantic_event(&mut body, self.function_ordinal, *ordinal);
+            emit_semantic_event(body, self.function_ordinal, *ordinal);
         }
 
         for guard in &self.ensures {
-            emit_scalar_expr(&mut body, &guard.expression);
+            emit_scalar_expr(body, &guard.expression);
             body.push(0x45);
-            body.extend([0x04, 0x40]);
-            emit_status_record(&mut body, guard.phase, status_local);
-            emit_semantic_event(&mut body, self.function_ordinal, guard.failure_ordinal);
+            body.extend_bytes(&[0x04, 0x40]);
+            emit_status_record(body, guard.phase, status_local);
+            emit_semantic_event(body, self.function_ordinal, guard.failure_ordinal);
             emit_cleanup(
-                &mut body,
+                body,
                 &guard.finalizers,
                 &self.owned_params,
                 first_live_local,
                 self.function_ordinal,
             );
-            emit_cancel_result(&mut body, self.result);
-            emit_return_status_local(&mut body, status_local);
+            emit_cancel_result(body, self.result);
+            emit_return_status_local(body, status_local);
             body.push(0x0b);
         }
 
         emit_cleanup(
-            &mut body,
+            body,
             &self.success_finalizers,
             &self.owned_params,
             first_live_local,
             self.function_ordinal,
         );
         body.push(0x20);
-        write_u32(&mut body, out_pointer);
+        write_u32(body, out_pointer);
         match &self.body {
             Body::I64(_) => {
                 body.push(0x20);
-                write_u32(&mut body, result_local);
-                body.extend([0x37, 0x03, 0x00]); // i64.store align=8 offset=0
+                write_u32(body, result_local);
+                body.extend_bytes(&[0x37, 0x03, 0x00]); // i64.store align=8 offset=0
             }
             Body::OwnedParameter(parameter) => {
                 let live_ordinal = self
@@ -391,24 +384,23 @@ impl OwnedPlan {
                     .iter()
                     .position(|candidate| candidate == parameter)
                     .expect("admitted owned result parameter has a liveness bit");
-                body.extend([0x41, 0x00, 0x21]);
-                write_u32(&mut body, first_live_local + live_ordinal as u32);
+                body.extend_bytes(&[0x41, 0x00, 0x21]);
+                write_u32(body, first_live_local + live_ordinal as u32);
                 body.push(0x20);
-                write_u32(&mut body, 0);
+                write_u32(body, 0);
                 body.push(0x20);
-                write_u32(&mut body, *parameter as u32 + 1);
+                write_u32(body, *parameter as u32 + 1);
                 body.push(0x10);
-                write_u32(&mut body, PUBLISH_IMPORT);
-                body.extend([0x36, 0x02, 0x00]); // i32.store align=4 offset=0
+                write_u32(body, PUBLISH_IMPORT);
+                body.extend_bytes(&[0x36, 0x02, 0x00]); // i32.store align=4 offset=0
             }
         }
-        emit_semantic_event(&mut body, self.function_ordinal, self.result_commit_ordinal);
+        emit_semantic_event(body, self.function_ordinal, self.result_commit_ordinal);
         body.push(0x20);
-        write_u32(&mut body, 0);
+        write_u32(body, 0);
         body.push(0x10);
-        write_u32(&mut body, SUCCESS_IMPORT);
-        body.extend([0x41, 0x00, 0x0b]);
-        body
+        write_u32(body, SUCCESS_IMPORT);
+        body.extend_bytes(&[0x41, 0x00, 0x0b]);
     }
 }
 
@@ -896,13 +888,13 @@ fn is_resource(
     matches!(ty, ResolvedType::Nominal { declaration, arguments } if arguments.is_empty() && resources.contains_key(declaration))
 }
 
-fn emit_scalar_expr(output: &mut Vec<u8>, expression: &ScalarExpr) {
+fn emit_scalar_expr(output: &mut impl super::ByteOutput, expression: &ScalarExpr) {
     match expression {
         ScalarExpr::I64(value) => {
             output.push(0x42);
             write_i64(output, *value);
         }
-        ScalarExpr::Bool(value) => output.extend([0x41, u8::from(*value)]),
+        ScalarExpr::Bool(value) => output.extend_bytes(&[0x41, u8::from(*value)]),
         ScalarExpr::Param { index } => {
             output.push(0x20);
             write_u32(output, index + 1);
@@ -923,7 +915,7 @@ fn emit_scalar_expr(output: &mut Vec<u8>, expression: &ScalarExpr) {
 }
 
 fn emit_import_status_guard(
-    output: &mut Vec<u8>,
+    output: &mut impl super::ByteOutput,
     import: u32,
     locals: &[u32],
     status_local: u32,
@@ -937,7 +929,7 @@ fn emit_import_status_guard(
     write_u32(output, import);
     output.push(0x22);
     write_u32(output, status_local);
-    output.extend([0x04, 0x40]);
+    output.extend_bytes(&[0x04, 0x40]);
     if let Some(abort) = abort {
         output.push(0x20);
         write_u32(output, 0);
@@ -951,7 +943,7 @@ fn emit_import_status_guard(
 }
 
 fn emit_out_pointer_preflight(
-    output: &mut Vec<u8>,
+    output: &mut impl super::ByteOutput,
     out_pointer: u32,
     status_local: u32,
     width: i64,
@@ -961,7 +953,7 @@ fn emit_out_pointer_preflight(
     write_u32(output, out_pointer);
     output.push(0x41); // i32.const alignment mask
     write_i64(output, width - 1);
-    output.extend([0x71, 0x45]); // i32.and; i32.eqz
+    output.extend_bytes(&[0x71, 0x45]); // i32.and; i32.eqz
 
     output.push(0x20); // local.get out_pointer
     write_u32(output, out_pointer);
@@ -969,7 +961,7 @@ fn emit_out_pointer_preflight(
     output.push(0x42); // i64.const width
     write_i64(output, width);
     output.push(0x7c); // i64.add
-    output.extend([0x3f, 0x00]); // memory.size 0
+    output.extend_bytes(&[0x3f, 0x00]); // memory.size 0
     output.push(0xad); // i64.extend_i32_u
     output.push(0x42); // i64.const WebAssembly page size
     write_i64(output, 65_536);
@@ -977,7 +969,7 @@ fn emit_out_pointer_preflight(
     output.push(0x58); // i64.le_u
     output.push(0x71); // i32.and
     output.push(0x45); // i32.eqz: enter failure branch when invalid
-    output.extend([0x04, 0x40]); // if (no result)
+    output.extend_bytes(&[0x04, 0x40]); // if (no result)
     output.push(0x20);
     write_u32(output, 0); // context
     output.push(0x41);
@@ -999,7 +991,7 @@ fn emit_out_pointer_preflight(
 }
 
 fn emit_cleanup(
-    output: &mut Vec<u8>,
+    output: &mut impl super::ByteOutput,
     finalizers: &[FinalizerPlan],
     owned_params: &[usize],
     first_live_local: u32,
@@ -1013,7 +1005,7 @@ fn emit_cleanup(
             .expect("admitted cleanup action has an owned-parameter liveness bit");
         output.push(0x20);
         write_u32(output, first_live_local + ordinal as u32);
-        output.extend([0x04, 0x40, 0x41, 0x00, 0x21]);
+        output.extend_bytes(&[0x04, 0x40, 0x41, 0x00, 0x21]);
         write_u32(output, first_live_local + ordinal as u32);
         emit_semantic_event(output, function_ordinal, finalizer.begin_ordinal);
         output.push(0x20);
@@ -1027,7 +1019,11 @@ fn emit_cleanup(
     }
 }
 
-fn emit_semantic_event(output: &mut Vec<u8>, function_ordinal: u32, event_ordinal: u32) {
+fn emit_semantic_event(
+    output: &mut impl super::ByteOutput,
+    function_ordinal: u32,
+    event_ordinal: u32,
+) {
     debug_assert!(function_ordinal != 0 && event_ordinal != 0);
     output.push(0x20);
     write_u32(output, 0);
@@ -1039,7 +1035,11 @@ fn emit_semantic_event(output: &mut Vec<u8>, function_ordinal: u32, event_ordina
     write_u32(output, SEMANTIC_IMPORT);
 }
 
-fn emit_status_record(output: &mut Vec<u8>, phase: ContractPhase, status_local: u32) {
+fn emit_status_record(
+    output: &mut impl super::ByteOutput,
+    phase: ContractPhase,
+    status_local: u32,
+) {
     let (class, code) = match phase {
         ContractPhase::Requires => (STATUS_CLASS_REQUIRES, 1),
         ContractPhase::Ensures => (STATUS_CLASS_ENSURES, 2),
@@ -1047,7 +1047,7 @@ fn emit_status_record(output: &mut Vec<u8>, phase: ContractPhase, status_local: 
     emit_raw_status_record(output, class, code, status_local);
 }
 
-fn emit_cancel_result(output: &mut Vec<u8>, result: OwnedResultKind) {
+fn emit_cancel_result(output: &mut impl super::ByteOutput, result: OwnedResultKind) {
     if result == OwnedResultKind::Resource {
         output.push(0x20);
         write_u32(output, 0);
@@ -1056,7 +1056,12 @@ fn emit_cancel_result(output: &mut Vec<u8>, result: OwnedResultKind) {
     }
 }
 
-fn emit_raw_status_record(output: &mut Vec<u8>, class: i64, code: i64, status_local: u32) {
+fn emit_raw_status_record(
+    output: &mut impl super::ByteOutput,
+    class: i64,
+    code: i64,
+    status_local: u32,
+) {
     output.push(0x20);
     write_u32(output, 0);
     output.push(0x41);
@@ -1069,7 +1074,7 @@ fn emit_raw_status_record(output: &mut Vec<u8>, class: i64, code: i64, status_lo
     write_u32(output, status_local);
 }
 
-fn emit_return_status_local(output: &mut Vec<u8>, status_local: u32) {
+fn emit_return_status_local(output: &mut impl super::ByteOutput, status_local: u32) {
     output.push(0x20);
     write_u32(output, status_local);
     output.push(0x0f);

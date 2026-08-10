@@ -96,6 +96,31 @@ struct LocalLayout {
     lets: HashMap<ValueId, u32>,
 }
 
+trait ByteOutput: std::ops::Deref<Target = [u8]> {
+    fn push(&mut self, value: u8);
+    fn extend_bytes(&mut self, values: &[u8]);
+}
+
+impl ByteOutput for Vec<u8> {
+    fn push(&mut self, value: u8) {
+        Vec::push(self, value);
+    }
+
+    fn extend_bytes(&mut self, values: &[u8]) {
+        self.extend_from_slice(values);
+    }
+}
+
+impl ByteOutput for crate::bounded_output::CappedVec {
+    fn push(&mut self, value: u8) {
+        self.push(value);
+    }
+
+    fn extend_bytes(&mut self, values: &[u8]) {
+        self.extend_from_slice(values);
+    }
+}
+
 pub fn emit_module(program: &Program) -> Result<Vec<u8>, Diagnostic> {
     let resolved = hir::resolve(program).map_err(|diagnostics| {
         diagnostics
@@ -297,8 +322,8 @@ pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagno
         .map(|(index, (_, execution))| (execution.clone(), import_count + index as u32))
         .collect();
 
-    let mut module = b"\0asm\x01\0\0\0".to_vec();
-    let mut type_section = Vec::new();
+    let mut module = crate::bounded_output::CappedVec::from_slice(b"\0asm\x01\0\0\0");
+    let mut type_section = crate::bounded_output::CappedVec::new();
     write_u32(&mut type_section, types.len() as u32);
     for signature in &types {
         type_section.push(0x60);
@@ -307,7 +332,7 @@ pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagno
     }
     section(&mut module, 1, type_section);
 
-    let mut imports = Vec::new();
+    let mut imports = crate::bounded_output::CappedVec::new();
     write_u32(&mut imports, import_count);
     for name in ["spx_add", "spx_sub", "spx_mul", "spx_div", "spx_rem"] {
         function_import(&mut imports, "env", name, binary_checked);
@@ -321,7 +346,7 @@ pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagno
     }
     section(&mut module, 2, imports);
 
-    let mut functions = Vec::new();
+    let mut functions = crate::bounded_output::CappedVec::new();
     write_u32(
         &mut functions,
         (function_types.len() + owned_function_types.len()) as u32,
@@ -335,7 +360,7 @@ pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagno
     section(&mut module, 3, functions);
 
     if !owned_plans.is_empty() {
-        let mut memories = Vec::new();
+        let mut memories = crate::bounded_output::CappedVec::new();
         write_u32(&mut memories, 1);
         memories.extend([0x00, 0x01]); // one-page, unbounded memory
         section(&mut module, 5, memories);
@@ -353,7 +378,7 @@ pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagno
             "resolved web entry point must have type `fn main() -> i64`",
         ));
     }
-    let mut exports = Vec::new();
+    let mut exports = crate::bounded_output::CappedVec::new();
     write_u32(
         &mut exports,
         1 + owned_plans.len() as u32 + u32::from(!owned_plans.is_empty()),
@@ -374,13 +399,13 @@ pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagno
     }
     section(&mut module, 7, exports);
 
-    let mut code = Vec::new();
+    let mut code = crate::bounded_output::CappedVec::new();
     write_u32(
         &mut code,
         (executable_functions.len() + owned_plans.len()) as u32,
     );
     for (function, _) in &executable_functions {
-        let mut body = Vec::new();
+        let mut body = crate::bounded_output::CappedVec::new();
         let result_local = function.params.len() as u32;
         let mut value_indexes: HashMap<_, _> = function
             .params
@@ -442,15 +467,16 @@ pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagno
         write_u32(&mut body, result_local);
         body.push(0x0b);
         write_u32(&mut code, body.len() as u32);
-        code.extend(body);
+        code.extend_from_slice(&body);
     }
     for plan in &owned_plans {
-        let body = plan.emit_body();
+        let mut body = crate::bounded_output::CappedVec::new();
+        plan.emit_body_into(&mut body);
         write_u32(&mut code, body.len() as u32);
-        code.extend(body);
+        code.extend_from_slice(&body);
     }
     section(&mut module, 10, code);
-    Ok(module)
+    Ok(module.into_vec())
 }
 
 pub fn build_web(program: &Program, output: &Path) -> Result<(), Diagnostic> {
@@ -601,7 +627,7 @@ fn collect_locals(
 }
 
 fn emit_expr(
-    output: &mut Vec<u8>,
+    output: &mut impl ByteOutput,
     expr: &ResolvedExpr,
     value_indexes: &HashMap<ValueId, u32>,
     function_indexes: &HashMap<FunctionExecutionId, u32>,
@@ -818,7 +844,7 @@ fn emit_expr(
 }
 
 fn emit_short_circuit(
-    output: &mut Vec<u8>,
+    output: &mut impl ByteOutput,
     op: BinaryOp,
     right: &ResolvedExpr,
     value_indexes: &HashMap<ValueId, u32>,
@@ -838,9 +864,9 @@ fn emit_short_circuit(
             result,
         )?;
         output.push(0x05);
-        output.extend([0x41, 0x00]);
+        output.extend_bytes(&[0x41, 0x00]);
     } else {
-        output.extend([0x41, 0x01]);
+        output.extend_bytes(&[0x41, 0x01]);
         output.push(0x05);
         emit_expr(
             output,
@@ -855,15 +881,15 @@ fn emit_short_circuit(
     Ok(())
 }
 
-fn emit_contract_guard(output: &mut Vec<u8>) {
+fn emit_contract_guard(output: &mut impl ByteOutput) {
     output.push(0x45);
-    output.extend([0x04, 0x40, 0x10]);
+    output.extend_bytes(&[0x04, 0x40, 0x10]);
     write_u32(output, 6);
     output.push(0x00);
     output.push(0x0b);
 }
 
-fn call_import(output: &mut Vec<u8>, index: u32) {
+fn call_import(output: &mut impl ByteOutput, index: u32) {
     output.push(0x10);
     write_u32(output, index);
 }
@@ -896,29 +922,29 @@ fn intern_type(
     index
 }
 
-fn function_import(output: &mut Vec<u8>, module: &str, name: &str, type_index: u32) {
+fn function_import(output: &mut impl ByteOutput, module: &str, name: &str, type_index: u32) {
     write_name(output, module);
     write_name(output, name);
     output.push(0x00);
     write_u32(output, type_index);
 }
 
-fn section(module: &mut Vec<u8>, id: u8, contents: Vec<u8>) {
+fn section(module: &mut impl ByteOutput, id: u8, contents: impl std::ops::Deref<Target = [u8]>) {
     module.push(id);
     write_u32(module, contents.len() as u32);
-    module.extend(contents);
+    module.extend_bytes(&contents);
 }
 
-fn write_name(output: &mut Vec<u8>, value: &str) {
+fn write_name(output: &mut impl ByteOutput, value: &str) {
     write_bytes(output, value.as_bytes());
 }
 
-fn write_bytes(output: &mut Vec<u8>, value: &[u8]) {
+fn write_bytes(output: &mut impl ByteOutput, value: &[u8]) {
     write_u32(output, value.len() as u32);
-    output.extend(value);
+    output.extend_bytes(value);
 }
 
-fn write_u32(output: &mut Vec<u8>, mut value: u32) {
+fn write_u32(output: &mut impl ByteOutput, mut value: u32) {
     loop {
         let mut byte = (value & 0x7f) as u8;
         value >>= 7;
@@ -932,7 +958,7 @@ fn write_u32(output: &mut Vec<u8>, mut value: u32) {
     }
 }
 
-fn write_i64(output: &mut Vec<u8>, mut value: i64) {
+fn write_i64(output: &mut impl ByteOutput, mut value: i64) {
     loop {
         let byte = (value as u8) & 0x7f;
         value >>= 7;

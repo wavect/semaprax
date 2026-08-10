@@ -3,8 +3,8 @@ use std::process::{Command, ExitCode};
 
 use semaprax::diagnostic::{Diagnostic, Severity};
 use semaprax::{
-    agent_economics, codegen, format, graph, impact, parse, patch, quality_route, repair, review,
-    verify, wasm,
+    agent_economics, codegen, format, graph, impact, parse, patch, patch_evidence, quality_route,
+    repair, review, verify, wasm,
 };
 
 fn main() -> ExitCode {
@@ -196,6 +196,33 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             let report = review::preview(&source_path, &patch_path)
                 .map_err(|errors| report(&errors, false))?;
             println!("{report}");
+            Ok(())
+        }
+        "patch-evidence" => {
+            if args.len() != 3 {
+                eprintln!("patch-evidence requires exactly <file> <patch.spatch>");
+                return Err(2);
+            }
+            let source_path = required_path(&args, 1)?;
+            let patch_path = required_path(&args, 2)?;
+            let evidence = patch_evidence::generate(&source_path, &patch_path)
+                .map_err(|errors| report(&errors, false))?;
+            print!("{evidence}");
+            Ok(())
+        }
+        "verify-patch-evidence" => {
+            if args.len() != 4 {
+                eprintln!(
+                    "verify-patch-evidence requires exactly <file> <patch.spatch> <evidence.json>"
+                );
+                return Err(2);
+            }
+            let source_path = required_path(&args, 1)?;
+            let patch_path = required_path(&args, 2)?;
+            let evidence_path = required_path(&args, 3)?;
+            let receipt = patch_evidence::verify(&source_path, &patch_path, &evidence_path)
+                .map_err(|errors| report(&errors, false))?;
+            print!("{receipt}");
             Ok(())
         }
         "repairs" => {
@@ -471,6 +498,8 @@ fn print_help() {
            semaprax patch <file> <patch.spatch>\n\
            semaprax impact <file> <patch.spatch> [--depth N] [--max-bytes N] [--max-nodes N]\n\
            semaprax review <file> <patch.spatch>\n\
+           semaprax patch-evidence <file> <patch.spatch>\n\
+           semaprax verify-patch-evidence <file> <patch.spatch> <evidence.json>\n\
            semaprax repairs <file> assign-function-id <automatic-function-id>\n\
            semaprax repair <file> <repair-id> --persistent-id <persistent-id>\n\
            semaprax version"

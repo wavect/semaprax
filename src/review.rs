@@ -14,16 +14,16 @@ use crate::{graph, hir, impact, parse};
 
 const REVIEW_SCHEMA: &str = "semaprax.semantic-review.v1";
 const IDENTITY_REBASE_SCHEMA: &str = "semaprax.identity-rebase.v1";
-const MAX_SOURCE_BYTES: usize = 16 * 1024 * 1024;
-const MAX_PATCH_BYTES: usize = 4 * 1024 * 1024;
-const MAX_OPERATIONS: usize = 4096;
-const MAX_DECLARATIONS: usize = 4096;
-const MAX_CALLABLES: usize = 1024;
-const MAX_CALL_SITES: usize = 65_536;
-const MAX_IMPACT_DEPTH: usize = 1024;
-const MAX_IMPACT_NODES: usize = 1024;
-const MAX_IMPACT_BYTES: usize = 16 * 1024 * 1024;
-const MAX_OUTPUT_BYTES: usize = 32 * 1024 * 1024;
+pub(crate) const MAX_SOURCE_BYTES: usize = 16 * 1024 * 1024;
+pub(crate) const MAX_PATCH_BYTES: usize = 4 * 1024 * 1024;
+pub(crate) const MAX_OPERATIONS: usize = 4096;
+pub(crate) const MAX_DECLARATIONS: usize = 4096;
+pub(crate) const MAX_CALLABLES: usize = 1024;
+pub(crate) const MAX_CALL_SITES: usize = 65_536;
+pub(crate) const MAX_IMPACT_DEPTH: usize = 1024;
+pub(crate) const MAX_IMPACT_NODES: usize = 1024;
+pub(crate) const MAX_IMPACT_BYTES: usize = 16 * 1024 * 1024;
+pub(crate) const MAX_OUTPUT_BYTES: usize = 32 * 1024 * 1024;
 const SOURCE_DIGEST_DOMAIN: &[u8] = b"semaprax.semantic-review.source-digest.v1\0";
 const PATCH_DIGEST_DOMAIN: &[u8] = b"semaprax.semantic-review.patch-digest.v1\0";
 const IMPACT_DIGEST_DOMAIN: &[u8] = b"semaprax.semantic-review.impact-digest.v1\0";
@@ -32,7 +32,7 @@ const IDENTITY_REBASE_DIGEST_DOMAIN: &[u8] =
 const EVIDENCE_ID: &str = "evidence:0";
 
 #[derive(Clone, Copy)]
-struct WorkUsage {
+pub(crate) struct ReviewUsage {
     source_bytes: usize,
     patch_bytes: usize,
     operations: usize,
@@ -44,6 +44,44 @@ struct WorkUsage {
     impact_bytes: usize,
 }
 
+impl ReviewUsage {
+    pub(crate) fn source_bytes(self) -> usize {
+        self.source_bytes
+    }
+
+    pub(crate) fn patch_bytes(self) -> usize {
+        self.patch_bytes
+    }
+
+    pub(crate) fn operations(self) -> usize {
+        self.operations
+    }
+
+    pub(crate) fn declarations(self) -> usize {
+        self.declarations
+    }
+
+    pub(crate) fn callables(self) -> usize {
+        self.callables
+    }
+
+    pub(crate) fn call_sites(self) -> usize {
+        self.call_sites
+    }
+
+    pub(crate) fn impact_depth(self) -> usize {
+        self.impact_depth
+    }
+
+    pub(crate) fn impact_nodes(self) -> usize {
+        self.impact_nodes
+    }
+
+    pub(crate) fn impact_bytes(self) -> usize {
+        self.impact_bytes
+    }
+}
+
 struct AstUsage {
     declarations: usize,
     callables: usize,
@@ -52,6 +90,9 @@ struct AstUsage {
 
 struct Evidence {
     json: String,
+    kind: &'static str,
+    schema: &'static str,
+    digest: String,
     impact_depth: usize,
     impact_nodes: usize,
     impact_bytes: usize,
@@ -120,6 +161,100 @@ struct Finding {
     operation_index: usize,
 }
 
+pub(crate) struct ReviewAssessment {
+    key: &'static str,
+    value: &'static str,
+}
+
+impl ReviewAssessment {
+    pub(crate) fn key(&self) -> &'static str {
+        self.key
+    }
+
+    pub(crate) fn value(&self) -> &'static str {
+        self.value
+    }
+}
+
+pub(crate) struct ReviewSupportingEvidence {
+    kind: &'static str,
+    schema: &'static str,
+    digest: String,
+}
+
+impl ReviewSupportingEvidence {
+    pub(crate) fn kind(&self) -> &'static str {
+        self.kind
+    }
+
+    pub(crate) fn schema(&self) -> &'static str {
+        self.schema
+    }
+
+    pub(crate) fn digest(&self) -> &str {
+        &self.digest
+    }
+}
+
+pub(crate) struct ReviewBuild {
+    report: String,
+    source_graph_schema: &'static str,
+    base_revision: String,
+    candidate_revision: String,
+    source_digest: String,
+    patch_schema: &'static str,
+    patch_digest: String,
+    assessments: Vec<ReviewAssessment>,
+    supporting_evidence: ReviewSupportingEvidence,
+    usage: ReviewUsage,
+}
+
+impl ReviewBuild {
+    pub(crate) fn report(&self) -> &str {
+        &self.report
+    }
+
+    pub(crate) fn into_report(self) -> String {
+        self.report
+    }
+
+    pub(crate) fn source_graph_schema(&self) -> &'static str {
+        self.source_graph_schema
+    }
+
+    pub(crate) fn base_revision(&self) -> &str {
+        &self.base_revision
+    }
+
+    pub(crate) fn candidate_revision(&self) -> &str {
+        &self.candidate_revision
+    }
+
+    pub(crate) fn source_digest(&self) -> &str {
+        &self.source_digest
+    }
+
+    pub(crate) fn patch_schema(&self) -> &'static str {
+        self.patch_schema
+    }
+
+    pub(crate) fn patch_digest(&self) -> &str {
+        &self.patch_digest
+    }
+
+    pub(crate) fn assessments(&self) -> &[ReviewAssessment] {
+        &self.assessments
+    }
+
+    pub(crate) fn supporting_evidence(&self) -> &ReviewSupportingEvidence {
+        &self.supporting_evidence
+    }
+
+    pub(crate) fn usage(&self) -> ReviewUsage {
+        self.usage
+    }
+}
+
 pub fn preview(source_path: &Path, patch_path: &Path) -> Result<String, Vec<Diagnostic>> {
     preview_with_hook(source_path, patch_path, |_, _| Ok(()))
 }
@@ -133,19 +268,36 @@ fn preview_with_hook(
     let snapshot =
         patch::read_source_snapshot_bounded(&canonical_source_path, MAX_SOURCE_BYTES, "SPX-G120")?;
     let patch_source = read_patch_bounded(patch_path)?;
-    let parsed = parse(snapshot.source(), source_path).map_err(|error| vec![error])?;
-    let ast_usage = precheck_program(&parsed)?;
-    let preflight = patch::preflight_review_owned(
+    let build = build_owned(
         snapshot.source().to_owned(),
         patch_source,
         source_path.to_path_buf(),
-        MAX_OPERATIONS,
     )?;
-    if preflight.source() != snapshot.source() {
-        return Err(vec![invariant_error(
-            "semantic review preflight source differs from its authenticated snapshot",
-        )]);
-    }
+    before_final_check(&canonical_source_path, source_path).map_err(|error| {
+        vec![Diagnostic::io(
+            "SPX-I207",
+            format!("semantic review final-check hook failed: {error}"),
+        )]
+    })?;
+    patch::validate_source_unchanged_bounded(
+        &canonical_source_path,
+        source_path,
+        &snapshot,
+        build.base_revision(),
+        MAX_SOURCE_BYTES,
+    )?;
+    Ok(build.into_report())
+}
+
+pub(crate) fn build_owned(
+    source: String,
+    patch_source: String,
+    diagnostic_path: std::path::PathBuf,
+) -> Result<ReviewBuild, Vec<Diagnostic>> {
+    let parsed = parse(&source, &diagnostic_path).map_err(|error| vec![error])?;
+    let ast_usage = precheck_program(&parsed)?;
+    let preflight =
+        patch::preflight_review_owned(source, patch_source, diagnostic_path, MAX_OPERATIONS)?;
     let before_resolved = hir::resolve(preflight.before())?;
     let candidate_resolved = hir::resolve(preflight.candidate())?;
     hir::validate(&before_resolved).map_err(|error| vec![error])?;
@@ -158,8 +310,8 @@ fn preview_with_hook(
     }
     prove_review_classifications(&preflight)?;
     let evidence = evidence_json(&preflight)?;
-    let usage = WorkUsage {
-        source_bytes: snapshot.source().len(),
+    let usage = ReviewUsage {
+        source_bytes: preflight.source().len(),
         patch_bytes: preflight.patch_source().len(),
         operations: preflight.operations().len(),
         declarations: ast_usage.declarations,
@@ -169,29 +321,34 @@ fn preview_with_hook(
         impact_nodes: evidence.impact_nodes,
         impact_bytes: evidence.impact_bytes,
     };
-    let sections = sections_json(preflight.operations());
+    let (sections, assessments) = sections_json(preflight.operations());
+    let source_digest = domain_digest(SOURCE_DIGEST_DOMAIN, preflight.source().as_bytes());
+    let patch_digest = domain_digest(PATCH_DIGEST_DOMAIN, preflight.patch_source().as_bytes());
     let report = render_with_budget(
         &preflight,
         source_graph_schema,
-        snapshot.source(),
+        &source_digest,
+        &patch_digest,
         &evidence.json,
         &sections,
         usage,
     )?;
-    before_final_check(&canonical_source_path, source_path).map_err(|error| {
-        vec![Diagnostic::io(
-            "SPX-I207",
-            format!("semantic review final-check hook failed: {error}"),
-        )]
-    })?;
-    patch::validate_source_unchanged_bounded(
-        &canonical_source_path,
-        source_path,
-        &snapshot,
-        preflight.base_revision(),
-        MAX_SOURCE_BYTES,
-    )?;
-    Ok(report)
+    Ok(ReviewBuild {
+        report,
+        source_graph_schema,
+        base_revision: preflight.base_revision().to_owned(),
+        candidate_revision: preflight.candidate_revision().to_owned(),
+        source_digest,
+        patch_schema: preflight.schema_label(),
+        patch_digest,
+        assessments,
+        supporting_evidence: ReviewSupportingEvidence {
+            kind: evidence.kind,
+            schema: evidence.schema,
+            digest: evidence.digest,
+        },
+        usage,
+    })
 }
 
 fn read_patch_bounded(path: &Path) -> Result<String, Vec<Diagnostic>> {
@@ -323,6 +480,14 @@ fn precheck_program(program: &Program) -> Result<AstUsage, Vec<Diagnostic>> {
     })
 }
 
+#[cfg(test)]
+pub(crate) fn precheck_counts_for_test(
+    program: &Program,
+) -> Result<(usize, usize, usize), Vec<Diagnostic>> {
+    let usage = precheck_program(program)?;
+    Ok((usage.declarations, usage.callables, usage.call_sites))
+}
+
 fn evidence_json(preflight: &PatchPreflight) -> Result<Evidence, Vec<Diagnostic>> {
     if let Some(rebase) = preflight.identity_rebase() {
         let callers = rebase
@@ -353,6 +518,9 @@ fn evidence_json(preflight: &PatchPreflight) -> Result<Evidence, Vec<Diagnostic>
                 "{{\"id\":\"{EVIDENCE_ID}\",\"kind\":\"identity_rebase_v1\",\"schema\":\"{IDENTITY_REBASE_SCHEMA}\",\"digest\":{},\"identity_rebase\":{identity_rebase}}}",
                 quote_json(&digest)
             ),
+            kind: "identity_rebase_v1",
+            schema: IDENTITY_REBASE_SCHEMA,
+            digest,
             impact_depth: 0,
             impact_nodes: 0,
             impact_bytes: 0,
@@ -371,6 +539,9 @@ fn evidence_json(preflight: &PatchPreflight) -> Result<Evidence, Vec<Diagnostic>
             quote_json(&digest),
             impact.report()
         ),
+        kind: "semantic_impact_v1",
+        schema: "semaprax.semantic-impact.v1",
+        digest,
         impact_depth: impact.used_depth(),
         impact_nodes: impact.used_nodes(),
         impact_bytes: impact.report().len(),
@@ -512,15 +683,28 @@ fn security_facts(program: &Program) -> String {
     facts.join("\0")
 }
 
-fn sections_json(operations: &[PreflightOperation]) -> String {
-    SectionKind::ALL
+fn sections_json(operations: &[PreflightOperation]) -> (String, Vec<ReviewAssessment>) {
+    let rendered = SectionKind::ALL
         .into_iter()
         .map(|section| section_json(section, operations))
-        .collect::<Vec<_>>()
-        .join(",")
+        .collect::<Vec<_>>();
+    (
+        rendered
+            .iter()
+            .map(|(json, _)| json.as_str())
+            .collect::<Vec<_>>()
+            .join(","),
+        rendered
+            .into_iter()
+            .map(|(_, assessment)| assessment)
+            .collect(),
+    )
 }
 
-fn section_json(section: SectionKind, operations: &[PreflightOperation]) -> String {
+fn section_json(
+    section: SectionKind,
+    operations: &[PreflightOperation],
+) -> (String, ReviewAssessment) {
     let findings = operations
         .iter()
         .map(|operation| finding(section, operation))
@@ -539,12 +723,18 @@ fn section_json(section: SectionKind, operations: &[PreflightOperation]) -> Stri
         })
         .collect::<Vec<_>>()
         .join(",");
-    format!(
-        "{}:{{\"kind\":{},\"assessment\":{},\"findings\":[{}]}}",
-        quote_json(section.text()),
-        quote_json(section.text()),
-        quote_json(assessment),
-        findings_json
+    (
+        format!(
+            "{}:{{\"kind\":{},\"assessment\":{},\"findings\":[{}]}}",
+            quote_json(section.text()),
+            quote_json(section.text()),
+            quote_json(assessment),
+            findings_json
+        ),
+        ReviewAssessment {
+            key: section.text(),
+            value: assessment,
+        },
     )
 }
 
@@ -642,22 +832,24 @@ fn operation_subject(operation: &PreflightOperation) -> (&'static str, String) {
 fn render_with_budget(
     preflight: &PatchPreflight,
     source_graph_schema: &str,
-    source: &str,
+    source_digest: &str,
+    patch_digest: &str,
     evidence: &str,
     sections: &str,
-    usage: WorkUsage,
+    usage: ReviewUsage,
 ) -> Result<String, Vec<Diagnostic>> {
+    let input = ReviewRender {
+        preflight,
+        source_graph_schema,
+        source_digest,
+        patch_digest,
+        evidence,
+        sections,
+        usage,
+    };
     let mut used_output_bytes = 0usize;
     for _ in 0..4 {
-        let output = render_report(
-            preflight,
-            source_graph_schema,
-            source,
-            evidence,
-            sections,
-            usage,
-            used_output_bytes,
-        );
+        let output = render_report(&input, used_output_bytes);
         if output.len() == used_output_bytes {
             if output.len() > MAX_OUTPUT_BYTES {
                 return Err(vec![limit_error(format!(
@@ -673,26 +865,27 @@ fn render_with_budget(
     )])
 }
 
-fn render_report(
-    preflight: &PatchPreflight,
-    source_graph_schema: &str,
-    source: &str,
-    evidence: &str,
-    sections: &str,
-    usage: WorkUsage,
-    used_output_bytes: usize,
-) -> String {
+struct ReviewRender<'a> {
+    preflight: &'a PatchPreflight,
+    source_graph_schema: &'a str,
+    source_digest: &'a str,
+    patch_digest: &'a str,
+    evidence: &'a str,
+    sections: &'a str,
+    usage: ReviewUsage,
+}
+
+fn render_report(input: &ReviewRender<'_>, used_output_bytes: usize) -> String {
+    let preflight = input.preflight;
+    let usage = input.usage;
     format!(
-        "{{\"schema\":\"{REVIEW_SCHEMA}\",\"source_graph_schema\":{},\"base_revision\":{},\"candidate_revision\":{},\"source\":{{\"digest\":{}}},\"patch\":{{\"schema\":{},\"digest\":{}}},\"limits\":{{\"max_source_bytes\":{MAX_SOURCE_BYTES},\"max_patch_bytes\":{MAX_PATCH_BYTES},\"max_operations\":{MAX_OPERATIONS},\"max_declarations\":{MAX_DECLARATIONS},\"max_callables\":{MAX_CALLABLES},\"max_call_sites\":{MAX_CALL_SITES},\"max_impact_depth\":{MAX_IMPACT_DEPTH},\"max_impact_nodes\":{MAX_IMPACT_NODES},\"max_impact_bytes\":{MAX_IMPACT_BYTES},\"max_output_bytes\":{MAX_OUTPUT_BYTES}}},\"budget\":{{\"used_source_bytes\":{},\"used_patch_bytes\":{},\"used_operations\":{},\"used_declarations\":{},\"used_callables\":{},\"used_call_sites\":{},\"used_impact_depth\":{},\"used_impact_nodes\":{},\"used_impact_bytes\":{},\"used_output_bytes\":{used_output_bytes}}},\"sections\":{{{sections}}},\"evidence\":{evidence},\"nonclaims\":[\"not_proof_carrying_patch\",\"no_authenticated_provenance_or_signature\",\"no_human_approval_ui_or_policy\",\"no_public_verify_api_or_proof_artifact\",\"no_lock_stage_apply_or_commit_authority\",\"no_repository_or_multi_file_analysis\",\"no_agent_context_generation_or_embedding\",\"no_test_or_target_execution\",\"no_general_capability_security_unsafe_or_abi_analysis\",\"no_semantic_impact_v3\",\"no_persistence_or_incrementality\",\"no_external_consumer_compatibility\"]}}",
-        quote_json(source_graph_schema),
+        "{{\"schema\":\"{REVIEW_SCHEMA}\",\"source_graph_schema\":{},\"base_revision\":{},\"candidate_revision\":{},\"source\":{{\"digest\":{}}},\"patch\":{{\"schema\":{},\"digest\":{}}},\"limits\":{{\"max_source_bytes\":{MAX_SOURCE_BYTES},\"max_patch_bytes\":{MAX_PATCH_BYTES},\"max_operations\":{MAX_OPERATIONS},\"max_declarations\":{MAX_DECLARATIONS},\"max_callables\":{MAX_CALLABLES},\"max_call_sites\":{MAX_CALL_SITES},\"max_impact_depth\":{MAX_IMPACT_DEPTH},\"max_impact_nodes\":{MAX_IMPACT_NODES},\"max_impact_bytes\":{MAX_IMPACT_BYTES},\"max_output_bytes\":{MAX_OUTPUT_BYTES}}},\"budget\":{{\"used_source_bytes\":{},\"used_patch_bytes\":{},\"used_operations\":{},\"used_declarations\":{},\"used_callables\":{},\"used_call_sites\":{},\"used_impact_depth\":{},\"used_impact_nodes\":{},\"used_impact_bytes\":{},\"used_output_bytes\":{used_output_bytes}}},\"sections\":{{{}}},\"evidence\":{},\"nonclaims\":[\"not_proof_carrying_patch\",\"no_authenticated_provenance_or_signature\",\"no_human_approval_ui_or_policy\",\"no_public_verify_api_or_proof_artifact\",\"no_lock_stage_apply_or_commit_authority\",\"no_repository_or_multi_file_analysis\",\"no_agent_context_generation_or_embedding\",\"no_test_or_target_execution\",\"no_general_capability_security_unsafe_or_abi_analysis\",\"no_semantic_impact_v3\",\"no_persistence_or_incrementality\",\"no_external_consumer_compatibility\"]}}",
+        quote_json(input.source_graph_schema),
         quote_json(preflight.base_revision()),
         quote_json(preflight.candidate_revision()),
-        quote_json(&domain_digest(SOURCE_DIGEST_DOMAIN, source.as_bytes())),
+        quote_json(input.source_digest),
         quote_json(preflight.schema_label()),
-        quote_json(&domain_digest(
-            PATCH_DIGEST_DOMAIN,
-            preflight.patch_source().as_bytes()
-        )),
+        quote_json(input.patch_digest),
         usage.source_bytes,
         usage.patch_bytes,
         usage.operations,
@@ -702,6 +895,8 @@ fn render_report(
         usage.impact_depth,
         usage.impact_nodes,
         usage.impact_bytes,
+        input.sections,
+        input.evidence,
     )
 }
 

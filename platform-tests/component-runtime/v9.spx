@@ -1,0 +1,39 @@
+module test.component_generic_function_v9;
+
+@id("component.generic-function.preserve")
+fn preserve<T>(marker: bool, control: i64) -> bool
+    requires control != -99
+    ensures control != 13
+{
+    marker
+}
+
+@id("component.generic-function.invert")
+fn invert<T>(marker: bool, control: i64) -> bool
+    requires control != -99
+    ensures control != 13
+{
+    !marker
+}
+
+@id("component.generic-function.ordered")
+fn ordered<T, U>(marker: bool, control: i64) -> bool
+    requires control != -99
+    ensures control != 13
+{
+    marker
+}
+
+@id("component.generic-function.materialize")
+fn materialize() -> bool {
+    let preserve_i64 = preserve<i64>(true, 0);
+    let invert_i64 = invert<i64>(false, 0);
+    let preserve_bool = preserve<bool>(true, 0);
+    let invert_bool = invert<bool>(false, 0);
+    let ordered_i64_bool = ordered<i64, bool>(true, 0);
+    let ordered_bool_i64 = ordered<bool, i64>(true, 0);
+    preserve_i64 && invert_i64 && preserve_bool && invert_bool && ordered_i64_bool && ordered_bool_i64
+}
+
+@id("app.main")
+fn main() -> i64 { if materialize() { 0 } else { 1 } }

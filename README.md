@@ -109,8 +109,14 @@ Implemented today:
   Ubuntu job
   93445428338](https://github.com/wavect/semaprax/actions/runs/31385406865/job/93445428338). Inference,
   constraints, aggregate/resource/non-Copy signatures, effects, generic-to-
-  generic calls, recursion, generic entrypoints, callable/resource/component
-  admission, and a stable public ABI remain closed.
+  generic calls, recursion, generic entrypoints, callable/resource admission,
+  general/public Component mapping, and a stable public ABI remain closed; the
+  exact private v9 profile below is separately gated.
+  The same-schema Graph-v14 JSON correction that restored the missing
+  `type_parameters` array delimiters is separately hosted green in [run
+  31390043736, Ubuntu job
+  93459346296](https://github.com/wavect/semaprax/actions/runs/31390043736/job/93459346296);
+  the execution run above predates that serializer correction.
 - Bounded irrefutable Copy-record destructuring extends `match` with exact
   named-field record patterns, recursive record subpatterns, renamed or
   shorthand bindings, ignored fields, and whole Copy-record bindings. The
@@ -359,12 +365,39 @@ general source-selection/component support, and it opens no imports,
 capabilities, resources, callable/FFI or public ABI, browser/multi-engine
 claim, package negotiation, or `SPX-B104`/`SPX-W111` gate.
 
+Private Generic-Function Instance Component v9 is a ninth separate default-off
+exact fixture for WIT package `semaprax:private@0.7.0`, interface
+`generic-function-instances`, and world `semaprax-private-v9`. Three phantom
+Copy templates (`preserve<T>`, `invert<T>`, and `ordered<T,U>`) materialize
+exactly six explicitly referenced Graph-v14 `FunctionInstanceId`s in frozen
+export order. All six exports have the identical
+`(marker: bool, control: s64) -> result<bool, status>` signature and introduce
+no authored record or layout roots. Exact source, Graph v14, generated core,
+plan, profile, raw-component, and artifact-DAG SHA-256 KATs are respectively
+`218085fb5ea1bcc090c04ac0acb3395912d0dad09027b9118d8817978b2fde0c`,
+`62907c4b95495bb573b2b37de9f0b08c7a82218934154521e8c0c8396158cc6e`,
+`9f178207a0406f740198ee8c71d5d008efdf4d995ff04e11e80ea73b79155d44`,
+`edd11c98bbc902d9dbc9c942375477fcf1e6c3f1befbe3c4a9f260107104485e`,
+`365897ddb2770cc25a11690dddbfef5d232244ec5d328c79a24a1410e684615e`,
+`3cf6c7d7d02e838fb374478a2b5b25077c7c612ad36e30deaffd15311a25a688`,
+and `2623ff9a7eda5526616a15befd4951de86874a59911dcba2a7d3bcc2d178a474`.
+Local core 5/5, component 4/4, CI-lock 4/4, full gates, all 15 pair-swap
+rejections (eight behaviorally observable and seven identity-only), and
+independent security review are green. Its zero-import, empty-linker, no-WASI
+pinned Rust 1.97.1/Wasmtime 47 typed runtime is pending hosted execution.
+V1-v8 bytes remain unchanged. This exact profile is not general generic-
+function Component support and opens no inference/constraints, general source
+selection/export, aggregates/resources/non-Copy values, imports/capabilities,
+callbacks/async, callable/FFI or public ABI, browser/multi-engine conformance,
+package negotiation, or `SPX-B104`/`SPX-W111` gate.
+
 Not implemented yet: public native resource execution/admission,
 general-shape native/reference/Wasm trace conformance, the general Wasm resource ABI,
 recursive reference execution, callable imports/adapters, a stable public aggregate
 ABI and general aggregate execution, nested or resource-bearing generic
-arguments, generic-function inference/constraints or aggregate/resource/non-Copy
-signatures, resource-bearing variants,
+arguments, generic-function inference/constraints, general generic-function
+Component mapping, or aggregate/resource/non-Copy signatures, resource-bearing
+variants,
 refutable and ownership-aware/non-Copy matching, general/non-copy/residual-converting `?`, lifetime
 and alias analysis, user-facing
 regions, effect handlers, static contract proofs, Cranelift, LLVM/MLIR IR,

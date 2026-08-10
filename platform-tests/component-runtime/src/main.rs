@@ -60,6 +60,15 @@ mod v8_bindings {
     });
 }
 
+mod v9_bindings {
+    wasmtime::component::bindgen!({
+        path: "wit/semaprax-private-v9.wit",
+        world: "semaprax-private-v9",
+        ownership: Owning,
+        additional_derives: [Eq, PartialEq],
+    });
+}
+
 use exports::semaprax::private::evaluation::Status;
 
 type HostResult<T> = Result<T, Box<dyn Error>>;
@@ -107,6 +116,7 @@ const SOURCE_V5: &str = include_str!("../v5.spx");
 const SOURCE_V6: &str = include_str!("../v6.spx");
 const SOURCE_V7: &str = include_str!("../v7.spx");
 const SOURCE_V8: &str = include_str!("../v8.spx");
+const SOURCE_V9: &str = include_str!("../v9.spx");
 
 // These independent known answers are replaced only alongside a reviewed
 // component-profile version change. Artifact accessor metadata is never used
@@ -176,6 +186,16 @@ const EXPECTED_GENERATED_CORE_V8_SHA256: [u8; 32] = [
 ];
 const EXPECTED_SOURCE_REVISION_V8: &str =
     "sha256:2baac0c0920dbb153789767bf506a4a81713081586a81444d8e5f5a8f5a8516d";
+const EXPECTED_COMPONENT_V9_SHA256: [u8; 32] = [
+    0x3c, 0xf6, 0xc7, 0xd7, 0xd0, 0x2e, 0x83, 0x8f, 0xb3, 0x74, 0x47, 0x8a, 0x2b, 0x5b, 0x25, 0x07,
+    0x7c, 0x7c, 0x61, 0x2a, 0xd3, 0x6e, 0x30, 0xde, 0xaf, 0xfd, 0x15, 0x31, 0x1a, 0x25, 0xa6, 0x88,
+];
+const EXPECTED_GENERATED_CORE_V9_SHA256: [u8; 32] = [
+    0x9f, 0x17, 0x82, 0x07, 0xa0, 0x40, 0x6f, 0x74, 0x01, 0x98, 0xee, 0x8c, 0x71, 0xd5, 0xd0, 0x08,
+    0xef, 0xdf, 0x4d, 0x99, 0x5f, 0xf0, 0x4e, 0x11, 0xe8, 0x0e, 0xa7, 0x3b, 0x79, 0x15, 0x5d, 0x44,
+];
+const EXPECTED_SOURCE_REVISION_V9: &str =
+    "sha256:218085fb5ea1bcc090c04ac0acb3395912d0dad09027b9118d8817978b2fde0c";
 
 #[derive(Clone, Copy)]
 enum Expected {
@@ -1954,13 +1974,319 @@ fn run_v8() -> HostResult<()> {
     Ok(())
 }
 
+fn expect_v9_status<T>(
+    value: Result<T, v9_bindings::exports::semaprax::private::generic_function_instances::Status>,
+    code: u32,
+    name: &str,
+) -> HostResult<()> {
+    match value {
+        Err(status)
+            if status.domain == "semaprax.contract.v1"
+                && status.code == code
+                && status.class == 1
+                && status.retryable == Some(false) =>
+        {
+            Ok(())
+        }
+        _ => Err(failure(format!("unexpected v9 status for {name}"))),
+    }
+}
+
+fn run_v9_instance(engine: &Engine, component: &Component) -> HostResult<()> {
+    let linker = Linker::<()>::new(engine);
+    let mut store = Store::new(engine, ());
+    store.set_fuel(20_000_000)?;
+    let bindings = v9_bindings::SemapraxPrivateV9::instantiate(&mut store, component, &linker)?;
+    let api = bindings.semaprax_private_generic_function_instances();
+    for marker in [false, true] {
+        if api.call_preserve_i64(&mut store, marker, 0)? != Ok(marker)
+            || api.call_invert_i64(&mut store, marker, 0)? != Ok(!marker)
+            || api.call_preserve_bool(&mut store, marker, 0)? != Ok(marker)
+            || api.call_invert_bool(&mut store, marker, 0)? != Ok(!marker)
+            || api.call_ordered_i64_bool(&mut store, marker, 0)? != Ok(marker)
+            || api.call_ordered_bool_i64(&mut store, marker, 0)? != Ok(marker)
+        {
+            return Err(failure(
+                "v9 exact generic-function instance mapping changed",
+            ));
+        }
+    }
+    for (code, control) in [(1, -99), (2, 13)] {
+        expect_v9_status(
+            api.call_preserve_i64(&mut store, true, control)?,
+            code,
+            "preserve<i64>",
+        )?;
+        expect_v9_status(
+            api.call_invert_i64(&mut store, true, control)?,
+            code,
+            "invert<i64>",
+        )?;
+        expect_v9_status(
+            api.call_preserve_bool(&mut store, true, control)?,
+            code,
+            "preserve<bool>",
+        )?;
+        expect_v9_status(
+            api.call_invert_bool(&mut store, true, control)?,
+            code,
+            "invert<bool>",
+        )?;
+        expect_v9_status(
+            api.call_ordered_i64_bool(&mut store, true, control)?,
+            code,
+            "ordered<i64,bool>",
+        )?;
+        expect_v9_status(
+            api.call_ordered_bool_i64(&mut store, true, control)?,
+            code,
+            "ordered<bool,i64>",
+        )?;
+    }
+    Ok(())
+}
+
+fn expect_raw_v9_status(bytes: &[u8; 20], code: u32, name: &str) -> HostResult<()> {
+    if bytes[0] != 1
+        || bytes[1..4] != [0xa5; 3]
+        || u32::from_le_bytes(bytes[4..8].try_into()?) != 0
+        || u32::from_le_bytes(bytes[8..12].try_into()?) != 20
+        || u32::from_le_bytes(bytes[12..16].try_into()?) != code
+        || bytes[16] != 1
+        || bytes[17] != 1
+        || bytes[18] != 0
+        || bytes[19] != 0xa5
+    {
+        return Err(failure(format!("v9 raw status/poison changed for {name}")));
+    }
+    Ok(())
+}
+
+fn prove_raw_core_v9_mapping_poison_and_invalid_bools(
+    engine: &Engine,
+    core: &[u8],
+) -> HostResult<()> {
+    let module = Module::new(engine, core)?;
+    if module.imports().next().is_some() {
+        return Err(failure("v9 raw core requested ambient imports"));
+    }
+    let mut store = Store::new(engine, ());
+    store.set_fuel(20_000_000)?;
+    let instance = Instance::new(&mut store, &module, &[])?;
+    let names = [
+        "cabi_preserve_i64_v9",
+        "cabi_invert_i64_v9",
+        "cabi_preserve_bool_v9",
+        "cabi_invert_bool_v9",
+        "cabi_ordered_i64_bool_v9",
+        "cabi_ordered_bool_i64_v9",
+    ];
+    let mut functions = Vec::new();
+    for name in names {
+        functions.push(instance.get_typed_func::<(i32, i64), i32>(&mut store, name)?);
+    }
+    let results = [160_usize, 224, 288, 352, 416, 480];
+    let memory = instance
+        .get_memory(&mut store, "memory")
+        .ok_or_else(|| failure("v9 raw core memory export missing"))?;
+    let mut bytes = [0_u8; 20];
+    for (index, function) in functions.iter().enumerate() {
+        let pointer = usize::try_from(function.call(&mut store, (1, 0))?)
+            .map_err(|_| failure("v9 raw success pointer was negative"))?;
+        if pointer != results[index] {
+            return Err(failure("v9 raw result pointer map changed"));
+        }
+        memory.read(&store, pointer, &mut bytes)?;
+        let expected = u8::from(index != 1 && index != 3);
+        if bytes[0] != 0
+            || bytes[1..4] != [0xa5; 3]
+            || bytes[4] != expected
+            || bytes[5..] != [0xa5; 15]
+        {
+            return Err(failure("v9 raw fieldwise reconstruction changed"));
+        }
+        let pointer = usize::try_from(function.call(&mut store, (1, -99))?)
+            .map_err(|_| failure("v9 raw requires pointer was negative"))?;
+        memory.read(&store, pointer, &mut bytes)?;
+        expect_raw_v9_status(&bytes, 1, "requires")?;
+        let pointer = usize::try_from(function.call(&mut store, (1, 13))?)
+            .map_err(|_| failure("v9 raw ensures pointer was negative"))?;
+        memory.read(&store, pointer, &mut bytes)?;
+        expect_raw_v9_status(&bytes, 2, "ensures")?;
+        if function.call(&mut store, (2, 0)).is_ok() {
+            return Err(failure("v9 raw invalid bool did not trap"));
+        }
+        memory.read(&store, results[index], &mut bytes)?;
+        if bytes != [0xa5; 20] {
+            return Err(failure("v9 raw invalid bool retained stale output"));
+        }
+    }
+    Ok(())
+}
+
+fn prove_engine_failure_is_out_of_band_v9(
+    engine: &Engine,
+    component: &Component,
+) -> HostResult<()> {
+    let linker = Linker::<()>::new(engine);
+    let mut store = Store::new(engine, ());
+    store.set_fuel(1_000_000)?;
+    let bindings = v9_bindings::SemapraxPrivateV9::instantiate(&mut store, component, &linker)?;
+    store.set_fuel(0)?;
+    if bindings
+        .semaprax_private_generic_function_instances()
+        .call_preserve_i64(&mut store, true, 0)
+        .is_ok()
+    {
+        return Err(failure("v9 fuel exhaustion became a typed status"));
+    }
+    Ok(())
+}
+
+fn prove_all_pair_swaps_reject_and_polarity_swaps_are_observable_v9(
+    engine: &Engine,
+    bytes: &[u8],
+) -> HostResult<()> {
+    let mut canonical_anchor = Vec::new();
+    for index in 0_u8..6 {
+        canonical_anchor.extend([0x00, 0x00, index, 0x02, 0x00, 0x03, 0x00, 0x03]);
+    }
+    let canonical_at = bytes
+        .windows(canonical_anchor.len())
+        .position(|window| window == canonical_anchor)
+        .ok_or_else(|| failure("v9 pair-swap canonical anchor drifted"))?;
+    let polarity = |index: usize| index == 1 || index == 3;
+    let mut swaps = 0_u8;
+    let mut observable_swaps = 0_u8;
+    let mut identity_only_swaps = 0_u8;
+    for left in 0..6 {
+        for right in left + 1..6 {
+            let mut hostile = bytes.to_vec();
+            hostile.swap(canonical_at + 2 + left * 8, canonical_at + 2 + right * 8);
+            if ::semaprax::wit_component::validate_private_generic_function_component_v9(
+                &hostile,
+                EXPECTED_SOURCE_REVISION_V9,
+                EXPECTED_GENERATED_CORE_V9_SHA256,
+            )
+            .is_ok()
+            {
+                return Err(failure("v9 exact validator admitted pair swap"));
+            }
+            swaps = swaps
+                .checked_add(1)
+                .ok_or_else(|| failure("v9 pair-swap count overflowed"))?;
+            if polarity(left) == polarity(right) {
+                identity_only_swaps = identity_only_swaps
+                    .checked_add(1)
+                    .ok_or_else(|| failure("v9 identity-only swap count overflowed"))?;
+                continue;
+            }
+            observable_swaps = observable_swaps
+                .checked_add(1)
+                .ok_or_else(|| failure("v9 observable swap count overflowed"))?;
+            let component = Component::new(engine, &hostile)?;
+            if component.component_type().imports(engine).len() != 0 {
+                return Err(failure("v9 pair-swap hostile requested imports"));
+            }
+            let linker = Linker::<()>::new(engine);
+            let mut store = Store::new(engine, ());
+            store.set_fuel(10_000_000)?;
+            let bindings =
+                v9_bindings::SemapraxPrivateV9::instantiate(&mut store, &component, &linker)?;
+            let api = bindings.semaprax_private_generic_function_instances();
+            let observed = match left {
+                0 => api.call_preserve_i64(&mut store, true, 0)?,
+                1 => api.call_invert_i64(&mut store, true, 0)?,
+                2 => api.call_preserve_bool(&mut store, true, 0)?,
+                3 => api.call_invert_bool(&mut store, true, 0)?,
+                4 => api.call_ordered_i64_bool(&mut store, true, 0)?,
+                5 => api.call_ordered_bool_i64(&mut store, true, 0)?,
+                _ => unreachable!(),
+            };
+            if observed != Ok(!polarity(right)) {
+                return Err(failure("v9 polarity-changing pair swap was not observable"));
+            }
+        }
+    }
+    if (swaps, observable_swaps, identity_only_swaps) != (15, 8, 7) {
+        return Err(failure("v9 pair-swap 15/8/7 partition changed"));
+    }
+    Ok(())
+}
+
+#[allow(clippy::too_many_lines)]
+fn run_v9() -> HostResult<()> {
+    let program = ::semaprax::check(SOURCE_V9, Path::new("component-generic-function-v9.spx"))
+        .map_err(|diagnostics| {
+            failure(format!("v9 fixture verification failed: {diagnostics:?}"))
+        })?;
+    let artifact = ::semaprax::wit_component::emit_private_generic_function_component_v9(&program)
+        .map_err(|diagnostic| failure(format!("v9 component emission failed: {diagnostic:?}")))?;
+    if artifact.wit() != include_str!("../wit/semaprax-private-v9.wit") {
+        return Err(failure("checked-in Wasmtime v9 WIT drifted"));
+    }
+    let bytes: Box<[u8]> = artifact.bytes().to_vec().into_boxed_slice();
+    let before: [u8; 32] = Sha256::digest(&bytes).into();
+    if before != EXPECTED_COMPONENT_V9_SHA256
+        || artifact.generated_core_digest() != EXPECTED_GENERATED_CORE_V9_SHA256
+    {
+        return Err(failure("v9 independent component/core KAT changed"));
+    }
+    if ::semaprax::graph::revision(&program) != EXPECTED_SOURCE_REVISION_V9 {
+        return Err(failure("v9 source revision KAT changed"));
+    }
+    let validated = ::semaprax::wit_component::validate_private_generic_function_component_v9(
+        &bytes,
+        EXPECTED_SOURCE_REVISION_V9,
+        EXPECTED_GENERATED_CORE_V9_SHA256,
+    )
+    .map_err(|error| failure(format!("v9 profile validation failed: {error:?}")))?;
+    if validated.interface_export_name() != "semaprax:private/generic-function-instances@0.7.0"
+        || validated.function_export_names()
+            != [
+                "preserve-i64",
+                "invert-i64",
+                "preserve-bool",
+                "invert-bool",
+                "ordered-i64-bool",
+                "ordered-bool-i64",
+            ]
+        || validated.type_export_names() != ["status"]
+        || validated.source_revision() != EXPECTED_SOURCE_REVISION_V9
+        || <[u8; 32]>::from(Sha256::digest(validated.generated_core()))
+            != EXPECTED_GENERATED_CORE_V9_SHA256
+    {
+        return Err(failure("v9 typed export table changed"));
+    }
+    let mut config = Config::new();
+    config.wasm_component_model(true);
+    config.consume_fuel(true);
+    let engine = Engine::new(&config)?;
+    let component = Component::new(&engine, &bytes)?;
+    if component.component_type().imports(&engine).len() != 0 {
+        return Err(failure("v9 requested ambient imports"));
+    }
+    for _ in 0..4 {
+        run_v9_instance(&engine, &component)?;
+    }
+    prove_raw_core_v9_mapping_poison_and_invalid_bools(&engine, validated.generated_core())?;
+    prove_all_pair_swaps_reject_and_polarity_swaps_are_observable_v9(&engine, &bytes)?;
+    prove_engine_failure_is_out_of_band_v9(&engine, &component)?;
+    if <[u8; 32]>::from(Sha256::digest(&bytes)) != before {
+        return Err(failure("authenticated v9 bytes changed during execution"));
+    }
+    println!("semaprax-private-component-runtime-v9-ok");
+    Ok(())
+}
+
 fn run() -> HostResult<()> {
     run_v3()?;
     run_v4()?;
     run_v5()?;
     run_v6()?;
     run_v7()?;
-    run_v8()
+    run_v8()?;
+    run_v9()
 }
 
 fn main() -> HostResult<()> {

@@ -1,0 +1,15 @@
+package semaprax:private@0.7.0;
+
+interface generic-function-instances {
+  record status { domain: string, code: u32, class: u8, retryable: option<bool> }
+  preserve-i64: func(marker: bool, control: s64) -> result<bool, status>;
+  invert-i64: func(marker: bool, control: s64) -> result<bool, status>;
+  preserve-bool: func(marker: bool, control: s64) -> result<bool, status>;
+  invert-bool: func(marker: bool, control: s64) -> result<bool, status>;
+  ordered-i64-bool: func(marker: bool, control: s64) -> result<bool, status>;
+  ordered-bool-i64: func(marker: bool, control: s64) -> result<bool, status>;
+}
+
+world semaprax-private-v9 {
+  export generic-function-instances;
+}

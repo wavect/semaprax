@@ -110,6 +110,27 @@ bytes remain unchanged, and v8 establishes neither generic-function component
 support nor general source selection, record mapping, imports/capabilities,
 public ABI, browser/multi-engine conformance, or package negotiation.
 
+A separate default-off Private Generic-Function Instance Component v9 freezes
+WIT package `semaprax:private@0.7.0`, interface
+`generic-function-instances`, world `semaprax-private-v9`, the three phantom
+Copy templates `preserve<T>`, `invert<T>`, and `ordered<T,U>`, and exactly six
+ordered Graph-v14 `FunctionInstanceId` exports with identical scalar
+`(bool,s64)->result<bool,status>` signatures. It introduces no authored record
+or layout roots. Exact source/Graph/core/plan/profile/raw/DAG KATs are
+`218085fb5ea1bcc090c04ac0acb3395912d0dad09027b9118d8817978b2fde0c`,
+`62907c4b95495bb573b2b37de9f0b08c7a82218934154521e8c0c8396158cc6e`,
+`9f178207a0406f740198ee8c71d5d008efdf4d995ff04e11e80ea73b79155d44`,
+`edd11c98bbc902d9dbc9c942375477fcf1e6c3f1befbe3c4a9f260107104485e`,
+`365897ddb2770cc25a11690dddbfef5d232244ec5d328c79a24a1410e684615e`,
+`3cf6c7d7d02e838fb374478a2b5b25077c7c612ad36e30deaffd15311a25a688`,
+and `2623ff9a7eda5526616a15befd4951de86874a59911dcba2a7d3bcc2d178a474`.
+Local core 5/5, component 4/4, CI-lock 4/4, full, hostile, and security gates
+are green; pinned Rust 1.97.1/Wasmtime 47 hosted execution is pending. V1-v8
+bytes remain unchanged. V9 is exact private instance-selection evidence, not
+general source selection/export, inference/constraints, aggregate/resource/
+non-Copy mapping, imports/capabilities, public ABI, browser/multi-engine
+conformance, or package negotiation.
+
 ## Canonical source
 
 Public types and members carry persistent identities. Authored generic variant
@@ -323,6 +344,17 @@ order. A top-level wildcard record arm is binding-free and does not by itself
 select v13. CleanupPlan remains v2, or v3 only when Option propagation is also
 present; the pattern adds no branch edge or cleanup action.
 
+The same-schema v14 serializer correction adds the missing array delimiters
+around function-template `type_parameters`; earlier two-parameter templates
+produced invalid JSON in module, bounded-context, and Agent Context views. The
+corrected module/Agent Context/bounded-context SHA-256 KATs are
+`7a61fa6229f2db7aca6a035fd961720e8a401c138cc66c9cd71c64d45bed5efd`,
+`2841401e7ba85fa8e47b3c35a15ae401b4a271d2500d70bbf3627f1453869eb6`,
+and `d7bda2be1fc366195ffb00a9e20b2b03204b4dd6f46e8019842dd84f70b54ab8`.
+Independent JSON parsing and these exact bytes are hosted green in [run
+31390043736, Ubuntu job
+93459346296](https://github.com/wavect/semaprax/actions/runs/31390043736/job/93459346296).
+
 Context traversal follows signature types, constructors, projections, cases, patterns, contracts, and calls.
 
 Semantic renames preserve meaning:
@@ -373,9 +405,11 @@ Existing diagnostic codes remain reserved; implementation must resolve any colli
    program-wide Graph v14, strict native C11 O0/O2, and Node/Wasm. Hosted
    matrix evidence is green in [run 31385406865, Ubuntu job
    93445428338](https://github.com/wavect/semaprax/actions/runs/31385406865/job/93445428338);
-   inference, constraints, richer signatures,
-   generic composition, callable/resource/component admission, and stable ABI
-   remain open.**
+   the separate exact private Component v9 profile has local source/Graph/core/
+   plan/profile/raw/DAG evidence and awaits hosted Wasmtime execution.
+   Inference, constraints, richer signatures, generic composition,
+   callable/resource admission, general/public Component mapping, and stable
+   ABI remain open.**
 8. Add member/case transactions, layout/interface hashes, and context traversal.
 
 ## Completion evidence

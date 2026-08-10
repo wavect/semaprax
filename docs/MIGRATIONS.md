@@ -286,9 +286,12 @@ Agent Context: 2841401e7ba85fa8e47b3c35a15ae401b4a271d2500d70bbf3627f1453869eb6
 context:       d7bda2be1fc366195ffb00a9e20b2b03204b4dd6f46e8019842dd84f70b54ab8
 ```
 
-These corrected projections are parse-verified locally. Hosted evidence for
-the corrected bytes is pending a new CI run; the earlier hosted generic
-execution run predates this serializer correction.
+These corrected projections are parse-verified locally and hosted green in
+[run 31390043736, Ubuntu job
+93459346296](https://github.com/wavect/semaprax/actions/runs/31390043736/job/93459346296).
+The earlier generic execution [run 31385406865, Ubuntu job
+93445428338](https://github.com/wavect/semaprax/actions/runs/31385406865/job/93445428338)
+predates this serializer correction and remains separate backend evidence.
 
 CleanupPlan does not migrate: canonical v2 remains byte/schema/meaning
 unchanged and propagated-call status producers retain the persistent template
@@ -297,7 +300,8 @@ Programs without a generic function preserve prior v10-v13 bytes and known
 answers. This migration opens no inference, constraints, aggregate/resource/
 non-Copy signatures, generic-to-generic calls, recursion, effects, generic
 entrypoint, callable/resource/component admission, stable ABI, or CleanupPlan
-v4 claim.
+v4 claim. The separately gated exact private Component v9 profile does not
+broaden that Graph migration into general/public Component admission.
 
 ## Internal variant-layout digest v1 to v2
 
@@ -754,6 +758,53 @@ V1-v7 bytes and KATs remain unchanged. V8 provides no generic-function
 component, general source selection or record mapping, imports/capabilities/
 resources, callbacks/async, callable/FFI/public ABI, browser/multi-engine
 conformance, package negotiation, or `SPX-B104`/`SPX-W111` widening.
+
+## Private generic-function instance component v9
+
+Private Component v9 is another separate default-off profile, not an in-place
+change to v1-v8. It freezes WIT package `semaprax:private@0.7.0`, interface
+`generic-function-instances`, world `semaprax-private-v9`, and these six exports
+in exact order:
+
+```wit
+preserve-i64: func(marker: bool, control: s64) -> result<bool, status>;
+invert-i64: func(marker: bool, control: s64) -> result<bool, status>;
+preserve-bool: func(marker: bool, control: s64) -> result<bool, status>;
+invert-bool: func(marker: bool, control: s64) -> result<bool, status>;
+ordered-i64-bool: func(marker: bool, control: s64) -> result<bool, status>;
+ordered-bool-i64: func(marker: bool, control: s64) -> result<bool, status>;
+```
+
+Those exports select exact Graph-v14 instances of the three phantom Copy
+templates `preserve<T>`, `invert<T>`, and `ordered<T,U>`. Consumers must bind
+the complete ordered `FunctionInstanceId` sequence, not declaration IDs,
+monomorphic wrappers, inferred arguments, or same-signature core indices. One
+monomorphic materializer calls all six exact instances and `app.main` checks
+their expected results. No authored type, record, or layout root migrates into
+the profile. Its primary known answers are:
+
+```text
+source revision: sha256:218085fb5ea1bcc090c04ac0acb3395912d0dad09027b9118d8817978b2fde0c
+Graph v14:      62907c4b95495bb573b2b37de9f0b08c7a82218934154521e8c0c8396158cc6e
+generated core: 9f178207a0406f740198ee8c71d5d008efdf4d995ff04e11e80ea73b79155d44
+plan:           edd11c98bbc902d9dbc9c942375477fcf1e6c3f1befbe3c4a9f260107104485e
+profile:        365897ddb2770cc25a11690dddbfef5d232244ec5d328c79a24a1410e684615e
+component bytes: 3cf6c7d7d02e838fb374478a2b5b25077c7c612ad36e30deaffd15311a25a688
+artifact DAG:    2623ff9a7eda5526616a15befd4951de86874a59911dcba2a7d3bcc2d178a474
+```
+
+Admission binds exact source, Graph, generated core, plan, profile, raw
+component, and DAG. Independent validation rejects every byte mutation,
+noncanonical unsigned LEB encodings, truncation/trailing bytes, cross-version
+confusion, and all 15 same-signature pair swaps; eight swaps change observable
+polarity and seven are identity-only evidence. Local core 5/5, component 4/4,
+CI-lock 4/4, full gates, and independent security review are green. The
+zero-import, empty-linker, no-WASI pinned Rust 1.97.1/Wasmtime 47 typed runner
+is pending hosted execution. V1-v8 bytes and KATs remain unchanged. V9 opens no
+inference/constraints, general source selection/export or generic-function
+Component mapping, aggregate/resource/non-Copy values, imports/capabilities,
+callbacks/async, callable/FFI/public ABI, browser/multi-engine conformance,
+package negotiation, or `SPX-B104`/`SPX-W111` widening.
 
 ## Revision token FNV-1a64 to SHA-256
 

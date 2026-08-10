@@ -84,8 +84,9 @@ Only explicitly referenced instances lower to native or Wasm. Their attached
 CleanupPlan remains canonical v2 and its propagated-call status producer stays
 template-ID-only; HIR validates the exact concrete instance before independent
 plan replay, while Graph v14 carries the exact instance meaning. Generic
-functions grant no callable, settlement, semantic-trace, resource/owned, FFI,
-or component authority.
+functions grant no callable, settlement, semantic-trace, resource/owned, or
+FFI authority. Component authority is limited to the separately authenticated
+exact private v9 profile below; no general/public mapping follows.
 
 The target-neutral runtime protocol is split from physical target state. `semaprax.status.v1` contains only a stable `domain_id`, nonzero code, class, and retryability; the invocation-local arena assigns immutable one-based tokens while reserving zero for success and rejects cross-context and same-nonce cross-arena resolution. `semaprax.conformance-trace.v1` records semantic ownership, import, write-once failure selection, finalization, and result publication without pointers, handles, tokens, offsets, or host exceptions. Attached plans are independently checked against inventory and exact typed-HIR control/event coverage, then exhaustively replayed across the current acyclic CFG for ordered liveness, sticky failures, exact region-leave chains, reverse cleanup, and typed whole-result publication. The deterministic single-frame reference executor models an uninitialized/published caller out slot; record results remain rejected until the trace schema can preserve aggregate semantic values. The native scalar C lane shares one caller-supplied context across nested calls, returns exact compiler statuses, and commits its out slot only after postconditions.
 
@@ -553,6 +554,39 @@ function component, general source selection, imports/capabilities/resources,
 callable/FFI or public ABI, browser/multi-engine claim, package negotiation, or
 `SPX-B104`/`SPX-W111` widening.
 
+Private Generic-Function Instance Component v9 is a ninth separate default-off
+profile for WIT package `semaprax:private@0.7.0`, interface
+`generic-function-instances`, and world `semaprax-private-v9`. It admits exactly
+the three phantom Copy templates `preserve<T>`, `invert<T>`, and
+`ordered<T,U>`, exactly six explicitly referenced Graph-v14
+`FunctionInstanceId`s in frozen export order, one exact monomorphic
+materializer, and `app.main`. Every export has the identical
+`(marker: bool, control: s64) -> result<bool, status>` WIT signature; no authored
+record or layout root is present. The lowering selector authenticates exact
+instance identities and ordered concrete arguments rather than accepting
+declaration IDs or monomorphic wrappers. Admission binds the exact source,
+Graph v14, generated core, plan, profile, raw component, and artifact DAG with
+SHA-256 KATs
+`218085fb5ea1bcc090c04ac0acb3395912d0dad09027b9118d8817978b2fde0c`,
+`62907c4b95495bb573b2b37de9f0b08c7a82218934154521e8c0c8396158cc6e`,
+`9f178207a0406f740198ee8c71d5d008efdf4d995ff04e11e80ea73b79155d44`,
+`edd11c98bbc902d9dbc9c942375477fcf1e6c3f1befbe3c4a9f260107104485e`,
+`365897ddb2770cc25a11690dddbfef5d232244ec5d328c79a24a1410e684615e`,
+`3cf6c7d7d02e838fb374478a2b5b25077c7c612ad36e30deaffd15311a25a688`,
+and `2623ff9a7eda5526616a15befd4951de86874a59911dcba2a7d3bcc2d178a474`.
+The adapter preserves the status-first/output-boolean/tag-last result protocol
+and 20-byte poison closure. Independent validation rejects every mutation and
+all 15 same-signature pair swaps; eight swaps change polarity behavior and
+seven are identity-only evidence. Local core 5/5, component 4/4, CI-lock 4/4,
+full gates, and independent security review are green. The zero-import,
+empty-linker, no-WASI pinned Rust 1.97.1/Wasmtime 47 typed runtime is pending
+hosted execution. V1-v8 bytes remain unchanged. This exact profile grants no
+general source selection/exporter or generic-function Component authority,
+inference/constraints, aggregate/resource/non-Copy admission,
+imports/capabilities/callbacks/async, callable/FFI or public ABI,
+browser/multi-engine conformance, package negotiation, or
+`SPX-B104`/`SPX-W111` widening.
+
 ## Record lowering and backend gate
 
 Canonical source accepts nominal records with persistent field IDs, source-ordered construction, shorthand expansion, chained projection, and immutable `with` update. The verifier reports unknown, duplicate, missing, or mismatched fields deterministically and rejects direct or indirect by-value layout cycles. Resolved HIR distinguishes place projections from projections of temporary values, preserves base-first and authored replacement order for update, and its validator rejects foreign/reordered fields and inconsistent facts.
@@ -633,9 +667,12 @@ Agent Context
 `2841401e7ba85fa8e47b3c35a15ae401b4a271d2500d70bbf3627f1453869eb6`,
 and bounded context
 `d7bda2be1fc366195ffb00a9e20b2b03204b4dd6f46e8019842dd84f70b54ab8`.
-These corrected projections parse under `serde_json` locally; hosted evidence
-for the corrected bytes is pending a new CI run. The earlier hosted generic
-execution run predates this serializer correction.
+These corrected projections parse under `serde_json` locally and are hosted
+green in [run 31390043736, Ubuntu job
+93459346296](https://github.com/wavect/semaprax/actions/runs/31390043736/job/93459346296).
+The earlier hosted generic execution [run 31385406865, Ubuntu job
+93445428338](https://github.com/wavect/semaprax/actions/runs/31385406865/job/93445428338)
+predates this serializer correction and remains separate backend evidence.
 V13 pattern nodes bind exact concrete record/member/binding identity; v12 record
 nodes carry ordered owner/index parameters; v11 authenticates Option
 propagation. The graph otherwise retains the canonical source/prelude revision,

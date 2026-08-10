@@ -8,6 +8,7 @@ use sha2::{Digest, Sha256};
 
 use crate::{ast::Program, diagnostic::Diagnostic, graph, wasm};
 
+mod generic_function_v9;
 mod generic_record_v7;
 mod nested_record_v6;
 mod record_pattern_v8;
@@ -15,6 +16,10 @@ mod result_v3;
 mod scalar_algebra_v5;
 mod source_result_v4;
 
+pub use generic_function_v9::{
+    emit_private_generic_function_component_v9, validate_private_generic_function_component_v9,
+    PrivateGenericFunctionComponentArtifactV9, ValidatedPrivateGenericFunctionComponentV9,
+};
 pub use generic_record_v7::{
     emit_private_generic_record_component_v7, validate_private_generic_record_component_v7,
     PrivateGenericRecordComponentArtifactV7, ValidatedPrivateGenericRecordComponentV7,

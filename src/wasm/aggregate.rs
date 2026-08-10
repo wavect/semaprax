@@ -708,6 +708,108 @@ pub(super) fn lower_selected_functions(
     })
 }
 
+#[cfg(any(test, feature = "unstable-wit-component-harness"))]
+pub(super) fn lower_selected_function_instances(
+    program: &ResolvedProgram,
+    ordered_instance_ids: &[crate::hir::FunctionInstanceId],
+    selected: &crate::hir::FunctionInstanceId,
+) -> Result<SelectedAggregateLowering, Diagnostic> {
+    crate::hir::validate(program)?;
+    if ordered_instance_ids.is_empty() {
+        return Err(error(
+            "selected generic aggregate lowering requires a function-instance closure",
+        ));
+    }
+    if program
+        .types
+        .iter()
+        .any(|item| matches!(item.kind, ResolvedTypeDeclarationKind::Resource { .. }))
+    {
+        return Err(resource_gate());
+    }
+    if ordered_instance_ids.len() != program.function_instances.len()
+        || ordered_instance_ids
+            .iter()
+            .zip(&program.function_instances)
+            .any(|(expected, instance)| expected != &instance.id)
+    {
+        return Err(error(
+            "selected generic aggregate closure is not the exact reachable instance sequence",
+        ));
+    }
+    for instance in &program.function_instances {
+        if crate::hir::FunctionInstanceId::derive(&instance.template, &instance.type_arguments)
+            != instance.id
+        {
+            return Err(error(
+                "selected generic aggregate instance identity is inconsistent",
+            ));
+        }
+    }
+
+    let variant_layouts = VariantLayoutCache::build(program, VariantTarget::Wasm32)?;
+    let mut types = Vec::<Signature>::new();
+    let mut type_indexes = HashMap::<Signature, u32>::new();
+    let mut function_type_indexes = Vec::with_capacity(program.function_instances.len());
+    let mut function_indexes = HashMap::with_capacity(program.function_instances.len());
+    for (index, instance) in program.function_instances.iter().enumerate() {
+        let function = &instance.function;
+        let mut params = Vec::with_capacity(function.params.len() + 1);
+        for param in &function.params {
+            params.push(if is_aggregate(program, &param.ty)? {
+                I32
+            } else {
+                scalar_wasm_type(&param.ty)?
+            });
+        }
+        params.push(I32);
+        function_type_indexes.push(intern_type(
+            Signature {
+                params,
+                results: vec![I32],
+            },
+            &mut types,
+            &mut type_indexes,
+        ));
+        let index = u32::try_from(index)
+            .map_err(|_| error("selected generic aggregate function index overflows u32"))?;
+        if function_indexes
+            .insert(FunctionExecutionId::Generic(instance.id.clone()), index)
+            .is_some()
+        {
+            return Err(error(format!(
+                "selected generic aggregate closure repeats function instance `{}`",
+                instance.id
+            )));
+        }
+    }
+    let selected_index = *function_indexes
+        .get(&FunctionExecutionId::Generic(selected.clone()))
+        .ok_or_else(|| {
+            error(format!(
+                "selected generic aggregate closure omits function instance `{selected}`"
+            ))
+        })?;
+    let bodies = program
+        .function_instances
+        .iter()
+        .map(|instance| {
+            emit_function(
+                program,
+                &instance.function,
+                &function_indexes,
+                &variant_layouts,
+            )
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(SelectedAggregateLowering {
+        types,
+        function_type_indexes,
+        bodies,
+        selected_index,
+    })
+}
+
 pub(super) fn emit(program: &ResolvedProgram) -> Result<Vec<u8>, Diagnostic> {
     emit_profile(program, false)
 }
@@ -2579,16 +2681,74 @@ mod tests {
     use std::sync::atomic::{AtomicU64, Ordering};
 
     use super::{
-        emit_profile, function_import, hex_identity, intern_type, section, write_bytes, write_i64,
-        write_name, write_u32, Signature, I32, SHADOW_STACK_TOP,
+        emit_profile, function_import, hex_identity, intern_type,
+        lower_selected_function_instances, section, write_bytes, write_i64, write_name, write_u32,
+        Signature, I32, SHADOW_STACK_TOP,
     };
     use crate::codegen::native_aggregate::{
         resource_harness_scenario, wasm_address, HarnessAction, ResourceHarnessScenario,
     };
-    use crate::hir::{self, DeclarationId};
+    use crate::hir::{self, DeclarationId, FunctionInstanceId, ResolvedType};
     use crate::parse;
 
     static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+
+    const GENERIC_INSTANCE_SOURCE: &str =
+        include_str!("../../platform-tests/component-runtime/v9.spx");
+
+    #[test]
+    fn selected_generic_lowering_authenticates_exact_instance_sequence_and_identity() {
+        let program = parse(
+            GENERIC_INSTANCE_SOURCE,
+            Path::new("selected-generic-instances.spx"),
+        )
+        .unwrap();
+        let resolved = hir::resolve(&program).unwrap();
+        let ordered = resolved
+            .function_instances
+            .iter()
+            .map(|instance| instance.id.clone())
+            .collect::<Vec<_>>();
+        assert_eq!(ordered.len(), 6);
+
+        let first = lower_selected_function_instances(&resolved, &ordered, &ordered[0]).unwrap();
+        assert_eq!(first.selected_index, 0);
+        for (index, selected) in ordered.iter().enumerate().skip(1) {
+            let lowering =
+                lower_selected_function_instances(&resolved, &ordered, selected).unwrap();
+            assert_eq!(lowering.types, first.types);
+            assert_eq!(lowering.function_type_indexes, first.function_type_indexes);
+            assert_eq!(lowering.bodies, first.bodies);
+            assert_eq!(lowering.selected_index, u32::try_from(index).unwrap());
+        }
+
+        assert!(lower_selected_function_instances(&resolved, &[], &ordered[0]).is_err());
+
+        let mut missing = ordered.clone();
+        missing.pop();
+        assert!(lower_selected_function_instances(&resolved, &missing, &ordered[0]).is_err());
+
+        let mut duplicate = ordered.clone();
+        duplicate[5] = duplicate[0].clone();
+        assert!(lower_selected_function_instances(&resolved, &duplicate, &ordered[0]).is_err());
+
+        let mut reordered = ordered.clone();
+        reordered.swap(0, 1);
+        assert!(lower_selected_function_instances(&resolved, &reordered, &ordered[0]).is_err());
+
+        let monomorphic_confusion = FunctionInstanceId::derive(
+            &DeclarationId::new("generic.materialize"),
+            &[ResolvedType::I64],
+        );
+        assert!(
+            lower_selected_function_instances(&resolved, &ordered, &monomorphic_confusion,)
+                .is_err()
+        );
+
+        let mut inconsistent = resolved.clone();
+        inconsistent.function_instances[0].type_arguments[0] = ResolvedType::Bool;
+        assert!(lower_selected_function_instances(&inconsistent, &ordered, &ordered[0]).is_err());
+    }
 
     const SOURCE: &str = r#"
 module test.aggregate_wasm;

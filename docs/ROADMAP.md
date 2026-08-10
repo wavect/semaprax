@@ -102,9 +102,15 @@ security gates are green, and the hosted matrix is green in [run 31385406865,
 Ubuntu job
 93445428338](https://github.com/wavect/semaprax/actions/runs/31385406865/job/93445428338). CleanupPlan
 v2 remains unchanged and template-ID-only; HIR and Graph authenticate the exact
-instance before replay. Inference, constraints, aggregate/resource/non-Copy
+instance before replay. The corrected Graph-v14 module, Agent Context, and
+bounded-context JSON/KAT bytes are separately hosted green in [run 31390043736,
+Ubuntu job
+93459346296](https://github.com/wavect/semaprax/actions/runs/31390043736/job/93459346296);
+the execution run above predates that serializer correction. Inference,
+constraints, aggregate/resource/non-Copy
 signatures, effects, generic-to-generic calls, recursion, entrypoints,
-callable/resource/component admission, and public ABI remain subsequent work.
+callable/resource admission, general/public Component mapping, and public ABI
+remain subsequent work.
 
 Bounded Irrefutable Copy-Record Patterns now admit one explicit exact-field
 record pattern or a binding-free top-level wildcard over one evaluated Copy
@@ -322,6 +328,30 @@ V1-v7 remain unchanged. This does not open generic-function
 components, general source selection, general/empty/nested/resource/non-Copy
 record mapping, imports/capabilities, callbacks/async, callable/FFI or public
 ABI, browser/multi-engine support, package negotiation, or
+`SPX-B104`/`SPX-W111`.
+
+Private Generic-Function Instance Component v9 adds a ninth separate
+default-off exact WIT fixture for package `semaprax:private@0.7.0`, interface
+`generic-function-instances`, and world `semaprax-private-v9`. Three phantom
+Copy templates materialize exactly six explicitly referenced, ordered
+Graph-v14 `FunctionInstanceId`s behind six identical scalar result signatures;
+the source has no authored record or layout roots. Exact source/Graph/core/
+plan/profile/raw/DAG KATs are
+`218085fb5ea1bcc090c04ac0acb3395912d0dad09027b9118d8817978b2fde0c`,
+`62907c4b95495bb573b2b37de9f0b08c7a82218934154521e8c0c8396158cc6e`,
+`9f178207a0406f740198ee8c71d5d008efdf4d995ff04e11e80ea73b79155d44`,
+`edd11c98bbc902d9dbc9c942375477fcf1e6c3f1befbe3c4a9f260107104485e`,
+`365897ddb2770cc25a11690dddbfef5d232244ec5d328c79a24a1410e684615e`,
+`3cf6c7d7d02e838fb374478a2b5b25077c7c612ad36e30deaffd15311a25a688`,
+and `2623ff9a7eda5526616a15befd4951de86874a59911dcba2a7d3bcc2d178a474`.
+Local core 5/5, component 4/4, CI-lock 4/4, full gates, every-byte and
+all-15-pair-swap hostility (eight observable/seven identity-only), and
+security review are green. Its zero-import, empty-linker, no-WASI pinned Rust
+1.97.1/Wasmtime 47 typed runtime is pending hosted execution. V1-v8 remain
+unchanged. This does not open inference/constraints, general source selection
+or generic-function Component mapping, aggregates/resources/non-Copy values,
+imports/capabilities, callbacks/async, callable/FFI or public ABI,
+browser/multi-engine support, package negotiation, or
 `SPX-B104`/`SPX-W111`.
 
 The model-backed, proposed [RFC 0004 native call recovery and settlement

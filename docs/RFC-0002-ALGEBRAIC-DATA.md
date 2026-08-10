@@ -134,6 +134,37 @@ general source selection/export, inference/constraints, aggregate/resource/
 non-Copy mapping, imports/capabilities, public ABI, browser/multi-engine
 conformance, or package negotiation.
 
+A separate default-off Private Source-Option Propagation Component v10 freezes
+WIT package `semaprax:private@0.8.0`, interface `option-propagation`, world
+`semaprax-private-v10`, and the exact compiler-owned `Option<i64>` through
+postfix-`?` to `Option<bool>` export
+`evaluate(input: option<s64>, divisor: s64) -> result<option<bool>, status>`.
+It introduces no authored types, resources, templates, instances, imports, or
+capabilities. Exact source/Graph-v11/prelude/two-layout/CleanupPlan-v3/core/
+profile/raw/DAG KATs are
+`98b8fc892c183499153142d5bbdb4162e31bda95ef145d34dbb1ff57c9b8fc72`,
+`96083f90fab18c919a96cee48109e606e089159e109869a42bdf48831743d45d`,
+`d37bad7e3911669bbf2c66b25c8b31d5c2e36eb181cc54fdc86c3a49a8fb9c5e`,
+`79194fc88011ac060877e60293d0a4272429dd9e2d720674d0d54e804562deda`,
+`dec126293ece7ec0e48d3d85ccdb494f7c7cfe4c3d4a9b1a61b50f6f862ff038`,
+`d07fa51fc6f192a43318140264fa0e5964933ed90bc065cc8c74708e258ff92f`,
+`16d1d34024e3fad920d8d00a61d7cb3bd010335ca382f23615b3b3da4143aaec`,
+`f53a0c21638b5a360faa19ad4fdef68f6d861a5baffe39422847128686e82bef`,
+`f5770bdfdbc862ea39640b2c706c1d9ea171164c220d18366e25b3219443ad0d`,
+and `90ab80260c84abfe85d1edc666ab3750b81388e6e4cffd7ca21c301b9d0ee589`.
+Typed and raw evidence covers `Some`/`None`, contracts, checked arithmetic,
+sticky failure, status-first/tag-last publication, full poison, invalid
+input/output tags and booleans, unknown status, repeated/fresh instances, and
+out-of-band fuel exhaustion. Local core 5/5, component 4/4, CI-lock 4/4, full,
+hostile, and security gates are green; pinned Rust 1.97.1/Wasmtime 47 execution
+is hosted green in [run 31396483313, job
+93481068502](https://github.com/wavect/semaprax/actions/runs/31396483313/job/93481068502).
+V1-v9 bytes remain unchanged. V10 is exact private Option-propagation evidence,
+not general source selection/export, general `Result`/`Option`/`?` or algebraic
+Component mapping, nested/resource/non-Copy carriers, imports/capabilities,
+callbacks/async, callable/FFI or public ABI, browser/multi-engine conformance,
+package negotiation, or `SPX-B104`/`SPX-W111` widening.
+
 ## Canonical source
 
 Public types and members carry persistent identities. Authored generic variant
@@ -402,14 +433,16 @@ Existing diagnostic codes remain reserved; implementation must resolve any colli
 3. Add bounded non-generic copy variants and exhaustive copy matching. **Implemented for unit/direct-`i64`/direct-`bool` payloads, scalar `i64`/`bool` arm results, CleanupPlan v2 variant-case replay, deterministic internal Native64/Wasm32 layouts, and native C11 O0/O2 plus Node/Wasm execution.**
 4. Add generic variants, recursive-unsized rejection, and ownership-aware matching. **Partially implemented for nominal variant templates with explicit direct `i64`/`bool` arguments, exact substitution/instance identity, Graph v10, internal layout digest v2, cleanup-free copy matching, and native/Wasm execution. Nested/resource arguments and non-copy ownership modes remain open.**
 5. Add ordinary prelude `Option` and `Result`. **Implemented for compiler-owned `semaprax.prelude.v1` variants under the same direct-`i64`/`bool`, copy-only, internal-ABI limits; component/FFI mappings remain open.**
-6. Add `?` with evaluation-once and unified epilogues. **Implemented for ordinary compiler-owned direct-scalar Copy `Result<T, E>` to `Result<U, E>` and `Option<T>` to `Option<U>`. Result uses exact CleanupPlan v2 staging and Graph v10; Option uses authenticated payload-free-None CleanupPlan v3 staging and program-bound Graph v11 unless a generic record declaration selects v12, an explicit record pattern selects v13, or a generic function declaration selects v14. Native C11 O0/O2 plus Node/Wasm evidence covers both carriers; Result is hosted green in [run 31353051690](https://github.com/wavect/semaprax/actions/runs/31353051690), and Option is hosted green in [run 31360176398, job 93367728277](https://github.com/wavect/semaprax/actions/runs/31360176398/job/93367728277). One private Source-Result Component v4 maps the exact `Result<i64, bool>` to `Result<bool, bool>` fixture to nested WIT result/status and is hosted green in [run 31356536123, job 93357169796](https://github.com/wavect/semaprax/actions/runs/31356536123/job/93357169796). Residual conversion, nested/resource/non-copy arguments, generic-function `?`, contracts, public ABI, general component mapping, and callable/FFI signatures remain open.**
+6. Add `?` with evaluation-once and unified epilogues. **Implemented for ordinary compiler-owned direct-scalar Copy `Result<T, E>` to `Result<U, E>` and `Option<T>` to `Option<U>`. Result uses exact CleanupPlan v2 staging and Graph v10; Option uses authenticated payload-free-None CleanupPlan v3 staging and program-bound Graph v11 unless a generic record declaration selects v12, an explicit record pattern selects v13, or a generic function declaration selects v14. Native C11 O0/O2 plus Node/Wasm evidence covers both carriers; Result is hosted green in [run 31353051690](https://github.com/wavect/semaprax/actions/runs/31353051690), and Option is hosted green in [run 31360176398, job 93367728277](https://github.com/wavect/semaprax/actions/runs/31360176398/job/93367728277). Private Source-Result Component v4 maps the exact `Result<i64, bool>` to `Result<bool, bool>` fixture and is hosted green in [run 31356536123, job 93357169796](https://github.com/wavect/semaprax/actions/runs/31356536123/job/93357169796). Private Source-Option Propagation Component v10 maps exactly `Option<i64>` through postfix `?` to `Option<bool>` and is hosted green in [run 31396483313, job 93481068502](https://github.com/wavect/semaprax/actions/runs/31396483313/job/93481068502). Residual conversion, nested/resource/non-copy arguments, generic-function `?`, contracts, public ABI, general component mapping, and callable/FFI signatures remain open.**
 7. Add bounded explicitly instantiated direct-scalar Copy generic functions.
    **Implemented across canonical source, source verification, resolved HIR,
    program-wide Graph v14, strict native C11 O0/O2, and Node/Wasm. Hosted
    matrix evidence is green in [run 31385406865, Ubuntu job
    93445428338](https://github.com/wavect/semaprax/actions/runs/31385406865/job/93445428338);
    the separate exact private Component v9 profile has local source/Graph/core/
-   plan/profile/raw/DAG evidence and awaits hosted Wasmtime execution.
+   plan/profile/raw/DAG evidence and hosted Wasmtime execution in [run
+   31392541096, job
+   93467490492](https://github.com/wavect/semaprax/actions/runs/31392541096/job/93467490492).
    Inference, constraints, richer signatures, generic composition,
    callable/resource admission, general/public Component mapping, and stable
    ABI remain open.**

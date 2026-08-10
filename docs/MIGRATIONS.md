@@ -808,6 +808,56 @@ Component mapping, aggregate/resource/non-Copy values, imports/capabilities,
 callbacks/async, callable/FFI/public ABI, browser/multi-engine conformance,
 package negotiation, or `SPX-B104`/`SPX-W111` widening.
 
+## Private source-Option propagation component v10
+
+Private Component v10 is another separate default-off profile, not an in-place
+change to v1-v9. It freezes WIT package `semaprax:private@0.8.0`, interface
+`option-propagation`, world `semaprax-private-v10`, and this sole export:
+
+```wit
+evaluate: func(input: option<s64>, divisor: s64) -> result<option<bool>, status>;
+```
+
+The export selects exact source function
+`component.option-propagation.evaluate` plus `app.main`, mapping the
+compiler-owned `Option<i64>` through postfix `?` to `Option<bool>`. Consumers
+must authenticate Graph v11, CleanupPlan v3, prelude v1, both concrete
+layout-v2 instances, and the selected source closure; they must not infer the
+profile from a same-signature core function, declaration name, or caller-
+provided self-consistent digest. No authored type, resource, template,
+instance, import, or capability migrates into the profile. Primary known
+answers are:
+
+```text
+source revision:      sha256:98b8fc892c183499153142d5bbdb4162e31bda95ef145d34dbb1ff57c9b8fc72
+Graph v11:            96083f90fab18c919a96cee48109e606e089159e109869a42bdf48831743d45d
+prelude v1:           d37bad7e3911669bbf2c66b25c8b31d5c2e36eb181cc54fdc86c3a49a8fb9c5e
+Option<i64> layout:   79194fc88011ac060877e60293d0a4272429dd9e2d720674d0d54e804562deda
+Option<bool> layout:  dec126293ece7ec0e48d3d85ccdb494f7c7cfe4c3d4a9b1a61b50f6f862ff038
+CleanupPlan v3:       d07fa51fc6f192a43318140264fa0e5964933ed90bc065cc8c74708e258ff92f
+generated core:       16d1d34024e3fad920d8d00a61d7cb3bd010335ca382f23615b3b3da4143aaec
+profile:              f53a0c21638b5a360faa19ad4fdef68f6d861a5baffe39422847128686e82bef
+component bytes:      f5770bdfdbc862ea39640b2c706c1d9ea171164c220d18366e25b3219443ad0d
+artifact DAG:         90ab80260c84abfe85d1edc666ab3750b81388e6e4cffd7ca21c301b9d0ee589
+```
+
+Independent validation rejects every byte mutation, truncation/trailing or
+noncanonical encodings, caller-supplied source/core KAT substitution, and
+v1-v9 confusion. Typed and raw gates cover `Some`/`None`, contracts, checked
+arithmetic, sticky failure, status-first/tag-last publication, full poison,
+invalid input/output tags and booleans, unknown status, repeated/fresh
+instances, and out-of-band fuel exhaustion. Local core 5/5, component 4/4,
+CI-lock 4/4, full, hostile, and security gates are green. The zero-import,
+empty-linker, no-WASI pinned Rust 1.97.1/Wasmtime 47 v3-v10 runner is hosted
+green in [run 31396483313, job
+93481068502](https://github.com/wavect/semaprax/actions/runs/31396483313/job/93481068502).
+
+V1-v9 bytes and KATs remain unchanged. V10 opens no general source
+selection/export, general `Result`/`Option`/`?` or algebraic Component mapping,
+nested/resource/non-Copy carriers, imports/capabilities, callbacks/async,
+callable/FFI/public ABI, browser/multi-engine conformance, package negotiation,
+or `SPX-B104`/`SPX-W111` widening.
+
 ## Revision token FNV-1a64 to SHA-256
 
 Graph v3 and later, semantic patch bases, CLI output, and `semaprax.web.v2`/`semaprax.web.v3` manifests use one algorithm-tagged token:

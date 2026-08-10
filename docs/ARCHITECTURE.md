@@ -589,6 +589,39 @@ imports/capabilities/callbacks/async, callable/FFI or public ABI,
 browser/multi-engine conformance, package negotiation, or
 `SPX-B104`/`SPX-W111` widening.
 
+Private Source-Option Propagation Component v10 is a tenth separate default-off
+profile for WIT package `semaprax:private@0.8.0`, interface
+`option-propagation`, and world `semaprax-private-v10`. It admits the sole
+`component.option-propagation.evaluate` source function plus `app.main`, then
+exports exactly
+`evaluate(input: option<s64>, divisor: s64) -> result<option<bool>, status>`.
+The source maps compiler-owned `Option<i64>` through postfix `?` to
+`Option<bool>`; no authored types, resources, templates, instances, imports, or
+capabilities enter the selected closure. Admission binds exact source,
+compiler prelude, Graph v11, CleanupPlan v3, both Option layout-v2 instances,
+generated core, profile, raw component, and artifact DAG. Their SHA-256 KATs
+are `98b8fc892c183499153142d5bbdb4162e31bda95ef145d34dbb1ff57c9b8fc72`,
+`96083f90fab18c919a96cee48109e606e089159e109869a42bdf48831743d45d`,
+`d37bad7e3911669bbf2c66b25c8b31d5c2e36eb181cc54fdc86c3a49a8fb9c5e`,
+`79194fc88011ac060877e60293d0a4272429dd9e2d720674d0d54e804562deda`,
+`dec126293ece7ec0e48d3d85ccdb494f7c7cfe4c3d4a9b1a61b50f6f862ff038`,
+`d07fa51fc6f192a43318140264fa0e5964933ed90bc065cc8c74708e258ff92f`,
+`16d1d34024e3fad920d8d00a61d7cb3bd010335ca382f23615b3b3da4143aaec`,
+`f53a0c21638b5a360faa19ad4fdef68f6d861a5baffe39422847128686e82bef`,
+`f5770bdfdbc862ea39640b2c706c1d9ea171164c220d18366e25b3219443ad0d`,
+and `90ab80260c84abfe85d1edc666ab3750b81388e6e4cffd7ca21c301b9d0ee589`.
+Typed and raw gates cover `Some`/`None`, contracts, checked arithmetic, sticky
+failure, status-first/tag-last publication, full poison, invalid input/output
+tags and booleans, unknown status, repeated/fresh instances, and out-of-band
+fuel exhaustion. The pinned Rust 1.97.1/Wasmtime 47 v3-v10 runtime is hosted
+green in [run 31396483313, job
+93481068502](https://github.com/wavect/semaprax/actions/runs/31396483313/job/93481068502).
+V1-v9 bytes remain unchanged. V10 grants no general source selection/export,
+general `Result`/`Option`/`?` or algebraic Component mapping,
+nested/resource/non-Copy carriers, imports/capabilities, callbacks/async,
+callable/FFI or public ABI, browser/multi-engine conformance, package
+negotiation, or `SPX-B104`/`SPX-W111` widening.
+
 ## Record lowering and backend gate
 
 Canonical source accepts nominal records with persistent field IDs, source-ordered construction, shorthand expansion, chained projection, and immutable `with` update. The verifier reports unknown, duplicate, missing, or mismatched fields deterministically and rejects direct or indirect by-value layout cycles. Resolved HIR distinguishes place projections from projections of temporary values, preserves base-first and authored replacement order for update, and its validator rejects foreign/reordered fields and inconsistent facts.
@@ -739,8 +772,31 @@ Application is all-or-nothing:
 3. Apply declaration and call-edge changes in memory.
 4. Reparse and verify the candidate program.
 5. Evaluate patch requirements.
-6. Canonically render to a sibling temporary file.
-7. Atomically rename it over the original.
+6. Canonically render through a bounded create-new sibling staging file while
+   preserving source permissions and synchronizing the staged bytes.
+7. Recheck exact source identity/bytes/revision and staging path/handle
+   identity/bytes at both final commit boundaries, then atomically rename the
+   authenticated stage over the original.
+
+Commit A0 resolves the supplied regular non-symlink source to one authenticated
+canonical path so parent aliases share the same deterministic create-new
+sibling lock. The held lock serializes cooperating writers through the final
+rename. Staging never truncates or follows preplanted objects, and cleanup
+removes only a path whose current identity still matches the implementation's
+owned handle. Unix identity is exact device/inode. Windows holds same-file
+handles and compares volume plus the available 64-bit file index; it explicitly
+does not claim uniqueness on ReFS 128-bit or hostile non-unique-index
+environments. Internal commit-race/failure/path-swap tests are 5/5, integration
+patch tests are 17/17, and the full matrix is hosted green in [run 31396483313,
+including Windows job
+93481068538](https://github.com/wavect/semaprax/actions/runs/31396483313/job/93481068538).
+
+This remains a single-file cooperative protocol. Predictable sibling names
+permit collision or stale-lock denial of service, crashes may leave locks, the
+containing directory remains trusted against non-cooperating mutation in the
+final portable path-based rename window, and parent-directory synchronization,
+power-loss durability, multi-file commits, and general typed repair/impact are
+not claimed.
 
 The protocol will evolve toward structured JSON/CBOR operations with typed payloads, affected-node proofs, target requirements, and multi-file commits.
 

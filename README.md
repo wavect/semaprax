@@ -393,6 +393,35 @@ selection/export, aggregates/resources/non-Copy values, imports/capabilities,
 callbacks/async, callable/FFI or public ABI, browser/multi-engine conformance,
 package negotiation, or `SPX-B104`/`SPX-W111` gate.
 
+Private Source-Option Propagation Component v10 is a tenth separate default-off
+exact fixture for WIT package `semaprax:private@0.8.0`, interface
+`option-propagation`, and world `semaprax-private-v10`. Its sole export is the
+exact compiler-owned `Option<i64>` through postfix-`?` projection
+`evaluate(input: option<s64>, divisor: s64) -> result<option<bool>, status>`.
+It binds source revision
+`sha256:98b8fc892c183499153142d5bbdb4162e31bda95ef145d34dbb1ff57c9b8fc72`,
+Graph v11 `96083f90fab18c919a96cee48109e606e089159e109869a42bdf48831743d45d`,
+prelude v1 `d37bad7e3911669bbf2c66b25c8b31d5c2e36eb181cc54fdc86c3a49a8fb9c5e`,
+`Option<i64>`/`Option<bool>` layouts
+`79194fc88011ac060877e60293d0a4272429dd9e2d720674d0d54e804562deda` and
+`dec126293ece7ec0e48d3d85ccdb494f7c7cfe4c3d4a9b1a61b50f6f862ff038`,
+CleanupPlan v3 `d07fa51fc6f192a43318140264fa0e5964933ed90bc065cc8c74708e258ff92f`,
+generated core `16d1d34024e3fad920d8d00a61d7cb3bd010335ca382f23615b3b3da4143aaec`,
+profile `f53a0c21638b5a360faa19ad4fdef68f6d861a5baffe39422847128686e82bef`,
+component bytes `f5770bdfdbc862ea39640b2c706c1d9ea171164c220d18366e25b3219443ad0d`,
+and artifact DAG `90ab80260c84abfe85d1edc666ab3750b81388e6e4cffd7ca21c301b9d0ee589`.
+Typed and raw gates cover `Some`/`None`, contracts, arithmetic and sticky
+failure, status-first/tag-last publication, full poison, invalid tags/bools/
+status, repeated and fresh instances, and fuel exhaustion outside the typed
+status. The zero-import pinned Rust 1.97.1/Wasmtime 47 v3-v10 runner is hosted
+green in [run 31396483313, job
+93481068502](https://github.com/wavect/semaprax/actions/runs/31396483313/job/93481068502).
+V1-v9 bytes and KATs remain unchanged. V10 does not establish general source
+selection/export, general `Result`/`Option`/`?` or algebraic Component mapping,
+nested/resource/non-Copy carriers, imports/capabilities, callbacks/async,
+callable/FFI or public ABI, browser/multi-engine conformance, package
+negotiation, or `SPX-B104`/`SPX-W111` widening.
+
 Not implemented yet: public native resource execution/admission,
 general-shape native/reference/Wasm trace conformance, the general Wasm resource ABI,
 recursive reference execution, callable imports/adapters, a stable public aggregate
@@ -574,7 +603,20 @@ require no-new-effects
 semaprax patch examples/meaning.spx change.spatch
 ```
 
-The patch updates the declaration and verified call sites together. If the graph changed since the agent observed it, SEMAPRAX returns `SPX-G409` and leaves the source untouched.
+The patch updates the declaration and verified call sites together. If the
+graph changed since the agent observed it, SEMAPRAX returns `SPX-G409` and
+leaves the source untouched. Commit A0 additionally authenticates a canonical
+regular source leaf, serializes cooperating writers with a create-new sibling
+lock, stages through bounded create-new siblings, and rechecks source and stage
+identity plus exact bytes immediately before the final rename. Unix uses exact
+device/inode identity. Windows holds same-file handles and compares volume plus
+the available 64-bit file index; this is not a uniqueness claim for ReFS
+128-bit or hostile non-unique-index environments. Identity-aware cleanup never
+removes a foreign replacement. The protocol remains single-file and
+cooperative: predictable names permit collision/stale-lock denial of service,
+crashes may leave locks, the containing directory is trusted in the final
+portable path-based rename window, and parent-directory sync, power-loss
+durability, multi-file commits, and general typed repair/impact remain open.
 
 ## CLI
 

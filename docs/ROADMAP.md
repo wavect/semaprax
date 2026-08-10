@@ -13,7 +13,13 @@ Status: implemented in this repository.
 - Offline context economics with exact goldens and conservative quality routing.
 - Effects, module permits, and contract guards.
 - Machine-readable diagnostics.
-- Atomic, stale-safe semantic renames.
+- Hardened atomic, stale-safe single-file semantic renames with authenticated
+  regular source/stage identity, a cooperating create-new sibling lock,
+  bounded create-new staging, and identity-aware cleanup. Unix device/inode is
+  exact; Windows held same-file volume plus 64-bit file-index comparison does
+  not claim ReFS 128-bit or hostile non-unique-index uniqueness. Predictable-
+  name collision/stale-lock DoS, crash-left locks, the trusted final portable
+  path window, power-loss durability, and multi-file commits remain open.
 - Checked native code generation.
 
 ## 0.2 — Useful core language
@@ -355,6 +361,31 @@ or generic-function Component mapping, aggregates/resources/non-Copy values,
 imports/capabilities, callbacks/async, callable/FFI or public ABI,
 browser/multi-engine support, package negotiation, or
 `SPX-B104`/`SPX-W111`.
+
+Private Source-Option Propagation Component v10 adds a tenth separate
+default-off exact WIT fixture for package `semaprax:private@0.8.0`, interface
+`option-propagation`, and world `semaprax-private-v10`. Its sole export maps
+the exact compiler-owned `Option<i64>` through postfix `?` to `Option<bool>`
+under Graph v11 and CleanupPlan v3. Exact source/Graph/prelude/two-layout/plan/
+core/profile/raw/DAG KATs are
+`98b8fc892c183499153142d5bbdb4162e31bda95ef145d34dbb1ff57c9b8fc72`,
+`96083f90fab18c919a96cee48109e606e089159e109869a42bdf48831743d45d`,
+`d37bad7e3911669bbf2c66b25c8b31d5c2e36eb181cc54fdc86c3a49a8fb9c5e`,
+`79194fc88011ac060877e60293d0a4272429dd9e2d720674d0d54e804562deda`,
+`dec126293ece7ec0e48d3d85ccdb494f7c7cfe4c3d4a9b1a61b50f6f862ff038`,
+`d07fa51fc6f192a43318140264fa0e5964933ed90bc065cc8c74708e258ff92f`,
+`16d1d34024e3fad920d8d00a61d7cb3bd010335ca382f23615b3b3da4143aaec`,
+`f53a0c21638b5a360faa19ad4fdef68f6d861a5baffe39422847128686e82bef`,
+`f5770bdfdbc862ea39640b2c706c1d9ea171164c220d18366e25b3219443ad0d`,
+and `90ab80260c84abfe85d1edc666ab3750b81388e6e4cffd7ca21c301b9d0ee589`.
+Typed/raw, hostile, strict, and security gates are green; its zero-import pinned
+Rust 1.97.1/Wasmtime 47 v3-v10 runner is hosted green in [run 31396483313, job
+93481068502](https://github.com/wavect/semaprax/actions/runs/31396483313/job/93481068502).
+V1-v9 remain unchanged. V10 does not open general source selection/export,
+general `Result`/`Option`/`?` or algebraic Component mapping,
+nested/resource/non-Copy carriers, imports/capabilities, callbacks/async,
+callable/FFI or public ABI, browser/multi-engine support, package negotiation,
+or `SPX-B104`/`SPX-W111`.
 
 The model-backed, proposed [RFC 0004 native call recovery and settlement
 contract](RFC-0004-NATIVE-CALL-SETTLEMENT.md) specifies the bounded linear

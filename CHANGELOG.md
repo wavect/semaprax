@@ -61,7 +61,9 @@ All notable changes to SEMAPRAX are documented here.
   security review are green, including rejection of all 15 same-signature
   swaps (eight behaviorally observable and seven identity-only). The isolated
   zero-import, empty-linker, no-WASI Rust 1.97.1/Wasmtime 47 typed runner is
-  pending hosted execution. V1-v8 bytes remain unchanged. This exact fixture
+  hosted green in [run 31392541096, job
+  93467490492](https://github.com/wavect/semaprax/actions/runs/31392541096/job/93467490492).
+  V1-v8 bytes remain unchanged. This exact fixture
   opens no inference or constraints, general source selection/export,
   general generic-function Component mapping, aggregates/resources/non-Copy
   values, imports/capabilities, callbacks/async, callable/FFI or public ABI,

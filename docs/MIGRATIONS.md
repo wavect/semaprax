@@ -800,7 +800,9 @@ confusion, and all 15 same-signature pair swaps; eight swaps change observable
 polarity and seven are identity-only evidence. Local core 5/5, component 4/4,
 CI-lock 4/4, full gates, and independent security review are green. The
 zero-import, empty-linker, no-WASI pinned Rust 1.97.1/Wasmtime 47 typed runner
-is pending hosted execution. V1-v8 bytes and KATs remain unchanged. V9 opens no
+is hosted green in [run 31392541096, job
+93467490492](https://github.com/wavect/semaprax/actions/runs/31392541096/job/93467490492).
+V1-v8 bytes and KATs remain unchanged. V9 opens no
 inference/constraints, general source selection/export or generic-function
 Component mapping, aggregate/resource/non-Copy values, imports/capabilities,
 callbacks/async, callable/FFI/public ABI, browser/multi-engine conformance,

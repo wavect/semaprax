@@ -125,7 +125,10 @@ or layout roots. Exact source/Graph/core/plan/profile/raw/DAG KATs are
 `3cf6c7d7d02e838fb374478a2b5b25077c7c612ad36e30deaffd15311a25a688`,
 and `2623ff9a7eda5526616a15befd4951de86874a59911dcba2a7d3bcc2d178a474`.
 Local core 5/5, component 4/4, CI-lock 4/4, full, hostile, and security gates
-are green; pinned Rust 1.97.1/Wasmtime 47 hosted execution is pending. V1-v8
+are green; pinned Rust 1.97.1/Wasmtime 47 execution is hosted green in [run
+31392541096, job
+93467490492](https://github.com/wavect/semaprax/actions/runs/31392541096/job/93467490492).
+V1-v8
 bytes remain unchanged. V9 is exact private instance-selection evidence, not
 general source selection/export, inference/constraints, aggregate/resource/
 non-Copy mapping, imports/capabilities, public ABI, browser/multi-engine

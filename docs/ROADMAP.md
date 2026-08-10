@@ -347,7 +347,9 @@ and `2623ff9a7eda5526616a15befd4951de86874a59911dcba2a7d3bcc2d178a474`.
 Local core 5/5, component 4/4, CI-lock 4/4, full gates, every-byte and
 all-15-pair-swap hostility (eight observable/seven identity-only), and
 security review are green. Its zero-import, empty-linker, no-WASI pinned Rust
-1.97.1/Wasmtime 47 typed runtime is pending hosted execution. V1-v8 remain
+1.97.1/Wasmtime 47 typed runtime is hosted green in [run 31392541096, job
+93467490492](https://github.com/wavect/semaprax/actions/runs/31392541096/job/93467490492).
+V1-v8 remain
 unchanged. This does not open inference/constraints, general source selection
 or generic-function Component mapping, aggregates/resources/non-Copy values,
 imports/capabilities, callbacks/async, callable/FFI or public ABI,

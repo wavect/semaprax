@@ -56,12 +56,19 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             })?;
             let options = context_options(&args)?;
             let program = checked(&path)?;
-            let context = graph::agent_context_json(&program, symbol, &options)
-                .map_err(|errors| report(&errors, false))?
-                .ok_or_else(|| {
-                    eprintln!("symbol `{symbol}` was not found");
-                    1
-                })?;
+            let context = match &options {
+                ParsedContextOptions::V1(options) => {
+                    graph::agent_context_json(&program, symbol, options)
+                }
+                ParsedContextOptions::V2(options) => {
+                    graph::agent_context_v2_json(&program, symbol, options)
+                }
+            }
+            .map_err(|errors| report(&errors, false))?
+            .ok_or_else(|| {
+                eprintln!("symbol `{symbol}` was not found");
+                1
+            })?;
             println!("{context}");
             Ok(())
         }
@@ -185,19 +192,25 @@ fn run(args: Vec<String>) -> Result<(), u8> {
     }
 }
 
-fn context_options(args: &[String]) -> Result<graph::AgentContextOptions, u8> {
+enum ParsedContextOptions {
+    V1(graph::AgentContextOptions),
+    V2(graph::AgentContextV2Options),
+}
+
+fn context_options(args: &[String]) -> Result<ParsedContextOptions, u8> {
     let defaults = graph::AgentContextOptions::default();
     let mut depth = defaults.depth();
     let mut max_bytes = defaults.max_bytes();
     let mut max_nodes = defaults.max_nodes();
     let mut filters = None;
+    let mut direction = None;
     let mut seen = std::collections::BTreeSet::new();
     let mut index = 3;
     while index < args.len() {
         let option = args[index].as_str();
         if !matches!(
             option,
-            "--depth" | "--max-bytes" | "--max-nodes" | "--filters"
+            "--depth" | "--max-bytes" | "--max-nodes" | "--filters" | "--direction"
         ) {
             eprintln!("unknown context option `{option}`");
             return Err(2);
@@ -232,6 +245,13 @@ fn context_options(args: &[String]) -> Result<graph::AgentContextOptions, u8> {
                 }
                 filters = Some(parsed);
             }
+            "--direction" => {
+                let Some(parsed) = graph::AgentContextDirection::from_name(value) else {
+                    eprintln!("unknown context direction `{value}`");
+                    return Err(2);
+                };
+                direction = Some(parsed);
+            }
             _ => unreachable!("closed context option table"),
         }
         index += 2;
@@ -246,10 +266,22 @@ fn context_options(args: &[String]) -> Result<graph::AgentContextOptions, u8> {
         .into_iter()
         .collect()
     });
-    graph::AgentContextOptions::new(depth, max_bytes, max_nodes, filters).map_err(|error| {
-        eprintln!("{error}");
-        2
-    })
+    match direction {
+        Some(direction) => {
+            graph::AgentContextV2Options::new(depth, max_bytes, max_nodes, filters, direction)
+                .map(ParsedContextOptions::V2)
+                .map_err(|error| {
+                    eprintln!("{error}");
+                    2
+                })
+        }
+        None => graph::AgentContextOptions::new(depth, max_bytes, max_nodes, filters)
+            .map(ParsedContextOptions::V1)
+            .map_err(|error| {
+                eprintln!("{error}");
+                2
+            }),
+    }
 }
 
 fn context_number(option: &str, value: &str) -> Result<usize, u8> {
@@ -327,7 +359,7 @@ fn print_help() {
          Usage:\n\
            semaprax check <file> [--json]\n\
            semaprax graph <file>\n\
-           semaprax context <file> <symbol|stable-id> [--depth N] [--max-bytes N] [--max-nodes N] [--filters contracts,ownership,effects,types,targets,diagnostics,tests]\n\
+           semaprax context <file> <symbol|stable-id> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N] [--filters contracts,ownership,effects,types,targets,diagnostics,tests]\n\
            semaprax context-benchmark <manifest>\n\
            semaprax quality-plan <quick|changed|full> [exact-changed-path ...]\n\
            semaprax build <file> [--target native|native-callable|web] [--function stable-id] [-o path]\n\

@@ -139,6 +139,87 @@ pub struct AgentContextOptions {
     filters: BTreeSet<AgentContextFilter>,
 }
 
+/// One closed call-graph traversal direction understood by
+/// `semaprax.agent-context.v2`.
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum AgentContextDirection {
+    Forward,
+    Reverse,
+    Both,
+}
+
+impl AgentContextDirection {
+    pub const ALL: [Self; 3] = [Self::Forward, Self::Reverse, Self::Both];
+
+    #[must_use]
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::Forward => "forward",
+            Self::Reverse => "reverse",
+            Self::Both => "both",
+        }
+    }
+
+    /// Parse one exact direction name. Unknown or case-folded names reject.
+    #[must_use]
+    pub fn from_name(name: &str) -> Option<Self> {
+        Self::ALL
+            .into_iter()
+            .find(|direction| direction.name() == name)
+    }
+
+    const fn follows_forward(self) -> bool {
+        matches!(self, Self::Forward | Self::Both)
+    }
+
+    const fn follows_reverse(self) -> bool {
+        matches!(self, Self::Reverse | Self::Both)
+    }
+}
+
+/// Additive v2 query options. V1 options and output remain a separate exact
+/// compatibility surface.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AgentContextV2Options {
+    base: AgentContextOptions,
+    direction: AgentContextDirection,
+}
+
+impl AgentContextV2Options {
+    pub fn new(
+        depth: usize,
+        max_bytes: usize,
+        max_nodes: usize,
+        filters: impl IntoIterator<Item = AgentContextFilter>,
+        direction: AgentContextDirection,
+    ) -> Result<Self, Diagnostic> {
+        Ok(Self {
+            base: AgentContextOptions::new(depth, max_bytes, max_nodes, filters)?,
+            direction,
+        })
+    }
+
+    #[must_use]
+    pub const fn depth(&self) -> usize {
+        self.base.depth
+    }
+
+    #[must_use]
+    pub const fn max_bytes(&self) -> usize {
+        self.base.max_bytes
+    }
+
+    #[must_use]
+    pub const fn max_nodes(&self) -> usize {
+        self.base.max_nodes
+    }
+
+    #[must_use]
+    pub const fn direction(&self) -> AgentContextDirection {
+        self.direction
+    }
+}
+
 impl Default for AgentContextOptions {
     fn default() -> Self {
         Self {
@@ -233,12 +314,55 @@ pub fn agent_context_json(
         .map_err(|diagnostic| vec![diagnostic])
 }
 
+/// Resolve and serialize one deterministic v2 agent view with explicit
+/// forward, reverse, or bidirectional call-graph traversal.
+pub fn agent_context_v2_json(
+    program: &Program,
+    symbol: &str,
+    options: &AgentContextV2Options,
+) -> Result<Option<String>, Vec<Diagnostic>> {
+    let source_revision = revision(program);
+    let resolved = hir::resolve(program)?;
+    agent_context_v2_hir_json(&resolved, &source_revision, symbol, options)
+        .map_err(|diagnostic| vec![diagnostic])
+}
+
 #[derive(Clone)]
 struct AgentFunctionFact {
     id: DeclarationId,
     depth: usize,
     calls: BTreeSet<DeclarationId>,
     json: String,
+}
+
+#[derive(Clone)]
+struct AgentFunctionFactV2 {
+    id: DeclarationId,
+    depth: usize,
+    reached_by: BTreeSet<AgentContextDirection>,
+    calls: BTreeSet<DeclarationId>,
+    called_by: BTreeSet<DeclarationId>,
+    json: String,
+}
+
+struct AgentRenderSelectionV2<'a> {
+    selected: usize,
+    node_limited: usize,
+    required_bytes: &'a BTreeMap<DeclarationId, usize>,
+}
+
+#[derive(Default)]
+struct AgentTraversalFrontierV2 {
+    reasons: BTreeSet<&'static str>,
+    directions: BTreeSet<AgentContextDirection>,
+}
+
+struct AgentContextV2Index<'a> {
+    program: &'a ResolvedProgram,
+    calls_by_id: &'a BTreeMap<DeclarationId, BTreeSet<DeclarationId>>,
+    callers_by_id: &'a BTreeMap<DeclarationId, BTreeSet<DeclarationId>>,
+    functions: &'a BTreeMap<DeclarationId, &'a ResolvedFunction>,
+    templates: &'a BTreeMap<DeclarationId, &'a crate::hir::ResolvedFunctionTemplate>,
 }
 
 struct AgentRenderSelection<'a> {
@@ -362,6 +486,309 @@ fn agent_context_hir_json(
         required_bytes.insert(omitted.clone(), required);
         selected -= 1;
     }
+}
+
+fn agent_context_v2_hir_json(
+    program: &ResolvedProgram,
+    source_revision: &str,
+    symbol: &str,
+    options: &AgentContextV2Options,
+) -> Result<Option<String>, Diagnostic> {
+    hir::validate(program)?;
+    let Some(root) = find_context_root(program, symbol) else {
+        return Ok(None);
+    };
+    let functions = program
+        .functions
+        .iter()
+        .map(|function| (function.id.clone(), function))
+        .collect::<BTreeMap<_, _>>();
+    let templates = program
+        .function_templates
+        .iter()
+        .map(|template| (template.id.clone(), template))
+        .collect::<BTreeMap<_, _>>();
+    let function_ids = functions
+        .keys()
+        .chain(templates.keys())
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    let mut calls_by_id = BTreeMap::new();
+    for (id, function) in &functions {
+        calls_by_id.insert(
+            (*id).clone(),
+            function_calls(function)
+                .into_iter()
+                .filter(|callee| function_ids.contains(callee))
+                .collect(),
+        );
+    }
+    for (id, template) in &templates {
+        calls_by_id.insert(
+            (*id).clone(),
+            template_calls(template)
+                .into_iter()
+                .filter(|callee| function_ids.contains(callee))
+                .collect(),
+        );
+    }
+    let mut callers_by_id = function_ids
+        .iter()
+        .cloned()
+        .map(|id| (id, BTreeSet::new()))
+        .collect::<BTreeMap<_, _>>();
+    for (caller, calls) in &calls_by_id {
+        for callee in calls {
+            callers_by_id
+                .get_mut(callee)
+                .ok_or_else(|| graph_reference_error("function", callee))?
+                .insert(caller.clone());
+        }
+    }
+    let index = AgentContextV2Index {
+        program,
+        calls_by_id: &calls_by_id,
+        callers_by_id: &callers_by_id,
+        functions: &functions,
+        templates: &templates,
+    };
+
+    let mut minimum_depth = BTreeMap::from([(root.clone(), 0_usize)]);
+    let mut reached_by = BTreeMap::<DeclarationId, BTreeSet<AgentContextDirection>>::new();
+    let mut level = BTreeSet::from([root.clone()]);
+    let mut current_depth = 0_usize;
+    let mut ordered = Vec::new();
+    let mut depth_frontier = BTreeMap::<DeclarationId, BTreeSet<AgentContextDirection>>::new();
+    while !level.is_empty() {
+        let mut candidates = BTreeMap::<DeclarationId, BTreeSet<AgentContextDirection>>::new();
+        for function_id in &level {
+            ordered.push((function_id.clone(), current_depth));
+            let calls = calls_by_id
+                .get(function_id)
+                .ok_or_else(|| graph_reference_error("function", function_id))?;
+            let called_by = callers_by_id
+                .get(function_id)
+                .ok_or_else(|| graph_reference_error("function", function_id))?;
+            if options.direction().follows_forward() {
+                for neighbor in calls {
+                    candidates
+                        .entry(neighbor.clone())
+                        .or_default()
+                        .insert(AgentContextDirection::Forward);
+                }
+            }
+            if options.direction().follows_reverse() {
+                for neighbor in called_by {
+                    candidates
+                        .entry(neighbor.clone())
+                        .or_default()
+                        .insert(AgentContextDirection::Reverse);
+                }
+            }
+        }
+        let candidate_depth = current_depth + 1;
+        let mut next_level = BTreeSet::new();
+        for (neighbor, directions) in candidates {
+            if current_depth >= options.depth() {
+                if !minimum_depth.contains_key(&neighbor) {
+                    depth_frontier
+                        .entry(neighbor)
+                        .or_default()
+                        .extend(directions);
+                }
+                continue;
+            }
+            match minimum_depth.get(&neighbor).copied() {
+                None => {
+                    minimum_depth.insert(neighbor.clone(), candidate_depth);
+                    reached_by.insert(neighbor.clone(), directions);
+                    next_level.insert(neighbor);
+                }
+                Some(known_depth) if known_depth == candidate_depth => {
+                    reached_by.entry(neighbor).or_default().extend(directions);
+                }
+                Some(known_depth) if candidate_depth < known_depth => {
+                    minimum_depth.insert(neighbor.clone(), candidate_depth);
+                    reached_by.insert(neighbor.clone(), directions);
+                    next_level.insert(neighbor);
+                }
+                Some(_) => {}
+            }
+        }
+        level = next_level;
+        current_depth = candidate_depth;
+    }
+
+    let mut facts = Vec::with_capacity(ordered.len());
+    for (id, depth) in ordered {
+        facts.push(index.build_fact(
+            &id,
+            depth,
+            reached_by.remove(&id).unwrap_or_default(),
+            &options.base.filters,
+        )?);
+    }
+
+    let node_limited = facts.len().min(options.max_nodes());
+    let mut selected = node_limited;
+    let mut required_bytes = BTreeMap::new();
+    loop {
+        let output = render_agent_context_v2(
+            program,
+            source_revision,
+            &root,
+            options,
+            &facts,
+            AgentRenderSelectionV2 {
+                selected,
+                node_limited,
+                required_bytes: &required_bytes,
+            },
+            &depth_frontier,
+        );
+        if output.len() <= options.max_bytes() {
+            let selected_ids = facts[..selected]
+                .iter()
+                .map(|fact| fact.id.clone())
+                .collect::<BTreeSet<_>>();
+            let mut resume_targets = BTreeSet::new();
+            for fact in &facts[..selected] {
+                resume_targets.extend(fact.calls.iter().cloned());
+                resume_targets.extend(fact.called_by.iter().cloned());
+            }
+            resume_targets.extend(depth_frontier.keys().cloned());
+            resume_targets.extend(facts[selected..].iter().map(|fact| fact.id.clone()));
+            resume_targets.retain(|id| !selected_ids.contains(id));
+            for target in resume_targets {
+                let target_fact =
+                    index.build_fact(&target, 0, BTreeSet::new(), &options.base.filters)?;
+                if !individual_agent_v2_fact_fits(program, source_revision, options, &target_fact) {
+                    return Err(agent_context_option_error(format!(
+                        "agent context reference fact `{target}` is permanently unavailable within the {MAX_AGENT_CONTEXT_BYTES}-byte v2 contract maximum"
+                    )));
+                }
+            }
+            return Ok(Some(output));
+        }
+        if selected == 0 {
+            return Err(agent_context_option_error(format!(
+                "agent context max_bytes {} cannot contain the canonical v2 envelope",
+                options.max_bytes()
+            )));
+        }
+        let omitted = &facts[selected - 1].id;
+        let estimated_required = output.len().saturating_add(96);
+        let required = if estimated_required <= MAX_AGENT_CONTEXT_BYTES {
+            estimated_required
+        } else if individual_agent_v2_fact_fits(
+            program,
+            source_revision,
+            options,
+            &facts[selected - 1],
+        ) {
+            MAX_AGENT_CONTEXT_BYTES
+        } else {
+            return Err(agent_context_option_error(format!(
+                "agent context fact `{omitted}` is permanently unavailable within the {MAX_AGENT_CONTEXT_BYTES}-byte v2 contract maximum"
+            )));
+        };
+        required_bytes.insert(omitted.clone(), required);
+        selected -= 1;
+    }
+}
+
+fn agent_v2_fact_json(mut base_json: String, called_by: &BTreeSet<DeclarationId>) -> String {
+    assert_eq!(base_json.pop(), Some('}'));
+    write!(
+        base_json,
+        ",\"called_by\":{}}}",
+        string_array(
+            &called_by
+                .iter()
+                .map(|id| id.as_str().to_owned())
+                .collect::<Vec<_>>()
+        )
+    )
+    .expect("writing to a string cannot fail");
+    base_json
+}
+
+impl AgentContextV2Index<'_> {
+    fn build_fact(
+        &self,
+        id: &DeclarationId,
+        depth: usize,
+        reached_by: BTreeSet<AgentContextDirection>,
+        filters: &BTreeSet<AgentContextFilter>,
+    ) -> Result<AgentFunctionFactV2, Diagnostic> {
+        let calls = self
+            .calls_by_id
+            .get(id)
+            .ok_or_else(|| graph_reference_error("function", id))?
+            .clone();
+        let called_by = self
+            .callers_by_id
+            .get(id)
+            .ok_or_else(|| graph_reference_error("function", id))?
+            .clone();
+        let base_json = if let Some(function) = self.functions.get(id) {
+            agent_function_json(self.program, function, filters)?
+        } else if let Some(template) = self.templates.get(id) {
+            agent_template_json(self.program, template, filters)?
+        } else {
+            return Err(graph_reference_error("function", id));
+        };
+        Ok(AgentFunctionFactV2 {
+            id: id.clone(),
+            depth,
+            reached_by,
+            calls,
+            called_by: called_by.clone(),
+            json: agent_v2_fact_json(base_json, &called_by),
+        })
+    }
+}
+
+fn individual_agent_v2_fact_fits(
+    program: &ResolvedProgram,
+    source_revision: &str,
+    options: &AgentContextV2Options,
+    fact: &AgentFunctionFactV2,
+) -> bool {
+    let mut maximum_options = options.clone();
+    maximum_options.base.max_bytes = MAX_AGENT_CONTEXT_BYTES;
+    maximum_options.base.max_nodes = 1;
+    let mut individual = fact.clone();
+    individual.depth = 0;
+    individual.reached_by.clear();
+    let mut depth_frontier = BTreeMap::<DeclarationId, BTreeSet<AgentContextDirection>>::new();
+    for (direction, neighbors) in selected_agent_relations(&individual, options.direction()) {
+        for neighbor in neighbors {
+            if neighbor != &individual.id {
+                depth_frontier
+                    .entry(neighbor.clone())
+                    .or_default()
+                    .insert(direction);
+            }
+        }
+    }
+    let required_bytes = BTreeMap::new();
+    let root = individual.id.clone();
+    render_agent_context_v2(
+        program,
+        source_revision,
+        &root,
+        &maximum_options,
+        &[individual],
+        AgentRenderSelectionV2 {
+            selected: 1,
+            node_limited: 1,
+            required_bytes: &required_bytes,
+        },
+        &depth_frontier,
+    )
+    .len()
+        <= MAX_AGENT_CONTEXT_BYTES
 }
 
 fn individual_agent_fact_fits(
@@ -1587,6 +2014,267 @@ fn render_agent_context(
         }
         used_bytes = actual;
     }
+}
+
+fn render_agent_context_v2(
+    program: &ResolvedProgram,
+    source_revision: &str,
+    root: &DeclarationId,
+    options: &AgentContextV2Options,
+    facts: &[AgentFunctionFactV2],
+    selection: AgentRenderSelectionV2<'_>,
+    depth_frontier: &BTreeMap<DeclarationId, BTreeSet<AgentContextDirection>>,
+) -> String {
+    let AgentRenderSelectionV2 {
+        selected,
+        node_limited,
+        required_bytes,
+    } = selection;
+    let selected_ids = facts[..selected]
+        .iter()
+        .map(|fact| fact.id.clone())
+        .collect::<BTreeSet<_>>();
+    let mut omitted_traversal = depth_frontier.keys().cloned().collect::<BTreeSet<_>>();
+    omitted_traversal.extend(facts.iter().skip(selected).map(|fact| fact.id.clone()));
+    let mut frontier = BTreeMap::<DeclarationId, AgentTraversalFrontierV2>::new();
+    for (id, directions) in depth_frontier {
+        if !selected_ids.contains(id) {
+            let entry = frontier.entry(id.clone()).or_default();
+            entry.reasons.insert("depth");
+            entry.directions.extend(directions);
+        }
+    }
+    for fact in facts.iter().skip(node_limited) {
+        let entry = frontier.entry(fact.id.clone()).or_default();
+        entry.reasons.insert("max_nodes");
+        entry.directions.extend(&fact.reached_by);
+    }
+    if selected < node_limited {
+        let entry = frontier.entry(facts[selected].id.clone()).or_default();
+        entry.reasons.insert("max_bytes");
+        entry.directions.extend(&facts[selected].reached_by);
+        let byte_omitted = facts[selected..node_limited]
+            .iter()
+            .map(|fact| fact.id.clone())
+            .collect::<BTreeSet<_>>();
+        for fact in &facts[..selected] {
+            for (direction, neighbors) in selected_agent_relations(fact, options.direction()) {
+                for neighbor in neighbors {
+                    if byte_omitted.contains(neighbor) {
+                        let entry = frontier.entry(neighbor.clone()).or_default();
+                        entry.reasons.insert("max_bytes");
+                        entry.directions.insert(direction);
+                    }
+                }
+            }
+        }
+    }
+
+    let reached_by = facts
+        .iter()
+        .map(|fact| (fact.id.clone(), fact.reached_by.clone()))
+        .collect::<BTreeMap<_, _>>();
+    let mut reference_frontier = BTreeMap::<DeclarationId, BTreeSet<&'static str>>::new();
+    for fact in &facts[..selected] {
+        let mut add_references = |relation: &'static str, neighbors: &BTreeSet<DeclarationId>| {
+            for neighbor in neighbors {
+                if selected_ids.contains(neighbor) || frontier.contains_key(neighbor) {
+                    continue;
+                }
+                if omitted_traversal.contains(neighbor) {
+                    let entry = frontier.entry(neighbor.clone()).or_default();
+                    entry.reasons.insert("max_bytes");
+                    if let Some(directions) = reached_by.get(neighbor) {
+                        entry.directions.extend(directions);
+                    }
+                } else {
+                    reference_frontier
+                        .entry(neighbor.clone())
+                        .or_default()
+                        .insert(relation);
+                }
+            }
+        };
+        if !options.direction().follows_forward() {
+            add_references("calls", &fact.calls);
+        }
+        if !options.direction().follows_reverse() {
+            add_references("called_by", &fact.called_by);
+        }
+    }
+
+    let mut reasons = BTreeSet::new();
+    if !depth_frontier.is_empty() {
+        reasons.insert("depth");
+    }
+    if facts.len() > node_limited {
+        reasons.insert("max_nodes");
+    }
+    if selected < node_limited {
+        reasons.insert("max_bytes");
+    }
+    let unavailable_count = options
+        .base
+        .filters
+        .iter()
+        .filter(|filter| !filter.supported_by_graph_v10())
+        .count();
+    if unavailable_count != 0 {
+        reasons.insert("unavailable_filters");
+    }
+    let omitted_fact_bytes = facts[selected..]
+        .iter()
+        .map(|fact| fact.json.len())
+        .sum::<usize>();
+    let requested = options
+        .base
+        .filters
+        .iter()
+        .map(|filter| quote_json(filter.name()))
+        .collect::<Vec<_>>()
+        .join(",");
+    let included = options
+        .base
+        .filters
+        .iter()
+        .filter(|filter| filter.supported_by_graph_v10())
+        .map(|filter| quote_json(filter.name()))
+        .collect::<Vec<_>>()
+        .join(",");
+    let unavailable = options
+        .base
+        .filters
+        .iter()
+        .filter(|filter| !filter.supported_by_graph_v10())
+        .map(|filter| quote_json(filter.name()))
+        .collect::<Vec<_>>()
+        .join(",");
+    let frontier_json = frontier
+        .iter()
+        .map(|(id, item)| {
+            let resume_bytes = required_bytes
+                .get(id)
+                .copied()
+                .unwrap_or(MAX_AGENT_CONTEXT_BYTES);
+            format!(
+                "{{\"id\":{},\"kind\":\"function\",\"reasons\":[{}],\"directions\":[{}],\"resume\":{{\"symbol\":{},\"target\":{},\"direction\":{},\"min_bytes\":{}}}}}",
+                quote_json(id.as_str()),
+                ordered_agent_reasons(&item.reasons),
+                agent_directions_json(&item.directions),
+                quote_json(id.as_str()),
+                quote_json(id.as_str()),
+                quote_json(options.direction().name()),
+                resume_bytes
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    let reference_frontier_json = reference_frontier
+        .iter()
+        .map(|(id, relations)| {
+            format!(
+                "{{\"id\":{},\"kind\":\"function\",\"relations\":[{}],\"resume\":{{\"symbol\":{},\"target\":{},\"direction\":{},\"min_bytes\":{}}}}}",
+                quote_json(id.as_str()),
+                ordered_agent_relations(relations),
+                quote_json(id.as_str()),
+                quote_json(id.as_str()),
+                quote_json(options.direction().name()),
+                MAX_AGENT_CONTEXT_BYTES
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    let facts_json = facts[..selected]
+        .iter()
+        .map(|fact| fact.json.as_str())
+        .collect::<Vec<_>>()
+        .join(",");
+    let max_depth_used = facts[..selected]
+        .iter()
+        .map(|fact| fact.depth)
+        .max()
+        .unwrap_or(0);
+    let deferred_traversal = omitted_traversal.len().saturating_sub(frontier.len());
+    let render = |used_bytes: usize| {
+        format!(
+            "{{\"schema\":\"semaprax.agent-context.v2\",\"source_graph_schema\":{},\"revision\":{},\"prelude\":{{\"schema\":{},\"digest\":{}}},\"module\":{},\"root\":{},\"query\":{{\"direction\":{},\"depth\":{},\"max_bytes\":{},\"max_nodes\":{},\"filters\":[{}]}},\"filter_support\":{{\"included\":[{}],\"unavailable\":[{}]}},\"budget\":{{\"used_bytes\":{},\"used_nodes\":{},\"max_depth_used\":{}}},\"truncation\":{{\"truncated\":{},\"reasons\":[{}],\"omitted_known_nodes\":{},\"deferred_known_nodes\":{},\"omitted_fact_bytes\":{},\"unavailable_filter_count\":{}}},\"reference_closure\":{{\"referenced_unselected_nodes\":{}}},\"resume_contract\":{{\"direction\":\"query.direction\",\"depth\":\"query.depth\",\"max_nodes\":\"query.max_nodes\",\"filters\":\"query.filters\",\"max_bytes\":{{\"traversal\":\"frontier.resume.min_bytes\",\"reference\":\"reference_frontier.resume.min_bytes\"}}}},\"frontier\":[{}],\"reference_frontier\":[{}],\"facts\":[{}]}}",
+            quote_json(graph_schema(program)),
+            quote_json(source_revision),
+            quote_json(prelude::SCHEMA_V1),
+            quote_json(&prelude::digest_text_v1()),
+            quote_json(&program.module),
+            quote_json(root.as_str()),
+            quote_json(options.direction().name()),
+            options.depth(),
+            options.max_bytes(),
+            options.max_nodes(),
+            requested,
+            included,
+            unavailable,
+            used_bytes,
+            selected,
+            max_depth_used,
+            !reasons.is_empty() || unavailable_count != 0,
+            ordered_agent_reasons(&reasons),
+            omitted_traversal.len(),
+            deferred_traversal,
+            omitted_fact_bytes,
+            unavailable_count,
+            reference_frontier.len(),
+            frontier_json,
+            reference_frontier_json,
+            facts_json
+        )
+    };
+    let mut used_bytes = 0;
+    loop {
+        let output = render(used_bytes);
+        let actual = output.len();
+        if actual == used_bytes {
+            return output;
+        }
+        used_bytes = actual;
+    }
+}
+
+fn selected_agent_relations(
+    fact: &AgentFunctionFactV2,
+    direction: AgentContextDirection,
+) -> Vec<(AgentContextDirection, &BTreeSet<DeclarationId>)> {
+    let mut relations = Vec::new();
+    if direction.follows_forward() {
+        relations.push((AgentContextDirection::Forward, &fact.calls));
+    }
+    if direction.follows_reverse() {
+        relations.push((AgentContextDirection::Reverse, &fact.called_by));
+    }
+    relations
+}
+
+fn agent_directions_json(directions: &BTreeSet<AgentContextDirection>) -> String {
+    directions
+        .iter()
+        .map(|direction| quote_json(direction.name()))
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+fn ordered_agent_reasons(reasons: &BTreeSet<&'static str>) -> String {
+    ["depth", "max_nodes", "max_bytes", "unavailable_filters"]
+        .into_iter()
+        .filter(|reason| reasons.contains(reason))
+        .map(quote_json)
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+fn ordered_agent_relations(relations: &BTreeSet<&'static str>) -> String {
+    ["calls", "called_by"]
+        .into_iter()
+        .filter(|relation| relations.contains(relation))
+        .map(quote_json)
+        .collect::<Vec<_>>()
+        .join(",")
 }
 
 fn agent_context_option_error(message: String) -> Diagnostic {

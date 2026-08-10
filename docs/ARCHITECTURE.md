@@ -758,6 +758,44 @@ CleanupPlan v2/v3. It remains a call-graph query, not general reverse semantic
 edges, impact analysis, ranking, repository indexing, persistence, or a graph
 daemon.
 
+The shared internal `PersistentCallIndex` validates its HIR input and records exact
+function/function-template owners, identity origins, calls in
+`requires`/body/`ensures`, expression-to-owner call sites, and deterministic
+forward/reverse persistent-call maps. Agent Context v2 consumes the maps
+without changing its schema or frozen bytes. The separate
+[`semaprax.semantic-impact.v1`](SEMANTIC-IMPACT-V1.md) command reuses the same
+index for a bounded read-only patch preview; this does not turn Agent Context
+v2 itself into impact analysis.
+
+Semantic Impact v1 owns source and patch buffers, runs the same pure
+pre-state Patch v1/v2 preflight used by apply, resolves and validates both HIR
+programs, requires their program-selected Graph schema to agree, and renders a
+canonical report with base/candidate revisions, exact patch-byte digest,
+operation/change/source-consumer provenance, and an optional reverse-call
+closure. Only exact generic-call instance changes seed behavioral closure;
+renames report source-projection consumers but no behavioral callers. Closure
+is computed completely over current explicit persistent callables before any
+output limit, breadth-first by depth then stable ID, with minimum-depth
+operation provenance and exact byte/node/depth frontier accounting. Operations,
+changes, and source consumers are mandatory; only affected-function output is
+truncated. A generic call inside a function template remains an unreachable
+Impact seed under `SPX-T226`, while persistent template reverse callers remain
+indexed.
+
+Preview performs no lock, stage, rename, or source write. It authenticates one
+canonical regular source snapshot and rechecks exact identity, bytes, and
+revision before return. Unix identity is exact device/inode; Windows uses held
+same-file volume plus the available 64-bit file index and does not claim ReFS
+128-bit or hostile non-unique-index uniqueness. The patch is read once and its
+exact owned bytes are domain-separated-digest-bound, but the patch path remains
+trusted input and is not re-authenticated. `SPX-G110` fails closed when a
+behavioral call owner or reverse caller is automatic rather than explicitly
+persistent; existing
+`SPX-T226` generic-function closure remains unchanged. This is neither a
+persistent/incremental repository index nor general type/contract/test/schema/
+migration/target/capability impact, repair, ranking, review, or commit
+authority. Hosted full-matrix evidence is pending.
+
 The additive [`semaprax.agent-context-economics.v1`](AGENT-ECONOMICS-V1.md)
 layer runs strict checked-in maintenance manifests offline. Canonical
 exact-case, separator-normal, Windows-forbidden/reserved-name-safe,

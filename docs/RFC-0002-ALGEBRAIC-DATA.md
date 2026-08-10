@@ -441,6 +441,10 @@ Shape edits later carry match obligations and typed repairs; they are not textua
   identity.
 - `SPX-G108` Patch v2 stale generic-call tuple, source/HIR index mismatch, or
   excessive semantic delta.
+- `SPX-G109` invalid Semantic Impact v1 bounds or an undersized mandatory
+  report envelope.
+- `SPX-G110` Semantic Impact v1 source-consumer, schema, call-owner, selector,
+  or explicit-persistent reverse-closure invariant failure.
 
 Existing diagnostic codes remain reserved; implementation must resolve any collision before landing.
 
@@ -472,8 +476,10 @@ Existing diagnostic codes remain reserved; implementation must resolve any colli
    including [Ubuntu job
    93505622044](https://github.com/wavect/semaprax/actions/runs/31401200449/job/93505622044),
    while additive Agent Context v2 provides bounded directional call traversal.
-   Layout/interface hashes, authenticated patch provenance, multi-file repair,
-   and general traversal/impact remain open.**
+   Bounded read-only Semantic Impact v1 now reports exact source consumers and
+   generic-call reverse callers for one patch, while layout/interface hashes,
+   authenticated patch provenance, multi-file repair, and general
+   repository-wide/non-call traversal and impact remain open.**
 
 ## Completion evidence
 

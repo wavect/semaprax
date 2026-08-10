@@ -15,6 +15,11 @@ Status: implemented in this repository.
   remains byte-compatible by default; v2 and v1-preservation gates are hosted
   green in [run 31397881268, Ubuntu job
   93485198327](https://github.com/wavect/semaprax/actions/runs/31397881268/job/93485198327).
+- Locally implemented bounded Semantic Impact v1 previews one Patch v1/v2
+  file read-only, with exact source-consumer provenance and finite reverse-call
+  impact for generic call-instance changes. Repository-wide/non-call impact,
+  persistent incrementality, repair, ranking, review, and hosted evidence
+  remain open.
 - Offline context economics with exact goldens and conservative quality routing.
 - Effects, module permits, and contract guards.
 - Machine-readable diagnostics.

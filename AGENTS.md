@@ -13,6 +13,8 @@ Before changing semantics, read:
 5. `docs/ROADMAP.md` — sequencing, not a reduction of the full objective.
 
 For records, variants, generics, matching, `Option`, or `Result`, also read `docs/RFC-0002-ALGEBRAIC-DATA.md` before editing.
+For semantic-impact preview, patch provenance, source-consumer facts, or
+reverse-call closure, also read `docs/SEMANTIC-IMPACT-V1.md`.
 For native owned-call recovery, physical failure, settlement, or quiescence,
 also read `docs/RFC-0004-NATIVE-CALL-SETTLEMENT.md`; its hidden Rust model is
 proof scaffolding, not a wired native-runtime claim.
@@ -32,6 +34,8 @@ proof scaffolding, not a wired native-runtime claim.
   v13, while CleanupPlan v2 remains canonical unless authenticated Option
   propagation requires v3.
 - `src/graph.rs`, `patch.rs`: agent representation and atomic transactions.
+- `src/call_index.rs`, `impact.rs`: shared validated-HIR call index and bounded,
+  read-only single-file Semantic Impact v1 preview.
 - `src/codegen.rs`, `src/codegen/native_callable_*`, `wasm.rs`: native C11/Clang, private callable-v2, and browser/Wasm lanes.
 - `src/wit_component.rs`: default-off deterministic WIT/schema/JavaScript boundary evidence; not a Component Model runtime.
 - `crates/semaprax-native-loader`, `crates/semaprax-native-host`: unpublished unsafe loader quarantine and connected callable authority/ledger host.
@@ -46,6 +50,8 @@ proof scaffolding, not a wired native-runtime claim.
 - Public declarations have persistent `@id` identities. Expression identities are revision-scoped.
 - Source formatting, graph JSON, Wasm bytes, diagnostics, and semantic patches are deterministic.
 - Failed or stale semantic transactions leave source unchanged.
+- Semantic impact preview is read-only, digest-bound to its processed patch
+  bytes, and fail-closed on source snapshot drift.
 - Capabilities are explicit; compiler and generated code gain no ambient authority silently.
 - Ownership errors are compile-time diagnostics, never backend accidents.
 - Cleanup inventory discovery order is structural metadata, never runtime liveness or destruction order.

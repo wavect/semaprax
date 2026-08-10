@@ -4,6 +4,22 @@ All notable changes to SEMAPRAX are documented here.
 
 ## 0.2.0 — 2026-08-07
 
+- Added locally implemented [`semaprax.semantic-impact.v1`](docs/SEMANTIC-IMPACT-V1.md),
+  a deterministic read-only preview for one Semantic Patch v1/v2 file. It
+  reports exact operation/change provenance and source consumers, and computes
+  a byte/node/depth-bounded reverse-call closure only for exact generic-call
+  instance changes. Reports bind the source base/candidate revisions, Graph
+  v10-v14 schema, patch schema, and a domain-separated digest of the exact
+  processed patch bytes. Source identity/bytes/revision are rechecked before
+  return; patch-path provenance remains trusted input. The canonical report
+  SHA-256 KAT is
+  `94bbe5dcfe02f4b80b12ba5c8faf0889ddf11a96598072e539490c71a09518e9`.
+  Local focused integration and internal Impact/call-index suites are 12/12 and
+  4/4.
+  This is single-file call impact, not repository-wide, non-call, repair,
+  ranking, semantic-review, or commit authority. Hosted matrix evidence is
+  pending.
+
 - Added [`semaprax.agent-context.v2`](docs/AGENT-CONTEXT-V2.md) as an
   explicit-direction extension of the byte/node-bounded context query. V1
   remains the exact default when `--direction` is absent; `forward`, `reverse`,

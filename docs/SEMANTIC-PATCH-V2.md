@@ -69,6 +69,12 @@ leave source unchanged. The patch file itself is trusted input: A0 authenticates
 the source and stage, not a concurrently replaced `read_to_string(patch_path)`;
 callers that require patch provenance must snapshot/authenticate it externally.
 
+The separate [Semantic Impact v1](SEMANTIC-IMPACT-V1.md) command can run this
+same pre-state semantic preflight over owned source/patch buffers and report a
+candidate revision without committing it. That preview's digest binds the
+exact patch bytes it processed, but it does not authenticate the continuing
+patch path or widen Patch v2's operation, Graph, CleanupPlan, or commit scope.
+
 This milestone does not add construction/update shorthand, full type renames,
 aggregate/resource generic arguments, generic-template-to-generic-template
 composition, transitive generic instance materialization, multi-file commits,

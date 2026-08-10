@@ -1,0 +1,307 @@
+use std::collections::{BTreeMap, BTreeSet};
+
+use crate::diagnostic::Diagnostic;
+use crate::hir::{
+    self, DeclarationId, ExpressionId, FunctionInstanceId, IdentityOrigin, ResolvedExpr,
+    ResolvedExprKind, ResolvedProgram, ResolvedStatement, ResolvedType,
+};
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub(crate) enum PersistentCallableKind {
+    Function,
+    FunctionTemplate,
+}
+
+impl PersistentCallableKind {
+    pub(crate) const fn text(self) -> &'static str {
+        match self {
+            Self::Function => "function",
+            Self::FunctionTemplate => "function_template",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub(crate) enum CallRegion {
+    Requires,
+    Body,
+    Ensures,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct PersistentCallSite {
+    pub(crate) expression: ExpressionId,
+    pub(crate) owner: DeclarationId,
+    pub(crate) owner_kind: PersistentCallableKind,
+    pub(crate) owner_origin: IdentityOrigin,
+    pub(crate) region: CallRegion,
+    pub(crate) callee: DeclarationId,
+    pub(crate) type_arguments: Vec<ResolvedType>,
+    pub(crate) instance: Option<FunctionInstanceId>,
+}
+
+pub(crate) struct PersistentCallIndex {
+    sites_by_expression: BTreeMap<String, PersistentCallSite>,
+    calls_by_owner: BTreeMap<DeclarationId, BTreeSet<DeclarationId>>,
+    callers_by_callee: BTreeMap<DeclarationId, BTreeSet<DeclarationId>>,
+    kinds_by_owner: BTreeMap<DeclarationId, PersistentCallableKind>,
+    origins_by_owner: BTreeMap<DeclarationId, IdentityOrigin>,
+}
+
+impl PersistentCallIndex {
+    pub(crate) fn build(program: &ResolvedProgram) -> Result<Self, Diagnostic> {
+        hir::validate(program)?;
+        let mut index = Self {
+            sites_by_expression: BTreeMap::new(),
+            calls_by_owner: BTreeMap::new(),
+            callers_by_callee: BTreeMap::new(),
+            kinds_by_owner: BTreeMap::new(),
+            origins_by_owner: BTreeMap::new(),
+        };
+        for function in &program.functions {
+            index.add_owner(
+                program,
+                &function.id,
+                PersistentCallableKind::Function,
+                &function.requires,
+                &function.body,
+                &function.ensures,
+            )?;
+        }
+        for template in &program.function_templates {
+            index.add_owner(
+                program,
+                &template.id,
+                PersistentCallableKind::FunctionTemplate,
+                &template.requires,
+                &template.body,
+                &template.ensures,
+            )?;
+        }
+
+        let owners = index
+            .kinds_by_owner
+            .keys()
+            .cloned()
+            .collect::<BTreeSet<_>>();
+        for callees in index.calls_by_owner.values_mut() {
+            callees.retain(|callee| owners.contains(callee));
+        }
+        index.callers_by_callee = owners
+            .iter()
+            .cloned()
+            .map(|owner| (owner, BTreeSet::new()))
+            .collect();
+        for (caller, callees) in &index.calls_by_owner {
+            for callee in callees {
+                if owners.contains(callee) {
+                    index
+                        .callers_by_callee
+                        .get_mut(callee)
+                        .expect("known callable has a reverse-index entry")
+                        .insert(caller.clone());
+                }
+            }
+        }
+        Ok(index)
+    }
+
+    pub(crate) fn site(&self, expression: &str) -> Option<&PersistentCallSite> {
+        self.sites_by_expression.get(expression)
+    }
+
+    pub(crate) fn calls_by_owner(&self) -> &BTreeMap<DeclarationId, BTreeSet<DeclarationId>> {
+        &self.calls_by_owner
+    }
+
+    pub(crate) fn callers_by_callee(&self) -> &BTreeMap<DeclarationId, BTreeSet<DeclarationId>> {
+        &self.callers_by_callee
+    }
+
+    pub(crate) fn kind(&self, owner: &DeclarationId) -> Option<PersistentCallableKind> {
+        self.kinds_by_owner.get(owner).copied()
+    }
+
+    pub(crate) fn origin(&self, owner: &DeclarationId) -> Option<IdentityOrigin> {
+        self.origins_by_owner.get(owner).copied()
+    }
+
+    fn add_owner(
+        &mut self,
+        program: &ResolvedProgram,
+        owner: &DeclarationId,
+        kind: PersistentCallableKind,
+        requires: &[ResolvedExpr],
+        body: &ResolvedExpr,
+        ensures: &[ResolvedExpr],
+    ) -> Result<(), Diagnostic> {
+        let declaration = program.declarations.declaration(owner).ok_or_else(|| {
+            call_index_error(format!(
+                "callable `{owner}` is absent from declaration metadata"
+            ))
+        })?;
+        if self.kinds_by_owner.insert(owner.clone(), kind).is_some()
+            || self
+                .origins_by_owner
+                .insert(owner.clone(), declaration.identity_origin)
+                .is_some()
+            || self
+                .calls_by_owner
+                .insert(owner.clone(), BTreeSet::new())
+                .is_some()
+        {
+            return Err(call_index_error(format!(
+                "duplicate callable owner `{owner}`"
+            )));
+        }
+        for expression in requires {
+            self.visit_expr(
+                owner,
+                kind,
+                declaration.identity_origin,
+                CallRegion::Requires,
+                expression,
+            )?;
+        }
+        self.visit_expr(
+            owner,
+            kind,
+            declaration.identity_origin,
+            CallRegion::Body,
+            body,
+        )?;
+        for expression in ensures {
+            self.visit_expr(
+                owner,
+                kind,
+                declaration.identity_origin,
+                CallRegion::Ensures,
+                expression,
+            )?;
+        }
+        Ok(())
+    }
+
+    fn visit_expr(
+        &mut self,
+        owner: &DeclarationId,
+        owner_kind: PersistentCallableKind,
+        owner_origin: IdentityOrigin,
+        region: CallRegion,
+        expression: &ResolvedExpr,
+    ) -> Result<(), Diagnostic> {
+        if let ResolvedExprKind::Call {
+            callee,
+            type_arguments,
+            instance,
+            ..
+        } = &expression.kind
+        {
+            let site = PersistentCallSite {
+                expression: expression.id.clone(),
+                owner: owner.clone(),
+                owner_kind,
+                owner_origin,
+                region,
+                callee: callee.clone(),
+                type_arguments: type_arguments.clone(),
+                instance: instance.clone(),
+            };
+            if self
+                .sites_by_expression
+                .insert(expression.id.as_str().to_owned(), site)
+                .is_some()
+            {
+                return Err(call_index_error(format!(
+                    "call expression `{}` has multiple source owners",
+                    expression.id
+                )));
+            }
+            self.calls_by_owner
+                .get_mut(owner)
+                .expect("registered owner remains indexed")
+                .insert(callee.clone());
+        }
+
+        match &expression.kind {
+            ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
+            ResolvedExprKind::Call { args, .. } => {
+                for argument in args {
+                    self.visit_expr(owner, owner_kind, owner_origin, region, argument)?;
+                }
+            }
+            ResolvedExprKind::Unary { value, .. }
+            | ResolvedExprKind::Project { base: value, .. }
+            | ResolvedExprKind::Try { operand: value, .. }
+            | ResolvedExprKind::TryOption { operand: value, .. } => {
+                self.visit_expr(owner, owner_kind, owner_origin, region, value)?;
+            }
+            ResolvedExprKind::Binary { left, right, .. } => {
+                self.visit_expr(owner, owner_kind, owner_origin, region, left)?;
+                self.visit_expr(owner, owner_kind, owner_origin, region, right)?;
+            }
+            ResolvedExprKind::Block { statements, tail } => {
+                for statement in statements {
+                    let ResolvedStatement::Let { value, .. } = statement;
+                    self.visit_expr(owner, owner_kind, owner_origin, region, value)?;
+                }
+                self.visit_expr(owner, owner_kind, owner_origin, region, tail)?;
+            }
+            ResolvedExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                self.visit_expr(owner, owner_kind, owner_origin, region, condition)?;
+                self.visit_expr(owner, owner_kind, owner_origin, region, then_branch)?;
+                self.visit_expr(owner, owner_kind, owner_origin, region, else_branch)?;
+            }
+            ResolvedExprKind::ConstructRecord { fields, .. }
+            | ResolvedExprKind::ConstructVariant { fields, .. } => {
+                for initializer in fields {
+                    self.visit_expr(owner, owner_kind, owner_origin, region, &initializer.value)?;
+                }
+            }
+            ResolvedExprKind::Match { scrutinee, arms } => {
+                self.visit_expr(owner, owner_kind, owner_origin, region, scrutinee)?;
+                for arm in arms {
+                    self.visit_expr(owner, owner_kind, owner_origin, region, &arm.value)?;
+                }
+            }
+            ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+                self.visit_expr(owner, owner_kind, owner_origin, region, base)?;
+                for initializer in fields {
+                    self.visit_expr(owner, owner_kind, owner_origin, region, &initializer.value)?;
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+fn call_index_error(message: String) -> Diagnostic {
+    Diagnostic::io("SPX-G003", message)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn expression_lookup_requires_the_exact_indexed_id() {
+        let source = r#"module call.index;
+@id("helper.answer") fn answer()->i64{42}
+@id("app.main") fn main()->i64{answer()}
+"#;
+        let program = crate::parse(source, std::path::Path::new("call-index.spx")).unwrap();
+        let resolved = hir::resolve(&program).unwrap();
+        let index = PersistentCallIndex::build(&resolved).unwrap();
+        let expression = index.sites_by_expression.keys().next().unwrap().clone();
+
+        assert_eq!(
+            index.site(&expression).unwrap().expression.as_str(),
+            expression
+        );
+        assert!(index.site(&format!("{expression}.suffix")).is_none());
+    }
+}

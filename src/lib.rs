@@ -7,6 +7,7 @@
 pub mod agent_economics;
 pub(crate) mod aggregate_layout;
 pub mod ast;
+pub(crate) mod call_index;
 pub mod cleanup;
 pub mod cleanup_plan;
 pub mod codegen;
@@ -15,6 +16,7 @@ pub mod diagnostic;
 pub mod format;
 pub mod graph;
 pub mod hir;
+pub mod impact;
 pub mod lexer;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
 #[doc(hidden)]

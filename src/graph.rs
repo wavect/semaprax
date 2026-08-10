@@ -9,6 +9,7 @@ use std::fmt::Write;
 use sha2::{Digest, Sha256};
 
 use crate::ast::{BinaryOp, Program, UnaryOp};
+use crate::call_index::PersistentCallIndex;
 use crate::diagnostic::{quote_json, Diagnostic};
 use crate::format;
 use crate::hir::{
@@ -508,47 +509,13 @@ fn agent_context_v2_hir_json(
         .iter()
         .map(|template| (template.id.clone(), template))
         .collect::<BTreeMap<_, _>>();
-    let function_ids = functions
-        .keys()
-        .chain(templates.keys())
-        .cloned()
-        .collect::<BTreeSet<_>>();
-    let mut calls_by_id = BTreeMap::new();
-    for (id, function) in &functions {
-        calls_by_id.insert(
-            (*id).clone(),
-            function_calls(function)
-                .into_iter()
-                .filter(|callee| function_ids.contains(callee))
-                .collect(),
-        );
-    }
-    for (id, template) in &templates {
-        calls_by_id.insert(
-            (*id).clone(),
-            template_calls(template)
-                .into_iter()
-                .filter(|callee| function_ids.contains(callee))
-                .collect(),
-        );
-    }
-    let mut callers_by_id = function_ids
-        .iter()
-        .cloned()
-        .map(|id| (id, BTreeSet::new()))
-        .collect::<BTreeMap<_, _>>();
-    for (caller, calls) in &calls_by_id {
-        for callee in calls {
-            callers_by_id
-                .get_mut(callee)
-                .ok_or_else(|| graph_reference_error("function", callee))?
-                .insert(caller.clone());
-        }
-    }
+    let call_index = PersistentCallIndex::build(program)?;
+    let calls_by_id = call_index.calls_by_owner();
+    let callers_by_id = call_index.callers_by_callee();
     let index = AgentContextV2Index {
         program,
-        calls_by_id: &calls_by_id,
-        callers_by_id: &callers_by_id,
+        calls_by_id,
+        callers_by_id,
         functions: &functions,
         templates: &templates,
     };
@@ -1212,7 +1179,7 @@ fn result_propagation_json(expression: &ResolvedExpr) -> String {
     }
 }
 
-fn graph_schema(program: &ResolvedProgram) -> &'static str {
+pub(crate) fn graph_schema(program: &ResolvedProgram) -> &'static str {
     if !program.function_templates.is_empty() {
         return "semaprax.graph.v14";
     }

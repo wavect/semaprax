@@ -65,6 +65,26 @@ terminal green, including [Ubuntu job
 and [Wasmtime job
 93505622110](https://github.com/wavect/semaprax/actions/runs/31401200449/job/93505622110).
 
+## Semantic Patch to read-only Impact v1
+
+`semaprax impact <file> <patch.spatch>` is an additive preview command. It
+accepts the existing schema-less Patch v1 and explicit Patch v2 grammars and
+does not alter either transaction format. Consumers must inspect report schema
+`semaprax.semantic-impact.v1`, bind the source base/candidate revisions and
+patch schema/digest, preserve operation and change indices, and honor exact
+byte/node/depth truncation plus frontier and omitted/deferred counts.
+
+The preview rechecks its source snapshot but performs no A0 lock, staging, or
+commit. Its patch digest authenticates the exact bytes read once into the
+preview, not the continuing patch path; provenance-sensitive callers must
+authenticate that input externally. Rename source consumers are projection
+facts, while only exact generic-call instance changes seed finite reverse-call
+impact over explicit persistent callables. Automatic behavioral callers fail
+closed as `SPX-G110`, and existing generic-function limits continue to report
+`SPX-T226`. This is not a migration to repository-wide or general non-call
+impact. The canonical report KAT is recorded in [the Impact v1
+contract](SEMANTIC-IMPACT-V1.md); hosted evidence is pending.
+
 ## Persistent identities are NUL-free
 
 Persistent semantic identities and logical import keys may not contain a literal NUL byte. Source validation reports the declaration-specific stable diagnostic before resolution or graph serialization; `\0` remains an unsupported source-string escape. Public consumers of transformed resolved HIR must likewise reject NUL in declaration IDs, types, expressions, places, call/record/field references, and attached cleanup inventory or plan metadata before code generation or serialization. Regenerate or rename any pre-alpha fixture that constructed such an identity directly.

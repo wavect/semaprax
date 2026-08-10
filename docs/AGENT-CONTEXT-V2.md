@@ -85,3 +85,6 @@ schema selection.
 V2 is a call-graph query only. It does not claim reverse type, data, ownership,
 effect, capability, cleanup, import, target, diagnostic, or test edges; impact
 analysis; ranking; repository indexing; persistence; or a graph daemon.
+The separate [Semantic Impact v1](SEMANTIC-IMPACT-V1.md) patch-preview contract
+reuses the validated persistent-call index without changing this Context v2
+schema, behavior, KATs, or nonclaims.

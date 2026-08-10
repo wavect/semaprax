@@ -210,6 +210,12 @@ Implemented today:
   2](https://github.com/wavect/semaprax/actions/runs/31401200449/attempts/2),
   including [Ubuntu job
   93505622044](https://github.com/wavect/semaprax/actions/runs/31401200449/job/93505622044).
+- Locally implemented, read-only
+  [`semaprax.semantic-impact.v1`](docs/SEMANTIC-IMPACT-V1.md) previews one Patch
+  v1/v2 file with exact operation/change/source-consumer provenance and a
+  deterministic byte/node/depth-bounded reverse-call closure for exact generic
+  call-instance changes. It does not apply the patch; hosted evidence is
+  pending.
 - Native AOT output through a readable C11 lowering and Clang.
 - Direct WebAssembly core output with a generated ES-module runtime, HTML entry point, capability manifest, checked arithmetic, and contract traps.
 - A deliberately narrow `semaprax.wasm-owned.v1` Core Wasm path for one direct
@@ -624,6 +630,18 @@ v2](docs/SEMANTIC-PATCH-V2.md).
 semaprax patch examples/meaning.spx change.spatch
 ```
 
+The same patch can be previewed without acquiring commit authority or changing
+source:
+
+```sh
+semaprax impact examples/meaning.spx change.spatch --depth 1
+```
+
+The canonical report binds the source base/candidate revisions and a digest of
+the exact processed patch bytes. It is bounded single-file call impact, not
+repository-wide or general non-call impact; see [Semantic Impact
+v1](docs/SEMANTIC-IMPACT-V1.md).
+
 The patch updates the declaration and verified call sites together. If the
 graph changed since the agent observed it, SEMAPRAX returns `SPX-G409` and
 leaves the source untouched. Commit A0 additionally authenticates a canonical
@@ -651,6 +669,7 @@ durability, multi-file commits, and general typed repair/impact remain open.
 | `run <file>` | Build and run in one step |
 | `fmt <file> [--check]` | Apply or verify canonical formatting |
 | `patch <file> <patch.spatch>` | Apply an atomic semantic transaction |
+| `impact <file> <patch.spatch> [--depth N] [--max-bytes N] [--max-nodes N]` | Preview deterministic bounded single-file source consumers and reverse-call impact without applying the patch |
 
 ## Why SEMAPRAX
 

@@ -6,7 +6,7 @@ use std::fs::{File, Metadata, OpenOptions, Permissions};
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 
-use crate::ast::{Type, TypeDeclaration, TypeDeclarationKind};
+use crate::ast::{Program, Type, TypeDeclaration, TypeDeclarationKind};
 use crate::diagnostic::Diagnostic;
 use crate::{format, graph, hir, lexer, parse, verify};
 
@@ -16,6 +16,7 @@ use self::source_index::SemanticSourceIndex;
 struct Rename {
     stable_id: String,
     new_name: String,
+    operation_index: usize,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -29,6 +30,7 @@ struct RenameMember {
     owner: String,
     member: String,
     new_name: String,
+    operation_index: usize,
 }
 
 #[derive(Debug)]
@@ -36,10 +38,11 @@ struct RenameCase {
     owner: String,
     case: String,
     new_name: String,
+    operation_index: usize,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum ScalarType {
+pub(crate) enum ScalarType {
     I64,
     Bool,
 }
@@ -53,7 +56,7 @@ impl ScalarType {
         }
     }
 
-    fn text(self) -> &'static str {
+    pub(crate) fn text(self) -> &'static str {
         match self {
             Self::I64 => "i64",
             Self::Bool => "bool",
@@ -76,6 +79,7 @@ struct ReplaceCallTypeArgument {
     index: u32,
     from: ScalarType,
     to: ScalarType,
+    operation_index: usize,
 }
 
 #[derive(Debug)]
@@ -87,6 +91,423 @@ struct SemanticPatch {
     case_renames: Vec<RenameCase>,
     call_type_argument_replacements: Vec<ReplaceCallTypeArgument>,
     no_new_effects: bool,
+    operations: Vec<PreflightOperation>,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) enum PreflightOperation {
+    Rename {
+        index: usize,
+        target: String,
+        to: String,
+    },
+    RenameMember {
+        index: usize,
+        owner: String,
+        member: String,
+        to: String,
+    },
+    RenameCase {
+        index: usize,
+        owner: String,
+        case: String,
+        to: String,
+    },
+    ReplaceCallTypeArgument {
+        index: usize,
+        expression: String,
+        template: String,
+        old_instance: String,
+        argument_index: u32,
+        from: ScalarType,
+        to: ScalarType,
+    },
+    RequireNoNewEffects {
+        index: usize,
+    },
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub(crate) enum SourceConsumerKind {
+    Function,
+    FunctionTemplate,
+    Resource,
+    Record,
+    Field,
+    Variant,
+    VariantCase,
+    CaseField,
+    Interface,
+    Import,
+}
+
+impl SourceConsumerKind {
+    pub(crate) const fn text(self) -> &'static str {
+        match self {
+            Self::Function => "function",
+            Self::FunctionTemplate => "function_template",
+            Self::Resource => "resource",
+            Self::Record => "record",
+            Self::Field => "field",
+            Self::Variant => "variant",
+            Self::VariantCase => "variant_case",
+            Self::CaseField => "case_field",
+            Self::Interface => "interface",
+            Self::Import => "import",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub(crate) enum SourceConsumerRole {
+    Declaration,
+    Reference,
+}
+
+impl SourceConsumerRole {
+    pub(crate) const fn text(self) -> &'static str {
+        match self {
+            Self::Declaration => "declaration",
+            Self::Reference => "reference",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub(crate) struct SourceConsumerKey {
+    pub(crate) kind: SourceConsumerKind,
+    pub(crate) id: String,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct PlannedEdit {
+    pub(crate) start: usize,
+    pub(crate) end: usize,
+    pub(crate) replacement: String,
+    pub(crate) operation_indices: BTreeSet<usize>,
+    pub(crate) consumer: Option<SourceConsumerKey>,
+    pub(crate) role: Option<SourceConsumerRole>,
+    pub(crate) change: usize,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) enum PreflightChange {
+    Rename {
+        target: String,
+        target_kind: SourceConsumerKind,
+        before: String,
+        after: String,
+        operation_indices: BTreeSet<usize>,
+    },
+    CallInstance {
+        expression: String,
+        template: String,
+        before_arguments: Vec<hir::ResolvedType>,
+        after_arguments: Vec<hir::ResolvedType>,
+        before_instance: String,
+        after_instance: String,
+        operation_indices: BTreeSet<usize>,
+    },
+}
+
+/// Pure semantic result of applying one owned patch buffer to one owned source
+/// buffer. This type deliberately carries no filesystem handle or commit path;
+/// `apply` must independently retain the complete A0 commit protocol.
+pub(crate) struct PatchPreflight {
+    source: String,
+    patch_source: String,
+    patch: SemanticPatch,
+    before: Program,
+    candidate: Program,
+    base_revision: String,
+    candidate_revision: String,
+    canonical_candidate: String,
+    operations: Vec<PreflightOperation>,
+    changes: Vec<PreflightChange>,
+    planned_edits: Vec<PlannedEdit>,
+}
+
+impl PatchPreflight {
+    pub(crate) fn source(&self) -> &str {
+        &self.source
+    }
+
+    pub(crate) fn patch_source(&self) -> &str {
+        &self.patch_source
+    }
+
+    pub(crate) fn before(&self) -> &Program {
+        &self.before
+    }
+
+    pub(crate) fn candidate(&self) -> &Program {
+        &self.candidate
+    }
+
+    pub(crate) fn base_revision(&self) -> &str {
+        &self.base_revision
+    }
+
+    pub(crate) fn candidate_revision(&self) -> &str {
+        &self.candidate_revision
+    }
+
+    pub(crate) fn canonical_candidate(&self) -> &str {
+        &self.canonical_candidate
+    }
+
+    pub(crate) fn schema_label(&self) -> &'static str {
+        match self.patch.schema {
+            PatchSchema::V1 => "semaprax.semantic-patch.v1",
+            PatchSchema::V2 => "semaprax.semantic-patch.v2",
+        }
+    }
+
+    pub(crate) fn operations(&self) -> &[PreflightOperation] {
+        &self.operations
+    }
+
+    pub(crate) fn changes(&self) -> &[PreflightChange] {
+        &self.changes
+    }
+
+    pub(crate) fn planned_edits(&self) -> &[PlannedEdit] {
+        &self.planned_edits
+    }
+}
+
+fn planned_edit(
+    start: usize,
+    end: usize,
+    replacement: String,
+    operation_indices: BTreeSet<usize>,
+    change: usize,
+) -> PlannedEdit {
+    PlannedEdit {
+        start,
+        end,
+        replacement,
+        operation_indices,
+        consumer: None,
+        role: None,
+        change,
+    }
+}
+
+#[derive(Eq, Ord, PartialEq, PartialOrd)]
+enum ChangeKey {
+    Rename(String, SourceConsumerKind, String, String),
+    CallInstance(String),
+}
+
+fn change_key(change: &PreflightChange) -> ChangeKey {
+    match change {
+        PreflightChange::Rename {
+            target,
+            target_kind,
+            before,
+            after,
+            ..
+        } => ChangeKey::Rename(target.clone(), *target_kind, before.clone(), after.clone()),
+        PreflightChange::CallInstance { expression, .. } => {
+            ChangeKey::CallInstance(expression.clone())
+        }
+    }
+}
+
+fn change_operation_indices(change: &PreflightChange) -> &BTreeSet<usize> {
+    match change {
+        PreflightChange::Rename {
+            operation_indices, ..
+        }
+        | PreflightChange::CallInstance {
+            operation_indices, ..
+        } => operation_indices,
+    }
+}
+
+fn change_operation_indices_mut(change: &mut PreflightChange) -> &mut BTreeSet<usize> {
+    match change {
+        PreflightChange::Rename {
+            operation_indices, ..
+        }
+        | PreflightChange::CallInstance {
+            operation_indices, ..
+        } => operation_indices,
+    }
+}
+
+fn normalize_change_order(changes: &mut Vec<PreflightChange>, edits: &mut [PlannedEdit]) {
+    let original = std::mem::take(changes);
+    let mut merged = Vec::<PreflightChange>::new();
+    let mut merged_by_key = BTreeMap::<ChangeKey, usize>::new();
+    let mut old_to_merged = Vec::with_capacity(original.len());
+    for change in original {
+        let key = change_key(&change);
+        if let Some(index) = merged_by_key.get(&key).copied() {
+            change_operation_indices_mut(&mut merged[index])
+                .extend(change_operation_indices(&change).iter().copied());
+            old_to_merged.push(index);
+        } else {
+            let index = merged.len();
+            merged_by_key.insert(key, index);
+            old_to_merged.push(index);
+            merged.push(change);
+        }
+    }
+    for edit in edits.iter_mut() {
+        edit.change = old_to_merged[edit.change];
+    }
+    let mut order = (0..merged.len()).collect::<Vec<_>>();
+    order.sort_by_key(|index| {
+        change_operation_indices(&merged[*index])
+            .iter()
+            .next()
+            .copied()
+            .unwrap_or(usize::MAX)
+    });
+    let mut merged_to_sorted = vec![0usize; merged.len()];
+    for (sorted, original) in order.iter().copied().enumerate() {
+        merged_to_sorted[original] = sorted;
+    }
+    *changes = order
+        .into_iter()
+        .map(|index| merged[index].clone())
+        .collect();
+    for edit in edits {
+        edit.change = merged_to_sorted[edit.change];
+    }
+}
+
+#[derive(Clone)]
+struct SourceContainer {
+    start: usize,
+    end: usize,
+    name_start: usize,
+    name_end: usize,
+    key: SourceConsumerKey,
+}
+
+fn assign_source_consumers(program: &Program, edits: &mut [PlannedEdit]) {
+    let mut containers = Vec::<SourceContainer>::new();
+    let mut add = |span: crate::ast::Span,
+                   name_span: crate::ast::Span,
+                   id: &str,
+                   kind: SourceConsumerKind| {
+        containers.push(SourceContainer {
+            start: span.start,
+            end: span.end,
+            name_start: name_span.start,
+            name_end: name_span.end,
+            key: SourceConsumerKey {
+                id: id.to_owned(),
+                kind,
+            },
+        });
+    };
+    for declaration in &program.types {
+        let kind = match &declaration.kind {
+            TypeDeclarationKind::Resource { .. } => SourceConsumerKind::Resource,
+            TypeDeclarationKind::Record { fields } => {
+                for field in fields {
+                    add(
+                        field.span,
+                        field.name_span,
+                        &field.stable_id,
+                        SourceConsumerKind::Field,
+                    );
+                }
+                SourceConsumerKind::Record
+            }
+            TypeDeclarationKind::Variant { cases } => {
+                for case in cases {
+                    for field in &case.fields {
+                        add(
+                            field.span,
+                            field.name_span,
+                            &field.stable_id,
+                            SourceConsumerKind::CaseField,
+                        );
+                    }
+                    add(
+                        case.span,
+                        case.name_span,
+                        &case.stable_id,
+                        SourceConsumerKind::VariantCase,
+                    );
+                }
+                SourceConsumerKind::Variant
+            }
+        };
+        add(
+            declaration.span,
+            declaration.name_span,
+            &declaration.stable_id,
+            kind,
+        );
+    }
+    for interface in &program.interfaces {
+        for import in &interface.imports {
+            add(
+                import.span,
+                import.name_span,
+                &import.stable_id,
+                SourceConsumerKind::Import,
+            );
+        }
+        add(
+            interface.span,
+            interface.name_span,
+            &interface.stable_id,
+            SourceConsumerKind::Interface,
+        );
+    }
+    for function in &program.functions {
+        add(
+            function.span,
+            function.name_span,
+            &function.stable_id,
+            if function.type_parameters.is_empty() {
+                SourceConsumerKind::Function
+            } else {
+                SourceConsumerKind::FunctionTemplate
+            },
+        );
+    }
+    containers.sort_by_key(|container| (container.start, usize::MAX - container.end));
+    let mut next = 0usize;
+    let mut active = Vec::<usize>::new();
+    for edit in edits {
+        while next < containers.len() && containers[next].start <= edit.start {
+            let candidate = &containers[next];
+            while active
+                .last()
+                .is_some_and(|index| containers[*index].end < candidate.end)
+            {
+                active.pop();
+            }
+            active.push(next);
+            next += 1;
+        }
+        while active
+            .last()
+            .is_some_and(|index| containers[*index].end < edit.end)
+        {
+            active.pop();
+        }
+        if let Some(container) = active.last().map(|index| &containers[*index]) {
+            if container.start <= edit.start && edit.end <= container.end {
+                edit.consumer = Some(container.key.clone());
+                edit.role = Some(
+                    if container.name_start == edit.start && container.name_end == edit.end {
+                        SourceConsumerRole::Declaration
+                    } else {
+                        SourceConsumerRole::Reference
+                    },
+                );
+            }
+        }
+    }
 }
 
 const STAGING_ATTEMPTS: usize = 32;
@@ -105,10 +526,16 @@ struct FileIdentity {
     handle: same_file::Handle,
 }
 
-struct SourceSnapshot {
+pub(crate) struct SourceSnapshot {
     source: String,
     identity: FileIdentity,
     permissions: Permissions,
+}
+
+impl SourceSnapshot {
+    pub(crate) fn source(&self) -> &str {
+        &self.source
+    }
 }
 
 struct OwnedSiblingFile {
@@ -355,31 +782,19 @@ pub fn apply(source_path: &Path, patch_path: &Path) -> Result<String, Vec<Diagno
     apply_with_commit_hook(source_path, patch_path, |_, _, _| Ok(()))
 }
 
-fn apply_with_commit_hook(
-    source_path: &Path,
-    patch_path: &Path,
-    mut hook: impl FnMut(CommitPhase, &Path, &Path) -> std::io::Result<()>,
-) -> Result<String, Vec<Diagnostic>> {
-    let canonical_source_path = canonical_source_path(source_path)?;
-    let lock_path = sibling_path(&canonical_source_path, ".semaprax-patch.lock")?;
-    let _lock = OwnedSiblingFile::create(lock_path, "SPX-I205", "semantic patch lock", false)?
-        .expect("existing lock is reported as an error");
-    let before_snapshot = read_source_snapshot(&canonical_source_path)?;
-    let source = before_snapshot.source.clone();
-    let patch_source = std::fs::read_to_string(patch_path).map_err(|error| {
-        vec![Diagnostic::io(
-            "SPX-I202",
-            format!("cannot read {}: {error}", patch_path.display()),
-        )]
-    })?;
+pub(crate) fn preflight_owned(
+    source: String,
+    patch_source: String,
+    diagnostic_path: PathBuf,
+) -> Result<PatchPreflight, Vec<Diagnostic>> {
     let patch = parse_patch(&patch_source)?;
-    let before = parse(&source, source_path).map_err(|error| vec![error])?;
-    let revision = graph::revision(&before);
-    if revision != patch.base {
+    let before = parse(&source, &diagnostic_path).map_err(|error| vec![error])?;
+    let base_revision = graph::revision(&before);
+    if base_revision != patch.base {
         return Err(vec![Diagnostic::io(
             "SPX-G409",
             format!(
-                "stale semantic patch: expected graph {}, current graph {revision}",
+                "stale semantic patch: expected graph {}, current graph {base_revision}",
                 patch.base
             ),
         )
@@ -393,8 +808,10 @@ fn apply_with_commit_hook(
     };
     let before_effects = effect_set(&before);
     let mut replacements = Vec::new();
+    let mut planned_edits = Vec::new();
+    let mut changes = Vec::new();
     let tokens =
-        lexer::lex(&source, &source_path.display().to_string()).map_err(|error| vec![error])?;
+        lexer::lex(&source, &diagnostic_path.display().to_string()).map_err(|error| vec![error])?;
     for rename in &patch.renames {
         if !is_identifier(&rename.new_name) {
             return Err(vec![Diagnostic::io(
@@ -416,8 +833,29 @@ fn apply_with_commit_hook(
                     ),
                 )]);
             }
+            let operation_indices = BTreeSet::from([rename.operation_index]);
+            let change = changes.len();
+            changes.push(PreflightChange::Rename {
+                target: rename.stable_id.clone(),
+                target_kind: if function.type_parameters.is_empty() {
+                    SourceConsumerKind::Function
+                } else {
+                    SourceConsumerKind::FunctionTemplate
+                },
+                before: function.name.clone(),
+                after: rename.new_name.clone(),
+                operation_indices: operation_indices.clone(),
+            });
             for (start, end) in function_name_positions(&before, &tokens, function) {
-                replacements.push((start, end, rename.new_name.clone()));
+                let replacement = rename.new_name.clone();
+                planned_edits.push(planned_edit(
+                    start,
+                    end,
+                    replacement.clone(),
+                    operation_indices.clone(),
+                    change,
+                ));
+                replacements.push((start, end, replacement));
             }
             continue;
         }
@@ -434,8 +872,25 @@ fn apply_with_commit_hook(
                     ),
                 )]);
             }
+            let operation_indices = BTreeSet::from([rename.operation_index]);
+            let change = changes.len();
+            changes.push(PreflightChange::Rename {
+                target: rename.stable_id.clone(),
+                target_kind: SourceConsumerKind::Resource,
+                before: resource.name.clone(),
+                after: rename.new_name.clone(),
+                operation_indices: operation_indices.clone(),
+            });
             for (start, end) in resource_type_positions(&before, &tokens, resource) {
-                replacements.push((start, end, rename.new_name.clone()));
+                let replacement = rename.new_name.clone();
+                planned_edits.push(planned_edit(
+                    start,
+                    end,
+                    replacement.clone(),
+                    operation_indices.clone(),
+                    change,
+                ));
+                replacements.push((start, end, replacement));
             }
             continue;
         }
@@ -476,6 +931,15 @@ fn apply_with_commit_hook(
                 ),
             )]);
         }
+        let operation_indices = BTreeSet::from([rename.operation_index]);
+        let change = changes.len();
+        changes.push(PreflightChange::Rename {
+            target: rename.member.clone(),
+            target_kind: identity.kind,
+            before: identity.name.clone(),
+            after: rename.new_name.clone(),
+            operation_indices: operation_indices.clone(),
+        });
         let sites = source_index
             .as_ref()
             .expect("v2 operations have a semantic source index")
@@ -495,6 +959,13 @@ fn apply_with_commit_hook(
                 || rename.new_name.clone(),
                 |binding| format!("{}: {binding}", rename.new_name),
             );
+            planned_edits.push(planned_edit(
+                site.span.start,
+                site.span.end,
+                replacement.clone(),
+                operation_indices.clone(),
+                change,
+            ));
             replacements.push((site.span.start, site.span.end, replacement));
         }
     }
@@ -518,6 +989,15 @@ fn apply_with_commit_hook(
                 ),
             )]);
         }
+        let operation_indices = BTreeSet::from([rename.operation_index]);
+        let change = changes.len();
+        changes.push(PreflightChange::Rename {
+            target: rename.case.clone(),
+            target_kind: SourceConsumerKind::VariantCase,
+            before: identity.name.clone(),
+            after: rename.new_name.clone(),
+            operation_indices: operation_indices.clone(),
+        });
         let sites = source_index
             .as_ref()
             .expect("v2 operations have a semantic source index")
@@ -533,11 +1013,20 @@ fn apply_with_commit_hook(
                 )]
             })?;
         for span in sites {
-            replacements.push((span.start, span.end, rename.new_name.clone()));
+            let replacement = rename.new_name.clone();
+            planned_edits.push(planned_edit(
+                span.start,
+                span.end,
+                replacement.clone(),
+                operation_indices.clone(),
+                change,
+            ));
+            replacements.push((span.start, span.end, replacement));
         }
     }
 
     let mut expected_call_arguments = BTreeMap::<String, Vec<hir::ResolvedType>>::new();
+    let mut call_change_indices = BTreeMap::<String, usize>::new();
     for replacement in &patch.call_type_argument_replacements {
         if replacement.from == replacement.to {
             return Err(patch_conflict(format!(
@@ -579,7 +1068,42 @@ fn apply_with_commit_hook(
             .entry(replacement.expression.clone())
             .or_insert_with(|| site.type_arguments.clone());
         arguments[index] = replacement.to.resolved();
-        replacements.push((span.start, span.end, replacement.to.text().to_owned()));
+        let operation_indices = BTreeSet::from([replacement.operation_index]);
+        let change = if let Some(change) = call_change_indices.get(&replacement.expression) {
+            *change
+        } else {
+            let change = changes.len();
+            changes.push(PreflightChange::CallInstance {
+                expression: replacement.expression.clone(),
+                template: replacement.template.clone(),
+                before_arguments: site.type_arguments.clone(),
+                after_arguments: site.type_arguments.clone(),
+                before_instance: replacement.old_instance.clone(),
+                after_instance: replacement.old_instance.clone(),
+                operation_indices: BTreeSet::new(),
+            });
+            call_change_indices.insert(replacement.expression.clone(), change);
+            change
+        };
+        let PreflightChange::CallInstance {
+            after_arguments,
+            operation_indices: contributing,
+            ..
+        } = &mut changes[change]
+        else {
+            unreachable!("call change index identifies a call-instance change")
+        };
+        *after_arguments = arguments.clone();
+        contributing.extend(operation_indices.iter().copied());
+        let edit_replacement = replacement.to.text().to_owned();
+        planned_edits.push(planned_edit(
+            span.start,
+            span.end,
+            edit_replacement.clone(),
+            operation_indices,
+            change,
+        ));
+        replacements.push((span.start, span.end, edit_replacement));
     }
     let expected_call_instances = expected_call_arguments
         .iter()
@@ -599,6 +1123,15 @@ fn apply_with_commit_hook(
             )
         })
         .collect::<BTreeMap<_, _>>();
+    for (expression, instance) in &expected_call_instances {
+        let change = call_change_indices
+            .get(expression)
+            .expect("each expected call instance has a grouped change");
+        let PreflightChange::CallInstance { after_instance, .. } = &mut changes[*change] else {
+            unreachable!("call change index identifies a call-instance change")
+        };
+        *after_instance = instance.as_str().to_owned();
+    }
 
     replacements.sort_by_key(|replacement| (replacement.0, replacement.1));
     let mut checked_replacements = Vec::with_capacity(replacements.len());
@@ -617,29 +1150,58 @@ fn apply_with_commit_hook(
         }
         checked_replacements.push(replacement);
     }
+    normalize_change_order(&mut changes, &mut planned_edits);
+    planned_edits.sort_by(|left, right| {
+        (left.start, left.end, &left.replacement, left.change).cmp(&(
+            right.start,
+            right.end,
+            &right.replacement,
+            right.change,
+        ))
+    });
+    let mut checked_planned_edits: Vec<PlannedEdit> = Vec::with_capacity(planned_edits.len());
+    for edit in planned_edits {
+        if let Some(previous) = checked_planned_edits.last_mut() {
+            if edit.start < previous.end
+                && edit.start == previous.start
+                && edit.end == previous.end
+                && edit.replacement == previous.replacement
+                && edit.consumer == previous.consumer
+                && edit.role == previous.role
+                && edit.change == previous.change
+            {
+                previous
+                    .operation_indices
+                    .extend(edit.operation_indices.into_iter());
+                continue;
+            }
+        }
+        checked_planned_edits.push(edit);
+    }
+    assign_source_consumers(&before, &mut checked_planned_edits);
     let mut changed = source.clone();
     for (start, end, replacement) in checked_replacements.into_iter().rev() {
         changed.replace_range(start..end, &replacement);
     }
 
-    let after = parse(&changed, source_path).map_err(|error| vec![error])?;
-    let diagnostics = verify::verify(&after);
+    let candidate = parse(&changed, &diagnostic_path).map_err(|error| vec![error])?;
+    let diagnostics = verify::verify(&candidate);
     if diagnostics.iter().any(|item| item.severity.is_error()) {
         return Err(diagnostics);
     }
-    if patch.no_new_effects && !effect_set(&after).is_subset(&before_effects) {
+    if patch.no_new_effects && !effect_set(&candidate).is_subset(&before_effects) {
         return Err(vec![Diagnostic::io(
             "SPX-G105",
             "semantic patch violates requirement `no-new-effects`",
         )]);
     }
     if let Some(before_resolved) = &before_resolved {
-        let after_resolved = hir::resolve(&after)?;
+        let after_resolved = hir::resolve(&candidate)?;
         validate_semantic_delta(SemanticDeltaInputs {
             before_source: &source,
             after_source: &changed,
             before: &before,
-            after: &after,
+            after: &candidate,
             before_resolved,
             after_resolved: &after_resolved,
             patch: &patch,
@@ -647,8 +1209,43 @@ fn apply_with_commit_hook(
             expected_call_arguments: &expected_call_arguments,
         })?;
     }
-    let canonical = format::canonical(&after);
-    let canonical_bytes = canonical.as_bytes();
+    let canonical_candidate = format::canonical(&candidate);
+    let candidate_revision = graph::revision(&candidate);
+    let operations = patch.operations.clone();
+    Ok(PatchPreflight {
+        source,
+        patch_source,
+        patch,
+        before,
+        candidate,
+        base_revision,
+        candidate_revision,
+        canonical_candidate,
+        operations,
+        changes,
+        planned_edits: checked_planned_edits,
+    })
+}
+
+fn apply_with_commit_hook(
+    source_path: &Path,
+    patch_path: &Path,
+    mut hook: impl FnMut(CommitPhase, &Path, &Path) -> std::io::Result<()>,
+) -> Result<String, Vec<Diagnostic>> {
+    let canonical_source_path = canonical_source_path(source_path)?;
+    let lock_path = sibling_path(&canonical_source_path, ".semaprax-patch.lock")?;
+    let _lock = OwnedSiblingFile::create(lock_path, "SPX-I205", "semantic patch lock", false)?
+        .expect("existing lock is reported as an error");
+    let before_snapshot = read_source_snapshot(&canonical_source_path)?;
+    let source = before_snapshot.source.clone();
+    let patch_source = std::fs::read_to_string(patch_path).map_err(|error| {
+        vec![Diagnostic::io(
+            "SPX-I202",
+            format!("cannot read {}: {error}", patch_path.display()),
+        )]
+    })?;
+    let preflight = preflight_owned(source, patch_source, source_path.to_path_buf())?;
+    let canonical_bytes = preflight.canonical_candidate().as_bytes();
     let mut staging = create_staging_file(&canonical_source_path)?;
     {
         let file = staging.file_mut()?;
@@ -694,7 +1291,7 @@ fn apply_with_commit_hook(
         &canonical_source_path,
         source_path,
         &before_snapshot,
-        &revision,
+        preflight.base_revision(),
     )?;
     staging.validate_contents(canonical_bytes)?;
     hook(
@@ -712,7 +1309,7 @@ fn apply_with_commit_hook(
         &canonical_source_path,
         source_path,
         &before_snapshot,
-        &revision,
+        preflight.base_revision(),
     )?;
     staging.validate_contents(canonical_bytes)?;
     std::fs::rename(&staging.path, &canonical_source_path).map_err(|error| {
@@ -722,10 +1319,10 @@ fn apply_with_commit_hook(
         )]
     })?;
     staging.committed();
-    Ok(graph::revision(&after))
+    Ok(preflight.candidate_revision().to_owned())
 }
 
-fn canonical_source_path(source_path: &Path) -> Result<PathBuf, Vec<Diagnostic>> {
+pub(crate) fn canonical_source_path(source_path: &Path) -> Result<PathBuf, Vec<Diagnostic>> {
     let supplied_metadata =
         safe_symlink_metadata(source_path, "semantic patch source", "SPX-I201")?;
     validate_regular_metadata(
@@ -769,7 +1366,7 @@ fn canonical_source_path(source_path: &Path) -> Result<PathBuf, Vec<Diagnostic>>
     Ok(canonical)
 }
 
-fn validate_source_unchanged(
+pub(crate) fn validate_source_unchanged(
     canonical_source_path: &Path,
     diagnostic_path: &Path,
     before: &SourceSnapshot,
@@ -788,7 +1385,7 @@ fn validate_source_unchanged(
     Ok(())
 }
 
-fn read_source_snapshot(path: &Path) -> Result<SourceSnapshot, Vec<Diagnostic>> {
+pub(crate) fn read_source_snapshot(path: &Path) -> Result<SourceSnapshot, Vec<Diagnostic>> {
     let path_metadata = safe_symlink_metadata(path, "semantic patch source", "SPX-I201")?;
     validate_regular_metadata(&path_metadata, path, "semantic patch source", "SPX-I201")?;
     let path_identity = file_identity(&path_metadata, path, "semantic patch source", "SPX-I201")?;
@@ -1054,6 +1651,7 @@ fn parse_patch(source: &str) -> Result<SemanticPatch, Vec<Diagnostic>> {
     let mut call_type_argument_replacements = Vec::new();
     let mut no_new_effects = false;
     let mut selectors = BTreeSet::new();
+    let mut operations = Vec::new();
     for (meaningful_index, (line_index, line)) in meaningful.into_iter().enumerate() {
         if meaningful_index == 0 && schema == PatchSchema::V2 {
             continue;
@@ -1068,9 +1666,16 @@ fn parse_patch(source: &str) -> Result<SemanticPatch, Vec<Diagnostic>> {
             }
             ["rename", stable_id, "to", new_name] => {
                 reject_duplicate_selector(schema, &mut selectors, format!("rename:{stable_id}"))?;
+                let operation_index = operations.len();
+                operations.push(PreflightOperation::Rename {
+                    index: operation_index,
+                    target: (*stable_id).to_owned(),
+                    to: (*new_name).to_owned(),
+                });
                 renames.push(Rename {
                     stable_id: (*stable_id).to_owned(),
                     new_name: (*new_name).to_owned(),
+                    operation_index,
                 });
             }
             ["rename-member", "owner", owner, "member", member, "to", new_name]
@@ -1081,20 +1686,36 @@ fn parse_patch(source: &str) -> Result<SemanticPatch, Vec<Diagnostic>> {
                     &mut selectors,
                     format!("member:{owner}:{member}"),
                 )?;
+                let operation_index = operations.len();
+                operations.push(PreflightOperation::RenameMember {
+                    index: operation_index,
+                    owner: (*owner).to_owned(),
+                    member: (*member).to_owned(),
+                    to: (*new_name).to_owned(),
+                });
                 member_renames.push(RenameMember {
                     owner: (*owner).to_owned(),
                     member: (*member).to_owned(),
                     new_name: (*new_name).to_owned(),
+                    operation_index,
                 });
             }
             ["rename-case", "owner", owner, "case", case, "to", new_name]
                 if schema == PatchSchema::V2 =>
             {
                 reject_duplicate_selector(schema, &mut selectors, format!("case:{owner}:{case}"))?;
+                let operation_index = operations.len();
+                operations.push(PreflightOperation::RenameCase {
+                    index: operation_index,
+                    owner: (*owner).to_owned(),
+                    case: (*case).to_owned(),
+                    to: (*new_name).to_owned(),
+                });
                 case_renames.push(RenameCase {
                     owner: (*owner).to_owned(),
                     case: (*case).to_owned(),
                     new_name: (*new_name).to_owned(),
+                    operation_index,
                 });
             }
             ["replace-call-type-argument", "expression", expression, "template", template, "old-instance", old_instance, "index", index, "from", from, "to", to]
@@ -1120,6 +1741,16 @@ fn parse_patch(source: &str) -> Result<SemanticPatch, Vec<Diagnostic>> {
                     &mut selectors,
                     format!("call:{expression}:{index}"),
                 )?;
+                let operation_index = operations.len();
+                operations.push(PreflightOperation::ReplaceCallTypeArgument {
+                    index: operation_index,
+                    expression: (*expression).to_owned(),
+                    template: (*template).to_owned(),
+                    old_instance: (*old_instance).to_owned(),
+                    argument_index: index,
+                    from,
+                    to,
+                });
                 call_type_argument_replacements.push(ReplaceCallTypeArgument {
                     expression: (*expression).to_owned(),
                     template: (*template).to_owned(),
@@ -1127,6 +1758,7 @@ fn parse_patch(source: &str) -> Result<SemanticPatch, Vec<Diagnostic>> {
                     index,
                     from,
                     to,
+                    operation_index,
                 });
             }
             ["require", "no-new-effects"] => {
@@ -1135,6 +1767,9 @@ fn parse_patch(source: &str) -> Result<SemanticPatch, Vec<Diagnostic>> {
                     &mut selectors,
                     "require:no-new-effects".to_owned(),
                 )?;
+                operations.push(PreflightOperation::RequireNoNewEffects {
+                    index: operations.len(),
+                });
                 no_new_effects = true;
             }
             _ => {
@@ -1162,6 +1797,7 @@ fn parse_patch(source: &str) -> Result<SemanticPatch, Vec<Diagnostic>> {
         case_renames,
         call_type_argument_replacements,
         no_new_effects,
+        operations,
     })
 }
 
@@ -1210,6 +1846,8 @@ fn validate_new_name(value: &str) -> Result<(), Vec<Diagnostic>> {
 struct MemberIdentity {
     owner_explicit: bool,
     member_explicit: bool,
+    name: String,
+    kind: SourceConsumerKind,
 }
 
 fn member_identity(
@@ -1224,6 +1862,8 @@ fn member_identity(
                 return Some(MemberIdentity {
                     owner_explicit: declaration.explicit_id,
                     member_explicit: field.explicit_id,
+                    name: field.name.clone(),
+                    kind: SourceConsumerKind::Field,
                 });
             }
             TypeDeclarationKind::Variant { cases } => {
@@ -1232,6 +1872,8 @@ fn member_identity(
                     return Some(MemberIdentity {
                         owner_explicit: case.explicit_id,
                         member_explicit: field.explicit_id,
+                        name: field.name.clone(),
+                        kind: SourceConsumerKind::CaseField,
                     });
                 }
             }
@@ -1244,6 +1886,7 @@ fn member_identity(
 struct CaseIdentity {
     owner_explicit: bool,
     case_explicit: bool,
+    name: String,
 }
 
 fn case_identity(program: &crate::ast::Program, owner: &str, case: &str) -> Option<CaseIdentity> {
@@ -1258,6 +1901,7 @@ fn case_identity(program: &crate::ast::Program, owner: &str, case: &str) -> Opti
         Some(CaseIdentity {
             owner_explicit: declaration.explicit_id,
             case_explicit: case.explicit_id,
+            name: case.name.clone(),
         })
     })
 }

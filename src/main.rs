@@ -3,7 +3,7 @@ use std::process::{Command, ExitCode};
 
 use semaprax::diagnostic::{Diagnostic, Severity};
 use semaprax::{
-    agent_economics, codegen, format, graph, parse, patch, quality_route, verify, wasm,
+    agent_economics, codegen, format, graph, impact, parse, patch, quality_route, verify, wasm,
 };
 
 fn main() -> ExitCode {
@@ -176,6 +176,15 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             println!("applied semantic patch; graph is now {revision}");
             Ok(())
         }
+        "impact" => {
+            let source_path = required_path(&args, 1)?;
+            let patch_path = required_path(&args, 2)?;
+            let options = impact_options(&args)?;
+            let report = impact::preview(&source_path, &patch_path, &options)
+                .map_err(|errors| report(&errors, false))?;
+            println!("{report}");
+            Ok(())
+        }
         "version" | "--version" | "-V" => {
             println!("semaprax {}", env!("CARGO_PKG_VERSION"));
             Ok(())
@@ -190,6 +199,55 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             Err(2)
         }
     }
+}
+
+fn impact_options(args: &[String]) -> Result<impact::SemanticImpactOptions, u8> {
+    let mut depth = 1usize;
+    let mut max_bytes = 64 * 1024;
+    let mut max_nodes = 256usize;
+    let mut seen = std::collections::BTreeSet::new();
+    let mut index = 3usize;
+    while index < args.len() {
+        let option = args[index].as_str();
+        if !matches!(option, "--depth" | "--max-bytes" | "--max-nodes") {
+            eprintln!("unknown impact option `{option}`");
+            return Err(2);
+        }
+        if !seen.insert(option.to_owned()) {
+            eprintln!("duplicate impact option `{option}`");
+            return Err(2);
+        }
+        let value = args.get(index + 1).ok_or_else(|| {
+            eprintln!("impact option `{option}` requires a value");
+            2
+        })?;
+        let value = impact_number(option, value)?;
+        match option {
+            "--depth" => depth = value,
+            "--max-bytes" => max_bytes = value,
+            "--max-nodes" => max_nodes = value,
+            _ => unreachable!("closed impact option table"),
+        }
+        index += 2;
+    }
+    impact::SemanticImpactOptions::new(depth, max_bytes, max_nodes).map_err(|error| {
+        eprintln!("{error}");
+        2
+    })
+}
+
+fn impact_number(option: &str, value: &str) -> Result<usize, u8> {
+    if value.is_empty()
+        || !value.bytes().all(|byte| byte.is_ascii_digit())
+        || (value.len() > 1 && value.starts_with('0'))
+    {
+        eprintln!("impact option `{option}` requires a canonical nonnegative integer");
+        return Err(2);
+    }
+    value.parse::<usize>().map_err(|_| {
+        eprintln!("impact option `{option}` requires a canonical nonnegative integer");
+        2
+    })
 }
 
 enum ParsedContextOptions {
@@ -366,6 +424,7 @@ fn print_help() {
            semaprax run <file>\n\
            semaprax fmt <file> [--check]\n\
            semaprax patch <file> <patch.spatch>\n\
+           semaprax impact <file> <patch.spatch> [--depth N] [--max-bytes N] [--max-nodes N]\n\
            semaprax version"
     );
 }

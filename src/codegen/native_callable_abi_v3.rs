@@ -1260,11 +1260,11 @@ mod tests {
         assert_eq!(descriptor.bytes.len(), 1_722);
         assert_eq!(
             hex(&Sha256::digest(&descriptor.bytes)),
-            "74b1e96c2d78ccd7d1ea08eec988674ab22bfa6d91b2de19bb41dee42251b44e"
+            "39fbc05c2149ebb912bd551b98785fcb4249db9af98e8563668386d3b42a720f"
         );
         assert_eq!(
             hex(&descriptor.call_contract),
-            "c3ebe4ac69ba061c551305e260ebfa2f4af62be7d9a619227edd7625e8210b59"
+            "c8345ba8b30ea806cddb6e839db6d992a5adba535e99f2cbfd5052f5da6149d3"
         );
         let capacities = descriptor_capacities(&descriptor.bytes);
         let retained_per_frame = capacities[..6]
@@ -1343,7 +1343,7 @@ mod tests {
         assert_eq!(read_u32(graph, 0), GRAPH_VERSION);
         assert_eq!(
             hex(&Sha256::digest(graph)),
-            "0da4af442f926506e2dcfc71fd0a6895dd3f48223922f06bae4f2ac9cf67a380"
+            "96f3b6bc58fcb5ba740495bf33758b89879c6972d9e93f884b659b24bc472a97"
         );
         assert!(!graph
             .windows(descriptor.call_contract.len())

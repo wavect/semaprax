@@ -78,7 +78,7 @@ Implemented today:
 - Resources with explicit, persistent trivial/imported lifecycles, declaration-only interface/import contracts, and `own`, `borrow`, and `shared` function boundaries.
 - Lexical `let` bindings and typed `if/else` expressions.
 - Control-flow-aware move checking with prefix-aware record-field state and definite or conditional use-after-move diagnostics.
-- Canonical record declarations, construction, projection, and immutable update in `check`, resolved HIR, and semantic Graph v9, with persistent record/field IDs and authored-order replacement semantics.
+- Canonical record declarations, construction, projection, and immutable update in `check`, resolved HIR, and semantic Graph v10, with persistent record/field IDs and authored-order replacement semantics.
 - Checked deterministic Native64 and Wasm32 record layouts plus target-neutral cleanup plans for partial construction and immutable update. These are compiler groundwork; backend execution is claimed only where its dedicated artifact gates pass.
 - The bounded public scalar-record slice lowers nested `i64`/`bool` construction,
   projection, and immutable update through native C11/Clang at O0/O2 and browser
@@ -100,11 +100,22 @@ Implemented today:
   Native64/Wasm32 layouts and physical symbols while retaining the template's
   persistent case/field identities. Native C11/Clang at O0/O2 and real
   Node/Wasm prove construction, matching, poison preservation, invalid-tag
-  closure, and distinct `i64`/`bool` instances. CleanupPlan v1 replays the
+  closure, and distinct `i64`/`bool` instances. CleanupPlan v2 replays the
   cleanup-free copy branches by exact scrutinee expression and stable case ID.
-  Resource/nested arguments, generic functions or records, non-copy matching,
-  `?`, stable public aggregate ABI, and callable/component aggregate admission
-  remain closed.
+  The bounded postfix `?` slice propagates only ordinary compiler-owned
+  `Result<T, E>` values whose type arguments are direct `i64`/`bool`: it
+  evaluates the operand once, reconstructs an outer `Result<U, E>` on `Err`,
+  skips later body expressions, and reaches the same postconditions and final
+  publication join as the ordinary body value. Native C11 at O0/O2 and real
+  Node/Wasm prove different source/outer layouts, exact `Err` propagation,
+  physical-status separation, complete caller-output poison, invalid-tag
+  closure, and Wasm re-entry. Resource/nested arguments, generic functions or
+  records, non-copy matching or propagation, residual conversion, `?` in
+  contracts, stable public aggregate ABI, and callable/component aggregate
+  admission remain closed. Generic/prelude verification is hosted green in
+  [run 31347109201](https://github.com/wavect/semaprax/actions/runs/31347109201);
+  the typed-`?` tranche is current local executable evidence, not yet a hosted
+  claim.
 - A validated stable-ID HIR shared by native and Wasm lowering, with explicit entry, result, binding, expression, and place identities.
 - A mandatory target-neutral cleanup CFG for every function, independently rebuilt and independently replayed against core HIR/inventory, with exhaustive current-CFG path-state checks plus a scenario-driven reference trace executor.
 - Versioned target-neutral normalized-status, conformance-trace,
@@ -122,12 +133,14 @@ Implemented today:
 - Persistent declaration identity through `@id`.
 - NUL-free persistent semantic identities across source, resolved HIR, cleanup metadata, graph serialization, and native C literals.
 - Deterministic formatting and domain-separated SHA-256 graph revisions.
-- JSON semantic Graph v9 with owner/index-stable generic parameters, exact
+- JSON semantic Graph v10 with owner/index-stable generic parameters, exact
   concrete nominal arguments, an authenticated compiler-owned prelude,
   persistent variant/case/payload identities, revision-scoped
-  construction/match/pattern structure, immutable record update, complete
-  cleanup plans, and dependency-bounded context slices. Revision v2 binds both
-  canonical source and the exact prelude contract.
+  construction/match/pattern structure, immutable record update, exact
+  evaluation-once `try_result` source/residual instances and shared-epilogue
+  meaning, complete CleanupPlan v2 staging, and dependency-bounded context
+  slices. Revision v2 binds both canonical source and the exact prelude
+  contract.
 - JSON-line diagnostics for agent consumption.
 - Atomic semantic rename patches with stale-revision rejection.
 - Native AOT output through a readable C11 lowering and Clang.
@@ -222,10 +235,10 @@ private `result<s64, status>` projection and locally executes typed success,
 addition-overflow, division-by-zero, precondition, and postcondition outcomes
 through Wasmtime with zero imports, an empty linker, and no WASI. The standalone
 runtime/dependency graph cannot widen the public compiler graph or MSRV. The
-previous exact hosted Wasmtime profile is green in [run 31338834586, job
-93309086213](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086213).
-The current prelude-bound result-v3 KAT migration and standalone Wasmtime runner
-are green locally and await hosted CI. This remains **Partial** WIT evidence
+prelude-bound result-v3 KAT migration and standalone Wasmtime runner are hosted
+green in [run 31347109201, job
+93330959212](https://github.com/wavect/semaprax/actions/runs/31347109201/job/93330959212).
+This remains **Partial** WIT evidence
 only: source-language `Result`/`Option` are not wired into this component
 profile, and records, resources, imports, async, capabilities,
 multi-engine/browser conformance, a public WIT surface, and any `SPX-B104`
@@ -236,7 +249,8 @@ general-shape native/reference/Wasm trace conformance, the general Wasm resource
 recursive reference execution, callable imports/adapters, a stable public aggregate
 ABI and general aggregate execution, nested or resource-bearing generic
 arguments, generic functions or records, resource-bearing variants,
-ownership-aware matching, `?`, lifetime and alias analysis, user-facing
+ownership-aware matching, general/non-copy/residual-converting `?`, lifetime
+and alias analysis, user-facing
 regions, effect handlers, static contract proofs, Cranelift, LLVM/MLIR IR,
 composed engine-native WebAssembly Component backend, packages, concurrency,
 or cross-platform UI. Native

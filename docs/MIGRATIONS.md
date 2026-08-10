@@ -173,6 +173,37 @@ functions or records, nested/resource arguments, `?`, non-copy matching, a
 stable public aggregate ABI, callable/component aggregate support, or public
 resource admission.
 
+## Graph v9 to v10 and CleanupPlan v1 to v2
+
+Graph v10 adds revision-scoped `try_result` meaning for the bounded ordinary
+`Result<T, E>` postfix-`?` slice. Each node authenticates the exact source and
+outer concrete instances, compiler-owned Result/Ok/Err case and field IDs,
+one operand evaluation, an `Err` exit classified as a normal result rather
+than a physical failure, and the shared postcondition epilogue. A v9 consumer
+must reject `semaprax.graph.v10`; a v10 consumer must reject v9, unknown Try
+fields, and rehashed substitutions of any authenticated ID, instance, exit, or
+epilogue meaning. Agent Context v1 retains its envelope schema and now reports
+`semaprax.graph.v10` as `source_graph_schema`.
+
+CleanupPlan v2 adds `StageCopyResult` with two closed producers: the ordinary
+body expression and an authenticated Try residual. A Try residual binds the
+Try and operand expression IDs, exact source and target `Result` instances,
+and all compiler-owned Result member IDs. Exactly one producer reaches the
+shared postcondition/publication join on each normal path. Physical operation
+failure remains the pre-existing sticky status path and must never be repaired
+or reclassified as semantic `Err`. Consumers must reject v1 as missing the
+staging contract, reject unknown producer kinds, and reject missing, duplicate,
+wrong-instance, wrong-expression, or wrong-member staging before backend use.
+
+This cleanup schema change does not broaden
+`semaprax.conformance-trace.v1`; its reference executor authenticates staging
+but still returns the stable unsupported-result boundary at terminal Copy
+aggregate materialization. It also does not open resources, nested/non-copy
+Result arguments, residual conversion, `?` in contracts, public aggregate ABI,
+or callable/component aggregate signatures. Historical Graph-v6/v7/v8/v9 and
+CleanupPlan-v1 text above remains the migration record, not current schema
+truth.
+
 ## Internal variant-layout digest v1 to v2
 
 The compiler-internal Native64/Wasm32 variant-layout digest now uses the exact

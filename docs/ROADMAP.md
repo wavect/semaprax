@@ -22,8 +22,8 @@ Status: in progress. Resource ownership boundaries and explicit
 lifecycle/interface contracts, lexical `let`, typed `if/else`, partial-place
 diagnostics, record construction/projection/immutable-update semantics, bounded
 generic copy variants/exhaustive matching, ordinary prelude `Option`/`Result`,
-Graph v9, validated stable-ID HIR/type
-facts, a mandatory replay-validated cleanup plan, versioned normalized-status
+bounded direct-scalar `Result` propagation, Graph v10, validated stable-ID HIR/type
+facts, a mandatory replay-validated CleanupPlan v2, versioned normalized-status
 and semantic-event-dictionary types, native scalar status/out execution, a
 browser-loadable scalar Wasm backend, and one narrow direct-trivial-resource
 Wasm owned ABI are implemented. A private generated-callable native host now
@@ -51,7 +51,7 @@ trivial/imported lifecycle syntax, declaration-only interface/import contracts,
 source/HIR validation, and a target-neutral cleanup plan. Resolved functions
 carry typed blocks/edges/regions/exits, guarded liveness, atomic call commits,
 sticky status sources, cleanup order, and result publication; validation
-independently rebuilds the plan, and Graph v9 serializes it. Checked Native64
+independently rebuilds the plan, and Graph v10 serializes it. Checked Native64
 and Wasm32 layouts cover nested `i64`, `bool`, and direct trivial-resource
 fields; immutable-update cleanup consumes the base first, evaluates authored
 replacements left-to-right, transfers untouched fields, and cleans displaced
@@ -67,20 +67,31 @@ does not open public resource execution or any aggregate ABI.
 Executable Copy Variants + Match now includes nominal templates with explicit
 direct `i64`/`bool` arguments, alongside monomorphic unit/direct-scalar cases.
 Compiler-owned ordinary `Option<T>` and `Result<T, E>` use the same checked
-variant mechanism. Graph v9 and revision v2 authenticate owner/index-stable
+variant mechanism. Graph v10 and revision v2 authenticate owner/index-stable
 parameters, exact concrete arguments, and `semaprax.prelude.v1`; internal
 layout digest v2 authenticates concrete instances plus template/substituted
 field types. Native C11 O0/O2 and Node/Wasm evidence proves distinct concrete
 symbols/layouts, authored construction order, one scrutinee evaluation,
 selected-arm-only execution, complete poisoned outputs on failure, invalid-tag
-closure, equivalent results, and Wasm shadow-stack re-entry. CleanupPlan v1
+closure, equivalent results, and Wasm shadow-stack re-entry. CleanupPlan v2
 remains cleanup-free for this Copy slice and binds each branch to the exact
 scrutinee expression plus stable template case ID. The preceding non-generic
 matrix is hosted green in [run
 31343897595](https://github.com/wavect/semaprax/actions/runs/31343897595);
-current generic/prelude hosted verification is pending. This does not open
-generic functions/records, nested/resource arguments, resource- or
-record-bearing payloads, non-copy ownership modes, `?`, a stable public
+generic/prelude verification is hosted green in [run
+31347109201](https://github.com/wavect/semaprax/actions/runs/31347109201).
+
+The current local typed-`?` tranche accepts only compiler-owned direct-scalar
+Copy `Result<T, E>` and an enclosing `Result<U, E>`. It evaluates the operand
+once, stages `Err` as a normal outer result rather than a physical status,
+skips later body expressions, and joins the ordinary path before shared
+postconditions and publication. CleanupPlan v2 independently authenticates
+the exact Try/operand IDs, source/target instances, prelude members, and one
+body-or-residual stage; Graph v10 projects that meaning. Native C11 O0/O2 and
+Node/Wasm prove different source/outer layouts, status separation, poison,
+invalid-tag closure, and re-entry. This does not open generic functions/records,
+nested/resource arguments, resource- or record-bearing payloads, non-copy
+ownership/propagation, residual conversion, `?` in contracts, a stable public
 aggregate ABI, callable/component signatures, or public resource admission.
 
 Phase 3 now composes its formerly separate native evidence layers for the
@@ -108,7 +119,7 @@ admission, or adoption surface.
 Imported lifecycles, calls, general aggregates, broader control flow,
 cross-realm/worker identity, stable public aggregate ABIs, nested/resource
 generic arguments, generic functions/records, resource-bearing variants,
-ownership-aware matching, `?`,
+ownership-aware matching, general/non-copy/residual-converting `?`,
 concurrency, and fork recovery remain subsequent work.
 
 Callable v3 is a separate bounded physical tranche: graph-derived providers
@@ -175,12 +186,10 @@ Component v3 now privately composes its exact checked two-scalar status/out core
 addition overflow, division by zero, false precondition, and false
 postcondition. Its independent/upstream validators, poison/sticky-status core
 evidence, zero-import empty-linker/no-WASI runtime, and isolated locked
-dependency/MSRV graph are implemented. The previous exact profile's hosted
-Wasmtime gate is green in
-[run 31338834586, job
-93309086213](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086213).
-The current prelude-bound KAT migration and standalone runner are locally green
-and await hosted CI. Connecting source-language `Result`/`Option` to this
+dependency/MSRV graph are implemented. The current prelude-bound KAT migration
+and standalone runner are hosted green in [run 31347109201, job
+93330959212](https://github.com/wavect/semaprax/actions/runs/31347109201/job/93330959212).
+Connecting source-language `Result`/`Option` to this
 component profile, records/resources/imports, async/capabilities,
 multi-engine/browser execution, public API, and `SPX-B104` remain later gates.
 

@@ -17,7 +17,7 @@ pub(crate) use validate::validate_program;
 use crate::cleanup::{FieldLivenessShape, LivenessFlagId};
 use crate::hir::{DeclarationId, ExpressionId, ResolvedType, ValueId};
 
-pub const CLEANUP_PLAN_SCHEMA_V1: &str = "semaprax.cleanup-plan.v1";
+pub const CLEANUP_PLAN_SCHEMA_V2: &str = "semaprax.cleanup-plan.v2";
 
 macro_rules! numeric_id {
     ($name:ident) => {
@@ -120,6 +120,37 @@ pub enum CleanupTransition {
     },
     SelectFailure {
         source: StatusSourceId,
+    },
+    /// Stage one complete Copy aggregate in compiler-owned provisional result
+    /// storage.  This is semantic proof data only: the public conformance trace
+    /// has no aggregate value representation, and backends remain responsible
+    /// for target-specific bytes after independently validating this plan.
+    StageCopyResult {
+        source: StagedCopyResultSource,
+    },
+}
+
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum StagedCopyResultSource {
+    /// The ordinary function-body value on the non-residual path.
+    Body {
+        expression: ExpressionId,
+        instance: ResolvedType,
+    },
+    /// A compiler-synthesized outer `Result::Err` produced by postfix `?`.
+    ///
+    /// Source and target instances are both authenticated because sharing the
+    /// same residual type does not imply sharing size, alignment, or layout.
+    TryResidual {
+        expression: ExpressionId,
+        operand: ExpressionId,
+        source_instance: ResolvedType,
+        target_instance: ResolvedType,
+        result: DeclarationId,
+        ok_case: DeclarationId,
+        ok_field: DeclarationId,
+        err_case: DeclarationId,
+        err_field: DeclarationId,
     },
 }
 
@@ -287,7 +318,7 @@ impl CleanupPlan {
     /// and reject it before any semantic consumer runs.
     pub(crate) fn unresolved() -> Self {
         Self {
-            schema: CLEANUP_PLAN_SCHEMA_V1,
+            schema: CLEANUP_PLAN_SCHEMA_V2,
             entry: BlockId(0),
             entry_state: CleanupEntryState {
                 live_owned_parameters: Vec::new(),

@@ -1321,6 +1321,16 @@ fn check_ownership_mode(
     }
 }
 
+fn ordinary_result_arguments(ty: &Type) -> Option<(&Type, &Type)> {
+    let Type::Named { name, arguments } = ty else {
+        return None;
+    };
+    if name != "Result" || arguments.len() != 2 {
+        return None;
+    }
+    Some((&arguments[0], &arguments[1]))
+}
+
 #[allow(clippy::too_many_arguments)]
 fn check_expr(
     program: &Program,
@@ -2019,6 +2029,76 @@ fn check_expr(
                 merge_moved(variables, &joined, &outer_names);
             }
             result
+        }
+        ExprKind::Try { operand } => {
+            let operand = check_expr(
+                program,
+                current,
+                operand,
+                variables,
+                functions,
+                types,
+                result_type,
+                allow_moves,
+                diagnostics,
+            );
+            let operand = operand?;
+            if !allow_moves {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T218",
+                    "`?` is only valid in an executable function body",
+                    expr.span,
+                ));
+            }
+            if variables
+                .values()
+                .any(|binding| types.contains_resource(&binding.ty))
+            {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T218",
+                    "`?` with a live resource binding is not supported yet",
+                    expr.span,
+                ));
+            }
+            let Some((ok, error_ty)) = ordinary_result_arguments(&operand.ty) else {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T218",
+                    format!(
+                        "`?` operand must be the ordinary compiler-owned Result, received {}",
+                        operand.ty
+                    ),
+                    expr.span,
+                ));
+                return None;
+            };
+            let Some((_, residual_error_ty)) =
+                ordinary_result_arguments(&current.return_type)
+            else {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T218",
+                    format!(
+                        "function `{}` must return the ordinary compiler-owned Result to use `?`",
+                        current.name
+                    ),
+                    expr.span,
+                ));
+                return Some(CheckedValue::value(ok.clone()));
+            };
+            if error_ty != residual_error_ty {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T219",
+                    format!(
+                        "`?` cannot propagate error type {error_ty} into Result error type {residual_error_ty}"
+                    ),
+                    expr.span,
+                ));
+            }
+            Some(CheckedValue::value(ok.clone()))
         }
         ExprKind::UpdateRecord { base, fields } => {
             let base_value = check_expr(

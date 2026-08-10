@@ -40,7 +40,7 @@ fn let_and_if_are_canonical_and_graph_visible() {
     assert!(canonical.contains("let answer = choose(true, 40);"));
     assert!(canonical.contains("if flag"));
     let graph = graph::to_json(&program).unwrap();
-    assert!(graph.contains("\"schema\":\"semaprax.graph.v9\""));
+    assert!(graph.contains("\"schema\":\"semaprax.graph.v10\""));
     assert!(graph.contains("\"kind\":\"let\""));
     assert!(graph.contains("\"kind\":\"if\""));
     assert!(graph.contains("\"expressions\":\"revision-scoped-structural\""));

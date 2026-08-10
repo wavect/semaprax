@@ -1576,6 +1576,7 @@ fn emit_function(
     contract_labels: &HashMap<ExpressionId, String>,
     variant_layouts: &VariantLayoutCache,
 ) -> Result<(), Diagnostic> {
+    let has_try = expression_has_try(&function.body);
     let metadata = functions
         .get(&function.id)
         .ok_or_else(|| backend_error(format!("function `{}` is not indexed", function.id)))?;
@@ -1623,8 +1624,12 @@ fn emit_function(
         variables,
         functions,
         variant_layouts,
+        &function.return_type,
     );
     emitter.line("spx_status_token spx_status = SPX_STATUS_SUCCESS;");
+    if has_try {
+        emitter.line("bool spx_result_staged = false;");
+    }
     emitter.line("(void)spx_ctx;");
     emitter.line(&format!(
         "{} spx_result = {{0}};",
@@ -1647,9 +1652,15 @@ fn emit_function(
         emitter.indent -= 1;
         emitter.line("}");
     }
+    emitter.try_target_enabled = true;
     let body = emitter.emit_expr(&function.body)?;
+    emitter.try_target_enabled = false;
     emitter.require_type(&body.ty, &function.return_type, "function body")?;
     emitter.line(&format!("spx_result = {};", body.code));
+    if has_try {
+        emitter.line("spx_result_staged = true;");
+        emitter.label("spx_postconditions");
+    }
 
     emitter.variables.insert(
         function.result_id.clone(),
@@ -1675,6 +1686,9 @@ fn emit_function(
     emitter.line("goto spx_epilogue;");
     drop(emitter);
     output.push_str("spx_epilogue:\n");
+    if has_try {
+        output.push_str("    if (spx_status == SPX_STATUS_SUCCESS && !spx_result_staged) spx_runtime_invariant_failure(\"unstaged function result\");\n");
+    }
     output.push_str("    if (spx_status != SPX_STATUS_SUCCESS) return spx_status;\n");
     output.push_str("    *spx_result_out = spx_result;\n");
     output.push_str("    return SPX_STATUS_SUCCESS;\n");
@@ -1689,6 +1703,45 @@ fn contract_label<'a>(
     labels
         .get(&expression.id)
         .map_or_else(|| expression.id.as_str(), String::as_str)
+}
+
+fn expression_has_try(expression: &ResolvedExpr) -> bool {
+    match &expression.kind {
+        ResolvedExprKind::Try { .. } => true,
+        ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_try),
+        ResolvedExprKind::Unary { value, .. } | ResolvedExprKind::Project { base: value, .. } => {
+            expression_has_try(value)
+        }
+        ResolvedExprKind::Binary { left, right, .. } => {
+            expression_has_try(left) || expression_has_try(right)
+        }
+        ResolvedExprKind::Block { statements, tail } => {
+            statements.iter().any(|statement| {
+                let ResolvedStatement::Let { value, .. } = statement;
+                expression_has_try(value)
+            }) || expression_has_try(tail)
+        }
+        ResolvedExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            expression_has_try(condition)
+                || expression_has_try(then_branch)
+                || expression_has_try(else_branch)
+        }
+        ResolvedExprKind::ConstructRecord { fields, .. }
+        | ResolvedExprKind::ConstructVariant { fields, .. } => {
+            fields.iter().any(|field| expression_has_try(&field.value))
+        }
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            expression_has_try(scrutinee) || arms.iter().any(|arm| expression_has_try(&arm.value))
+        }
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            expression_has_try(base) || fields.iter().any(|field| expression_has_try(&field.value))
+        }
+        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => false,
+    }
 }
 
 pub fn build(program: &Program, output: &Path) -> Result<(), Diagnostic> {
@@ -1814,6 +1867,8 @@ struct CEmitter<'a> {
     variables: HashMap<ValueId, CBinding>,
     functions: &'a HashMap<DeclarationId, CFunction>,
     variant_layouts: &'a VariantLayoutCache,
+    return_type: &'a ResolvedType,
+    try_target_enabled: bool,
     next_local: usize,
     indent: usize,
 }
@@ -1826,6 +1881,7 @@ impl<'a> CEmitter<'a> {
         variables: HashMap<ValueId, CBinding>,
         functions: &'a HashMap<DeclarationId, CFunction>,
         variant_layouts: &'a VariantLayoutCache,
+        return_type: &'a ResolvedType,
     ) -> Self {
         Self {
             output,
@@ -1834,6 +1890,8 @@ impl<'a> CEmitter<'a> {
             variables,
             functions,
             variant_layouts,
+            return_type,
+            try_target_enabled: false,
             next_local: 0,
             indent: 1,
         }
@@ -1844,6 +1902,10 @@ impl<'a> CEmitter<'a> {
             self.output.push_str("    ");
         }
         writeln!(self.output, "{value}").expect("writing to a string cannot fail");
+    }
+
+    fn label(&mut self, value: &str) {
+        writeln!(self.output, "{value}: ;").expect("writing to a string cannot fail");
     }
 
     fn temporary(&mut self, ty: &ResolvedType) -> Result<String, Diagnostic> {
@@ -2191,6 +2253,101 @@ impl<'a> CEmitter<'a> {
                 ));
                 CValue {
                     code: result,
+                    ty: expr.ty.clone(),
+                }
+            }
+            ResolvedExprKind::Try {
+                operand,
+                result,
+                ok_case,
+                ok_field,
+                err_case,
+                err_field,
+                residual_type,
+            } => {
+                if !self.try_target_enabled {
+                    return Err(backend_error(
+                        "copy-result propagation is allowed only in a function body",
+                    ));
+                }
+                self.require_type(
+                    residual_type,
+                    self.return_type,
+                    "copy-result residual target",
+                )?;
+                let operand_layout = self.variant_layout(&operand.ty)?;
+                let residual_layout = self.variant_layout(residual_type)?;
+                if operand_layout.variant != *result || residual_layout.variant != *result {
+                    return Err(backend_error(
+                        "copy-result propagation does not reference its resolved Result declaration",
+                    ));
+                }
+                let operand_ok = operand_layout
+                    .case(ok_case)
+                    .and_then(|case| case.field(ok_field).map(|field| (case, field)))
+                    .ok_or_else(|| {
+                        backend_error("copy-result propagation has no resolved Ok payload")
+                    })?;
+                let operand_err = operand_layout
+                    .case(err_case)
+                    .and_then(|case| case.field(err_field).map(|field| (case, field)))
+                    .ok_or_else(|| {
+                        backend_error("copy-result propagation has no resolved Err payload")
+                    })?;
+                let residual_err = residual_layout
+                    .case(err_case)
+                    .and_then(|case| case.field(err_field).map(|field| (case, field)))
+                    .ok_or_else(|| {
+                        backend_error("copy-result residual has no resolved Err payload")
+                    })?;
+                self.require_type(&operand_ok.1.ty, &expr.ty, "copy-result Ok payload")?;
+                self.require_type(
+                    &operand_err.1.ty,
+                    &residual_err.1.ty,
+                    "copy-result Err payload",
+                )?;
+
+                let operand_value = self.emit_expr(operand)?;
+                self.require_type(&operand_value.ty, &operand.ty, "copy-result operand")?;
+                let operand_stage = self.temporary(&operand.ty)?;
+                self.line(&format!("{operand_stage} = {};", operand_value.code));
+                self.line(&format!(
+                    "if ({operand_stage}.spx_tag >= UINT32_C({})) spx_runtime_invariant_failure(\"invalid variant tag\");",
+                    operand_layout.cases.len()
+                ));
+                self.line(&format!(
+                    "if ({operand_stage}.spx_tag == UINT32_C({})) {{",
+                    operand_err.0.tag
+                ));
+                self.indent += 1;
+                self.line("memset(&spx_result, 0, sizeof(spx_result));");
+                self.line(&format!(
+                    "spx_result.spx_payload.{}.{} = {operand_stage}.spx_payload.{}.{};",
+                    c_case_symbol(err_case),
+                    c_field_symbol(err_field),
+                    c_case_symbol(err_case),
+                    c_field_symbol(err_field),
+                ));
+                self.line(&format!(
+                    "spx_result.spx_tag = UINT32_C({});",
+                    residual_err.0.tag
+                ));
+                self.line("spx_result_staged = true;");
+                self.line("goto spx_postconditions;");
+                self.indent -= 1;
+                self.line("}");
+                self.line(&format!(
+                    "if ({operand_stage}.spx_tag != UINT32_C({})) spx_runtime_invariant_failure(\"invalid Result tag\");",
+                    operand_ok.0.tag
+                ));
+                let output = self.temporary(&expr.ty)?;
+                self.line(&format!(
+                    "{output} = {operand_stage}.spx_payload.{}.{};",
+                    c_case_symbol(ok_case),
+                    c_field_symbol(ok_field),
+                ));
+                CValue {
+                    code: output,
                     ty: expr.ty.clone(),
                 }
             }

@@ -30,7 +30,7 @@ fn offline_corpus_is_deterministic_and_matches_exact_economics_golden() {
     ));
     assert!(first.contains("\"labels\":{\"relevant_ids\":["));
     assert!(first.contains("\"evidence_ids\":["));
-    assert!(first.contains("\"to_source_bytes\":\"1943/616\""));
+    assert!(first.contains("\"to_source_bytes\":\"243/77\""));
     assert!(first.contains("\"evidence_recall\":{\"hits\":4,\"expected\":6,\"ratio\":\"2/3\"}"));
     assert_node_json(&first);
 

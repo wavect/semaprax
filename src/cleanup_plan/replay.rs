@@ -11,15 +11,17 @@ use crate::ast::{BinaryOp, UnaryOp};
 use crate::cleanup::{CleanupStorageOrigin, FieldLiveness, FieldLivenessShape, LivenessFlagId};
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
-    DeclarationId, ExpressionId, OwnershipMode, PlaceProjection, ResolvedExpr, ResolvedExprKind,
-    ResolvedFunction, ResolvedMatchArm, ResolvedMatchPattern, ResolvedProgram, ResolvedStatement,
-    ResolvedType, ResolvedTypeDeclarationKind,
+    DeclarationId, ExpressionId, IdentityOrigin, OwnershipMode, PlaceProjection, ResolvedExpr,
+    ResolvedExprKind, ResolvedFunction, ResolvedMatchArm, ResolvedMatchPattern, ResolvedProgram,
+    ResolvedStatement, ResolvedType, ResolvedTypeDeclarationKind,
 };
+use crate::prelude;
 
 use super::{
     BlockId, CleanupPlace, CleanupRegionId, CleanupResultSource, CleanupTerminator,
-    CleanupTransition, EdgeCondition, EdgeId, ExitContinuation, ExitTarget, StatusCase, StatusLane,
-    StatusProducer, StatusSource, StatusSourceId, StorageId, CLEANUP_PLAN_SCHEMA_V1,
+    CleanupTransition, EdgeCondition, EdgeId, ExitContinuation, ExitTarget, StagedCopyResultSource,
+    StatusCase, StatusLane, StatusProducer, StatusSource, StatusSourceId, StorageId,
+    CLEANUP_PLAN_SCHEMA_V2,
 };
 
 const MAX_REPLAY_PATHS: usize = 65_536;
@@ -69,6 +71,7 @@ struct PathState {
     live_order: Vec<LivenessFlagId>,
     pending_failure: Option<StatusSourceId>,
     selected_failure: Option<StatusSourceId>,
+    staged_copy_result: Option<StagedCopyResultSource>,
     published: bool,
 }
 
@@ -100,6 +103,7 @@ enum SkeletonObservation {
         source: StatusSourceId,
         success: bool,
     },
+    StageCopyResult(StagedCopyResultSource),
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -119,6 +123,7 @@ struct ExprSkeletonPath {
     observations: Vec<SkeletonObservation>,
     owned_source: Option<CleanupPlace>,
     failed: bool,
+    residual: bool,
 }
 
 /// Validate the structure of the cleanup plan attached to `function` without
@@ -146,7 +151,7 @@ fn validate_structure_with_budget(
     budget: &mut ReplayBudget,
 ) -> Result<(), Diagnostic> {
     let plan = &function.cleanup_plan;
-    if plan.schema != CLEANUP_PLAN_SCHEMA_V1 {
+    if plan.schema != CLEANUP_PLAN_SCHEMA_V2 {
         return Err(replay_error(
             function,
             "uses an unknown cleanup-plan schema",
@@ -290,6 +295,9 @@ fn expression_boolean_splits(expression: &ResolvedExpr) -> usize {
             fields.iter().fold(0_usize, |total, field| {
                 total.saturating_add(expression_boolean_splits(&field.value))
             })
+        }
+        ResolvedExprKind::Try { operand, .. } => {
+            expression_boolean_splits(operand).saturating_add(1)
         }
         ResolvedExprKind::Match { scrutinee, arms } => arms.iter().fold(
             expression_boolean_splits(scrutinee).saturating_add(arms.len().saturating_sub(1)),
@@ -513,6 +521,9 @@ fn collect_supplemental_slots(
             for field in fields {
                 collect_supplemental_slots(program, function, &field.value, next_flag, slots)?;
             }
+        }
+        ResolvedExprKind::Try { operand, .. } => {
+            collect_supplemental_slots(program, function, operand, next_flag, slots)?;
         }
         ResolvedExprKind::Match { scrutinee, arms } => {
             collect_supplemental_slots(program, function, scrutinee, next_flag, slots)?;
@@ -749,6 +760,9 @@ fn collect_expression_statuses(
             for field in fields {
                 collect_expression_statuses(program, function, &field.value, statuses)?;
             }
+        }
+        ResolvedExprKind::Try { operand, .. } => {
+            collect_expression_statuses(program, function, operand, statuses)?;
         }
         ResolvedExprKind::Match { scrutinee, arms } => {
             collect_expression_statuses(program, function, scrutinee, statuses)?;
@@ -1205,6 +1219,27 @@ fn validate_blocks_and_edges(
                         ));
                     }
                 }
+                CleanupTransition::StageCopyResult { source } => {
+                    validate_staged_target(function, source)?;
+                    match source {
+                        StagedCopyResultSource::Body { expression, .. } => {
+                            if expression != &function.body.id {
+                                return Err(replay_error(
+                                    function,
+                                    "body Copy-result stage names another expression",
+                                ));
+                            }
+                        }
+                        StagedCopyResultSource::TryResidual {
+                            expression,
+                            operand,
+                            ..
+                        } => {
+                            require_expression(function, expressions, expression)?;
+                            require_expression(function, expressions, operand)?;
+                        }
+                    }
+                }
             }
         }
         match &block.terminator {
@@ -1507,6 +1542,28 @@ fn hir_skeleton_paths(
         paths = split_contract(paths, contract);
     }
     paths = sequence_expression(program, function, paths, &function.body)?;
+    if paths.iter().any(|path| path.residual) {
+        if !function.cleanup_plan.slots.is_empty() {
+            return Err(replay_error(
+                function,
+                "postfix `?` cleanup skeleton contains resource slots",
+            ));
+        }
+        for path in &mut paths {
+            if path.failed {
+                continue;
+            }
+            if !path.residual {
+                path.observations.push(SkeletonObservation::StageCopyResult(
+                    StagedCopyResultSource::Body {
+                        expression: function.body.id.clone(),
+                        instance: function.return_type.clone(),
+                    },
+                ));
+            }
+            path.residual = false;
+        }
+    }
     if type_needs_drop(program, function, &function.return_type)? {
         paths = transfer_completed_paths(
             function,
@@ -1541,6 +1598,7 @@ fn empty_expr_path() -> ExprSkeletonPath {
         observations: Vec::new(),
         owned_source: None,
         failed: false,
+        residual: false,
     }
 }
 
@@ -1553,7 +1611,7 @@ fn sequence_expression(
     let suffixes = expression_skeleton(program, function, expression)?;
     let mut combined = Vec::new();
     for prefix in prefixes {
-        if prefix.failed {
+        if prefix.failed || prefix.residual {
             combined.push(prefix);
             continue;
         }
@@ -1564,6 +1622,7 @@ fn sequence_expression(
                 observations,
                 owned_source: suffix.owned_source.clone(),
                 failed: suffix.failed,
+                residual: suffix.residual,
             });
         }
     }
@@ -1589,6 +1648,7 @@ fn expression_skeleton(
                 observations: Vec::new(),
                 owned_source,
                 failed: false,
+                residual: false,
             }])
         }
         ResolvedExprKind::Call { callee, args } => {
@@ -1686,6 +1746,58 @@ fn expression_skeleton(
             }
             Ok(paths)
         }
+        ResolvedExprKind::Try {
+            operand,
+            result,
+            ok_case,
+            ok_field,
+            err_case,
+            err_field,
+            residual_type,
+        } => {
+            let source = authenticated_try_stage_source(
+                program,
+                function,
+                expression,
+                operand,
+                result,
+                ok_case,
+                ok_field,
+                err_case,
+                err_field,
+                residual_type,
+            )?;
+            let operand_paths = expression_skeleton(program, function, operand)?;
+            let mut paths = Vec::with_capacity(operand_paths.len().saturating_mul(2));
+            for path in operand_paths {
+                if path.failed || path.residual {
+                    paths.push(path);
+                    continue;
+                }
+                let mut success = path.clone();
+                success.observations.push(SkeletonObservation::VariantCase {
+                    scrutinee: operand.id.clone(),
+                    case: ok_case.clone(),
+                    matches: true,
+                });
+                paths.push(success);
+
+                let mut residual = path;
+                residual
+                    .observations
+                    .push(SkeletonObservation::VariantCase {
+                        scrutinee: operand.id.clone(),
+                        case: ok_case.clone(),
+                        matches: false,
+                    });
+                residual
+                    .observations
+                    .push(SkeletonObservation::StageCopyResult(source.clone()));
+                residual.residual = true;
+                paths.push(residual);
+            }
+            Ok(paths)
+        }
         ResolvedExprKind::Match { scrutinee, arms } => {
             match_skeleton(program, function, expression, scrutinee, arms)
         }
@@ -1721,7 +1833,7 @@ fn expression_skeleton(
                 }
             }
             for path in &mut paths {
-                if !path.failed {
+                if !path.failed && !path.residual {
                     path.owned_source = Some(destination.clone());
                 }
             }
@@ -1744,7 +1856,7 @@ fn expression_skeleton(
 
             let staged_base = temporary_place(base);
             for path in &mut paths {
-                if path.failed {
+                if path.failed || path.residual {
                     continue;
                 }
                 let source = path.owned_source.take().ok_or_else(|| {
@@ -1799,7 +1911,7 @@ fn expression_skeleton(
                     continue;
                 }
                 for path in &mut paths {
-                    if path.failed {
+                    if path.failed || path.residual {
                         continue;
                     }
                     let mut source = staged_base.clone();
@@ -1814,7 +1926,7 @@ fn expression_skeleton(
                 }
             }
             for path in &mut paths {
-                if !path.failed {
+                if !path.failed && !path.residual {
                     path.owned_source = Some(destination.clone());
                 }
             }
@@ -1826,7 +1938,7 @@ fn expression_skeleton(
                 && type_needs_drop(program, function, &expression.ty)?
             {
                 for path in &mut paths {
-                    if path.failed {
+                    if path.failed || path.residual {
                         continue;
                     }
                     let mut source = path.owned_source.take().ok_or_else(|| {
@@ -1845,6 +1957,103 @@ fn expression_skeleton(
             Ok(paths)
         }
     }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn authenticated_try_stage_source(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    expression: &ResolvedExpr,
+    operand: &ResolvedExpr,
+    result: &DeclarationId,
+    ok_case: &DeclarationId,
+    ok_field: &DeclarationId,
+    err_case: &DeclarationId,
+    err_field: &DeclarationId,
+    residual_type: &ResolvedType,
+) -> Result<StagedCopyResultSource, Diagnostic> {
+    if result.as_str() != prelude::RESULT_ID
+        || ok_case.as_str() != prelude::RESULT_OK_ID
+        || ok_field.as_str() != prelude::RESULT_OK_VALUE_ID
+        || err_case.as_str() != prelude::RESULT_ERR_ID
+        || err_field.as_str() != prelude::RESULT_ERR_ERROR_ID
+    {
+        return Err(replay_error(
+            function,
+            "postfix `?` does not authenticate the ordinary Result prelude",
+        ));
+    }
+    for id in [result, ok_case, ok_field, err_case, err_field] {
+        let declaration = program.declarations.declaration(id).ok_or_else(|| {
+            replay_error(function, format!("postfix `?` references unknown `{id}`"))
+        })?;
+        if declaration.identity_origin != IdentityOrigin::CompilerOwned {
+            return Err(replay_error(
+                function,
+                format!("postfix `?` reference `{id}` is not compiler-owned"),
+            ));
+        }
+    }
+    let source_arguments = replay_result_arguments(function, &operand.ty, result)?;
+    let target_arguments = replay_result_arguments(function, residual_type, result)?;
+    if source_arguments.len() != 2
+        || target_arguments.len() != 2
+        || source_arguments
+            .iter()
+            .chain(target_arguments.iter())
+            .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
+        || expression.ty != source_arguments[0]
+        || source_arguments[1] != target_arguments[1]
+        || residual_type != &function.return_type
+    {
+        return Err(replay_error(
+            function,
+            "postfix `?` source, value, residual, or function type is inconsistent",
+        ));
+    }
+    for ty in [&operand.ty, residual_type] {
+        let facts = program.declarations.type_facts(ty).ok_or_else(|| {
+            replay_error(function, "postfix `?` Result instance has no type facts")
+        })?;
+        if !facts.copy || !facts.sized || facts.contains_resource || facts.needs_drop {
+            return Err(replay_error(
+                function,
+                "postfix `?` is outside the Copy Result cleanup slice",
+            ));
+        }
+    }
+    Ok(StagedCopyResultSource::TryResidual {
+        expression: expression.id.clone(),
+        operand: operand.id.clone(),
+        source_instance: operand.ty.clone(),
+        target_instance: residual_type.clone(),
+        result: result.clone(),
+        ok_case: ok_case.clone(),
+        ok_field: ok_field.clone(),
+        err_case: err_case.clone(),
+        err_field: err_field.clone(),
+    })
+}
+
+fn replay_result_arguments<'a>(
+    function: &ResolvedFunction,
+    ty: &'a ResolvedType,
+    result: &DeclarationId,
+) -> Result<&'a [ResolvedType], Diagnostic> {
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = ty
+    else {
+        return Err(replay_error(function, "postfix `?` type is not nominal"));
+    };
+    if declaration != result {
+        return Err(replay_error(
+            function,
+            "postfix `?` type is not the authenticated Result",
+        ));
+    }
+    Ok(arguments)
 }
 
 fn match_skeleton(
@@ -1873,7 +2082,7 @@ fn match_skeleton(
     let scrutinee_paths = expression_skeleton(program, function, scrutinee)?;
     let mut results = Vec::new();
     for mut path in scrutinee_paths {
-        if path.failed {
+        if path.failed || path.residual {
             results.push(path);
             continue;
         }
@@ -1929,7 +2138,7 @@ fn call_skeleton(
         let suffixes = expression_skeleton(program, function, argument)?;
         let mut next = Vec::new();
         for (prefix, commits) in states {
-            if prefix.failed {
+            if prefix.failed || prefix.residual {
                 next.push((prefix, commits));
                 continue;
             }
@@ -1940,9 +2149,11 @@ fn call_skeleton(
                     observations,
                     owned_source: suffix.owned_source.clone(),
                     failed: suffix.failed,
+                    residual: suffix.residual,
                 };
                 let mut path_commits = commits.clone();
                 if !path.failed
+                    && !path.residual
                     && parameter.ownership == OwnershipMode::Own
                     && type_needs_drop(program, function, &parameter.ty)?
                 {
@@ -1978,7 +2189,7 @@ fn call_skeleton(
     };
     let mut results = Vec::new();
     for (mut path, commits) in states {
-        if path.failed {
+        if path.failed || path.residual {
             results.push(path);
             continue;
         }
@@ -2032,7 +2243,7 @@ fn lazy_skeleton(
     let left_paths = expression_skeleton(program, function, &left)?;
     let mut results = Vec::new();
     for path in left_paths {
-        if path.failed {
+        if path.failed || path.residual {
             results.push(path);
             continue;
         }
@@ -2074,7 +2285,7 @@ fn if_skeleton(
     let condition_paths = expression_skeleton(program, function, condition)?;
     let mut results = Vec::new();
     for path in condition_paths {
-        if path.failed {
+        if path.failed || path.residual {
             results.push(path);
             continue;
         }
@@ -2110,7 +2321,7 @@ fn split_status_paths(
 ) -> Vec<ExprSkeletonPath> {
     let mut results = Vec::new();
     for mut path in paths {
-        if path.failed {
+        if path.failed || path.residual {
             results.push(path);
             continue;
         }
@@ -2135,7 +2346,7 @@ fn split_status_paths(
 fn split_contract(paths: Vec<ExprSkeletonPath>, contract: &ResolvedExpr) -> Vec<ExprSkeletonPath> {
     let mut results = Vec::new();
     for mut path in paths {
-        if path.failed {
+        if path.failed || path.residual {
             results.push(path);
             continue;
         }
@@ -2165,7 +2376,7 @@ fn transfer_completed_paths(
     description: &str,
 ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
     for path in &mut paths {
-        if path.failed {
+        if path.failed || path.residual {
             continue;
         }
         let source = path.owned_source.take().ok_or_else(|| {
@@ -2256,6 +2467,9 @@ fn plan_skeleton_paths(
                     });
                 }
                 CleanupTransition::SelectFailure { .. } => {}
+                CleanupTransition::StageCopyResult { source } => {
+                    observations.push(SkeletonObservation::StageCopyResult(source.clone()))
+                }
             }
         }
         match &block.terminator {
@@ -2343,6 +2557,7 @@ fn validate_path_states(
         live_order: Vec::new(),
         pending_failure: None,
         selected_failure: None,
+        staged_copy_result: None,
         published: false,
     };
     for place in &plan.entry_state.live_owned_parameters {
@@ -2525,6 +2740,21 @@ fn execute_replay_transition(
             }
             state.pending_failure = None;
             state.selected_failure = Some(source.clone());
+        }
+        CleanupTransition::StageCopyResult { source } => {
+            if state.staged_copy_result.is_some() {
+                return Err(replay_error(
+                    function,
+                    "Copy aggregate result is staged more than once on one path",
+                ));
+            }
+            if !state.live_order.is_empty() {
+                return Err(replay_error(
+                    function,
+                    "Copy aggregate result staging carries resource liveness",
+                ));
+            }
+            state.staged_copy_result = Some(source.clone());
         }
     }
     Ok(())
@@ -2803,6 +3033,20 @@ fn replay_exit(
                             "scalar result commits before non-result cleanup completes",
                         ));
                     }
+                    if expression_has_try(&function.body) {
+                        let staged = state.staged_copy_result.take().ok_or_else(|| {
+                            replay_error(
+                                function,
+                                "Copy Result commit has no authenticated staged producer",
+                            )
+                        })?;
+                        validate_staged_target(function, &staged)?;
+                    } else if state.staged_copy_result.is_some() {
+                        return Err(replay_error(
+                            function,
+                            "non-try scalar result carries a staged Copy aggregate",
+                        ));
+                    }
                 }
                 CleanupResultSource::Owned { storage: result } => {
                     let result_flags = validate_place(function, result, storage, leaves)?;
@@ -2860,6 +3104,75 @@ fn require_normal_flow_state(
                 block.0
             ),
         ))
+    }
+}
+
+fn validate_staged_target(
+    function: &ResolvedFunction,
+    source: &StagedCopyResultSource,
+) -> Result<(), Diagnostic> {
+    let target = match source {
+        StagedCopyResultSource::Body {
+            expression,
+            instance,
+        } => {
+            if expression != &function.body.id {
+                return Err(replay_error(
+                    function,
+                    "body result staging references another expression",
+                ));
+            }
+            instance
+        }
+        StagedCopyResultSource::TryResidual {
+            target_instance, ..
+        } => target_instance,
+    };
+    if target != &function.return_type {
+        return Err(replay_error(
+            function,
+            "staged Copy result targets another concrete function result",
+        ));
+    }
+    Ok(())
+}
+
+fn expression_has_try(expression: &ResolvedExpr) -> bool {
+    match &expression.kind {
+        ResolvedExprKind::Try { .. } => true,
+        ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_try),
+        ResolvedExprKind::Unary { value, .. } | ResolvedExprKind::Project { base: value, .. } => {
+            expression_has_try(value)
+        }
+        ResolvedExprKind::Binary { left, right, .. } => {
+            expression_has_try(left) || expression_has_try(right)
+        }
+        ResolvedExprKind::Block { statements, tail } => {
+            statements.iter().any(|statement| {
+                let ResolvedStatement::Let { value, .. } = statement;
+                expression_has_try(value)
+            }) || expression_has_try(tail)
+        }
+        ResolvedExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            expression_has_try(condition)
+                || expression_has_try(then_branch)
+                || expression_has_try(else_branch)
+        }
+        ResolvedExprKind::ConstructRecord { fields, .. }
+        | ResolvedExprKind::ConstructVariant { fields, .. } => {
+            fields.iter().any(|field| expression_has_try(&field.value))
+        }
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            expression_has_try(scrutinee) || arms.iter().any(|arm| expression_has_try(&arm.value))
+        }
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            expression_has_try(base) || fields.iter().any(|field| expression_has_try(&field.value))
+        }
+        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => false,
     }
 }
 
@@ -3238,6 +3551,9 @@ fn collect_expression_facts(
                 collect_expression_facts(function, &field.value, facts)?;
             }
         }
+        ResolvedExprKind::Try { operand, .. } => {
+            collect_expression_facts(function, operand, facts)?;
+        }
         ResolvedExprKind::Match { scrutinee, arms } => {
             collect_expression_facts(function, scrutinee, facts)?;
             for arm in arms {
@@ -3446,6 +3762,20 @@ fn from_call(input: i64, zero: i64) -> i64 {
 fn main() -> i64 { 0 }
 "#;
 
+    const TRY_SOURCE: &str = r#"module test.replay_try;
+
+@id("result.forward")
+fn forward(value: Result<i64, bool>) -> Result<bool, bool>
+    ensures true
+{
+    let number = value?;
+    Result<bool, bool>::Ok { value: true }
+}
+
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+
     fn program() -> ResolvedProgram {
         let parsed = parse(SOURCE, Path::new("cleanup-replay-paths.spx")).unwrap();
         hir::resolve(&parsed).unwrap()
@@ -3458,6 +3788,11 @@ fn main() -> i64 { 0 }
             .find(|function| function.id.as_str() == id)
             .cloned()
             .unwrap()
+    }
+
+    fn try_program() -> ResolvedProgram {
+        let parsed = parse(TRY_SOURCE, Path::new("cleanup-replay-try.spx")).unwrap();
+        hir::resolve(&parsed).unwrap()
     }
 
     fn update_expression(function: &ResolvedFunction) -> &ResolvedExpr {
@@ -4236,7 +4571,9 @@ fn main() -> i64 { 0 }
             CleanupTransition::Initialize { at, .. } | CleanupTransition::Transfer { at, .. } => {
                 *at = substitute
             }
-            CleanupTransition::CallCommit { .. } | CleanupTransition::SelectFailure { .. } => {
+            CleanupTransition::CallCommit { .. }
+            | CleanupTransition::SelectFailure { .. }
+            | CleanupTransition::StageCopyResult { .. } => {
                 unreachable!()
             }
         }
@@ -4245,5 +4582,203 @@ fn main() -> i64 { 0 }
         assert!(diagnostic
             .message
             .contains("decision or ownership-event sequence disagrees with typed HIR"));
+    }
+
+    #[test]
+    fn try_replay_authenticates_complementary_result_cases_and_exact_staging() {
+        let program = try_program();
+        let function = function(&program, "result.forward");
+        validate_structure(&program, &function).unwrap();
+        assert_eq!(function.cleanup_plan.schema, CLEANUP_PLAN_SCHEMA_V2);
+        assert!(function
+            .cleanup_plan
+            .status_sources
+            .iter()
+            .all(|source| source.id.lane == StatusLane::ContractFalse));
+
+        let stages = function
+            .cleanup_plan
+            .blocks
+            .iter()
+            .flat_map(|block| &block.transitions)
+            .filter_map(|transition| match transition {
+                CleanupTransition::StageCopyResult { source } => Some(source),
+                CleanupTransition::Initialize { .. }
+                | CleanupTransition::Transfer { .. }
+                | CleanupTransition::CallCommit { .. }
+                | CleanupTransition::SelectFailure { .. } => None,
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(stages.len(), 2);
+        let residual = stages
+            .iter()
+            .find_map(|source| match source {
+                StagedCopyResultSource::TryResidual { .. } => Some((*source).clone()),
+                StagedCopyResultSource::Body { .. } => None,
+            })
+            .unwrap();
+        let StagedCopyResultSource::TryResidual {
+            operand,
+            source_instance,
+            target_instance,
+            ok_case,
+            ..
+        } = &residual
+        else {
+            unreachable!()
+        };
+        assert_ne!(source_instance, target_instance);
+        let decisions = function
+            .cleanup_plan
+            .edges
+            .iter()
+            .filter_map(|edge| match &edge.condition {
+                EdgeCondition::VariantCase {
+                    scrutinee,
+                    case,
+                    matches,
+                } if scrutinee == operand && case == ok_case => Some(*matches),
+                _ => None,
+            })
+            .collect::<BTreeSet<_>>();
+        assert_eq!(decisions, BTreeSet::from([false, true]));
+
+        let mut wrong_instance = function.clone();
+        for transition in wrong_instance
+            .cleanup_plan
+            .blocks
+            .iter_mut()
+            .flat_map(|block| &mut block.transitions)
+        {
+            if let CleanupTransition::StageCopyResult {
+                source:
+                    StagedCopyResultSource::TryResidual {
+                        source_instance,
+                        target_instance,
+                        ..
+                    },
+            } = transition
+            {
+                *target_instance = source_instance.clone();
+            }
+        }
+        assert!(validate_structure(&program, &wrong_instance).is_err());
+
+        let mut wrong_operand = function.clone();
+        for transition in wrong_operand
+            .cleanup_plan
+            .blocks
+            .iter_mut()
+            .flat_map(|block| &mut block.transitions)
+        {
+            if let CleanupTransition::StageCopyResult {
+                source: StagedCopyResultSource::TryResidual { operand, .. },
+            } = transition
+            {
+                *operand = function.body.id.clone();
+            }
+        }
+        assert!(validate_structure(&program, &wrong_operand).is_err());
+
+        let mut deleted = function.clone();
+        for block in &mut deleted.cleanup_plan.blocks {
+            block.transitions.retain(|transition| {
+                !matches!(
+                    transition,
+                    CleanupTransition::StageCopyResult {
+                        source: StagedCopyResultSource::TryResidual { .. }
+                    }
+                )
+            });
+        }
+        assert!(validate_structure(&program, &deleted).is_err());
+
+        for mutation in 0..7 {
+            let mut hostile = function.clone();
+            let source = hostile
+                .cleanup_plan
+                .blocks
+                .iter_mut()
+                .flat_map(|block| &mut block.transitions)
+                .find_map(|transition| match transition {
+                    CleanupTransition::StageCopyResult {
+                        source: source @ StagedCopyResultSource::TryResidual { .. },
+                    } => Some(source),
+                    _ => None,
+                })
+                .unwrap();
+            let StagedCopyResultSource::TryResidual {
+                expression,
+                source_instance,
+                target_instance,
+                result,
+                ok_case,
+                ok_field,
+                err_case,
+                err_field,
+                ..
+            } = source
+            else {
+                unreachable!()
+            };
+            match mutation {
+                0 => *source_instance = target_instance.clone(),
+                1 => *expression = function.body.id.clone(),
+                2 => *result = DeclarationId::new("hostile.result"),
+                3 => *ok_case = err_case.clone(),
+                4 => *ok_field = err_field.clone(),
+                5 => *err_case = ok_case.clone(),
+                6 => *err_field = ok_field.clone(),
+                _ => unreachable!(),
+            }
+            assert!(
+                validate_structure(&program, &hostile).is_err(),
+                "stage mutation {mutation} must fail closed"
+            );
+        }
+
+        let mut status_confusion = function.clone();
+        let residual_transition = status_confusion
+            .cleanup_plan
+            .blocks
+            .iter_mut()
+            .flat_map(|block| &mut block.transitions)
+            .find(|transition| {
+                matches!(
+                    transition,
+                    CleanupTransition::StageCopyResult {
+                        source: StagedCopyResultSource::TryResidual { .. }
+                    }
+                )
+            })
+            .unwrap();
+        *residual_transition = CleanupTransition::SelectFailure {
+            source: StatusSourceId {
+                expression: operand.clone(),
+                lane: StatusLane::OperationFailure,
+            },
+        };
+        assert!(validate_structure(&program, &status_confusion).is_err());
+
+        let mut duplicate = function.clone();
+        let residual_block = duplicate
+            .cleanup_plan
+            .blocks
+            .iter_mut()
+            .find(|block| {
+                block.transitions.iter().any(|transition| {
+                    matches!(
+                        transition,
+                        CleanupTransition::StageCopyResult {
+                            source: StagedCopyResultSource::TryResidual { .. }
+                        }
+                    )
+                })
+            })
+            .unwrap();
+        residual_block
+            .transitions
+            .push(CleanupTransition::StageCopyResult { source: residual });
+        assert!(validate_structure(&program, &duplicate).is_err());
     }
 }

@@ -533,7 +533,7 @@ fn module_abi_fingerprint(program: &ResolvedProgram, abi: &NativeResourceAbi) ->
     let mut hasher = Sha256::new();
     hasher.update(MODULE_ABI_FINGERPRINT_DOMAIN);
     hash_field(&mut hasher, crate::host_ownership::HOST_OWNERSHIP_SCHEMA_V1);
-    hash_field(&mut hasher, crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V1);
+    hash_field(&mut hasher, crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V2);
     hash_field(&mut hasher, &program.module);
     hasher.update((abi.resources.len() as u64).to_be_bytes());
     for resource in &abi.resources {

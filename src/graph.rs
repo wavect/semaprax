@@ -1,7 +1,7 @@
 //! Deterministic semantic graph serialization and bounded context queries.
 //!
 //! Human source supplies the revision. Resolved HIR supplies every semantic
-//! identity and fact in graph v9; spans and display names are metadata only.
+//! identity and fact in graph v10; spans and display names are metadata only.
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fmt::Write;
@@ -39,7 +39,7 @@ pub fn revision(program: &Program) -> String {
     format!("sha256:{:x}", hasher.finalize())
 }
 
-/// Resolve and serialize a parsed program as `semaprax.graph.v9`.
+/// Resolve and serialize a parsed program as `semaprax.graph.v10`.
 ///
 /// Resolution is deliberately part of this public boundary. Invalid source
 /// cannot be mistaken for a checked semantic graph by library callers.
@@ -118,7 +118,7 @@ impl AgentContextFilter {
         Self::ALL.into_iter().find(|filter| filter.name() == name)
     }
 
-    const fn supported_by_graph_v9(self) -> bool {
+    const fn supported_by_graph_v10(self) -> bool {
         matches!(
             self,
             Self::Contracts | Self::Ownership | Self::Effects | Self::Types
@@ -415,6 +415,8 @@ fn agent_function_json(
     filters: &BTreeSet<AgentContextFilter>,
 ) -> Result<String, Diagnostic> {
     let calls = agent_function_calls(program, function);
+    let mut propagations = Vec::new();
+    collect_result_propagations(&function.body, &mut propagations);
     let mut output = format!(
         "{{\"id\":{},\"kind\":\"function\",\"name\":{},\"calls\":{},\"reference_index\":{}",
         quote_json(function.id.as_str()),
@@ -427,6 +429,18 @@ fn agent_function_json(
         ),
         agent_reference_index_json(program, function)?
     );
+    if !propagations.is_empty() {
+        write!(
+            output,
+            ",\"result_propagations\":[{}]",
+            propagations
+                .into_iter()
+                .map(result_propagation_json)
+                .collect::<Vec<_>>()
+                .join(",")
+        )
+        .expect("writing to a string cannot fail");
+    }
     if filters.contains(&AgentContextFilter::Contracts) {
         write!(
             output,
@@ -495,6 +509,95 @@ fn agent_function_json(
     }
     output.push('}');
     Ok(output)
+}
+
+fn collect_result_propagations<'a>(
+    expression: &'a ResolvedExpr,
+    propagations: &mut Vec<&'a ResolvedExpr>,
+) {
+    match &expression.kind {
+        ResolvedExprKind::Try { operand, .. } => {
+            propagations.push(expression);
+            collect_result_propagations(operand, propagations);
+        }
+        ResolvedExprKind::Call { args, .. } => {
+            for argument in args {
+                collect_result_propagations(argument, propagations);
+            }
+        }
+        ResolvedExprKind::Unary { value, .. } | ResolvedExprKind::Project { base: value, .. } => {
+            collect_result_propagations(value, propagations);
+        }
+        ResolvedExprKind::Binary { left, right, .. } => {
+            collect_result_propagations(left, propagations);
+            collect_result_propagations(right, propagations);
+        }
+        ResolvedExprKind::Block { statements, tail } => {
+            for statement in statements {
+                let ResolvedStatement::Let { value, .. } = statement;
+                collect_result_propagations(value, propagations);
+            }
+            collect_result_propagations(tail, propagations);
+        }
+        ResolvedExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            collect_result_propagations(condition, propagations);
+            collect_result_propagations(then_branch, propagations);
+            collect_result_propagations(else_branch, propagations);
+        }
+        ResolvedExprKind::ConstructRecord { fields, .. }
+        | ResolvedExprKind::ConstructVariant { fields, .. } => {
+            for initializer in fields {
+                collect_result_propagations(&initializer.value, propagations);
+            }
+        }
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            collect_result_propagations(scrutinee, propagations);
+            for arm in arms {
+                collect_result_propagations(&arm.value, propagations);
+            }
+        }
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            collect_result_propagations(base, propagations);
+            for initializer in fields {
+                collect_result_propagations(&initializer.value, propagations);
+            }
+        }
+        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
+    }
+}
+
+fn result_propagation_json(expression: &ResolvedExpr) -> String {
+    let ResolvedExprKind::Try {
+        operand,
+        result,
+        ok_case,
+        ok_field,
+        err_case,
+        err_field,
+        residual_type,
+    } = &expression.kind
+    else {
+        unreachable!("result propagation collection returns only Try nodes");
+    };
+    format!(
+        "{{\"id\":{},\"kind\":\"try_result\",\"evaluation\":\"once\",\"operand\":{},\"source_result_type_id\":{},\"source_result_type\":{},\"result_type_id\":{},\"residual_result_type_id\":{},\"residual_result_type\":{},\"result\":{},\"ok_case\":{},\"ok_field\":{},\"err_case\":{},\"err_field\":{},\"err_exit\":\"normal_result\",\"epilogue\":\"shared_postconditions\"}}",
+        quote_json(expression.id.as_str()),
+        quote_json(operand.id.as_str()),
+        quote_json(&operand.ty.identity_key()),
+        type_json(&operand.ty),
+        quote_json(&expression.ty.identity_key()),
+        quote_json(&residual_type.identity_key()),
+        type_json(residual_type),
+        quote_json(result.as_str()),
+        quote_json(ok_case.as_str()),
+        quote_json(ok_field.as_str()),
+        quote_json(err_case.as_str()),
+        quote_json(err_field.as_str())
+    )
 }
 
 fn agent_reference_index_json(
@@ -575,6 +678,9 @@ fn collect_agent_contract_values(expression: &ResolvedExpr, values: &mut BTreeSe
                 }
                 collect_agent_contract_values(&arm.value, values);
             }
+        }
+        ResolvedExprKind::Try { operand, .. } => {
+            collect_agent_contract_values(operand, values);
         }
         ResolvedExprKind::UpdateRecord { base, fields, .. } => {
             collect_agent_contract_values(base, values);
@@ -687,6 +793,27 @@ fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnos
                 )))
                 .collect::<Result<Vec<_>, Diagnostic>>()?
                 .join(",")
+        ),
+        ResolvedExprKind::Try {
+            operand,
+            result,
+            ok_case,
+            ok_field,
+            err_case,
+            err_field,
+            residual_type,
+        } => format!(
+            "{{\"kind\":\"try_result\",\"evaluation\":\"once\",\"operand\":{},\"source_result_type_id\":{},\"source_result_type\":{},\"residual_result_type_id\":{},\"residual_result_type\":{},\"result\":{},\"ok_case\":{},\"ok_field\":{},\"err_case\":{},\"err_field\":{},\"err_exit\":\"normal_result\",\"epilogue\":\"shared_postconditions\"}}",
+            agent_contract_expr_json(operand)?,
+            quote_json(&operand.ty.identity_key()),
+            type_json(&operand.ty),
+            quote_json(&residual_type.identity_key()),
+            type_json(residual_type),
+            quote_json(result.as_str()),
+            quote_json(ok_case.as_str()),
+            quote_json(ok_field.as_str()),
+            quote_json(err_case.as_str()),
+            quote_json(err_field.as_str())
         ),
         ResolvedExprKind::UpdateRecord {
             base,
@@ -895,7 +1022,7 @@ fn render_agent_context(
     let unavailable_count = options
         .filters
         .iter()
-        .filter(|filter| !filter.supported_by_graph_v9())
+        .filter(|filter| !filter.supported_by_graph_v10())
         .count();
     if unavailable_count != 0 {
         reasons.insert("unavailable_filters");
@@ -913,14 +1040,14 @@ fn render_agent_context(
     let included = options
         .filters
         .iter()
-        .filter(|filter| filter.supported_by_graph_v9())
+        .filter(|filter| filter.supported_by_graph_v10())
         .map(|filter| quote_json(filter.name()))
         .collect::<Vec<_>>()
         .join(",");
     let unavailable = options
         .filters
         .iter()
-        .filter(|filter| !filter.supported_by_graph_v9())
+        .filter(|filter| !filter.supported_by_graph_v10())
         .map(|filter| quote_json(filter.name()))
         .collect::<Vec<_>>()
         .join(",");
@@ -961,7 +1088,7 @@ fn render_agent_context(
         .unwrap_or(0);
     let render = |used_bytes: usize| {
         format!(
-            "{{\"schema\":\"semaprax.agent-context.v1\",\"source_graph_schema\":\"semaprax.graph.v9\",\"revision\":{},\"prelude\":{{\"schema\":{},\"digest\":{}}},\"module\":{},\"root\":{},\"query\":{{\"depth\":{},\"max_bytes\":{},\"max_nodes\":{},\"filters\":[{}]}},\"filter_support\":{{\"included\":[{}],\"unavailable\":[{}]}},\"budget\":{{\"used_bytes\":{},\"used_nodes\":{},\"max_depth_used\":{}}},\"truncation\":{{\"truncated\":{},\"reasons\":[{}],\"omitted_known_nodes\":{},\"deferred_known_nodes\":{},\"omitted_fact_bytes\":{},\"unavailable_filter_count\":{}}},\"resume_contract\":{{\"depth\":\"query.depth\",\"max_nodes\":\"query.max_nodes\",\"filters\":\"query.filters\",\"max_bytes\":\"frontier.resume.min_bytes\"}},\"frontier\":[{}],\"facts\":[{}]}}",
+            "{{\"schema\":\"semaprax.agent-context.v1\",\"source_graph_schema\":\"semaprax.graph.v10\",\"revision\":{},\"prelude\":{{\"schema\":{},\"digest\":{}}},\"module\":{},\"root\":{},\"query\":{{\"depth\":{},\"max_bytes\":{},\"max_nodes\":{},\"filters\":[{}]}},\"filter_support\":{{\"included\":[{}],\"unavailable\":[{}]}},\"budget\":{{\"used_bytes\":{},\"used_nodes\":{},\"max_depth_used\":{}}},\"truncation\":{{\"truncated\":{},\"reasons\":[{}],\"omitted_known_nodes\":{},\"deferred_known_nodes\":{},\"omitted_fact_bytes\":{},\"unavailable_filter_count\":{}}},\"resume_contract\":{{\"depth\":\"query.depth\",\"max_nodes\":\"query.max_nodes\",\"filters\":\"query.filters\",\"max_bytes\":\"frontier.resume.min_bytes\"}},\"frontier\":[{}],\"facts\":[{}]}}",
             quote_json(source_revision),
             quote_json(prelude::SCHEMA_V1),
             quote_json(&prelude::digest_text_v1()),
@@ -1167,7 +1294,7 @@ fn graph_json(
     let mut output = String::new();
     write!(
         output,
-        "{{\"schema\":\"semaprax.graph.v9\",\"revision\":{},\"prelude\":{{\"schema\":{},\"digest\":{}}},\"view\":{},\"identity\":{{\"declarations\":\"explicit-persistent-or-automatic-unstable\",\"values\":\"revision-scoped-structural\",\"expressions\":\"revision-scoped-structural\",\"match_arms\":\"revision-scoped-structural\",\"patterns\":\"revision-scoped-structural\",\"type_parameters\":\"owner-and-index-stable\"}},\"module\":{},\"permits\":{},\"entrypoint\":{},\"type_facts\":[{}],\"nodes\":[",
+        "{{\"schema\":\"semaprax.graph.v10\",\"revision\":{},\"prelude\":{{\"schema\":{},\"digest\":{}}},\"view\":{},\"identity\":{{\"declarations\":\"explicit-persistent-or-automatic-unstable\",\"values\":\"revision-scoped-structural\",\"expressions\":\"revision-scoped-structural\",\"match_arms\":\"revision-scoped-structural\",\"patterns\":\"revision-scoped-structural\",\"type_parameters\":\"owner-and-index-stable\"}},\"module\":{},\"permits\":{},\"entrypoint\":{},\"type_facts\":[{}],\"nodes\":[",
         quote_json(source_revision),
         quote_json(prelude::SCHEMA_V1),
         quote_json(&prelude::digest_text_v1()),
@@ -1634,6 +1761,7 @@ fn visit_expr_calls(expression: &ResolvedExpr, visit: &mut impl FnMut(&Declarati
                 visit_expr_calls(&arm.value, visit);
             }
         }
+        ResolvedExprKind::Try { operand, .. } => visit_expr_calls(operand, visit),
         ResolvedExprKind::UpdateRecord { base, fields, .. } => {
             visit_expr_calls(base, visit);
             for initializer in fields {
@@ -1725,6 +1853,16 @@ fn collect_expr_type_declarations(
                 }
                 collect_expr_type_declarations(&arm.value, declarations);
             }
+        }
+        ResolvedExprKind::Try {
+            operand,
+            result,
+            residual_type,
+            ..
+        } => {
+            declarations.insert(result.clone());
+            collect_expr_type_declarations(operand, declarations);
+            collect_nominal_declarations(residual_type, declarations);
         }
         ResolvedExprKind::UpdateRecord {
             base,
@@ -1903,6 +2041,27 @@ fn expr_json(program: &ResolvedProgram, expression: &ResolvedExpr) -> Result<Str
                 })
                 .collect::<Result<Vec<_>, Diagnostic>>()?
                 .join(",")
+        ),
+        ResolvedExprKind::Try {
+            operand,
+            result,
+            ok_case,
+            ok_field,
+            err_case,
+            err_field,
+            residual_type,
+        } => format!(
+            "{{{header},\"kind\":\"try_result\",\"evaluation\":\"once\",\"operand\":{},\"source_result_type_id\":{},\"source_result_type\":{},\"residual_result_type_id\":{},\"residual_result_type\":{},\"result\":{},\"ok_case\":{},\"ok_field\":{},\"err_case\":{},\"err_field\":{},\"err_exit\":\"normal_result\",\"epilogue\":\"shared_postconditions\"}}",
+            expr_json(program, operand)?,
+            quote_json(&operand.ty.identity_key()),
+            type_json(&operand.ty),
+            quote_json(&residual_type.identity_key()),
+            type_json(residual_type),
+            quote_json(result.as_str()),
+            quote_json(ok_case.as_str()),
+            quote_json(ok_field.as_str()),
+            quote_json(err_case.as_str()),
+            quote_json(err_field.as_str())
         ),
         ResolvedExprKind::UpdateRecord {
             base,
@@ -2091,6 +2250,14 @@ fn collect_expr_types(expression: &ResolvedExpr, types: &mut BTreeMap<String, Re
                 }
                 collect_expr_types(&arm.value, types);
             }
+        }
+        ResolvedExprKind::Try {
+            operand,
+            residual_type,
+            ..
+        } => {
+            collect_expr_types(operand, types);
+            collect_type(residual_type, types);
         }
         ResolvedExprKind::UpdateRecord { base, fields, .. } => {
             collect_expr_types(base, types);

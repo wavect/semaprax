@@ -711,6 +711,17 @@ impl Parser {
                 };
                 continue;
             }
+            if self.at(&TokenKind::Question) {
+                let start = expression.span;
+                let end = self.bump().span;
+                expression = Expr {
+                    kind: ExprKind::Try {
+                        operand: Box::new(expression),
+                    },
+                    span: start.merge(end),
+                };
+                continue;
+            }
             break;
         }
         Ok(expression)

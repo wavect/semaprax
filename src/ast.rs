@@ -261,6 +261,9 @@ pub enum ExprKind {
         scrutinee: Box<Expr>,
         arms: Vec<MatchArm>,
     },
+    Try {
+        operand: Box<Expr>,
+    },
     UpdateRecord {
         base: Box<Expr>,
         fields: Vec<FieldInitializer>,
@@ -430,6 +433,7 @@ impl Expr {
                     arm.value.visit_calls(visit);
                 }
             }
+            ExprKind::Try { operand } => operand.visit_calls(visit),
             ExprKind::UpdateRecord { base, fields } => {
                 base.visit_calls(visit);
                 for field in fields {

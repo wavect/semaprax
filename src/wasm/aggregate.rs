@@ -85,6 +85,8 @@ struct FunctionPlan {
     old_stack: u32,
     frame_base: u32,
     status: u32,
+    result_staged: Option<u32>,
+    has_try: bool,
     result_out: u32,
     result_stage_scalar: Option<u32>,
     result_stage_aggregate: Option<u32>,
@@ -118,6 +120,8 @@ impl FunctionPlan {
         let old_stack = add_local(I32)?;
         let frame_base = add_local(I32)?;
         let status = add_local(I32)?;
+        let has_try = expression_has_try(&function.body);
+        let result_staged = if has_try { Some(add_local(I32)?) } else { None };
 
         let mut frame = FrameAllocator::default();
         let (result_stage_scalar, result_stage_aggregate) =
@@ -136,6 +140,8 @@ impl FunctionPlan {
             old_stack,
             frame_base,
             status,
+            result_staged,
+            has_try,
             result_out,
             result_stage_scalar,
             result_stage_aggregate,
@@ -234,6 +240,9 @@ impl FunctionPlan {
             }
             ResolvedExprKind::Unary { value, .. } => {
                 self.collect_expr(program, variant_layouts, value, parameter_count, frame)?;
+            }
+            ResolvedExprKind::Try { operand, .. } => {
+                self.collect_expr(program, variant_layouts, operand, parameter_count, frame)?;
             }
             ResolvedExprKind::Binary { left, right, .. } => {
                 self.collect_expr(program, variant_layouts, left, parameter_count, frame)?;
@@ -381,6 +390,45 @@ impl FunctionPlan {
                 offset,
             })
             .ok_or_else(|| error(format!("missing aggregate slot for `{}`", expr.id)))
+    }
+}
+
+fn expression_has_try(expression: &ResolvedExpr) -> bool {
+    match &expression.kind {
+        ResolvedExprKind::Try { .. } => true,
+        ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_try),
+        ResolvedExprKind::Unary { value, .. } | ResolvedExprKind::Project { base: value, .. } => {
+            expression_has_try(value)
+        }
+        ResolvedExprKind::Binary { left, right, .. } => {
+            expression_has_try(left) || expression_has_try(right)
+        }
+        ResolvedExprKind::Block { statements, tail } => {
+            statements.iter().any(|statement| {
+                let ResolvedStatement::Let { value, .. } = statement;
+                expression_has_try(value)
+            }) || expression_has_try(tail)
+        }
+        ResolvedExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            expression_has_try(condition)
+                || expression_has_try(then_branch)
+                || expression_has_try(else_branch)
+        }
+        ResolvedExprKind::ConstructRecord { fields, .. }
+        | ResolvedExprKind::ConstructVariant { fields, .. } => {
+            fields.iter().any(|field| expression_has_try(&field.value))
+        }
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            expression_has_try(scrutinee) || arms.iter().any(|arm| expression_has_try(&arm.value))
+        }
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            expression_has_try(base) || fields.iter().any(|field| expression_has_try(&field.value))
+        }
+        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => false,
     }
 }
 
@@ -776,6 +824,10 @@ fn emit_function(
     write_i64(&mut body, i64::from(STATUS_SUCCESS));
     body.push(0x21);
     write_u32(&mut body, plan.status);
+    if let Some(result_staged) = plan.result_staged {
+        body.extend([0x41, 0x00, 0x21]);
+        write_u32(&mut body, result_staged);
+    }
 
     let mut bindings = HashMap::new();
     for (index, param) in function.params.iter().enumerate() {
@@ -800,8 +852,11 @@ fn emit_function(
         variant_layouts,
         function_indexes,
         plan: &plan,
+        return_type: &function.return_type,
         bindings,
         control_depth: 0,
+        status_exit_extra_depth: 1,
+        try_target_enabled: false,
     };
     for contract in &function.requires {
         let condition = emitter.emit_expr(contract)?;
@@ -810,7 +865,13 @@ fn emit_function(
         emitter.output.push(0x45);
         emitter.fail_if(STATUS_REQUIRES_FALSE);
     }
+    if plan.has_try {
+        emitter.output.extend([0x02, 0x40]);
+        emitter.status_exit_extra_depth = 2;
+        emitter.try_target_enabled = true;
+    }
     let result = emitter.emit_expr(&function.body)?;
+    emitter.try_target_enabled = false;
     let staged = if let Some(local) = plan.result_stage_scalar {
         emitter.require_scalar(&result, &function.return_type, "function result")?;
         emitter.get_scalar(&result);
@@ -834,6 +895,15 @@ fn emit_function(
         emitter.copy_value(&staged, &result, "function result")?;
         staged
     };
+    if let Some(result_staged) = plan.result_staged {
+        emitter.output.extend([0x41, 0x01, 0x21]);
+        write_u32(emitter.output, result_staged);
+        emitter.output.push(0x0b);
+        emitter.status_exit_extra_depth = 1;
+        emitter.output.push(0x20);
+        write_u32(emitter.output, result_staged);
+        emitter.output.extend([0x45, 0x04, 0x40, 0x00, 0x0b]);
+    }
     emitter
         .bindings
         .insert(function.result_id.clone(), staged.clone());
@@ -892,8 +962,11 @@ struct Emitter<'a> {
     variant_layouts: &'a VariantLayoutCache,
     function_indexes: &'a HashMap<DeclarationId, u32>,
     plan: &'a FunctionPlan,
+    return_type: &'a ResolvedType,
     bindings: HashMap<ValueId, Value>,
     control_depth: u32,
+    status_exit_extra_depth: u32,
+    try_target_enabled: bool,
 }
 
 impl Emitter<'_> {
@@ -1103,6 +1176,146 @@ impl Emitter<'_> {
                     ty: expr.ty.clone(),
                 };
                 self.emit_match_arms(&destination, *pointer, &layout, arms, 0)?;
+                Ok(destination)
+            }
+            ResolvedExprKind::Try {
+                operand,
+                result,
+                ok_case,
+                ok_field,
+                err_case,
+                err_field,
+                residual_type,
+            } => {
+                if !self.try_target_enabled {
+                    return Err(error(
+                        "copy-result propagation is allowed only in a function body",
+                    ));
+                }
+                require_type(
+                    residual_type,
+                    self.return_type,
+                    "copy-result residual target",
+                )?;
+                let operand_layout = variant_layout(self.variant_layouts, &operand.ty)?;
+                let residual_layout = variant_layout(self.variant_layouts, residual_type)?;
+                if operand_layout.variant != *result || residual_layout.variant != *result {
+                    return Err(error(
+                        "copy-result propagation does not reference its resolved Result declaration",
+                    ));
+                }
+                let operand_ok = operand_layout
+                    .case(ok_case)
+                    .and_then(|case| case.field(ok_field).map(|field| (case, field)))
+                    .ok_or_else(|| error("copy-result propagation has no resolved Ok payload"))?;
+                let operand_err = operand_layout
+                    .case(err_case)
+                    .and_then(|case| case.field(err_field).map(|field| (case, field)))
+                    .ok_or_else(|| error("copy-result propagation has no resolved Err payload"))?;
+                let residual_err = residual_layout
+                    .case(err_case)
+                    .and_then(|case| case.field(err_field).map(|field| (case, field)))
+                    .ok_or_else(|| error("copy-result residual has no resolved Err payload"))?;
+                require_type(&operand_ok.1.ty, &expr.ty, "copy-result Ok payload")?;
+                require_type(
+                    &operand_err.1.ty,
+                    &residual_err.1.ty,
+                    "copy-result Err payload",
+                )?;
+
+                let operand_value = self.emit_expr(operand)?;
+                let Value::Aggregate {
+                    pointer: operand_pointer,
+                    ty: operand_type,
+                } = operand_value
+                else {
+                    return Err(error("copy-result operand is not aggregate storage"));
+                };
+                require_type(&operand_type, &operand.ty, "copy-result operand")?;
+                self.emit_pointer(operand_pointer);
+                self.output.extend([0x28, 0x02, 0x00, 0x41]);
+                write_i64(
+                    self.output,
+                    i64::try_from(operand_layout.cases.len())
+                        .map_err(|_| error("Result case count overflows i64"))?,
+                );
+                self.output.push(0x4f);
+                self.fail_if(STATUS_INTERNAL_INVALID_TAG);
+
+                self.emit_pointer(operand_pointer);
+                self.output.extend([0x28, 0x02, 0x00, 0x41]);
+                write_i64(self.output, i64::from(operand_err.0.tag));
+                self.output.extend([0x46, 0x04, 0x40]);
+                let residual_offset = self
+                    .plan
+                    .result_stage_aggregate
+                    .ok_or_else(|| error("copy-result residual has no result staging slot"))?;
+                let residual_pointer = Pointer {
+                    local: self.plan.frame_base,
+                    offset: residual_offset,
+                };
+                self.emit_pointer(residual_pointer);
+                self.output.extend([0x41, 0x00, 0x41]);
+                write_i64(self.output, i64::from(residual_layout.size));
+                self.output.extend([0xfc, 0x0b, 0x00]);
+                let source = Value::ScalarMemory {
+                    pointer: Pointer {
+                        local: operand_pointer.local,
+                        offset: operand_pointer
+                            .offset
+                            .checked_add(operand_layout.payload_offset)
+                            .and_then(|offset| offset.checked_add(operand_err.1.offset))
+                            .ok_or_else(|| error("Result Err source pointer overflows u32"))?,
+                    },
+                    ty: operand_err.1.ty.clone(),
+                };
+                let destination = Value::ScalarMemory {
+                    pointer: Pointer {
+                        local: residual_pointer.local,
+                        offset: residual_pointer
+                            .offset
+                            .checked_add(residual_layout.payload_offset)
+                            .and_then(|offset| offset.checked_add(residual_err.1.offset))
+                            .ok_or_else(|| error("Result Err destination pointer overflows u32"))?,
+                    },
+                    ty: residual_err.1.ty.clone(),
+                };
+                self.copy_value(&destination, &source, "copy-result Err reconstruction")?;
+                self.emit_pointer(residual_pointer);
+                self.output.push(0x41);
+                write_i64(self.output, i64::from(residual_err.0.tag));
+                self.output.extend([0x36, 0x02, 0x00]);
+                let result_staged = self
+                    .plan
+                    .result_staged
+                    .ok_or_else(|| error("copy-result propagation has no result-state local"))?;
+                self.output.extend([0x41, 0x01, 0x21]);
+                write_u32(self.output, result_staged);
+                self.output.push(0x0c);
+                write_u32(self.output, self.control_depth + 1);
+                self.output.push(0x0b);
+
+                self.emit_pointer(operand_pointer);
+                self.output.extend([0x28, 0x02, 0x00, 0x41]);
+                write_i64(self.output, i64::from(operand_ok.0.tag));
+                self.output.push(0x47);
+                self.fail_if(STATUS_INTERNAL_INVALID_TAG);
+                let destination = Value::Scalar {
+                    local: self.plan.expr_scalar(expr)?,
+                    ty: expr.ty.clone(),
+                };
+                let source = Value::ScalarMemory {
+                    pointer: Pointer {
+                        local: operand_pointer.local,
+                        offset: operand_pointer
+                            .offset
+                            .checked_add(operand_layout.payload_offset)
+                            .and_then(|offset| offset.checked_add(operand_ok.1.offset))
+                            .ok_or_else(|| error("Result Ok pointer overflows u32"))?,
+                    },
+                    ty: operand_ok.1.ty.clone(),
+                };
+                self.copy_value(&destination, &source, "copy-result Ok extraction")?;
                 Ok(destination)
             }
             ResolvedExprKind::Project { base, field } => {
@@ -1344,7 +1557,10 @@ impl Emitter<'_> {
         write_u32(self.output, self.plan.status);
         self.output.extend([0x04, 0x40]);
         self.output.push(0x0c);
-        write_u32(self.output, self.control_depth + 1);
+        write_u32(
+            self.output,
+            self.control_depth + self.status_exit_extra_depth,
+        );
         self.output.push(0x0b);
         if let Value::Scalar { local, ty } = &result {
             let offset = self.plan.call_out[&expr.id];
@@ -1811,7 +2027,10 @@ impl Emitter<'_> {
         self.output.push(0x21);
         write_u32(self.output, self.plan.status);
         self.output.push(0x0c);
-        write_u32(self.output, self.control_depth + 1);
+        write_u32(
+            self.output,
+            self.control_depth + self.status_exit_extra_depth,
+        );
         self.output.push(0x0b);
     }
 }
@@ -2158,6 +2377,84 @@ fn main() -> i64 {
 }
 "#;
 
+    const RESULT_TRY_SOURCE: &str = r#"
+module test.result_try_wasm;
+@id("try.source_i64")
+fn source_i64(residual: bool, value: i64) -> Result<i64, bool> {
+    if residual {
+        Result<i64, bool>::Err { error: true }
+    } else {
+        Result<i64, bool>::Ok { value: value }
+    }
+}
+@id("try.source_bool")
+fn source_bool(residual: bool, value: bool) -> Result<bool, bool> {
+    if residual {
+        Result<bool, bool>::Err { error: true }
+    } else {
+        Result<bool, bool>::Ok { value: value }
+    }
+}
+@id("try.large_to_small")
+fn large_to_small(residual: bool, value: i64) -> Result<bool, bool>
+    ensures match result {
+        Result::Ok { value: success } => success,
+        Result::Err { error: failure } => failure,
+    }
+{
+    let number = source_i64(residual, value)?;
+    Result<bool, bool>::Ok { value: number > 0 }
+}
+@id("try.small_to_large")
+fn small_to_large(residual: bool, value: bool) -> Result<i64, bool>
+    ensures match result {
+        Result::Ok { value: success } => success == 0 || success == 1,
+        Result::Err { error: failure } => failure,
+    }
+{
+    let flag = source_bool(residual, value)?;
+    Result<i64, bool>::Ok { value: if flag { 1 } else { 0 } }
+}
+@id("try.post_err")
+fn post_err() -> Result<bool, bool> ensures false {
+    let number = source_i64(true, 7)?;
+    Result<bool, bool>::Ok { value: number > 0 }
+}
+@id("try.physical")
+fn physical() -> Result<i64, bool> requires false {
+    Result<i64, bool>::Err { error: true }
+}
+@id("try.physical_then_post")
+fn physical_then_post() -> Result<bool, bool> ensures false {
+    let number = physical()?;
+    Result<bool, bool>::Ok { value: number > 0 }
+}
+@id("try.err_skips_later")
+fn err_skips_later() -> Result<bool, bool> {
+    let number = source_i64(true, 7)?;
+    Result<bool, bool>::Ok { value: number + 9223372036854775807 > 0 }
+}
+@id("try.from_input")
+fn from_input(value: Result<i64, bool>) -> Result<bool, bool> {
+    let number = value?;
+    Result<bool, bool>::Ok { value: number > 0 }
+}
+@id("app.main")
+fn main() -> i64 {
+    let large = large_to_small(false, 42);
+    let small = small_to_large(true, true);
+    let left = match large {
+        Result::Ok { value: success } => if success { 40 } else { 0 },
+        Result::Err { error: failure } => if failure { 1 } else { 0 },
+    };
+    let right = match small {
+        Result::Ok { value: success } => success,
+        Result::Err { error: failure } => if failure { 2 } else { 0 },
+    };
+    left + right
+}
+"#;
+
     #[test]
     fn node_executes_aggregate_status_out_poison_order_and_shadow_stack_reentry() {
         if Command::new("node").arg("--version").output().is_err() {
@@ -2436,6 +2733,127 @@ console.log("generic-variant-wasm-v2-ok");
         assert_eq!(
             String::from_utf8_lossy(&output.stdout).trim(),
             "generic-variant-wasm-v2-ok"
+        );
+    }
+
+    #[test]
+    fn node_executes_result_try_reconstruction_status_poison_and_reentry() {
+        if Command::new("node").arg("--version").output().is_err() {
+            return;
+        }
+        let program = parse(RESULT_TRY_SOURCE, Path::new("result-try-wasm.spx")).unwrap();
+        let resolved = hir::resolve(&program).unwrap();
+        let bytes = emit_profile(&resolved, true).unwrap();
+        assert_eq!(bytes, emit_profile(&resolved, true).unwrap());
+        let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
+        let stem = format!("semaprax-result-try-wasm-{}-{id}", std::process::id());
+        let wasm_path = std::env::temp_dir().join(format!("{stem}.wasm"));
+        let script_path = std::env::temp_dir().join(format!("{stem}.mjs"));
+        std::fs::write(&wasm_path, bytes).unwrap();
+
+        let export = |id: &str| format!("__spx_test_{}", hex_identity(&DeclarationId::new(id)));
+        let script = format!(
+            r#"import {{ readFile }} from "node:fs/promises";
+const fail = (name) => () => {{ throw new Error(`unexpected host import ${{name}}`); }};
+const bytes = await readFile(process.argv[2]);
+const {{ instance }} = await WebAssembly.instantiate(bytes, {{ env: {{
+  spx_add: fail("spx_add"), spx_sub: fail("spx_sub"), spx_mul: fail("spx_mul"),
+  spx_div: fail("spx_div"), spx_rem: fail("spx_rem"), spx_neg: fail("spx_neg"),
+  spx_contract_fail: fail("spx_contract_fail"),
+}} }});
+const memory = instance.exports.__spx_test_memory;
+const stack = instance.exports.__spx_test_shadow_stack;
+const view = new DataView(memory.buffer);
+const input = 1024;
+const output = 2048;
+const poison = 0xa5;
+const poisonOutput = (length) => new Uint8Array(memory.buffer, output, length).fill(poison);
+const assertPoison = (length, label) => {{
+  for (const byte of new Uint8Array(memory.buffer, output, length)) if (byte !== poison) throw new Error(`${{label}} published output`);
+}};
+const assertStack = (label) => {{ if (stack.value !== {stack_top}) throw new Error(`${{label}} stack restore`); }};
+const assertSmall = (tag, payload, label) => {{
+  if (view.getUint32(output, true) !== tag || view.getInt32(output + 4, true) !== payload) throw new Error(`${{label}} value`);
+}};
+const assertLarge = (tag, payload, label) => {{
+  if (view.getUint32(output, true) !== tag) throw new Error(`${{label}} tag`);
+  if (tag === 0 && view.getBigInt64(output + 8, true) !== payload) throw new Error(`${{label}} Ok payload`);
+  if (tag === 1 && view.getInt32(output + 8, true) !== Number(payload)) throw new Error(`${{label}} Err payload`);
+  for (const offset of [4, 5, 6, 7]) if (view.getUint8(output + offset) !== 0) throw new Error(`${{label}} tag padding`);
+  if (tag === 1) for (let offset = 9; offset < 16; offset += 1) if (view.getUint8(output + offset) !== 0) throw new Error(`${{label}} payload padding`);
+}};
+
+for (let index = 0; index < 4096; index += 1) {{
+  poisonOutput(8);
+  if (instance.exports["{large_to_small}"](0, 42n, output) !== 0) throw new Error("large-to-small Ok status");
+  assertSmall(0, 1, "large-to-small Ok");
+  assertStack("large-to-small Ok");
+
+  poisonOutput(8);
+  if (instance.exports["{large_to_small}"](1, 42n, output) !== 0) throw new Error("large-to-small Err status");
+  assertSmall(1, 1, "large-to-small Err");
+  assertStack("large-to-small Err");
+
+  poisonOutput(16);
+  if (instance.exports["{small_to_large}"](0, 1, output) !== 0) throw new Error("small-to-large Ok status");
+  assertLarge(0, 1n, "small-to-large Ok");
+  assertStack("small-to-large Ok");
+
+  poisonOutput(16);
+  if (instance.exports["{small_to_large}"](1, 1, output) !== 0) throw new Error("small-to-large Err status");
+  assertLarge(1, 1n, "small-to-large Err");
+  assertStack("small-to-large Err");
+
+  poisonOutput(8);
+  if (instance.exports["{post_err}"](output) !== 10) throw new Error("Err did not run ensures");
+  assertPoison(8, "postcondition failure");
+  assertStack("postcondition failure");
+
+  poisonOutput(8);
+  if (instance.exports["{physical_then_post}"](output) !== 9) throw new Error("physical status was replaced");
+  assertPoison(8, "physical failure");
+  assertStack("physical failure");
+
+  poisonOutput(8);
+  if (instance.exports["{err_skips_later}"](output) !== 0) throw new Error("Err residual status");
+  assertSmall(1, 1, "Err skips later body");
+  assertStack("Err skips later body");
+}}
+
+new Uint8Array(memory.buffer, input, 16).fill(0);
+view.setUint32(input, 0xffffffff, true);
+poisonOutput(8);
+if (instance.exports["{from_input}"](input, output) !== -1) throw new Error("invalid Result tag did not fail out-of-band");
+assertPoison(8, "invalid tag");
+assertStack("invalid tag");
+if (instance.exports.semaprax_main() !== 42n) throw new Error("typed ? public result");
+assertStack("public typed ?");
+console.log("result-try-wasm-v1-ok");
+"#,
+            large_to_small = export("try.large_to_small"),
+            small_to_large = export("try.small_to_large"),
+            post_err = export("try.post_err"),
+            physical_then_post = export("try.physical_then_post"),
+            err_skips_later = export("try.err_skips_later"),
+            from_input = export("try.from_input"),
+            stack_top = SHADOW_STACK_TOP,
+        );
+        std::fs::write(&script_path, script).unwrap();
+        let output = Command::new("node")
+            .arg(&script_path)
+            .arg(&wasm_path)
+            .output()
+            .unwrap();
+        let _ = std::fs::remove_file(&script_path);
+        let _ = std::fs::remove_file(&wasm_path);
+        assert!(
+            output.status.success(),
+            "Node typed ? runtime failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert_eq!(
+            String::from_utf8_lossy(&output.stdout).trim(),
+            "result-try-wasm-v1-ok"
         );
     }
 

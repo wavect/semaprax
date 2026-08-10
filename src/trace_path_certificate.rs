@@ -370,7 +370,9 @@ fn apply_transition(
                 .ordinals
                 .push(select_failure_ordinal(dictionary, source)?);
         }
-        CleanupTransition::Initialize { .. } | CleanupTransition::CallCommit { .. } => {
+        CleanupTransition::Initialize { .. }
+        | CleanupTransition::CallCommit { .. }
+        | CleanupTransition::StageCopyResult { .. } => {
             return Err(certificate_error(
                 "transition is outside the callable-v2 single-frame slice",
             ))

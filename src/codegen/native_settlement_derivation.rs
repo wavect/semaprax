@@ -590,7 +590,9 @@ fn apply_transition(
                 .trace_ordinals
                 .push(select_failure_ordinal(dictionary, source)?);
         }
-        CleanupTransition::Initialize { .. } | CleanupTransition::CallCommit { .. } => {
+        CleanupTransition::Initialize { .. }
+        | CleanupTransition::CallCommit { .. }
+        | CleanupTransition::StageCopyResult { .. } => {
             return Err(derivation_error(
                 "transition is outside the callable-v3 direct-owner slice",
             ));
@@ -1155,31 +1157,31 @@ mod tests {
         let expected = [
             (
                 "token.discard",
-                "a13af979d596bb324238d8154771c6a21f1dee40c224b6378e4f2bdfc28d5c05",
+                "fd57051978df7693945186549712344253d4e7406964187f14ceac29de19560c",
             ),
             (
                 "token.discard-two",
-                "8233e92bfc13ec64025617d34a4b591d9fa9b195cf862ceca545366493adc9cf",
+                "cfa2ceb812a7dcd5253af3ad977ed5312b9263091655262e6578e9a7a43e8a43",
             ),
             (
                 "token.requires",
-                "8b291e6eb8f3f1e0267e0ea922748b5ba65006a2e76d898817877d760f989920",
+                "35351c0b7e63e0086d1655e9c60e4c7da791938372bed60908a1c85c8ce57b41",
             ),
             (
                 "token.checked",
-                "f6a35494ea8404bf9899aa70ef861048724e187d5a096b041fbcaafa40f6c181",
+                "77a3b7528ccab8345b73418250f07a17000160465288a2d11a955a74b9620be2",
             ),
             (
                 "token.identity",
-                "bea63e0b491482c21bfee51e13dbe7d223865930b6be198ee3d9f2afcfdbb764",
+                "292b6ae3b8fd0ccec14f14a8975c36d0bcffd216ed0dbe36e97d1e182019a95f",
             ),
             (
                 "token.choose-second",
-                "71c3b9a20299bb7783e2fc225818f428fb8854d080131ce38ee3b16e7c5bc50b",
+                "a7672a5bd7a8bccf1b2143bd3c50884684e997a2dd4403493a4986274e8b7860",
             ),
             (
                 "token.ensures-false",
-                "3ec777bf926dcfaa9348382119c331fda997bd42480823f1ceb585d0499da759",
+                "83a5ebc30b24928b94a8020aacf146d54dd813be986449e1513a7f924d683f48",
             ),
         ];
         assert_eq!(
@@ -1293,12 +1295,12 @@ mod tests {
         let derivation = derive_native_settlement(&corpus.program, &function.id).unwrap();
         assert_eq!(
             hex(&derivation.recovery_contract_fingerprint()),
-            "0637eea2c0daecf7c1fcf84ac5c9e80c04a7dfd98b50d20a4a53d6909195da80"
+            "fd1dcd495352f07810e98025b3f5ba104f3af75915d0c143b0d86ba6e0c217b9"
         );
-        assert_eq!(derivation.certificate().canonical_json(), "{\"schema\":\"semaprax.native-settlement-certificate.v2\",\"function\":\"token.discard-two\",\"recovery_contract\":\"0637eea2c0daecf7c1fcf84ac5c9e80c04a7dfd98b50d20a4a53d6909195da80\",\"resource_count\":2,\"checkpoints\":[{\"checkpoint\":1,\"resources\":[\"live\",\"live\"],\"normal_outcome\":null,\"abort_cleanup_order\":[1,0],\"accept_cleanup_order\":[]},{\"checkpoint\":2,\"resources\":[\"live\",\"dead\"],\"normal_outcome\":null,\"abort_cleanup_order\":[0],\"accept_cleanup_order\":[]},{\"checkpoint\":3,\"resources\":[\"dead\",\"dead\"],\"normal_outcome\":null,\"abort_cleanup_order\":[],\"accept_cleanup_order\":[]},{\"checkpoint\":4,\"resources\":[\"dead\",\"dead\"],\"normal_outcome\":{\"kind\":\"scalar_success\"},\"abort_cleanup_order\":[],\"accept_cleanup_order\":[]}],\"start_checkpoints\":[1],\"progress_edges\":[{\"from\":1,\"to\":2,\"action\":{\"kind\":\"finalize\",\"owner_ordinal\":1}},{\"from\":2,\"to\":3,\"action\":{\"kind\":\"finalize\",\"owner_ordinal\":0}},{\"from\":3,\"to\":4,\"action\":{\"kind\":\"certify_outcome\",\"trace_evidence\":\"cc43560bb15664722fb9432ef6a1fa9fe1d67d4774bc3d514624f8021f25e26e\"}}]}");
+        assert_eq!(derivation.certificate().canonical_json(), "{\"schema\":\"semaprax.native-settlement-certificate.v2\",\"function\":\"token.discard-two\",\"recovery_contract\":\"fd1dcd495352f07810e98025b3f5ba104f3af75915d0c143b0d86ba6e0c217b9\",\"resource_count\":2,\"checkpoints\":[{\"checkpoint\":1,\"resources\":[\"live\",\"live\"],\"normal_outcome\":null,\"abort_cleanup_order\":[1,0],\"accept_cleanup_order\":[]},{\"checkpoint\":2,\"resources\":[\"live\",\"dead\"],\"normal_outcome\":null,\"abort_cleanup_order\":[0],\"accept_cleanup_order\":[]},{\"checkpoint\":3,\"resources\":[\"dead\",\"dead\"],\"normal_outcome\":null,\"abort_cleanup_order\":[],\"accept_cleanup_order\":[]},{\"checkpoint\":4,\"resources\":[\"dead\",\"dead\"],\"normal_outcome\":{\"kind\":\"scalar_success\"},\"abort_cleanup_order\":[],\"accept_cleanup_order\":[]}],\"start_checkpoints\":[1],\"progress_edges\":[{\"from\":1,\"to\":2,\"action\":{\"kind\":\"finalize\",\"owner_ordinal\":1}},{\"from\":2,\"to\":3,\"action\":{\"kind\":\"finalize\",\"owner_ordinal\":0}},{\"from\":3,\"to\":4,\"action\":{\"kind\":\"certify_outcome\",\"trace_evidence\":\"cc43560bb15664722fb9432ef6a1fa9fe1d67d4774bc3d514624f8021f25e26e\"}}]}");
         assert_eq!(
             hex(&derivation.certificate().fingerprint()),
-            "8233e92bfc13ec64025617d34a4b591d9fa9b195cf862ceca545366493adc9cf"
+            "cfa2ceb812a7dcd5253af3ad977ed5312b9263091655262e6578e9a7a43e8a43"
         );
 
         let terminal = derivation
@@ -1321,10 +1323,10 @@ mod tests {
                 SettlementDecision::Accept(SettlementOutcome::ScalarSuccess),
             )
             .unwrap();
-        assert_eq!(receipt.receipt().canonical_json(), "{\"schema\":\"semaprax.native-settlement-receipt.v2\",\"function\":\"token.discard-two\",\"recovery_contract\":\"0637eea2c0daecf7c1fcf84ac5c9e80c04a7dfd98b50d20a4a53d6909195da80\",\"certificate_fingerprint\":\"8233e92bfc13ec64025617d34a4b591d9fa9b195cf862ceca545366493adc9cf\",\"invocation\":19,\"checkpoint\":4,\"decision\":{\"kind\":\"accept\",\"outcome\":{\"kind\":\"scalar_success\"}},\"actions\":[],\"dispositions\":[\"dead\",\"dead\"],\"active_finalizers\":0}");
+        assert_eq!(receipt.receipt().canonical_json(), "{\"schema\":\"semaprax.native-settlement-receipt.v2\",\"function\":\"token.discard-two\",\"recovery_contract\":\"fd1dcd495352f07810e98025b3f5ba104f3af75915d0c143b0d86ba6e0c217b9\",\"certificate_fingerprint\":\"cfa2ceb812a7dcd5253af3ad977ed5312b9263091655262e6578e9a7a43e8a43\",\"invocation\":19,\"checkpoint\":4,\"decision\":{\"kind\":\"accept\",\"outcome\":{\"kind\":\"scalar_success\"}},\"actions\":[],\"dispositions\":[\"dead\",\"dead\"],\"active_finalizers\":0}");
         assert_eq!(
             hex(&receipt.receipt().fingerprint()),
-            "dbee8bddf9ef76bc8cfcd0f06f98f7964bf8db6888c83c4c0ac1fd50752c9238"
+            "f90c65be0d9a0bc69f141f50e47d5b0424bb445b0848e48b76eea9ee8058dba6"
         );
     }
 

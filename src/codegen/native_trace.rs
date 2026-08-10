@@ -11,7 +11,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use crate::cleanup_plan::{
     BlockId, CleanupBlock, CleanupEdge, CleanupPlan, CleanupTerminator, EdgeId, ExitContinuation,
-    ExitTarget, ExitTargetId, CLEANUP_PLAN_SCHEMA_V1,
+    ExitTarget, ExitTargetId, CLEANUP_PLAN_SCHEMA_V2,
 };
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
@@ -43,9 +43,9 @@ fn required_event_capacity_for_plan(
     program: &ResolvedProgram,
     plan: &CleanupPlan,
 ) -> Result<u32, Diagnostic> {
-    if plan.schema != CLEANUP_PLAN_SCHEMA_V1 {
+    if plan.schema != CLEANUP_PLAN_SCHEMA_V2 {
         return Err(trace_error(format!(
-            "native trace preflight requires cleanup schema `{CLEANUP_PLAN_SCHEMA_V1}`, found `{}`",
+            "native trace preflight requires cleanup schema `{CLEANUP_PLAN_SCHEMA_V2}`, found `{}`",
             plan.schema
         )));
     }

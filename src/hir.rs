@@ -1126,6 +1126,15 @@ pub enum ResolvedExprKind {
         scrutinee: Box<ResolvedExpr>,
         arms: Vec<ResolvedMatchArm>,
     },
+    Try {
+        operand: Box<ResolvedExpr>,
+        result: DeclarationId,
+        ok_case: DeclarationId,
+        ok_field: DeclarationId,
+        err_case: DeclarationId,
+        err_field: DeclarationId,
+        residual_type: ResolvedType,
+    },
     UpdateRecord {
         base: Box<ResolvedExpr>,
         record: DeclarationId,
@@ -2629,6 +2638,94 @@ impl<'a> HirValidator<'a> {
                 }
                 result.ok_or_else(|| hir_error("resolved match has no result"))?
             }
+            ResolvedExprKind::Try {
+                operand,
+                result,
+                ok_case,
+                ok_field,
+                err_case,
+                err_field,
+                residual_type,
+            } => {
+                self.validate_expr(
+                    function,
+                    operand,
+                    scope,
+                    &format!("{path}.operand"),
+                    allow_moves,
+                    allowed_effects,
+                )?;
+                if !path.starts_with("body") {
+                    return Err(hir_error(
+                        "resolved `?` is outside the executable function body",
+                    ));
+                }
+                if scope.values().any(|binding| {
+                    self.program
+                        .declarations
+                        .type_facts(&binding.ty)
+                        .is_some_and(|facts| facts.contains_resource)
+                }) {
+                    return Err(hir_error(
+                        "resolved `?` has a live resource binding in the bounded Copy-only profile",
+                    ));
+                }
+                if result.as_str() != crate::prelude::RESULT_ID
+                    || ok_case.as_str() != crate::prelude::RESULT_OK_ID
+                    || ok_field.as_str() != crate::prelude::RESULT_OK_VALUE_ID
+                    || err_case.as_str() != crate::prelude::RESULT_ERR_ID
+                    || err_field.as_str() != crate::prelude::RESULT_ERR_ERROR_ID
+                {
+                    return Err(hir_error(
+                        "resolved `?` does not authenticate the compiler-owned Result shape",
+                    ));
+                }
+                let ResolvedType::Nominal {
+                    declaration: operand_result,
+                    arguments: operand_arguments,
+                } = &operand.ty
+                else {
+                    return Err(hir_error("resolved `?` operand is not nominal Result"));
+                };
+                let ResolvedType::Nominal {
+                    declaration: residual_result,
+                    arguments: residual_arguments,
+                } = residual_type
+                else {
+                    return Err(hir_error("resolved `?` residual is not nominal Result"));
+                };
+                if operand_result != result
+                    || residual_result != result
+                    || operand_arguments.len() != 2
+                    || residual_arguments.len() != 2
+                    || operand_arguments
+                        .iter()
+                        .chain(residual_arguments)
+                        .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
+                {
+                    return Err(hir_error(
+                        "resolved `?` has invalid concrete Result instances",
+                    ));
+                }
+                let enclosing_return = self
+                    .program
+                    .functions
+                    .iter()
+                    .find(|candidate| candidate.id == *function)
+                    .map(|candidate| &candidate.return_type)
+                    .ok_or_else(|| hir_error("resolved `?` has no enclosing function"))?;
+                self.require_type(residual_type, enclosing_return, "`?` residual")?;
+                self.require_type(&expression.ty, &operand_arguments[0], "`?` success value")?;
+                self.require_type(
+                    &operand_arguments[1],
+                    &residual_arguments[1],
+                    "`?` residual error",
+                )?;
+                if expression.ownership != OwnershipMode::Value {
+                    return Err(hir_error("resolved `?` success value is not Copy"));
+                }
+                (expression.ty.clone(), OwnershipMode::Value)
+            }
             ResolvedExprKind::UpdateRecord {
                 base,
                 record,
@@ -2906,6 +3003,7 @@ impl<'a> HirValidator<'a> {
             | ResolvedExprKind::Binary { .. }
             | ResolvedExprKind::ConstructRecord { .. }
             | ResolvedExprKind::ConstructVariant { .. }
+            | ResolvedExprKind::Try { .. }
             | ResolvedExprKind::UpdateRecord { .. } => {}
         }
         Ok(())
@@ -3447,6 +3545,23 @@ fn audit_resolved_expression(root: &ResolvedExpr) -> Result<(), Diagnostic> {
                 }
                 pending.push(scrutinee);
             }
+            ResolvedExprKind::Try {
+                operand,
+                result,
+                ok_case,
+                ok_field,
+                err_case,
+                err_field,
+                residual_type,
+            } => {
+                reject_nul_identity("resolved `?` Result", result.as_str())?;
+                reject_nul_identity("resolved `?` Ok case", ok_case.as_str())?;
+                reject_nul_identity("resolved `?` Ok field", ok_field.as_str())?;
+                reject_nul_identity("resolved `?` Err case", err_case.as_str())?;
+                reject_nul_identity("resolved `?` Err field", err_field.as_str())?;
+                audit_resolved_type(residual_type)?;
+                pending.push(operand);
+            }
             ResolvedExprKind::UpdateRecord {
                 base,
                 record,
@@ -3626,6 +3741,54 @@ fn audit_cleanup_plan(plan: &CleanupPlan) -> Result<(), Diagnostic> {
                 crate::cleanup_plan::CleanupTransition::SelectFailure { source } => {
                     audit_status_source(source)?;
                 }
+                crate::cleanup_plan::CleanupTransition::StageCopyResult { source } => {
+                    match source {
+                        crate::cleanup_plan::StagedCopyResultSource::Body {
+                            expression,
+                            instance,
+                        } => {
+                            reject_nul_identity(
+                                "cleanup-plan staged body expression",
+                                expression.as_str(),
+                            )?;
+                            audit_resolved_type(instance)?;
+                        }
+                        crate::cleanup_plan::StagedCopyResultSource::TryResidual {
+                            expression,
+                            operand,
+                            source_instance,
+                            target_instance,
+                            result,
+                            ok_case,
+                            ok_field,
+                            err_case,
+                            err_field,
+                        } => {
+                            reject_nul_identity(
+                                "cleanup-plan staged `?` expression",
+                                expression.as_str(),
+                            )?;
+                            reject_nul_identity(
+                                "cleanup-plan staged `?` operand",
+                                operand.as_str(),
+                            )?;
+                            audit_resolved_type(source_instance)?;
+                            audit_resolved_type(target_instance)?;
+                            for (kind, declaration) in [
+                                ("Result", result),
+                                ("Ok case", ok_case),
+                                ("Ok field", ok_field),
+                                ("Err case", err_case),
+                                ("Err field", err_field),
+                            ] {
+                                reject_nul_identity(
+                                    &format!("cleanup-plan staged `?` {kind}"),
+                                    declaration.as_str(),
+                                )?;
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -3768,9 +3931,9 @@ fn visit_resolved_calls(expression: &ResolvedExpr, visit: &mut impl FnMut(&Decla
                 visit_resolved_calls(arg, visit);
             }
         }
-        ResolvedExprKind::Unary { value, .. } | ResolvedExprKind::Project { base: value, .. } => {
-            visit_resolved_calls(value, visit)
-        }
+        ResolvedExprKind::Unary { value, .. }
+        | ResolvedExprKind::Try { operand: value, .. }
+        | ResolvedExprKind::Project { base: value, .. } => visit_resolved_calls(value, visit),
         ResolvedExprKind::Binary { left, right, .. } => {
             visit_resolved_calls(left, visit);
             visit_resolved_calls(right, visit);
@@ -4662,6 +4825,55 @@ impl Resolver<'_> {
                     },
                     ty,
                     ownership,
+                )
+            }
+            ExprKind::Try { operand } => {
+                let operand =
+                    self.resolve_expr(function, operand, bindings, &format!("{path}.operand"))?;
+                let ResolvedType::Nominal {
+                    declaration,
+                    arguments,
+                } = &operand.ty
+                else {
+                    return Err(self.error(
+                        "SPX-H006",
+                        "resolved `?` operand is not the ordinary Result",
+                        expr.span,
+                    ));
+                };
+                if declaration.as_str() != crate::prelude::RESULT_ID || arguments.len() != 2 {
+                    return Err(self.error(
+                        "SPX-H006",
+                        "resolved `?` operand is not the ordinary Result",
+                        expr.span,
+                    ));
+                }
+                let ok_type = arguments[0].clone();
+                let target = self
+                    .program
+                    .functions
+                    .iter()
+                    .find(|candidate| candidate.stable_id == function.as_str())
+                    .ok_or_else(|| {
+                        self.error(
+                            "SPX-H006",
+                            format!("resolved `?` has unknown enclosing function `{function}`"),
+                            expr.span,
+                        )
+                    })?;
+                let residual_type = self.resolve_type(&target.return_type, target.span)?;
+                (
+                    ResolvedExprKind::Try {
+                        operand: Box::new(operand),
+                        result: DeclarationId::new(crate::prelude::RESULT_ID),
+                        ok_case: DeclarationId::new(crate::prelude::RESULT_OK_ID),
+                        ok_field: DeclarationId::new(crate::prelude::RESULT_OK_VALUE_ID),
+                        err_case: DeclarationId::new(crate::prelude::RESULT_ERR_ID),
+                        err_field: DeclarationId::new(crate::prelude::RESULT_ERR_ERROR_ID),
+                        residual_type,
+                    },
+                    ok_type,
+                    OwnershipMode::Value,
                 )
             }
             ExprKind::UpdateRecord { base, fields } => {

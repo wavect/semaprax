@@ -14,15 +14,21 @@ profiles. The implemented copy-variant slice adds nominal variant templates
 with explicit direct `i64`/`bool` arguments, monomorphic unit/direct-scalar
 cases, explicit qualified construction, exhaustive copy-only `match`, scalar
 `i64`/`bool` arm results, persistent template case/payload identities,
-CleanupPlan v1 exact-scrutinee/stable-case branching, Graph v9/revision v2,
+CleanupPlan v2 exact-scrutinee/stable-case branching and Copy-result staging, Graph v10/revision v2,
 checked deterministic internal Native64/Wasm32 layout digest v2, and native C11
 O0/O2 plus Node/Wasm execution. Compiler-owned ordinary `Option<T>` and
-`Result<T, E>` use the same generic-variant machinery. The preceding
-non-generic tranche is hosted green in [run
-31343897595](https://github.com/wavect/semaprax/actions/runs/31343897595);
-current generic/prelude hosted verification is pending. Generic functions or
-records, nested/resource arguments, `?`, resource- or record-bearing variant
-payloads, non-copy match ownership modes, a stable public aggregate ABI, public
+`Result<T, E>` use the same generic-variant machinery. Generic/prelude evidence
+is hosted green in [run
+31347109201](https://github.com/wavect/semaprax/actions/runs/31347109201).
+The current local postfix-`?` slice accepts only direct-`i64`/direct-`bool`
+Copy `Result<T, E>` and an enclosing `Result<U, E>`. It authenticates every
+compiler-owned Result member, evaluates the operand once, stages `Err` as a
+normal outer result, skips later body expressions, and joins shared
+postconditions/publication. Native C11 O0/O2 and Node/Wasm cover different
+source/outer layouts, physical-status separation, poison, invalid tags, and
+re-entry. Generic functions or records, nested/resource arguments, non-copy
+propagation/matching, residual conversion, `?` in contracts, resource- or
+record-bearing variant payloads, a stable public aggregate ABI, public
 resource-bearing execution, and general aggregate execution remain outside
 that evidence.
 
@@ -86,8 +92,10 @@ fn example(point: Point, value: Option<i64>) -> i64 {
 `Option<T>` and `Result<T, E>` are ordinary compiler-owned variants from the
 authenticated versioned prelude, not hidden backend primitives. Their reserved
 names and stable IDs cannot be redeclared by source. Only direct `i64`/`bool`
-arguments are admitted today. Postfix `?` remains unimplemented and will
-receive dedicated typed lowering later.
+arguments are admitted today. Postfix `?` is implemented only for these Copy
+`Result<T, E>` instances and an enclosing `Result<U, E>` with exact `E`;
+Option propagation, residual conversion, contract use, and non-copy or nested
+arguments remain closed.
 
 ## Resolved semantics
 
@@ -200,13 +208,16 @@ The browser export `semaprax_main -> i64` remains stable during this tranche.
 
 ## Agent graph and transactions
 
-Graph v9 adds owner/index-stable type-parameter nodes, exact concrete nominal
+Graph v10 retains the Graph-v9 owner/index-stable type-parameter nodes, exact concrete nominal
 argument trees, compiler-owned identity provenance, and an authenticated
 `semaprax.prelude.v1` contract to the persistent `variant`, `variant_case`, and
 `case_field` declarations introduced in v8. Revision-scoped expression nodes
 cover variant construction, match arms, variant/wildcard patterns, and payload
 bindings; cleanup edges select stable template case IDs for one exact scrutinee
-expression. Graph revision v2 length-delimits and hashes canonical source plus
+expression. It additionally serializes `try_result` with exact source/residual
+instances, compiler-owned member IDs, one evaluation, normal-result Err exit,
+and shared-postcondition epilogue meaning; CleanupPlan v2 serializes the exact
+body or Try-residual Copy-result producer. Graph revision v2 length-delimits and hashes canonical source plus
 the prelude schema/contract. Future propagation nodes/edges remain design rather
 than implemented evidence.
 
@@ -247,10 +258,10 @@ Existing diagnostic codes remain reserved; implementation must resolve any colli
 
 1. Add resolved nominal types, HIR, type facts, place paths, and deterministic layout keys without changing source behavior. **Implemented.**
 2. Add records through parser, formatter, resolver, verifier, Graph, transactions, C, and Wasm. **Frontend, Graph v7 record-update meaning, deterministic target layouts, target-neutral cleanup, and bounded public nested-scalar C11/Wasm execution are implemented; transaction breadth, resource-bearing public execution, a stable aggregate ABI, and general backend completion remain evidence-gated.**
-3. Add bounded non-generic copy variants and exhaustive copy matching. **Implemented for unit/direct-`i64`/direct-`bool` payloads, scalar `i64`/`bool` arm results, CleanupPlan v1 variant-case replay, deterministic internal Native64/Wasm32 layouts, and native C11 O0/O2 plus Node/Wasm execution.**
-4. Add generic variants, recursive-unsized rejection, and ownership-aware matching. **Partially implemented for nominal variant templates with explicit direct `i64`/`bool` arguments, exact substitution/instance identity, Graph v9, internal layout digest v2, cleanup-free copy matching, and native/Wasm execution. Nested/resource arguments and non-copy ownership modes remain open.**
+3. Add bounded non-generic copy variants and exhaustive copy matching. **Implemented for unit/direct-`i64`/direct-`bool` payloads, scalar `i64`/`bool` arm results, CleanupPlan v2 variant-case replay, deterministic internal Native64/Wasm32 layouts, and native C11 O0/O2 plus Node/Wasm execution.**
+4. Add generic variants, recursive-unsized rejection, and ownership-aware matching. **Partially implemented for nominal variant templates with explicit direct `i64`/`bool` arguments, exact substitution/instance identity, Graph v10, internal layout digest v2, cleanup-free copy matching, and native/Wasm execution. Nested/resource arguments and non-copy ownership modes remain open.**
 5. Add ordinary prelude `Option` and `Result`. **Implemented for compiler-owned `semaprax.prelude.v1` variants under the same direct-`i64`/`bool`, copy-only, internal-ABI limits; component/FFI mappings remain open.**
-6. Add `?` with evaluation-once and unified epilogues.
+6. Add `?` with evaluation-once and unified epilogues. **Implemented for ordinary compiler-owned direct-scalar Copy `Result<T, E>` to `Result<U, E>`, with exact CleanupPlan v2 staging, Graph v10 meaning, and native C11 O0/O2 plus Node/Wasm evidence. Option propagation, residual conversion, nested/resource/non-copy arguments, contracts, public ABI, and component mapping remain open.**
 7. Add member/case transactions, layout/interface hashes, and context traversal.
 
 ## Completion evidence

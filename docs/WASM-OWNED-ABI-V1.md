@@ -10,7 +10,7 @@ RFC 0003 ABI. Unsupported resource shapes still fail with `SPX-W111`.
 ## Admission
 
 The compiler admits a function only when all of the following are proven from
-validated HIR and its independently replayed `semaprax.cleanup-plan.v1`:
+validated HIR and its independently replayed `semaprax.cleanup-plan.v2`:
 
 - the module declares exactly one direct resource identity and its lifecycle is
   `drop trivial`;

@@ -1,4 +1,4 @@
-//! Deterministic Graph v9 serialization for verified cleanup plans.
+//! Deterministic Graph v10 serialization for verified cleanup plans.
 //!
 //! This module is intentionally a renderer, not a validator or canonicalizer.
 //! Every vector is emitted in the order supplied by [`CleanupPlan`]. Sorting,
@@ -11,12 +11,13 @@ use crate::cleanup_plan::{
     CallArgumentTransfer, CheckedOperation, CleanupBlock, CleanupEdge, CleanupEntryState,
     CleanupPlace, CleanupPlan, CleanupRegion, CleanupResultSource, CleanupSlot, CleanupTerminator,
     CleanupTransition, ContractPhase, EdgeCondition, ExitContinuation, ExitTarget, FinalizeAction,
-    StatusCase, StatusLane, StatusProducer, StatusSource, StatusSourceId, StorageId,
+    StagedCopyResultSource, StatusCase, StatusLane, StatusProducer, StatusSource, StatusSourceId,
+    StorageId,
 };
 use crate::diagnostic::quote_json;
 use crate::hir::ResolvedType;
 
-/// Serialize one already-validated cleanup plan for embedding in Graph v9.
+/// Serialize one already-validated cleanup plan for embedding in Graph v10.
 ///
 /// Callers must validate the enclosing resolved program before invoking this
 /// function. Keeping validation out of the renderer makes it impossible for
@@ -200,6 +201,45 @@ fn transition_json(transition: &CleanupTransition) -> String {
         CleanupTransition::SelectFailure { source } => format!(
             "{{\"kind\":\"select_failure\",\"source\":{}}}",
             status_source_id_json(source)
+        ),
+        CleanupTransition::StageCopyResult { source } => format!(
+            "{{\"kind\":\"stage_copy_result\",\"source\":{}}}",
+            staged_copy_result_source_json(source)
+        ),
+    }
+}
+
+fn staged_copy_result_source_json(source: &StagedCopyResultSource) -> String {
+    match source {
+        StagedCopyResultSource::Body {
+            expression,
+            instance,
+        } => format!(
+            "{{\"kind\":\"body\",\"expression\":{},\"instance\":{}}}",
+            quote_json(expression.as_str()),
+            type_json(instance)
+        ),
+        StagedCopyResultSource::TryResidual {
+            expression,
+            operand,
+            source_instance,
+            target_instance,
+            result,
+            ok_case,
+            ok_field,
+            err_case,
+            err_field,
+        } => format!(
+            "{{\"kind\":\"try_residual\",\"expression\":{},\"operand\":{},\"source_instance\":{},\"target_instance\":{},\"result\":{},\"ok_case\":{},\"ok_field\":{},\"err_case\":{},\"err_field\":{}}}",
+            quote_json(expression.as_str()),
+            quote_json(operand.as_str()),
+            type_json(source_instance),
+            type_json(target_instance),
+            quote_json(result.as_str()),
+            quote_json(ok_case.as_str()),
+            quote_json(ok_field.as_str()),
+            quote_json(err_case.as_str()),
+            quote_json(err_field.as_str()),
         ),
     }
 }

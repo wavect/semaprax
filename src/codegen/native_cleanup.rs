@@ -27,7 +27,7 @@ use crate::cleanup::{FieldLivenessShape, LivenessFlagId};
 use crate::cleanup_plan::{
     BlockId, CleanupBlock, CleanupEdge, CleanupPlace, CleanupResultSource, CleanupSlot,
     CleanupTerminator, CleanupTransition, EdgeCondition, EdgeId, ExitContinuation, ExitTarget,
-    ExitTargetId, FinalizeAction, StatusSource, StorageId, CLEANUP_PLAN_SCHEMA_V1,
+    ExitTargetId, FinalizeAction, StatusSource, StorageId, CLEANUP_PLAN_SCHEMA_V2,
 };
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
@@ -197,11 +197,11 @@ pub(crate) fn classify<'a>(
     program: &'a ResolvedProgram,
     function: &'a ResolvedFunction,
 ) -> Result<NativeCleanupIndex<'a>, Diagnostic> {
-    if function.cleanup_plan.schema != CLEANUP_PLAN_SCHEMA_V1 {
+    if function.cleanup_plan.schema != CLEANUP_PLAN_SCHEMA_V2 {
         return Err(unsupported(
             function,
             format!(
-                "uses cleanup schema `{}` instead of `{CLEANUP_PLAN_SCHEMA_V1}`",
+                "uses cleanup schema `{}` instead of `{CLEANUP_PLAN_SCHEMA_V2}`",
                 function.cleanup_plan.schema
             ),
         ));
@@ -776,6 +776,16 @@ fn validate_expression(
                 format!("uses match expression `{}`", expression.id),
             ));
         }
+        ResolvedExprKind::Try { operand, .. } => {
+            validate_expression(program, function, operand)?;
+            return Err(unsupported(
+                function,
+                format!(
+                    "uses copy-result propagation expression `{}`",
+                    expression.id
+                ),
+            ));
+        }
     }
     Ok(())
 }
@@ -845,6 +855,10 @@ fn validate_transition(
             ),
         )),
         CleanupTransition::SelectFailure { .. } => Ok(()),
+        CleanupTransition::StageCopyResult { .. } => Err(unsupported(
+            function,
+            "does not support staged Copy results in the native owned-resource slice",
+        )),
     }
 }
 

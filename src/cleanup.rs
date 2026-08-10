@@ -332,6 +332,7 @@ impl InventoryBuilder<'_> {
                     self.collect_expression(&field.value)?;
                 }
             }
+            ResolvedExprKind::Try { operand, .. } => self.collect_expression(operand)?,
             ResolvedExprKind::Match { scrutinee, arms } => {
                 self.collect_expression(scrutinee)?;
                 for arm in arms {

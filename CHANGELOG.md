@@ -4,6 +4,25 @@ All notable changes to SEMAPRAX are documented here.
 
 ## 0.2.0 — 2026-08-07
 
+- Added bounded typed postfix `?` for ordinary compiler-owned
+  `Result<T, E>` with direct `i64`/`bool` arguments. Source and HIR authenticate
+  the exact prelude members, source and outer instances, one operand
+  evaluation, exact `E`, normal-result `Err` staging, and a shared
+  postcondition/publication epilogue. CleanupPlan v2 makes body-versus-residual
+  Copy-result staging explicit and independently replayable; Graph v10 exposes
+  the same evaluation-once and shared-epilogue meaning. Native C11 O0/O2 and
+  real Node/Wasm cover different source/outer layouts, later-expression skip,
+  physical-status separation, postcondition failures, poison, invalid tags,
+  and re-entry. The conformance-trace protocol remains closed to aggregate
+  values. Resource/nested arguments, generic functions/records, non-copy
+  propagation, residual conversion, `?` in contracts, public aggregate ABI,
+  callable/component aggregate signatures, and public resource admission are
+  unchanged nonclaims.
+- Hosted [run 31347109201](https://github.com/wavect/semaprax/actions/runs/31347109201)
+  supersedes the pending generic/prelude and component-runner notes below. It
+  is fully green across the configured matrix; the isolated prelude-bound
+  Wasmtime runner is green in [job
+  93330959212](https://github.com/wavect/semaprax/actions/runs/31347109201/job/93330959212).
 - Superseding the earlier configured/pending notes below, hosted run
   [31338834586](https://github.com/wavect/semaprax/actions/runs/31338834586)
   is green for Portable Result Component v3
@@ -28,10 +47,8 @@ All notable changes to SEMAPRAX are documented here.
   concrete-instance symbols prevent instance confusion. Native C11 O0/O2 and
   real Node/Wasm execute the generic and prelude cases with deterministic
   layout, poison, invalid-tag, and repeated-call evidence. Generic functions
-  or records, nested/resource arguments, non-copy matching, `?`, stable public
+  or records, nested/resource arguments, non-copy matching, stable public
   aggregate ABI, and callable/component aggregate admission remain closed.
-  The current prelude-bound Portable Result Component v3 KATs and standalone
-  Wasmtime runner are locally green but await hosted CI.
 - Added bounded executable copy variants and exhaustive `match`: non-generic
   nominal unit/direct-`i64`/direct-`bool` cases, explicit construction,
   persistent case/payload identities, declaration-order `u32` tags, checked

@@ -36,10 +36,10 @@ fn program() -> semaprax::ast::Program {
 }
 
 #[test]
-fn graph_v9_authenticates_generic_templates_concrete_instances_and_prelude() {
+fn graph_v10_authenticates_generic_templates_concrete_instances_and_prelude() {
     let program = program();
     let json = graph::to_json(&program).unwrap();
-    assert!(json.starts_with("{\"schema\":\"semaprax.graph.v9\""));
+    assert!(json.starts_with("{\"schema\":\"semaprax.graph.v10\""));
     assert!(!json.contains("semaprax.graph.v8"));
     assert!(json.contains("\"prelude\":{\"schema\":\"semaprax.prelude.v1\",\"digest\":\"sha256:"));
     let digest_marker = "\"prelude\":{\"schema\":\"semaprax.prelude.v1\",\"digest\":\"";
@@ -72,7 +72,7 @@ fn graph_v9_authenticates_generic_templates_concrete_instances_and_prelude() {
     );
     assert_eq!(
         format!("{:x}", Sha256::digest(json.as_bytes())),
-        "fe4595bf5e8bce1683a8ce29de584c95638019e76c26448f65437794486d68db"
+        "3a61e0e6860355916ff4e303b27b59881d76a92490508c48ee141191b7759f3f"
     );
     assert_eq!(json, graph::to_json(&program).unwrap());
 }
@@ -105,17 +105,17 @@ fn bounded_context_includes_compiler_prelude_only_when_referenced() {
     let agent = graph::agent_context_json(&program, "test.inspect_option", &options)
         .unwrap()
         .unwrap();
-    assert!(agent.contains("\"source_graph_schema\":\"semaprax.graph.v9\""));
+    assert!(agent.contains("\"source_graph_schema\":\"semaprax.graph.v10\""));
     assert!(agent.contains("\"prelude\":{\"schema\":\"semaprax.prelude.v1\""));
     assert!(agent.contains("\"id\":\"core.option\",\"kind\":\"variant\""));
     assert!(!agent.contains("\"id\":\"core.result\""));
 }
 
 #[test]
-fn graph_v8_and_rehashed_hostile_documents_fail_the_exact_v9_contract() {
-    fn accepts_v9(bytes: &str, expected_digest: &str) -> bool {
-        bytes.starts_with("{\"schema\":\"semaprax.graph.v9\",")
-            && !bytes.contains("\"schema\":\"semaprax.graph.v8\"")
+fn graph_v9_and_rehashed_hostile_documents_fail_the_exact_v10_contract() {
+    fn accepts_v10(bytes: &str, expected_digest: &str) -> bool {
+        bytes.starts_with("{\"schema\":\"semaprax.graph.v10\",")
+            && !bytes.contains("\"schema\":\"semaprax.graph.v9\"")
             && bytes.contains(
                 "\"id\":\"core.option.none\",\"kind\":\"variant_case\",\"name\":\"None\",\"identity_origin\":\"compiler_owned\",\"persistent\":true,\"owner\":\"core.option\",\"index\":0",
             )
@@ -127,12 +127,12 @@ fn graph_v8_and_rehashed_hostile_documents_fail_the_exact_v9_contract() {
 
     let graph = graph::to_json(&program()).unwrap();
     let digest = format!("{:x}", Sha256::digest(graph.as_bytes()));
-    assert!(accepts_v9(&graph, &digest));
-    assert!(!accepts_v9(
-        &graph.replacen("semaprax.graph.v9", "semaprax.graph.v8", 1),
+    assert!(accepts_v10(&graph, &digest));
+    assert!(!accepts_v10(
+        &graph.replacen("semaprax.graph.v10", "semaprax.graph.v9", 1),
         &digest
     ));
-    assert!(!accepts_v9(
+    assert!(!accepts_v10(
         &graph.replacen("core.option.some", "core.option.none", 1),
         &digest
     ));
@@ -142,6 +142,6 @@ fn graph_v8_and_rehashed_hostile_documents_fail_the_exact_v9_contract() {
         1,
     );
     let hostile_digest = format!("{:x}", Sha256::digest(rehashed_hostile.as_bytes()));
-    assert!(!accepts_v9(&rehashed_hostile, &digest));
-    assert!(!accepts_v9(&rehashed_hostile, &hostile_digest));
+    assert!(!accepts_v10(&rehashed_hostile, &digest));
+    assert!(!accepts_v10(&rehashed_hostile, &hostile_digest));
 }

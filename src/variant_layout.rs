@@ -419,6 +419,14 @@ fn collect_expr_variant_types(
         ResolvedExprKind::Unary { value, .. } | ResolvedExprKind::Project { base: value, .. } => {
             collect_expr_variant_types(program, value, instances)?;
         }
+        ResolvedExprKind::Try {
+            operand,
+            residual_type,
+            ..
+        } => {
+            collect_expr_variant_types(program, operand, instances)?;
+            collect_variant_type(program, residual_type, instances)?;
+        }
         ResolvedExprKind::Binary { left, right, .. } => {
             collect_expr_variant_types(program, left, instances)?;
             collect_expr_variant_types(program, right, instances)?;

@@ -8,17 +8,18 @@ use crate::cleanup::{
 };
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
-    DeclarationId, ExpressionId, OwnershipMode, Place, PlaceProjection, ResolvedExpr,
-    ResolvedExprKind, ResolvedFunction, ResolvedMatchArm, ResolvedMatchPattern, ResolvedProgram,
-    ResolvedStatement, ResolvedType, ResolvedTypeDeclarationKind,
+    DeclarationId, ExpressionId, IdentityOrigin, OwnershipMode, Place, PlaceProjection,
+    ResolvedExpr, ResolvedExprKind, ResolvedFunction, ResolvedMatchArm, ResolvedMatchPattern,
+    ResolvedProgram, ResolvedStatement, ResolvedType, ResolvedTypeDeclarationKind,
 };
+use crate::prelude;
 
 use super::{
     BlockId, CallArgumentTransfer, CheckedOperation, CleanupBlock, CleanupEdge, CleanupEntryState,
     CleanupPlace, CleanupPlan, CleanupRegion, CleanupRegionId, CleanupResultSource, CleanupSlot,
     CleanupSlotId, CleanupTerminator, CleanupTransition, ContractPhase, EdgeCondition, EdgeId,
-    ExitContinuation, ExitTarget, ExitTargetId, FinalizeAction, StatusCase, StatusLane,
-    StatusProducer, StatusSource, StatusSourceId, StorageId, CLEANUP_PLAN_SCHEMA_V1,
+    ExitContinuation, ExitTarget, ExitTargetId, FinalizeAction, StagedCopyResultSource, StatusCase,
+    StatusLane, StatusProducer, StatusSource, StatusSourceId, StorageId, CLEANUP_PLAN_SCHEMA_V2,
 };
 
 const UNRESOLVED_EXIT: ExitTargetId = ExitTargetId(u32::MAX);
@@ -66,6 +67,12 @@ struct EvalResult {
     owned_source: Option<CleanupPlace>,
 }
 
+struct PendingTryResidual {
+    block: BlockId,
+    state: FlowState,
+    region: CleanupRegionId,
+}
+
 struct OpenBlock {
     id: BlockId,
     region: CleanupRegionId,
@@ -94,6 +101,7 @@ struct PlanBuilder<'a> {
     exits: Vec<ExitTarget>,
     entry_state: CleanupEntryState,
     initial_state: FlowState,
+    pending_try_residuals: Vec<PendingTryResidual>,
 }
 
 impl<'a> PlanBuilder<'a> {
@@ -196,6 +204,7 @@ impl<'a> PlanBuilder<'a> {
             initial_state: FlowState {
                 live_order: Vec::new(),
             },
+            pending_try_residuals: Vec::new(),
         };
         builder.seed_entry(root)?;
         Ok(builder)
@@ -240,6 +249,9 @@ impl<'a> PlanBuilder<'a> {
             current = continued.0;
             state = continued.1;
         }
+        if !self.pending_try_residuals.is_empty() {
+            return Err(plan_error("postfix `?` is invalid in a precondition"));
+        }
 
         let body = self.lower_root_body(&self.function.body, current, state, root)?;
         current = body.block;
@@ -257,6 +269,51 @@ impl<'a> PlanBuilder<'a> {
             )?;
         }
 
+        if !self.pending_try_residuals.is_empty() {
+            if !self.slots.is_empty() || !state.live_order.is_empty() {
+                return Err(plan_error(
+                    "postfix `?` reached cleanup planning with resource leaves",
+                ));
+            }
+            self.push_transition(
+                current,
+                CleanupTransition::StageCopyResult {
+                    source: StagedCopyResultSource::Body {
+                        expression: self.function.body.id.clone(),
+                        instance: self.function.return_type.clone(),
+                    },
+                },
+            );
+            let epilogue = self.new_block(root)?;
+            let normal_edge = self.new_edge(current, epilogue, EdgeCondition::Always)?;
+            self.terminate(current, CleanupTerminator::Goto(normal_edge))?;
+
+            for residual in std::mem::take(&mut self.pending_try_residuals) {
+                if !residual.state.live_order.is_empty() {
+                    return Err(plan_error(
+                        "postfix `?` residual carries live resource leaves",
+                    ));
+                }
+                let edge = self.new_edge(residual.block, epilogue, EdgeCondition::Always)?;
+                let leaves_regions = self
+                    .region_chain(residual.region)
+                    .into_iter()
+                    .take_while(|region| *region != root)
+                    .collect::<Vec<_>>();
+                if leaves_regions.is_empty() {
+                    self.terminate(residual.block, CleanupTerminator::Goto(edge))?;
+                } else {
+                    self.emit_exit(
+                        residual.block,
+                        leaves_regions,
+                        Vec::new(),
+                        ExitContinuation::Continue(edge),
+                    )?;
+                }
+            }
+            current = epilogue;
+        }
+
         for (ordinal, contract) in self.function.ensures.iter().enumerate() {
             let continued = self.lower_contract_expression(
                 contract,
@@ -268,6 +325,9 @@ impl<'a> PlanBuilder<'a> {
             )?;
             current = continued.0;
             state = continued.1;
+        }
+        if !self.pending_try_residuals.is_empty() {
+            return Err(plan_error("postfix `?` is invalid in a postcondition"));
         }
 
         let result = if self.result_needs_drop()? {
@@ -296,7 +356,7 @@ impl<'a> PlanBuilder<'a> {
             })
             .collect::<Result<Vec<_>, Diagnostic>>()?;
         Ok(CleanupPlan {
-            schema: CLEANUP_PLAN_SCHEMA_V1,
+            schema: CLEANUP_PLAN_SCHEMA_V2,
             entry: BlockId(0),
             entry_state: self.entry_state,
             slots: self.slots,
@@ -1189,6 +1249,27 @@ impl<'a> PlanBuilder<'a> {
             ResolvedExprKind::ConstructVariant { fields, .. } => {
                 self.lower_copy_variant(fields, block, state, region)
             }
+            ResolvedExprKind::Try {
+                operand,
+                result,
+                ok_case,
+                ok_field,
+                err_case,
+                err_field,
+                residual_type,
+            } => self.lower_try(
+                expression,
+                operand,
+                result,
+                ok_case,
+                ok_field,
+                err_case,
+                err_field,
+                residual_type,
+                block,
+                state,
+                region,
+            ),
             ResolvedExprKind::Match { scrutinee, arms } => {
                 self.lower_match(scrutinee, arms, block, state, region)
             }
@@ -1586,6 +1667,130 @@ impl<'a> PlanBuilder<'a> {
         Ok(evaluated)
     }
 
+    #[allow(clippy::too_many_arguments)]
+    fn lower_try(
+        &mut self,
+        expression: &ResolvedExpr,
+        operand: &ResolvedExpr,
+        result: &DeclarationId,
+        ok_case: &DeclarationId,
+        ok_field: &DeclarationId,
+        err_case: &DeclarationId,
+        err_field: &DeclarationId,
+        residual_type: &ResolvedType,
+        block: BlockId,
+        state: FlowState,
+        region: CleanupRegionId,
+    ) -> Result<EvalResult, Diagnostic> {
+        if result.as_str() != prelude::RESULT_ID
+            || ok_case.as_str() != prelude::RESULT_OK_ID
+            || ok_field.as_str() != prelude::RESULT_OK_VALUE_ID
+            || err_case.as_str() != prelude::RESULT_ERR_ID
+            || err_field.as_str() != prelude::RESULT_ERR_ERROR_ID
+        {
+            return Err(plan_error(
+                "postfix `?` does not authenticate the ordinary Result prelude",
+            ));
+        }
+        for id in [result, ok_case, ok_field, err_case, err_field] {
+            let declaration = self
+                .program
+                .declarations
+                .declaration(id)
+                .ok_or_else(|| plan_error(format!("postfix `?` references unknown `{id}`")))?;
+            if declaration.identity_origin != IdentityOrigin::CompilerOwned {
+                return Err(plan_error(format!(
+                    "postfix `?` reference `{id}` is not compiler-owned"
+                )));
+            }
+        }
+        let source_arguments = result_arguments(&operand.ty, result)?;
+        let target_arguments = result_arguments(residual_type, result)?;
+        if source_arguments.len() != 2
+            || target_arguments.len() != 2
+            || source_arguments
+                .iter()
+                .chain(target_arguments.iter())
+                .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
+            || expression.ty != source_arguments[0]
+            || source_arguments[1] != target_arguments[1]
+            || residual_type != &self.function.return_type
+        {
+            return Err(plan_error(
+                "postfix `?` has inconsistent source, value, residual, or function types",
+            ));
+        }
+        for ty in [&operand.ty, residual_type] {
+            let facts = self
+                .program
+                .declarations
+                .type_facts(ty)
+                .ok_or_else(|| plan_error("postfix `?` Result instance has no type facts"))?;
+            if !facts.copy || !facts.sized || facts.contains_resource || facts.needs_drop {
+                return Err(plan_error(
+                    "postfix `?` reached cleanup planning outside the Copy Result slice",
+                ));
+            }
+        }
+
+        let evaluated = self.lower_expr(operand, block, state, region)?;
+        if evaluated.owned_source.is_some() {
+            return Err(plan_error(
+                "postfix `?` operand reached the Copy slice with cleanup storage",
+            ));
+        }
+        let success = self.new_block(region)?;
+        let residual = self.new_block(region)?;
+        let success_edge = self.new_edge(
+            evaluated.block,
+            success,
+            EdgeCondition::VariantCase {
+                scrutinee: operand.id.clone(),
+                case: ok_case.clone(),
+                matches: true,
+            },
+        )?;
+        let residual_edge = self.new_edge(
+            evaluated.block,
+            residual,
+            EdgeCondition::VariantCase {
+                scrutinee: operand.id.clone(),
+                case: ok_case.clone(),
+                matches: false,
+            },
+        )?;
+        self.terminate(
+            evaluated.block,
+            CleanupTerminator::Branch(vec![success_edge, residual_edge]),
+        )?;
+        self.push_transition(
+            residual,
+            CleanupTransition::StageCopyResult {
+                source: StagedCopyResultSource::TryResidual {
+                    expression: expression.id.clone(),
+                    operand: operand.id.clone(),
+                    source_instance: operand.ty.clone(),
+                    target_instance: residual_type.clone(),
+                    result: result.clone(),
+                    ok_case: ok_case.clone(),
+                    ok_field: ok_field.clone(),
+                    err_case: err_case.clone(),
+                    err_field: err_field.clone(),
+                },
+            },
+        );
+        self.pending_try_residuals.push(PendingTryResidual {
+            block: residual,
+            state: evaluated.state.clone(),
+            region,
+        });
+        Ok(EvalResult {
+            block: success,
+            state: evaluated.state,
+            owned_source: None,
+        })
+    }
+
     fn lower_match(
         &mut self,
         scrutinee: &ResolvedExpr,
@@ -1801,6 +2006,25 @@ impl<'a> PlanBuilder<'a> {
             owned_source: Some(destination),
         })
     }
+}
+
+fn result_arguments<'a>(
+    ty: &'a ResolvedType,
+    result: &DeclarationId,
+) -> Result<&'a [ResolvedType], Diagnostic> {
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = ty
+    else {
+        return Err(plan_error("postfix `?` operand is not a nominal Result"));
+    };
+    if declaration != result {
+        return Err(plan_error(
+            "postfix `?` operand or residual is not the authenticated Result",
+        ));
+    }
+    Ok(arguments)
 }
 
 fn condition_id(expression: &ResolvedExpr) -> Result<ExpressionId, Diagnostic> {

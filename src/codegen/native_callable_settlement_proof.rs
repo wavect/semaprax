@@ -674,7 +674,7 @@ mod tests {
         .unwrap();
         assert_eq!(
             hex(&Sha256::digest(&graph)),
-            "a54630347381e7709ccc4ed499056b372557a2ea8aa3f2894720fb5f5357831e"
+            "60c7b31750a6571e77a5e8568d6ea4ee3ce3e599681b88776a846aa5e43e7e32"
         );
     }
 }

@@ -424,6 +424,11 @@ pub fn build_semantic_event_dictionary(
                         "call commit `{call}` is outside the single-frame slice"
                     )))
                 }
+                CleanupTransition::StageCopyResult { .. } => {
+                    return Err(dictionary_error(
+                        "copy-result staging is outside the direct-resource slice",
+                    ))
+                }
             };
             push_unique(&mut entries, event)?;
         }
@@ -834,5 +839,27 @@ fn main() -> i64 { 0 }
             build_semantic_event_dictionary(&resolved, &DeclarationId::new("file.discard"))
                 .is_err()
         );
+    }
+
+    #[test]
+    fn typed_result_staging_is_rejected_before_callable_trace_admission() {
+        let source = r#"module test.trace_try_closed;
+@id("test.forward")
+fn forward(value: Result<i64, bool>) -> Result<bool, bool> {
+    let number = value?;
+    Result<bool, bool>::Ok { value: number > 0 }
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+        let parsed = crate::parse(source, Path::new("semantic-dictionary-try.spx")).unwrap();
+        let resolved = hir::resolve(&parsed).unwrap();
+        let diagnostic =
+            build_semantic_event_dictionary(&resolved, &DeclarationId::new("test.forward"))
+                .unwrap_err();
+        assert_eq!(diagnostic.code, "SPX-B104");
+        assert!(diagnostic
+            .message
+            .contains("copy-result staging is outside the direct-resource slice"));
     }
 }

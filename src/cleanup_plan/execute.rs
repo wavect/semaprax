@@ -16,15 +16,16 @@ use crate::conformance::{
     TraceEventKind, TraceOutcome, TraceResult,
 };
 use crate::hir::{
-    self, DeclarationId, ExpressionId, ResolvedFunction, ResolvedProgram, ResolvedResourceDropKind,
-    ResolvedType, ResolvedTypeDeclarationKind,
+    self, DeclarationId, ExpressionId, IdentityOrigin, ResolvedFunction, ResolvedProgram,
+    ResolvedResourceDropKind, ResolvedType, ResolvedTypeDeclarationKind,
 };
+use crate::prelude;
 use crate::runtime_status::{ScopedStatusToken, StatusArena, StatusArenaError, StatusContextId};
 
 use super::{
     BlockId, CleanupBlock, CleanupEdge, CleanupPlace, CleanupResultSource, CleanupTerminator,
-    CleanupTransition, EdgeCondition, EdgeId, ExitContinuation, ExitTarget, StatusLane,
-    StatusProducer, StatusSourceId, StorageId,
+    CleanupTransition, EdgeCondition, EdgeId, ExitContinuation, ExitTarget, StagedCopyResultSource,
+    StatusLane, StatusProducer, StatusSourceId, StorageId,
 };
 
 /// All target-dependent expression observations needed by the cleanup oracle.
@@ -222,6 +223,20 @@ fn validate_public_result_type(
         .map(|item| &item.kind)
     {
         Some(ResolvedTypeDeclarationKind::Resource { .. }) => Ok(()),
+        Some(ResolvedTypeDeclarationKind::Variant { .. })
+            if expression_has_try(&function.body)
+                && program
+                    .declarations
+                    .type_facts(&function.return_type)
+                    .is_some_and(|facts| {
+                        facts.copy && facts.sized && !facts.contains_resource && !facts.needs_drop
+                    }) =>
+        {
+            // The executor authenticates staged Copy-result control/state, but
+            // the public conformance protocol intentionally has no aggregate
+            // value representation. Terminal materialization remains closed.
+            Ok(())
+        }
         Some(
             ResolvedTypeDeclarationKind::Record { .. }
             | ResolvedTypeDeclarationKind::Variant { .. },
@@ -284,6 +299,40 @@ fn collect_variant_domains(
                 visit(program, base, domains)?;
                 for field in fields {
                     visit(program, &field.value, domains)?;
+                }
+            }
+            hir::ResolvedExprKind::Try { operand, .. } => {
+                visit(program, operand, domains)?;
+                let ResolvedType::Nominal { declaration, .. } = &operand.ty else {
+                    return Err(invariant(format!(
+                        "postfix `?` operand `{}` is not a nominal Result",
+                        operand.id
+                    )));
+                };
+                let cases = program
+                    .types
+                    .iter()
+                    .find(|item| item.id == *declaration)
+                    .and_then(|item| match &item.kind {
+                        ResolvedTypeDeclarationKind::Variant { cases } => Some(cases),
+                        ResolvedTypeDeclarationKind::Resource { .. }
+                        | ResolvedTypeDeclarationKind::Record { .. } => None,
+                    })
+                    .ok_or_else(|| {
+                        invariant(format!(
+                            "postfix `?` operand `{}` references a non-variant declaration",
+                            operand.id
+                        ))
+                    })?;
+                let domain = cases
+                    .iter()
+                    .map(|case| case.id.clone())
+                    .collect::<BTreeSet<_>>();
+                if domain.is_empty() || domains.insert(operand.id.clone(), domain).is_some() {
+                    return Err(invariant(format!(
+                        "postfix `?` operand `{}` has an invalid or duplicate case domain",
+                        operand.id
+                    )));
                 }
             }
             hir::ResolvedExprKind::Match { scrutinee, arms } => {
@@ -353,6 +402,172 @@ fn collect_variant_domains(
     Ok(domains)
 }
 
+fn validate_staged_copy_source(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    source: &StagedCopyResultSource,
+) -> Result<(), CleanupExecutionError> {
+    match source {
+        StagedCopyResultSource::Body {
+            expression,
+            instance,
+        } => {
+            if expression != &function.body.id || instance != &function.return_type {
+                return Err(invariant(
+                    "body Copy-result stage changes expression or concrete instance",
+                ));
+            }
+        }
+        StagedCopyResultSource::TryResidual {
+            expression,
+            operand,
+            source_instance,
+            target_instance,
+            result,
+            ok_case,
+            ok_field,
+            err_case,
+            err_field,
+        } => {
+            if result.as_str() != prelude::RESULT_ID
+                || ok_case.as_str() != prelude::RESULT_OK_ID
+                || ok_field.as_str() != prelude::RESULT_OK_VALUE_ID
+                || err_case.as_str() != prelude::RESULT_ERR_ID
+                || err_field.as_str() != prelude::RESULT_ERR_ERROR_ID
+                || target_instance != &function.return_type
+            {
+                return Err(invariant(
+                    "Try residual stage changes Result identities or target instance",
+                ));
+            }
+            for id in [result, ok_case, ok_field, err_case, err_field] {
+                if program
+                    .declarations
+                    .declaration(id)
+                    .is_none_or(|declaration| {
+                        declaration.identity_origin != IdentityOrigin::CompilerOwned
+                    })
+                {
+                    return Err(invariant(format!(
+                        "Try residual identity `{id}` is not compiler-owned"
+                    )));
+                }
+            }
+            let actual = find_expression(&function.body, expression)
+                .ok_or_else(|| invariant("Try residual stage names an unknown expression"))?;
+            let hir::ResolvedExprKind::Try {
+                operand: actual_operand,
+                result: actual_result,
+                ok_case: actual_ok_case,
+                ok_field: actual_ok_field,
+                err_case: actual_err_case,
+                err_field: actual_err_field,
+                residual_type,
+            } = &actual.kind
+            else {
+                return Err(invariant(
+                    "Try residual stage does not name a Try expression",
+                ));
+            };
+            if &actual_operand.id != operand
+                || &actual_operand.ty != source_instance
+                || residual_type != target_instance
+                || actual_result != result
+                || actual_ok_case != ok_case
+                || actual_ok_field != ok_field
+                || actual_err_case != err_case
+                || actual_err_field != err_field
+            {
+                return Err(invariant(
+                    "Try residual stage disagrees with exact typed HIR",
+                ));
+            }
+            let selected = program
+                .declarations
+                .type_facts(source_instance)
+                .zip(program.declarations.type_facts(target_instance));
+            if selected.is_none_or(|(source, target)| {
+                [source, target].into_iter().any(|facts| {
+                    !facts.copy || !facts.sized || facts.contains_resource || facts.needs_drop
+                })
+            }) {
+                return Err(invariant(
+                    "Try residual stage is outside the Copy Result slice",
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+fn expression_has_try(expression: &hir::ResolvedExpr) -> bool {
+    find_expression_by(expression, &|candidate| {
+        matches!(candidate.kind, hir::ResolvedExprKind::Try { .. })
+    })
+    .is_some()
+}
+
+fn find_expression<'a>(
+    expression: &'a hir::ResolvedExpr,
+    id: &ExpressionId,
+) -> Option<&'a hir::ResolvedExpr> {
+    find_expression_by(expression, &|candidate| &candidate.id == id)
+}
+
+fn find_expression_by<'a>(
+    expression: &'a hir::ResolvedExpr,
+    predicate: &impl Fn(&hir::ResolvedExpr) -> bool,
+) -> Option<&'a hir::ResolvedExpr> {
+    if predicate(expression) {
+        return Some(expression);
+    }
+    match &expression.kind {
+        hir::ResolvedExprKind::Call { args, .. } => args
+            .iter()
+            .find_map(|argument| find_expression_by(argument, predicate)),
+        hir::ResolvedExprKind::Unary { value, .. }
+        | hir::ResolvedExprKind::Project { base: value, .. }
+        | hir::ResolvedExprKind::Try { operand: value, .. } => find_expression_by(value, predicate),
+        hir::ResolvedExprKind::Binary { left, right, .. } => {
+            find_expression_by(left, predicate).or_else(|| find_expression_by(right, predicate))
+        }
+        hir::ResolvedExprKind::Block { statements, tail } => statements
+            .iter()
+            .find_map(|statement| {
+                let hir::ResolvedStatement::Let { value, .. } = statement;
+                find_expression_by(value, predicate)
+            })
+            .or_else(|| find_expression_by(tail, predicate)),
+        hir::ResolvedExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => find_expression_by(condition, predicate)
+            .or_else(|| find_expression_by(then_branch, predicate))
+            .or_else(|| find_expression_by(else_branch, predicate)),
+        hir::ResolvedExprKind::ConstructRecord { fields, .. }
+        | hir::ResolvedExprKind::ConstructVariant { fields, .. } => fields
+            .iter()
+            .find_map(|field| find_expression_by(&field.value, predicate)),
+        hir::ResolvedExprKind::Match { scrutinee, arms } => {
+            find_expression_by(scrutinee, predicate).or_else(|| {
+                arms.iter()
+                    .find_map(|arm| find_expression_by(&arm.value, predicate))
+            })
+        }
+        hir::ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            find_expression_by(base, predicate).or_else(|| {
+                fields
+                    .iter()
+                    .find_map(|field| find_expression_by(&field.value, predicate))
+            })
+        }
+        hir::ResolvedExprKind::Int(_)
+        | hir::ResolvedExprKind::Bool(_)
+        | hir::ResolvedExprKind::Place(_) => None,
+    }
+}
+
 #[derive(Clone)]
 struct Leaf {
     place: CleanupPlace,
@@ -394,6 +609,7 @@ struct Executor<'a> {
     used_operations: BTreeSet<StatusSourceId>,
     visited: BTreeSet<BlockId>,
     selected: Option<SelectedFailure>,
+    staged_copy_result: Option<StagedCopyResultSource>,
     result_slot: ResultSlotState,
     status_arena: StatusArena,
     events: Vec<TraceEvent>,
@@ -437,6 +653,7 @@ impl<'a> Executor<'a> {
             used_operations: BTreeSet::new(),
             visited: BTreeSet::new(),
             selected: None,
+            staged_copy_result: None,
             result_slot: ResultSlotState::Uninitialized,
             status_arena,
             events: Vec::new(),
@@ -588,7 +805,31 @@ impl<'a> Executor<'a> {
                 });
             }
             CleanupTransition::SelectFailure { source } => self.select_failure(source)?,
+            CleanupTransition::StageCopyResult { source } => {
+                self.stage_copy_result(source)?;
+            }
         }
+        Ok(())
+    }
+
+    fn stage_copy_result(
+        &mut self,
+        source: StagedCopyResultSource,
+    ) -> Result<(), CleanupExecutionError> {
+        if self.result_slot != ResultSlotState::Uninitialized {
+            return Err(invariant("Copy result staging follows publication"));
+        }
+        if self.selected.is_some() {
+            return Err(invariant("Copy result staging follows failure selection"));
+        }
+        if self.staged_copy_result.is_some() {
+            return Err(invariant("Copy result is staged more than once"));
+        }
+        if !self.live.is_empty() {
+            return Err(invariant("Copy result staging carries resource liveness"));
+        }
+        validate_staged_copy_source(self.program, self.function, &source)?;
+        self.staged_copy_result = Some(source);
         Ok(())
     }
 
@@ -831,6 +1072,21 @@ impl<'a> Executor<'a> {
         }
         if self.selected.is_some() {
             return Err(invariant("result publication follows failure selection"));
+        }
+        if expression_has_try(&self.function.body) {
+            let staged = self
+                .staged_copy_result
+                .take()
+                .ok_or_else(|| invariant("Copy Result commit has no staged producer"))?;
+            validate_staged_copy_source(self.program, self.function, &staged)?;
+            return Err(CleanupExecutionError::UnsupportedResultType(
+                self.function.return_type.identity_key(),
+            ));
+        }
+        if self.staged_copy_result.is_some() {
+            return Err(invariant(
+                "non-try result publication carries a staged Copy result",
+            ));
         }
         let result = self
             .scenario
@@ -1302,6 +1558,20 @@ fn discard_file(value: own File) -> i64 uses { io.release } { 0 }
 fn main() -> i64 { 0 }
 "#;
 
+    const TRY_SOURCE: &str = r#"module test.execute_try;
+
+@id("result.forward")
+fn forward(value: Result<i64, bool>) -> Result<bool, bool>
+    ensures true
+{
+    let number = value?;
+    Result<bool, bool>::Ok { value: true }
+}
+
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+
     fn program() -> ResolvedProgram {
         let parsed = parse(SOURCE, Path::new("cleanup-execute.spx")).unwrap();
         hir::resolve(&parsed).unwrap()
@@ -1313,6 +1583,11 @@ fn main() -> i64 { 0 }
             .iter()
             .find(|function| function.id.as_str() == id)
             .unwrap()
+    }
+
+    fn try_program() -> ResolvedProgram {
+        let parsed = parse(TRY_SOURCE, Path::new("cleanup-execute-try.spx")).unwrap();
+        hir::resolve(&parsed).unwrap()
     }
 
     #[test]
@@ -1868,6 +2143,115 @@ fn main() -> i64 { 0 }
                 .filter(|event| matches!(event.event, TraceEventKind::ResultCommit { .. }))
                 .count(),
             1
+        );
+    }
+
+    #[test]
+    fn try_executor_stages_each_normal_result_path_then_fails_closed_at_materialization() {
+        let program = try_program();
+        let function = function(&program, "result.forward");
+        let residual = function
+            .cleanup_plan
+            .blocks
+            .iter()
+            .flat_map(|block| &block.transitions)
+            .find_map(|transition| match transition {
+                CleanupTransition::StageCopyResult {
+                    source: source @ StagedCopyResultSource::TryResidual { .. },
+                } => Some(source.clone()),
+                _ => None,
+            })
+            .unwrap();
+        let StagedCopyResultSource::TryResidual {
+            operand, ok_case, ..
+        } = &residual
+        else {
+            unreachable!()
+        };
+
+        for selected_case in [ok_case.clone(), DeclarationId::new(prelude::RESULT_ERR_ID)] {
+            let mut scenario = CleanupScenario::new("copy-result-closed", None);
+            scenario
+                .variant_cases
+                .insert(operand.clone(), selected_case);
+            for source in &function.cleanup_plan.status_sources {
+                if source.id.lane == StatusLane::ContractFalse {
+                    scenario.booleans.insert(source.id.expression.clone(), true);
+                }
+            }
+            let outcome = execute_for_conformance(&program, &function.id, scenario);
+            assert!(
+                matches!(
+                    outcome,
+                Err(CleanupExecutionError::UnsupportedResultType(ref result))
+                    if result == &function.return_type.identity_key()
+                ),
+                "unexpected executor outcome: {outcome:?}"
+            );
+        }
+
+        let mut executor = Executor::new(
+            &program,
+            function,
+            CleanupScenario::new("staged-state", None),
+        )
+        .unwrap();
+        executor.stage_copy_result(residual.clone()).unwrap();
+        assert_eq!(executor.staged_copy_result, Some(residual.clone()));
+        assert_eq!(
+            executor.stage_copy_result(residual.clone()),
+            Err(CleanupExecutionError::HarnessInvariant(
+                "Copy result is staged more than once".to_owned(),
+            ))
+        );
+        assert_eq!(executor.result_slot, ResultSlotState::Uninitialized);
+        assert!(executor.events.is_empty());
+
+        let scalar_source = function
+            .cleanup_plan
+            .exits
+            .iter()
+            .find_map(|exit| match &exit.continuation {
+                ExitContinuation::CommitResult { source } => Some(source.clone()),
+                ExitContinuation::Continue(_)
+                | ExitContinuation::ReturnFailure { .. }
+                | ExitContinuation::ReturnUnit => None,
+            })
+            .unwrap();
+        let mut missing = Executor::new(
+            &program,
+            function,
+            CleanupScenario::new("missing-stage", None),
+        )
+        .unwrap();
+        assert_eq!(
+            missing.commit_result(scalar_source),
+            Err(CleanupExecutionError::HarnessInvariant(
+                "Copy Result commit has no staged producer".to_owned(),
+            ))
+        );
+
+        let mut wrong_target = residual;
+        let StagedCopyResultSource::TryResidual {
+            source_instance,
+            target_instance,
+            ..
+        } = &mut wrong_target
+        else {
+            unreachable!()
+        };
+        *target_instance = source_instance.clone();
+        let mut hostile = Executor::new(
+            &program,
+            function,
+            CleanupScenario::new("wrong-target", None),
+        )
+        .unwrap();
+        assert_eq!(
+            hostile.stage_copy_result(wrong_target),
+            Err(CleanupExecutionError::HarnessInvariant(
+                "Try residual stage changes Result identities or target instance".to_owned(),
+            ))
         );
     }
 }

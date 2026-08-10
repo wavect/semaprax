@@ -2,7 +2,7 @@
 //!
 //! Admission is deliberately narrow. The lowering consumes terminal cleanup
 //! actions and owned-result publication from the replay-validated
-//! `semaprax.cleanup-plan.v1`; unsupported shapes remain behind `SPX-W111`.
+//! `semaprax.cleanup-plan.v2`; unsupported shapes remain behind `SPX-W111`.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;

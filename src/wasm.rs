@@ -464,6 +464,9 @@ fn collect_locals(
         ResolvedExprKind::Unary { value, .. } => {
             collect_locals(value, parameter_count, layout)?;
         }
+        ResolvedExprKind::Try { operand, .. } => {
+            collect_locals(operand, parameter_count, layout)?;
+        }
         ResolvedExprKind::Binary { left, right, .. } => {
             collect_locals(left, parameter_count, layout)?;
             collect_locals(right, parameter_count, layout)?;
@@ -720,6 +723,7 @@ fn emit_expr(
         ResolvedExprKind::ConstructRecord { .. }
         | ResolvedExprKind::ConstructVariant { .. }
         | ResolvedExprKind::Match { .. }
+        | ResolvedExprKind::Try { .. }
         | ResolvedExprKind::Project { .. }
         | ResolvedExprKind::UpdateRecord { .. } => {
             return Err(Diagnostic::io(

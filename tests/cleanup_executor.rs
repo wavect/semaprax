@@ -194,7 +194,9 @@ fn transition_event(
             callee: callee_for_call(function, call),
             arguments: arguments.clone(),
         },
-        CleanupTransition::SelectFailure { .. } => return None,
+        CleanupTransition::SelectFailure { .. } | CleanupTransition::StageCopyResult { .. } => {
+            return None
+        }
     };
     Some(trace_event(function, event))
 }

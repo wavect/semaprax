@@ -612,6 +612,11 @@ fn emit_transition(
                 .expect("writing to a string cannot fail");
             emit_select_failure_trace(output, index, bindings, source)?;
         }
+        CleanupTransition::StageCopyResult { .. } => {
+            return Err(cleanup_error(
+                "staged Copy result reached the native owned-resource cleanup scaffold",
+            ));
+        }
     }
     Ok(())
 }
@@ -978,6 +983,11 @@ fn validate_bindings(
                     )));
                 }
                 CleanupTransition::Initialize { .. } | CleanupTransition::Transfer { .. } => {}
+                CleanupTransition::StageCopyResult { .. } => {
+                    return Err(cleanup_error(
+                        "staged Copy result reached owned-resource binding preflight",
+                    ));
+                }
             }
         }
     }

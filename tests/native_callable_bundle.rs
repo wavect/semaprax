@@ -388,6 +388,30 @@ fn build_refuses_existing_files_directories_and_symlinks_without_mutation() {
 }
 
 #[test]
+fn callable_preflight_keeps_typed_result_propagation_outside_the_public_slice() {
+    let source = r#"module test.callable_try_closed;
+@id("token.type")
+resource Token { @id("token.drop") drop trivial; }
+@id("test.forward")
+fn forward(token: own Token, value: Result<i64, bool>) -> Result<bool, bool> {
+    let number = value?;
+    Result<bool, bool>::Ok { value: number > 0 }
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+    let program = parse(source, Path::new("native-callable-try-closed.spx")).unwrap();
+    let diagnostic = match preflight_native_callable_bundle(&program, "test.forward") {
+        Ok(_) => panic!("typed Result propagation must remain outside callable admission"),
+        Err(diagnostic) => diagnostic,
+    };
+    assert_eq!(diagnostic.code, "SPX-T218");
+    assert!(diagnostic
+        .message
+        .contains("`?` with a live resource binding is not supported yet"));
+}
+
+#[test]
 fn public_preflight_rejects_missing_automatic_and_excluded_functions() {
     let program = program();
     let missing = require_error(

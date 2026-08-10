@@ -16,7 +16,7 @@ the former callable-composition gap, but not public execution/admission.
 
 The first slice converts the existing validated ownership and cleanup meaning
 into real host behavior on both native and WebAssembly targets. It must consume
-the exact attached `semaprax.cleanup-plan.v1`; a backend or host may not infer,
+the exact attached `semaprax.cleanup-plan.v2`; a backend or host may not infer,
 repair, or independently choose ownership behavior after HIR validation.
 
 The slice admits only monomorphic functions whose complete reachable type and

@@ -169,6 +169,42 @@ including [Ubuntu job
 93570423170](https://github.com/wavect/semaprax/actions/runs/31423743369/job/93570423170);
 all 12 jobs passed.
 
+## Semantic Review artifacts to Semantic Patch Evidence v1
+
+`semaprax patch-evidence <file> <patch.spatch>` and
+`semaprax verify-patch-evidence <file> <patch.spatch> <evidence.json>` are
+additive fixed-arity generation and independent-replay commands. Consumers
+must select `semaprax.semantic-patch-evidence.v1` or
+`semaprax.semantic-patch-evidence-verification.v1`; a Review report is neither
+schema and cannot be substituted. Review remains byte-for-byte unchanged,
+retains its KATs and `no_public_verify_api_or_proof_artifact` nonclaim, exposes
+only read-only `review::preview`, and adds no `review::verify`. Evidence v1 is
+a separate artifact that domain-digest-binds the independently rebuilt Review.
+
+`semaprax patch-with-evidence <file> <patch.spatch> <evidence.json>` is the
+new opt-in application route. It acquires the ordinary A0 lock before input
+reads, requires exact evidence replay before creating a stage, and
+then uses unchanged A0. Existing `semaprax patch` behavior and Patch v1/v2/v3
+grammars are unchanged and remain evidence-optional. A capsule is therefore
+not continuing provenance, commit authority, or a reusable authorization
+token.
+
+Patch v1/v2 capsules bind complete nontruncated Impact v1 evidence; the sole
+canonical Patch v3 capsule binds the shared identity-rebase object and does
+not widen Impact. Exact key order, digest domains, KATs, bounds, diagnostics,
+and nonclaims are frozen in
+[`SEMANTIC-PATCH-EVIDENCE-V1.md`](SEMANTIC-PATCH-EVIDENCE-V1.md). Local A+B
+evidence is 11/11 integration plus 5/5 internal units; Phase C is 16/16
+integration plus 11/11 hook/limit units; library 420/420, doctest 37/37, full
+preservation, and security are green. The exact
+`34a8ed82e9ae96277aa51e7994c19644331f5e78` replacement matrix is hosted green
+in [run
+31431768632](https://github.com/wavect/semaprax/actions/runs/31431768632),
+including [Ubuntu job
+93596706949](https://github.com/wavect/semaprax/actions/runs/31431768632/job/93596706949);
+all 12 jobs passed. The earlier `e04c2c9` run failed only the Rust 1.97 lint
+and is not green evidence.
+
 ## Persistent identities are NUL-free
 
 Persistent semantic identities and logical import keys may not contain a literal NUL byte. Source validation reports the declaration-specific stable diagnostic before resolution or graph serialization; `\0` remains an unsupported source-string escape. Public consumers of transformed resolved HIR must likewise reject NUL in declaration IDs, types, expressions, places, call/record/field references, and attached cleanup inventory or plan metadata before code generation or serialization. Regenerate or rename any pre-alpha fixture that constructed such an identity directly.

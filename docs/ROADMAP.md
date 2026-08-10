@@ -37,6 +37,21 @@ Status: implemented in this repository.
   93570423170](https://github.com/wavect/semaprax/actions/runs/31423743369/job/93570423170);
   all 12 jobs passed. Context, target/test execution, proof/verifier/provenance, approval,
   A0 authority, and repository/multi-file review remain open.
+- Semantic Patch Evidence v1 emits and independently replays bounded capsules
+  for Patch v1/v2 and the sole Patch v3 operation. Its separate
+  `patch-with-evidence` route acquires the unchanged A0 lock and requires exact
+  replay before staging; ordinary `patch` remains unchanged. A+B is 11/11
+  integration plus 5/5 internal units, Phase C is 16/16 integration plus 11/11
+  hook/limit units, and library 420/420 plus doctest 37/37 are locally green.
+  The exact `34a8ed82e9ae96277aa51e7994c19644331f5e78` replacement matrix is hosted
+  green in [run
+  31431768632](https://github.com/wavect/semaprax/actions/runs/31431768632),
+  including [Ubuntu job
+  93596706949](https://github.com/wavect/semaprax/actions/runs/31431768632/job/93596706949);
+  all 12 jobs passed. The earlier `e04c2c9` run failed only the Rust 1.97 lint
+  and is not green evidence. Signatures/provenance, approval, target/test execution, general
+  formal proofs, repository/multi-file scope, and reusable authorization remain
+  open.
 - Offline context economics with exact goldens and conservative quality routing.
 - Effects, module permits, and contract guards.
 - Machine-readable diagnostics.
@@ -582,9 +597,30 @@ hosted green in [run 31423743369 attempt
 including [Ubuntu job
 93570423170](https://github.com/wavect/semaprax/actions/runs/31423743369/job/93570423170);
 all 12 jobs passed. This advances deterministic review only:
-general repository review, authenticated provenance, proof-carrying patches,
-public verification, target execution, human approval workflows, multi-file
-transactions, and the 0.2 CLI exit criterion remain open.
+general repository review, authenticated provenance, target execution, human
+approval workflows, multi-file transactions, and the 0.2 CLI exit criterion
+remain open.
+
+Semantic Patch Evidence v1 advances only the bounded Proof-carrying patches
+row from Missing to Partial. It freezes canonical capsules and independent
+receipts for every currently admitted Patch v1/v2/v3 operation and gates a
+separate A0 route on exact replay before stage preparation. Capsule KATs are
+`03befad24157620b56138e84d4495b1973d141275ee728493d5fbe4f0f6f09aa`,
+`23742f9b8a323003237106d7a800cc8fb98f53a68bd72f5e0961cf47c63f7bba`, and
+`d682e08b125451af3ed49dce03a0814e83ca5e665224fc3bc7ab7b314827f62c`;
+receipt KATs are
+`1f2733743aaf2f9d2b9ad6bf2709a6867f169f596be01a9d53e92daecb8730a1`,
+`6d8b13b3f54277e66a1ee501e1e71d6fe959a2ebcdbaa158a7ece20dde054e48`, and
+`13a99674a4c014d9f7f315d8108c3e5c870dcac2c5950ff3035ca1a1c155361b`.
+Local A+B 11/11 plus 5/5, Phase C 16/16 plus 11/11, library 420/420,
+doctest 37/37, preservation, and security are green. The exact
+`34a8ed82e9ae96277aa51e7994c19644331f5e78` replacement matrix is hosted green
+in [run 31431768632](https://github.com/wavect/semaprax/actions/runs/31431768632),
+including [Ubuntu job 93596706949](https://github.com/wavect/semaprax/actions/runs/31431768632/job/93596706949);
+all 12 jobs passed. The earlier `e04c2c9` run failed only the Rust 1.97 lint
+and is not green evidence. General formal proofs, signatures/provenance, approval, target/test or
+consumer-compatibility proof, repository/multi-file analysis, and comprehensive
+claims/capability/target verification remain roadmap work.
 
 - Versioned language, graph, package, and component specifications.
 - Reproducible native and component builds on supported targets.

@@ -226,6 +226,13 @@ signature, verifier, authenticated provenance, general v3 Impact, new patch or
 repair operation, Graph/CleanupPlan schema widening, backend/runtime semantic
 change, repository index, multi-file transaction, or commit authority.
 
+The separate [Semantic Patch Evidence v1](SEMANTIC-PATCH-EVIDENCE-V1.md)
+capsule domain-digest-binds an independently rebuilt Review and carries the
+bounded proof artifact. This does not change any Review byte, KAT, schema,
+nonclaim, or public API: Review still exposes only read-only `review::preview`,
+has no `review::verify`, and its report itself remains non-proof. Evidence's
+opt-in apply authority comes from `patch-with-evidence`, not from Review.
+
 ## Evidence
 
 The exact whole-report SHA-256 KATs are:

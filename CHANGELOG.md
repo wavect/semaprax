@@ -4,6 +4,35 @@ All notable changes to SEMAPRAX are documented here.
 
 ## 0.2.0 — 2026-08-07
 
+- Added [Semantic Patch Evidence v1](docs/SEMANTIC-PATCH-EVIDENCE-V1.md).
+  Fixed-arity `patch-evidence` and `verify-patch-evidence` commands emit and
+  independently replay exact bounded capsules for Patch v1/v2 and the sole
+  canonical Patch v3 operation. The separate `patch-with-evidence` route
+  acquires the unchanged A0 lock first, requires exact replay before staging,
+  then commits through unchanged A0; ordinary `patch` remains unchanged.
+  Exact capsule SHA-256 KATs are
+  `03befad24157620b56138e84d4495b1973d141275ee728493d5fbe4f0f6f09aa`,
+  `23742f9b8a323003237106d7a800cc8fb98f53a68bd72f5e0961cf47c63f7bba`, and
+  `d682e08b125451af3ed49dce03a0814e83ca5e665224fc3bc7ab7b314827f62c`;
+  receipt KATs are
+  `1f2733743aaf2f9d2b9ad6bf2709a6867f169f596be01a9d53e92daecb8730a1`,
+  `6d8b13b3f54277e66a1ee501e1e71d6fe959a2ebcdbaa158a7ece20dde054e48`, and
+  `13a99674a4c014d9f7f315d8108c3e5c870dcac2c5950ff3035ca1a1c155361b`.
+  A+B integration is 11/11 with 5/5 internal units; Phase C integration is
+  16/16 with 11/11 hook/limit units; library 420/420, doctest 37/37, full
+  preservation, and security gates are locally green. The exact
+  `34a8ed82e9ae96277aa51e7994c19644331f5e78` replacement matrix is hosted green
+  in [run
+  31431768632](https://github.com/wavect/semaprax/actions/runs/31431768632),
+  including [Ubuntu job
+  93596706949](https://github.com/wavect/semaprax/actions/runs/31431768632/job/93596706949);
+  all 12 jobs passed. `e04c2c9` was the failed Rust 1.97 lint predecessor, not
+  green evidence. This moves only Proof-carrying
+  patches from Missing to Partial: capsules are not signatures, authenticated
+  provenance, approval, target/test execution, general proofs, reusable
+  authorization, multi-file transactions, or new Graph/Cleanup/runtime
+  semantics.
+
 - Added [Bounded Semantic Review v1](docs/SEMANTIC-REVIEW-V1.md), a fixed-arity
   read-only `review <file> <patch.spatch>` command with canonical
   `semaprax.semantic-review.v1` JSON. Patch v1/v2 reports embed complete,

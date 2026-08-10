@@ -218,6 +218,11 @@ Review limits. That composition does not change Impact's schema, bytes, public
 options, v1/v2-only domain, or canonical-v3 `SPX-G110` rejection; Impact itself
 still does not emit the seven review sections.
 
+The separate [Semantic Patch Evidence v1](SEMANTIC-PATCH-EVIDENCE-V1.md)
+capsule may bind Review's domain digest of that complete embedded Impact v1
+object. Impact itself remains byte-identical, v1/v2-only, read-only, and not a
+proof carrier, verifier, authorization token, or apply/commit authority.
+
 ## Evidence
 
 The canonical rename-report SHA-256 KAT is

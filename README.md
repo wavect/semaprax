@@ -236,6 +236,28 @@ Implemented today:
   all 12 jobs passed.
   Review has no flags, Context, target/test execution, verifier/proof artifact,
   human approval, authenticated patch provenance, or apply/commit authority.
+- [Semantic Patch Evidence v1](docs/SEMANTIC-PATCH-EVIDENCE-V1.md) generates
+  and independently verifies exact bounded capsules for Patch v1/v2 and the
+  sole canonical Patch v3 operation. The separate `patch-with-evidence` route
+  acquires the ordinary A0 lock, requires exact replay before staging, then
+  commits through unchanged A0. Capsule/receipt KATs for v1/v2/v3 are
+  `03befad24157620b56138e84d4495b1973d141275ee728493d5fbe4f0f6f09aa` /
+  `1f2733743aaf2f9d2b9ad6bf2709a6867f169f596be01a9d53e92daecb8730a1`,
+  `23742f9b8a323003237106d7a800cc8fb98f53a68bd72f5e0961cf47c63f7bba` /
+  `6d8b13b3f54277e66a1ee501e1e71d6fe959a2ebcdbaa158a7ece20dde054e48`,
+  and `d682e08b125451af3ed49dce03a0814e83ca5e665224fc3bc7ab7b314827f62c` /
+  `13a99674a4c014d9f7f315d8108c3e5c870dcac2c5950ff3035ca1a1c155361b`.
+  Local A+B is 11/11 integration plus 5/5 units; Phase C is 16/16 integration
+  plus 11/11 hooks/limits; library 420/420 and doctest 37/37 are locally green.
+  The exact `34a8ed82e9ae96277aa51e7994c19644331f5e78` replacement matrix is
+  hosted green in [run
+  31431768632](https://github.com/wavect/semaprax/actions/runs/31431768632),
+  including [Ubuntu job
+  93596706949](https://github.com/wavect/semaprax/actions/runs/31431768632/job/93596706949);
+  all 12 jobs passed. `e04c2c9` was the failed Rust 1.97 lint predecessor, not
+  green evidence. Ordinary `patch` remains unchanged, and the capsule is not
+  provenance, approval, target/test
+  execution, general formal proof, commit authority, or a reusable token.
 - Native AOT output through a readable C11 lowering and Clang.
 - Direct WebAssembly core output with a generated ES-module runtime, HTML entry point, capability manifest, checked arithmetic, and contract traps.
 - A deliberately narrow `semaprax.wasm-owned.v1` Core Wasm path for one direct
@@ -729,6 +751,9 @@ durability, multi-file commits, and general typed repair/impact remain open.
 | `run <file>` | Build and run in one step |
 | `fmt <file> [--check]` | Apply or verify canonical formatting |
 | `patch <file> <patch.spatch>` | Apply an atomic semantic transaction |
+| `patch-evidence <file> <patch.spatch>` | Emit canonical bounded Semantic Patch Evidence v1 without writing source |
+| `verify-patch-evidence <file> <patch.spatch> <evidence.json>` | Independently replay a capsule and emit its canonical verification receipt |
+| `patch-with-evidence <file> <patch.spatch> <evidence.json>` | Require exact evidence replay before A0 staging and commit |
 | `impact <file> <patch.spatch> [--depth N] [--max-bytes N] [--max-nodes N]` | Preview deterministic bounded single-file source consumers and reverse-call impact without applying the patch |
 | `review <file> <patch.spatch>` | Emit the fixed-section bounded Semantic Review v1 report without applying the patch |
 | `repairs <file> assign-function-id <automatic-function-id>` | Discover the bounded read-only `SPX-S103` function-identity repair |

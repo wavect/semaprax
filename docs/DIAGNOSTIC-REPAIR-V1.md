@@ -190,6 +190,13 @@ exact shared identity-rebase object as evidence for the sole canonical Patch
 v3. Diagnostic Repair itself does not emit review sections, and the reuse does
 not turn the derived digest into a proof artifact or widen repair/Impact scope.
 
+The separate [Semantic Patch Evidence v1](SEMANTIC-PATCH-EVIDENCE-V1.md)
+capsule may bind Review's digest of this exact shared identity-rebase object
+for the sole canonical Patch v3. The capsule, not Diagnostic Repair or the
+identity-rebase object, is the bounded proof carrier. Only the opt-in
+`patch-with-evidence` route requires exact replay before A0 staging; ordinary
+`patch`, Repair bytes/KATs, and every repair/Impact nonclaim remain unchanged.
+
 ## Work and output limits
 
 The contract has four hard limits:

@@ -81,6 +81,13 @@ each authored operation across seven fixed sections. Review is read-only and
 adds no Patch v2 operation, flag, Context, target execution, verifier/proof
 artifact, provenance authentication, or A0 authority.
 
+The separate [Semantic Patch Evidence v1](SEMANTIC-PATCH-EVIDENCE-V1.md)
+capsule binds that unchanged Review/Impact evidence and can be independently
+replayed. Only the opt-in `patch-with-evidence` route requires replay before
+A0 staging; ordinary `patch` and Patch v2 bytes, selectors, operation meaning,
+and trusted patch-path nonclaim are unchanged. The capsule is neither
+authenticated provenance nor reusable commit authorization.
+
 The separate [Diagnostic Repair v1](DIAGNOSTIC-REPAIR-V1.md) tranche defines
 an isolated Semantic Patch v3 with exactly one canonical three-line
 `assign-function-id` operation. V3 does not compose with or widen v2, and

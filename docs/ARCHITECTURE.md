@@ -913,6 +913,54 @@ including [Ubuntu job
 all 12 jobs passed. Hosted backend jobs are preservation evidence, not target
 execution by Review.
 
+## Semantic Patch Evidence v1
+
+`src/patch_evidence.rs` is a separate layer above Review. It does not change
+the `semaprax.semantic-review.v1` report, whose own
+`no_public_verify_api_or_proof_artifact` nonclaim remains exact. Review keeps
+the same bytes, KATs, read-only `review::preview` API, and no `review::verify`.
+Instead, `patch-evidence` packages Review-derived Graph/revision/source/Patch
+bindings, seven assessments, and complete Impact-v1 or shared identity-rebase
+digest into canonical `semaprax.semantic-patch-evidence.v1`.
+`verify-patch-evidence` independently rebuilds Review, requires exact typed
+bindings and byte-for-byte capsule replay, and emits canonical
+`semaprax.semantic-patch-evidence-verification.v1`. Both are read-only; only
+the separate capsule is the bounded proof carrier.
+
+The separate `patch-with-evidence` route acquires the unchanged create-new A0
+lock first. While holding it, it owns bounded patch/evidence bytes,
+authenticates the bounded canonical regular source, independently rebuilds
+Review and the expected capsule, and rejects any mismatch before stage
+preparation. Only exact replay reaches `prepare_a0_commit`; unchanged A0 then
+rechecks source and stage path/handle identity and bytes at its two final
+boundaries before rename. The capsule itself carries no commit authority or
+reusable authorization. Ordinary `patch` remains the legacy evidence-optional
+route.
+Rejected evidence may acquire and release the A0 lock, but it creates no stage
+and performs no source write; the capsule itself never owns authority.
+
+Patch v1/v2 evidence binds complete nontruncated Impact v1; Patch v3 binds only
+the shared identity rebase and does not widen Impact. Exact closed JSON order,
+digest domains, bounds, KATs, diagnostics, APIs, and nonclaims are frozen in
+[`SEMANTIC-PATCH-EVIDENCE-V1.md`](SEMANTIC-PATCH-EVIDENCE-V1.md). A+B is
+11/11 integration plus 5/5 internal units; Phase C is 16/16 integration plus
+11/11 hook/limit units. Library 420/420, doctest 37/37, full preservation, and
+independent security are locally green. The exact
+`34a8ed82e9ae96277aa51e7994c19644331f5e78` replacement matrix is hosted green
+in [run
+31431768632](https://github.com/wavect/semaprax/actions/runs/31431768632),
+including [Ubuntu job
+93596706949](https://github.com/wavect/semaprax/actions/runs/31431768632/job/93596706949);
+all 12 jobs passed. The earlier `e04c2c9` run failed only the Rust 1.97 lint
+and is not green evidence.
+
+This is not a signature, MAC, authenticated provenance, theorem/SMT/general
+proof, human approval, target/test execution, Agent Context/repository
+analysis, multi-file transaction, external-consumer compatibility guarantee,
+or new Patch/Repair/Impact/Review, Graph/CleanupPlan, backend, or runtime
+semantic surface. Existing A0 collision, stale-lock, crash-left-lock,
+trusted-directory-window, durability, and platform-identity nonclaims remain.
+
 ## Transactions
 
 The `.spatch` protocol is intentionally smaller than a text patch:

@@ -339,6 +339,58 @@ backend preservation do not constitute target or test execution by Review.
 The no-Context, no-public-verifier/proof-artifact, no-provenance, no-approval,
 no-A0-authority, no-general-analysis, and single-file nonclaims remain exact.
 
+Semantic Patch Evidence v1 changes additionally require exact closed capsule
+and receipt schemas, all nested key orders, duplicate-key and depth rejection,
+fixed-point byte accounting, the frozen source/Patch/Impact/identity/Review/
+artifact digest domains, and the six whole-artifact KATs in
+[`SEMANTIC-PATCH-EVIDENCE-V1.md`](SEMANTIC-PATCH-EVIDENCE-V1.md). Generation
+and verification must independently rebuild unchanged Review v1, preserve its
+bytes/KATs and lack of `review::verify`, reject receipt/capsule confusion, own
+single bounded patch/evidence reads, and recheck exact bounded source
+identity/bytes/revision. Parsed declarations, callables, and call sites must
+reject before HIR at their exact boundaries.
+
+The `patch-with-evidence` gate must prove lock acquisition occurs before patch
+or evidence input reads/replay work, exact replay occurs before stage preparation,
+Patch v1/v2/v3 candidates match ordinary A0, replay-after-commit rejects,
+mismatch and receipt substitution create no stage, source drift and
+same-bytes identity replacement reject at every A0 boundary, both final source
+reads remain bounded, permissions are preserved, stage mutation/rename failure
+cleans only owned staging, and a foreign stage replacement is never deleted.
+Ordinary `patch` bytes and behavior must remain unchanged.
+
+Run the focused gates:
+
+```sh
+cargo test --locked -p semaprax --all-features --test semantic_patch_evidence_v1
+cargo test --locked -p semaprax --all-features --lib patch_evidence::tests
+```
+
+A+B generation/verification is 11/11 integration plus 5/5 internal units;
+Phase C apply is 16/16 integration plus 11/11 hook/limit units. Library
+420/420, doctest 37/37, full workspace/release/rustdoc/strict-Clippy/format/
+diff/preservation, and independent security are locally green. The exact
+`34a8ed82e9ae96277aa51e7994c19644331f5e78` replacement matrix is hosted green
+in [run
+31431768632](https://github.com/wavect/semaprax/actions/runs/31431768632),
+including [Ubuntu job
+93596706949](https://github.com/wavect/semaprax/actions/runs/31431768632/job/93596706949),
+[macOS job
+93596706897](https://github.com/wavect/semaprax/actions/runs/31431768632/job/93596706897),
+[Windows job
+93596706899](https://github.com/wavect/semaprax/actions/runs/31431768632/job/93596706899),
+[MSRV job
+93596707079](https://github.com/wavect/semaprax/actions/runs/31431768632/job/93596707079),
+[dependency-policy job
+93596706994](https://github.com/wavect/semaprax/actions/runs/31431768632/job/93596706994),
+and [component job
+93596706902](https://github.com/wavect/semaprax/actions/runs/31431768632/job/93596706902);
+all 12 jobs passed. The earlier `e04c2c9` run failed only the Rust 1.97 lint
+and is not green evidence. Capsule nonclaims for provenance, approval, target/
+test execution, reusable authorization, general proof, Context/repository/
+multi-file scope, persistence, consumer compatibility, and semantic widening
+remain blocking boundaries.
+
 - A design document proves intent, not implementation.
 - A compiler unit test proves only the covered semantic case.
 - A generated artifact proves emission, not successful loading or execution.

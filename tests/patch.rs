@@ -1,6 +1,64 @@
 use std::path::Path;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use semaprax::{graph, parse, patch};
+
+static NEXT_A0_FIXTURE: AtomicUsize = AtomicUsize::new(0);
+
+const A0_SOURCE: &str = r#"module patch.a0;
+
+@id("helper.answer")
+fn answer() -> i64
+{
+    42
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    answer()
+}
+"#;
+
+fn a0_fixture(label: &str) -> (std::path::PathBuf, std::path::PathBuf, String) {
+    let sequence = NEXT_A0_FIXTURE.fetch_add(1, Ordering::Relaxed);
+    let directory = std::env::temp_dir().join(format!(
+        "semaprax-patch-a0-{}-{label}-{sequence}",
+        std::process::id()
+    ));
+    std::fs::create_dir_all(&directory).unwrap();
+    let source_path = directory.join("module.spx");
+    let patch_path = directory.join("rename.spatch");
+    let revision = graph::revision(&parse(A0_SOURCE, &source_path).unwrap());
+    std::fs::write(&source_path, A0_SOURCE).unwrap();
+    std::fs::write(
+        &patch_path,
+        format!("base {revision}\nrename helper.answer to computed\n"),
+    )
+    .unwrap();
+    (source_path, patch_path, revision)
+}
+
+fn lock_path(source_path: &Path) -> std::path::PathBuf {
+    source_path
+        .parent()
+        .unwrap()
+        .join(".module.spx.semaprax-patch.lock")
+}
+
+fn stage_path(source_path: &Path, index: usize) -> std::path::PathBuf {
+    source_path
+        .parent()
+        .unwrap()
+        .join(format!(".module.spx.semaprax-stage.{index}.tmp"))
+}
+
+fn assert_no_owned_artifacts(source_path: &Path) {
+    assert!(!lock_path(source_path).exists());
+    for index in 0..32 {
+        assert!(!stage_path(source_path, index).exists());
+    }
+}
 
 #[test]
 fn semantic_rename_is_atomic_and_updates_calls() {
@@ -317,4 +375,173 @@ fn main() -> i64
     let reparsed = parse(&changed, &source_path).unwrap();
     assert_eq!(returned, graph::revision(&reparsed));
     graph::to_json(&reparsed).unwrap();
+}
+
+#[test]
+fn semantic_patch_cleans_owned_lock_and_staging_after_success() {
+    let (source_path, patch_path, _) = a0_fixture("success-cleanup");
+    patch::apply(&source_path, &patch_path).unwrap();
+    assert!(std::fs::read_to_string(&source_path)
+        .unwrap()
+        .contains("fn computed()"));
+    assert_no_owned_artifacts(&source_path);
+}
+
+#[test]
+fn semantic_patch_lock_contention_fails_without_mutation_or_deletion() {
+    let (source_path, patch_path, _) = a0_fixture("lock-contention");
+    let lock = lock_path(&source_path);
+    std::fs::write(&lock, "not owned by this transaction").unwrap();
+
+    let error = patch::apply(&source_path, &patch_path).unwrap_err();
+    assert_eq!(error[0].code, "SPX-I205");
+    assert_eq!(std::fs::read_to_string(&source_path).unwrap(), A0_SOURCE);
+    assert_eq!(
+        std::fs::read_to_string(&lock).unwrap(),
+        "not owned by this transaction"
+    );
+    for index in 0..32 {
+        assert!(!stage_path(&source_path, index).exists());
+    }
+}
+
+#[test]
+fn semantic_patch_skips_create_new_stage_collisions_without_deleting_them() {
+    let (source_path, patch_path, _) = a0_fixture("stage-collisions");
+    std::fs::write(stage_path(&source_path, 0), "collision zero").unwrap();
+    std::fs::write(stage_path(&source_path, 1), "collision one").unwrap();
+
+    patch::apply(&source_path, &patch_path).unwrap();
+    assert_eq!(
+        std::fs::read_to_string(stage_path(&source_path, 0)).unwrap(),
+        "collision zero"
+    );
+    assert_eq!(
+        std::fs::read_to_string(stage_path(&source_path, 1)).unwrap(),
+        "collision one"
+    );
+    assert!(!lock_path(&source_path).exists());
+    for index in 2..32 {
+        assert!(!stage_path(&source_path, index).exists());
+    }
+}
+
+#[test]
+fn semantic_patch_stage_exhaustion_preserves_source_lock_and_collisions() {
+    let (source_path, patch_path, _) = a0_fixture("stage-exhaustion");
+    for index in 0..32 {
+        std::fs::write(
+            stage_path(&source_path, index),
+            format!("collision {index}"),
+        )
+        .unwrap();
+    }
+
+    let error = patch::apply(&source_path, &patch_path).unwrap_err();
+    assert_eq!(error[0].code, "SPX-I203");
+    assert_eq!(std::fs::read_to_string(&source_path).unwrap(), A0_SOURCE);
+    assert!(!lock_path(&source_path).exists());
+    for index in 0..32 {
+        assert_eq!(
+            std::fs::read_to_string(stage_path(&source_path, index)).unwrap(),
+            format!("collision {index}")
+        );
+    }
+}
+
+#[test]
+fn semantic_patch_rejects_a_nonregular_source() {
+    let (source_path, patch_path, _) = a0_fixture("nonregular-source");
+    let directory_source = source_path.parent().unwrap().join("source-directory");
+    std::fs::create_dir(&directory_source).unwrap();
+
+    let error = patch::apply(&directory_source, &patch_path).unwrap_err();
+    assert_eq!(error[0].code, "SPX-I201");
+    assert_eq!(std::fs::read_to_string(&source_path).unwrap(), A0_SOURCE);
+}
+
+#[cfg(unix)]
+#[test]
+fn semantic_patch_rejects_a_symlink_source_leaf() {
+    use std::os::unix::fs::symlink;
+
+    let (source_path, patch_path, _) = a0_fixture("source-symlink");
+    let alias = source_path.parent().unwrap().join("source-alias.spx");
+    symlink(&source_path, &alias).unwrap();
+
+    let error = patch::apply(&alias, &patch_path).unwrap_err();
+    assert_eq!(error[0].code, "SPX-I201");
+    assert_eq!(std::fs::read_to_string(&source_path).unwrap(), A0_SOURCE);
+    assert!(std::fs::symlink_metadata(&alias)
+        .unwrap()
+        .file_type()
+        .is_symlink());
+}
+
+#[cfg(unix)]
+#[test]
+fn semantic_patch_uses_the_authenticated_canonical_parent_for_an_alias() {
+    use std::os::unix::fs::symlink;
+
+    let (source_path, patch_path, _) = a0_fixture("parent-symlink");
+    let real_parent = source_path.parent().unwrap();
+    let alias_parent = real_parent.with_extension("alias");
+    symlink(real_parent, &alias_parent).unwrap();
+    let aliased_source = alias_parent.join("module.spx");
+
+    patch::apply(&aliased_source, &patch_path).unwrap();
+    assert!(std::fs::read_to_string(&source_path)
+        .unwrap()
+        .contains("fn computed()"));
+    assert_no_owned_artifacts(&source_path);
+}
+
+#[cfg(unix)]
+#[test]
+fn semantic_patch_never_follows_or_deletes_a_planted_stage_symlink() {
+    use std::os::unix::fs::symlink;
+
+    let (source_path, patch_path, _) = a0_fixture("stage-symlink");
+    let target = source_path.parent().unwrap().join("symlink-target.txt");
+    std::fs::write(&target, "sentinel").unwrap();
+    let planted = stage_path(&source_path, 0);
+    symlink(&target, &planted).unwrap();
+
+    patch::apply(&source_path, &patch_path).unwrap();
+    assert_eq!(std::fs::read_to_string(&target).unwrap(), "sentinel");
+    assert!(std::fs::symlink_metadata(&planted)
+        .unwrap()
+        .file_type()
+        .is_symlink());
+    assert!(!lock_path(&source_path).exists());
+    for index in 1..32 {
+        assert!(!stage_path(&source_path, index).exists());
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn semantic_patch_never_follows_or_deletes_a_planted_lock_symlink() {
+    use std::os::unix::fs::symlink;
+
+    let (source_path, patch_path, _) = a0_fixture("lock-symlink");
+    let target = source_path
+        .parent()
+        .unwrap()
+        .join("lock-symlink-target.txt");
+    std::fs::write(&target, "sentinel").unwrap();
+    let planted = lock_path(&source_path);
+    symlink(&target, &planted).unwrap();
+
+    let error = patch::apply(&source_path, &patch_path).unwrap_err();
+    assert_eq!(error[0].code, "SPX-I205");
+    assert_eq!(std::fs::read_to_string(&source_path).unwrap(), A0_SOURCE);
+    assert_eq!(std::fs::read_to_string(&target).unwrap(), "sentinel");
+    assert!(std::fs::symlink_metadata(&planted)
+        .unwrap()
+        .file_type()
+        .is_symlink());
+    for index in 0..32 {
+        assert!(!stage_path(&source_path, index).exists());
+    }
 }

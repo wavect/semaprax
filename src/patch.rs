@@ -1,5 +1,8 @@
 use std::collections::BTreeSet;
-use std::path::Path;
+use std::ffi::OsString;
+use std::fs::{File, Metadata, OpenOptions, Permissions};
+use std::io::{Read, Seek, SeekFrom, Write};
+use std::path::{Path, PathBuf};
 
 use crate::ast::{Type, TypeDeclaration, TypeDeclarationKind};
 use crate::diagnostic::Diagnostic;
@@ -18,13 +21,269 @@ struct SemanticPatch {
     no_new_effects: bool,
 }
 
+const STAGING_ATTEMPTS: usize = 32;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct FileIdentity {
+    #[cfg(unix)]
+    device: u64,
+    #[cfg(unix)]
+    inode: u64,
+    #[cfg(windows)]
+    volume: u32,
+    #[cfg(windows)]
+    index: u64,
+}
+
+struct SourceSnapshot {
+    source: String,
+    identity: FileIdentity,
+    permissions: Permissions,
+}
+
+struct OwnedSiblingFile {
+    path: PathBuf,
+    identity: FileIdentity,
+    file: Option<File>,
+    cleanup: bool,
+}
+
+struct ProvisionalSiblingFile {
+    path: PathBuf,
+    file: Option<File>,
+    cleanup: bool,
+}
+
+impl ProvisionalSiblingFile {
+    fn into_owned(mut self, identity: FileIdentity) -> OwnedSiblingFile {
+        self.cleanup = false;
+        OwnedSiblingFile {
+            path: self.path.clone(),
+            identity,
+            file: self.file.take(),
+            cleanup: true,
+        }
+    }
+}
+
+impl Drop for ProvisionalSiblingFile {
+    fn drop(&mut self) {
+        if !self.cleanup {
+            return;
+        }
+        let Some(handle_identity) = self
+            .file
+            .as_ref()
+            .and_then(|file| file.metadata().ok())
+            .and_then(|metadata| platform_file_identity(&metadata).ok())
+        else {
+            self.file.take();
+            return;
+        };
+        self.file.take();
+        let Ok(metadata) = std::fs::symlink_metadata(&self.path) else {
+            return;
+        };
+        if regular_metadata(&metadata)
+            && platform_file_identity(&metadata).ok() == Some(handle_identity)
+        {
+            let _ = std::fs::remove_file(&self.path);
+        }
+    }
+}
+
+impl OwnedSiblingFile {
+    fn create(
+        path: PathBuf,
+        diagnostic_code: &'static str,
+        description: &str,
+        existing_is_collision: bool,
+    ) -> Result<Option<Self>, Vec<Diagnostic>> {
+        let file = match OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create_new(true)
+            .open(&path)
+        {
+            Ok(file) => file,
+            Err(error)
+                if existing_is_collision && error.kind() == std::io::ErrorKind::AlreadyExists =>
+            {
+                return Ok(None);
+            }
+            Err(error) => {
+                return Err(vec![Diagnostic::io(
+                    diagnostic_code,
+                    format!("cannot create {description} {}: {error}", path.display()),
+                )]);
+            }
+        };
+        // Install cleanup ownership immediately after create_new. Exact identity
+        // replaces this short provisional guard as soon as handle metadata is
+        // available; the containing directory is the documented portable trust
+        // boundary for these path-based operations.
+        let provisional = ProvisionalSiblingFile {
+            path,
+            file: Some(file),
+            cleanup: true,
+        };
+        let metadata = provisional
+            .file
+            .as_ref()
+            .expect("new sibling file remains open")
+            .metadata()
+            .map_err(|error| {
+                vec![Diagnostic::io(
+                    diagnostic_code,
+                    format!(
+                        "cannot inspect {description} {}: {error}",
+                        provisional.path.display()
+                    ),
+                )]
+            })?;
+        validate_regular_metadata(&metadata, &provisional.path, description, diagnostic_code)?;
+        let identity = file_identity(&metadata, &provisional.path, description, diagnostic_code)?;
+        let owned = provisional.into_owned(identity);
+        let path_metadata = safe_symlink_metadata(&owned.path, description, diagnostic_code)?;
+        validate_regular_metadata(&path_metadata, &owned.path, description, diagnostic_code)?;
+        if file_identity(&path_metadata, &owned.path, description, diagnostic_code)? != identity {
+            return Err(vec![Diagnostic::io(
+                diagnostic_code,
+                format!(
+                    "{description} {} changed during creation",
+                    owned.path.display()
+                ),
+            )]);
+        }
+        Ok(Some(owned))
+    }
+
+    fn file_mut(&mut self) -> Result<&mut File, Vec<Diagnostic>> {
+        self.file.as_mut().ok_or_else(|| {
+            vec![Diagnostic::io(
+                "SPX-I203",
+                format!(
+                    "semantic patch staging file {} is closed",
+                    self.path.display()
+                ),
+            )]
+        })
+    }
+
+    fn validate_path(
+        &self,
+        description: &str,
+        diagnostic_code: &'static str,
+    ) -> Result<(), Vec<Diagnostic>> {
+        let metadata = safe_symlink_metadata(&self.path, description, diagnostic_code)?;
+        validate_regular_metadata(&metadata, &self.path, description, diagnostic_code)?;
+        if file_identity(&metadata, &self.path, description, diagnostic_code)? != self.identity {
+            return Err(vec![Diagnostic::io(
+                diagnostic_code,
+                format!(
+                    "{description} {} changed before commit",
+                    self.path.display()
+                ),
+            )]);
+        }
+        Ok(())
+    }
+
+    fn validate_contents(&mut self, expected: &[u8]) -> Result<(), Vec<Diagnostic>> {
+        self.validate_path("semantic patch staging file", "SPX-I203")?;
+        let file = self.file_mut()?;
+        file.seek(SeekFrom::Start(0)).map_err(|error| {
+            vec![Diagnostic::io(
+                "SPX-I203",
+                format!("cannot rewind semantic patch staging file: {error}"),
+            )]
+        })?;
+        let mut actual = Vec::new();
+        file.read_to_end(&mut actual).map_err(|error| {
+            vec![Diagnostic::io(
+                "SPX-I203",
+                format!("cannot verify semantic patch staging file: {error}"),
+            )]
+        })?;
+        if actual != expected {
+            return Err(vec![Diagnostic::io(
+                "SPX-I203",
+                "semantic patch staging bytes changed before commit",
+            )]);
+        }
+        let metadata = file.metadata().map_err(|error| {
+            vec![Diagnostic::io(
+                "SPX-I203",
+                format!("cannot inspect semantic patch staging file: {error}"),
+            )]
+        })?;
+        if file_identity(
+            &metadata,
+            &self.path,
+            "semantic patch staging file",
+            "SPX-I203",
+        )? != self.identity
+        {
+            return Err(vec![Diagnostic::io(
+                "SPX-I203",
+                "semantic patch staging handle changed before commit",
+            )]);
+        }
+        Ok(())
+    }
+
+    fn committed(&mut self) {
+        self.cleanup = false;
+        self.file.take();
+    }
+
+    fn remove_if_owned(&mut self) {
+        self.file.take();
+        if !self.cleanup {
+            return;
+        }
+        let Ok(metadata) = std::fs::symlink_metadata(&self.path) else {
+            return;
+        };
+        if !regular_metadata(&metadata) {
+            return;
+        }
+        let Ok(identity) = platform_file_identity(&metadata) else {
+            return;
+        };
+        if identity == self.identity {
+            let _ = std::fs::remove_file(&self.path);
+        }
+    }
+}
+
+impl Drop for OwnedSiblingFile {
+    fn drop(&mut self) {
+        self.remove_if_owned();
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum CommitPhase {
+    BeforeFinalCheck,
+    BeforeRename,
+}
+
 pub fn apply(source_path: &Path, patch_path: &Path) -> Result<String, Vec<Diagnostic>> {
-    let source = std::fs::read_to_string(source_path).map_err(|error| {
-        vec![Diagnostic::io(
-            "SPX-I201",
-            format!("cannot read {}: {error}", source_path.display()),
-        )]
-    })?;
+    apply_with_commit_hook(source_path, patch_path, |_, _, _| Ok(()))
+}
+
+fn apply_with_commit_hook(
+    source_path: &Path,
+    patch_path: &Path,
+    mut hook: impl FnMut(CommitPhase, &Path, &Path) -> std::io::Result<()>,
+) -> Result<String, Vec<Diagnostic>> {
+    let canonical_source_path = canonical_source_path(source_path)?;
+    let lock_path = sibling_path(&canonical_source_path, ".semaprax-patch.lock")?;
+    let _lock = OwnedSiblingFile::create(lock_path, "SPX-I205", "semantic patch lock", false)?
+        .expect("existing lock is reported as an error");
+    let before_snapshot = read_source_snapshot(&canonical_source_path)?;
+    let source = before_snapshot.source.clone();
     let patch_source = std::fs::read_to_string(patch_path).map_err(|error| {
         vec![Diagnostic::io(
             "SPX-I202",
@@ -100,7 +359,7 @@ pub fn apply(source_path: &Path, patch_path: &Path) -> Result<String, Vec<Diagno
     }
     replacements.sort_by_key(|replacement| replacement.0);
     replacements.dedup_by_key(|replacement| (replacement.0, replacement.1));
-    let mut changed = source;
+    let mut changed = source.clone();
     for (start, end, replacement) in replacements.into_iter().rev() {
         changed.replace_range(start..end, &replacement);
     }
@@ -117,25 +376,330 @@ pub fn apply(source_path: &Path, patch_path: &Path) -> Result<String, Vec<Diagno
         )]);
     }
     let canonical = format::canonical(&after);
-    let parent = source_path.parent().unwrap_or_else(|| Path::new("."));
-    let name = source_path
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or("module.spx");
-    let temporary = parent.join(format!(".{name}.{}.tmp", std::process::id()));
-    std::fs::write(&temporary, canonical).map_err(|error| {
+    let canonical_bytes = canonical.as_bytes();
+    let mut staging = create_staging_file(&canonical_source_path)?;
+    {
+        let file = staging.file_mut()?;
+        file.write_all(canonical_bytes).map_err(|error| {
+            vec![Diagnostic::io(
+                "SPX-I203",
+                format!("cannot stage semantic patch: {error}"),
+            )]
+        })?;
+        file.flush().map_err(|error| {
+            vec![Diagnostic::io(
+                "SPX-I203",
+                format!("cannot flush semantic patch staging file: {error}"),
+            )]
+        })?;
+        file.set_permissions(before_snapshot.permissions.clone())
+            .map_err(|error| {
+                vec![Diagnostic::io(
+                    "SPX-I203",
+                    format!("cannot preserve semantic patch source permissions: {error}"),
+                )]
+            })?;
+        file.sync_all().map_err(|error| {
+            vec![Diagnostic::io(
+                "SPX-I203",
+                format!("cannot synchronize semantic patch staging file: {error}"),
+            )]
+        })?;
+    }
+    staging.validate_contents(canonical_bytes)?;
+    hook(
+        CommitPhase::BeforeFinalCheck,
+        &canonical_source_path,
+        &staging.path,
+    )
+    .map_err(|error| {
         vec![Diagnostic::io(
-            "SPX-I203",
-            format!("cannot stage semantic patch: {error}"),
+            "SPX-I207",
+            format!("semantic patch pre-commit check failed: {error}"),
         )]
     })?;
-    std::fs::rename(&temporary, source_path).map_err(|error| {
+    validate_source_unchanged(
+        &canonical_source_path,
+        source_path,
+        &before_snapshot,
+        &revision,
+    )?;
+    staging.validate_contents(canonical_bytes)?;
+    hook(
+        CommitPhase::BeforeRename,
+        &canonical_source_path,
+        &staging.path,
+    )
+    .map_err(|error| {
         vec![Diagnostic::io(
             "SPX-I204",
             format!("cannot atomically commit semantic patch: {error}"),
         )]
     })?;
+    validate_source_unchanged(
+        &canonical_source_path,
+        source_path,
+        &before_snapshot,
+        &revision,
+    )?;
+    staging.validate_contents(canonical_bytes)?;
+    std::fs::rename(&staging.path, &canonical_source_path).map_err(|error| {
+        vec![Diagnostic::io(
+            "SPX-I204",
+            format!("cannot atomically commit semantic patch: {error}"),
+        )]
+    })?;
+    staging.committed();
     Ok(graph::revision(&after))
+}
+
+fn canonical_source_path(source_path: &Path) -> Result<PathBuf, Vec<Diagnostic>> {
+    let supplied_metadata =
+        safe_symlink_metadata(source_path, "semantic patch source", "SPX-I201")?;
+    validate_regular_metadata(
+        &supplied_metadata,
+        source_path,
+        "semantic patch source",
+        "SPX-I201",
+    )?;
+    let supplied_identity = file_identity(
+        &supplied_metadata,
+        source_path,
+        "semantic patch source",
+        "SPX-I201",
+    )?;
+    let canonical = std::fs::canonicalize(source_path).map_err(|error| {
+        vec![Diagnostic::io(
+            "SPX-I201",
+            format!(
+                "cannot canonicalize semantic patch source {}: {error}",
+                source_path.display()
+            ),
+        )]
+    })?;
+    let canonical_metadata =
+        safe_symlink_metadata(&canonical, "canonical semantic patch source", "SPX-I201")?;
+    validate_regular_metadata(
+        &canonical_metadata,
+        &canonical,
+        "canonical semantic patch source",
+        "SPX-I201",
+    )?;
+    if file_identity(
+        &canonical_metadata,
+        &canonical,
+        "canonical semantic patch source",
+        "SPX-I201",
+    )? != supplied_identity
+    {
+        return Err(source_changed_error());
+    }
+    Ok(canonical)
+}
+
+fn validate_source_unchanged(
+    canonical_source_path: &Path,
+    diagnostic_path: &Path,
+    before: &SourceSnapshot,
+    revision: &str,
+) -> Result<(), Vec<Diagnostic>> {
+    let current =
+        read_source_snapshot(canonical_source_path).map_err(|_| source_changed_error())?;
+    let current_program =
+        parse(&current.source, diagnostic_path).map_err(|_| source_changed_error())?;
+    if current.identity != before.identity
+        || current.source != before.source
+        || graph::revision(&current_program) != revision
+    {
+        return Err(source_changed_error());
+    }
+    Ok(())
+}
+
+fn read_source_snapshot(path: &Path) -> Result<SourceSnapshot, Vec<Diagnostic>> {
+    let path_metadata = safe_symlink_metadata(path, "semantic patch source", "SPX-I201")?;
+    validate_regular_metadata(&path_metadata, path, "semantic patch source", "SPX-I201")?;
+    let path_identity = file_identity(&path_metadata, path, "semantic patch source", "SPX-I201")?;
+    let mut file = File::open(path).map_err(|error| {
+        vec![Diagnostic::io(
+            "SPX-I201",
+            format!("cannot read {}: {error}", path.display()),
+        )]
+    })?;
+    let handle_metadata = file.metadata().map_err(|error| {
+        vec![Diagnostic::io(
+            "SPX-I201",
+            format!(
+                "cannot inspect semantic patch source {}: {error}",
+                path.display()
+            ),
+        )]
+    })?;
+    validate_regular_metadata(&handle_metadata, path, "semantic patch source", "SPX-I201")?;
+    if file_identity(&handle_metadata, path, "semantic patch source", "SPX-I201")? != path_identity
+    {
+        return Err(source_changed_error());
+    }
+    let mut source = String::new();
+    file.read_to_string(&mut source).map_err(|error| {
+        vec![Diagnostic::io(
+            "SPX-I201",
+            format!("cannot read {}: {error}", path.display()),
+        )]
+    })?;
+    let final_path_metadata = safe_symlink_metadata(path, "semantic patch source", "SPX-I201")?;
+    validate_regular_metadata(
+        &final_path_metadata,
+        path,
+        "semantic patch source",
+        "SPX-I201",
+    )?;
+    if file_identity(
+        &final_path_metadata,
+        path,
+        "semantic patch source",
+        "SPX-I201",
+    )? != path_identity
+    {
+        return Err(source_changed_error());
+    }
+    Ok(SourceSnapshot {
+        source,
+        identity: path_identity,
+        permissions: path_metadata.permissions(),
+    })
+}
+
+fn create_staging_file(source_path: &Path) -> Result<OwnedSiblingFile, Vec<Diagnostic>> {
+    for attempt in 0..STAGING_ATTEMPTS {
+        let suffix = format!(".semaprax-stage.{attempt}.tmp");
+        let path = sibling_path(source_path, &suffix)?;
+        if let Some(staging) =
+            OwnedSiblingFile::create(path, "SPX-I203", "semantic patch staging file", true)?
+        {
+            return Ok(staging);
+        }
+    }
+    Err(vec![Diagnostic::io(
+        "SPX-I203",
+        format!(
+            "cannot stage semantic patch: all {STAGING_ATTEMPTS} create-new candidates already exist"
+        ),
+    )])
+}
+
+fn sibling_path(source_path: &Path, suffix: &str) -> Result<PathBuf, Vec<Diagnostic>> {
+    let Some(name) = source_path.file_name() else {
+        return Err(vec![Diagnostic::io(
+            "SPX-I201",
+            format!(
+                "semantic patch source {} has no file name",
+                source_path.display()
+            ),
+        )]);
+    };
+    let mut sibling = OsString::from(".");
+    sibling.push(name);
+    sibling.push(suffix);
+    Ok(source_path
+        .parent()
+        .unwrap_or_else(|| Path::new("."))
+        .join(sibling))
+}
+
+fn safe_symlink_metadata(
+    path: &Path,
+    description: &str,
+    diagnostic_code: &'static str,
+) -> Result<Metadata, Vec<Diagnostic>> {
+    std::fs::symlink_metadata(path).map_err(|error| {
+        vec![Diagnostic::io(
+            diagnostic_code,
+            format!("cannot inspect {description} {}: {error}", path.display()),
+        )]
+    })
+}
+
+fn validate_regular_metadata(
+    metadata: &Metadata,
+    path: &Path,
+    description: &str,
+    diagnostic_code: &'static str,
+) -> Result<(), Vec<Diagnostic>> {
+    if !regular_metadata(metadata) {
+        return Err(vec![Diagnostic::io(
+            diagnostic_code,
+            format!(
+                "{description} {} must be a regular non-symlink file",
+                path.display()
+            ),
+        )]);
+    }
+    Ok(())
+}
+
+fn regular_metadata(metadata: &Metadata) -> bool {
+    if !metadata.file_type().is_file() || metadata.file_type().is_symlink() {
+        return false;
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::MetadataExt;
+        const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x400;
+        if metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0 {
+            return false;
+        }
+    }
+    true
+}
+
+fn file_identity(
+    metadata: &Metadata,
+    path: &Path,
+    description: &str,
+    diagnostic_code: &'static str,
+) -> Result<FileIdentity, Vec<Diagnostic>> {
+    platform_file_identity(metadata).map_err(|message| {
+        vec![Diagnostic::io(
+            diagnostic_code,
+            format!(
+                "cannot authenticate {description} {} identity: {message}",
+                path.display()
+            ),
+        )]
+    })
+}
+
+#[cfg(unix)]
+fn platform_file_identity(metadata: &Metadata) -> Result<FileIdentity, &'static str> {
+    use std::os::unix::fs::MetadataExt;
+    Ok(FileIdentity {
+        device: metadata.dev(),
+        inode: metadata.ino(),
+    })
+}
+
+#[cfg(windows)]
+fn platform_file_identity(metadata: &Metadata) -> Result<FileIdentity, &'static str> {
+    use std::os::windows::fs::MetadataExt;
+    let volume = metadata
+        .volume_serial_number()
+        .ok_or("volume serial number is unavailable")?;
+    let index = metadata.file_index().ok_or("file index is unavailable")?;
+    Ok(FileIdentity { volume, index })
+}
+
+#[cfg(not(any(unix, windows)))]
+fn platform_file_identity(_metadata: &Metadata) -> Result<FileIdentity, &'static str> {
+    Err("exact file identity is unsupported on this platform")
+}
+
+fn source_changed_error() -> Vec<Diagnostic> {
+    vec![Diagnostic::io(
+        "SPX-I207",
+        "semantic patch source changed after its initial revision check",
+    )
+    .with_help("regenerate the patch against the current semantic graph")]
 }
 
 fn parse_patch(source: &str) -> Result<SemanticPatch, Vec<Diagnostic>> {
@@ -329,5 +893,185 @@ fn insert_named_type_token(
             && matches!(&token.kind, lexer::TokenKind::Ident(candidate) if candidate == name)
     }) {
         positions.insert((token.span.start, token.span.end));
+    }
+}
+
+#[cfg(test)]
+mod commit_tests {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    use super::*;
+
+    static NEXT_FIXTURE: AtomicUsize = AtomicUsize::new(0);
+
+    const SOURCE: &str = r#"module patch.commit;
+
+@id("helper.answer")
+fn answer() -> i64
+{
+    42
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    answer()
+}
+"#;
+
+    const CONCURRENT_SOURCE: &str = r#"module patch.commit;
+
+@id("helper.answer")
+fn answer() -> i64
+{
+    41
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    answer()
+}
+"#;
+
+    fn fixture(label: &str) -> (PathBuf, PathBuf) {
+        let sequence = NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed);
+        let directory = std::env::temp_dir().join(format!(
+            "semaprax-patch-commit-{}-{label}-{sequence}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&directory).unwrap();
+        let source_path = directory.join("module.spx");
+        let patch_path = directory.join("rename.spatch");
+        let revision = graph::revision(&parse(SOURCE, &source_path).unwrap());
+        std::fs::write(&source_path, SOURCE).unwrap();
+        std::fs::write(
+            &patch_path,
+            format!("base {revision}\nrename helper.answer to computed\n"),
+        )
+        .unwrap();
+        (source_path, patch_path)
+    }
+
+    fn assert_owned_artifacts_removed(source_path: &Path) {
+        let canonical = std::fs::canonicalize(source_path).unwrap();
+        assert!(!sibling_path(&canonical, ".semaprax-patch.lock")
+            .unwrap()
+            .exists());
+        for index in 0..STAGING_ATTEMPTS {
+            assert!(
+                !sibling_path(&canonical, &format!(".semaprax-stage.{index}.tmp"))
+                    .unwrap()
+                    .exists()
+            );
+        }
+    }
+
+    #[test]
+    fn concurrent_edit_is_preserved_and_rejected_before_commit() {
+        let (source_path, patch_path) = fixture("concurrent-edit");
+        let error = apply_with_commit_hook(&source_path, &patch_path, |phase, source, _| {
+            if phase == CommitPhase::BeforeFinalCheck {
+                std::fs::write(source, CONCURRENT_SOURCE)?;
+            }
+            Ok(())
+        })
+        .unwrap_err();
+
+        assert_eq!(error[0].code, "SPX-I207");
+        assert_eq!(
+            std::fs::read_to_string(&source_path).unwrap(),
+            CONCURRENT_SOURCE
+        );
+        assert_owned_artifacts_removed(&source_path);
+    }
+
+    #[test]
+    fn same_bytes_with_replaced_source_identity_are_rejected_after_final_check() {
+        let (source_path, patch_path) = fixture("concurrent-replacement");
+        let backup_path = source_path.with_extension("original.spx");
+        let error = apply_with_commit_hook(&source_path, &patch_path, |phase, source, _| {
+            if phase == CommitPhase::BeforeRename {
+                std::fs::rename(source, &backup_path)?;
+                std::fs::write(source, SOURCE)?;
+            }
+            Ok(())
+        })
+        .unwrap_err();
+
+        assert_eq!(error[0].code, "SPX-I207");
+        assert_eq!(std::fs::read_to_string(&source_path).unwrap(), SOURCE);
+        assert_eq!(std::fs::read_to_string(&backup_path).unwrap(), SOURCE);
+        assert_owned_artifacts_removed(&source_path);
+    }
+
+    #[test]
+    fn staging_bytes_changed_after_final_check_are_rejected_and_cleaned() {
+        let (source_path, patch_path) = fixture("stage-mutation");
+        let error = apply_with_commit_hook(&source_path, &patch_path, |phase, _, staging| {
+            if phase == CommitPhase::BeforeRename {
+                std::fs::write(staging, b"attacker bytes")?;
+            }
+            Ok(())
+        })
+        .unwrap_err();
+
+        assert_eq!(error[0].code, "SPX-I203");
+        assert_eq!(std::fs::read_to_string(&source_path).unwrap(), SOURCE);
+        assert_owned_artifacts_removed(&source_path);
+    }
+
+    #[test]
+    fn foreign_stage_path_replacement_is_rejected_and_never_deleted() {
+        let (source_path, patch_path) = fixture("stage-path-replacement");
+        let displaced_owned_stage = source_path.with_extension("owned-stage");
+        let error = apply_with_commit_hook(&source_path, &patch_path, |phase, _, staging| {
+            if phase == CommitPhase::BeforeRename {
+                std::fs::rename(staging, &displaced_owned_stage)?;
+                std::fs::write(staging, b"foreign path object")?;
+            }
+            Ok(())
+        })
+        .unwrap_err();
+
+        assert_eq!(error[0].code, "SPX-I203");
+        assert_eq!(std::fs::read_to_string(&source_path).unwrap(), SOURCE);
+        assert_eq!(
+            std::fs::read_to_string(
+                sibling_path(
+                    &std::fs::canonicalize(&source_path).unwrap(),
+                    ".semaprax-stage.0.tmp"
+                )
+                .unwrap()
+            )
+            .unwrap(),
+            "foreign path object"
+        );
+        assert!(displaced_owned_stage.exists());
+        assert!(!sibling_path(
+            &std::fs::canonicalize(&source_path).unwrap(),
+            ".semaprax-patch.lock"
+        )
+        .unwrap()
+        .exists());
+    }
+
+    #[test]
+    fn injected_rename_failure_preserves_source_and_cleans_owned_artifacts() {
+        let (source_path, patch_path) = fixture("rename-failure");
+        let error = apply_with_commit_hook(&source_path, &patch_path, |phase, _, _| {
+            if phase == CommitPhase::BeforeRename {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::PermissionDenied,
+                    "injected rename rejection",
+                ));
+            }
+            Ok(())
+        })
+        .unwrap_err();
+
+        assert_eq!(error[0].code, "SPX-I204");
+        assert_eq!(std::fs::read_to_string(&source_path).unwrap(), SOURCE);
+        assert_owned_artifacts_removed(&source_path);
     }
 }

@@ -253,13 +253,29 @@ pub fn expr(value: &Expr, parent_precedence: u8) -> String {
             expr(else_branch, 0)
         ),
         ExprKind::ConstructRecord {
-            type_name, fields, ..
+            type_name,
+            type_arguments,
+            fields,
+            ..
         } => {
-            if fields.is_empty() {
-                format!("{type_name} {{}}")
+            let qualifier = if type_arguments.is_empty() {
+                type_name.clone()
             } else {
                 format!(
-                    "{type_name} {{ {} }}",
+                    "{}<{}>",
+                    type_name,
+                    type_arguments
+                        .iter()
+                        .map(ToString::to_string)
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            };
+            if fields.is_empty() {
+                format!("{qualifier} {{}}")
+            } else {
+                format!(
+                    "{qualifier} {{ {} }}",
                     fields
                         .iter()
                         .map(|field| format!("{}: {}", field.name, expr(&field.value, 0)))

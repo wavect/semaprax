@@ -4,6 +4,32 @@ All notable changes to SEMAPRAX are documented here.
 
 ## 0.2.0 — 2026-08-07
 
+- Added default-off Private Nested Record Component v6 for exact WIT package
+  `semaprax:private@0.4.0`, interface `nested-records`, world
+  `semaprax-private-v6`, and one `transform` export over fixed nested
+  `inner`/`outer` scalar records inside the unchanged physical-status result.
+  Source, generated core, both Wasm32 layouts, profile, component, and complete
+  DAG have frozen KATs; local exact-profile/upstream validation, hostile
+  mutation/cross-version closure, core execution, default-consumer hiding,
+  source locks, strict Clippy, and independent security review are green. The
+  isolated pinned Rust 1.97.1/Wasmtime 47 typed runtime remains hosted pending.
+  V1-v5 bytes stay unchanged; this adds no general/empty/generic/resource
+  records, variants/algebraic nesting, imports/capabilities/async, public ABI,
+  browser/multi-engine support, package negotiation, or
+  `SPX-B104`/`SPX-W111` widening.
+- Added bounded explicitly instantiated generic Copy records with one or more
+  owner/index-stable parameters, direct scalar/own-parameter template fields,
+  and direct `i64`/`bool` concrete arguments. Canonical source, source
+  verification, resolved HIR, construction/projection/immutable update,
+  concrete type facts, exact-instance Native64/Wasm32 layout caches and
+  digests, native C symbols, and Wasm lowering now agree for `Box<T>`,
+  `Pair<T>`, and ordered `Duo<T, U>` instances. Generic-record programs select
+  program-wide Graph v12 above the existing v11 Option/v10 legacy lattice;
+  legacy graph snapshots remain byte-identical. Strict C11 O0/O2 and Node/Wasm
+  re-entry cover construction, update, pass/return, both bool arms, sticky
+  failure order, and poisoned outputs. Generic functions/inference,
+  nested/resource/non-Copy arguments or fields, record patterns/matching,
+  public aggregate/callable/FFI ABIs, and resource admission remain closed.
 - Added default-off Private Scalar Algebraic Component v5 with six fixed WIT
   0.3 exports for `Option<i64>`, `Option<bool>`, and the complete direct-copy
   `Result<T, E>` matrix over `i64`/`bool`. Language carrier arms remain ordinary
@@ -61,7 +87,8 @@ All notable changes to SEMAPRAX are documented here.
   real Node/Wasm cover different source/outer layouts, later-expression skip,
   physical-status separation, postcondition failures, poison, invalid tags,
   and re-entry. The conformance-trace protocol remains closed to aggregate
-  values. Resource/nested arguments, generic functions/records, non-copy
+  values. Resource/nested arguments, generic functions, broader non-Copy
+  generic records, non-copy
   propagation, residual conversion, `?` in contracts, public aggregate ABI,
   callable/component aggregate signatures, and public resource admission are
   unchanged nonclaims.

@@ -85,6 +85,41 @@ fn runtime_wits_are_the_exact_private_result_contracts() {
     let checked_in_v5 = read("platform-tests/component-runtime/wit/semaprax-private-v5.wit");
     let expected_v5 = "package semaprax:private@0.3.0;\n\ninterface scalar-algebra {\n  record status { domain: string, code: u32, class: u8, retryable: option<bool> }\n  type maybe-i64 = option<s64>;\n  type maybe-bool = option<bool>;\n  type language-result-i64-i64 = result<s64, s64>;\n  type language-result-i64-bool = result<s64, bool>;\n  type language-result-bool-i64 = result<bool, s64>;\n  type language-result-bool-bool = result<bool, bool>;\n  option-i64: func(value: s64, select: bool, divisor: s64) -> result<maybe-i64, status>;\n  option-bool: func(value: s64, select: bool, divisor: s64) -> result<maybe-bool, status>;\n  result-i64-i64: func(value: s64, select: bool, divisor: s64) -> result<language-result-i64-i64, status>;\n  result-i64-bool: func(value: s64, select: bool, divisor: s64) -> result<language-result-i64-bool, status>;\n  result-bool-i64: func(value: s64, select: bool, divisor: s64) -> result<language-result-bool-i64, status>;\n  result-bool-bool: func(value: s64, select: bool, divisor: s64) -> result<language-result-bool-bool, status>;\n}\n\nworld semaprax-private-v5 {\n  export scalar-algebra;\n}\n";
     assert_eq!(checked_in_v5, expected_v5);
+
+    let checked_in_v6 = read("platform-tests/component-runtime/wit/semaprax-private-v6.wit");
+    let expected_v6 = "package semaprax:private@0.4.0;\n\ninterface nested-records {\n  record status { domain: string, code: u32, class: u8, retryable: option<bool> }\n  record inner { value: s64, flag: bool }\n  record outer { inner: inner, other: s64 }\n  transform: func(input: outer, delta: s64) -> result<outer, status>;\n}\n\nworld semaprax-private-v6 {\n  export nested-records;\n}\n";
+    assert_eq!(checked_in_v6, expected_v6);
+
+    let checked_in_source_v6 = read("platform-tests/component-runtime/v6.spx");
+    let expected_source_v6 = r#"module test.component_nested_record_v6;
+
+@id("component.inner")
+record Inner {
+    @id("component.inner.value") value: i64,
+    @id("component.inner.flag") flag: bool,
+}
+
+@id("component.outer")
+record Outer {
+    @id("component.outer.inner") inner: Inner,
+    @id("component.outer.other") other: i64,
+}
+
+@id("component.transform")
+fn transform(input: Outer, delta: i64) -> Outer
+    requires delta != -99
+    ensures delta != 13
+{
+    input with {
+        inner: input.inner with { value: input.inner.value + delta },
+        other: input.other / (delta - 1),
+    }
+}
+
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+    assert_eq!(checked_in_source_v6, expected_source_v6);
 }
 
 #[test]
@@ -99,6 +134,8 @@ fn component_job_fetches_root_and_runner_then_runs_every_gate_locked_and_offline
         "--features unstable-wit-component-harness --lib wit_component::source_result_v4::tests::",
         "--features unstable-wit-component-harness --lib wasm::scalar_algebra_component_v5::tests::",
         "--features unstable-wit-component-harness --lib wit_component::scalar_algebra_v5::tests::",
+        "--features unstable-wit-component-harness --lib wasm::nested_record_component_v6::tests::",
+        "--features unstable-wit-component-harness --lib wit_component::nested_record_v6::tests::",
         "--test component_runtime_ci_contract",
     ] {
         assert!(
@@ -137,7 +174,7 @@ fn component_job_fetches_root_and_runner_then_runs_every_gate_locked_and_offline
         "manifest-path: platform-tests/component-runtime/Cargo.toml",
         "--config platform-tests/component-runtime/deny.toml",
         "scripts/component-runtime-v3.sh",
-        "execute every v3/v4/v5 Component gate offline",
+        "execute every v3/v4/v5/v6 Component gate offline",
     ] {
         assert!(
             workflow.contains(required),
@@ -172,22 +209,30 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "call_evaluate",
         "SemapraxPrivateV4::instantiate",
         "SemapraxPrivateV5::instantiate",
+        "SemapraxPrivateV6::instantiate",
         "#[allow(clippy::too_many_lines)]\nfn run_v5_instance",
+        "#[allow(clippy::too_many_lines)]\nfn run_v6_instance",
+        "Keep the exact nested-record field and status matrix visible in one reviewable",
         "This is deliberately a flat, reviewable six-export protocol matrix.",
         "semaprax-private-v4.wit",
         "semaprax-private-v5.wit",
+        "semaprax-private-v6.wit",
         "EXPECTED_COMPONENT_V4_SHA256",
         "EXPECTED_GENERATED_CORE_V4_SHA256",
         "EXPECTED_SOURCE_REVISION_V4",
         "EXPECTED_COMPONENT_V5_SHA256",
         "EXPECTED_GENERATED_CORE_V5_SHA256",
         "EXPECTED_SOURCE_REVISION_V5",
+        "EXPECTED_COMPONENT_V6_SHA256",
+        "EXPECTED_GENERATED_CORE_V6_SHA256",
+        "EXPECTED_SOURCE_REVISION_V6",
         "sha256:86411224efe3adace5ffdd410c243306859edc280dbe3342adcf830588b62259",
         "0x6c, 0xeb, 0x9e, 0x30, 0x96, 0x94, 0xa5, 0xb9",
         "0x08, 0x25, 0xf2, 0x70, 0xcf, 0x2c, 0x94, 0xbd",
         "sha256:4391bc27b5db547f2b162c2b5467c2b75797e8a5ef64e4ffe4abef15678c6254",
         "validate_private_source_result_component_v4",
         "validate_private_scalar_algebra_component_v5",
+        "validate_private_nested_record_component_v6",
         "config.consume_fuel(true)",
         "store.set_fuel(0)",
         "engine_failure.is_ok()",
@@ -202,6 +247,15 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "call_result_bool_i64",
         "call_result_bool_bool",
         "semaprax:private/scalar-algebra@0.3.0",
+        "semaprax:private/nested-records@0.4.0",
+        "cabi_transform_nested_record_v6",
+        "call_transform",
+        "prove_raw_core_v6_poison_status_and_invalid_bool",
+        "status[24..32] != [0xa5; 8]",
+        "poison != [0xa5; 32]",
+        "sha256:d1fcbc45b3d86fa1d7910378578828df3c557dba92f90ed9459f928c5bf2fe8a",
+        "0xad, 0x40, 0x8a, 0x7a, 0x6a, 0x35, 0x96, 0xa0",
+        "0x42, 0x83, 0x5d, 0xcb, 0xf9, 0x80, 0x78, 0xac",
         "(left + 1) / right",
         "name: \"addition-overflow\"",
         "left: i64::MAX",
@@ -236,8 +290,6 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "func_wrap",
         "add_to_linker",
         "get_func",
-        "get_typed_func",
-        "Module::new",
         "artifact.digest()",
     ] {
         assert!(
@@ -245,4 +297,16 @@ fn capability_and_dependency_policy_are_fail_closed() {
             "runner contains ambient or untyped surface: {forbidden}"
         );
     }
+    assert_eq!(
+        runner
+            .matches("get_typed_func::<(i64, i32, i64, i64), i32>")
+            .count(),
+        1,
+        "only the exact v6 canonical raw signature may bypass typed Component bindings"
+    );
+    assert_eq!(
+        runner.matches("Module::new").count(),
+        1,
+        "only the authenticated v6 embedded core may be instantiated directly"
+    );
 }

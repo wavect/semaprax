@@ -21,9 +21,10 @@ Status: implemented in this repository.
 Status: in progress. Resource ownership boundaries and explicit
 lifecycle/interface contracts, lexical `let`, typed `if/else`, partial-place
 diagnostics, record construction/projection/immutable-update semantics, bounded
-generic copy variants/exhaustive matching, ordinary prelude `Option`/`Result`,
+explicitly instantiated generic Copy records, generic copy variants/exhaustive
+matching, ordinary prelude `Option`/`Result`,
 bounded direct-scalar `Result` and `Option` propagation, feature-minimal Graph
-v11 for Option propagation while legacy/Result output remains v10, validated
+v12/v11/v10 lattice for generic records/Option propagation/legacy, validated
 stable-ID HIR/type facts, mandatory replay-validated CleanupPlan v2/v3 plans, versioned normalized-status
 and semantic-event-dictionary types, native scalar status/out execution, a
 browser-loadable scalar Wasm backend, and one narrow direct-trivial-resource
@@ -34,7 +35,8 @@ match the reference outcome, complete trace, publication, and final logical
 liveness for all 14 cases at native O0/O2; the remaining public and language
 gates below are not.
 
-- Complete record breadth plus nested/resource-bearing generic variants and
+- Complete record breadth plus nested/resource-bearing generic records and
+  variants and
   non-copy `Option`/`Result` instantiations.
 - Ownership-aware and nested pattern matching beyond the bounded exhaustive copy slice.
 - Generic functions with constraints.
@@ -52,7 +54,8 @@ trivial/imported lifecycle syntax, declaration-only interface/import contracts,
 source/HIR validation, and a target-neutral cleanup plan. Resolved functions
 carry typed blocks/edges/regions/exits, guarded liveness, atomic call commits,
 sticky status sources, cleanup order, and result publication; validation
-independently rebuilds the plan, and Graph v10 serializes it. Checked Native64
+independently rebuilds the plan, and the program-derived Graph v10/v11/v12
+lattice serializes it. Checked Native64
 and Wasm32 layouts cover nested `i64`, `bool`, and direct trivial-resource
 fields; immutable-update cleanup consumes the base first, evaluates authored
 replacements left-to-right, transfers untouched fields, and cleans displaced
@@ -64,6 +67,18 @@ preservation, exact evaluation order, and Wasm shadow-stack re-entry. A private
 test-only resource-record scenario is projected from the same cleanup plan into
 C and real Wasm with an exact common finalization trace and zero liveness; it
 does not open public resource execution or any aggregate ABI.
+
+Bounded Generic Copy Records now admits explicitly instantiated templates with
+one or more owner/index-stable parameters, direct scalar or own-parameter
+fields, and direct `i64`/`bool` arguments. Exact instances key HIR facts,
+Native64/Wasm32 layouts, digests, caches, native symbols, and Graph v12;
+same-layout instances remain distinct. Native C11 O0/O2 and 4,096-call
+Node/Wasm evidence covers `Box<T>`, multi-field `Pair<T>`, ordered
+`Duo<T,U>`, construction/projection/update/pass-return, both bool arms,
+failure order, and poison. CleanupPlan remains canonical v2 because this slice
+is resource-free Copy. Generic functions/inference, nested/resource/non-Copy
+arguments or fields, record patterns/matching, public aggregate/callable/FFI
+ABI, and public resource admission remain subsequent work.
 
 Executable Copy Variants + Match now includes nominal templates with explicit
 direct `i64`/`bool` arguments, alongside monomorphic unit/direct-scalar cases.
@@ -92,7 +107,7 @@ CleanupPlan v3 and program-bound Graph v11. Native C11 O0/O2 and Node/Wasm
 prove different source/outer layouts, status separation, poison, invalid-tag
 closure, and re-entry. Result is hosted green; Option is hosted green in [run
 31360176398, job 93367728277](https://github.com/wavect/semaprax/actions/runs/31360176398/job/93367728277).
-This does not open generic functions/records,
+This does not open generic functions,
 nested/resource arguments, resource- or record-bearing payloads, non-copy
 ownership/propagation, residual conversion, `?` in contracts, a stable public
 aggregate ABI, callable/component signatures, or public resource admission.
@@ -123,7 +138,7 @@ bundle with deterministic hashed metadata, but it exposes no execution,
 admission, or adoption surface.
 Imported lifecycles, calls, general aggregates, broader control flow,
 cross-realm/worker identity, stable public aggregate ABIs, nested/resource
-generic arguments, generic functions/records, resource-bearing variants,
+generic arguments, generic functions or broader non-Copy generic records, resource-bearing variants,
 ownership-aware matching, general/non-copy/residual-converting `?`,
 concurrency, and fork recovery remain subsequent work.
 
@@ -217,6 +232,16 @@ capabilities, async, public ABI, or `SPX-B104`/`SPX-W111`. General source
 `Result`/`Option`/`?` mapping, records/resources/imports, async/capabilities,
 callable/FFI aggregate signatures, multi-engine/browser execution, public
 component API/ABI, and `SPX-B104` remain later gates.
+
+Private Nested Record Component v6 adds a separate default-off exact WIT
+fixture for package `semaprax:private@0.4.0`, with one `transform` export over fixed nested scalar `inner`/`outer`
+records. Exact source/core/layout/profile/component/DAG authentication,
+independent/upstream validation, hostile closure, core execution,
+default-consumer hiding, source locks, and security review are locally green.
+Its pinned Rust 1.97.1/Wasmtime 47 typed runtime remains hosted pending. This
+does not open general/empty/generic/resource records, algebraic nesting,
+imports/capabilities/async, public ABI, browser/multi-engine support,
+package/version negotiation, or `SPX-B104`/`SPX-W111`.
 
 The model-backed, proposed [RFC 0004 native call recovery and settlement
 contract](RFC-0004-NATIVE-CALL-SETTLEMENT.md) specifies the bounded linear

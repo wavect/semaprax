@@ -13,6 +13,8 @@ use crate::hir::{
 use crate::variant_layout::{VariantLayoutCache, VariantTarget};
 
 mod aggregate;
+#[cfg(any(test, feature = "unstable-wit-component-harness"))]
+mod nested_record_component_v6;
 mod owned;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod result_component_v3;
@@ -21,6 +23,12 @@ mod scalar_algebra_component_v5;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod source_result_component_v4;
 
+#[cfg(any(test, feature = "unstable-wit-component-harness"))]
+pub(crate) use nested_record_component_v6::{
+    emit_private_nested_record_core_v6,
+    CANONICAL_EXPORT as NESTED_RECORD_COMPONENT_CANONICAL_EXPORT_V6,
+    SOURCE_V6 as NESTED_RECORD_COMPONENT_SOURCE_V6,
+};
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 pub(crate) use result_component_v3::{
     emit_private_result_core_v3, CANONICAL_EXPORT as RESULT_COMPONENT_CANONICAL_EXPORT_V3,

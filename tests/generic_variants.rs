@@ -288,7 +288,7 @@ variant Choice<T> {
 }
 
 #[test]
-fn reserved_prelude_names_and_nonvariant_generics_are_rejected() {
+fn reserved_prelude_names_and_generic_resources_are_rejected() {
     let reserved = r#"
 module test.reserved;
 @id("test.option") variant Option<T> { @id("test.option.none") None, }
@@ -303,12 +303,12 @@ module test.reserved_id;
 "#;
     assert_eq!(error_codes(reserved_id), ["SPX-S102"]);
 
-    let generic_record = r#"
-module test.generic_record;
-@id("test.box") record Box<T> { @id("test.box.value") value: i64, }
+    let generic_resource = r#"
+module test.generic_resource;
+@id("test.resource") resource Resource<T>;
 @id("app.main") fn main() -> i64 { 0 }
 "#;
-    assert_eq!(error_codes(generic_record), ["SPX-T223"]);
+    assert!(error_codes(generic_resource).contains(&"SPX-T223"));
 }
 
 #[test]

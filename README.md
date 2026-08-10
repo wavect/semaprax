@@ -86,6 +86,16 @@ Implemented today:
   status/out poison, internal pointer parameters, caller-owned results, and Wasm
   shadow-stack restoration. Empty records have the same frozen one-byte,
   alignment-one representation on both layout profiles.
+- Bounded generic Copy records admit explicit templates such as `Box<T>` and
+  `Duo<T, U>` whose fields are direct `i64`/`bool` values or their own type
+  parameters, with explicit direct-scalar instantiation only. Exact concrete
+  instances bind HIR substitution, layout caches and digests, native symbols,
+  Graph v12 structured arguments, and Native64/Wasm32 lowering. C11 O0/O2 and
+  Node/Wasm evidence covers construction, projection, immutable update,
+  pass/return, multi-parameter order, poison-preserving failure, and repeated
+  entry. Generic functions/inference, nested/resource/non-Copy arguments,
+  matching on records, and public aggregate/callable/FFI ABI admission remain
+  closed.
 - One private test-only resource-record harness projects the shared cleanup plan
   into C11 O0/O2 and real Wasm with an exact common finalization trace and zero
   final liveness. It is proof scaffolding only: public resource-bearing record
@@ -112,8 +122,8 @@ Implemented today:
   Result-only and propagation-free output remains CleanupPlan v2/Graph v10.
   Native C11 at O0/O2 and real Node/Wasm prove different source/outer layouts,
   physical-status separation, complete caller-output poison, invalid-tag
-  closure, and Wasm re-entry. Resource/nested arguments, generic functions or
-  records, non-copy matching or propagation, residual conversion, `?` in
+  closure, and Wasm re-entry. Resource/nested arguments, generic functions,
+  non-copy matching or propagation, residual conversion, `?` in
   contracts, stable public aggregate ABI, and callable/component aggregate
   admission remain closed. Generic/prelude verification is hosted green in
   [run 31347109201](https://github.com/wavect/semaprax/actions/runs/31347109201),
@@ -136,13 +146,15 @@ Implemented today:
 - Persistent declaration identity through `@id`.
 - NUL-free persistent semantic identities across source, resolved HIR, cleanup metadata, graph serialization, and native C literals.
 - Deterministic formatting and domain-separated SHA-256 graph revisions.
-- JSON semantic Graph v10, conditionally v11 for bounded Option propagation,
+- JSON semantic Graph v10, conditionally v11 for bounded Option propagation or
+  v12 when any authenticated generic record declaration is present,
   with owner/index-stable generic parameters, exact
   concrete nominal arguments, an authenticated compiler-owned prelude,
   persistent variant/case/payload identities, revision-scoped
   construction/match/pattern structure, immutable record update, exact
   evaluation-once `try_result`/`try_option` source/target instances and
-  shared-epilogue meaning, complete CleanupPlan v2/v3 staging, and dependency-bounded context
+  shared-epilogue meaning, exact generic-record templates/instances, complete
+  CleanupPlan v2/v3 staging, and dependency-bounded context
   slices. Revision v2 binds both canonical source and the exact prelude
   contract.
 - JSON-line diagnostics for agent consumption.
@@ -261,9 +273,17 @@ mapping, canonical layouts, hostile reindexing/mutation closure, upstream
 validation, and zero-import isolated-runner source locks are green. The pinned
 Rust 1.97.1 typed Wasmtime matrix is hosted green in [run 31360176398, job
 93367728269](https://github.com/wavect/semaprax/actions/runs/31360176398/job/93367728269).
-V1-v4 bytes remain unchanged. This remains **Partial** WIT evidence only: v4/v5 admit only
+Private Nested Record Component v6 is a separate default-off exact fixture for
+WIT package `semaprax:private@0.4.0`, interface `nested-records`, and world
+`semaprax-private-v6`. Its sole `transform` export maps a fixed nested
+`inner`/`outer` scalar record through the unchanged outer status result. Exact
+source/core/layout/profile/component/DAG KATs, independent/upstream validation,
+hostile closure, default-consumer hiding, local core execution, and security
+review are green. The isolated pinned Rust 1.97.1/Wasmtime 47 typed runtime is
+hosted pending and is not yet credited runtime-green.
+V1-v5 bytes remain unchanged. This remains **Partial** WIT evidence only: v4-v6 admit only
 their exact private closures. General `Result`/`Option` component
-mapping, records, resources, imports, async, capabilities, multi-engine/browser
+mapping, general/empty/generic/resource records, imports, async, capabilities, multi-engine/browser
 conformance, a public WIT surface, callable/FFI aggregate signatures, and any
 `SPX-B104` change remain absent.
 
@@ -271,7 +291,7 @@ Not implemented yet: public native resource execution/admission,
 general-shape native/reference/Wasm trace conformance, the general Wasm resource ABI,
 recursive reference execution, callable imports/adapters, a stable public aggregate
 ABI and general aggregate execution, nested or resource-bearing generic
-arguments, generic functions or records, resource-bearing variants,
+arguments, generic functions, resource-bearing variants,
 ownership-aware matching, general/non-copy/residual-converting `?`, lifetime
 and alias analysis, user-facing
 regions, effect handlers, static contract proofs, Cranelift, LLVM/MLIR IR,

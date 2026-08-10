@@ -1,0 +1,27 @@
+module test.component_nested_record_v6;
+
+@id("component.inner")
+record Inner {
+    @id("component.inner.value") value: i64,
+    @id("component.inner.flag") flag: bool,
+}
+
+@id("component.outer")
+record Outer {
+    @id("component.outer.inner") inner: Inner,
+    @id("component.outer.other") other: i64,
+}
+
+@id("component.transform")
+fn transform(input: Outer, delta: i64) -> Outer
+    requires delta != -99
+    ensures delta != 13
+{
+    input with {
+        inner: input.inner with { value: input.inner.value + delta },
+        other: input.other / (delta - 1),
+    }
+}
+
+@id("app.main")
+fn main() -> i64 { 0 }

@@ -88,6 +88,14 @@ impl<'a> TypeTable<'a> {
         }
     }
 
+    fn record_field_type(&self, instance: &Type, field: &FieldDeclaration) -> Option<Type> {
+        let Type::Named { name, arguments } = instance else {
+            return None;
+        };
+        let declaration = self.declaration(name)?;
+        Self::substitute_variant_type(declaration, arguments, &field.ty)
+    }
+
     fn variant_cases(&self, ty: &Type) -> Option<&'a [VariantCaseDeclaration]> {
         let Type::Named { name, .. } = ty else {
             return None;
@@ -146,7 +154,7 @@ impl<'a> TypeTable<'a> {
     }
 
     fn contains_resource_inner(&self, ty: &Type, visiting: &mut HashSet<String>) -> bool {
-        let Type::Named { name, .. } = ty else {
+        let Type::Named { name, arguments } = ty else {
             return false;
         };
         let Some(declaration) = self.declaration(name) else {
@@ -155,25 +163,30 @@ impl<'a> TypeTable<'a> {
         match &declaration.kind {
             TypeDeclarationKind::Resource { .. } => true,
             TypeDeclarationKind::Record { fields } => {
-                if !visiting.insert(name.clone()) {
+                let instance = ty.to_string();
+                if !visiting.insert(instance.clone()) {
                     return true;
                 }
-                let contains = fields
-                    .iter()
-                    .any(|field| self.contains_resource_inner(&field.ty, visiting));
-                visiting.remove(name);
+                let contains = fields.iter().any(|field| {
+                    Self::substitute_variant_type(declaration, arguments, &field.ty)
+                        .is_none_or(|field_ty| self.contains_resource_inner(&field_ty, visiting))
+                });
+                visiting.remove(&instance);
                 contains
             }
             TypeDeclarationKind::Variant { cases } => {
-                if !visiting.insert(name.clone()) {
+                let instance = ty.to_string();
+                if !visiting.insert(instance.clone()) {
                     return true;
                 }
                 let contains = cases.iter().any(|case| {
-                    case.fields
-                        .iter()
-                        .any(|field| self.contains_resource_inner(&field.ty, visiting))
+                    case.fields.iter().any(|field| {
+                        Self::substitute_variant_type(declaration, arguments, &field.ty).is_none_or(
+                            |field_ty| self.contains_resource_inner(&field_ty, visiting),
+                        )
+                    })
                 });
-                visiting.remove(name);
+                visiting.remove(&instance);
                 contains
             }
         }
@@ -196,11 +209,14 @@ impl<'a> TypeTable<'a> {
         visiting: &mut HashSet<String>,
         effects: &mut HashSet<String>,
     ) {
-        let Type::Named { name, .. } = ty else { return };
+        let Type::Named { name, arguments } = ty else {
+            return;
+        };
         let Some(declaration) = self.declaration(name) else {
             return;
         };
-        if !visiting.insert(name.clone()) {
+        let instance = ty.to_string();
+        if !visiting.insert(instance.clone()) {
             return;
         }
         match &declaration.kind {
@@ -217,18 +233,26 @@ impl<'a> TypeTable<'a> {
             }
             TypeDeclarationKind::Record { fields } => {
                 for field in fields {
-                    self.lifecycle_effects_inner(&field.ty, imports, visiting, effects);
+                    if let Some(field_ty) =
+                        Self::substitute_variant_type(declaration, arguments, &field.ty)
+                    {
+                        self.lifecycle_effects_inner(&field_ty, imports, visiting, effects);
+                    }
                 }
             }
             TypeDeclarationKind::Variant { cases } => {
                 for case in cases {
                     for field in &case.fields {
-                        self.lifecycle_effects_inner(&field.ty, imports, visiting, effects);
+                        if let Some(field_ty) =
+                            Self::substitute_variant_type(declaration, arguments, &field.ty)
+                        {
+                            self.lifecycle_effects_inner(&field_ty, imports, visiting, effects);
+                        }
                     }
                 }
             }
         }
-        visiting.remove(name);
+        visiting.remove(&instance);
     }
 }
 
@@ -253,13 +277,13 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                 declaration.name_span,
             ));
         }
-        if !matches!(declaration.kind, TypeDeclarationKind::Variant { .. })
+        if matches!(declaration.kind, TypeDeclarationKind::Resource { .. })
             && !declaration.type_parameters.is_empty()
         {
             diagnostics.push(error(
                 program,
                 "SPX-T223",
-                "only variant declarations may declare generic parameters in this slice",
+                "only record and variant declarations may declare generic parameters in this slice",
                 declaration.type_parameters[0].span,
             ));
         }
@@ -841,15 +865,64 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
     }
     for declaration in &program.types {
         if let TypeDeclarationKind::Record { fields } = &declaration.kind {
+            let parameters = declaration
+                .type_parameters
+                .iter()
+                .map(|parameter| parameter.name.as_str())
+                .collect::<HashSet<_>>();
             for field in fields {
                 check_declared_type(
                     program,
                     &field.ty,
                     field.span,
                     &types,
-                    &HashSet::new(),
+                    &parameters,
                     &mut diagnostics,
                 );
+                if !parameters.is_empty() {
+                    let is_parameter = matches!(
+                        &field.ty,
+                        Type::Named { name, arguments }
+                            if arguments.is_empty() && parameters.contains(name.as_str())
+                    );
+                    let is_unknown_parameter = matches!(
+                        &field.ty,
+                        Type::Named { name, arguments }
+                            if arguments.is_empty() && types.declaration(name).is_none()
+                    );
+                    if !matches!(field.ty, Type::I64 | Type::Bool)
+                        && !is_parameter
+                        && !is_unknown_parameter
+                    {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T223",
+                            format!(
+                                "generic record field `{}.{}` must have direct `i64`, `bool`, or an in-scope record type parameter",
+                                declaration.name, field.name
+                            ),
+                            field.span,
+                        ));
+                    }
+                } else if matches!(
+                    &field.ty,
+                    Type::Named { name, arguments }
+                        if !arguments.is_empty()
+                            && matches!(
+                                types.declaration(name).map(|item| &item.kind),
+                                Some(TypeDeclarationKind::Record { .. })
+                            )
+                ) {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T223",
+                        format!(
+                            "record field `{}.{}` cannot nest a generic record instance in this slice",
+                            declaration.name, field.name
+                        ),
+                        field.span,
+                    ));
+                }
             }
         }
         if let TypeDeclarationKind::Variant { cases } = &declaration.kind {
@@ -1196,13 +1269,27 @@ fn record_layout_is_recursive(
             TypeDeclarationKind::Resource { .. } | TypeDeclarationKind::Variant { .. } => None,
         })
         .is_some_and(|fields| {
+            let parameters = types
+                .declaration(name)
+                .map(|declaration| {
+                    declaration
+                        .type_parameters
+                        .iter()
+                        .map(|parameter| parameter.name.as_str())
+                        .collect::<HashSet<_>>()
+                })
+                .unwrap_or_default();
             fields.iter().any(|field| {
                 let Type::Named {
-                    name: field_type, ..
+                    name: field_type,
+                    arguments,
                 } = &field.ty
                 else {
                     return false;
                 };
+                if arguments.is_empty() && parameters.contains(field_type.as_str()) {
+                    return false;
+                }
                 matches!(
                     types.declaration(field_type).map(|item| &item.kind),
                     Some(TypeDeclarationKind::Record { .. })
@@ -1264,17 +1351,17 @@ fn check_declared_type(
             ));
         }
         if !arguments.is_empty()
-            && (!matches!(declaration.kind, TypeDeclarationKind::Variant { .. })
-                || arguments
-                    .iter()
-                    .any(|argument| !matches!(argument, Type::I64 | Type::Bool)))
+            && (!matches!(
+                declaration.kind,
+                TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Variant { .. }
+            ) || arguments
+                .iter()
+                .any(|argument| !matches!(argument, Type::I64 | Type::Bool)))
         {
             diagnostics.push(error(
                 program,
                 "SPX-T223",
-                format!(
-                    "generic copy variant `{name}` accepts only direct `i64` or `bool` arguments"
-                ),
+                format!("generic copy type `{name}` accepts only direct `i64` or `bool` arguments"),
                 span,
             ));
         }
@@ -1606,9 +1693,24 @@ fn check_expr(
             Some(CheckedValue::value(output))
         }
         ExprKind::ConstructRecord {
-            type_name, fields, ..
+            type_name,
+            type_arguments,
+            fields,
+            ..
         } => {
             let declaration = types.declaration(type_name);
+            let instance = Type::Named {
+                name: type_name.clone(),
+                arguments: type_arguments.clone(),
+            };
+            check_declared_type(
+                program,
+                &instance,
+                expr.span,
+                types,
+                &HashSet::new(),
+                diagnostics,
+            );
             let declared_fields = declaration.and_then(|declaration| match &declaration.kind {
                 TypeDeclarationKind::Record { fields } => Some(fields.as_slice()),
                 TypeDeclarationKind::Resource { .. } | TypeDeclarationKind::Variant { .. } => None,
@@ -1652,13 +1754,22 @@ fn check_expr(
                     diagnostics,
                 );
                 if let (Some(declared), Some(actual)) = (declared, actual) {
-                    if actual.ty != declared.ty {
+                    let expected = declaration
+                        .and_then(|declaration| {
+                            TypeTable::substitute_variant_type(
+                                declaration,
+                                type_arguments,
+                                &declared.ty,
+                            )
+                        })
+                        .unwrap_or_else(|| declared.ty.clone());
+                    if actual.ty != expected {
                         diagnostics.push(error(
                             program,
                             "SPX-T215",
                             format!(
                                 "field `{}.{}` expects {}, received {}",
-                                type_name, field.name, declared.ty, actual.ty
+                                type_name, field.name, expected, actual.ty
                             ),
                             field.value.span,
                         ));
@@ -1703,11 +1814,7 @@ fn check_expr(
             }
 
             declared_fields.map(|_| {
-                let ty = Type::Named {
-                    name: type_name.clone(),
-                    arguments: Vec::new(),
-                };
-                CheckedValue::returned(ty.clone(), types.contains_resource(&ty))
+                CheckedValue::returned(instance.clone(), types.contains_resource(&instance))
             })
         }
         ExprKind::ConstructVariant {
@@ -2211,18 +2318,21 @@ fn check_expr(
                     diagnostics,
                 );
                 if let (Some(declared), Some(actual)) = (declared, actual) {
-                    if actual.ty != declared.ty {
+                    let expected = types
+                        .record_field_type(&base_value.ty, declared)
+                        .unwrap_or_else(|| declared.ty.clone());
+                    if actual.ty != expected {
                         diagnostics.push(error(
                             program,
                             "SPX-T215",
                             format!(
                                 "field `{}.{}` expects {}, received {}",
-                                base_value.ty, field.name, declared.ty, actual.ty
+                                base_value.ty, field.name, expected, actual.ty
                             ),
                             field.value.span,
                         ));
                     }
-                    if types.contains_resource(&declared.ty) && actual.mode == ParamMode::Own {
+                    if types.contains_resource(&expected) && actual.mode == ParamMode::Own {
                         if allow_moves {
                             mark_value_sources_moved(&field.value, variables, types);
                         } else {
@@ -2233,7 +2343,7 @@ fn check_expr(
                                 field.value.span,
                             ));
                         }
-                    } else if types.contains_resource(&declared.ty)
+                    } else if types.contains_resource(&expected)
                         && matches!(actual.mode, ParamMode::Borrow | ParamMode::Shared)
                     {
                         diagnostics.push(error(
@@ -2294,13 +2404,16 @@ fn check_expr(
                 ));
                 return None;
             };
-            let mode = if types.contains_resource(&declared.ty) {
+            let projected = types
+                .record_field_type(&base_value.ty, declared)
+                .unwrap_or_else(|| declared.ty.clone());
+            let mode = if types.contains_resource(&projected) {
                 base_value.mode
             } else {
                 ParamMode::Value
             };
             Some(CheckedValue {
-                ty: declared.ty.clone(),
+                ty: projected,
                 mode,
             })
         }
@@ -2687,7 +2800,7 @@ fn source_place(
                 .record_fields(&place.ty)?
                 .iter()
                 .find(|candidate| candidate.name == *field)?;
-            place.ty = declared.ty.clone();
+            place.ty = types.record_field_type(&place.ty, declared)?;
             if !types.contains_resource(&place.ty) {
                 place.mode = ParamMode::Value;
             }

@@ -30,7 +30,20 @@ postconditions/publication. Result evidence is hosted green in [run
 Option evidence is hosted green through Native C11 O0/O2 and Node/Wasm for
 both source/outer layout directions, physical-status separation, poison,
 invalid tags, and re-entry in [run 31360176398, job 93367728277](https://github.com/wavect/semaprax/actions/runs/31360176398/job/93367728277).
-Generic functions or records, nested/resource arguments, non-copy
+The bounded generic-record slice admits declarations such as `Box<T>` and
+`Duo<T,U>` whose fields are direct scalars or parameters owned by that record,
+with explicit direct `i64`/`bool` instantiation only. Template field identities
+remain stable while concrete field types are substituted exactly. Full
+record-ID-plus-ordered-argument identity keys HIR facts, deterministic
+Native64/Wasm32 layouts/digests/caches, native symbols, and Graph v12. Cleanup
+remains v2 and introduces no action because every admitted instance is Copy and
+resource-free. Native C11 O0/O2 and Node/Wasm execute construction, projection,
+immutable update, parameters/results, ordered multi-parameter substitution,
+failure order, poison, and repeated entry. Graph v12 is program-wide and takes
+precedence over v11 Option and v10 legacy output; older outputs remain
+byte-compatible when no generic record is declared.
+Generic functions/inference, nested/resource/non-Copy record arguments or
+fields, record patterns, non-copy
 propagation/matching, residual conversion, `?` in contracts, resource- or
 record-bearing variant payloads, a stable public aggregate ABI, public
 resource-bearing execution, and general aggregate execution remain outside
@@ -269,11 +282,11 @@ Existing diagnostic codes remain reserved; implementation must resolve any colli
 ## Staged implementation
 
 1. Add resolved nominal types, HIR, type facts, place paths, and deterministic layout keys without changing source behavior. **Implemented.**
-2. Add records through parser, formatter, resolver, verifier, Graph, transactions, C, and Wasm. **Frontend, Graph v7 record-update meaning, deterministic target layouts, target-neutral cleanup, and bounded public nested-scalar C11/Wasm execution are implemented; transaction breadth, resource-bearing public execution, a stable aggregate ABI, and general backend completion remain evidence-gated.**
+2. Add records through parser, formatter, resolver, verifier, Graph, transactions, C, and Wasm. **Frontend, Graph v7 record-update meaning, Graph v12 bounded generic-record identity, deterministic target layouts, target-neutral cleanup, bounded public nested-scalar execution, and explicitly instantiated direct-scalar generic Copy records are implemented through C11 O0/O2 and Node/Wasm; transaction breadth, nested/resource/non-Copy generic records, record matching, resource-bearing public execution, a stable aggregate ABI, and general backend completion remain evidence-gated.**
 3. Add bounded non-generic copy variants and exhaustive copy matching. **Implemented for unit/direct-`i64`/direct-`bool` payloads, scalar `i64`/`bool` arm results, CleanupPlan v2 variant-case replay, deterministic internal Native64/Wasm32 layouts, and native C11 O0/O2 plus Node/Wasm execution.**
 4. Add generic variants, recursive-unsized rejection, and ownership-aware matching. **Partially implemented for nominal variant templates with explicit direct `i64`/`bool` arguments, exact substitution/instance identity, Graph v10, internal layout digest v2, cleanup-free copy matching, and native/Wasm execution. Nested/resource arguments and non-copy ownership modes remain open.**
 5. Add ordinary prelude `Option` and `Result`. **Implemented for compiler-owned `semaprax.prelude.v1` variants under the same direct-`i64`/`bool`, copy-only, internal-ABI limits; component/FFI mappings remain open.**
-6. Add `?` with evaluation-once and unified epilogues. **Implemented for ordinary compiler-owned direct-scalar Copy `Result<T, E>` to `Result<U, E>` and `Option<T>` to `Option<U>`. Result uses exact CleanupPlan v2 staging and Graph v10; Option uses authenticated payload-free-None CleanupPlan v3 staging and program-bound Graph v11 without migrating Result-only bytes. Native C11 O0/O2 plus Node/Wasm evidence covers both carriers; Result is hosted green in [run 31353051690](https://github.com/wavect/semaprax/actions/runs/31353051690), and Option is hosted green in [run 31360176398, job 93367728277](https://github.com/wavect/semaprax/actions/runs/31360176398/job/93367728277). One private Source-Result Component v4 maps the exact `Result<i64, bool>` to `Result<bool, bool>` fixture to nested WIT result/status and is hosted green in [run 31356536123, job 93357169796](https://github.com/wavect/semaprax/actions/runs/31356536123/job/93357169796). Residual conversion, nested/resource/non-copy arguments, contracts, public ABI, general component mapping, and callable/FFI signatures remain open.**
+6. Add `?` with evaluation-once and unified epilogues. **Implemented for ordinary compiler-owned direct-scalar Copy `Result<T, E>` to `Result<U, E>` and `Option<T>` to `Option<U>`. Result uses exact CleanupPlan v2 staging and Graph v10; Option uses authenticated payload-free-None CleanupPlan v3 staging and program-bound Graph v11 unless a generic record declaration selects program-wide v12. Native C11 O0/O2 plus Node/Wasm evidence covers both carriers; Result is hosted green in [run 31353051690](https://github.com/wavect/semaprax/actions/runs/31353051690), and Option is hosted green in [run 31360176398, job 93367728277](https://github.com/wavect/semaprax/actions/runs/31360176398/job/93367728277). One private Source-Result Component v4 maps the exact `Result<i64, bool>` to `Result<bool, bool>` fixture to nested WIT result/status and is hosted green in [run 31356536123, job 93357169796](https://github.com/wavect/semaprax/actions/runs/31356536123/job/93357169796). Residual conversion, nested/resource/non-copy arguments, contracts, public ABI, general component mapping, and callable/FFI signatures remain open.**
 7. Add member/case transactions, layout/interface hashes, and context traversal.
 
 ## Completion evidence

@@ -247,6 +247,7 @@ pub enum ExprKind {
     ConstructRecord {
         type_name: String,
         type_span: Span,
+        type_arguments: Vec<Type>,
         fields: Vec<FieldInitializer>,
     },
     ConstructVariant {

@@ -1,7 +1,7 @@
 //! Deterministic semantic graph serialization and bounded context queries.
 //!
 //! Human source supplies the revision. Resolved HIR supplies every semantic
-//! identity and fact in graph v10; spans and display names are metadata only.
+//! identity and fact in graph v10-v12; spans and display names are metadata only.
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fmt::Write;
@@ -39,9 +39,9 @@ pub fn revision(program: &Program) -> String {
     format!("sha256:{:x}", hasher.finalize())
 }
 
-/// Resolve and serialize a parsed program as `semaprax.graph.v10`, or as
-/// `semaprax.graph.v11` when the validated program contains bounded Option
-/// propagation.
+/// Resolve and serialize a parsed program as `semaprax.graph.v10`, as v11 when
+/// the validated program contains bounded Option propagation, or as v12 when
+/// it declares a bounded generic record.
 ///
 /// Resolution is deliberately part of this public boundary. Invalid source
 /// cannot be mistaken for a checked semantic graph by library callers.
@@ -623,6 +623,12 @@ fn result_propagation_json(expression: &ResolvedExpr) -> String {
 }
 
 fn graph_schema(program: &ResolvedProgram) -> &'static str {
+    if program.types.iter().any(|declaration| {
+        matches!(declaration.kind, ResolvedTypeDeclarationKind::Record { .. })
+            && !declaration.type_parameters.is_empty()
+    }) {
+        return "semaprax.graph.v12";
+    }
     let has_option_try = program.functions.iter().any(|function| {
         function
             .requires
@@ -791,21 +797,29 @@ fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnos
             agent_contract_expr_json(then_branch)?,
             agent_contract_expr_json(else_branch)?
         ),
-        ResolvedExprKind::ConstructRecord { record, fields } => format!(
-            "{{\"kind\":\"construct_record\",\"record\":{},\"fields\":[{}]}}",
-            quote_json(record.as_str()),
-            fields
-                .iter()
-                .map(|initializer| {
-                    Ok(format!(
-                        "{{\"field\":{},\"value\":{}}}",
-                        quote_json(initializer.field.as_str()),
-                        agent_contract_expr_json(&initializer.value)?
-                    ))
-                })
-                .collect::<Result<Vec<_>, Diagnostic>>()?
-                .join(",")
-        ),
+        ResolvedExprKind::ConstructRecord { record, fields } => {
+            let instance = match &expression.ty {
+                ResolvedType::Nominal { arguments, .. } if !arguments.is_empty() => {
+                    format!(",\"record_type\":{}", type_json(&expression.ty))
+                }
+                _ => String::new(),
+            };
+            format!(
+                "{{\"kind\":\"construct_record\",\"record\":{}{instance},\"fields\":[{}]}}",
+                quote_json(record.as_str()),
+                fields
+                    .iter()
+                    .map(|initializer| {
+                        Ok(format!(
+                            "{{\"field\":{},\"value\":{}}}",
+                            quote_json(initializer.field.as_str()),
+                            agent_contract_expr_json(&initializer.value)?
+                        ))
+                    })
+                    .collect::<Result<Vec<_>, Diagnostic>>()?
+                    .join(",")
+            )
+        }
         ResolvedExprKind::ConstructVariant {
             variant,
             case,
@@ -981,19 +995,29 @@ fn agent_type_declarations_json(
                     ResolvedResourceDropKind::Imported { .. } => "imported",
                 })
             )),
-            ResolvedTypeDeclarationKind::Record { fields } => Ok(format!(
-                "{{\"id\":{},\"kind\":\"record\",\"fields\":[{}]}}",
-                quote_json(declaration.id.as_str()),
-                fields
-                    .iter()
-                    .map(|field| format!(
-                        "{{\"id\":{},\"type_id\":{}}}",
-                        quote_json(field.id.as_str()),
-                        quote_json(&field.ty.identity_key())
-                    ))
-                    .collect::<Vec<_>>()
-                    .join(",")
-            )),
+            ResolvedTypeDeclarationKind::Record { fields } => {
+                let parameters = if declaration.type_parameters.is_empty() {
+                    String::new()
+                } else {
+                    format!(
+                        ",\"type_parameters\":[{}]",
+                        type_parameters_json(&declaration.id, &declaration.type_parameters)
+                    )
+                };
+                Ok(format!(
+                    "{{\"id\":{},\"kind\":\"record\"{parameters},\"fields\":[{}]}}",
+                    quote_json(declaration.id.as_str()),
+                    fields
+                        .iter()
+                        .map(|field| format!(
+                            "{{\"id\":{},\"type_id\":{}}}",
+                            quote_json(field.id.as_str()),
+                            quote_json(&field.ty.identity_key())
+                        ))
+                        .collect::<Vec<_>>()
+                        .join(",")
+                ))
+            }
             ResolvedTypeDeclarationKind::Variant { cases } => Ok(format!(
                 "{{\"id\":{},\"kind\":\"variant\",\"type_parameters\":[{}],\"cases\":[{}]}}",
                 quote_json(declaration.id.as_str()),
@@ -1423,14 +1447,25 @@ fn graph_json(
                 .expect("writing to a string cannot fail");
             }
             ResolvedTypeDeclarationKind::Record { fields } => {
+                let (parameters, type_id) = if declaration.type_parameters.is_empty() {
+                    (String::new(), quote_json(&ty.identity_key()))
+                } else {
+                    (
+                        format!(
+                            ",\"type_parameters\":[{}]",
+                            type_parameters_json(&declaration.id, &declaration.type_parameters)
+                        ),
+                        "null".to_owned(),
+                    )
+                };
                 write!(
                     output,
-                    "{{\"id\":{},\"kind\":\"record\",\"name\":{},\"identity_origin\":{},\"persistent\":{},\"type_id\":{},\"fields\":[{}]}}",
+                    "{{\"id\":{},\"kind\":\"record\",\"name\":{},\"identity_origin\":{},\"persistent\":{}{parameters},\"type_id\":{},\"fields\":[{}]}}",
                     quote_json(declaration.id.as_str()),
                     quote_json(&declaration.name),
                     quote_json(type_origin.text()),
                     type_origin.is_persistent(),
-                    quote_json(&ty.identity_key()),
+                    type_id,
                     fields
                         .iter()
                         .map(|field| quote_json(field.id.as_str()))
@@ -2066,21 +2101,29 @@ fn expr_json(program: &ResolvedProgram, expression: &ResolvedExpr) -> Result<Str
             expr_json(program, then_branch)?,
             expr_json(program, else_branch)?
         ),
-        ResolvedExprKind::ConstructRecord { record, fields } => format!(
-            "{{{header},\"kind\":\"construct_record\",\"record\":{},\"fields\":[{}]}}",
-            quote_json(record.as_str()),
-            fields
-                .iter()
-                .map(|initializer| {
-                    Ok(format!(
-                        "{{\"field\":{},\"value\":{}}}",
-                        quote_json(initializer.field.as_str()),
-                        expr_json(program, &initializer.value)?
-                    ))
-                })
-                .collect::<Result<Vec<_>, Diagnostic>>()?
-                .join(",")
-        ),
+        ResolvedExprKind::ConstructRecord { record, fields } => {
+            let instance = match &expression.ty {
+                ResolvedType::Nominal { arguments, .. } if !arguments.is_empty() => {
+                    format!(",\"record_type\":{}", type_json(&expression.ty))
+                }
+                _ => String::new(),
+            };
+            format!(
+                "{{{header},\"kind\":\"construct_record\",\"record\":{}{instance},\"fields\":[{}]}}",
+                quote_json(record.as_str()),
+                fields
+                    .iter()
+                    .map(|initializer| {
+                        Ok(format!(
+                            "{{\"field\":{},\"value\":{}}}",
+                            quote_json(initializer.field.as_str()),
+                            expr_json(program, &initializer.value)?
+                        ))
+                    })
+                    .collect::<Result<Vec<_>, Diagnostic>>()?
+                    .join(",")
+            )
+        }
         ResolvedExprKind::ConstructVariant {
             variant,
             case,
@@ -2250,9 +2293,11 @@ fn type_facts_array(
                 &mut types,
             );
         }
-        if let ResolvedTypeDeclarationKind::Record { fields } = &declaration.kind {
-            for field in fields {
-                collect_type(&field.ty, &mut types);
+        if declaration.type_parameters.is_empty() {
+            if let ResolvedTypeDeclarationKind::Record { fields } = &declaration.kind {
+                for field in fields {
+                    collect_type(&field.ty, &mut types);
+                }
             }
         }
         if declaration.type_parameters.is_empty() {

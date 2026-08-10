@@ -5,14 +5,15 @@
 //! backend may only use a layout after it has survived exact reconstruction
 //! from resolved HIR.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use sha2::{Digest, Sha256};
 
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
-    DeclarationId, ResolvedFieldDeclaration, ResolvedProgram, ResolvedResourceDropKind,
-    ResolvedType, ResolvedTypeDeclaration, ResolvedTypeDeclarationKind,
+    DeclarationId, ResolvedExpr, ResolvedExprKind, ResolvedFieldDeclaration, ResolvedProgram,
+    ResolvedResourceDropKind, ResolvedStatement, ResolvedType, ResolvedTypeDeclaration,
+    ResolvedTypeDeclarationKind,
 };
 
 const LAYOUT_DIGEST_DOMAIN: &[u8] = b"semaprax.aggregate-layout.v1\0";
@@ -46,6 +47,7 @@ pub(crate) struct AggregateFieldLayout {
 pub(crate) struct AggregateLayout {
     pub(crate) target: AggregateTarget,
     pub(crate) record: DeclarationId,
+    pub(crate) instance: ResolvedType,
     pub(crate) size: u32,
     pub(crate) align: u32,
     pub(crate) fields: Vec<AggregateFieldLayout>,
@@ -59,14 +61,38 @@ impl AggregateLayout {
         target: AggregateTarget,
         record: &DeclarationId,
     ) -> Result<Self, Diagnostic> {
+        Self::for_type(
+            program,
+            target,
+            &ResolvedType::Nominal {
+                declaration: record.clone(),
+                arguments: Vec::new(),
+            },
+        )
+    }
+
+    /// Computes the canonical layout for one exact concrete record instance.
+    pub(crate) fn for_type(
+        program: &ResolvedProgram,
+        target: AggregateTarget,
+        instance: &ResolvedType,
+    ) -> Result<Self, Diagnostic> {
+        let ResolvedType::Nominal {
+            declaration: record,
+            arguments,
+        } = instance
+        else {
+            return Err(layout_error("record instance is not nominal"));
+        };
         let mut visiting = BTreeSet::new();
-        let value = layout_nominal(program, target, record, &mut visiting)?;
+        let value = layout_nominal(program, target, record, arguments, &mut visiting)?;
         let ValueLayoutKind::Record { fields } = value.kind else {
             return Err(layout_error(format!("`{record}` is not a record")));
         };
         Ok(Self {
             target,
             record: record.clone(),
+            instance: instance.clone(),
             size: value.size,
             align: value.align,
             fields,
@@ -76,7 +102,7 @@ impl AggregateLayout {
 
     /// Reconstructs this layout from HIR and rejects any changed byte.
     pub(crate) fn validate(&self, program: &ResolvedProgram) -> Result<(), Diagnostic> {
-        let expected = Self::for_record(program, self.target, &self.record)?;
+        let expected = Self::for_type(program, self.target, &self.instance)?;
         if *self != expected {
             return Err(layout_error(format!(
                 "record `{}` layout is not the canonical {:?} layout",
@@ -90,6 +116,11 @@ impl AggregateLayout {
         self.fields.iter().find(|item| item.field == *field)
     }
 
+    #[cfg(any(test, feature = "unstable-wit-component-harness"))]
+    pub(crate) const fn digest(&self) -> [u8; 32] {
+        self.digest
+    }
+
     #[cfg(test)]
     fn digest_hex(&self) -> String {
         let mut output = String::with_capacity(64);
@@ -98,6 +129,66 @@ impl AggregateLayout {
             write!(&mut output, "{byte:02x}").expect("writing to String cannot fail");
         }
         output
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct AggregateLayoutCache {
+    target: AggregateTarget,
+    layouts: BTreeMap<ResolvedType, AggregateLayout>,
+}
+
+impl AggregateLayoutCache {
+    pub(crate) fn build(
+        program: &ResolvedProgram,
+        target: AggregateTarget,
+    ) -> Result<Self, Diagnostic> {
+        let mut instances = BTreeSet::new();
+        for function in &program.functions {
+            for parameter in &function.params {
+                collect_record_type(program, &parameter.ty, &mut instances)?;
+            }
+            collect_record_type(program, &function.return_type, &mut instances)?;
+            for expression in function
+                .requires
+                .iter()
+                .chain(std::iter::once(&function.body))
+                .chain(&function.ensures)
+            {
+                collect_expr_record_types(program, expression, &mut instances)?;
+            }
+        }
+        let mut layouts = BTreeMap::new();
+        for instance in instances {
+            let layout = match &instance {
+                ResolvedType::Nominal {
+                    declaration,
+                    arguments,
+                } if arguments.is_empty() => {
+                    AggregateLayout::for_record(program, target, declaration)?
+                }
+                _ => AggregateLayout::for_type(program, target, &instance)?,
+            };
+            layout.validate(program)?;
+            if layouts.insert(instance, layout).is_some() {
+                return Err(layout_error("duplicate concrete record instance"));
+            }
+        }
+        Ok(Self { target, layouts })
+    }
+
+    pub(crate) fn layout(&self, instance: &ResolvedType) -> Result<&AggregateLayout, Diagnostic> {
+        self.layouts.get(instance).ok_or_else(|| {
+            layout_error(format!(
+                "missing {:?} layout for concrete record `{}`",
+                self.target,
+                instance.identity_key()
+            ))
+        })
+    }
+
+    pub(crate) fn layouts(&self) -> impl ExactSizeIterator<Item = &AggregateLayout> {
+        self.layouts.values()
     }
 }
 
@@ -120,7 +211,7 @@ fn layout_type(
     program: &ResolvedProgram,
     target: AggregateTarget,
     ty: &ResolvedType,
-    visiting: &mut BTreeSet<DeclarationId>,
+    visiting: &mut BTreeSet<String>,
 ) -> Result<ValueLayout, Diagnostic> {
     match ty {
         ResolvedType::I64 | ResolvedType::Bool => {
@@ -133,14 +224,7 @@ fn layout_type(
         ResolvedType::Nominal {
             declaration,
             arguments,
-        } => {
-            if !arguments.is_empty() {
-                return Err(layout_error(
-                    "generic aggregate layouts are outside executable records v1",
-                ));
-            }
-            layout_nominal(program, target, declaration, visiting)
-        }
+        } => layout_nominal(program, target, declaration, arguments, visiting),
     }
 }
 
@@ -179,11 +263,17 @@ fn layout_nominal(
     program: &ResolvedProgram,
     target: AggregateTarget,
     declaration: &DeclarationId,
-    visiting: &mut BTreeSet<DeclarationId>,
+    arguments: &[ResolvedType],
+    visiting: &mut BTreeSet<String>,
 ) -> Result<ValueLayout, Diagnostic> {
     let item = unique_type(program, declaration)?;
     match &item.kind {
         ResolvedTypeDeclarationKind::Resource { drop } => {
+            if !arguments.is_empty() {
+                return Err(layout_error(format!(
+                    "resource `{declaration}` cannot take generic arguments"
+                )));
+            }
             if !matches!(drop.kind, ResolvedResourceDropKind::Trivial) {
                 return Err(layout_error(format!(
                     "resource `{declaration}` is not direct-trivial"
@@ -205,13 +295,27 @@ fn layout_nominal(
             })
         }
         ResolvedTypeDeclarationKind::Record { fields } => {
-            if !visiting.insert(declaration.clone()) {
+            if arguments.len() != item.type_parameters.len()
+                || arguments
+                    .iter()
+                    .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
+            {
                 return Err(layout_error(format!(
-                    "record `{declaration}` has a recursive by-value layout"
+                    "record `{declaration}` has invalid concrete arguments"
                 )));
             }
-            let result = layout_record(program, target, declaration, fields, visiting);
-            visiting.remove(declaration);
+            let instance = ResolvedType::Nominal {
+                declaration: declaration.clone(),
+                arguments: arguments.to_vec(),
+            };
+            let instance_key = instance.identity_key();
+            if !visiting.insert(instance_key.clone()) {
+                return Err(layout_error(format!(
+                    "record instance `{instance_key}` has a recursive by-value layout"
+                )));
+            }
+            let result = layout_record(program, target, declaration, arguments, fields, visiting);
+            visiting.remove(&instance_key);
             result
         }
         ResolvedTypeDeclarationKind::Variant { .. } => Err(layout_error(format!(
@@ -224,8 +328,9 @@ fn layout_record(
     program: &ResolvedProgram,
     target: AggregateTarget,
     record: &DeclarationId,
+    arguments: &[ResolvedType],
     declarations: &[ResolvedFieldDeclaration],
-    visiting: &mut BTreeSet<DeclarationId>,
+    visiting: &mut BTreeSet<String>,
 ) -> Result<ValueLayout, Diagnostic> {
     let mut seen = BTreeSet::new();
     // C11 has no zero-sized object representation and Wasm frame slots must
@@ -251,14 +356,15 @@ fn layout_record(
             )));
         }
 
-        let value = layout_type(program, target, &declaration.ty, visiting)?;
+        let field_ty = crate::hir::substitute_type(&declaration.ty, record, arguments)?;
+        let value = layout_type(program, target, &field_ty, visiting)?;
         offset = align_up(offset, value.align)?;
         let end = offset
             .checked_add(value.size)
             .ok_or_else(|| layout_error(format!("record `{record}` layout overflows u32")))?;
         fields.push(AggregateFieldLayout {
             field: declaration.id.clone(),
-            ty: declaration.ty.clone(),
+            ty: field_ty,
             offset,
             size: value.size,
             align: value.align,
@@ -271,7 +377,7 @@ fn layout_record(
     let size = align_up(offset, record_align)?;
     let ty = ResolvedType::Nominal {
         declaration: record.clone(),
-        arguments: Vec::new(),
+        arguments: arguments.to_vec(),
     };
     let field_digests = fields
         .iter()
@@ -299,6 +405,105 @@ fn unique_type<'a>(
         )));
     }
     Ok(item)
+}
+
+fn collect_record_type(
+    program: &ResolvedProgram,
+    ty: &ResolvedType,
+    instances: &mut BTreeSet<ResolvedType>,
+) -> Result<(), Diagnostic> {
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = ty
+    else {
+        return Ok(());
+    };
+    for argument in arguments {
+        collect_record_type(program, argument, instances)?;
+    }
+    let item = unique_type(program, declaration)?;
+    if let ResolvedTypeDeclarationKind::Record { fields } = &item.kind {
+        if instances.insert(ty.clone()) {
+            for field in fields {
+                let field_ty = crate::hir::substitute_type(&field.ty, declaration, arguments)?;
+                collect_record_type(program, &field_ty, instances)?;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn collect_expr_record_types(
+    program: &ResolvedProgram,
+    expression: &ResolvedExpr,
+    instances: &mut BTreeSet<ResolvedType>,
+) -> Result<(), Diagnostic> {
+    collect_record_type(program, &expression.ty, instances)?;
+    match &expression.kind {
+        ResolvedExprKind::Call { args, .. } => {
+            for argument in args {
+                collect_expr_record_types(program, argument, instances)?;
+            }
+        }
+        ResolvedExprKind::Unary { value, .. } | ResolvedExprKind::Project { base: value, .. } => {
+            collect_expr_record_types(program, value, instances)?;
+        }
+        ResolvedExprKind::Try {
+            operand,
+            residual_type,
+            ..
+        }
+        | ResolvedExprKind::TryOption {
+            operand,
+            residual_type,
+            ..
+        } => {
+            collect_expr_record_types(program, operand, instances)?;
+            collect_record_type(program, residual_type, instances)?;
+        }
+        ResolvedExprKind::Binary { left, right, .. } => {
+            collect_expr_record_types(program, left, instances)?;
+            collect_expr_record_types(program, right, instances)?;
+        }
+        ResolvedExprKind::Block { statements, tail } => {
+            for statement in statements {
+                let ResolvedStatement::Let { binding, value, .. } = statement;
+                collect_record_type(program, &binding.ty, instances)?;
+                collect_expr_record_types(program, value, instances)?;
+            }
+            collect_expr_record_types(program, tail, instances)?;
+        }
+        ResolvedExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            collect_expr_record_types(program, condition, instances)?;
+            collect_expr_record_types(program, then_branch, instances)?;
+            collect_expr_record_types(program, else_branch, instances)?;
+        }
+        ResolvedExprKind::ConstructRecord { fields, .. }
+        | ResolvedExprKind::ConstructVariant { fields, .. } => {
+            for field in fields {
+                collect_expr_record_types(program, &field.value, instances)?;
+            }
+        }
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            collect_expr_record_types(program, scrutinee, instances)?;
+            for arm in arms {
+                collect_expr_record_types(program, &arm.value, instances)?;
+            }
+        }
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            collect_expr_record_types(program, base, instances)?;
+            for field in fields {
+                collect_expr_record_types(program, &field.value, instances)?;
+            }
+        }
+        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
+    }
+    Ok(())
 }
 
 fn align_up(value: u32, align: u32) -> Result<u32, Diagnostic> {
@@ -365,7 +570,7 @@ fn layout_error(message: impl Into<String>) -> Diagnostic {
 mod tests {
     use std::path::Path;
 
-    use super::{align_up, AggregateLayout, AggregateTarget};
+    use super::{align_up, AggregateLayout, AggregateLayoutCache, AggregateTarget};
     use crate::hir::{
         self, DeclarationId, ResolvedResourceDropKind, ResolvedType, ResolvedTypeDeclarationKind,
     };
@@ -582,5 +787,84 @@ fn main() -> i64 { 0 }
             Some(16)
         );
         assert!(layout.field(&DeclarationId::new("inner.token")).is_none());
+    }
+
+    #[test]
+    fn generic_instances_bind_cache_digest_and_field_substitution_even_when_layouts_match() {
+        let source = r#"
+module test.generic_aggregate_layout;
+@id("test.box") record Box<T> { @id("test.box.value") value: T, }
+@id("test.phantom") record Phantom<T> { @id("test.phantom.marker") marker: bool, }
+@id("test.use_i64") fn use_i64(value: Phantom<i64>) -> bool { value.marker }
+@id("test.use_bool") fn use_bool(value: Phantom<bool>) -> bool { value.marker }
+@id("test.make_i64") fn make_i64(value: i64) -> Box<i64> { Box<i64> { value: value } }
+@id("test.make_bool") fn make_bool(value: bool) -> Box<bool> { Box<bool> { value: value } }
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+        let program =
+            hir::resolve(&parse(source, Path::new("generic-aggregate-layout.spx")).unwrap())
+                .unwrap();
+        let phantom_i64 = ResolvedType::Nominal {
+            declaration: DeclarationId::new("test.phantom"),
+            arguments: vec![ResolvedType::I64],
+        };
+        let phantom_bool = ResolvedType::Nominal {
+            declaration: DeclarationId::new("test.phantom"),
+            arguments: vec![ResolvedType::Bool],
+        };
+        let i64_layout =
+            AggregateLayout::for_type(&program, AggregateTarget::Native64, &phantom_i64).unwrap();
+        let bool_layout =
+            AggregateLayout::for_type(&program, AggregateTarget::Native64, &phantom_bool).unwrap();
+        assert_eq!(
+            (i64_layout.size, i64_layout.align),
+            (bool_layout.size, bool_layout.align)
+        );
+        assert_eq!(
+            i64_layout
+                .fields
+                .iter()
+                .map(|field| (field.offset, field.size, field.align))
+                .collect::<Vec<_>>(),
+            bool_layout
+                .fields
+                .iter()
+                .map(|field| (field.offset, field.size, field.align))
+                .collect::<Vec<_>>()
+        );
+        assert_ne!(phantom_i64.identity_key(), phantom_bool.identity_key());
+        assert_ne!(i64_layout.digest, bool_layout.digest);
+
+        let cache = AggregateLayoutCache::build(&program, AggregateTarget::Native64).unwrap();
+        assert_eq!(cache.layout(&phantom_i64).unwrap(), &i64_layout);
+        assert_eq!(cache.layout(&phantom_bool).unwrap(), &bool_layout);
+        assert_eq!(
+            cache
+                .layouts()
+                .filter(|layout| layout.record.as_str() == "test.phantom")
+                .count(),
+            2
+        );
+
+        let mut relabeled = i64_layout;
+        relabeled.instance = phantom_bool;
+        assert!(relabeled.validate(&program).is_err());
+
+        let box_i64 = ResolvedType::Nominal {
+            declaration: DeclarationId::new("test.box"),
+            arguments: vec![ResolvedType::I64],
+        };
+        let box_bool = ResolvedType::Nominal {
+            declaration: DeclarationId::new("test.box"),
+            arguments: vec![ResolvedType::Bool],
+        };
+        assert_eq!(
+            cache.layout(&box_i64).unwrap().fields[0].ty,
+            ResolvedType::I64
+        );
+        assert_eq!(
+            cache.layout(&box_bool).unwrap().fields[0].ty,
+            ResolvedType::Bool
+        );
     }
 }

@@ -4,7 +4,7 @@ use std::{error::Error, io, path::Path};
 
 use sha2::{Digest, Sha256};
 use wasmtime::{
-    Config, Engine, Store,
+    Config, Engine, Instance, Module, Store,
     component::{Component, Linker},
 };
 
@@ -28,6 +28,15 @@ mod v5_bindings {
     wasmtime::component::bindgen!({
         path: "wit/semaprax-private-v5.wit",
         world: "semaprax-private-v5",
+        ownership: Owning,
+        additional_derives: [Eq, PartialEq],
+    });
+}
+
+mod v6_bindings {
+    wasmtime::component::bindgen!({
+        path: "wit/semaprax-private-v6.wit",
+        world: "semaprax-private-v6",
         ownership: Owning,
         additional_derives: [Eq, PartialEq],
     });
@@ -77,6 +86,7 @@ fn main() -> i64
 "#;
 
 const SOURCE_V5: &str = include_str!("../v5.spx");
+const SOURCE_V6: &str = include_str!("../v6.spx");
 
 // These independent known answers are replaced only alongside a reviewed
 // component-profile version change. Artifact accessor metadata is never used
@@ -116,6 +126,16 @@ const EXPECTED_GENERATED_CORE_V5_SHA256: [u8; 32] = [
 ];
 const EXPECTED_SOURCE_REVISION_V5: &str =
     "sha256:86411224efe3adace5ffdd410c243306859edc280dbe3342adcf830588b62259";
+const EXPECTED_COMPONENT_V6_SHA256: [u8; 32] = [
+    0xad, 0x40, 0x8a, 0x7a, 0x6a, 0x35, 0x96, 0xa0, 0x26, 0xeb, 0x73, 0xbc, 0x42, 0x3e, 0x59, 0xf3,
+    0x03, 0x50, 0xc0, 0xe4, 0xf7, 0xcb, 0xc5, 0x07, 0xce, 0x60, 0x51, 0x0e, 0xff, 0x2b, 0x53, 0x0f,
+];
+const EXPECTED_GENERATED_CORE_V6_SHA256: [u8; 32] = [
+    0x42, 0x83, 0x5d, 0xcb, 0xf9, 0x80, 0x78, 0xac, 0x24, 0xbf, 0xd3, 0x65, 0x68, 0xf1, 0xb6, 0x91,
+    0x7b, 0x5b, 0x64, 0xca, 0x2d, 0x82, 0x65, 0xef, 0x4d, 0xed, 0x16, 0x1d, 0x26, 0x43, 0x8d, 0xa1,
+];
+const EXPECTED_SOURCE_REVISION_V6: &str =
+    "sha256:d1fcbc45b3d86fa1d7910378578828df3c557dba92f90ed9459f928c5bf2fe8a";
 
 #[derive(Clone, Copy)]
 enum Expected {
@@ -847,10 +867,274 @@ fn run_v5() -> HostResult<()> {
     Ok(())
 }
 
+fn expect_v6_status(
+    value: Result<
+        v6_bindings::exports::semaprax::private::nested_records::Outer,
+        v6_bindings::exports::semaprax::private::nested_records::Status,
+    >,
+    domain: &str,
+    code: u32,
+    class: u8,
+    name: &str,
+) -> HostResult<()> {
+    match value {
+        Err(status)
+            if status.domain == domain
+                && status.code == code
+                && status.class == class
+                && status.retryable == Some(false) =>
+        {
+            Ok(())
+        }
+        _ => Err(failure(format!("unexpected v6 status for {name}"))),
+    }
+}
+
+// Keep the exact nested-record field and status matrix visible in one reviewable
+// function; splitting it would obscure the frozen WIT-to-SEMAPRAX mapping.
+#[allow(clippy::too_many_lines)]
+fn run_v6_instance(engine: &Engine, component: &Component) -> HostResult<()> {
+    use v6_bindings::exports::semaprax::private::nested_records::{Inner, Outer};
+
+    let linker = Linker::<()>::new(engine);
+    let mut store = Store::new(engine, ());
+    store.set_fuel(20_000_000)?;
+    let bindings = v6_bindings::SemapraxPrivateV6::instantiate(&mut store, component, &linker)?;
+    let api = bindings.semaprax_private_nested_records();
+
+    for flag in [true, false] {
+        let input = Outer {
+            inner: Inner { value: 18, flag },
+            other: 22,
+        };
+        let output = api.call_transform(&mut store, input, 2)?;
+        let expected = Outer {
+            inner: Inner { value: 20, flag },
+            other: 22,
+        };
+        if output != Ok(expected) {
+            return Err(failure("unexpected v6 nested-record success"));
+        }
+    }
+
+    expect_v6_status(
+        api.call_transform(
+            &mut store,
+            Outer {
+                inner: Inner {
+                    value: i64::MAX,
+                    flag: true,
+                },
+                other: 22,
+            },
+            1,
+        )?,
+        "semaprax.arithmetic.v1",
+        1,
+        2,
+        "sticky nested add before later division by zero",
+    )?;
+    expect_v6_status(
+        api.call_transform(
+            &mut store,
+            Outer {
+                inner: Inner {
+                    value: 18,
+                    flag: true,
+                },
+                other: 22,
+            },
+            1,
+        )?,
+        "semaprax.arithmetic.v1",
+        4,
+        2,
+        "standalone division by zero",
+    )?;
+    expect_v6_status(
+        api.call_transform(
+            &mut store,
+            Outer {
+                inner: Inner {
+                    value: 18,
+                    flag: true,
+                },
+                other: 22,
+            },
+            -99,
+        )?,
+        "semaprax.contract.v1",
+        1,
+        1,
+        "requires",
+    )?;
+    expect_v6_status(
+        api.call_transform(
+            &mut store,
+            Outer {
+                inner: Inner {
+                    value: 18,
+                    flag: false,
+                },
+                other: 24,
+            },
+            13,
+        )?,
+        "semaprax.contract.v1",
+        2,
+        1,
+        "ensures",
+    )?;
+    Ok(())
+}
+
+fn prove_raw_core_v6_poison_status_and_invalid_bool(
+    engine: &Engine,
+    core: &[u8],
+) -> HostResult<()> {
+    let module = Module::new(engine, core)?;
+    if module.imports().next().is_some() {
+        return Err(failure("v6 raw core requested ambient imports"));
+    }
+    let mut store = Store::new(engine, ());
+    store.set_fuel(20_000_000)?;
+    let instance = Instance::new(&mut store, &module, &[])?;
+    let transform = instance.get_typed_func::<(i64, i32, i64, i64), i32>(
+        &mut store,
+        "cabi_transform_nested_record_v6",
+    )?;
+    let memory = instance
+        .get_memory(&mut store, "memory")
+        .ok_or_else(|| failure("v6 raw core memory export missing"))?;
+
+    let pointer = transform.call(&mut store, (18, 1, 22, 2))?;
+    if pointer != 256 {
+        return Err(failure("v6 raw result pointer changed"));
+    }
+    let mut success = [0_u8; 32];
+    memory.read(&store, pointer as usize, &mut success)?;
+    if success[0] != 0
+        || i64::from_le_bytes(success[8..16].try_into()?) != 20
+        || success[16] != 1
+        || i64::from_le_bytes(success[24..32].try_into()?) != 22
+    {
+        return Err(failure("v6 raw success reconstruction changed"));
+    }
+
+    let pointer = transform.call(&mut store, (18, 1, 22, 1))?;
+    let mut status = [0_u8; 32];
+    memory.read(&store, pointer as usize, &mut status)?;
+    if status[0] != 1
+        || u32::from_le_bytes(status[16..20].try_into()?) != 4
+        || status[20] != 2
+        || status[24..32] != [0xa5; 8]
+    {
+        return Err(failure("v6 raw status or stale-output poison changed"));
+    }
+
+    if transform.call(&mut store, (18, 2, 22, 2)).is_ok() {
+        return Err(failure("v6 raw invalid bool did not trap"));
+    }
+    let mut poison = [0_u8; 32];
+    memory.read(&store, 256, &mut poison)?;
+    if poison != [0xa5; 32] {
+        return Err(failure("v6 raw invalid-bool trap retained stale output"));
+    }
+    Ok(())
+}
+
+fn prove_engine_failure_is_out_of_band_v6(
+    engine: &Engine,
+    component: &Component,
+) -> HostResult<()> {
+    use v6_bindings::exports::semaprax::private::nested_records::{Inner, Outer};
+
+    let linker = Linker::<()>::new(engine);
+    let mut store = Store::new(engine, ());
+    store.set_fuel(1_000_000)?;
+    let bindings = v6_bindings::SemapraxPrivateV6::instantiate(&mut store, component, &linker)?;
+    store.set_fuel(0)?;
+    let input = Outer {
+        inner: Inner {
+            value: 18,
+            flag: true,
+        },
+        other: 22,
+    };
+    if bindings
+        .semaprax_private_nested_records()
+        .call_transform(&mut store, input, 2)
+        .is_ok()
+    {
+        return Err(failure("v6 fuel exhaustion became a typed status"));
+    }
+    Ok(())
+}
+
+fn run_v6() -> HostResult<()> {
+    let program = ::semaprax::check(SOURCE_V6, Path::new("component-nested-record-v6.spx"))
+        .map_err(|diagnostics| {
+            failure(format!("v6 fixture verification failed: {diagnostics:?}"))
+        })?;
+    let artifact = ::semaprax::wit_component::emit_private_nested_record_component_v6(&program)
+        .map_err(|diagnostic| failure(format!("v6 component emission failed: {diagnostic:?}")))?;
+    if artifact.wit() != include_str!("../wit/semaprax-private-v6.wit") {
+        return Err(failure("checked-in Wasmtime v6 WIT drifted"));
+    }
+    let bytes: Box<[u8]> = artifact.bytes().to_vec().into_boxed_slice();
+    let before: [u8; 32] = Sha256::digest(&bytes).into();
+    if before != EXPECTED_COMPONENT_V6_SHA256
+        || artifact.generated_core_digest() != EXPECTED_GENERATED_CORE_V6_SHA256
+    {
+        return Err(failure("v6 independent component/core KAT changed"));
+    }
+    let expected_revision = ::semaprax::graph::revision(&program);
+    if expected_revision != EXPECTED_SOURCE_REVISION_V6 {
+        return Err(failure("v6 source revision KAT changed"));
+    }
+    let validated = ::semaprax::wit_component::validate_private_nested_record_component_v6(
+        &bytes,
+        EXPECTED_SOURCE_REVISION_V6,
+        EXPECTED_GENERATED_CORE_V6_SHA256,
+    )
+    .map_err(|error| failure(format!("v6 profile validation failed: {error:?}")))?;
+    if validated.interface_export_name() != "semaprax:private/nested-records@0.4.0"
+        || validated.function_export_name() != "transform"
+        || validated.type_export_names() != ["status", "inner", "outer"]
+        || validated.source_revision() != EXPECTED_SOURCE_REVISION_V6
+        || <[u8; 32]>::from(Sha256::digest(validated.generated_core()))
+            != EXPECTED_GENERATED_CORE_V6_SHA256
+    {
+        return Err(failure("v6 typed export table changed"));
+    }
+
+    let mut config = Config::new();
+    config.wasm_component_model(true);
+    config.consume_fuel(true);
+    let engine = Engine::new(&config)?;
+    let component = Component::new(&engine, &bytes)?;
+    if component.component_type().imports(&engine).len() != 0 {
+        return Err(failure("v6 requested ambient imports"));
+    }
+    run_v6_instance(&engine, &component)?;
+    run_v6_instance(&engine, &component)?;
+    for _ in 0..2 {
+        run_v6_instance(&engine, &component)?;
+    }
+    prove_raw_core_v6_poison_status_and_invalid_bool(&engine, validated.generated_core())?;
+    prove_engine_failure_is_out_of_band_v6(&engine, &component)?;
+    if <[u8; 32]>::from(Sha256::digest(&bytes)) != before {
+        return Err(failure("authenticated v6 bytes changed during execution"));
+    }
+    println!("semaprax-private-component-runtime-v6-ok");
+    Ok(())
+}
+
 fn run() -> HostResult<()> {
     run_v3()?;
     run_v4()?;
-    run_v5()
+    run_v5()?;
+    run_v6()
 }
 
 fn main() -> HostResult<()> {

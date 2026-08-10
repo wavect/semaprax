@@ -42,6 +42,8 @@ cargo test --locked --offline --manifest-path "$readonly_root/Cargo.toml" --feat
 cargo test --locked --offline --manifest-path "$readonly_root/Cargo.toml" --features unstable-wit-component-harness --lib wit_component::source_result_v4::tests::
 cargo test --locked --offline --manifest-path "$readonly_root/Cargo.toml" --features unstable-wit-component-harness --lib wasm::scalar_algebra_component_v5::tests::
 cargo test --locked --offline --manifest-path "$readonly_root/Cargo.toml" --features unstable-wit-component-harness --lib wit_component::scalar_algebra_v5::tests::
+cargo test --locked --offline --manifest-path "$readonly_root/Cargo.toml" --features unstable-wit-component-harness --lib wasm::nested_record_component_v6::tests::
+cargo test --locked --offline --manifest-path "$readonly_root/Cargo.toml" --features unstable-wit-component-harness --lib wit_component::nested_record_v6::tests::
 cargo test --locked --offline --manifest-path "$readonly_root/Cargo.toml" --test component_runtime_ci_contract
 cargo fmt --manifest-path "$readonly_manifest" --all -- --check
 cargo clippy --locked --offline --manifest-path "$readonly_manifest" --all-targets --all-features -- -D warnings

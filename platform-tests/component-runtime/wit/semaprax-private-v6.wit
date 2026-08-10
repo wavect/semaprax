@@ -1,0 +1,12 @@
+package semaprax:private@0.4.0;
+
+interface nested-records {
+  record status { domain: string, code: u32, class: u8, retryable: option<bool> }
+  record inner { value: s64, flag: bool }
+  record outer { inner: inner, other: s64 }
+  transform: func(input: outer, delta: s64) -> result<outer, status>;
+}
+
+world semaprax-private-v6 {
+  export nested-records;
+}

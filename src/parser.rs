@@ -557,7 +557,8 @@ impl Parser {
         loop {
             let type_arguments = if self.at(&TokenKind::Lt)
                 && matches!(&expression.kind, ExprKind::Var(_))
-                && self.looks_like_generic_variant_qualifier()
+                && (self.looks_like_generic_variant_qualifier()
+                    || (allow_record_literals && self.looks_like_generic_record_qualifier()))
             {
                 self.type_arguments()?
             } else {
@@ -666,6 +667,7 @@ impl Parser {
                     kind: ExprKind::ConstructRecord {
                         type_name,
                         type_span,
+                        type_arguments,
                         fields,
                     },
                     span: start.merge(end),
@@ -962,6 +964,14 @@ impl Parser {
     }
 
     fn looks_like_generic_variant_qualifier(&self) -> bool {
+        self.looks_like_generic_qualifier(TokenKind::ColonColon)
+    }
+
+    fn looks_like_generic_record_qualifier(&self) -> bool {
+        self.looks_like_generic_qualifier(TokenKind::LBrace)
+    }
+
+    fn looks_like_generic_qualifier(&self, terminator: TokenKind) -> bool {
         let mut depth = 0_usize;
         for (offset, token) in self.tokens[self.cursor..].iter().enumerate() {
             match token.kind {
@@ -975,7 +985,7 @@ impl Parser {
                         return self
                             .tokens
                             .get(self.cursor + offset + 1)
-                            .is_some_and(|next| next.kind == TokenKind::ColonColon);
+                            .is_some_and(|next| next.kind == terminator);
                     }
                 }
                 TokenKind::Eof | TokenKind::Semicolon | TokenKind::LBrace => return false,

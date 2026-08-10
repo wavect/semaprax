@@ -42,7 +42,7 @@ jobs:
           command: check advisories bans licenses sources
           manifest-path: platform-tests/component-runtime/Cargo.toml
           arguments: --config platform-tests/component-runtime/deny.toml --all-features --locked
-      - name: Fetch dependencies, then execute every v3/v4/v5 Component gate offline
+      - name: Fetch dependencies, then execute every v3/v4/v5/v6 Component gate offline
         run: scripts/component-runtime-v3.sh
 
   verify:

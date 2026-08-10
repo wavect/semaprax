@@ -204,6 +204,31 @@ or callable/component aggregate signatures. Historical Graph-v6/v7/v8/v9 and
 CleanupPlan-v1 text above remains the migration record, not current schema
 truth.
 
+## Graph v10/v11 to v12 for generic Copy records
+
+Graph schema selection is now a program-wide ordered lattice. A validated
+program containing any generic record declaration emits
+`semaprax.graph.v12`; otherwise authenticated Option propagation emits v11;
+otherwise legacy and Result-only programs remain byte-compatible v10. Every
+Agent Context v1 envelope reports the same program-level source schema even
+when its root or selected facts do not reference the declaration that caused
+the upgrade. Consumers must reject relabeling between v10, v11, and v12.
+
+V12 generic record declaration nodes carry ordered owner/index-stable type
+parameters and `type_id: null`, because an empty concrete instance does not
+exist. Generic record constructors retain their exact expression type ID and
+add the structured concrete nominal record type with ordered direct
+`i64`/`bool` arguments. Field IDs remain template-stable and field template
+types retain owner/index identity. Programs without generic record
+declarations preserve their prior v10/v11 bytes and KATs.
+
+CleanupPlan does not migrate for this tranche: admitted generic records are
+resource-free Copy values, so canonical v2 (or v3 when Option propagation is
+independently present) remains sufficient and introduces no generic-record
+slot/action. This migration does not open generic functions/inference,
+nested/resource/non-Copy arguments or fields, record patterns, public
+aggregate/callable/FFI ABI, or resource admission.
+
 ## Internal variant-layout digest v1 to v2
 
 The compiler-internal Native64/Wasm32 variant-layout digest now uses the exact

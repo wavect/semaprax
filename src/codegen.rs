@@ -52,7 +52,7 @@ pub use native_callable_bundle::{
     NativeCallableBundlePreflight,
 };
 
-use crate::aggregate_layout::{AggregateLayout, AggregateTarget};
+use crate::aggregate_layout::{AggregateLayout, AggregateLayoutCache, AggregateTarget};
 use crate::ast::{BinaryOp, Program, UnaryOp};
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
@@ -865,6 +865,7 @@ fn emit_hir_c_with_labels(
 ) -> Result<String, Diagnostic> {
     hir::validate(program)?;
     let resource_abi = native_resource::build_resource_abi(program)?;
+    let record_layouts = AggregateLayoutCache::build(program, AggregateTarget::Native64)?;
     let variant_layouts = VariantLayoutCache::build(program, VariantTarget::Native64)?;
     let functions = function_index(program)?;
     if !resource_abi.resources.is_empty() {
@@ -874,19 +875,25 @@ fn emit_hir_c_with_labels(
     }
     let mut output = String::new();
     emit_native_prelude(&mut output, &resource_abi);
-    emit_aggregate_declarations(&mut output, program, &resource_abi, &variant_layouts)?;
+    emit_aggregate_declarations(
+        &mut output,
+        program,
+        &resource_abi,
+        &record_layouts,
+        &variant_layouts,
+    )?;
     emit_function_prototypes(&mut output, program, &functions, &resource_abi)?;
 
+    let emission = NativeEmissionContext {
+        program,
+        resource_abi: &resource_abi,
+        functions: &functions,
+        contract_labels,
+        record_layouts: &record_layouts,
+        variant_layouts: &variant_layouts,
+    };
     for function in &program.functions {
-        emit_function(
-            &mut output,
-            program,
-            &resource_abi,
-            &functions,
-            function,
-            contract_labels,
-            &variant_layouts,
-        )?;
+        emit_function(&mut output, function, &emission)?;
     }
 
     let main = program
@@ -936,14 +943,10 @@ fn emit_aggregate_declarations(
     output: &mut String,
     program: &ResolvedProgram,
     resource_abi: &native_resource::NativeResourceAbi,
+    record_layouts: &AggregateLayoutCache,
     variant_layouts: &VariantLayoutCache,
 ) -> Result<(), Diagnostic> {
-    let records = program
-        .types
-        .iter()
-        .filter(|item| matches!(item.kind, ResolvedTypeDeclarationKind::Record { .. }))
-        .map(|item| item.id.clone())
-        .collect::<Vec<_>>();
+    let records = record_layouts.layouts().collect::<Vec<_>>();
     let variants = variant_layouts.layouts().collect::<Vec<_>>();
     if records.is_empty() && variants.is_empty() {
         return Ok(());
@@ -951,7 +954,7 @@ fn emit_aggregate_declarations(
 
     output.push_str("#include <stddef.h>\n\n");
     for record in &records {
-        writeln!(output, "struct {};", c_record_symbol(record))
+        writeln!(output, "struct {};", c_record_symbol(&record.instance))
             .expect("writing to a string cannot fail");
     }
     for variant in &variants {
@@ -967,7 +970,8 @@ fn emit_aggregate_declarations(
             output,
             program,
             resource_abi,
-            record,
+            record_layouts,
+            &record.instance,
             &mut visiting,
             &mut emitted,
         )?;
@@ -982,37 +986,37 @@ fn emit_record_declaration(
     output: &mut String,
     program: &ResolvedProgram,
     resource_abi: &native_resource::NativeResourceAbi,
-    record: &DeclarationId,
-    visiting: &mut BTreeSet<DeclarationId>,
-    emitted: &mut BTreeSet<DeclarationId>,
+    layouts: &AggregateLayoutCache,
+    instance: &ResolvedType,
+    visiting: &mut BTreeSet<ResolvedType>,
+    emitted: &mut BTreeSet<ResolvedType>,
 ) -> Result<(), Diagnostic> {
-    if emitted.contains(record) {
+    if emitted.contains(instance) {
         return Ok(());
     }
-    if !visiting.insert(record.clone()) {
+    if !visiting.insert(instance.clone()) {
         return Err(backend_error(format!(
-            "native aggregate declaration `{record}` is recursively embedded"
+            "native aggregate instance `{}` is recursively embedded",
+            instance.identity_key()
         )));
     }
-    let declaration = program
-        .types
-        .iter()
-        .find(|item| item.id == *record)
-        .ok_or_else(|| backend_error(format!("unknown native record `{record}`")))?;
-    let ResolvedTypeDeclarationKind::Record { fields } = &declaration.kind else {
-        return Err(backend_error(format!(
-            "native aggregate `{record}` is not a record"
-        )));
-    };
-    for field in fields {
-        if let Some(nested) = record_declaration_id(program, &field.ty)? {
-            emit_record_declaration(output, program, resource_abi, nested, visiting, emitted)?;
+    let layout = layouts.layout(instance)?.clone();
+    layout.validate(program)?;
+    for field in &layout.fields {
+        if record_declaration_id(program, &field.ty)?.is_some() {
+            emit_record_declaration(
+                output,
+                program,
+                resource_abi,
+                layouts,
+                &field.ty,
+                visiting,
+                emitted,
+            )?;
         }
     }
 
-    let layout = AggregateLayout::for_record(program, AggregateTarget::Native64, record)?;
-    layout.validate(program)?;
-    let symbol = c_record_symbol(record);
+    let symbol = c_record_symbol(instance);
     writeln!(output, "struct {symbol} {{").expect("writing to a string cannot fail");
     if layout.fields.is_empty() {
         output.push_str("    uint8_t spx_empty_record_padding;\n");
@@ -1050,8 +1054,8 @@ fn emit_record_declaration(
         .expect("writing to a string cannot fail");
     }
     output.push('\n');
-    visiting.remove(record);
-    emitted.insert(record.clone());
+    visiting.remove(instance);
+    emitted.insert(instance.clone());
     Ok(())
 }
 
@@ -1132,8 +1136,8 @@ fn c_value_type(
     resource_abi: &native_resource::NativeResourceAbi,
     ty: &ResolvedType,
 ) -> Result<String, Diagnostic> {
-    if let Some(record) = record_declaration_id(program, ty)? {
-        Ok(format!("struct {}", c_record_symbol(record)))
+    if record_declaration_id(program, ty)?.is_some() {
+        Ok(format!("struct {}", c_record_symbol(ty)))
     } else if variant_declaration_id(program, ty)?.is_some() {
         Ok(format!("struct {}", c_variant_symbol(ty)))
     } else {
@@ -1165,9 +1169,13 @@ fn record_declaration_id<'a>(
     if !matches!(item.kind, ResolvedTypeDeclarationKind::Record { .. }) {
         return Ok(None);
     }
-    if !arguments.is_empty() {
+    if arguments.len() != item.type_parameters.len()
+        || arguments
+            .iter()
+            .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
+    {
         return Err(backend_error(format!(
-            "native record representation is unavailable for generic type `{}`",
+            "native record representation requires exact concrete i64/bool arguments for `{}`",
             ty.identity_key()
         )));
     }
@@ -1206,8 +1214,25 @@ fn variant_declaration_id<'a>(
     Ok(Some(declaration))
 }
 
-fn c_record_symbol(id: &DeclarationId) -> String {
-    stable_c_symbol("spx_record_", id)
+fn c_record_symbol(ty: &ResolvedType) -> String {
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = ty
+    else {
+        unreachable!("record C symbols require nominal types");
+    };
+    let mut symbol = stable_c_symbol("spx_record_", declaration);
+    if !arguments.is_empty() {
+        let mut digest = Sha256::new();
+        digest.update(b"semaprax.native-record-instance.v1\0");
+        digest.update(ty.identity_key().as_bytes());
+        symbol.push_str("_inst_");
+        for byte in digest.finalize() {
+            write!(symbol, "{byte:02x}").expect("writing to a string cannot fail");
+        }
+    }
+    symbol
 }
 
 fn c_variant_symbol(ty: &ResolvedType) -> String {
@@ -1567,15 +1592,24 @@ static __attribute__((unused)) int spx_public_failure(
 
 "#;
 
+struct NativeEmissionContext<'a> {
+    program: &'a ResolvedProgram,
+    resource_abi: &'a native_resource::NativeResourceAbi,
+    functions: &'a HashMap<DeclarationId, CFunction>,
+    contract_labels: &'a HashMap<ExpressionId, String>,
+    record_layouts: &'a AggregateLayoutCache,
+    variant_layouts: &'a VariantLayoutCache,
+}
+
 fn emit_function(
     output: &mut String,
-    program: &ResolvedProgram,
-    resource_abi: &native_resource::NativeResourceAbi,
-    functions: &HashMap<DeclarationId, CFunction>,
     function: &ResolvedFunction,
-    contract_labels: &HashMap<ExpressionId, String>,
-    variant_layouts: &VariantLayoutCache,
+    emission: &NativeEmissionContext<'_>,
 ) -> Result<(), Diagnostic> {
+    let program = emission.program;
+    let resource_abi = emission.resource_abi;
+    let functions = emission.functions;
+    let contract_labels = emission.contract_labels;
     let has_try = expression_has_try(&function.body);
     let metadata = functions
         .get(&function.id)
@@ -1617,15 +1651,7 @@ fn emit_function(
             },
         );
     }
-    let mut emitter = CEmitter::new(
-        output,
-        program,
-        resource_abi,
-        variables,
-        functions,
-        variant_layouts,
-        &function.return_type,
-    );
+    let mut emitter = CEmitter::new(output, variables, &function.return_type, emission);
     emitter.line("spx_status_token spx_status = SPX_STATUS_SUCCESS;");
     if has_try {
         emitter.line("bool spx_result_staged = false;");
@@ -1866,6 +1892,7 @@ struct CEmitter<'a> {
     resource_abi: &'a native_resource::NativeResourceAbi,
     variables: HashMap<ValueId, CBinding>,
     functions: &'a HashMap<DeclarationId, CFunction>,
+    record_layouts: &'a AggregateLayoutCache,
     variant_layouts: &'a VariantLayoutCache,
     return_type: &'a ResolvedType,
     try_target_enabled: bool,
@@ -1876,20 +1903,18 @@ struct CEmitter<'a> {
 impl<'a> CEmitter<'a> {
     fn new(
         output: &'a mut String,
-        program: &'a ResolvedProgram,
-        resource_abi: &'a native_resource::NativeResourceAbi,
         variables: HashMap<ValueId, CBinding>,
-        functions: &'a HashMap<DeclarationId, CFunction>,
-        variant_layouts: &'a VariantLayoutCache,
         return_type: &'a ResolvedType,
+        emission: &'a NativeEmissionContext<'a>,
     ) -> Self {
         Self {
             output,
-            program,
-            resource_abi,
+            program: emission.program,
+            resource_abi: emission.resource_abi,
             variables,
-            functions,
-            variant_layouts,
+            functions: emission.functions,
+            record_layouts: emission.record_layouts,
+            variant_layouts: emission.variant_layouts,
             return_type,
             try_target_enabled: false,
             next_local: 0,
@@ -2514,13 +2539,13 @@ impl<'a> CEmitter<'a> {
     }
 
     fn record_layout(&self, ty: &ResolvedType) -> Result<AggregateLayout, Diagnostic> {
-        let record = record_declaration_id(self.program, ty)?.ok_or_else(|| {
+        record_declaration_id(self.program, ty)?.ok_or_else(|| {
             backend_error(format!(
                 "native aggregate operation requires a record, found `{}`",
                 ty.identity_key()
             ))
         })?;
-        let layout = AggregateLayout::for_record(self.program, AggregateTarget::Native64, record)?;
+        let layout = self.record_layouts.layout(ty)?.clone();
         layout.validate(self.program)?;
         Ok(layout)
     }
@@ -2690,6 +2715,31 @@ mod tests {
                 let _ = fs::remove_dir_all(&self.0);
             }
         }
+    }
+
+    #[test]
+    fn generic_record_c_symbols_bind_the_full_concrete_instance() {
+        let declaration = DeclarationId::new("test.phantom");
+        let i64_instance = ResolvedType::Nominal {
+            declaration: declaration.clone(),
+            arguments: vec![ResolvedType::I64],
+        };
+        let bool_instance = ResolvedType::Nominal {
+            declaration: declaration.clone(),
+            arguments: vec![ResolvedType::Bool],
+        };
+        let i64_symbol = c_record_symbol(&i64_instance);
+        let bool_symbol = c_record_symbol(&bool_instance);
+        assert_ne!(i64_symbol, bool_symbol);
+        assert!(i64_symbol.starts_with("spx_record_746573742e7068616e746f6d_"));
+        assert!(bool_symbol.starts_with("spx_record_746573742e7068616e746f6d_"));
+        assert_eq!(
+            c_record_symbol(&ResolvedType::Nominal {
+                declaration,
+                arguments: Vec::new(),
+            }),
+            "spx_record_746573742e7068616e746f6d"
+        );
     }
 
     const RESOURCE_SOURCE: &str = r#"module test.native_resource_types;

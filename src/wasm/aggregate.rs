@@ -5,7 +5,7 @@
 
 use std::collections::HashMap;
 
-use crate::aggregate_layout::{AggregateLayout, AggregateTarget};
+use crate::aggregate_layout::{AggregateLayout, AggregateLayoutCache, AggregateTarget};
 use crate::ast::{BinaryOp, UnaryOp};
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
@@ -467,9 +467,13 @@ fn is_record(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagn
     if !matches!(item.kind, ResolvedTypeDeclarationKind::Record { .. }) {
         return Ok(false);
     }
-    if !arguments.is_empty() {
+    if arguments.len() != item.type_parameters.len()
+        || arguments
+            .iter()
+            .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
+    {
         return Err(error(format!(
-            "generic aggregate type `{}` is outside executable records v1",
+            "Wasm record representation requires exact concrete i64/bool arguments for `{}`",
             ty.identity_key()
         )));
     }
@@ -510,13 +514,7 @@ fn is_aggregate(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Di
 }
 
 fn layout(program: &ResolvedProgram, ty: &ResolvedType) -> Result<AggregateLayout, Diagnostic> {
-    let ResolvedType::Nominal { declaration, .. } = ty else {
-        return Err(error(format!(
-            "aggregate layout requested for scalar `{}`",
-            ty.identity_key()
-        )));
-    };
-    let layout = AggregateLayout::for_record(program, AggregateTarget::Wasm32, declaration)?;
+    let layout = AggregateLayout::for_type(program, AggregateTarget::Wasm32, ty)?;
     layout.validate(program)?;
     Ok(layout)
 }
@@ -661,21 +659,9 @@ fn emit_profile(program: &ResolvedProgram, test_exports: bool) -> Result<Vec<u8>
         return Err(resource_gate());
     }
     let variant_layouts = VariantLayoutCache::build(program, VariantTarget::Wasm32)?;
-    for item in &program.types {
-        if matches!(item.kind, ResolvedTypeDeclarationKind::Record { .. }) {
-            let ty = ResolvedType::Nominal {
-                declaration: item.id.clone(),
-                arguments: Vec::new(),
-            };
-            let facts = program
-                .declarations
-                .type_facts(&ty)
-                .ok_or_else(|| error(format!("missing type facts for `{}`", item.id)))?;
-            if facts.contains_resource {
-                return Err(resource_gate());
-            }
-            layout(program, &ty)?;
-        }
+    let record_layouts = AggregateLayoutCache::build(program, AggregateTarget::Wasm32)?;
+    for record_layout in record_layouts.layouts() {
+        record_layout.validate(program)?;
     }
 
     let main_index = program

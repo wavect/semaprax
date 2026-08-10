@@ -19,8 +19,13 @@ All notable changes to SEMAPRAX are documented here.
   `081bcb20aca2e74f724f5bc0cd2cf03770a499e11aa090d92b59650209165544`.
   Local Review integration is 10/10, hook/limit units are 4/4, and library
   408/408, full workspace, release, doctest, rustdoc, strict Clippy, format,
-  diff, preservation, and independent security gates are green; hosted
-  evidence is pending. This is not Agent Context, target/test execution, a
+  diff, preservation, and independent security gates are green. The exact
+  `2634011f3d205077d4533701e412bec8fdcff7c8` full matrix is hosted green in
+  [run 31423743369 attempt
+  1](https://github.com/wavect/semaprax/actions/runs/31423743369/attempts/1),
+  including [Ubuntu job
+  93570423170](https://github.com/wavect/semaprax/actions/runs/31423743369/job/93570423170);
+  all 12 jobs passed. This is not Agent Context, target/test execution, a
   public verifier or proof artifact, authenticated patch provenance, human
   approval policy/UI, A0 apply/commit authority, repository/multi-file review,
   or general capability/security/unsafe/ABI analysis. Only the Semantic human

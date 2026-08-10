@@ -320,9 +320,21 @@ unchanged Impact/repair/Patch/A0/Context/Graph/Cleanup/backend evidence.
 
 Local Review integration is 10/10 and hook/limit units are 4/4. Library
 408/408, full workspace, release, doctest, rustdoc, strict Clippy, format, diff,
-preservation, and independent security gates are green; hosted evidence is
-pending. Hosted promotion requires an exact-head terminal-success full matrix,
-not merely a green focused job. Review's target/artifact section and hosted
+preservation, and independent security gates are green. The exact
+`2634011f3d205077d4533701e412bec8fdcff7c8` full matrix is hosted green in [run
+31423743369 attempt
+1](https://github.com/wavect/semaprax/actions/runs/31423743369/attempts/1),
+including [Ubuntu job
+93570423170](https://github.com/wavect/semaprax/actions/runs/31423743369/job/93570423170),
+[Windows job
+93570423172](https://github.com/wavect/semaprax/actions/runs/31423743369/job/93570423172),
+[macOS job
+93570423226](https://github.com/wavect/semaprax/actions/runs/31423743369/job/93570423226),
+[MSRV job
+93570423203](https://github.com/wavect/semaprax/actions/runs/31423743369/job/93570423203),
+and [dependency-policy job
+93570423175](https://github.com/wavect/semaprax/actions/runs/31423743369/job/93570423175);
+all 12 jobs passed. Review's target/artifact section and hosted
 backend preservation do not constitute target or test execution by Review.
 The no-Context, no-public-verifier/proof-artifact, no-provenance, no-approval,
 no-A0-authority, no-general-analysis, and single-file nonclaims remain exact.

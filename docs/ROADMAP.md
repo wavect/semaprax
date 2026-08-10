@@ -29,8 +29,13 @@ Status: implemented in this repository.
   for Patch v1/v2 through complete nontruncated Impact-v1 evidence and for the
   sole canonical Patch v3 through the shared identity rebase. Its Patch
   v1/v2/v3 report KATs, local 10/10 integration, 4/4 hook/limit units, library
-  408/408, full preservation, and security gates are green; hosted evidence is
-  pending. Context, target/test execution, proof/verifier/provenance, approval,
+  408/408, full preservation, and security gates are green. The exact
+  `2634011f3d205077d4533701e412bec8fdcff7c8` full matrix is hosted green in
+  [run 31423743369 attempt
+  1](https://github.com/wavect/semaprax/actions/runs/31423743369/attempts/1),
+  including [Ubuntu job
+  93570423170](https://github.com/wavect/semaprax/actions/runs/31423743369/job/93570423170);
+  all 12 jobs passed. Context, target/test execution, proof/verifier/provenance, approval,
   A0 authority, and repository/multi-file review remain open.
 - Offline context economics with exact goldens and conservative quality routing.
 - Effects, module permits, and contract guards.
@@ -571,7 +576,12 @@ operation across exact `behavior`, `api_identity`, `security_authority`,
 V1/v2 embed complete nontruncated Impact v1 evidence; v3 embeds the shared
 identity rebase without widening Impact. Local 10/10 integration, 4/4
 hook/limit units, library 408/408, full preservation, and security gates are
-green; hosted evidence is pending. This advances deterministic review only:
+green. The exact `2634011f3d205077d4533701e412bec8fdcff7c8` full matrix is
+hosted green in [run 31423743369 attempt
+1](https://github.com/wavect/semaprax/actions/runs/31423743369/attempts/1),
+including [Ubuntu job
+93570423170](https://github.com/wavect/semaprax/actions/runs/31423743369/job/93570423170);
+all 12 jobs passed. This advances deterministic review only:
 general repository review, authenticated provenance, proof-carrying patches,
 public verification, target execution, human approval workflows, multi-file
 transactions, and the 0.2 CLI exit criterion remain open.

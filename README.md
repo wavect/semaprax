@@ -227,7 +227,13 @@ Implemented today:
   `37fe056f519366fcaf6c13586e3b78afd64d51483490a1120e3e0fdc1b04c421`, and
   `081bcb20aca2e74f724f5bc0cd2cf03770a499e11aa090d92b59650209165544`.
   Local Review integration 10/10, hook/limit 4/4, library 408/408, full
-  preservation, and security gates are green; hosted evidence is pending.
+  preservation, and security gates are green. The exact
+  `2634011f3d205077d4533701e412bec8fdcff7c8` full matrix is hosted green in
+  [run 31423743369 attempt
+  1](https://github.com/wavect/semaprax/actions/runs/31423743369/attempts/1),
+  including [Ubuntu job
+  93570423170](https://github.com/wavect/semaprax/actions/runs/31423743369/job/93570423170);
+  all 12 jobs passed.
   Review has no flags, Context, target/test execution, verifier/proof artifact,
   human approval, authenticated patch provenance, or apply/commit authority.
 - Native AOT output through a readable C11 lowering and Clang.

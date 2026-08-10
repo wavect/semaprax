@@ -162,7 +162,12 @@ lock/stage/apply/commit authority. The three exact report KATs and all limits,
 digests, key order, dispositions, findings, and nonclaims are frozen in
 [`SEMANTIC-REVIEW-V1.md`](SEMANTIC-REVIEW-V1.md). Local Review integration is
 10/10, hook/limit units are 4/4, library 408/408, full preservation and security
-gates are green; hosted evidence is pending.
+gates are green. The exact `2634011f3d205077d4533701e412bec8fdcff7c8` full
+matrix is hosted green in [run 31423743369 attempt
+1](https://github.com/wavect/semaprax/actions/runs/31423743369/attempts/1),
+including [Ubuntu job
+93570423170](https://github.com/wavect/semaprax/actions/runs/31423743369/job/93570423170);
+all 12 jobs passed.
 
 ## Persistent identities are NUL-free
 

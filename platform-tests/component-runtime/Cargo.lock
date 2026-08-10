@@ -696,6 +696,7 @@ dependencies = [
  "getrandom",
  "hmac",
  "same-file",
+ "serde_json",
  "sha2",
 ]
 

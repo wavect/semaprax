@@ -11,9 +11,9 @@ use crate::ast::{BinaryOp, UnaryOp};
 use crate::cleanup::{CleanupStorageOrigin, FieldLiveness, FieldLivenessShape, LivenessFlagId};
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
-    DeclarationId, ExpressionId, IdentityOrigin, OwnershipMode, PlaceProjection, ResolvedExpr,
-    ResolvedExprKind, ResolvedFunction, ResolvedMatchArm, ResolvedMatchPattern, ResolvedProgram,
-    ResolvedStatement, ResolvedType, ResolvedTypeDeclarationKind,
+    DeclarationId, DeclarationKind, ExpressionId, IdentityOrigin, OwnershipMode, PlaceProjection,
+    ResolvedExpr, ResolvedExprKind, ResolvedFunction, ResolvedMatchArm, ResolvedMatchPattern,
+    ResolvedProgram, ResolvedStatement, ResolvedType, ResolvedTypeDeclarationKind,
 };
 use crate::prelude;
 
@@ -2245,6 +2245,42 @@ fn match_skeleton(
     }
 
     let scrutinee_paths = expression_skeleton(program, function, scrutinee)?;
+    let is_record = match &scrutinee.ty {
+        ResolvedType::Nominal { declaration, .. } => program
+            .declarations
+            .declaration(declaration)
+            .is_some_and(|item| item.kind == DeclarationKind::Record),
+        ResolvedType::I64 | ResolvedType::Bool | ResolvedType::TypeParameter { .. } => false,
+    };
+    if is_record {
+        let [arm] = arms else {
+            return Err(replay_error(
+                function,
+                "irrefutable record match must have exactly one arm",
+            ));
+        };
+        if matches!(&arm.pattern, ResolvedMatchPattern::Variant { .. }) {
+            return Err(replay_error(
+                function,
+                "variant pattern has a record match scrutinee",
+            ));
+        }
+        let mut results = Vec::new();
+        for mut path in scrutinee_paths {
+            if path.failed || path.residual {
+                results.push(path);
+                continue;
+            }
+            path.owned_source = None;
+            results.extend(sequence_expression(
+                program,
+                function,
+                vec![path],
+                &arm.value,
+            )?);
+        }
+        return Ok(results);
+    }
     let mut results = Vec::new();
     for mut path in scrutinee_paths {
         if path.failed || path.residual {

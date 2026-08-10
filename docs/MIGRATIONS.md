@@ -226,8 +226,38 @@ CleanupPlan does not migrate for this tranche: admitted generic records are
 resource-free Copy values, so canonical v2 (or v3 when Option propagation is
 independently present) remains sufficient and introduces no generic-record
 slot/action. This migration does not open generic functions/inference,
-nested/resource/non-Copy arguments or fields, record patterns, public
+nested/resource/non-Copy arguments or fields, public
 aggregate/callable/FFI ABI, or resource admission.
+
+## Graph v12 to v13 for irrefutable Copy-record patterns
+
+Graph schema selection adds a higher program-wide branch. A validated program
+containing any authenticated explicit record pattern emits
+`semaprax.graph.v13`; otherwise a generic record declaration selects v12,
+Option propagation selects v11, and legacy or Result-only programs remain v10.
+Every Agent Context v1 envelope reports that same program-level source schema,
+even when its selected root does not reach the pattern. A top-level wildcard
+record arm creates no bindings and does not by itself select v13. Consumers
+must reject relabeling among v10, v11, v12, and v13.
+
+V13 record-pattern nodes bind the exact concrete record instance, stable record
+and field IDs, declaration-ordered field entries, recursive nested patterns,
+and canonical binding IDs and types. The bounded source form is irrefutable and
+has exactly one arm: every record field appears once and contains a binding,
+`_`, or another exact record pattern. A binding may receive an entire
+resource-free Copy-record field by value. The scrutinee is evaluated once and
+the arm result remains scalar `i64`/`bool`.
+
+CleanupPlan does not migrate for this tranche. Record destructuring is
+straight-line projection over an admitted Copy value, so it adds no storage
+slot, transition, status source, cleanup action, or `VariantCase` edge;
+canonical v2 remains sufficient, or v3 when Option propagation is independently
+present. Programs without an explicit record pattern preserve their prior
+v10/v11/v12 graph bytes and known answers. This migration does not open
+refutable or literal patterns, guards, or-patterns, rest patterns, nested
+variant patterns,
+ownership modes, resource/non-Copy matching, aggregate-valued arm results,
+generic functions/inference, or public aggregate/callable/FFI ABI.
 
 ## Internal variant-layout digest v1 to v2
 
@@ -603,6 +633,51 @@ version and new independent known answers. V4 adds no compatibility fallback
 from or to v1-v3 and creates no public component, aggregate, callable, FFI, or
 resource ABI. Its exact Wasmtime execution is hosted green in [run 31356536123,
 job 93357169796](https://github.com/wavect/semaprax/actions/runs/31356536123/job/93357169796).
+
+## Private generic-record component v7
+
+Private Generic Record Component v7 is another separate default-off profile,
+not an in-place change to any v1-v6 fixture. It freezes WIT package
+`semaprax:private@0.5.0`, interface `generic-records`, world
+`semaprax-private-v7`, and exactly four exports:
+
+```wit
+transform-i64-bool: func(input: duo-i64-bool, delta: s64) -> result<duo-i64-bool, status>;
+transform-bool-i64: func(input: duo-bool-i64, delta: s64) -> result<duo-bool-i64, status>;
+preserve-phantom-i64: func(input: phantom-i64) -> result<phantom-i64, status>;
+invert-phantom-bool: func(input: phantom-bool) -> result<phantom-bool, status>;
+```
+
+The exact concrete types are `duo-i64-bool { left: s64, right: bool }`,
+`duo-bool-i64 { left: bool, right: s64 }`, `phantom-i64 { marker: bool }`,
+and `phantom-bool { marker: bool }`. The two Phantom types deliberately share
+a physical field layout while retaining distinct semantic source instance,
+layout-digest, component-type, and export identity. Every language record value
+is nested in the unchanged outer `result<record,status>` so recognized
+arithmetic or contract failure remains physical status rather than a record
+value.
+
+V7 authenticates the capability-free exact source table, ordered generic
+arguments, concrete Native64/Wasm32 layouts, Graph v12 and cleanup-plan
+bindings, source/core/profile/component mapping, and artifact DAG. Its primary
+known answers are:
+
+```text
+source revision: sha256:2c2c38ae4a6400730bc6c91de659675074020651b9b58bb6a39d047630ef7303
+generated core:  d218ff1eaff5f3f677fee58c7b2feb500e9efed8225800cfc3a6562f97d117d8
+profile:         7b19f74ab185da90445a042dbd04b6f39f7f9eff3ffff34fc5f0a3bdfd4a9bbf
+component bytes: 780a0ccfc35c7ff6d933483711e958d29cfd44c290762b05cd5183e6bf04b5b0
+artifact DAG:    c3d1fd10501bfe8dcd4b5c8f24184d127e462b9ca4bc6b1f9422ad8fbcc0b26e
+```
+
+Local source-lock, hostile core/component, Node/core, default-consumer hiding,
+strict quality, and independent security gates are green. The isolated Rust
+1.97.1/Wasmtime 47 typed runtime is configured, but hosted execution remains
+pending and must not be credited green. V1-v6 bytes and known answers remain
+unchanged. V7 does not establish general source selection or generic-record
+mapping, empty/nested/resource/non-Copy records, imports or capabilities,
+callbacks/reentrancy/async, callable/FFI/public ABI, browser/multi-engine
+conformance, package/version negotiation, or `SPX-B104`/`SPX-W111` widening.
 
 ## Revision token FNV-1a64 to SHA-256
 

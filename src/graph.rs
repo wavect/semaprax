@@ -1,7 +1,7 @@
 //! Deterministic semantic graph serialization and bounded context queries.
 //!
 //! Human source supplies the revision. Resolved HIR supplies every semantic
-//! identity and fact in graph v10-v12; spans and display names are metadata only.
+//! identity and fact in graph v10-v13; spans and display names are metadata only.
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fmt::Write;
@@ -40,8 +40,9 @@ pub fn revision(program: &Program) -> String {
 }
 
 /// Resolve and serialize a parsed program as `semaprax.graph.v10`, as v11 when
-/// the validated program contains bounded Option propagation, or as v12 when
-/// it declares a bounded generic record.
+/// the validated program contains bounded Option propagation, as v12 when it
+/// declares a bounded generic record, or as v13 when it contains an explicit
+/// authenticated record pattern.
 ///
 /// Resolution is deliberately part of this public boundary. Invalid source
 /// cannot be mistaken for a checked semantic graph by library callers.
@@ -623,6 +624,16 @@ fn result_propagation_json(expression: &ResolvedExpr) -> String {
 }
 
 fn graph_schema(program: &ResolvedProgram) -> &'static str {
+    if program.functions.iter().any(|function| {
+        function
+            .requires
+            .iter()
+            .chain(std::iter::once(&function.body))
+            .chain(&function.ensures)
+            .any(expression_has_record_pattern)
+    }) {
+        return "semaprax.graph.v13";
+    }
     if program.types.iter().any(|declaration| {
         matches!(declaration.kind, ResolvedTypeDeclarationKind::Record { .. })
             && !declaration.type_parameters.is_empty()
@@ -647,6 +658,73 @@ fn graph_schema(program: &ResolvedProgram) -> &'static str {
         "semaprax.graph.v11"
     } else {
         "semaprax.graph.v10"
+    }
+}
+
+fn expression_has_record_pattern(expression: &ResolvedExpr) -> bool {
+    match &expression.kind {
+        ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_record_pattern),
+        ResolvedExprKind::Unary { value, .. }
+        | ResolvedExprKind::Try { operand: value, .. }
+        | ResolvedExprKind::TryOption { operand: value, .. }
+        | ResolvedExprKind::Project { base: value, .. } => expression_has_record_pattern(value),
+        ResolvedExprKind::Binary { left, right, .. } => {
+            expression_has_record_pattern(left) || expression_has_record_pattern(right)
+        }
+        ResolvedExprKind::Block { statements, tail } => {
+            statements.iter().any(|statement| {
+                let ResolvedStatement::Let { value, .. } = statement;
+                expression_has_record_pattern(value)
+            }) || expression_has_record_pattern(tail)
+        }
+        ResolvedExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            expression_has_record_pattern(condition)
+                || expression_has_record_pattern(then_branch)
+                || expression_has_record_pattern(else_branch)
+        }
+        ResolvedExprKind::ConstructRecord { fields, .. }
+        | ResolvedExprKind::ConstructVariant { fields, .. } => fields
+            .iter()
+            .any(|field| expression_has_record_pattern(&field.value)),
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            arms.iter().any(|arm| {
+                matches!(
+                    &arm.pattern,
+                    crate::hir::ResolvedMatchPattern::Record { .. }
+                )
+            }) || expression_has_record_pattern(scrutinee)
+                || arms
+                    .iter()
+                    .any(|arm| expression_has_record_pattern(&arm.value))
+        }
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            expression_has_record_pattern(base)
+                || fields
+                    .iter()
+                    .any(|field| expression_has_record_pattern(&field.value))
+        }
+        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => false,
+    }
+}
+
+fn collect_record_pattern_values(
+    fields: &[crate::hir::ResolvedRecordMatchPatternField],
+    values: &mut BTreeSet<ValueId>,
+) {
+    for field in fields {
+        match &field.pattern {
+            crate::hir::ResolvedRecordMatchFieldPattern::Binding(binding) => {
+                values.insert(binding.id.clone());
+            }
+            crate::hir::ResolvedRecordMatchFieldPattern::Wildcard => {}
+            crate::hir::ResolvedRecordMatchFieldPattern::Record { fields, .. } => {
+                collect_record_pattern_values(fields, values);
+            }
+        }
     }
 }
 
@@ -723,8 +801,14 @@ fn collect_agent_contract_values(expression: &ResolvedExpr, values: &mut BTreeSe
         ResolvedExprKind::Match { scrutinee, arms } => {
             collect_agent_contract_values(scrutinee, values);
             for arm in arms {
-                if let crate::hir::ResolvedMatchPattern::Variant { fields, .. } = &arm.pattern {
-                    values.extend(fields.iter().map(|field| field.binding.id.clone()));
+                match &arm.pattern {
+                    crate::hir::ResolvedMatchPattern::Variant { fields, .. } => {
+                        values.extend(fields.iter().map(|field| field.binding.id.clone()));
+                    }
+                    crate::hir::ResolvedMatchPattern::Record { fields, .. } => {
+                        collect_record_pattern_values(fields, values);
+                    }
+                    crate::hir::ResolvedMatchPattern::Wildcard => {}
                 }
                 collect_agent_contract_values(&arm.value, values);
             }
@@ -948,7 +1032,66 @@ fn graph_match_pattern_json(pattern: &crate::hir::ResolvedMatchPattern, id: &str
                 .collect::<Vec<_>>()
                 .join(",")
         ),
+        crate::hir::ResolvedMatchPattern::Record {
+            record,
+            instance,
+            fields,
+        } => format!(
+            "{{\"id\":{},\"kind\":\"record_pattern\",\"record\":{},\"record_type_id\":{},\"record_type\":{},\"fields\":[{}]}}",
+            quote_json(id),
+            quote_json(record.as_str()),
+            quote_json(&instance.identity_key()),
+            type_json(instance),
+            fields
+                .iter()
+                .enumerate()
+                .map(|(index, field)| graph_record_match_field_json(field, &format!("{id}.field.{index}")))
+                .collect::<Vec<_>>()
+                .join(",")
+        ),
     }
+}
+
+fn graph_record_match_field_json(
+    field: &crate::hir::ResolvedRecordMatchPatternField,
+    id: &str,
+) -> String {
+    let pattern = match &field.pattern {
+        crate::hir::ResolvedRecordMatchFieldPattern::Binding(binding) => format!(
+            "{{\"id\":{},\"kind\":\"binding_pattern\",\"binding\":{{\"id\":{},\"name\":{},\"type_id\":{},\"ownership_mode\":{}}}}}",
+            quote_json(&format!("{id}.pattern")),
+            quote_json(binding.id.as_str()),
+            quote_json(&binding.name),
+            quote_json(&binding.ty.identity_key()),
+            quote_json(ownership_text(binding.ownership))
+        ),
+        crate::hir::ResolvedRecordMatchFieldPattern::Wildcard => format!(
+            "{{\"id\":{},\"kind\":\"wildcard_pattern\"}}",
+            quote_json(&format!("{id}.pattern"))
+        ),
+        crate::hir::ResolvedRecordMatchFieldPattern::Record {
+            record,
+            instance,
+            fields,
+        } => format!(
+            "{{\"id\":{},\"kind\":\"record_pattern\",\"record\":{},\"record_type_id\":{},\"record_type\":{},\"fields\":[{}]}}",
+            quote_json(&format!("{id}.pattern")),
+            quote_json(record.as_str()),
+            quote_json(&instance.identity_key()),
+            type_json(instance),
+            fields
+                .iter()
+                .enumerate()
+                .map(|(index, field)| graph_record_match_field_json(field, &format!("{id}.pattern.field.{index}")))
+                .collect::<Vec<_>>()
+                .join(",")
+        ),
+    };
+    format!(
+        "{{\"id\":{},\"field\":{},\"pattern\":{pattern}}}",
+        quote_json(id),
+        quote_json(field.field.as_str())
+    )
 }
 
 fn match_pattern_json(pattern: &crate::hir::ResolvedMatchPattern) -> String {
@@ -975,7 +1118,57 @@ fn match_pattern_json(pattern: &crate::hir::ResolvedMatchPattern) -> String {
                 .collect::<Vec<_>>()
                 .join(",")
         ),
+        crate::hir::ResolvedMatchPattern::Record {
+            record,
+            instance,
+            fields,
+        } => format!(
+            "{{\"kind\":\"record\",\"record\":{},\"record_type_id\":{},\"record_type\":{},\"fields\":[{}]}}",
+            quote_json(record.as_str()),
+            quote_json(&instance.identity_key()),
+            type_json(instance),
+            fields
+                .iter()
+                .map(record_match_field_json)
+                .collect::<Vec<_>>()
+                .join(",")
+        ),
     }
+}
+
+fn record_match_field_json(field: &crate::hir::ResolvedRecordMatchPatternField) -> String {
+    let pattern = match &field.pattern {
+        crate::hir::ResolvedRecordMatchFieldPattern::Binding(binding) => format!(
+            "{{\"kind\":\"binding\",\"binding\":{{\"id\":{},\"name\":{},\"type_id\":{},\"type\":{},\"ownership_mode\":{}}}}}",
+            quote_json(binding.id.as_str()),
+            quote_json(&binding.name),
+            quote_json(&binding.ty.identity_key()),
+            type_json(&binding.ty),
+            quote_json(ownership_text(binding.ownership))
+        ),
+        crate::hir::ResolvedRecordMatchFieldPattern::Wildcard => {
+            "{\"kind\":\"wildcard\"}".to_owned()
+        }
+        crate::hir::ResolvedRecordMatchFieldPattern::Record {
+            record,
+            instance,
+            fields,
+        } => format!(
+            "{{\"kind\":\"record\",\"record\":{},\"record_type_id\":{},\"record_type\":{},\"fields\":[{}]}}",
+            quote_json(record.as_str()),
+            quote_json(&instance.identity_key()),
+            type_json(instance),
+            fields
+                .iter()
+                .map(record_match_field_json)
+                .collect::<Vec<_>>()
+                .join(",")
+        ),
+    };
+    format!(
+        "{{\"field\":{},\"pattern\":{pattern}}}",
+        quote_json(field.field.as_str())
+    )
 }
 
 fn agent_type_declarations_json(
@@ -1944,14 +2137,26 @@ fn collect_expr_type_declarations(
         ResolvedExprKind::Match { scrutinee, arms } => {
             collect_expr_type_declarations(scrutinee, declarations);
             for arm in arms {
-                if let crate::hir::ResolvedMatchPattern::Variant {
-                    variant, fields, ..
-                } = &arm.pattern
-                {
-                    declarations.insert(variant.clone());
-                    for field in fields {
-                        collect_nominal_declarations(&field.binding.ty, declarations);
+                match &arm.pattern {
+                    crate::hir::ResolvedMatchPattern::Variant {
+                        variant, fields, ..
+                    } => {
+                        declarations.insert(variant.clone());
+                        for field in fields {
+                            collect_nominal_declarations(&field.binding.ty, declarations);
+                        }
                     }
+                    crate::hir::ResolvedMatchPattern::Record {
+                        record,
+                        instance,
+                        fields,
+                    } => collect_record_pattern_type_declarations(
+                        record,
+                        instance,
+                        fields,
+                        declarations,
+                    ),
+                    crate::hir::ResolvedMatchPattern::Wildcard => {}
                 }
                 collect_expr_type_declarations(&arm.value, declarations);
             }
@@ -1989,6 +2194,29 @@ fn collect_expr_type_declarations(
         }
         ResolvedExprKind::Project { base, .. } => {
             collect_expr_type_declarations(base, declarations);
+        }
+    }
+}
+
+fn collect_record_pattern_type_declarations(
+    record: &DeclarationId,
+    instance: &ResolvedType,
+    fields: &[crate::hir::ResolvedRecordMatchPatternField],
+    declarations: &mut BTreeSet<DeclarationId>,
+) {
+    declarations.insert(record.clone());
+    collect_nominal_declarations(instance, declarations);
+    for field in fields {
+        match &field.pattern {
+            crate::hir::ResolvedRecordMatchFieldPattern::Binding(binding) => {
+                collect_nominal_declarations(&binding.ty, declarations);
+            }
+            crate::hir::ResolvedRecordMatchFieldPattern::Wildcard => {}
+            crate::hir::ResolvedRecordMatchFieldPattern::Record {
+                record,
+                instance,
+                fields,
+            } => collect_record_pattern_type_declarations(record, instance, fields, declarations),
         }
     }
 }
@@ -2384,10 +2612,16 @@ fn collect_expr_types(expression: &ResolvedExpr, types: &mut BTreeMap<String, Re
         ResolvedExprKind::Match { scrutinee, arms } => {
             collect_expr_types(scrutinee, types);
             for arm in arms {
-                if let crate::hir::ResolvedMatchPattern::Variant { fields, .. } = &arm.pattern {
-                    for field in fields {
-                        collect_type(&field.binding.ty, types);
+                match &arm.pattern {
+                    crate::hir::ResolvedMatchPattern::Variant { fields, .. } => {
+                        for field in fields {
+                            collect_type(&field.binding.ty, types);
+                        }
                     }
+                    crate::hir::ResolvedMatchPattern::Record {
+                        instance, fields, ..
+                    } => collect_record_pattern_types(instance, fields, types),
+                    crate::hir::ResolvedMatchPattern::Wildcard => {}
                 }
                 collect_expr_types(&arm.value, types);
             }
@@ -2412,6 +2646,25 @@ fn collect_expr_types(expression: &ResolvedExpr, types: &mut BTreeMap<String, Re
             }
         }
         ResolvedExprKind::Project { base, .. } => collect_expr_types(base, types),
+    }
+}
+
+fn collect_record_pattern_types(
+    instance: &ResolvedType,
+    fields: &[crate::hir::ResolvedRecordMatchPatternField],
+    types: &mut BTreeMap<String, ResolvedType>,
+) {
+    collect_type(instance, types);
+    for field in fields {
+        match &field.pattern {
+            crate::hir::ResolvedRecordMatchFieldPattern::Binding(binding) => {
+                collect_type(&binding.ty, types);
+            }
+            crate::hir::ResolvedRecordMatchFieldPattern::Wildcard => {}
+            crate::hir::ResolvedRecordMatchFieldPattern::Record {
+                instance, fields, ..
+            } => collect_record_pattern_types(instance, fields, types),
+        }
     }
 }
 

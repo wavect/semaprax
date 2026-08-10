@@ -1,0 +1,41 @@
+module test.component_generic_record_v7;
+
+@id("component.duo")
+record Duo<T, U> {
+    @id("component.duo.left") left: T,
+    @id("component.duo.right") right: U,
+}
+
+@id("component.phantom")
+record Phantom<T> {
+    @id("component.phantom.marker") marker: bool,
+}
+
+@id("component.transform-i64-bool")
+fn transform_i64_bool(input: Duo<i64, bool>, delta: i64, divisor: i64) -> Duo<i64, bool>
+    requires delta != -99
+    ensures divisor != 13
+{
+    input with { left: (input.left + delta) / divisor }
+}
+
+@id("component.transform-bool-i64")
+fn transform_bool_i64(input: Duo<bool, i64>, delta: i64, divisor: i64) -> Duo<bool, i64>
+    requires delta != -99
+    ensures divisor != 13
+{
+    input with { right: (input.right + delta) / divisor }
+}
+
+@id("component.preserve-phantom-i64")
+fn preserve_phantom_i64(input: Phantom<i64>) -> Phantom<i64> {
+    input with { marker: input.marker }
+}
+
+@id("component.invert-phantom-bool")
+fn invert_phantom_bool(input: Phantom<bool>) -> Phantom<bool> {
+    input with { marker: !input.marker }
+}
+
+@id("app.main")
+fn main() -> i64 { 0 }

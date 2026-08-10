@@ -42,6 +42,15 @@ mod v6_bindings {
     });
 }
 
+mod v7_bindings {
+    wasmtime::component::bindgen!({
+        path: "wit/semaprax-private-v7.wit",
+        world: "semaprax-private-v7",
+        ownership: Owning,
+        additional_derives: [Eq, PartialEq],
+    });
+}
+
 use exports::semaprax::private::evaluation::Status;
 
 type HostResult<T> = Result<T, Box<dyn Error>>;
@@ -87,6 +96,7 @@ fn main() -> i64
 
 const SOURCE_V5: &str = include_str!("../v5.spx");
 const SOURCE_V6: &str = include_str!("../v6.spx");
+const SOURCE_V7: &str = include_str!("../v7.spx");
 
 // These independent known answers are replaced only alongside a reviewed
 // component-profile version change. Artifact accessor metadata is never used
@@ -136,6 +146,16 @@ const EXPECTED_GENERATED_CORE_V6_SHA256: [u8; 32] = [
 ];
 const EXPECTED_SOURCE_REVISION_V6: &str =
     "sha256:d1fcbc45b3d86fa1d7910378578828df3c557dba92f90ed9459f928c5bf2fe8a";
+const EXPECTED_COMPONENT_V7_SHA256: [u8; 32] = [
+    0x78, 0x0a, 0x0c, 0xcf, 0xc3, 0x5c, 0x7f, 0xf6, 0xd9, 0x33, 0x48, 0x37, 0x11, 0xe9, 0x58, 0xd2,
+    0x9c, 0xfd, 0x44, 0xc2, 0x90, 0x76, 0x2b, 0x05, 0xcd, 0x51, 0x83, 0xe6, 0xbf, 0x04, 0xb5, 0xb0,
+];
+const EXPECTED_GENERATED_CORE_V7_SHA256: [u8; 32] = [
+    0xd2, 0x18, 0xff, 0x1e, 0xaf, 0xf5, 0xf3, 0xf6, 0x77, 0xfe, 0xe5, 0x8c, 0x7b, 0x2f, 0xeb, 0x50,
+    0x0e, 0x9e, 0xfe, 0xd8, 0x22, 0x58, 0x00, 0xcf, 0xc3, 0xa6, 0x56, 0x2f, 0x97, 0xd1, 0x17, 0xd8,
+];
+const EXPECTED_SOURCE_REVISION_V7: &str =
+    "sha256:2c2c38ae4a6400730bc6c91de659675074020651b9b58bb6a39d047630ef7303";
 
 #[derive(Clone, Copy)]
 enum Expected {
@@ -1137,11 +1157,482 @@ fn run_v6() -> HostResult<()> {
     Ok(())
 }
 
+fn expect_v7_status<T>(
+    value: Result<T, v7_bindings::exports::semaprax::private::generic_records::Status>,
+    domain: &str,
+    code: u32,
+    class: u8,
+    name: &str,
+) -> HostResult<()> {
+    match value {
+        Err(status)
+            if status.domain == domain
+                && status.code == code
+                && status.class == class
+                && status.retryable == Some(false) =>
+        {
+            Ok(())
+        }
+        _ => Err(failure(format!("unexpected v7 status for {name}"))),
+    }
+}
+
+// Keep the exact source-instance-to-WIT mapping reviewable in one function.
+#[allow(clippy::too_many_lines)]
+fn run_v7_instance(engine: &Engine, component: &Component) -> HostResult<()> {
+    use v7_bindings::exports::semaprax::private::generic_records::{
+        DuoBoolI64, DuoI64Bool, PhantomBool, PhantomI64,
+    };
+
+    let linker = Linker::<()>::new(engine);
+    let mut store = Store::new(engine, ());
+    store.set_fuel(30_000_000)?;
+    let bindings = v7_bindings::SemapraxPrivateV7::instantiate(&mut store, component, &linker)?;
+    let api = bindings.semaprax_private_generic_records();
+
+    for flag in [false, true] {
+        let first = api.call_transform_i64_bool(
+            &mut store,
+            DuoI64Bool {
+                left: 83,
+                right: flag,
+            },
+            1,
+            2,
+        )?;
+        if first
+            != Ok(DuoI64Bool {
+                left: 42,
+                right: flag,
+            })
+        {
+            return Err(failure("v7 Duo<i64,bool> success mapping changed"));
+        }
+        let second = api.call_transform_bool_i64(
+            &mut store,
+            DuoBoolI64 {
+                left: flag,
+                right: 83,
+            },
+            1,
+            2,
+        )?;
+        if second
+            != Ok(DuoBoolI64 {
+                left: flag,
+                right: 42,
+            })
+        {
+            return Err(failure("v7 Duo<bool,i64> success mapping changed"));
+        }
+        if api.call_preserve_phantom_i64(&mut store, PhantomI64 { marker: flag })?
+            != Ok(PhantomI64 { marker: flag })
+        {
+            return Err(failure("v7 Phantom<i64> preserve mapping changed"));
+        }
+        if api.call_invert_phantom_bool(&mut store, PhantomBool { marker: flag })?
+            != Ok(PhantomBool { marker: !flag })
+        {
+            return Err(failure("v7 Phantom<bool> invert mapping changed"));
+        }
+    }
+
+    for first in [true, false] {
+        expect_v7_status(
+            api.call_transform_i64_bool(
+                &mut store,
+                DuoI64Bool {
+                    left: i64::MAX,
+                    right: first,
+                },
+                1,
+                0,
+            )?,
+            "semaprax.arithmetic.v1",
+            1,
+            2,
+            "Duo<i64,bool> sticky add before division by zero",
+        )?;
+        expect_v7_status(
+            api.call_transform_bool_i64(
+                &mut store,
+                DuoBoolI64 {
+                    left: first,
+                    right: i64::MAX,
+                },
+                1,
+                0,
+            )?,
+            "semaprax.arithmetic.v1",
+            1,
+            2,
+            "Duo<bool,i64> sticky add before division by zero",
+        )?;
+    }
+    expect_v7_status(
+        api.call_transform_i64_bool(
+            &mut store,
+            DuoI64Bool {
+                left: 18,
+                right: true,
+            },
+            1,
+            0,
+        )?,
+        "semaprax.arithmetic.v1",
+        4,
+        2,
+        "Duo<i64,bool> division by zero",
+    )?;
+    expect_v7_status(
+        api.call_transform_bool_i64(
+            &mut store,
+            DuoBoolI64 {
+                left: false,
+                right: 18,
+            },
+            1,
+            0,
+        )?,
+        "semaprax.arithmetic.v1",
+        4,
+        2,
+        "Duo<bool,i64> division by zero",
+    )?;
+    expect_v7_status(
+        api.call_transform_i64_bool(
+            &mut store,
+            DuoI64Bool {
+                left: 18,
+                right: true,
+            },
+            -99,
+            2,
+        )?,
+        "semaprax.contract.v1",
+        1,
+        1,
+        "Duo<i64,bool> requires",
+    )?;
+    expect_v7_status(
+        api.call_transform_bool_i64(
+            &mut store,
+            DuoBoolI64 {
+                left: false,
+                right: 18,
+            },
+            -99,
+            2,
+        )?,
+        "semaprax.contract.v1",
+        1,
+        1,
+        "Duo<bool,i64> requires",
+    )?;
+    expect_v7_status(
+        api.call_transform_i64_bool(
+            &mut store,
+            DuoI64Bool {
+                left: 18,
+                right: true,
+            },
+            1,
+            13,
+        )?,
+        "semaprax.contract.v1",
+        2,
+        1,
+        "Duo<i64,bool> ensures",
+    )?;
+    expect_v7_status(
+        api.call_transform_bool_i64(
+            &mut store,
+            DuoBoolI64 {
+                left: false,
+                right: 18,
+            },
+            1,
+            13,
+        )?,
+        "semaprax.contract.v1",
+        2,
+        1,
+        "Duo<bool,i64> ensures",
+    )?;
+    Ok(())
+}
+
+fn expect_raw_v7_status(
+    bytes: &[u8; 24],
+    payload: usize,
+    code: u32,
+    class: u8,
+    name: &str,
+) -> HostResult<()> {
+    if bytes[0] != 1
+        || bytes[1..payload].iter().any(|byte| *byte != 0xa5)
+        || u32::from_le_bytes(bytes[payload..payload + 4].try_into()?) != 32
+        || u32::from_le_bytes(bytes[payload + 4..payload + 8].try_into()?) != 22
+        || u32::from_le_bytes(bytes[payload + 8..payload + 12].try_into()?) != code
+        || bytes[payload + 12] != class
+        || bytes[payload + 13] != 1
+        || bytes[payload + 14] != 0
+        || bytes[payload + 15..].iter().any(|byte| *byte != 0xa5)
+    {
+        return Err(failure(format!("v7 raw status/poison changed for {name}")));
+    }
+    Ok(())
+}
+
+#[allow(clippy::too_many_lines)]
+fn prove_raw_core_v7_mapping_poison_and_invalid_bools(
+    engine: &Engine,
+    core: &[u8],
+) -> HostResult<()> {
+    let module = Module::new(engine, core)?;
+    if module.imports().next().is_some() {
+        return Err(failure("v7 raw core requested ambient imports"));
+    }
+    let mut store = Store::new(engine, ());
+    store.set_fuel(30_000_000)?;
+    let instance = Instance::new(&mut store, &module, &[])?;
+    let duo_i64_bool = instance
+        .get_typed_func::<(i64, i32, i64, i64), i32>(&mut store, "cabi_transform_i64_bool_v7")?;
+    let duo_bool_i64 = instance
+        .get_typed_func::<(i32, i64, i64, i64), i32>(&mut store, "cabi_transform_bool_i64_v7")?;
+    let phantom_i64 =
+        instance.get_typed_func::<i32, i32>(&mut store, "cabi_preserve_phantom_i64_v7")?;
+    let phantom_bool =
+        instance.get_typed_func::<i32, i32>(&mut store, "cabi_invert_phantom_bool_v7")?;
+    let memory = instance
+        .get_memory(&mut store, "memory")
+        .ok_or_else(|| failure("v7 raw core memory export missing"))?;
+
+    let pointer = usize::try_from(duo_i64_bool.call(&mut store, (83, 1, 1, 2))?)
+        .map_err(|_| failure("v7 Duo<i64,bool> result pointer was negative"))?;
+    if pointer != 192 {
+        return Err(failure("v7 Duo<i64,bool> result pointer changed"));
+    }
+    let mut bytes = [0_u8; 24];
+    memory.read(&store, pointer, &mut bytes)?;
+    if bytes[0] != 0
+        || i64::from_le_bytes(bytes[8..16].try_into()?) != 42
+        || bytes[16] != 1
+        || bytes[17..] != [0xa5; 7]
+    {
+        return Err(failure("v7 Duo<i64,bool> reconstruction changed"));
+    }
+    let pointer = usize::try_from(duo_bool_i64.call(&mut store, (0, 83, 1, 2))?)
+        .map_err(|_| failure("v7 Duo<bool,i64> result pointer was negative"))?;
+    if pointer != 320 {
+        return Err(failure("v7 Duo<bool,i64> result pointer changed"));
+    }
+    memory.read(&store, pointer, &mut bytes)?;
+    if bytes[0] != 0
+        || bytes[8] != 0
+        || bytes[9..16] != [0xa5; 7]
+        || i64::from_le_bytes(bytes[16..24].try_into()?) != 42
+    {
+        return Err(failure("v7 Duo<bool,i64> reconstruction changed"));
+    }
+    let pointer = usize::try_from(phantom_i64.call(&mut store, 1)?)
+        .map_err(|_| failure("v7 Phantom<i64> result pointer was negative"))?;
+    if pointer != 416 {
+        return Err(failure("v7 Phantom<i64> result pointer changed"));
+    }
+    memory.read(&store, pointer, &mut bytes)?;
+    if bytes[0] != 0 || bytes[4] != 1 || bytes[5..] != [0xa5; 19] {
+        return Err(failure("v7 Phantom<i64> reconstruction changed"));
+    }
+    let pointer = usize::try_from(phantom_bool.call(&mut store, 1)?)
+        .map_err(|_| failure("v7 Phantom<bool> result pointer was negative"))?;
+    if pointer != 480 {
+        return Err(failure("v7 Phantom<bool> result pointer changed"));
+    }
+    memory.read(&store, pointer, &mut bytes)?;
+    if bytes[0] != 0 || bytes[4] != 0 || bytes[5..] != [0xa5; 19] {
+        return Err(failure("v7 Phantom<bool> invert mapping changed"));
+    }
+
+    let pointer = usize::try_from(duo_i64_bool.call(&mut store, (18, 1, 1, 0))?)
+        .map_err(|_| failure("v7 raw status pointer was negative"))?;
+    if pointer != 192 {
+        return Err(failure("v7 Duo<i64,bool> status pointer changed"));
+    }
+    memory.read(&store, pointer, &mut bytes)?;
+    expect_raw_v7_status(&bytes, 8, 4, 2, "Duo<i64,bool> divzero")?;
+    let pointer = usize::try_from(duo_bool_i64.call(&mut store, (1, i64::MAX, 1, 0))?)
+        .map_err(|_| failure("v7 raw status pointer was negative"))?;
+    if pointer != 320 {
+        return Err(failure("v7 Duo<bool,i64> status pointer changed"));
+    }
+    memory.read(&store, pointer, &mut bytes)?;
+    expect_raw_v7_status(&bytes, 8, 1, 2, "Duo<bool,i64> sticky overflow")?;
+
+    for (result, trapped) in [
+        (192, duo_i64_bool.call(&mut store, (18, 2, 1, 2)).is_err()),
+        (320, duo_bool_i64.call(&mut store, (2, 18, 1, 2)).is_err()),
+        (416, phantom_i64.call(&mut store, 2).is_err()),
+        (480, phantom_bool.call(&mut store, 2).is_err()),
+    ] {
+        if !trapped {
+            return Err(failure("v7 raw invalid bool did not trap"));
+        }
+        memory.read(&store, result, &mut bytes)?;
+        if bytes != [0xa5; 24] {
+            return Err(failure("v7 raw invalid bool retained stale output"));
+        }
+    }
+    Ok(())
+}
+
+fn prove_engine_failure_is_out_of_band_v7(
+    engine: &Engine,
+    component: &Component,
+) -> HostResult<()> {
+    use v7_bindings::exports::semaprax::private::generic_records::PhantomBool;
+
+    let linker = Linker::<()>::new(engine);
+    let mut store = Store::new(engine, ());
+    store.set_fuel(1_000_000)?;
+    let bindings = v7_bindings::SemapraxPrivateV7::instantiate(&mut store, component, &linker)?;
+    store.set_fuel(0)?;
+    if bindings
+        .semaprax_private_generic_records()
+        .call_invert_phantom_bool(&mut store, PhantomBool { marker: true })
+        .is_ok()
+    {
+        return Err(failure("v7 fuel exhaustion became a typed status"));
+    }
+    Ok(())
+}
+
+fn prove_same_signature_phantom_swap_is_observable_v7(
+    engine: &Engine,
+    bytes: &[u8],
+) -> HostResult<()> {
+    use v7_bindings::exports::semaprax::private::generic_records::{PhantomBool, PhantomI64};
+
+    let mut canonical_anchor = Vec::new();
+    for index in 0_u8..4 {
+        canonical_anchor.extend([0x00, 0x00, index, 0x02, 0x00, 0x03, 0x00, 10 + index]);
+    }
+    let canonical_at = bytes
+        .windows(canonical_anchor.len())
+        .position(|window| window == canonical_anchor)
+        .ok_or_else(|| failure("v7 Phantom-swap canonical anchor drifted"))?;
+    let mut hostile = bytes.to_vec();
+    hostile.swap(canonical_at + 18, canonical_at + 26);
+    if ::semaprax::wit_component::validate_private_generic_record_component_v7(
+        &hostile,
+        EXPECTED_SOURCE_REVISION_V7,
+        EXPECTED_GENERATED_CORE_V7_SHA256,
+    )
+    .is_ok()
+    {
+        return Err(failure(
+            "v7 exact validator admitted Phantom core-index swap",
+        ));
+    }
+    let component = Component::new(engine, &hostile)?;
+    if component.component_type().imports(engine).len() != 0 {
+        return Err(failure("v7 Phantom-swap hostile requested imports"));
+    }
+    let linker = Linker::<()>::new(engine);
+    let mut store = Store::new(engine, ());
+    store.set_fuel(10_000_000)?;
+    let bindings = v7_bindings::SemapraxPrivateV7::instantiate(&mut store, &component, &linker)?;
+    let api = bindings.semaprax_private_generic_records();
+    if api.call_preserve_phantom_i64(&mut store, PhantomI64 { marker: true })?
+        != Ok(PhantomI64 { marker: false })
+        || api.call_invert_phantom_bool(&mut store, PhantomBool { marker: true })?
+            != Ok(PhantomBool { marker: true })
+    {
+        return Err(failure(
+            "v7 same-signature Phantom swap was not observably crossed",
+        ));
+    }
+    Ok(())
+}
+
+fn run_v7() -> HostResult<()> {
+    let program = ::semaprax::check(SOURCE_V7, Path::new("component-generic-record-v7.spx"))
+        .map_err(|diagnostics| {
+            failure(format!("v7 fixture verification failed: {diagnostics:?}"))
+        })?;
+    let artifact = ::semaprax::wit_component::emit_private_generic_record_component_v7(&program)
+        .map_err(|diagnostic| failure(format!("v7 component emission failed: {diagnostic:?}")))?;
+    if artifact.wit() != include_str!("../wit/semaprax-private-v7.wit") {
+        return Err(failure("checked-in Wasmtime v7 WIT drifted"));
+    }
+    let bytes: Box<[u8]> = artifact.bytes().to_vec().into_boxed_slice();
+    let before: [u8; 32] = Sha256::digest(&bytes).into();
+    if before != EXPECTED_COMPONENT_V7_SHA256
+        || artifact.generated_core_digest() != EXPECTED_GENERATED_CORE_V7_SHA256
+    {
+        return Err(failure("v7 independent component/core KAT changed"));
+    }
+    let expected_revision = ::semaprax::graph::revision(&program);
+    if expected_revision != EXPECTED_SOURCE_REVISION_V7 {
+        return Err(failure("v7 source revision KAT changed"));
+    }
+    let validated = ::semaprax::wit_component::validate_private_generic_record_component_v7(
+        &bytes,
+        EXPECTED_SOURCE_REVISION_V7,
+        EXPECTED_GENERATED_CORE_V7_SHA256,
+    )
+    .map_err(|error| failure(format!("v7 profile validation failed: {error:?}")))?;
+    if validated.interface_export_name() != "semaprax:private/generic-records@0.5.0"
+        || validated.function_export_names()
+            != [
+                "transform-i64-bool",
+                "transform-bool-i64",
+                "preserve-phantom-i64",
+                "invert-phantom-bool",
+            ]
+        || validated.type_export_names()
+            != [
+                "status",
+                "duo-i64-bool",
+                "duo-bool-i64",
+                "phantom-i64",
+                "phantom-bool",
+            ]
+        || validated.source_revision() != EXPECTED_SOURCE_REVISION_V7
+        || <[u8; 32]>::from(Sha256::digest(validated.generated_core()))
+            != EXPECTED_GENERATED_CORE_V7_SHA256
+    {
+        return Err(failure("v7 typed export table changed"));
+    }
+    let mut config = Config::new();
+    config.wasm_component_model(true);
+    config.consume_fuel(true);
+    let engine = Engine::new(&config)?;
+    let component = Component::new(&engine, &bytes)?;
+    if component.component_type().imports(&engine).len() != 0 {
+        return Err(failure("v7 requested ambient imports"));
+    }
+    run_v7_instance(&engine, &component)?;
+    run_v7_instance(&engine, &component)?;
+    for _ in 0..2 {
+        run_v7_instance(&engine, &component)?;
+    }
+    prove_raw_core_v7_mapping_poison_and_invalid_bools(&engine, validated.generated_core())?;
+    prove_same_signature_phantom_swap_is_observable_v7(&engine, &bytes)?;
+    prove_engine_failure_is_out_of_band_v7(&engine, &component)?;
+    if <[u8; 32]>::from(Sha256::digest(&bytes)) != before {
+        return Err(failure("authenticated v7 bytes changed during execution"));
+    }
+    println!("semaprax-private-component-runtime-v7-ok");
+    Ok(())
+}
+
 fn run() -> HostResult<()> {
     run_v3()?;
     run_v4()?;
     run_v5()?;
-    run_v6()
+    run_v6()?;
+    run_v7()
 }
 
 fn main() -> HostResult<()> {

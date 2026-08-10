@@ -405,6 +405,39 @@ fn match_pattern(pattern: &MatchPattern) -> String {
                 format!("{type_name}::{case_name} {{ {fields} }}")
             }
         }
+        MatchPattern::Record {
+            type_name, fields, ..
+        } => record_match_pattern(type_name, fields),
+    }
+}
+
+fn record_match_pattern(type_name: &str, fields: &[crate::ast::RecordMatchPatternField]) -> String {
+    let fields = fields
+        .iter()
+        .map(|field| match &field.pattern {
+            crate::ast::RecordMatchFieldPattern::Binding { name, .. } if name == &field.name => {
+                field.name.clone()
+            }
+            crate::ast::RecordMatchFieldPattern::Binding { name, .. } => {
+                format!("{}: {name}", field.name)
+            }
+            crate::ast::RecordMatchFieldPattern::Wildcard { .. } => {
+                format!("{}: _", field.name)
+            }
+            crate::ast::RecordMatchFieldPattern::Record {
+                type_name, fields, ..
+            } => format!(
+                "{}: {}",
+                field.name,
+                record_match_pattern(type_name, fields)
+            ),
+        })
+        .collect::<Vec<_>>()
+        .join(", ");
+    if fields.is_empty() {
+        format!("{type_name} {{}}")
+    } else {
+        format!("{type_name} {{ {fields} }}")
     }
 }
 

@@ -8,9 +8,10 @@ use crate::cleanup::{
 };
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
-    DeclarationId, ExpressionId, IdentityOrigin, OwnershipMode, Place, PlaceProjection,
-    ResolvedExpr, ResolvedExprKind, ResolvedFunction, ResolvedMatchArm, ResolvedMatchPattern,
-    ResolvedProgram, ResolvedStatement, ResolvedType, ResolvedTypeDeclarationKind,
+    DeclarationId, DeclarationKind, ExpressionId, IdentityOrigin, OwnershipMode, Place,
+    PlaceProjection, ResolvedExpr, ResolvedExprKind, ResolvedFunction, ResolvedMatchArm,
+    ResolvedMatchPattern, ResolvedProgram, ResolvedStatement, ResolvedType,
+    ResolvedTypeDeclarationKind,
 };
 use crate::prelude;
 
@@ -1954,6 +1955,37 @@ impl<'a> PlanBuilder<'a> {
             return Err(plan_error(
                 "droppable match scrutinee reached the copy-only cleanup slice",
             ));
+        }
+
+        let is_record = match &scrutinee.ty {
+            ResolvedType::Nominal { declaration, .. } => self
+                .program
+                .declarations
+                .declaration(declaration)
+                .is_some_and(|item| item.kind == DeclarationKind::Record),
+            ResolvedType::I64 | ResolvedType::Bool | ResolvedType::TypeParameter { .. } => false,
+        };
+        if is_record {
+            let [arm] = arms else {
+                return Err(plan_error(
+                    "irrefutable record match must have exactly one arm",
+                ));
+            };
+            if matches!(&arm.pattern, ResolvedMatchPattern::Variant { .. }) {
+                return Err(plan_error("variant pattern has a record match scrutinee"));
+            }
+            let result = self.lower_expr(
+                &arm.value,
+                scrutinee_result.block,
+                scrutinee_result.state,
+                region,
+            )?;
+            if result.owned_source.is_some() {
+                return Err(plan_error(
+                    "droppable record match arm reached the copy-only cleanup slice",
+                ));
+            }
+            return Ok(result);
         }
 
         let mut decision = scrutinee_result.block;

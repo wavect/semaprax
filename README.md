@@ -95,9 +95,22 @@ Implemented today:
   pass/return, multi-parameter order, poison-preserving failure, and repeated
   entry and is hosted green in [run 31365363898, Ubuntu job
   93383304995](https://github.com/wavect/semaprax/actions/runs/31365363898/job/93383304995).
-  Generic functions/inference, nested/resource/non-Copy arguments,
-  matching on records, and public aggregate/callable/FFI ABI admission remain
-  closed.
+  Generic functions/inference, nested/resource/non-Copy arguments, and public
+  aggregate/callable/FFI ABI admission remain closed.
+- Bounded irrefutable Copy-record destructuring extends `match` with exact
+  named-field record patterns, recursive record subpatterns, renamed or
+  shorthand bindings, ignored fields, and whole Copy-record bindings. The
+  scrutinee is evaluated once and the sole arm returns only `i64` or `bool`.
+  Exact concrete record/member/binding identities are authenticated in HIR and
+  Graph v13; v13 is selected program-wide only by an explicit record pattern
+  and takes precedence over v12/v11/v10. A sole top-level `_` remains binding-
+  free and schema-neutral. CleanupPlan v2/v3 does not migrate because admitted
+  record patterns are straight-line and Copy-only. Local strict C11 O0/O2 and
+  4,096-entry Node/Wasm evidence covers nested and generic instances, whole-
+  record bindings, one-evaluation failure order, poison, and postconditions;
+  independent security review reports no P0/P1. Refutable/literal/guard/or/
+  rest patterns, nested variant patterns, non-Copy/resource matching,
+  aggregate arm results, and public aggregate ABI admission remain closed.
 - One private test-only resource-record harness projects the shared cleanup plan
   into C11 O0/O2 and real Wasm with an exact common finalization trace and zero
   final liveness. It is proof scaffolding only: public resource-bearing record
@@ -148,14 +161,16 @@ Implemented today:
 - Persistent declaration identity through `@id`.
 - NUL-free persistent semantic identities across source, resolved HIR, cleanup metadata, graph serialization, and native C literals.
 - Deterministic formatting and domain-separated SHA-256 graph revisions.
-- JSON semantic Graph v10, conditionally v11 for bounded Option propagation or
-  v12 when any authenticated generic record declaration is present,
+- JSON semantic Graph v10, conditionally v11 for bounded Option propagation,
+  v12 when any authenticated generic record declaration is present, or v13
+  when any authenticated explicit record pattern is present,
   with owner/index-stable generic parameters, exact
   concrete nominal arguments, an authenticated compiler-owned prelude,
   persistent variant/case/payload identities, revision-scoped
   construction/match/pattern structure, immutable record update, exact
   evaluation-once `try_result`/`try_option` source/target instances and
-  shared-epilogue meaning, exact generic-record templates/instances, complete
+  shared-epilogue meaning, exact generic-record templates/instances, recursive
+  exact-instance record-pattern fields/bindings, complete
   CleanupPlan v2/v3 staging, and dependency-bounded context
   slices. Revision v2 binds both canonical source and the exact prelude
   contract.
@@ -290,12 +305,28 @@ mapping, general/empty/generic/resource records, imports, async, capabilities, m
 conformance, a public WIT surface, callable/FFI aggregate signatures, and any
 `SPX-B104` change remain absent.
 
+Private Generic Record Component v7 is a separate default-off exact fixture for
+WIT package `semaprax:private@0.5.0`, interface `generic-records`, and world
+`semaprax-private-v7`. Four exports map the exact concrete instances
+`Duo<i64, bool>`, `Duo<bool, i64>`, `Phantom<i64>`, and `Phantom<bool>` through
+the unchanged outer status result. Source/core/layout/Graph-v12/plan/profile/
+component identity, ordered type arguments, and the distinct identity of the
+same-layout Phantom instances are frozen; local exact/upstream validation,
+hostile cross-index/cross-version closure, generated-core Node execution,
+default-consumer hiding, source locks, strict gates, and independent security
+review are green. The isolated Rust 1.97.1/Wasmtime 47 typed runtime is
+configured but hosted execution is still pending, so it is not credited green.
+V1-v6 bytes remain unchanged. This opens no general generic-record exporter,
+source selection, nested/resource/non-Copy records, imports/capabilities,
+callbacks/async, callable/FFI ABI, browser/multi-engine conformance, package
+negotiation, public API/ABI, or `SPX-B104`/`SPX-W111` gate.
+
 Not implemented yet: public native resource execution/admission,
 general-shape native/reference/Wasm trace conformance, the general Wasm resource ABI,
 recursive reference execution, callable imports/adapters, a stable public aggregate
 ABI and general aggregate execution, nested or resource-bearing generic
 arguments, generic functions, resource-bearing variants,
-ownership-aware matching, general/non-copy/residual-converting `?`, lifetime
+refutable and ownership-aware/non-Copy matching, general/non-copy/residual-converting `?`, lifetime
 and alias analysis, user-facing
 regions, effect handlers, static contract proofs, Cranelift, LLVM/MLIR IR,
 composed engine-native WebAssembly Component backend, packages, concurrency,

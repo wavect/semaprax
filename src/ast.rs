@@ -293,6 +293,12 @@ pub enum MatchPattern {
         fields: Vec<MatchPatternField>,
         span: Span,
     },
+    Record {
+        type_name: String,
+        type_span: Span,
+        fields: Vec<RecordMatchPatternField>,
+        span: Span,
+    },
     Wildcard {
         span: Span,
     },
@@ -301,7 +307,44 @@ pub enum MatchPattern {
 impl MatchPattern {
     pub fn span(&self) -> Span {
         match self {
-            Self::Variant { span, .. } | Self::Wildcard { span } => *span,
+            Self::Variant { span, .. } | Self::Record { span, .. } | Self::Wildcard { span } => {
+                *span
+            }
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct RecordMatchPatternField {
+    pub name: String,
+    pub name_span: Span,
+    pub pattern: RecordMatchFieldPattern,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug)]
+pub enum RecordMatchFieldPattern {
+    Binding {
+        name: String,
+        span: Span,
+    },
+    Wildcard {
+        span: Span,
+    },
+    Record {
+        type_name: String,
+        type_span: Span,
+        fields: Vec<RecordMatchPatternField>,
+        span: Span,
+    },
+}
+
+impl RecordMatchFieldPattern {
+    pub fn span(&self) -> Span {
+        match self {
+            Self::Binding { span, .. } | Self::Wildcard { span } | Self::Record { span, .. } => {
+                *span
+            }
         }
     }
 }

@@ -2194,11 +2194,50 @@ impl<'a> CEmitter<'a> {
             }
             ResolvedExprKind::Match { scrutinee, arms } => {
                 if is_aggregate_type(self.program, &expr.ty)? {
-                    return Err(backend_error(
-                        "copy variant match arms must produce i64 or bool",
-                    ));
+                    return Err(backend_error("copy match arms must produce i64 or bool"));
                 }
                 let scrutinee = self.emit_expr(scrutinee)?;
+                if let Some(record) = record_declaration_id(self.program, &scrutinee.ty)?.cloned() {
+                    let [arm] = arms.as_slice() else {
+                        return Err(backend_error(
+                            "irrefutable record match must have exactly one arm",
+                        ));
+                    };
+                    let staged = self.temporary(&scrutinee.ty)?;
+                    self.line(&format!("{staged} = {};", scrutinee.code));
+                    let saved = self.variables.clone();
+                    match &arm.pattern {
+                        hir::ResolvedMatchPattern::Wildcard => {}
+                        hir::ResolvedMatchPattern::Record {
+                            record: pattern_record,
+                            instance,
+                            fields,
+                        } => self.bind_record_match_pattern(
+                            &staged,
+                            &scrutinee.ty,
+                            pattern_record,
+                            instance,
+                            fields,
+                        )?,
+                        hir::ResolvedMatchPattern::Variant { .. } => {
+                            return Err(backend_error(
+                                "variant pattern has a record match scrutinee",
+                            ));
+                        }
+                    }
+                    if record_declaration_id(self.program, &scrutinee.ty)? != Some(&record) {
+                        return Err(backend_error(
+                            "record match scrutinee identity changed during lowering",
+                        ));
+                    }
+                    let value = self.emit_expr(&arm.value)?;
+                    self.require_type(&value.ty, &expr.ty, "record match arm result")?;
+                    self.variables = saved;
+                    return Ok(CValue {
+                        code: value.code,
+                        ty: expr.ty.clone(),
+                    });
+                }
                 let layout = self.variant_layout(&scrutinee.ty)?;
                 let staged = self.temporary(&scrutinee.ty)?;
                 self.line(&format!("{staged} = {};", scrutinee.code));
@@ -2264,6 +2303,11 @@ impl<'a> CEmitter<'a> {
                             self.line(&format!("if (!{matched}) {{"));
                             self.indent += 1;
                             self.line(&format!("{matched} = true;"));
+                        }
+                        hir::ResolvedMatchPattern::Record { .. } => {
+                            return Err(backend_error(
+                                "record pattern has a variant match scrutinee",
+                            ));
                         }
                     }
                     let value = self.emit_expr(&arm.value)?;
@@ -2560,6 +2604,73 @@ impl<'a> CEmitter<'a> {
         let layout = self.variant_layouts.layout(ty)?.clone();
         layout.validate(self.program)?;
         Ok(layout)
+    }
+
+    fn bind_record_match_pattern(
+        &mut self,
+        base: &str,
+        expected: &ResolvedType,
+        record: &DeclarationId,
+        instance: &ResolvedType,
+        fields: &[hir::ResolvedRecordMatchPatternField],
+    ) -> Result<(), Diagnostic> {
+        self.require_type(instance, expected, "record pattern instance")?;
+        let layout = self.record_layout(expected)?;
+        if layout.record != *record || fields.len() != layout.fields.len() {
+            return Err(backend_error(
+                "record pattern disagrees with its exact aggregate layout",
+            ));
+        }
+        let mut seen = BTreeSet::new();
+        for field in fields {
+            let layout_field = layout.field(&field.field).cloned().ok_or_else(|| {
+                backend_error(format!(
+                    "record pattern `{record}` has unknown field `{}`",
+                    field.field
+                ))
+            })?;
+            if !seen.insert(field.field.clone()) {
+                return Err(backend_error(format!(
+                    "record pattern `{record}` repeats field `{}`",
+                    field.field
+                )));
+            }
+            let field_code = format!("({base}).{}", c_field_symbol(&layout_field.field));
+            match &field.pattern {
+                hir::ResolvedRecordMatchFieldPattern::Binding(binding) => {
+                    self.require_type(&binding.ty, &layout_field.ty, "record pattern binding")?;
+                    if binding.ownership != hir::OwnershipMode::Value
+                        || self
+                            .variables
+                            .insert(
+                                binding.id.clone(),
+                                CBinding {
+                                    name: field_code,
+                                    ty: layout_field.ty,
+                                },
+                            )
+                            .is_some()
+                    {
+                        return Err(backend_error(
+                            "record pattern binding is not a fresh Copy value",
+                        ));
+                    }
+                }
+                hir::ResolvedRecordMatchFieldPattern::Wildcard => {}
+                hir::ResolvedRecordMatchFieldPattern::Record {
+                    record,
+                    instance,
+                    fields,
+                } => self.bind_record_match_pattern(
+                    &field_code,
+                    &layout_field.ty,
+                    record,
+                    instance,
+                    fields,
+                )?,
+            }
+        }
+        Ok(())
     }
 
     fn emit_binary(

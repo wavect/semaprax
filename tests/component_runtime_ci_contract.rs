@@ -120,6 +120,55 @@ fn transform(input: Outer, delta: i64) -> Outer
 fn main() -> i64 { 0 }
 "#;
     assert_eq!(checked_in_source_v6, expected_source_v6);
+
+    let checked_in_v7 = read("platform-tests/component-runtime/wit/semaprax-private-v7.wit");
+    let expected_v7 = "package semaprax:private@0.5.0;\n\ninterface generic-records {\n  record status { domain: string, code: u32, class: u8, retryable: option<bool> }\n  record duo-i64-bool { left: s64, right: bool }\n  record duo-bool-i64 { left: bool, right: s64 }\n  record phantom-i64 { marker: bool }\n  record phantom-bool { marker: bool }\n  transform-i64-bool: func(input: duo-i64-bool, delta: s64, divisor: s64) -> result<duo-i64-bool, status>;\n  transform-bool-i64: func(input: duo-bool-i64, delta: s64, divisor: s64) -> result<duo-bool-i64, status>;\n  preserve-phantom-i64: func(input: phantom-i64) -> result<phantom-i64, status>;\n  invert-phantom-bool: func(input: phantom-bool) -> result<phantom-bool, status>;\n}\n\nworld semaprax-private-v7 {\n  export generic-records;\n}\n";
+    assert_eq!(checked_in_v7, expected_v7);
+
+    let checked_in_source_v7 = read("platform-tests/component-runtime/v7.spx");
+    let expected_source_v7 = r#"module test.component_generic_record_v7;
+
+@id("component.duo")
+record Duo<T, U> {
+    @id("component.duo.left") left: T,
+    @id("component.duo.right") right: U,
+}
+
+@id("component.phantom")
+record Phantom<T> {
+    @id("component.phantom.marker") marker: bool,
+}
+
+@id("component.transform-i64-bool")
+fn transform_i64_bool(input: Duo<i64, bool>, delta: i64, divisor: i64) -> Duo<i64, bool>
+    requires delta != -99
+    ensures divisor != 13
+{
+    input with { left: (input.left + delta) / divisor }
+}
+
+@id("component.transform-bool-i64")
+fn transform_bool_i64(input: Duo<bool, i64>, delta: i64, divisor: i64) -> Duo<bool, i64>
+    requires delta != -99
+    ensures divisor != 13
+{
+    input with { right: (input.right + delta) / divisor }
+}
+
+@id("component.preserve-phantom-i64")
+fn preserve_phantom_i64(input: Phantom<i64>) -> Phantom<i64> {
+    input with { marker: input.marker }
+}
+
+@id("component.invert-phantom-bool")
+fn invert_phantom_bool(input: Phantom<bool>) -> Phantom<bool> {
+    input with { marker: !input.marker }
+}
+
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+    assert_eq!(checked_in_source_v7, expected_source_v7);
 }
 
 #[test]
@@ -136,6 +185,8 @@ fn component_job_fetches_root_and_runner_then_runs_every_gate_locked_and_offline
         "--features unstable-wit-component-harness --lib wit_component::scalar_algebra_v5::tests::",
         "--features unstable-wit-component-harness --lib wasm::nested_record_component_v6::tests::",
         "--features unstable-wit-component-harness --lib wit_component::nested_record_v6::tests::",
+        "--features unstable-wit-component-harness --lib wasm::generic_record_component_v7::tests::",
+        "--features unstable-wit-component-harness --lib wit_component::generic_record_v7::tests::",
         "--test component_runtime_ci_contract",
     ] {
         assert!(
@@ -174,7 +225,7 @@ fn component_job_fetches_root_and_runner_then_runs_every_gate_locked_and_offline
         "manifest-path: platform-tests/component-runtime/Cargo.toml",
         "--config platform-tests/component-runtime/deny.toml",
         "scripts/component-runtime-v3.sh",
-        "execute every v3/v4/v5/v6 Component gate offline",
+        "execute every v3/v4/v5/v6/v7 Component gate offline",
     ] {
         assert!(
             workflow.contains(required),
@@ -210,13 +261,17 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "SemapraxPrivateV4::instantiate",
         "SemapraxPrivateV5::instantiate",
         "SemapraxPrivateV6::instantiate",
+        "SemapraxPrivateV7::instantiate",
         "#[allow(clippy::too_many_lines)]\nfn run_v5_instance",
         "#[allow(clippy::too_many_lines)]\nfn run_v6_instance",
+        "#[allow(clippy::too_many_lines)]\nfn run_v7_instance",
+        "Keep the exact source-instance-to-WIT mapping reviewable in one function.",
         "Keep the exact nested-record field and status matrix visible in one reviewable",
         "This is deliberately a flat, reviewable six-export protocol matrix.",
         "semaprax-private-v4.wit",
         "semaprax-private-v5.wit",
         "semaprax-private-v6.wit",
+        "semaprax-private-v7.wit",
         "EXPECTED_COMPONENT_V4_SHA256",
         "EXPECTED_GENERATED_CORE_V4_SHA256",
         "EXPECTED_SOURCE_REVISION_V4",
@@ -226,6 +281,9 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "EXPECTED_COMPONENT_V6_SHA256",
         "EXPECTED_GENERATED_CORE_V6_SHA256",
         "EXPECTED_SOURCE_REVISION_V6",
+        "EXPECTED_COMPONENT_V7_SHA256",
+        "EXPECTED_GENERATED_CORE_V7_SHA256",
+        "EXPECTED_SOURCE_REVISION_V7",
         "sha256:86411224efe3adace5ffdd410c243306859edc280dbe3342adcf830588b62259",
         "0x6c, 0xeb, 0x9e, 0x30, 0x96, 0x94, 0xa5, 0xb9",
         "0x08, 0x25, 0xf2, 0x70, 0xcf, 0x2c, 0x94, 0xbd",
@@ -233,6 +291,7 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "validate_private_source_result_component_v4",
         "validate_private_scalar_algebra_component_v5",
         "validate_private_nested_record_component_v6",
+        "validate_private_generic_record_component_v7",
         "config.consume_fuel(true)",
         "store.set_fuel(0)",
         "engine_failure.is_ok()",
@@ -248,16 +307,34 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "call_result_bool_bool",
         "semaprax:private/scalar-algebra@0.3.0",
         "semaprax:private/nested-records@0.4.0",
+        "semaprax:private/generic-records@0.5.0",
         "cabi_transform_nested_record_v6",
         "call_transform",
+        "call_transform_i64_bool",
+        "call_transform_bool_i64",
+        "call_preserve_phantom_i64",
+        "call_invert_phantom_bool",
         "prove_raw_core_v6_poison_status_and_invalid_bool",
         "v6 raw result pointer was negative",
         "v6 raw status pointer changed",
         "status[24..32] != [0xa5; 8]",
         "poison != [0xa5; 32]",
+        "cabi_transform_i64_bool_v7",
+        "cabi_transform_bool_i64_v7",
+        "cabi_preserve_phantom_i64_v7",
+        "cabi_invert_phantom_bool_v7",
+        "prove_raw_core_v7_mapping_poison_and_invalid_bools",
+        "prove_same_signature_phantom_swap_is_observable_v7",
+        "v7 exact validator admitted Phantom core-index swap",
+        "v7 same-signature Phantom swap was not observably crossed",
+        "v7 raw invalid bool retained stale output",
+        "bytes != [0xa5; 24]",
         "sha256:d1fcbc45b3d86fa1d7910378578828df3c557dba92f90ed9459f928c5bf2fe8a",
         "0xad, 0x40, 0x8a, 0x7a, 0x6a, 0x35, 0x96, 0xa0",
         "0x42, 0x83, 0x5d, 0xcb, 0xf9, 0x80, 0x78, 0xac",
+        "sha256:2c2c38ae4a6400730bc6c91de659675074020651b9b58bb6a39d047630ef7303",
+        "0x78, 0x0a, 0x0c, 0xcf, 0xc3, 0x5c, 0x7f, 0xf6",
+        "0xd2, 0x18, 0xff, 0x1e, 0xaf, 0xf5, 0xf3, 0xf6",
         "(left + 1) / right",
         "name: \"addition-overflow\"",
         "left: i64::MAX",
@@ -304,17 +381,17 @@ fn capability_and_dependency_policy_are_fail_closed() {
         runner
             .matches("get_typed_func::<(i64, i32, i64, i64), i32>")
             .count(),
-        1,
-        "only the exact v6 canonical raw signature may bypass typed Component bindings"
+        2,
+        "only the exact v6/v7 i64-first raw signatures may bypass typed bindings"
     );
     assert_eq!(
         runner.matches("Module::new").count(),
-        1,
-        "only the authenticated v6 embedded core may be instantiated directly"
+        2,
+        "only authenticated v6/v7 embedded cores may be instantiated directly"
     );
     assert_eq!(
-        runner.matches("usize::try_from(pointer)").count(),
-        2,
-        "both v6 raw result pointers must be converted without signed truncation"
+        runner.matches("usize::try_from(").count(),
+        8,
+        "every v6/v7 raw result pointer must be converted without signed truncation"
     );
 }

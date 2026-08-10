@@ -4,6 +4,35 @@ All notable changes to SEMAPRAX are documented here.
 
 ## 0.2.0 — 2026-08-07
 
+- Added bounded irrefutable Copy-record destructuring in `match`. Exact named
+  fields may recursively destructure records, bind scalar or whole Copy-record
+  values with shorthand or renamed bindings, or ignore fields; one top-level
+  wildcard remains binding-free. Source/HIR reject missing, duplicate, foreign,
+  resource/non-Copy, multi-arm, and non-scalar-result forms. Explicit record
+  patterns select program-wide Graph v13 above v12/v11/v10 and serialize exact
+  concrete instances, stable field IDs, and binding identities; wildcard-only
+  record matches preserve the prior schema. CleanupPlan v2/v3 remains unchanged
+  and straight-line. Native C11 O0/O2 and Node/Wasm 4,096-entry evidence covers
+  one-evaluation, nested/generic and whole-record bindings, bool paths, failure
+  precedence, postconditions, and poison. Independent security review found no
+  P0/P1. Refutable/literal/guard/or/rest/nested-variant patterns, non-Copy or
+  resource matching, aggregate arm results, and public aggregate ABI admission
+  remain closed.
+- Added default-off Private Generic Record Component v7 for exact WIT package
+  `semaprax:private@0.5.0`, interface `generic-records`, world
+  `semaprax-private-v7`, and four exports over `Duo<i64, bool>`,
+  `Duo<bool, i64>`, `Phantom<i64>`, and `Phantom<bool>`. The exact source,
+  generated core, four concrete layouts, Graph-v12 and plan bindings, profile,
+  component, ordered type arguments, and same-layout/distinct-instance Phantom
+  mapping are authenticated. Local core/component hostility, upstream
+  validation, Node core execution, default-consumer hiding, source locks,
+  strict gates, and independent security review are green. The isolated pinned
+  Rust 1.97.1/Wasmtime 47 typed runner is configured but hosted execution is
+  pending and is not claimed green. V1-v6 bytes remain unchanged; this adds no
+  general source selection/exporter, nested/resource/non-Copy records,
+  imports/capabilities/callbacks/async, callable/FFI or public ABI, browser/
+  multi-engine conformance, package negotiation, or `SPX-B104`/`SPX-W111`
+  widening.
 - Added default-off Private Nested Record Component v6 for exact WIT package
   `semaprax:private@0.4.0`, interface `nested-records`, world
   `semaprax-private-v6`, and one `transform` export over fixed nested

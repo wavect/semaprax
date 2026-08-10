@@ -1,0 +1,17 @@
+package semaprax:private@0.5.0;
+
+interface generic-records {
+  record status { domain: string, code: u32, class: u8, retryable: option<bool> }
+  record duo-i64-bool { left: s64, right: bool }
+  record duo-bool-i64 { left: bool, right: s64 }
+  record phantom-i64 { marker: bool }
+  record phantom-bool { marker: bool }
+  transform-i64-bool: func(input: duo-i64-bool, delta: s64, divisor: s64) -> result<duo-i64-bool, status>;
+  transform-bool-i64: func(input: duo-bool-i64, delta: s64, divisor: s64) -> result<duo-bool-i64, status>;
+  preserve-phantom-i64: func(input: phantom-i64) -> result<phantom-i64, status>;
+  invert-phantom-bool: func(input: phantom-bool) -> result<phantom-bool, status>;
+}
+
+world semaprax-private-v7 {
+  export generic-records;
+}

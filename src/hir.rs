@@ -1178,6 +1178,11 @@ pub enum ResolvedMatchPattern {
         case: DeclarationId,
         fields: Vec<ResolvedMatchPatternField>,
     },
+    Record {
+        record: DeclarationId,
+        instance: ResolvedType,
+        fields: Vec<ResolvedRecordMatchPatternField>,
+    },
     Wildcard,
 }
 
@@ -1185,6 +1190,23 @@ pub enum ResolvedMatchPattern {
 pub struct ResolvedMatchPatternField {
     pub field: DeclarationId,
     pub binding: ResolvedBinding,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResolvedRecordMatchPatternField {
+    pub field: DeclarationId,
+    pub pattern: ResolvedRecordMatchFieldPattern,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ResolvedRecordMatchFieldPattern {
+    Binding(ResolvedBinding),
+    Wildcard,
+    Record {
+        record: DeclarationId,
+        instance: ResolvedType,
+        fields: Vec<ResolvedRecordMatchPatternField>,
+    },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -2080,6 +2102,121 @@ impl<'a> HirValidator<'a> {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
+    fn validate_record_match_pattern(
+        &mut self,
+        function: &DeclarationId,
+        expected: &ResolvedType,
+        record: &DeclarationId,
+        instance: &ResolvedType,
+        fields: &[ResolvedRecordMatchPatternField],
+        scope: &mut BTreeMap<ValueId, ValidationBinding>,
+        path: &str,
+    ) -> Result<(), Diagnostic> {
+        if instance != expected {
+            return Err(hir_error(
+                "resolved record pattern has the wrong concrete instance",
+            ));
+        }
+        let ResolvedType::Nominal {
+            declaration,
+            arguments,
+        } = expected
+        else {
+            return Err(hir_error("resolved record pattern instance is not nominal"));
+        };
+        if declaration != record
+            || self
+                .program
+                .declarations
+                .declaration(record)
+                .is_none_or(|item| item.kind != DeclarationKind::Record)
+        {
+            return Err(hir_error(
+                "resolved record pattern references a foreign record",
+            ));
+        }
+        let facts = self
+            .program
+            .declarations
+            .type_facts(expected)
+            .ok_or_else(|| hir_error("resolved record pattern has no exact type facts"))?;
+        if !facts.copy || facts.contains_resource || facts.needs_drop {
+            return Err(hir_error("resolved record pattern is not Copy"));
+        }
+        let declared_fields = self
+            .program
+            .declarations
+            .record_fields(record)
+            .ok_or_else(|| hir_error(format!("record `{record}` has no fields")))?;
+        let mut seen = BTreeSet::new();
+        for (field_index, field) in fields.iter().enumerate() {
+            let declared = declared_fields
+                .iter()
+                .find(|candidate| candidate.id == field.field)
+                .ok_or_else(|| {
+                    hir_error(format!(
+                        "resolved record pattern contains foreign field `{}`",
+                        field.field
+                    ))
+                })?;
+            if !seen.insert(field.field.clone()) {
+                return Err(hir_error(
+                    "resolved record pattern contains a duplicate field",
+                ));
+            }
+            let field_ty = substitute_type(&declared.ty, record, arguments)?;
+            let field_path = format!("{path}.field.{field_index}");
+            match &field.pattern {
+                ResolvedRecordMatchFieldPattern::Binding(binding) => {
+                    if binding.id != ValueId::local(function, &format!("{field_path}.binding"))
+                        || binding.ty != field_ty
+                        || binding.ownership != OwnershipMode::Value
+                    {
+                        return Err(hir_error(
+                            "resolved record pattern binding is not canonical",
+                        ));
+                    }
+                    self.insert_value(&binding.id)?;
+                    self.validate_type(&binding.ty)?;
+                    if scope.contains_key(&binding.id) {
+                        return Err(hir_error(
+                            "resolved record pattern binding shadows an existing value",
+                        ));
+                    }
+                    scope.insert(
+                        binding.id.clone(),
+                        ValidationBinding {
+                            ty: binding.ty.clone(),
+                            ownership: OwnershipMode::Value,
+                            availability: Availability::Available,
+                            moved_places: BTreeMap::new(),
+                            definitely_partial: BTreeSet::new(),
+                        },
+                    );
+                }
+                ResolvedRecordMatchFieldPattern::Wildcard => {}
+                ResolvedRecordMatchFieldPattern::Record {
+                    record,
+                    instance,
+                    fields,
+                } => self.validate_record_match_pattern(
+                    function,
+                    &field_ty,
+                    record,
+                    instance,
+                    fields,
+                    scope,
+                    &format!("{field_path}.record"),
+                )?,
+            }
+        }
+        if seen.len() != declared_fields.len() {
+            return Err(hir_error("resolved record pattern is missing fields"));
+        }
+        Ok(())
+    }
+
     fn validate_expr(
         &mut self,
         function: &DeclarationId,
@@ -2569,12 +2706,76 @@ impl<'a> HirValidator<'a> {
                     allowed_effects,
                 )?;
                 let ResolvedType::Nominal {
-                    declaration: variant,
+                    declaration: matched_type,
                     arguments,
                 } = &scrutinee.ty
                 else {
                     return Err(hir_error("resolved match scrutinee is not nominal"));
                 };
+                let matched_kind = self
+                    .program
+                    .declarations
+                    .declaration(matched_type)
+                    .map(|item| item.kind);
+                if matched_kind == Some(DeclarationKind::Record) {
+                    if scrutinee.ownership != OwnershipMode::Value {
+                        return Err(hir_error("resolved record match scrutinee is not Copy"));
+                    }
+                    let [arm] = arms.as_slice() else {
+                        return Err(hir_error(
+                            "resolved irrefutable record match must have exactly one arm",
+                        ));
+                    };
+                    let outer_ids = scope.keys().cloned().collect::<Vec<_>>();
+                    let mut arm_scope = scope.clone();
+                    match &arm.pattern {
+                        ResolvedMatchPattern::Wildcard => {}
+                        ResolvedMatchPattern::Record {
+                            record,
+                            instance,
+                            fields,
+                        } => self.validate_record_match_pattern(
+                            function,
+                            &scrutinee.ty,
+                            record,
+                            instance,
+                            fields,
+                            &mut arm_scope,
+                            &format!("{path}.arm.0.record"),
+                        )?,
+                        ResolvedMatchPattern::Variant { .. } => {
+                            return Err(hir_error(
+                                "resolved variant pattern has a record scrutinee",
+                            ));
+                        }
+                    }
+                    self.validate_expr(
+                        function,
+                        &arm.value,
+                        &mut arm_scope,
+                        &format!("{path}.arm.0.value"),
+                        allow_moves,
+                        allowed_effects,
+                    )?;
+                    if !matches!(arm.value.ty, ResolvedType::I64 | ResolvedType::Bool) {
+                        return Err(hir_error(
+                            "resolved record match arm must produce i64 or bool",
+                        ));
+                    }
+                    for id in outer_ids {
+                        if let Some(state) = arm_scope.get(&id) {
+                            scope.insert(id, state.clone());
+                        }
+                    }
+                    self.require_type(&expression.ty, &arm.value.ty, "record match expression")?;
+                    if expression.ownership != arm.value.ownership {
+                        return Err(hir_error(
+                            "resolved record match expression has inconsistent ownership",
+                        ));
+                    }
+                    return Ok(());
+                }
+                let variant = matched_type;
                 if scrutinee.ownership != OwnershipMode::Value
                     || self
                         .program
@@ -2682,6 +2883,11 @@ impl<'a> HirValidator<'a> {
                                     "resolved match pattern is missing payload fields",
                                 ));
                             }
+                        }
+                        ResolvedMatchPattern::Record { .. } => {
+                            return Err(hir_error(
+                                "resolved record pattern has a variant scrutinee",
+                            ));
                         }
                     }
                     self.validate_expr(
@@ -3683,6 +3889,31 @@ fn audit_resolved_type(root: &ResolvedType) -> Result<(), Diagnostic> {
     Ok(())
 }
 
+fn audit_resolved_record_match_pattern(
+    record: &DeclarationId,
+    instance: &ResolvedType,
+    fields: &[ResolvedRecordMatchPatternField],
+) -> Result<(), Diagnostic> {
+    reject_nul_identity("resolved record match", record.as_str())?;
+    audit_resolved_type(instance)?;
+    for field in fields {
+        reject_nul_identity("resolved record match field", field.field.as_str())?;
+        match &field.pattern {
+            ResolvedRecordMatchFieldPattern::Binding(binding) => {
+                reject_nul_identity("resolved record match binding", binding.id.as_str())?;
+                audit_resolved_type(&binding.ty)?;
+            }
+            ResolvedRecordMatchFieldPattern::Wildcard => {}
+            ResolvedRecordMatchFieldPattern::Record {
+                record,
+                instance,
+                fields,
+            } => audit_resolved_record_match_pattern(record, instance, fields)?,
+        }
+    }
+    Ok(())
+}
+
 fn audit_resolved_expression(root: &ResolvedExpr) -> Result<(), Diagnostic> {
     let mut pending = vec![root];
     while let Some(expression) = pending.pop() {
@@ -3757,6 +3988,11 @@ fn audit_resolved_expression(root: &ResolvedExpr) -> Result<(), Diagnostic> {
                                 audit_resolved_type(&field.binding.ty)?;
                             }
                         }
+                        ResolvedMatchPattern::Record {
+                            record,
+                            instance,
+                            fields,
+                        } => audit_resolved_record_match_pattern(record, instance, fields)?,
                     }
                     pending.push(&arm.value);
                 }
@@ -4626,6 +4862,133 @@ impl Resolver<'_> {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
+    fn resolve_record_match_pattern(
+        &self,
+        function: &DeclarationId,
+        expected: &ResolvedType,
+        type_name: &str,
+        fields: &[crate::ast::RecordMatchPatternField],
+        bindings: &mut BTreeMap<String, Binding>,
+        path: &str,
+        span: Span,
+    ) -> Result<ResolvedMatchPattern, Diagnostic> {
+        let ResolvedType::Nominal {
+            declaration: record,
+            arguments,
+        } = expected
+        else {
+            return Err(self.error(
+                "SPX-H001",
+                "record pattern has a non-record concrete instance",
+                span,
+            ));
+        };
+        let named_record = self.declarations.type_id(type_name);
+        if named_record != Some(record)
+            || self
+                .declarations
+                .declaration(record)
+                .is_none_or(|item| item.kind != DeclarationKind::Record)
+        {
+            return Err(self.error(
+                "SPX-H001",
+                format!("record pattern `{type_name}` does not match `{record}`"),
+                span,
+            ));
+        }
+        let templates = self
+            .declarations
+            .record_fields(record)
+            .ok_or_else(|| self.error("SPX-H006", "record pattern has no fields", span))?;
+        let mut resolved_fields = Vec::with_capacity(fields.len());
+        for (field_index, field) in fields.iter().enumerate() {
+            let field_id = self
+                .declarations
+                .field_id(record, &field.name)
+                .cloned()
+                .ok_or_else(|| {
+                    self.error(
+                        "SPX-H001",
+                        format!("unresolved record pattern field `{record}.{}`", field.name),
+                        field.span,
+                    )
+                })?;
+            let template = templates
+                .iter()
+                .find(|candidate| candidate.id == field_id)
+                .ok_or_else(|| {
+                    self.error(
+                        "SPX-H006",
+                        format!("record pattern field `{field_id}` has no template"),
+                        field.span,
+                    )
+                })?;
+            let field_ty = substitute_type(&template.ty, record, arguments)?;
+            let field_path = format!("{path}.field.{field_index}");
+            let pattern = match &field.pattern {
+                crate::ast::RecordMatchFieldPattern::Binding { name, span } => {
+                    let binding = ResolvedBinding {
+                        id: ValueId::local(function, &format!("{field_path}.binding")),
+                        name: name.clone(),
+                        ownership: OwnershipMode::Value,
+                        ty: field_ty.clone(),
+                        span: *span,
+                    };
+                    bindings.insert(
+                        name.clone(),
+                        Binding {
+                            id: binding.id.clone(),
+                            ty: field_ty,
+                            ownership: OwnershipMode::Value,
+                        },
+                    );
+                    ResolvedRecordMatchFieldPattern::Binding(binding)
+                }
+                crate::ast::RecordMatchFieldPattern::Wildcard { .. } => {
+                    ResolvedRecordMatchFieldPattern::Wildcard
+                }
+                crate::ast::RecordMatchFieldPattern::Record {
+                    type_name,
+                    fields,
+                    span,
+                    ..
+                } => {
+                    let ResolvedMatchPattern::Record {
+                        record,
+                        instance,
+                        fields,
+                    } = self.resolve_record_match_pattern(
+                        function,
+                        &field_ty,
+                        type_name,
+                        fields,
+                        bindings,
+                        &format!("{field_path}.record"),
+                        *span,
+                    )?
+                    else {
+                        unreachable!("record resolver returns a record pattern");
+                    };
+                    ResolvedRecordMatchFieldPattern::Record {
+                        record,
+                        instance,
+                        fields,
+                    }
+                }
+            };
+            resolved_fields.push(ResolvedRecordMatchPatternField {
+                field: field_id,
+                pattern,
+            });
+        }
+        Ok(ResolvedMatchPattern::Record {
+            record: record.clone(),
+            instance: expected.clone(),
+            fields: resolved_fields,
+        })
+    }
+
     fn resolve_expr(
         &self,
         function: &DeclarationId,
@@ -4989,29 +5352,32 @@ impl Resolver<'_> {
                 let scrutinee =
                     self.resolve_expr(function, scrutinee, bindings, &format!("{path}.scrutinee"))?;
                 let ResolvedType::Nominal {
-                    declaration: variant,
+                    declaration: matched_type,
                     arguments,
                 } = &scrutinee.ty
                 else {
                     return Err(self.error(
                         "SPX-H001",
-                        "cannot resolve match on a non-variant value",
+                        "cannot resolve match on a non-record/non-variant value",
                         expr.span,
                     ));
                 };
-                if self
+                let matched_kind = self
                     .declarations
-                    .declaration(variant)
-                    .is_none_or(|item| item.kind != DeclarationKind::Variant)
-                {
+                    .declaration(matched_type)
+                    .map(|item| item.kind);
+                if !matches!(
+                    matched_kind,
+                    Some(DeclarationKind::Record | DeclarationKind::Variant)
+                ) {
                     return Err(self.error(
                         "SPX-H001",
-                        "cannot resolve match on a non-variant value",
+                        "cannot resolve match on a non-record/non-variant value",
                         expr.span,
                     ));
                 }
                 let instance_arguments = arguments.clone();
-                let variant = variant.clone();
+                let matched_type = matched_type.clone();
                 let mut resolved_arms = Vec::with_capacity(arms.len());
                 for (arm_index, arm) in arms.iter().enumerate() {
                     let mut arm_bindings = bindings.clone();
@@ -5020,14 +5386,21 @@ impl Resolver<'_> {
                         MatchPattern::Variant {
                             case_name, fields, ..
                         } => {
+                            if matched_kind != Some(DeclarationKind::Variant) {
+                                return Err(self.error(
+                                    "SPX-H001",
+                                    "variant pattern has a record scrutinee",
+                                    arm.span,
+                                ));
+                            }
                             let case = self
                                 .declarations
-                                .case_id(&variant, case_name)
+                                .case_id(&matched_type, case_name)
                                 .cloned()
                                 .ok_or_else(|| {
                                     self.error(
                                         "SPX-H001",
-                                        format!("unresolved case `{variant}::{case_name}`"),
+                                        format!("unresolved case `{matched_type}::{case_name}`"),
                                         arm.span,
                                     )
                                 })?;
@@ -5061,7 +5434,7 @@ impl Resolver<'_> {
                                     })?;
                                 let field_ty = substitute_type(
                                     &field_template,
-                                    &variant,
+                                    &matched_type,
                                     &instance_arguments,
                                 )?;
                                 let binding = ResolvedBinding {
@@ -5088,10 +5461,33 @@ impl Resolver<'_> {
                                 });
                             }
                             ResolvedMatchPattern::Variant {
-                                variant: variant.clone(),
+                                variant: matched_type.clone(),
                                 case,
                                 fields: resolved_fields,
                             }
+                        }
+                        MatchPattern::Record {
+                            type_name,
+                            fields,
+                            span,
+                            ..
+                        } => {
+                            if matched_kind != Some(DeclarationKind::Record) {
+                                return Err(self.error(
+                                    "SPX-H001",
+                                    "record pattern has a variant scrutinee",
+                                    arm.span,
+                                ));
+                            }
+                            self.resolve_record_match_pattern(
+                                function,
+                                &scrutinee.ty,
+                                type_name,
+                                fields,
+                                &mut arm_bindings,
+                                &format!("{path}.arm.{arm_index}.record"),
+                                *span,
+                            )?
                         }
                     };
                     let value = self.resolve_expr(

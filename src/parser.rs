@@ -820,9 +820,21 @@ impl Parser {
         if type_name == "_" {
             return Ok(MatchPattern::Wildcard { span: type_span });
         }
+        if self.take(&TokenKind::LBrace) {
+            let fields = self.record_match_pattern_fields()?;
+            let end = self
+                .expect(&TokenKind::RBrace, "`}` after record pattern")?
+                .span;
+            return Ok(MatchPattern::Record {
+                type_name,
+                type_span,
+                fields,
+                span: type_span.merge(end),
+            });
+        }
         self.expect(
             &TokenKind::ColonColon,
-            "`::` after variant name in match pattern",
+            "`{` after record name or `::` after variant name in match pattern",
         )?;
         let (case_name, case_span) = self.ident("variant case name in match pattern")?;
         self.expect(&TokenKind::LBrace, "`{` after variant case pattern")?;
@@ -856,6 +868,53 @@ impl Parser {
             fields,
             span: type_span.merge(end),
         })
+    }
+
+    fn record_match_pattern_fields(
+        &mut self,
+    ) -> Result<Vec<crate::ast::RecordMatchPatternField>, Diagnostic> {
+        let mut fields = Vec::new();
+        while !self.at(&TokenKind::RBrace) {
+            let (name, name_span) = self.ident("record pattern field name")?;
+            let pattern = if self.take(&TokenKind::Colon) {
+                let (pattern_name, pattern_span) = self.ident("record field pattern")?;
+                if pattern_name == "_" {
+                    crate::ast::RecordMatchFieldPattern::Wildcard { span: pattern_span }
+                } else if self.take(&TokenKind::LBrace) {
+                    let nested_fields = self.record_match_pattern_fields()?;
+                    let end = self
+                        .expect(&TokenKind::RBrace, "`}` after nested record pattern")?
+                        .span;
+                    crate::ast::RecordMatchFieldPattern::Record {
+                        type_name: pattern_name,
+                        type_span: pattern_span,
+                        fields: nested_fields,
+                        span: pattern_span.merge(end),
+                    }
+                } else {
+                    crate::ast::RecordMatchFieldPattern::Binding {
+                        name: pattern_name,
+                        span: pattern_span,
+                    }
+                }
+            } else {
+                crate::ast::RecordMatchFieldPattern::Binding {
+                    name: name.clone(),
+                    span: name_span,
+                }
+            };
+            let span = name_span.merge(pattern.span());
+            fields.push(crate::ast::RecordMatchPatternField {
+                name,
+                name_span,
+                pattern,
+                span,
+            });
+            if !self.take(&TokenKind::Comma) {
+                break;
+            }
+        }
+        Ok(fields)
     }
 
     fn field_initializers(

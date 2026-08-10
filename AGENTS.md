@@ -27,8 +27,9 @@ proof scaffolding, not a wired native-runtime claim.
 - `src/trace_path_certificate.rs`: canonical compiler-owned cleanup trace trie-DFA and outcome certificate.
 - `src/native_settlement.rs`: hidden target-neutral callable-v3 settlement model; no loader, host, provider, or public backend wiring.
 - `src/graph_cleanup.rs`: deterministic tagged cleanup projection inside the
-  program-level Graph v10/v11/v12 lattice; CleanupPlan v2 remains canonical
-  unless authenticated Option propagation requires v3.
+  program-level Graph v10/v11/v12/v13 lattice; authenticated explicit Copy-
+  record patterns select v13, while CleanupPlan v2 remains canonical unless
+  authenticated Option propagation requires v3.
 - `src/graph.rs`, `patch.rs`: agent representation and atomic transactions.
 - `src/codegen.rs`, `src/codegen/native_callable_*`, `wasm.rs`: native C11/Clang, private callable-v2, and browser/Wasm lanes.
 - `src/wit_component.rs`: default-off deterministic WIT/schema/JavaScript boundary evidence; not a Component Model runtime.

@@ -337,21 +337,34 @@ impl FunctionPlan {
             ResolvedExprKind::Match { scrutinee, arms } => {
                 self.collect_expr(program, variant_layouts, scrutinee, parameter_count, frame)?;
                 for arm in arms {
-                    if let crate::hir::ResolvedMatchPattern::Variant { fields, .. } = &arm.pattern {
-                        for field in fields {
-                            let local = self
-                                .add_local(parameter_count, scalar_wasm_type(&field.binding.ty)?)?;
-                            if self
-                                .scalar_bindings
-                                .insert(field.binding.id.clone(), local)
-                                .is_some()
-                            {
-                                return Err(error(format!(
-                                    "duplicate match binding identity `{}`",
-                                    field.binding.id
-                                )));
+                    match &arm.pattern {
+                        crate::hir::ResolvedMatchPattern::Variant { fields, .. } => {
+                            for field in fields {
+                                let local = self.add_local(
+                                    parameter_count,
+                                    scalar_wasm_type(&field.binding.ty)?,
+                                )?;
+                                if self
+                                    .scalar_bindings
+                                    .insert(field.binding.id.clone(), local)
+                                    .is_some()
+                                {
+                                    return Err(error(format!(
+                                        "duplicate match binding identity `{}`",
+                                        field.binding.id
+                                    )));
+                                }
                             }
                         }
+                        crate::hir::ResolvedMatchPattern::Record { fields, .. } => self
+                            .collect_record_match_bindings(
+                                program,
+                                variant_layouts,
+                                fields,
+                                parameter_count,
+                                frame,
+                            )?,
+                        crate::hir::ResolvedMatchPattern::Wildcard => {}
                     }
                     self.collect_expr(
                         program,
@@ -378,6 +391,51 @@ impl FunctionPlan {
                 }
             }
             ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
+        }
+        Ok(())
+    }
+
+    fn collect_record_match_bindings(
+        &mut self,
+        program: &ResolvedProgram,
+        variant_layouts: &VariantLayoutCache,
+        fields: &[crate::hir::ResolvedRecordMatchPatternField],
+        parameter_count: u32,
+        frame: &mut FrameAllocator,
+    ) -> Result<(), Diagnostic> {
+        for field in fields {
+            match &field.pattern {
+                crate::hir::ResolvedRecordMatchFieldPattern::Binding(binding) => {
+                    let duplicate = if is_aggregate(program, &binding.ty)? {
+                        let (size, align) =
+                            aggregate_size_align(program, variant_layouts, &binding.ty)?;
+                        self.aggregate_bindings
+                            .insert(binding.id.clone(), frame.allocate(size, align)?)
+                            .is_some()
+                    } else {
+                        let local =
+                            self.add_local(parameter_count, scalar_wasm_type(&binding.ty)?)?;
+                        self.scalar_bindings
+                            .insert(binding.id.clone(), local)
+                            .is_some()
+                    };
+                    if duplicate {
+                        return Err(error(format!(
+                            "duplicate record match binding identity `{}`",
+                            binding.id
+                        )));
+                    }
+                }
+                crate::hir::ResolvedRecordMatchFieldPattern::Wildcard => {}
+                crate::hir::ResolvedRecordMatchFieldPattern::Record { fields, .. } => self
+                    .collect_record_match_bindings(
+                        program,
+                        variant_layouts,
+                        fields,
+                        parameter_count,
+                        frame,
+                    )?,
+            }
         }
         Ok(())
     }
@@ -1228,12 +1286,39 @@ impl Emitter<'_> {
             }
             ResolvedExprKind::Match { scrutinee, arms } => {
                 if is_aggregate(self.program, &expr.ty)? {
-                    return Err(error("copy variant match result must be i64 or bool"));
+                    return Err(error("copy match result must be i64 or bool"));
                 }
                 let scrutinee = self.emit_expr(scrutinee)?;
                 let Value::Aggregate { pointer, ty } = &scrutinee else {
-                    return Err(error("variant match scrutinee is not aggregate storage"));
+                    return Err(error("match scrutinee is not aggregate storage"));
                 };
+                if is_record(self.program, ty)? {
+                    let [arm] = arms.as_slice() else {
+                        return Err(error("irrefutable record match must have exactly one arm"));
+                    };
+                    let destination = Value::Scalar {
+                        local: self.plan.expr_scalar(expr)?,
+                        ty: expr.ty.clone(),
+                    };
+                    let saved = self.bindings.clone();
+                    match &arm.pattern {
+                        crate::hir::ResolvedMatchPattern::Wildcard => {}
+                        crate::hir::ResolvedMatchPattern::Record {
+                            record,
+                            instance,
+                            fields,
+                        } => {
+                            self.bind_record_match_pattern(&scrutinee, record, instance, fields)?
+                        }
+                        crate::hir::ResolvedMatchPattern::Variant { .. } => {
+                            return Err(error("variant pattern has a record match scrutinee"));
+                        }
+                    }
+                    let value = self.emit_expr(&arm.value)?;
+                    self.copy_value(&destination, &value, "record match arm result")?;
+                    self.bindings = saved;
+                    return Ok(destination);
+                }
                 let layout = variant_layout(self.variant_layouts, ty)?;
                 self.emit_pointer(*pointer);
                 self.output.extend([0x28, 0x02, 0x00, 0x41]);
@@ -1663,8 +1748,96 @@ impl Emitter<'_> {
                 let value = self.emit_expr(&arm.value)?;
                 self.copy_value(destination, &value, "wildcard match arm result")?;
             }
+            crate::hir::ResolvedMatchPattern::Record { .. } => {
+                return Err(error("record pattern has a variant match scrutinee"));
+            }
         }
         self.bindings = saved;
+        Ok(())
+    }
+
+    fn bind_record_match_pattern(
+        &mut self,
+        base: &Value,
+        record: &DeclarationId,
+        instance: &ResolvedType,
+        fields: &[crate::hir::ResolvedRecordMatchPatternField],
+    ) -> Result<(), Diagnostic> {
+        require_type(value_type(base), instance, "record pattern instance")?;
+        let record_layout = layout(self.program, instance)?;
+        if record_layout.record != *record || record_layout.fields.len() != fields.len() {
+            return Err(error(
+                "record pattern disagrees with its exact aggregate layout",
+            ));
+        }
+        let mut seen = std::collections::BTreeSet::new();
+        for field in fields {
+            if !seen.insert(field.field.clone()) {
+                return Err(error(format!(
+                    "record pattern `{record}` repeats field `{}`",
+                    field.field
+                )));
+            }
+            let projected = self.project_value(base, &field.field)?;
+            match &field.pattern {
+                crate::hir::ResolvedRecordMatchFieldPattern::Binding(binding) => {
+                    require_type(
+                        &binding.ty,
+                        value_type(&projected),
+                        "record pattern binding",
+                    )?;
+                    let destination = if is_aggregate(self.program, &binding.ty)? {
+                        let offset = self
+                            .plan
+                            .aggregate_bindings
+                            .get(&binding.id)
+                            .copied()
+                            .ok_or_else(|| {
+                                error(format!(
+                                    "missing aggregate record match binding `{}`",
+                                    binding.id
+                                ))
+                            })?;
+                        Value::Aggregate {
+                            pointer: Pointer {
+                                local: self.plan.frame_base,
+                                offset,
+                            },
+                            ty: binding.ty.clone(),
+                        }
+                    } else {
+                        Value::Scalar {
+                            local: self
+                                .plan
+                                .scalar_bindings
+                                .get(&binding.id)
+                                .copied()
+                                .ok_or_else(|| {
+                                    error(format!(
+                                        "missing scalar record match binding `{}`",
+                                        binding.id
+                                    ))
+                                })?,
+                            ty: binding.ty.clone(),
+                        }
+                    };
+                    self.copy_value(&destination, &projected, "record pattern binding")?;
+                    if self
+                        .bindings
+                        .insert(binding.id.clone(), destination)
+                        .is_some()
+                    {
+                        return Err(error("record match binding is not fresh"));
+                    }
+                }
+                crate::hir::ResolvedRecordMatchFieldPattern::Wildcard => {}
+                crate::hir::ResolvedRecordMatchFieldPattern::Record {
+                    record,
+                    instance,
+                    fields,
+                } => self.bind_record_match_pattern(&projected, record, instance, fields)?,
+            }
+        }
         Ok(())
     }
 

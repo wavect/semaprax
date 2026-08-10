@@ -23,8 +23,9 @@ lifecycle/interface contracts, lexical `let`, typed `if/else`, partial-place
 diagnostics, record construction/projection/immutable-update semantics, bounded
 explicitly instantiated generic Copy records, generic copy variants/exhaustive
 matching, ordinary prelude `Option`/`Result`,
-bounded direct-scalar `Result` and `Option` propagation, feature-minimal Graph
-v12/v11/v10 lattice for generic records/Option propagation/legacy, validated
+bounded direct-scalar `Result` and `Option` propagation, bounded irrefutable
+Copy-record destructuring, feature-minimal Graph v13/v12/v11/v10 lattice for
+explicit record patterns/generic records/Option propagation/legacy, validated
 stable-ID HIR/type facts, mandatory replay-validated CleanupPlan v2/v3 plans, versioned normalized-status
 and semantic-event-dictionary types, native scalar status/out execution, a
 browser-loadable scalar Wasm backend, and one narrow direct-trivial-resource
@@ -41,7 +42,9 @@ gates below are not.
 - Complete record breadth plus nested/resource-bearing generic records and
   variants and
   non-copy `Option`/`Result` instantiations.
-- Ownership-aware and nested pattern matching beyond the bounded exhaustive copy slice.
+- Refutable, literal, guarded, alternative, nested-variant, and ownership-aware
+  pattern matching beyond the bounded irrefutable Copy-record and exhaustive
+  copy-variant slices.
 - Generic functions with constraints.
 - Modules, imports, and multi-file graph commits.
 - First-class diagnostic repair operations.
@@ -57,7 +60,7 @@ trivial/imported lifecycle syntax, declaration-only interface/import contracts,
 source/HIR validation, and a target-neutral cleanup plan. Resolved functions
 carry typed blocks/edges/regions/exits, guarded liveness, atomic call commits,
 sticky status sources, cleanup order, and result publication; validation
-independently rebuilds the plan, and the program-derived Graph v10/v11/v12
+independently rebuilds the plan, and the program-derived Graph v10-v13
 lattice serializes it. Checked Native64
 and Wasm32 layouts cover nested `i64`, `bool`, and direct trivial-resource
 fields; immutable-update cleanup consumes the base first, evaluates authored
@@ -80,8 +83,23 @@ Node/Wasm evidence covers `Box<T>`, multi-field `Pair<T>`, ordered
 `Duo<T,U>`, construction/projection/update/pass-return, both bool arms,
 failure order, and poison. CleanupPlan remains canonical v2 because this slice
 is resource-free Copy. Generic functions/inference, nested/resource/non-Copy
-arguments or fields, record patterns/matching, public aggregate/callable/FFI
-ABI, and public resource admission remain subsequent work.
+arguments or fields, public aggregate/callable/FFI ABI, and public resource
+admission remain subsequent work.
+
+Bounded Irrefutable Copy-Record Patterns now admit one explicit exact-field
+record pattern or a binding-free top-level wildcard over one evaluated Copy
+record scrutinee. Explicit patterns support recursive record subpatterns,
+renamed/shorthand scalar or whole-record bindings, and ignored fields; the sole
+arm remains `i64`/`bool`. HIR authenticates full concrete instance plus stable
+record/field/binding IDs. Explicit patterns select program-wide Graph v13 above
+v12/v11/v10, while wildcard-only record matches retain the prior schema.
+CleanupPlan v2/v3 stays straight-line with no new slots, transitions, status
+sources, or decision edges. Native C11 O0/O2 and 4,096-entry Node/Wasm locally
+cover nested/generic instances, whole-record binding, both bool paths, one call
+scrutinee, failure order, postconditions, and poison; independent security
+review is clean. Refutable/literal/guard/or/rest/nested-variant patterns,
+resource/non-Copy ownership modes, aggregate arm results, and public aggregate
+ABI remain subsequent work.
 
 Executable Copy Variants + Match now includes nominal templates with explicit
 direct `i64`/`bool` arguments, alongside monomorphic unit/direct-scalar cases.
@@ -247,6 +265,21 @@ Its pinned Rust 1.97.1/Wasmtime 47 typed runtime is hosted green in [run
 This does not open general/empty/generic/resource records, algebraic nesting,
 imports/capabilities/async, public ABI, browser/multi-engine support,
 package/version negotiation, or `SPX-B104`/`SPX-W111`.
+
+Private Generic Record Component v7 adds a separate default-off exact WIT
+fixture for package `semaprax:private@0.5.0`, interface `generic-records`, and
+world `semaprax-private-v7`. Four exports map ordered `Duo<i64, bool>`/
+`Duo<bool, i64>` and same-layout-distinct `Phantom<i64>`/`Phantom<bool>`
+instances through unchanged outer status. Exact source/core/four-layout/Graph-
+v12/plan/profile/component authentication, independent/upstream validation,
+hostile reindexing/cross-version closure, local Node core execution, default-
+consumer hiding, source locks, strict gates, and security review are green.
+The pinned Rust 1.97.1/Wasmtime 47 typed runtime is configured, but hosted
+execution remains pending and is not credited green. V1-v6 remain unchanged;
+general source selection/export, general/nested/resource/non-Copy record
+mapping, imports/capabilities/callbacks/async, callable/FFI or public ABI,
+browser/multi-engine support, package negotiation, and `SPX-B104`/`SPX-W111`
+remain later gates.
 
 The model-backed, proposed [RFC 0004 native call recovery and settlement
 contract](RFC-0004-NATIVE-CALL-SETTLEMENT.md) specifies the bounded linear

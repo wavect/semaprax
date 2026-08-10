@@ -42,9 +42,22 @@ immutable update, parameters/results, ordered multi-parameter substitution,
 failure order, poison, and repeated entry. Graph v12 is program-wide and takes
 precedence over v11 Option and v10 legacy output; older outputs remain
 byte-compatible when no generic record is declared.
+The bounded record-pattern slice adds irrefutable recursive destructuring for
+resource-free Copy records. A record match has exactly one arm whose top-level
+pattern is either `_` or the exact record constructor; constructor fields are
+listed exactly once and may bind, ignore with `_`, bind an entire Copy-record
+field by value, or recurse into another exact record pattern. The scrutinee is
+evaluated once, bindings retain exact concrete instance and stable field
+identity, the arm result remains scalar `i64`/`bool`, and CleanupPlan v2/v3
+stays straight-line without new slots, transitions, status sources, or
+variant-case edges. An authenticated explicit record pattern selects
+program-wide Graph v13 above v12/v11/v10; a top-level wildcard alone does not.
+Native C11 O0/O2 and Node/Wasm evidence covers recursive and whole-record
+bindings, failure order, poison, and repeated entry.
 Generic functions/inference, nested/resource/non-Copy record arguments or
-fields, record patterns, non-copy
-propagation/matching, residual conversion, `?` in contracts, resource- or
+fields, refutable/literal/guard/or/rest patterns, nested variant patterns,
+ownership-aware or non-copy propagation/matching, residual conversion, `?` in
+contracts, resource- or
 record-bearing variant payloads, a stable public aggregate ABI, public
 resource-bearing execution, and general aggregate execution remain outside
 that evidence. A separate default-off Source-Result Component v4 maps
@@ -53,6 +66,19 @@ one exact effect-free closure using this bounded `Result`/`?` slice to WIT
 language slice, public aggregate ABI, callable/FFI signatures, or general
 component mapping. Its Wasmtime execution is hosted green in [run 31356536123,
 job 93357169796](https://github.com/wavect/semaprax/actions/runs/31356536123/job/93357169796).
+A separate default-off Private Generic Record Component v7 freezes four exact
+exports over `Duo<i64,bool>`, `Duo<bool,i64>`, `Phantom<i64>`, and
+`Phantom<bool>` in WIT package `semaprax:private@0.5.0`, interface
+`generic-records`, world `semaprax-private-v7`. It authenticates exact ordered
+source instance identities, concrete layouts, Graph v12, component mappings,
+and the distinction between the same-layout Phantom instances. Local
+source-lock, hostile, Node/core, component, strict-quality, and independent
+security gates are green. The isolated Rust 1.97.1/Wasmtime 47 typed runtime is
+configured but hosted execution remains pending, so no hosted v7 runtime claim
+is made. V7 does not establish general generic-record selection or mapping,
+nested/resource/non-Copy records, imports/capabilities, public aggregate ABI,
+browser/multi-engine conformance, or package/version negotiation; v1-v6 bytes
+and known answers remain unchanged.
 
 ## Canonical source
 
@@ -104,8 +130,12 @@ fn example(point: Point, value: Option<i64>) -> i64 {
   `Option::Some { value }` and `Option::None {}`.
 - `_` is a wildcard. The current bounded slice requires exact named payload
   fields, optionally written `field: binding`; bare nested bindings and `..`
-  remain future work.
-- The current slice has no guards, or-patterns, or nested patterns.
+  remain future work for variants.
+- Record scrutinees additionally admit one irrefutable arm with an exact record
+  constructor whose fields each contain a binding, `_`, or another exact
+  record pattern. A field binding may bind the complete Copy-record field by
+  value. Record guards, literals, or-patterns, rest patterns, and nested variant
+  patterns remain future work.
 - Future non-copy scrutinees require `match own`, `match borrow`, or
   `match shared`; the implemented plain `match` is copy-only.
 - The bounded slice requires explicit generic constructor arguments rather than
@@ -118,7 +148,9 @@ arguments are admitted today. Postfix `?` is implemented only for these
 direct-scalar Copy instances: `Result<T, E>` into `Result<U, E>` with exact
 `E`, and `Option<T>` into `Option<U>`. Result-only programs retain CleanupPlan
 v2 and Graph v10. Option propagation uses CleanupPlan v3 only for affected
-functions and Graph v11 for the entire containing program/context. Residual
+functions and Graph v11 for the entire containing program/context unless a
+generic record declaration selects v12 or an explicit record pattern selects
+v13. Residual
 conversion, contract use, and non-copy, resource, or nested arguments remain
 closed.
 
@@ -233,7 +265,7 @@ The browser export `semaprax_main -> i64` remains stable during this tranche.
 
 ## Agent graph and transactions
 
-Graph v10 retains the Graph-v9 owner/index-stable type-parameter nodes, exact concrete nominal
+Graph v13 retains the Graph-v9 owner/index-stable type-parameter nodes, exact concrete nominal
 argument trees, compiler-owned identity provenance, and an authenticated
 `semaprax.prelude.v1` contract to the persistent `variant`, `variant_case`, and
 `case_field` declarations introduced in v8. Revision-scoped expression nodes
@@ -245,6 +277,16 @@ and shared-postcondition epilogue meaning; CleanupPlan v2 serializes the exact
 body or Try-residual Copy-result producer. Graph revision v2 length-delimits and hashes canonical source plus
 the prelude schema/contract. Future propagation nodes/edges remain design rather
 than implemented evidence.
+
+Schema selection is program-wide: an authenticated explicit record pattern
+selects v13; otherwise any generic record declaration selects v12; otherwise
+Option propagation selects v11; otherwise legacy and Result-only programs use
+v10. Agent Context v1 reports the same program-level source schema regardless
+of root. V13 adds exact recursive record-pattern nodes carrying concrete record
+instances, stable record/field IDs, canonical binding IDs, and authored field
+order. A top-level wildcard record arm is binding-free and does not by itself
+select v13. CleanupPlan remains v2, or v3 only when Option propagation is also
+present; the pattern adds no branch edge or cleanup action.
 
 Context traversal follows signature types, constructors, projections, cases, patterns, contracts, and calls.
 
@@ -282,11 +324,11 @@ Existing diagnostic codes remain reserved; implementation must resolve any colli
 ## Staged implementation
 
 1. Add resolved nominal types, HIR, type facts, place paths, and deterministic layout keys without changing source behavior. **Implemented.**
-2. Add records through parser, formatter, resolver, verifier, Graph, transactions, C, and Wasm. **Frontend, Graph v7 record-update meaning, Graph v12 bounded generic-record identity, deterministic target layouts, target-neutral cleanup, bounded public nested-scalar execution, and explicitly instantiated direct-scalar generic Copy records are implemented through C11 O0/O2 and Node/Wasm; the generic-record gate is hosted green in [run 31365363898, Ubuntu job 93383304995](https://github.com/wavect/semaprax/actions/runs/31365363898/job/93383304995). Transaction breadth, nested/resource/non-Copy generic records, record matching, resource-bearing public execution, a stable aggregate ABI, and general backend completion remain evidence-gated.**
+2. Add records through parser, formatter, resolver, verifier, Graph, transactions, C, and Wasm. **Frontend, Graph v7 record-update meaning, Graph v12 bounded generic-record identity, Graph v13 exact recursive Copy-record pattern meaning, deterministic target layouts, target-neutral cleanup, bounded public nested-scalar execution, explicitly instantiated direct-scalar generic Copy records, and irrefutable recursive Copy-record destructuring are implemented through C11 O0/O2 and Node/Wasm; the generic-record gate is hosted green in [run 31365363898, Ubuntu job 93383304995](https://github.com/wavect/semaprax/actions/runs/31365363898/job/93383304995). Transaction breadth, refutable/ownership-aware/non-Copy patterns, nested/resource/non-Copy generic records, resource-bearing public execution, a stable aggregate ABI, and general backend completion remain evidence-gated.**
 3. Add bounded non-generic copy variants and exhaustive copy matching. **Implemented for unit/direct-`i64`/direct-`bool` payloads, scalar `i64`/`bool` arm results, CleanupPlan v2 variant-case replay, deterministic internal Native64/Wasm32 layouts, and native C11 O0/O2 plus Node/Wasm execution.**
 4. Add generic variants, recursive-unsized rejection, and ownership-aware matching. **Partially implemented for nominal variant templates with explicit direct `i64`/`bool` arguments, exact substitution/instance identity, Graph v10, internal layout digest v2, cleanup-free copy matching, and native/Wasm execution. Nested/resource arguments and non-copy ownership modes remain open.**
 5. Add ordinary prelude `Option` and `Result`. **Implemented for compiler-owned `semaprax.prelude.v1` variants under the same direct-`i64`/`bool`, copy-only, internal-ABI limits; component/FFI mappings remain open.**
-6. Add `?` with evaluation-once and unified epilogues. **Implemented for ordinary compiler-owned direct-scalar Copy `Result<T, E>` to `Result<U, E>` and `Option<T>` to `Option<U>`. Result uses exact CleanupPlan v2 staging and Graph v10; Option uses authenticated payload-free-None CleanupPlan v3 staging and program-bound Graph v11 unless a generic record declaration selects program-wide v12. Native C11 O0/O2 plus Node/Wasm evidence covers both carriers; Result is hosted green in [run 31353051690](https://github.com/wavect/semaprax/actions/runs/31353051690), and Option is hosted green in [run 31360176398, job 93367728277](https://github.com/wavect/semaprax/actions/runs/31360176398/job/93367728277). One private Source-Result Component v4 maps the exact `Result<i64, bool>` to `Result<bool, bool>` fixture to nested WIT result/status and is hosted green in [run 31356536123, job 93357169796](https://github.com/wavect/semaprax/actions/runs/31356536123/job/93357169796). Residual conversion, nested/resource/non-copy arguments, contracts, public ABI, general component mapping, and callable/FFI signatures remain open.**
+6. Add `?` with evaluation-once and unified epilogues. **Implemented for ordinary compiler-owned direct-scalar Copy `Result<T, E>` to `Result<U, E>` and `Option<T>` to `Option<U>`. Result uses exact CleanupPlan v2 staging and Graph v10; Option uses authenticated payload-free-None CleanupPlan v3 staging and program-bound Graph v11 unless a generic record declaration selects program-wide v12 or an explicit record pattern selects v13. Native C11 O0/O2 plus Node/Wasm evidence covers both carriers; Result is hosted green in [run 31353051690](https://github.com/wavect/semaprax/actions/runs/31353051690), and Option is hosted green in [run 31360176398, job 93367728277](https://github.com/wavect/semaprax/actions/runs/31360176398/job/93367728277). One private Source-Result Component v4 maps the exact `Result<i64, bool>` to `Result<bool, bool>` fixture to nested WIT result/status and is hosted green in [run 31356536123, job 93357169796](https://github.com/wavect/semaprax/actions/runs/31356536123/job/93357169796). Residual conversion, nested/resource/non-copy arguments, contracts, public ABI, general component mapping, and callable/FFI signatures remain open.**
 7. Add member/case transactions, layout/interface hashes, and context traversal.
 
 ## Completion evidence

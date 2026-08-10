@@ -2,8 +2,9 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 
 use crate::ast::{
     BinaryOp, Expr, ExprKind, FieldDeclaration, Function, ImportDeclaration, ImportFailure,
-    InterfaceDeclaration, MatchPattern, ParamMode, Program, ResourceLifecycleKind, Span, Statement,
-    Type, TypeDeclaration, TypeDeclarationKind, UnaryOp, VariantCaseDeclaration,
+    InterfaceDeclaration, MatchPattern, ParamMode, Program, RecordMatchFieldPattern,
+    RecordMatchPatternField, ResourceLifecycleKind, Span, Statement, Type, TypeDeclaration,
+    TypeDeclarationKind, UnaryOp, VariantCaseDeclaration,
 };
 use crate::conformance::STATUS_DOMAIN_MAX_BYTES_V1;
 use crate::diagnostic::Diagnostic;
@@ -1429,6 +1430,120 @@ fn ordinary_option_argument(ty: &Type) -> Option<&Type> {
 }
 
 #[allow(clippy::too_many_arguments)]
+fn check_record_pattern(
+    program: &Program,
+    pattern_type: &str,
+    fields: &[RecordMatchPatternField],
+    expected: &Type,
+    variables: &mut HashMap<String, Binding>,
+    types: &TypeTable<'_>,
+    diagnostics: &mut Vec<Diagnostic>,
+    span: Span,
+) {
+    let Type::Named {
+        name: expected_name,
+        ..
+    } = expected
+    else {
+        diagnostics.push(error(
+            program,
+            "SPX-M103",
+            format!("record pattern `{pattern_type}` is incompatible with `{expected}`"),
+            span,
+        ));
+        return;
+    };
+    let declared_fields = types.record_fields(expected);
+    if expected_name != pattern_type
+        || declared_fields.is_none()
+        || types.contains_resource(expected)
+    {
+        diagnostics.push(error(
+            program,
+            "SPX-M103",
+            format!("record pattern `{pattern_type}` is incompatible with `{expected}`"),
+            span,
+        ));
+        return;
+    }
+    let declared_fields = declared_fields.expect("checked above");
+    let mut supplied = HashSet::new();
+    for field in fields {
+        let declared = declared_fields
+            .iter()
+            .find(|candidate| candidate.name == field.name);
+        if !supplied.insert(field.name.as_str()) || declared.is_none() {
+            diagnostics.push(error(
+                program,
+                "SPX-M104",
+                format!(
+                    "unknown or duplicate record pattern field `{}.{}`",
+                    pattern_type, field.name
+                ),
+                field.span,
+            ));
+            continue;
+        }
+        let declared = declared.expect("checked above");
+        let field_ty = types
+            .record_field_type(expected, declared)
+            .unwrap_or_else(|| declared.ty.clone());
+        match &field.pattern {
+            RecordMatchFieldPattern::Binding { name, span } => {
+                if !source_identifier(name) || variables.contains_key(name) {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-M104",
+                        format!("invalid or duplicate record pattern binding `{name}`"),
+                        *span,
+                    ));
+                } else {
+                    variables.insert(
+                        name.clone(),
+                        Binding {
+                            ty: field_ty,
+                            mode: ParamMode::Value,
+                            availability: Availability::Available,
+                            moved_places: HashMap::new(),
+                            definitely_partial: HashSet::new(),
+                        },
+                    );
+                }
+            }
+            RecordMatchFieldPattern::Wildcard { .. } => {}
+            RecordMatchFieldPattern::Record {
+                type_name,
+                fields,
+                span,
+                ..
+            } => check_record_pattern(
+                program,
+                type_name,
+                fields,
+                &field_ty,
+                variables,
+                types,
+                diagnostics,
+                *span,
+            ),
+        }
+    }
+    for declared in declared_fields {
+        if !supplied.contains(declared.name.as_str()) {
+            diagnostics.push(error(
+                program,
+                "SPX-M104",
+                format!(
+                    "record pattern `{pattern_type}` is missing field `{}`",
+                    declared.name
+                ),
+                span,
+            ));
+        }
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
 fn check_expr(
     program: &Program,
     current: &Function,
@@ -1930,6 +2045,95 @@ fn check_expr(
                 allow_moves,
                 diagnostics,
             );
+            if scrutinee_value
+                .as_ref()
+                .is_some_and(|value| types.record_fields(&value.ty).is_some())
+            {
+                let Some(scrutinee_value) = scrutinee_value else {
+                    unreachable!("record instance was checked above");
+                };
+                if types.contains_resource(&scrutinee_value.ty)
+                    || scrutinee_value.mode != ParamMode::Value
+                {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-O111",
+                        "plain record match requires a Copy scrutinee",
+                        scrutinee.span,
+                    ));
+                }
+                let Some((first, rest)) = arms.split_first() else {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-M101",
+                        format!(
+                            "non-exhaustive match; missing record pattern for `{}`",
+                            scrutinee_value.ty
+                        ),
+                        expr.span,
+                    ));
+                    return None;
+                };
+                for arm in rest {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-M102",
+                        "unreachable arm after an irrefutable record pattern",
+                        arm.pattern.span(),
+                    ));
+                }
+                let outer_names = variables.keys().cloned().collect::<Vec<_>>();
+                let mut arm_variables = variables.clone();
+                match &first.pattern {
+                    MatchPattern::Wildcard { .. } => {}
+                    MatchPattern::Record {
+                        type_name,
+                        fields,
+                        span,
+                        ..
+                    } => check_record_pattern(
+                        program,
+                        type_name,
+                        fields,
+                        &scrutinee_value.ty,
+                        &mut arm_variables,
+                        types,
+                        diagnostics,
+                        *span,
+                    ),
+                    MatchPattern::Variant { .. } => diagnostics.push(error(
+                        program,
+                        "SPX-M103",
+                        "variant pattern is incompatible with a record scrutinee",
+                        first.pattern.span(),
+                    )),
+                }
+                let result = check_expr(
+                    program,
+                    current,
+                    &first.value,
+                    &mut arm_variables,
+                    functions,
+                    types,
+                    result_type,
+                    allow_moves,
+                    diagnostics,
+                );
+                merge_moved(variables, &arm_variables, &outer_names);
+                if result.as_ref().is_some_and(|value| {
+                    !matches!(value.ty, Type::I64 | Type::Bool)
+                        || value.mode != ParamMode::Value
+                }) {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T216",
+                        "record match arm must return a Copy i64 or bool value",
+                        first.value.span,
+                    ));
+                    return None;
+                }
+                return result;
+            }
             let variant_instance = scrutinee_value.as_ref().and_then(|value| match &value.ty {
                 Type::Named { name, arguments } if types.variant_cases(&value.ty).is_some() => {
                     Some((name.clone(), arguments.clone()))
@@ -2076,6 +2280,12 @@ fn check_expr(
                             }
                         }
                     }
+                    MatchPattern::Record { span, .. } => diagnostics.push(error(
+                        program,
+                        "SPX-M103",
+                        "record pattern is incompatible with a variant scrutinee",
+                        *span,
+                    )),
                 }
                 let arm_value = check_expr(
                     program,

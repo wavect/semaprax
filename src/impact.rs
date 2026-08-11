@@ -1,10 +1,12 @@
 //! Deterministic, read-only Semantic Impact v1 previews.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::fmt::Write as _;
 use std::path::Path;
 
 use sha2::{Digest, Sha256};
 
+use crate::bounded_output::BudgetedJoin as _;
 use crate::call_index::{PersistentCallIndex, PersistentCallableKind};
 use crate::diagnostic::{quote_json, Diagnostic};
 use crate::graph;
@@ -13,6 +15,12 @@ use crate::patch::{
     self, PatchPreflight, PreflightChange, PreflightOperation, SourceConsumerKey,
     SourceConsumerRole,
 };
+
+macro_rules! bformat {
+    ($($argument:tt)*) => {
+        crate::bounded_output::budgeted_format(format_args!($($argument)*))
+    };
+}
 
 const DEFAULT_DEPTH: usize = 1;
 const DEFAULT_MAX_BYTES: usize = 64 * 1024;
@@ -168,6 +176,15 @@ fn build_report(
     preflight: &PatchPreflight,
     options: &SemanticImpactOptions,
 ) -> Result<BuiltImpactReport, Vec<Diagnostic>> {
+    build_report_with_complete_limits(preflight, options, usize::MAX, usize::MAX)
+}
+
+fn build_report_with_complete_limits(
+    preflight: &PatchPreflight,
+    options: &SemanticImpactOptions,
+    max_complete_nodes: usize,
+    max_complete_bytes: usize,
+) -> Result<BuiltImpactReport, Vec<Diagnostic>> {
     let before = hir::resolve(preflight.before())?;
     let candidate = hir::resolve(preflight.candidate())?;
     hir::validate(&before).map_err(|error| vec![error])?;
@@ -181,28 +198,45 @@ fn build_report(
     }
     let call_index = PersistentCallIndex::build(&before)
         .map_err(|error| vec![impact_invariant_error(error.message)])?;
-    let built_changes = changes_json(preflight, &before, &call_index)?;
-    let all_affected = reverse_closure(&built_changes.seeds, &call_index)?;
-    let operations = operations_json(preflight.operations());
-    let patch_digest = patch_digest(preflight.patch_source());
+    let serialize = || -> Result<_, Vec<Diagnostic>> {
+        let built_changes = changes_json(preflight, &before, &call_index)?;
+        let all_affected = reverse_closure(&built_changes.seeds, &call_index, max_complete_nodes)?;
+        let operations = operations_json(preflight.operations());
+        let patch_digest = patch_digest(preflight.patch_source());
 
-    let within_depth = all_affected
-        .iter()
-        .take_while(|fact| fact.depth <= options.depth)
-        .cloned()
-        .collect::<Vec<_>>();
-    let node_selected = within_depth.len().min(options.max_nodes);
-    render_with_budget(RenderInputs {
-        preflight,
-        options,
-        source_graph_schema: base_schema,
-        patch_digest: &patch_digest,
-        operations: &operations,
-        changes: &built_changes.json,
-        all_affected: &all_affected,
-        within_depth: &within_depth,
-        node_selected,
-    })
+        let within_depth = all_affected
+            .iter()
+            .take_while(|fact| fact.depth <= options.depth)
+            .cloned()
+            .collect::<Vec<_>>();
+        let node_selected = within_depth.len().min(options.max_nodes);
+        render_with_budget(
+            RenderInputs {
+                preflight,
+                options,
+                source_graph_schema: base_schema,
+                patch_digest: &patch_digest,
+                operations: &operations,
+                changes: &built_changes.json,
+                all_affected: &all_affected,
+                within_depth: &within_depth,
+                node_selected,
+            },
+            max_complete_bytes,
+        )
+    };
+    if max_complete_bytes == usize::MAX {
+        serialize()
+    } else {
+        let (result, overflowed) = crate::bounded_output::with_limit(max_complete_bytes, serialize);
+        if overflowed {
+            return Err(vec![Diagnostic::io(
+                "SPX-G120",
+                "semantic review aggregate Impact v1 byte budget is exhausted",
+            )]);
+        }
+        result
+    }
 }
 
 pub(crate) struct CompleteImpactEvidence {
@@ -230,7 +264,28 @@ pub(crate) fn complete_review_evidence(
 ) -> Result<CompleteImpactEvidence, Vec<Diagnostic>> {
     let options =
         SemanticImpactOptions::new(1024, 16 * 1024 * 1024, 1024).map_err(|error| vec![error])?;
-    let report = build_report(preflight, &options)?;
+    complete_review_result(build_report(preflight, &options)?)
+}
+
+pub(crate) fn complete_review_evidence_bounded(
+    preflight: &PatchPreflight,
+    max_complete_nodes: usize,
+    max_complete_bytes: usize,
+) -> Result<CompleteImpactEvidence, Vec<Diagnostic>> {
+    let options =
+        SemanticImpactOptions::new(1024, 16 * 1024 * 1024, 1024).map_err(|error| vec![error])?;
+    let report = build_report_with_complete_limits(
+        preflight,
+        &options,
+        max_complete_nodes,
+        max_complete_bytes,
+    )?;
+    complete_review_result(report)
+}
+
+fn complete_review_result(
+    report: BuiltImpactReport,
+) -> Result<CompleteImpactEvidence, Vec<Diagnostic>> {
     if report.truncated || report.omitted != 0 || report.deferred != 0 || !report.frontier_empty {
         return Err(vec![Diagnostic::io(
             "SPX-G120",
@@ -258,7 +313,7 @@ fn operations_json(operations: &[PreflightOperation]) -> String {
                 let _ = (index, repair_id, target, name, to);
                 unreachable!("Impact v1 rejects Patch v3 before report construction")
             }
-            PreflightOperation::Rename { index, target, to } => format!(
+            PreflightOperation::Rename { index, target, to } => bformat!(
                 "{{\"index\":{index},\"kind\":\"rename\",\"target\":{},\"to\":{}}}",
                 quote_json(target),
                 quote_json(to)
@@ -268,7 +323,7 @@ fn operations_json(operations: &[PreflightOperation]) -> String {
                 owner,
                 member,
                 to,
-            } => format!(
+            } => bformat!(
                 "{{\"index\":{index},\"kind\":\"rename_member\",\"owner\":{},\"member\":{},\"to\":{}}}",
                 quote_json(owner),
                 quote_json(member),
@@ -279,7 +334,7 @@ fn operations_json(operations: &[PreflightOperation]) -> String {
                 owner,
                 case,
                 to,
-            } => format!(
+            } => bformat!(
                 "{{\"index\":{index},\"kind\":\"rename_case\",\"owner\":{},\"case\":{},\"to\":{}}}",
                 quote_json(owner),
                 quote_json(case),
@@ -293,7 +348,7 @@ fn operations_json(operations: &[PreflightOperation]) -> String {
                 argument_index,
                 from,
                 to,
-            } => format!(
+            } => bformat!(
                 "{{\"index\":{index},\"kind\":\"replace_call_type_argument\",\"expression\":{},\"template\":{},\"old_instance\":{},\"argument_index\":{argument_index},\"from\":{},\"to\":{}}}",
                 quote_json(expression),
                 quote_json(template),
@@ -302,11 +357,12 @@ fn operations_json(operations: &[PreflightOperation]) -> String {
                 quote_json(to.text())
             ),
             PreflightOperation::RequireNoNewEffects { index } => {
-                format!("{{\"index\":{index},\"kind\":\"require_no_new_effects\"}}")
+                bformat!("{{\"index\":{index},\"kind\":\"require_no_new_effects\"}}")
             }
         })
         .collect::<Vec<_>>()
-        .join(",")
+        .as_slice()
+        .budgeted_join(",")
 }
 
 fn changes_json(
@@ -322,7 +378,8 @@ fn changes_json(
             .iter()
             .map(consumer_json)
             .collect::<Vec<_>>()
-            .join(",");
+            .as_slice()
+            .budgeted_join(",");
         match change {
             PreflightChange::Rename {
                 target,
@@ -330,7 +387,7 @@ fn changes_json(
                 before,
                 after,
                 operation_indices,
-            } => output.push(format!(
+            } => output.push(bformat!(
                 "{{\"kind\":\"rename\",\"target\":{},\"target_kind\":{},\"before\":{},\"after\":{},\"classification\":\"source_projection\",\"operation_indices\":{},\"source_consumers\":[{}]}}",
                 quote_json(target),
                 quote_json(target_kind.text()),
@@ -367,7 +424,7 @@ fn changes_json(
                     .entry(site.owner.clone())
                     .or_default()
                     .extend(operation_indices.iter().copied());
-                output.push(format!(
+                output.push(bformat!(
                     "{{\"kind\":\"call_instance\",\"expression\":{},\"containing_function\":{},\"containing_kind\":{},\"template\":{},\"before_type_arguments\":{},\"after_type_arguments\":{},\"before_instance\":{},\"after_instance\":{},\"classification\":\"behavioral_call_instance\",\"operation_indices\":{},\"source_consumers\":[{}]}}",
                     quote_json(expression),
                     quote_json(site.owner.as_str()),
@@ -384,7 +441,7 @@ fn changes_json(
         }
     }
     Ok(BuiltChanges {
-        json: output.join(","),
+        json: output.as_slice().budgeted_join(","),
         seeds,
     })
 }
@@ -471,8 +528,9 @@ fn consumer_json(fact: &ConsumerFact) -> String {
         .iter()
         .map(|role| quote_json(role.text()))
         .collect::<Vec<_>>()
-        .join(",");
-    format!(
+        .as_slice()
+        .budgeted_join(",");
+    bformat!(
         "{{\"id\":{},\"kind\":{},\"identity_origin\":{},\"roles\":[{}],\"site_count\":{}}}",
         quote_json(&fact.key.id),
         quote_json(fact.key.kind.text()),
@@ -485,6 +543,7 @@ fn consumer_json(fact: &ConsumerFact) -> String {
 fn reverse_closure(
     seeds: &BTreeMap<DeclarationId, BTreeSet<usize>>,
     index: &PersistentCallIndex,
+    max_nodes: usize,
 ) -> Result<Vec<AffectedFunction>, Vec<Diagnostic>> {
     let mut minimum_depth = BTreeMap::<DeclarationId, usize>::new();
     let mut provenance = BTreeMap::<DeclarationId, BTreeSet<usize>>::new();
@@ -501,6 +560,12 @@ fn reverse_closure(
     let mut depth = 0usize;
     while !level.is_empty() {
         for id in &level {
+            if ordered.len() == max_nodes {
+                return Err(vec![Diagnostic::io(
+                    "SPX-G120",
+                    "semantic review aggregate Impact v1 node budget is exhausted",
+                )]);
+            }
             let kind = index.kind(id).ok_or_else(|| {
                 vec![impact_invariant_error(format!(
                     "reverse-call node `{id}` has no callable kind"
@@ -526,6 +591,15 @@ fn reverse_closure(
                 ))]
             })?;
             for caller in callers {
+                if !minimum_depth.contains_key(caller)
+                    && !candidates.contains_key(caller)
+                    && ordered.len().saturating_add(candidates.len()) == max_nodes
+                {
+                    return Err(vec![Diagnostic::io(
+                        "SPX-G120",
+                        "semantic review aggregate Impact v1 node budget is exhausted",
+                    )]);
+                }
                 candidates
                     .entry(caller.clone())
                     .or_default()
@@ -627,7 +701,13 @@ fn truncation_reasons(inputs: &RenderInputs<'_>, selected: usize) -> String {
     reasons.join(",")
 }
 
-fn render_with_budget(inputs: RenderInputs<'_>) -> Result<BuiltImpactReport, Vec<Diagnostic>> {
+fn render_with_budget(
+    inputs: RenderInputs<'_>,
+    max_complete_bytes: usize,
+) -> Result<BuiltImpactReport, Vec<Diagnostic>> {
+    if max_complete_bytes != usize::MAX {
+        return render_complete_with_budget(&inputs, max_complete_bytes);
+    }
     let affected = inputs
         .within_depth
         .iter()
@@ -717,7 +797,7 @@ fn render_with_budget(inputs: RenderInputs<'_>) -> Result<BuiltImpactReport, Vec
             }
             used_digits = next;
         };
-        if used_bytes <= inputs.options.max_bytes {
+        if used_bytes <= inputs.options.max_bytes && used_bytes <= max_complete_bytes {
             chosen = Some((selected, used_bytes, frontier_end, reasons, max_depth_used));
             break;
         }
@@ -755,6 +835,116 @@ fn render_with_budget(inputs: RenderInputs<'_>) -> Result<BuiltImpactReport, Vec
     })
 }
 
+fn render_complete_with_budget(
+    inputs: &RenderInputs<'_>,
+    max_complete_bytes: usize,
+) -> Result<BuiltImpactReport, Vec<Diagnostic>> {
+    if inputs.within_depth.len() != inputs.all_affected.len()
+        || inputs.node_selected != inputs.all_affected.len()
+    {
+        return Err(vec![Diagnostic::io(
+            "SPX-G120",
+            "semantic review aggregate Impact v1 node budget is exhausted",
+        )]);
+    }
+    let selected = inputs.all_affected.len();
+    let max_depth_used = inputs.all_affected.last().map_or(0, |fact| fact.depth);
+    let mut used_bytes = 0usize;
+    for _ in 0..4 {
+        let (output, overflowed) = crate::bounded_output::with_limit(max_complete_bytes, || {
+            render_complete_report(inputs, used_bytes, max_depth_used)
+        });
+        if overflowed || output.len() > max_complete_bytes {
+            return Err(vec![Diagnostic::io(
+                "SPX-G120",
+                "semantic review aggregate Impact v1 byte budget is exhausted",
+            )]);
+        }
+        if output.len() == used_bytes {
+            return Ok(BuiltImpactReport {
+                json: output,
+                truncated: false,
+                omitted: 0,
+                deferred: 0,
+                frontier_empty: true,
+                used_depth: max_depth_used,
+                used_nodes: selected,
+            });
+        }
+        used_bytes = output.len();
+    }
+    Err(vec![impact_invariant_error(
+        "semantic impact aggregate byte accounting did not converge",
+    )])
+}
+
+fn render_complete_report(
+    inputs: &RenderInputs<'_>,
+    used_bytes: usize,
+    max_depth_used: usize,
+) -> String {
+    let mut output = crate::bounded_output::CappedString::new();
+    output.push_str("{\"schema\":\"semaprax.semantic-impact.v1\",\"source_graph_schema\":");
+    push_json_string(&mut output, inputs.source_graph_schema);
+    output.push_str(",\"base_revision\":");
+    push_json_string(&mut output, inputs.preflight.base_revision());
+    output.push_str(",\"candidate_revision\":");
+    push_json_string(&mut output, inputs.preflight.candidate_revision());
+    output.push_str(",\"patch\":{\"schema\":");
+    push_json_string(&mut output, inputs.preflight.schema_label());
+    output.push_str(",\"digest\":");
+    push_json_string(&mut output, inputs.patch_digest);
+    output.push_str("},\"operations\":[");
+    output.push_str(inputs.operations);
+    output.push_str("],\"changes\":[");
+    output.push_str(inputs.changes);
+    let _ = write!(
+        output,
+        "],\"query\":{{\"direction\":\"reverse\",\"depth\":{},\"max_bytes\":{},\"max_nodes\":{}}},\"budget\":{{\"used_bytes\":{used_bytes},\"used_nodes\":{},\"max_depth_used\":{max_depth_used}}},\"truncation\":{{\"truncated\":false,\"reasons\":[],\"omitted_known_nodes\":0,\"deferred_known_nodes\":0}},\"frontier\":[],\"affected_functions\":[",
+        inputs.options.depth,
+        inputs.options.max_bytes,
+        inputs.options.max_nodes,
+        inputs.all_affected.len(),
+    );
+    for (index, fact) in inputs.all_affected.iter().enumerate() {
+        if index != 0 {
+            output.push(',');
+        }
+        output.push_str("{\"id\":");
+        push_json_string(&mut output, fact.id.as_str());
+        output.push_str(",\"kind\":");
+        push_json_string(&mut output, fact.kind.text());
+        let _ = write!(output, ",\"depth\":{},\"operation_indices\":[", fact.depth);
+        for (operation_index, operation) in fact.operation_indices.iter().enumerate() {
+            if operation_index != 0 {
+                output.push(',');
+            }
+            let _ = write!(output, "{operation}");
+        }
+        output.push_str("]}");
+    }
+    output.push_str("]}");
+    output.into_string()
+}
+
+fn push_json_string(output: &mut crate::bounded_output::CappedString, value: &str) {
+    output.push('"');
+    for character in value.chars() {
+        match character {
+            '"' => output.push_str("\\\""),
+            '\\' => output.push_str("\\\\"),
+            '\n' => output.push_str("\\n"),
+            '\r' => output.push_str("\\r"),
+            '\t' => output.push_str("\\t"),
+            value if value.is_control() => {
+                let _ = write!(output, "\\u{:04x}", value as u32);
+            }
+            value => output.push(value),
+        }
+    }
+    output.push('"');
+}
+
 fn render_report(inputs: &RenderInputs<'_>, state: &RenderState, used_bytes: usize) -> String {
     format!(
         "{{\"schema\":\"semaprax.semantic-impact.v1\",\"source_graph_schema\":{},\"base_revision\":{},\"candidate_revision\":{},\"patch\":{{\"schema\":{},\"digest\":{}}},\"operations\":[{}],\"changes\":[{}],\"query\":{{\"direction\":\"reverse\",\"depth\":{},\"max_bytes\":{},\"max_nodes\":{}}},\"budget\":{{\"used_bytes\":{},\"used_nodes\":{},\"max_depth_used\":{}}},\"truncation\":{{\"truncated\":{},\"reasons\":[{}],\"omitted_known_nodes\":{},\"deferred_known_nodes\":{}}},\"frontier\":[{}],\"affected_functions\":[{}]}}",
@@ -785,28 +975,30 @@ fn patch_digest(source: &str) -> String {
     hasher.update(b"semaprax.semantic-impact.patch-digest.v1\0");
     hasher.update((source.len() as u64).to_le_bytes());
     hasher.update(source.as_bytes());
-    format!("sha256:{:x}", hasher.finalize())
+    bformat!("sha256:{:x}", hasher.finalize())
 }
 
 fn type_array(types: &[ResolvedType]) -> String {
-    format!(
+    bformat!(
         "[{}]",
         types
             .iter()
             .map(|ty| quote_json(&ty.identity_key()))
             .collect::<Vec<_>>()
-            .join(",")
+            .as_slice()
+            .budgeted_join(",")
     )
 }
 
 fn usize_array(values: &BTreeSet<usize>) -> String {
-    format!(
+    bformat!(
         "[{}]",
         values
             .iter()
             .map(usize::to_string)
             .collect::<Vec<_>>()
-            .join(",")
+            .as_slice()
+            .budgeted_join(",")
     )
 }
 
@@ -912,5 +1104,78 @@ mod tests {
         let parsed: serde_json::Value = serde_json::from_str(&report).unwrap();
         assert_eq!(parsed["patch"]["digest"], patch_digest(&original));
         assert_eq!(parsed["operations"][0]["to"], "computed");
+    }
+
+    #[test]
+    fn exhausted_complete_node_budget_stops_before_wide_frontier_materialization() {
+        let mut source = String::from(
+            "module impact.aggregate_bound;\n@id(\"generic.marker\") fn marker<T>()->bool{true}\n@id(\"impact.seed\") fn seed()->bool{marker<i64>()}\n",
+        );
+        for index in 0..128 {
+            source.push_str(&format!(
+                "@id(\"impact.caller.{index}\") fn caller{index}()->bool{{seed()}}\n"
+            ));
+        }
+        source.push_str("@id(\"app.main\") fn main()->i64{if caller0(){1}else{0}}\n");
+        let program = parse(&source, Path::new("aggregate-bound.spx")).unwrap();
+        let resolved = hir::resolve(&program).unwrap();
+        let seed = resolved
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "impact.seed")
+            .unwrap();
+        let hir::ResolvedExprKind::Block { tail, .. } = &seed.body.kind else {
+            panic!("seed body must be a block")
+        };
+        let hir::ResolvedExprKind::Call {
+            instance: Some(instance),
+            ..
+        } = &tail.kind
+        else {
+            panic!("seed tail must be a generic call")
+        };
+        let patch_source = format!(
+            "schema semaprax.semantic-patch.v2\nbase {}\nreplace-call-type-argument expression {} template generic.marker old-instance {} index 0 from i64 to bool\n",
+            graph::revision(&program),
+            tail.id,
+            instance,
+        );
+        let preflight = patch::preflight_review_owned(
+            source,
+            patch_source,
+            Path::new("aggregate-bound.spx").to_path_buf(),
+            4096,
+        )
+        .unwrap();
+        let Err(error) = complete_review_evidence_bounded(&preflight, 1, 16 * 1024 * 1024) else {
+            panic!("wide frontier must stop at the remaining aggregate node bound")
+        };
+        assert_eq!(error[0].code, "SPX-G120");
+    }
+
+    #[test]
+    fn tiny_complete_byte_budget_stops_large_operation_and_change_serialization() {
+        let mut source = String::from("module impact.aggregate_bytes;\n");
+        let mut operations = String::new();
+        for index in 0..128 {
+            source.push_str(&format!(
+                "@id(\"impact.item.{index}\") fn item{index}()->i64{{{index}}}\n"
+            ));
+            operations.push_str(&format!("rename impact.item.{index} to renamed{index}\n"));
+        }
+        source.push_str("@id(\"app.main\") fn main()->i64{item0()}\n");
+        let program = parse(&source, Path::new("aggregate-bytes.spx")).unwrap();
+        let patch_source = format!("base {}\n{operations}", graph::revision(&program));
+        let preflight = patch::preflight_review_owned(
+            source,
+            patch_source,
+            Path::new("aggregate-bytes.spx").to_path_buf(),
+            4096,
+        )
+        .unwrap();
+        let Err(error) = complete_review_evidence_bounded(&preflight, 1024, 64) else {
+            panic!("large operations and changes must respect the remaining byte budget")
+        };
+        assert_eq!(error[0].code, "SPX-G120");
     }
 }

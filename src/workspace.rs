@@ -4,6 +4,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom, Write};
+use std::ops::Deref;
 use std::path::{Component, Path, PathBuf};
 
 use serde_json::{Map, Value};
@@ -16,10 +17,10 @@ use crate::{graph, hir, parse, patch, verify};
 const CONTROL: &str = ".semaprax-workspace";
 const PATH_SET_SCHEMA: &str = "semaprax.workspace-path-set.v1";
 const ROOT_SCHEMA: &str = "semaprax.workspace-root.v1";
-const MANIFEST_SCHEMA: &str = "semaprax.workspace-manifest.v1";
-const PATCH_SCHEMA: &str = "semaprax.semantic-workspace-patch.v1";
+pub(crate) const MANIFEST_SCHEMA: &str = "semaprax.workspace-manifest.v1";
+pub(crate) const PATCH_SCHEMA: &str = "semaprax.semantic-workspace-patch.v1";
 const SNAPSHOT_SCHEMA: &str = "semaprax.workspace-snapshot.v1";
-const PREVIEW_SCHEMA: &str = "semaprax.semantic-workspace-preview.v1";
+pub(crate) const PREVIEW_SCHEMA: &str = "semaprax.semantic-workspace-preview.v1";
 
 pub const MAX_MANAGED_FILES: usize = 16;
 pub const MAX_TOTAL_SOURCE_BYTES: usize = 16 * 1024 * 1024;
@@ -143,7 +144,6 @@ struct WorkspacePatchFile {
     path: String,
     patch: String,
 }
-#[allow(dead_code)]
 struct WorkspacePatch {
     base: String,
     files: Vec<WorkspacePatchFile>,
@@ -152,17 +152,281 @@ struct WorkspacePatch {
     digest: String,
 }
 
-#[allow(dead_code)]
-struct WorkspacePlan {
+pub(crate) struct WorkspacePlanSummary {
     patch: WorkspacePatch,
     candidate: Vec<FileFact>,
-    preflights: Vec<patch::PatchPreflight>,
     previews: BTreeMap<String, (String, String, String, String, String, String)>,
     candidate_manifest: String,
     candidate_revision: String,
     usage: (usize, usize, usize),
     candidate_bytes: usize,
     operations: usize,
+    changed_count: usize,
+}
+
+#[allow(
+    dead_code,
+    reason = "consumed by the private Workspace Evidence Phase A build"
+)]
+impl WorkspacePlanSummary {
+    pub(crate) fn base_workspace_revision(&self) -> &str {
+        &self.patch.base
+    }
+
+    pub(crate) fn candidate_workspace_revision(&self) -> &str {
+        &self.candidate_revision
+    }
+
+    pub(crate) fn workspace_patch_digest(&self) -> &str {
+        &self.patch.digest
+    }
+
+    pub(crate) fn workspace_patch_bytes(&self) -> usize {
+        self.patch.bytes
+    }
+
+    pub(crate) fn managed_files(&self) -> usize {
+        self.candidate.len()
+    }
+
+    pub(crate) fn changed_files(&self) -> usize {
+        self.changed_count
+    }
+
+    pub(crate) fn candidate_source_bytes(&self) -> usize {
+        self.candidate_bytes
+    }
+
+    pub(crate) fn candidate_manifest_bytes(&self) -> usize {
+        self.candidate_manifest.len()
+    }
+
+    pub(crate) fn operations(&self) -> usize {
+        self.operations
+    }
+
+    pub(crate) fn semantic_usage(&self) -> (usize, usize, usize) {
+        self.usage
+    }
+}
+
+struct WorkspacePlan {
+    summary: WorkspacePlanSummary,
+    preflights: Vec<WorkspaceEvidencePreflight>,
+}
+
+impl Deref for WorkspacePlan {
+    type Target = WorkspacePlanSummary;
+
+    fn deref(&self) -> &Self::Target {
+        &self.summary
+    }
+}
+
+#[allow(
+    dead_code,
+    reason = "consumed by the private Workspace Evidence Phase A build"
+)]
+pub(crate) struct WorkspaceEvidencePreflight {
+    path: String,
+    preflight: patch::PatchPreflight,
+}
+
+pub(crate) struct WorkspaceCommitAuthority {
+    guard: WorkspaceGuard,
+    patch_input: AuthenticatedText,
+    plan: WorkspacePlanSummary,
+}
+
+pub(crate) struct WorkspaceEvidenceBinding {
+    path: String,
+    patch_schema: String,
+    patch_digest: String,
+    base_source_graph_schema: String,
+    candidate_source_graph_schema: String,
+    base_revision: String,
+    candidate_revision: String,
+    base_source_digest: String,
+    candidate_source_digest: String,
+}
+
+impl WorkspaceEvidenceBinding {
+    pub(crate) fn path(&self) -> &str {
+        &self.path
+    }
+
+    pub(crate) fn patch_schema(&self) -> &str {
+        &self.patch_schema
+    }
+
+    pub(crate) fn patch_digest(&self) -> &str {
+        &self.patch_digest
+    }
+
+    pub(crate) fn base_source_graph_schema(&self) -> &str {
+        &self.base_source_graph_schema
+    }
+
+    pub(crate) fn candidate_source_graph_schema(&self) -> &str {
+        &self.candidate_source_graph_schema
+    }
+
+    pub(crate) fn base_revision(&self) -> &str {
+        &self.base_revision
+    }
+
+    pub(crate) fn candidate_revision(&self) -> &str {
+        &self.candidate_revision
+    }
+
+    pub(crate) fn base_source_digest(&self) -> &str {
+        &self.base_source_digest
+    }
+
+    pub(crate) fn candidate_source_digest(&self) -> &str {
+        &self.candidate_source_digest
+    }
+}
+
+#[allow(
+    dead_code,
+    reason = "consumed by the private Workspace Evidence Phase A build"
+)]
+impl WorkspaceEvidencePreflight {
+    pub(crate) fn path(&self) -> &str {
+        &self.path
+    }
+
+    pub(crate) fn into_parts(self) -> (String, patch::PatchPreflight) {
+        (self.path, self.preflight)
+    }
+}
+
+#[allow(
+    dead_code,
+    reason = "consumed by the private Workspace Evidence Phase A build"
+)]
+pub(crate) struct WorkspaceReadBuild {
+    guard: WorkspaceGuard,
+    patch_input: AuthenticatedText,
+    summary: WorkspacePlanSummary,
+    preflights: Option<Vec<WorkspaceEvidencePreflight>>,
+}
+
+pub(crate) struct WorkspaceEvidenceGuard {
+    guard: Option<WorkspaceLockGuard>,
+}
+
+pub(crate) struct WorkspaceEvidenceApplyGuard {
+    guard: Option<WorkspaceLockGuard>,
+    patch_input: Option<AuthenticatedText>,
+}
+
+#[allow(
+    dead_code,
+    reason = "consumed by the private Workspace Evidence Phase A build"
+)]
+impl WorkspaceReadBuild {
+    pub(crate) fn plan(&self) -> &WorkspacePlanSummary {
+        &self.summary
+    }
+
+    pub(crate) fn take_preflights(
+        &mut self,
+    ) -> Result<Vec<WorkspaceEvidencePreflight>, Vec<Diagnostic>> {
+        self.preflights
+            .take()
+            .ok_or_else(|| invariant("workspace evidence preflights were already consumed"))
+    }
+
+    pub(crate) fn preview_json(&self) -> Result<String, Vec<Diagnostic>> {
+        bounded_preview(&self.guard.snapshot, &self.summary)
+    }
+
+    pub(crate) fn evidence_binding(
+        &self,
+        path: &str,
+    ) -> Result<WorkspaceEvidenceBinding, Vec<Diagnostic>> {
+        let base = self
+            .guard
+            .snapshot
+            .files
+            .iter()
+            .find(|file| file.path == path)
+            .ok_or_else(|| invariant("workspace evidence base path is absent"))?;
+        let candidate = self
+            .summary
+            .candidate
+            .iter()
+            .find(|file| file.path == path)
+            .ok_or_else(|| invariant("workspace evidence candidate path is absent"))?;
+        let preview = self
+            .summary
+            .previews
+            .get(path)
+            .ok_or_else(|| invariant("workspace evidence preview path is absent"))?;
+        Ok(WorkspaceEvidenceBinding {
+            path: path.to_owned(),
+            patch_schema: preview.0.clone(),
+            patch_digest: preview.1.clone(),
+            base_source_graph_schema: preview.2.clone(),
+            candidate_source_graph_schema: preview.3.clone(),
+            base_revision: preview.4.clone(),
+            candidate_revision: preview.5.clone(),
+            base_source_digest: base.source_digest.clone(),
+            candidate_source_digest: candidate.source_digest.clone(),
+        })
+    }
+
+    pub(crate) fn base_source_bytes(&self) -> usize {
+        self.guard
+            .snapshot
+            .files
+            .iter()
+            .map(|file| file.source.len())
+            .sum()
+    }
+
+    pub(crate) fn base_manifest_bytes(&self) -> usize {
+        self.guard.snapshot.manifest_bytes
+    }
+
+    pub(crate) fn retained_generations(&self) -> usize {
+        self.guard.snapshot.retained_generations
+    }
+
+    pub(crate) fn staging_attempts(&self) -> usize {
+        self.guard.snapshot.staging_attempts
+    }
+
+    pub(crate) fn recheck(mut self) -> Result<(), Vec<Diagnostic>> {
+        self.patch_input.recheck()?;
+        if self.patch_input.source != self.summary.patch.source {
+            return Err(invariant(
+                "owned workspace patch changed after semantic planning",
+            ));
+        }
+        self.guard.recheck()?;
+        unlock_file(&self.guard.lock)
+    }
+
+    pub(crate) fn into_commit_authority(self) -> Result<WorkspaceCommitAuthority, Vec<Diagnostic>> {
+        if !self.guard.exclusive {
+            return Err(invariant(
+                "workspace evidence commit authority requires the exclusive workspace lock",
+            ));
+        }
+        if self.preflights.is_some() {
+            return Err(invariant(
+                "workspace evidence preflights must be consumed before commit authority",
+            ));
+        }
+        Ok(WorkspaceCommitAuthority {
+            guard: self.guard,
+            patch_input: self.patch_input,
+            plan: self.summary,
+        })
+    }
 }
 
 struct AuthenticatedText {
@@ -297,6 +561,16 @@ struct WorkspaceGuard {
     exclusive: bool,
     generation_names: BTreeSet<String>,
     staging_names: BTreeSet<String>,
+}
+
+struct WorkspaceLockGuard {
+    root: PathBuf,
+    root_identity: FileIdentity,
+    control: PathBuf,
+    lock_path: PathBuf,
+    lock: File,
+    lock_identity: FileIdentity,
+    exclusive: bool,
 }
 
 #[allow(dead_code)]
@@ -695,15 +969,21 @@ pub fn snapshot(root: &Path) -> Result<WorkspaceSnapshot, Vec<Diagnostic>> {
 
 /// Previews one canonical workspace patch without creating candidate filesystem state.
 pub fn preview(root: &Path, patch_path: &Path) -> Result<String, Vec<Diagnostic>> {
-    let mut guard = acquire_snapshot(root, false)?;
-    let mut patch_input = authenticate_text(patch_path, MAX_WORKSPACE_PATCH_BYTES, "SPX-I209")?;
-    let workspace_patch = parse_workspace_patch(&patch_input.source)?;
-    let plan = build_workspace_plan(&guard.snapshot, workspace_patch)?;
+    let build = build_read_owned(root, patch_path)?;
+    let report = build.preview_json()?;
+    build.recheck()?;
+    Ok(report)
+}
+
+fn bounded_preview(
+    base: &WorkspaceSnapshot,
+    plan: &WorkspacePlanSummary,
+) -> Result<String, Vec<Diagnostic>> {
     let mut used_preview = 0usize;
     loop {
         let (report, overflowed) = crate::bounded_output::with_limit(MAX_PREVIEW_BYTES, || {
             render_preview(
-                &guard.snapshot,
+                base,
                 &plan.patch,
                 &plan.candidate_revision,
                 &plan.previews,
@@ -718,12 +998,133 @@ pub fn preview(root: &Path, patch_path: &Path) -> Result<String, Vec<Diagnostic>
             return Err(limit("workspace preview exceeds 65536 bytes"));
         }
         if report.len() == used_preview {
-            patch_input.recheck()?;
-            guard.recheck()?;
             return Ok(report);
         }
         used_preview = report.len();
     }
+}
+
+/// Acquires one shared workspace snapshot, owns the exact bounded workspace
+/// patch, and constructs one pure semantic plan without creating candidate
+/// filesystem state. The returned authority retains both authenticated inputs
+/// through the caller's final read-only recheck.
+pub(crate) fn build_read_owned(
+    root: &Path,
+    patch_path: &Path,
+) -> Result<WorkspaceReadBuild, Vec<Diagnostic>> {
+    let guard = acquire_snapshot(root, false)?;
+    let patch_input = authenticate_text(patch_path, MAX_WORKSPACE_PATCH_BYTES, "SPX-I209")?;
+    let workspace_patch = parse_workspace_patch(&patch_input.source)?;
+    build_read_from_inputs(guard, patch_input, workspace_patch)
+}
+
+pub(crate) fn acquire_evidence_guard(
+    root: &Path,
+) -> Result<WorkspaceEvidenceGuard, Vec<Diagnostic>> {
+    Ok(WorkspaceEvidenceGuard {
+        guard: Some(acquire_lock_only(root, false)?),
+    })
+}
+
+pub(crate) fn acquire_evidence_apply_guard(
+    root: &Path,
+    patch_path: &Path,
+) -> Result<WorkspaceEvidenceApplyGuard, Vec<Diagnostic>> {
+    let guard = acquire_lock_only(root, true)?;
+    let patch_input = authenticate_text(patch_path, MAX_WORKSPACE_PATCH_BYTES, "SPX-I209")?;
+    Ok(WorkspaceEvidenceApplyGuard {
+        guard: Some(guard),
+        patch_input: Some(patch_input),
+    })
+}
+
+pub(crate) fn finish_evidence_apply_guard(
+    mut authority: WorkspaceEvidenceApplyGuard,
+) -> Result<WorkspaceReadBuild, Vec<Diagnostic>> {
+    let lock_guard = authority
+        .guard
+        .take()
+        .ok_or_else(|| invariant("workspace evidence apply guard was already consumed"))?;
+    let patch_input = authority
+        .patch_input
+        .take()
+        .ok_or_else(|| invariant("workspace evidence apply patch was already consumed"))?;
+    let workspace_patch = parse_workspace_patch(&patch_input.source)?;
+    let guard = finish_snapshot_guard(lock_guard)?;
+    build_read_from_inputs(guard, patch_input, workspace_patch)
+}
+
+pub(crate) fn build_read_owned_from_guard(
+    mut authority: WorkspaceEvidenceGuard,
+    patch_path: &Path,
+) -> Result<WorkspaceReadBuild, Vec<Diagnostic>> {
+    let lock_guard = authority
+        .guard
+        .take()
+        .ok_or_else(|| invariant("workspace evidence guard was already consumed"))?;
+    let patch_input = authenticate_text(patch_path, MAX_WORKSPACE_PATCH_BYTES, "SPX-I209")?;
+    let workspace_patch = parse_workspace_patch_with_minimum(&patch_input.source, 1)?;
+    let guard = finish_snapshot_guard(lock_guard)?;
+    build_read_from_inputs(guard, patch_input, workspace_patch)
+}
+
+fn build_read_from_inputs(
+    guard: WorkspaceGuard,
+    patch_input: AuthenticatedText,
+    workspace_patch: WorkspacePatch,
+) -> Result<WorkspaceReadBuild, Vec<Diagnostic>> {
+    let plan = build_workspace_plan(&guard.snapshot, workspace_patch)?;
+    let WorkspacePlan {
+        summary,
+        preflights,
+    } = plan;
+    validate_evidence_preflight_paths(&summary, &preflights)?;
+    Ok(WorkspaceReadBuild {
+        guard,
+        patch_input,
+        summary,
+        preflights: Some(preflights),
+    })
+}
+
+fn validate_evidence_preflight_paths(
+    summary: &WorkspacePlanSummary,
+    preflights: &[WorkspaceEvidencePreflight],
+) -> Result<(), Vec<Diagnostic>> {
+    let expected = summary
+        .patch
+        .files
+        .iter()
+        .map(|file| file.path.clone())
+        .collect::<Vec<_>>();
+    let actual = preflights
+        .iter()
+        .map(|item| item.path.clone())
+        .collect::<Vec<_>>();
+    if preflights.len() != summary.changed_count {
+        return Err(invariant(
+            "workspace evidence preflight paths differ from the semantic plan",
+        ));
+    }
+    require_exact_path_association(&expected, &actual)?;
+    Ok(())
+}
+
+fn require_exact_path_association(
+    expected: &[String],
+    actual: &[String],
+) -> Result<(), Vec<Diagnostic>> {
+    let expected_set = expected.iter().collect::<BTreeSet<_>>();
+    let actual_set = actual.iter().collect::<BTreeSet<_>>();
+    if expected_set.len() != expected.len()
+        || actual_set.len() != actual.len()
+        || expected_set != actual_set
+    {
+        return Err(invariant(
+            "workspace evidence preflight paths differ from the semantic plan",
+        ));
+    }
+    Ok(())
 }
 
 fn build_workspace_plan(
@@ -830,7 +1231,10 @@ fn build_workspace_plan(
             changed.path.clone(),
             preflight.canonical_candidate().to_owned(),
         ));
-        preflights.push(preflight);
+        preflights.push(WorkspaceEvidencePreflight {
+            path: changed.path.clone(),
+            preflight,
+        });
     }
     for (path, file) in base_by_path {
         candidate.push((path, file.source.clone()));
@@ -848,16 +1252,20 @@ fn build_workspace_plan(
     let candidate_manifest = bounded_manifest(&candidate)?;
     let candidate_revision = workspace_revision(&candidate_manifest);
     let usage = usage(&candidate)?;
+    let changed_count = workspace_patch.files.len();
     Ok(WorkspacePlan {
-        patch: workspace_patch,
-        candidate,
+        summary: WorkspacePlanSummary {
+            patch: workspace_patch,
+            candidate,
+            previews,
+            candidate_manifest,
+            candidate_revision,
+            usage,
+            candidate_bytes,
+            operations,
+            changed_count,
+        },
         preflights,
-        previews,
-        candidate_manifest,
-        candidate_revision,
-        usage,
-        candidate_bytes,
-        operations,
     })
 }
 
@@ -867,7 +1275,7 @@ pub fn apply(root: &Path, patch_path: &Path) -> Result<String, Vec<Diagnostic>> 
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum ApplyPoint {
+pub(crate) enum ApplyPoint {
     AfterPatchRead,
     AfterCandidatePrepared,
     AfterActiveStaged,
@@ -882,13 +1290,37 @@ fn apply_with_hook(
     patch_path: &Path,
     mut hook: impl FnMut(ApplyPoint, &Path, Option<&Path>, Option<&Path>) -> std::io::Result<()>,
 ) -> Result<String, Vec<Diagnostic>> {
-    let mut guard = acquire_snapshot(root, true)?;
+    let guard = acquire_snapshot(root, true)?;
     let active_path = guard.control.join("ACTIVE");
-    let mut patch_input = authenticate_text(patch_path, MAX_WORKSPACE_PATCH_BYTES, "SPX-I209")?;
+    let patch_input = authenticate_text(patch_path, MAX_WORKSPACE_PATCH_BYTES, "SPX-I209")?;
     hook(ApplyPoint::AfterPatchRead, &active_path, None, None)
         .map_err(|error| io("SPX-I209", format!("post-read hook failed: {error}")))?;
     let patch = parse_workspace_patch(&patch_input.source)?;
     let plan = build_workspace_plan(&guard.snapshot, patch)?;
+    let WorkspacePlan {
+        summary: plan,
+        preflights: _,
+    } = plan;
+    commit_workspace_authority_with_hook(
+        WorkspaceCommitAuthority {
+            guard,
+            patch_input,
+            plan,
+        },
+        hook,
+    )
+}
+
+pub(crate) fn commit_workspace_authority_with_hook(
+    authority: WorkspaceCommitAuthority,
+    mut hook: impl FnMut(ApplyPoint, &Path, Option<&Path>, Option<&Path>) -> std::io::Result<()>,
+) -> Result<String, Vec<Diagnostic>> {
+    let WorkspaceCommitAuthority {
+        mut guard,
+        mut patch_input,
+        plan,
+    } = authority;
+    let active_path = guard.control.join("ACTIVE");
     let mut candidate =
         ensure_candidate_generation(&mut guard, &mut patch_input, &plan, |_, _, _| {})?;
     hook(
@@ -1051,11 +1483,11 @@ fn apply_with_hook(
     recheck_lock(&guard.lock_path, &guard.lock, &guard.lock_identity)
         .map_err(map_final_uncertainty)?;
     unlock_file(&guard.lock).map_err(map_final_uncertainty)?;
-    Ok(plan.candidate_revision)
+    Ok(plan.candidate_revision.clone())
 }
 
 struct FinalApplyFacts<'a> {
-    plan: &'a WorkspacePlan,
+    plan: &'a WorkspacePlanSummary,
     generation_names: &'a BTreeSet<String>,
     staging_names: &'a BTreeSet<String>,
     active_permissions: &'a std::fs::Permissions,
@@ -1131,7 +1563,7 @@ fn final_apply_recheck(
 
 fn validate_post_pivot_snapshot(
     snapshot: &WorkspaceSnapshot,
-    plan: &WorkspacePlan,
+    plan: &WorkspacePlanSummary,
 ) -> Result<(), Vec<Diagnostic>> {
     if snapshot.workspace_revision != plan.candidate_revision
         || snapshot.files.len() != plan.candidate.len()
@@ -1236,7 +1668,7 @@ enum GenerationPoint {
 fn ensure_candidate_generation(
     guard: &mut WorkspaceGuard,
     patch_input: &mut AuthenticatedText,
-    plan: &WorkspacePlan,
+    plan: &WorkspacePlanSummary,
     mut hook: impl FnMut(GenerationPoint, &Path, &Path),
 ) -> Result<PreparedGeneration, Vec<Diagnostic>> {
     if !guard.exclusive {
@@ -1250,7 +1682,7 @@ fn ensure_candidate_generation(
         ));
     }
     if plan.candidate.len() != guard.snapshot.files.len()
-        || plan.preflights.len() != plan.patch.files.len()
+        || plan.changed_count != plan.patch.files.len()
     {
         return Err(invariant("workspace plan cardinality is inconsistent"));
     }
@@ -1547,7 +1979,7 @@ fn publish_no_replace(
 #[allow(dead_code)]
 fn authenticate_expected_generation(
     path: &Path,
-    plan: &WorkspacePlan,
+    plan: &WorkspacePlanSummary,
     guard: &WorkspaceGuard,
 ) -> Result<PreparedGeneration, Vec<Diagnostic>> {
     let mut prepared = authenticate_generation_deep(
@@ -1653,6 +2085,10 @@ fn snapshot_inner(root: &Path, exclusive: bool) -> Result<WorkspaceSnapshot, Vec
 }
 
 fn acquire_snapshot(root: &Path, exclusive: bool) -> Result<WorkspaceGuard, Vec<Diagnostic>> {
+    finish_snapshot_guard(acquire_lock_only(root, exclusive)?)
+}
+
+fn acquire_lock_only(root: &Path, exclusive: bool) -> Result<WorkspaceLockGuard, Vec<Diagnostic>> {
     let root = canonical_root(root)?;
     let root_identity = authenticate_directory(&root)?;
     let control = root.join(CONTROL);
@@ -1678,6 +2114,30 @@ fn acquire_snapshot(root: &Path, exclusive: bool) -> Result<WorkspaceGuard, Vec<
         .map_err(|error| io("SPX-I209", format!("cannot open workspace LOCK: {error}")))?;
     let lock_identity = identity_from_file(&lock, "SPX-I209")?;
     lock_file(&lock, exclusive)?;
+    recheck_lock(&lock_path, &lock, &lock_identity)?;
+    Ok(WorkspaceLockGuard {
+        root,
+        root_identity,
+        control,
+        lock_path,
+        lock,
+        lock_identity,
+        exclusive,
+    })
+}
+
+fn finish_snapshot_guard(
+    lock_guard: WorkspaceLockGuard,
+) -> Result<WorkspaceGuard, Vec<Diagnostic>> {
+    let WorkspaceLockGuard {
+        root,
+        root_identity,
+        control,
+        lock_path,
+        lock,
+        lock_identity,
+        exclusive,
+    } = lock_guard;
     validate_control(&control)?;
     recheck_lock(&lock_path, &lock, &lock_identity)?;
     let authenticated = snapshot_authenticated(&root, &control, Some(&lock_identity))?;
@@ -1990,6 +2450,13 @@ fn parse_path_set(source: &str) -> Result<Vec<String>, Vec<Diagnostic>> {
 }
 
 fn parse_workspace_patch(source: &str) -> Result<WorkspacePatch, Vec<Diagnostic>> {
+    parse_workspace_patch_with_minimum(source, 2)
+}
+
+fn parse_workspace_patch_with_minimum(
+    source: &str,
+    minimum_changed_files: usize,
+) -> Result<WorkspacePatch, Vec<Diagnostic>> {
     let body = canonical_body(source, "workspace patch")?;
     validate_depth(body)?;
     let value: Value =
@@ -2000,8 +2467,10 @@ fn parse_workspace_patch(source: &str) -> Result<WorkspacePatch, Vec<Diagnostic>
     }
     let base = digest_text(object, "base_workspace_revision")?.to_owned();
     let values = array(object, "files")?;
-    if !(2..=MAX_MANAGED_FILES).contains(&values.len()) {
-        return Err(limit("workspace patch must change 2..16 files"));
+    if !(minimum_changed_files..=MAX_MANAGED_FILES).contains(&values.len()) {
+        return Err(limit(format!(
+            "workspace patch must change {minimum_changed_files}..16 files"
+        )));
     }
     let mut files = Vec::with_capacity(values.len());
     for value in values {
@@ -3245,6 +3714,10 @@ fn validate_logical_path(path: &str) -> Result<(), Vec<Diagnostic>> {
     }
     Ok(())
 }
+
+pub(crate) fn evidence_path_is_valid(path: &str) -> bool {
+    validate_logical_path(path).is_ok()
+}
 fn graph_schema_for(program: &Program) -> Result<&'static str, Vec<Diagnostic>> {
     let resolved = hir::resolve(program)?;
     Ok(graph::graph_schema(&resolved))
@@ -3569,7 +4042,8 @@ mod tests {
         count_entries_bounded, file_facts, identity_from_path, initialize, initialize_with_hook,
         map_post_publication_candidate_diagnostics, parse_path_set,
         prepare_candidate_generation_with_hook, require_distinct_path_identities,
-        validate_staging_inventory, ApplyPoint, FileFact, GenerationPoint, InitializePoint,
+        require_exact_path_association, validate_staging_inventory, ApplyPoint, FileFact,
+        GenerationPoint, InitializePoint,
     };
     use std::path::{Path, PathBuf};
     use std::process::{Child, Command, Stdio};
@@ -3718,6 +4192,20 @@ mod tests {
     fn canonical(source: &str, path: &str) -> String {
         let program = crate::parse(source, Path::new(path)).unwrap();
         crate::format::canonical(&program)
+    }
+
+    #[test]
+    fn evidence_preflight_paths_are_keyed_not_positional() {
+        let expected = vec!["alpha.spx".to_owned(), "beta.spx".to_owned()];
+        let reordered = vec!["beta.spx".to_owned(), "alpha.spx".to_owned()];
+        require_exact_path_association(&expected, &reordered).unwrap();
+
+        let duplicate = vec!["alpha.spx".to_owned(), "alpha.spx".to_owned()];
+        assert!(require_exact_path_association(&expected, &duplicate).is_err());
+        let missing = vec!["alpha.spx".to_owned()];
+        assert!(require_exact_path_association(&expected, &missing).is_err());
+        let foreign = vec!["alpha.spx".to_owned(), "gamma.spx".to_owned()];
+        assert!(require_exact_path_association(&expected, &foreign).is_err());
     }
 
     #[test]

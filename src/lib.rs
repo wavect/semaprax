@@ -50,6 +50,7 @@ pub mod wasm;
 #[doc(hidden)]
 pub mod wit_component;
 pub mod workspace;
+pub mod workspace_patch_evidence;
 
 mod graph_cleanup;
 mod host_ownership;

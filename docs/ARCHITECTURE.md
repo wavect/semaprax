@@ -1043,6 +1043,37 @@ all 12 jobs passed. Earlier run 31471716036 on `4daa407` failed only Windows
 strict Clippy and is not green evidence. This adds no status transition: the
 matrix remains 38 Partial/18 Missing.
 
+### Workspace Patch Evidence v1
+
+`src/workspace_patch_evidence.rs` owns the additive
+`semaprax.semantic-workspace-patch-evidence.v1` capsule and
+`semaprax.semantic-workspace-patch-evidence-verification.v1` receipt. One
+shared path-keyed Workspace plan feeds the exact preview binding and each
+changed path's existing Review-v1 and child Patch-Evidence-v1 build. The outer
+file entry records only closed source/Graph/Patch/Review/assessment/supporting-
+evidence facts plus the independently rendered child artifact digest; it does
+not embed the child bytes, Target Evidence, or Evidence v2 and performs no
+cross-file semantic reasoning.
+
+`workspace_patch_evidence::{generate, verify}` hold the permanent shared lock.
+Generate owns the exact Workspace Patch once and emits the canonical capsule;
+verify owns evidence then Patch bytes, independently rebuilds every binding,
+and emits a receipt only for exact typed and byte replay. The apply route takes
+the exclusive lock before input authority work, owns Patch and evidence once,
+and requires exact replay before candidate generation or staging. It then
+converts the sealed read build into the same `WorkspaceCommitAuthority` used
+by ordinary apply and enters the unchanged candidate/two-final-check/`ACTIVE`-
+pivot core. The capsule and receipt have no authority; the live invocation
+does. `SPX-I212` remains post-pivot only.
+
+Exact schema/key order, bounds, domains, diagnostics, eight whole-artifact
+KATs, and the ordered nonclaims are frozen in [Semantic Workspace Patch
+Evidence v1](SEMANTIC-WORKSPACE-PATCH-EVIDENCE-V1.md). Local evidence is public
+6/6, apply 5/5, hostile 2/2, module units 7/7, shared Workspace core 38/38,
+Workspace integration 12/12, root library 494/494, and preservation 107/107.
+Full local gates and security are green; hosted exact-head evidence is pending.
+No matrix status changes: totals remain 38 Partial/18 Missing.
+
 ## Transactions
 
 The `.spatch` protocol is intentionally smaller than a text patch:

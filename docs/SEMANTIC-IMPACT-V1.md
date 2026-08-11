@@ -261,3 +261,10 @@ The separate [Semantic Workspace Transaction
 v1](SEMANTIC-WORKSPACE-TRANSACTION-V1.md) performs no Impact-v1 or repository
 analysis. Impact remains a single-file Patch v1/v2 preview and gains no
 multi-file closure, persistence, ranking, repair, or commit authority.
+
+[Semantic Workspace Patch Evidence
+v1](SEMANTIC-WORKSPACE-PATCH-EVIDENCE-V1.md) independently rebuilds that exact
+complete single-file Impact object for each Patch-v1/v2 child and binds only
+its existing supporting-evidence digest. It performs no cross-file Impact
+closure or repository reasoning and changes no Impact bytes, KATs, limits,
+diagnostics, or nonclaims.

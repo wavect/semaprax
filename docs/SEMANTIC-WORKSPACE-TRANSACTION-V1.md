@@ -409,13 +409,14 @@ cargo test --locked -p semaprax --all-features --lib workspace::tests
 
 ## Exact nonclaims
 
-This slice does not provide cross-file semantic resolution, a repository or
-multi-file semantic Graph, Impact/Review/Context/Target/test analysis,
-workspace Evidence or proof artifacts, signatures/MACs/authenticated
-provenance, approval, reusable authorization, external-consumer compatibility,
-or new Patch/Graph/CleanupPlan/backend/runtime semantics. It does not create,
-delete, move, or flat-materialize sources and does not atomically update raw
-files, Git, editors, or noncooperating readers.
+The Workspace snapshot and preview artifacts do not provide cross-file
+semantic resolution, a repository or multi-file semantic Graph,
+Impact/Review/Context/Target/test analysis, Workspace Evidence or proof
+artifacts, signatures/MACs/authenticated provenance, approval, reusable
+authorization, external-consumer compatibility, or new Patch/Graph/
+CleanupPlan/backend/runtime semantics. They do not create, delete, move, or
+flat-materialize sources and do not atomically update raw files, Git, editors,
+or noncooperating readers.
 
 It does not guarantee network/distributed/NFS/overlay behavior, power-loss
 durability, automatic rollback, cleanup or garbage collection, ACL/xattr/ADS
@@ -423,5 +424,12 @@ preservation, general multi-file repair, or completion of the RFC 0001
 multi-file graph/API goal. Existing Semantic Patch v1/v2/v3, single-file A0,
 Impact v1, Diagnostic Repair v1, Review v1, Target Evidence v1, and Patch
 Evidence v1/v2 bytes, APIs, KATs, authority, and nonclaims remain unchanged.
+
+The additive [Semantic Workspace Patch Evidence
+v1](SEMANTIC-WORKSPACE-PATCH-EVIDENCE-V1.md) independently binds this exact
+preview and per-file child Evidence-v1 facts in a separate outer capsule. It
+does not alter any Workspace v1 artifact or authority rule. Snapshot and
+preview retain `no_workspace_evidence_or_proof_artifact`; the outer capsule is
+the separate proof carrier and still grants no commit authority.
 
 The completion dashboard therefore remains exactly 38 Partial and 18 Missing.

@@ -7,10 +7,11 @@ use std::path::Path;
 
 use sha2::{Digest, Sha256};
 
+use crate::bounded_output::BudgetedJoin as _;
 use crate::diagnostic::{quote_json, Diagnostic};
 use crate::{patch, review, target_evidence};
 
-const EVIDENCE_SCHEMA: &str = "semaprax.semantic-patch-evidence.v1";
+pub(crate) const EVIDENCE_SCHEMA: &str = "semaprax.semantic-patch-evidence.v1";
 const VERIFICATION_SCHEMA: &str = "semaprax.semantic-patch-evidence-verification.v1";
 const REVIEW_SCHEMA: &str = "semaprax.semantic-review.v1";
 const REVIEW_DIGEST_DOMAIN: &[u8] = b"semaprax.semantic-patch-evidence.review-digest.v1\0";
@@ -71,7 +72,7 @@ const NONCLAIMS_V2: [&str; 15] = [
 ];
 
 #[derive(Clone, Copy)]
-struct EvidenceUsage {
+pub(crate) struct EvidenceUsage {
     source_bytes: usize,
     patch_bytes: usize,
     operations: usize,
@@ -85,7 +86,7 @@ struct EvidenceUsage {
 }
 
 #[derive(Clone)]
-struct CapsuleFacts {
+pub(crate) struct PatchEvidenceFacts {
     source_graph_schema: String,
     base_revision: String,
     candidate_revision: String,
@@ -100,8 +101,132 @@ struct CapsuleFacts {
     usage: EvidenceUsage,
 }
 
+#[allow(
+    dead_code,
+    reason = "shared by the private Workspace Evidence Phase A build"
+)]
+impl PatchEvidenceFacts {
+    pub(crate) fn source_graph_schema(&self) -> &str {
+        &self.source_graph_schema
+    }
+
+    pub(crate) fn base_revision(&self) -> &str {
+        &self.base_revision
+    }
+
+    pub(crate) fn candidate_revision(&self) -> &str {
+        &self.candidate_revision
+    }
+
+    pub(crate) fn source_digest(&self) -> &str {
+        &self.source_digest
+    }
+
+    pub(crate) fn patch_schema(&self) -> &str {
+        &self.patch_schema
+    }
+
+    pub(crate) fn patch_digest(&self) -> &str {
+        &self.patch_digest
+    }
+
+    pub(crate) fn review_digest(&self) -> &str {
+        &self.review_digest
+    }
+
+    pub(crate) fn assessments(&self) -> &[String; 7] {
+        &self.assessments
+    }
+
+    pub(crate) fn supporting_kind(&self) -> &str {
+        &self.supporting_kind
+    }
+
+    pub(crate) fn supporting_schema(&self) -> &str {
+        &self.supporting_schema
+    }
+
+    pub(crate) fn supporting_digest(&self) -> &str {
+        &self.supporting_digest
+    }
+
+    pub(crate) fn usage(&self) -> EvidenceUsage {
+        self.usage
+    }
+}
+
+#[allow(
+    dead_code,
+    reason = "shared by the private Workspace Evidence Phase A build"
+)]
+impl EvidenceUsage {
+    pub(crate) fn source_bytes(self) -> usize {
+        self.source_bytes
+    }
+
+    pub(crate) fn patch_bytes(self) -> usize {
+        self.patch_bytes
+    }
+
+    pub(crate) fn operations(self) -> usize {
+        self.operations
+    }
+
+    pub(crate) fn declarations(self) -> usize {
+        self.declarations
+    }
+
+    pub(crate) fn callables(self) -> usize {
+        self.callables
+    }
+
+    pub(crate) fn call_sites(self) -> usize {
+        self.call_sites
+    }
+
+    pub(crate) fn impact_depth(self) -> usize {
+        self.impact_depth
+    }
+
+    pub(crate) fn impact_nodes(self) -> usize {
+        self.impact_nodes
+    }
+
+    pub(crate) fn impact_bytes(self) -> usize {
+        self.impact_bytes
+    }
+
+    pub(crate) fn review_bytes(self) -> usize {
+        self.review_bytes
+    }
+}
+
+#[allow(dead_code, reason = "digest is shared by Workspace Evidence Phase A")]
+pub(crate) struct RenderedPatchEvidence {
+    artifact: String,
+    digest: String,
+}
+
+#[allow(
+    dead_code,
+    reason = "shared by the private Workspace Evidence Phase A build"
+)]
+impl RenderedPatchEvidence {
+    pub(crate) fn artifact(&self) -> &str {
+        &self.artifact
+    }
+
+    pub(crate) fn digest(&self) -> &str {
+        &self.digest
+    }
+
+    pub(crate) fn into_parts(self) -> (String, String) {
+        (self.artifact, self.digest)
+    }
+}
+
 struct CapsuleV2Facts {
-    review: CapsuleFacts,
+    review: PatchEvidenceFacts,
     target_digest: String,
     target_report_bytes: usize,
     target_usage: [usize; 6],
@@ -361,8 +486,8 @@ fn apply_with_hook(
     )
     .map_err(map_review_diagnostics)?;
     let expected_facts = facts_from_review(&build)?;
-    let expected = render_capsule_bounded(&expected_facts)?;
-    if submitted != expected || !same_bindings(&submitted_facts, &expected_facts) {
+    let expected = render_from_facts(&expected_facts)?;
+    if submitted != expected.artifact || !same_bindings(&submitted_facts, &expected_facts) {
         return Err(vec![mismatch_error(
             "submitted Semantic Patch Evidence differs from independent canonical replay",
         )]);
@@ -416,7 +541,7 @@ fn generate_with_hook(
     )
     .map_err(map_review_diagnostics)?;
     let facts = facts_from_review(&build)?;
-    let capsule = render_capsule_bounded(&facts)?;
+    let capsule = render_from_facts(&facts)?.artifact;
     hook(ReadPhase::FinalCheck, &canonical_source_path, source_path).map_err(|error| {
         vec![Diagnostic::io(
             "SPX-I207",
@@ -468,8 +593,8 @@ fn verify_with_hook(
     )
     .map_err(map_review_diagnostics)?;
     let expected_facts = facts_from_review(&build)?;
-    let expected = render_capsule_bounded(&expected_facts)?;
-    if submitted != expected || !same_bindings(&submitted_facts, &expected_facts) {
+    let expected = render_from_facts(&expected_facts)?;
+    if submitted != expected.artifact || !same_bindings(&submitted_facts, &expected_facts) {
         return Err(vec![mismatch_error(
             "submitted Semantic Patch Evidence differs from independent canonical replay",
         )]);
@@ -492,7 +617,12 @@ fn verify_with_hook(
     Ok(receipt)
 }
 
-fn facts_from_review(build: &review::ReviewBuild) -> Result<CapsuleFacts, Vec<Diagnostic>> {
+/// Extracts the immutable Patch Evidence v1 facts directly from the typed
+/// Review build. Consumers must not reconstruct these bindings by parsing the
+/// rendered Review JSON.
+pub(crate) fn facts_from_review(
+    build: &review::ReviewBuild,
+) -> Result<PatchEvidenceFacts, Vec<Diagnostic>> {
     if build.report().len() > review::MAX_OUTPUT_BYTES {
         return Err(vec![bound_error(format!(
             "semantic review evidence exceeds {} bytes",
@@ -509,7 +639,7 @@ fn facts_from_review(build: &review::ReviewBuild) -> Result<CapsuleFacts, Vec<Di
     let supporting = build.supporting_evidence();
     validate_supporting(supporting.kind(), supporting.schema())?;
     let usage = build.usage();
-    Ok(CapsuleFacts {
+    Ok(PatchEvidenceFacts {
         source_graph_schema: build.source_graph_schema().to_owned(),
         base_revision: build.base_revision().to_owned(),
         candidate_revision: build.candidate_revision().to_owned(),
@@ -534,6 +664,24 @@ fn facts_from_review(build: &review::ReviewBuild) -> Result<CapsuleFacts, Vec<Di
             review_bytes: build.report().len(),
         },
     })
+}
+
+/// Renders the exact canonical child Patch Evidence v1 artifact, including its
+/// terminal LF, and binds those literal bytes with the existing v1 artifact
+/// digest domain.
+pub(crate) fn render_from_facts(
+    facts: &PatchEvidenceFacts,
+) -> Result<RenderedPatchEvidence, Vec<Diagnostic>> {
+    render_from_facts_with_limit(facts, MAX_EVIDENCE_BYTES)
+}
+
+pub(crate) fn render_from_facts_with_limit(
+    facts: &PatchEvidenceFacts,
+    max_evidence_bytes: usize,
+) -> Result<RenderedPatchEvidence, Vec<Diagnostic>> {
+    let artifact = render_capsule_bounded_with_limit(facts, max_evidence_bytes)?;
+    let digest = domain_digest(ARTIFACT_DIGEST_DOMAIN, artifact.as_bytes());
+    Ok(RenderedPatchEvidence { artifact, digest })
 }
 
 fn facts_v2_from_review(build: &review::ReviewBuild) -> Result<CapsuleV2Facts, Vec<Diagnostic>> {
@@ -703,16 +851,32 @@ fn validated_assessments<'a>(
     })
 }
 
-fn render_capsule_bounded(facts: &CapsuleFacts) -> Result<String, Vec<Diagnostic>> {
+fn render_capsule_bounded_with_limit(
+    facts: &PatchEvidenceFacts,
+    max_evidence_bytes: usize,
+) -> Result<String, Vec<Diagnostic>> {
     let mut used_evidence_bytes = 0usize;
     for _ in 0..4 {
-        let mut output = render_capsule(facts, used_evidence_bytes);
+        let limit = MAX_EVIDENCE_BYTES.min(max_evidence_bytes);
+        if limit == 0 {
+            return Err(vec![bound_error(
+                "Semantic Patch Evidence exceeds its available evidence budget",
+            )]);
+        }
+        let (mut output, overflowed) = crate::bounded_output::with_limit(limit - 1, || {
+            render_capsule(facts, used_evidence_bytes)
+        });
         output.push('\n');
+        if overflowed {
+            return Err(vec![bound_error(
+                "Semantic Patch Evidence exceeds its available evidence budget",
+            )]);
+        }
         if output.len() == used_evidence_bytes {
-            if output.len() > MAX_EVIDENCE_BYTES {
-                return Err(vec![bound_error(format!(
-                    "Semantic Patch Evidence exceeds {MAX_EVIDENCE_BYTES} bytes"
-                ))]);
+            if output.len() > limit {
+                return Err(vec![bound_error(
+                    "Semantic Patch Evidence exceeds its available evidence budget",
+                )]);
             }
             return Ok(output);
         }
@@ -723,8 +887,8 @@ fn render_capsule_bounded(facts: &CapsuleFacts) -> Result<String, Vec<Diagnostic
     )])
 }
 
-fn render_capsule(facts: &CapsuleFacts, used_evidence_bytes: usize) -> String {
-    format!(
+fn render_capsule(facts: &PatchEvidenceFacts, used_evidence_bytes: usize) -> String {
+    crate::bounded_output::budgeted_format(format_args!(
         "{{\"schema\":\"{EVIDENCE_SCHEMA}\",\"source_graph_schema\":{},\"base_revision\":{},\"candidate_revision\":{},\"source\":{{\"digest\":{}}},\"patch\":{{\"schema\":{},\"digest\":{}}},\"review\":{{\"schema\":\"{REVIEW_SCHEMA}\",\"digest\":{}}},\"assessments\":{},\"supporting_evidence\":{{\"id\":\"evidence:0\",\"kind\":{},\"schema\":{},\"digest\":{}}},\"limits\":{},\"budget\":{{\"used_source_bytes\":{},\"used_patch_bytes\":{},\"used_operations\":{},\"used_declarations\":{},\"used_callables\":{},\"used_call_sites\":{},\"used_impact_depth\":{},\"used_impact_nodes\":{},\"used_impact_bytes\":{},\"used_review_bytes\":{},\"used_evidence_bytes\":{used_evidence_bytes}}},\"nonclaims\":{}}}",
         quote_json(&facts.source_graph_schema),
         quote_json(&facts.base_revision),
@@ -749,11 +913,11 @@ fn render_capsule(facts: &CapsuleFacts, used_evidence_bytes: usize) -> String {
         facts.usage.impact_bytes,
         facts.usage.review_bytes,
         nonclaims_json(),
-    )
+    ))
 }
 
 fn render_receipt_bounded(
-    facts: &CapsuleFacts,
+    facts: &PatchEvidenceFacts,
     artifact_digest: &str,
     used_evidence_bytes: usize,
 ) -> Result<String, Vec<Diagnostic>> {
@@ -782,7 +946,7 @@ fn render_receipt_bounded(
 }
 
 fn render_receipt(
-    facts: &CapsuleFacts,
+    facts: &PatchEvidenceFacts,
     artifact_digest: &str,
     used_evidence_bytes: usize,
     used_receipt_bytes: usize,
@@ -817,7 +981,7 @@ fn render_receipt(
 }
 
 fn limits_json() -> String {
-    format!(
+    crate::bounded_output::budgeted_format(format_args!(
         "{{\"max_source_bytes\":{},\"max_patch_bytes\":{},\"max_evidence_bytes\":{MAX_EVIDENCE_BYTES},\"max_operations\":{},\"max_declarations\":{},\"max_callables\":{},\"max_call_sites\":{},\"max_impact_depth\":{},\"max_impact_nodes\":{},\"max_impact_bytes\":{},\"max_review_bytes\":{},\"max_receipt_bytes\":{MAX_RECEIPT_BYTES}}}",
         review::MAX_SOURCE_BYTES,
         review::MAX_PATCH_BYTES,
@@ -829,31 +993,39 @@ fn limits_json() -> String {
         review::MAX_IMPACT_NODES,
         review::MAX_IMPACT_BYTES,
         review::MAX_OUTPUT_BYTES,
-    )
+    ))
 }
 
 fn assessments_json(assessments: &[String; 7]) -> String {
     let entries = ASSESSMENT_KEYS
         .iter()
         .zip(assessments)
-        .map(|(key, value)| format!("{}:{}", quote_json(key), quote_json(value)))
+        .map(|(key, value)| {
+            crate::bounded_output::budgeted_format(format_args!(
+                "{}:{}",
+                quote_json(key),
+                quote_json(value)
+            ))
+        })
         .collect::<Vec<_>>()
-        .join(",");
-    format!("{{{entries}}}")
+        .as_slice()
+        .budgeted_join(",");
+    crate::bounded_output::budgeted_format(format_args!("{{{entries}}}"))
 }
 
 fn nonclaims_json() -> String {
-    format!(
+    crate::bounded_output::budgeted_format(format_args!(
         "[{}]",
         NONCLAIMS
             .iter()
             .map(|value| quote_json(value))
             .collect::<Vec<_>>()
-            .join(",")
-    )
+            .as_slice()
+            .budgeted_join(",")
+    ))
 }
 
-fn parse_canonical_capsule(source: &str) -> Result<CapsuleFacts, Vec<Diagnostic>> {
+fn parse_canonical_capsule(source: &str) -> Result<PatchEvidenceFacts, Vec<Diagnostic>> {
     if source.as_bytes().first() == Some(&0xef)
         || source.contains('\r')
         || !source.ends_with('\n')
@@ -975,7 +1147,7 @@ fn parse_canonical_capsule(source: &str) -> Result<CapsuleFacts, Vec<Diagnostic>
         )]);
     }
     validate_nonclaims(&top["nonclaims"])?;
-    let facts = CapsuleFacts {
+    let facts = PatchEvidenceFacts {
         source_graph_schema,
         base_revision,
         candidate_revision,
@@ -1149,7 +1321,7 @@ fn parse_canonical_capsule_v2(source: &str) -> Result<CapsuleV2Facts, Vec<Diagno
     }
     validate_nonclaims_v2(&top["nonclaims"])?;
     let facts = CapsuleV2Facts {
-        review: CapsuleFacts {
+        review: PatchEvidenceFacts {
             source_graph_schema,
             base_revision,
             candidate_revision,
@@ -1428,7 +1600,7 @@ fn validate_supporting(kind: &str, schema: &str) -> Result<(), Vec<Diagnostic>> 
     Ok(())
 }
 
-fn same_bindings(left: &CapsuleFacts, right: &CapsuleFacts) -> bool {
+fn same_bindings(left: &PatchEvidenceFacts, right: &PatchEvidenceFacts) -> bool {
     left.source_graph_schema == right.source_graph_schema
         && left.base_revision == right.base_revision
         && left.candidate_revision == right.candidate_revision
@@ -1788,6 +1960,36 @@ mod tests {
         let assessments = std::iter::repeat_n(("behavior", "unknown"), 8);
         let error = validated_assessments(assessments).unwrap_err();
         assert_eq!(error.code, "SPX-G133");
+    }
+
+    #[test]
+    fn workspace_child_renderer_respects_tiny_remaining_budget() {
+        let source = "module evidence.child_bound;\n@id(\"evidence.helper\") fn helper()->i64{1}\n@id(\"app.main\") fn main()->i64{helper()}\n";
+        let program = parse(source, Path::new("child-bound.spx")).unwrap();
+        let patch_source = format!(
+            "base {}\nrename evidence.helper to renamed\n",
+            graph::revision(&program)
+        );
+        let preflight = crate::patch::preflight_review_owned(
+            source.to_owned(),
+            patch_source,
+            Path::new("child-bound.spx").to_path_buf(),
+            review::MAX_OPERATIONS,
+        )
+        .unwrap();
+        let build = review::build_from_preflight(preflight).unwrap();
+        let facts = facts_from_review(&build).unwrap();
+        let exact = render_from_facts(&facts).unwrap();
+        assert_eq!(
+            render_from_facts_with_limit(&facts, MAX_EVIDENCE_BYTES)
+                .unwrap()
+                .artifact(),
+            exact.artifact()
+        );
+        let Err(error) = render_from_facts_with_limit(&facts, 1) else {
+            panic!("child rendering must stop at the remaining aggregate budget")
+        };
+        assert_eq!(error[0].code, "SPX-G131");
     }
 
     #[test]

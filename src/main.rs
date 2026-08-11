@@ -4,7 +4,7 @@ use std::process::{Command, ExitCode};
 use semaprax::diagnostic::{Diagnostic, Severity};
 use semaprax::{
     agent_economics, codegen, format, graph, impact, parse, patch, patch_evidence, quality_route,
-    repair, review, target_evidence, verify, wasm, workspace,
+    repair, review, target_evidence, verify, wasm, workspace, workspace_patch_evidence,
 };
 
 fn main() -> ExitCode {
@@ -221,6 +221,50 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             let revision =
                 workspace::apply(&root, &patch_path).map_err(|errors| report(&errors, false))?;
             println!("applied semantic workspace transaction; workspace is now {revision}");
+            Ok(())
+        }
+        "workspace-patch-evidence" => {
+            if args.len() != 3 {
+                eprintln!("workspace-patch-evidence requires exactly <root> <patch.wspatch>");
+                return Err(2);
+            }
+            let root = required_path(&args, 1)?;
+            let patch_path = required_path(&args, 2)?;
+            let evidence = workspace_patch_evidence::generate(&root, &patch_path)
+                .map_err(|errors| report(&errors, false))?;
+            print!("{evidence}");
+            Ok(())
+        }
+        "verify-workspace-patch-evidence" => {
+            if args.len() != 4 {
+                eprintln!(
+                    "verify-workspace-patch-evidence requires exactly <root> <patch.wspatch> <evidence.json>"
+                );
+                return Err(2);
+            }
+            let root = required_path(&args, 1)?;
+            let patch_path = required_path(&args, 2)?;
+            let evidence_path = required_path(&args, 3)?;
+            let receipt = workspace_patch_evidence::verify(&root, &patch_path, &evidence_path)
+                .map_err(|errors| report(&errors, false))?;
+            print!("{receipt}");
+            Ok(())
+        }
+        "workspace-apply-with-evidence" => {
+            if args.len() != 4 {
+                eprintln!(
+                    "workspace-apply-with-evidence requires exactly <root> <patch.wspatch> <evidence.json>"
+                );
+                return Err(2);
+            }
+            let root = required_path(&args, 1)?;
+            let patch_path = required_path(&args, 2)?;
+            let evidence_path = required_path(&args, 3)?;
+            let revision = workspace_patch_evidence::apply(&root, &patch_path, &evidence_path)
+                .map_err(|errors| report(&errors, false))?;
+            println!(
+                "applied semantic workspace transaction with exact evidence replay; workspace is now {revision}"
+            );
             Ok(())
         }
         "impact" => {
@@ -615,6 +659,9 @@ fn print_help() {
            semaprax workspace-snapshot <root>\n\
            semaprax workspace-preview <root> <patch.wspatch>\n\
            semaprax workspace-apply <root> <patch.wspatch>\n\
+           semaprax workspace-patch-evidence <root> <patch.wspatch>\n\
+           semaprax verify-workspace-patch-evidence <root> <patch.wspatch> <evidence.json>\n\
+           semaprax workspace-apply-with-evidence <root> <patch.wspatch> <evidence.json>\n\
            semaprax impact <file> <patch.spatch> [--depth N] [--max-bytes N] [--max-nodes N]\n\
            semaprax review <file> <patch.spatch>\n\
            semaprax target-evidence <file> <patch.spatch>\n\

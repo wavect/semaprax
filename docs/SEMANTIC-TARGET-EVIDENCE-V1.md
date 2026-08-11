@@ -199,3 +199,9 @@ v1](SEMANTIC-WORKSPACE-TRANSACTION-V1.md) does not run Target Evidence, bind a
 target report, or turn this projection into multi-file evidence. All report
 bytes, KATs, execution/authority nonclaims, and compatibility boundaries above
 remain unchanged.
+
+[Semantic Workspace Patch Evidence
+v1](SEMANTIC-WORKSPACE-PATCH-EVIDENCE-V1.md) explicitly carries
+`no_target_evidence_or_evidence_v2_aggregation`; it neither invokes nor binds
+this report. Target Evidence bytes, KATs, execution nonclaims, and no-authority
+boundary remain unchanged.

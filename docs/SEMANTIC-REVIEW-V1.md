@@ -281,3 +281,10 @@ The separate [Semantic Workspace Transaction
 v1](SEMANTIC-WORKSPACE-TRANSACTION-V1.md) does not invoke, aggregate, or widen
 Review v1. Review remains single-file, read-only, non-proof, and without
 repository, multi-file, approval, or commit authority.
+
+The additive [Semantic Workspace Patch Evidence
+v1](SEMANTIC-WORKSPACE-PATCH-EVIDENCE-V1.md) independently rebuilds one exact
+Review-v1 object per changed path and binds its digest plus scalar assessments
+inside a separate outer proof carrier. It adds no cross-file Review reasoning,
+does not embed Review bytes, and does not change Review's read-only non-proof,
+no-authority API or KATs.

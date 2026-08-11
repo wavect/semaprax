@@ -4,6 +4,35 @@ All notable changes to SEMAPRAX are documented here.
 
 ## 0.2.0 — 2026-08-07
 
+- Added [Semantic Workspace Patch Evidence
+  v1](docs/SEMANTIC-WORKSPACE-PATCH-EVIDENCE-V1.md). The canonical outer
+  capsule binds one exact Workspace Patch/preview and, for every sorted changed
+  path, independently rebuilt source/Graph/Patch/Review/seven-assessment/
+  supporting-evidence facts plus a child Semantic Patch Evidence v1 digest.
+  `verify-workspace-patch-evidence` emits an exact-replay receipt;
+  `workspace-apply-with-evidence` acquires the exclusive permanent lock first
+  and requires exact typed and byte replay before candidate generation or
+  staging, then enters the unchanged sealed Workspace publication core. The
+  capsule and receipt grant no authority and aggregate neither Target Evidence
+  nor Evidence v2. Raw capsule/receipt SHA-256 KAT pairs are v1
+  `d0f0ec9abde015cd84745d8d71b260736874b7cff8f172194d04e8ebe489c197` /
+  `ee310a2f848dd034c20f727f011f30db46dfe478bbc1169467dec0d57c266ae1`,
+  v2 `95b054e188a4721e03c08b94afe0963394fc0af16be42ef3bdec0990218eb9f6` /
+  `da2440da67c87ec0ab873599c911fc78e816d02fcd12195532ce93817a15df0b`,
+  v3 `3fc5dc57a01ce2a9d1110dfd66ec96e9def90b8bfd3e5d2328aa9d4a81da19e4` /
+  `b05b0516508c7850b409b1b81dedfc51c708bfbe6e73c94db77a1aadce35f757`,
+  and mixed v1/v2/v3
+  `de764637af59c533feaba15dca373408cb50972f81afd3fde903f463550fde27` /
+  `3538b97acc1626972b0242085c87059c51b64c2ba7412172bbc2c5118f2f63c1`.
+  Local public generation/verification is 6/6, apply 5/5, hostile 2/2,
+  module units 7/7, shared Workspace core 38/38, Workspace integration 12/12,
+  root library 494/494, and preservation 107/107; full local gates and security
+  are green. Hosted exact-head evidence is pending. This adds no completion
+  transition: the dashboard remains 38 Partial/18 Missing, and unified
+  cross-file semantics, repository analysis, target/test execution,
+  provenance/approval, raw-tree materialization, recovery/GC, and durability
+  remain open.
+
 - Added [Semantic Workspace Transaction
   v1](docs/SEMANTIC-WORKSPACE-TRANSACTION-V1.md) and [ADR
   0002](docs/decisions/0002-managed-workspace-generations.md). The opt-in

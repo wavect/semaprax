@@ -8,9 +8,16 @@ use std::path::Path;
 use sha2::{Digest, Sha256};
 
 use crate::ast::{Expr, ExprKind, Program, Statement, TypeDeclarationKind};
+use crate::bounded_output::BudgetedJoin as _;
 use crate::diagnostic::{quote_json, Diagnostic};
 use crate::patch::{self, PatchPreflight, PreflightChange, PreflightOperation};
 use crate::{graph, hir, impact, parse};
+
+macro_rules! format {
+    ($($argument:tt)*) => {
+        crate::bounded_output::budgeted_format(format_args!($($argument)*))
+    };
+}
 
 const REVIEW_SCHEMA: &str = "semaprax.semantic-review.v1";
 const IDENTITY_REBASE_SCHEMA: &str = "semaprax.identity-rebase.v1";
@@ -30,6 +37,10 @@ const IMPACT_DIGEST_DOMAIN: &[u8] = b"semaprax.semantic-review.impact-digest.v1\
 const IDENTITY_REBASE_DIGEST_DOMAIN: &[u8] =
     b"semaprax.semantic-review.identity-rebase-digest.v1\0";
 const EVIDENCE_ID: &str = "evidence:0";
+
+pub(crate) fn source_digest(source: &[u8]) -> String {
+    domain_digest(SOURCE_DIGEST_DOMAIN, source)
+}
 
 #[derive(Clone, Copy)]
 pub(crate) struct ReviewUsage {
@@ -212,6 +223,13 @@ pub(crate) struct ReviewBuild {
     usage: ReviewUsage,
 }
 
+#[derive(Clone, Copy)]
+pub(crate) struct WorkspaceEvidenceLimits {
+    pub(crate) max_impact_nodes: usize,
+    pub(crate) max_impact_bytes: usize,
+    pub(crate) max_review_bytes: usize,
+}
+
 impl ReviewBuild {
     pub(crate) fn preflight(&self) -> &patch::PatchPreflight {
         &self.preflight
@@ -356,6 +374,46 @@ fn build_owned_with_candidate_limit(
     } else {
         patch::preflight_review_owned(source, patch_source, diagnostic_path, MAX_OPERATIONS)?
     };
+    build_from_preflight_with_candidate_limit(preflight, ast_usage, max_candidate_bytes)
+}
+
+/// Builds immutable Review v1 facts from an already authenticated pure Patch
+/// preflight. Workspace callers use this seam to avoid parsing or preflighting
+/// an embedded patch a second time; no Target-specific limit or diagnostic is
+/// introduced.
+#[allow(
+    dead_code,
+    reason = "consumed by the private Workspace Evidence Phase A build"
+)]
+pub(crate) fn build_from_preflight(
+    preflight: PatchPreflight,
+) -> Result<ReviewBuild, Vec<Diagnostic>> {
+    let ast_usage = precheck_program(preflight.before())?;
+    build_from_preflight_with_limits(preflight, ast_usage, None, None)
+}
+
+pub(crate) fn build_from_preflight_for_workspace(
+    preflight: PatchPreflight,
+    limits: WorkspaceEvidenceLimits,
+) -> Result<ReviewBuild, Vec<Diagnostic>> {
+    let ast_usage = precheck_program(preflight.before())?;
+    build_from_preflight_with_limits(preflight, ast_usage, None, Some(limits))
+}
+
+fn build_from_preflight_with_candidate_limit(
+    preflight: PatchPreflight,
+    ast_usage: AstUsage,
+    max_candidate_bytes: Option<usize>,
+) -> Result<ReviewBuild, Vec<Diagnostic>> {
+    build_from_preflight_with_limits(preflight, ast_usage, max_candidate_bytes, None)
+}
+
+fn build_from_preflight_with_limits(
+    preflight: PatchPreflight,
+    ast_usage: AstUsage,
+    max_candidate_bytes: Option<usize>,
+    workspace_limits: Option<WorkspaceEvidenceLimits>,
+) -> Result<ReviewBuild, Vec<Diagnostic>> {
     let resolve_checked = || -> Result<_, Vec<Diagnostic>> {
         let before_resolved = hir::resolve(preflight.before())?;
         let candidate_resolved = hir::resolve(preflight.candidate())?;
@@ -382,29 +440,81 @@ fn build_owned_with_candidate_limit(
         )]);
     }
     prove_review_classifications(&preflight)?;
-    let evidence = evidence_json(&preflight)?;
-    let usage = ReviewUsage {
+    let (sections, assessments) = if let Some(limits) = workspace_limits {
+        let (rendered, overflowed) =
+            crate::bounded_output::with_limit(limits.max_review_bytes, || {
+                sections_json(preflight.operations())
+            });
+        if overflowed {
+            return Err(vec![limit_error(
+                "semantic review aggregate output budget is exhausted",
+            )]);
+        }
+        rendered
+    } else {
+        sections_json(preflight.operations())
+    };
+    let source_digest = source_digest(preflight.source().as_bytes());
+    let patch_digest = domain_digest(PATCH_DIGEST_DOMAIN, preflight.patch_source().as_bytes());
+    let preliminary_usage = ReviewUsage {
         source_bytes: preflight.source().len(),
         patch_bytes: preflight.patch_source().len(),
         operations: preflight.operations().len(),
         declarations: ast_usage.declarations,
         callables: ast_usage.callables,
         call_sites: ast_usage.call_sites,
+        impact_depth: 0,
+        impact_nodes: 0,
+        impact_bytes: 0,
+    };
+    let workspace_limits = if preflight.identity_rebase().is_none() {
+        workspace_limits
+            .map(|limits| {
+                let envelope_input = ReviewRender {
+                    preflight: &preflight,
+                    source_graph_schema,
+                    source_digest: &source_digest,
+                    patch_digest: &patch_digest,
+                    evidence: "{}",
+                    sections: &sections,
+                    usage: preliminary_usage,
+                };
+                let envelope = render_with_budget(&envelope_input, limits.max_review_bytes)?;
+                // The Impact evidence wrapper has only fixed schema/id/digest
+                // text plus three bounded decimal counters. 512 bytes is a
+                // closed upper bound for that wrapper and all counter growth.
+                let available = limits
+                    .max_review_bytes
+                    .saturating_sub(envelope.len())
+                    .saturating_sub(512);
+                Ok::<_, Vec<Diagnostic>>(WorkspaceEvidenceLimits {
+                    max_impact_bytes: limits.max_impact_bytes.min(available),
+                    ..limits
+                })
+            })
+            .transpose()?
+    } else {
+        workspace_limits
+    };
+    let evidence = evidence_json(&preflight, workspace_limits)?;
+    let usage = ReviewUsage {
         impact_depth: evidence.impact_depth,
         impact_nodes: evidence.impact_nodes,
         impact_bytes: evidence.impact_bytes,
+        ..preliminary_usage
     };
-    let (sections, assessments) = sections_json(preflight.operations());
-    let source_digest = domain_digest(SOURCE_DIGEST_DOMAIN, preflight.source().as_bytes());
-    let patch_digest = domain_digest(PATCH_DIGEST_DOMAIN, preflight.patch_source().as_bytes());
-    let report = render_with_budget(
-        &preflight,
+    let report_input = ReviewRender {
+        preflight: &preflight,
         source_graph_schema,
-        &source_digest,
-        &patch_digest,
-        &evidence.json,
-        &sections,
+        source_digest: &source_digest,
+        patch_digest: &patch_digest,
+        evidence: &evidence.json,
+        sections: &sections,
         usage,
+    };
+    let report = render_with_budget(
+        &report_input,
+        workspace_limits.map_or(MAX_OUTPUT_BYTES, |limits| limits.max_review_bytes),
     )?;
     Ok(ReviewBuild {
         before_resolved,
@@ -571,45 +681,34 @@ pub(crate) fn precheck_counts_for_test(
     Ok((usage.declarations, usage.callables, usage.call_sites))
 }
 
-fn evidence_json(preflight: &PatchPreflight) -> Result<Evidence, Vec<Diagnostic>> {
-    if let Some(rebase) = preflight.identity_rebase() {
-        let callers = rebase
-            .direct_callers()
-            .iter()
-            .map(|caller| {
-                format!(
-                    "{{\"id\":{},\"identity_origin\":{},\"site_count\":{}}}",
-                    quote_json(caller.id()),
-                    quote_json(caller.identity_origin().text()),
-                    caller.site_count()
-                )
-            })
-            .collect::<Vec<_>>()
-            .join(",");
-        let identity_rebase = format!(
-            "{{\"before_id\":{},\"after_id\":{},\"name\":{},\"direct_callers\":[{}],\"derived_id_count\":{},\"derived_id_digest\":{}}}",
-            quote_json(rebase.before_id()),
-            quote_json(rebase.after_id()),
-            quote_json(rebase.name()),
-            callers,
-            rebase.derived_id_count(),
-            quote_json(rebase.derived_id_digest()),
-        );
-        let digest = domain_digest(IDENTITY_REBASE_DIGEST_DOMAIN, identity_rebase.as_bytes());
-        return Ok(Evidence {
-            json: format!(
-                "{{\"id\":\"{EVIDENCE_ID}\",\"kind\":\"identity_rebase_v1\",\"schema\":\"{IDENTITY_REBASE_SCHEMA}\",\"digest\":{},\"identity_rebase\":{identity_rebase}}}",
-                quote_json(&digest)
-            ),
-            kind: "identity_rebase_v1",
-            schema: IDENTITY_REBASE_SCHEMA,
-            digest,
-            impact_depth: 0,
-            impact_nodes: 0,
-            impact_bytes: 0,
-        });
+fn evidence_json(
+    preflight: &PatchPreflight,
+    workspace_limits: Option<WorkspaceEvidenceLimits>,
+) -> Result<Evidence, Vec<Diagnostic>> {
+    if preflight.identity_rebase().is_some() {
+        if let Some(limits) = workspace_limits {
+            let (evidence, overflowed) =
+                crate::bounded_output::with_limit(limits.max_review_bytes, || {
+                    identity_rebase_evidence(preflight)
+                });
+            if overflowed {
+                return Err(vec![limit_error(
+                    "semantic review aggregate output budget is exhausted",
+                )]);
+            }
+            return evidence;
+        }
+        return identity_rebase_evidence(preflight);
     }
-    let impact = impact::complete_review_evidence(preflight)?;
+    let impact = if let Some(limits) = workspace_limits {
+        impact::complete_review_evidence_bounded(
+            preflight,
+            limits.max_impact_nodes,
+            limits.max_impact_bytes,
+        )?
+    } else {
+        impact::complete_review_evidence(preflight)?
+    };
     if impact.report().len() > MAX_IMPACT_BYTES {
         return Err(vec![limit_error(format!(
             "semantic review Impact v1 evidence exceeds {MAX_IMPACT_BYTES} bytes"
@@ -629,6 +728,50 @@ fn evidence_json(preflight: &PatchPreflight) -> Result<Evidence, Vec<Diagnostic>
         impact_nodes: impact.used_nodes(),
         impact_bytes: impact.report().len(),
     })
+}
+
+fn identity_rebase_evidence(preflight: &PatchPreflight) -> Result<Evidence, Vec<Diagnostic>> {
+    if let Some(rebase) = preflight.identity_rebase() {
+        let callers = rebase
+            .direct_callers()
+            .iter()
+            .map(|caller| {
+                crate::bounded_output::budgeted_format(format_args!(
+                    "{{\"id\":{},\"identity_origin\":{},\"site_count\":{}}}",
+                    quote_json(caller.id()),
+                    quote_json(caller.identity_origin().text()),
+                    caller.site_count()
+                ))
+            })
+            .collect::<Vec<_>>()
+            .as_slice()
+            .budgeted_join(",");
+        let identity_rebase = crate::bounded_output::budgeted_format(format_args!(
+            "{{\"before_id\":{},\"after_id\":{},\"name\":{},\"direct_callers\":[{}],\"derived_id_count\":{},\"derived_id_digest\":{}}}",
+            quote_json(rebase.before_id()),
+            quote_json(rebase.after_id()),
+            quote_json(rebase.name()),
+            callers,
+            rebase.derived_id_count(),
+            quote_json(rebase.derived_id_digest()),
+        ));
+        let digest = domain_digest(IDENTITY_REBASE_DIGEST_DOMAIN, identity_rebase.as_bytes());
+        return Ok(Evidence {
+            json: crate::bounded_output::budgeted_format(format_args!(
+                "{{\"id\":\"{EVIDENCE_ID}\",\"kind\":\"identity_rebase_v1\",\"schema\":\"{IDENTITY_REBASE_SCHEMA}\",\"digest\":{},\"identity_rebase\":{identity_rebase}}}",
+                quote_json(&digest)
+            )),
+            kind: "identity_rebase_v1",
+            schema: IDENTITY_REBASE_SCHEMA,
+            digest,
+            impact_depth: 0,
+            impact_nodes: 0,
+            impact_bytes: 0,
+        });
+    }
+    Err(vec![invariant_error(
+        "identity-rebase evidence was requested without a typed rebase proof",
+    )])
 }
 
 fn prove_review_classifications(preflight: &PatchPreflight) -> Result<(), Vec<Diagnostic>> {
@@ -776,7 +919,8 @@ fn sections_json(operations: &[PreflightOperation]) -> (String, Vec<ReviewAssess
             .iter()
             .map(|(json, _)| json.as_str())
             .collect::<Vec<_>>()
-            .join(","),
+            .as_slice()
+            .budgeted_join(","),
         rendered
             .into_iter()
             .map(|(_, assessment)| assessment)
@@ -805,7 +949,8 @@ fn section_json(
             )
         })
         .collect::<Vec<_>>()
-        .join(",");
+        .as_slice()
+        .budgeted_join(",");
     (
         format!(
             "{}:{{\"kind\":{},\"assessment\":{},\"findings\":[{}]}}",
@@ -913,26 +1058,19 @@ fn operation_subject(operation: &PreflightOperation) -> (&'static str, String) {
 }
 
 fn render_with_budget(
-    preflight: &PatchPreflight,
-    source_graph_schema: &str,
-    source_digest: &str,
-    patch_digest: &str,
-    evidence: &str,
-    sections: &str,
-    usage: ReviewUsage,
+    input: &ReviewRender<'_>,
+    max_output_bytes: usize,
 ) -> Result<String, Vec<Diagnostic>> {
-    let input = ReviewRender {
-        preflight,
-        source_graph_schema,
-        source_digest,
-        patch_digest,
-        evidence,
-        sections,
-        usage,
-    };
     let mut used_output_bytes = 0usize;
     for _ in 0..4 {
-        let output = render_report(&input, used_output_bytes);
+        let (output, overflowed) = crate::bounded_output::with_limit(max_output_bytes, || {
+            render_report(input, used_output_bytes)
+        });
+        if overflowed || output.len() > max_output_bytes {
+            return Err(vec![limit_error(
+                "semantic review aggregate output budget is exhausted",
+            )]);
+        }
         if output.len() == used_output_bytes {
             if output.len() > MAX_OUTPUT_BYTES {
                 return Err(vec![limit_error(format!(
@@ -961,7 +1099,7 @@ struct ReviewRender<'a> {
 fn render_report(input: &ReviewRender<'_>, used_output_bytes: usize) -> String {
     let preflight = input.preflight;
     let usage = input.usage;
-    format!(
+    crate::bounded_output::budgeted_format(format_args!(
         "{{\"schema\":\"{REVIEW_SCHEMA}\",\"source_graph_schema\":{},\"base_revision\":{},\"candidate_revision\":{},\"source\":{{\"digest\":{}}},\"patch\":{{\"schema\":{},\"digest\":{}}},\"limits\":{{\"max_source_bytes\":{MAX_SOURCE_BYTES},\"max_patch_bytes\":{MAX_PATCH_BYTES},\"max_operations\":{MAX_OPERATIONS},\"max_declarations\":{MAX_DECLARATIONS},\"max_callables\":{MAX_CALLABLES},\"max_call_sites\":{MAX_CALL_SITES},\"max_impact_depth\":{MAX_IMPACT_DEPTH},\"max_impact_nodes\":{MAX_IMPACT_NODES},\"max_impact_bytes\":{MAX_IMPACT_BYTES},\"max_output_bytes\":{MAX_OUTPUT_BYTES}}},\"budget\":{{\"used_source_bytes\":{},\"used_patch_bytes\":{},\"used_operations\":{},\"used_declarations\":{},\"used_callables\":{},\"used_call_sites\":{},\"used_impact_depth\":{},\"used_impact_nodes\":{},\"used_impact_bytes\":{},\"used_output_bytes\":{used_output_bytes}}},\"sections\":{{{}}},\"evidence\":{},\"nonclaims\":[\"not_proof_carrying_patch\",\"no_authenticated_provenance_or_signature\",\"no_human_approval_ui_or_policy\",\"no_public_verify_api_or_proof_artifact\",\"no_lock_stage_apply_or_commit_authority\",\"no_repository_or_multi_file_analysis\",\"no_agent_context_generation_or_embedding\",\"no_test_or_target_execution\",\"no_general_capability_security_unsafe_or_abi_analysis\",\"no_semantic_impact_v3\",\"no_persistence_or_incrementality\",\"no_external_consumer_compatibility\"]}}",
         quote_json(input.source_graph_schema),
         quote_json(preflight.base_revision()),
@@ -980,7 +1118,7 @@ fn render_report(input: &ReviewRender<'_>, used_output_bytes: usize) -> String {
         usage.impact_bytes,
         input.sections,
         input.evidence,
-    )
+    ))
 }
 
 fn domain_digest(domain: &[u8], bytes: &[u8]) -> String {
@@ -1074,6 +1212,56 @@ mod tests {
         })
         .unwrap_err();
         assert_eq!(error[0].code, "SPX-I207");
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn late_workspace_v3_child_caps_many_caller_identity_serialization() {
+        let mut source =
+            String::from("module review.rebase_budget;\nfn helper(value:i64)->i64{value+1}\n");
+        for index in 0..128 {
+            source.push_str(&format!(
+                "@id(\"review.rebase_budget.c{index}\") fn c{index}(value:i64)->i64{{helper(value)}}\n"
+            ));
+        }
+        source.push_str("@id(\"app.main\") fn main()->i64{c0(41)}\n");
+        let (directory, source_path, patch_path) = fixture(&source, "");
+        let query = crate::repair::DiagnosticRepairQuery::assign_function_id(
+            "auto:review.rebase_budget.helper",
+        )
+        .unwrap();
+        let repairs: serde_json::Value =
+            serde_json::from_str(&crate::repair::query(&source_path, &query).unwrap()).unwrap();
+        let instantiated: serde_json::Value = serde_json::from_str(
+            &crate::repair::instantiate(
+                &source_path,
+                repairs["repair"]["id"].as_str().unwrap(),
+                &crate::repair::PersistentDeclarationId::new("review.rebase_budget.helper")
+                    .unwrap(),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        let patch_source = instantiated["patch"]["source"].as_str().unwrap();
+        std::fs::write(&patch_path, patch_source).unwrap();
+        let preflight = patch::preflight_review_owned(
+            source,
+            patch_source.to_owned(),
+            source_path,
+            MAX_OPERATIONS,
+        )
+        .unwrap();
+        let error = evidence_json(
+            &preflight,
+            Some(WorkspaceEvidenceLimits {
+                max_impact_nodes: MAX_IMPACT_NODES,
+                max_impact_bytes: MAX_IMPACT_BYTES,
+                max_review_bytes: 128,
+            }),
+        )
+        .err()
+        .expect("late child identity evidence must respect remaining bytes");
+        assert_eq!(error[0].code, "SPX-G120");
         std::fs::remove_dir_all(directory).unwrap();
     }
 }

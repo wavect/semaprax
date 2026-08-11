@@ -214,3 +214,8 @@ completion status and does not replace the next strategic multi-file tranche.
 the later separate managed-generation publication tranche. It neither embeds
 nor widens Evidence v2; `no_multi_file_transaction` remains exact for every v2
 capsule, receipt, and A0 apply route.
+
+The additive [Semantic Workspace Patch Evidence
+v1](SEMANTIC-WORKSPACE-PATCH-EVIDENCE-V1.md) admits child Evidence v1 only and
+explicitly excludes Target Evidence and Evidence v2 aggregation. No v2
+artifact, KAT, command, API, or nonclaim changes.

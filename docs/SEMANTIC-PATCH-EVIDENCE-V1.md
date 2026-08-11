@@ -280,6 +280,9 @@ change any Evidence v1 artifact, KAT, command, API, or nonclaim. V2 opts into a
 separate target-report binding; v1 remains target-execution-free and immutable.
 
 The separate [Semantic Workspace Transaction
-v1](SEMANTIC-WORKSPACE-TRANSACTION-V1.md) does not accept or emit Evidence v1
-capsules and adds no workspace proof/provenance binding. This document's
-single-file, no-multi-file artifact claim remains exact.
+v1](SEMANTIC-WORKSPACE-TRANSACTION-V1.md) ordinary APIs and commands do not
+accept or emit Evidence v1 capsules. The additive [Semantic Workspace Patch
+Evidence v1](SEMANTIC-WORKSPACE-PATCH-EVIDENCE-V1.md) independently rebuilds
+each child Evidence-v1 artifact and binds only its digest inside a separate
+outer capsule; it neither embeds nor widens the child. This document's
+single-file `no_multi_file_transaction` artifact claim remains exact.

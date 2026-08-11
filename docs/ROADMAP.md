@@ -690,6 +690,21 @@ general repairs/operations, raw-tree materialization, create/delete/move,
 automatic recovery/GC, and power-loss durability remain roadmap work. Totals
 stay 38 Partial/18 Missing.
 
+Semantic Workspace Patch Evidence v1 is the additive proof-carrier tranche on
+top of that managed publication model. It binds an exact Workspace Patch and
+preview to sorted per-file Review and child Patch-Evidence-v1 facts, freezes
+homogeneous v1/v2/v3 and mixed capsule/receipt KATs, and gates an opt-in apply
+route on exact replay before candidate generation or staging. Local public
+6/6, apply 5/5, hostile 2/2, units 7/7, shared Workspace 38/38, root library
+494/494, and preservation 107/107 are green; hosted exact-head evidence is
+pending. It grants no authority, performs no target/test or cross-file semantic
+reasoning, and includes neither Target Evidence nor Evidence v2. The next
+strategic architecture tranche remains a unified multi-file semantic Graph
+with real module/import/type/call/capability/identity resolution and repository
+Impact/Review/Context/Target/test consumers, followed by broader operations and
+raw-tree/product integration. This additive milestone changes no status: totals
+remain 38 Partial/18 Missing.
+
 - Versioned language, graph, package, and component specifications.
 - Reproducible native and component builds on supported targets.
 - Stable debugger and profiler integration.

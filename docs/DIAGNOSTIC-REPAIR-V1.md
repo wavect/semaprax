@@ -384,3 +384,9 @@ v1](SEMANTIC-WORKSPACE-TRANSACTION-V1.md) may embed the sole already-canonical
 Patch v3 operation for one managed file. It does not add another repair,
 compose repairs across files, widen Graph v11-v14 admission, or change this
 document's general/multi-file repair nonclaims.
+
+[Semantic Workspace Patch Evidence
+v1](SEMANTIC-WORKSPACE-PATCH-EVIDENCE-V1.md) may bind that same child operation's
+existing identity-rebase and Patch-Evidence-v1 digests. It adds no repair,
+composition, cross-file reasoning, Target/Evidence-v2 aggregation, or new
+Graph/CleanupPlan/backend/runtime meaning.

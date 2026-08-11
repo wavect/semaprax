@@ -143,3 +143,9 @@ v1](SEMANTIC-WORKSPACE-TRANSACTION-V1.md) may embed an exact canonical Patch v2
 string for one changed managed file. That composition does not change this
 single-file grammar, preflight, KATs, authority, provenance nonclaim, or
 semantic-delta gate and adds no cross-file Patch meaning.
+
+[Semantic Workspace Patch Evidence
+v1](SEMANTIC-WORKSPACE-PATCH-EVIDENCE-V1.md) independently rebuilds the same
+child preflight and binds its existing Patch/Review/Evidence-v1 digests. The
+outer capsule changes no Patch-v2 bytes, operation, authority, or single-file
+semantic-delta boundary.

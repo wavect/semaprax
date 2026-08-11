@@ -24,6 +24,10 @@ route, also read `docs/SEMANTIC-PATCH-EVIDENCE-V1.md`.
 For deterministic compiler target projections or their additive Evidence v2
 binding, also read `docs/SEMANTIC-TARGET-EVIDENCE-V1.md` and
 `docs/SEMANTIC-PATCH-EVIDENCE-V2.md`.
+For multi-file managed publication or its exact per-file Evidence-v1 proof
+carrier and evidence-gated apply route, also read
+`docs/SEMANTIC-WORKSPACE-TRANSACTION-V1.md` and
+`docs/SEMANTIC-WORKSPACE-PATCH-EVIDENCE-V1.md`.
 For native owned-call recovery, physical failure, settlement, or quiescence,
 also read `docs/RFC-0004-NATIVE-CALL-SETTLEMENT.md`; its hidden Rust model is
 proof scaffolding, not a wired native-runtime claim.
@@ -47,6 +51,9 @@ proof scaffolding, not a wired native-runtime claim.
 - `src/workspace.rs`: bounded managed immutable-generation workspace
   transactions; atomic visibility is through the authenticated `ACTIVE` pivot
   for cooperating readers, not through raw source paths.
+- `src/workspace_patch_evidence.rs`: canonical multi-file Workspace Patch
+  Evidence v1 generation, exact replay receipts, and replay-before-candidate
+  application through the existing Workspace authority.
 - `src/call_index.rs`, `impact.rs`: shared validated-HIR call index and bounded,
   read-only single-file Semantic Impact v1 preview.
 - `src/repair.rs`: bounded read-only Diagnostic Repair v1 discovery and
@@ -74,6 +81,10 @@ proof scaffolding, not a wired native-runtime claim.
 - A successful workspace transaction publishes one complete immutable managed
   generation through `ACTIVE`; it does not rewrite the original source files
   or grant atomic visibility to Git, editors, or other raw-path readers.
+- Workspace evidence capsules have no authority. The evidence-gated workspace
+  route acquires the exclusive permanent lock first, but exact replay must
+  succeed before candidate generation or staging and the existing live
+  Workspace invocation alone owns the `ACTIVE` pivot.
 - Evidence-gated patch application acquires the ordinary A0 lock first, but
   must independently replay the exact bounded evidence before staging or
   final commit; ordinary `patch` remains the unchanged legacy route.

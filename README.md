@@ -299,6 +299,19 @@ Implemented today:
   statuses and leaves general cross-file semantics, repository Graph/analysis,
   create/delete/move, raw-tree materialization, automatic recovery/GC, and
   power-loss durability open.
+- [Semantic Workspace Patch Evidence
+  v1](docs/SEMANTIC-WORKSPACE-PATCH-EVIDENCE-V1.md) adds canonical outer
+  capsules and independent receipts over one exact Workspace Patch/preview and
+  per-path Review plus child Patch Evidence-v1 digests. Its opt-in apply route
+  takes the exclusive Workspace lock first, requires exact replay before any
+  candidate or staging creation, then uses the unchanged managed-generation
+  publication core. Capsule/receipt KATs cover homogeneous v1/v2/v3 and mixed
+  children. Local public 6/6, apply 5/5, hostile 2/2, units 7/7, shared
+  Workspace 38/38, root library 494/494, and preservation 107/107 are green;
+  hosted exact-head evidence is pending. The capsule grants no authority,
+  executes no target/test, performs no cross-file semantic reasoning, embeds
+  no Target Evidence or Evidence v2, and changes none of the 38 Partial/18
+  Missing statuses.
 - Native AOT output through a readable C11 lowering and Clang.
 - Direct WebAssembly core output with a generated ES-module runtime, HTML entry point, capability manifest, checked arithmetic, and contract traps.
 - A deliberately narrow `semaprax.wasm-owned.v1` Core Wasm path for one direct
@@ -800,6 +813,21 @@ resolution, a repository transaction, or a proof/provenance token. See
 v1](docs/SEMANTIC-WORKSPACE-TRANSACTION-V1.md) and [ADR
 0002](docs/decisions/0002-managed-workspace-generations.md).
 
+An opt-in evidence-gated workspace route is:
+
+```sh
+semaprax workspace-patch-evidence . change.wspatch > evidence.json
+semaprax verify-workspace-patch-evidence . change.wspatch evidence.json
+semaprax workspace-apply-with-evidence . change.wspatch evidence.json
+```
+
+The outer capsule binds exact independently rebuilt per-file Patch Evidence v1
+facts by digest; child artifacts remain single-file and retain their
+`no_multi_file_transaction` nonclaim. Exact replay happens before candidate or
+staging creation. The live invocation, not the artifact, owns the existing
+Workspace lock/generation/`ACTIVE` authority. See [Semantic Workspace Patch
+Evidence v1](docs/SEMANTIC-WORKSPACE-PATCH-EVIDENCE-V1.md).
+
 ## CLI
 
 | Command | Purpose |
@@ -816,6 +844,9 @@ v1](docs/SEMANTIC-WORKSPACE-TRANSACTION-V1.md) and [ADR
 | `workspace-snapshot <root>` | Emit the authenticated selected managed workspace snapshot |
 | `workspace-preview <root> <patch.wspatch>` | Preview a canonical 2–16-file managed workspace transaction without publication authority |
 | `workspace-apply <root> <patch.wspatch>` | Publish a complete authenticated managed generation by pivoting only `ACTIVE` |
+| `workspace-patch-evidence <root> <patch.wspatch>` | Emit canonical bounded Workspace Patch Evidence v1 without creating candidate state |
+| `verify-workspace-patch-evidence <root> <patch.wspatch> <evidence.json>` | Independently replay a workspace capsule and emit its canonical receipt |
+| `workspace-apply-with-evidence <root> <patch.wspatch> <evidence.json>` | Require exact workspace evidence replay before candidate generation, staging, and the existing `ACTIVE` pivot |
 | `patch-evidence <file> <patch.spatch>` | Emit canonical bounded Semantic Patch Evidence v1 without writing source |
 | `verify-patch-evidence <file> <patch.spatch> <evidence.json>` | Independently replay a capsule and emit its canonical verification receipt |
 | `patch-with-evidence <file> <patch.spatch> <evidence.json>` | Require exact evidence replay before A0 staging and commit |

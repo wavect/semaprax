@@ -268,6 +268,33 @@ all 12 jobs passed. Earlier run 31471716036 on `4daa407` failed only Windows
 strict Clippy and is not green evidence. The completion ledger remains 38
 Partial/18 Missing.
 
+## Workspace Transaction v1 to Workspace Patch Evidence v1
+
+There is no implicit migration. Existing Workspace path-set, root, manifest,
+snapshot, preview, Patch, initialization, and ordinary apply bytes, APIs,
+commands, KATs, and authority boundaries remain unchanged. A consumer opts
+into [Semantic Workspace Patch Evidence
+v1](SEMANTIC-WORKSPACE-PATCH-EVIDENCE-V1.md) by generating the separate
+`semaprax.semantic-workspace-patch-evidence.v1` capsule, retaining the exact
+Workspace Patch bytes, and using `verify-workspace-patch-evidence` or
+`workspace-apply-with-evidence` explicitly.
+
+The outer capsule binds each changed path's independently rebuilt Semantic
+Patch Evidence v1 facts by digest. It does not convert, embed, or widen a child
+capsule; the child's `no_multi_file_transaction` remains exact. There is no
+automatic upgrade to Target Evidence or Patch Evidence v2, no repository or
+cross-file Impact/Review reasoning, and no migration of raw files, Git,
+editors, or other noncooperating readers into the managed publication model.
+
+Capsule and receipt are evidence, not authorization. The apply command takes
+the exclusive permanent lock first, treats submitted evidence as immutable
+owned untrusted bytes, requires exact typed and byte replay before candidate
+or staging creation, and only then uses the existing live Workspace authority.
+Operators must retain the original Workspace recovery/inventory rules: no
+automatic rollback, cleanup, GC, raw-tree materialization, or power-loss/
+network/ACL compatibility follows. Local gates are green; hosted exact-head
+evidence is pending. Completion remains 38 Partial/18 Missing.
+
 ## Persistent identities are NUL-free
 
 Persistent semantic identities and logical import keys may not contain a literal NUL byte. Source validation reports the declaration-specific stable diagnostic before resolution or graph serialization; `\0` remains an unsupported source-string escape. Public consumers of transformed resolved HIR must likewise reject NUL in declaration IDs, types, expressions, places, call/record/field references, and attached cleanup inventory or plan metadata before code generation or serialization. Regenerate or rename any pre-alpha fixture that constructed such an identity directly.

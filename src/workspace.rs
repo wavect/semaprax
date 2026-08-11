@@ -2188,7 +2188,7 @@ pub(crate) fn commit_workspace_authority_with_hook(
             Some(&active_stage_path),
             Some(&candidate.path),
         )
-        .map_err(|error| io("SPX-I211", format!("post-pivot hook failed: {error}")))?;
+        .map_err(|error| final_uncertainty(format!("post-pivot hook failed: {error}")))?;
         let mut published_active = authenticate_text(&active_path, MAX_MANIFEST_BYTES, "SPX-I212")
             .map_err(map_final_uncertainty)?;
         active_fingerprint

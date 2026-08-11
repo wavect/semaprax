@@ -4,6 +4,37 @@ All notable changes to SEMAPRAX are documented here.
 
 ## 0.2.0 — 2026-08-07
 
+- Added [Semantic Workspace v1](docs/SEMANTIC-WORKSPACE-V1.md),
+  [Workspace Semantic Graph v1](docs/WORKSPACE-SEMANTIC-GRAPH-V1.md),
+  [Workspace Analysis v1](docs/WORKSPACE-ANALYSIS-V1.md), and
+  [Semantic Workspace Change v1](docs/SEMANTIC-WORKSPACE-CHANGE-V1.md).
+  The additive initializer authenticates 2–16 existing sources and resolves
+  explicit direct function/type imports in one managed generation. The public
+  graph projects an entry-provider closure while its budget authenticates full
+  managed-set work; Context, Impact, and Review add bounded read-only analysis
+  over six typed edge families. Change C1/C2/C3 binds a 2–16-file
+  replacements-only proposal to full-graph delta artifacts, exact verification
+  and application receipts, and fresh replay-before-write under the exclusive
+  lock. Candidate publication is no-clobber, two final checks precede the sole
+  `ACTIVE` pivot, and post-pivot uncertainty is `SPX-I212`. Receipts are not
+  authorization tokens. Residue changes authenticated state, so old Evidence
+  may fail `SPX-G187`; regenerated Evidence may exact-reuse the candidate
+  without a strategy claim. Change document KATs are Preview
+  `fbfba16e8c3a822b65e59b2a16e2f28393b6d9d9552bcc95fa1363e2599ff8fc`,
+  Context `18a7990f5b3e1d6a7b06586930684f24787119b99c1e3981c83d92f46d2db117`,
+  Impact `07c556a41f0ed1d6c25d48743f9550cb6a90eb6d1d8fe26c3ab274feac19284b`,
+  Review `86ef97e76b6e4ae55d43995a3f537aa5f55b4326cf51a1cfe7fc4127d5054662`,
+  Evidence `0c5393cb128adc8223a82b7181229cb2c18cb495d714949ccc2dfba07b4402b0`,
+  verification receipt
+  `564bdc6b50e475b68321787997aab2b4e96ad23397212e0efefe45b8895561c0`,
+  and application receipt
+  `2aeb79acfa7420fd57f82d8afa436658c265bf5c02808d13bd7b6acaa6957636`.
+  Local public C3 is 10/10 and private authority evidence is 11/11. Exact-head
+  hosted Ubuntu/macOS/Windows, MSRV, Component, and dependency-policy evidence
+  remains pending. Real process termination proves OS lock release and old/new
+  managed state on tested filesystems only, not power-loss durability. No
+  status changes: 38 Partial/18 Missing.
+
 - Added [Semantic Workspace Patch Evidence
   v1](docs/SEMANTIC-WORKSPACE-PATCH-EVIDENCE-V1.md). The canonical outer
   capsule binds one exact Workspace Patch/preview and, for every sorted changed

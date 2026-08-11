@@ -297,6 +297,39 @@ network/ACL compatibility follows. Local gates are green. The exact
 31491573287](https://github.com/wavect/semaprax/actions/runs/31491573287), with
 all 12 jobs passing. Completion remains 38 Partial/18 Missing.
 
+## Ordinary Workspace to Semantic Workspace and Change v1
+
+There is no in-place schema reinterpretation. Ordinary Workspace v1 and
+Semantic Workspace v1 share `.semaprax-workspace` and its permanent lock, but
+their path-set, `ACTIVE`, and manifest schemas are disjoint. Create a fresh
+semantic workspace explicitly with `semantic-workspace-init`; existing
+ordinary Workspace bytes, commands, patches, evidence, and rejection behavior
+remain unchanged.
+
+A semantic consumer reads the selected generation through `workspace-graph`,
+`workspace-context`, `workspace-impact`, or `workspace-review`. These routes
+hold the shared lock through one unified build, render, final authentication,
+and checked unlock. They inspect managed generation bytes, not the original
+source paths. Pointing Git, an editor, a compiler, or another raw-path tool at
+the root does not migrate it to the cooperative `ACTIVE` protocol.
+
+Semantic Workspace Change v1 is opt-in and replacements-only. Generate a
+canonical proposal and Evidence, then use
+`verify-semantic-workspace-change-evidence` for a non-authorizing exact-replay
+receipt. Apply accepts the proposal and Evidence—not the verification
+receipt—and replays them again under a fresh exclusive lock before candidate
+or staging creation. It cannot create, delete, move, or alter the managed path
+set, and it never rewrites the original source projection.
+
+Preserve bounded candidate and staging residue after failure. A pre-pivot
+attempt can publish an inert candidate or staged pointer while leaving old
+`ACTIVE` selected. Because that inventory is authenticated, Evidence from the
+earlier state must then fail `SPX-G187`; regenerate Evidence against the new
+state before exact reuse. Do not infer rollback, cleanup, GC, strategy parity,
+raw-tree atomicity, or durability from either receipt. Process-termination
+tests establish OS lock release and old/new managed state only; they are not
+power-loss or reboot recovery evidence.
+
 ## Persistent identities are NUL-free
 
 Persistent semantic identities and logical import keys may not contain a literal NUL byte. Source validation reports the declaration-specific stable diagnostic before resolution or graph serialization; `\0` remains an unsupported source-string escape. Public consumers of transformed resolved HIR must likewise reject NUL in declaration IDs, types, expressions, places, call/record/field references, and attached cleanup inventory or plan metadata before code generation or serialization. Regenerate or rename any pre-alpha fixture that constructed such an identity directly.

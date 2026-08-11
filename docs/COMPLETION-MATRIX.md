@@ -60,6 +60,29 @@ resolution, provenance/approval, consumer compatibility, raw-tree publication,
 and recovery/durability remain open. No status changes: totals remain exactly
 38 Partial/18 Missing.
 
+The dashboard also includes the additive, locally evidenced Semantic Workspace
+v1, Workspace Semantic Graph v1, Workspace Analysis v1, and Semantic Workspace
+Change v1 contracts. They deepen—but do not complete—the existing Human and
+agent semantic projections, Atomic agent changes, Token-budgeted semantic
+context, Impact analysis before modification, Proof-carrying patches, and
+Semantic human review rows. The bounded lane authenticates 2–16 managed files,
+resolves explicit direct function/type imports in one unified build, projects
+six typed edge families, emits read-only Context/Impact/Review, and binds a
+2–16-file replacements-only proposal to full managed-graph delta Evidence.
+Verification receipts grant no authority. Apply freshly replays proposal and
+Evidence under one exclusive lock before no-clobber candidate publication and
+the sole ACTIVE pivot. Local public C3 is 10/10 and private authority evidence
+is 11/11; exact-head hosted Ubuntu/macOS/Windows promotion is pending.
+
+This bounded result does not satisfy the general completion gates: no
+create/delete/move, raw-tree/Git/editor atomic publication, target/project test
+execution, signing/provenance/approval, general package/reexport or
+resource/interface/ownership composition, persistence/incrementality,
+automatic recovery/GC, external compatibility, or power-loss durability is
+proved. Process termination proves only tested OS lock release and
+authenticated old/new managed state. Status cells are unchanged and totals
+remain exactly 38 Partial and 18 Missing.
+
 The human/agent projection dashboard now also includes the bounded, hosted
 Diagnostic Repair v1 milestone described in the detailed repair row below:
 canonical query/preview JSON, one `breaking_identity_rebase`, and the isolated

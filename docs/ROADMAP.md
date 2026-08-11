@@ -83,6 +83,19 @@ Status: implemented in this repository.
   module/type/call/capability semantics, repository Graph/analysis,
   create/delete/move, materialization, recovery/GC, and power-loss durability
   remain open. No completion status changes.
+- Semantic Workspace v1, Workspace Semantic Graph v1, and Workspace Analysis
+  v1 now form one additive bounded cross-file lane: explicit direct
+  function/type imports resolve in one authenticated build, an entry selects a
+  provider projection, and read-only Context/Impact/Review cover six typed edge
+  families. Semantic Workspace Change v1 adds a replacements-only proposal,
+  full managed-graph delta evidence, strict verification, and an
+  invocation-local evidence-gated `ACTIVE` publication route. Local public C3
+  is 10/10 and private authority evidence is 11/11; exact-head hosted
+  Ubuntu/macOS/Windows evidence remains pending. Create/delete/move, raw-tree
+  materialization, recovery/GC, signing/provenance/approval, target/test
+  evidence, broader import/package/ownership semantics, persistence,
+  compatibility, and power-loss durability remain open. Totals remain 38
+  Partial/18 Missing.
 - Offline context economics with exact goldens and conservative quality routing.
 - Effects, module permits, and contract guards.
 - Machine-readable diagnostics.
@@ -734,12 +747,20 @@ route on exact replay before candidate generation or staging. Local public
 `cda4892ee74100fd11c5161ad857d469ec5e5421` matrix is hosted green in [run
 31491573287](https://github.com/wavect/semaprax/actions/runs/31491573287), with
 all 12 jobs passing. It grants no authority, performs no target/test or
-cross-file semantic reasoning, and includes neither Target Evidence nor Evidence v2. The next
-strategic architecture tranche remains a unified multi-file semantic Graph
-with real module/import/type/call/capability/identity resolution and repository
-Impact/Review/Context/Target/test consumers, followed by broader operations and
-raw-tree/product integration. This additive milestone changes no status: totals
-remain 38 Partial/18 Missing.
+cross-file semantic reasoning, and includes neither Target Evidence nor Evidence v2.
+
+The subsequent semantic-workspace tranche now supplies a bounded unified
+multi-file Graph with explicit imports, call/type/effect/capability edges,
+read-only Context/Impact/Review, and one replacements-only evidence-gated
+change path. Its delta is full managed-graph even when the public Graph is
+entry-scoped. Verification receipts are not apply tokens; apply freshly
+replays Evidence under the exclusive lock. Pre-pivot residue can make earlier
+Evidence stale as `SPX-G187`; regenerated Evidence may authorize exact
+candidate reuse without exposing strategy. Local gates are green, but
+exact-head hosted promotion is pending. General package/reexport,
+resource/interface/ownership composition, target/test integration, broader
+operations, raw-tree integration, recovery/GC, and power-loss durability
+remain future work. Totals remain 38 Partial/18 Missing.
 
 - Versioned language, graph, package, and component specifications.
 - Reproducible native and component builds on supported targets.

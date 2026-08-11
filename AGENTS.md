@@ -28,6 +28,11 @@ For multi-file managed publication or its exact per-file Evidence-v1 proof
 carrier and evidence-gated apply route, also read
 `docs/SEMANTIC-WORKSPACE-TRANSACTION-V1.md` and
 `docs/SEMANTIC-WORKSPACE-PATCH-EVIDENCE-V1.md`.
+For the additive cross-file semantic workspace, unified graph, bounded
+workspace Context/Impact/Review, or replacements-only evidence-gated change
+route, also read `docs/SEMANTIC-WORKSPACE-V1.md`,
+`docs/WORKSPACE-SEMANTIC-GRAPH-V1.md`, `docs/WORKSPACE-ANALYSIS-V1.md`, and
+`docs/SEMANTIC-WORKSPACE-CHANGE-V1.md`.
 For native owned-call recovery, physical failure, settlement, or quiescence,
 also read `docs/RFC-0004-NATIVE-CALL-SETTLEMENT.md`; its hidden Rust model is
 proof scaffolding, not a wired native-runtime claim.
@@ -54,6 +59,14 @@ proof scaffolding, not a wired native-runtime claim.
 - `src/workspace_patch_evidence.rs`: canonical multi-file Workspace Patch
   Evidence v1 generation, exact replay receipts, and replay-before-candidate
   application through the existing Workspace authority.
+- `src/semantic_workspace.rs`, `src/workspace_graph.rs`: additive semantic
+  workspace initialization and the bounded authenticated unified cross-file
+  graph over one managed generation.
+- `src/workspace_analysis.rs`: read-only workspace Context, Impact, and Review
+  over the six admitted cross-file edge families.
+- `src/semantic_workspace_change.rs`, `src/semantic_workspace_change/`:
+  replacements-only proposal analysis, canonical Evidence and receipts, exact
+  replay, and the invocation-local evidence-gated `ACTIVE` publication route.
 - `src/call_index.rs`, `impact.rs`: shared validated-HIR call index and bounded,
   read-only single-file Semantic Impact v1 preview.
 - `src/repair.rs`: bounded read-only Diagnostic Repair v1 discovery and

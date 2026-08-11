@@ -1080,6 +1080,65 @@ and [Windows job
 93779117130](https://github.com/wavect/semaprax/actions/runs/31491573287/job/93779117130).
 No matrix status changes: totals remain 38 Partial/18 Missing.
 
+## Semantic workspace graph, analysis, and evidence-gated changes
+
+`src/semantic_workspace.rs` additively initializes a Semantic Workspace v1 in
+the existing `.semaprax-workspace` managed-generation layout. Its path-set,
+`ACTIVE`, and manifest schemas are disjoint from ordinary Workspace v1, so the
+two modes fail closed rather than silently reinterpret one another. Original
+source paths are authenticated inputs only and are never rewritten.
+
+`src/workspace_graph.rs` holds one shared semantic-workspace lock through a
+single retained full managed-set build, entry-provider projection, bounded
+canonical render, final held-object/inventory recheck, and checked unlock. It
+authenticates explicit cross-file function/type imports and emits the six
+closed call, type, import, effect, and capability edge families. The public
+graph excludes reverse consumers and disconnected modules from its selected
+entry closure, while its work budget still covers the complete managed set.
+`src/workspace_analysis.rs` consumes that same sealed authority to produce
+typed, namespace-safe Context, reverse structural Impact, and fixed-section
+Review. These are current-state read-only projections; they are not patch
+delta, target/test execution, approval, or commit authority.
+
+`src/semantic_workspace_change.rs` owns the separate replacements-only change
+protocol. Generate owns one canonical proposal under the shared lock and
+derives one base build plus one complete candidate build. Verification owns
+proposal bytes, then owns and strict-parses submitted Evidence before parsing
+the proposal, rebuilds every typed artifact, exact-compares the complete
+capsule, and returns a non-authorizing receipt only after final recheck and
+checked unlock. Context, Impact, and Review in this protocol describe the
+hypothetical candidate delta across the full authenticated managed graph; they
+do not reuse the current-state Workspace Analysis artifacts.
+
+Apply repeats that replay under one exclusive lock. Exact replay precedes any
+candidate or staging write. An invocation-local sealed authority then creates
+or deeply reuses the immutable candidate without clobbering, stages a new
+semantic `ACTIVE`, performs two complete final checks with the last check
+immediately before the sole rename, and sets the pivot bit only after that
+rename succeeds. Post-pivot authentication is structural and uses the held
+objects rather than a second resolver pass. Every pre-pivot publication error
+after exact replay is `SPX-I211`; validation and authentication failures retain
+their frozen diagnostics. Every uncertainty after the pivot, including
+checked-unlock failure, is `SPX-I212`.
+
+Candidate and staging residue is bounded and never automatically deleted.
+Because retained-generation and staging counts are authenticated evidence,
+residue changes the state to which Evidence is bound: old Evidence can fail
+`SPX-G187`, while freshly regenerated Evidence may authorize exact physical
+candidate reuse. Receipt bytes are deterministic only for the same
+authenticated pre-apply state, proposal, and Evidence; no receipt exposes the
+create/reuse strategy and neither receipt is an authorization token.
+
+The exact contracts are frozen in [Semantic Workspace v1](SEMANTIC-WORKSPACE-V1.md),
+[Workspace Semantic Graph v1](WORKSPACE-SEMANTIC-GRAPH-V1.md),
+[Workspace Analysis v1](WORKSPACE-ANALYSIS-V1.md), and
+[Semantic Workspace Change v1](SEMANTIC-WORKSPACE-CHANGE-V1.md). Local public
+C3 is 10/10 and private authority evidence is 11/11. The exact-head hosted
+matrix is pending, so no hosted or completion-status promotion is claimed.
+Real process termination at the two pivot boundaries proves only lock release
+and authenticated old/new state on tested filesystems; it does not prove
+parent-directory, journal, storage-device, reboot, or power-loss durability.
+
 ## Transactions
 
 The `.spatch` protocol is intentionally smaller than a text patch:

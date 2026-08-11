@@ -314,6 +314,19 @@ Implemented today:
   executes no target/test, performs no cross-file semantic reasoning, embeds
   no Target Evidence or Evidence v2, and changes none of the 38 Partial/18
   Missing statuses.
+- [Semantic Workspace v1](docs/SEMANTIC-WORKSPACE-V1.md) additively admits
+  explicit cross-file function/type imports into one managed generation.
+  [Workspace Semantic Graph v1](docs/WORKSPACE-SEMANTIC-GRAPH-V1.md) resolves
+  the complete managed set once and projects an entry-provider closure;
+  [Workspace Analysis v1](docs/WORKSPACE-ANALYSIS-V1.md) exposes bounded
+  read-only Context, Impact, and Review over six authenticated edge families.
+  [Semantic Workspace Change v1](docs/SEMANTIC-WORKSPACE-CHANGE-V1.md) binds a
+  canonical 2–16-file replacements-only proposal to full-graph delta facts,
+  child analysis, Evidence, exact replay receipts, and an invocation-local
+  exclusive-lock apply. It neither rewrites original source paths nor grants
+  authority through Evidence or either receipt. Local public C3 is 10/10 and
+  private authority evidence is 11/11; exact-head hosted Ubuntu/macOS/Windows
+  promotion remains pending. The dashboard remains 38 Partial/18 Missing.
 - Native AOT output through a readable C11 lowering and Clang.
 - Direct WebAssembly core output with a generated ES-module runtime, HTML entry point, capability manifest, checked arithmetic, and contract traps.
 - A deliberately narrow `semaprax.wasm-owned.v1` Core Wasm path for one direct
@@ -830,6 +843,31 @@ staging creation. The live invocation, not the artifact, owns the existing
 Workspace lock/generation/`ACTIVE` authority. See [Semantic Workspace Patch
 Evidence v1](docs/SEMANTIC-WORKSPACE-PATCH-EVIDENCE-V1.md).
 
+The additive semantic-workspace route resolves explicit cross-file meaning and
+supports bounded read-only analysis plus replacements-only evidence-gated
+publication:
+
+```sh
+semaprax semantic-workspace-init . semantic-paths.json
+semaprax workspace-graph . app.entry
+semaprax workspace-context . app.entry declaration app.main
+semaprax workspace-impact . app.entry declaration app.main
+semaprax workspace-review . app.entry declaration app.main
+semaprax semantic-workspace-change-preview . proposal.json
+semaprax semantic-workspace-change-evidence . proposal.json > evidence.json
+semaprax verify-semantic-workspace-change-evidence . proposal.json evidence.json
+semaprax apply-semantic-workspace-change-evidence . proposal.json evidence.json
+```
+
+The proposal may replace complete canonical source only at existing managed
+paths; create/delete/move and path-set changes are closed. Verification
+receipts are not apply tokens. Apply freshly owns and replays Evidence under an
+exclusive lock before candidate or staging writes, then pivots only `ACTIVE`.
+Failed pre-pivot publication may leave bounded inert residue, so Evidence from
+the earlier authenticated storage state can become stale as `SPX-G187`.
+Original sources, Git, editors, targets, and tests are outside this authority.
+Process-termination evidence is not a power-loss durability claim.
+
 ## CLI
 
 | Command | Purpose |
@@ -849,6 +887,15 @@ Evidence v1](docs/SEMANTIC-WORKSPACE-PATCH-EVIDENCE-V1.md).
 | `workspace-patch-evidence <root> <patch.wspatch>` | Emit canonical bounded Workspace Patch Evidence v1 without creating candidate state |
 | `verify-workspace-patch-evidence <root> <patch.wspatch> <evidence.json>` | Independently replay a workspace capsule and emit its canonical receipt |
 | `workspace-apply-with-evidence <root> <patch.wspatch> <evidence.json>` | Require exact workspace evidence replay before candidate generation, staging, and the existing `ACTIVE` pivot |
+| `semantic-workspace-init <root> <path-set.json>` | Initialize an additive managed semantic workspace with one unified cross-file build |
+| `workspace-graph <root> <entry-module>` | Emit the authenticated Workspace Semantic Graph v1 entry-provider projection |
+| `workspace-context <root> <entry-module> <declaration\|capability> <target> [bounded options]` | Emit bounded read-only workspace context |
+| `workspace-impact <root> <entry-module> <declaration\|capability> <target> [bounded options]` | Emit bounded reverse structural workspace impact |
+| `workspace-review <root> <entry-module> <declaration\|capability> <target>` | Emit fixed-section dependency review over complete workspace Context and Impact |
+| `semantic-workspace-change-preview <root> <proposal.json>` | Emit the canonical replacements-only change preview |
+| `semantic-workspace-change-evidence <root> <proposal.json>` | Emit the canonical Change Evidence capsule without write authority |
+| `verify-semantic-workspace-change-evidence <root> <proposal.json> <evidence.json>` | Exact-replay Change Evidence under a shared lock and emit a non-authorizing receipt |
+| `apply-semantic-workspace-change-evidence <root> <proposal.json> <evidence.json>` | Freshly replay Evidence under an exclusive lock, then publish through the sole `ACTIVE` pivot |
 | `patch-evidence <file> <patch.spatch>` | Emit canonical bounded Semantic Patch Evidence v1 without writing source |
 | `verify-patch-evidence <file> <patch.spatch> <evidence.json>` | Independently replay a capsule and emit its canonical verification receipt |
 | `patch-with-evidence <file> <patch.spatch> <evidence.json>` | Require exact evidence replay before A0 staging and commit |

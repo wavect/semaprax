@@ -1033,11 +1033,15 @@ Snapshot and preview artifacts carry no authority; the live initialize/apply
 invocation owns the bounded lock, generation-publication, and `ACTIVE`-pivot
 authority. Local integration 12/12, hostile wire/CLI 5/5, workspace units
 37/37, library 482/482, full gates, preservation, and security are green.
-Hosted run 31471716036 on exact head
-`4daa40707c7fb9b5519229f05635c355ac2cdc8b` is nonqualifying because Windows
-strict Clippy failed. A local test-only permission-restoration fix preserves
-the contract; fresh-head hosted Phase C evidence remains pending. This adds no
-status transition: the matrix remains 38 Partial/18 Missing.
+The exact `afde3b3302e0f88fd8af3278efaf0ddd72e6dfe7` matrix is hosted green in
+[run 31472847068](https://github.com/wavect/semaprax/actions/runs/31472847068),
+including [Ubuntu job
+93719800613](https://github.com/wavect/semaprax/actions/runs/31472847068/job/93719800613)
+and [Windows job
+93719800611](https://github.com/wavect/semaprax/actions/runs/31472847068/job/93719800611);
+all 12 jobs passed. Earlier run 31471716036 on `4daa407` failed only Windows
+strict Clippy and is not green evidence. This adds no status transition: the
+matrix remains 38 Partial/18 Missing.
 
 ## Transactions
 

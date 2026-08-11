@@ -302,12 +302,24 @@ Focused local results are integration 12/12, hostile wire/CLI 5/5, and
 workspace units 37/37. Root library 482/482, full workspace/all-target/all-
 feature, release, host 11/11 and loader 26/26 doctests, rustdoc `-D warnings`,
 strict Clippy, formatting, diff, examples, preservation, and security are
-green. Hosted run 31471716036 on exact head
-`4daa40707c7fb9b5519229f05635c355ac2cdc8b` is nonqualifying because Windows
-strict Clippy failed. A local test-only permission-restoration fix preserves
-the contract; fresh-head hosted Phase C evidence remains pending, and no
-earlier Phase A/B workflow is Phase C publication proof. Status remains exactly
-38 Partial/18 Missing.
+green. The exact `afde3b3302e0f88fd8af3278efaf0ddd72e6dfe7` matrix is hosted
+green in [run
+31472847068](https://github.com/wavect/semaprax/actions/runs/31472847068), with
+[dependency job
+93719800523](https://github.com/wavect/semaprax/actions/runs/31472847068/job/93719800523),
+[Ubuntu job
+93719800613](https://github.com/wavect/semaprax/actions/runs/31472847068/job/93719800613),
+[macOS job
+93719800554](https://github.com/wavect/semaprax/actions/runs/31472847068/job/93719800554),
+[Windows job
+93719800611](https://github.com/wavect/semaprax/actions/runs/31472847068/job/93719800611),
+[MSRV job
+93719800689](https://github.com/wavect/semaprax/actions/runs/31472847068/job/93719800689),
+and [component job
+93719800635](https://github.com/wavect/semaprax/actions/runs/31472847068/job/93719800635);
+all 12 jobs passed. Earlier run 31471716036 on `4daa407` failed only Windows
+strict Clippy and is not green evidence; no earlier Phase A/B workflow is Phase
+C publication proof. Status remains exactly 38 Partial/18 Missing.
 
 ## Evidence strength
 

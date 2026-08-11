@@ -32,11 +32,15 @@ Semantic Workspace Transaction v1. It authenticates 2–16 canonical sources,
 preflights unchanged admitted per-file patches, publishes one complete
 immutable generation, and pivots only `ACTIVE` for cooperating locked readers.
 Integration 12/12, hostile wire/CLI 5/5, workspace units 37/37, library
-482/482, full local gates, preservation, and security are green. Hosted run
-31471716036 on exact head `4daa40707c7fb9b5519229f05635c355ac2cdc8b`
-is nonqualifying because Windows strict Clippy failed. A local test-only
-permission-restoration fix preserves the contract; fresh-head hosted Phase C
-evidence remains pending. Raw source/Git/editor atomicity, cross-file semantics, repository
+482/482, full local gates, preservation, and security are green. The exact
+`afde3b3302e0f88fd8af3278efaf0ddd72e6dfe7` matrix is hosted green in [run
+31472847068](https://github.com/wavect/semaprax/actions/runs/31472847068),
+including [Ubuntu job
+93719800613](https://github.com/wavect/semaprax/actions/runs/31472847068/job/93719800613)
+and [Windows job
+93719800611](https://github.com/wavect/semaprax/actions/runs/31472847068/job/93719800611);
+all 12 jobs passed. Earlier run 31471716036 on `4daa407` failed only Windows
+strict Clippy and is not green evidence. Raw source/Git/editor atomicity, cross-file semantics, repository
 Graph/analysis, create/delete/move, recovery/GC, and power-loss durability
 remain open, so the dashboard stays Partial and totals remain 38 Partial/18
 Missing.
@@ -332,11 +336,15 @@ and live initialize/apply route authenticate 2–16 canonical pre-existing
 sources, preserve existing per-file Patch v1/v2/v3 semantics, publish one
 complete immutable generation, and pivot only `ACTIVE` for cooperating locked
 readers. Exact KATs and local integration 12/12, hostile 5/5, workspace units
-37/37, library 482/482, full preservation, and security are green. Hosted run
-31471716036 on exact head `4daa40707c7fb9b5519229f05635c355ac2cdc8b`
-is nonqualifying because Windows strict Clippy failed. A local test-only
-permission-restoration fix preserves the contract; fresh-head hosted Phase C
-evidence remains pending. The Agent-native gate remains open for a versioned multi-file Graph
+37/37, library 482/482, full preservation, and security are green. The exact
+`afde3b3302e0f88fd8af3278efaf0ddd72e6dfe7` matrix is hosted green in [run
+31472847068](https://github.com/wavect/semaprax/actions/runs/31472847068),
+including [Ubuntu job
+93719800613](https://github.com/wavect/semaprax/actions/runs/31472847068/job/93719800613)
+and [Windows job
+93719800611](https://github.com/wavect/semaprax/actions/runs/31472847068/job/93719800611);
+all 12 jobs passed. Earlier run 31471716036 on `4daa407` failed only Windows
+strict Clippy and is not green evidence. The Agent-native gate remains open for a versioned multi-file Graph
 covering callers, targets, tests, packages, artifacts, repairs, review, and
 provenance. The Atomic gate remains open for every public semantic operation,
 cross-file resolution, raw source/Graph publication, create/delete/move,

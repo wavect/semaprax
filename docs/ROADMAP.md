@@ -71,10 +71,15 @@ Status: implemented in this repository.
   complete immutable generation, and pivots only `ACTIVE` for cooperating
   locked readers. Integration 12/12, hostile wire/CLI 5/5, workspace units
   37/37, library 482/482, full local gates, preservation, and security are
-  green. Hosted run 31471716036 on exact head
-  `4daa40707c7fb9b5519229f05635c355ac2cdc8b` is nonqualifying because Windows
-  strict Clippy failed. A local test-only permission-restoration fix preserves
-  the contract; fresh-head hosted Phase C evidence remains pending. Raw-source/Git/editor atomicity, cross-file
+  green. The exact `afde3b3302e0f88fd8af3278efaf0ddd72e6dfe7` matrix is hosted
+  green in [run
+  31472847068](https://github.com/wavect/semaprax/actions/runs/31472847068),
+  including [Ubuntu job
+  93719800613](https://github.com/wavect/semaprax/actions/runs/31472847068/job/93719800613)
+  and [Windows job
+  93719800611](https://github.com/wavect/semaprax/actions/runs/31472847068/job/93719800611);
+  all 12 jobs passed. Earlier run 31471716036 on `4daa407` failed only Windows
+  strict Clippy and is not green evidence. Raw-source/Git/editor atomicity, cross-file
   module/type/call/capability semantics, repository Graph/analysis,
   create/delete/move, materialization, recovery/GC, and power-loss durability
   remain open. No completion status changes.
@@ -671,10 +676,15 @@ immutable managed generations plus one authenticated `ACTIVE` pivot give
 cooperating readers old-or-new visibility for 2–16 existing canonical files.
 Five revision/snapshot/preview KATs, integration 12/12, hostile 5/5, workspace
 units 37/37, library 482/482, full local gates, preservation, and security are
-green. Hosted run 31471716036 on exact head
-`4daa40707c7fb9b5519229f05635c355ac2cdc8b` is nonqualifying because Windows
-strict Clippy failed. A local test-only permission-restoration fix preserves
-the contract; fresh-head hosted Phase C evidence remains pending. The 0.2 exit criterion, modules/imports and a unified
+green. The exact `afde3b3302e0f88fd8af3278efaf0ddd72e6dfe7` matrix is hosted
+green in [run
+31472847068](https://github.com/wavect/semaprax/actions/runs/31472847068),
+including [Ubuntu job
+93719800613](https://github.com/wavect/semaprax/actions/runs/31472847068/job/93719800613)
+and [Windows job
+93719800611](https://github.com/wavect/semaprax/actions/runs/31472847068/job/93719800611);
+all 12 jobs passed. Earlier run 31471716036 on `4daa407` failed only Windows
+strict Clippy and is not green evidence. The 0.2 exit criterion, modules/imports and a unified
 multi-file Graph, repository Impact/Review/Context/Target/test integration,
 general repairs/operations, raw-tree materialization, create/delete/move,
 automatic recovery/GC, and power-loss durability remain roadmap work. Totals

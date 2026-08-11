@@ -1,11 +1,14 @@
-//! Read-only authenticated semantic-workspace change preview and evidence.
+//! Authenticated semantic-workspace change preview, evidence, and application.
 //!
-//! The public routes own one canonical proposal file while holding the shared
-//! semantic-workspace lock, validate the complete replacements-only candidate,
-//! and return bounded canonical Preview or Evidence artifacts. Submitted
+//! The read-only public routes own one canonical proposal file while holding
+//! the shared semantic-workspace lock, validate the complete replacements-only
+//! candidate, and return bounded canonical Preview or Evidence artifacts. Submitted
 //! Evidence can be verified by exact replay into a one-invocation receipt.
-//! This module has no exclusive lock, stage, publish, ACTIVE pivot, apply,
-//! commit, backend, runtime, token, signature, or approval authority.
+//! Exact submitted Evidence may authorize this invocation's replacements-only
+//! candidate publication through one exclusive lock and sole `ACTIVE` pivot.
+//! This module has no reusable token, signature, approval, rollback, cleanup,
+//! backend, runtime, or managed-source create, delete, move, or path-set-change
+//! authority.
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fmt::Write as _;
@@ -88,6 +91,15 @@ pub fn verify(
     verify_with_operation_hook(root, proposal_path, evidence_path, |_| {})
 }
 
+/// Applies one replacements-only change after exact Evidence replay.
+pub fn apply(
+    root: &Path,
+    proposal_path: &Path,
+    evidence_path: &Path,
+) -> Result<String, Vec<Diagnostic>> {
+    apply_authenticated_with_hook(root, proposal_path, evidence_path, |_, _, _, _| Ok(()))
+}
+
 #[derive(Clone, Copy)]
 enum VerifyPoint {
     ProposalOwned,
@@ -144,10 +156,6 @@ fn verify_with_hook(
     verify_with_operation_hook(root, proposal_path, evidence_path, hook)
 }
 
-#[allow(
-    dead_code,
-    reason = "private C3 authority seam pending public promotion after security audit"
-)]
 pub(crate) fn apply_authenticated_with_hook(
     root: &Path,
     proposal_path: &Path,
@@ -3836,10 +3844,43 @@ fn main() -> i64 { 0 }
         assert_eq!(std::fs::read(&active_path).unwrap(), old_active);
         let first_candidate = first_candidate.into_inner().unwrap();
         assert!(first_candidate.join("manifest.json").is_file());
+        let candidate_manifest = std::fs::read(first_candidate.join("manifest.json")).unwrap();
+        let retained_after_publish = directory_names(&control.join("generations"));
+        #[cfg(unix)]
+        let candidate_physical_identity = {
+            use std::os::unix::fs::MetadataExt;
+            let metadata = std::fs::metadata(&first_candidate).unwrap();
+            (metadata.dev(), metadata.ino())
+        };
+        fixture.assert_exclusive_reacquire();
+
+        let stale_evidence_error = apply_authenticated_with_hook(
+            &fixture.root,
+            &proposal_path,
+            &evidence_path,
+            |_, _, _, _| Ok(()),
+        )
+        .unwrap_err();
+        assert_eq!(stale_evidence_error[0].code, "SPX-G187");
+        assert_eq!(std::fs::read(&active_path).unwrap(), old_active);
+        assert_eq!(
+            directory_names(&control.join("generations")),
+            retained_after_publish
+        );
         fixture.assert_exclusive_reacquire();
 
         let refreshed_evidence = evidence(&fixture.root, &proposal_path).unwrap();
-        std::fs::write(&evidence_path, refreshed_evidence).unwrap();
+        std::fs::write(&evidence_path, &refreshed_evidence).unwrap();
+        let prepared = build_authenticated_change(&fixture.root, fixture.proposal()).unwrap();
+        let artifacts = artifact::render_artifacts(&prepared).unwrap();
+        let expected_receipt =
+            artifact::render_application_receipt(&prepared, &artifacts, refreshed_evidence.len())
+                .unwrap();
+        let repeated_receipt =
+            artifact::render_application_receipt(&prepared, &artifacts, refreshed_evidence.len())
+                .unwrap();
+        assert_eq!(repeated_receipt, expected_receipt);
+        assert!(!expected_receipt.contains("strategy"));
         let reused_candidate = std::cell::RefCell::new(None::<PathBuf>);
         let receipt = apply_authenticated_with_hook(
             &fixture.root,
@@ -3858,7 +3899,24 @@ fn main() -> i64 { 0 }
         )
         .unwrap();
         assert_eq!(reused_candidate.into_inner().unwrap(), first_candidate);
-        assert!(receipt.contains("\"result\":\"applied\""));
+        assert_eq!(receipt, expected_receipt);
+        assert_eq!(
+            std::fs::read(first_candidate.join("manifest.json")).unwrap(),
+            candidate_manifest
+        );
+        assert_eq!(
+            directory_names(&control.join("generations")),
+            retained_after_publish
+        );
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::MetadataExt;
+            let metadata = std::fs::metadata(&first_candidate).unwrap();
+            assert_eq!(
+                (metadata.dev(), metadata.ino()),
+                candidate_physical_identity
+            );
+        }
         assert_ne!(std::fs::read(&active_path).unwrap(), old_active);
         fixture.assert_exclusive_reacquire();
     }

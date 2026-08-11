@@ -194,6 +194,13 @@ fn raw_sha(source: &str) -> String {
     format!("sha256:{:x}", Sha256::digest(source.as_bytes()))
 }
 
+fn raw_sources(root: &Path) -> Vec<Vec<u8>> {
+    ["a/provider.spx", "m/consumer.spx", "z/entry.spx"]
+        .into_iter()
+        .map(|path| std::fs::read(root.join(path)).unwrap())
+        .collect()
+}
+
 #[test]
 fn public_api_cli_kat_parity_and_opaque_getters() {
     let fixture = Fixture::new("api-cli");
@@ -633,4 +640,150 @@ fn evidence_parser_replay_confusion_and_read_hostiles_fail_closed() {
         lock.try_lock_exclusive().unwrap();
         FileExt::unlock(&lock).unwrap();
     }
+}
+
+#[test]
+fn application_receipt_api_cli_kat_fixed_point_and_raw_no_write() {
+    let fixture = Fixture::new("application-receipt-api");
+    let raw_before = raw_sources(&fixture.root);
+    let artifacts = semantic_workspace_change::generate(&fixture.root, &fixture.proposal).unwrap();
+    let evidence_path = fixture.root.join("evidence.json");
+    std::fs::write(&evidence_path, artifacts.evidence()).unwrap();
+    let receipt =
+        semantic_workspace_change::apply(&fixture.root, &fixture.proposal, &evidence_path).unwrap();
+    assert!(receipt.ends_with('\n'));
+    assert!(!receipt[..receipt.len() - 1].contains('\n'));
+    assert_eq!(
+        raw_sha(&receipt),
+        "sha256:2aeb79acfa7420fd57f82d8afa436658c265bf5c02808d13bd7b6acaa6957636"
+    );
+    let value: serde_json::Value = serde_json::from_str(&receipt).unwrap();
+    assert_eq!(
+        value["schema"],
+        "semaprax.workspace-semantic-change-evidence-application.v1"
+    );
+    assert_eq!(value["result"], "applied");
+    assert_eq!(value["proposal"]["digest"], artifacts.proposal_digest());
+    assert_eq!(
+        value["workspace_change_evidence"]["digest"],
+        artifacts.evidence_digest()
+    );
+    assert_eq!(
+        value["workspace_change_evidence"]["bytes"],
+        artifacts.evidence().len()
+    );
+    assert_eq!(value["budget"]["used_receipt_bytes"], receipt.len());
+    let used_total = value["budget"]["used_proposal_bytes"].as_u64().unwrap()
+        + value["budget"]["used_change_preview_bytes"]
+            .as_u64()
+            .unwrap()
+        + value["budget"]["used_context_bytes"].as_u64().unwrap()
+        + value["budget"]["used_impact_bytes"].as_u64().unwrap()
+        + value["budget"]["used_review_bytes"].as_u64().unwrap()
+        + value["budget"]["used_evidence_bytes"].as_u64().unwrap()
+        + value["budget"]["used_receipt_bytes"].as_u64().unwrap();
+    assert_eq!(value["budget"]["used_total_artifact_bytes"], used_total);
+    assert_eq!(raw_sources(&fixture.root), raw_before);
+    let lock = fixture.lock();
+    lock.try_lock_exclusive().unwrap();
+    FileExt::unlock(&lock).unwrap();
+
+    let cli = Fixture::new("application-receipt-cli");
+    let cli_raw_before = raw_sources(&cli.root);
+    let cli_evidence = semantic_workspace_change::evidence(&cli.root, &cli.proposal).unwrap();
+    let cli_evidence_path = cli.root.join("evidence.json");
+    std::fs::write(&cli_evidence_path, cli_evidence).unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .arg("apply-semantic-workspace-change-evidence")
+        .arg(&cli.root)
+        .arg(&cli.proposal)
+        .arg(&cli_evidence_path)
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    assert_eq!(output.stdout, receipt.as_bytes());
+    assert_eq!(raw_sources(&cli.root), cli_raw_before);
+    let lock = cli.lock();
+    lock.try_lock_exclusive().unwrap();
+    FileExt::unlock(&lock).unwrap();
+}
+
+#[test]
+fn application_cli_arity_contention_and_receipt_confusion_are_fail_closed() {
+    for arguments in [
+        vec!["apply-semantic-workspace-change-evidence"],
+        vec![
+            "apply-semantic-workspace-change-evidence",
+            "root",
+            "proposal",
+            "evidence",
+            "extra",
+        ],
+    ] {
+        let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+            .args(arguments)
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stdout.is_empty());
+        assert_eq!(
+            String::from_utf8(output.stderr).unwrap(),
+            "apply-semantic-workspace-change-evidence requires exactly <root> <proposal.json> <evidence.json>\n"
+        );
+    }
+
+    let fixture = Fixture::new("application-contention");
+    let evidence = semantic_workspace_change::evidence(&fixture.root, &fixture.proposal).unwrap();
+    let evidence_path = fixture.root.join("evidence.json");
+    std::fs::write(&evidence_path, evidence).unwrap();
+    let before = inventory(&fixture.root);
+    let shared = fixture.lock();
+    FileExt::lock_shared(&shared).unwrap();
+    let error = semantic_workspace_change::apply(&fixture.root, &fixture.proposal, &evidence_path)
+        .unwrap_err();
+    assert_eq!(error[0].code, "SPX-I210");
+    assert_eq!(error[0].message, "workspace LOCK is busy");
+    assert_eq!(inventory(&fixture.root), before);
+    FileExt::unlock(&shared).unwrap();
+    let lock = fixture.lock();
+    lock.try_lock_exclusive().unwrap();
+    FileExt::unlock(&lock).unwrap();
+
+    let confusion = Fixture::new("application-receipt-confusion");
+    let evidence =
+        semantic_workspace_change::evidence(&confusion.root, &confusion.proposal).unwrap();
+    let evidence_path = confusion.root.join("evidence.json");
+    std::fs::write(&evidence_path, &evidence).unwrap();
+    let verification =
+        semantic_workspace_change::verify(&confusion.root, &confusion.proposal, &evidence_path)
+            .unwrap();
+    let receipt_path = confusion.root.join("verification-receipt.json");
+    std::fs::write(&receipt_path, verification).unwrap();
+    let before = inventory(&confusion.root);
+    let error =
+        semantic_workspace_change::apply(&confusion.root, &confusion.proposal, &receipt_path)
+            .unwrap_err();
+    assert_eq!(error[0].code, "SPX-G185");
+    assert_eq!(inventory(&confusion.root), before);
+    let lock = confusion.lock();
+    lock.try_lock_exclusive().unwrap();
+    FileExt::unlock(&lock).unwrap();
+}
+
+#[test]
+fn second_application_is_stale_and_preserves_the_committed_generation() {
+    let fixture = Fixture::new("application-stale-second");
+    let evidence = semantic_workspace_change::evidence(&fixture.root, &fixture.proposal).unwrap();
+    let evidence_path = fixture.root.join("evidence.json");
+    std::fs::write(&evidence_path, evidence).unwrap();
+    semantic_workspace_change::apply(&fixture.root, &fixture.proposal, &evidence_path).unwrap();
+    let committed = inventory(&fixture.root);
+    let error = semantic_workspace_change::apply(&fixture.root, &fixture.proposal, &evidence_path)
+        .unwrap_err();
+    assert_eq!(error[0].code, "SPX-G182");
+    assert_eq!(inventory(&fixture.root), committed);
+    let lock = fixture.lock();
+    lock.try_lock_exclusive().unwrap();
+    FileExt::unlock(&lock).unwrap();
 }

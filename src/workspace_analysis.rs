@@ -2422,9 +2422,7 @@ fn push_prefix_truncation(
             first = false;
         }
     }
-    let omitted = truncation
-        .omitted_known_nodes
-        .saturating_add(removed_nodes);
+    let omitted = truncation.omitted_known_nodes.saturating_add(removed_nodes);
     write!(
         output,
         "],\"omitted_known_nodes\":{omitted},\"deferred_known_nodes\":{}}}",

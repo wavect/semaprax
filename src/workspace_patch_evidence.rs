@@ -1884,6 +1884,38 @@ mod tests {
     }
 
     #[test]
+    fn snapshot_lock_handoff_precedes_immediate_stale_evidence_reapply() {
+        let fixture = Fixture::new();
+        let capsule = generate(&fixture.root, &fixture.patch).unwrap();
+        let candidate = serde_json::from_str::<serde_json::Value>(&capsule).unwrap()
+            ["candidate_workspace_revision"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        std::fs::write(&fixture.evidence, capsule).unwrap();
+        assert_eq!(
+            apply(&fixture.root, &fixture.patch, &fixture.evidence).unwrap(),
+            candidate
+        );
+        let lock_path = fixture.root.join(".semaprax-workspace/LOCK");
+
+        for _ in 0..64 {
+            assert_eq!(fixture.revision(), candidate);
+            let lock = std::fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .open(&lock_path)
+                .unwrap();
+            fs2::FileExt::try_lock_exclusive(&lock)
+                .expect("snapshot must release shared LOCK before returning");
+            fs2::FileExt::unlock(&lock).unwrap();
+            let stale = apply(&fixture.root, &fixture.patch, &fixture.evidence)
+                .expect_err("an immediate second evidence apply must be stale, never busy");
+            assert_eq!(stale[0].code, "SPX-G152");
+        }
+    }
+
+    #[test]
     fn capsule_and_receipt_self_caps_accept_exact_and_reject_one_less() {
         let fixture = Fixture::new();
         let build = build_owned(&fixture.root, &fixture.patch).unwrap();

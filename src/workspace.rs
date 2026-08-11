@@ -2081,6 +2081,7 @@ fn prepare_candidate_generation_with_hook(
 fn snapshot_inner(root: &Path, exclusive: bool) -> Result<WorkspaceSnapshot, Vec<Diagnostic>> {
     let mut guard = acquire_snapshot(root, exclusive)?;
     guard.recheck()?;
+    unlock_file(&guard.lock)?;
     Ok(guard.snapshot)
 }
 
@@ -4403,6 +4404,26 @@ mod tests {
         copy_tree(&donor_generation.path(), &target);
         let error = guard.recheck().unwrap_err();
         assert_eq!(error[0].code, "SPX-G152");
+    }
+
+    #[test]
+    fn snapshot_releases_shared_lock_before_returning_owned_data() {
+        let fixture = Fixture::new("snapshot-lock-handoff");
+        let revision = initialize(&fixture.root, &fixture.path_set).unwrap();
+        let lock_path = fixture.root.join(".semaprax-workspace/LOCK");
+
+        for _ in 0..128 {
+            let snapshot = super::snapshot(&fixture.root).unwrap();
+            assert_eq!(snapshot.workspace_revision(), revision);
+            let lock = std::fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .open(&lock_path)
+                .unwrap();
+            fs2::FileExt::try_lock_exclusive(&lock)
+                .expect("snapshot must release its shared lock before returning");
+            fs2::FileExt::unlock(&lock).unwrap();
+        }
     }
 
     fn copy_tree(source: &Path, target: &Path) {

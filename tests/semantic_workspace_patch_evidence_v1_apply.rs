@@ -149,17 +149,23 @@ impl Fixture {
                 let entry = entry.unwrap();
                 let path = entry.path();
                 let metadata = entry.metadata().unwrap();
+                let bytes = if metadata.is_file() {
+                    if path == control.join("LOCK") {
+                        assert_eq!(metadata.len(), 0, "workspace LOCK must remain empty");
+                        Vec::new()
+                    } else {
+                        std::fs::read(&path).unwrap()
+                    }
+                } else {
+                    Vec::new()
+                };
                 output.push((
                     path.strip_prefix(&control)
                         .unwrap()
                         .to_string_lossy()
                         .into_owned(),
                     metadata.is_dir(),
-                    if metadata.is_file() {
-                        std::fs::read(&path).unwrap()
-                    } else {
-                        Vec::new()
-                    },
+                    bytes,
                 ));
                 if metadata.is_dir() {
                     stack.push(path);

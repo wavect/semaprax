@@ -451,6 +451,25 @@ fn snapshot_and_mixed_v1_v2_v3_preview_have_literal_sha_kats_and_replay() {
         sha256(preview.as_bytes()),
         "3cbd8d22bc26069387ac8ebce72ca590f095cbaa193b04bdef041e4c06beced1"
     );
+    let candidate_revision = serde_json::from_str::<serde_json::Value>(&preview).unwrap()
+        ["candidate_workspace_revision"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    assert_eq!(
+        workspace::apply(fixture.root.path(), &patch_path).unwrap(),
+        candidate_revision
+    );
+    assert_eq!(
+        workspace::snapshot(fixture.root.path())
+            .unwrap()
+            .workspace_revision(),
+        candidate_revision
+    );
+    assert_eq!(
+        workspace::apply(fixture.root.path(), &patch_path).unwrap_err()[0].code,
+        "SPX-G152"
+    );
 }
 
 #[test]
@@ -564,6 +583,11 @@ fn workspace_cli_has_exact_arity_and_api_byte_projection() {
         String::from_utf8(preview_cli.stdout).unwrap(),
         format!("{preview}\n")
     );
+    let candidate_revision = serde_json::from_str::<serde_json::Value>(&preview).unwrap()
+        ["candidate_workspace_revision"]
+        .as_str()
+        .unwrap()
+        .to_owned();
 
     let apply = Command::new(binary)
         .arg("workspace-apply")
@@ -571,11 +595,12 @@ fn workspace_cli_has_exact_arity_and_api_byte_projection() {
         .arg(&patch_path)
         .output()
         .unwrap();
-    assert_eq!(apply.status.code(), Some(1));
-    assert!(apply.stdout.is_empty());
-    let apply_stderr = String::from_utf8(apply.stderr).unwrap();
-    assert!(apply_stderr.contains("SPX-I212"));
-    assert!(!apply_stderr.contains("applied semantic workspace transaction"));
+    assert!(apply.status.success());
+    assert!(apply.stderr.is_empty());
+    assert_eq!(
+        String::from_utf8(apply.stdout).unwrap(),
+        format!("applied semantic workspace transaction; workspace is now {candidate_revision}\n")
+    );
 
     let help = Command::new(binary).arg("--help").output().unwrap();
     assert!(help.status.success());

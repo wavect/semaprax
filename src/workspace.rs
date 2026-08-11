@@ -861,13 +861,363 @@ fn build_workspace_plan(
     })
 }
 
-/// Phase C authority is intentionally unavailable until the immutable
-/// generation builder and ACTIVE pivot pass their separate security gates.
-pub fn apply(_root: &Path, _patch_path: &Path) -> Result<String, Vec<Diagnostic>> {
-    Err(vec![Diagnostic::io(
-        "SPX-I212",
-        "workspace apply is not enabled before the ACTIVE-pivot gate",
-    )])
+/// Applies one workspace transaction by atomically replacing only `ACTIVE`.
+pub fn apply(root: &Path, patch_path: &Path) -> Result<String, Vec<Diagnostic>> {
+    apply_with_hook(root, patch_path, |_, _, _, _| Ok(()))
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ApplyPoint {
+    AfterPatchRead,
+    AfterCandidatePrepared,
+    AfterActiveStaged,
+    BeforeFirstFinalCheck,
+    BeforeSecondFinalCheck,
+    BeforeActiveReplace,
+    AfterActiveReplace,
+}
+
+fn apply_with_hook(
+    root: &Path,
+    patch_path: &Path,
+    mut hook: impl FnMut(ApplyPoint, &Path, Option<&Path>, Option<&Path>) -> std::io::Result<()>,
+) -> Result<String, Vec<Diagnostic>> {
+    let mut guard = acquire_snapshot(root, true)?;
+    let active_path = guard.control.join("ACTIVE");
+    let mut patch_input = authenticate_text(patch_path, MAX_WORKSPACE_PATCH_BYTES, "SPX-I209")?;
+    hook(ApplyPoint::AfterPatchRead, &active_path, None, None)
+        .map_err(|error| io("SPX-I209", format!("post-read hook failed: {error}")))?;
+    let patch = parse_workspace_patch(&patch_input.source)?;
+    let plan = build_workspace_plan(&guard.snapshot, patch)?;
+    let mut candidate =
+        ensure_candidate_generation(&mut guard, &mut patch_input, &plan, |_, _, _| {})?;
+    hook(
+        ApplyPoint::AfterCandidatePrepared,
+        &active_path,
+        None,
+        Some(&candidate.path),
+    )
+    .map_err(|error| io("SPX-I211", format!("candidate hook failed: {error}")))?;
+
+    let candidate_name = revision_hex(&plan.candidate_revision)?.to_owned();
+    let mut generation_names = guard.generation_names.clone();
+    generation_names.insert(candidate_name);
+    let staging_root = guard.control.join("staging");
+    guard.recheck_phase_inventory(&generation_names, &guard.staging_names, Some(&candidate))?;
+    let (_, occupied_directories, occupied_files) = validate_staging_inventory(&staging_root)?;
+    let occupied = inventory_names_from_directories(&occupied_directories)?
+        .into_iter()
+        .chain(inventory_names_from_texts(&occupied_files)?)
+        .collect::<BTreeSet<_>>();
+    let ordinal = (0..MAX_STAGING_ATTEMPTS)
+        .find(|ordinal| !occupied.contains(&ordinal.to_string()))
+        .ok_or_else(|| limit("workspace retains 32 staging attempts"))?;
+    let active_stage_path = staging_root.join(ordinal.to_string());
+    let active_source = render_root(&plan.candidate_revision);
+    let mut active_stage = write_new_text(
+        &active_stage_path,
+        &active_source,
+        MAX_MANIFEST_BYTES,
+        "candidate ACTIVE pointer",
+    )?;
+    let active_permissions = guard
+        .texts
+        .iter()
+        .find(|text| text.path == active_path)
+        .ok_or_else(|| invariant("authenticated ACTIVE handle is unavailable"))?
+        .file
+        .metadata()
+        .map_err(|error| {
+            io(
+                "SPX-I211",
+                format!("cannot inspect ACTIVE permissions: {error}"),
+            )
+        })?
+        .permissions();
+    active_stage
+        .file
+        .set_permissions(active_permissions.clone())
+        .and_then(|_| active_stage.file.sync_all())
+        .map_err(|error| {
+            io(
+                "SPX-I211",
+                format!("cannot preserve ACTIVE permissions: {error}"),
+            )
+        })?;
+    active_stage.recheck()?;
+    let mut staging_names = guard.staging_names.clone();
+    staging_names.insert(ordinal.to_string());
+    let final_facts = FinalApplyFacts {
+        plan: &plan,
+        generation_names: &generation_names,
+        staging_names: &staging_names,
+        active_permissions: &active_permissions,
+    };
+    hook(
+        ApplyPoint::AfterActiveStaged,
+        &active_path,
+        Some(&active_stage_path),
+        Some(&candidate.path),
+    )
+    .map_err(|error| io("SPX-I211", format!("ACTIVE staging hook failed: {error}")))?;
+
+    hook(
+        ApplyPoint::BeforeFirstFinalCheck,
+        &active_path,
+        Some(&active_stage_path),
+        Some(&candidate.path),
+    )
+    .map_err(|error| {
+        io(
+            "SPX-I211",
+            format!("first final-check hook failed: {error}"),
+        )
+    })?;
+    final_apply_recheck(
+        &mut guard,
+        &mut patch_input,
+        &mut candidate,
+        &mut active_stage,
+        &final_facts,
+    )?;
+    hook(
+        ApplyPoint::BeforeSecondFinalCheck,
+        &active_path,
+        Some(&active_stage_path),
+        Some(&candidate.path),
+    )
+    .map_err(|error| {
+        io(
+            "SPX-I211",
+            format!("second final-check hook failed: {error}"),
+        )
+    })?;
+    hook(
+        ApplyPoint::BeforeActiveReplace,
+        &active_path,
+        Some(&active_stage_path),
+        Some(&candidate.path),
+    )
+    .map_err(|error| io("SPX-I211", format!("ACTIVE replacement rejected: {error}")))?;
+    final_apply_recheck(
+        &mut guard,
+        &mut patch_input,
+        &mut candidate,
+        &mut active_stage,
+        &final_facts,
+    )?;
+    let active_fingerprint =
+        GenerationFingerprint::from_text(&mut active_stage, &active_stage_path)?;
+    #[cfg(windows)]
+    drop(active_stage);
+    std::fs::rename(&active_stage_path, &active_path).map_err(|error| {
+        io(
+            "SPX-I211",
+            format!("cannot atomically replace ACTIVE: {error}"),
+        )
+    })?;
+    hook(
+        ApplyPoint::AfterActiveReplace,
+        &active_path,
+        Some(&active_stage_path),
+        Some(&candidate.path),
+    )
+    .map_err(|error| final_uncertainty(format!("post-pivot hook failed: {error}")))?;
+    let mut published_active = authenticate_text(&active_path, MAX_MANIFEST_BYTES, "SPX-I212")
+        .map_err(map_final_uncertainty)?;
+    active_fingerprint
+        .require_text_equivalent(&mut published_active, &active_path)
+        .map_err(map_final_uncertainty)?;
+    if !permissions_equal(
+        &active_permissions,
+        &published_active
+            .file
+            .metadata()
+            .map_err(|error| {
+                final_uncertainty(format!(
+                    "cannot inspect published ACTIVE permissions: {error}"
+                ))
+            })?
+            .permissions(),
+    ) {
+        return Err(final_uncertainty(
+            "published ACTIVE permissions differ from the authenticated base",
+        ));
+    }
+    let loaded = snapshot_authenticated(&guard.root, &guard.control, Some(&guard.lock_identity))
+        .map_err(map_final_uncertainty)?;
+    validate_post_pivot_snapshot(&loaded.snapshot, &plan)?;
+    validate_post_pivot_inventory(&guard, &generation_names)?;
+    recheck_lock(&guard.lock_path, &guard.lock, &guard.lock_identity)
+        .map_err(map_final_uncertainty)?;
+    unlock_file(&guard.lock).map_err(map_final_uncertainty)?;
+    Ok(plan.candidate_revision)
+}
+
+struct FinalApplyFacts<'a> {
+    plan: &'a WorkspacePlan,
+    generation_names: &'a BTreeSet<String>,
+    staging_names: &'a BTreeSet<String>,
+    active_permissions: &'a std::fs::Permissions,
+}
+
+fn final_apply_recheck(
+    guard: &mut WorkspaceGuard,
+    patch_input: &mut AuthenticatedText,
+    candidate: &mut PreparedGeneration,
+    active_stage: &mut AuthenticatedText,
+    facts: &FinalApplyFacts<'_>,
+) -> Result<(), Vec<Diagnostic>> {
+    guard.recheck_base_authority()?;
+    patch_input.recheck()?;
+    if patch_input.source != facts.plan.patch.source {
+        return Err(invariant(
+            "owned workspace patch changed after semantic planning",
+        ));
+    }
+    candidate.recheck()?;
+    let candidate_fingerprint = candidate.fingerprint()?;
+    let mut exact_candidate = authenticate_expected_generation(&candidate.path, facts.plan, guard)
+        .map_err(map_post_publication_candidate_diagnostics)?;
+    candidate_fingerprint.require_equivalent(&mut exact_candidate)?;
+    if workspace_revision(&facts.plan.candidate_manifest) != facts.plan.candidate_revision {
+        return Err(invariant(
+            "candidate manifest no longer authenticates the planned workspace revision",
+        ));
+    }
+    active_stage.recheck()?;
+    let old_active_permissions = guard
+        .texts
+        .iter()
+        .find(|text| text.path == guard.control.join("ACTIVE"))
+        .ok_or_else(|| invariant("authenticated ACTIVE handle is unavailable"))?
+        .file
+        .metadata()
+        .map_err(|error| {
+            io(
+                "SPX-I209",
+                format!("cannot inspect ACTIVE permissions: {error}"),
+            )
+        })?
+        .permissions();
+    let staged_active_permissions = active_stage
+        .file
+        .metadata()
+        .map_err(|error| {
+            io(
+                "SPX-I211",
+                format!("cannot inspect staged ACTIVE permissions: {error}"),
+            )
+        })?
+        .permissions();
+    if !permissions_equal(facts.active_permissions, &old_active_permissions)
+        || !permissions_equal(facts.active_permissions, &staged_active_permissions)
+    {
+        return Err(invariant(
+            "ACTIVE permissions changed during final workspace authentication",
+        ));
+    }
+    let expected_active = render_root(&facts.plan.candidate_revision);
+    if active_stage.source != expected_active
+        || parse_root(&active_stage.source)? != facts.plan.candidate_revision
+    {
+        return Err(invariant(
+            "candidate ACTIVE pointer differs from the planned workspace revision",
+        ));
+    }
+    guard.recheck_phase_inventory(facts.generation_names, facts.staging_names, Some(candidate))?;
+    Ok(())
+}
+
+fn validate_post_pivot_snapshot(
+    snapshot: &WorkspaceSnapshot,
+    plan: &WorkspacePlan,
+) -> Result<(), Vec<Diagnostic>> {
+    if snapshot.workspace_revision != plan.candidate_revision
+        || snapshot.files.len() != plan.candidate.len()
+    {
+        return Err(final_uncertainty(
+            "published workspace snapshot differs from the planned candidate",
+        ));
+    }
+    for (actual, expected) in snapshot.files.iter().zip(&plan.candidate) {
+        if actual.path != expected.path
+            || actual.source_graph_schema != expected.source_graph_schema
+            || actual.source_revision != expected.source_revision
+            || actual.source_digest != expected.source_digest
+            || actual.source != expected.source
+        {
+            return Err(final_uncertainty(
+                "published workspace file differs from the planned candidate",
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn validate_post_pivot_inventory(
+    guard: &WorkspaceGuard,
+    generation_names: &BTreeSet<String>,
+) -> Result<(), Vec<Diagnostic>> {
+    let (_, generations) =
+        count_directories_bounded(&guard.control.join("generations"), MAX_RETAINED_GENERATIONS)
+            .map_err(map_final_uncertainty)?;
+    if inventory_names_from_directories(&generations).map_err(map_final_uncertainty)?
+        != *generation_names
+    {
+        return Err(final_uncertainty(
+            "published workspace generation inventory differs from the final checked set",
+        ));
+    }
+    let (_, staging_directories, staging_files) =
+        validate_staging_inventory(&guard.control.join("staging"))
+            .map_err(map_final_uncertainty)?;
+    let staging_names = inventory_names_from_directories(&staging_directories)
+        .map_err(map_final_uncertainty)?
+        .into_iter()
+        .chain(inventory_names_from_texts(&staging_files).map_err(map_final_uncertainty)?)
+        .collect::<BTreeSet<_>>();
+    if staging_names != guard.staging_names {
+        return Err(final_uncertainty(
+            "published workspace staging inventory differs from the final checked set",
+        ));
+    }
+    Ok(())
+}
+
+fn permissions_equal(left: &std::fs::Permissions, right: &std::fs::Permissions) -> bool {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        left.mode() == right.mode()
+    }
+    #[cfg(windows)]
+    {
+        left.readonly() == right.readonly()
+    }
+    #[cfg(not(any(unix, windows)))]
+    {
+        left.readonly() == right.readonly()
+    }
+}
+
+fn map_final_uncertainty(diagnostics: Vec<Diagnostic>) -> Vec<Diagnostic> {
+    diagnostics
+        .into_iter()
+        .map(|diagnostic| {
+            Diagnostic::io(
+                "SPX-I212",
+                format!(
+                    "workspace final authority is ambiguous: {}",
+                    diagnostic.message
+                ),
+            )
+        })
+        .collect()
+}
+
+fn final_uncertainty(message: impl Into<String>) -> Vec<Diagnostic> {
+    io("SPX-I212", message)
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -3215,14 +3565,16 @@ mod tests {
     #[cfg(windows)]
     use super::canonical_root;
     use super::{
-        acquire_snapshot, bounded_manifest, count_directories_bounded, count_entries_bounded,
-        file_facts, identity_from_path, initialize, initialize_with_hook,
+        acquire_snapshot, apply, apply_with_hook, bounded_manifest, count_directories_bounded,
+        count_entries_bounded, file_facts, identity_from_path, initialize, initialize_with_hook,
         map_post_publication_candidate_diagnostics, parse_path_set,
         prepare_candidate_generation_with_hook, require_distinct_path_identities,
-        validate_staging_inventory, FileFact, GenerationPoint, InitializePoint,
+        validate_staging_inventory, ApplyPoint, FileFact, GenerationPoint, InitializePoint,
     };
     use std::path::{Path, PathBuf};
+    use std::process::{Child, Command, Stdio};
     use std::sync::atomic::{AtomicU64, Ordering};
+    use std::time::{Duration, Instant};
 
     static SERIAL: AtomicU64 = AtomicU64::new(0);
 
@@ -3297,6 +3649,70 @@ mod tests {
         fn drop(&mut self) {
             let _ = std::fs::remove_dir_all(&self.root);
         }
+    }
+
+    fn spawn_phase_c_process(
+        fixture: &Fixture,
+        patch: &Path,
+        boundary: &str,
+    ) -> (Child, PathBuf, PathBuf) {
+        let ready = fixture.root.join(format!("phase-c-{boundary}.ready"));
+        let release = fixture.root.join(format!("phase-c-{boundary}.release"));
+        let child = Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "workspace::tests::phase_c_apply_process_child",
+                "--nocapture",
+            ])
+            .env("SEMAPRAX_PHASE_C_CHILD", "1")
+            .env("SEMAPRAX_PHASE_C_ROOT", &fixture.root)
+            .env("SEMAPRAX_PHASE_C_PATCH", patch)
+            .env("SEMAPRAX_PHASE_C_BOUNDARY", boundary)
+            .env("SEMAPRAX_PHASE_C_READY", &ready)
+            .env("SEMAPRAX_PHASE_C_RELEASE", &release)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .unwrap();
+        let deadline = Instant::now() + Duration::from_secs(10);
+        while !ready.exists() {
+            assert!(
+                Instant::now() < deadline,
+                "Phase-C child did not reach {boundary}"
+            );
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        (child, ready, release)
+    }
+
+    #[test]
+    fn phase_c_apply_process_child() {
+        if std::env::var_os("SEMAPRAX_PHASE_C_CHILD").is_none() {
+            return;
+        }
+        let root = PathBuf::from(std::env::var_os("SEMAPRAX_PHASE_C_ROOT").unwrap());
+        let patch = PathBuf::from(std::env::var_os("SEMAPRAX_PHASE_C_PATCH").unwrap());
+        let boundary = std::env::var("SEMAPRAX_PHASE_C_BOUNDARY").unwrap();
+        let ready = PathBuf::from(std::env::var_os("SEMAPRAX_PHASE_C_READY").unwrap());
+        let release = PathBuf::from(std::env::var_os("SEMAPRAX_PHASE_C_RELEASE").unwrap());
+        apply_with_hook(&root, &patch, |point, _, _, _| {
+            let selected = match boundary.as_str() {
+                "pre" => point == ApplyPoint::BeforeActiveReplace,
+                "post" => point == ApplyPoint::AfterActiveReplace,
+                _ => false,
+            };
+            if selected {
+                std::fs::write(&ready, "ready\n")?;
+                let deadline = Instant::now() + Duration::from_secs(30);
+                while !release.exists() {
+                    assert!(Instant::now() < deadline, "Phase-C child release timed out");
+                    std::thread::sleep(Duration::from_millis(10));
+                }
+            }
+            Ok(())
+        })
+        .unwrap();
     }
 
     fn canonical(source: &str, path: &str) -> String {
@@ -3586,6 +4002,494 @@ mod tests {
             2
         );
         assert_active_unchanged(&fixture, &active_bytes, active_identity);
+    }
+
+    #[test]
+    fn phase_c_pivots_only_active_and_second_apply_is_stale() {
+        let fixture = Fixture::new("phase-c-success");
+        let alpha = std::fs::read(fixture.root.join("alpha.spx")).unwrap();
+        let beta = std::fs::read(fixture.root.join("beta.spx")).unwrap();
+        let patch = fixture.initialize_and_patch("commit");
+        let old_active = std::fs::read(fixture.active()).unwrap();
+        let old_identity = identity_from_path(&fixture.active(), "SPX-I209").unwrap();
+        let preview = super::preview(&fixture.root, &patch).unwrap();
+        let expected = serde_json::from_str::<serde_json::Value>(&preview).unwrap()
+            ["candidate_workspace_revision"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+
+        let applied = apply(&fixture.root, &patch).unwrap();
+        assert_eq!(applied, expected);
+        assert_ne!(std::fs::read(fixture.active()).unwrap(), old_active);
+        assert_ne!(
+            identity_from_path(&fixture.active(), "SPX-I209").unwrap(),
+            old_identity
+        );
+        assert_eq!(
+            super::snapshot(&fixture.root).unwrap().workspace_revision,
+            expected
+        );
+        assert_eq!(
+            std::fs::read(fixture.root.join("alpha.spx")).unwrap(),
+            alpha
+        );
+        assert_eq!(std::fs::read(fixture.root.join("beta.spx")).unwrap(), beta);
+
+        let committed_active = std::fs::read(fixture.active()).unwrap();
+        let committed_identity = identity_from_path(&fixture.active(), "SPX-I209").unwrap();
+        let error = apply(&fixture.root, &patch).unwrap_err();
+        assert_eq!(error[0].code, "SPX-G152");
+        assert_active_unchanged(&fixture, &committed_active, committed_identity);
+    }
+
+    #[test]
+    fn phase_c_final_checks_reject_owned_input_and_authority_drift_before_pivot() {
+        for case in [
+            "patch",
+            "active",
+            "stage",
+            "candidate",
+            "candidate_source",
+            "candidate_inventory",
+            "staging_inventory",
+            "generation_inventory",
+            "before_replace_stage",
+        ] {
+            let fixture = Fixture::new(&format!("phase-c-final-{case}"));
+            let patch = fixture.initialize_and_patch(case);
+            let active_bytes = std::fs::read(fixture.active()).unwrap();
+            let active_identity = identity_from_path(&fixture.active(), "SPX-I209").unwrap();
+            let error = apply_with_hook(
+                &fixture.root,
+                &patch,
+                |point, active, staged_active, candidate| {
+                    match (case, point) {
+                        ("patch", ApplyPoint::AfterPatchRead) => {
+                            std::fs::write(&patch, "{}\n")?;
+                        }
+                        ("active", ApplyPoint::BeforeSecondFinalCheck) => {
+                            let bytes = std::fs::read(active)?;
+                            std::fs::remove_file(active)?;
+                            std::fs::write(active, bytes)?;
+                        }
+                        ("stage", ApplyPoint::BeforeSecondFinalCheck) => {
+                            let path = staged_active.unwrap();
+                            let bytes = std::fs::read(path)?;
+                            std::fs::remove_file(path)?;
+                            std::fs::write(path, bytes)?;
+                        }
+                        ("candidate", ApplyPoint::BeforeSecondFinalCheck) => {
+                            let path = candidate.unwrap().join("manifest.json");
+                            let bytes = std::fs::read(&path)?;
+                            std::fs::remove_file(&path)?;
+                            std::fs::write(path, bytes)?;
+                        }
+                        ("candidate_source", ApplyPoint::BeforeSecondFinalCheck) => {
+                            let path = candidate.unwrap().join("files/alpha.spx");
+                            let bytes = std::fs::read(&path)?;
+                            std::fs::remove_file(&path)?;
+                            std::fs::write(path, bytes)?;
+                        }
+                        ("candidate_inventory", ApplyPoint::BeforeSecondFinalCheck) => {
+                            std::fs::write(
+                                candidate.unwrap().join("files/extra.spx"),
+                                "foreign\n",
+                            )?;
+                        }
+                        ("staging_inventory", ApplyPoint::BeforeSecondFinalCheck) => {
+                            std::fs::write(
+                                fixture.root.join(".semaprax-workspace/staging/31"),
+                                "foreign\n",
+                            )?;
+                        }
+                        ("generation_inventory", ApplyPoint::BeforeSecondFinalCheck) => {
+                            std::fs::create_dir(fixture.root.join(format!(
+                                ".semaprax-workspace/generations/{:064x}",
+                                987_654usize
+                            )))?;
+                        }
+                        ("before_replace_stage", ApplyPoint::BeforeActiveReplace) => {
+                            std::fs::write(staged_active.unwrap(), "{}\n")?;
+                        }
+                        _ => {}
+                    }
+                    Ok(())
+                },
+            )
+            .unwrap_err();
+            assert!(matches!(error[0].code, "SPX-G153" | "SPX-I209"));
+            if case == "active" {
+                assert_eq!(std::fs::read(fixture.active()).unwrap(), active_bytes);
+                assert_ne!(
+                    identity_from_path(&fixture.active(), "SPX-I209").unwrap(),
+                    active_identity
+                );
+            } else {
+                assert_active_unchanged(&fixture, &active_bytes, active_identity);
+            }
+        }
+    }
+
+    #[test]
+    fn phase_c_each_final_boundary_rejects_identity_and_inventory_substitution() {
+        for boundary in [
+            ApplyPoint::BeforeFirstFinalCheck,
+            ApplyPoint::BeforeActiveReplace,
+        ] {
+            for case in [
+                "patch",
+                "active",
+                "stage",
+                "manifest",
+                "source",
+                "staging_inventory",
+                "generation_inventory",
+            ] {
+                let fixture = Fixture::new(&format!("phase-c-{boundary:?}-{case}"));
+                let patch = fixture.initialize_and_patch(case);
+                let old_revision = super::snapshot(&fixture.root)
+                    .unwrap()
+                    .workspace_revision
+                    .to_owned();
+                let error =
+                    apply_with_hook(&fixture.root, &patch, |point, active, staged, candidate| {
+                        if point != boundary {
+                            return Ok(());
+                        }
+                        match case {
+                            "patch" => std::fs::write(&patch, "{}\n")?,
+                            "active" => replace_with_same_bytes(active)?,
+                            "stage" => replace_with_same_bytes(staged.unwrap())?,
+                            "manifest" => {
+                                replace_with_same_bytes(&candidate.unwrap().join("manifest.json"))?
+                            }
+                            "source" => replace_with_same_bytes(
+                                &candidate.unwrap().join("files/alpha.spx"),
+                            )?,
+                            "staging_inventory" => std::fs::write(
+                                fixture.root.join(".semaprax-workspace/staging/31"),
+                                "foreign\n",
+                            )?,
+                            "generation_inventory" => std::fs::create_dir(fixture.root.join(
+                                format!(".semaprax-workspace/generations/{:064x}", 123_456usize),
+                            ))?,
+                            _ => unreachable!(),
+                        }
+                        Ok(())
+                    })
+                    .unwrap_err();
+                assert!(matches!(error[0].code, "SPX-G153" | "SPX-I209"));
+                assert_eq!(
+                    super::snapshot(&fixture.root).unwrap().workspace_revision,
+                    old_revision
+                );
+            }
+        }
+    }
+
+    fn replace_with_same_bytes(path: &Path) -> std::io::Result<()> {
+        let bytes = std::fs::read(path)?;
+        std::fs::remove_file(path)?;
+        std::fs::write(path, bytes)
+    }
+
+    fn make_test_file_writable(path: &Path) {
+        let mut permissions = std::fs::metadata(path).unwrap().permissions();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            permissions.set_mode(permissions.mode() | 0o200);
+        }
+        #[cfg(not(unix))]
+        permissions.set_readonly(false);
+        std::fs::set_permissions(path, permissions).unwrap();
+    }
+
+    #[test]
+    fn phase_c_pre_pivot_rejection_retains_active_and_staging_residue() {
+        let fixture = Fixture::new("phase-c-reject-pivot");
+        let patch = fixture.initialize_and_patch("reject");
+        let active_bytes = std::fs::read(fixture.active()).unwrap();
+        let active_identity = identity_from_path(&fixture.active(), "SPX-I209").unwrap();
+        let error = apply_with_hook(&fixture.root, &patch, |point, _, _, _| {
+            if point == ApplyPoint::BeforeActiveReplace {
+                return Err(std::io::Error::other("injected ACTIVE rename rejection"));
+            }
+            Ok(())
+        })
+        .unwrap_err();
+        assert_eq!(error[0].code, "SPX-I211");
+        assert_active_unchanged(&fixture, &active_bytes, active_identity);
+        assert!(
+            std::fs::read_dir(fixture.root.join(".semaprax-workspace/staging"))
+                .unwrap()
+                .next()
+                .is_some()
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn phase_c_atomic_active_rename_failure_preserves_old_active() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let fixture = Fixture::new("phase-c-rename-failure");
+        let patch = fixture.initialize_and_patch("rename_failure");
+        let active_bytes = std::fs::read(fixture.active()).unwrap();
+        let active_identity = identity_from_path(&fixture.active(), "SPX-I209").unwrap();
+        let control = fixture.root.join(".semaprax-workspace");
+        let original_permissions = std::fs::metadata(&control).unwrap().permissions();
+        let error = apply_with_hook(&fixture.root, &patch, |point, _, _, _| {
+            if point == ApplyPoint::BeforeActiveReplace {
+                std::fs::set_permissions(&control, std::fs::Permissions::from_mode(0o500))?;
+            }
+            Ok(())
+        })
+        .unwrap_err();
+        std::fs::set_permissions(&control, original_permissions).unwrap();
+        assert_eq!(error[0].code, "SPX-I211");
+        assert_active_unchanged(&fixture, &active_bytes, active_identity);
+    }
+
+    #[test]
+    fn phase_c_bounded_final_source_growth_fails_before_pivot() {
+        for boundary in [
+            ApplyPoint::BeforeFirstFinalCheck,
+            ApplyPoint::BeforeActiveReplace,
+        ] {
+            let fixture = Fixture::new(&format!("phase-c-growth-{boundary:?}"));
+            let patch = fixture.initialize_and_patch("growth");
+            let active_bytes = std::fs::read(fixture.active()).unwrap();
+            let active_identity = identity_from_path(&fixture.active(), "SPX-I209").unwrap();
+            let base_revision = super::snapshot(&fixture.root)
+                .unwrap()
+                .workspace_revision
+                .strip_prefix("sha256:")
+                .unwrap()
+                .to_owned();
+            let base_source = fixture
+                .root
+                .join(".semaprax-workspace/generations")
+                .join(base_revision)
+                .join("files/alpha.spx");
+            let error = apply_with_hook(&fixture.root, &patch, |point, _, _, _| {
+                if point == boundary {
+                    std::fs::OpenOptions::new()
+                        .write(true)
+                        .open(&base_source)?
+                        .set_len((super::MAX_TOTAL_SOURCE_BYTES + 1) as u64)?;
+                }
+                Ok(())
+            })
+            .unwrap_err();
+            assert_eq!(error[0].code, "SPX-G153");
+            assert_active_unchanged(&fixture, &active_bytes, active_identity);
+            assert_eq!(
+                std::fs::metadata(base_source).unwrap().len(),
+                (super::MAX_TOTAL_SOURCE_BYTES + 1) as u64
+            );
+        }
+    }
+
+    #[test]
+    fn phase_c_post_pivot_uncertainty_retains_new_generation_and_foreign_residue() {
+        let fixture = Fixture::new("phase-c-post-pivot");
+        let patch = fixture.initialize_and_patch("post_pivot");
+        let preview = super::preview(&fixture.root, &patch).unwrap();
+        let expected = serde_json::from_str::<serde_json::Value>(&preview).unwrap()
+            ["candidate_workspace_revision"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        let residue = fixture.root.join(".semaprax-workspace/staging/31");
+        let error = apply_with_hook(&fixture.root, &patch, |point, _, _, _| {
+            if point == ApplyPoint::AfterActiveReplace {
+                std::fs::write(&residue, "foreign\n")?;
+            }
+            Ok(())
+        })
+        .unwrap_err();
+        assert_eq!(error[0].code, "SPX-I212");
+        assert_eq!(
+            super::snapshot(&fixture.root).unwrap().workspace_revision,
+            expected
+        );
+        assert_eq!(std::fs::read_to_string(residue).unwrap(), "foreign\n");
+    }
+
+    #[test]
+    fn phase_c_unwind_boundaries_leave_exactly_old_or_new_active() {
+        for point in [
+            ApplyPoint::BeforeActiveReplace,
+            ApplyPoint::AfterActiveReplace,
+        ] {
+            let fixture = Fixture::new(&format!("phase-c-unwind-{point:?}"));
+            let patch = fixture.initialize_and_patch("unwind");
+            let old_revision = super::snapshot(&fixture.root)
+                .unwrap()
+                .workspace_revision
+                .to_owned();
+            let preview = super::preview(&fixture.root, &patch).unwrap();
+            let candidate = serde_json::from_str::<serde_json::Value>(&preview).unwrap()
+                ["candidate_workspace_revision"]
+                .as_str()
+                .unwrap()
+                .to_owned();
+            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                let _ = apply_with_hook(&fixture.root, &patch, |observed, _, _, _| {
+                    if observed == point {
+                        panic!("simulated process termination boundary");
+                    }
+                    Ok(())
+                });
+            }));
+            assert!(result.is_err());
+            let current = super::snapshot(&fixture.root).unwrap();
+            if point == ApplyPoint::BeforeActiveReplace {
+                assert_eq!(current.workspace_revision, old_revision);
+                assert_eq!(apply(&fixture.root, &patch).unwrap(), candidate);
+            } else {
+                assert_eq!(current.workspace_revision, candidate);
+                assert_eq!(
+                    apply(&fixture.root, &patch).unwrap_err()[0].code,
+                    "SPX-G152"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn phase_c_killed_process_boundaries_recover_as_exact_old_or_new() {
+        for boundary in ["pre", "post"] {
+            let fixture = Fixture::new(&format!("phase-c-kill-{boundary}"));
+            let patch = fixture.initialize_and_patch("killed");
+            let old_revision = super::snapshot(&fixture.root)
+                .unwrap()
+                .workspace_revision
+                .to_owned();
+            let preview = super::preview(&fixture.root, &patch).unwrap();
+            let candidate = serde_json::from_str::<serde_json::Value>(&preview).unwrap()
+                ["candidate_workspace_revision"]
+                .as_str()
+                .unwrap()
+                .to_owned();
+            let (mut child, _, _) = spawn_phase_c_process(&fixture, &patch, boundary);
+            child.kill().unwrap();
+            assert!(!child.wait().unwrap().success());
+
+            let lock = std::fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .open(fixture.root.join(".semaprax-workspace/LOCK"))
+                .unwrap();
+            fs2::FileExt::try_lock_exclusive(&lock).unwrap();
+            fs2::FileExt::unlock(&lock).unwrap();
+            let current = super::snapshot(&fixture.root).unwrap();
+            assert_eq!(
+                std::fs::read_dir(fixture.root.join(".semaprax-workspace/generations"))
+                    .unwrap()
+                    .count(),
+                2
+            );
+            if boundary == "pre" {
+                assert_eq!(current.workspace_revision, old_revision);
+                assert!(
+                    std::fs::read_dir(fixture.root.join(".semaprax-workspace/staging"))
+                        .unwrap()
+                        .next()
+                        .is_some()
+                );
+                assert_eq!(apply(&fixture.root, &patch).unwrap(), candidate);
+            } else {
+                assert_eq!(current.workspace_revision, candidate);
+                assert_eq!(
+                    apply(&fixture.root, &patch).unwrap_err()[0].code,
+                    "SPX-G152"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn phase_c_live_writer_exposes_no_partial_snapshot_to_cooperative_reader() {
+        let fixture = Fixture::new("phase-c-live-reader");
+        let patch = fixture.initialize_and_patch("live_reader");
+        let old_active = std::fs::read(fixture.active()).unwrap();
+        let preview = super::preview(&fixture.root, &patch).unwrap();
+        let candidate = serde_json::from_str::<serde_json::Value>(&preview).unwrap()
+            ["candidate_workspace_revision"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        let (mut child, _, release) = spawn_phase_c_process(&fixture, &patch, "pre");
+        assert_eq!(
+            super::snapshot(&fixture.root).unwrap_err()[0].code,
+            "SPX-I210"
+        );
+        assert_eq!(std::fs::read(fixture.active()).unwrap(), old_active);
+        std::fs::write(release, "release\n").unwrap();
+        assert!(child.wait().unwrap().success());
+        assert_eq!(
+            super::snapshot(&fixture.root).unwrap().workspace_revision,
+            candidate
+        );
+    }
+
+    #[test]
+    fn phase_c_active_permission_drift_fails_both_final_boundaries() {
+        for (target, point) in [
+            ("old", ApplyPoint::BeforeFirstFinalCheck),
+            ("stage", ApplyPoint::BeforeFirstFinalCheck),
+            ("old", ApplyPoint::BeforeSecondFinalCheck),
+            ("stage", ApplyPoint::BeforeSecondFinalCheck),
+        ] {
+            let fixture = Fixture::new(&format!("phase-c-permission-{target}-{point:?}"));
+            let patch = fixture.initialize_and_patch("permissions");
+            let active_bytes = std::fs::read(fixture.active()).unwrap();
+            let active_identity = identity_from_path(&fixture.active(), "SPX-I209").unwrap();
+            let error = apply_with_hook(&fixture.root, &patch, |observed, active, staged, _| {
+                if observed == point {
+                    let path = if target == "old" {
+                        active
+                    } else {
+                        staged.unwrap()
+                    };
+                    let mut permissions = std::fs::metadata(path)?.permissions();
+                    permissions.set_readonly(!permissions.readonly());
+                    std::fs::set_permissions(path, permissions)?;
+                }
+                Ok(())
+            })
+            .unwrap_err();
+            assert_eq!(error[0].code, "SPX-G153");
+            assert_active_unchanged(&fixture, &active_bytes, active_identity);
+            make_test_file_writable(&fixture.active());
+            for entry in
+                std::fs::read_dir(fixture.root.join(".semaprax-workspace/staging")).unwrap()
+            {
+                let path = entry.unwrap().path();
+                if path.is_file() {
+                    make_test_file_writable(&path);
+                }
+            }
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn phase_c_success_preserves_active_mode() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let fixture = Fixture::new("phase-c-mode");
+        let patch = fixture.initialize_and_patch("mode");
+        let active = fixture.active();
+        std::fs::set_permissions(&active, std::fs::Permissions::from_mode(0o640)).unwrap();
+        apply(&fixture.root, &patch).unwrap();
+        assert_eq!(
+            std::fs::metadata(active).unwrap().permissions().mode() & 0o777,
+            0o640
+        );
     }
 
     #[test]

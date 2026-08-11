@@ -117,6 +117,40 @@ fn fixture(label: &str) -> (TempRoot, PathBuf, String, String) {
     (root, path_set, alpha, beta)
 }
 
+fn workspace_patch(root: &Path, label: &str) -> PathBuf {
+    let snapshot = workspace::snapshot(root).unwrap();
+    let alpha = snapshot
+        .files()
+        .iter()
+        .find(|file| file.path() == "alpha.spx")
+        .unwrap();
+    let beta = snapshot
+        .files()
+        .iter()
+        .find(|file| file.path() == "nested/beta.spx")
+        .unwrap();
+    let alpha_patch = format!(
+        "base {}\nrename workspace.alpha.helper to alpha_{label}\n",
+        alpha.source_revision()
+    );
+    let beta_patch = format!(
+        "base {}\nrename workspace.beta.helper to beta_{label}\n",
+        beta.source_revision()
+    );
+    let patch = root.join(format!("{label}.wspatch"));
+    std::fs::write(
+        &patch,
+        format!(
+            "{{\"schema\":\"semaprax.semantic-workspace-patch.v1\",\"base_workspace_revision\":\"{}\",\"files\":[{{\"path\":\"alpha.spx\",\"patch\":{}}},{{\"path\":\"nested/beta.spx\",\"patch\":{}}}]}}\n",
+            snapshot.workspace_revision(),
+            serde_json::to_string(&alpha_patch).unwrap(),
+            serde_json::to_string(&beta_patch).unwrap()
+        ),
+    )
+    .unwrap();
+    patch
+}
+
 #[test]
 fn phase_a_initializes_authenticates_and_previews_without_raw_source_writes() {
     let (root, path_set, alpha, beta) = fixture("preview");
@@ -179,9 +213,28 @@ fn phase_a_initializes_authenticates_and_previews_without_raw_source_writes() {
         std::fs::read_to_string(root.path().join("alpha.spx")).unwrap(),
         alpha
     );
+    let candidate_revision = serde_json::from_str::<serde_json::Value>(&preview).unwrap()
+        ["candidate_workspace_revision"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    assert_eq!(
+        workspace::apply(root.path(), &patch).unwrap(),
+        candidate_revision
+    );
+    assert_eq!(
+        workspace::snapshot(root.path())
+            .unwrap()
+            .workspace_revision(),
+        candidate_revision
+    );
     assert_eq!(
         workspace::apply(root.path(), &patch).unwrap_err()[0].code,
-        "SPX-I212"
+        "SPX-G152"
+    );
+    assert_eq!(
+        std::fs::read_to_string(root.path().join("alpha.spx")).unwrap(),
+        alpha
     );
 }
 
@@ -339,4 +392,96 @@ fn killing_real_lock_holder_releases_the_permanent_lock() {
     );
     exclusive.kill();
     assert_eq!(workspace::snapshot(root.path()).unwrap().files().len(), 2);
+}
+
+#[test]
+fn apply_serializes_writers_and_releases_the_lock_after_commit() {
+    let (root, path_set, _, _) = fixture("apply-lock");
+    workspace::initialize(root.path(), &path_set).unwrap();
+    let patch = workspace_patch(root.path(), "locked");
+    let active = root.path().join(".semaprax-workspace/ACTIVE");
+    let old_active = std::fs::read(&active).unwrap();
+    let holder = spawn_lock_holder(root.path(), "exclusive", 91);
+    assert_eq!(
+        workspace::apply(root.path(), &patch).unwrap_err()[0].code,
+        "SPX-I210"
+    );
+    assert_eq!(std::fs::read(&active).unwrap(), old_active);
+    holder.release();
+
+    let revision = workspace::apply(root.path(), &patch).unwrap();
+    let lock = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(root.path().join(".semaprax-workspace/LOCK"))
+        .unwrap();
+    fs2::FileExt::try_lock_exclusive(&lock).unwrap();
+    fs2::FileExt::unlock(&lock).unwrap();
+    assert_eq!(
+        workspace::snapshot(root.path())
+            .unwrap()
+            .workspace_revision(),
+        revision
+    );
+    let next = workspace_patch(root.path(), "immediate");
+    assert!(workspace::preview(root.path(), &next).is_ok());
+}
+
+#[test]
+fn cooperative_snapshots_are_all_old_or_all_new_across_active_pivot() {
+    let (root, path_set, _, _) = fixture("owned-reader");
+    workspace::initialize(root.path(), &path_set).unwrap();
+    let old = workspace::snapshot(root.path()).unwrap();
+    let old_revision = old.workspace_revision().to_owned();
+    let old_sources = old
+        .files()
+        .iter()
+        .map(|file| (file.path().to_owned(), file.source().to_owned()))
+        .collect::<Vec<_>>();
+    let patch = workspace_patch(root.path(), "reader");
+    let committed = workspace::apply(root.path(), &patch).unwrap();
+    let new = workspace::snapshot(root.path()).unwrap();
+    assert_eq!(old.workspace_revision(), old_revision);
+    assert_eq!(
+        old.files()
+            .iter()
+            .map(|file| (file.path().to_owned(), file.source().to_owned()))
+            .collect::<Vec<_>>(),
+        old_sources
+    );
+    assert_ne!(old_revision, committed);
+    assert_eq!(new.workspace_revision(), committed);
+    assert_ne!(old.to_json(), new.to_json());
+}
+
+#[test]
+fn concurrent_workspace_writers_have_one_commit_point() {
+    let (root, path_set, _, _) = fixture("parallel-writers");
+    workspace::initialize(root.path(), &path_set).unwrap();
+    let patch = workspace_patch(root.path(), "parallel");
+    let barrier = std::sync::Arc::new(std::sync::Barrier::new(3));
+    let mut threads = Vec::new();
+    for _ in 0..2 {
+        let root = root.path().to_path_buf();
+        let patch = patch.clone();
+        let barrier = barrier.clone();
+        threads.push(std::thread::spawn(move || {
+            barrier.wait();
+            workspace::apply(&root, &patch)
+        }));
+    }
+    barrier.wait();
+    let results = threads
+        .into_iter()
+        .map(|thread| thread.join().unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(results.iter().filter(|result| result.is_ok()).count(), 1);
+    let failure = results.into_iter().find_map(Result::err).unwrap();
+    assert!(matches!(failure[0].code, "SPX-I210" | "SPX-G152"));
+    assert_eq!(
+        std::fs::read_dir(root.path().join(".semaprax-workspace/generations"))
+            .unwrap()
+            .count(),
+        2
+    );
 }

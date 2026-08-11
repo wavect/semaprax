@@ -2,18 +2,21 @@
 
 use std::collections::BTreeSet;
 use std::fmt::Write as _;
+#[cfg(test)]
 use std::path::Path;
 
 use sha2::{Digest, Sha256};
 
 use super::{
-    incomplete, limit, replay, with_authenticated_change, SemanticWorkspaceChangeEdge,
-    SemanticWorkspaceChangeImpactEdge, SemanticWorkspaceChangeImpactFact,
-    SemanticWorkspaceChangeRoot, SemanticWorkspaceChangeSet, SemanticWorkspaceChangedFileFact,
-    SemanticWorkspacePreparedChange, MAX_CHANGED_FILES, MAX_DELTA_EDGES, MAX_DELTA_ROOTS,
-    MAX_ENTRY_MODULE_BYTES, MAX_IMPACT_DEPTH, MAX_IMPACT_NODES, MAX_IMPACT_PROVENANCE,
-    MAX_PROPOSAL_BYTES, MAX_SOURCE_BYTES_PER_CHANGE, MAX_TOTAL_REPLACEMENT_SOURCE_BYTES,
+    incomplete, limit, replay, SemanticWorkspaceChangeEdge, SemanticWorkspaceChangeImpactEdge,
+    SemanticWorkspaceChangeImpactFact, SemanticWorkspaceChangeRoot,
+    SemanticWorkspaceChangedFileFact, SemanticWorkspacePreparedChange, MAX_CHANGED_FILES,
+    MAX_DELTA_EDGES, MAX_DELTA_ROOTS, MAX_ENTRY_MODULE_BYTES, MAX_IMPACT_DEPTH, MAX_IMPACT_NODES,
+    MAX_IMPACT_PROVENANCE, MAX_PROPOSAL_BYTES, MAX_SOURCE_BYTES_PER_CHANGE,
+    MAX_TOTAL_REPLACEMENT_SOURCE_BYTES,
 };
+#[cfg(test)]
+use super::{with_authenticated_change, SemanticWorkspaceChangeSet};
 use crate::bounded_output::CappedString;
 use crate::diagnostic::Diagnostic;
 use crate::{semantic_workspace, workspace_graph};
@@ -141,9 +144,8 @@ fn push_review_evidence(output: &mut CappedString, prepared: &SemanticWorkspaceP
     }
 }
 
-/// Complete private Phase-B result. No constructor or raw typed projection is public.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct SemanticWorkspaceChangeArtifacts {
+/// Opaque public bundle of canonical read-only change artifacts and digests.
+pub struct SemanticWorkspaceChangeArtifacts {
     proposal_digest: String,
     candidate_manifest_digest: String,
     preview: Artifact,
@@ -154,55 +156,64 @@ pub(crate) struct SemanticWorkspaceChangeArtifacts {
 }
 
 impl SemanticWorkspaceChangeArtifacts {
-    pub(crate) fn proposal_digest(&self) -> &str {
+    pub fn proposal_digest(&self) -> &str {
         &self.proposal_digest
     }
 
-    pub(crate) fn candidate_manifest_digest(&self) -> &str {
+    pub fn candidate_manifest_digest(&self) -> &str {
         &self.candidate_manifest_digest
     }
 
-    pub(crate) fn preview(&self) -> &str {
+    pub fn preview(&self) -> &str {
         &self.preview.bytes
     }
 
-    pub(crate) fn preview_digest(&self) -> &str {
+    pub fn preview_digest(&self) -> &str {
         &self.preview.digest
     }
 
-    pub(crate) fn context(&self) -> &str {
+    pub fn context(&self) -> &str {
         &self.context.bytes
     }
 
-    pub(crate) fn context_digest(&self) -> &str {
+    pub fn context_digest(&self) -> &str {
         &self.context.digest
     }
 
-    pub(crate) fn impact(&self) -> &str {
+    pub fn impact(&self) -> &str {
         &self.impact.bytes
     }
 
-    pub(crate) fn impact_digest(&self) -> &str {
+    pub fn impact_digest(&self) -> &str {
         &self.impact.digest
     }
 
-    pub(crate) fn review(&self) -> &str {
+    pub fn review(&self) -> &str {
         &self.review.bytes
     }
 
-    pub(crate) fn review_digest(&self) -> &str {
+    pub fn review_digest(&self) -> &str {
         &self.review.digest
     }
 
-    pub(crate) fn evidence(&self) -> &str {
+    pub fn evidence(&self) -> &str {
         &self.evidence.bytes
     }
 
-    pub(crate) fn evidence_digest(&self) -> &str {
+    pub fn evidence_digest(&self) -> &str {
         &self.evidence.digest
+    }
+
+    pub(super) fn into_preview(mut self) -> String {
+        std::mem::take(&mut self.preview.bytes)
+    }
+
+    pub(super) fn into_evidence(mut self) -> String {
+        std::mem::take(&mut self.evidence.bytes)
     }
 }
 
+#[cfg(test)]
 pub(crate) fn build_authenticated_artifacts(
     root: &Path,
     change_set: SemanticWorkspaceChangeSet,
@@ -256,7 +267,7 @@ struct Usage {
     staging_attempts: usize,
 }
 
-fn render_artifacts(
+pub(super) fn render_artifacts(
     prepared: SemanticWorkspacePreparedChange,
 ) -> Result<SemanticWorkspaceChangeArtifacts, Vec<Diagnostic>> {
     replay_prepared(&prepared)?;
@@ -547,6 +558,7 @@ fn checked_sum(
     }
 }
 
+#[cfg(test)]
 fn artifact(
     schema: &'static str,
     domain: &[u8],
@@ -1625,7 +1637,9 @@ mod tests {
         let mut over_builder =
             super::super::build_authenticated_change(&fixture.root, fixture.proposal()).unwrap();
         over_builder.used_builder_bytes = MAX_ANALYSIS_BUILDER_BYTES + 1;
-        let error = render_artifacts(over_builder).unwrap_err();
+        let error = render_artifacts(over_builder)
+            .err()
+            .expect("over-limit builder must fail");
         assert_eq!(error[0].code, "SPX-G183");
         assert_eq!(
             error[0].message,
@@ -1643,14 +1657,18 @@ mod tests {
             })
             .unwrap();
         incomplete_context.context_nodes.remove(index);
-        let error = render_artifacts(incomplete_context).unwrap_err();
+        let error = render_artifacts(incomplete_context)
+            .err()
+            .expect("incomplete Context must fail");
         assert_eq!(error[0].code, "SPX-G186");
         let mut incomplete_provenance =
             super::super::build_authenticated_change(&fixture.root, fixture.proposal()).unwrap();
         incomplete_provenance.impact[0]
             .root_provenance
             .push(incomplete_provenance.roots.len());
-        let error = render_artifacts(incomplete_provenance).unwrap_err();
+        let error = render_artifacts(incomplete_provenance)
+            .err()
+            .expect("incomplete provenance must fail");
         assert_eq!(error[0].code, "SPX-G186");
     }
 

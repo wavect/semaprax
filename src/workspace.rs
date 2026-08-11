@@ -102,6 +102,26 @@ pub(crate) struct WorkspaceSemanticReadAuthority {
     guard: WorkspaceGuard,
 }
 
+pub(crate) struct WorkspaceSemanticChangeLockAuthority {
+    guard: WorkspaceLockGuard,
+}
+
+impl WorkspaceSemanticChangeLockAuthority {
+    pub(crate) fn authenticate<T>(
+        self,
+        input: Result<T, Vec<Diagnostic>>,
+    ) -> Result<(WorkspaceSemanticReadAuthority, T), Vec<Diagnostic>> {
+        let value = match input {
+            Ok(value) => value,
+            Err(diagnostics) => {
+                return Err(unlock_with_diagnostics(&self.guard.lock, diagnostics));
+            }
+        };
+        let guard = finish_snapshot_guard_mode(self.guard, WorkspaceMode::SemanticChange)?;
+        Ok((WorkspaceSemanticReadAuthority { guard }, value))
+    }
+}
+
 impl WorkspaceSemanticReadAuthority {
     pub(crate) fn workspace_revision(&self) -> &str {
         self.guard.snapshot.workspace_revision()
@@ -1594,11 +1614,20 @@ pub(crate) fn acquire_semantic_read(
     })
 }
 
+#[cfg(test)]
 pub(crate) fn acquire_semantic_change_read(
     root: &Path,
 ) -> Result<WorkspaceSemanticReadAuthority, Vec<Diagnostic>> {
     Ok(WorkspaceSemanticReadAuthority {
         guard: acquire_snapshot_mode(root, false, WorkspaceMode::SemanticChange)?,
+    })
+}
+
+pub(crate) fn acquire_semantic_change_lock(
+    root: &Path,
+) -> Result<WorkspaceSemanticChangeLockAuthority, Vec<Diagnostic>> {
+    Ok(WorkspaceSemanticChangeLockAuthority {
+        guard: acquire_lock_only(root, false)?,
     })
 }
 

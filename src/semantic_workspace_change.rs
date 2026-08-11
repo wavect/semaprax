@@ -1,13 +1,15 @@
-//! Private, read-only preparation for authenticated semantic-workspace changes.
+//! Read-only authenticated semantic-workspace change preview and evidence.
 //!
-//! This layer admits an owned set of full-source replacements, overlays it on
-//! one authenticated semantic snapshot, and validates the complete candidate
-//! workspace with exactly one unified Workspace Semantic Graph preflight. It
-//! owns no wire, public API, filesystem publication, ACTIVE pivot, or commit
-//! authority.
+//! The public routes own one canonical proposal file while holding the shared
+//! semantic-workspace lock, validate the complete replacements-only candidate,
+//! and return bounded canonical Preview or Evidence artifacts. This module has
+//! no evidence verifier, receipt, exclusive lock, stage, publish, ACTIVE pivot,
+//! apply, commit, backend, runtime, token, signature, or approval authority.
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fmt::Write as _;
+use std::fs::File;
+use std::io::Read;
 use std::path::Path;
 
 use serde_json::{Map, Value};
@@ -18,11 +20,61 @@ use crate::{hir, semantic_workspace, workspace, workspace_graph};
 
 mod artifact;
 
-pub(crate) fn build_authenticated_artifacts(
+pub use artifact::SemanticWorkspaceChangeArtifacts;
+
+/// Generates the complete authenticated read-only change artifact bundle.
+pub fn generate(
     root: &Path,
-    change_set: SemanticWorkspaceChangeSet,
-) -> Result<artifact::SemanticWorkspaceChangeArtifacts, Vec<Diagnostic>> {
-    artifact::build_authenticated_artifacts(root, change_set)
+    proposal_path: &Path,
+) -> Result<SemanticWorkspaceChangeArtifacts, Vec<Diagnostic>> {
+    generate_with_operation_hook(root, proposal_path, |_| {})
+}
+
+#[derive(Clone, Copy)]
+enum GeneratePoint {
+    ProposalOwned,
+    ArtifactsRendered,
+}
+
+fn generate_with_operation_hook(
+    root: &Path,
+    proposal_path: &Path,
+    mut hook: impl FnMut(GeneratePoint),
+) -> Result<SemanticWorkspaceChangeArtifacts, Vec<Diagnostic>> {
+    let locked = workspace::acquire_semantic_change_lock(root)?;
+    let proposal = read_proposal(proposal_path).and_then(|source| parse_proposal(&source));
+    if proposal.is_ok() {
+        hook(GeneratePoint::ProposalOwned);
+    }
+    let (authority, change_set) = locked.authenticate(proposal)?;
+    with_authenticated_change_authority(authority, change_set, |prepared| {
+        let artifacts = artifact::render_artifacts(prepared)?;
+        hook(GeneratePoint::ArtifactsRendered);
+        Ok(artifacts)
+    })
+}
+
+#[cfg(test)]
+#[allow(
+    dead_code,
+    reason = "test-only boundary hook supports lock/read and final-recheck regressions"
+)]
+fn generate_with_hook(
+    root: &Path,
+    proposal_path: &Path,
+    hook: impl FnMut(GeneratePoint),
+) -> Result<SemanticWorkspaceChangeArtifacts, Vec<Diagnostic>> {
+    generate_with_operation_hook(root, proposal_path, hook)
+}
+
+/// Generates the canonical Change Preview document, including its terminal LF.
+pub fn preview(root: &Path, proposal_path: &Path) -> Result<String, Vec<Diagnostic>> {
+    generate(root, proposal_path).map(artifact::SemanticWorkspaceChangeArtifacts::into_preview)
+}
+
+/// Generates the canonical Change Evidence capsule, including its terminal LF.
+pub fn evidence(root: &Path, proposal_path: &Path) -> Result<String, Vec<Diagnostic>> {
+    generate(root, proposal_path).map(artifact::SemanticWorkspaceChangeArtifacts::into_evidence)
 }
 
 pub(crate) const SCHEMA: &str = "semaprax.workspace-semantic-change.v1";
@@ -83,7 +135,15 @@ pub(crate) struct SemanticWorkspacePreparedChange {
     candidate_workspace_graph_digest: String,
     base_files: Vec<SemanticWorkspaceBaseFileFact>,
     changed_files: Vec<SemanticWorkspaceChangedFileFact>,
+    #[allow(
+        dead_code,
+        reason = "retained for private exact replay and later held verification"
+    )]
     base_graph: workspace_graph::WorkspaceGraphChangeView,
+    #[allow(
+        dead_code,
+        reason = "retained for private exact replay and later held verification"
+    )]
     candidate_graph: workspace_graph::WorkspaceGraphChangeView,
     candidate_files: Vec<semantic_workspace::SemanticWorkspaceFileFact>,
     candidate_manifest: String,
@@ -397,6 +457,11 @@ fn push_json(output: &mut CappedString, value: &str) {
     output.push('"');
 }
 
+#[cfg(test)]
+#[allow(
+    dead_code,
+    reason = "private fact getters support focused replay tests"
+)]
 impl SemanticWorkspaceChangedFileFact {
     pub(crate) fn path(&self) -> &str {
         &self.path
@@ -435,6 +500,10 @@ impl SemanticWorkspaceChangedFileFact {
     }
 }
 
+#[allow(
+    dead_code,
+    reason = "private typed fact accessors support exact replay tests"
+)]
 impl SemanticWorkspacePreparedChange {
     pub(crate) fn base_workspace_revision(&self) -> &str {
         &self.base_workspace_revision
@@ -527,33 +596,88 @@ impl SemanticWorkspacePreparedChange {
     }
 }
 
+#[cfg(test)]
 pub(crate) fn with_authenticated_change<T>(
     root: &Path,
     change_set: SemanticWorkspaceChangeSet,
     operation: impl FnOnce(SemanticWorkspacePreparedChange) -> Result<T, Vec<Diagnostic>>,
 ) -> Result<T, Vec<Diagnostic>> {
-    let mut authority = workspace::acquire_semantic_change_read(root).map_err(|diagnostics| {
+    let authority = workspace::acquire_semantic_change_read(root).map_err(|diagnostics| {
         map_change_builder_limit(diagnostics, semantic_workspace::MAX_CHANGE_BUILDER_BYTES)
     })?;
+    with_authenticated_change_authority(authority, change_set, operation)
+}
+
+fn with_authenticated_change_authority<T>(
+    mut authority: workspace::WorkspaceSemanticReadAuthority,
+    change_set: SemanticWorkspaceChangeSet,
+    operation: impl FnOnce(SemanticWorkspacePreparedChange) -> Result<T, Vec<Diagnostic>>,
+) -> Result<T, Vec<Diagnostic>> {
     let base_workspace_revision = authority.workspace_revision().to_owned();
     let storage = (
         authority.manifest_bytes(),
         authority.retained_generations(),
         authority.staging_attempts(),
     );
-    let base_graph = authority.take_graph()?;
-    let sources = authority.take_sources();
-    let result = prepare_owned(
-        base_workspace_revision,
-        sources,
-        base_graph,
-        storage,
-        change_set,
-    )
+    let result = (|| {
+        let base_graph = authority.take_graph()?;
+        let sources = authority.take_sources();
+        prepare_owned(
+            base_workspace_revision,
+            sources,
+            base_graph,
+            storage,
+            change_set,
+        )
+    })()
     .and_then(operation);
     authority.finish(result)
 }
 
+#[cfg(test)]
+#[allow(
+    dead_code,
+    reason = "test-only seam proves consumed graph failures synchronously unlock"
+)]
+fn build_with_consumed_graph_for_test(
+    root: &Path,
+    change_set: SemanticWorkspaceChangeSet,
+) -> Result<(), Vec<Diagnostic>> {
+    let mut authority = workspace::acquire_semantic_change_read(root)?;
+    let _consumed = authority.take_graph()?;
+    with_authenticated_change_authority(authority, change_set, |_| Ok(()))
+}
+
+fn read_proposal(path: &Path) -> Result<String, Vec<Diagnostic>> {
+    let mut file = File::open(path).map_err(|_| proposal_io("open failed"))?;
+    let metadata = file
+        .metadata()
+        .map_err(|_| proposal_io("metadata inspection failed"))?;
+    if !metadata.is_file() {
+        return Err(proposal_io("input is not a regular file"));
+    }
+    if metadata.len() > MAX_PROPOSAL_BYTES as u64 {
+        return Err(limit("proposal_bytes", MAX_PROPOSAL_BYTES));
+    }
+    let mut bytes = Vec::with_capacity((metadata.len() as usize).saturating_add(1));
+    file.by_ref()
+        .take((MAX_PROPOSAL_BYTES as u64) + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|_| proposal_io("read failed"))?;
+    if bytes.len() > MAX_PROPOSAL_BYTES {
+        return Err(limit("proposal_bytes", MAX_PROPOSAL_BYTES));
+    }
+    String::from_utf8(bytes).map_err(|_| proposal_io("input is not UTF-8"))
+}
+
+fn proposal_io(detail: &'static str) -> Vec<Diagnostic> {
+    vec![Diagnostic::io(
+        "SPX-I214",
+        format!("could not read Semantic Workspace Change proposal: {detail}"),
+    )]
+}
+
+#[cfg(test)]
 pub(crate) fn build_authenticated_change(
     root: &Path,
     change_set: SemanticWorkspaceChangeSet,
@@ -3139,6 +3263,99 @@ fn main() -> i64 { 0 }
             error[0].message,
             "Semantic Workspace Change impact depth is incomplete"
         );
+    }
+
+    #[test]
+    fn public_generate_hook_discards_final_workspace_drift_and_unlocks() {
+        let fixture = Fixture::new("public-generate-final-recheck");
+        let proposal_path = fixture.root.join("change.json");
+        std::fs::write(&proposal_path, fixture.proposal().source()).unwrap();
+        let points = std::cell::RefCell::new(Vec::new());
+        let result = generate_with_hook(&fixture.root, &proposal_path, |point| {
+            points.borrow_mut().push(match point {
+                GeneratePoint::ProposalOwned => "proposal_owned",
+                GeneratePoint::ArtifactsRendered => "artifacts_rendered",
+            });
+            if matches!(point, GeneratePoint::ArtifactsRendered) {
+                OpenOptions::new()
+                    .append(true)
+                    .open(fixture.root.join(".semaprax-workspace/ACTIVE"))
+                    .unwrap()
+                    .write_all(b"x")
+                    .unwrap();
+            }
+        });
+        assert_eq!(*points.borrow(), ["proposal_owned", "artifacts_rendered"]);
+        let error = result.err().unwrap();
+        assert_eq!(error.len(), 1);
+        assert_eq!(error[0].code, "SPX-G153");
+        assert_eq!(
+            error[0].message,
+            "workspace object changed during authentication"
+        );
+        fixture.assert_exclusive_reacquire();
+    }
+
+    #[test]
+    fn consumed_retained_graph_invariant_fails_and_unlocks_immediately() {
+        let fixture = Fixture::new("consumed-retained-graph");
+        let error = build_with_consumed_graph_for_test(&fixture.root, fixture.proposal())
+            .err()
+            .unwrap();
+        assert_eq!(error.len(), 1);
+        assert_eq!(error[0].code, "SPX-G153");
+        assert_eq!(
+            error[0].message,
+            "semantic workspace graph was already consumed"
+        );
+        fixture.assert_exclusive_reacquire();
+    }
+
+    #[test]
+    fn proposal_owned_hook_never_reopens_same_or_replaced_path_bytes() {
+        let fixture = Fixture::new("proposal-owned-no-reopen");
+        let proposal_path = fixture.root.join("change.json");
+        let original = fixture.proposal().source().to_owned();
+        std::fs::write(&proposal_path, &original).unwrap();
+        let baseline = generate(&fixture.root, &proposal_path).unwrap();
+
+        for (label, replacement) in [
+            ("same", original.as_bytes()),
+            ("different", b"{}\n".as_slice()),
+        ] {
+            std::fs::write(&proposal_path, &original).unwrap();
+            let replacement_path = fixture.root.join(format!("replacement-{label}.json"));
+            std::fs::write(&replacement_path, replacement).unwrap();
+            let points = std::cell::RefCell::new(Vec::new());
+            let artifacts = generate_with_hook(&fixture.root, &proposal_path, |point| {
+                points.borrow_mut().push(match point {
+                    GeneratePoint::ProposalOwned => "proposal_owned",
+                    GeneratePoint::ArtifactsRendered => "artifacts_rendered",
+                });
+                if matches!(point, GeneratePoint::ProposalOwned) {
+                    std::fs::rename(&replacement_path, &proposal_path).unwrap();
+                }
+            })
+            .unwrap();
+            assert_eq!(*points.borrow(), ["proposal_owned", "artifacts_rendered"]);
+            assert_eq!(artifacts.proposal_digest(), baseline.proposal_digest());
+            assert_eq!(
+                artifacts.candidate_manifest_digest(),
+                baseline.candidate_manifest_digest()
+            );
+            assert_eq!(artifacts.preview(), baseline.preview());
+            assert_eq!(artifacts.preview_digest(), baseline.preview_digest());
+            assert_eq!(artifacts.context(), baseline.context());
+            assert_eq!(artifacts.context_digest(), baseline.context_digest());
+            assert_eq!(artifacts.impact(), baseline.impact());
+            assert_eq!(artifacts.impact_digest(), baseline.impact_digest());
+            assert_eq!(artifacts.review(), baseline.review());
+            assert_eq!(artifacts.review_digest(), baseline.review_digest());
+            assert_eq!(artifacts.evidence(), baseline.evidence());
+            assert_eq!(artifacts.evidence_digest(), baseline.evidence_digest());
+            assert_eq!(std::fs::read(&proposal_path).unwrap(), replacement);
+            fixture.assert_exclusive_reacquire();
+        }
     }
 
     #[test]

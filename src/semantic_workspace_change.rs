@@ -16,6 +16,15 @@ use crate::bounded_output::CappedString;
 use crate::diagnostic::Diagnostic;
 use crate::{hir, semantic_workspace, workspace, workspace_graph};
 
+mod artifact;
+
+pub(crate) fn build_authenticated_artifacts(
+    root: &Path,
+    change_set: SemanticWorkspaceChangeSet,
+) -> Result<artifact::SemanticWorkspaceChangeArtifacts, Vec<Diagnostic>> {
+    artifact::build_authenticated_artifacts(root, change_set)
+}
+
 pub(crate) const SCHEMA: &str = "semaprax.workspace-semantic-change.v1";
 const MIN_CHANGED_FILES: usize = 2;
 const MAX_CHANGED_FILES: usize = semantic_workspace::MAX_MANAGED_FILES;
@@ -84,6 +93,9 @@ pub(crate) struct SemanticWorkspacePreparedChange {
     impact: Vec<SemanticWorkspaceChangeImpactFact>,
     impact_edges: Vec<SemanticWorkspaceChangeImpactEdge>,
     used_builder_bytes: usize,
+    used_total_replacement_source_bytes: usize,
+    retained_generations: usize,
+    staging_attempts: usize,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -488,6 +500,18 @@ impl SemanticWorkspacePreparedChange {
         self.used_builder_bytes
     }
 
+    pub(crate) const fn used_total_replacement_source_bytes(&self) -> usize {
+        self.used_total_replacement_source_bytes
+    }
+
+    pub(crate) const fn retained_generations(&self) -> usize {
+        self.retained_generations
+    }
+
+    pub(crate) const fn staging_attempts(&self) -> usize {
+        self.staging_attempts
+    }
+
     pub(crate) fn into_candidate_generation_parts(
         self,
     ) -> (
@@ -553,6 +577,16 @@ fn prepare_owned(
         ));
     }
 
+    let used_total_replacement_source_bytes = change_set
+        .files
+        .iter()
+        .try_fold(0usize, |total, file| total.checked_add(file.source.len()))
+        .ok_or_else(|| {
+            limit(
+                "total_replacement_source_bytes",
+                MAX_TOTAL_REPLACEMENT_SOURCE_BYTES,
+            )
+        })?;
     let declared_paths = change_set
         .files
         .iter()
@@ -822,6 +856,9 @@ fn prepare_owned(
         impact,
         impact_edges,
         used_builder_bytes,
+        used_total_replacement_source_bytes,
+        retained_generations: storage.1,
+        staging_attempts: storage.2,
     })
 }
 
@@ -2008,13 +2045,13 @@ mod tests {
     static SERIAL: AtomicU64 = AtomicU64::new(0);
     const DIGEST: &str = "sha256:0000000000000000000000000000000000000000000000000000000000000000";
 
-    struct Fixture {
-        root: PathBuf,
+    pub(super) struct Fixture {
+        pub(super) root: PathBuf,
         revision: String,
     }
 
     impl Fixture {
-        fn new(label: &str) -> Self {
+        pub(super) fn new(label: &str) -> Self {
             Self::build(label, false)
         }
 
@@ -2056,7 +2093,7 @@ mod tests {
             authority.finish(Ok(sources)).unwrap()
         }
 
-        fn proposal(&self) -> SemanticWorkspaceChangeSet {
+        pub(super) fn proposal(&self) -> SemanticWorkspaceChangeSet {
             let graph = crate::workspace_graph::snapshot(&self.root, "change.entry").unwrap();
             let files = [
                 ("a/provider.spx", provider_candidate()),
@@ -2110,7 +2147,7 @@ mod tests {
                 .unwrap()
         }
 
-        fn assert_exclusive_reacquire(&self) {
+        pub(super) fn assert_exclusive_reacquire(&self) {
             let lock = OpenOptions::new()
                 .read(true)
                 .write(true)

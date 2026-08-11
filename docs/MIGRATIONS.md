@@ -293,8 +293,8 @@ or staging creation, and only then uses the existing live Workspace authority.
 Operators must retain the original Workspace recovery/inventory rules: no
 automatic rollback, cleanup, GC, raw-tree materialization, or power-loss/
 network/ACL compatibility follows. Local gates are green. The exact
-`388986a6f12ef97b0c8b40e76466fdc83f211b39` matrix is hosted green in [run
-31487851406](https://github.com/wavect/semaprax/actions/runs/31487851406), with
+`cda4892ee74100fd11c5161ad857d469ec5e5421` matrix is hosted green in [run
+31491573287](https://github.com/wavect/semaprax/actions/runs/31491573287), with
 all 12 jobs passing. Completion remains 38 Partial/18 Missing.
 
 ## Persistent identities are NUL-free

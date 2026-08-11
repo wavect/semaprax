@@ -308,8 +308,8 @@ Implemented today:
   publication core. Capsule/receipt KATs cover homogeneous v1/v2/v3 and mixed
   children. Local public 6/6, apply 5/5, hostile 2/2, units 8/8, shared
   Workspace 39/39, root library 496/496, and preservation 107/107 are green;
-  the exact `388986a6f12ef97b0c8b40e76466fdc83f211b39` matrix is hosted green in
-  [run 31487851406](https://github.com/wavect/semaprax/actions/runs/31487851406),
+  the exact `cda4892ee74100fd11c5161ad857d469ec5e5421` matrix is hosted green in
+  [run 31491573287](https://github.com/wavect/semaprax/actions/runs/31491573287),
   with all 12 jobs passing. The capsule grants no authority,
   executes no target/test, performs no cross-file semantic reasoning, embeds
   no Target Evidence or Evidence v2, and changes none of the 38 Partial/18

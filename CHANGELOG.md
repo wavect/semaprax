@@ -27,16 +27,22 @@ All notable changes to SEMAPRAX are documented here.
   Local public generation/verification is 6/6, apply 5/5, hostile 2/2,
   module units 8/8, shared Workspace core 39/39, Workspace integration 12/12,
   root library 496/496, and preservation 107/107; full local gates and security
-  are green. The exact `388986a6f12ef97b0c8b40e76466fdc83f211b39`
+  are green. The exact `cda4892ee74100fd11c5161ad857d469ec5e5421`
   corrective matrix is hosted green in [run
-  31487851406](https://github.com/wavect/semaprax/actions/runs/31487851406),
+  31491573287](https://github.com/wavect/semaprax/actions/runs/31491573287),
   with all 12 jobs passing, including [Dependency
-  policy](https://github.com/wavect/semaprax/actions/runs/31487851406/job/93767254877),
-  [Ubuntu](https://github.com/wavect/semaprax/actions/runs/31487851406/job/93767254965),
-  [macOS](https://github.com/wavect/semaprax/actions/runs/31487851406/job/93767254996),
-  [Windows](https://github.com/wavect/semaprax/actions/runs/31487851406/job/93767254975),
-  [MSRV](https://github.com/wavect/semaprax/actions/runs/31487851406/job/93767254939),
-  and [Component](https://github.com/wavect/semaprax/actions/runs/31487851406/job/93767254934).
+  policy](https://github.com/wavect/semaprax/actions/runs/31491573287/job/93779116816),
+  [Ubuntu](https://github.com/wavect/semaprax/actions/runs/31491573287/job/93779117078),
+  [macOS](https://github.com/wavect/semaprax/actions/runs/31491573287/job/93779116941),
+  [Windows](https://github.com/wavect/semaprax/actions/runs/31491573287/job/93779117130),
+  [MSRV](https://github.com/wavect/semaprax/actions/runs/31491573287/job/93779116811),
+  and [Component](https://github.com/wavect/semaprax/actions/runs/31491573287/job/93779116886).
+  The intermediate exact `658b2f4dc6d69974cef553dbd4e6eaecafacdd63`
+  documentation/count head [run
+  31490049153](https://github.com/wavect/semaprax/actions/runs/31490049153)
+  was nonqualifying and cancelled: its macOS early-error precedence test
+  observed `SPX-I210` instead of the expected `SPX-G150`; Windows was
+  concurrency-cancelled after that failure and reported no product failure.
   The exact `3e41b3a0318730fec41e7d75438414e93dafa313` predecessor [run
   31486578192](https://github.com/wavect/semaprax/actions/runs/31486578192)
   was nonqualifying at 10/12: its macOS test observed `SPX-I210` instead of the

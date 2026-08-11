@@ -2,9 +2,9 @@ use std::path::Path;
 
 use crate::ast::{
     BinaryOp, Expr, ExprKind, FieldDeclaration, FieldInitializer, Function, ImportDeclaration,
-    ImportFailure, InterfaceDeclaration, MatchArm, MatchPattern, MatchPatternField, Param,
-    ParamMode, Program, ResourceLifecycleDeclaration, ResourceLifecycleKind, Span, Statement, Type,
-    TypeDeclaration, TypeDeclarationKind, TypeParameterDeclaration, UnaryOp,
+    ImportFailure, InterfaceDeclaration, MatchArm, MatchPattern, MatchPatternField, ModuleUse,
+    ModuleUseKind, Param, ParamMode, Program, ResourceLifecycleDeclaration, ResourceLifecycleKind,
+    Span, Statement, Type, TypeDeclaration, TypeDeclarationKind, TypeParameterDeclaration, UnaryOp,
     VariantCaseDeclaration,
 };
 use crate::diagnostic::Diagnostic;
@@ -31,6 +31,11 @@ impl Parser {
         let (module, _) = self.qualified_ident("module name")?;
         self.take(&TokenKind::Semicolon);
 
+        let mut module_uses = Vec::new();
+        while self.at_keyword("use") {
+            module_uses.push(self.module_use()?);
+        }
+
         let permits = if self.at_keyword("permit") {
             self.bump();
             self.effect_set()?
@@ -42,6 +47,12 @@ impl Parser {
         let mut interfaces = Vec::new();
         let mut functions = Vec::new();
         while !self.at(&TokenKind::Eof) {
+            if self.at_keyword("use") {
+                return Err(self.error_here(
+                    "SPX-G170",
+                    "workspace module uses must appear immediately after the module declaration",
+                ));
+            }
             let stable_id = self.stable_id_attribute()?;
             if self.at_keyword("resource") {
                 types.push(self.resource(&module, stable_id)?);
@@ -61,10 +72,72 @@ impl Parser {
         Ok(Program {
             path: self.path,
             module,
+            module_uses,
             permits,
             types,
             interfaces,
             functions,
+        })
+    }
+
+    fn module_use(&mut self) -> Result<ModuleUse, Diagnostic> {
+        self.module_use_inner().map_err(|mut diagnostic| {
+            diagnostic.code = "SPX-G170";
+            diagnostic
+        })
+    }
+
+    fn module_use_inner(&mut self) -> Result<ModuleUse, Diagnostic> {
+        let start = self.keyword("use")?.span;
+        let kind = if self.at_keyword("function") {
+            self.bump();
+            ModuleUseKind::Function
+        } else if self.at_keyword("type") {
+            self.bump();
+            ModuleUseKind::Type
+        } else {
+            return Err(self.error_here(
+                "SPX-G170",
+                "workspace module use expects `function` or `type`",
+            ));
+        };
+        if !self.take(&TokenKind::At) {
+            return Err(self.error_here(
+                "SPX-G170",
+                "workspace module use requires `@id(\"<persistent-id>\")`",
+            ));
+        }
+        let (attribute, _) = self.ident("workspace module use attribute")?;
+        if attribute != "id" {
+            return Err(self.error_here(
+                "SPX-G170",
+                "workspace module use requires the `@id` attribute",
+            ));
+        }
+        self.expect(&TokenKind::LParen, "`(` after workspace module use @id")?;
+        let persistent_id = match &self.bump().kind {
+            TokenKind::String(value) => value.clone(),
+            _ => {
+                return Err(self.error_previous(
+                    "SPX-G170",
+                    "workspace module use @id expects a string literal",
+                ));
+            }
+        };
+        self.expect(&TokenKind::RParen, "`)` after workspace module use @id")?;
+        self.keyword("from")?;
+        let (target_module, _) = self.qualified_ident("workspace module use target")?;
+        self.keyword("as")?;
+        let (alias, _) = self.ident("workspace module use alias")?;
+        let end = self
+            .expect(&TokenKind::Semicolon, "`;` after workspace module use")?
+            .span;
+        Ok(ModuleUse {
+            kind,
+            persistent_id,
+            target_module,
+            alias,
+            span: start.merge(end),
         })
     }
 

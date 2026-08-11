@@ -238,6 +238,10 @@ pub struct DeclarationIndex {
 }
 
 impl DeclarationIndex {
+    pub(crate) fn workspace_declarations(&self) -> Vec<Declaration> {
+        self.declarations.values().cloned().collect()
+    }
+
     pub fn declaration(&self, id: &DeclarationId) -> Option<&Declaration> {
         self.declarations.get(id)
     }
@@ -5440,6 +5444,124 @@ fn visit_resolved_calls(
         }
         ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
     }
+}
+
+#[allow(dead_code, reason = "private Workspace Semantic Graph Phase-A seam")]
+pub(crate) fn workspace_call_edges(
+    program: &ResolvedProgram,
+) -> BTreeSet<(DeclarationId, DeclarationId)> {
+    let mut edges = BTreeSet::new();
+    for function in &program.functions {
+        for expression in function
+            .requires
+            .iter()
+            .chain(std::iter::once(&function.body))
+            .chain(&function.ensures)
+        {
+            visit_resolved_calls(expression, &mut |callee, _, _| {
+                edges.insert((function.id.clone(), callee.clone()));
+            });
+        }
+    }
+    edges
+}
+
+#[allow(dead_code, reason = "private Workspace Semantic Graph Phase-A seam")]
+pub(crate) fn workspace_expression_identity(owner: &DeclarationId, path: &str) -> String {
+    ExpressionId::new(&FunctionExecutionId::Monomorphic(owner.clone()), path)
+        .as_str()
+        .to_owned()
+}
+
+#[allow(dead_code, reason = "private Workspace Semantic Graph Phase-A seam")]
+pub(crate) fn workspace_call_sites(
+    program: &ResolvedProgram,
+) -> Vec<(DeclarationId, String, DeclarationId)> {
+    fn walk(
+        owner: &DeclarationId,
+        expression: &ResolvedExpr,
+        sites: &mut Vec<(DeclarationId, String, DeclarationId)>,
+    ) {
+        match &expression.kind {
+            ResolvedExprKind::Call { callee, args, .. } => {
+                sites.push((
+                    owner.clone(),
+                    expression.id.as_str().to_owned(),
+                    callee.clone(),
+                ));
+                for argument in args {
+                    walk(owner, argument, sites);
+                }
+            }
+            ResolvedExprKind::Unary { value, .. }
+            | ResolvedExprKind::Try { operand: value, .. }
+            | ResolvedExprKind::TryOption { operand: value, .. }
+            | ResolvedExprKind::Project { base: value, .. } => walk(owner, value, sites),
+            ResolvedExprKind::Binary { left, right, .. } => {
+                walk(owner, left, sites);
+                walk(owner, right, sites);
+            }
+            ResolvedExprKind::Block { statements, tail } => {
+                for statement in statements {
+                    match statement {
+                        ResolvedStatement::Let { value, .. } => walk(owner, value, sites),
+                    }
+                }
+                walk(owner, tail, sites);
+            }
+            ResolvedExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                walk(owner, condition, sites);
+                walk(owner, then_branch, sites);
+                walk(owner, else_branch, sites);
+            }
+            ResolvedExprKind::ConstructRecord { fields, .. }
+            | ResolvedExprKind::ConstructVariant { fields, .. } => {
+                for field in fields {
+                    walk(owner, &field.value, sites);
+                }
+            }
+            ResolvedExprKind::Match { scrutinee, arms } => {
+                walk(owner, scrutinee, sites);
+                for arm in arms {
+                    walk(owner, &arm.value, sites);
+                }
+            }
+            ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+                walk(owner, base, sites);
+                for field in fields {
+                    walk(owner, &field.value, sites);
+                }
+            }
+            ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
+        }
+    }
+
+    let mut sites = Vec::new();
+    for function in &program.functions {
+        for expression in function
+            .requires
+            .iter()
+            .chain(std::iter::once(&function.body))
+            .chain(&function.ensures)
+        {
+            walk(&function.id, expression, &mut sites);
+        }
+    }
+    for template in &program.function_templates {
+        for expression in template
+            .requires
+            .iter()
+            .chain(std::iter::once(&template.body))
+            .chain(&template.ensures)
+        {
+            walk(&template.id, expression, &mut sites);
+        }
+    }
+    sites
 }
 
 fn hir_error(message: impl Into<String>) -> Diagnostic {

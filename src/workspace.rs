@@ -1352,16 +1352,23 @@ fn apply_with_hook(
     mut hook: impl FnMut(ApplyPoint, &Path, Option<&Path>, Option<&Path>) -> std::io::Result<()>,
 ) -> Result<String, Vec<Diagnostic>> {
     let guard = acquire_snapshot(root, true)?;
-    let active_path = guard.control.join("ACTIVE");
-    let patch_input = authenticate_text(patch_path, MAX_WORKSPACE_PATCH_BYTES, "SPX-I209")?;
-    hook(ApplyPoint::AfterPatchRead, &active_path, None, None)
-        .map_err(|error| io("SPX-I209", format!("post-read hook failed: {error}")))?;
-    let patch = parse_workspace_patch(&patch_input.source)?;
-    let plan = build_workspace_plan(&guard.snapshot, patch)?;
-    let WorkspacePlan {
-        summary: plan,
-        preflights: _,
-    } = plan;
+    let prepared = (|| {
+        let active_path = guard.control.join("ACTIVE");
+        let patch_input = authenticate_text(patch_path, MAX_WORKSPACE_PATCH_BYTES, "SPX-I209")?;
+        hook(ApplyPoint::AfterPatchRead, &active_path, None, None)
+            .map_err(|error| io("SPX-I209", format!("post-read hook failed: {error}")))?;
+        let patch = parse_workspace_patch(&patch_input.source)?;
+        let plan = build_workspace_plan(&guard.snapshot, patch)?;
+        let WorkspacePlan {
+            summary: plan,
+            preflights: _,
+        } = plan;
+        Ok((patch_input, plan))
+    })();
+    let (patch_input, plan) = match prepared {
+        Ok(prepared) => prepared,
+        Err(diagnostics) => return Err(unlock_with_diagnostics(&guard.lock, diagnostics)),
+    };
     commit_workspace_authority_with_hook(
         WorkspaceCommitAuthority {
             guard,
@@ -1382,169 +1389,188 @@ pub(crate) fn commit_workspace_authority_with_hook(
         plan,
     } = authority;
     let active_path = guard.control.join("ACTIVE");
-    let mut candidate =
-        ensure_candidate_generation(&mut guard, &mut patch_input, &plan, |_, _, _| {})?;
-    hook(
-        ApplyPoint::AfterCandidatePrepared,
-        &active_path,
-        None,
-        Some(&candidate.path),
-    )
-    .map_err(|error| io("SPX-I211", format!("candidate hook failed: {error}")))?;
+    let mut active_replaced = false;
+    let result = (|| {
+        let mut candidate =
+            ensure_candidate_generation(&mut guard, &mut patch_input, &plan, |_, _, _| {})?;
+        hook(
+            ApplyPoint::AfterCandidatePrepared,
+            &active_path,
+            None,
+            Some(&candidate.path),
+        )
+        .map_err(|error| io("SPX-I211", format!("candidate hook failed: {error}")))?;
 
-    let candidate_name = revision_hex(&plan.candidate_revision)?.to_owned();
-    let mut generation_names = guard.generation_names.clone();
-    generation_names.insert(candidate_name);
-    let staging_root = guard.control.join("staging");
-    guard.recheck_phase_inventory(&generation_names, &guard.staging_names, Some(&candidate))?;
-    let (_, occupied_directories, occupied_files) = validate_staging_inventory(&staging_root)?;
-    let occupied = inventory_names_from_directories(&occupied_directories)?
-        .into_iter()
-        .chain(inventory_names_from_texts(&occupied_files)?)
-        .collect::<BTreeSet<_>>();
-    let ordinal = (0..MAX_STAGING_ATTEMPTS)
-        .find(|ordinal| !occupied.contains(&ordinal.to_string()))
-        .ok_or_else(|| limit("workspace retains 32 staging attempts"))?;
-    let active_stage_path = staging_root.join(ordinal.to_string());
-    let active_source = render_root(&plan.candidate_revision);
-    let mut active_stage = write_new_text(
-        &active_stage_path,
-        &active_source,
-        MAX_MANIFEST_BYTES,
-        "candidate ACTIVE pointer",
-    )?;
-    let active_permissions = guard
-        .texts
-        .iter()
-        .find(|text| text.path == active_path)
-        .ok_or_else(|| invariant("authenticated ACTIVE handle is unavailable"))?
-        .file
-        .metadata()
-        .map_err(|error| {
-            io(
-                "SPX-I211",
-                format!("cannot inspect ACTIVE permissions: {error}"),
-            )
-        })?
-        .permissions();
-    active_stage
-        .file
-        .set_permissions(active_permissions.clone())
-        .and_then(|_| active_stage.file.sync_all())
-        .map_err(|error| {
-            io(
-                "SPX-I211",
-                format!("cannot preserve ACTIVE permissions: {error}"),
-            )
-        })?;
-    active_stage.recheck()?;
-    let mut staging_names = guard.staging_names.clone();
-    staging_names.insert(ordinal.to_string());
-    let final_facts = FinalApplyFacts {
-        plan: &plan,
-        generation_names: &generation_names,
-        staging_names: &staging_names,
-        active_permissions: &active_permissions,
-    };
-    hook(
-        ApplyPoint::AfterActiveStaged,
-        &active_path,
-        Some(&active_stage_path),
-        Some(&candidate.path),
-    )
-    .map_err(|error| io("SPX-I211", format!("ACTIVE staging hook failed: {error}")))?;
-
-    hook(
-        ApplyPoint::BeforeFirstFinalCheck,
-        &active_path,
-        Some(&active_stage_path),
-        Some(&candidate.path),
-    )
-    .map_err(|error| {
-        io(
-            "SPX-I211",
-            format!("first final-check hook failed: {error}"),
-        )
-    })?;
-    final_apply_recheck(
-        &mut guard,
-        &mut patch_input,
-        &mut candidate,
-        &mut active_stage,
-        &final_facts,
-    )?;
-    hook(
-        ApplyPoint::BeforeSecondFinalCheck,
-        &active_path,
-        Some(&active_stage_path),
-        Some(&candidate.path),
-    )
-    .map_err(|error| {
-        io(
-            "SPX-I211",
-            format!("second final-check hook failed: {error}"),
-        )
-    })?;
-    hook(
-        ApplyPoint::BeforeActiveReplace,
-        &active_path,
-        Some(&active_stage_path),
-        Some(&candidate.path),
-    )
-    .map_err(|error| io("SPX-I211", format!("ACTIVE replacement rejected: {error}")))?;
-    final_apply_recheck(
-        &mut guard,
-        &mut patch_input,
-        &mut candidate,
-        &mut active_stage,
-        &final_facts,
-    )?;
-    let active_fingerprint =
-        GenerationFingerprint::from_text(&mut active_stage, &active_stage_path)?;
-    #[cfg(windows)]
-    drop(active_stage);
-    std::fs::rename(&active_stage_path, &active_path).map_err(|error| {
-        io(
-            "SPX-I211",
-            format!("cannot atomically replace ACTIVE: {error}"),
-        )
-    })?;
-    hook(
-        ApplyPoint::AfterActiveReplace,
-        &active_path,
-        Some(&active_stage_path),
-        Some(&candidate.path),
-    )
-    .map_err(|error| final_uncertainty(format!("post-pivot hook failed: {error}")))?;
-    let mut published_active = authenticate_text(&active_path, MAX_MANIFEST_BYTES, "SPX-I212")
-        .map_err(map_final_uncertainty)?;
-    active_fingerprint
-        .require_text_equivalent(&mut published_active, &active_path)
-        .map_err(map_final_uncertainty)?;
-    if !permissions_equal(
-        &active_permissions,
-        &published_active
+        let candidate_name = revision_hex(&plan.candidate_revision)?.to_owned();
+        let mut generation_names = guard.generation_names.clone();
+        generation_names.insert(candidate_name);
+        let staging_root = guard.control.join("staging");
+        guard.recheck_phase_inventory(&generation_names, &guard.staging_names, Some(&candidate))?;
+        let (_, occupied_directories, occupied_files) = validate_staging_inventory(&staging_root)?;
+        let occupied = inventory_names_from_directories(&occupied_directories)?
+            .into_iter()
+            .chain(inventory_names_from_texts(&occupied_files)?)
+            .collect::<BTreeSet<_>>();
+        let ordinal = (0..MAX_STAGING_ATTEMPTS)
+            .find(|ordinal| !occupied.contains(&ordinal.to_string()))
+            .ok_or_else(|| limit("workspace retains 32 staging attempts"))?;
+        let active_stage_path = staging_root.join(ordinal.to_string());
+        let active_source = render_root(&plan.candidate_revision);
+        let mut active_stage = write_new_text(
+            &active_stage_path,
+            &active_source,
+            MAX_MANIFEST_BYTES,
+            "candidate ACTIVE pointer",
+        )?;
+        let active_permissions = guard
+            .texts
+            .iter()
+            .find(|text| text.path == active_path)
+            .ok_or_else(|| invariant("authenticated ACTIVE handle is unavailable"))?
             .file
             .metadata()
             .map_err(|error| {
-                final_uncertainty(format!(
-                    "cannot inspect published ACTIVE permissions: {error}"
-                ))
+                io(
+                    "SPX-I211",
+                    format!("cannot inspect ACTIVE permissions: {error}"),
+                )
             })?
-            .permissions(),
-    ) {
-        return Err(final_uncertainty(
-            "published ACTIVE permissions differ from the authenticated base",
-        ));
+            .permissions();
+        active_stage
+            .file
+            .set_permissions(active_permissions.clone())
+            .and_then(|_| active_stage.file.sync_all())
+            .map_err(|error| {
+                io(
+                    "SPX-I211",
+                    format!("cannot preserve ACTIVE permissions: {error}"),
+                )
+            })?;
+        active_stage.recheck()?;
+        let mut staging_names = guard.staging_names.clone();
+        staging_names.insert(ordinal.to_string());
+        let final_facts = FinalApplyFacts {
+            plan: &plan,
+            generation_names: &generation_names,
+            staging_names: &staging_names,
+            active_permissions: &active_permissions,
+        };
+        hook(
+            ApplyPoint::AfterActiveStaged,
+            &active_path,
+            Some(&active_stage_path),
+            Some(&candidate.path),
+        )
+        .map_err(|error| io("SPX-I211", format!("ACTIVE staging hook failed: {error}")))?;
+
+        hook(
+            ApplyPoint::BeforeFirstFinalCheck,
+            &active_path,
+            Some(&active_stage_path),
+            Some(&candidate.path),
+        )
+        .map_err(|error| {
+            io(
+                "SPX-I211",
+                format!("first final-check hook failed: {error}"),
+            )
+        })?;
+        final_apply_recheck(
+            &mut guard,
+            &mut patch_input,
+            &mut candidate,
+            &mut active_stage,
+            &final_facts,
+        )?;
+        hook(
+            ApplyPoint::BeforeSecondFinalCheck,
+            &active_path,
+            Some(&active_stage_path),
+            Some(&candidate.path),
+        )
+        .map_err(|error| {
+            io(
+                "SPX-I211",
+                format!("second final-check hook failed: {error}"),
+            )
+        })?;
+        hook(
+            ApplyPoint::BeforeActiveReplace,
+            &active_path,
+            Some(&active_stage_path),
+            Some(&candidate.path),
+        )
+        .map_err(|error| io("SPX-I211", format!("ACTIVE replacement rejected: {error}")))?;
+        final_apply_recheck(
+            &mut guard,
+            &mut patch_input,
+            &mut candidate,
+            &mut active_stage,
+            &final_facts,
+        )?;
+        let active_fingerprint =
+            GenerationFingerprint::from_text(&mut active_stage, &active_stage_path)?;
+        #[cfg(windows)]
+        drop(active_stage);
+        std::fs::rename(&active_stage_path, &active_path).map_err(|error| {
+            io(
+                "SPX-I211",
+                format!("cannot atomically replace ACTIVE: {error}"),
+            )
+        })?;
+        active_replaced = true;
+        hook(
+            ApplyPoint::AfterActiveReplace,
+            &active_path,
+            Some(&active_stage_path),
+            Some(&candidate.path),
+        )
+        .map_err(|error| final_uncertainty(format!("post-pivot hook failed: {error}")))?;
+        let mut published_active = authenticate_text(&active_path, MAX_MANIFEST_BYTES, "SPX-I212")
+            .map_err(map_final_uncertainty)?;
+        active_fingerprint
+            .require_text_equivalent(&mut published_active, &active_path)
+            .map_err(map_final_uncertainty)?;
+        if !permissions_equal(
+            &active_permissions,
+            &published_active
+                .file
+                .metadata()
+                .map_err(|error| {
+                    final_uncertainty(format!(
+                        "cannot inspect published ACTIVE permissions: {error}"
+                    ))
+                })?
+                .permissions(),
+        ) {
+            return Err(final_uncertainty(
+                "published ACTIVE permissions differ from the authenticated base",
+            ));
+        }
+        let loaded =
+            snapshot_authenticated(&guard.root, &guard.control, Some(&guard.lock_identity))
+                .map_err(map_final_uncertainty)?;
+        validate_post_pivot_snapshot(&loaded.snapshot, &plan)?;
+        validate_post_pivot_inventory(&guard, &generation_names)?;
+        recheck_lock(&guard.lock_path, &guard.lock, &guard.lock_identity)
+            .map_err(map_final_uncertainty)?;
+        Ok(plan.candidate_revision.clone())
+    })();
+    finish_commit_unlock(&guard.lock, active_replaced, result)
+}
+
+fn finish_commit_unlock(
+    lock: &File,
+    active_replaced: bool,
+    result: Result<String, Vec<Diagnostic>>,
+) -> Result<String, Vec<Diagnostic>> {
+    match unlock_file(lock) {
+        Ok(()) => result,
+        Err(unlock_diagnostics) if active_replaced => {
+            Err(map_final_uncertainty(unlock_diagnostics))
+        }
+        Err(unlock_diagnostics) => Err(unlock_diagnostics),
     }
-    let loaded = snapshot_authenticated(&guard.root, &guard.control, Some(&guard.lock_identity))
-        .map_err(map_final_uncertainty)?;
-    validate_post_pivot_snapshot(&loaded.snapshot, &plan)?;
-    validate_post_pivot_inventory(&guard, &generation_names)?;
-    recheck_lock(&guard.lock_path, &guard.lock, &guard.lock_identity)
-        .map_err(map_final_uncertainty)?;
-    unlock_file(&guard.lock).map_err(map_final_uncertainty)?;
-    Ok(plan.candidate_revision.clone())
 }
 
 struct FinalApplyFacts<'a> {
@@ -3726,7 +3752,7 @@ fn require_distinct_text_identities(
     }
     require_distinct_identities(&identities)
 }
-fn validate_logical_path(path: &str) -> Result<(), Vec<Diagnostic>> {
+pub(crate) fn validate_logical_path(path: &str) -> Result<(), Vec<Diagnostic>> {
     if path.len() > 240
         || !path.ends_with(".spx")
         || path
@@ -4501,6 +4527,101 @@ mod tests {
                 .expect("snapshot must release its shared lock before returning");
             fs2::FileExt::unlock(&lock).unwrap();
         }
+    }
+
+    #[test]
+    fn commit_failures_release_exclusive_lock_before_returning() {
+        let fixture = Fixture::new("commit-error-lock-handoff");
+        let patch = fixture.initialize_and_patch("handoff");
+        let old_revision = super::snapshot(&fixture.root)
+            .unwrap()
+            .workspace_revision
+            .to_owned();
+        let lock_path = fixture.root.join(".semaprax-workspace/LOCK");
+
+        for _ in 0..64 {
+            let error = apply_with_hook(&fixture.root, &patch, |point, _, _, _| {
+                if point == ApplyPoint::AfterCandidatePrepared {
+                    return Err(std::io::Error::other("reject before ACTIVE staging"));
+                }
+                Ok(())
+            })
+            .unwrap_err();
+            assert_eq!(error[0].code, "SPX-I211");
+
+            let lock = std::fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .open(&lock_path)
+                .unwrap();
+            fs2::FileExt::try_lock_exclusive(&lock)
+                .expect("failed commit must synchronously release its exclusive lock");
+            fs2::FileExt::unlock(&lock).unwrap();
+            assert_eq!(
+                super::snapshot(&fixture.root).unwrap().workspace_revision,
+                old_revision
+            );
+        }
+    }
+
+    #[test]
+    fn apply_pretransfer_failures_release_exclusive_lock_before_returning() {
+        let fixture = Fixture::new("apply-pretransfer-lock-handoff");
+        let patch = fixture.initialize_and_patch("pretransfer");
+        let old_revision = super::snapshot(&fixture.root)
+            .unwrap()
+            .workspace_revision
+            .to_owned();
+        let lock_path = fixture.root.join(".semaprax-workspace/LOCK");
+        let missing = fixture.root.join("missing.wspatch");
+        let malformed = fixture.root.join("malformed.wspatch");
+        std::fs::write(&malformed, "{}\n").unwrap();
+        let stale = fixture.root.join("stale.wspatch");
+        let stale_revision = format!("sha256:{:064x}", 0usize);
+        let stale_source =
+            std::fs::read_to_string(&patch)
+                .unwrap()
+                .replacen(&old_revision, &stale_revision, 1);
+        std::fs::write(&stale, stale_source).unwrap();
+
+        for _ in 0..64 {
+            let missing_error = apply(&fixture.root, &missing).unwrap_err();
+            assert_eq!(missing_error[0].code, "SPX-I209");
+            assert_apply_lock_handoff(&fixture, &lock_path, &old_revision);
+
+            let malformed_error = apply(&fixture.root, &malformed).unwrap_err();
+            assert_eq!(malformed_error[0].code, "SPX-G150");
+            assert_apply_lock_handoff(&fixture, &lock_path, &old_revision);
+
+            let hook_error = apply_with_hook(&fixture.root, &patch, |point, _, _, _| {
+                if point == ApplyPoint::AfterPatchRead {
+                    return Err(std::io::Error::other("reject after patch ownership"));
+                }
+                Ok(())
+            })
+            .unwrap_err();
+            assert_eq!(hook_error[0].code, "SPX-I209");
+            assert_apply_lock_handoff(&fixture, &lock_path, &old_revision);
+
+            let stale_error = apply(&fixture.root, &stale).unwrap_err();
+            assert_eq!(stale_error[0].code, "SPX-G152");
+            assert_apply_lock_handoff(&fixture, &lock_path, &old_revision);
+        }
+    }
+
+    fn assert_apply_lock_handoff(fixture: &Fixture, lock_path: &Path, revision: &str) {
+        let lock = std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(lock_path)
+            .unwrap();
+        fs2::FileExt::try_lock_exclusive(&lock)
+            .expect("failed apply must synchronously release its exclusive lock");
+        fs2::FileExt::unlock(&lock).unwrap();
+        assert_eq!(
+            super::snapshot(&fixture.root).unwrap().workspace_revision,
+            revision
+        );
     }
 
     fn copy_tree(source: &Path, target: &Path) {

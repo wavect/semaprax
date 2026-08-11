@@ -1,0 +1,6755 @@
+//! Private Phase-A core for one bounded, unified workspace semantic graph.
+//!
+//! This module deliberately has no filesystem, wire, CLI, backend, or commit
+//! authority. It parses owned source strings once, authenticates canonical
+//! source projections, resolves explicit cross-module aliases, and retains the
+//! validated HIR plus an independently reconstructed edge index.
+
+use std::cell::Cell;
+use std::collections::{BTreeMap, BTreeSet};
+use std::path::Path;
+
+use crate::ast::{
+    Expr, ExprKind, FieldInitializer, Function, ModuleUse, ModuleUseKind, ParamMode, Program, Span,
+    Type, TypeDeclaration, TypeDeclarationKind,
+};
+use crate::diagnostic::Diagnostic;
+use crate::{format, hir, parse, prelude, workspace};
+
+const MAX_FILES: usize = 16;
+const MAX_TOTAL_SOURCE_BYTES: usize = 16 * 1024 * 1024;
+const MAX_DECLARATIONS: usize = 4096;
+const MAX_CALLABLES: usize = 1024;
+const MAX_CALLS: usize = 65_536;
+const MAX_USES: usize = 4096;
+const MAX_CROSS_FILE_EDGES: usize = 65_536;
+const MAX_DEPENDENCY_DEPTH: usize = 16;
+const MAX_BUILDER_BYTES: usize = 16 * 1024 * 1024;
+thread_local! {
+    static ACTIVE_BUILDER_LIMIT: Cell<usize> = const { Cell::new(MAX_BUILDER_BYTES) };
+}
+// The resolver retains at most 48 owned copies of any source string across its
+// AST clone, declaration/name/type indexes, resolved HIR, cleanup structures,
+// and validation indexes. Fixed nodes are bounded by the structural bundles
+// asserted below. Use 64 source-tree footprints to leave sixteen footprints
+// for map/tree node bookkeeping. Generic materializations are charged as
+// additional complete function trees before applying the factor.
+const HIR_FIXED_EXPANSION_FACTOR: usize = 64;
+// A declaration identity at one resolved occurrence can be present in the
+// retained HIR, declaration/type/call indexes, validation sets, cleanup
+// inventory, cleanup-plan projections, and transient resolver maps. The
+// enumerated resolver paths use fewer than 48 copies; 64 also covers map keys
+// retained concurrently during exact replay.
+const HIR_IDENTITY_COPY_FACTOR: usize = 64;
+const HIR_EXPR_FIXED_BUNDLE: usize = std::mem::size_of::<hir::ResolvedExpr>()
+    + std::mem::size_of::<hir::ResolvedBinding>()
+    + std::mem::size_of::<hir::ResolvedStatement>()
+    + std::mem::size_of::<hir::ResolvedFieldInitializer>()
+    + std::mem::size_of::<hir::ResolvedMatchArm>()
+    + std::mem::size_of::<hir::ResolvedMatchPatternField>()
+    + std::mem::size_of::<hir::ResolvedRecordMatchPatternField>()
+    + std::mem::size_of::<crate::cleanup::CleanupStorageSlot>()
+    + std::mem::size_of::<crate::cleanup::CleanupEntryState>()
+    + std::mem::size_of::<crate::cleanup::CleanupFlag>()
+    + std::mem::size_of::<crate::cleanup::CleanupPlace>()
+    + std::mem::size_of::<crate::cleanup_plan::CleanupSlot>()
+    + std::mem::size_of::<crate::cleanup_plan::CleanupEntryState>()
+    + std::mem::size_of::<crate::cleanup_plan::CleanupTransition>()
+    + std::mem::size_of::<crate::cleanup_plan::CleanupBlock>()
+    + std::mem::size_of::<crate::cleanup_plan::CleanupEdge>()
+    + std::mem::size_of::<crate::cleanup_plan::CleanupRegion>();
+const HIR_FUNCTION_FIXED_BUNDLE: usize = std::mem::size_of::<hir::ResolvedFunction>()
+    + std::mem::size_of::<hir::ResolvedFunctionTemplate>()
+    + std::mem::size_of::<hir::ResolvedFunctionInstance>()
+    + std::mem::size_of::<crate::cleanup::CleanupInventory>()
+    + std::mem::size_of::<crate::cleanup_plan::CleanupPlan>();
+const HIR_DECLARATION_FIXED_BUNDLE: usize = std::mem::size_of::<hir::Declaration>() * 12
+    + std::mem::size_of::<hir::ResolvedTypeDeclaration>()
+    + std::mem::size_of::<hir::ResolvedVariantCaseDeclaration>()
+    + std::mem::size_of::<hir::ResolvedFieldDeclaration>()
+    + std::mem::size_of::<hir::ResolvedInterface>()
+    + std::mem::size_of::<hir::ResolvedImport>();
+const _: () = assert!(
+    HIR_EXPR_FIXED_BUNDLE <= HIR_FIXED_EXPANSION_FACTOR * std::mem::size_of::<crate::ast::Expr>()
+);
+const _: () = assert!(
+    HIR_FUNCTION_FIXED_BUNDLE
+        <= HIR_FIXED_EXPANSION_FACTOR * std::mem::size_of::<crate::ast::Function>()
+);
+const _: () = assert!(
+    HIR_DECLARATION_FIXED_BUNDLE
+        <= HIR_FIXED_EXPANSION_FACTOR * std::mem::size_of::<crate::ast::TypeDeclaration>()
+);
+
+#[derive(Clone)]
+pub(crate) struct WorkspaceSource {
+    pub(crate) path: String,
+    pub(crate) source: String,
+}
+
+pub(crate) struct WorkspaceGraphBuild {
+    hir: ValidatedWorkspaceHir,
+    edges: Vec<WorkspaceEdge>,
+}
+
+struct ValidatedWorkspaceHir {
+    modules: Vec<WorkspaceResolvedModule>,
+    module_paths: BTreeMap<String, String>,
+    dependency_depths: BTreeMap<String, usize>,
+    declarations: BTreeMap<String, WorkspaceDeclarationFact>,
+    shared_prelude_ids: BTreeSet<&'static str>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct WorkspaceDeclarationFact {
+    kind: hir::DeclarationKind,
+    origin: hir::IdentityOrigin,
+    owner: Option<String>,
+    path: Option<String>,
+    module: Option<String>,
+}
+
+struct WorkspaceResolvedModule {
+    path: String,
+    module: String,
+    permits: Vec<String>,
+    types: Vec<hir::ResolvedTypeDeclaration>,
+    interfaces: Vec<hir::ResolvedInterface>,
+    functions: Vec<hir::ResolvedFunction>,
+    function_templates: Vec<hir::ResolvedFunctionTemplate>,
+    function_instances: Vec<hir::ResolvedFunctionInstance>,
+}
+
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+struct WorkspaceEdge {
+    caller_path: String,
+    caller: String,
+    target_path: String,
+    target: String,
+    kind: &'static str,
+    site: &'static str,
+    expression: String,
+    ast_path: String,
+    alias: String,
+    ordinal: usize,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+struct CallOccurrenceKey<'a> {
+    caller_path: &'a str,
+    caller: &'a str,
+    target_path: &'a str,
+    site: &'a str,
+    expression: &'a str,
+    ast_path: &'a str,
+    alias: &'a str,
+    ordinal: usize,
+}
+
+impl<'a> CallOccurrenceKey<'a> {
+    fn from_edge(edge: &'a WorkspaceEdge) -> Self {
+        Self {
+            caller_path: &edge.caller_path,
+            caller: &edge.caller,
+            target_path: &edge.target_path,
+            site: edge.site,
+            expression: &edge.expression,
+            ast_path: &edge.ast_path,
+            alias: &edge.alias,
+            ordinal: edge.ordinal,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum AuthoredKind {
+    Function,
+    Type,
+    Other,
+}
+
+struct AuthoredDeclaration<'a> {
+    path: &'a str,
+    module: &'a str,
+    explicit: bool,
+    kind: AuthoredKind,
+    function: Option<&'a Function>,
+    ty: Option<&'a TypeDeclaration>,
+}
+
+pub(crate) fn build_owned(
+    sources: Vec<WorkspaceSource>,
+) -> Result<WorkspaceGraphBuild, Vec<Diagnostic>> {
+    build_owned_with_builder_limit(sources, MAX_BUILDER_BYTES)
+}
+
+fn build_owned_with_builder_limit(
+    sources: Vec<WorkspaceSource>,
+    builder_limit: usize,
+) -> Result<WorkspaceGraphBuild, Vec<Diagnostic>> {
+    assert!(
+        builder_limit <= MAX_BUILDER_BYTES,
+        "private Workspace Semantic Graph builder limit cannot exceed the production maximum"
+    );
+    struct Restore(usize);
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            ACTIVE_BUILDER_LIMIT.with(|active| active.set(self.0));
+        }
+    }
+    let previous = ACTIVE_BUILDER_LIMIT.with(|active| active.replace(builder_limit));
+    let restore = Restore(previous);
+    let result = build_owned_inner(sources);
+    drop(restore);
+    result
+}
+
+fn active_builder_limit() -> usize {
+    ACTIVE_BUILDER_LIMIT.with(Cell::get)
+}
+
+fn build_owned_inner(
+    mut sources: Vec<WorkspaceSource>,
+) -> Result<WorkspaceGraphBuild, Vec<Diagnostic>> {
+    if sources.len() < 2 {
+        return Err(vec![graph_error(
+            "SPX-G170",
+            "Workspace Semantic Graph requires 2..16 source files",
+        )]);
+    }
+    if sources.len() > MAX_FILES {
+        return Err(vec![limit_error("files", MAX_FILES)]);
+    }
+    sources.sort_by(|left, right| left.path.cmp(&right.path));
+    let mut seen_paths = BTreeSet::new();
+    let mut source_bytes = 0usize;
+    for source in &sources {
+        workspace::validate_logical_path(&source.path).map_err(|_| {
+            vec![graph_error(
+                "SPX-G170",
+                format!(
+                    "workspace semantic source path `{}` is not canonical",
+                    source.path
+                ),
+            )]
+        })?;
+        if !seen_paths.insert(source.path.clone()) {
+            return Err(vec![graph_error(
+                "SPX-G170",
+                format!("duplicate workspace semantic source path `{}`", source.path),
+            )]);
+        }
+        source_bytes = checked_usage(
+            source_bytes,
+            source.source.len(),
+            "total_source_bytes",
+            MAX_TOTAL_SOURCE_BYTES,
+        )?;
+    }
+
+    let mut programs = Vec::with_capacity(sources.len());
+    let mut declarations = 0usize;
+    let mut callables = 0usize;
+    let mut calls = 0usize;
+    let mut uses = 0usize;
+    let mut canonical_bytes = 0usize;
+    for source in &sources {
+        let program =
+            parse(&source.source, Path::new(&source.path)).map_err(|error| vec![error])?;
+        let remaining = active_builder_limit().saturating_sub(canonical_bytes);
+        let (canonical, overflowed) =
+            crate::bounded_output::with_limit(remaining, || format::canonical(&program));
+        if overflowed {
+            return Err(vec![limit_error("builder_bytes", active_builder_limit())]);
+        }
+        canonical_bytes = checked_usage(
+            canonical_bytes,
+            canonical.len(),
+            "builder_bytes",
+            active_builder_limit(),
+        )?;
+        if canonical != source.source {
+            return Err(vec![graph_error(
+                "SPX-G170",
+                format!(
+                    "workspace semantic source `{}` is not canonical",
+                    source.path
+                ),
+            )]);
+        }
+        declarations = checked_usage(
+            declarations,
+            declaration_count(&program)
+                .ok_or_else(|| vec![limit_error("declarations", MAX_DECLARATIONS)])?,
+            "declarations",
+            MAX_DECLARATIONS,
+        )?;
+        callables = checked_usage(
+            callables,
+            program.functions.len(),
+            "callables",
+            MAX_CALLABLES,
+        )?;
+        calls = checked_usage(
+            calls,
+            call_count(&program).ok_or_else(|| vec![limit_error("calls", MAX_CALLS)])?,
+            "calls",
+            MAX_CALLS,
+        )?;
+        uses = checked_usage(uses, program.module_uses.len(), "uses", MAX_USES)?;
+        programs.push(program);
+    }
+
+    let module_paths = index_modules(&programs)?;
+    let authored = index_authored(&programs)?;
+    validate_synthetic_main_id_collisions(&programs, &authored)?;
+    validate_uses(&programs, &module_paths, &authored)?;
+    let dependency_depths = validate_dependency_dag(&programs)?;
+    let mut resolve_builder_bytes = 0usize;
+    let mut runtime_builder_bytes = 0usize;
+    for program in &programs {
+        let costs = synthetic_builder_bytes(program, &authored, &programs)?;
+        resolve_builder_bytes = checked_usage(
+            resolve_builder_bytes,
+            costs.raw_clone_and_hir,
+            "builder_bytes",
+            active_builder_limit(),
+        )?;
+        runtime_builder_bytes = checked_usage(
+            runtime_builder_bytes,
+            costs.runtime,
+            "builder_bytes",
+            active_builder_limit(),
+        )?;
+    }
+    checked_usage(
+        resolve_builder_bytes,
+        runtime_builder_bytes,
+        "builder_bytes",
+        active_builder_limit(),
+    )?;
+    let (core, overflowed) = crate::bounded_output::with_limit(active_builder_limit(), || {
+        charge_builder_prebound(resolve_builder_bytes)?;
+        build_resolved_core(&programs, &module_paths, &dependency_depths, &authored)
+    });
+    if overflowed {
+        return Err(vec![limit_error("builder_bytes", active_builder_limit())]);
+    }
+    let (modules, module_paths, dependency_depths, declarations, expected_edges) = core?;
+    Ok(WorkspaceGraphBuild {
+        hir: ValidatedWorkspaceHir {
+            modules,
+            module_paths,
+            dependency_depths,
+            declarations,
+            shared_prelude_ids: prelude::all_ids().into_iter().collect(),
+        },
+        edges: expected_edges,
+    })
+}
+
+type ResolvedCore = (
+    Vec<WorkspaceResolvedModule>,
+    BTreeMap<String, String>,
+    BTreeMap<String, usize>,
+    BTreeMap<String, WorkspaceDeclarationFact>,
+    Vec<WorkspaceEdge>,
+);
+
+fn build_resolved_core(
+    programs: &[Program],
+    module_paths: &BTreeMap<&str, &str>,
+    dependency_depths: &BTreeMap<&str, usize>,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+) -> Result<ResolvedCore, Vec<Diagnostic>> {
+    let mut expected_edges = Vec::new();
+    for program in programs {
+        collect_expected_edges(program, module_paths, authored, &mut expected_edges)?;
+    }
+    reserve_builder_structure(
+        programs
+            .len()
+            .checked_mul(std::mem::size_of::<(String, hir::ResolvedProgram)>())
+            .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?,
+    )?;
+    let mut synthetic_modules = Vec::with_capacity(programs.len());
+    for program in programs {
+        let synthetic = synthetic_program(program, authored, programs)?;
+        let resolved = hir::resolve(&synthetic)?;
+        verify_resolved_call_edges(program, &resolved, authored)?;
+        synthetic_modules.push((
+            crate::bounded_output::budgeted_clone(&program.module),
+            resolved,
+        ));
+    }
+    validate_stub_signatures(programs, &synthetic_modules)?;
+    let declarations = reconstruct_workspace_declaration_facts(&synthetic_modules, programs)?;
+    let programs_by_module = programs
+        .iter()
+        .map(|program| (program.module.as_str(), program))
+        .collect::<BTreeMap<_, _>>();
+    reserve_builder_structure(
+        synthetic_modules
+            .len()
+            .checked_mul(std::mem::size_of::<WorkspaceResolvedModule>())
+            .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?,
+    )?;
+    let mut modules = Vec::with_capacity(synthetic_modules.len());
+    for (module, resolved) in synthetic_modules {
+        let program = programs_by_module
+            .get(module.as_str())
+            .expect("every resolved module has authenticated source");
+        let types = filter_owned_vec(resolved.types, |item| {
+            authored
+                .get(item.id.as_str())
+                .is_some_and(|owner| owner.module == program.module)
+        })?;
+        let functions = filter_owned_vec(resolved.functions, |item| {
+            authored
+                .get(item.id.as_str())
+                .is_some_and(|owner| owner.module == program.module)
+        })?;
+        let function_templates = filter_owned_vec(resolved.function_templates, |item| {
+            authored
+                .get(item.id.as_str())
+                .is_some_and(|owner| owner.module == program.module)
+        })?;
+        let function_instances = filter_owned_vec(resolved.function_instances, |item| {
+            authored
+                .get(item.template.as_str())
+                .is_some_and(|owner| owner.module == program.module)
+        })?;
+        modules.push(WorkspaceResolvedModule {
+            path: crate::bounded_output::budgeted_clone(&program.path),
+            module,
+            permits: resolved.permits,
+            types,
+            interfaces: resolved.interfaces,
+            functions,
+            function_templates,
+            function_instances,
+        });
+    }
+    validate_retained_facts(programs, &modules, &expected_edges)?;
+    validate_retained_declaration_shapes(&modules, &declarations)?;
+    let owned_module_paths = module_paths
+        .iter()
+        .map(|(module, path)| {
+            (
+                crate::bounded_output::budgeted_clone(module),
+                crate::bounded_output::budgeted_clone(path),
+            )
+        })
+        .collect();
+    if dependency_depths.len() != module_paths.len()
+        || dependency_depths
+            .keys()
+            .any(|module| !module_paths.contains_key(module))
+    {
+        return Err(vec![graph_error(
+            "SPX-G173",
+            "workspace dependency-depth keys disagree with authenticated modules",
+        )]);
+    }
+    let owned_dependency_depths = dependency_depths
+        .iter()
+        .map(|(module, depth)| (crate::bounded_output::budgeted_clone(module), *depth))
+        .collect();
+    render_edge_proof(&expected_edges);
+    Ok((
+        modules,
+        owned_module_paths,
+        owned_dependency_depths,
+        declarations,
+        expected_edges,
+    ))
+}
+
+fn filter_owned_vec<T>(
+    items: Vec<T>,
+    mut keep: impl FnMut(&T) -> bool,
+) -> Result<Vec<T>, Vec<Diagnostic>> {
+    reserve_builder_structure(
+        items
+            .len()
+            .checked_mul(std::mem::size_of::<T>())
+            .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?,
+    )?;
+    Ok(items.into_iter().filter(|item| keep(item)).collect())
+}
+
+fn charge_builder_prebound(bytes: usize) -> Result<(), Vec<Diagnostic>> {
+    reserve_builder_structure(bytes)
+}
+
+fn render_edge_proof(edges: &[WorkspaceEdge]) {
+    let mut proof = crate::bounded_output::CappedString::new();
+    use std::fmt::Write as _;
+    for edge in edges {
+        writeln!(
+            proof,
+            "{}\0{}\0{}\0{}\0{}\0{}\0{}\0{}\0{}\0{}",
+            edge.caller_path,
+            edge.caller,
+            edge.target_path,
+            edge.target,
+            edge.kind,
+            edge.site,
+            edge.expression,
+            edge.ast_path,
+            edge.alias,
+            edge.ordinal,
+        )
+        .expect("CappedString formatting is infallible");
+    }
+}
+
+fn validate_retained_facts(
+    programs: &[Program],
+    modules: &[WorkspaceResolvedModule],
+    edges: &[WorkspaceEdge],
+) -> Result<(), Vec<Diagnostic>> {
+    for program in programs {
+        let resolved = modules
+            .iter()
+            .find(|item| item.module == program.module)
+            .ok_or_else(|| {
+                vec![graph_error(
+                    "SPX-G173",
+                    "retained workspace module is missing",
+                )]
+            })?;
+        if resolved.permits != program.permits || resolved.path != program.path {
+            return Err(vec![graph_error(
+                "SPX-G173",
+                "workspace module permit/path facts disagree with retained HIR",
+            )]);
+        }
+    }
+
+    let mut actual_type_sites = Vec::new();
+    for module in modules {
+        let source = programs
+            .iter()
+            .find(|program| program.module == module.module)
+            .expect("retained module belongs to parsed source");
+        let imported_type_ids = source
+            .module_uses
+            .iter()
+            .filter(|item| item.kind == ModuleUseKind::Type)
+            .map(|item| item.persistent_id.as_str())
+            .collect::<BTreeSet<_>>();
+        for declaration in &module.types {
+            match &declaration.kind {
+                hir::ResolvedTypeDeclarationKind::Resource { .. } => {}
+                hir::ResolvedTypeDeclarationKind::Record { fields } => {
+                    for (index, field) in fields.iter().enumerate() {
+                        let path = crate::bounded_output::budgeted_format(format_args!(
+                            "type.{}.field.{index}",
+                            declaration.id
+                        ));
+                        collect_resolved_type_sites(
+                            declaration.id.as_str(),
+                            &field.ty,
+                            &path,
+                            None,
+                            &imported_type_ids,
+                            &mut actual_type_sites,
+                        )?;
+                    }
+                }
+                hir::ResolvedTypeDeclarationKind::Variant { cases } => {
+                    for (case_index, case) in cases.iter().enumerate() {
+                        for (field_index, field) in case.fields.iter().enumerate() {
+                            let path = crate::bounded_output::budgeted_format(format_args!(
+                                "type.{}.case.{case_index}.field.{field_index}",
+                                declaration.id
+                            ));
+                            collect_resolved_type_sites(
+                                declaration.id.as_str(),
+                                &field.ty,
+                                &path,
+                                None,
+                                &imported_type_ids,
+                                &mut actual_type_sites,
+                            )?;
+                        }
+                    }
+                }
+            }
+        }
+        for function in &module.functions {
+            collect_resolved_signature_sites(
+                &function.id,
+                &function.params,
+                &function.return_type,
+                &imported_type_ids,
+                &mut actual_type_sites,
+            )?;
+            collect_resolved_function_type_sites(
+                &function.id,
+                &function.requires,
+                &function.body,
+                &function.ensures,
+                &imported_type_ids,
+                &mut actual_type_sites,
+            )?;
+        }
+        for template in &module.function_templates {
+            collect_resolved_signature_sites(
+                &template.id,
+                &template.params,
+                &template.return_type,
+                &imported_type_ids,
+                &mut actual_type_sites,
+            )?;
+            collect_resolved_function_type_sites(
+                &template.id,
+                &template.requires,
+                &template.body,
+                &template.ensures,
+                &imported_type_ids,
+                &mut actual_type_sites,
+            )?;
+        }
+    }
+    let mut expected_type_sites = Vec::new();
+    for edge in edges.iter().filter(|edge| edge.kind == "type_reference") {
+        reserve_builder_structure(std::mem::size_of::<(String, String, String, String)>())?;
+        expected_type_sites.push((
+            crate::bounded_output::budgeted_clone(&edge.caller),
+            crate::bounded_output::budgeted_clone(&edge.expression),
+            crate::bounded_output::budgeted_clone(&edge.ast_path),
+            crate::bounded_output::budgeted_clone(&edge.target),
+        ));
+    }
+    expected_type_sites.sort();
+    actual_type_sites.sort();
+    if expected_type_sites != actual_type_sites {
+        return Err(vec![graph_error(
+            "SPX-G173",
+            "workspace explicit type-reference facts disagree with retained HIR",
+        )]);
+    }
+
+    let authenticated_calls = reconstruct_authenticated_call_edges(programs, modules)?;
+    validate_retained_call_projection(programs, modules, &authenticated_calls)?;
+    let mut emitted_calls = Vec::new();
+    for edge in edges.iter().filter(|edge| edge.kind == "call") {
+        push_edge(&mut emitted_calls, budgeted_edge_clone(edge))?;
+    }
+    emitted_calls.sort();
+    if emitted_calls != authenticated_calls {
+        return Err(vec![graph_error(
+            "SPX-G173",
+            "emitted workspace call edges disagree with authenticated AST/HIR occurrences",
+        )]);
+    }
+    validate_effect_and_capability_edges_against_calls(modules, edges, &authenticated_calls)?;
+    Ok(())
+}
+
+fn reconstruct_authenticated_call_edges(
+    programs: &[Program],
+    modules: &[WorkspaceResolvedModule],
+) -> Result<Vec<WorkspaceEdge>, Vec<Diagnostic>> {
+    let module_paths = modules
+        .iter()
+        .map(|module| (module.module.as_str(), module.path.as_str()))
+        .collect::<BTreeMap<_, _>>();
+    let mut calls = Vec::new();
+    for program in programs {
+        let function_uses = program
+            .module_uses
+            .iter()
+            .filter(|item| item.kind == ModuleUseKind::Function)
+            .map(|item| (item.alias.as_str(), item))
+            .collect::<BTreeMap<_, _>>();
+        for function in &program.functions {
+            let owner =
+                hir::DeclarationId::new(crate::bounded_output::budgeted_clone(&function.stable_id));
+            for (site, expressions) in [
+                ("requires", function.requires.as_slice()),
+                ("body", std::slice::from_ref(&function.body)),
+                ("ensures", function.ensures.as_slice()),
+            ] {
+                for (root_index, expression) in expressions.iter().enumerate() {
+                    let root = match site {
+                        "requires" => crate::bounded_output::budgeted_format(format_args!(
+                            "requires.{root_index}"
+                        )),
+                        "body" => crate::bounded_output::budgeted_clone("body"),
+                        "ensures" => crate::bounded_output::budgeted_format(format_args!(
+                            "ensures.{root_index}"
+                        )),
+                        _ => unreachable!(),
+                    };
+                    let mut ordinal = 0usize;
+                    visit_ast_call_sites(expression, &root, &mut |name, path| {
+                        let call_ordinal = ordinal;
+                        ordinal = ordinal
+                            .checked_add(1)
+                            .ok_or_else(|| vec![limit_error("calls", MAX_CALLS)])?;
+                        let Some(module_use) = function_uses.get(name) else {
+                            return Ok(());
+                        };
+                        let target_path = module_paths
+                            .get(module_use.target_module.as_str())
+                            .ok_or_else(|| {
+                                vec![graph_error(
+                                    "SPX-G173",
+                                    "authenticated call target module has no retained path",
+                                )]
+                            })?;
+                        push_edge(
+                            &mut calls,
+                            WorkspaceEdge {
+                                caller_path: crate::bounded_output::budgeted_clone(&program.path),
+                                caller: crate::bounded_output::budgeted_clone(&function.stable_id),
+                                target_path: crate::bounded_output::budgeted_clone(target_path),
+                                target: crate::bounded_output::budgeted_clone(
+                                    &module_use.persistent_id,
+                                ),
+                                kind: "call",
+                                site,
+                                expression: hir::workspace_expression_identity(&owner, path),
+                                ast_path: crate::bounded_output::budgeted_clone(path),
+                                alias: crate::bounded_output::budgeted_clone(&module_use.alias),
+                                ordinal: call_ordinal,
+                            },
+                        )
+                    })?;
+                }
+            }
+        }
+    }
+    calls.sort();
+    Ok(calls)
+}
+
+fn validate_retained_call_projection(
+    programs: &[Program],
+    modules: &[WorkspaceResolvedModule],
+    authenticated_calls: &[WorkspaceEdge],
+) -> Result<(), Vec<Diagnostic>> {
+    let mut actual = Vec::new();
+    for module in modules {
+        let imported_targets = programs
+            .iter()
+            .find(|program| program.module == module.module)
+            .expect("retained module belongs to authenticated source")
+            .module_uses
+            .iter()
+            .filter(|item| item.kind == ModuleUseKind::Function)
+            .map(|item| item.persistent_id.as_str())
+            .collect::<BTreeSet<_>>();
+        for function in &module.functions {
+            collect_retained_call_projection(
+                &function.id,
+                &function.requires,
+                &function.body,
+                &function.ensures,
+                &imported_targets,
+                &mut actual,
+            )?;
+        }
+        for template in &module.function_templates {
+            collect_retained_call_projection(
+                &template.id,
+                &template.requires,
+                &template.body,
+                &template.ensures,
+                &imported_targets,
+                &mut actual,
+            )?;
+        }
+    }
+    let mut expected = Vec::new();
+    for edge in authenticated_calls {
+        reserve_builder_structure(std::mem::size_of::<(String, String, String)>())?;
+        expected.push((
+            crate::bounded_output::budgeted_clone(&edge.caller),
+            crate::bounded_output::budgeted_clone(&edge.expression),
+            crate::bounded_output::budgeted_clone(&edge.target),
+        ));
+    }
+    expected.sort();
+    actual.sort();
+    if actual != expected {
+        return Err(vec![graph_error(
+            "SPX-G173",
+            "authenticated workspace call occurrences disagree with retained HIR",
+        )]);
+    }
+    Ok(())
+}
+
+fn collect_retained_call_projection(
+    owner: &hir::DeclarationId,
+    requires: &[hir::ResolvedExpr],
+    body: &hir::ResolvedExpr,
+    ensures: &[hir::ResolvedExpr],
+    imported_targets: &BTreeSet<&str>,
+    output: &mut Vec<(String, String, String)>,
+) -> Result<(), Vec<Diagnostic>> {
+    let mut error = None;
+    for expression in requires.iter().chain(std::iter::once(body)).chain(ensures) {
+        visit_resolved_calls(expression, &mut |expression, target| {
+            if error.is_none() && imported_targets.contains(target.as_str()) {
+                if let Err(diagnostics) =
+                    reserve_builder_structure(std::mem::size_of::<(String, String, String)>())
+                {
+                    error = Some(diagnostics);
+                    return;
+                }
+                output.push((
+                    crate::bounded_output::budgeted_clone(owner.as_str()),
+                    crate::bounded_output::budgeted_format(format_args!("{}", expression.id)),
+                    crate::bounded_output::budgeted_clone(target.as_str()),
+                ));
+            }
+        });
+    }
+    match error {
+        Some(diagnostics) => Err(diagnostics),
+        None => Ok(()),
+    }
+}
+
+fn visit_resolved_calls(
+    expression: &hir::ResolvedExpr,
+    visit: &mut impl FnMut(&hir::ResolvedExpr, &hir::DeclarationId),
+) {
+    match &expression.kind {
+        hir::ResolvedExprKind::Call { callee, args, .. } => {
+            visit(expression, callee);
+            for argument in args {
+                visit_resolved_calls(argument, visit);
+            }
+        }
+        hir::ResolvedExprKind::Unary { value, .. } => visit_resolved_calls(value, visit),
+        hir::ResolvedExprKind::Binary { left, right, .. } => {
+            visit_resolved_calls(left, visit);
+            visit_resolved_calls(right, visit);
+        }
+        hir::ResolvedExprKind::Block { statements, tail } => {
+            for statement in statements {
+                let hir::ResolvedStatement::Let { value, .. } = statement;
+                visit_resolved_calls(value, visit);
+            }
+            visit_resolved_calls(tail, visit);
+        }
+        hir::ResolvedExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            visit_resolved_calls(condition, visit);
+            visit_resolved_calls(then_branch, visit);
+            visit_resolved_calls(else_branch, visit);
+        }
+        hir::ResolvedExprKind::ConstructRecord { fields, .. }
+        | hir::ResolvedExprKind::ConstructVariant { fields, .. } => {
+            for field in fields {
+                visit_resolved_calls(&field.value, visit);
+            }
+        }
+        hir::ResolvedExprKind::Match { scrutinee, arms } => {
+            visit_resolved_calls(scrutinee, visit);
+            for arm in arms {
+                visit_resolved_calls(&arm.value, visit);
+            }
+        }
+        hir::ResolvedExprKind::Try { operand, .. }
+        | hir::ResolvedExprKind::TryOption { operand, .. } => {
+            visit_resolved_calls(operand, visit);
+        }
+        hir::ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            visit_resolved_calls(base, visit);
+            for field in fields {
+                visit_resolved_calls(&field.value, visit);
+            }
+        }
+        hir::ResolvedExprKind::Project { base, .. } => visit_resolved_calls(base, visit),
+        hir::ResolvedExprKind::Int(_)
+        | hir::ResolvedExprKind::Bool(_)
+        | hir::ResolvedExprKind::Place(_) => {}
+    }
+}
+
+fn validate_effect_and_capability_edges(
+    modules: &[WorkspaceResolvedModule],
+    edges: &[WorkspaceEdge],
+) -> Result<(), Vec<Diagnostic>> {
+    let mut calls = Vec::new();
+    for edge in edges.iter().filter(|edge| edge.kind == "call") {
+        push_edge(&mut calls, budgeted_edge_clone(edge))?;
+    }
+    validate_effect_and_capability_edges_against_calls(modules, edges, &calls)
+}
+
+fn validate_effect_and_capability_edges_against_calls(
+    modules: &[WorkspaceResolvedModule],
+    edges: &[WorkspaceEdge],
+    authenticated_calls: &[WorkspaceEdge],
+) -> Result<(), Vec<Diagnostic>> {
+    let mut modules_by_path = BTreeMap::new();
+    let mut target_functions = BTreeMap::new();
+    let mut target_effects = BTreeMap::new();
+    let mut caller_effects = BTreeMap::new();
+    let mut module_permits = BTreeMap::new();
+    for module in modules {
+        if modules_by_path
+            .insert(module.path.as_str(), module)
+            .is_some()
+        {
+            return Err(vec![graph_error(
+                "SPX-G173",
+                "retained workspace module paths are not unique",
+            )]);
+        }
+        let permits = module
+            .permits
+            .iter()
+            .map(String::as_str)
+            .collect::<BTreeSet<_>>();
+        if permits.len() != module.permits.len()
+            || module_permits
+                .insert(module.module.as_str(), permits)
+                .is_some()
+        {
+            return Err(vec![graph_error(
+                "SPX-G173",
+                "retained workspace module capability authority is not canonical",
+            )]);
+        }
+        for function in &module.functions {
+            let effects = function
+                .effects
+                .iter()
+                .map(String::as_str)
+                .collect::<BTreeSet<_>>();
+            if effects.len() != function.effects.len() {
+                return Err(vec![graph_error(
+                    "SPX-G173",
+                    "retained workspace function effects are not canonical",
+                )]);
+            }
+            if target_functions
+                .insert(function.id.as_str(), module)
+                .is_some()
+                || target_effects
+                    .insert(function.id.as_str(), function.effects.as_slice())
+                    .is_some()
+                || caller_effects
+                    .insert((module.module.as_str(), function.id.as_str()), effects)
+                    .is_some()
+            {
+                return Err(vec![graph_error(
+                    "SPX-G173",
+                    "retained workspace function authority is duplicated",
+                )]);
+            }
+        }
+        for template in &module.function_templates {
+            let effects = template
+                .effects
+                .iter()
+                .map(String::as_str)
+                .collect::<BTreeSet<_>>();
+            if effects.len() != template.effects.len() {
+                return Err(vec![graph_error(
+                    "SPX-G173",
+                    "retained workspace template effects are not canonical",
+                )]);
+            }
+            if caller_effects
+                .insert((module.module.as_str(), template.id.as_str()), effects)
+                .is_some()
+            {
+                return Err(vec![graph_error(
+                    "SPX-G173",
+                    "retained workspace callable authority is duplicated",
+                )]);
+            }
+        }
+    }
+
+    let mut calls = BTreeMap::new();
+    let mut actual_effects = BTreeMap::<CallOccurrenceKey<'_>, BTreeSet<&str>>::new();
+    for call in authenticated_calls {
+        if calls
+            .insert(CallOccurrenceKey::from_edge(call), call)
+            .is_some()
+        {
+            return Err(vec![graph_error(
+                "SPX-G173",
+                "authenticated workspace call occurrence is duplicated",
+            )]);
+        }
+    }
+    for edge in edges {
+        if edge.kind == "effect_requirement"
+            && !actual_effects
+                .entry(CallOccurrenceKey::from_edge(edge))
+                .or_default()
+                .insert(edge.target.as_str())
+        {
+            return Err(vec![graph_error(
+                "SPX-G173",
+                "workspace call effect requirement is duplicated",
+            )]);
+        }
+    }
+
+    for (occurrence, call) in calls {
+        let caller_module = modules_by_path.get(occurrence.caller_path).ok_or_else(|| {
+            vec![graph_error(
+                "SPX-G173",
+                "workspace call path has no retained module authority",
+            )]
+        })?;
+        let target_module = target_functions.get(call.target.as_str()).ok_or_else(|| {
+            vec![graph_error(
+                "SPX-G173",
+                "workspace call target has no retained function authority",
+            )]
+        })?;
+        let required = target_effects
+            .get(call.target.as_str())
+            .expect("retained target effect authority was indexed");
+        if target_module.path != call.target_path {
+            return Err(vec![graph_error(
+                "SPX-G173",
+                "workspace call target path disagrees with retained authority",
+            )]);
+        }
+        let actual = actual_effects.remove(&occurrence).unwrap_or_default();
+        if actual.len() != required.len()
+            || required
+                .iter()
+                .any(|effect| !actual.contains(effect.as_str()))
+        {
+            return Err(vec![graph_error(
+                "SPX-G173",
+                "workspace call effect requirements disagree with retained target HIR",
+            )]);
+        }
+        let declared = caller_effects
+            .get(&(caller_module.module.as_str(), occurrence.caller))
+            .ok_or_else(|| {
+                vec![graph_error(
+                    "SPX-G173",
+                    "workspace call owner has no retained callable authority",
+                )]
+            })?;
+        let permits = module_permits
+            .get(caller_module.module.as_str())
+            .expect("retained module permit authority was indexed");
+        if required
+            .iter()
+            .any(|effect| !declared.contains(effect.as_str()) || !permits.contains(effect.as_str()))
+        {
+            return Err(vec![graph_error(
+                "SPX-G173",
+                "workspace caller effect/capability authority join disagrees",
+            )]);
+        }
+    }
+    if !actual_effects.is_empty() {
+        return Err(vec![graph_error(
+            "SPX-G173",
+            "workspace effect requirement has no exact call occurrence",
+        )]);
+    }
+
+    let mut expected_capabilities = Vec::new();
+    for module in modules {
+        for (ordinal, permit) in module.permits.iter().enumerate() {
+            let path = crate::bounded_output::budgeted_format(format_args!("permit.{ordinal}"));
+            push_edge(
+                &mut expected_capabilities,
+                WorkspaceEdge {
+                    caller_path: crate::bounded_output::budgeted_clone(&module.path),
+                    caller: crate::bounded_output::budgeted_clone(&module.module),
+                    target_path: crate::bounded_output::budgeted_clone(&module.path),
+                    target: crate::bounded_output::budgeted_clone(permit),
+                    kind: "capability_authority",
+                    site: "module",
+                    expression: crate::bounded_output::budgeted_clone(&path),
+                    ast_path: path,
+                    alias: String::new(),
+                    ordinal,
+                },
+            )?;
+        }
+    }
+    let mut actual_capabilities = Vec::new();
+    for edge in edges
+        .iter()
+        .filter(|edge| edge.kind == "capability_authority")
+    {
+        push_edge(&mut actual_capabilities, budgeted_edge_clone(edge))?;
+    }
+    expected_capabilities.sort();
+    actual_capabilities.sort();
+    if actual_capabilities != expected_capabilities {
+        return Err(vec![graph_error(
+            "SPX-G173",
+            "workspace capability-authority edges disagree with retained module permits",
+        )]);
+    }
+    Ok(())
+}
+
+fn collect_resolved_signature_sites(
+    owner: &hir::DeclarationId,
+    params: &[hir::ResolvedParam],
+    result: &hir::ResolvedType,
+    imported: &BTreeSet<&str>,
+    out: &mut Vec<(String, String, String, String)>,
+) -> Result<(), Vec<Diagnostic>> {
+    for (index, param) in params.iter().enumerate() {
+        let path =
+            crate::bounded_output::budgeted_format(format_args!("function.{owner}.param.{index}"));
+        collect_resolved_type_sites(owner.as_str(), &param.ty, &path, None, imported, out)?;
+    }
+    let path = crate::bounded_output::budgeted_format(format_args!("function.{owner}.return"));
+    collect_resolved_type_sites(owner.as_str(), result, &path, None, imported, out)?;
+    Ok(())
+}
+
+fn collect_resolved_type_sites(
+    owner: &str,
+    ty: &hir::ResolvedType,
+    path: &str,
+    expression: Option<&str>,
+    imported: &BTreeSet<&str>,
+    out: &mut Vec<(String, String, String, String)>,
+) -> Result<(), Vec<Diagnostic>> {
+    let hir::ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = ty
+    else {
+        return Ok(());
+    };
+    if imported.contains(declaration.as_str()) {
+        reserve_builder_structure(std::mem::size_of::<(String, String, String, String)>())?;
+        out.push((
+            crate::bounded_output::budgeted_clone(owner),
+            crate::bounded_output::budgeted_clone(expression.unwrap_or(path)),
+            crate::bounded_output::budgeted_clone(path),
+            crate::bounded_output::budgeted_clone(declaration.as_str()),
+        ));
+    }
+    for (index, argument) in arguments.iter().enumerate() {
+        collect_resolved_type_sites(
+            owner,
+            argument,
+            &crate::bounded_output::budgeted_format(format_args!("{path}.argument.{index}")),
+            expression,
+            imported,
+            out,
+        )?;
+    }
+    Ok(())
+}
+
+fn collect_resolved_function_type_sites(
+    owner: &hir::DeclarationId,
+    requires: &[hir::ResolvedExpr],
+    body: &hir::ResolvedExpr,
+    ensures: &[hir::ResolvedExpr],
+    imported: &BTreeSet<&str>,
+    out: &mut Vec<(String, String, String, String)>,
+) -> Result<(), Vec<Diagnostic>> {
+    for (root, expression) in requires
+        .iter()
+        .enumerate()
+        .map(|(index, expression)| {
+            (
+                crate::bounded_output::budgeted_format(format_args!("requires.{index}")),
+                expression,
+            )
+        })
+        .chain(std::iter::once((
+            crate::bounded_output::budgeted_clone("body"),
+            body,
+        )))
+        .chain(ensures.iter().enumerate().map(|(index, expression)| {
+            (
+                crate::bounded_output::budgeted_format(format_args!("ensures.{index}")),
+                expression,
+            )
+        }))
+    {
+        collect_resolved_expression_type_sites(owner, expression, &root, imported, out)?;
+    }
+    Ok(())
+}
+
+fn collect_resolved_expression_type_sites(
+    owner: &hir::DeclarationId,
+    expression: &hir::ResolvedExpr,
+    path: &str,
+    imported: &BTreeSet<&str>,
+    out: &mut Vec<(String, String, String, String)>,
+) -> Result<(), Vec<Diagnostic>> {
+    let expression_id = crate::bounded_output::budgeted_format(format_args!("{}", expression.id));
+    match &expression.kind {
+        hir::ResolvedExprKind::Call {
+            type_arguments,
+            args,
+            ..
+        } => {
+            for (index, argument) in type_arguments.iter().enumerate() {
+                collect_resolved_type_sites(
+                    owner.as_str(),
+                    argument,
+                    &crate::bounded_output::budgeted_format(format_args!(
+                        "{path}.type_argument.{index}"
+                    )),
+                    Some(&expression_id),
+                    imported,
+                    out,
+                )?;
+            }
+            for (index, argument) in args.iter().enumerate() {
+                collect_resolved_expression_type_sites(
+                    owner,
+                    argument,
+                    &crate::bounded_output::budgeted_format(format_args!("{path}.arg.{index}")),
+                    imported,
+                    out,
+                )?;
+            }
+        }
+        hir::ResolvedExprKind::Unary { value, .. } => collect_resolved_expression_type_sites(
+            owner,
+            value,
+            &crate::bounded_output::budgeted_format(format_args!("{path}.value")),
+            imported,
+            out,
+        )?,
+        hir::ResolvedExprKind::Binary { left, right, .. } => {
+            collect_resolved_expression_type_sites(
+                owner,
+                left,
+                &crate::bounded_output::budgeted_format(format_args!("{path}.left")),
+                imported,
+                out,
+            )?;
+            collect_resolved_expression_type_sites(
+                owner,
+                right,
+                &crate::bounded_output::budgeted_format(format_args!("{path}.right")),
+                imported,
+                out,
+            )?;
+        }
+        hir::ResolvedExprKind::Block { statements, tail } => {
+            for (index, statement) in statements.iter().enumerate() {
+                let hir::ResolvedStatement::Let { value, .. } = statement;
+                collect_resolved_expression_type_sites(
+                    owner,
+                    value,
+                    &crate::bounded_output::budgeted_format(format_args!("{path}.s{index}.value")),
+                    imported,
+                    out,
+                )?;
+            }
+            collect_resolved_expression_type_sites(
+                owner,
+                tail,
+                &crate::bounded_output::budgeted_format(format_args!("{path}.tail")),
+                imported,
+                out,
+            )?;
+        }
+        hir::ResolvedExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            for (suffix, child) in [
+                ("condition", condition.as_ref()),
+                ("then", then_branch.as_ref()),
+                ("else", else_branch.as_ref()),
+            ] {
+                collect_resolved_expression_type_sites(
+                    owner,
+                    child,
+                    &crate::bounded_output::budgeted_format(format_args!("{path}.{suffix}")),
+                    imported,
+                    out,
+                )?;
+            }
+        }
+        hir::ResolvedExprKind::ConstructRecord { fields, .. }
+        | hir::ResolvedExprKind::ConstructVariant { fields, .. } => {
+            collect_resolved_type_sites(
+                owner.as_str(),
+                &expression.ty,
+                &crate::bounded_output::budgeted_format(format_args!("{path}.type")),
+                Some(&expression_id),
+                imported,
+                out,
+            )?;
+            for (index, field) in fields.iter().enumerate() {
+                collect_resolved_expression_type_sites(
+                    owner,
+                    &field.value,
+                    &crate::bounded_output::budgeted_format(format_args!(
+                        "{path}.field.{index}.value"
+                    )),
+                    imported,
+                    out,
+                )?;
+            }
+        }
+        hir::ResolvedExprKind::Match { scrutinee, arms } => {
+            collect_resolved_expression_type_sites(
+                owner,
+                scrutinee,
+                &crate::bounded_output::budgeted_format(format_args!("{path}.scrutinee")),
+                imported,
+                out,
+            )?;
+            for (index, arm) in arms.iter().enumerate() {
+                collect_resolved_pattern_type_sites(
+                    owner.as_str(),
+                    &arm.pattern,
+                    &crate::bounded_output::budgeted_format(format_args!(
+                        "{path}.arm.{index}.pattern"
+                    )),
+                    &expression_id,
+                    imported,
+                    out,
+                )?;
+                collect_resolved_expression_type_sites(
+                    owner,
+                    &arm.value,
+                    &crate::bounded_output::budgeted_format(format_args!(
+                        "{path}.arm.{index}.value"
+                    )),
+                    imported,
+                    out,
+                )?;
+            }
+        }
+        hir::ResolvedExprKind::Try { operand, .. }
+        | hir::ResolvedExprKind::TryOption { operand, .. } => {
+            collect_resolved_expression_type_sites(
+                owner,
+                operand,
+                &crate::bounded_output::budgeted_format(format_args!("{path}.operand")),
+                imported,
+                out,
+            )?;
+        }
+        hir::ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            collect_resolved_expression_type_sites(
+                owner,
+                base,
+                &crate::bounded_output::budgeted_format(format_args!("{path}.base")),
+                imported,
+                out,
+            )?;
+            for (index, field) in fields.iter().enumerate() {
+                collect_resolved_expression_type_sites(
+                    owner,
+                    &field.value,
+                    &crate::bounded_output::budgeted_format(format_args!(
+                        "{path}.field.{index}.value"
+                    )),
+                    imported,
+                    out,
+                )?;
+            }
+        }
+        hir::ResolvedExprKind::Project { base, .. } => collect_resolved_expression_type_sites(
+            owner,
+            base,
+            &crate::bounded_output::budgeted_format(format_args!("{path}.base")),
+            imported,
+            out,
+        )?,
+        hir::ResolvedExprKind::Int(_)
+        | hir::ResolvedExprKind::Bool(_)
+        | hir::ResolvedExprKind::Place(_) => {}
+    }
+    Ok(())
+}
+
+fn collect_resolved_pattern_type_sites(
+    owner: &str,
+    pattern: &hir::ResolvedMatchPattern,
+    path: &str,
+    expression: &str,
+    imported: &BTreeSet<&str>,
+    out: &mut Vec<(String, String, String, String)>,
+) -> Result<(), Vec<Diagnostic>> {
+    match pattern {
+        hir::ResolvedMatchPattern::Variant { variant, .. } => {
+            if imported.contains(variant.as_str()) {
+                reserve_builder_structure(std::mem::size_of::<(String, String, String, String)>())?;
+                out.push((
+                    crate::bounded_output::budgeted_clone(owner),
+                    crate::bounded_output::budgeted_clone(expression),
+                    crate::bounded_output::budgeted_clone(path),
+                    crate::bounded_output::budgeted_clone(variant.as_str()),
+                ));
+            }
+        }
+        hir::ResolvedMatchPattern::Record { record, fields, .. } => {
+            if imported.contains(record.as_str()) {
+                reserve_builder_structure(std::mem::size_of::<(String, String, String, String)>())?;
+                out.push((
+                    crate::bounded_output::budgeted_clone(owner),
+                    crate::bounded_output::budgeted_clone(expression),
+                    crate::bounded_output::budgeted_clone(path),
+                    crate::bounded_output::budgeted_clone(record.as_str()),
+                ));
+            }
+            for (index, field) in fields.iter().enumerate() {
+                collect_resolved_record_pattern_type_sites(
+                    owner,
+                    &field.pattern,
+                    &crate::bounded_output::budgeted_format(format_args!(
+                        "{path}.field.{index}.pattern"
+                    )),
+                    expression,
+                    imported,
+                    out,
+                )?;
+            }
+        }
+        hir::ResolvedMatchPattern::Wildcard => {}
+    }
+    Ok(())
+}
+
+fn collect_resolved_record_pattern_type_sites(
+    owner: &str,
+    pattern: &hir::ResolvedRecordMatchFieldPattern,
+    path: &str,
+    expression: &str,
+    imported: &BTreeSet<&str>,
+    out: &mut Vec<(String, String, String, String)>,
+) -> Result<(), Vec<Diagnostic>> {
+    let hir::ResolvedRecordMatchFieldPattern::Record { record, fields, .. } = pattern else {
+        return Ok(());
+    };
+    if imported.contains(record.as_str()) {
+        reserve_builder_structure(std::mem::size_of::<(String, String, String, String)>())?;
+        out.push((
+            crate::bounded_output::budgeted_clone(owner),
+            crate::bounded_output::budgeted_clone(expression),
+            crate::bounded_output::budgeted_clone(path),
+            crate::bounded_output::budgeted_clone(record.as_str()),
+        ));
+    }
+    for (index, field) in fields.iter().enumerate() {
+        collect_resolved_record_pattern_type_sites(
+            owner,
+            &field.pattern,
+            &crate::bounded_output::budgeted_format(format_args!("{path}.field.{index}.pattern")),
+            expression,
+            imported,
+            out,
+        )?;
+    }
+    Ok(())
+}
+
+fn checked_usage(
+    used: usize,
+    additional: usize,
+    field: &'static str,
+    maximum: usize,
+) -> Result<usize, Vec<Diagnostic>> {
+    let next = used
+        .checked_add(additional)
+        .ok_or_else(|| vec![limit_error(field, maximum)])?;
+    if next > maximum {
+        return Err(vec![limit_error(field, maximum)]);
+    }
+    Ok(next)
+}
+
+fn declaration_count(program: &Program) -> Option<usize> {
+    let mut count = program
+        .functions
+        .len()
+        .checked_add(program.interfaces.len())?;
+    for interface in &program.interfaces {
+        count = count.checked_add(interface.imports.len())?;
+    }
+    for ty in &program.types {
+        count = count.checked_add(1)?;
+        match &ty.kind {
+            TypeDeclarationKind::Resource { lifecycles } => {
+                count = count.checked_add(lifecycles.len())?;
+            }
+            TypeDeclarationKind::Record { fields } => count = count.checked_add(fields.len())?,
+            TypeDeclarationKind::Variant { cases } => {
+                count = count.checked_add(cases.len())?;
+                for case in cases {
+                    count = count.checked_add(case.fields.len())?;
+                }
+            }
+        }
+    }
+    Some(count)
+}
+
+fn call_count(program: &Program) -> Option<usize> {
+    let mut count = Some(0usize);
+    for function in &program.functions {
+        for expression in function
+            .requires
+            .iter()
+            .chain(std::iter::once(&function.body))
+            .chain(&function.ensures)
+        {
+            expression.visit_calls(&mut |_, _| {
+                count = count.and_then(|value| value.checked_add(1));
+            });
+        }
+    }
+    count
+}
+
+fn index_modules(programs: &[Program]) -> Result<BTreeMap<&str, &str>, Vec<Diagnostic>> {
+    let mut modules = BTreeMap::new();
+    for program in programs {
+        if let Some(existing) = modules.insert(program.module.as_str(), program.path.as_str()) {
+            return Err(vec![graph_error(
+                "SPX-G172",
+                format!(
+                    "workspace module `{}` is declared by both `{existing}` and `{}`",
+                    program.module, program.path
+                ),
+            )]);
+        }
+    }
+    Ok(modules)
+}
+
+fn index_authored(
+    programs: &[Program],
+) -> Result<BTreeMap<&str, AuthoredDeclaration<'_>>, Vec<Diagnostic>> {
+    let mut declarations = BTreeMap::new();
+    for program in programs {
+        for function in &program.functions {
+            insert_authored(
+                &mut declarations,
+                &function.stable_id,
+                AuthoredDeclaration {
+                    path: &program.path,
+                    module: &program.module,
+                    explicit: function.explicit_id,
+                    kind: AuthoredKind::Function,
+                    function: Some(function),
+                    ty: None,
+                },
+            )?;
+        }
+        for ty in &program.types {
+            insert_authored(
+                &mut declarations,
+                &ty.stable_id,
+                AuthoredDeclaration {
+                    path: &program.path,
+                    module: &program.module,
+                    explicit: ty.explicit_id,
+                    kind: AuthoredKind::Type,
+                    function: None,
+                    ty: Some(ty),
+                },
+            )?;
+            match &ty.kind {
+                TypeDeclarationKind::Resource { lifecycles } => {
+                    for lifecycle in lifecycles {
+                        if let Some(id) = &lifecycle.stable_id {
+                            insert_other(&mut declarations, id, program)?;
+                        }
+                    }
+                }
+                TypeDeclarationKind::Record { fields } => {
+                    for field in fields {
+                        insert_other(&mut declarations, &field.stable_id, program)?;
+                    }
+                }
+                TypeDeclarationKind::Variant { cases } => {
+                    for case in cases {
+                        insert_other(&mut declarations, &case.stable_id, program)?;
+                        for field in &case.fields {
+                            insert_other(&mut declarations, &field.stable_id, program)?;
+                        }
+                    }
+                }
+            }
+        }
+        for interface in &program.interfaces {
+            insert_other(&mut declarations, &interface.stable_id, program)?;
+            for import in &interface.imports {
+                insert_other(&mut declarations, &import.stable_id, program)?;
+            }
+        }
+    }
+    Ok(declarations)
+}
+
+fn validate_synthetic_main_id_collisions(
+    programs: &[Program],
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+) -> Result<(), Vec<Diagnostic>> {
+    for program in programs {
+        if program
+            .functions
+            .iter()
+            .any(|function| function.name == "main")
+        {
+            continue;
+        }
+        let generated = crate::bounded_output::budgeted_format(format_args!(
+            "workspace.synthetic.main.{}",
+            program.module
+        ));
+        if authored.contains_key(generated.as_str()) {
+            return Err(vec![graph_error(
+                "SPX-G173",
+                "generated workspace synthetic main identity collides with an authored declaration",
+            )]);
+        }
+    }
+    Ok(())
+}
+
+fn insert_other<'a>(
+    declarations: &mut BTreeMap<&'a str, AuthoredDeclaration<'a>>,
+    id: &'a str,
+    program: &'a Program,
+) -> Result<(), Vec<Diagnostic>> {
+    insert_authored(
+        declarations,
+        id,
+        AuthoredDeclaration {
+            path: &program.path,
+            module: &program.module,
+            explicit: true,
+            kind: AuthoredKind::Other,
+            function: None,
+            ty: None,
+        },
+    )
+}
+
+fn insert_authored<'a>(
+    declarations: &mut BTreeMap<&'a str, AuthoredDeclaration<'a>>,
+    id: &'a str,
+    declaration: AuthoredDeclaration<'a>,
+) -> Result<(), Vec<Diagnostic>> {
+    if prelude::is_compiler_owned_id(id) {
+        return Err(vec![graph_error(
+            "SPX-G172",
+            format!("workspace authored identity `{id}` is compiler-owned"),
+        )]);
+    }
+    if let Some(existing) = declarations.insert(id, declaration) {
+        return Err(vec![graph_error(
+            "SPX-G172",
+            format!(
+                "workspace authored identity `{id}` is duplicated by `{}` and `{}`",
+                existing.path, declarations[id].path
+            ),
+        )]);
+    }
+    Ok(())
+}
+
+fn validate_uses(
+    programs: &[Program],
+    modules: &BTreeMap<&str, &str>,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+) -> Result<(), Vec<Diagnostic>> {
+    for program in programs {
+        let mut function_aliases = BTreeSet::new();
+        let mut type_aliases = BTreeSet::new();
+        let mut imported_targets = BTreeSet::new();
+        let local_functions = program
+            .functions
+            .iter()
+            .map(|item| item.name.as_str())
+            .chain(
+                program
+                    .interfaces
+                    .iter()
+                    .flat_map(|interface| &interface.imports)
+                    .map(|import| import.name.as_str()),
+            )
+            .collect::<BTreeSet<_>>();
+        let local_types = program
+            .types
+            .iter()
+            .map(|item| item.name.as_str())
+            .chain(
+                prelude::declarations()
+                    .iter()
+                    .map(|item| item.name.as_str()),
+            )
+            .collect::<BTreeSet<_>>();
+        let workspace_type_aliases = program
+            .module_uses
+            .iter()
+            .filter(|item| item.kind == ModuleUseKind::Type)
+            .map(|item| item.alias.as_str())
+            .collect::<BTreeSet<_>>();
+        for interface in &program.interfaces {
+            for import in &interface.imports {
+                for param in &import.params {
+                    if type_contains_name_from(&param.ty, &workspace_type_aliases) {
+                        return Err(vec![Diagnostic::error(
+                            "SPX-G172",
+                            "workspace type aliases are not admitted in interface/import parameter carriers",
+                            param.span,
+                        )
+                        .at_path(&program.path)]);
+                    }
+                }
+            }
+        }
+        for module_use in &program.module_uses {
+            if !imported_targets.insert((module_use.kind, module_use.persistent_id.as_str())) {
+                return Err(vec![use_error(
+                    program,
+                    module_use,
+                    "the same workspace target is imported more than once",
+                )]);
+            }
+            if module_use.target_module == program.module
+                || !modules.contains_key(module_use.target_module.as_str())
+            {
+                return Err(vec![use_error(
+                    program,
+                    module_use,
+                    "target module is missing or equals the caller module",
+                )]);
+            }
+            let alias_conflicts = match module_use.kind {
+                ModuleUseKind::Function => {
+                    !function_aliases.insert(module_use.alias.as_str())
+                        || local_functions.contains(module_use.alias.as_str())
+                        || module_use.alias == "main"
+                }
+                ModuleUseKind::Type => {
+                    !type_aliases.insert(module_use.alias.as_str())
+                        || local_types.contains(module_use.alias.as_str())
+                }
+            };
+            if alias_conflicts {
+                return Err(vec![use_error(
+                    program,
+                    module_use,
+                    "alias is duplicated or shadows a local/prelude declaration",
+                )]);
+            }
+            let target = authored
+                .get(module_use.persistent_id.as_str())
+                .ok_or_else(|| {
+                    vec![use_error(
+                        program,
+                        module_use,
+                        "persistent target identity is unknown",
+                    )]
+                })?;
+            let expected = match module_use.kind {
+                ModuleUseKind::Function => AuthoredKind::Function,
+                ModuleUseKind::Type => AuthoredKind::Type,
+            };
+            if !target.explicit
+                || target.module != module_use.target_module
+                || target.kind != expected
+            {
+                return Err(vec![use_error(
+                    program,
+                    module_use,
+                    "target module, declaration kind, or explicit identity disagrees",
+                )]);
+            }
+            match module_use.kind {
+                ModuleUseKind::Function => {
+                    validate_imported_function(program, module_use, target, authored, programs)?
+                }
+                ModuleUseKind::Type => {
+                    validate_imported_type(program, module_use, target, authored, programs)?;
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+fn type_contains_name_from(ty: &Type, names: &BTreeSet<&str>) -> bool {
+    match ty {
+        Type::I64 | Type::Bool => false,
+        Type::Named { name, arguments } => {
+            names.contains(name.as_str())
+                || arguments
+                    .iter()
+                    .any(|argument| type_contains_name_from(argument, names))
+        }
+    }
+}
+
+fn validate_imported_function(
+    caller: &Program,
+    module_use: &ModuleUse,
+    target: &AuthoredDeclaration<'_>,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    programs: &[Program],
+) -> Result<(), Vec<Diagnostic>> {
+    let function = target.function.expect("function target carries a function");
+    if !function.type_parameters.is_empty()
+        || function
+            .params
+            .iter()
+            .any(|param| param.mode != ParamMode::Value)
+    {
+        return Err(vec![use_error(
+            caller,
+            module_use,
+            "function target must be monomorphic with value parameters",
+        )]);
+    }
+    for ty in function
+        .params
+        .iter()
+        .map(|param| &param.ty)
+        .chain(std::iter::once(&function.return_type))
+    {
+        if !signature_type_is_admitted(
+            target.module,
+            ty,
+            caller,
+            authored,
+            programs,
+            &mut BTreeSet::new(),
+        ) {
+            return Err(vec![use_error(
+                caller,
+                module_use,
+                "function signature leaves the admitted scalar/Copy workspace domain",
+            )]);
+        }
+    }
+    Ok(())
+}
+
+fn signature_type_is_admitted(
+    module: &str,
+    ty: &Type,
+    caller: &Program,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    programs: &[Program],
+    visiting: &mut BTreeSet<String>,
+) -> bool {
+    match ty {
+        Type::I64 | Type::Bool => true,
+        Type::Named { name, arguments } if arguments.is_empty() => {
+            let Some(target_id) = resolve_type_id(module, name, programs) else {
+                return false;
+            };
+            let Some(target) = authored.get(target_id.as_str()) else {
+                return false;
+            };
+            caller
+                .module_uses
+                .iter()
+                .any(|item| item.kind == ModuleUseKind::Type && item.persistent_id == target_id)
+                && target.ty.is_some_and(|target_type| {
+                    type_is_admitted(target.module, target_type, authored, programs, visiting)
+                        && exposed_types_are_directly_imported(
+                            caller,
+                            target.module,
+                            target_type,
+                            authored,
+                            programs,
+                            &mut BTreeSet::new(),
+                        )
+                })
+        }
+        Type::Named { .. } => false,
+    }
+}
+
+fn resolve_type_id(module: &str, name: &str, programs: &[Program]) -> Option<String> {
+    let program = programs.iter().find(|item| item.module == module)?;
+    if let Some(local) = program.types.iter().find(|item| item.name == name) {
+        return Some(crate::bounded_output::budgeted_clone(&local.stable_id));
+    }
+    program
+        .module_uses
+        .iter()
+        .find(|item| item.kind == ModuleUseKind::Type && item.alias == name)
+        .map(|item| crate::bounded_output::budgeted_clone(&item.persistent_id))
+}
+
+fn validate_imported_type(
+    caller: &Program,
+    module_use: &ModuleUse,
+    target: &AuthoredDeclaration<'_>,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    programs: &[Program],
+) -> Result<(), Vec<Diagnostic>> {
+    let ty = target.ty.expect("type target carries a type");
+    if !ty.type_parameters.is_empty()
+        || !type_is_admitted(target.module, ty, authored, programs, &mut BTreeSet::new())
+        || !exposed_types_are_directly_imported(
+            caller,
+            target.module,
+            ty,
+            authored,
+            programs,
+            &mut BTreeSet::new(),
+        )
+    {
+        return Err(vec![use_error(
+            caller,
+            module_use,
+            "type target must be an explicit nongeneric recursive Copy value type",
+        )]);
+    }
+    Ok(())
+}
+
+fn exposed_types_are_directly_imported(
+    caller: &Program,
+    module: &str,
+    declaration: &TypeDeclaration,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    programs: &[Program],
+    visiting: &mut BTreeSet<String>,
+) -> bool {
+    if !visiting.insert(crate::bounded_output::budgeted_clone(
+        &declaration.stable_id,
+    )) {
+        return false;
+    }
+    let admitted = match &declaration.kind {
+        TypeDeclarationKind::Resource { .. } => return false,
+        TypeDeclarationKind::Record { fields } => fields.iter().all(|field| {
+            exposed_type_reference_is_directly_imported(
+                caller, module, &field.ty, authored, programs, visiting,
+            )
+        }),
+        TypeDeclarationKind::Variant { cases } => {
+            cases.iter().flat_map(|case| &case.fields).all(|field| {
+                exposed_type_reference_is_directly_imported(
+                    caller, module, &field.ty, authored, programs, visiting,
+                )
+            })
+        }
+    };
+    visiting.remove(&declaration.stable_id);
+    admitted
+}
+
+fn exposed_type_reference_is_directly_imported(
+    caller: &Program,
+    module: &str,
+    ty: &Type,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    programs: &[Program],
+    visiting: &mut BTreeSet<String>,
+) -> bool {
+    match ty {
+        Type::I64 | Type::Bool => true,
+        Type::Named { name, arguments } if arguments.is_empty() => {
+            let Some(target_id) = resolve_type_id(module, name, programs) else {
+                return false;
+            };
+            let directly_imported = caller
+                .module_uses
+                .iter()
+                .any(|item| item.kind == ModuleUseKind::Type && item.persistent_id == target_id);
+            directly_imported
+                && authored.get(target_id.as_str()).is_some_and(|target| {
+                    target.ty.is_some_and(|nested| {
+                        exposed_types_are_directly_imported(
+                            caller,
+                            target.module,
+                            nested,
+                            authored,
+                            programs,
+                            visiting,
+                        )
+                    })
+                })
+        }
+        Type::Named { .. } => false,
+    }
+}
+
+fn type_is_admitted(
+    module: &str,
+    declaration: &TypeDeclaration,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    programs: &[Program],
+    visiting: &mut BTreeSet<String>,
+) -> bool {
+    if !declaration.explicit_id
+        || !visiting.insert(crate::bounded_output::budgeted_clone(
+            &declaration.stable_id,
+        ))
+    {
+        return false;
+    }
+    let valid = match &declaration.kind {
+        TypeDeclarationKind::Resource { .. } => return false,
+        TypeDeclarationKind::Record { fields } => fields.iter().all(|field| {
+            type_reference_is_admitted(module, &field.ty, authored, programs, visiting)
+        }),
+        TypeDeclarationKind::Variant { cases } => {
+            cases.iter().flat_map(|case| &case.fields).all(|field| {
+                type_reference_is_admitted(module, &field.ty, authored, programs, visiting)
+            })
+        }
+    };
+    visiting.remove(&declaration.stable_id);
+    valid
+}
+
+fn type_reference_is_admitted(
+    module: &str,
+    ty: &Type,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    programs: &[Program],
+    visiting: &mut BTreeSet<String>,
+) -> bool {
+    match ty {
+        Type::I64 | Type::Bool => true,
+        Type::Named { name, arguments } if arguments.is_empty() => {
+            let Some(program) = programs.iter().find(|item| item.module == module) else {
+                return false;
+            };
+            let local_target = program
+                .types
+                .iter()
+                .find(|item| item.name == *name)
+                .and_then(|item| authored.get(item.stable_id.as_str()));
+            if local_target.is_some_and(|target| {
+                target.ty.is_some_and(|declaration| {
+                    type_is_admitted(module, declaration, authored, programs, visiting)
+                })
+            }) {
+                return true;
+            }
+            program
+                .module_uses
+                .iter()
+                .find(|item| item.kind == ModuleUseKind::Type && item.alias == *name)
+                .and_then(|item| authored.get(item.persistent_id.as_str()))
+                .is_some_and(|target| {
+                    target.ty.is_some_and(|declaration| {
+                        type_is_admitted(target.module, declaration, authored, programs, visiting)
+                    })
+                })
+        }
+        Type::Named { .. } => false,
+    }
+}
+
+struct SyntheticBuilderCosts {
+    raw_clone_and_hir: usize,
+    runtime: usize,
+}
+
+#[derive(Clone, Copy)]
+struct ExpandedDefaultCost {
+    bytes: usize,
+    identity_slots: usize,
+}
+
+#[derive(Clone, Copy)]
+struct GenericInstanceCost {
+    bytes: usize,
+    identity_slots: usize,
+}
+
+struct StructuralCost(usize);
+
+impl StructuralCost {
+    fn add(&mut self, bytes: usize) -> Result<(), Vec<Diagnostic>> {
+        self.0 = checked_usage(self.0, bytes, "builder_bytes", active_builder_limit())?;
+        Ok(())
+    }
+
+    fn value<T>(&mut self, value: &T) -> Result<(), Vec<Diagnostic>> {
+        self.add(std::mem::size_of_val(value))
+    }
+
+    fn string(&mut self, value: &str) -> Result<(), Vec<Diagnostic>> {
+        self.add(std::mem::size_of::<String>())?;
+        self.add(value.len())
+    }
+}
+
+fn synthetic_builder_bytes(
+    program: &Program,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    programs: &[Program],
+) -> Result<SyntheticBuilderCosts, Vec<Diagnostic>> {
+    let mut raw = StructuralCost(0);
+    ast_program_cost(program, &mut raw)?;
+    let mut identity_slots = ast_program_identity_slots(program)?;
+    let mut runtime = StructuralCost(0);
+    let mut default_memo = BTreeMap::new();
+    for module_use in &program.module_uses {
+        let target = &authored[module_use.persistent_id.as_str()];
+        runtime.string(&module_use.alias)?;
+        if let Some(function) = target.function {
+            ast_function_cost(function, &mut raw)?;
+            identity_slots = checked_builder_sum(
+                identity_slots,
+                ast_type_identity_slots(&function.return_type)?,
+            )?;
+            for param in &function.params {
+                identity_slots =
+                    checked_builder_sum(identity_slots, ast_type_identity_slots(&param.ty)?)?;
+                rewrite_type_runtime_cost(
+                    &param.ty,
+                    target.module,
+                    program,
+                    programs,
+                    &mut runtime,
+                )?;
+            }
+            rewrite_type_runtime_cost(
+                &function.return_type,
+                target.module,
+                program,
+                programs,
+                &mut runtime,
+            )?;
+            let cost = default_expr_expanded_cost(
+                &function.return_type,
+                target.module,
+                program,
+                authored,
+                programs,
+                &mut default_memo,
+                &mut BTreeSet::new(),
+            )?;
+            runtime.add(cost.bytes)?;
+            identity_slots = checked_builder_sum(identity_slots, cost.identity_slots)?;
+        } else {
+            let declaration = target.ty.expect("validated type target");
+            ast_type_declaration_cost(declaration, &mut raw)?;
+            identity_slots = checked_builder_sum(
+                identity_slots,
+                ast_type_declaration_identity_slots(declaration)?,
+            )?;
+            rewrite_type_declaration_runtime_cost(
+                declaration,
+                target.module,
+                program,
+                programs,
+                &mut runtime,
+            )?;
+        }
+    }
+    if !program
+        .functions
+        .iter()
+        .any(|function| function.name == "main")
+    {
+        runtime.add(synthetic_main_runtime_cost(&program.module)?)?;
+    }
+    let generic_instances = generic_instance_source_cost(program)?;
+    identity_slots = checked_builder_sum(identity_slots, generic_instances.identity_slots)?;
+    let hir_input = checked_usage(raw.0, runtime.0, "builder_bytes", active_builder_limit())?;
+    let hir_input = checked_usage(
+        hir_input,
+        generic_instances.bytes,
+        "builder_bytes",
+        active_builder_limit(),
+    )?;
+    let fixed_hir_upper = hir_input
+        .checked_mul(HIR_FIXED_EXPANSION_FACTOR)
+        .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
+    let maximum_identity_bytes = authored
+        .keys()
+        .map(|id| id.len())
+        .chain(prelude::all_ids().into_iter().map(str::len))
+        .max()
+        .unwrap_or(0);
+    let identity_occurrence_upper = identity_slots
+        .checked_mul(maximum_identity_bytes)
+        .and_then(|bytes| bytes.checked_mul(HIR_IDENTITY_COPY_FACTOR))
+        .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
+    let hir_upper = fixed_hir_upper
+        .checked_add(identity_occurrence_upper)
+        .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
+    if hir_upper > active_builder_limit() {
+        return Err(vec![limit_error("builder_bytes", active_builder_limit())]);
+    }
+    Ok(SyntheticBuilderCosts {
+        raw_clone_and_hir: checked_usage(
+            raw.0,
+            hir_upper,
+            "builder_bytes",
+            active_builder_limit(),
+        )?,
+        runtime: runtime.0,
+    })
+}
+
+fn generic_instance_source_cost(program: &Program) -> Result<GenericInstanceCost, Vec<Diagnostic>> {
+    let mut templates = Vec::with_capacity(program.functions.len());
+    for function in &program.functions {
+        if function.type_parameters.is_empty() {
+            continue;
+        }
+        let mut cost = StructuralCost(0);
+        ast_function_cost(function, &mut cost)?;
+        templates.push((
+            function.name.as_str(),
+            GenericInstanceCost {
+                bytes: cost.0,
+                identity_slots: ast_function_identity_slots(function)?,
+            },
+        ));
+    }
+    templates.sort_by(|left, right| left.0.cmp(right.0));
+    let mut total = GenericInstanceCost {
+        bytes: 0,
+        identity_slots: 0,
+    };
+    for function in program
+        .functions
+        .iter()
+        .filter(|function| function.type_parameters.is_empty())
+    {
+        for expression in function
+            .requires
+            .iter()
+            .chain(std::iter::once(&function.body))
+            .chain(&function.ensures)
+        {
+            let mut overflowed = false;
+            expression.visit_call_instances(&mut |name, arguments, _| {
+                if arguments.is_empty() || overflowed {
+                    return;
+                }
+                if let Ok(index) = templates.binary_search_by_key(&name, |(name, _)| *name) {
+                    if let (Some(bytes), Some(identity_slots)) = (
+                        total.bytes.checked_add(templates[index].1.bytes),
+                        total
+                            .identity_slots
+                            .checked_add(templates[index].1.identity_slots),
+                    ) {
+                        total = GenericInstanceCost {
+                            bytes,
+                            identity_slots,
+                        };
+                    } else {
+                        overflowed = true;
+                    }
+                }
+            });
+            if overflowed || total.bytes > active_builder_limit() {
+                return Err(vec![limit_error("builder_bytes", active_builder_limit())]);
+            }
+        }
+    }
+    Ok(total)
+}
+
+fn checked_builder_sum(left: usize, right: usize) -> Result<usize, Vec<Diagnostic>> {
+    left.checked_add(right)
+        .filter(|total| *total <= active_builder_limit())
+        .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])
+}
+
+fn rewrite_type_declaration_runtime_cost(
+    declaration: &TypeDeclaration,
+    target_module: &str,
+    caller: &Program,
+    programs: &[Program],
+    cost: &mut StructuralCost,
+) -> Result<(), Vec<Diagnostic>> {
+    match &declaration.kind {
+        TypeDeclarationKind::Record { fields } => {
+            for field in fields {
+                rewrite_type_runtime_cost(&field.ty, target_module, caller, programs, cost)?;
+            }
+        }
+        TypeDeclarationKind::Variant { cases } => {
+            for case in cases {
+                for field in &case.fields {
+                    rewrite_type_runtime_cost(&field.ty, target_module, caller, programs, cost)?;
+                }
+            }
+        }
+        TypeDeclarationKind::Resource { .. } => unreachable!("resource imports are rejected"),
+    }
+    Ok(())
+}
+
+fn rewrite_type_runtime_cost(
+    ty: &Type,
+    target_module: &str,
+    caller: &Program,
+    programs: &[Program],
+    cost: &mut StructuralCost,
+) -> Result<(), Vec<Diagnostic>> {
+    let Type::Named { name, arguments } = ty else {
+        return Ok(());
+    };
+    if !arguments.is_empty() {
+        return Err(vec![graph_error(
+            "SPX-G172",
+            "generic cross-file types are not admitted",
+        )]);
+    }
+    let target_id = resolve_type_id(target_module, name, programs).ok_or_else(|| {
+        vec![graph_error(
+            "SPX-G173",
+            "cross-file type identity cost lookup disagrees",
+        )]
+    })?;
+    let alias = caller
+        .module_uses
+        .iter()
+        .find(|item| item.kind == ModuleUseKind::Type && item.persistent_id == target_id)
+        .map(|item| item.alias.as_str())
+        .ok_or_else(|| {
+            vec![graph_error(
+                "SPX-G172",
+                crate::bounded_output::budgeted_format(format_args!(
+                    "cross-file signature type `{target_id}` is not explicitly imported"
+                )),
+            )]
+        })?;
+    cost.string(alias)
+}
+
+fn synthetic_main_runtime_cost(module: &str) -> Result<usize, Vec<Diagnostic>> {
+    let mut cost = StructuralCost(0);
+    cost.add(std::mem::size_of::<Function>())?;
+    cost.add(std::mem::size_of::<Expr>())?;
+    cost.string("main")?;
+    cost.add("workspace.synthetic.main.".len())?;
+    cost.add(module.len())?;
+    Ok(cost.0)
+}
+
+fn ast_program_cost(program: &Program, cost: &mut StructuralCost) -> Result<(), Vec<Diagnostic>> {
+    cost.value(program)?;
+    cost.string(&program.path)?;
+    cost.string(&program.module)?;
+    for module_use in &program.module_uses {
+        cost.value(module_use)?;
+        cost.string(&module_use.persistent_id)?;
+        cost.string(&module_use.target_module)?;
+        cost.string(&module_use.alias)?;
+    }
+    for permit in &program.permits {
+        cost.string(permit)?;
+    }
+    for declaration in &program.types {
+        ast_type_declaration_cost(declaration, cost)?;
+    }
+    for interface in &program.interfaces {
+        cost.value(interface)?;
+        cost.string(&interface.stable_id)?;
+        cost.string(&interface.name)?;
+        for permit in &interface.permits {
+            cost.string(permit)?;
+        }
+        for import in &interface.imports {
+            cost.value(import)?;
+            cost.string(&import.stable_id)?;
+            cost.string(&import.name)?;
+            for param in &import.params {
+                ast_param_cost(param, cost)?;
+            }
+            for effect in &import.effects {
+                cost.string(effect)?;
+            }
+            if let crate::ast::ImportFailure::Status { domain_id } = &import.failure {
+                cost.string(domain_id)?;
+            }
+            cost.string(&import.consumes)?;
+        }
+    }
+    for function in &program.functions {
+        ast_function_cost(function, cost)?;
+    }
+    Ok(())
+}
+
+fn ast_program_identity_slots(program: &Program) -> Result<usize, Vec<Diagnostic>> {
+    let mut slots = 0usize;
+    for declaration in &program.types {
+        slots = checked_builder_sum(slots, ast_type_declaration_identity_slots(declaration)?)?;
+    }
+    for interface in &program.interfaces {
+        for import in &interface.imports {
+            for param in &import.params {
+                slots = checked_builder_sum(slots, ast_type_identity_slots(&param.ty)?)?;
+            }
+        }
+    }
+    for function in &program.functions {
+        slots = checked_builder_sum(slots, ast_function_identity_slots(function)?)?;
+    }
+    Ok(slots)
+}
+
+fn ast_type_declaration_identity_slots(
+    declaration: &TypeDeclaration,
+) -> Result<usize, Vec<Diagnostic>> {
+    let mut slots = 0usize;
+    match &declaration.kind {
+        TypeDeclarationKind::Resource { .. } => {}
+        TypeDeclarationKind::Record { fields } => {
+            for field in fields {
+                slots = checked_builder_sum(slots, ast_type_identity_slots(&field.ty)?)?;
+            }
+        }
+        TypeDeclarationKind::Variant { cases } => {
+            for case in cases {
+                for field in &case.fields {
+                    slots = checked_builder_sum(slots, ast_type_identity_slots(&field.ty)?)?;
+                }
+            }
+        }
+    }
+    Ok(slots)
+}
+
+fn ast_function_identity_slots(function: &Function) -> Result<usize, Vec<Diagnostic>> {
+    let mut slots = ast_type_identity_slots(&function.return_type)?;
+    for param in &function.params {
+        slots = checked_builder_sum(slots, ast_type_identity_slots(&param.ty)?)?;
+    }
+    for expression in function
+        .requires
+        .iter()
+        .chain(std::iter::once(&function.body))
+        .chain(&function.ensures)
+    {
+        slots = checked_builder_sum(slots, ast_expr_identity_slots(expression)?)?;
+    }
+    Ok(slots)
+}
+
+fn ast_type_identity_slots(ty: &Type) -> Result<usize, Vec<Diagnostic>> {
+    let Type::Named { arguments, .. } = ty else {
+        return Ok(0);
+    };
+    let mut slots = 1usize;
+    for argument in arguments {
+        slots = checked_builder_sum(slots, ast_type_identity_slots(argument)?)?;
+    }
+    Ok(slots)
+}
+
+fn ast_expr_identity_slots(expression: &Expr) -> Result<usize, Vec<Diagnostic>> {
+    // Eight covers the expression/result/callee, Try's six declaration IDs,
+    // and one cleanup owner. Variable-size field/projection/pattern IDs are
+    // debited separately below.
+    let mut slots = 8usize;
+    match &expression.kind {
+        ExprKind::Call {
+            type_arguments,
+            args,
+            ..
+        } => {
+            for ty in type_arguments {
+                slots = checked_builder_sum(slots, ast_type_identity_slots(ty)?)?;
+            }
+            for argument in args {
+                slots = checked_builder_sum(slots, ast_expr_identity_slots(argument)?)?;
+            }
+        }
+        ExprKind::Unary { value, .. } => {
+            slots = checked_builder_sum(slots, ast_expr_identity_slots(value)?)?;
+        }
+        ExprKind::Binary { left, right, .. } => {
+            slots = checked_builder_sum(slots, ast_expr_identity_slots(left)?)?;
+            slots = checked_builder_sum(slots, ast_expr_identity_slots(right)?)?;
+        }
+        ExprKind::Block { statements, tail } => {
+            for statement in statements {
+                let crate::ast::Statement::Let { value, .. } = statement;
+                slots = checked_builder_sum(slots, 1)?;
+                slots = checked_builder_sum(slots, ast_expr_identity_slots(value)?)?;
+            }
+            slots = checked_builder_sum(slots, ast_expr_identity_slots(tail)?)?;
+        }
+        ExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            slots = checked_builder_sum(slots, ast_expr_identity_slots(condition)?)?;
+            slots = checked_builder_sum(slots, ast_expr_identity_slots(then_branch)?)?;
+            slots = checked_builder_sum(slots, ast_expr_identity_slots(else_branch)?)?;
+        }
+        ExprKind::ConstructRecord {
+            type_arguments,
+            fields,
+            ..
+        }
+        | ExprKind::ConstructVariant {
+            type_arguments,
+            fields,
+            ..
+        } => {
+            slots = checked_builder_sum(slots, fields.len())?;
+            for ty in type_arguments {
+                slots = checked_builder_sum(slots, ast_type_identity_slots(ty)?)?;
+            }
+            for field in fields {
+                slots = checked_builder_sum(slots, ast_expr_identity_slots(&field.value)?)?;
+            }
+        }
+        ExprKind::Match { scrutinee, arms } => {
+            slots = checked_builder_sum(slots, ast_expr_identity_slots(scrutinee)?)?;
+            for arm in arms {
+                slots = checked_builder_sum(slots, ast_pattern_identity_slots(&arm.pattern)?)?;
+                slots = checked_builder_sum(slots, ast_expr_identity_slots(&arm.value)?)?;
+            }
+        }
+        ExprKind::Try { operand } => {
+            slots = checked_builder_sum(slots, ast_expr_identity_slots(operand)?)?;
+        }
+        ExprKind::UpdateRecord { base, fields } => {
+            slots = checked_builder_sum(slots, fields.len())?;
+            slots = checked_builder_sum(slots, ast_expr_identity_slots(base)?)?;
+            for field in fields {
+                slots = checked_builder_sum(slots, ast_expr_identity_slots(&field.value)?)?;
+            }
+        }
+        ExprKind::Project { base, .. } => {
+            slots = checked_builder_sum(slots, 1)?;
+            slots = checked_builder_sum(slots, ast_expr_identity_slots(base)?)?;
+        }
+        ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Var(_) => {}
+    }
+    Ok(slots)
+}
+
+fn ast_pattern_identity_slots(
+    pattern: &crate::ast::MatchPattern,
+) -> Result<usize, Vec<Diagnostic>> {
+    match pattern {
+        crate::ast::MatchPattern::Variant { fields, .. } => {
+            let field_slots = fields
+                .len()
+                .checked_mul(2)
+                .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
+            checked_builder_sum(2, field_slots)
+        }
+        crate::ast::MatchPattern::Record { fields, .. } => {
+            let mut slots = 1usize;
+            for field in fields {
+                slots = checked_builder_sum(slots, record_pattern_identity_slots(field)?)?;
+            }
+            Ok(slots)
+        }
+        crate::ast::MatchPattern::Wildcard { .. } => Ok(0),
+    }
+}
+
+fn record_pattern_identity_slots(
+    field: &crate::ast::RecordMatchPatternField,
+) -> Result<usize, Vec<Diagnostic>> {
+    let mut slots = 1usize;
+    if let crate::ast::RecordMatchFieldPattern::Record { fields, .. } = &field.pattern {
+        slots = checked_builder_sum(slots, 1)?;
+        for nested in fields {
+            slots = checked_builder_sum(slots, record_pattern_identity_slots(nested)?)?;
+        }
+    }
+    Ok(slots)
+}
+
+fn ast_type_declaration_cost(
+    declaration: &TypeDeclaration,
+    cost: &mut StructuralCost,
+) -> Result<(), Vec<Diagnostic>> {
+    cost.value(declaration)?;
+    cost.string(&declaration.stable_id)?;
+    cost.string(&declaration.name)?;
+    for parameter in &declaration.type_parameters {
+        cost.value(parameter)?;
+        cost.string(&parameter.name)?;
+    }
+    match &declaration.kind {
+        TypeDeclarationKind::Resource { lifecycles } => {
+            for lifecycle in lifecycles {
+                cost.value(lifecycle)?;
+                if let Some(id) = &lifecycle.stable_id {
+                    cost.string(id)?;
+                }
+                if let crate::ast::ResourceLifecycleKind::Imported { import_key } = &lifecycle.kind
+                {
+                    cost.string(import_key)?;
+                }
+            }
+        }
+        TypeDeclarationKind::Record { fields } => {
+            for field in fields {
+                ast_field_cost(field, cost)?;
+            }
+        }
+        TypeDeclarationKind::Variant { cases } => {
+            for case in cases {
+                cost.value(case)?;
+                cost.string(&case.stable_id)?;
+                cost.string(&case.name)?;
+                for field in &case.fields {
+                    ast_field_cost(field, cost)?;
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+fn ast_field_cost(
+    field: &crate::ast::FieldDeclaration,
+    cost: &mut StructuralCost,
+) -> Result<(), Vec<Diagnostic>> {
+    cost.value(field)?;
+    cost.string(&field.stable_id)?;
+    cost.string(&field.name)?;
+    ast_type_cost(&field.ty, cost)
+}
+
+fn ast_function_cost(
+    function: &Function,
+    cost: &mut StructuralCost,
+) -> Result<(), Vec<Diagnostic>> {
+    cost.value(function)?;
+    cost.string(&function.stable_id)?;
+    cost.string(&function.name)?;
+    for parameter in &function.type_parameters {
+        cost.value(parameter)?;
+        cost.string(&parameter.name)?;
+    }
+    for param in &function.params {
+        ast_param_cost(param, cost)?;
+    }
+    ast_type_cost(&function.return_type, cost)?;
+    for effect in &function.effects {
+        cost.string(effect)?;
+    }
+    for expression in function
+        .requires
+        .iter()
+        .chain(std::iter::once(&function.body))
+        .chain(&function.ensures)
+    {
+        ast_expr_cost(expression, cost)?;
+    }
+    Ok(())
+}
+
+fn ast_param_cost(
+    param: &crate::ast::Param,
+    cost: &mut StructuralCost,
+) -> Result<(), Vec<Diagnostic>> {
+    cost.value(param)?;
+    cost.string(&param.name)?;
+    ast_type_cost(&param.ty, cost)
+}
+
+fn ast_type_cost(ty: &Type, cost: &mut StructuralCost) -> Result<(), Vec<Diagnostic>> {
+    cost.value(ty)?;
+    if let Type::Named { name, arguments } = ty {
+        cost.string(name)?;
+        for argument in arguments {
+            ast_type_cost(argument, cost)?;
+        }
+    }
+    Ok(())
+}
+
+fn ast_expr_cost(expression: &Expr, cost: &mut StructuralCost) -> Result<(), Vec<Diagnostic>> {
+    cost.value(expression)?;
+    match &expression.kind {
+        ExprKind::Var(name) => cost.string(name)?,
+        ExprKind::Call {
+            name,
+            type_arguments,
+            args,
+        } => {
+            cost.string(name)?;
+            for ty in type_arguments {
+                ast_type_cost(ty, cost)?;
+            }
+            for argument in args {
+                ast_expr_cost(argument, cost)?;
+            }
+        }
+        ExprKind::Unary { value, .. } => ast_expr_cost(value, cost)?,
+        ExprKind::Binary { left, right, .. } => {
+            ast_expr_cost(left, cost)?;
+            ast_expr_cost(right, cost)?;
+        }
+        ExprKind::Block { statements, tail } => {
+            for statement in statements {
+                cost.value(statement)?;
+                let crate::ast::Statement::Let { name, value, .. } = statement;
+                cost.string(name)?;
+                ast_expr_cost(value, cost)?;
+            }
+            ast_expr_cost(tail, cost)?;
+        }
+        ExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            ast_expr_cost(condition, cost)?;
+            ast_expr_cost(then_branch, cost)?;
+            ast_expr_cost(else_branch, cost)?;
+        }
+        ExprKind::ConstructRecord {
+            type_name,
+            type_arguments,
+            fields,
+            ..
+        }
+        | ExprKind::ConstructVariant {
+            type_name,
+            type_arguments,
+            fields,
+            ..
+        } => {
+            cost.string(type_name)?;
+            if let ExprKind::ConstructVariant { case_name, .. } = &expression.kind {
+                cost.string(case_name)?;
+            }
+            for ty in type_arguments {
+                ast_type_cost(ty, cost)?;
+            }
+            for field in fields {
+                cost.value(field)?;
+                cost.string(&field.name)?;
+                ast_expr_cost(&field.value, cost)?;
+            }
+        }
+        ExprKind::Match { scrutinee, arms } => {
+            ast_expr_cost(scrutinee, cost)?;
+            for arm in arms {
+                cost.value(arm)?;
+                ast_pattern_cost(&arm.pattern, cost)?;
+                ast_expr_cost(&arm.value, cost)?;
+            }
+        }
+        ExprKind::Try { operand } => ast_expr_cost(operand, cost)?,
+        ExprKind::UpdateRecord { base, fields } => {
+            ast_expr_cost(base, cost)?;
+            for field in fields {
+                cost.value(field)?;
+                cost.string(&field.name)?;
+                ast_expr_cost(&field.value, cost)?;
+            }
+        }
+        ExprKind::Project { base, field, .. } => {
+            ast_expr_cost(base, cost)?;
+            cost.string(field)?;
+        }
+        ExprKind::Int(_) | ExprKind::Bool(_) => {}
+    }
+    Ok(())
+}
+
+fn ast_pattern_cost(
+    pattern: &crate::ast::MatchPattern,
+    cost: &mut StructuralCost,
+) -> Result<(), Vec<Diagnostic>> {
+    cost.value(pattern)?;
+    match pattern {
+        crate::ast::MatchPattern::Variant {
+            type_name,
+            case_name,
+            fields,
+            ..
+        } => {
+            cost.string(type_name)?;
+            cost.string(case_name)?;
+            for field in fields {
+                cost.value(field)?;
+                cost.string(&field.name)?;
+                cost.string(&field.binding)?;
+            }
+        }
+        crate::ast::MatchPattern::Record {
+            type_name, fields, ..
+        } => {
+            cost.string(type_name)?;
+            for field in fields {
+                ast_record_pattern_field_cost(field, cost)?;
+            }
+        }
+        crate::ast::MatchPattern::Wildcard { .. } => {}
+    }
+    Ok(())
+}
+
+fn ast_record_pattern_field_cost(
+    field: &crate::ast::RecordMatchPatternField,
+    cost: &mut StructuralCost,
+) -> Result<(), Vec<Diagnostic>> {
+    cost.value(field)?;
+    cost.string(&field.name)?;
+    cost.value(&field.pattern)?;
+    match &field.pattern {
+        crate::ast::RecordMatchFieldPattern::Binding { name, .. } => cost.string(name)?,
+        crate::ast::RecordMatchFieldPattern::Record {
+            type_name, fields, ..
+        } => {
+            cost.string(type_name)?;
+            for field in fields {
+                ast_record_pattern_field_cost(field, cost)?;
+            }
+        }
+        crate::ast::RecordMatchFieldPattern::Wildcard { .. } => {}
+    }
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn default_expr_expanded_cost(
+    ty: &Type,
+    module: &str,
+    caller: &Program,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    programs: &[Program],
+    memo: &mut BTreeMap<String, ExpandedDefaultCost>,
+    visiting: &mut BTreeSet<String>,
+) -> Result<ExpandedDefaultCost, Vec<Diagnostic>> {
+    match ty {
+        Type::I64 | Type::Bool => Ok(ExpandedDefaultCost {
+            bytes: std::mem::size_of::<Expr>(),
+            identity_slots: 0,
+        }),
+        Type::Named { name, arguments } if arguments.is_empty() => {
+            let target_id = resolve_type_id(module, name, programs).ok_or_else(|| {
+                vec![graph_error(
+                    "SPX-G173",
+                    "default-expression type identity cost lookup disagrees",
+                )]
+            })?;
+            if let Some(cost) = memo.get(&target_id) {
+                return Ok(*cost);
+            }
+            if !visiting.insert(crate::bounded_output::budgeted_clone(&target_id)) {
+                return Err(vec![graph_error(
+                    "SPX-G173",
+                    "default-expression type cost contains a recursive cycle",
+                )]);
+            }
+            let target = authored.get(target_id.as_str()).ok_or_else(|| {
+                vec![graph_error(
+                    "SPX-G173",
+                    "default-expression type authority is absent",
+                )]
+            })?;
+            let declaration = target.ty.ok_or_else(|| {
+                vec![graph_error(
+                    "SPX-G173",
+                    "default-expression type authority has the wrong kind",
+                )]
+            })?;
+            let alias = caller
+                .module_uses
+                .iter()
+                .find(|item| item.kind == ModuleUseKind::Type && item.persistent_id == target_id)
+                .map(|item| item.alias.as_str())
+                .ok_or_else(|| {
+                    vec![graph_error(
+                        "SPX-G173",
+                        "default-expression type lacks direct caller alias authority",
+                    )]
+                })?;
+            let mut cost = StructuralCost(std::mem::size_of::<Expr>());
+            let mut identity_slots = 1usize;
+            cost.string(alias)?;
+            match &declaration.kind {
+                TypeDeclarationKind::Record { fields } => {
+                    for field in fields {
+                        cost.add(std::mem::size_of::<FieldInitializer>())?;
+                        cost.string(&field.name)?;
+                        let nested = default_expr_expanded_cost(
+                            &field.ty,
+                            target.module,
+                            caller,
+                            authored,
+                            programs,
+                            memo,
+                            visiting,
+                        )?;
+                        cost.add(nested.bytes)?;
+                        identity_slots = checked_builder_sum(
+                            identity_slots,
+                            nested.identity_slots.checked_add(1).ok_or_else(|| {
+                                vec![limit_error("builder_bytes", active_builder_limit())]
+                            })?,
+                        )?;
+                    }
+                }
+                TypeDeclarationKind::Variant { cases } => {
+                    let case = cases.first().ok_or_else(|| {
+                        vec![graph_error("SPX-G172", "imported Copy variant has no case")]
+                    })?;
+                    cost.string(&case.name)?;
+                    identity_slots = checked_builder_sum(identity_slots, 1)?;
+                    for field in &case.fields {
+                        cost.add(std::mem::size_of::<FieldInitializer>())?;
+                        cost.string(&field.name)?;
+                        let nested = default_expr_expanded_cost(
+                            &field.ty,
+                            target.module,
+                            caller,
+                            authored,
+                            programs,
+                            memo,
+                            visiting,
+                        )?;
+                        cost.add(nested.bytes)?;
+                        identity_slots = checked_builder_sum(
+                            identity_slots,
+                            nested.identity_slots.checked_add(1).ok_or_else(|| {
+                                vec![limit_error("builder_bytes", active_builder_limit())]
+                            })?,
+                        )?;
+                    }
+                }
+                TypeDeclarationKind::Resource { .. } => {
+                    return Err(vec![graph_error(
+                        "SPX-G172",
+                        "resource return is not admitted",
+                    )]);
+                }
+            }
+            visiting.remove(&target_id);
+            let expanded = ExpandedDefaultCost {
+                bytes: cost.0,
+                identity_slots,
+            };
+            memo.insert(target_id, expanded);
+            Ok(expanded)
+        }
+        Type::Named { .. } => Err(vec![graph_error(
+            "SPX-G172",
+            "generic return is not admitted",
+        )]),
+    }
+}
+
+fn validate_dependency_dag(programs: &[Program]) -> Result<BTreeMap<&str, usize>, Vec<Diagnostic>> {
+    let dependencies = programs
+        .iter()
+        .map(|program| {
+            (
+                program.module.as_str(),
+                program
+                    .module_uses
+                    .iter()
+                    .map(|item| item.target_module.as_str())
+                    .collect::<BTreeSet<_>>(),
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
+    let depths = dependency_depths(&dependencies)?;
+    if depths.values().any(|depth| *depth > MAX_DEPENDENCY_DEPTH) {
+        return Err(vec![limit_error("dependency_depth", MAX_DEPENDENCY_DEPTH)]);
+    }
+    Ok(depths)
+}
+
+fn dependency_depths<'a>(
+    dependencies: &BTreeMap<&'a str, BTreeSet<&'a str>>,
+) -> Result<BTreeMap<&'a str, usize>, Vec<Diagnostic>> {
+    fn visit<'a>(
+        module: &'a str,
+        dependencies: &BTreeMap<&'a str, BTreeSet<&'a str>>,
+        stack: &mut Vec<&'a str>,
+        depths: &mut BTreeMap<&'a str, usize>,
+    ) -> Result<usize, Vec<Diagnostic>> {
+        if let Some(index) = stack.iter().position(|item| *item == module) {
+            let mut cycle = stack[index..].to_vec();
+            cycle.push(module);
+            let witness = canonical_cycle(&cycle);
+            let witness = crate::bounded_output::budgeted_join(
+                witness
+                    .into_iter()
+                    .map(crate::bounded_output::budgeted_clone),
+                " -> ",
+            );
+            return Err(vec![graph_error(
+                "SPX-G172",
+                crate::bounded_output::budgeted_format(format_args!(
+                    "workspace module dependency cycle: {witness}"
+                )),
+            )]);
+        }
+        if let Some(depth) = depths.get(module) {
+            return Ok(*depth);
+        }
+        stack.push(module);
+        let mut depth = 1usize;
+        for dependency in dependencies.get(module).into_iter().flatten() {
+            depth = depth.max(
+                1usize
+                    .checked_add(visit(dependency, dependencies, stack, depths)?)
+                    .ok_or_else(|| vec![limit_error("dependency_depth", MAX_DEPENDENCY_DEPTH)])?,
+            );
+        }
+        stack.pop();
+        depths.insert(module, depth);
+        Ok(depth)
+    }
+    let mut depths = BTreeMap::new();
+    for module in dependencies.keys() {
+        visit(module, dependencies, &mut Vec::new(), &mut depths)?;
+    }
+    Ok(depths)
+}
+
+fn canonical_cycle<'a>(cycle: &[&'a str]) -> Vec<&'a str> {
+    let body = &cycle[..cycle.len().saturating_sub(1)];
+    let start = body
+        .iter()
+        .enumerate()
+        .min_by_key(|(_, module)| *module)
+        .map_or(0, |(index, _)| index);
+    let mut result = body[start..]
+        .iter()
+        .chain(&body[..start])
+        .copied()
+        .collect::<Vec<_>>();
+    if let Some(first) = result.first().copied() {
+        result.push(first);
+    }
+    result
+}
+
+fn synthetic_program(
+    program: &Program,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    programs: &[Program],
+) -> Result<Program, Vec<Diagnostic>> {
+    let mut synthetic = program.clone();
+    synthetic.module_uses.clear();
+    for module_use in program
+        .module_uses
+        .iter()
+        .filter(|item| item.kind == ModuleUseKind::Type)
+    {
+        let target = &authored[module_use.persistent_id.as_str()];
+        let mut ty = target.ty.expect("validated type target").clone();
+        ty.name = crate::bounded_output::budgeted_clone(&module_use.alias);
+        rewrite_type_declaration(&mut ty, target.module, program, programs)?;
+        synthetic.types.push(ty);
+    }
+    let type_index_bytes = synthetic
+        .types
+        .len()
+        .checked_mul(std::mem::size_of::<(&str, &TypeDeclaration)>())
+        .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
+    reserve_builder_structure(type_index_bytes)?;
+    let mut type_declarations = Vec::with_capacity(synthetic.types.len());
+    for declaration in &synthetic.types {
+        type_declarations.push((declaration.name.as_str(), declaration));
+    }
+    type_declarations.sort_by(|left, right| left.0.cmp(right.0));
+    if type_declarations
+        .windows(2)
+        .any(|items| items[0].0 == items[1].0)
+    {
+        return Err(vec![graph_error(
+            "SPX-G173",
+            "synthetic workspace type-name index is not unique",
+        )]);
+    }
+    for module_use in program
+        .module_uses
+        .iter()
+        .filter(|item| item.kind == ModuleUseKind::Function)
+    {
+        let target = &authored[module_use.persistent_id.as_str()];
+        let target_function = target.function.expect("validated function target");
+        let mut function = target_function.clone();
+        function.name = crate::bounded_output::budgeted_clone(&module_use.alias);
+        for param in &mut function.params {
+            rewrite_type(&mut param.ty, target.module, program, programs)?;
+        }
+        rewrite_type(&mut function.return_type, target.module, program, programs)?;
+        function.requires.clear();
+        function.ensures.clear();
+        function.body = default_expr(&function.return_type, &type_declarations)?;
+        synthetic.functions.push(function);
+    }
+    if !synthetic
+        .functions
+        .iter()
+        .any(|function| function.name == "main")
+    {
+        reserve_builder_structure(std::mem::size_of::<Function>())?;
+        reserve_builder_structure(std::mem::size_of::<Expr>())?;
+        synthetic.functions.push(Function {
+            stable_id: crate::bounded_output::budgeted_format(format_args!(
+                "workspace.synthetic.main.{}",
+                synthetic.module
+            )),
+            explicit_id: true,
+            name: crate::bounded_output::budgeted_clone("main"),
+            name_span: Span::default(),
+            type_parameters: Vec::new(),
+            params: Vec::new(),
+            return_type: Type::I64,
+            effects: Vec::new(),
+            requires: Vec::new(),
+            ensures: Vec::new(),
+            body: Expr {
+                kind: ExprKind::Int(0),
+                span: Span::default(),
+            },
+            span: Span::default(),
+        });
+    }
+    Ok(synthetic)
+}
+
+fn rewrite_type_declaration(
+    declaration: &mut TypeDeclaration,
+    target_module: &str,
+    caller: &Program,
+    programs: &[Program],
+) -> Result<(), Vec<Diagnostic>> {
+    match &mut declaration.kind {
+        TypeDeclarationKind::Record { fields } => {
+            for field in fields {
+                rewrite_type(&mut field.ty, target_module, caller, programs)?;
+            }
+        }
+        TypeDeclarationKind::Variant { cases } => {
+            for case in cases {
+                for field in &mut case.fields {
+                    rewrite_type(&mut field.ty, target_module, caller, programs)?;
+                }
+            }
+        }
+        TypeDeclarationKind::Resource { .. } => unreachable!("resource imports are rejected"),
+    }
+    Ok(())
+}
+
+fn rewrite_type(
+    ty: &mut Type,
+    target_module: &str,
+    caller: &Program,
+    programs: &[Program],
+) -> Result<(), Vec<Diagnostic>> {
+    let Type::Named { name, arguments } = ty else {
+        return Ok(());
+    };
+    if !arguments.is_empty() {
+        return Err(vec![graph_error(
+            "SPX-G172",
+            "generic cross-file types are not admitted",
+        )]);
+    }
+    let target_id = resolve_type_id(target_module, name, programs).ok_or_else(|| {
+        vec![graph_error(
+            "SPX-G173",
+            "cross-file type identity lookup disagrees",
+        )]
+    })?;
+    let alias = caller
+        .module_uses
+        .iter()
+        .find(|item| item.kind == ModuleUseKind::Type && item.persistent_id == target_id)
+        .map(|item| item.alias.as_str())
+        .ok_or_else(|| {
+            vec![graph_error(
+                "SPX-G172",
+                crate::bounded_output::budgeted_format(format_args!(
+                    "cross-file signature type `{target_id}` is not explicitly imported"
+                )),
+            )]
+        })?;
+    *name = crate::bounded_output::budgeted_clone(alias);
+    Ok(())
+}
+
+fn default_expr(
+    ty: &Type,
+    declarations: &[(&str, &TypeDeclaration)],
+) -> Result<Expr, Vec<Diagnostic>> {
+    reserve_builder_structure(std::mem::size_of::<Expr>())?;
+    let span = Span::default();
+    let kind = match ty {
+        Type::I64 => ExprKind::Int(0),
+        Type::Bool => ExprKind::Bool(false),
+        Type::Named { name, arguments } if arguments.is_empty() => {
+            let declaration = declarations
+                .binary_search_by_key(&name.as_str(), |(name, _)| *name)
+                .map(|index| declarations[index].1)
+                .map_err(|_| {
+                    vec![graph_error(
+                        "SPX-G173",
+                        "default imported type lookup disagrees",
+                    )]
+                })?;
+            match &declaration.kind {
+                TypeDeclarationKind::Record { fields } => ExprKind::ConstructRecord {
+                    type_name: crate::bounded_output::budgeted_clone(name),
+                    type_span: span,
+                    type_arguments: Vec::new(),
+                    fields: fields
+                        .iter()
+                        .map(|field| {
+                            reserve_builder_structure(std::mem::size_of::<FieldInitializer>())?;
+                            Ok(FieldInitializer {
+                                name: crate::bounded_output::budgeted_clone(&field.name),
+                                name_span: span,
+                                value: default_expr(&field.ty, declarations)?,
+                                span,
+                            })
+                        })
+                        .collect::<Result<Vec<_>, Vec<Diagnostic>>>()?,
+                },
+                TypeDeclarationKind::Variant { cases } => {
+                    let case = cases.first().ok_or_else(|| {
+                        vec![graph_error("SPX-G172", "imported Copy variant has no case")]
+                    })?;
+                    ExprKind::ConstructVariant {
+                        type_name: crate::bounded_output::budgeted_clone(name),
+                        type_span: span,
+                        type_arguments: Vec::new(),
+                        case_name: crate::bounded_output::budgeted_clone(&case.name),
+                        case_span: span,
+                        fields: case
+                            .fields
+                            .iter()
+                            .map(|field| {
+                                reserve_builder_structure(std::mem::size_of::<FieldInitializer>())?;
+                                Ok(FieldInitializer {
+                                    name: crate::bounded_output::budgeted_clone(&field.name),
+                                    name_span: span,
+                                    value: default_expr(&field.ty, declarations)?,
+                                    span,
+                                })
+                            })
+                            .collect::<Result<Vec<_>, Vec<Diagnostic>>>()?,
+                    }
+                }
+                TypeDeclarationKind::Resource { .. } => {
+                    return Err(vec![graph_error(
+                        "SPX-G172",
+                        "resource return is not admitted",
+                    )])
+                }
+            }
+        }
+        Type::Named { .. } => {
+            return Err(vec![graph_error(
+                "SPX-G172",
+                "generic return is not admitted",
+            )])
+        }
+    };
+    Ok(Expr { kind, span })
+}
+
+fn reserve_builder_structure(bytes: usize) -> Result<(), Vec<Diagnostic>> {
+    if crate::bounded_output::reserve_active(bytes) {
+        Ok(())
+    } else {
+        Err(vec![limit_error("builder_bytes", active_builder_limit())])
+    }
+}
+
+fn collect_expected_edges(
+    program: &Program,
+    module_paths: &BTreeMap<&str, &str>,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    edges: &mut Vec<WorkspaceEdge>,
+) -> Result<(), Vec<Diagnostic>> {
+    let function_uses = program
+        .module_uses
+        .iter()
+        .filter(|item| item.kind == ModuleUseKind::Function)
+        .map(|item| (item.alias.as_str(), item))
+        .collect::<BTreeMap<_, _>>();
+    let type_uses = program
+        .module_uses
+        .iter()
+        .filter(|item| item.kind == ModuleUseKind::Type)
+        .map(|item| (item.alias.as_str(), item))
+        .collect::<BTreeMap<_, _>>();
+    for (index, permit) in program.permits.iter().enumerate() {
+        let path = crate::bounded_output::budgeted_format(format_args!("permit.{index}"));
+        push_edge(
+            edges,
+            WorkspaceEdge {
+                caller_path: crate::bounded_output::budgeted_clone(&program.path),
+                caller: crate::bounded_output::budgeted_clone(&program.module),
+                target_path: crate::bounded_output::budgeted_clone(&program.path),
+                target: crate::bounded_output::budgeted_clone(permit),
+                kind: "capability_authority",
+                site: "module",
+                expression: crate::bounded_output::budgeted_clone(&path),
+                ast_path: path,
+                alias: String::new(),
+                ordinal: index,
+            },
+        )?;
+    }
+    for declaration in &program.types {
+        match &declaration.kind {
+            TypeDeclarationKind::Resource { .. } => {}
+            TypeDeclarationKind::Record { fields } => {
+                for (index, field) in fields.iter().enumerate() {
+                    collect_type_reference_edge(
+                        program,
+                        &declaration.stable_id,
+                        &field.ty,
+                        &crate::bounded_output::budgeted_format(format_args!(
+                            "type.{}.field.{index}",
+                            declaration.stable_id
+                        )),
+                        &type_uses,
+                        module_paths,
+                        authored,
+                        edges,
+                    )?;
+                }
+            }
+            TypeDeclarationKind::Variant { cases } => {
+                for (case_index, case) in cases.iter().enumerate() {
+                    for (field_index, field) in case.fields.iter().enumerate() {
+                        collect_type_reference_edge(
+                            program,
+                            &declaration.stable_id,
+                            &field.ty,
+                            &crate::bounded_output::budgeted_format(format_args!(
+                                "type.{}.case.{case_index}.field.{field_index}",
+                                declaration.stable_id
+                            )),
+                            &type_uses,
+                            module_paths,
+                            authored,
+                            edges,
+                        )?;
+                    }
+                }
+            }
+        }
+    }
+    for function in &program.functions {
+        for (index, param) in function.params.iter().enumerate() {
+            collect_type_reference_edge(
+                program,
+                &function.stable_id,
+                &param.ty,
+                &crate::bounded_output::budgeted_format(format_args!(
+                    "function.{}.param.{index}",
+                    function.stable_id
+                )),
+                &type_uses,
+                module_paths,
+                authored,
+                edges,
+            )?;
+        }
+        collect_type_reference_edge(
+            program,
+            &function.stable_id,
+            &function.return_type,
+            &crate::bounded_output::budgeted_format(format_args!(
+                "function.{}.return",
+                function.stable_id
+            )),
+            &type_uses,
+            module_paths,
+            authored,
+            edges,
+        )?;
+        for (site, expressions) in [
+            ("requires", function.requires.as_slice()),
+            ("body", std::slice::from_ref(&function.body)),
+            ("ensures", function.ensures.as_slice()),
+        ] {
+            for (root_index, expression) in expressions.iter().enumerate() {
+                let root = match site {
+                    "requires" => crate::bounded_output::budgeted_format(format_args!(
+                        "requires.{root_index}"
+                    )),
+                    "body" => crate::bounded_output::budgeted_clone("body"),
+                    "ensures" => {
+                        crate::bounded_output::budgeted_format(format_args!("ensures.{root_index}"))
+                    }
+                    _ => unreachable!(),
+                };
+                let mut call_ordinal = 0usize;
+                visit_ast_call_sites(expression, &root, &mut |name, path| {
+                    let ordinal = call_ordinal;
+                    call_ordinal += 1;
+                    if let Some(module_use) = function_uses.get(name) {
+                        let target = &authored[module_use.persistent_id.as_str()];
+                        let edge = WorkspaceEdge {
+                            caller_path: crate::bounded_output::budgeted_clone(&program.path),
+                            caller: crate::bounded_output::budgeted_clone(&function.stable_id),
+                            target_path: crate::bounded_output::budgeted_clone(
+                                module_paths[target.module],
+                            ),
+                            target: crate::bounded_output::budgeted_clone(
+                                &module_use.persistent_id,
+                            ),
+                            kind: "call",
+                            site,
+                            expression: hir::workspace_expression_identity(
+                                &hir::DeclarationId::new(crate::bounded_output::budgeted_clone(
+                                    &function.stable_id,
+                                )),
+                                path,
+                            ),
+                            ast_path: crate::bounded_output::budgeted_clone(path),
+                            alias: crate::bounded_output::budgeted_clone(&module_use.alias),
+                            ordinal,
+                        };
+                        push_edge(edges, edge)?;
+                        if let Some(target_function) = target.function {
+                            for effect in &target_function.effects {
+                                push_edge(
+                                    edges,
+                                    WorkspaceEdge {
+                                        caller_path: crate::bounded_output::budgeted_clone(
+                                            &program.path,
+                                        ),
+                                        caller: crate::bounded_output::budgeted_clone(
+                                            &function.stable_id,
+                                        ),
+                                        target_path: crate::bounded_output::budgeted_clone(
+                                            target.path,
+                                        ),
+                                        target: crate::bounded_output::budgeted_clone(effect),
+                                        kind: "effect_requirement",
+                                        site,
+                                        expression: hir::workspace_expression_identity(
+                                            &hir::DeclarationId::new(
+                                                crate::bounded_output::budgeted_clone(
+                                                    &function.stable_id,
+                                                ),
+                                            ),
+                                            path,
+                                        ),
+                                        ast_path: crate::bounded_output::budgeted_clone(path),
+                                        alias: crate::bounded_output::budgeted_clone(
+                                            &module_use.alias,
+                                        ),
+                                        ordinal,
+                                    },
+                                )?;
+                            }
+                        }
+                    }
+                    Ok(())
+                })?;
+                collect_expression_type_edges(
+                    program,
+                    &function.stable_id,
+                    expression,
+                    &root,
+                    &type_uses,
+                    module_paths,
+                    authored,
+                    edges,
+                )?;
+            }
+        }
+    }
+    for (ordinal, module_use) in program.module_uses.iter().enumerate() {
+        let target = &authored[module_use.persistent_id.as_str()];
+        push_edge(
+            edges,
+            WorkspaceEdge {
+                caller_path: crate::bounded_output::budgeted_clone(&program.path),
+                caller: crate::bounded_output::budgeted_clone(&program.module),
+                target_path: crate::bounded_output::budgeted_clone(module_paths[target.module]),
+                target: crate::bounded_output::budgeted_clone(&module_use.persistent_id),
+                kind: match module_use.kind {
+                    ModuleUseKind::Function => "function_import",
+                    ModuleUseKind::Type => "type_import",
+                },
+                site: "module",
+                expression: crate::bounded_output::budgeted_format(format_args!("use.{ordinal}")),
+                ast_path: crate::bounded_output::budgeted_format(format_args!("use.{ordinal}")),
+                alias: crate::bounded_output::budgeted_clone(&module_use.alias),
+                ordinal,
+            },
+        )?;
+    }
+    edges.sort();
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn collect_type_reference_edge(
+    program: &Program,
+    owner: &str,
+    ty: &Type,
+    path: &str,
+    type_uses: &BTreeMap<&str, &ModuleUse>,
+    module_paths: &BTreeMap<&str, &str>,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    edges: &mut Vec<WorkspaceEdge>,
+) -> Result<(), Vec<Diagnostic>> {
+    collect_type_reference_edge_at(
+        program,
+        owner,
+        ty,
+        path,
+        None,
+        type_uses,
+        module_paths,
+        authored,
+        edges,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn collect_type_reference_edge_at(
+    program: &Program,
+    owner: &str,
+    ty: &Type,
+    path: &str,
+    expression: Option<&str>,
+    type_uses: &BTreeMap<&str, &ModuleUse>,
+    module_paths: &BTreeMap<&str, &str>,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    edges: &mut Vec<WorkspaceEdge>,
+) -> Result<(), Vec<Diagnostic>> {
+    let Type::Named { name, arguments } = ty else {
+        return Ok(());
+    };
+    collect_named_type_reference_edge_at(
+        program,
+        owner,
+        name,
+        arguments,
+        path,
+        expression,
+        type_uses,
+        module_paths,
+        authored,
+        edges,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn collect_named_type_reference_edge_at(
+    program: &Program,
+    owner: &str,
+    name: &str,
+    arguments: &[Type],
+    path: &str,
+    expression: Option<&str>,
+    type_uses: &BTreeMap<&str, &ModuleUse>,
+    module_paths: &BTreeMap<&str, &str>,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    edges: &mut Vec<WorkspaceEdge>,
+) -> Result<(), Vec<Diagnostic>> {
+    if let Some(module_use) = type_uses.get(name) {
+        let target = &authored[module_use.persistent_id.as_str()];
+        push_edge(
+            edges,
+            WorkspaceEdge {
+                caller_path: crate::bounded_output::budgeted_clone(&program.path),
+                caller: crate::bounded_output::budgeted_clone(owner),
+                target_path: crate::bounded_output::budgeted_clone(module_paths[target.module]),
+                target: crate::bounded_output::budgeted_clone(&module_use.persistent_id),
+                kind: "type_reference",
+                site: "type",
+                expression: crate::bounded_output::budgeted_clone(expression.unwrap_or(path)),
+                ast_path: crate::bounded_output::budgeted_clone(path),
+                alias: crate::bounded_output::budgeted_clone(&module_use.alias),
+                ordinal: edges.len(),
+            },
+        )?;
+    }
+    for (index, argument) in arguments.iter().enumerate() {
+        let argument_path =
+            crate::bounded_output::budgeted_format(format_args!("{path}.argument.{index}"));
+        collect_type_reference_edge_at(
+            program,
+            owner,
+            argument,
+            &argument_path,
+            expression,
+            type_uses,
+            module_paths,
+            authored,
+            edges,
+        )?;
+    }
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn collect_expression_type_edges(
+    program: &Program,
+    owner: &str,
+    expression: &Expr,
+    path: &str,
+    type_uses: &BTreeMap<&str, &ModuleUse>,
+    module_paths: &BTreeMap<&str, &str>,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    edges: &mut Vec<WorkspaceEdge>,
+) -> Result<(), Vec<Diagnostic>> {
+    let expression_id = hir::workspace_expression_identity(
+        &hir::DeclarationId::new(crate::bounded_output::budgeted_clone(owner)),
+        path,
+    );
+    match &expression.kind {
+        ExprKind::Call {
+            type_arguments,
+            args,
+            ..
+        } => {
+            for (index, argument) in type_arguments.iter().enumerate() {
+                let type_path = crate::bounded_output::budgeted_format(format_args!(
+                    "{path}.type_argument.{index}"
+                ));
+                collect_type_reference_edge_at(
+                    program,
+                    owner,
+                    argument,
+                    &type_path,
+                    Some(&expression_id),
+                    type_uses,
+                    module_paths,
+                    authored,
+                    edges,
+                )?;
+            }
+            for (index, argument) in args.iter().enumerate() {
+                let child =
+                    crate::bounded_output::budgeted_format(format_args!("{path}.arg.{index}"));
+                collect_expression_type_edges(
+                    program,
+                    owner,
+                    argument,
+                    &child,
+                    type_uses,
+                    module_paths,
+                    authored,
+                    edges,
+                )?;
+            }
+        }
+        ExprKind::Unary { value, .. } => collect_expression_type_edges(
+            program,
+            owner,
+            value,
+            &crate::bounded_output::budgeted_format(format_args!("{path}.value")),
+            type_uses,
+            module_paths,
+            authored,
+            edges,
+        )?,
+        ExprKind::Binary { left, right, .. } => {
+            collect_expression_type_edges(
+                program,
+                owner,
+                left,
+                &crate::bounded_output::budgeted_format(format_args!("{path}.left")),
+                type_uses,
+                module_paths,
+                authored,
+                edges,
+            )?;
+            collect_expression_type_edges(
+                program,
+                owner,
+                right,
+                &crate::bounded_output::budgeted_format(format_args!("{path}.right")),
+                type_uses,
+                module_paths,
+                authored,
+                edges,
+            )?;
+        }
+        ExprKind::Block { statements, tail } => {
+            for (index, statement) in statements.iter().enumerate() {
+                let crate::ast::Statement::Let { value, .. } = statement;
+                collect_expression_type_edges(
+                    program,
+                    owner,
+                    value,
+                    &crate::bounded_output::budgeted_format(format_args!("{path}.s{index}.value")),
+                    type_uses,
+                    module_paths,
+                    authored,
+                    edges,
+                )?;
+            }
+            collect_expression_type_edges(
+                program,
+                owner,
+                tail,
+                &crate::bounded_output::budgeted_format(format_args!("{path}.tail")),
+                type_uses,
+                module_paths,
+                authored,
+                edges,
+            )?;
+        }
+        ExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            for (suffix, child) in [
+                ("condition", condition.as_ref()),
+                ("then", then_branch.as_ref()),
+                ("else", else_branch.as_ref()),
+            ] {
+                collect_expression_type_edges(
+                    program,
+                    owner,
+                    child,
+                    &crate::bounded_output::budgeted_format(format_args!("{path}.{suffix}")),
+                    type_uses,
+                    module_paths,
+                    authored,
+                    edges,
+                )?;
+            }
+        }
+        ExprKind::ConstructRecord {
+            type_name,
+            type_arguments,
+            fields,
+            ..
+        }
+        | ExprKind::ConstructVariant {
+            type_name,
+            type_arguments,
+            fields,
+            ..
+        } => {
+            collect_named_type_reference_edge_at(
+                program,
+                owner,
+                type_name,
+                type_arguments,
+                &crate::bounded_output::budgeted_format(format_args!("{path}.type")),
+                Some(&expression_id),
+                type_uses,
+                module_paths,
+                authored,
+                edges,
+            )?;
+            for (index, field) in fields.iter().enumerate() {
+                collect_expression_type_edges(
+                    program,
+                    owner,
+                    &field.value,
+                    &crate::bounded_output::budgeted_format(format_args!(
+                        "{path}.field.{index}.value"
+                    )),
+                    type_uses,
+                    module_paths,
+                    authored,
+                    edges,
+                )?;
+            }
+        }
+        ExprKind::Match { scrutinee, arms } => {
+            collect_expression_type_edges(
+                program,
+                owner,
+                scrutinee,
+                &crate::bounded_output::budgeted_format(format_args!("{path}.scrutinee")),
+                type_uses,
+                module_paths,
+                authored,
+                edges,
+            )?;
+            for (index, arm) in arms.iter().enumerate() {
+                let pattern_path = crate::bounded_output::budgeted_format(format_args!(
+                    "{path}.arm.{index}.pattern"
+                ));
+                collect_match_pattern_type_edges(
+                    program,
+                    owner,
+                    &arm.pattern,
+                    &pattern_path,
+                    &expression_id,
+                    type_uses,
+                    module_paths,
+                    authored,
+                    edges,
+                )?;
+                collect_expression_type_edges(
+                    program,
+                    owner,
+                    &arm.value,
+                    &crate::bounded_output::budgeted_format(format_args!(
+                        "{path}.arm.{index}.value"
+                    )),
+                    type_uses,
+                    module_paths,
+                    authored,
+                    edges,
+                )?;
+            }
+        }
+        ExprKind::Try { operand } => collect_expression_type_edges(
+            program,
+            owner,
+            operand,
+            &crate::bounded_output::budgeted_format(format_args!("{path}.operand")),
+            type_uses,
+            module_paths,
+            authored,
+            edges,
+        )?,
+        ExprKind::UpdateRecord { base, fields } => {
+            collect_expression_type_edges(
+                program,
+                owner,
+                base,
+                &crate::bounded_output::budgeted_format(format_args!("{path}.base")),
+                type_uses,
+                module_paths,
+                authored,
+                edges,
+            )?;
+            for (index, field) in fields.iter().enumerate() {
+                collect_expression_type_edges(
+                    program,
+                    owner,
+                    &field.value,
+                    &crate::bounded_output::budgeted_format(format_args!(
+                        "{path}.field.{index}.value"
+                    )),
+                    type_uses,
+                    module_paths,
+                    authored,
+                    edges,
+                )?;
+            }
+        }
+        ExprKind::Project { base, .. } => collect_expression_type_edges(
+            program,
+            owner,
+            base,
+            &crate::bounded_output::budgeted_format(format_args!("{path}.base")),
+            type_uses,
+            module_paths,
+            authored,
+            edges,
+        )?,
+        ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Var(_) => {}
+    }
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn collect_match_pattern_type_edges(
+    program: &Program,
+    owner: &str,
+    pattern: &crate::ast::MatchPattern,
+    path: &str,
+    expression: &str,
+    type_uses: &BTreeMap<&str, &ModuleUse>,
+    module_paths: &BTreeMap<&str, &str>,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    edges: &mut Vec<WorkspaceEdge>,
+) -> Result<(), Vec<Diagnostic>> {
+    match pattern {
+        crate::ast::MatchPattern::Variant { type_name, .. }
+        | crate::ast::MatchPattern::Record { type_name, .. } => {
+            collect_named_type_reference_edge_at(
+                program,
+                owner,
+                type_name,
+                &[],
+                path,
+                Some(expression),
+                type_uses,
+                module_paths,
+                authored,
+                edges,
+            )?;
+        }
+        crate::ast::MatchPattern::Wildcard { .. } => {}
+    }
+    if let crate::ast::MatchPattern::Record { fields, .. } = pattern {
+        for (index, field) in fields.iter().enumerate() {
+            collect_record_pattern_type_edges(
+                program,
+                owner,
+                &field.pattern,
+                &crate::bounded_output::budgeted_format(format_args!(
+                    "{path}.field.{index}.pattern"
+                )),
+                expression,
+                type_uses,
+                module_paths,
+                authored,
+                edges,
+            )?;
+        }
+    }
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn collect_record_pattern_type_edges(
+    program: &Program,
+    owner: &str,
+    pattern: &crate::ast::RecordMatchFieldPattern,
+    path: &str,
+    expression: &str,
+    type_uses: &BTreeMap<&str, &ModuleUse>,
+    module_paths: &BTreeMap<&str, &str>,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    edges: &mut Vec<WorkspaceEdge>,
+) -> Result<(), Vec<Diagnostic>> {
+    let crate::ast::RecordMatchFieldPattern::Record {
+        type_name, fields, ..
+    } = pattern
+    else {
+        return Ok(());
+    };
+    collect_named_type_reference_edge_at(
+        program,
+        owner,
+        type_name,
+        &[],
+        path,
+        Some(expression),
+        type_uses,
+        module_paths,
+        authored,
+        edges,
+    )?;
+    for (index, field) in fields.iter().enumerate() {
+        collect_record_pattern_type_edges(
+            program,
+            owner,
+            &field.pattern,
+            &crate::bounded_output::budgeted_format(format_args!("{path}.field.{index}.pattern")),
+            expression,
+            type_uses,
+            module_paths,
+            authored,
+            edges,
+        )?;
+    }
+    Ok(())
+}
+
+fn push_edge(edges: &mut Vec<WorkspaceEdge>, edge: WorkspaceEdge) -> Result<(), Vec<Diagnostic>> {
+    if edges.len() == MAX_CROSS_FILE_EDGES {
+        return Err(vec![limit_error(
+            "resolved_cross_file_edges",
+            MAX_CROSS_FILE_EDGES,
+        )]);
+    }
+    reserve_builder_structure(std::mem::size_of::<WorkspaceEdge>())?;
+    edges.push(edge);
+    Ok(())
+}
+
+fn budgeted_edge_clone(edge: &WorkspaceEdge) -> WorkspaceEdge {
+    WorkspaceEdge {
+        caller_path: crate::bounded_output::budgeted_clone(&edge.caller_path),
+        caller: crate::bounded_output::budgeted_clone(&edge.caller),
+        target_path: crate::bounded_output::budgeted_clone(&edge.target_path),
+        target: crate::bounded_output::budgeted_clone(&edge.target),
+        kind: edge.kind,
+        site: edge.site,
+        expression: crate::bounded_output::budgeted_clone(&edge.expression),
+        ast_path: crate::bounded_output::budgeted_clone(&edge.ast_path),
+        alias: crate::bounded_output::budgeted_clone(&edge.alias),
+        ordinal: edge.ordinal,
+    }
+}
+
+fn visit_ast_call_sites(
+    expression: &Expr,
+    path: &str,
+    visit: &mut impl FnMut(&str, &str) -> Result<(), Vec<Diagnostic>>,
+) -> Result<(), Vec<Diagnostic>> {
+    match &expression.kind {
+        ExprKind::Call { name, args, .. } => {
+            visit(name, path)?;
+            for (index, argument) in args.iter().enumerate() {
+                visit_ast_call_sites(
+                    argument,
+                    &crate::bounded_output::budgeted_format(format_args!("{path}.arg.{index}")),
+                    visit,
+                )?;
+            }
+        }
+        ExprKind::Unary { value, .. } => {
+            visit_ast_call_sites(
+                value,
+                &crate::bounded_output::budgeted_format(format_args!("{path}.value")),
+                visit,
+            )?;
+        }
+        ExprKind::Binary { left, right, .. } => {
+            visit_ast_call_sites(
+                left,
+                &crate::bounded_output::budgeted_format(format_args!("{path}.left")),
+                visit,
+            )?;
+            visit_ast_call_sites(
+                right,
+                &crate::bounded_output::budgeted_format(format_args!("{path}.right")),
+                visit,
+            )?;
+        }
+        ExprKind::Block { statements, tail } => {
+            for (index, statement) in statements.iter().enumerate() {
+                match statement {
+                    crate::ast::Statement::Let { value, .. } => visit_ast_call_sites(
+                        value,
+                        &crate::bounded_output::budgeted_format(format_args!(
+                            "{path}.s{index}.value"
+                        )),
+                        visit,
+                    )?,
+                }
+            }
+            visit_ast_call_sites(
+                tail,
+                &crate::bounded_output::budgeted_format(format_args!("{path}.tail")),
+                visit,
+            )?;
+        }
+        ExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            visit_ast_call_sites(
+                condition,
+                &crate::bounded_output::budgeted_format(format_args!("{path}.condition")),
+                visit,
+            )?;
+            visit_ast_call_sites(
+                then_branch,
+                &crate::bounded_output::budgeted_format(format_args!("{path}.then")),
+                visit,
+            )?;
+            visit_ast_call_sites(
+                else_branch,
+                &crate::bounded_output::budgeted_format(format_args!("{path}.else")),
+                visit,
+            )?;
+        }
+        ExprKind::ConstructRecord { fields, .. } | ExprKind::ConstructVariant { fields, .. } => {
+            for (index, field) in fields.iter().enumerate() {
+                visit_ast_call_sites(
+                    &field.value,
+                    &crate::bounded_output::budgeted_format(format_args!(
+                        "{path}.field.{index}.value"
+                    )),
+                    visit,
+                )?;
+            }
+        }
+        ExprKind::Match { scrutinee, arms } => {
+            visit_ast_call_sites(
+                scrutinee,
+                &crate::bounded_output::budgeted_format(format_args!("{path}.scrutinee")),
+                visit,
+            )?;
+            for (index, arm) in arms.iter().enumerate() {
+                visit_ast_call_sites(
+                    &arm.value,
+                    &crate::bounded_output::budgeted_format(format_args!(
+                        "{path}.arm.{index}.value"
+                    )),
+                    visit,
+                )?;
+            }
+        }
+        ExprKind::Try { operand } => {
+            visit_ast_call_sites(
+                operand,
+                &crate::bounded_output::budgeted_format(format_args!("{path}.operand")),
+                visit,
+            )?;
+        }
+        ExprKind::UpdateRecord { base, fields } => {
+            visit_ast_call_sites(
+                base,
+                &crate::bounded_output::budgeted_format(format_args!("{path}.base")),
+                visit,
+            )?;
+            for (index, field) in fields.iter().enumerate() {
+                visit_ast_call_sites(
+                    &field.value,
+                    &crate::bounded_output::budgeted_format(format_args!(
+                        "{path}.field.{index}.value"
+                    )),
+                    visit,
+                )?;
+            }
+        }
+        ExprKind::Project { base, .. } => {
+            visit_ast_call_sites(
+                base,
+                &crate::bounded_output::budgeted_format(format_args!("{path}.base")),
+                visit,
+            )?;
+        }
+        ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Var(_) => {}
+    }
+    Ok(())
+}
+
+fn verify_resolved_call_edges(
+    program: &Program,
+    resolved: &hir::ResolvedProgram,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+) -> Result<(), Vec<Diagnostic>> {
+    let aliases = program
+        .module_uses
+        .iter()
+        .filter(|item| item.kind == ModuleUseKind::Function)
+        .map(|item| (item.alias.as_str(), item.persistent_id.as_str()))
+        .collect::<BTreeMap<_, _>>();
+    let mut expected = Vec::new();
+    for function in &program.functions {
+        let owner =
+            hir::DeclarationId::new(crate::bounded_output::budgeted_clone(&function.stable_id));
+        for (root, expression) in function
+            .requires
+            .iter()
+            .enumerate()
+            .map(|(index, expression)| {
+                (
+                    crate::bounded_output::budgeted_format(format_args!("requires.{index}")),
+                    expression,
+                )
+            })
+            .chain(std::iter::once((
+                crate::bounded_output::budgeted_clone("body"),
+                &function.body,
+            )))
+            .chain(
+                function
+                    .ensures
+                    .iter()
+                    .enumerate()
+                    .map(|(index, expression)| {
+                        (
+                            crate::bounded_output::budgeted_format(format_args!("ensures.{index}")),
+                            expression,
+                        )
+                    }),
+            )
+        {
+            visit_ast_call_sites(expression, &root, &mut |name, path| {
+                if let Some(target) = aliases.get(name) {
+                    reserve_builder_structure(std::mem::size_of::<(
+                        hir::DeclarationId,
+                        hir::ExpressionId,
+                        hir::DeclarationId,
+                    )>())?;
+                    expected.push((
+                        hir::DeclarationId::new(crate::bounded_output::budgeted_clone(
+                            owner.as_str(),
+                        )),
+                        hir::workspace_expression_identity(&owner, path),
+                        hir::DeclarationId::new(crate::bounded_output::budgeted_clone(target)),
+                    ));
+                }
+                Ok(())
+            })?;
+        }
+    }
+    let target_ids = program
+        .module_uses
+        .iter()
+        .filter(|item| item.kind == ModuleUseKind::Function)
+        .map(|item| {
+            hir::DeclarationId::new(crate::bounded_output::budgeted_clone(&item.persistent_id))
+        })
+        .collect::<BTreeSet<_>>();
+    let mut actual = hir::workspace_call_sites(resolved);
+    actual.retain(|(_, _, target)| target_ids.contains(target));
+    expected.sort();
+    actual.sort();
+    if expected != actual
+        || expected
+            .iter()
+            .any(|(_, _, target)| !authored.contains_key(target.as_str()))
+    {
+        return Err(vec![graph_error(
+            "SPX-G173",
+            "independent workspace call-edge reconstruction disagrees with HIR",
+        )]);
+    }
+    Ok(())
+}
+
+fn validate_stub_signatures(
+    programs: &[Program],
+    modules: &[(String, hir::ResolvedProgram)],
+) -> Result<(), Vec<Diagnostic>> {
+    for caller in programs {
+        let caller_hir = modules
+            .iter()
+            .find(|(module, _)| module == &caller.module)
+            .map(|(_, resolved)| resolved)
+            .ok_or_else(|| {
+                vec![graph_error(
+                    "SPX-G173",
+                    "resolved caller module is absent from the workspace HIR",
+                )]
+            })?;
+        for module_use in &caller.module_uses {
+            let target_hir = modules
+                .iter()
+                .find(|(module, _)| module == &module_use.target_module)
+                .map(|(_, resolved)| resolved)
+                .ok_or_else(|| {
+                    vec![graph_error(
+                        "SPX-G173",
+                        "resolved target module is absent from the workspace HIR",
+                    )]
+                })?;
+            let id = hir::DeclarationId::new(crate::bounded_output::budgeted_clone(
+                &module_use.persistent_id,
+            ));
+            match module_use.kind {
+                ModuleUseKind::Function => {
+                    let stub = caller_hir.functions.iter().find(|item| item.id == id);
+                    let authority = target_hir.functions.iter().find(|item| item.id == id);
+                    if !stub.zip(authority).is_some_and(|(stub, authority)| {
+                        stub.params == authority.params
+                            && stub.return_type == authority.return_type
+                            && stub.effects == authority.effects
+                    }) {
+                        return Err(vec![graph_error(
+                            "SPX-G173",
+                            "workspace function signature stub disagrees with authored HIR authority",
+                        )]);
+                    }
+                }
+                ModuleUseKind::Type => {
+                    let stub = caller_hir.types.iter().find(|item| item.id == id);
+                    let authority = target_hir.types.iter().find(|item| item.id == id);
+                    if !stub.zip(authority).is_some_and(|(stub, authority)| {
+                        stub.type_parameters == authority.type_parameters
+                            && stub.kind == authority.kind
+                    }) {
+                        return Err(vec![graph_error(
+                            "SPX-G173",
+                            "workspace type signature stub disagrees with authored HIR authority",
+                        )]);
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+fn workspace_declaration_facts(
+    modules: &[(String, hir::ResolvedProgram)],
+    retained_modules: &[WorkspaceResolvedModule],
+    programs: &[Program],
+) -> Result<BTreeMap<String, WorkspaceDeclarationFact>, Vec<Diagnostic>> {
+    let facts = reconstruct_workspace_declaration_facts(modules, programs)?;
+    validate_retained_declaration_shapes(retained_modules, &facts)?;
+    Ok(facts)
+}
+
+fn reconstruct_workspace_declaration_facts(
+    modules: &[(String, hir::ResolvedProgram)],
+    programs: &[Program],
+) -> Result<BTreeMap<String, WorkspaceDeclarationFact>, Vec<Diagnostic>> {
+    let expected = expected_declaration_facts(programs)?;
+    let expected_compiler = expected_compiler_declaration_facts()?;
+    let mut actual = BTreeMap::new();
+    for (module, resolved) in modules {
+        let source = programs
+            .iter()
+            .find(|program| program.module == *module)
+            .expect("resolved workspace module belongs to authenticated source");
+        let direct_targets = source
+            .module_uses
+            .iter()
+            .map(|module_use| module_use.persistent_id.as_str())
+            .collect::<BTreeSet<_>>();
+        let synthetic_main = crate::bounded_output::budgeted_format(format_args!(
+            "workspace.synthetic.main.{module}"
+        ));
+        let synthetic_main_is_allowed = !source
+            .functions
+            .iter()
+            .any(|function| function.name == "main")
+            && !expected.contains_key(synthetic_main.as_str())
+            && !expected_compiler.contains_key(synthetic_main.as_str());
+        let mut compiler = BTreeMap::new();
+        for declaration in resolved.declarations.workspace_declarations() {
+            if declaration.identity_origin == hir::IdentityOrigin::CompilerOwned {
+                let fact = WorkspaceDeclarationFact {
+                    kind: declaration.kind,
+                    origin: declaration.identity_origin,
+                    owner: declaration
+                        .owner
+                        .map(|owner| crate::bounded_output::budgeted_clone(owner.as_str())),
+                    path: None,
+                    module: None,
+                };
+                if compiler
+                    .insert(
+                        crate::bounded_output::budgeted_clone(declaration.id.as_str()),
+                        fact,
+                    )
+                    .is_some()
+                {
+                    return Err(vec![graph_error(
+                        "SPX-G173",
+                        "compiler-owned workspace declaration identity is duplicated",
+                    )]);
+                }
+                continue;
+            }
+            let top = top_level_declaration(&resolved.declarations, &declaration);
+            let Some(top_fact) = expected.get(top.as_str()) else {
+                if synthetic_main_is_allowed
+                    && declaration.id.as_str() == synthetic_main.as_str()
+                    && declaration.kind == hir::DeclarationKind::Function
+                    && declaration.identity_origin == hir::IdentityOrigin::Explicit
+                    && declaration.owner.is_none()
+                {
+                    continue;
+                }
+                return Err(vec![graph_error(
+                    "SPX-G173",
+                    "resolved workspace declaration has an unauthenticated synthetic or rogue root",
+                )]);
+            };
+            if top_fact.module.as_deref() != Some(module.as_str()) {
+                let expected_foreign = expected.get(declaration.id.as_str());
+                if direct_targets.contains(top.as_str())
+                    && expected_foreign.is_some_and(|fact| {
+                        fact.kind == declaration.kind
+                            && fact.origin == declaration.identity_origin
+                            && fact.owner.as_deref()
+                                == declaration.owner.as_ref().map(hir::DeclarationId::as_str)
+                            && fact.path == top_fact.path
+                            && fact.module == top_fact.module
+                    })
+                {
+                    continue;
+                }
+                return Err(vec![graph_error(
+                    "SPX-G173",
+                    "resolved workspace declaration leaks a non-imported foreign authority",
+                )]);
+            }
+            let fact = WorkspaceDeclarationFact {
+                kind: declaration.kind,
+                origin: declaration.identity_origin,
+                owner: declaration
+                    .owner
+                    .map(|owner| crate::bounded_output::budgeted_clone(owner.as_str())),
+                path: top_fact
+                    .path
+                    .as_deref()
+                    .map(crate::bounded_output::budgeted_clone),
+                module: top_fact
+                    .module
+                    .as_deref()
+                    .map(crate::bounded_output::budgeted_clone),
+            };
+            if actual
+                .insert(
+                    crate::bounded_output::budgeted_clone(declaration.id.as_str()),
+                    fact,
+                )
+                .is_some()
+            {
+                return Err(vec![graph_error(
+                    "SPX-G173",
+                    "workspace declaration identity is retained more than once",
+                )]);
+            }
+        }
+        if compiler != expected_compiler {
+            return Err(vec![graph_error(
+                "SPX-G173",
+                "compiler-owned prelude declaration facts disagree with the independent prelude map",
+            )]);
+        }
+    }
+    if actual != expected {
+        return Err(vec![graph_error(
+            "SPX-G173",
+            "authored workspace declaration facts disagree with retained HIR",
+        )]);
+    }
+    let compiler_ids = expected_compiler
+        .keys()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
+    let expected_compiler_ids = prelude::all_ids().into_iter().collect::<BTreeSet<_>>();
+    if compiler_ids != expected_compiler_ids {
+        return Err(vec![graph_error(
+            "SPX-G173",
+            "compiler-owned workspace declaration facts disagree with the exact shared prelude",
+        )]);
+    }
+    let mut facts = expected;
+    for (id, fact) in expected_compiler {
+        if facts.insert(id, fact).is_some() {
+            return Err(vec![graph_error(
+                "SPX-G173",
+                "compiler-owned and authored workspace declaration identities overlap",
+            )]);
+        }
+    }
+    Ok(facts)
+}
+
+fn expected_declaration_facts(
+    programs: &[Program],
+) -> Result<BTreeMap<String, WorkspaceDeclarationFact>, Vec<Diagnostic>> {
+    let mut facts = BTreeMap::new();
+    for program in programs {
+        for declaration in &program.types {
+            let kind = match declaration.kind {
+                TypeDeclarationKind::Resource { .. } => hir::DeclarationKind::Resource,
+                TypeDeclarationKind::Record { .. } => hir::DeclarationKind::Record,
+                TypeDeclarationKind::Variant { .. } => hir::DeclarationKind::Variant,
+            };
+            insert_expected_declaration(
+                &mut facts,
+                program,
+                &declaration.stable_id,
+                kind,
+                identity_origin(declaration.explicit_id),
+                None,
+            )?;
+            match &declaration.kind {
+                TypeDeclarationKind::Resource { lifecycles } => {
+                    let [lifecycle] = lifecycles.as_slice() else {
+                        return Err(vec![graph_error(
+                            "SPX-G173",
+                            "authored workspace resource has no exact lifecycle identity",
+                        )]);
+                    };
+                    let id = lifecycle.stable_id.as_deref().ok_or_else(|| {
+                        vec![graph_error(
+                            "SPX-G173",
+                            "authored workspace resource lifecycle identity is missing",
+                        )]
+                    })?;
+                    insert_expected_declaration(
+                        &mut facts,
+                        program,
+                        id,
+                        hir::DeclarationKind::ResourceDrop,
+                        hir::IdentityOrigin::Explicit,
+                        Some(&declaration.stable_id),
+                    )?;
+                }
+                TypeDeclarationKind::Record { fields } => {
+                    for field in fields {
+                        insert_expected_declaration(
+                            &mut facts,
+                            program,
+                            &field.stable_id,
+                            hir::DeclarationKind::Field,
+                            identity_origin(field.explicit_id),
+                            Some(&declaration.stable_id),
+                        )?;
+                    }
+                }
+                TypeDeclarationKind::Variant { cases } => {
+                    for case in cases {
+                        insert_expected_declaration(
+                            &mut facts,
+                            program,
+                            &case.stable_id,
+                            hir::DeclarationKind::VariantCase,
+                            identity_origin(case.explicit_id),
+                            Some(&declaration.stable_id),
+                        )?;
+                        for field in &case.fields {
+                            insert_expected_declaration(
+                                &mut facts,
+                                program,
+                                &field.stable_id,
+                                hir::DeclarationKind::CaseField,
+                                identity_origin(field.explicit_id),
+                                Some(&case.stable_id),
+                            )?;
+                        }
+                    }
+                }
+            }
+        }
+        for interface in &program.interfaces {
+            insert_expected_declaration(
+                &mut facts,
+                program,
+                &interface.stable_id,
+                hir::DeclarationKind::Interface,
+                identity_origin(interface.explicit_id),
+                None,
+            )?;
+            for import in &interface.imports {
+                insert_expected_declaration(
+                    &mut facts,
+                    program,
+                    &import.stable_id,
+                    hir::DeclarationKind::Import,
+                    identity_origin(import.explicit_id),
+                    Some(&interface.stable_id),
+                )?;
+            }
+        }
+        for function in &program.functions {
+            insert_expected_declaration(
+                &mut facts,
+                program,
+                &function.stable_id,
+                hir::DeclarationKind::Function,
+                identity_origin(function.explicit_id),
+                None,
+            )?;
+        }
+    }
+    Ok(facts)
+}
+
+fn expected_compiler_declaration_facts(
+) -> Result<BTreeMap<String, WorkspaceDeclarationFact>, Vec<Diagnostic>> {
+    let mut facts = BTreeMap::new();
+    for declaration in prelude::declarations() {
+        let kind = match &declaration.kind {
+            TypeDeclarationKind::Record { .. } => hir::DeclarationKind::Record,
+            TypeDeclarationKind::Variant { .. } => hir::DeclarationKind::Variant,
+            TypeDeclarationKind::Resource { .. } => {
+                return Err(vec![graph_error(
+                    "SPX-G173",
+                    "compiler prelude unexpectedly declares a resource authority",
+                )]);
+            }
+        };
+        insert_expected_compiler_declaration(&mut facts, &declaration.stable_id, kind, None)?;
+        match &declaration.kind {
+            TypeDeclarationKind::Record { fields } => {
+                for field in fields {
+                    insert_expected_compiler_declaration(
+                        &mut facts,
+                        &field.stable_id,
+                        hir::DeclarationKind::Field,
+                        Some(&declaration.stable_id),
+                    )?;
+                }
+            }
+            TypeDeclarationKind::Variant { cases } => {
+                for case in cases {
+                    insert_expected_compiler_declaration(
+                        &mut facts,
+                        &case.stable_id,
+                        hir::DeclarationKind::VariantCase,
+                        Some(&declaration.stable_id),
+                    )?;
+                    for field in &case.fields {
+                        insert_expected_compiler_declaration(
+                            &mut facts,
+                            &field.stable_id,
+                            hir::DeclarationKind::CaseField,
+                            Some(&case.stable_id),
+                        )?;
+                    }
+                }
+            }
+            TypeDeclarationKind::Resource { .. } => unreachable!("resource rejected above"),
+        }
+    }
+    Ok(facts)
+}
+
+fn insert_expected_compiler_declaration(
+    facts: &mut BTreeMap<String, WorkspaceDeclarationFact>,
+    id: &str,
+    kind: hir::DeclarationKind,
+    owner: Option<&str>,
+) -> Result<(), Vec<Diagnostic>> {
+    let fact = WorkspaceDeclarationFact {
+        kind,
+        origin: hir::IdentityOrigin::CompilerOwned,
+        owner: owner.map(crate::bounded_output::budgeted_clone),
+        path: None,
+        module: None,
+    };
+    if facts
+        .insert(crate::bounded_output::budgeted_clone(id), fact)
+        .is_some()
+    {
+        return Err(vec![graph_error(
+            "SPX-G173",
+            "independent compiler prelude declaration identity is duplicated",
+        )]);
+    }
+    Ok(())
+}
+
+fn identity_origin(explicit: bool) -> hir::IdentityOrigin {
+    if explicit {
+        hir::IdentityOrigin::Explicit
+    } else {
+        hir::IdentityOrigin::Automatic
+    }
+}
+
+fn insert_expected_declaration(
+    facts: &mut BTreeMap<String, WorkspaceDeclarationFact>,
+    program: &Program,
+    id: &str,
+    kind: hir::DeclarationKind,
+    origin: hir::IdentityOrigin,
+    owner: Option<&str>,
+) -> Result<(), Vec<Diagnostic>> {
+    let fact = WorkspaceDeclarationFact {
+        kind,
+        origin,
+        owner: owner.map(crate::bounded_output::budgeted_clone),
+        path: Some(crate::bounded_output::budgeted_clone(&program.path)),
+        module: Some(crate::bounded_output::budgeted_clone(&program.module)),
+    };
+    if facts
+        .insert(crate::bounded_output::budgeted_clone(id), fact)
+        .is_some()
+    {
+        return Err(vec![graph_error(
+            "SPX-G173",
+            "independent authored workspace declaration identity is duplicated",
+        )]);
+    }
+    Ok(())
+}
+
+fn validate_retained_declaration_shapes(
+    modules: &[WorkspaceResolvedModule],
+    facts: &BTreeMap<String, WorkspaceDeclarationFact>,
+) -> Result<(), Vec<Diagnostic>> {
+    for module in modules {
+        let mut seen = BTreeSet::new();
+        for declaration in &module.types {
+            let kind = match &declaration.kind {
+                hir::ResolvedTypeDeclarationKind::Resource { .. } => hir::DeclarationKind::Resource,
+                hir::ResolvedTypeDeclarationKind::Record { .. } => hir::DeclarationKind::Record,
+                hir::ResolvedTypeDeclarationKind::Variant { .. } => hir::DeclarationKind::Variant,
+            };
+            require_retained_shape_fact(
+                facts,
+                module,
+                declaration.id.as_str(),
+                kind,
+                None,
+                &mut seen,
+            )?;
+            match &declaration.kind {
+                hir::ResolvedTypeDeclarationKind::Resource { drop } => {
+                    require_retained_shape_fact(
+                        facts,
+                        module,
+                        drop.id.as_str(),
+                        hir::DeclarationKind::ResourceDrop,
+                        Some(declaration.id.as_str()),
+                        &mut seen,
+                    )?;
+                }
+                hir::ResolvedTypeDeclarationKind::Record { fields } => {
+                    for field in fields {
+                        require_retained_shape_fact(
+                            facts,
+                            module,
+                            field.id.as_str(),
+                            hir::DeclarationKind::Field,
+                            Some(declaration.id.as_str()),
+                            &mut seen,
+                        )?;
+                    }
+                }
+                hir::ResolvedTypeDeclarationKind::Variant { cases } => {
+                    for case in cases {
+                        require_retained_shape_fact(
+                            facts,
+                            module,
+                            case.id.as_str(),
+                            hir::DeclarationKind::VariantCase,
+                            Some(declaration.id.as_str()),
+                            &mut seen,
+                        )?;
+                        for field in &case.fields {
+                            require_retained_shape_fact(
+                                facts,
+                                module,
+                                field.id.as_str(),
+                                hir::DeclarationKind::CaseField,
+                                Some(case.id.as_str()),
+                                &mut seen,
+                            )?;
+                        }
+                    }
+                }
+            }
+        }
+        for interface in &module.interfaces {
+            require_retained_shape_fact(
+                facts,
+                module,
+                interface.id.as_str(),
+                hir::DeclarationKind::Interface,
+                None,
+                &mut seen,
+            )?;
+            for import in &interface.imports {
+                require_retained_shape_fact(
+                    facts,
+                    module,
+                    import.id.as_str(),
+                    hir::DeclarationKind::Import,
+                    Some(interface.id.as_str()),
+                    &mut seen,
+                )?;
+            }
+        }
+        for function in &module.functions {
+            require_retained_shape_fact(
+                facts,
+                module,
+                function.id.as_str(),
+                hir::DeclarationKind::Function,
+                None,
+                &mut seen,
+            )?;
+        }
+        let mut templates = BTreeSet::new();
+        for template in &module.function_templates {
+            require_retained_shape_fact(
+                facts,
+                module,
+                template.id.as_str(),
+                hir::DeclarationKind::Function,
+                None,
+                &mut seen,
+            )?;
+            if !templates.insert(template.id.as_str()) {
+                return Err(vec![graph_error(
+                    "SPX-G173",
+                    "retained workspace function template is duplicated",
+                )]);
+            }
+        }
+        let mut instances = BTreeSet::new();
+        for instance in &module.function_instances {
+            let fact = facts.get(instance.template.as_str());
+            if !templates.contains(instance.template.as_str())
+                || instance.function.id != instance.template
+                || !fact.is_some_and(|fact| {
+                    fact.kind == hir::DeclarationKind::Function
+                        && fact.module.as_deref() == Some(module.module.as_str())
+                        && fact.path.as_deref() == Some(module.path.as_str())
+                })
+                || !instances.insert(&instance.id)
+            {
+                return Err(vec![graph_error(
+                    "SPX-G173",
+                    "retained workspace function instance/template identity shape disagrees",
+                )]);
+            }
+        }
+        let expected = facts
+            .iter()
+            .filter(|(_, fact)| fact.module.as_deref() == Some(module.module.as_str()))
+            .map(|(id, _)| id.as_str())
+            .collect::<BTreeSet<_>>();
+        if seen != expected {
+            return Err(vec![graph_error(
+                "SPX-G173",
+                "retained workspace declaration shapes are not the exact authored set",
+            )]);
+        }
+    }
+    Ok(())
+}
+
+fn require_retained_shape_fact<'a>(
+    facts: &'a BTreeMap<String, WorkspaceDeclarationFact>,
+    module: &WorkspaceResolvedModule,
+    id: &'a str,
+    kind: hir::DeclarationKind,
+    owner: Option<&str>,
+    seen: &mut BTreeSet<&'a str>,
+) -> Result<(), Vec<Diagnostic>> {
+    let fact = facts.get(id);
+    if !fact.is_some_and(|fact| {
+        fact.kind == kind
+            && fact.owner.as_deref() == owner
+            && fact.path.as_deref() == Some(module.path.as_str())
+            && fact.module.as_deref() == Some(module.module.as_str())
+    }) || !seen.insert(id)
+    {
+        return Err(vec![graph_error(
+            "SPX-G173",
+            "retained workspace declaration shape disagrees with authored identity facts",
+        )]);
+    }
+    Ok(())
+}
+
+fn top_level_declaration(
+    index: &hir::DeclarationIndex,
+    declaration: &hir::Declaration,
+) -> hir::DeclarationId {
+    let mut current = declaration;
+    while let Some(owner) = &current.owner {
+        let Some(parent) = index.declaration(owner) else {
+            break;
+        };
+        current = parent;
+    }
+    hir::DeclarationId::new(crate::bounded_output::budgeted_clone(current.id.as_str()))
+}
+
+fn use_error(program: &Program, module_use: &ModuleUse, message: &str) -> Diagnostic {
+    Diagnostic::error("SPX-G172", message, module_use.span).at_path(&program.path)
+}
+
+fn graph_error(code: &'static str, message: impl Into<String>) -> Diagnostic {
+    Diagnostic::io(code, message)
+}
+
+fn limit_error(field: &'static str, maximum: usize) -> Diagnostic {
+    graph_error(
+        "SPX-G171",
+        crate::bounded_output::budgeted_format(format_args!(
+            "Workspace Semantic Graph `{field}` exceeds {maximum}"
+        )),
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn source(path: &str, source: &str) -> WorkspaceSource {
+        WorkspaceSource {
+            path: path.to_owned(),
+            source: source.to_owned(),
+        }
+    }
+
+    fn canonical_source(path: &str, source: &str) -> WorkspaceSource {
+        let program = parse(source, Path::new(path)).expect("test source must parse");
+        WorkspaceSource {
+            path: path.to_owned(),
+            source: format::canonical(&program),
+        }
+    }
+
+    fn effect_edge_sources() -> Vec<WorkspaceSource> {
+        let library = r#"
+module lib.core;
+permit { audit.write, network.read }
+
+@id("lib.zero")
+fn zero() -> i64 { 0 }
+
+@id("lib.multi")
+fn multi() -> i64 uses { audit.write, network.read } { 42 }
+"#;
+        let app = r#"
+module app.main;
+use function @id("lib.zero") from lib.core as zero;
+use function @id("lib.multi") from lib.core as multi;
+permit { audit.write, network.read }
+
+@id("app.main")
+fn main() -> i64 uses { audit.write, network.read } {
+    zero() + multi()
+}
+
+@id("app.other")
+fn other() -> i64 uses { audit.write, network.read } { 0 }
+"#;
+        vec![
+            canonical_source("app/main.spx", app),
+            canonical_source("lib/core.spx", library),
+        ]
+    }
+
+    fn effect_edge_fixture() -> WorkspaceGraphBuild {
+        build_owned(effect_edge_sources()).expect("effect-edge fixture must build")
+    }
+
+    fn parsed_sources(sources: &[WorkspaceSource]) -> Vec<Program> {
+        sources
+            .iter()
+            .map(|source| {
+                parse(&source.source, Path::new(&source.path))
+                    .expect("canonical workspace fixture must parse")
+            })
+            .collect()
+    }
+
+    fn identity_fact_sources() -> Vec<WorkspaceSource> {
+        let library = r#"
+module lib.core;
+
+@id("lib.imported")
+record Imported {
+    @id("lib.imported.value")
+    value: i64,
+}
+
+@id("lib.foreign")
+record Foreign {
+    @id("lib.foreign.value")
+    value: i64,
+}
+
+@id("lib.answer")
+fn answer() -> i64 { 42 }
+"#;
+        let app = r#"
+module app.identity;
+use function @id("lib.answer") from lib.core as answer;
+use type @id("lib.imported") from lib.core as Imported;
+
+@id("app.record")
+record Record {
+    value: i64,
+}
+
+@id("app.choice")
+variant Choice {
+    Number { value: i64, },
+}
+
+@id("app.explicit_variant")
+variant ExplicitVariant {
+    @id("app.explicit_variant.ready")
+    Ready {
+        @id("app.explicit_variant.ready.code")
+        code: i64,
+    },
+}
+
+@id("app.token")
+resource Token {
+    @id("app.token.drop")
+    drop trivial;
+}
+
+@id("app.host")
+interface Host permits {} {
+    @id("app.host.observe")
+    import fn observe(value: own Token) -> unit
+        effects {}
+        failure infallible
+        consumes value always;
+}
+
+fn helper() -> i64 { answer() }
+
+@id("app.main")
+fn main() -> i64 { helper() }
+"#;
+        vec![
+            canonical_source("app/identity.spx", app),
+            canonical_source("lib/core.spx", library),
+        ]
+    }
+
+    fn assert_identity_shape_error(
+        mut mutate: impl FnMut(&mut BTreeMap<String, WorkspaceDeclarationFact>),
+    ) {
+        let sources = identity_fact_sources();
+        let programs = parsed_sources(&sources);
+        let build = build_owned(sources).expect("identity fixture must build");
+        let mut facts = expected_declaration_facts(&programs).unwrap();
+        mutate(&mut facts);
+        let error = validate_retained_declaration_shapes(&build.hir.modules, &facts)
+            .expect_err("mutated identity fact must fail closed");
+        assert_eq!(error[0].code, "SPX-G173");
+        assert_eq!(
+            error[0].message,
+            "retained workspace declaration shape disagrees with authored identity facts"
+        );
+    }
+
+    fn assert_resolved_identity_error(
+        mut mutate: impl FnMut(&str, &mut Program, &[Program]),
+        expected: &str,
+    ) {
+        let sources = identity_fact_sources();
+        let programs = parsed_sources(&sources);
+        let build = build_owned(sources).expect("identity fixture must build");
+        let resolved_modules = {
+            let authored = index_authored(&programs).unwrap();
+            programs
+                .iter()
+                .map(|program| {
+                    let mut synthetic = synthetic_program(program, &authored, &programs).unwrap();
+                    mutate(&program.module, &mut synthetic, &programs);
+                    (
+                        program.module.clone(),
+                        hir::resolve(&synthetic).expect("mutated identity HIR must resolve"),
+                    )
+                })
+                .collect::<Vec<_>>()
+        };
+        let error = workspace_declaration_facts(&resolved_modules, &build.hir.modules, &programs)
+            .expect_err("mutated resolved identity must fail closed");
+        assert_eq!(error[0].code, "SPX-G173");
+        assert_eq!(error[0].message, expected);
+    }
+
+    fn assert_effect_validation_error(
+        mut mutate: impl FnMut(&mut Vec<WorkspaceEdge>),
+        expected: &str,
+    ) {
+        let mut build = effect_edge_fixture();
+        mutate(&mut build.edges);
+        let error = validate_effect_and_capability_edges(&build.hir.modules, &build.edges)
+            .expect_err("mutated proof must fail closed");
+        assert_eq!(error[0].code, "SPX-G173");
+        assert_eq!(error[0].message, expected);
+    }
+
+    fn assert_call_validation_error(mut mutate: impl FnMut(&mut Vec<WorkspaceEdge>)) {
+        let sources = effect_edge_sources();
+        let programs = parsed_sources(&sources);
+        let mut build = build_owned(sources).expect("call-edge fixture must build");
+        mutate(&mut build.edges);
+        let error = validate_retained_facts(&programs, &build.hir.modules, &build.edges)
+            .expect_err("mutated call proof must fail closed");
+        assert_eq!(error[0].code, "SPX-G173");
+        assert_eq!(
+            error[0].message,
+            "emitted workspace call edges disagree with authenticated AST/HIR occurrences"
+        );
+    }
+
+    fn mutate_multi_call_family(
+        edges: &mut [WorkspaceEdge],
+        mut mutate: impl FnMut(&mut WorkspaceEdge),
+    ) {
+        let call = edges
+            .iter()
+            .find(|edge| edge.kind == "call" && edge.target == "lib.multi")
+            .expect("multi-effect call must exist")
+            .clone();
+        let family = edges
+            .iter()
+            .enumerate()
+            .filter(|(_, edge)| {
+                matches!(edge.kind, "call" | "effect_requirement")
+                    && CallOccurrenceKey::from_edge(edge) == CallOccurrenceKey::from_edge(&call)
+            })
+            .map(|(index, _)| index)
+            .collect::<Vec<_>>();
+        assert_eq!(family.len(), 3, "one call must own exactly two effects");
+        for index in family {
+            mutate(&mut edges[index]);
+        }
+    }
+
+    #[test]
+    fn zero_and_multi_effect_targets_replay_exact_occurrences() {
+        let build = effect_edge_fixture();
+        validate_effect_and_capability_edges(&build.hir.modules, &build.edges).unwrap();
+
+        let zero_call = build
+            .edges
+            .iter()
+            .find(|edge| edge.kind == "call" && edge.target == "lib.zero")
+            .expect("zero-effect call must exist");
+        assert!(!build.edges.iter().any(|edge| {
+            edge.kind == "effect_requirement"
+                && CallOccurrenceKey::from_edge(edge) == CallOccurrenceKey::from_edge(zero_call)
+        }));
+
+        let multi_call = build
+            .edges
+            .iter()
+            .find(|edge| edge.kind == "call" && edge.target == "lib.multi")
+            .expect("multi-effect call must exist");
+        let effects = build
+            .edges
+            .iter()
+            .filter(|edge| {
+                edge.kind == "effect_requirement"
+                    && CallOccurrenceKey::from_edge(edge)
+                        == CallOccurrenceKey::from_edge(multi_call)
+            })
+            .map(|edge| edge.target.as_str())
+            .collect::<BTreeSet<_>>();
+        assert_eq!(effects, BTreeSet::from(["audit.write", "network.read"]));
+    }
+
+    #[test]
+    fn altered_effect_requirement_sets_fail_closed() {
+        const SET_MISMATCH: &str =
+            "workspace call effect requirements disagree with retained target HIR";
+
+        assert_effect_validation_error(
+            |edges| {
+                let index = edges
+                    .iter()
+                    .position(|edge| {
+                        edge.kind == "effect_requirement" && edge.target == "audit.write"
+                    })
+                    .unwrap();
+                edges.remove(index);
+            },
+            SET_MISMATCH,
+        );
+        assert_effect_validation_error(
+            |edges| {
+                let mut extra = edges
+                    .iter()
+                    .find(|edge| edge.kind == "effect_requirement")
+                    .unwrap()
+                    .clone();
+                extra.target = "storage.read".to_owned();
+                edges.push(extra);
+            },
+            SET_MISMATCH,
+        );
+        assert_effect_validation_error(
+            |edges| {
+                edges
+                    .iter_mut()
+                    .find(|edge| edge.kind == "effect_requirement" && edge.target == "audit.write")
+                    .unwrap()
+                    .target = "storage.read".to_owned();
+            },
+            SET_MISMATCH,
+        );
+        assert_effect_validation_error(
+            |edges| {
+                let duplicate = edges
+                    .iter()
+                    .find(|edge| edge.kind == "effect_requirement")
+                    .unwrap()
+                    .clone();
+                edges.push(duplicate);
+            },
+            "workspace call effect requirement is duplicated",
+        );
+    }
+
+    #[test]
+    fn coupled_call_effect_key_substitutions_fail_exact_reconstruction() {
+        assert_call_validation_error(|edges| {
+            mutate_multi_call_family(edges, |edge| edge.site = "requires");
+        });
+        assert_call_validation_error(|edges| {
+            let expression = hir::workspace_expression_identity(
+                &hir::DeclarationId::new("app.main".to_owned()),
+                "body.tail.left",
+            );
+            mutate_multi_call_family(edges, |edge| edge.expression = expression.clone());
+        });
+        assert_call_validation_error(|edges| {
+            mutate_multi_call_family(edges, |edge| {
+                edge.ast_path = "body.tail.left".to_owned();
+            });
+        });
+        assert_call_validation_error(|edges| {
+            mutate_multi_call_family(edges, |edge| edge.alias = "zero".to_owned());
+        });
+        assert_call_validation_error(|edges| {
+            mutate_multi_call_family(edges, |edge| edge.ordinal = 0);
+        });
+        assert_call_validation_error(|edges| {
+            mutate_multi_call_family(edges, |edge| edge.caller = "app.other".to_owned());
+        });
+    }
+
+    #[test]
+    fn missing_extra_and_duplicate_call_edges_fail_exact_reconstruction() {
+        assert_call_validation_error(|edges| {
+            let index = edges
+                .iter()
+                .position(|edge| edge.kind == "call" && edge.target == "lib.multi")
+                .unwrap();
+            edges.remove(index);
+        });
+        assert_call_validation_error(|edges| {
+            let mut extra = edges
+                .iter()
+                .find(|edge| edge.kind == "call" && edge.target == "lib.multi")
+                .unwrap()
+                .clone();
+            extra.expression = hir::workspace_expression_identity(
+                &hir::DeclarationId::new("app.main".to_owned()),
+                "body.extra",
+            );
+            extra.ast_path = "body.extra".to_owned();
+            extra.ordinal = 2;
+            edges.push(extra);
+        });
+        assert_call_validation_error(|edges| {
+            let duplicate = edges
+                .iter()
+                .find(|edge| edge.kind == "call" && edge.target == "lib.multi")
+                .unwrap()
+                .clone();
+            edges.push(duplicate);
+        });
+    }
+
+    #[test]
+    fn altered_capability_authority_facts_fail_closed() {
+        const MISMATCH: &str =
+            "workspace capability-authority edges disagree with retained module permits";
+
+        assert_effect_validation_error(
+            |edges| {
+                let index = edges
+                    .iter()
+                    .position(|edge| {
+                        edge.kind == "capability_authority" && edge.caller == "app.main"
+                    })
+                    .unwrap();
+                edges.remove(index);
+            },
+            MISMATCH,
+        );
+        assert_effect_validation_error(
+            |edges| {
+                let mut extra = edges
+                    .iter()
+                    .find(|edge| edge.kind == "capability_authority" && edge.caller == "app.main")
+                    .unwrap()
+                    .clone();
+                extra.target = "storage.read".to_owned();
+                extra.expression = "permit.2".to_owned();
+                extra.ast_path = "permit.2".to_owned();
+                extra.ordinal = 2;
+                edges.push(extra);
+            },
+            MISMATCH,
+        );
+        assert_effect_validation_error(
+            |edges| {
+                let indexes = edges
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, edge)| {
+                        edge.kind == "capability_authority" && edge.caller == "app.main"
+                    })
+                    .map(|(index, _)| index)
+                    .collect::<Vec<_>>();
+                assert_eq!(indexes.len(), 2);
+                let first = edges[indexes[0]].target.clone();
+                edges[indexes[0]].target = edges[indexes[1]].target.clone();
+                edges[indexes[1]].target = first;
+            },
+            MISMATCH,
+        );
+        assert_effect_validation_error(
+            |edges| {
+                edges
+                    .iter_mut()
+                    .find(|edge| edge.kind == "capability_authority" && edge.caller == "app.main")
+                    .unwrap()
+                    .target = "storage.read".to_owned();
+            },
+            MISMATCH,
+        );
+    }
+
+    #[test]
+    fn zero_effect_generic_template_has_retained_caller_authority() {
+        let library = r#"
+module lib.core;
+
+@id("lib.zero")
+fn zero() -> i64 { 0 }
+"#;
+        let app = r#"
+module app.main;
+use function @id("lib.zero") from lib.core as zero;
+
+@id("app.keep")
+fn keep<T>(value: T) -> T {
+    let observed = zero();
+    if observed == 0 { value } else { value }
+}
+
+@id("app.main")
+fn main() -> i64 { keep<i64>(42) }
+"#;
+        let build = build_owned(vec![
+            canonical_source("app/main.spx", app),
+            canonical_source("lib/core.spx", library),
+        ])
+        .unwrap();
+        let call = build
+            .edges
+            .iter()
+            .find(|edge| edge.kind == "call" && edge.caller == "app.keep")
+            .expect("authored template call must be retained");
+        assert_eq!(call.target, "lib.zero");
+        validate_effect_and_capability_edges(&build.hir.modules, &build.edges).unwrap();
+    }
+
+    #[test]
+    fn indexed_effect_proof_replays_many_multi_effect_calls() {
+        const CALLS: usize = 128;
+        let library = r#"
+module lib.core;
+permit { audit.write, network.read }
+
+@id("lib.multi")
+fn multi() -> i64 uses { audit.write, network.read } { 42 }
+"#;
+        let mut app = String::from(
+            r#"
+module app.main;
+use function @id("lib.multi") from lib.core as multi;
+permit { audit.write, network.read }
+
+@id("app.main")
+fn main() -> i64 uses { audit.write, network.read } {
+"#,
+        );
+        for index in 0..CALLS {
+            app.push_str(&format!("    let value_{index} = multi();\n"));
+        }
+        app.push_str("    0\n}\n");
+
+        let build = build_owned(vec![
+            canonical_source("app/main.spx", &app),
+            canonical_source("lib/core.spx", library),
+        ])
+        .unwrap();
+        assert_eq!(
+            build
+                .edges
+                .iter()
+                .filter(|edge| edge.kind == "call" && edge.target == "lib.multi")
+                .count(),
+            CALLS
+        );
+        assert_eq!(
+            build
+                .edges
+                .iter()
+                .filter(|edge| edge.kind == "effect_requirement")
+                .count(),
+            CALLS * 2
+        );
+        validate_effect_and_capability_edges(&build.hir.modules, &build.edges).unwrap();
+    }
+
+    #[test]
+    fn indexed_proof_replays_many_permits_and_zero_effect_calls() {
+        const PERMITS: usize = 96;
+        const CALLS: usize = 96;
+        let permits = (0..PERMITS)
+            .map(|index| format!("capability.effect_{index}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let library = format!(
+            "module lib.core;\npermit {{ {permits} }}\n\n@id(\"lib.zero\")\nfn zero() -> i64 {{ 0 }}\n"
+        );
+        let mut app = format!(
+            "module app.main;\nuse function @id(\"lib.zero\") from lib.core as zero;\npermit {{ {permits} }}\n\n@id(\"app.main\")\nfn main() -> i64 {{\n"
+        );
+        for index in 0..CALLS {
+            app.push_str(&format!("    let value_{index} = zero();\n"));
+        }
+        app.push_str("    0\n}\n");
+
+        let build = build_owned(vec![
+            canonical_source("app/main.spx", &app),
+            canonical_source("lib/core.spx", &library),
+        ])
+        .unwrap();
+        assert_eq!(
+            build
+                .edges
+                .iter()
+                .filter(|edge| edge.kind == "call")
+                .count(),
+            CALLS
+        );
+        assert_eq!(
+            build
+                .edges
+                .iter()
+                .filter(|edge| edge.kind == "capability_authority")
+                .count(),
+            PERMITS * 2
+        );
+        assert!(!build
+            .edges
+            .iter()
+            .any(|edge| edge.kind == "effect_requirement"));
+        validate_effect_and_capability_edges(&build.hir.modules, &build.edges).unwrap();
+    }
+
+    #[test]
+    fn canonical_use_parses_formats_and_single_file_rejects() {
+        let text = "module app.main;\nuse function @id(\"lib.answer\") from lib.core as answer;\n\n@id(\"app.main\")\nfn main() -> i64\n{\n    answer()\n}\n";
+        let program = parse(text, Path::new("app/main.spx")).unwrap();
+        assert_eq!(format::canonical(&program), text);
+        let error = hir::resolve(&program).expect_err("single-file HIR must reject workspace use");
+        assert_eq!(error[0].code, "SPX-G172");
+        assert_eq!(
+            error[0].message,
+            "source module imports require Workspace Semantic Graph resolution"
+        );
+    }
+
+    #[test]
+    fn scalar_cross_file_call_resolves_once_and_reconstructs_edge() {
+        let app = "module app.main;\nuse function @id(\"lib.answer\") from lib.core as answer;\n\n@id(\"app.main\")\nfn main() -> i64\n{\n    answer()\n}\n";
+        let library = "module lib.core;\n\n@id(\"lib.answer\")\nfn answer() -> i64\n{\n    42\n}\n";
+        let build = build_owned(vec![
+            source("lib/core.spx", library),
+            source("app/main.spx", app),
+        ])
+        .unwrap();
+        assert_eq!(build.hir.modules.len(), 2);
+        let app_hir = build
+            .hir
+            .modules
+            .iter()
+            .find(|module| module.module == "app.main")
+            .unwrap();
+        let lib_hir = build
+            .hir
+            .modules
+            .iter()
+            .find(|module| module.module == "lib.core")
+            .unwrap();
+        assert_eq!(app_hir.functions.len(), 1);
+        assert_eq!(app_hir.functions[0].id.as_str(), "app.main");
+        assert_eq!(lib_hir.functions.len(), 1);
+        assert_eq!(lib_hir.functions[0].id.as_str(), "lib.answer");
+        assert!(build.hir.shared_prelude_ids.contains(prelude::OPTION_ID));
+        assert!(build.edges.iter().any(|edge| edge.kind == "call"
+            && edge.caller == "app.main"
+            && edge.target == "lib.answer"));
+    }
+
+    #[test]
+    fn module_kind_alias_and_cycle_confusion_fail_closed() {
+        let a = "module a;\nuse function @id(\"b.value\") from b as value;\n\n@id(\"a.main\")\nfn main() -> i64\n{\n    value()\n}\n";
+        let b = "module b;\nuse function @id(\"a.main\") from a as other;\n\n@id(\"b.value\")\nfn value() -> i64\n{\n    other()\n}\n";
+        let error = build_owned(vec![source("a.spx", a), source("b.spx", b)])
+            .err()
+            .expect("cycle must fail");
+        assert_eq!(error[0].code, "SPX-G172");
+        assert!(error[0].message.contains("a -> b -> a"));
+    }
+
+    #[test]
+    fn file_limit_fails_before_parse() {
+        let error = build_owned(vec![source("a.spx", "not parsed")])
+            .err()
+            .expect("one file is outside the admitted domain");
+        assert_eq!(error[0].code, "SPX-G170");
+        assert_eq!(
+            error[0].message,
+            "Workspace Semantic Graph requires 2..16 source files"
+        );
+    }
+
+    #[test]
+    fn repeated_calls_preserve_contract_body_paths_and_root_local_ordinals() {
+        let library = r#"
+module lib.core;
+
+@id("lib.flag")
+fn flag() -> bool { true }
+
+@id("lib.answer")
+fn answer() -> i64 { 42 }
+"#;
+        let app = r#"
+module app.main;
+use function @id("lib.flag") from lib.core as flag;
+use function @id("lib.answer") from lib.core as answer;
+
+@id("app.main")
+fn main() -> i64
+    requires flag()
+    requires flag()
+    ensures flag()
+    ensures flag()
+{
+    answer() + answer() + answer()
+}
+
+"#;
+
+        let build = build_owned(vec![
+            canonical_source("app/main.spx", app),
+            canonical_source("lib/core.spx", library),
+        ])
+        .unwrap();
+        let calls = build
+            .edges
+            .iter()
+            .filter(|edge| edge.kind == "call" && edge.caller == "app.main")
+            .map(|edge| {
+                (
+                    edge.site,
+                    edge.ast_path.as_str(),
+                    edge.ordinal,
+                    edge.target.as_str(),
+                )
+            })
+            .collect::<BTreeSet<_>>();
+
+        assert_eq!(
+            calls,
+            BTreeSet::from([
+                ("requires", "requires.0", 0, "lib.flag"),
+                ("requires", "requires.1", 0, "lib.flag"),
+                ("body", "body.tail.left.left", 0, "lib.answer"),
+                ("body", "body.tail.left.right", 1, "lib.answer"),
+                ("body", "body.tail.right", 2, "lib.answer"),
+                ("ensures", "ensures.0", 0, "lib.flag"),
+                ("ensures", "ensures.1", 0, "lib.flag"),
+            ])
+        );
+    }
+
+    #[test]
+    fn interleaved_template_sites_are_authored_once_across_two_materializations() {
+        let library = r#"
+module lib.core;
+
+@id("lib.answer")
+fn answer() -> i64 { 42 }
+"#;
+        let app = r#"
+module app.main;
+use function @id("lib.answer") from lib.core as answer;
+
+@id("app.before")
+fn before() -> i64 { answer() }
+
+@id("app.keep")
+fn keep<T>(value: T) -> T {
+    let observed = answer();
+    if observed == 42 { value } else { value }
+}
+
+@id("app.after")
+fn after() -> i64 { answer() }
+
+@id("app.main")
+fn main() -> i64 {
+    let number = keep<i64>(before());
+    if keep<bool>(true) { number + after() } else { 0 }
+}
+"#;
+
+        let build = build_owned(vec![
+            canonical_source("app/main.spx", app),
+            canonical_source("lib/core.spx", library),
+        ])
+        .unwrap();
+        let app_hir = build
+            .hir
+            .modules
+            .iter()
+            .find(|module| module.module == "app.main")
+            .unwrap();
+        assert_eq!(app_hir.function_templates.len(), 1);
+        assert_eq!(app_hir.function_templates[0].id.as_str(), "app.keep");
+        assert_eq!(app_hir.function_instances.len(), 2);
+        assert!(app_hir
+            .function_instances
+            .iter()
+            .all(|instance| instance.template.as_str() == "app.keep"));
+
+        let call_sites = build
+            .edges
+            .iter()
+            .filter(|edge| edge.kind == "call" && edge.target == "lib.answer")
+            .map(|edge| (edge.caller.as_str(), edge.ast_path.as_str()))
+            .collect::<BTreeSet<_>>();
+        assert_eq!(
+            call_sites,
+            BTreeSet::from([
+                ("app.after", "body.tail"),
+                ("app.before", "body.tail"),
+                ("app.keep", "body.s0.value"),
+            ])
+        );
+        assert_eq!(
+            build
+                .edges
+                .iter()
+                .filter(|edge| edge.kind == "call"
+                    && edge.caller == "app.keep"
+                    && edge.target == "lib.answer")
+                .count(),
+            1,
+            "materialized instances must not duplicate one authored template site"
+        );
+    }
+
+    #[test]
+    fn automatic_call_owner_retains_automatic_identity_origin() {
+        let library = r#"
+module lib.core;
+
+@id("lib.answer")
+fn answer() -> i64 { 42 }
+"#;
+        let app = r#"
+module app.main;
+use function @id("lib.answer") from lib.core as answer;
+
+fn helper() -> i64 { answer() }
+
+@id("app.main")
+fn main() -> i64 { helper() }
+"#;
+
+        let build = build_owned(vec![
+            canonical_source("app/main.spx", app),
+            canonical_source("lib/core.spx", library),
+        ])
+        .unwrap();
+        let call = build
+            .edges
+            .iter()
+            .find(|edge| edge.kind == "call" && edge.target == "lib.answer")
+            .expect("automatic helper call must be retained");
+        let fact = build
+            .hir
+            .declarations
+            .get(&call.caller)
+            .expect("automatic caller must have one declaration fact");
+        assert_eq!(fact.origin, hir::IdentityOrigin::Automatic);
+        assert_eq!(fact.path.as_deref(), Some("app/main.spx"));
+        assert_eq!(fact.module.as_deref(), Some("app.main"));
+    }
+
+    #[test]
+    fn identity_facts_preserve_authored_origins_parents_and_exact_prelude() {
+        let build = build_owned(identity_fact_sources()).unwrap();
+        let facts = &build.hir.declarations;
+        let assert_fact = |id: &str,
+                           kind: hir::DeclarationKind,
+                           origin: hir::IdentityOrigin,
+                           owner: Option<&str>| {
+            let fact = facts
+                .get(id)
+                .unwrap_or_else(|| panic!("missing fact `{id}`"));
+            assert_eq!(fact.kind, kind, "kind for `{id}`");
+            assert_eq!(fact.origin, origin, "origin for `{id}`");
+            assert_eq!(fact.owner.as_deref(), owner, "owner for `{id}`");
+            assert_eq!(fact.path.as_deref(), Some("app/identity.spx"));
+            assert_eq!(fact.module.as_deref(), Some("app.identity"));
+        };
+
+        assert_fact(
+            "auto:app.identity.helper",
+            hir::DeclarationKind::Function,
+            hir::IdentityOrigin::Automatic,
+            None,
+        );
+        assert_fact(
+            "auto:field:app.record.value",
+            hir::DeclarationKind::Field,
+            hir::IdentityOrigin::Automatic,
+            Some("app.record"),
+        );
+        assert_fact(
+            "auto:case:app.choice.Number",
+            hir::DeclarationKind::VariantCase,
+            hir::IdentityOrigin::Automatic,
+            Some("app.choice"),
+        );
+        assert_fact(
+            "auto:case-field:auto:case:app.choice.Number.value",
+            hir::DeclarationKind::CaseField,
+            hir::IdentityOrigin::Automatic,
+            Some("auto:case:app.choice.Number"),
+        );
+        assert_fact(
+            "app.explicit_variant",
+            hir::DeclarationKind::Variant,
+            hir::IdentityOrigin::Explicit,
+            None,
+        );
+        assert_fact(
+            "app.explicit_variant.ready",
+            hir::DeclarationKind::VariantCase,
+            hir::IdentityOrigin::Explicit,
+            Some("app.explicit_variant"),
+        );
+        assert_fact(
+            "app.explicit_variant.ready.code",
+            hir::DeclarationKind::CaseField,
+            hir::IdentityOrigin::Explicit,
+            Some("app.explicit_variant.ready"),
+        );
+        assert_fact(
+            "app.token.drop",
+            hir::DeclarationKind::ResourceDrop,
+            hir::IdentityOrigin::Explicit,
+            Some("app.token"),
+        );
+        assert_fact(
+            "app.host",
+            hir::DeclarationKind::Interface,
+            hir::IdentityOrigin::Explicit,
+            None,
+        );
+        assert_fact(
+            "app.host.observe",
+            hir::DeclarationKind::Import,
+            hir::IdentityOrigin::Explicit,
+            Some("app.host"),
+        );
+
+        let compiler = facts
+            .iter()
+            .filter(|(_, fact)| fact.origin == hir::IdentityOrigin::CompilerOwned)
+            .map(|(id, fact)| {
+                assert_eq!(fact.path, None, "compiler fact path for `{id}`");
+                assert_eq!(fact.module, None, "compiler fact module for `{id}`");
+                id.as_str()
+            })
+            .collect::<BTreeSet<_>>();
+        let expected = prelude::all_ids().into_iter().collect::<BTreeSet<_>>();
+        assert_eq!(compiler, expected);
+        assert_eq!(build.hir.shared_prelude_ids, expected);
+    }
+
+    #[test]
+    fn imported_stubs_and_synthetic_mains_are_not_retained() {
+        let build = build_owned(identity_fact_sources()).unwrap();
+        let app = build
+            .hir
+            .modules
+            .iter()
+            .find(|module| module.module == "app.identity")
+            .unwrap();
+        let library = build
+            .hir
+            .modules
+            .iter()
+            .find(|module| module.module == "lib.core")
+            .unwrap();
+        let app_functions = app
+            .functions
+            .iter()
+            .map(|function| function.id.as_str())
+            .collect::<BTreeSet<_>>();
+        let library_functions = library
+            .functions
+            .iter()
+            .map(|function| function.id.as_str())
+            .collect::<BTreeSet<_>>();
+        assert_eq!(
+            app_functions,
+            BTreeSet::from(["app.main", "auto:app.identity.helper"])
+        );
+        assert_eq!(library_functions, BTreeSet::from(["lib.answer"]));
+        assert!(!build.hir.declarations.contains_key("lib.answer.stub"));
+        assert!(!build
+            .hir
+            .declarations
+            .contains_key("workspace.synthetic.main.lib.core"));
+        let imported = build.hir.declarations.get("lib.answer").unwrap();
+        assert_eq!(imported.path.as_deref(), Some("lib/core.spx"));
+        assert_eq!(imported.module.as_deref(), Some("lib.core"));
+    }
+
+    #[test]
+    fn missing_or_substituted_identity_shape_facts_fail_closed() {
+        assert_identity_shape_error(|facts| {
+            facts.remove("auto:app.identity.helper");
+        });
+        assert_identity_shape_error(|facts| {
+            facts.get_mut("app.record").unwrap().kind = hir::DeclarationKind::Interface;
+        });
+        assert_identity_shape_error(|facts| {
+            facts.get_mut("auto:field:app.record.value").unwrap().owner =
+                Some("app.choice".to_owned());
+        });
+        assert_identity_shape_error(|facts| {
+            facts.get_mut("app.record").unwrap().path = Some("wrong/path.spx".to_owned());
+        });
+        assert_identity_shape_error(|facts| {
+            facts.get_mut("app.record").unwrap().module = Some("wrong.module".to_owned());
+        });
+    }
+
+    #[test]
+    fn substituted_identity_origin_disagrees_with_retained_hir() {
+        let sources = identity_fact_sources();
+        let programs = parsed_sources(&sources);
+        let build = build_owned(sources).unwrap();
+        let synthetic_modules = {
+            let authored = index_authored(&programs).unwrap();
+            programs
+                .iter()
+                .map(|program| {
+                    let synthetic = synthetic_program(program, &authored, &programs).unwrap();
+                    (
+                        program.module.clone(),
+                        hir::resolve(&synthetic).expect("synthetic identity fixture must resolve"),
+                    )
+                })
+                .collect::<Vec<_>>()
+        };
+        let mut substituted = programs.clone();
+        substituted
+            .iter_mut()
+            .find(|program| program.module == "app.identity")
+            .unwrap()
+            .functions
+            .iter_mut()
+            .find(|function| function.stable_id == "auto:app.identity.helper")
+            .unwrap()
+            .explicit_id = true;
+
+        let error =
+            workspace_declaration_facts(&synthetic_modules, &build.hir.modules, &substituted)
+                .expect_err("origin substitution must fail closed");
+        assert_eq!(error[0].code, "SPX-G173");
+        assert_eq!(
+            error[0].message,
+            "authored workspace declaration facts disagree with retained HIR"
+        );
+    }
+
+    #[test]
+    fn independent_prelude_map_detects_kind_and_owner_substitutions() {
+        let build = build_owned(identity_fact_sources()).unwrap();
+        let actual = build
+            .hir
+            .declarations
+            .iter()
+            .filter(|(_, fact)| fact.origin == hir::IdentityOrigin::CompilerOwned)
+            .map(|(id, fact)| (id.clone(), fact.clone()))
+            .collect::<BTreeMap<_, _>>();
+        let expected = expected_compiler_declaration_facts().unwrap();
+        assert_eq!(actual, expected);
+
+        let root_id = expected
+            .iter()
+            .find(|(_, fact)| fact.owner.is_none())
+            .map(|(id, _)| id.clone())
+            .expect("prelude must have a root declaration");
+        let mut wrong_kind = expected.clone();
+        wrong_kind.get_mut(&root_id).unwrap().kind = hir::DeclarationKind::Function;
+        assert_ne!(actual, wrong_kind);
+
+        let child_id = expected
+            .iter()
+            .find(|(_, fact)| fact.owner.is_some())
+            .map(|(id, _)| id.clone())
+            .expect("prelude must have a child declaration");
+        let mut wrong_owner = expected;
+        wrong_owner.get_mut(&child_id).unwrap().owner = Some("wrong.prelude.owner".to_owned());
+        assert_ne!(actual, wrong_owner);
+    }
+
+    #[test]
+    fn rogue_and_nonimported_foreign_resolved_roots_fail_closed() {
+        assert_resolved_identity_error(
+            |module, synthetic, programs| {
+                if module != "app.identity" {
+                    return;
+                }
+                let mut rogue = programs
+                    .iter()
+                    .find(|program| program.module == "app.identity")
+                    .unwrap()
+                    .functions
+                    .iter()
+                    .find(|function| function.name == "helper")
+                    .unwrap()
+                    .clone();
+                rogue.stable_id = "rogue.function".to_owned();
+                rogue.explicit_id = true;
+                rogue.name = "rogue".to_owned();
+                synthetic.functions.push(rogue);
+            },
+            "resolved workspace declaration has an unauthenticated synthetic or rogue root",
+        );
+        assert_resolved_identity_error(
+            |module, synthetic, programs| {
+                if module != "app.identity" {
+                    return;
+                }
+                let foreign = programs
+                    .iter()
+                    .find(|program| program.module == "lib.core")
+                    .unwrap()
+                    .types
+                    .iter()
+                    .find(|declaration| declaration.stable_id == "lib.foreign")
+                    .unwrap()
+                    .clone();
+                synthetic.types.push(foreign);
+            },
+            "resolved workspace declaration leaks a non-imported foreign authority",
+        );
+    }
+
+    #[test]
+    fn extra_descendant_under_imported_type_fails_closed() {
+        assert_resolved_identity_error(
+            |module, synthetic, _| {
+                if module != "app.identity" {
+                    return;
+                }
+                let imported = synthetic
+                    .types
+                    .iter_mut()
+                    .find(|declaration| declaration.stable_id == "lib.imported")
+                    .unwrap();
+                let TypeDeclarationKind::Record { fields } = &mut imported.kind else {
+                    panic!("imported fixture must be a record")
+                };
+                let mut extra = fields[0].clone();
+                extra.stable_id = "lib.imported.extra".to_owned();
+                extra.explicit_id = true;
+                extra.name = "extra".to_owned();
+                fields.push(extra);
+            },
+            "resolved workspace declaration leaks a non-imported foreign authority",
+        );
+    }
+
+    #[test]
+    fn synthetic_main_allowlist_is_exact_and_collision_fails_closed() {
+        let sources = identity_fact_sources();
+        let programs = parsed_sources(&sources);
+        let build = build_owned(sources).unwrap();
+        let synthetic_modules = {
+            let authored = index_authored(&programs).unwrap();
+            programs
+                .iter()
+                .map(|program| {
+                    let synthetic = synthetic_program(program, &authored, &programs).unwrap();
+                    (
+                        program.module.clone(),
+                        hir::resolve(&synthetic).expect("exact synthetic main must resolve"),
+                    )
+                })
+                .collect::<Vec<_>>()
+        };
+        workspace_declaration_facts(&synthetic_modules, &build.hir.modules, &programs).unwrap();
+
+        let collision = canonical_source(
+            "collision/lib.spx",
+            r#"
+module collision.lib;
+
+@id("workspace.synthetic.main.collision.lib")
+fn helper() -> i64 { 0 }
+"#,
+        );
+        let app = canonical_source(
+            "collision/app.spx",
+            r#"
+module collision.app;
+
+@id("collision.app.main")
+fn main() -> i64 { 0 }
+"#,
+        );
+        let error = build_owned(vec![app, collision])
+            .err()
+            .expect("authored synthetic-main collision must fail closed");
+        assert_eq!(error[0].code, "SPX-G173");
+        assert_eq!(
+            error[0].message,
+            "generated workspace synthetic main identity collides with an authored declaration"
+        );
+    }
+
+    #[test]
+    fn dependency_depths_cover_chain_diamond_branching_and_canonical_cycle() {
+        let names = (0..16)
+            .map(|index| format!("m{index:02}"))
+            .collect::<Vec<_>>();
+        let mut chain = BTreeMap::new();
+        for (index, module) in names.iter().enumerate() {
+            let dependencies = if index == 0 {
+                BTreeSet::new()
+            } else {
+                BTreeSet::from([names[index - 1].as_str()])
+            };
+            chain.insert(module.as_str(), dependencies);
+        }
+        let depths = dependency_depths(&chain).unwrap();
+        for (index, module) in names.iter().enumerate() {
+            assert_eq!(depths[module.as_str()], index + 1);
+        }
+
+        let diamond = BTreeMap::from([
+            ("leaf", BTreeSet::new()),
+            ("left", BTreeSet::from(["leaf"])),
+            ("right", BTreeSet::from(["leaf"])),
+            ("root", BTreeSet::from(["left", "right"])),
+            ("wide", BTreeSet::from(["leaf", "left", "right"])),
+        ]);
+        let depths = dependency_depths(&diamond).unwrap();
+        assert_eq!(depths["leaf"], 1);
+        assert_eq!(depths["left"], 2);
+        assert_eq!(depths["right"], 2);
+        assert_eq!(depths["root"], 3);
+        assert_eq!(depths["wide"], 3);
+
+        let cycle = BTreeMap::from([
+            ("z", BTreeSet::from(["a"])),
+            ("a", BTreeSet::from(["m"])),
+            ("m", BTreeSet::from(["z"])),
+        ]);
+        let error = dependency_depths(&cycle).unwrap_err();
+        assert_eq!(error[0].code, "SPX-G172");
+        assert_eq!(
+            error[0].message,
+            "workspace module dependency cycle: a -> m -> z -> a"
+        );
+    }
+
+    #[test]
+    fn logical_limits_accept_exact_and_reject_one_over() {
+        for (field, maximum) in [
+            ("files", MAX_FILES),
+            ("total_source_bytes", MAX_TOTAL_SOURCE_BYTES),
+            ("declarations", MAX_DECLARATIONS),
+            ("callables", MAX_CALLABLES),
+            ("calls", MAX_CALLS),
+            ("uses", MAX_USES),
+            ("resolved_cross_file_edges", MAX_CROSS_FILE_EDGES),
+            ("dependency_depth", MAX_DEPENDENCY_DEPTH),
+            ("builder_bytes", MAX_BUILDER_BYTES),
+        ] {
+            assert_eq!(checked_usage(0, maximum, field, maximum).unwrap(), maximum);
+            let error = checked_usage(maximum, 1, field, maximum).unwrap_err();
+            assert_eq!(error[0].code, "SPX-G171");
+            assert_eq!(
+                error[0].message,
+                format!("Workspace Semantic Graph `{field}` exceeds {maximum}")
+            );
+        }
+    }
+
+    #[test]
+    fn exact_file_limit_builds_and_one_over_rejects_before_parse() {
+        let exact = (0..MAX_FILES)
+            .map(|index| {
+                canonical_source(
+                    &format!("m{index:02}.spx"),
+                    &format!(
+                        "module m{index:02};\n\n@id(\"m{index:02}.entry\")\nfn entry() -> i64 {{ {index} }}\n"
+                    ),
+                )
+            })
+            .collect::<Vec<_>>();
+        build_owned(exact).unwrap();
+
+        let over = (0..=MAX_FILES)
+            .map(|index| source(&format!("bad{index}.spx"), "not parsed"))
+            .collect::<Vec<_>>();
+        let error = build_owned(over).err().expect("file one-over must fail");
+        assert_eq!(error[0].code, "SPX-G171");
+    }
+
+    #[test]
+    fn edge_append_and_builder_prebound_enforce_exact_boundaries() {
+        let edge = WorkspaceEdge {
+            caller_path: "a.spx".to_owned(),
+            caller: "a.main".to_owned(),
+            target_path: "b.spx".to_owned(),
+            target: "b.value".to_owned(),
+            kind: "call",
+            site: "body",
+            expression: "expression".to_owned(),
+            ast_path: "body.tail".to_owned(),
+            alias: "value".to_owned(),
+            ordinal: 0,
+        };
+        let mut exact = vec![edge.clone(); MAX_CROSS_FILE_EDGES - 1];
+        push_edge(&mut exact, edge.clone()).unwrap();
+        let error = push_edge(&mut exact, edge).unwrap_err();
+        assert_eq!(error[0].code, "SPX-G171");
+
+        let (exact, overflowed) = crate::bounded_output::with_limit(MAX_BUILDER_BYTES, || {
+            charge_builder_prebound(MAX_BUILDER_BYTES)
+        });
+        assert!(!overflowed);
+        exact.unwrap();
+        let (over, overflowed) = crate::bounded_output::with_limit(MAX_BUILDER_BYTES, || {
+            charge_builder_prebound(MAX_BUILDER_BYTES + 1)
+        });
+        assert!(overflowed || over.is_err());
+    }
+
+    #[test]
+    fn four_two_parameter_materializations_and_t226_premises_are_preserved() {
+        let app = canonical_source(
+            "generic/app.spx",
+            r#"
+module generic.app;
+@id("generic.first") fn first<T, U>(left: T, right: U) -> T { left }
+@id("generic.app.main") fn main() -> i64 {
+    let ii = first<i64, i64>(1, 2);
+    let ib = first<i64, bool>(ii, true);
+    let bi = first<bool, i64>(false, ib);
+    if first<bool, bool>(bi, true) { ib } else { 0 }
+}
+"#,
+        );
+        let leaf = canonical_source(
+            "generic/leaf.spx",
+            "module generic.leaf;\n@id(\"generic.leaf.value\") fn value() -> i64 { 0 }\n",
+        );
+        let build = build_owned(vec![app, leaf]).unwrap();
+        let module = build
+            .hir
+            .modules
+            .iter()
+            .find(|module| module.module == "generic.app")
+            .unwrap();
+        assert_eq!(module.function_instances.len(), 4);
+
+        for invalid in [
+            r#"module bad.direct;
+@id("bad.b") fn b<T>(value: T) -> T { value }
+@id("bad.a") fn a<T>(value: T) -> T { b<i64>(0) }
+@id("bad.main") fn main() -> i64 { 0 }"#,
+            r#"module bad.transitive;
+@id("bad.b") fn b<T>(value: T) -> T { value }
+@id("bad.middle") fn middle() -> i64 { b<i64>(0) }
+@id("bad.a") fn a<T>(value: T) -> T { let seen = middle(); if seen == 0 { value } else { value } }
+@id("bad.main") fn main() -> i64 { 0 }"#,
+        ] {
+            let bad = canonical_source("bad.spx", invalid);
+            let leaf = canonical_source(
+                "leaf.spx",
+                "module leaf;\n@id(\"leaf.value\") fn value() -> i64 { 0 }\n",
+            );
+            let error = build_owned(vec![bad, leaf])
+                .err()
+                .expect("T226 must survive");
+            assert!(error.iter().any(|diagnostic| diagnostic.code == "SPX-T226"));
+        }
+    }
+
+    #[test]
+    fn long_identity_many_calls_and_deep_paths_replay_deterministically() {
+        const CALLS: usize = 32;
+        const DEPTH: usize = 12;
+        let target = format!("lib.{}", "x".repeat(64));
+        let library = canonical_source(
+            "long/lib.spx",
+            &format!(
+                "module long.lib;\n@id(\"{target}\") fn value(input: i64) -> i64 {{ input }}\n"
+            ),
+        );
+        let mut app = format!("module long.app;\nuse function @id(\"{target}\") from long.lib as value;\n@id(\"long.app.main\") fn main() -> i64 {{\n");
+        for index in 0..CALLS {
+            app.push_str(&format!("let value_{index} = value(0);\n"));
+        }
+        let mut tail = "0".to_owned();
+        for _ in 0..DEPTH {
+            tail = format!("value({tail})");
+        }
+        app.push_str(&format!("{tail}\n}}\n"));
+        let app = canonical_source("long/app.spx", &app);
+        let first = build_owned(vec![app.clone(), library.clone()]).unwrap();
+        let second = build_owned(vec![library, app]).unwrap();
+        assert_eq!(first.edges, second.edges);
+        assert_eq!(
+            first
+                .edges
+                .iter()
+                .filter(|edge| edge.kind == "call" && edge.target == target)
+                .count(),
+            CALLS + DEPTH
+        );
+        assert!(first.edges.iter().any(
+            |edge| edge.kind == "call" && edge.ast_path.matches(".arg.0").count() == DEPTH - 1
+        ));
+    }
+
+    fn is_named_limit(diagnostics: &[Diagnostic], field: &str) -> bool {
+        diagnostics.first().is_some_and(|diagnostic| {
+            diagnostic.code == "SPX-G171"
+                && diagnostic.message.contains(&format!("`{field}` exceeds"))
+        })
+    }
+
+    #[test]
+    fn source_byte_limit_is_checked_before_parse_at_one_over() {
+        let exact = vec![
+            source("a.spx", &"x".repeat(MAX_TOTAL_SOURCE_BYTES - 1)),
+            source("b.spx", "x"),
+        ];
+        let error = build_owned(exact).err().expect("exact bytes reach parsing");
+        assert!(!is_named_limit(&error, "total_source_bytes"));
+
+        let over = vec![
+            source("a.spx", &"x".repeat(MAX_TOTAL_SOURCE_BYTES)),
+            source("b.spx", "x"),
+        ];
+        let error = build_owned(over).err().expect("one-over bytes must fail");
+        assert!(is_named_limit(&error, "total_source_bytes"));
+    }
+
+    fn declaration_boundary_source(functions: usize) -> WorkspaceSource {
+        let mut text = String::from(
+            r#"
+module boundary.declarations;
+@id("d.token") resource Token { @id("d.token.drop") drop trivial; }
+@id("d.record") record Record { value: i64, }
+@id("d.variant") variant Variant { Case { value: i64, }, }
+@id("d.host") interface Host permits {} {
+    @id("d.host.consume") import fn consume(value: own Token) -> unit
+        effects {} failure infallible consumes value always;
+}
+"#,
+        );
+        for index in 0..functions {
+            text.push_str(&format!(
+                "@id(\"d.f{index}\") fn f{index}() -> i64 {{ 0 }}\n"
+            ));
+        }
+        canonical_source("z_declarations.spx", &text)
+    }
+
+    #[test]
+    fn mixed_declaration_limit_exact_advances_and_one_over_is_g171() {
+        let leaf = canonical_source(
+            "a_leaf.spx",
+            "module leaf;\n@id(\"leaf.f\") fn f() -> i64 { 0 }\n",
+        );
+        let exact = declaration_boundary_source(MAX_DECLARATIONS - 10);
+        let exact_program = parse(&exact.source, Path::new(&exact.path)).unwrap();
+        assert_eq!(
+            declaration_count(&exact_program),
+            Some(MAX_DECLARATIONS - 1)
+        );
+        let error = build_owned(vec![exact, leaf.clone()])
+            .err()
+            .expect("later gate expected");
+        assert!(!is_named_limit(&error, "declarations"));
+
+        let over = declaration_boundary_source(MAX_DECLARATIONS - 9);
+        let error = build_owned(vec![over, leaf])
+            .err()
+            .expect("one-over declarations fail");
+        assert!(is_named_limit(&error, "declarations"), "{error:?}");
+    }
+
+    fn callable_boundary_source(functions: usize) -> WorkspaceSource {
+        let mut text = String::from("module boundary.callables;\n");
+        for index in 0..functions {
+            text.push_str(&format!(
+                "@id(\"c.f{index}\") fn f{index}() -> i64 {{ 0 }}\n"
+            ));
+        }
+        canonical_source("callables.spx", &text)
+    }
+
+    #[test]
+    fn callable_limit_exact_advances_and_one_over_is_g171() {
+        let leaf = canonical_source(
+            "leaf.spx",
+            "module leaf;\n@id(\"leaf.f\") fn f() -> i64 { 0 }\n",
+        );
+        let exact = callable_boundary_source(MAX_CALLABLES - 1);
+        let error = build_owned(vec![exact, leaf.clone()])
+            .err()
+            .expect("later gate expected");
+        assert!(!is_named_limit(&error, "callables"));
+        let over = callable_boundary_source(MAX_CALLABLES);
+        let error = build_owned(vec![over, leaf])
+            .err()
+            .expect("one-over callables fail");
+        assert!(is_named_limit(&error, "callables"));
+    }
+
+    fn call_boundary_source(body_calls: usize) -> WorkspaceSource {
+        let mut text = String::from(
+            r#"
+module boundary.calls;
+@id("calls.flag") fn flag() -> bool { true }
+@id("calls.zero") fn zero() -> i64 { 0 }
+@id("calls.keep") fn keep<T>(value: T) -> T
+    requires flag()
+    ensures flag()
+{ let seen = zero(); value }
+@id("calls.main") fn main() -> i64 {
+"#,
+        );
+        for index in 0..body_calls {
+            text.push_str(&format!("let value_{index} = zero();\n"));
+        }
+        text.push_str("0\n}\n");
+        canonical_source("calls.spx", &text)
+    }
+
+    #[test]
+    fn call_limit_exact_advances_and_one_over_is_g171() {
+        let leaf = canonical_source(
+            "leaf.spx",
+            "module leaf;\n@id(\"leaf.f\") fn f() -> i64 { 0 }\n",
+        );
+        let exact = call_boundary_source(MAX_CALLS - 3);
+        let error = build_owned(vec![exact, leaf.clone()])
+            .err()
+            .expect("later gate expected");
+        assert!(!is_named_limit(&error, "calls"));
+        let over = call_boundary_source(MAX_CALLS - 2);
+        let error = build_owned(vec![over, leaf])
+            .err()
+            .expect("one-over calls fail");
+        assert!(is_named_limit(&error, "calls"));
+    }
+
+    fn use_boundary_source(uses: usize) -> WorkspaceSource {
+        let mut text = String::from("module boundary.uses;\n");
+        for index in 0..uses {
+            text.push_str(&format!(
+                "use function @id(\"missing.f{index}\") from missing.module as f{index};\n"
+            ));
+        }
+        text.push_str("@id(\"uses.main\") fn main() -> i64 { 0 }\n");
+        canonical_source("uses.spx", &text)
+    }
+
+    #[test]
+    fn use_limit_exact_advances_and_one_over_is_g171() {
+        let leaf = canonical_source(
+            "leaf.spx",
+            "module leaf;\n@id(\"leaf.f\") fn f() -> i64 { 0 }\n",
+        );
+        let exact = use_boundary_source(MAX_USES);
+        let error = build_owned(vec![exact, leaf.clone()])
+            .err()
+            .expect("later gate expected");
+        assert!(!is_named_limit(&error, "uses"));
+        let over = use_boundary_source(MAX_USES + 1);
+        let error = build_owned(vec![over, leaf])
+            .err()
+            .expect("one-over uses fail");
+        assert!(is_named_limit(&error, "uses"));
+    }
+
+    #[test]
+    fn branching_copy_default_expansion_is_rejected_by_builder_preflight() {
+        const LEVELS: usize = 12;
+        const BRANCHES: usize = 4;
+        let mut provider = String::from("module hostile.copy;\n");
+        provider.push_str("@id(\"copy.r0\") record R0 { @id(\"copy.r0.value\") value: i64, }\n");
+        for level in 1..LEVELS {
+            provider.push_str(&format!("@id(\"copy.r{level}\") record R{level} {{\n"));
+            for field in 0..BRANCHES {
+                provider.push_str(&format!(
+                    "@id(\"copy.r{level}.f{field}\") f{field}: R{},\n",
+                    level - 1
+                ));
+            }
+            provider.push_str("}\n");
+        }
+        provider.push_str(&format!(
+            "@id(\"copy.make\") fn make(value: R{}) -> R{} {{ value }}\n",
+            LEVELS - 1,
+            LEVELS - 1
+        ));
+
+        let mut consumer = String::from("module hostile.consumer;\n");
+        consumer.push_str("use function @id(\"copy.make\") from hostile.copy as make;\n");
+        for level in 0..LEVELS {
+            consumer.push_str(&format!(
+                "use type @id(\"copy.r{level}\") from hostile.copy as R{level};\n"
+            ));
+        }
+        consumer.push_str("@id(\"hostile.main\") fn main() -> i64 { 0 }\n");
+        let sources = vec![
+            canonical_source("hostile/consumer.spx", &consumer),
+            canonical_source("hostile/copy.spx", &provider),
+        ];
+        let programs = parsed_sources(&sources);
+        let authored = index_authored(&programs).unwrap();
+        let consumer = programs
+            .iter()
+            .find(|program| program.module == "hostile.consumer")
+            .unwrap();
+        let error = match synthetic_builder_bytes(consumer, &authored, &programs) {
+            Ok(_) => panic!("branching default expansion must fail pre-HIR"),
+            Err(error) => error,
+        };
+        assert!(is_named_limit(&error, "builder_bytes"));
+    }
+
+    #[test]
+    fn long_nominal_and_child_id_repetition_is_rejected_by_builder_preflight() {
+        const READERS: usize = 512;
+        let type_id = format!("long.type.{}", "t".repeat(2048));
+        let field_id = format!("long.field.{}", "f".repeat(2048));
+        let provider = canonical_source(
+            "long-type/provider.spx",
+            &format!(
+                "module long_type.provider;\n@id(\"{type_id}\") record Long {{ @id(\"{field_id}\") value: i64, }}\n@id(\"long.type.local\") fn local() -> i64 {{ 0 }}\n"
+            ),
+        );
+        let mut consumer = format!(
+            "module long_type.consumer;\nuse type @id(\"{type_id}\") from long_type.provider as L;\n"
+        );
+        for index in 0..READERS {
+            consumer.push_str(&format!(
+                "@id(\"reader.{index}\") fn read_{index}(value: L) -> i64 {{ match value {{ L {{ value }} => value, }} }}\n"
+            ));
+        }
+        consumer.push_str("@id(\"long.type.main\") fn main() -> i64 { let value = L { value: 0 }; match value { L { value } => value, } }\n");
+        let consumer = canonical_source("long-type/consumer.spx", &consumer);
+        let sources = vec![consumer, provider];
+        let programs = parsed_sources(&sources);
+        let authored = index_authored(&programs).unwrap();
+        let consumer = programs
+            .iter()
+            .find(|program| program.module == "long_type.consumer")
+            .unwrap();
+        let error = match synthetic_builder_bytes(consumer, &authored, &programs) {
+            Ok(_) => panic!("long rewritten nominal identities must fail pre-HIR"),
+            Err(error) => error,
+        };
+        assert!(is_named_limit(&error, "builder_bytes"));
+    }
+
+    fn minimum_successful_builder_limit(sources: &[WorkspaceSource]) -> usize {
+        assert!(build_owned_with_builder_limit(sources.to_vec(), MAX_BUILDER_BYTES).is_ok());
+        let mut low = 0usize;
+        let mut high = MAX_BUILDER_BYTES;
+        while low < high {
+            let middle = low + (high - low) / 2;
+            if build_owned_with_builder_limit(sources.to_vec(), middle).is_ok() {
+                high = middle;
+            } else {
+                low = middle + 1;
+            }
+        }
+        low
+    }
+
+    #[test]
+    #[should_panic(
+        expected = "private Workspace Semantic Graph builder limit cannot exceed the production maximum"
+    )]
+    fn private_builder_limit_cannot_widen_the_production_cap() {
+        let _ = build_owned_with_builder_limit(Vec::new(), MAX_BUILDER_BYTES + 1);
+    }
+
+    fn assert_exact_builder_limit_error(error: &[Diagnostic], limit: usize) {
+        assert_eq!(error[0].code, "SPX-G171");
+        assert_eq!(
+            error[0].message,
+            format!("Workspace Semantic Graph `builder_bytes` exceeds {limit}")
+        );
+    }
+
+    #[test]
+    fn all_four_generic_materializations_have_an_exact_minimum_builder_limit() {
+        let app = canonical_source(
+            "generic-limit/app.spx",
+            r#"
+module generic_limit.app;
+@id("generic.limit.first") fn first<T, U>(left: T, right: U) -> T { left }
+@id("generic.limit.main") fn main() -> i64 {
+    let ii = first<i64, i64>(1, 2);
+    let ib = first<i64, bool>(ii, true);
+    let bi = first<bool, i64>(false, ib);
+    if first<bool, bool>(bi, true) { ib } else { 0 }
+}
+"#,
+        );
+        let leaf = canonical_source(
+            "generic-limit/leaf.spx",
+            "module generic_limit.leaf;\n@id(\"generic.limit.leaf\") fn leaf() -> i64 { 0 }\n",
+        );
+        let sources = vec![app, leaf];
+        let minimum = minimum_successful_builder_limit(&sources);
+        assert!(minimum > 0);
+        let first = build_owned_with_builder_limit(sources.clone(), minimum).unwrap();
+        let second = build_owned_with_builder_limit(sources.clone(), minimum).unwrap();
+        assert_eq!(first.edges, second.edges);
+        assert_eq!(first.hir.declarations, second.hir.declarations);
+
+        let error = match build_owned_with_builder_limit(sources, minimum - 1) {
+            Ok(_) => panic!("minimum minus one must fail"),
+            Err(error) => error,
+        };
+        assert_exact_builder_limit_error(&error, minimum - 1);
+    }
+
+    #[test]
+    fn late_module_work_has_an_exact_combined_minimum_builder_limit() {
+        let provider = canonical_source(
+            "late/a_provider.spx",
+            r#"
+module late.provider;
+@id("late.value") fn value() -> i64 { 1 }
+"#,
+        );
+        let minimal = canonical_source(
+            "late/z_consumer.spx",
+            r#"
+module late.consumer;
+@id("late.main") fn main() -> i64 { 0 }
+"#,
+        );
+        let mut consumer = String::from(
+            r#"
+module late.consumer;
+use function @id("late.value") from late.provider as value;
+@id("late.main") fn main() -> i64 {
+"#,
+        );
+        for index in 0..96 {
+            consumer.push_str(&format!("let value_{index} = value();\n"));
+        }
+        consumer.push_str("0\n}\n");
+        let consumer = canonical_source("late/z_consumer.spx", &consumer);
+
+        let base = vec![provider.clone(), minimal];
+        let combined = vec![provider, consumer];
+        let base_minimum = minimum_successful_builder_limit(&base);
+        let combined_minimum = minimum_successful_builder_limit(&combined);
+        assert!(base_minimum < combined_minimum);
+        assert!(build_owned_with_builder_limit(base, combined_minimum - 1).is_ok());
+
+        let exact = build_owned_with_builder_limit(combined.clone(), combined_minimum).unwrap();
+        let replay = build_owned_with_builder_limit(combined.clone(), combined_minimum).unwrap();
+        assert_eq!(exact.edges, replay.edges);
+        assert_eq!(exact.hir.declarations, replay.hir.declarations);
+        let error = match build_owned_with_builder_limit(combined, combined_minimum - 1) {
+            Ok(_) => panic!("late module must consume the final builder byte"),
+            Err(error) => error,
+        };
+        assert_exact_builder_limit_error(&error, combined_minimum - 1);
+    }
+}
+
+#[cfg(test)]
+mod type_proof_tests {
+    use super::*;
+
+    fn canonical_source(path: &str, source: &str) -> WorkspaceSource {
+        let program = parse(source, Path::new(path)).expect("type-proof fixture must parse");
+        WorkspaceSource {
+            path: path.to_owned(),
+            source: format::canonical(&program),
+        }
+    }
+
+    fn point_provider() -> WorkspaceSource {
+        canonical_source(
+            "lib/core.spx",
+            r#"
+module lib.core;
+
+@id("lib.point")
+record Point {
+    @id("lib.point.x")
+    x: i64,
+}
+
+@id("lib.local")
+fn local(value: Point) -> Point { value }
+"#,
+        )
+    }
+
+    #[test]
+    fn imported_type_classification_is_per_consumer_module() {
+        let app = canonical_source(
+            "app/main.spx",
+            r#"
+module app.main;
+use type @id("lib.point") from lib.core as RemotePoint;
+
+@id("app.main")
+fn main() -> i64 { 0 }
+"#,
+        );
+        let build = build_owned(vec![app, point_provider()]).unwrap();
+        assert!(build.edges.iter().all(|edge| {
+            edge.kind != "type_reference"
+                || edge.caller_path != "lib/core.spx"
+                || edge.target != "lib.point"
+        }));
+    }
+
+    #[test]
+    fn explicit_body_pattern_and_nested_type_carrier_sites_replay() {
+        let app = canonical_source(
+            "app/main.spx",
+            r#"
+module app.main;
+use type @id("lib.point") from lib.core as RemotePoint;
+
+@id("app.wrapper")
+record Wrapper {
+    @id("app.wrapper.point")
+    point: RemotePoint,
+}
+
+@id("app.read")
+fn read(value: Wrapper) -> i64 {
+    match value { Wrapper { point: RemotePoint { x } } => x, }
+}
+
+@id("app.main")
+fn main() -> i64 {
+    let value = Wrapper { point: RemotePoint { x: 7 } };
+    read(value)
+}
+"#,
+        );
+        let build = build_owned(vec![app, point_provider()]).unwrap();
+        let paths = build
+            .edges
+            .iter()
+            .filter(|edge| edge.kind == "type_reference" && edge.target == "lib.point")
+            .map(|edge| (edge.caller.as_str(), edge.ast_path.as_str()))
+            .collect::<BTreeSet<_>>();
+        assert!(paths.contains(&("app.wrapper", "type.app.wrapper.field.0")));
+        assert!(paths.contains(&("app.read", "body.tail.arm.0.pattern.field.0.pattern")));
+        assert!(paths.contains(&("app.main", "body.s0.value.field.0.value.type")));
+    }
+
+    #[test]
+    fn transitive_exposed_type_requires_direct_consumer_import() {
+        let leaf = canonical_source(
+            "a/point.spx",
+            r#"
+module a.point;
+
+@id("a.point")
+record Point { @id("a.point.x") x: i64, }
+
+@id("a.local")
+fn local() -> i64 { 0 }
+"#,
+        );
+        let wrapper = canonical_source(
+            "b/wrapper.spx",
+            r#"
+module b.wrapper;
+use type @id("a.point") from a.point as InnerPoint;
+
+@id("b.wrapper")
+record Wrapper { @id("b.wrapper.value") value: InnerPoint, }
+
+@id("b.local")
+fn local() -> i64 { 0 }
+"#,
+        );
+        let missing = canonical_source(
+            "c/main.spx",
+            r#"
+module c.main;
+use type @id("b.wrapper") from b.wrapper as Wrapper;
+
+@id("c.main")
+fn main() -> i64 { 0 }
+"#,
+        );
+        let error = build_owned(vec![leaf.clone(), wrapper.clone(), missing])
+            .err()
+            .expect("transitive type authority must be direct");
+        assert_eq!(error[0].code, "SPX-G172");
+
+        let present = canonical_source(
+            "c/main.spx",
+            r#"
+module c.main;
+use type @id("b.wrapper") from b.wrapper as Wrapper;
+use type @id("a.point") from a.point as DirectPoint;
+
+@id("c.main")
+fn main() -> i64 { 0 }
+"#,
+        );
+        build_owned(vec![leaf, wrapper, present]).unwrap();
+    }
+
+    #[test]
+    fn interface_import_carriers_reject_workspace_type_aliases_pre_hir() {
+        let app = canonical_source(
+            "app/main.spx",
+            r#"
+module app.main;
+use type @id("lib.point") from lib.core as RemotePoint;
+
+@id("app.host")
+interface Host permits {} {
+    @id("app.host.consume")
+    import fn consume(value: own RemotePoint) -> unit
+        effects {}
+        failure infallible
+        consumes value always;
+}
+
+@id("app.main")
+fn main() -> i64 { 0 }
+"#,
+        );
+        let error = build_owned(vec![app, point_provider()])
+            .err()
+            .expect("interface carrier must reject workspace alias");
+        assert_eq!(error[0].code, "SPX-G172");
+        assert_eq!(
+            error[0].message,
+            "workspace type aliases are not admitted in interface/import parameter carriers"
+        );
+    }
+}

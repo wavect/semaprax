@@ -1,8 +1,8 @@
 use std::fmt::Write;
 
 use crate::ast::{
-    Expr, ExprKind, ImportFailure, MatchPattern, Program, ResourceLifecycleKind, Statement,
-    TypeDeclarationKind, UnaryOp,
+    Expr, ExprKind, ImportFailure, MatchPattern, ModuleUseKind, Program, ResourceLifecycleKind,
+    Statement, TypeDeclarationKind, UnaryOp,
 };
 
 macro_rules! format {
@@ -14,6 +14,20 @@ macro_rules! format {
 pub fn canonical(program: &Program) -> String {
     let mut output = crate::bounded_output::CappedString::new();
     writeln!(output, "module {};", program.module).unwrap();
+    for module_use in &program.module_uses {
+        let kind = match module_use.kind {
+            ModuleUseKind::Function => "function",
+            ModuleUseKind::Type => "type",
+        };
+        writeln!(
+            output,
+            "use {kind} @id(\"{}\") from {} as {};",
+            escape_string(&module_use.persistent_id),
+            module_use.target_module,
+            module_use.alias
+        )
+        .unwrap();
+    }
     if !program.permits.is_empty() {
         writeln!(
             output,

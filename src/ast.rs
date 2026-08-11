@@ -88,10 +88,26 @@ impl ParamMode {
 pub struct Program {
     pub path: String,
     pub module: String,
+    pub module_uses: Vec<ModuleUse>,
     pub permits: Vec<String>,
     pub types: Vec<TypeDeclaration>,
     pub interfaces: Vec<InterfaceDeclaration>,
     pub functions: Vec<Function>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum ModuleUseKind {
+    Function,
+    Type,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ModuleUse {
+    pub kind: ModuleUseKind,
+    pub persistent_id: String,
+    pub target_module: String,
+    pub alias: String,
+    pub span: Span,
 }
 
 #[derive(Clone, Debug)]

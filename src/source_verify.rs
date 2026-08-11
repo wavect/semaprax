@@ -259,6 +259,16 @@ impl<'a> TypeTable<'a> {
 
 pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
     let mut diagnostics = Vec::new();
+    if !program.module_uses.is_empty() {
+        diagnostics.push(
+            Diagnostic::io(
+                "SPX-G172",
+                "source module imports require Workspace Semantic Graph resolution",
+            )
+            .at_path(&program.path),
+        );
+        return diagnostics;
+    }
     let mut functions = HashMap::new();
     let mut ids = crate::prelude::all_ids()
         .into_iter()

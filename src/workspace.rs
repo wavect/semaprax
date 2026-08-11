@@ -1164,7 +1164,7 @@ fn publish_no_replace(
     }
     #[cfg(windows)]
     {
-        std::fs::rename(source, destination)
+        renamore::rename_exclusive(source, destination)
             .map_err(|error| io(code, format!("{description}: {error}")))
     }
     #[cfg(all(
@@ -3905,9 +3905,11 @@ mod tests {
         let active_identity = identity_from_path(&fixture.active(), "SPX-I209").unwrap();
         let foreign = fixture.root.join("foreign-junction-target");
         let mut junction = None;
-        let error =
-            prepare_candidate_generation_with_hook(&fixture.root, &patch, |point, slot, _| {
-                if point == GenerationPoint::AfterFilesWrite {
+        let error = prepare_candidate_generation_with_hook(
+            &fixture.root,
+            &patch,
+            |point, slot, destination| {
+                if point == GenerationPoint::DestinationChecked {
                     let files = slot.join("files");
                     std::fs::rename(&files, &foreign).unwrap();
                     let status = Command::new("cmd")
@@ -3917,14 +3919,19 @@ mod tests {
                         .status()
                         .unwrap();
                     assert!(status.success(), "mklink /J failed");
-                    junction = Some(files);
+                    junction = Some(destination.join("files"));
                 }
-            })
-            .unwrap_err();
+            },
+        )
+        .unwrap_err();
         assert_eq!(error[0].code, "SPX-G153");
         assert!(foreign.join("alpha.spx").is_file());
         assert_active_unchanged(&fixture, &active_bytes, active_identity);
-        std::fs::remove_dir(junction.unwrap()).unwrap();
+        let junction = junction.unwrap();
+        assert!(super::metadata_is_reparse(
+            &std::fs::symlink_metadata(&junction).unwrap()
+        ));
+        std::fs::remove_dir(junction).unwrap();
         assert!(foreign.join("alpha.spx").is_file());
     }
 

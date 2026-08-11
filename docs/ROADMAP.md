@@ -576,6 +576,9 @@ Exit criterion: implement a zero-copy parser and server without a tracing GC.
 - Generated C headers and safe wrapper annotations.
 - Capability-sandboxed reproducible package builds.
 - Provenance, SBOM, license, and unsafe-code metadata.
+- Capability-sandboxed agent-tool components, a non-exporting secret-store
+  interface, signed/versioned model catalogs, and canonical audit events. Network,
+  home-directory, credential, and ambient tool access remain denied by default.
 
 Exit criterion: compose SEMAPRAX, Rust, and JavaScript components behind one interface contract.
 
@@ -586,6 +589,37 @@ Exit criterion: compose SEMAPRAX, Rust, and JavaScript components behind one int
 - Application state and semantic UI dialects.
 - DOM/CSS server rendering and hydration.
 - Platform adapters beginning with web, then Apple and Android.
+
+### Bounded native Agent profile
+
+- Add an opaque, non-forgeable `Agent` host resource that can run a local model or
+  an explicitly admitted provider model and act only through typed effects and
+  capability-scoped tools. It is not implicitly copyable, cannot expose provider
+  credentials, and cannot mint capabilities or approve its own actions.
+- Make autonomy a cancellable structured task with exact ceilings for turns,
+  elapsed time/fuel, input/output/model tokens, monetary cost, concurrency,
+  retries, and retained state. Human stop and policy revocation remain outside
+  model authority.
+- Support a versioned model router that may choose the cheapest authenticated
+  local or remote option meeting a caller-supplied quality floor, privacy/locality
+  rules, context limits, and capability requirements. Live prices, evaluations,
+  model availability, and provider behavior are expiring host inputs rather than
+  deterministic compiler facts; routing may fail closed but must not silently
+  weaken the policy.
+- Treat prompts, retrieved context, model output, tool descriptions, provider
+  metadata, and memory as untrusted data. Typed schema validation, provenance
+  labels, size/depth bounds, prompt/tool separation, escaping, and independent
+  semantic preflight are required before a proposed operation reaches a trusted
+  tool or SEMAPRAX transaction.
+- Record crash-safe, redacted audit events and deterministic fake-provider/local-
+  runner evidence for routing, cancellation, retry idempotency, injection,
+  malformed streaming output, capability rejection, and secret isolation.
+
+The object-oriented-agent concept is informed by this
+[non-normative NOOA review](https://wavect.io/blog/nvidia-nooa-object-oriented-agents-review/),
+but SEMAPRAX will define its own capability, ownership, and verification contract.
+No current language type, runtime, autonomous execution, model-quality guarantee,
+or model-output authority is claimed by this roadmap item.
 
 Exit criterion: ship one offline-first web/mobile validation application with shared logic and native escape hatches.
 
@@ -713,3 +747,50 @@ remain 38 Partial/18 Missing.
 - Audited ownership and unsafe boundaries.
 - Compatibility policy and migration tooling.
 - At least one production validation system maintained across releases.
+
+## Optional post-1.0 profile — Economic agents
+
+This profile depends on the bounded Agent profile plus public networking/HTTP,
+secure platform key storage, a reviewed cryptographic dependency policy, durable
+idempotency and reconciliation, package provenance, observability, and
+representative hosted target evidence. It does not make payments a compiler
+built-in and does not advance any current completion-matrix status.
+
+- Add a distinct opaque Wallet host resource. An “agent-owned wallet” means
+  policy-assigned account authority; seed phrases, private keys, credentials, and
+  signing material never enter source, Graph JSON, prompts, model memory, logs,
+  diagnostics, or provider requests. Prefer non-exportable secure-store, hardware,
+  secure-enclave, or independently governed threshold custody.
+- Use one typed `PaymentIntent` pipeline: untrusted agent proposal; deterministic
+  validation of chain/network, asset, recipient, amount, fee/slippage, expiry,
+  memo and idempotency; canonical unsigned transaction construction; independent
+  simulation and balance/allowance checks; policy or human approval; isolated
+  signing of the exact admitted bytes; broadcast; and durable confirmation,
+  replacement, reorg, and finality reconciliation. No omitted field is inferred
+  from prose.
+- Provide separate EVM, Solana, and Bitcoin adapters behind that intent boundary.
+  EVM binds chain ID, nonce, contract/calldata, value/token and gas caps; Solana
+  binds cluster, blockhash/nonce policy, ordered accounts/programs, mint and
+  compute budget; Bitcoin binds network, UTXOs, outputs/change, fee policy,
+  locktime/sequence, PSBT and sighash policy. Cross-chain differences are never
+  flattened into unauthenticated defaults.
+- Admit only capability-scoped spending: exact chain/network, asset or contract,
+  recipient/origin allowlists, per-transaction and rolling budgets, fee ceilings,
+  deadlines, rate/concurrency limits, and approval tiers. Wildcard mainnet access,
+  unlimited token approvals, redirects, substituted programs/contracts, and
+  self-expanded policy fail closed.
+- Treat x402-style HTTP payments as an adapter that binds the TLS origin, method,
+  normalized resource, invoice digest, payee, chain/network, asset, amount,
+  expiry, nonce/idempotency key, and receipt. Server headers and bodies remain
+  hostile; redirects, SSRF/private-network escalation, invoice replay, recipient
+  substitution, and model-edited payment headers must be rejected independently.
+
+The payment protocol survey is informed by this
+[non-normative x402 comparison](https://wavect.io/blog/x402-payments-comparison-2026/).
+External transfers remain irreversible, nondeterministic effects outside
+Workspace/A0 atomicity. This profile claims neither exactly-once cross-chain
+payment nor guaranteed finality, recovery from compromised keys/providers/chains,
+tax/accounting/compliance correctness, mainnet authority, or compiler verification
+of external settlement. Promotion starts on testnet/regtest/local validators with
+independent transaction/signing vectors, mutation and replay hostility, strict
+spend caps, crash-before/after-sign/broadcast tests, and reorg reconciliation.

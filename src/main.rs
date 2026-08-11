@@ -230,6 +230,21 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             print!("{output}");
             Ok(())
         }
+        "verify-semantic-workspace-change-evidence" => {
+            if args.len() != 4 {
+                eprintln!(
+                    "verify-semantic-workspace-change-evidence requires exactly <root> <proposal.json> <evidence.json>"
+                );
+                return Err(2);
+            }
+            let root = required_path(&args, 1)?;
+            let proposal = required_path(&args, 2)?;
+            let evidence = required_path(&args, 3)?;
+            let receipt = semantic_workspace_change::verify(&root, &proposal, &evidence)
+                .map_err(|errors| report(&errors, false))?;
+            print!("{receipt}");
+            Ok(())
+        }
         "workspace-snapshot" => {
             if args.len() != 2 {
                 eprintln!("workspace-snapshot requires exactly <root>");
@@ -876,6 +891,7 @@ fn print_help() {
            semaprax semantic-workspace-init <root> <path-set.json>\n\
            semaprax semantic-workspace-change-preview <root> <proposal.json>\n\
            semaprax semantic-workspace-change-evidence <root> <proposal.json>\n\
+           semaprax verify-semantic-workspace-change-evidence <root> <proposal.json> <evidence.json>\n\
            semaprax workspace-snapshot <root>\n\
            semaprax workspace-graph <root> <entry-module>\n\
            semaprax workspace-context <root> <entry-module> <declaration|capability> <target> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N]\n\

@@ -2,9 +2,10 @@
 //!
 //! The public routes own one canonical proposal file while holding the shared
 //! semantic-workspace lock, validate the complete replacements-only candidate,
-//! and return bounded canonical Preview or Evidence artifacts. This module has
-//! no evidence verifier, receipt, exclusive lock, stage, publish, ACTIVE pivot,
-//! apply, commit, backend, runtime, token, signature, or approval authority.
+//! and return bounded canonical Preview or Evidence artifacts. Submitted
+//! Evidence can be verified by exact replay into a one-invocation receipt.
+//! This module has no exclusive lock, stage, publish, ACTIVE pivot, apply,
+//! commit, backend, runtime, token, signature, or approval authority.
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fmt::Write as _;
@@ -19,6 +20,7 @@ use crate::diagnostic::Diagnostic;
 use crate::{hir, semantic_workspace, workspace, workspace_graph};
 
 mod artifact;
+mod verification;
 
 pub use artifact::SemanticWorkspaceChangeArtifacts;
 
@@ -48,7 +50,7 @@ fn generate_with_operation_hook(
     }
     let (authority, change_set) = locked.authenticate(proposal)?;
     with_authenticated_change_authority(authority, change_set, |prepared| {
-        let artifacts = artifact::render_artifacts(prepared)?;
+        let artifacts = artifact::render_artifacts(&prepared)?;
         hook(GeneratePoint::ArtifactsRendered);
         Ok(artifacts)
     })
@@ -75,6 +77,62 @@ pub fn preview(root: &Path, proposal_path: &Path) -> Result<String, Vec<Diagnost
 /// Generates the canonical Change Evidence capsule, including its terminal LF.
 pub fn evidence(root: &Path, proposal_path: &Path) -> Result<String, Vec<Diagnostic>> {
     generate(root, proposal_path).map(artifact::SemanticWorkspaceChangeArtifacts::into_evidence)
+}
+
+/// Verifies one submitted Change Evidence capsule by exact authenticated replay.
+pub fn verify(
+    root: &Path,
+    proposal_path: &Path,
+    evidence_path: &Path,
+) -> Result<String, Vec<Diagnostic>> {
+    verify_with_operation_hook(root, proposal_path, evidence_path, |_| {})
+}
+
+#[derive(Clone, Copy)]
+enum VerifyPoint {
+    ProposalOwned,
+    EvidenceOwned,
+    ReceiptRendered,
+}
+
+fn verify_with_operation_hook(
+    root: &Path,
+    proposal_path: &Path,
+    evidence_path: &Path,
+    mut hook: impl FnMut(VerifyPoint),
+) -> Result<String, Vec<Diagnostic>> {
+    let locked = workspace::acquire_semantic_change_lock(root)?;
+    let input = read_proposal(proposal_path).and_then(|proposal_source| {
+        hook(VerifyPoint::ProposalOwned);
+        let evidence_source = verification::read_evidence(evidence_path)?;
+        let submitted = verification::parse_evidence(&evidence_source)?;
+        hook(VerifyPoint::EvidenceOwned);
+        let change_set = parse_proposal(&proposal_source)?;
+        Ok((change_set, evidence_source, submitted))
+    });
+    let (authority, (change_set, evidence_source, submitted)) = locked.authenticate(input)?;
+    with_authenticated_change_authority(authority, change_set, |prepared| {
+        let artifacts = artifact::render_artifacts(&prepared)?;
+        verification::verify_replay(&submitted, &evidence_source, &artifacts)?;
+        let receipt =
+            artifact::render_verification_receipt(&prepared, &artifacts, evidence_source.len())?;
+        hook(VerifyPoint::ReceiptRendered);
+        Ok(receipt)
+    })
+}
+
+#[cfg(test)]
+#[allow(
+    dead_code,
+    reason = "test-only boundary hook supports owned-input and final-recheck regressions"
+)]
+fn verify_with_hook(
+    root: &Path,
+    proposal_path: &Path,
+    evidence_path: &Path,
+    hook: impl FnMut(VerifyPoint),
+) -> Result<String, Vec<Diagnostic>> {
+    verify_with_operation_hook(root, proposal_path, evidence_path, hook)
 }
 
 pub(crate) const SCHEMA: &str = "semaprax.workspace-semantic-change.v1";
@@ -3356,6 +3414,68 @@ fn main() -> i64 { 0 }
             assert_eq!(std::fs::read(&proposal_path).unwrap(), replacement);
             fixture.assert_exclusive_reacquire();
         }
+    }
+
+    #[test]
+    fn verifier_owned_inputs_never_reopen_and_final_drift_discards_receipt() {
+        let fixture = Fixture::new("verify-owned-inputs");
+        let proposal_path = fixture.root.join("change.json");
+        let evidence_path = fixture.root.join("evidence.json");
+        let proposal_source = fixture.proposal().source().to_owned();
+        std::fs::write(&proposal_path, &proposal_source).unwrap();
+        let evidence_source = evidence(&fixture.root, &proposal_path).unwrap();
+        std::fs::write(&evidence_path, &evidence_source).unwrap();
+        let baseline = verify(&fixture.root, &proposal_path, &evidence_path).unwrap();
+
+        for replace_at in ["proposal", "evidence"] {
+            std::fs::write(&proposal_path, &proposal_source).unwrap();
+            std::fs::write(&evidence_path, &evidence_source).unwrap();
+            let replacement = fixture
+                .root
+                .join(format!("verify-{replace_at}-replacement"));
+            std::fs::write(&replacement, b"{}\n").unwrap();
+            let receipt = verify_with_hook(
+                &fixture.root,
+                &proposal_path,
+                &evidence_path,
+                |point| match (replace_at, point) {
+                    ("proposal", VerifyPoint::ProposalOwned) => {
+                        std::fs::rename(&replacement, &proposal_path).unwrap();
+                    }
+                    ("evidence", VerifyPoint::EvidenceOwned) => {
+                        std::fs::rename(&replacement, &evidence_path).unwrap();
+                    }
+                    _ => {}
+                },
+            )
+            .unwrap();
+            assert_eq!(receipt, baseline);
+            fixture.assert_exclusive_reacquire();
+        }
+
+        std::fs::write(&proposal_path, &proposal_source).unwrap();
+        std::fs::write(&evidence_path, &evidence_source).unwrap();
+        let called = std::cell::Cell::new(false);
+        let result = verify_with_hook(&fixture.root, &proposal_path, &evidence_path, |point| {
+            if matches!(point, VerifyPoint::ReceiptRendered) {
+                called.set(true);
+                OpenOptions::new()
+                    .append(true)
+                    .open(fixture.root.join(".semaprax-workspace/ACTIVE"))
+                    .unwrap()
+                    .write_all(b"x")
+                    .unwrap();
+            }
+        });
+        assert!(called.get());
+        let error = result.err().unwrap();
+        assert_eq!(error.len(), 1);
+        assert_eq!(error[0].code, "SPX-G153");
+        assert_eq!(
+            error[0].message,
+            "workspace object changed during authentication"
+        );
+        fixture.assert_exclusive_reacquire();
     }
 
     #[test]

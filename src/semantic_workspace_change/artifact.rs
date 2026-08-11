@@ -25,7 +25,9 @@ const PREVIEW_SCHEMA: &str = "semaprax.workspace-semantic-change-preview.v1";
 const CONTEXT_SCHEMA: &str = "semaprax.workspace-semantic-change-context.v1";
 const IMPACT_SCHEMA: &str = "semaprax.workspace-semantic-change-impact.v1";
 const REVIEW_SCHEMA: &str = "semaprax.workspace-semantic-change-review.v1";
-const EVIDENCE_SCHEMA: &str = "semaprax.workspace-semantic-change-evidence.v1";
+pub(super) const EVIDENCE_SCHEMA: &str = "semaprax.workspace-semantic-change-evidence.v1";
+pub(super) const RECEIPT_SCHEMA: &str =
+    "semaprax.workspace-semantic-change-evidence-verification.v1";
 const GRAPH_SCHEMA: &str = "semaprax.workspace-semantic-graph.v1";
 const MANIFEST_SCHEMA: &str = "semaprax.workspace-semantic-manifest.v1";
 
@@ -40,7 +42,7 @@ const IMPACT_DIGEST_DOMAIN: &[u8] =
     b"semaprax.workspace-semantic-change-impact.artifact-digest.v1\0";
 const REVIEW_DIGEST_DOMAIN: &[u8] =
     b"semaprax.workspace-semantic-change-review.artifact-digest.v1\0";
-const EVIDENCE_DIGEST_DOMAIN: &[u8] =
+pub(super) const EVIDENCE_DIGEST_DOMAIN: &[u8] =
     b"semaprax.workspace-semantic-change-evidence.artifact-digest.v1\0";
 
 const MAX_TOTAL_BASE_SOURCE_BYTES: usize = 16 * 1024 * 1024;
@@ -52,8 +54,8 @@ const MAX_PREVIEW_BYTES: usize = 32 * 1024 * 1024;
 const MAX_CONTEXT_BYTES: usize = 16 * 1024 * 1024;
 const MAX_IMPACT_BYTES: usize = 32 * 1024 * 1024;
 const MAX_REVIEW_BYTES: usize = 16 * 1024 * 1024;
-const MAX_EVIDENCE_BYTES: usize = 1024 * 1024;
-const MAX_RECEIPT_BYTES: usize = 65_536;
+pub(super) const MAX_EVIDENCE_BYTES: usize = 1024 * 1024;
+pub(super) const MAX_RECEIPT_BYTES: usize = 65_536;
 const MAX_TOTAL_ARTIFACT_BYTES: usize = 96 * 1024 * 1024;
 
 const NONCLAIMS: [&str; 19] = [
@@ -218,7 +220,7 @@ pub(crate) fn build_authenticated_artifacts(
     root: &Path,
     change_set: SemanticWorkspaceChangeSet,
 ) -> Result<SemanticWorkspaceChangeArtifacts, Vec<Diagnostic>> {
-    with_authenticated_change(root, change_set, render_artifacts)
+    with_authenticated_change(root, change_set, |prepared| render_artifacts(&prepared))
 }
 
 #[cfg(test)]
@@ -228,7 +230,7 @@ fn build_authenticated_artifacts_with_hook(
     after_render: impl FnOnce(&SemanticWorkspaceChangeArtifacts),
 ) -> Result<SemanticWorkspaceChangeArtifacts, Vec<Diagnostic>> {
     with_authenticated_change(root, change_set, |prepared| {
-        let artifacts = render_artifacts(prepared)?;
+        let artifacts = render_artifacts(&prepared)?;
         after_render(&artifacts);
         Ok(artifacts)
     })
@@ -268,9 +270,9 @@ struct Usage {
 }
 
 pub(super) fn render_artifacts(
-    prepared: SemanticWorkspacePreparedChange,
+    prepared: &SemanticWorkspacePreparedChange,
 ) -> Result<SemanticWorkspaceChangeArtifacts, Vec<Diagnostic>> {
-    replay_prepared(&prepared)?;
+    replay_prepared(prepared)?;
     let proposal_digest = digest(PROPOSAL_DIGEST_DOMAIN, prepared.proposal_source.as_bytes());
     let candidate_manifest_digest = digest(
         CANDIDATE_MANIFEST_DIGEST_DOMAIN,
@@ -278,7 +280,7 @@ pub(super) fn render_artifacts(
     );
     let mut sizes = ArtifactSizes::default();
     for _ in 0..24 {
-        let usage = usage(&prepared, sizes, 0)?;
+        let usage = usage(prepared, sizes, 0)?;
         let mut remaining = MAX_TOTAL_ARTIFACT_BYTES
             .checked_sub(prepared.proposal_source.len())
             .ok_or_else(|| limit("total_artifact_bytes", MAX_TOTAL_ARTIFACT_BYTES))?;
@@ -291,7 +293,7 @@ pub(super) fn render_artifacts(
             |output| {
                 render_preview(
                     output,
-                    &prepared,
+                    prepared,
                     &proposal_digest,
                     &candidate_manifest_digest,
                     usage,
@@ -307,7 +309,7 @@ pub(super) fn render_artifacts(
             MAX_CONTEXT_BYTES,
             "context_bytes",
             remaining,
-            |output| render_context(output, &prepared, &proposal_digest, &preview, usage),
+            |output| render_context(output, prepared, &proposal_digest, &preview, usage),
         )?;
         remaining = remaining
             .checked_sub(context.bytes.len())
@@ -321,7 +323,7 @@ pub(super) fn render_artifacts(
             |output| {
                 render_impact(
                     output,
-                    &prepared,
+                    prepared,
                     &proposal_digest,
                     &preview,
                     &context,
@@ -346,7 +348,7 @@ pub(super) fn render_artifacts(
             MAX_REVIEW_BYTES,
             "review_bytes",
             remaining,
-            |output| render_review(output, &prepared, children, usage),
+            |output| render_review(output, prepared, children, usage),
         )?;
         remaining = remaining
             .checked_sub(review.bytes.len())
@@ -361,7 +363,7 @@ pub(super) fn render_artifacts(
             MAX_EVIDENCE_BYTES,
             "evidence_bytes",
             remaining,
-            |output| render_evidence(output, &prepared, children, usage),
+            |output| render_evidence(output, prepared, children, usage),
         )?;
         let artifacts = SemanticWorkspaceChangeArtifacts {
             proposal_digest: proposal_digest.clone(),
@@ -388,6 +390,68 @@ pub(super) fn render_artifacts(
     Err(replay(
         "Semantic Workspace Change artifact budget fixed point disagrees",
     ))
+}
+
+pub(super) fn render_verification_receipt(
+    prepared: &SemanticWorkspacePreparedChange,
+    artifacts: &SemanticWorkspaceChangeArtifacts,
+    submitted_evidence_bytes: usize,
+) -> Result<String, Vec<Diagnostic>> {
+    if submitted_evidence_bytes != artifacts.evidence.bytes.len() {
+        return Err(evidence_replay());
+    }
+    let sizes = ArtifactSizes {
+        preview: artifacts.preview.bytes.len(),
+        context: artifacts.context.bytes.len(),
+        impact: artifacts.impact.bytes.len(),
+        review: artifacts.review.bytes.len(),
+        evidence: submitted_evidence_bytes,
+    };
+    let without_receipt = [
+        prepared.proposal_source.len(),
+        sizes.preview,
+        sizes.context,
+        sizes.impact,
+        sizes.review,
+        sizes.evidence,
+    ]
+    .into_iter()
+    .try_fold(0usize, usize::checked_add)
+    .ok_or_else(|| limit("total_artifact_bytes", MAX_TOTAL_ARTIFACT_BYTES))?;
+    let aggregate_remaining = MAX_TOTAL_ARTIFACT_BYTES
+        .checked_sub(without_receipt)
+        .ok_or_else(|| limit("total_artifact_bytes", MAX_TOTAL_ARTIFACT_BYTES))?;
+    let receipt_limit = MAX_RECEIPT_BYTES.min(aggregate_remaining);
+    let mut receipt_bytes = 0usize;
+    for _ in 0..24 {
+        let usage = usage(prepared, sizes, receipt_bytes)?;
+        let (receipt, overflowed) = crate::bounded_output::with_limit(receipt_limit, || {
+            let mut output = CappedString::new();
+            render_receipt(&mut output, prepared, artifacts, usage);
+            output.into_string()
+        });
+        if overflowed {
+            return if aggregate_remaining < MAX_RECEIPT_BYTES {
+                Err(limit("total_artifact_bytes", MAX_TOTAL_ARTIFACT_BYTES))
+            } else {
+                Err(limit("receipt_bytes", MAX_RECEIPT_BYTES))
+            };
+        }
+        if receipt.len() == receipt_bytes {
+            return Ok(receipt);
+        }
+        receipt_bytes = receipt.len();
+    }
+    Err(replay(
+        "Semantic Workspace Change verification receipt budget fixed point disagrees",
+    ))
+}
+
+fn evidence_replay() -> Vec<Diagnostic> {
+    vec![Diagnostic::io(
+        "SPX-G187",
+        "Semantic Workspace Change Evidence does not exactly replay the authenticated proposal and candidate",
+    )]
 }
 
 fn usage(
@@ -960,6 +1024,56 @@ fn render_evidence(
             .review
             .expect("Evidence rendering requires the retained Review artifact"),
     );
+    output.push_str(",\"files\":");
+    push_files(output, &prepared.changed_files);
+    output.push_str(",\"limits\":");
+    push_limits(output);
+    output.push_str(",\"budget\":");
+    push_budget(output, usage);
+    output.push_str(",\"nonclaims\":");
+    push_nonclaims(output);
+    output.push_str("}\n");
+}
+
+fn render_receipt(
+    output: &mut CappedString,
+    prepared: &SemanticWorkspacePreparedChange,
+    artifacts: &SemanticWorkspaceChangeArtifacts,
+    usage: Usage,
+) {
+    output.push_str("{\"schema\":");
+    push_json(output, RECEIPT_SCHEMA);
+    output.push_str(",\"result\":\"exact_replay\",\"workspace_manifest_schema\":");
+    push_json(output, MANIFEST_SCHEMA);
+    push_common_change_members(output, prepared);
+    output.push_str(",\"proposal\":");
+    push_ref(
+        output,
+        super::SCHEMA,
+        &artifacts.proposal_digest,
+        prepared.proposal_source.len(),
+    );
+    output.push_str(",\"base_workspace_graph\":");
+    push_graph_ref(output, prepared.base_workspace_graph_digest());
+    output.push_str(",\"candidate_workspace_graph\":");
+    push_graph_ref(output, prepared.candidate_workspace_graph_digest());
+    output.push_str(",\"candidate_manifest\":");
+    push_ref(
+        output,
+        MANIFEST_SCHEMA,
+        &artifacts.candidate_manifest_digest,
+        prepared.candidate_manifest.len(),
+    );
+    output.push_str(",\"change_preview\":");
+    push_artifact_ref(output, &artifacts.preview);
+    output.push_str(",\"context\":");
+    push_artifact_ref(output, &artifacts.context);
+    output.push_str(",\"impact\":");
+    push_artifact_ref(output, &artifacts.impact);
+    output.push_str(",\"review\":");
+    push_artifact_ref(output, &artifacts.review);
+    output.push_str(",\"workspace_change_evidence\":");
+    push_artifact_ref(output, &artifacts.evidence);
     output.push_str(",\"files\":");
     push_files(output, &prepared.changed_files);
     output.push_str(",\"limits\":");
@@ -1628,7 +1742,7 @@ mod tests {
         let mut exact_builder =
             super::super::build_authenticated_change(&fixture.root, fixture.proposal()).unwrap();
         exact_builder.used_builder_bytes = MAX_ANALYSIS_BUILDER_BYTES;
-        let exact = render_artifacts(exact_builder).unwrap();
+        let exact = render_artifacts(&exact_builder).unwrap();
         let evidence: Value = serde_json::from_str(exact.evidence()).unwrap();
         assert_eq!(
             evidence["budget"]["used_analysis_builder_bytes"],
@@ -1637,7 +1751,7 @@ mod tests {
         let mut over_builder =
             super::super::build_authenticated_change(&fixture.root, fixture.proposal()).unwrap();
         over_builder.used_builder_bytes = MAX_ANALYSIS_BUILDER_BYTES + 1;
-        let error = render_artifacts(over_builder)
+        let error = render_artifacts(&over_builder)
             .err()
             .expect("over-limit builder must fail");
         assert_eq!(error[0].code, "SPX-G183");
@@ -1657,7 +1771,7 @@ mod tests {
             })
             .unwrap();
         incomplete_context.context_nodes.remove(index);
-        let error = render_artifacts(incomplete_context)
+        let error = render_artifacts(&incomplete_context)
             .err()
             .expect("incomplete Context must fail");
         assert_eq!(error[0].code, "SPX-G186");
@@ -1666,7 +1780,7 @@ mod tests {
         incomplete_provenance.impact[0]
             .root_provenance
             .push(incomplete_provenance.roots.len());
-        let error = render_artifacts(incomplete_provenance)
+        let error = render_artifacts(&incomplete_provenance)
             .err()
             .expect("incomplete provenance must fail");
         assert_eq!(error[0].code, "SPX-G186");

@@ -407,3 +407,230 @@ fn hostile_proposal_inputs_fail_exactly_and_release_the_shared_lock() {
         }
     }
 }
+
+fn replace_digest_character(source: &str, field: &str) -> String {
+    let field_index = source.find(field).unwrap();
+    let digest_index = field_index + source[field_index..].find("sha256:").unwrap() + 7;
+    let mut bytes = source.as_bytes().to_vec();
+    bytes[digest_index] = if bytes[digest_index] == b'0' {
+        b'1'
+    } else {
+        b'0'
+    };
+    String::from_utf8(bytes).unwrap()
+}
+
+#[test]
+fn verification_receipt_api_cli_kat_shared_lock_and_no_write() {
+    let fixture = Fixture::new("verification-receipt");
+    let artifacts = semantic_workspace_change::generate(&fixture.root, &fixture.proposal).unwrap();
+    let evidence_path = fixture.root.join("evidence.json");
+    std::fs::write(&evidence_path, artifacts.evidence()).unwrap();
+    let before = inventory(&fixture.root);
+    let shared = fixture.lock();
+    FileExt::lock_shared(&shared).unwrap();
+    let competing = fixture.lock();
+    assert!(competing.try_lock_exclusive().is_err());
+    let receipt =
+        semantic_workspace_change::verify(&fixture.root, &fixture.proposal, &evidence_path)
+            .unwrap();
+    assert!(receipt.ends_with('\n'));
+    assert!(!receipt[..receipt.len() - 1].contains('\n'));
+    assert_eq!(
+        raw_sha(&receipt),
+        "sha256:564bdc6b50e475b68321787997aab2b4e96ad23397212e0efefe45b8895561c0"
+    );
+    let value: serde_json::Value = serde_json::from_str(&receipt).unwrap();
+    assert_eq!(
+        value["schema"],
+        "semaprax.workspace-semantic-change-evidence-verification.v1"
+    );
+    assert_eq!(value["result"], "exact_replay");
+    assert_eq!(value["proposal"]["digest"], artifacts.proposal_digest());
+    assert_eq!(
+        value["change_preview"]["digest"],
+        artifacts.preview_digest()
+    );
+    assert_eq!(value["context"]["digest"], artifacts.context_digest());
+    assert_eq!(value["impact"]["digest"], artifacts.impact_digest());
+    assert_eq!(value["review"]["digest"], artifacts.review_digest());
+    assert_eq!(
+        value["workspace_change_evidence"]["digest"],
+        artifacts.evidence_digest()
+    );
+    assert_eq!(
+        value["workspace_change_evidence"]["bytes"],
+        artifacts.evidence().len()
+    );
+    let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .arg("verify-semantic-workspace-change-evidence")
+        .arg(&fixture.root)
+        .arg(&fixture.proposal)
+        .arg(&evidence_path)
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    assert_eq!(output.stdout, receipt.as_bytes());
+    assert_eq!(inventory(&fixture.root), before);
+    FileExt::unlock(&shared).unwrap();
+    competing.try_lock_exclusive().unwrap();
+    FileExt::unlock(&competing).unwrap();
+}
+
+#[test]
+fn evidence_parser_replay_confusion_and_read_hostiles_fail_closed() {
+    let fixture = Fixture::new("verification-hostiles");
+    let evidence = semantic_workspace_change::evidence(&fixture.root, &fixture.proposal).unwrap();
+    let evidence_path = fixture.root.join("evidence.json");
+    std::fs::write(&evidence_path, &evidence).unwrap();
+    let receipt =
+        semantic_workspace_change::verify(&fixture.root, &fixture.proposal, &evidence_path)
+            .unwrap();
+
+    for arguments in [
+        vec!["verify-semantic-workspace-change-evidence"],
+        vec![
+            "verify-semantic-workspace-change-evidence",
+            "root",
+            "proposal",
+            "evidence",
+            "extra",
+        ],
+    ] {
+        let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+            .args(arguments)
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stdout.is_empty());
+        assert_eq!(
+            String::from_utf8(output.stderr).unwrap(),
+            "verify-semantic-workspace-change-evidence requires exactly <root> <proposal.json> <evidence.json>\n"
+        );
+    }
+
+    for (proposal, submitted, message) in [
+        (
+            fixture.root.join("missing-proposal.json"),
+            evidence_path.clone(),
+            "could not read Semantic Workspace Change proposal: open failed",
+        ),
+        (
+            fixture.proposal.clone(),
+            fixture.root.join("missing-evidence.json"),
+            "could not read Semantic Workspace Change Evidence: open failed",
+        ),
+    ] {
+        let error =
+            semantic_workspace_change::verify(&fixture.root, &proposal, &submitted).unwrap_err();
+        assert_eq!(error[0].code, "SPX-I214");
+        assert_eq!(error[0].message, message);
+        let lock = fixture.lock();
+        lock.try_lock_exclusive().unwrap();
+        FileExt::unlock(&lock).unwrap();
+    }
+
+    let body = evidence.trim_end_matches('\n');
+    let first = body.find(',').unwrap();
+    let second = first + 1 + body[first + 1..].find(',').unwrap();
+    let reordered = format!(
+        "{{{},{},{}\n",
+        &body[first + 1..second],
+        &body[1..first],
+        &body[second + 1..]
+    );
+    let format_cases = [
+        evidence.trim_end_matches('\n').to_owned(),
+        evidence.replace('\n', "\r\n"),
+        format!("\u{feff}{evidence}"),
+        evidence.replacen(
+            "{\"schema\":",
+            "{\"extra\":0,\"schema\":",
+            1,
+        ),
+        evidence.replacen(
+            "{\"schema\":\"semaprax.workspace-semantic-change-evidence.v1\",",
+            "{\"schema\":\"semaprax.workspace-semantic-change-evidence.v1\",\"schema\":\"semaprax.workspace-semantic-change-evidence.v1\",",
+            1,
+        ),
+        evidence.replacen(",\"entry_module\":\"change.entry\"", "", 1),
+        reordered,
+    ];
+    for (index, hostile) in format_cases.into_iter().enumerate() {
+        let path = fixture.root.join(format!("format-{index}.json"));
+        std::fs::write(&path, hostile).unwrap();
+        let error =
+            semantic_workspace_change::verify(&fixture.root, &fixture.proposal, &path).unwrap_err();
+        assert_eq!(error.len(), 1);
+        assert_eq!(error[0].code, "SPX-G185");
+    }
+
+    for (index, hostile) in [
+        evidence.replace(
+            "\"entry_module\":\"change.entry\"",
+            "\"entry_module\":\"change.entra\"",
+        ),
+        replace_digest_character(&evidence, "\"proposal\""),
+        replace_digest_character(&evidence, "\"change_preview\""),
+        replace_digest_character(&evidence, "\"candidate_source_digest\""),
+        evidence.replacen("\"max_managed_files\":16", "\"max_managed_files\":15", 1),
+        evidence.replacen(
+            "not_signature_or_authenticated_provenance",
+            "not_signature_or_authenticated_provenancf",
+            1,
+        ),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let path = fixture.root.join(format!("replay-{index}.json"));
+        std::fs::write(&path, hostile).unwrap();
+        let error =
+            semantic_workspace_change::verify(&fixture.root, &fixture.proposal, &path).unwrap_err();
+        assert_eq!(error.len(), 1);
+        assert_eq!(error[0].code, "SPX-G187");
+    }
+
+    let receipt_path = fixture.root.join("receipt-as-evidence.json");
+    std::fs::write(&receipt_path, receipt).unwrap();
+    let error = semantic_workspace_change::verify(&fixture.root, &fixture.proposal, &receipt_path)
+        .unwrap_err();
+    assert_eq!(error[0].code, "SPX-G185");
+    assert_eq!(
+        error[0].message,
+        "Semantic Workspace Change Evidence must be one canonical JSON line with one terminal LF: receipt and capsule schemas are confused"
+    );
+
+    let directory = fixture.root.join("evidence-directory");
+    std::fs::create_dir(&directory).unwrap();
+    let invalid = fixture.root.join("evidence-invalid.json");
+    std::fs::write(&invalid, [0xff]).unwrap();
+    let sparse = fixture.root.join("evidence-sparse.json");
+    File::create(&sparse).unwrap().set_len(1_048_577).unwrap();
+    for (path, code, message) in [
+        (
+            directory.as_path(),
+            "SPX-I214",
+            "could not read Semantic Workspace Change Evidence: input is not a regular file",
+        ),
+        (
+            invalid.as_path(),
+            "SPX-I214",
+            "could not read Semantic Workspace Change Evidence: input is not UTF-8",
+        ),
+        (
+            sparse.as_path(),
+            "SPX-G183",
+            "Semantic Workspace Change `evidence_bytes` exceeds 1048576",
+        ),
+    ] {
+        let error =
+            semantic_workspace_change::verify(&fixture.root, &fixture.proposal, path).unwrap_err();
+        assert_eq!(error[0].code, code);
+        assert_eq!(error[0].message, message);
+        let lock = fixture.lock();
+        lock.try_lock_exclusive().unwrap();
+        FileExt::unlock(&lock).unwrap();
+    }
+}

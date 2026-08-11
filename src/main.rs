@@ -4,8 +4,8 @@ use std::process::{Command, ExitCode};
 use semaprax::diagnostic::{Diagnostic, Severity};
 use semaprax::{
     agent_economics, codegen, format, graph, impact, parse, patch, patch_evidence, quality_route,
-    repair, review, semantic_workspace, target_evidence, verify, wasm, workspace, workspace_graph,
-    workspace_patch_evidence,
+    repair, review, semantic_workspace, target_evidence, verify, wasm, workspace,
+    workspace_analysis, workspace_graph, workspace_patch_evidence,
 };
 
 fn main() -> ExitCode {
@@ -222,6 +222,49 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             let graph = workspace_graph::snapshot(&root, entry_module)
                 .map_err(|errors| report(&errors, false))?;
             println!("{}", graph.to_json());
+            Ok(())
+        }
+        "workspace-context" => {
+            if args.len() < 5 {
+                eprintln!("workspace-context requires <root> <entry-module> <declaration|capability> <target> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N]");
+                return Err(2);
+            }
+            let root = required_path(&args, 1)?;
+            let entry_module = &args[2];
+            let target_kind = workspace_analysis_target_kind("workspace-context", &args[3])?;
+            let options = workspace_context_options(&args)?;
+            let output =
+                workspace_analysis::context(&root, entry_module, target_kind, &args[4], options)
+                    .map_err(|errors| report(&errors, false))?;
+            println!("{output}");
+            Ok(())
+        }
+        "workspace-impact" => {
+            if args.len() < 5 {
+                eprintln!("workspace-impact requires <root> <entry-module> <declaration|capability> <target> [--depth N] [--max-bytes N] [--max-nodes N]");
+                return Err(2);
+            }
+            let root = required_path(&args, 1)?;
+            let entry_module = &args[2];
+            let target_kind = workspace_analysis_target_kind("workspace-impact", &args[3])?;
+            let options = workspace_impact_options(&args)?;
+            let output =
+                workspace_analysis::impact(&root, entry_module, target_kind, &args[4], options)
+                    .map_err(|errors| report(&errors, false))?;
+            println!("{output}");
+            Ok(())
+        }
+        "workspace-review" => {
+            if args.len() != 5 {
+                eprintln!("workspace-review requires exactly <root> <entry-module> <declaration|capability> <target>");
+                return Err(2);
+            }
+            let root = required_path(&args, 1)?;
+            let entry_module = &args[2];
+            let target_kind = workspace_analysis_target_kind("workspace-review", &args[3])?;
+            let output = workspace_analysis::review(&root, entry_module, target_kind, &args[4])
+                .map_err(|errors| report(&errors, false))?;
+            println!("{output}");
             Ok(())
         }
         "workspace-preview" => {
@@ -457,6 +500,127 @@ fn run(args: Vec<String>) -> Result<(), u8> {
     }
 }
 
+fn workspace_analysis_target_kind(
+    command: &str,
+    value: &str,
+) -> Result<workspace_analysis::WorkspaceAnalysisTargetKind, u8> {
+    match value {
+        "declaration" => Ok(workspace_analysis::WorkspaceAnalysisTargetKind::Declaration),
+        "capability" => Ok(workspace_analysis::WorkspaceAnalysisTargetKind::Capability),
+        _ => {
+            eprintln!("{command} target kind must be `declaration` or `capability`");
+            Err(2)
+        }
+    }
+}
+
+fn workspace_context_options(
+    args: &[String],
+) -> Result<workspace_analysis::WorkspaceContextOptions, u8> {
+    let mut direction = workspace_analysis::WorkspaceAnalysisDirection::Both;
+    let mut depth = 4usize;
+    let mut max_bytes = 1024 * 1024usize;
+    let mut max_nodes = 1024usize;
+    let mut seen = std::collections::BTreeSet::new();
+    let mut index = 5usize;
+    while index < args.len() {
+        let option = args[index].as_str();
+        if !matches!(
+            option,
+            "--direction" | "--depth" | "--max-bytes" | "--max-nodes"
+        ) {
+            eprintln!("unknown workspace-context option `{option}`");
+            return Err(2);
+        }
+        if !seen.insert(option.to_owned()) {
+            eprintln!("duplicate workspace-context option `{option}`");
+            return Err(2);
+        }
+        let value = args.get(index + 1).ok_or_else(|| {
+            eprintln!("workspace-context option `{option}` requires a value");
+            2
+        })?;
+        match option {
+            "--direction" => {
+                direction = match value.as_str() {
+                    "forward" => workspace_analysis::WorkspaceAnalysisDirection::Forward,
+                    "reverse" => workspace_analysis::WorkspaceAnalysisDirection::Reverse,
+                    "both" => workspace_analysis::WorkspaceAnalysisDirection::Both,
+                    _ => {
+                        eprintln!("unknown workspace-context direction `{value}`");
+                        return Err(2);
+                    }
+                };
+            }
+            "--depth" => depth = workspace_analysis_number("workspace-context", option, value)?,
+            "--max-bytes" => {
+                max_bytes = workspace_analysis_number("workspace-context", option, value)?;
+            }
+            "--max-nodes" => {
+                max_nodes = workspace_analysis_number("workspace-context", option, value)?;
+            }
+            _ => unreachable!("closed workspace-context option table"),
+        }
+        index += 2;
+    }
+    workspace_analysis::WorkspaceContextOptions::new(direction, depth, max_bytes, max_nodes)
+        .map_err(|error| {
+            eprintln!("{error}");
+            2
+        })
+}
+
+fn workspace_impact_options(
+    args: &[String],
+) -> Result<workspace_analysis::WorkspaceImpactOptions, u8> {
+    let mut depth = 16usize;
+    let mut max_bytes = 1024 * 1024usize;
+    let mut max_nodes = 1024usize;
+    let mut seen = std::collections::BTreeSet::new();
+    let mut index = 5usize;
+    while index < args.len() {
+        let option = args[index].as_str();
+        if !matches!(option, "--depth" | "--max-bytes" | "--max-nodes") {
+            eprintln!("unknown workspace-impact option `{option}`");
+            return Err(2);
+        }
+        if !seen.insert(option.to_owned()) {
+            eprintln!("duplicate workspace-impact option `{option}`");
+            return Err(2);
+        }
+        let value = args.get(index + 1).ok_or_else(|| {
+            eprintln!("workspace-impact option `{option}` requires a value");
+            2
+        })?;
+        let value = workspace_analysis_number("workspace-impact", option, value)?;
+        match option {
+            "--depth" => depth = value,
+            "--max-bytes" => max_bytes = value,
+            "--max-nodes" => max_nodes = value,
+            _ => unreachable!("closed workspace-impact option table"),
+        }
+        index += 2;
+    }
+    workspace_analysis::WorkspaceImpactOptions::new(depth, max_bytes, max_nodes).map_err(|error| {
+        eprintln!("{error}");
+        2
+    })
+}
+
+fn workspace_analysis_number(command: &str, option: &str, value: &str) -> Result<usize, u8> {
+    if value.is_empty()
+        || !value.bytes().all(|byte| byte.is_ascii_digit())
+        || (value.len() > 1 && value.starts_with('0'))
+    {
+        eprintln!("{command} option `{option}` requires a canonical nonnegative integer");
+        return Err(2);
+    }
+    value.parse::<usize>().map_err(|_| {
+        eprintln!("{command} option `{option}` requires a canonical nonnegative integer");
+        2
+    })
+}
+
 fn impact_options(args: &[String]) -> Result<impact::SemanticImpactOptions, u8> {
     let mut depth = 1usize;
     let mut max_bytes = 64 * 1024;
@@ -684,6 +848,9 @@ fn print_help() {
            semaprax semantic-workspace-init <root> <path-set.json>\n\
            semaprax workspace-snapshot <root>\n\
            semaprax workspace-graph <root> <entry-module>\n\
+           semaprax workspace-context <root> <entry-module> <declaration|capability> <target> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N]\n\
+           semaprax workspace-impact <root> <entry-module> <declaration|capability> <target> [--depth N] [--max-bytes N] [--max-nodes N]\n\
+           semaprax workspace-review <root> <entry-module> <declaration|capability> <target>\n\
            semaprax workspace-preview <root> <patch.wspatch>\n\
            semaprax workspace-apply <root> <patch.wspatch>\n\
            semaprax workspace-patch-evidence <root> <patch.wspatch>\n\

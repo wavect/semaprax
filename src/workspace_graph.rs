@@ -376,6 +376,29 @@ impl WorkspaceGraphProjection {
     pub(crate) fn usage(&self) -> WorkspaceGraphProjectionUsage {
         self.usage
     }
+
+    #[cfg(test)]
+    pub(crate) fn push_analysis_test_edge(
+        &mut self,
+        caller_path: String,
+        caller: String,
+        target_path: String,
+        target: String,
+        kind: &'static str,
+    ) {
+        self.edges.push(WorkspaceEdge {
+            caller_path,
+            caller,
+            target_path,
+            target,
+            kind,
+            site: "test",
+            expression: "test".to_owned(),
+            ast_path: "test".to_owned(),
+            alias: String::new(),
+            ordinal: self.edges.len(),
+        });
+    }
 }
 
 impl WorkspaceGraphProjectionModule {
@@ -963,6 +986,233 @@ fn with_authenticated_projection<T>(
     authority.finish(result)
 }
 
+fn with_authenticated_analysis<T>(
+    root: &Path,
+    entry_module: &str,
+    operation: impl FnOnce(crate::workspace_analysis::WorkspaceAnalysis) -> Result<T, Vec<Diagnostic>>,
+) -> Result<T, Vec<Diagnostic>> {
+    with_authenticated_projection(root, entry_module, |projection| {
+        crate::workspace_analysis::WorkspaceAnalysis::build(projection).and_then(operation)
+    })
+}
+
+#[cfg(test)]
+pub(crate) fn build_authenticated_analysis_for_test(
+    root: &Path,
+    entry_module: &str,
+) -> Result<crate::workspace_analysis::WorkspaceAnalysis, Vec<Diagnostic>> {
+    with_authenticated_analysis(root, entry_module, Ok)
+}
+
+pub(crate) fn with_authenticated_context<T>(
+    root: &Path,
+    entry_module: &str,
+    target: crate::workspace_analysis::WorkspaceAnalysisTarget,
+    direction: crate::workspace_analysis::WorkspaceAnalysisDirection,
+    depth: usize,
+    max_nodes: usize,
+    operation: impl FnOnce(
+        crate::workspace_analysis::WorkspaceContextFacts,
+    ) -> Result<T, Vec<Diagnostic>>,
+) -> Result<T, Vec<Diagnostic>> {
+    with_authenticated_analysis(root, entry_module, |analysis| {
+        analysis
+            .context(target, direction, depth, max_nodes)
+            .and_then(operation)
+    })
+}
+
+pub(crate) fn with_authenticated_impact<T>(
+    root: &Path,
+    entry_module: &str,
+    target: crate::workspace_analysis::WorkspaceAnalysisTarget,
+    depth: usize,
+    max_nodes: usize,
+    operation: impl FnOnce(
+        crate::workspace_analysis::WorkspaceImpactFacts,
+    ) -> Result<T, Vec<Diagnostic>>,
+) -> Result<T, Vec<Diagnostic>> {
+    with_authenticated_analysis(root, entry_module, |analysis| {
+        analysis
+            .impact(target, depth, max_nodes)
+            .and_then(operation)
+    })
+}
+
+pub(crate) fn build_authenticated_context_artifact(
+    root: &Path,
+    entry_module: &str,
+    target: crate::workspace_analysis::WorkspaceAnalysisTarget,
+    direction: crate::workspace_analysis::WorkspaceAnalysisDirection,
+    depth: usize,
+    max_bytes: usize,
+    max_nodes: usize,
+) -> Result<crate::workspace_analysis::WorkspaceContextArtifact, Vec<Diagnostic>> {
+    build_authenticated_context_artifact_inner(
+        root,
+        entry_module,
+        target,
+        direction,
+        depth,
+        max_bytes,
+        max_nodes,
+        |_| {},
+    )
+}
+
+#[allow(
+    clippy::too_many_arguments,
+    reason = "closed authenticated Context operation"
+)]
+fn build_authenticated_context_artifact_inner(
+    root: &Path,
+    entry_module: &str,
+    target: crate::workspace_analysis::WorkspaceAnalysisTarget,
+    direction: crate::workspace_analysis::WorkspaceAnalysisDirection,
+    depth: usize,
+    max_bytes: usize,
+    max_nodes: usize,
+    after_render: impl FnOnce(&crate::workspace_analysis::WorkspaceContextArtifact),
+) -> Result<crate::workspace_analysis::WorkspaceContextArtifact, Vec<Diagnostic>> {
+    with_authenticated_analysis(root, entry_module, |analysis| {
+        let artifact = analysis.render_context(target, direction, depth, max_bytes, max_nodes)?;
+        after_render(&artifact);
+        Ok(artifact)
+    })
+    .map_err(|diagnostics| {
+        crate::workspace_analysis::map_artifact_diagnostics(
+            crate::workspace_analysis::WorkspaceAnalysisArtifactKind::Context,
+            diagnostics,
+        )
+    })
+}
+
+#[cfg(test)]
+#[allow(
+    clippy::too_many_arguments,
+    reason = "test-only Context final-boundary seam"
+)]
+pub(crate) fn build_authenticated_context_artifact_with_hook(
+    root: &Path,
+    entry_module: &str,
+    target: crate::workspace_analysis::WorkspaceAnalysisTarget,
+    direction: crate::workspace_analysis::WorkspaceAnalysisDirection,
+    depth: usize,
+    max_bytes: usize,
+    max_nodes: usize,
+    after_render: impl FnOnce(&crate::workspace_analysis::WorkspaceContextArtifact),
+) -> Result<crate::workspace_analysis::WorkspaceContextArtifact, Vec<Diagnostic>> {
+    build_authenticated_context_artifact_inner(
+        root,
+        entry_module,
+        target,
+        direction,
+        depth,
+        max_bytes,
+        max_nodes,
+        after_render,
+    )
+}
+
+pub(crate) fn build_authenticated_impact_artifact(
+    root: &Path,
+    entry_module: &str,
+    target: crate::workspace_analysis::WorkspaceAnalysisTarget,
+    depth: usize,
+    max_bytes: usize,
+    max_nodes: usize,
+) -> Result<crate::workspace_analysis::WorkspaceImpactArtifact, Vec<Diagnostic>> {
+    build_authenticated_impact_artifact_inner(
+        root,
+        entry_module,
+        target,
+        depth,
+        max_bytes,
+        max_nodes,
+        |_| {},
+    )
+}
+
+fn build_authenticated_impact_artifact_inner(
+    root: &Path,
+    entry_module: &str,
+    target: crate::workspace_analysis::WorkspaceAnalysisTarget,
+    depth: usize,
+    max_bytes: usize,
+    max_nodes: usize,
+    after_render: impl FnOnce(&crate::workspace_analysis::WorkspaceImpactArtifact),
+) -> Result<crate::workspace_analysis::WorkspaceImpactArtifact, Vec<Diagnostic>> {
+    with_authenticated_analysis(root, entry_module, |analysis| {
+        let artifact = analysis.render_impact(target, depth, max_bytes, max_nodes)?;
+        after_render(&artifact);
+        Ok(artifact)
+    })
+    .map_err(|diagnostics| {
+        crate::workspace_analysis::map_artifact_diagnostics(
+            crate::workspace_analysis::WorkspaceAnalysisArtifactKind::Impact,
+            diagnostics,
+        )
+    })
+}
+
+#[cfg(test)]
+pub(crate) fn build_authenticated_impact_artifact_with_hook(
+    root: &Path,
+    entry_module: &str,
+    target: crate::workspace_analysis::WorkspaceAnalysisTarget,
+    depth: usize,
+    max_bytes: usize,
+    max_nodes: usize,
+    after_render: impl FnOnce(&crate::workspace_analysis::WorkspaceImpactArtifact),
+) -> Result<crate::workspace_analysis::WorkspaceImpactArtifact, Vec<Diagnostic>> {
+    build_authenticated_impact_artifact_inner(
+        root,
+        entry_module,
+        target,
+        depth,
+        max_bytes,
+        max_nodes,
+        after_render,
+    )
+}
+
+pub(crate) fn build_authenticated_review_artifact(
+    root: &Path,
+    entry_module: &str,
+    target: crate::workspace_analysis::WorkspaceAnalysisTarget,
+) -> Result<crate::workspace_analysis::WorkspaceReviewArtifact, Vec<Diagnostic>> {
+    build_authenticated_review_artifact_inner(root, entry_module, target, |_| {})
+}
+
+fn build_authenticated_review_artifact_inner(
+    root: &Path,
+    entry_module: &str,
+    target: crate::workspace_analysis::WorkspaceAnalysisTarget,
+    after_render: impl FnOnce(&crate::workspace_analysis::WorkspaceReviewArtifact),
+) -> Result<crate::workspace_analysis::WorkspaceReviewArtifact, Vec<Diagnostic>> {
+    with_authenticated_analysis(root, entry_module, |analysis| {
+        let artifact = analysis.render_review(target)?;
+        after_render(&artifact);
+        Ok(artifact)
+    })
+    .map_err(|diagnostics| {
+        crate::workspace_analysis::map_artifact_diagnostics(
+            crate::workspace_analysis::WorkspaceAnalysisArtifactKind::Review,
+            diagnostics,
+        )
+    })
+}
+
+#[cfg(test)]
+pub(crate) fn build_authenticated_review_artifact_with_hook(
+    root: &Path,
+    entry_module: &str,
+    target: crate::workspace_analysis::WorkspaceAnalysisTarget,
+    after_render: impl FnOnce(&crate::workspace_analysis::WorkspaceReviewArtifact),
+) -> Result<crate::workspace_analysis::WorkspaceReviewArtifact, Vec<Diagnostic>> {
+    build_authenticated_review_artifact_inner(root, entry_module, target, after_render)
+}
+
 #[cfg(test)]
 fn build_authenticated_projection_with_hook(
     root: &Path,
@@ -1142,7 +1392,7 @@ impl AuthenticatedWorkspaceGraphBuild {
     }
 }
 
-fn validate_entry_module(entry_module: &str) -> Result<(), Vec<Diagnostic>> {
+pub(crate) fn validate_entry_module(entry_module: &str) -> Result<(), Vec<Diagnostic>> {
     if entry_module.len() > MAX_ENTRY_MODULE_BYTES {
         return Err(vec![limit_error(
             "entry_module_bytes",
@@ -1182,31 +1432,45 @@ fn render_semantic_graph_with_output_limit(
         "private Workspace Semantic Graph output limit cannot exceed the production maximum"
     );
     validate_render_projection(&projection)?;
+    let (graph_digest, used_output_bytes) =
+        semantic_graph_digest_and_output_bytes(&projection, output_limit)?;
+    let json = bounded_graph_json(
+        &projection,
+        Some(&graph_digest),
+        used_output_bytes,
+        output_limit,
+    )?;
+    if json.len() != used_output_bytes {
+        return Err(render_binding_error());
+    }
+    projection.usage.used_output_bytes = used_output_bytes;
+    Ok(public_semantic_graph(projection, graph_digest, json))
+}
+
+pub(crate) fn projection_graph_binding(
+    projection: &WorkspaceGraphProjection,
+) -> Result<(String, usize), Vec<Diagnostic>> {
+    validate_render_projection(projection)?;
+    semantic_graph_digest_and_output_bytes(projection, MAX_OUTPUT_BYTES)
+}
+
+fn semantic_graph_digest_and_output_bytes(
+    projection: &WorkspaceGraphProjection,
+    output_limit: usize,
+) -> Result<(String, usize), Vec<Diagnostic>> {
     const DIGEST_PLACEHOLDER: &str =
         "sha256:0000000000000000000000000000000000000000000000000000000000000000";
     let mut used_output_bytes = 0usize;
     for _ in 0..20 {
         let placeholder = bounded_graph_json(
-            &projection,
+            projection,
             Some(DIGEST_PLACEHOLDER),
             used_output_bytes,
             output_limit,
         )?;
         if placeholder.len() == used_output_bytes {
-            let payload = bounded_graph_json(&projection, None, used_output_bytes, output_limit)?;
-            let graph_digest = artifact_digest(payload.as_bytes());
-            drop(payload);
-            let json = bounded_graph_json(
-                &projection,
-                Some(&graph_digest),
-                used_output_bytes,
-                output_limit,
-            )?;
-            if json.len() != used_output_bytes {
-                return Err(render_binding_error());
-            }
-            projection.usage.used_output_bytes = used_output_bytes;
-            return Ok(public_semantic_graph(projection, graph_digest, json));
+            let payload = bounded_graph_json(projection, None, used_output_bytes, output_limit)?;
+            return Ok((artifact_digest(payload.as_bytes()), used_output_bytes));
         }
         used_output_bytes = placeholder.len();
     }

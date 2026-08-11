@@ -57,6 +57,7 @@ mod host_ownership;
 mod prelude;
 pub mod semantic_workspace;
 mod source_verify;
+pub mod workspace_analysis;
 pub mod workspace_graph;
 
 use std::path::Path;

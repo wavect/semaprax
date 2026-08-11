@@ -122,6 +122,15 @@ impl WorkspaceSemanticReadAuthority {
             .collect()
     }
 
+    pub(crate) fn take_graph(
+        &mut self,
+    ) -> Result<crate::workspace_graph::WorkspaceGraphBuild, Vec<Diagnostic>> {
+        self.guard
+            .semantic_graph
+            .take()
+            .ok_or_else(|| invariant("semantic workspace graph was already consumed"))
+    }
+
     pub(crate) fn manifest_bytes(&self) -> usize {
         self.guard.snapshot.manifest_bytes
     }
@@ -144,6 +153,12 @@ impl WorkspaceSemanticReadAuthority {
                 return Err(unlock_with_diagnostics(&self.guard.lock, diagnostics));
             }
         };
+        if self.guard.semantic_graph.is_some() {
+            return Err(unlock_with_diagnostics(
+                &self.guard.lock,
+                invariant("semantic workspace graph authority was not consumed exactly once"),
+            ));
+        }
         if let Err(diagnostics) = self.guard.recheck() {
             return Err(unlock_with_diagnostics(&self.guard.lock, diagnostics));
         }
@@ -194,6 +209,7 @@ struct FileFact {
     call_count: usize,
 }
 
+#[derive(Clone)]
 struct ManifestFile {
     path: String,
     source_graph_schema: String,
@@ -607,8 +623,11 @@ impl AuthenticatedDirectory {
 
 struct AuthenticatedSnapshot {
     snapshot: WorkspaceSnapshot,
+    semantic_graph: Option<crate::workspace_graph::WorkspaceGraphBuild>,
     directories: Vec<AuthenticatedDirectory>,
     texts: Vec<AuthenticatedText>,
+    generation_names: BTreeSet<String>,
+    staging_names: BTreeSet<String>,
 }
 
 struct ParsedFact {
@@ -627,6 +646,8 @@ struct WorkspaceGuard {
     lock: File,
     lock_identity: FileIdentity,
     snapshot: WorkspaceSnapshot,
+    semantic_graph: Option<crate::workspace_graph::WorkspaceGraphBuild>,
+    semantic_manifest: Option<Vec<ManifestFile>>,
     directories: Vec<AuthenticatedDirectory>,
     texts: Vec<AuthenticatedText>,
     exclusive: bool,
@@ -672,6 +693,25 @@ struct GenerationFingerprint {
 
 impl WorkspaceGuard {
     fn recheck(&mut self) -> Result<(), Vec<Diagnostic>> {
+        if matches!(
+            self.mode,
+            WorkspaceMode::Semantic | WorkspaceMode::SemanticChange
+        ) {
+            self.recheck_base_authority()?;
+            let manifest = self.semantic_manifest.as_deref().ok_or_else(|| {
+                invariant("semantic workspace retained manifest facts are absent")
+            })?;
+            let revision = self.snapshot.workspace_revision();
+            validate_generation_inventory(
+                &self.control.join("generations").join(
+                    revision
+                        .strip_prefix("sha256:")
+                        .ok_or_else(|| invariant("workspace revision is not canonical"))?,
+                ),
+                manifest,
+            )?;
+            return self.recheck_phase_inventory(&self.generation_names, &self.staging_names, None);
+        }
         recheck_lock(&self.lock_path, &self.lock, &self.lock_identity)?;
         if authenticate_directory(&self.root)? != self.root_identity {
             return Err(invariant("workspace root identity changed during preview"));
@@ -689,12 +729,7 @@ impl WorkspaceGuard {
             Some(&self.lock_identity),
             self.mode,
         )?;
-        let snapshot_matches = if self.mode == WorkspaceMode::Ordinary {
-            current.snapshot.json == self.snapshot.json
-        } else {
-            semantic_snapshot_binding_eq(&current.snapshot, &self.snapshot)
-        };
-        if !snapshot_matches {
+        if current.snapshot.json != self.snapshot.json {
             return Err(stale(
                 "workspace authenticated snapshot changed during operation",
             ));
@@ -789,20 +824,6 @@ impl WorkspaceGuard {
     }
 }
 
-fn semantic_snapshot_binding_eq(left: &WorkspaceSnapshot, right: &WorkspaceSnapshot) -> bool {
-    left.workspace_revision == right.workspace_revision
-        && left.manifest_bytes == right.manifest_bytes
-        && left.retained_generations == right.retained_generations
-        && left.staging_attempts == right.staging_attempts
-        && left.files.len() == right.files.len()
-        && left.files.iter().zip(&right.files).all(|(left, right)| {
-            left.path == right.path
-                && left.source_graph_schema == right.source_graph_schema
-                && left.source_revision == right.source_revision
-                && left.source_digest == right.source_digest
-        })
-}
-
 /// Initializes a managed workspace without modifying the original source files.
 pub fn initialize(root: &Path, path_set_path: &Path) -> Result<String, Vec<Diagnostic>> {
     initialize_with_hook(root, path_set_path, |_| {})
@@ -824,13 +845,16 @@ pub(crate) enum InitializePoint {
 enum WorkspaceMode {
     Ordinary,
     Semantic,
+    SemanticChange,
 }
 
 impl WorkspaceMode {
     fn parse_paths(self, source: &str) -> Result<Vec<String>, Vec<Diagnostic>> {
         match self {
             Self::Ordinary => parse_path_set(source),
-            Self::Semantic => crate::semantic_workspace::parse_path_set(source),
+            Self::Semantic | Self::SemanticChange => {
+                crate::semantic_workspace::parse_path_set(source)
+            }
         }
     }
 
@@ -847,7 +871,7 @@ impl WorkspaceMode {
                 let revision = workspace_revision(&manifest);
                 Ok((facts, manifest, revision))
             }
-            Self::Semantic => {
+            Self::Semantic | Self::SemanticChange => {
                 let sources = sources
                     .into_iter()
                     .map(
@@ -887,39 +911,45 @@ impl WorkspaceMode {
     fn render_active(self, revision: &str) -> Result<String, Vec<Diagnostic>> {
         match self {
             Self::Ordinary => Ok(render_root(revision)),
-            Self::Semantic => crate::semantic_workspace::render_root(revision),
+            Self::Semantic | Self::SemanticChange => {
+                crate::semantic_workspace::render_root(revision)
+            }
         }
     }
 
     fn parse_active(self, source: &str) -> Result<String, Vec<Diagnostic>> {
         match self {
             Self::Ordinary => parse_root(source),
-            Self::Semantic => crate::semantic_workspace::parse_root(source),
+            Self::Semantic | Self::SemanticChange => crate::semantic_workspace::parse_root(source),
         }
     }
 
     fn manifest_revision(self, manifest: &str) -> String {
         match self {
             Self::Ordinary => workspace_revision(manifest),
-            Self::Semantic => crate::semantic_workspace::semantic_workspace_revision(manifest),
+            Self::Semantic | Self::SemanticChange => {
+                crate::semantic_workspace::semantic_workspace_revision(manifest)
+            }
         }
     }
 
     fn parse_manifest(self, source: &str) -> Result<Vec<ManifestFile>, Vec<Diagnostic>> {
         match self {
             Self::Ordinary => parse_manifest(source),
-            Self::Semantic => crate::semantic_workspace::parse_manifest(source).map(|files| {
-                files
-                    .into_iter()
-                    .map(|file| ManifestFile {
-                        path: file.path().to_owned(),
-                        source_graph_schema: file.source_graph_schema().to_owned(),
-                        source_revision: file.source_revision().to_owned(),
-                        source_digest: file.source_digest().to_owned(),
-                        bytes: file.bytes(),
-                    })
-                    .collect()
-            }),
+            Self::Semantic | Self::SemanticChange => {
+                crate::semantic_workspace::parse_manifest(source).map(|files| {
+                    files
+                        .into_iter()
+                        .map(|file| ManifestFile {
+                            path: file.path().to_owned(),
+                            source_graph_schema: file.source_graph_schema().to_owned(),
+                            source_revision: file.source_revision().to_owned(),
+                            source_digest: file.source_digest().to_owned(),
+                            bytes: file.bytes(),
+                        })
+                        .collect()
+                })
+            }
         }
     }
 
@@ -927,14 +957,20 @@ impl WorkspaceMode {
         self,
         manifest: &str,
         sources: Vec<(String, String)>,
-    ) -> Result<Vec<FileFact>, Vec<Diagnostic>> {
+    ) -> Result<
+        (
+            Vec<FileFact>,
+            Option<crate::workspace_graph::WorkspaceGraphBuild>,
+        ),
+        Vec<Diagnostic>,
+    > {
         match self {
             Self::Ordinary => {
                 let facts = file_facts(sources, true)?;
                 validate_workspace_facts(&facts)?;
-                Ok(facts)
+                Ok((facts, None))
             }
-            Self::Semantic => {
+            Self::Semantic | Self::SemanticChange => {
                 let sources = sources
                     .into_iter()
                     .map(
@@ -944,33 +980,43 @@ impl WorkspaceMode {
                         },
                     )
                     .collect();
-                let preflight =
-                    crate::semantic_workspace::replay_manifest_owned(manifest, sources)?;
-                let (files, replayed_manifest, _) = preflight.into_generation_parts();
+                let preflight = if self == Self::SemanticChange {
+                    crate::semantic_workspace::replay_manifest_owned_for_change(
+                        manifest,
+                        sources,
+                        crate::semantic_workspace::MAX_CHANGE_BUILDER_BYTES,
+                    )?
+                } else {
+                    crate::semantic_workspace::replay_manifest_owned(manifest, sources)?
+                };
+                let (files, replayed_manifest, _, graph) = preflight.into_snapshot_parts();
                 if replayed_manifest != manifest {
                     return Err(invariant(
                         "semantic managed generation manifest replay changed bytes",
                     ));
                 }
-                Ok(files
-                    .into_iter()
-                    .map(|file| {
-                        let (path, schema, source_revision, source_digest, source) =
-                            file.into_parts();
-                        FileFact {
-                            path,
-                            module: String::new(),
-                            source_graph_schema: schema,
-                            source_revision,
-                            source_digest,
-                            source,
-                            declarations: Vec::new(),
-                            declaration_count: 0,
-                            callable_count: 0,
-                            call_count: 0,
-                        }
-                    })
-                    .collect())
+                Ok((
+                    files
+                        .into_iter()
+                        .map(|file| {
+                            let (path, schema, source_revision, source_digest, source) =
+                                file.into_parts();
+                            FileFact {
+                                path,
+                                module: String::new(),
+                                source_graph_schema: schema,
+                                source_revision,
+                                source_digest,
+                                source,
+                                declarations: Vec::new(),
+                                declaration_count: 0,
+                                callable_count: 0,
+                                call_count: 0,
+                            }
+                        })
+                        .collect(),
+                    Some(graph),
+                ))
             }
         }
     }
@@ -1545,6 +1591,14 @@ pub(crate) fn acquire_semantic_read(
 ) -> Result<WorkspaceSemanticReadAuthority, Vec<Diagnostic>> {
     Ok(WorkspaceSemanticReadAuthority {
         guard: acquire_snapshot_mode(root, false, WorkspaceMode::Semantic)?,
+    })
+}
+
+pub(crate) fn acquire_semantic_change_read(
+    root: &Path,
+) -> Result<WorkspaceSemanticReadAuthority, Vec<Diagnostic>> {
+    Ok(WorkspaceSemanticReadAuthority {
+        guard: acquire_snapshot_mode(root, false, WorkspaceMode::SemanticChange)?,
     })
 }
 
@@ -2866,22 +2920,38 @@ fn finish_snapshot_guard_mode(
         recheck_lock(&lock_path, &lock, &lock_identity)?;
         let authenticated =
             snapshot_authenticated_mode(&root, &control, Some(&lock_identity), mode)?;
-        let (_, generation_directories) =
-            count_directories_bounded(&control.join("generations"), MAX_RETAINED_GENERATIONS)?;
-        let generation_names = inventory_names_from_directories(&generation_directories)?;
-        let (_, staging_directories, staging_files) =
-            validate_staging_inventory(&control.join("staging"))?;
-        let staging_names = inventory_names_from_directories(&staging_directories)?
-            .into_iter()
-            .chain(inventory_names_from_texts(&staging_files)?)
-            .collect();
         recheck_lock(&lock_path, &lock, &lock_identity)?;
-        Ok::<_, Vec<Diagnostic>>((authenticated, generation_names, staging_names))
+        Ok::<_, Vec<Diagnostic>>(authenticated)
     })() {
         Ok(authenticated) => authenticated,
         Err(diagnostics) => return Err(unlock_with_diagnostics(&lock, diagnostics)),
     };
-    let (authenticated, generation_names, staging_names) = authenticated;
+    let semantic_manifest = matches!(
+        mode,
+        WorkspaceMode::Semantic | WorkspaceMode::SemanticChange
+    )
+    .then(|| {
+        authenticated
+            .snapshot
+            .files
+            .iter()
+            .map(|file| ManifestFile {
+                path: file.path.clone(),
+                source_graph_schema: file.source_graph_schema.clone(),
+                source_revision: file.source_revision.clone(),
+                source_digest: file.source_digest.clone(),
+                bytes: file.source.len(),
+            })
+            .collect()
+    });
+    let AuthenticatedSnapshot {
+        snapshot,
+        semantic_graph,
+        directories,
+        texts,
+        generation_names,
+        staging_names,
+    } = authenticated;
     Ok(WorkspaceGuard {
         root,
         root_identity,
@@ -2889,9 +2959,11 @@ fn finish_snapshot_guard_mode(
         lock_path,
         lock,
         lock_identity,
-        snapshot: authenticated.snapshot,
-        directories: authenticated.directories,
-        texts: authenticated.texts,
+        snapshot,
+        semantic_graph,
+        semantic_manifest,
+        directories,
+        texts,
         exclusive,
         generation_names,
         staging_names,
@@ -3029,7 +3101,8 @@ fn snapshot_authenticated_mode(
     );
     require_distinct_identities(&all_identities)?;
     require_same_volume(&all_identities)?;
-    let facts = mode.validate_snapshot_sources(&manifest_input.source, sources)?;
+    let (facts, semantic_graph) =
+        mode.validate_snapshot_sources(&manifest_input.source, sources)?;
     for (expected, fact) in manifest.iter().zip(&facts) {
         if fact.source_graph_schema != expected.source_graph_schema
             || fact.source_revision != expected.source_revision
@@ -3097,6 +3170,11 @@ fn snapshot_authenticated_mode(
     if mode == WorkspaceMode::Ordinary {
         snapshot.json = bounded_snapshot_json(&snapshot)?;
     }
+    let generation_names = inventory_names_from_directories(&retained_directories)?;
+    let staging_names = inventory_names_from_directories(&staging_directories)?
+        .into_iter()
+        .chain(inventory_names_from_texts(&staging_files)?)
+        .collect();
     let retained_other_directories = retained_directories
         .into_iter()
         .filter(|directory| directory.identity != selected_generation_identity)
@@ -3117,8 +3195,11 @@ fn snapshot_authenticated_mode(
     texts.append(&mut staging_files);
     Ok(AuthenticatedSnapshot {
         snapshot,
+        semantic_graph,
         directories,
         texts,
+        generation_names,
+        staging_names,
     })
 }
 

@@ -24,6 +24,7 @@ pub(crate) const MAX_MANAGED_FILES: usize = 16;
 pub(crate) const MAX_TOTAL_SOURCE_BYTES: usize = 16 * 1024 * 1024;
 pub(crate) const MAX_CONTROL_JSON_BYTES: usize = 1024 * 1024;
 pub(crate) const MAX_JSON_DEPTH: usize = 8;
+pub(crate) const MAX_CHANGE_BUILDER_BYTES: usize = 32 * 1024 * 1024;
 
 const WORKSPACE_REVISION_DOMAIN: &[u8] = b"semaprax.workspace-semantic-revision.v1\0";
 
@@ -112,12 +113,10 @@ impl SemanticWorkspaceFileFact {
 }
 
 impl SemanticWorkspacePreflight {
-    #[cfg(test)]
     pub(crate) fn path_set(&self) -> &[String] {
         &self.path_set
     }
 
-    #[cfg(test)]
     pub(crate) fn files(&self) -> &[SemanticWorkspaceFileFact] {
         &self.files
     }
@@ -127,12 +126,10 @@ impl SemanticWorkspacePreflight {
         &self.manifest
     }
 
-    #[cfg(test)]
     pub(crate) fn workspace_revision(&self) -> &str {
         &self.workspace_revision
     }
 
-    #[cfg(test)]
     pub(crate) fn graph(&self) -> &workspace_graph::WorkspaceGraphBuild {
         &self.graph
     }
@@ -140,11 +137,43 @@ impl SemanticWorkspacePreflight {
     pub(crate) fn into_generation_parts(self) -> (Vec<SemanticWorkspaceFileFact>, String, String) {
         (self.files, self.manifest, self.workspace_revision)
     }
+
+    pub(crate) fn into_snapshot_parts(
+        self,
+    ) -> (
+        Vec<SemanticWorkspaceFileFact>,
+        String,
+        String,
+        workspace_graph::WorkspaceGraphBuild,
+    ) {
+        (
+            self.files,
+            self.manifest,
+            self.workspace_revision,
+            self.graph,
+        )
+    }
 }
 
 pub(crate) fn preflight_owned(
     path_set_source: &str,
     sources: Vec<SemanticWorkspaceSource>,
+) -> Result<SemanticWorkspacePreflight, Vec<Diagnostic>> {
+    preflight_owned_inner(path_set_source, sources, None)
+}
+
+pub(crate) fn preflight_owned_for_change(
+    path_set_source: &str,
+    sources: Vec<SemanticWorkspaceSource>,
+    change_builder_limit: usize,
+) -> Result<SemanticWorkspacePreflight, Vec<Diagnostic>> {
+    preflight_owned_inner(path_set_source, sources, Some(change_builder_limit))
+}
+
+fn preflight_owned_inner(
+    path_set_source: &str,
+    sources: Vec<SemanticWorkspaceSource>,
+    change_builder_limit: Option<usize>,
 ) -> Result<SemanticWorkspacePreflight, Vec<Diagnostic>> {
     let path_set = parse_path_set(path_set_source)?;
     if sources.len() != path_set.len() {
@@ -184,7 +213,14 @@ pub(crate) fn preflight_owned(
             source: source.source,
         })
         .collect();
-    let (graph, recovered_sources) = workspace_graph::build_owned_retaining_sources(graph_sources)?;
+    let (graph, recovered_sources) = if let Some(change_builder_limit) = change_builder_limit {
+        workspace_graph::build_owned_retaining_sources_for_change(
+            graph_sources,
+            change_builder_limit,
+        )?
+    } else {
+        workspace_graph::build_owned_retaining_sources(graph_sources)?
+    };
     let mut schemas = graph.source_graph_schemas()?;
     let mut files = Vec::with_capacity(recovered_sources.len());
     for source in recovered_sources {
@@ -216,6 +252,26 @@ pub(crate) fn preflight_owned(
         graph,
     };
     validate_preflight_replay(&preflight)?;
+    Ok(preflight)
+}
+
+pub(crate) fn replay_manifest_owned_for_change(
+    manifest: &str,
+    sources: Vec<SemanticWorkspaceSource>,
+    change_builder_limit: usize,
+) -> Result<SemanticWorkspacePreflight, Vec<Diagnostic>> {
+    let expected = parse_manifest(manifest)?;
+    let paths = expected
+        .iter()
+        .map(|file| file.path.clone())
+        .collect::<Vec<_>>();
+    let path_set = render_path_set(&paths)?;
+    let preflight = preflight_owned_for_change(&path_set, sources, change_builder_limit)?;
+    if preflight.manifest != manifest {
+        return Err(invariant(
+            "semantic workspace change manifest replay changed authenticated facts",
+        ));
+    }
     Ok(preflight)
 }
 

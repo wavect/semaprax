@@ -56,6 +56,11 @@ mod graph_cleanup;
 mod host_ownership;
 mod prelude;
 pub mod semantic_workspace;
+#[allow(
+    dead_code,
+    reason = "private authenticated semantic-workspace change preparation awaits frozen evidence wire"
+)]
+mod semantic_workspace_change;
 mod source_verify;
 pub mod workspace_analysis;
 pub mod workspace_graph;

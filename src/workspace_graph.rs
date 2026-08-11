@@ -34,6 +34,7 @@ const MAX_USES: usize = 4096;
 const MAX_CROSS_FILE_EDGES: usize = 65_536;
 const MAX_DEPENDENCY_DEPTH: usize = 16;
 const MAX_BUILDER_BYTES: usize = 16 * 1024 * 1024;
+const MAX_CHANGE_BUILDER_BYTES: usize = 32 * 1024 * 1024;
 const MAX_OUTPUT_BYTES: usize = 16 * 1024 * 1024;
 const MAX_ENTRY_MODULE_BYTES: usize = 16 * 1024 * 1024;
 const WORKSPACE_GRAPH_SCHEMA: &str = "semaprax.workspace-semantic-graph.v1";
@@ -125,6 +126,42 @@ pub(crate) struct WorkspaceGraphBuild {
     hir: ValidatedWorkspaceHir,
     edges: Vec<WorkspaceEdge>,
     usage: WorkspaceGraphWorkUsage,
+    change_fingerprints: Option<BTreeMap<String, String>>,
+    change_builder_bytes: usize,
+}
+
+pub(crate) struct WorkspaceGraphChangeView {
+    modules: Vec<WorkspaceGraphChangeModule>,
+    declarations: Vec<WorkspaceGraphChangeDeclaration>,
+    edges: Vec<WorkspaceEdge>,
+    dependency_depths: BTreeMap<String, usize>,
+    shared_prelude_ids: Vec<&'static str>,
+    usage: WorkspaceGraphWorkUsage,
+}
+
+pub(crate) struct WorkspaceGraphChangeSourceFact {
+    pub(crate) path: String,
+    pub(crate) source_graph_schema: String,
+    pub(crate) source_revision: String,
+    pub(crate) source_digest: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct WorkspaceGraphChangeModule {
+    path: String,
+    module: String,
+    permits: Vec<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct WorkspaceGraphChangeDeclaration {
+    id: String,
+    kind: hir::DeclarationKind,
+    origin: hir::IdentityOrigin,
+    owner: Option<String>,
+    path: Option<String>,
+    module: Option<String>,
+    semantic_fingerprint: String,
 }
 
 pub(crate) struct AuthenticatedWorkspaceGraphBuild {
@@ -875,6 +912,76 @@ pub(crate) fn build_owned(
 }
 
 impl WorkspaceGraphBuild {
+    pub(crate) fn contains_module(&self, module: &str) -> bool {
+        self.hir.module_paths.contains_key(module)
+    }
+
+    pub(crate) fn change_builder_bytes(&self) -> Option<usize> {
+        self.change_fingerprints
+            .as_ref()
+            .map(|_| self.change_builder_bytes)
+    }
+
+    pub(crate) fn into_change_view(self) -> Result<WorkspaceGraphChangeView, Vec<Diagnostic>> {
+        let mut fingerprints = self.change_fingerprints.ok_or_else(|| {
+            vec![graph_error(
+                "SPX-G173",
+                "workspace change fingerprint sidecar is absent",
+            )]
+        })?;
+        let modules = self
+            .hir
+            .modules
+            .into_iter()
+            .map(|module| WorkspaceGraphChangeModule {
+                path: module.path,
+                module: module.module,
+                permits: module.permits,
+            })
+            .collect();
+        let declarations = self
+            .hir
+            .declarations
+            .into_iter()
+            .map(|(id, declaration)| {
+                let semantic_fingerprint =
+                    if declaration.origin == hir::IdentityOrigin::CompilerOwned {
+                        String::new()
+                    } else {
+                        fingerprints.remove(&id).ok_or_else(|| {
+                            vec![graph_error(
+                                "SPX-G173",
+                                "workspace change declaration fingerprint is absent",
+                            )]
+                        })?
+                    };
+                Ok(WorkspaceGraphChangeDeclaration {
+                    id,
+                    kind: declaration.kind,
+                    origin: declaration.origin,
+                    owner: declaration.owner,
+                    path: declaration.path,
+                    module: declaration.module,
+                    semantic_fingerprint,
+                })
+            })
+            .collect::<Result<Vec<_>, Vec<Diagnostic>>>()?;
+        if !fingerprints.is_empty() {
+            return Err(vec![graph_error(
+                "SPX-G173",
+                "workspace change fingerprints contain unknown declarations",
+            )]);
+        }
+        Ok(WorkspaceGraphChangeView {
+            modules,
+            declarations,
+            edges: self.edges,
+            dependency_depths: self.hir.dependency_depths,
+            shared_prelude_ids: self.hir.shared_prelude_ids.into_iter().collect(),
+            usage: self.usage,
+        })
+    }
+
     pub(crate) fn source_graph_schemas(
         &self,
     ) -> Result<BTreeMap<String, &'static str>, Vec<Diagnostic>> {
@@ -902,6 +1009,276 @@ impl WorkspaceGraphBuild {
     }
 }
 
+impl WorkspaceGraphChangeView {
+    pub(crate) fn modules(&self) -> &[WorkspaceGraphChangeModule] {
+        &self.modules
+    }
+
+    pub(crate) fn declarations(&self) -> &[WorkspaceGraphChangeDeclaration] {
+        &self.declarations
+    }
+
+    pub(crate) fn edges(&self) -> &[WorkspaceEdge] {
+        &self.edges
+    }
+
+    #[cfg(test)]
+    pub(crate) fn extend_change_test_reverse_call_chain(
+        &mut self,
+        prefix: &str,
+        edge_count: usize,
+    ) -> String {
+        let path = self.modules[0].path.clone();
+        let module = self.modules[0].module.clone();
+        for index in 0..=edge_count {
+            self.declarations.push(WorkspaceGraphChangeDeclaration {
+                id: format!("{prefix}.{index}"),
+                kind: hir::DeclarationKind::Function,
+                origin: hir::IdentityOrigin::Automatic,
+                owner: None,
+                path: Some(path.clone()),
+                module: Some(module.clone()),
+                semantic_fingerprint: format!("test:{prefix}:{index}"),
+            });
+        }
+        for index in 0..edge_count {
+            self.edges.push(WorkspaceEdge {
+                caller_path: path.clone(),
+                caller: format!("{prefix}.{}", index + 1),
+                target_path: path.clone(),
+                target: format!("{prefix}.{index}"),
+                kind: "call",
+                site: "body",
+                expression: format!("test-call-{index}"),
+                ast_path: format!("test.chain.{index}"),
+                alias: format!("test_{index}"),
+                ordinal: index,
+            });
+        }
+        format!("{prefix}.0")
+    }
+
+    pub(crate) fn projection_digest(
+        &self,
+        workspace_revision: &str,
+        sources: &[WorkspaceGraphChangeSourceFact],
+        manifest_bytes: usize,
+        retained_generations: usize,
+        staging_attempts: usize,
+        entry_module: &str,
+    ) -> Result<String, Vec<Diagnostic>> {
+        validate_entry_module(entry_module)?;
+        let Some(entry) = self
+            .modules
+            .iter()
+            .find(|module| module.module == entry_module)
+        else {
+            return Err(vec![graph_error(
+                "SPX-G172",
+                format!("Workspace Semantic Graph entry module `{entry_module}` is absent"),
+            )]);
+        };
+        let authenticated_paths = self
+            .modules
+            .iter()
+            .map(|module| module.path.as_str())
+            .collect::<BTreeSet<_>>();
+        let mut providers = BTreeMap::<&str, BTreeSet<&str>>::new();
+        for edge in self
+            .edges
+            .iter()
+            .filter(|edge| matches!(edge.kind, "function_import" | "type_import"))
+        {
+            if !authenticated_paths.contains(edge.caller_path.as_str())
+                || !authenticated_paths.contains(edge.target_path.as_str())
+            {
+                return Err(vec![graph_error(
+                    "SPX-G173",
+                    "workspace change projection import paths disagree",
+                )]);
+            }
+            providers
+                .entry(edge.caller_path.as_str())
+                .or_default()
+                .insert(edge.target_path.as_str());
+        }
+        let mut reachable = BTreeSet::from([entry.path.as_str()]);
+        let mut pending = BTreeSet::from([entry.path.as_str()]);
+        while let Some(path) = pending.pop_first() {
+            if let Some(direct) = providers.get(path) {
+                for provider in direct {
+                    if reachable.insert(provider) {
+                        pending.insert(provider);
+                    }
+                }
+            }
+        }
+        let source_facts = sources
+            .iter()
+            .map(|source| (source.path.as_str(), source))
+            .collect::<BTreeMap<_, _>>();
+        let mut modules = Vec::with_capacity(reachable.len());
+        for module in self
+            .modules
+            .iter()
+            .filter(|module| reachable.contains(module.path.as_str()))
+        {
+            let source = source_facts.get(module.path.as_str()).ok_or_else(|| {
+                vec![graph_error(
+                    "SPX-G173",
+                    "workspace change projection source fact is absent",
+                )]
+            })?;
+            let dependency_depth =
+                *self.dependency_depths.get(&module.module).ok_or_else(|| {
+                    vec![graph_error(
+                        "SPX-G173",
+                        "workspace change projection dependency depth is absent",
+                    )]
+                })?;
+            modules.push(WorkspaceGraphProjectionModule {
+                path: crate::bounded_output::budgeted_clone(&module.path),
+                module: crate::bounded_output::budgeted_clone(&module.module),
+                source_graph_schema: crate::bounded_output::budgeted_clone(
+                    &source.source_graph_schema,
+                ),
+                source_revision: crate::bounded_output::budgeted_clone(&source.source_revision),
+                source_digest: crate::bounded_output::budgeted_clone(&source.source_digest),
+                dependency_depth,
+                permits: module
+                    .permits
+                    .iter()
+                    .map(|permit| crate::bounded_output::budgeted_clone(permit))
+                    .collect(),
+                types: Vec::new(),
+                interfaces: Vec::new(),
+                functions: Vec::new(),
+                function_templates: Vec::new(),
+                function_instances: Vec::new(),
+            });
+        }
+        modules.sort_by(|left, right| left.path.cmp(&right.path));
+        let mut declarations = self
+            .declarations
+            .iter()
+            .filter(|declaration| {
+                declaration.origin == hir::IdentityOrigin::CompilerOwned
+                    || declaration
+                        .path
+                        .as_deref()
+                        .is_some_and(|path| reachable.contains(path))
+            })
+            .map(|declaration| WorkspaceGraphProjectionDeclaration {
+                id: crate::bounded_output::budgeted_clone(&declaration.id),
+                kind: declaration.kind,
+                origin: declaration.origin,
+                owner: declaration
+                    .owner
+                    .as_deref()
+                    .map(crate::bounded_output::budgeted_clone),
+                path: declaration
+                    .path
+                    .as_deref()
+                    .map(crate::bounded_output::budgeted_clone),
+                module: declaration
+                    .module
+                    .as_deref()
+                    .map(crate::bounded_output::budgeted_clone),
+            })
+            .collect::<Vec<_>>();
+        declarations.sort_by(|left, right| left.id.cmp(&right.id));
+        let mut edges = self
+            .edges
+            .iter()
+            .filter(|edge| reachable.contains(edge.caller_path.as_str()))
+            .map(budgeted_edge_clone)
+            .collect::<Vec<_>>();
+        if edges
+            .iter()
+            .any(|edge| !reachable.contains(edge.target_path.as_str()))
+        {
+            return Err(vec![graph_error(
+                "SPX-G173",
+                "workspace change projected edge target escapes provider closure",
+            )]);
+        }
+        edges.sort();
+        let work = self.usage;
+        let projection = WorkspaceGraphProjection {
+            workspace_revision: crate::bounded_output::budgeted_clone(workspace_revision),
+            entry_module: crate::bounded_output::budgeted_clone(entry_module),
+            modules,
+            declarations,
+            edges,
+            shared_prelude_ids: self.shared_prelude_ids.clone(),
+            usage: WorkspaceGraphProjectionUsage {
+                used_managed_files: work.managed_files,
+                used_total_source_bytes: work.total_source_bytes,
+                used_entry_module_bytes: entry_module.len(),
+                used_declarations: work.declarations,
+                used_callables: work.callables,
+                used_call_sites: work.call_sites,
+                used_uses: work.uses,
+                used_resolved_cross_file_edges: work.resolved_cross_file_edges,
+                used_dependency_depth: work.dependency_depth,
+                used_builder_bytes: work.builder_bytes,
+                used_manifest_bytes: manifest_bytes,
+                used_output_bytes: 0,
+                used_retained_generations: retained_generations,
+                used_staging_attempts: staging_attempts,
+                used_unexpected_inventory_entries: 0,
+                used_reachable_modules: reachable.len(),
+            },
+        };
+        semantic_graph_digest_and_output_bytes(&projection, MAX_OUTPUT_BYTES)
+            .map(|(digest, _)| digest)
+    }
+}
+
+impl WorkspaceGraphChangeModule {
+    pub(crate) fn path(&self) -> &str {
+        &self.path
+    }
+
+    pub(crate) fn module(&self) -> &str {
+        &self.module
+    }
+
+    pub(crate) fn permits(&self) -> &[String] {
+        &self.permits
+    }
+}
+
+impl WorkspaceGraphChangeDeclaration {
+    pub(crate) fn id(&self) -> &str {
+        &self.id
+    }
+
+    pub(crate) fn kind(&self) -> hir::DeclarationKind {
+        self.kind
+    }
+
+    pub(crate) fn origin(&self) -> hir::IdentityOrigin {
+        self.origin
+    }
+
+    pub(crate) fn owner(&self) -> Option<&str> {
+        self.owner.as_deref()
+    }
+
+    pub(crate) fn path(&self) -> Option<&str> {
+        self.path.as_deref()
+    }
+
+    pub(crate) fn module(&self) -> Option<&str> {
+        self.module.as_deref()
+    }
+
+    pub(crate) fn semantic_fingerprint(&self) -> &str {
+        &self.semantic_fingerprint
+    }
+}
+
 fn build_from_authenticated_authority(
     authority: &mut workspace::WorkspaceSemanticReadAuthority,
 ) -> Result<AuthenticatedWorkspaceGraphBuild, Vec<Diagnostic>> {
@@ -912,7 +1289,6 @@ fn build_from_authenticated_authority(
         staging_attempts: authority.staging_attempts(),
         unexpected_inventory_entries: 0,
     };
-    let mut sources = Vec::new();
     let mut source_facts = BTreeMap::new();
     for source in authority.take_sources() {
         let path = source.path;
@@ -925,12 +1301,9 @@ fn build_from_authenticated_authority(
                 source_digest: source.source_digest,
             },
         );
-        sources.push(WorkspaceSource {
-            path,
-            source: source.source,
-        });
     }
-    build_owned(sources).map(|graph| AuthenticatedWorkspaceGraphBuild {
+    let graph = authority.take_graph()?;
+    Ok(AuthenticatedWorkspaceGraphBuild {
         workspace_revision,
         sources: source_facts,
         storage,
@@ -1847,18 +2220,32 @@ fn build_owned_with_builder_limit(
     sources: Vec<WorkspaceSource>,
     builder_limit: usize,
 ) -> Result<WorkspaceGraphBuild, Vec<Diagnostic>> {
-    build_owned_retaining_sources_with_builder_limit(sources, builder_limit).map(|(build, _)| build)
+    build_owned_retaining_sources_with_builder_limit(sources, builder_limit, None)
+        .map(|(build, _)| build)
 }
 
 pub(crate) fn build_owned_retaining_sources(
     sources: Vec<WorkspaceSource>,
 ) -> Result<(WorkspaceGraphBuild, Vec<WorkspaceSource>), Vec<Diagnostic>> {
-    build_owned_retaining_sources_with_builder_limit(sources, MAX_BUILDER_BYTES)
+    build_owned_retaining_sources_with_builder_limit(sources, MAX_BUILDER_BYTES, None)
+}
+
+pub(crate) fn build_owned_retaining_sources_for_change(
+    sources: Vec<WorkspaceSource>,
+    change_builder_limit: usize,
+) -> Result<(WorkspaceGraphBuild, Vec<WorkspaceSource>), Vec<Diagnostic>> {
+    assert!(change_builder_limit <= MAX_CHANGE_BUILDER_BYTES);
+    build_owned_retaining_sources_with_builder_limit(
+        sources,
+        MAX_BUILDER_BYTES,
+        Some(change_builder_limit),
+    )
 }
 
 fn build_owned_retaining_sources_with_builder_limit(
     sources: Vec<WorkspaceSource>,
     builder_limit: usize,
+    change_builder_limit: Option<usize>,
 ) -> Result<(WorkspaceGraphBuild, Vec<WorkspaceSource>), Vec<Diagnostic>> {
     assert!(
         builder_limit <= MAX_BUILDER_BYTES,
@@ -1872,7 +2259,7 @@ fn build_owned_retaining_sources_with_builder_limit(
     }
     let previous = ACTIVE_BUILDER_LIMIT.with(|active| active.replace(builder_limit));
     let restore = Restore(previous);
-    let result = build_owned_inner(sources);
+    let result = build_owned_inner(sources, change_builder_limit);
     drop(restore);
     result
 }
@@ -1883,6 +2270,7 @@ fn active_builder_limit() -> usize {
 
 fn build_owned_inner(
     mut sources: Vec<WorkspaceSource>,
+    change_builder_limit: Option<usize>,
 ) -> Result<(WorkspaceGraphBuild, Vec<WorkspaceSource>), Vec<Diagnostic>> {
     if sources.len() < 2 {
         return Err(vec![graph_error(
@@ -2012,6 +2400,22 @@ fn build_owned_inner(
     let (modules, module_paths, dependency_depths, declaration_facts, expected_edges) = core?;
     let dependency_depth = dependency_depths.values().copied().max().unwrap_or(0);
     let resolved_cross_file_edges = expected_edges.len();
+    let (change_fingerprints, change_builder_bytes) =
+        if let Some(change_builder_limit) = change_builder_limit {
+            let (fingerprints, overflowed, consumed) =
+                crate::bounded_output::with_limit_usage(change_builder_limit, || {
+                    authenticated_declaration_fingerprints(&programs, &sources, &declaration_facts)
+                });
+            if overflowed {
+                return Err(vec![limit_error(
+                    "change_builder_bytes",
+                    change_builder_limit,
+                )]);
+            }
+            (Some(fingerprints?), consumed)
+        } else {
+            (None, 0)
+        };
     let build = WorkspaceGraphBuild {
         hir: ValidatedWorkspaceHir {
             modules,
@@ -2032,6 +2436,8 @@ fn build_owned_inner(
             dependency_depth,
             builder_bytes: canonical_bytes.max(core_builder_bytes),
         },
+        change_fingerprints,
+        change_builder_bytes,
     };
     Ok((build, sources))
 }
@@ -2164,6 +2570,174 @@ fn filter_owned_vec<T>(
             .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?,
     )?;
     Ok(items.into_iter().filter(|item| keep(item)).collect())
+}
+
+fn authenticated_declaration_fingerprints(
+    programs: &[Program],
+    sources: &[WorkspaceSource],
+    declarations: &BTreeMap<String, WorkspaceDeclarationFact>,
+) -> Result<BTreeMap<String, String>, Vec<Diagnostic>> {
+    let sources = sources
+        .iter()
+        .map(|source| (source.path.as_str(), source.source.as_str()))
+        .collect::<BTreeMap<_, _>>();
+    let mut fingerprints = BTreeMap::new();
+    for program in programs {
+        let source = sources.get(program.path.as_str()).ok_or_else(|| {
+            vec![graph_error(
+                "SPX-G173",
+                "workspace declaration fingerprint source is absent",
+            )]
+        })?;
+        for declaration in &program.types {
+            insert_declaration_fingerprint(
+                &mut fingerprints,
+                &declaration.stable_id,
+                "type",
+                declaration.span,
+                source,
+            )?;
+            match &declaration.kind {
+                TypeDeclarationKind::Resource { lifecycles } => {
+                    for lifecycle in lifecycles {
+                        let id = match &lifecycle.stable_id {
+                            Some(id) => id.as_str(),
+                            None => declarations
+                                .iter()
+                                .find(|(_, fact)| {
+                                    fact.kind == hir::DeclarationKind::ResourceDrop
+                                        && fact.owner.as_deref()
+                                            == Some(declaration.stable_id.as_str())
+                                        && fact.path.as_deref() == Some(program.path.as_str())
+                                })
+                                .map(|(id, _)| id.as_str())
+                                .ok_or_else(|| {
+                                    vec![graph_error(
+                                        "SPX-G173",
+                                        "automatic resource-drop fingerprint identity is absent",
+                                    )]
+                                })?,
+                        };
+                        insert_declaration_fingerprint(
+                            &mut fingerprints,
+                            id,
+                            "resource_drop",
+                            lifecycle.span,
+                            source,
+                        )?;
+                    }
+                }
+                TypeDeclarationKind::Record { fields } => {
+                    for field in fields {
+                        insert_declaration_fingerprint(
+                            &mut fingerprints,
+                            &field.stable_id,
+                            "field",
+                            field.span,
+                            source,
+                        )?;
+                    }
+                }
+                TypeDeclarationKind::Variant { cases } => {
+                    for case in cases {
+                        insert_declaration_fingerprint(
+                            &mut fingerprints,
+                            &case.stable_id,
+                            "variant_case",
+                            case.span,
+                            source,
+                        )?;
+                        for field in &case.fields {
+                            insert_declaration_fingerprint(
+                                &mut fingerprints,
+                                &field.stable_id,
+                                "case_field",
+                                field.span,
+                                source,
+                            )?;
+                        }
+                    }
+                }
+            }
+        }
+        for interface in &program.interfaces {
+            insert_declaration_fingerprint(
+                &mut fingerprints,
+                &interface.stable_id,
+                "interface",
+                interface.span,
+                source,
+            )?;
+            for import in &interface.imports {
+                insert_declaration_fingerprint(
+                    &mut fingerprints,
+                    &import.stable_id,
+                    "import",
+                    import.span,
+                    source,
+                )?;
+            }
+        }
+        for function in &program.functions {
+            insert_declaration_fingerprint(
+                &mut fingerprints,
+                &function.stable_id,
+                "function",
+                function.span,
+                source,
+            )?;
+        }
+    }
+    let expected = declarations
+        .iter()
+        .filter(|(_, fact)| fact.origin != hir::IdentityOrigin::CompilerOwned)
+        .map(|(id, _)| id.as_str())
+        .collect::<BTreeSet<_>>();
+    if fingerprints.len() != expected.len()
+        || fingerprints
+            .keys()
+            .any(|id| !expected.contains(id.as_str()))
+    {
+        return Err(vec![graph_error(
+            "SPX-G173",
+            "workspace declaration semantic fingerprint identities disagree",
+        )]);
+    }
+    Ok(fingerprints)
+}
+
+fn insert_declaration_fingerprint(
+    fingerprints: &mut BTreeMap<String, String>,
+    id: &str,
+    kind: &'static str,
+    span: Span,
+    source: &str,
+) -> Result<(), Vec<Diagnostic>> {
+    let bytes = source.get(span.start..span.end).ok_or_else(|| {
+        vec![graph_error(
+            "SPX-G173",
+            "workspace declaration fingerprint span is outside authenticated source",
+        )]
+    })?;
+    let mut hasher = Sha256::new();
+    hasher.update(b"semaprax.workspace-semantic-change.declaration-fingerprint.v1\0");
+    hasher.update((kind.len() as u64).to_le_bytes());
+    hasher.update(kind.as_bytes());
+    hasher.update((id.len() as u64).to_le_bytes());
+    hasher.update(id.as_bytes());
+    hasher.update((bytes.len() as u64).to_le_bytes());
+    hasher.update(bytes.as_bytes());
+    reserve_builder_structure(std::mem::size_of::<(String, String)>())?;
+    let id = crate::bounded_output::budgeted_clone(id);
+    let fingerprint =
+        crate::bounded_output::budgeted_format(format_args!("sha256:{:x}", hasher.finalize()));
+    if fingerprints.insert(id, fingerprint).is_some() {
+        return Err(vec![graph_error(
+            "SPX-G173",
+            "workspace declaration semantic fingerprint identity is duplicated",
+        )]);
+    }
+    Ok(())
 }
 
 fn charge_builder_prebound(bytes: usize) -> Result<(), Vec<Diagnostic>> {

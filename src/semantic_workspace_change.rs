@@ -2678,6 +2678,46 @@ mod tests {
         names
     }
 
+    #[cfg(windows)]
+    fn regular_file_inventory(root: &Path) -> Vec<(String, Vec<u8>)> {
+        use std::os::windows::fs::MetadataExt as _;
+
+        fn visit(root: &Path, current: &Path, output: &mut Vec<(String, Vec<u8>)>) {
+            use std::os::windows::fs::MetadataExt as _;
+
+            let mut entries = std::fs::read_dir(current)
+                .unwrap()
+                .map(|entry| entry.unwrap().path())
+                .collect::<Vec<_>>();
+            entries.sort();
+            for path in entries {
+                let metadata = std::fs::symlink_metadata(&path).unwrap();
+                assert_eq!(metadata.file_attributes() & 0x400, 0);
+                if metadata.is_dir() && !metadata.file_type().is_symlink() {
+                    visit(root, &path, output);
+                } else {
+                    assert!(metadata.is_file());
+                    assert!(!metadata.file_type().is_symlink());
+                    output.push((
+                        path.strip_prefix(root)
+                            .unwrap()
+                            .to_string_lossy()
+                            .into_owned(),
+                        std::fs::read(path).unwrap(),
+                    ));
+                }
+            }
+        }
+
+        let root_metadata = std::fs::symlink_metadata(root).unwrap();
+        assert!(root_metadata.is_dir());
+        assert!(!root_metadata.file_type().is_symlink());
+        assert_eq!(root_metadata.file_attributes() & 0x400, 0);
+        let mut output = Vec::new();
+        visit(root, root, &mut output);
+        output
+    }
+
     fn replace_same_bytes(path: &Path) -> std::io::Result<()> {
         let bytes = std::fs::read(path)?;
         std::fs::remove_file(path)?;
@@ -4539,6 +4579,7 @@ fn main() -> i64 { 0 }
         let old_active = std::fs::read(&active_path).unwrap();
         let foreign = fixture.root.join("foreign-junction-target");
         let junction = std::cell::RefCell::new(None::<PathBuf>);
+        let expected_inventory = std::cell::RefCell::new(None::<Vec<(String, Vec<u8>)>>);
         let error = apply_authenticated_with_hook(
             &fixture.root,
             &proposal_path,
@@ -4550,6 +4591,7 @@ fn main() -> i64 { 0 }
                     ))
                 {
                     let files = staged.unwrap().join("files");
+                    *expected_inventory.borrow_mut() = Some(regular_file_inventory(&files));
                     std::fs::rename(&files, &foreign)?;
                     let status = Command::new("cmd")
                         .args(["/C", "mklink", "/J"])
@@ -4565,7 +4607,6 @@ fn main() -> i64 { 0 }
         .unwrap_err();
         assert_eq!(error[0].code, "SPX-I211");
         assert_eq!(std::fs::read(&active_path).unwrap(), old_active);
-        assert!(foreign.join("a/provider.spx").is_file());
         let junction = junction.into_inner().unwrap();
         {
             use std::os::windows::fs::MetadataExt as _;
@@ -4578,7 +4619,10 @@ fn main() -> i64 { 0 }
             );
         }
         std::fs::remove_dir(junction).unwrap();
-        assert!(foreign.join("a/provider.spx").is_file());
+        assert_eq!(
+            regular_file_inventory(&foreign),
+            expected_inventory.into_inner().unwrap()
+        );
         fixture.assert_exclusive_reacquire();
     }
 

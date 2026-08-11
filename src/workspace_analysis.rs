@@ -2424,8 +2424,7 @@ fn push_prefix_truncation(
     }
     let omitted = truncation
         .omitted_known_nodes
-        .checked_add(removed_nodes)
-        .unwrap_or(usize::MAX);
+        .saturating_add(removed_nodes);
     write!(
         output,
         "],\"omitted_known_nodes\":{omitted},\"deferred_known_nodes\":{}}}",

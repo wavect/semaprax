@@ -198,6 +198,17 @@ fn candidate_revision(capsule: &str) -> String {
         .to_owned()
 }
 
+fn assert_exclusive_lock_available(root: &std::path::Path) {
+    let lock = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(root.join(".semaprax-workspace/LOCK"))
+        .unwrap();
+    fs2::FileExt::try_lock_exclusive(&lock)
+        .expect("a rejected evidence apply must synchronously release LOCK");
+    fs2::FileExt::unlock(&lock).unwrap();
+}
+
 #[test]
 fn mixed_v1_v2_v3_apply_publishes_exact_candidate_and_stales() {
     let fixture = Fixture::mixed("success");
@@ -331,20 +342,29 @@ fn apply_input_diagnostic_precedence_is_exact_and_write_free() {
     let error = workspace_patch_evidence::apply(&fixture.root, &missing_patch, &missing_evidence)
         .expect_err("the owned patch read must precede the evidence read");
     assert_eq!(error[0].code, "SPX-I209");
+    assert_exclusive_lock_available(&fixture.root);
     assert_eq!(fixture.control_inventory(), inventory);
 
     std::fs::write(&fixture.patch, "not a workspace patch\n").unwrap();
-    std::fs::write(&fixture.evidence, "not-json\n").unwrap();
-    let error = workspace_patch_evidence::apply(&fixture.root, &fixture.patch, &fixture.evidence)
-        .expect_err("evidence parsing must precede workspace patch parsing");
-    assert_eq!(error[0].code, "SPX-G160");
-    assert_eq!(fixture.control_inventory(), inventory);
+    for _ in 0..64 {
+        std::fs::write(&fixture.evidence, "not-json\n").unwrap();
+        let error =
+            workspace_patch_evidence::apply(&fixture.root, &fixture.patch, &fixture.evidence)
+                .expect_err("evidence parsing must precede workspace patch parsing");
+        assert_eq!(error[0].code, "SPX-G160");
+        assert_exclusive_lock_available(&fixture.root);
+        assert_eq!(fixture.control_inventory(), inventory);
 
-    std::fs::write(&fixture.evidence, capsule).unwrap();
-    let error = workspace_patch_evidence::apply(&fixture.root, &fixture.patch, &fixture.evidence)
-        .expect_err("valid evidence permits the readable malformed patch to reach its parser");
-    assert_eq!(error[0].code, "SPX-G150");
-    assert_eq!(fixture.control_inventory(), inventory);
+        std::fs::write(&fixture.evidence, &capsule).unwrap();
+        let error =
+            workspace_patch_evidence::apply(&fixture.root, &fixture.patch, &fixture.evidence)
+                .expect_err(
+                    "valid evidence permits the readable malformed patch to reach its parser",
+                );
+        assert_eq!(error[0].code, "SPX-G150");
+        assert_exclusive_lock_available(&fixture.root);
+        assert_eq!(fixture.control_inventory(), inventory);
+    }
     fixture.assert_raw_sources_unchanged();
 }
 
@@ -376,6 +396,7 @@ fn apply_acquires_exclusive_workspace_lock_before_reading_evidence() {
     let error = workspace_patch_evidence::apply(&fixture.root, &fixture.patch, &missing_evidence)
         .expect_err("after lock release the missing evidence read becomes visible");
     assert_eq!(error[0].code, "SPX-I213");
+    assert_exclusive_lock_available(&fixture.root);
     assert_eq!(fixture.control_inventory(), inventory);
     fixture.assert_raw_sources_unchanged();
 }

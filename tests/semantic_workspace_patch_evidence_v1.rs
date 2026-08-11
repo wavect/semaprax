@@ -198,6 +198,17 @@ fn domain_digest(domain: &[u8], value: &str) -> String {
     format!("sha256:{:x}", digest.finalize())
 }
 
+fn assert_exclusive_lock_available(root: &std::path::Path) {
+    let lock = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(root.join(".semaprax-workspace/LOCK"))
+        .unwrap();
+    fs2::FileExt::try_lock_exclusive(&lock)
+        .expect("a rejected evidence read must synchronously release LOCK");
+    fs2::FileExt::unlock(&lock).unwrap();
+}
+
 #[test]
 fn capsule_and_receipt_v1_v2_v3_mixed_literal_kats_and_no_write() {
     let cases: [(&str, &[Family], &str, &str); 4] = [
@@ -537,10 +548,12 @@ fn evidence_bound_is_checked_before_workspace_semantic_replay() {
         error[0].message,
         "Semantic Workspace Patch Evidence `max_workspace_evidence_bytes` exceeds 65536"
     );
+    assert_exclusive_lock_available(&fixture.root);
     std::fs::write(&fixture.evidence, b"not-json\n").unwrap();
     let error = workspace_patch_evidence::verify(&fixture.root, &fixture.patch, &fixture.evidence)
         .expect_err("malformed evidence must fail before patch and snapshot");
     assert_eq!(error[0].code, "SPX-G160");
+    assert_exclusive_lock_available(&fixture.root);
     std::fs::write(&fixture.evidence, vec![0xff]).unwrap();
     let error = workspace_patch_evidence::verify(&fixture.root, &fixture.patch, &fixture.evidence)
         .expect_err("non-UTF8 evidence must fail at the owned read");
@@ -548,6 +561,7 @@ fn evidence_bound_is_checked_before_workspace_semantic_replay() {
     assert!(error[0]
         .message
         .starts_with("cannot read Semantic Workspace Patch Evidence"));
+    assert_exclusive_lock_available(&fixture.root);
     std::fs::rename(&held_active, &active).unwrap();
 
     std::fs::write(&fixture.evidence, valid_evidence).unwrap();
@@ -555,6 +569,7 @@ fn evidence_bound_is_checked_before_workspace_semantic_replay() {
     let error = workspace_patch_evidence::verify(&fixture.root, &fixture.patch, &fixture.evidence)
         .expect_err("evidence route must parse patch before snapshot authentication");
     assert_eq!(error[0].code, "SPX-G150");
+    assert_exclusive_lock_available(&fixture.root);
     let ordinary = workspace::preview(&fixture.root, &fixture.patch)
         .expect_err("ordinary preview preserves snapshot-first precedence");
     assert_eq!(ordinary[0].code, "SPX-G153");
@@ -571,6 +586,7 @@ fn evidence_bound_is_checked_before_workspace_semantic_replay() {
         .expect_err("Workspace patch input bounds retain their G151 diagnostic family");
     assert_eq!(error[0].code, "SPX-G151");
     assert_eq!(error[0].message, "workspace input exceeds its byte limit");
+    assert_exclusive_lock_available(&fixture.root);
     assert_eq!(fixture.control_inventory(), inventory);
 }
 

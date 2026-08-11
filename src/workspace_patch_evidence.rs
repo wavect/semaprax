@@ -135,6 +135,10 @@ impl WorkspaceEvidenceBuild {
     fn into_commit_authority(self) -> Result<workspace::WorkspaceCommitAuthority, Vec<Diagnostic>> {
         self.read.into_commit_authority()
     }
+
+    fn release_with_error(self, diagnostics: Vec<Diagnostic>) -> Vec<Diagnostic> {
+        self.read.release_with_error(diagnostics)
+    }
 }
 
 /// Generates one canonical read-only workspace evidence capsule.
@@ -148,7 +152,10 @@ fn generate_with_hook(
     mut hook: impl FnMut(EvidencePoint),
 ) -> Result<String, Vec<Diagnostic>> {
     let build = build_owned(root, workspace_patch_path)?;
-    let capsule = render_capsule_bounded(&build.facts)?;
+    let capsule = match render_capsule_bounded(&build.facts) {
+        Ok(capsule) => capsule,
+        Err(diagnostics) => return Err(build.release_with_error(diagnostics)),
+    };
     hook(EvidencePoint::BeforeFinalCheck);
     build.recheck()?;
     Ok(capsule)
@@ -182,34 +189,53 @@ fn apply_with_hook(
 ) -> Result<String, Vec<Diagnostic>> {
     let guard = workspace::acquire_evidence_apply_guard(root, workspace_patch_path)?;
     let active_path = root.join(".semaprax-workspace/ACTIVE");
-    hook(EvidenceApplyPoint::AfterPatchRead, &active_path, None, None).map_err(|error| {
-        vec![Diagnostic::io(
-            "SPX-I209",
-            format!("workspace evidence patch post-read hook failed: {error}"),
-        )]
-    })?;
-    let submitted = read_evidence_bounded(evidence_path)?;
-    hook(
+    if let Err(error) = hook(EvidenceApplyPoint::AfterPatchRead, &active_path, None, None) {
+        return Err(workspace::reject_evidence_apply_guard(
+            guard,
+            vec![Diagnostic::io(
+                "SPX-I209",
+                format!("workspace evidence patch post-read hook failed: {error}"),
+            )],
+        ));
+    }
+    let submitted = match read_evidence_bounded(evidence_path) {
+        Ok(submitted) => submitted,
+        Err(diagnostics) => {
+            return Err(workspace::reject_evidence_apply_guard(guard, diagnostics));
+        }
+    };
+    if let Err(error) = hook(
         EvidenceApplyPoint::AfterEvidenceRead,
         &active_path,
         None,
         None,
-    )
-    .map_err(|error| {
-        vec![Diagnostic::io(
-            "SPX-I213",
-            format!("workspace evidence post-read hook failed: {error}"),
-        )]
-    })?;
-    let submitted_facts = parse_canonical_capsule(&submitted)?;
+    ) {
+        return Err(workspace::reject_evidence_apply_guard(
+            guard,
+            vec![Diagnostic::io(
+                "SPX-I213",
+                format!("workspace evidence post-read hook failed: {error}"),
+            )],
+        ));
+    }
+    let submitted_facts = match parse_canonical_capsule(&submitted) {
+        Ok(facts) => facts,
+        Err(diagnostics) => {
+            return Err(workspace::reject_evidence_apply_guard(guard, diagnostics));
+        }
+    };
     let read = workspace::finish_evidence_apply_guard(guard)?;
     let build = build_from_read(read)?;
-    let expected = render_capsule_bounded(&build.facts)?;
+    let expected = match render_capsule_bounded(&build.facts) {
+        Ok(expected) => expected,
+        Err(diagnostics) => return Err(build.release_with_error(diagnostics)),
+    };
     if submitted != expected || !same_bindings(&submitted_facts, &build.facts) {
-        return Err(vec![mismatch()]);
+        return Err(build.release_with_error(vec![mismatch()]));
     }
-    hook(EvidenceApplyPoint::AfterReplay, &active_path, None, None)
-        .map_err(|_| vec![invariant()])?;
+    if hook(EvidenceApplyPoint::AfterReplay, &active_path, None, None).is_err() {
+        return Err(build.release_with_error(vec![invariant()]));
+    }
     let authority = build.into_commit_authority()?;
     workspace::commit_workspace_authority_with_hook(
         authority,
@@ -239,17 +265,33 @@ fn verify_with_hook(
     mut hook: impl FnMut(EvidencePoint),
 ) -> Result<String, Vec<Diagnostic>> {
     let guard = workspace::acquire_evidence_guard(root)?;
-    let submitted = read_evidence_bounded(evidence_path)?;
+    let submitted = match read_evidence_bounded(evidence_path) {
+        Ok(submitted) => submitted,
+        Err(diagnostics) => {
+            return Err(workspace::reject_evidence_guard(guard, diagnostics));
+        }
+    };
     hook(EvidencePoint::AfterEvidenceRead);
-    let submitted_facts = parse_canonical_capsule(&submitted)?;
+    let submitted_facts = match parse_canonical_capsule(&submitted) {
+        Ok(facts) => facts,
+        Err(diagnostics) => {
+            return Err(workspace::reject_evidence_guard(guard, diagnostics));
+        }
+    };
     let read = workspace::build_read_owned_from_guard(guard, workspace_patch_path)?;
     let build = build_from_read(read)?;
-    let expected = render_capsule_bounded(&build.facts)?;
+    let expected = match render_capsule_bounded(&build.facts) {
+        Ok(expected) => expected,
+        Err(diagnostics) => return Err(build.release_with_error(diagnostics)),
+    };
     if submitted != expected || !same_bindings(&submitted_facts, &build.facts) {
-        return Err(vec![mismatch()]);
+        return Err(build.release_with_error(vec![mismatch()]));
     }
     let artifact_digest = domain_digest(ARTIFACT_DIGEST_DOMAIN, submitted.as_bytes());
-    let receipt = render_receipt_bounded(&build.facts, &artifact_digest, submitted.len())?;
+    let receipt = match render_receipt_bounded(&build.facts, &artifact_digest, submitted.len()) {
+        Ok(receipt) => receipt,
+        Err(diagnostics) => return Err(build.release_with_error(diagnostics)),
+    };
     hook(EvidencePoint::BeforeFinalCheck);
     build.recheck()?;
     Ok(receipt)
@@ -273,152 +315,158 @@ fn build_owned(
 fn build_from_read(
     mut read: workspace::WorkspaceReadBuild,
 ) -> Result<WorkspaceEvidenceBuild, Vec<Diagnostic>> {
-    if read.plan().changed_files() < 2 {
-        return Err(vec![format_error(
-            "workspace evidence file cardinality is outside the closed schema",
-        )]);
-    }
-    let preview = read.preview_json()?;
-    let preview_digest = domain_digest(PREVIEW_DIGEST_DOMAIN, preview.as_bytes());
-    let preflights = read.take_preflights()?;
-    let mut files = Vec::with_capacity(preflights.len());
-    let mut remaining_impact_nodes = MAX_TOTAL_IMPACT_NODES;
-    let mut remaining_impact_bytes = MAX_TOTAL_IMPACT_BYTES;
-    let mut remaining_review_bytes = MAX_TOTAL_REVIEW_BYTES;
-    let mut remaining_child_evidence_bytes = MAX_TOTAL_CHILD_PATCH_EVIDENCE_BYTES;
-    let mut used_max_impact_depth = 0usize;
-    let mut used_max_impact_nodes = 0usize;
+    let facts = (|| -> Result<WorkspaceEvidenceFacts, Vec<Diagnostic>> {
+        if read.plan().changed_files() < 2 {
+            return Err(vec![format_error(
+                "workspace evidence file cardinality is outside the closed schema",
+            )]);
+        }
+        let preview = read.preview_json()?;
+        let preview_digest = domain_digest(PREVIEW_DIGEST_DOMAIN, preview.as_bytes());
+        let preflights = read.take_preflights()?;
+        let mut files = Vec::with_capacity(preflights.len());
+        let mut remaining_impact_nodes = MAX_TOTAL_IMPACT_NODES;
+        let mut remaining_impact_bytes = MAX_TOTAL_IMPACT_BYTES;
+        let mut remaining_review_bytes = MAX_TOTAL_REVIEW_BYTES;
+        let mut remaining_child_evidence_bytes = MAX_TOTAL_CHILD_PATCH_EVIDENCE_BYTES;
+        let mut used_max_impact_depth = 0usize;
+        let mut used_max_impact_nodes = 0usize;
 
-    for child in preflights {
-        let (path, preflight) = child.into_parts();
-        let binding = read.evidence_binding(&path)?;
-        if binding.path() != path {
+        for child in preflights {
+            let (path, preflight) = child.into_parts();
+            let binding = read.evidence_binding(&path)?;
+            if binding.path() != path {
+                return Err(vec![invariant()]);
+            }
+            let child_impact_node_limit = MAX_CHILD_IMPACT_NODES.min(remaining_impact_nodes);
+            let total_node_budget_is_tighter = remaining_impact_nodes < MAX_CHILD_IMPACT_NODES;
+            let review = review::build_from_preflight_for_workspace(
+                preflight,
+                review::WorkspaceEvidenceLimits {
+                    max_impact_nodes: child_impact_node_limit,
+                    max_impact_bytes: MAX_TOTAL_IMPACT_BYTES.min(remaining_impact_bytes),
+                    max_review_bytes: MAX_TOTAL_REVIEW_BYTES.min(remaining_review_bytes),
+                },
+            )
+            .map_err(|diagnostics| {
+                map_review_child_diagnostics(diagnostics, total_node_budget_is_tighter)
+            })?;
+            let candidate_source_digest =
+                review::source_digest(review.preflight().canonical_candidate().as_bytes());
+            let facts =
+                patch_evidence::facts_from_review(&review).map_err(map_facts_diagnostics)?;
+            validate_child_binding(&path, &binding, &facts, &candidate_source_digest)?;
+            let usage = facts.usage();
+            let review_bytes = usage.review_bytes();
+            let impact_nodes = usage.impact_nodes();
+            let impact_bytes = usage.impact_bytes();
+            let child_limit = MAX_CHILD_PATCH_EVIDENCE_BYTES.min(remaining_child_evidence_bytes);
+            let rendered = patch_evidence::render_from_facts_with_limit(&facts, child_limit)
+                .map_err(|diagnostics| {
+                    map_child_render_diagnostics(
+                        diagnostics,
+                        remaining_child_evidence_bytes < MAX_CHILD_PATCH_EVIDENCE_BYTES,
+                    )
+                })?;
+            let (artifact, artifact_digest) = rendered.into_parts();
+
+            remaining_impact_nodes = remaining_impact_nodes
+                .checked_sub(impact_nodes)
+                .ok_or_else(|| {
+                    vec![limit_field(
+                        "max_total_impact_nodes",
+                        MAX_TOTAL_IMPACT_NODES,
+                    )]
+                })?;
+            remaining_impact_bytes = remaining_impact_bytes
+                .checked_sub(impact_bytes)
+                .ok_or_else(|| {
+                    vec![limit_field(
+                        "max_total_impact_bytes",
+                        MAX_TOTAL_IMPACT_BYTES,
+                    )]
+                })?;
+            remaining_review_bytes = remaining_review_bytes
+                .checked_sub(review_bytes)
+                .ok_or_else(|| {
+                    vec![limit_field(
+                        "max_total_review_bytes",
+                        MAX_TOTAL_REVIEW_BYTES,
+                    )]
+                })?;
+            remaining_child_evidence_bytes = remaining_child_evidence_bytes
+                .checked_sub(artifact.len())
+                .ok_or_else(|| {
+                    vec![limit_field(
+                        "max_total_child_patch_evidence_bytes",
+                        MAX_TOTAL_CHILD_PATCH_EVIDENCE_BYTES,
+                    )]
+                })?;
+            used_max_impact_depth = used_max_impact_depth.max(usage.impact_depth());
+            used_max_impact_nodes = used_max_impact_nodes.max(impact_nodes);
+            files.push(WorkspaceChildEvidence {
+                path,
+                base_source_graph_schema: binding.base_source_graph_schema().to_owned(),
+                candidate_source_graph_schema: binding.candidate_source_graph_schema().to_owned(),
+                base_revision: facts.base_revision().to_owned(),
+                candidate_revision: facts.candidate_revision().to_owned(),
+                base_source_digest: facts.source_digest().to_owned(),
+                candidate_source_digest,
+                patch_schema: facts.patch_schema().to_owned(),
+                patch_digest: facts.patch_digest().to_owned(),
+                review_digest: facts.review_digest().to_owned(),
+                assessments: facts.assessments().clone(),
+                supporting_kind: facts.supporting_kind().to_owned(),
+                supporting_schema: facts.supporting_schema().to_owned(),
+                supporting_digest: facts.supporting_digest().to_owned(),
+                patch_evidence_digest: artifact_digest,
+            });
+            drop(artifact);
+            drop(review);
+        }
+        files.sort_by(|left, right| left.path.cmp(&right.path));
+        if files.len() != read.plan().changed_files()
+            || files.windows(2).any(|pair| pair[0].path >= pair[1].path)
+        {
             return Err(vec![invariant()]);
         }
-        let child_impact_node_limit = MAX_CHILD_IMPACT_NODES.min(remaining_impact_nodes);
-        let total_node_budget_is_tighter = remaining_impact_nodes < MAX_CHILD_IMPACT_NODES;
-        let review = review::build_from_preflight_for_workspace(
-            preflight,
-            review::WorkspaceEvidenceLimits {
-                max_impact_nodes: child_impact_node_limit,
-                max_impact_bytes: MAX_TOTAL_IMPACT_BYTES.min(remaining_impact_bytes),
-                max_review_bytes: MAX_TOTAL_REVIEW_BYTES.min(remaining_review_bytes),
+        let (declarations, callables, call_sites) = read.plan().semantic_usage();
+        let facts = WorkspaceEvidenceFacts {
+            base_workspace_revision: read.plan().base_workspace_revision().to_owned(),
+            candidate_workspace_revision: read.plan().candidate_workspace_revision().to_owned(),
+            workspace_patch_digest: read.plan().workspace_patch_digest().to_owned(),
+            workspace_preview_digest: preview_digest,
+            files,
+            usage: AggregateUsage {
+                managed_files: read.plan().managed_files(),
+                changed_files: read.plan().changed_files(),
+                base_source_bytes: read.base_source_bytes(),
+                candidate_source_bytes: read.plan().candidate_source_bytes(),
+                workspace_patch_bytes: read.plan().workspace_patch_bytes(),
+                operations: read.plan().operations(),
+                declarations,
+                callables,
+                call_sites,
+                manifest_bytes: read.plan().candidate_manifest_bytes(),
+                preview_bytes: preview.len(),
+                max_child_impact_depth: used_max_impact_depth,
+                max_child_impact_nodes: used_max_impact_nodes,
+                total_impact_nodes: MAX_TOTAL_IMPACT_NODES - remaining_impact_nodes,
+                total_impact_bytes: MAX_TOTAL_IMPACT_BYTES - remaining_impact_bytes,
+                total_review_bytes: MAX_TOTAL_REVIEW_BYTES - remaining_review_bytes,
+                total_child_evidence_bytes: MAX_TOTAL_CHILD_PATCH_EVIDENCE_BYTES
+                    - remaining_child_evidence_bytes,
+                retained_generations: read.retained_generations(),
+                staging_attempts: read.staging_attempts(),
             },
-        )
-        .map_err(|diagnostics| {
-            map_review_child_diagnostics(diagnostics, total_node_budget_is_tighter)
-        })?;
-        let candidate_source_digest =
-            review::source_digest(review.preflight().canonical_candidate().as_bytes());
-        let facts = patch_evidence::facts_from_review(&review).map_err(map_facts_diagnostics)?;
-        validate_child_binding(&path, &binding, &facts, &candidate_source_digest)?;
-        let usage = facts.usage();
-        let review_bytes = usage.review_bytes();
-        let impact_nodes = usage.impact_nodes();
-        let impact_bytes = usage.impact_bytes();
-        let child_limit = MAX_CHILD_PATCH_EVIDENCE_BYTES.min(remaining_child_evidence_bytes);
-        let rendered = patch_evidence::render_from_facts_with_limit(&facts, child_limit).map_err(
-            |diagnostics| {
-                map_child_render_diagnostics(
-                    diagnostics,
-                    remaining_child_evidence_bytes < MAX_CHILD_PATCH_EVIDENCE_BYTES,
-                )
-            },
-        )?;
-        let (artifact, artifact_digest) = rendered.into_parts();
-
-        remaining_impact_nodes = remaining_impact_nodes
-            .checked_sub(impact_nodes)
-            .ok_or_else(|| {
-                vec![limit_field(
-                    "max_total_impact_nodes",
-                    MAX_TOTAL_IMPACT_NODES,
-                )]
-            })?;
-        remaining_impact_bytes = remaining_impact_bytes
-            .checked_sub(impact_bytes)
-            .ok_or_else(|| {
-                vec![limit_field(
-                    "max_total_impact_bytes",
-                    MAX_TOTAL_IMPACT_BYTES,
-                )]
-            })?;
-        remaining_review_bytes = remaining_review_bytes
-            .checked_sub(review_bytes)
-            .ok_or_else(|| {
-                vec![limit_field(
-                    "max_total_review_bytes",
-                    MAX_TOTAL_REVIEW_BYTES,
-                )]
-            })?;
-        remaining_child_evidence_bytes = remaining_child_evidence_bytes
-            .checked_sub(artifact.len())
-            .ok_or_else(|| {
-                vec![limit_field(
-                    "max_total_child_patch_evidence_bytes",
-                    MAX_TOTAL_CHILD_PATCH_EVIDENCE_BYTES,
-                )]
-            })?;
-        used_max_impact_depth = used_max_impact_depth.max(usage.impact_depth());
-        used_max_impact_nodes = used_max_impact_nodes.max(impact_nodes);
-        files.push(WorkspaceChildEvidence {
-            path,
-            base_source_graph_schema: binding.base_source_graph_schema().to_owned(),
-            candidate_source_graph_schema: binding.candidate_source_graph_schema().to_owned(),
-            base_revision: facts.base_revision().to_owned(),
-            candidate_revision: facts.candidate_revision().to_owned(),
-            base_source_digest: facts.source_digest().to_owned(),
-            candidate_source_digest,
-            patch_schema: facts.patch_schema().to_owned(),
-            patch_digest: facts.patch_digest().to_owned(),
-            review_digest: facts.review_digest().to_owned(),
-            assessments: facts.assessments().clone(),
-            supporting_kind: facts.supporting_kind().to_owned(),
-            supporting_schema: facts.supporting_schema().to_owned(),
-            supporting_digest: facts.supporting_digest().to_owned(),
-            patch_evidence_digest: artifact_digest,
-        });
-        drop(artifact);
-        drop(review);
+        };
+        validate_usage(&facts.usage)?;
+        Ok(facts)
+    })();
+    match facts {
+        Ok(facts) => Ok(WorkspaceEvidenceBuild { read, facts }),
+        Err(diagnostics) => Err(read.release_with_error(diagnostics)),
     }
-    files.sort_by(|left, right| left.path.cmp(&right.path));
-    if files.len() != read.plan().changed_files()
-        || files.windows(2).any(|pair| pair[0].path >= pair[1].path)
-    {
-        return Err(vec![invariant()]);
-    }
-    let (declarations, callables, call_sites) = read.plan().semantic_usage();
-    let facts = WorkspaceEvidenceFacts {
-        base_workspace_revision: read.plan().base_workspace_revision().to_owned(),
-        candidate_workspace_revision: read.plan().candidate_workspace_revision().to_owned(),
-        workspace_patch_digest: read.plan().workspace_patch_digest().to_owned(),
-        workspace_preview_digest: preview_digest,
-        files,
-        usage: AggregateUsage {
-            managed_files: read.plan().managed_files(),
-            changed_files: read.plan().changed_files(),
-            base_source_bytes: read.base_source_bytes(),
-            candidate_source_bytes: read.plan().candidate_source_bytes(),
-            workspace_patch_bytes: read.plan().workspace_patch_bytes(),
-            operations: read.plan().operations(),
-            declarations,
-            callables,
-            call_sites,
-            manifest_bytes: read.plan().candidate_manifest_bytes(),
-            preview_bytes: preview.len(),
-            max_child_impact_depth: used_max_impact_depth,
-            max_child_impact_nodes: used_max_impact_nodes,
-            total_impact_nodes: MAX_TOTAL_IMPACT_NODES - remaining_impact_nodes,
-            total_impact_bytes: MAX_TOTAL_IMPACT_BYTES - remaining_impact_bytes,
-            total_review_bytes: MAX_TOTAL_REVIEW_BYTES - remaining_review_bytes,
-            total_child_evidence_bytes: MAX_TOTAL_CHILD_PATCH_EVIDENCE_BYTES
-                - remaining_child_evidence_bytes,
-            retained_generations: read.retained_generations(),
-            staging_attempts: read.staging_attempts(),
-        },
-    };
-    validate_usage(&facts.usage)?;
-    Ok(WorkspaceEvidenceBuild { read, facts })
 }
 
 fn validate_child_binding(

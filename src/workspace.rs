@@ -400,32 +400,41 @@ impl WorkspaceReadBuild {
     }
 
     pub(crate) fn recheck(mut self) -> Result<(), Vec<Diagnostic>> {
-        self.patch_input.recheck()?;
+        if let Err(diagnostics) = self.patch_input.recheck() {
+            return Err(unlock_with_diagnostics(&self.guard.lock, diagnostics));
+        }
         if self.patch_input.source != self.summary.patch.source {
-            return Err(invariant(
-                "owned workspace patch changed after semantic planning",
+            return Err(unlock_with_diagnostics(
+                &self.guard.lock,
+                invariant("owned workspace patch changed after semantic planning"),
             ));
         }
-        self.guard.recheck()?;
+        if let Err(diagnostics) = self.guard.recheck() {
+            return Err(unlock_with_diagnostics(&self.guard.lock, diagnostics));
+        }
         unlock_file(&self.guard.lock)
     }
 
     pub(crate) fn into_commit_authority(self) -> Result<WorkspaceCommitAuthority, Vec<Diagnostic>> {
         if !self.guard.exclusive {
-            return Err(invariant(
+            return Err(self.release_with_error(invariant(
                 "workspace evidence commit authority requires the exclusive workspace lock",
-            ));
+            )));
         }
         if self.preflights.is_some() {
-            return Err(invariant(
+            return Err(self.release_with_error(invariant(
                 "workspace evidence preflights must be consumed before commit authority",
-            ));
+            )));
         }
         Ok(WorkspaceCommitAuthority {
             guard: self.guard,
             patch_input: self.patch_input,
             plan: self.summary,
         })
+    }
+
+    pub(crate) fn release_with_error(self, diagnostics: Vec<Diagnostic>) -> Vec<Diagnostic> {
+        unlock_with_diagnostics(&self.guard.lock, diagnostics)
     }
 }
 
@@ -1026,16 +1035,41 @@ pub(crate) fn acquire_evidence_guard(
     })
 }
 
+pub(crate) fn reject_evidence_guard(
+    mut authority: WorkspaceEvidenceGuard,
+    diagnostics: Vec<Diagnostic>,
+) -> Vec<Diagnostic> {
+    let Some(guard) = authority.guard.take() else {
+        return invariant("workspace evidence guard was already consumed");
+    };
+    unlock_with_diagnostics(&guard.lock, diagnostics)
+}
+
 pub(crate) fn acquire_evidence_apply_guard(
     root: &Path,
     patch_path: &Path,
 ) -> Result<WorkspaceEvidenceApplyGuard, Vec<Diagnostic>> {
     let guard = acquire_lock_only(root, true)?;
-    let patch_input = authenticate_text(patch_path, MAX_WORKSPACE_PATCH_BYTES, "SPX-I209")?;
+    let patch_input = match authenticate_text(patch_path, MAX_WORKSPACE_PATCH_BYTES, "SPX-I209") {
+        Ok(patch_input) => patch_input,
+        Err(diagnostics) => {
+            return Err(unlock_with_diagnostics(&guard.lock, diagnostics));
+        }
+    };
     Ok(WorkspaceEvidenceApplyGuard {
         guard: Some(guard),
         patch_input: Some(patch_input),
     })
+}
+
+pub(crate) fn reject_evidence_apply_guard(
+    mut authority: WorkspaceEvidenceApplyGuard,
+    diagnostics: Vec<Diagnostic>,
+) -> Vec<Diagnostic> {
+    let Some(guard) = authority.guard.take() else {
+        return invariant("workspace evidence apply guard was already consumed");
+    };
+    unlock_with_diagnostics(&guard.lock, diagnostics)
 }
 
 pub(crate) fn finish_evidence_apply_guard(
@@ -1045,11 +1079,21 @@ pub(crate) fn finish_evidence_apply_guard(
         .guard
         .take()
         .ok_or_else(|| invariant("workspace evidence apply guard was already consumed"))?;
-    let patch_input = authority
-        .patch_input
-        .take()
-        .ok_or_else(|| invariant("workspace evidence apply patch was already consumed"))?;
-    let workspace_patch = parse_workspace_patch(&patch_input.source)?;
+    let patch_input = match authority.patch_input.take() {
+        Some(patch_input) => patch_input,
+        None => {
+            return Err(unlock_with_diagnostics(
+                &lock_guard.lock,
+                invariant("workspace evidence apply patch was already consumed"),
+            ));
+        }
+    };
+    let workspace_patch = match parse_workspace_patch(&patch_input.source) {
+        Ok(workspace_patch) => workspace_patch,
+        Err(diagnostics) => {
+            return Err(unlock_with_diagnostics(&lock_guard.lock, diagnostics));
+        }
+    };
     let guard = finish_snapshot_guard(lock_guard)?;
     build_read_from_inputs(guard, patch_input, workspace_patch)
 }
@@ -1062,8 +1106,18 @@ pub(crate) fn build_read_owned_from_guard(
         .guard
         .take()
         .ok_or_else(|| invariant("workspace evidence guard was already consumed"))?;
-    let patch_input = authenticate_text(patch_path, MAX_WORKSPACE_PATCH_BYTES, "SPX-I209")?;
-    let workspace_patch = parse_workspace_patch_with_minimum(&patch_input.source, 1)?;
+    let patch_input = match authenticate_text(patch_path, MAX_WORKSPACE_PATCH_BYTES, "SPX-I209") {
+        Ok(patch_input) => patch_input,
+        Err(diagnostics) => {
+            return Err(unlock_with_diagnostics(&lock_guard.lock, diagnostics));
+        }
+    };
+    let workspace_patch = match parse_workspace_patch_with_minimum(&patch_input.source, 1) {
+        Ok(workspace_patch) => workspace_patch,
+        Err(diagnostics) => {
+            return Err(unlock_with_diagnostics(&lock_guard.lock, diagnostics));
+        }
+    };
     let guard = finish_snapshot_guard(lock_guard)?;
     build_read_from_inputs(guard, patch_input, workspace_patch)
 }
@@ -1073,12 +1127,19 @@ fn build_read_from_inputs(
     patch_input: AuthenticatedText,
     workspace_patch: WorkspacePatch,
 ) -> Result<WorkspaceReadBuild, Vec<Diagnostic>> {
-    let plan = build_workspace_plan(&guard.snapshot, workspace_patch)?;
+    let plan = match build_workspace_plan(&guard.snapshot, workspace_patch) {
+        Ok(plan) => plan,
+        Err(diagnostics) => {
+            return Err(unlock_with_diagnostics(&guard.lock, diagnostics));
+        }
+    };
     let WorkspacePlan {
         summary,
         preflights,
     } = plan;
-    validate_evidence_preflight_paths(&summary, &preflights)?;
+    if let Err(diagnostics) = validate_evidence_preflight_paths(&summary, &preflights) {
+        return Err(unlock_with_diagnostics(&guard.lock, diagnostics));
+    }
     Ok(WorkspaceReadBuild {
         guard,
         patch_input,
@@ -2115,7 +2176,9 @@ fn acquire_lock_only(root: &Path, exclusive: bool) -> Result<WorkspaceLockGuard,
         .map_err(|error| io("SPX-I209", format!("cannot open workspace LOCK: {error}")))?;
     let lock_identity = identity_from_file(&lock, "SPX-I209")?;
     lock_file(&lock, exclusive)?;
-    recheck_lock(&lock_path, &lock, &lock_identity)?;
+    if let Err(diagnostics) = recheck_lock(&lock_path, &lock, &lock_identity) {
+        return Err(unlock_with_diagnostics(&lock, diagnostics));
+    }
     Ok(WorkspaceLockGuard {
         root,
         root_identity,
@@ -2139,19 +2202,26 @@ fn finish_snapshot_guard(
         lock_identity,
         exclusive,
     } = lock_guard;
-    validate_control(&control)?;
-    recheck_lock(&lock_path, &lock, &lock_identity)?;
-    let authenticated = snapshot_authenticated(&root, &control, Some(&lock_identity))?;
-    let (_, generation_directories) =
-        count_directories_bounded(&control.join("generations"), MAX_RETAINED_GENERATIONS)?;
-    let generation_names = inventory_names_from_directories(&generation_directories)?;
-    let (_, staging_directories, staging_files) =
-        validate_staging_inventory(&control.join("staging"))?;
-    let staging_names = inventory_names_from_directories(&staging_directories)?
-        .into_iter()
-        .chain(inventory_names_from_texts(&staging_files)?)
-        .collect();
-    recheck_lock(&lock_path, &lock, &lock_identity)?;
+    let authenticated = match (|| {
+        validate_control(&control)?;
+        recheck_lock(&lock_path, &lock, &lock_identity)?;
+        let authenticated = snapshot_authenticated(&root, &control, Some(&lock_identity))?;
+        let (_, generation_directories) =
+            count_directories_bounded(&control.join("generations"), MAX_RETAINED_GENERATIONS)?;
+        let generation_names = inventory_names_from_directories(&generation_directories)?;
+        let (_, staging_directories, staging_files) =
+            validate_staging_inventory(&control.join("staging"))?;
+        let staging_names = inventory_names_from_directories(&staging_directories)?
+            .into_iter()
+            .chain(inventory_names_from_texts(&staging_files)?)
+            .collect();
+        recheck_lock(&lock_path, &lock, &lock_identity)?;
+        Ok::<_, Vec<Diagnostic>>((authenticated, generation_names, staging_names))
+    })() {
+        Ok(authenticated) => authenticated,
+        Err(diagnostics) => return Err(unlock_with_diagnostics(&lock, diagnostics)),
+    };
+    let (authenticated, generation_names, staging_names) = authenticated;
     Ok(WorkspaceGuard {
         root,
         root_identity,
@@ -2418,6 +2488,13 @@ fn unlock_file(file: &File) -> Result<(), Vec<Diagnostic>> {
             "SPX-I210",
             "workspace locks are unavailable on this target",
         )])
+    }
+}
+
+fn unlock_with_diagnostics(file: &File, diagnostics: Vec<Diagnostic>) -> Vec<Diagnostic> {
+    match unlock_file(file) {
+        Ok(()) => diagnostics,
+        Err(unlock_diagnostics) => unlock_diagnostics,
     }
 }
 

@@ -4563,7 +4563,7 @@ fn main() -> i64 { 0 }
             },
         )
         .unwrap_err();
-        assert_eq!(error[0].code, "SPX-G153");
+        assert_eq!(error[0].code, "SPX-I211");
         assert_eq!(std::fs::read(&active_path).unwrap(), old_active);
         assert!(foreign.join("a/provider.spx").is_file());
         let junction = junction.into_inner().unwrap();

@@ -2409,27 +2409,25 @@ fn identity_from_file(file: &File, code: &'static str) -> Result<FileIdentity, V
     }
 }
 
+#[cfg(windows)]
 fn identity_from_path(path: &Path, code: &'static str) -> Result<FileIdentity, Vec<Diagnostic>> {
-    #[cfg(windows)]
-    {
-        use std::os::windows::fs::MetadataExt as _;
-        let metadata = std::fs::metadata(path)
-            .map_err(|error| io(code, format!("cannot identify {}: {error}", path.display())))?;
-        let volume = metadata
-            .volume_serial_number()
-            .ok_or_else(|| io(code, "workspace volume identity is unavailable"))?;
-        let index = metadata
-            .file_index()
-            .ok_or_else(|| io(code, "workspace file identity is unavailable"))?;
-        return Ok(FileIdentity { volume, index });
-    }
-    #[cfg(not(windows))]
+    use std::os::windows::fs::MetadataExt as _;
+    let metadata = std::fs::metadata(path)
+        .map_err(|error| io(code, format!("cannot identify {}: {error}", path.display())))?;
+    let volume = metadata
+        .volume_serial_number()
+        .ok_or_else(|| io(code, "workspace volume identity is unavailable"))?;
+    let index = metadata
+        .file_index()
+        .ok_or_else(|| io(code, "workspace file identity is unavailable"))?;
+    Ok(FileIdentity { volume, index })
+}
+
+#[cfg(not(windows))]
+fn identity_from_path(path: &Path, code: &'static str) -> Result<FileIdentity, Vec<Diagnostic>> {
     let file = File::open(path)
         .map_err(|error| io(code, format!("cannot identify {}: {error}", path.display())))?;
-    #[cfg(not(windows))]
-    {
-        identity_from_file(&file, code)
-    }
+    identity_from_file(&file, code)
 }
 
 fn require_single_link(metadata: &std::fs::Metadata) -> Result<(), Vec<Diagnostic>> {

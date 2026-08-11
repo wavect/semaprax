@@ -993,6 +993,52 @@ O0/O2 and Node/Wasm execution validates emitted artifacts only and is not a
 report fact or authority. This adds no multi-file transaction and changes no
 completion status.
 
+## Managed semantic workspace transactions
+
+`src/workspace.rs` owns the bounded
+`semaprax.semantic-workspace-patch.v1` transaction and its
+`semaprax.workspace-path-set.v1`, `semaprax.workspace-root.v1`,
+`semaprax.workspace-manifest.v1`, `semaprax.workspace-snapshot.v1`, and
+`semaprax.semantic-workspace-preview.v1` projections. Exact wire order,
+domains, bounds, diagnostics, KATs, APIs, commands, and nonclaims are frozen in
+[Semantic Workspace Transaction v1](SEMANTIC-WORKSPACE-TRANSACTION-V1.md);
+the publication choice is recorded in [ADR
+0002](decisions/0002-managed-workspace-generations.md).
+
+The protocol authenticates 2–16 pre-existing canonical `.spx` sources and
+copies them into an immutable generation below `.semaprax-workspace`. A
+permanent zero-byte `LOCK` gives cooperating snapshot/preview readers shared
+access and initialization/apply writers exclusive access. `ACTIVE` is a
+canonical revision pointer. Apply independently preflights every changed file,
+builds or deeply reuses the complete candidate generation, publishes it
+without replacement, authenticates a staged pointer at two final boundaries,
+and atomically replaces only `ACTIVE`. A managed reader resolving `ACTIVE`
+under the shared lock therefore sees the complete old or new generation.
+
+Original source paths are never rewritten. Consequently Git, editors, build
+tools, and other raw-path readers receive no atomic-visibility guarantee.
+Pre-pivot rejection can retain bounded authenticated owned generation/staging
+residue, while foreign replacements are preserved and fail closed rather than
+deleted; post-pivot failure is explicit `SPX-I212` ambiguity, not automatic
+rollback. There is no automatic cleanup/GC, power-loss durability,
+network/NFS/overlay guarantee, or raw-tree materialization.
+
+Workspace patch entries embed unchanged admitted Patch v1/v2 or the sole
+canonical Patch v3 operation. Each file verifies independently, with only
+global authored module/declaration identity uniqueness. There is no cross-file
+module/type/call/capability/ownership resolution, repository Graph,
+Impact/Review/Context/Target/test analysis, evidence/proof/provenance, new
+Patch/Graph/CleanupPlan/backend/runtime semantics, or create/delete/move.
+Snapshot and preview artifacts carry no authority; the live initialize/apply
+invocation owns the bounded lock, generation-publication, and `ACTIVE`-pivot
+authority. Local integration 12/12, hostile wire/CLI 5/5, workspace units
+37/37, library 482/482, full gates, preservation, and security are green.
+Hosted run 31471716036 on exact head
+`4daa40707c7fb9b5519229f05635c355ac2cdc8b` is nonqualifying because Windows
+strict Clippy failed. A local test-only permission-restoration fix preserves
+the contract; fresh-head hosted Phase C evidence remains pending. This adds no
+status transition: the matrix remains 38 Partial/18 Missing.
+
 ## Transactions
 
 The `.spatch` protocol is intentionally smaller than a text patch:
@@ -1029,14 +1075,17 @@ patch tests are 17/17, and the full matrix is hosted green in [run 31396483313,
 including Windows job
 93481068538](https://github.com/wavect/semaprax/actions/runs/31396483313/job/93481068538).
 
-This remains a single-file cooperative protocol. Predictable sibling names
+This A0 path remains a single-file cooperative protocol. Predictable sibling names
 permit collision or stale-lock denial of service, crashes may leave locks, the
 containing directory remains trusted against non-cooperating mutation in the
 final portable path-based rename window, and parent-directory synchronization,
-power-loss durability, multi-file commits, and general typed repair/impact are
-not claimed.
+power-loss durability, general raw-source/repository multi-file commits, and
+general typed repair/impact are not claimed. The separate managed workspace
+protocol above supplies only its bounded cooperating-reader publication model.
 
-The protocol will evolve toward structured JSON/CBOR operations with typed payloads, affected-node proofs, target requirements, and multi-file commits.
+The broader protocol will evolve toward structured JSON/CBOR operations with
+typed payloads, affected-node proofs, target requirements, and general
+multi-file graph commits.
 
 ## Native backend
 

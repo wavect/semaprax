@@ -4,6 +4,29 @@ All notable changes to SEMAPRAX are documented here.
 
 ## 0.2.0 — 2026-08-07
 
+- Added [Semantic Workspace Transaction
+  v1](docs/SEMANTIC-WORKSPACE-TRANSACTION-V1.md) and [ADR
+  0002](docs/decisions/0002-managed-workspace-generations.md). The opt-in
+  protocol authenticates 2–16 canonical pre-existing sources, serializes
+  cooperating readers and writers through one permanent lock, publishes a
+  complete immutable candidate generation, and atomically pivots only
+  `ACTIVE`. It embeds unchanged admitted Patch v1/v2 and the sole canonical
+  Patch v3 per file. Original source paths are never rewritten, so no raw-file,
+  Git, editor, repository-Graph, cross-file semantic, recovery/GC, or power-loss
+  durability claim follows. Exact initial-revision/snapshot/preview KATs are
+  `sha256:9a7368825342cee138d02a8037248e9a41ed0479d4f7c32a21c7ee7141cf280c`,
+  `3646097c9fb8c47bced51cf2c404b886755f657c73c57afb18d25282574f0b80`,
+  and `a4f1a9467d535aada97e7f253cf51c0d2168b5557a5a400d11692ac6966776b4`;
+  mixed-v1/v2/v3 snapshot/preview KATs are
+  `dfd35db518d0a8d94b83702dd1d2760ce9340b5875e0960ac573f84474c223b5`
+  and `3cbd8d22bc26069387ac8ebce72ca590f095cbaa193b04bdef041e4c06beced1`.
+  Local integration 12/12, hostile 5/5, workspace units 37/37, library 482/482,
+  full gates, preservation, and security are green. Hosted run 31471716036 on
+  exact head `4daa40707c7fb9b5519229f05635c355ac2cdc8b` is nonqualifying because
+  Windows strict Clippy failed. A local test-only permission-restoration fix
+  preserves the contract; fresh-head hosted Phase C evidence remains pending.
+  The completion matrix remains 38 Partial/18 Missing.
+
 - Added [Semantic Target Evidence v1](docs/SEMANTIC-TARGET-EVIDENCE-V1.md) and
   [Semantic Patch Evidence v2](docs/SEMANTIC-PATCH-EVIDENCE-V2.md).
   `target-evidence` reports exact base/candidate Graph JSON, typed zero

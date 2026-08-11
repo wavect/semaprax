@@ -278,3 +278,8 @@ The additive [Target Evidence v1](SEMANTIC-TARGET-EVIDENCE-V1.md) and
 [Semantic Patch Evidence v2](SEMANTIC-PATCH-EVIDENCE-V2.md) contracts do not
 change any Evidence v1 artifact, KAT, command, API, or nonclaim. V2 opts into a
 separate target-report binding; v1 remains target-execution-free and immutable.
+
+The separate [Semantic Workspace Transaction
+v1](SEMANTIC-WORKSPACE-TRANSACTION-V1.md) does not accept or emit Evidence v1
+capsules and adds no workspace proof/provenance binding. This document's
+single-file, no-multi-file artifact claim remains exact.

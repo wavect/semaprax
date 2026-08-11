@@ -4194,18 +4194,6 @@ mod tests {
         std::fs::write(path, bytes)
     }
 
-    fn make_test_file_writable(path: &Path) {
-        let mut permissions = std::fs::metadata(path).unwrap().permissions();
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            permissions.set_mode(permissions.mode() | 0o200);
-        }
-        #[cfg(not(unix))]
-        permissions.set_readonly(false);
-        std::fs::set_permissions(path, permissions).unwrap();
-    }
-
     #[test]
     fn phase_c_pre_pivot_rejection_retains_active_and_staging_residue() {
         let fixture = Fixture::new("phase-c-reject-pivot");
@@ -4448,6 +4436,7 @@ mod tests {
             let patch = fixture.initialize_and_patch("permissions");
             let active_bytes = std::fs::read(fixture.active()).unwrap();
             let active_identity = identity_from_path(&fixture.active(), "SPX-I209").unwrap();
+            let original_permissions = std::fs::metadata(fixture.active()).unwrap().permissions();
             let error = apply_with_hook(&fixture.root, &patch, |observed, active, staged, _| {
                 if observed == point {
                     let path = if target == "old" {
@@ -4464,13 +4453,13 @@ mod tests {
             .unwrap_err();
             assert_eq!(error[0].code, "SPX-G153");
             assert_active_unchanged(&fixture, &active_bytes, active_identity);
-            make_test_file_writable(&fixture.active());
+            std::fs::set_permissions(fixture.active(), original_permissions.clone()).unwrap();
             for entry in
                 std::fs::read_dir(fixture.root.join(".semaprax-workspace/staging")).unwrap()
             {
                 let path = entry.unwrap().path();
                 if path.is_file() {
-                    make_test_file_writable(&path);
+                    std::fs::set_permissions(path, original_permissions.clone()).unwrap();
                 }
             }
         }

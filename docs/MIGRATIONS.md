@@ -217,13 +217,51 @@ Evidence v2 adds one independently rebuilt target-report binding and overlays
 Review only with exact zero `security_authority` delta and digest-based
 `target_artifact`; Patch v3 is `change_proven`. These are input reads and
 replay work, not authority. Reports/capsules contain no execution or project-
-test result. Multi-file migration remains future work and 38 Partial/18 Missing
-is unchanged. The exact `fcdf3861d79faea27c526a8dc5105b92c6738213`
+test result. Evidence-v2 capsules remain single-file; they do not migrate into
+the separate managed workspace protocol, and 38 Partial/18 Missing is
+unchanged. The exact `fcdf3861d79faea27c526a8dc5105b92c6738213`
 matrix is hosted green in [run
 31440359793](https://github.com/wavect/semaprax/actions/runs/31440359793),
 including [Ubuntu job
 93624123631](https://github.com/wavect/semaprax/actions/runs/31440359793/job/93624123631);
 all 12 jobs passed.
+
+## Raw source and single-file patch workflows to Workspace Transaction v1
+
+There is no implicit migration. Existing `.spx` files, Semantic Patch
+v1/v2/v3, A0, Review, Impact, Repair, Target Evidence, and Patch Evidence
+artifacts and commands remain byte-, API-, and behavior-compatible. A consumer
+opts into [Semantic Workspace Transaction
+v1](SEMANTIC-WORKSPACE-TRANSACTION-V1.md) by authoring the exact sorted
+`semaprax.workspace-path-set.v1` for 2–16 pre-existing canonical sources and
+running `workspace-init` once.
+
+Initialization copies authenticated canonical sources into immutable managed
+generation zero and publishes the first `ACTIVE`; it does not modify or delete
+the original sources. Thereafter a cooperating reader must acquire the
+permanent shared `.semaprax-workspace/LOCK`, authenticate the canonical
+`ACTIVE`, and resolve that exact immutable generation. A writer uses
+`workspace-preview` for the read-only projection and `workspace-apply` for the
+exclusive-lock candidate-generation and `ACTIVE`-pivot route. Workspace patch
+entries embed existing admitted single-file patches; they are not converted
+Evidence capsules or a new cross-file repair language.
+
+Do not migrate a raw-path/Git/editor reader by merely pointing it at the
+workspace root. Original paths are not flat-materialized or atomically
+rewritten. A reader that needs managed old-or-new visibility must implement the
+locked `ACTIVE` resolution contract. Staging and unselected generations can be
+retained after failure and count against exact limits. V1 has no automatic
+rollback, recovery, cleanup, or garbage collection; operators must preserve
+the authenticated tree until a future maintenance protocol defines those
+actions. Power-loss, network/NFS/overlay, ACL/xattr/ADS, repository Graph, and
+external-consumer compatibility are not implied.
+
+Local integration 12/12, hostile wire/CLI 5/5, workspace units 37/37, library
+482/482, full preservation, and security are green. Hosted run 31471716036 on
+exact head `4daa40707c7fb9b5519229f05635c355ac2cdc8b` is nonqualifying because
+Windows strict Clippy failed. A local test-only permission-restoration fix
+preserves the contract; fresh-head hosted Phase C evidence remains pending.
+The completion ledger remains 38 Partial/18 Missing.
 
 ## Persistent identities are NUL-free
 

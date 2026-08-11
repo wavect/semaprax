@@ -276,3 +276,8 @@ cargo test --locked -p semaprax --all-features --test semantic_impact_v1
 cargo test --locked -p semaprax --all-features --test diagnostic_repair_v1
 cargo test --locked -p semaprax --all-features --test semantic_patch_v3
 ```
+
+The separate [Semantic Workspace Transaction
+v1](SEMANTIC-WORKSPACE-TRANSACTION-V1.md) does not invoke, aggregate, or widen
+Review v1. Review remains single-file, read-only, non-proof, and without
+repository, multi-file, approval, or commit authority.

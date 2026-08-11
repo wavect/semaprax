@@ -209,3 +209,8 @@ multi-engine conformance record, Context/repository analysis, multi-file
 transaction, consumer compatibility proof, general theorem, or new semantic
 operation. It grants no authority. This additive target-bound slice changes no
 completion status and does not replace the next strategic multi-file tranche.
+
+[Semantic Workspace Transaction v1](SEMANTIC-WORKSPACE-TRANSACTION-V1.md) is
+the later separate managed-generation publication tranche. It neither embeds
+nor widens Evidence v2; `no_multi_file_transaction` remains exact for every v2
+capsule, receipt, and A0 apply route.

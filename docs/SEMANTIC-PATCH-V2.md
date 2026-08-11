@@ -137,3 +137,9 @@ cargo test --locked -p semaprax --all-features --test generic_functions
 cargo test --locked -p semaprax --all-features --test executable_generic_function_backends
 cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
 ```
+
+The separate [Semantic Workspace Transaction
+v1](SEMANTIC-WORKSPACE-TRANSACTION-V1.md) may embed an exact canonical Patch v2
+string for one changed managed file. That composition does not change this
+single-file grammar, preflight, KATs, authority, provenance nonclaim, or
+semantic-delta gate and adds no cross-file Patch meaning.

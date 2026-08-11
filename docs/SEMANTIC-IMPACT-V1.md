@@ -256,3 +256,8 @@ cargo test --locked -p semaprax --all-features --test semantic_patch_v2
 cargo test --locked -p semaprax --all-features --test agent_context_v2
 cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
 ```
+
+The separate [Semantic Workspace Transaction
+v1](SEMANTIC-WORKSPACE-TRANSACTION-V1.md) performs no Impact-v1 or repository
+analysis. Impact remains a single-file Patch v1/v2 preview and gains no
+multi-file closure, persistence, ranking, repair, or commit authority.

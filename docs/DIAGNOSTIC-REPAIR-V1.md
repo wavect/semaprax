@@ -378,3 +378,9 @@ sibling collision/stale-lock denial-of-service, crash-left-lock, trusted final
 portable directory window, parent-directory sync, power-loss durability, and
 platform file-identity nonclaims. Direct callers are not transitive impact,
 and a derived-rebase digest is not general semantic equivalence evidence.
+
+The separate [Semantic Workspace Transaction
+v1](SEMANTIC-WORKSPACE-TRANSACTION-V1.md) may embed the sole already-canonical
+Patch v3 operation for one managed file. It does not add another repair,
+compose repairs across files, widen Graph v11-v14 admission, or change this
+document's general/multi-file repair nonclaims.

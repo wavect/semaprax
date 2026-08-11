@@ -63,8 +63,21 @@ Status: implemented in this repository.
   including [Ubuntu job
   93624123631](https://github.com/wavect/semaprax/actions/runs/31440359793/job/93624123631);
   all 12 jobs passed. The artifacts execute no
-  target/project test, carry no authority, and change no status. Multi-file
-  transactions remain the next strategic architecture tranche.
+  target/project test, carry no authority, and change no status. Their
+  single-file artifact scope is unchanged by the separate workspace tranche.
+- Semantic Workspace Transaction v1 is the first bounded managed-generation
+  publication tranche. It authenticates 2–16 canonical existing sources,
+  previews unchanged admitted per-file Patch v1/v2/v3 operations, publishes a
+  complete immutable generation, and pivots only `ACTIVE` for cooperating
+  locked readers. Integration 12/12, hostile wire/CLI 5/5, workspace units
+  37/37, library 482/482, full local gates, preservation, and security are
+  green. Hosted run 31471716036 on exact head
+  `4daa40707c7fb9b5519229f05635c355ac2cdc8b` is nonqualifying because Windows
+  strict Clippy failed. A local test-only permission-restoration fix preserves
+  the contract; fresh-head hosted Phase C evidence remains pending. Raw-source/Git/editor atomicity, cross-file
+  module/type/call/capability semantics, repository Graph/analysis,
+  create/delete/move, materialization, recovery/GC, and power-loss durability
+  remain open. No completion status changes.
 - Offline context economics with exact goldens and conservative quality routing.
 - Effects, module permits, and contract guards.
 - Machine-readable diagnostics.
@@ -74,7 +87,9 @@ Status: implemented in this repository.
   exact; Windows held same-file volume plus 64-bit file-index comparison does
   not claim ReFS 128-bit or hostile non-unique-index uniqueness. Predictable-
   name collision/stale-lock DoS, crash-left locks, the trusted final portable
-  path window, power-loss durability, and multi-file commits remain open.
+  path window, power-loss durability, and general raw-source/repository
+  multi-file commits remain open. The separate managed workspace protocol has
+  its own bounded `ACTIVE` publication boundary.
 - Checked native code generation.
 
 ## 0.2 — Useful core language
@@ -649,6 +664,21 @@ The exact `fcdf3861d79faea27c526a8dc5105b92c6738213` matrix is hosted green in
 including [Ubuntu job
 93624123631](https://github.com/wavect/semaprax/actions/runs/31440359793/job/93624123631);
 all 12 jobs passed. The dashboard stays 38 Partial/18 Missing.
+
+Semantic Workspace Transaction v1 now implements a bounded part of the
+strategic multi-file architecture without replacing the broader tranche. Its
+immutable managed generations plus one authenticated `ACTIVE` pivot give
+cooperating readers old-or-new visibility for 2–16 existing canonical files.
+Five revision/snapshot/preview KATs, integration 12/12, hostile 5/5, workspace
+units 37/37, library 482/482, full local gates, preservation, and security are
+green. Hosted run 31471716036 on exact head
+`4daa40707c7fb9b5519229f05635c355ac2cdc8b` is nonqualifying because Windows
+strict Clippy failed. A local test-only permission-restoration fix preserves
+the contract; fresh-head hosted Phase C evidence remains pending. The 0.2 exit criterion, modules/imports and a unified
+multi-file Graph, repository Impact/Review/Context/Target/test integration,
+general repairs/operations, raw-tree materialization, create/delete/move,
+automatic recovery/GC, and power-loss durability remain roadmap work. Totals
+stay 38 Partial/18 Missing.
 
 - Versioned language, graph, package, and component specifications.
 - Reproducible native and component builds on supported targets.

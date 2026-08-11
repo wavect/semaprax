@@ -193,3 +193,9 @@ machine-code/ABI evidence, Wasm runtime or multi-engine evidence, test status,
 signature, provenance, approval, token, Context, repository analysis,
 multi-file transaction, consumer analysis, or new Patch/Graph/Cleanup/backend
 semantics. It does not replace the planned multi-file architecture tranche.
+
+The separate [Semantic Workspace Transaction
+v1](SEMANTIC-WORKSPACE-TRANSACTION-V1.md) does not run Target Evidence, bind a
+target report, or turn this projection into multi-file evidence. All report
+bytes, KATs, execution/authority nonclaims, and compatibility boundaries above
+remain unchanged.

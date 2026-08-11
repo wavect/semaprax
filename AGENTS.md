@@ -42,7 +42,11 @@ proof scaffolding, not a wired native-runtime claim.
   declarations select v14 above authenticated explicit Copy-record patterns at
   v13, while CleanupPlan v2 remains canonical unless authenticated Option
   propagation requires v3.
-- `src/graph.rs`, `patch.rs`: agent representation and atomic transactions.
+- `src/graph.rs`, `patch.rs`: agent representation and atomic single-file
+  transactions.
+- `src/workspace.rs`: bounded managed immutable-generation workspace
+  transactions; atomic visibility is through the authenticated `ACTIVE` pivot
+  for cooperating readers, not through raw source paths.
 - `src/call_index.rs`, `impact.rs`: shared validated-HIR call index and bounded,
   read-only single-file Semantic Impact v1 preview.
 - `src/repair.rs`: bounded read-only Diagnostic Repair v1 discovery and
@@ -67,6 +71,9 @@ proof scaffolding, not a wired native-runtime claim.
 - Public declarations have persistent `@id` identities. Expression identities are revision-scoped.
 - Source formatting, graph JSON, Wasm bytes, diagnostics, and semantic patches are deterministic.
 - Failed or stale semantic transactions leave source unchanged.
+- A successful workspace transaction publishes one complete immutable managed
+  generation through `ACTIVE`; it does not rewrite the original source files
+  or grant atomic visibility to Git, editors, or other raw-path readers.
 - Evidence-gated patch application acquires the ordinary A0 lock first, but
   must independently replay the exact bounded evidence before staging or
   final commit; ordinary `patch` remains the unchanged legacy route.

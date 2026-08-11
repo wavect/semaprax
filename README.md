@@ -273,6 +273,28 @@ Implemented today:
   all 12 jobs passed. Reports and
   capsules execute no target/project test, grant no authority, change no
   completion status, and do not replace multi-file work.
+- [Semantic Workspace Transaction
+  v1](docs/SEMANTIC-WORKSPACE-TRANSACTION-V1.md) adds a bounded real 2–16-file
+  publication path over managed immutable generations. `workspace-init`
+  authenticates canonical pre-existing sources and publishes generation zero;
+  `workspace-snapshot` and `workspace-preview` are shared-lock read-only
+  projections; `workspace-apply` holds the exclusive permanent lock, publishes
+  one complete candidate generation, and pivots only `ACTIVE` after two final
+  checks. Cooperating readers see the complete old or new managed snapshot.
+  Raw source files, Git, and editors are not atomically updated. Frozen KATs
+  include initial revision
+  `sha256:9a7368825342cee138d02a8037248e9a41ed0479d4f7c32a21c7ee7141cf280c`,
+  snapshot SHA `3646097c9fb8c47bced51cf2c404b886755f657c73c57afb18d25282574f0b80`,
+  and preview SHA `a4f1a9467d535aada97e7f253cf51c0d2168b5557a5a400d11692ac6966776b4`.
+  Local evidence is integration 12/12, hostile wire/CLI 5/5, workspace units
+  37/37, and library 482/482 with full local gates and security green. Hosted
+  run 31471716036 on exact head `4daa40707c7fb9b5519229f05635c355ac2cdc8b`
+  is nonqualifying because Windows strict Clippy failed. A local test-only
+  permission-restoration fix preserves the contract; fresh-head hosted Phase C
+  evidence remains pending. This changes none of the 38 Partial/18 Missing
+  statuses and leaves general cross-file semantics, repository Graph/analysis,
+  create/delete/move, raw-tree materialization, automatic recovery/GC, and
+  power-loss durability open.
 - Native AOT output through a readable C11 lowering and Clang.
 - Direct WebAssembly core output with a generated ES-module runtime, HTML entry point, capability manifest, checked arithmetic, and contract traps.
 - A deliberately narrow `semaprax.wasm-owned.v1` Core Wasm path for one direct
@@ -754,6 +776,26 @@ crashes may leave locks, the containing directory is trusted in the final
 portable path-based rename window, and parent-directory sync, power-loss
 durability, multi-file commits, and general typed repair/impact remain open.
 
+The separate managed workspace protocol provides bounded publication without
+widening single-file A0:
+
+```sh
+semaprax workspace-init . paths.json
+semaprax workspace-snapshot .
+semaprax workspace-preview . change.wspatch
+semaprax workspace-apply . change.wspatch
+```
+
+The canonical workspace patch binds an exact base workspace revision and 2–16
+sorted managed paths, each containing an unchanged admitted Patch v1/v2 or the
+sole canonical Patch v3 operation. The live apply invocation owns its bounded
+lock/generation/`ACTIVE` authority; snapshot and preview artifacts grant none.
+Original sources are not rewritten, and the protocol is not cross-file
+resolution, a repository transaction, or a proof/provenance token. See
+[Semantic Workspace Transaction
+v1](docs/SEMANTIC-WORKSPACE-TRANSACTION-V1.md) and [ADR
+0002](docs/decisions/0002-managed-workspace-generations.md).
+
 ## CLI
 
 | Command | Purpose |
@@ -766,6 +808,10 @@ durability, multi-file commits, and general typed repair/impact remain open.
 | `run <file>` | Build and run in one step |
 | `fmt <file> [--check]` | Apply or verify canonical formatting |
 | `patch <file> <patch.spatch>` | Apply an atomic semantic transaction |
+| `workspace-init <root> <path-set.json>` | Initialize a bounded managed immutable-generation workspace without modifying original sources |
+| `workspace-snapshot <root>` | Emit the authenticated selected managed workspace snapshot |
+| `workspace-preview <root> <patch.wspatch>` | Preview a canonical 2–16-file managed workspace transaction without publication authority |
+| `workspace-apply <root> <patch.wspatch>` | Publish a complete authenticated managed generation by pivoting only `ACTIVE` |
 | `patch-evidence <file> <patch.spatch>` | Emit canonical bounded Semantic Patch Evidence v1 without writing source |
 | `verify-patch-evidence <file> <patch.spatch> <evidence.json>` | Independently replay a capsule and emit its canonical verification receipt |
 | `patch-with-evidence <file> <patch.spatch> <evidence.json>` | Require exact evidence replay before A0 staging and commit |

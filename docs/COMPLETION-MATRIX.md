@@ -27,6 +27,20 @@ the completion contract.
 | Desktop and mobile applications | Partial | Private macOS engine/AppKit ([job 93309086230](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086230)), Windows engine/Win32 UI ([job 93322134480](https://github.com/wavect/semaprax/actions/runs/31343897595/job/93322134480)), Swift/iOS XCFramework/app ([job 93309086228](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086228)), and Android JNI/Kotlin app ([job 93309086206](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086206)) gates are green. Public SDKs, UI language, lifecycle breadth, signing/distribution, and device breadth remain open |
 | Full SEMAPRAX product objective | Partial | No single lane proves native mobile + desktop + web + broad interop + full ownership/lifetime safety together; the global goal is not complete |
 
+The Human and agent semantic projections dashboard also includes bounded
+Semantic Workspace Transaction v1. It authenticates 2–16 canonical sources,
+preflights unchanged admitted per-file patches, publishes one complete
+immutable generation, and pivots only `ACTIVE` for cooperating locked readers.
+Integration 12/12, hostile wire/CLI 5/5, workspace units 37/37, library
+482/482, full local gates, preservation, and security are green. Hosted run
+31471716036 on exact head `4daa40707c7fb9b5519229f05635c355ac2cdc8b`
+is nonqualifying because Windows strict Clippy failed. A local test-only
+permission-restoration fix preserves the contract; fresh-head hosted Phase C
+evidence remains pending. Raw source/Git/editor atomicity, cross-file semantics, repository
+Graph/analysis, create/delete/move, recovery/GC, and power-loss durability
+remain open, so the dashboard stays Partial and totals remain 38 Partial/18
+Missing.
+
 The human/agent projection dashboard now also includes the bounded, hosted
 Diagnostic Repair v1 milestone described in the detailed repair row below:
 canonical query/preview JSON, one `breaking_identity_rebase`, and the isolated
@@ -311,6 +325,24 @@ is not the later Windows evidence linked above.
 | Meaning in, verified machine code out | Partial | Typed scalar core, effect checks, native status/out contracts and checked arithmetic with exact normalized failure codes, poison-preserving result publication, and a host-native scalar executable | All safe-language guarantees survive every backend; native artifacts and portable components pass conformance suites on every supported target |
 | Atomic agent changes | Partial | Single-file stable-ID function/resource renames update calls and ownership type boundaries with domain-separated SHA-256 stale/legacy revision rejection. Bounded Semantic Patch v2 additionally authenticates exact persistent owner/member/case identities and revision-scoped generic-call tuples against one pre-edit HIR, preserves shorthand binding/Place identity, groups multi-index call changes into one derived instance, and rejects semantic deltas outside the selected identities. Its focused suite is 9/9 and its exact full matrix is hosted green in [run 31401200449 attempt 2](https://github.com/wavect/semaprax/actions/runs/31401200449/attempts/2), including [Ubuntu job 93505622044](https://github.com/wavect/semaprax/actions/runs/31401200449/job/93505622044). It changes neither Graph v10-v14 nor CleanupPlan v2/v3 and still trusts patch-file provenance. A0 authenticates a canonical regular source, serializes cooperating writers through a create-new sibling lock, uses bounded create-new staging, preserves permissions and syncs staged bytes, rechecks exact source identity/bytes/revision and stage path/handle identity/bytes at both final boundaries, and never cleans a foreign replacement. Internal race/failure/path-swap tests are 5/5, integration patch tests are 17/17, and the full matrix is hosted green in [run 31396483313, including Windows job 93481068538](https://github.com/wavect/semaprax/actions/runs/31396483313/job/93481068538). Unix device/inode identity is exact; Windows held same-file volume plus 64-bit file-index comparison does not claim ReFS 128-bit or hostile non-unique-index uniqueness. Predictable-name collision/stale-lock DoS, crash-left locks, the trusted final path window, power-loss durability, general typed repair/impact, and multi-file commits remain nonclaims | Typed, transactional multi-file edits support every public semantic operation and either commit fully or leave all source/graph state unchanged |
 
+Semantic Workspace Transaction v1 adds bounded evidence to both the
+Agent-native semantic program and Atomic agent changes rows without changing
+either Partial status. The public path-set/manifest/snapshot/preview protocols
+and live initialize/apply route authenticate 2–16 canonical pre-existing
+sources, preserve existing per-file Patch v1/v2/v3 semantics, publish one
+complete immutable generation, and pivot only `ACTIVE` for cooperating locked
+readers. Exact KATs and local integration 12/12, hostile 5/5, workspace units
+37/37, library 482/482, full preservation, and security are green. Hosted run
+31471716036 on exact head `4daa40707c7fb9b5519229f05635c355ac2cdc8b`
+is nonqualifying because Windows strict Clippy failed. A local test-only
+permission-restoration fix preserves the contract; fresh-head hosted Phase C
+evidence remains pending. The Agent-native gate remains open for a versioned multi-file Graph
+covering callers, targets, tests, packages, artifacts, repairs, review, and
+provenance. The Atomic gate remains open for every public semantic operation,
+cross-file resolution, raw source/Graph publication, create/delete/move,
+repository integration, recovery/GC, and power-loss durability. Original
+sources are not rewritten; managed readers see old or new through `ACTIVE`.
+
 Diagnostic Repair v1 adds a bounded agent-native operation without changing
 the two Partial statuses above. Its canonical Patch v3 authenticates one exact
 automatic-function identity assignment, replays the complete
@@ -366,9 +398,11 @@ exact `fcdf3861d79faea27c526a8dc5105b92c6738213` matrix is hosted green in [run
 including [Ubuntu job
 93624123631](https://github.com/wavect/semaprax/actions/runs/31440359793/job/93624123631);
 all 12 jobs passed. Reports/capsules execute no target or project test,
-grant no authority, and prove neither safety nor compatibility. Repository and
-multi-file scope remains the next strategic tranche. Totals remain exactly 38
-Partial and 18 Missing.
+grant no authority, and prove neither safety nor compatibility. Those
+artifacts still have no repository or multi-file scope. The separate Workspace
+Transaction v1 tranche supplies only bounded managed-generation publication;
+general repository/multi-file Graph semantics remain open. Totals remain
+exactly 38 Partial and 18 Missing.
 
 ## Language and safety
 

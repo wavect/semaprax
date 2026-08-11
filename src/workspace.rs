@@ -306,6 +306,24 @@ struct PreparedGeneration {
     texts: Vec<AuthenticatedText>,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+enum RelocationObject {
+    Directory,
+    Text(Vec<u8>),
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct RelocationEntry {
+    relative_path: PathBuf,
+    identity: FileIdentity,
+    object: RelocationObject,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct GenerationFingerprint {
+    entries: Vec<RelocationEntry>,
+}
+
 impl WorkspaceGuard {
     fn recheck(&mut self) -> Result<(), Vec<Diagnostic>> {
         recheck_lock(&self.lock_path, &self.lock, &self.lock_identity)?;
@@ -422,8 +440,12 @@ pub fn initialize(root: &Path, path_set_path: &Path) -> Result<String, Vec<Diagn
 
 #[derive(Clone, Copy)]
 enum InitializePoint {
-    BeforeGenerationPublish,
-    BeforeActivePublish,
+    GenerationBeforeRename,
+    GenerationDestinationChecked,
+    GenerationRelocated,
+    ActiveBeforeRename,
+    ActiveDestinationChecked,
+    ActiveRelocated,
 }
 
 fn initialize_with_hook(
@@ -491,28 +513,32 @@ fn initialize_with_hook(
         source.recheck()?;
     }
     require_distinct_text_identities(&authenticated_sources, Some(&paths_input), None)?;
-    let mut staged = authenticate_generation_payload(&slot, &manifest, &facts, &revision)?;
-    hook(InitializePoint::BeforeGenerationPublish);
-    for input in &mut staged {
-        input.recheck()?;
-    }
+    let mut staged = authenticate_generation_deep(&slot, &manifest, &facts, &revision)?;
+    hook(InitializePoint::GenerationBeforeRename);
+    staged.recheck()?;
     paths_input.recheck()?;
     for source in &mut authenticated_sources {
         source.recheck()?;
     }
+    let staged_fingerprint = staged.fingerprint()?;
     let generation = control.join("generations").join(revision_hex(&revision)?);
-    std::fs::rename(&slot, &generation).map_err(|error| {
-        io(
-            "SPX-I211",
-            format!("cannot publish initial generation: {error}"),
-        )
-    })?;
-    let generation_dir = authenticate_directory_held(&generation)?;
-    let generation_files_dir = authenticate_directory_held(&generation.join("files"))?;
-    let mut published = authenticate_generation_payload(&generation, &manifest, &facts, &revision)?;
-    for input in &mut published {
-        input.recheck()?;
-    }
+    require_absent_destination(
+        &generation,
+        "SPX-I211",
+        "initial generation destination already exists",
+    )?;
+    #[cfg(windows)]
+    drop(staged);
+    hook(InitializePoint::GenerationDestinationChecked);
+    publish_no_replace(
+        &slot,
+        &generation,
+        "SPX-I211",
+        "cannot publish initial generation",
+    )?;
+    hook(InitializePoint::GenerationRelocated);
+    let mut published = authenticate_generation_deep(&generation, &manifest, &facts, &revision)?;
+    staged_fingerprint.require_equivalent(&mut published)?;
     paths_input.recheck()?;
     for source in &mut authenticated_sources {
         source.recheck()?;
@@ -526,38 +552,39 @@ fn initialize_with_hook(
         ));
     }
     staged_active.recheck()?;
-    hook(InitializePoint::BeforeActivePublish);
+    hook(InitializePoint::ActiveBeforeRename);
     staged_active.recheck()?;
     if parse_root(&staged_active.source)? != revision {
         return Err(invariant(
             "staged ACTIVE changed before initial publication",
         ));
     }
+    let active_path = control.join("ACTIVE");
+    require_absent_destination(
+        &active_path,
+        "SPX-I212",
+        "initial ACTIVE destination already exists",
+    )?;
     let original_nested_directories =
         authenticate_directory_trie(&root, facts.iter().map(|fact| fact.path.as_str()))?;
-    let generation_nested_directories = authenticate_directory_trie(
-        &generation.join("files"),
-        facts.iter().map(|fact| fact.path.as_str()),
-    )?;
     let mut initializing_identities = vec![
         &root_dir.identity,
         &control_dir.identity,
         &generations_dir.identity,
         &staging_dir.identity,
-        &generation_dir.identity,
-        &generation_files_dir.identity,
         &lock_identity,
         &staged_active.identity,
     ];
-    initializing_identities.extend(published.iter().map(|input| &input.identity));
-    initializing_identities.extend(authenticated_sources.iter().map(|input| &input.identity));
     initializing_identities.extend(
-        original_nested_directories
+        published
+            .directories
             .iter()
             .map(|directory| &directory.identity),
     );
+    initializing_identities.extend(published.texts.iter().map(|input| &input.identity));
+    initializing_identities.extend(authenticated_sources.iter().map(|input| &input.identity));
     initializing_identities.extend(
-        generation_nested_directories
+        original_nested_directories
             .iter()
             .map(|directory| &directory.identity),
     );
@@ -572,23 +599,11 @@ fn initialize_with_hook(
     for source in &mut authenticated_sources {
         source.recheck()?;
     }
-    for input in &mut published {
-        input.recheck()?;
-    }
-    for directory in [
-        &root_dir,
-        &control_dir,
-        &generations_dir,
-        &staging_dir,
-        &generation_dir,
-        &generation_files_dir,
-    ] {
+    published.recheck()?;
+    for directory in [&root_dir, &control_dir, &generations_dir, &staging_dir] {
         directory.recheck()?;
     }
-    for directory in original_nested_directories
-        .iter()
-        .chain(generation_nested_directories.iter())
-    {
+    for directory in &original_nested_directories {
         directory.recheck()?;
     }
     staged_active.recheck()?;
@@ -597,8 +612,30 @@ fn initialize_with_hook(
             "staged ACTIVE changed before initial publication",
         ));
     }
-    std::fs::rename(&active_stage, control.join("ACTIVE"))
-        .map_err(|error| io("SPX-I212", format!("cannot publish ACTIVE: {error}")))?;
+    let active_fingerprint = GenerationFingerprint::from_text(&mut staged_active, &active_stage)?;
+    require_absent_destination(
+        &active_path,
+        "SPX-I212",
+        "initial ACTIVE destination already exists",
+    )?;
+    #[cfg(windows)]
+    drop(staged_active);
+    hook(InitializePoint::ActiveDestinationChecked);
+    publish_no_replace(
+        &active_stage,
+        &active_path,
+        "SPX-I212",
+        "cannot publish ACTIVE",
+    )?;
+    hook(InitializePoint::ActiveRelocated);
+    let mut published_active = authenticate_text(&active_path, MAX_MANIFEST_BYTES, "SPX-I212")?;
+    active_fingerprint.require_text_equivalent(&mut published_active, &active_path)?;
+    if parse_root(&published_active.source)? != revision {
+        return Err(io(
+            "SPX-I212",
+            "post-pivot authentication is ambiguous: published ACTIVE revision mismatch",
+        ));
+    }
     let loaded =
         snapshot_authenticated(&root, &control, Some(&lock_identity)).map_err(|diagnostics| {
             diagnostics
@@ -841,6 +878,7 @@ enum GenerationPoint {
     AfterFilesWrite,
     BeforeStageValidation,
     BeforeGenerationPublish,
+    DestinationChecked,
     AfterGenerationPublish,
 }
 
@@ -961,21 +999,27 @@ fn ensure_candidate_generation(
     guard.recheck_base_authority()?;
     patch_input.recheck()?;
     guard.recheck_phase_inventory(&guard.generation_names, &staged_names, Some(&authenticated))?;
-    if std::fs::symlink_metadata(&destination).is_ok() {
-        return Err(io(
-            "SPX-I211",
-            "candidate generation appeared before publication",
-        ));
+    let staged_fingerprint = authenticated.fingerprint()?;
+    require_absent_destination(
+        &destination,
+        "SPX-I211",
+        "candidate generation appeared before publication",
+    )?;
+    #[cfg(windows)]
+    {
+        drop(prepared);
+        drop(authenticated);
     }
-    std::fs::rename(&slot, &destination).map_err(|error| {
-        io(
-            "SPX-I211",
-            format!("cannot publish complete candidate generation: {error}"),
-        )
-    })?;
+    hook(GenerationPoint::DestinationChecked, &slot, &destination);
+    publish_no_replace(
+        &slot,
+        &destination,
+        "SPX-I211",
+        "cannot publish complete candidate generation",
+    )?;
     hook(GenerationPoint::AfterGenerationPublish, &slot, &destination);
     let mut published = authenticate_expected_generation(&destination, plan, guard)?;
-    require_relocated_identity_match(&authenticated, &published)?;
+    staged_fingerprint.require_equivalent(&mut published)?;
     published.recheck()?;
     guard.recheck_base_authority()?;
     patch_input.recheck()?;
@@ -996,6 +1040,156 @@ impl PreparedGeneration {
             text.recheck()?;
         }
         Ok(())
+    }
+
+    fn fingerprint(&mut self) -> Result<GenerationFingerprint, Vec<Diagnostic>> {
+        self.recheck()?;
+        let mut entries = Vec::with_capacity(self.directories.len() + self.texts.len());
+        for directory in &self.directories {
+            entries.push(RelocationEntry {
+                relative_path: relative_relocation_path(&self.path, &directory.path)?,
+                identity: directory.identity,
+                object: RelocationObject::Directory,
+            });
+        }
+        for text in &self.texts {
+            entries.push(RelocationEntry {
+                relative_path: relative_relocation_path(&self.path, &text.path)?,
+                identity: text.identity,
+                object: RelocationObject::Text(text.source.as_bytes().to_vec()),
+            });
+        }
+        canonical_fingerprint(entries)
+    }
+}
+
+impl GenerationFingerprint {
+    fn from_text(text: &mut AuthenticatedText, root: &Path) -> Result<Self, Vec<Diagnostic>> {
+        text.recheck()?;
+        canonical_fingerprint(vec![RelocationEntry {
+            relative_path: relative_relocation_path(root, &text.path)?,
+            identity: text.identity,
+            object: RelocationObject::Text(text.source.as_bytes().to_vec()),
+        }])
+    }
+
+    fn require_equivalent(
+        &self,
+        published: &mut PreparedGeneration,
+    ) -> Result<(), Vec<Diagnostic>> {
+        let actual = published.fingerprint()?;
+        if actual != *self {
+            return Err(invariant(
+                "published generation differs from the exact staged identity and byte map",
+            ));
+        }
+        Ok(())
+    }
+
+    fn require_text_equivalent(
+        &self,
+        published: &mut AuthenticatedText,
+        root: &Path,
+    ) -> Result<(), Vec<Diagnostic>> {
+        let actual = Self::from_text(published, root)?;
+        if actual != *self {
+            return Err(io(
+                "SPX-I212",
+                "published ACTIVE differs from the exact staged identity and byte map",
+            ));
+        }
+        Ok(())
+    }
+}
+
+fn relative_relocation_path(root: &Path, path: &Path) -> Result<PathBuf, Vec<Diagnostic>> {
+    path.strip_prefix(root)
+        .map(Path::to_path_buf)
+        .map_err(|_| invariant("relocation proof path escaped its staged root"))
+}
+
+fn canonical_fingerprint(
+    mut entries: Vec<RelocationEntry>,
+) -> Result<GenerationFingerprint, Vec<Diagnostic>> {
+    entries.sort_by(|left, right| left.relative_path.cmp(&right.relative_path));
+    if entries
+        .windows(2)
+        .any(|pair| pair[0].relative_path == pair[1].relative_path)
+    {
+        return Err(invariant(
+            "relocation proof contains duplicate relative paths",
+        ));
+    }
+    Ok(GenerationFingerprint { entries })
+}
+
+fn require_absent_destination(
+    path: &Path,
+    code: &'static str,
+    message: &'static str,
+) -> Result<(), Vec<Diagnostic>> {
+    match std::fs::symlink_metadata(path) {
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Ok(_) => Err(io(code, message)),
+        Err(error) => Err(io(
+            code,
+            format!("cannot inspect publication destination: {error}"),
+        )),
+    }
+}
+
+fn publish_no_replace(
+    source: &Path,
+    destination: &Path,
+    code: &'static str,
+    description: &'static str,
+) -> Result<(), Vec<Diagnostic>> {
+    #[cfg(any(
+        target_os = "linux",
+        target_os = "android",
+        target_vendor = "apple",
+        target_os = "redox"
+    ))]
+    {
+        use std::os::unix::ffi::OsStrExt as _;
+
+        rustix::fs::renameat_with(
+            rustix::fs::CWD,
+            source.as_os_str().as_bytes(),
+            rustix::fs::CWD,
+            destination.as_os_str().as_bytes(),
+            rustix::fs::RenameFlags::NOREPLACE,
+        )
+        .map_err(|error| io(code, format!("{description}: {error}")))
+    }
+    #[cfg(windows)]
+    {
+        std::fs::rename(source, destination)
+            .map_err(|error| io(code, format!("{description}: {error}")))
+    }
+    #[cfg(all(
+        unix,
+        not(any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        ))
+    ))]
+    {
+        let _ = (source, destination);
+        Err(io(
+            code,
+            format!("{description}: atomic no-replace rename is unavailable on this Unix target"),
+        ))
+    }
+    #[cfg(not(any(unix, windows)))]
+    {
+        let _ = (source, destination);
+        Err(io(
+            code,
+            format!("{description}: atomic no-replace rename is unavailable on this target"),
+        ))
     }
 }
 
@@ -1060,31 +1254,6 @@ fn authenticate_expected_generation(
     require_same_volume(&identities)?;
     prepared.recheck()?;
     Ok(prepared)
-}
-
-#[allow(dead_code)]
-fn require_relocated_identity_match(
-    staged: &PreparedGeneration,
-    published: &PreparedGeneration,
-) -> Result<(), Vec<Diagnostic>> {
-    if staged.directories.len() != published.directories.len()
-        || staged.texts.len() != published.texts.len()
-        || staged
-            .directories
-            .iter()
-            .zip(&published.directories)
-            .any(|(left, right)| left.identity != right.identity)
-        || staged
-            .texts
-            .iter()
-            .zip(&published.texts)
-            .any(|(left, right)| left.identity != right.identity)
-    {
-        return Err(invariant(
-            "published candidate generation is not the authenticated staged object set",
-        ));
-    }
-    Ok(())
 }
 
 #[cfg(test)]
@@ -3115,7 +3284,7 @@ mod tests {
         let fixture = Fixture::new("source-race");
         let source = fixture.root.join("alpha.spx");
         let error = initialize_with_hook(&fixture.root, &fixture.path_set, |point| {
-            if matches!(point, InitializePoint::BeforeGenerationPublish) {
+            if matches!(point, InitializePoint::GenerationBeforeRename) {
                 std::fs::write(&source, "externally mutated\n").unwrap();
             }
         })
@@ -3131,7 +3300,7 @@ mod tests {
             .root
             .join(".semaprax-workspace/staging/0/manifest.json");
         let error = initialize_with_hook(&fixture.root, &fixture.path_set, |point| {
-            if matches!(point, InitializePoint::BeforeGenerationPublish) {
+            if matches!(point, InitializePoint::GenerationBeforeRename) {
                 std::fs::write(&manifest, "{}\n").unwrap();
             }
         })
@@ -3145,7 +3314,7 @@ mod tests {
         let fixture = Fixture::new("path-set-race");
         let path_set = fixture.path_set.clone();
         let error = initialize_with_hook(&fixture.root, &fixture.path_set, |point| {
-            if matches!(point, InitializePoint::BeforeActivePublish) {
+            if matches!(point, InitializePoint::ActiveBeforeRename) {
                 std::fs::write(&path_set, "{}\n").unwrap();
             }
         })
@@ -3159,7 +3328,7 @@ mod tests {
         let fixture = Fixture::new("active-byte-race");
         let staged = fixture.root.join(".semaprax-workspace/staging/0");
         let error = initialize_with_hook(&fixture.root, &fixture.path_set, |point| {
-            if matches!(point, InitializePoint::BeforeActivePublish) {
+            if matches!(point, InitializePoint::ActiveBeforeRename) {
                 std::fs::write(&staged, "{}\n").unwrap();
             }
         })
@@ -3173,7 +3342,7 @@ mod tests {
         let fixture = Fixture::new("active-replacement-race");
         let staged = fixture.root.join(".semaprax-workspace/staging/0");
         let error = initialize_with_hook(&fixture.root, &fixture.path_set, |point| {
-            if matches!(point, InitializePoint::BeforeActivePublish) {
+            if matches!(point, InitializePoint::ActiveBeforeRename) {
                 let bytes = std::fs::read(&staged).unwrap();
                 std::fs::remove_file(&staged).unwrap();
                 std::fs::write(&staged, bytes).unwrap();
@@ -3182,6 +3351,91 @@ mod tests {
         .unwrap_err();
         assert_eq!(error[0].code, "SPX-G153");
         assert!(!fixture.active().exists());
+    }
+
+    #[test]
+    fn initializer_preserves_foreign_generation_and_active_destinations() {
+        for kind in ["file", "directory"] {
+            let fixture = Fixture::new(&format!("foreign-generation-{kind}"));
+            let mut foreign_generation = None;
+            let error = initialize_with_hook(&fixture.root, &fixture.path_set, |point| {
+                if matches!(point, InitializePoint::GenerationDestinationChecked) {
+                    let slot = fixture.root.join(".semaprax-workspace/staging/0");
+                    let manifest = std::fs::read_to_string(slot.join("manifest.json")).unwrap();
+                    let revision = super::workspace_revision(&manifest);
+                    let destination = fixture
+                        .root
+                        .join(".semaprax-workspace/generations")
+                        .join(super::revision_hex(&revision).unwrap());
+                    if kind == "file" {
+                        std::fs::write(&destination, "foreign-generation\n").unwrap();
+                    } else {
+                        std::fs::create_dir(&destination).unwrap();
+                    }
+                    foreign_generation = Some(destination);
+                }
+            })
+            .unwrap_err();
+            assert_eq!(error[0].code, "SPX-I211");
+            let foreign_generation = foreign_generation.unwrap();
+            assert_eq!(foreign_generation.is_file(), kind == "file");
+            assert_eq!(foreign_generation.is_dir(), kind == "directory");
+            assert!(!fixture.active().exists());
+        }
+
+        for kind in ["file", "directory"] {
+            let fixture = Fixture::new(&format!("foreign-active-{kind}"));
+            let foreign_active = fixture.active();
+            let error = initialize_with_hook(&fixture.root, &fixture.path_set, |point| {
+                if matches!(point, InitializePoint::ActiveDestinationChecked) {
+                    if kind == "file" {
+                        std::fs::write(&foreign_active, "foreign-active\n").unwrap();
+                    } else {
+                        std::fs::create_dir(&foreign_active).unwrap();
+                    }
+                }
+            })
+            .unwrap_err();
+            assert_eq!(error[0].code, "SPX-I212");
+            assert_eq!(foreign_active.is_file(), kind == "file");
+            assert_eq!(foreign_active.is_dir(), kind == "directory");
+        }
+    }
+
+    #[test]
+    fn initializer_relocation_fingerprint_rejects_post_rename_corruption() {
+        let fixture = Fixture::new("generation-relocation-corruption");
+        let error = initialize_with_hook(&fixture.root, &fixture.path_set, |point| {
+            if matches!(point, InitializePoint::GenerationRelocated) {
+                let generation =
+                    std::fs::read_dir(fixture.root.join(".semaprax-workspace/generations"))
+                        .unwrap()
+                        .next()
+                        .unwrap()
+                        .unwrap()
+                        .path();
+                let manifest = generation.join("manifest.json");
+                let bytes = std::fs::read(&manifest).unwrap();
+                std::fs::remove_file(&manifest).unwrap();
+                std::fs::write(&manifest, bytes).unwrap();
+            }
+        })
+        .unwrap_err();
+        assert_eq!(error[0].code, "SPX-G153");
+        assert!(!fixture.active().exists());
+
+        let fixture = Fixture::new("active-relocation-corruption");
+        let active = fixture.active();
+        let error = initialize_with_hook(&fixture.root, &fixture.path_set, |point| {
+            if matches!(point, InitializePoint::ActiveRelocated) {
+                let bytes = std::fs::read(&active).unwrap();
+                std::fs::remove_file(&active).unwrap();
+                std::fs::write(&active, bytes).unwrap();
+            }
+        })
+        .unwrap_err();
+        assert_eq!(error[0].code, "SPX-I212");
+        assert!(active.exists());
     }
 
     #[test]
@@ -3391,29 +3645,33 @@ mod tests {
             assert_active_unchanged(&fixture, &active_bytes, active_identity);
         }
 
-        let fixture = Fixture::new("phase-b-destination");
-        let patch = fixture.initialize_and_patch("destination");
-        let active_bytes = std::fs::read(fixture.active()).unwrap();
-        let active_identity = identity_from_path(&fixture.active(), "SPX-I209").unwrap();
-        let mut foreign = None;
-        let error = prepare_candidate_generation_with_hook(
-            &fixture.root,
-            &patch,
-            |point, _, destination| {
-                if point == GenerationPoint::BeforeGenerationPublish {
-                    std::fs::create_dir(destination).unwrap();
-                    std::fs::write(destination.join("foreign"), "preserve\n").unwrap();
-                    foreign = Some(destination.to_path_buf());
-                }
-            },
-        )
-        .unwrap_err();
-        assert!(matches!(error[0].code, "SPX-I211" | "SPX-G153"));
-        assert_eq!(
-            std::fs::read_to_string(foreign.unwrap().join("foreign")).unwrap(),
-            "preserve\n"
-        );
-        assert_active_unchanged(&fixture, &active_bytes, active_identity);
+        for kind in ["file", "directory"] {
+            let fixture = Fixture::new(&format!("phase-b-destination-{kind}"));
+            let patch = fixture.initialize_and_patch(&format!("destination_{kind}"));
+            let active_bytes = std::fs::read(fixture.active()).unwrap();
+            let active_identity = identity_from_path(&fixture.active(), "SPX-I209").unwrap();
+            let mut foreign = None;
+            let error = prepare_candidate_generation_with_hook(
+                &fixture.root,
+                &patch,
+                |point, _, destination| {
+                    if point == GenerationPoint::DestinationChecked {
+                        if kind == "file" {
+                            std::fs::write(destination, "foreign-generation\n").unwrap();
+                        } else {
+                            std::fs::create_dir(destination).unwrap();
+                        }
+                        foreign = Some(destination.to_path_buf());
+                    }
+                },
+            )
+            .unwrap_err();
+            assert_eq!(error[0].code, "SPX-I211");
+            let foreign = foreign.unwrap();
+            assert_eq!(foreign.is_file(), kind == "file");
+            assert_eq!(foreign.is_dir(), kind == "directory");
+            assert_active_unchanged(&fixture, &active_bytes, active_identity);
+        }
     }
 
     #[test]
@@ -3668,5 +3926,22 @@ mod tests {
         assert_active_unchanged(&fixture, &active_bytes, active_identity);
         std::fs::remove_dir(junction.unwrap()).unwrap();
         assert!(foreign.join("alpha.spx").is_file());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_held_handle_relocation_publishes_exact_initializer_and_candidate_maps() {
+        let fixture = Fixture::new("windows-relocation-success");
+        let patch = fixture.initialize_and_patch("windows_relocation");
+        let active_bytes = std::fs::read(fixture.active()).unwrap();
+        let active_identity = identity_from_path(&fixture.active(), "SPX-I209").unwrap();
+        let candidate =
+            prepare_candidate_generation_with_hook(&fixture.root, &patch, |_, _, _| {}).unwrap();
+        assert!(fixture
+            .root
+            .join(".semaprax-workspace/generations")
+            .join(super::revision_hex(&candidate).unwrap())
+            .is_dir());
+        assert_active_unchanged(&fixture, &active_bytes, active_identity);
     }
 }

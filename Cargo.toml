@@ -36,6 +36,9 @@ unstable-wit-component-harness = []
 fs2 = "=0.4.3"
 getrandom = "=0.4.3"
 
+[target.'cfg(unix)'.dependencies]
+rustix = { version = "=1.1.4", default-features = false, features = ["fs"] }
+
 [target.'cfg(windows)'.dependencies]
 same-file = "=1.0.6"
 winapi-util = "=0.1.11"

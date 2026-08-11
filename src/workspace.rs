@@ -191,13 +191,8 @@ impl AuthenticatedText {
                 "workspace object changed to an alias during authentication",
             ));
         }
-        require_single_link(&path_metadata)?;
-        require_single_link(&self.file.metadata().map_err(|error| {
-            io(
-                self.code,
-                format!("cannot re-inspect {}: {error}", self.label),
-            )
-        })?)?;
+        require_single_link_path(&self.path, self.code)?;
+        require_single_link_file(&self.file, self.code)?;
         let current = identity_from_path(&self.path, self.code)?;
         if current != self.identity {
             return Err(invariant(
@@ -226,7 +221,7 @@ struct FileIdentity {
     #[cfg(unix)]
     inode: u64,
     #[cfg(windows)]
-    volume: u32,
+    volume: u64,
     #[cfg(windows)]
     index: u64,
 }
@@ -237,7 +232,7 @@ struct AuthenticatedDirectory {
     #[cfg(unix)]
     file: File,
     #[cfg(windows)]
-    handle: same_file::Handle,
+    handle: winapi_util::Handle,
 }
 
 impl AuthenticatedDirectory {
@@ -263,9 +258,11 @@ impl AuthenticatedDirectory {
         }
         #[cfg(windows)]
         {
-            let current = same_file::Handle::from_path(&self.path)
+            let current = winapi_util::Handle::from_path_any(&self.path)
                 .map_err(|error| io("SPX-I209", format!("cannot retain directory: {error}")))?;
-            if current != self.handle {
+            if identity_from_windows_handle(&current, "SPX-I209")? != self.identity
+                || identity_from_windows_handle(&self.handle, "SPX-I209")? != self.identity
+            {
                 return Err(invariant("held workspace directory identity changed"));
             }
         }
@@ -476,12 +473,7 @@ fn initialize_with_hook(
         .create_new(true)
         .open(&lock_path)
         .map_err(|error| io("SPX-I209", format!("cannot create workspace LOCK: {error}")))?;
-    require_single_link(&lock.metadata().map_err(|error| {
-        io(
-            "SPX-I209",
-            format!("cannot inspect workspace LOCK: {error}"),
-        )
-    })?)?;
+    require_single_link_file(&lock, "SPX-I209")?;
     let lock_identity = identity_from_file(&lock, "SPX-I209")?;
     lock_file(&lock, true)?;
     std::fs::create_dir(control.join("generations"))
@@ -628,6 +620,34 @@ fn initialize_with_hook(
             "post-pivot authentication is ambiguous: initialized workspace revision mismatch",
         ));
     }
+    recheck_lock(&lock_path, &lock, &lock_identity).map_err(|diagnostics| {
+        diagnostics
+            .into_iter()
+            .map(|diagnostic| {
+                Diagnostic::io(
+                    "SPX-I212",
+                    format!(
+                        "post-pivot authentication is ambiguous: {}",
+                        diagnostic.message
+                    ),
+                )
+            })
+            .collect::<Vec<_>>()
+    })?;
+    unlock_file(&lock).map_err(|diagnostics| {
+        diagnostics
+            .into_iter()
+            .map(|diagnostic| {
+                Diagnostic::io(
+                    "SPX-I212",
+                    format!(
+                        "post-pivot authentication is ambiguous: {}",
+                        diagnostic.message
+                    ),
+                )
+            })
+            .collect::<Vec<_>>()
+    })?;
     Ok(revision)
 }
 
@@ -1107,7 +1127,7 @@ fn acquire_snapshot(root: &Path, exclusive: bool) -> Result<WorkspaceGuard, Vec<
     {
         return Err(io("SPX-I209", "workspace LOCK must be a real regular file"));
     }
-    require_single_link(&lock_metadata)?;
+    require_single_link_path(&lock_path, "SPX-I209")?;
     let lock = OpenOptions::new()
         .read(true)
         .write(true)
@@ -1370,6 +1390,26 @@ fn lock_file(file: &File, exclusive: bool) -> Result<(), Vec<Diagnostic>> {
     #[cfg(any(target_arch = "wasm32", target_arch = "wasm64"))]
     {
         let _ = (file, exclusive);
+        Err(vec![Diagnostic::io(
+            "SPX-I210",
+            "workspace locks are unavailable on this target",
+        )])
+    }
+}
+
+fn unlock_file(file: &File) -> Result<(), Vec<Diagnostic>> {
+    #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
+    {
+        fs2::FileExt::unlock(file).map_err(|error| {
+            vec![Diagnostic::io(
+                "SPX-I210",
+                format!("cannot release workspace LOCK: {error}"),
+            )]
+        })
+    }
+    #[cfg(any(target_arch = "wasm32", target_arch = "wasm64"))]
+    {
+        let _ = file;
         Err(vec![Diagnostic::io(
             "SPX-I210",
             "workspace locks are unavailable on this target",
@@ -1890,10 +1930,7 @@ fn write_new_text(
                 format!("cannot synchronize managed file: {error}"),
             )
         })?;
-    let metadata = file
-        .metadata()
-        .map_err(|error| io("SPX-I211", format!("cannot inspect managed file: {error}")))?;
-    require_single_link(&metadata)?;
+    require_single_link_file(&file, "SPX-I211")?;
     let identity = identity_from_file(&file, "SPX-I211")?;
     let mut input = AuthenticatedText {
         path: path.to_path_buf(),
@@ -2241,7 +2278,7 @@ fn authenticate_text_labeled(
     if !before.is_file() || before.file_type().is_symlink() || metadata_is_reparse(&before) {
         return Err(io(code, "workspace input must be a real regular file"));
     }
-    require_single_link(&before)?;
+    require_single_link_path(path, code)?;
     if before.len() > max as u64 {
         return Err(limit("workspace input exceeds its byte limit"));
     }
@@ -2255,7 +2292,7 @@ fn authenticate_text_labeled(
     if !held.is_file() {
         return Err(io(code, "workspace input must be a regular file"));
     }
-    require_single_link(&held)?;
+    require_single_link_file(&file, code)?;
     let identity = identity_from_file(&file, code)?;
     if identity_from_path(path, code)? != identity {
         return Err(invariant("workspace object changed while opening"));
@@ -2267,7 +2304,7 @@ fn authenticate_text_labeled(
             "workspace object changed to an alias while opening",
         ));
     }
-    require_single_link(&after)?;
+    require_single_link_path(path, code)?;
     let mut bytes = Vec::with_capacity(usize::try_from(held.len()).unwrap_or(max).min(max));
     std::io::Read::by_ref(&mut file)
         .take(max.saturating_add(1) as u64)
@@ -2317,14 +2354,14 @@ fn authenticate_directory_held(path: &Path) -> Result<AuthenticatedDirectory, Ve
     #[cfg(unix)]
     let identity = identity_from_file(&file, "SPX-I209")?;
     #[cfg(windows)]
-    let handle = same_file::Handle::from_path(path).map_err(|error| {
+    let handle = winapi_util::Handle::from_path_any(path).map_err(|error| {
         io(
             "SPX-I209",
             format!("cannot retain directory {}: {error}", path.display()),
         )
     })?;
     #[cfg(windows)]
-    let identity = identity_from_path(path, "SPX-I209")?;
+    let identity = identity_from_windows_handle(&handle, "SPX-I209")?;
     #[cfg(not(any(unix, windows)))]
     let identity = identity_from_path(path, "SPX-I209")?;
     let after = std::fs::symlink_metadata(path).map_err(|error| {
@@ -2387,17 +2424,7 @@ fn identity_from_file(file: &File, code: &'static str) -> Result<FileIdentity, V
     }
     #[cfg(windows)]
     {
-        use std::os::windows::fs::MetadataExt as _;
-        let metadata = file
-            .metadata()
-            .map_err(|error| io(code, format!("cannot inspect held file: {error}")))?;
-        let volume = metadata
-            .volume_serial_number()
-            .ok_or_else(|| io(code, "workspace volume identity is unavailable"))?;
-        let index = metadata
-            .file_index()
-            .ok_or_else(|| io(code, "workspace file identity is unavailable"))?;
-        Ok(FileIdentity { volume, index })
+        identity_from_windows_handle(file, code)
     }
     #[cfg(not(any(unix, windows)))]
     {
@@ -2411,16 +2438,26 @@ fn identity_from_file(file: &File, code: &'static str) -> Result<FileIdentity, V
 
 #[cfg(windows)]
 fn identity_from_path(path: &Path, code: &'static str) -> Result<FileIdentity, Vec<Diagnostic>> {
-    use std::os::windows::fs::MetadataExt as _;
-    let metadata = std::fs::metadata(path)
+    let handle = winapi_util::Handle::from_path_any(path)
         .map_err(|error| io(code, format!("cannot identify {}: {error}", path.display())))?;
-    let volume = metadata
-        .volume_serial_number()
-        .ok_or_else(|| io(code, "workspace volume identity is unavailable"))?;
-    let index = metadata
-        .file_index()
-        .ok_or_else(|| io(code, "workspace file identity is unavailable"))?;
-    Ok(FileIdentity { volume, index })
+    identity_from_windows_handle(&handle, code)
+}
+
+#[cfg(windows)]
+fn identity_from_windows_handle(
+    handle: impl winapi_util::AsHandleRef,
+    code: &'static str,
+) -> Result<FileIdentity, Vec<Diagnostic>> {
+    let information = winapi_util::file::information(handle).map_err(|error| {
+        io(
+            code,
+            format!("cannot inspect Windows object identity: {error}"),
+        )
+    })?;
+    Ok(FileIdentity {
+        volume: information.volume_serial_number(),
+        index: information.file_index(),
+    })
 }
 
 #[cfg(not(windows))]
@@ -2430,10 +2467,13 @@ fn identity_from_path(path: &Path, code: &'static str) -> Result<FileIdentity, V
     identity_from_file(&file, code)
 }
 
-fn require_single_link(metadata: &std::fs::Metadata) -> Result<(), Vec<Diagnostic>> {
+fn require_single_link_file(file: &File, code: &'static str) -> Result<(), Vec<Diagnostic>> {
     #[cfg(unix)]
     {
         use std::os::unix::fs::MetadataExt as _;
+        let metadata = file
+            .metadata()
+            .map_err(|error| io(code, format!("cannot inspect held link count: {error}")))?;
         if metadata.nlink() != 1 {
             return Err(invariant(
                 "workspace regular files must have link count one",
@@ -2442,13 +2482,45 @@ fn require_single_link(metadata: &std::fs::Metadata) -> Result<(), Vec<Diagnosti
     }
     #[cfg(windows)]
     {
-        use std::os::windows::fs::MetadataExt as _;
-        if metadata.number_of_links() != Some(1) {
+        let information = winapi_util::file::information(file)
+            .map_err(|error| io(code, format!("cannot inspect held link count: {error}")))?;
+        if information.number_of_links() != 1 {
             return Err(invariant(
                 "workspace regular files must have link count one",
             ));
         }
     }
+    #[cfg(not(any(unix, windows)))]
+    let _ = (file, code);
+    Ok(())
+}
+
+fn require_single_link_path(path: &Path, code: &'static str) -> Result<(), Vec<Diagnostic>> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt as _;
+        let metadata = std::fs::symlink_metadata(path)
+            .map_err(|error| io(code, format!("cannot inspect path link count: {error}")))?;
+        if metadata.nlink() != 1 {
+            return Err(invariant(
+                "workspace regular files must have link count one",
+            ));
+        }
+    }
+    #[cfg(windows)]
+    {
+        let handle = winapi_util::Handle::from_path_any(path)
+            .map_err(|error| io(code, format!("cannot inspect path link count: {error}")))?;
+        let information = winapi_util::file::information(&handle)
+            .map_err(|error| io(code, format!("cannot inspect path link count: {error}")))?;
+        if information.number_of_links() != 1 {
+            return Err(invariant(
+                "workspace regular files must have link count one",
+            ));
+        }
+    }
+    #[cfg(not(any(unix, windows)))]
+    let _ = (path, code);
     Ok(())
 }
 
@@ -2469,7 +2541,7 @@ fn recheck_held_regular(
             "workspace held object is no longer a regular file",
         ));
     }
-    require_single_link(&metadata)?;
+    require_single_link_file(file, code)?;
     let path_metadata = std::fs::symlink_metadata(path).map_err(|error| {
         io(
             code,
@@ -2482,6 +2554,7 @@ fn recheck_held_regular(
     {
         return Err(invariant("workspace held object identity changed"));
     }
+    require_single_link_path(path, code)?;
     Ok(())
 }
 

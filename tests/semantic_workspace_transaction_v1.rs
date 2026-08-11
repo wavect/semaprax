@@ -186,6 +186,53 @@ fn phase_a_initializes_authenticates_and_previews_without_raw_source_writes() {
 }
 
 #[test]
+fn initialize_releases_lock_before_immediate_snapshot_and_preview() {
+    for ordinal in 0..8 {
+        let (root, path_set, _, _) = fixture(&format!("immediate-handoff-{ordinal}"));
+        let revision = workspace::initialize(root.path(), &path_set).unwrap();
+        let lock = std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(root.path().join(".semaprax-workspace/LOCK"))
+            .unwrap();
+        fs2::FileExt::try_lock_exclusive(&lock).unwrap();
+        fs2::FileExt::unlock(&lock).unwrap();
+
+        let snapshot = workspace::snapshot(root.path()).unwrap();
+        assert_eq!(snapshot.workspace_revision(), revision);
+        let alpha_revision = snapshot
+            .files()
+            .iter()
+            .find(|file| file.path() == "alpha.spx")
+            .unwrap()
+            .source_revision();
+        let beta_revision = snapshot
+            .files()
+            .iter()
+            .find(|file| file.path() == "nested/beta.spx")
+            .unwrap()
+            .source_revision();
+        let patch = root.path().join("immediate.wspatch");
+        std::fs::write(
+            &patch,
+            format!(
+                "{{\"schema\":\"semaprax.semantic-workspace-patch.v1\",\"base_workspace_revision\":\"{revision}\",\"files\":[{{\"path\":\"alpha.spx\",\"patch\":{}}},{{\"path\":\"nested/beta.spx\",\"patch\":{}}}]}}\n",
+                serde_json::to_string(&format!(
+                    "base {alpha_revision}\nrename workspace.alpha.helper to alpha_{ordinal}\n"
+                ))
+                .unwrap(),
+                serde_json::to_string(&format!(
+                    "base {beta_revision}\nrename workspace.beta.helper to beta_{ordinal}\n"
+                ))
+                .unwrap()
+            ),
+        )
+        .unwrap();
+        assert!(workspace::preview(root.path(), &patch).is_ok());
+    }
+}
+
+#[test]
 fn shared_compiler_owned_prelude_ids_do_not_conflict_across_files() {
     let (root, path_set, _, _) = fixture("prelude");
     workspace::initialize(root.path(), &path_set).unwrap();

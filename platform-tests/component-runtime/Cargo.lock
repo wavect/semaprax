@@ -710,6 +710,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "wasmparser 0.255.0",
+ "winapi-util",
 ]
 
 [[package]]

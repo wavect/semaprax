@@ -95,6 +95,15 @@ enum VerifyPoint {
     ReceiptRendered,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum SemanticApplyPoint {
+    ProposalOwned,
+    EvidenceOwned,
+    AfterReplay,
+    ReceiptRendered,
+    Workspace(workspace::SemanticChangeApplyPoint),
+}
+
 fn verify_with_operation_hook(
     root: &Path,
     proposal_path: &Path,
@@ -133,6 +142,76 @@ fn verify_with_hook(
     hook: impl FnMut(VerifyPoint),
 ) -> Result<String, Vec<Diagnostic>> {
     verify_with_operation_hook(root, proposal_path, evidence_path, hook)
+}
+
+#[allow(
+    dead_code,
+    reason = "private C3 authority seam pending public promotion after security audit"
+)]
+pub(crate) fn apply_authenticated_with_hook(
+    root: &Path,
+    proposal_path: &Path,
+    evidence_path: &Path,
+    mut hook: impl FnMut(SemanticApplyPoint, &Path, Option<&Path>, Option<&Path>) -> std::io::Result<()>,
+) -> Result<String, Vec<Diagnostic>> {
+    let locked = workspace::acquire_semantic_change_apply_lock(root)?;
+    let active_path = root.join(".semaprax-workspace/ACTIVE");
+    let input = read_proposal(proposal_path).and_then(|proposal_source| {
+        hook(SemanticApplyPoint::ProposalOwned, &active_path, None, None)
+            .map_err(|error| proposal_io_hook("proposal post-read hook failed", error))?;
+        let evidence_source = verification::read_evidence(evidence_path)?;
+        let submitted = verification::parse_evidence(&evidence_source)?;
+        hook(SemanticApplyPoint::EvidenceOwned, &active_path, None, None)
+            .map_err(|error| proposal_io_hook("Evidence post-read hook failed", error))?;
+        let change_set = parse_proposal(&proposal_source)?;
+        Ok((change_set, evidence_source, submitted))
+    });
+    let (authority, (change_set, evidence_source, submitted)) = locked.authenticate(input)?;
+    let (authority, prepared) = prepare_authenticated_change_authority(authority, change_set)?;
+    let prepublication = (|| {
+        let artifacts = artifact::render_artifacts(&prepared)?;
+        verification::verify_replay(&submitted, &evidence_source, &artifacts)?;
+        hook(SemanticApplyPoint::AfterReplay, &active_path, None, None)
+            .map_err(|error| proposal_io_hook("exact replay hook failed", error))?;
+        let receipt =
+            artifact::render_application_receipt(&prepared, &artifacts, evidence_source.len())?;
+        hook(
+            SemanticApplyPoint::ReceiptRendered,
+            &active_path,
+            None,
+            None,
+        )
+        .map_err(|error| proposal_io_hook("application receipt hook failed", error))?;
+        Ok(receipt)
+    })();
+    let receipt = match prepublication {
+        Ok(receipt) => receipt,
+        Err(diagnostics) => return authority.finish(Err(diagnostics)),
+    };
+    let (candidate_files, candidate_manifest, candidate_revision) =
+        prepared.into_candidate_generation_parts();
+    let commit = SemanticWorkspaceChangeCommitAuthority {
+        authority,
+        candidate_files,
+        candidate_manifest,
+        candidate_revision,
+        receipt,
+    };
+    workspace::commit_semantic_change_authority_with_hook(
+        commit,
+        |point, active, staged, candidate| {
+            hook(
+                SemanticApplyPoint::Workspace(point),
+                active,
+                staged,
+                candidate,
+            )
+        },
+    )
+}
+
+fn proposal_io_hook(label: &'static str, error: std::io::Error) -> Vec<Diagnostic> {
+    vec![Diagnostic::io("SPX-I211", format!("{label}: {error}"))]
 }
 
 pub(crate) const SCHEMA: &str = "semaprax.workspace-semantic-change.v1";
@@ -214,6 +293,34 @@ pub(crate) struct SemanticWorkspacePreparedChange {
     used_total_replacement_source_bytes: usize,
     retained_generations: usize,
     staging_attempts: usize,
+}
+
+pub(crate) struct SemanticWorkspaceChangeCommitAuthority {
+    authority: workspace::WorkspaceSemanticReadAuthority,
+    candidate_files: Vec<semantic_workspace::SemanticWorkspaceFileFact>,
+    candidate_manifest: String,
+    candidate_revision: String,
+    receipt: String,
+}
+
+impl SemanticWorkspaceChangeCommitAuthority {
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        workspace::WorkspaceSemanticReadAuthority,
+        Vec<semantic_workspace::SemanticWorkspaceFileFact>,
+        String,
+        String,
+        String,
+    ) {
+        (
+            self.authority,
+            self.candidate_files,
+            self.candidate_manifest,
+            self.candidate_revision,
+            self.receipt,
+        )
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -667,10 +774,25 @@ pub(crate) fn with_authenticated_change<T>(
 }
 
 fn with_authenticated_change_authority<T>(
-    mut authority: workspace::WorkspaceSemanticReadAuthority,
+    authority: workspace::WorkspaceSemanticReadAuthority,
     change_set: SemanticWorkspaceChangeSet,
     operation: impl FnOnce(SemanticWorkspacePreparedChange) -> Result<T, Vec<Diagnostic>>,
 ) -> Result<T, Vec<Diagnostic>> {
+    let (authority, prepared) = prepare_authenticated_change_authority(authority, change_set)?;
+    let result = operation(prepared);
+    authority.finish(result)
+}
+
+fn prepare_authenticated_change_authority(
+    mut authority: workspace::WorkspaceSemanticReadAuthority,
+    change_set: SemanticWorkspaceChangeSet,
+) -> Result<
+    (
+        workspace::WorkspaceSemanticReadAuthority,
+        SemanticWorkspacePreparedChange,
+    ),
+    Vec<Diagnostic>,
+> {
     let base_workspace_revision = authority.workspace_revision().to_owned();
     let storage = (
         authority.manifest_bytes(),
@@ -687,9 +809,16 @@ fn with_authenticated_change_authority<T>(
             storage,
             change_set,
         )
-    })()
-    .and_then(operation);
-    authority.finish(result)
+    })();
+    match result {
+        Ok(prepared) => Ok((authority, prepared)),
+        Err(diagnostics) => match authority.finish::<()>(Err(diagnostics)) {
+            Err(diagnostics) => Err(diagnostics),
+            Ok(()) => Err(replay(
+                "Semantic Workspace Change failed preparation without diagnostics",
+            )),
+        },
+    }
 }
 
 #[cfg(test)]
@@ -2357,6 +2486,36 @@ mod tests {
         std::fs::write(destination, canonical(source, path)).unwrap();
     }
 
+    fn write_apply_inputs(fixture: &Fixture) -> (PathBuf, PathBuf, String, String) {
+        let proposal_path = fixture.root.join("change.json");
+        let evidence_path = fixture.root.join("evidence.json");
+        let proposal_source = fixture.proposal().source().to_owned();
+        std::fs::write(&proposal_path, &proposal_source).unwrap();
+        let evidence_source = evidence(&fixture.root, &proposal_path).unwrap();
+        std::fs::write(&evidence_path, &evidence_source).unwrap();
+        (
+            proposal_path,
+            evidence_path,
+            proposal_source,
+            evidence_source,
+        )
+    }
+
+    fn directory_names(path: &Path) -> Vec<String> {
+        let mut names = std::fs::read_dir(path)
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name().into_string().unwrap())
+            .collect::<Vec<_>>();
+        names.sort();
+        names
+    }
+
+    fn replace_same_bytes(path: &Path) -> std::io::Result<()> {
+        let bytes = std::fs::read(path)?;
+        std::fs::remove_file(path)?;
+        std::fs::write(path, bytes)
+    }
+
     fn provider_base() -> &'static str {
         r#"
 module change.provider;
@@ -3550,5 +3709,527 @@ fn main() -> i64 { 0 }
             error[0].message,
             "Semantic Workspace Change `delta_edges` exceeds 131072"
         );
+    }
+
+    #[test]
+    fn apply_exclusive_precedence_and_prepublication_failures_publish_nothing() {
+        let fixture = Fixture::new("apply-exclusive-prepublication");
+        let (proposal_path, evidence_path, proposal_source, evidence_source) =
+            write_apply_inputs(&fixture);
+        let control = fixture.root.join(".semaprax-workspace");
+        let active_path = control.join("ACTIVE");
+        let active = std::fs::read(&active_path).unwrap();
+        let generations = directory_names(&control.join("generations"));
+        let staging = directory_names(&control.join("staging"));
+
+        let lock = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(control.join("LOCK"))
+            .unwrap();
+        FileExt::lock_shared(&lock).unwrap();
+        let error = apply_authenticated_with_hook(
+            &fixture.root,
+            &proposal_path,
+            &evidence_path,
+            |_, _, _, _| Ok(()),
+        )
+        .unwrap_err();
+        assert_eq!(error[0].code, "SPX-I210");
+        assert_eq!(error[0].message, "workspace LOCK is busy");
+        FileExt::unlock(&lock).unwrap();
+
+        for rejected in [
+            SemanticApplyPoint::AfterReplay,
+            SemanticApplyPoint::ReceiptRendered,
+        ] {
+            let fixture = Fixture::new(&format!("apply-prepublication-{rejected:?}"));
+            let (proposal_path, evidence_path, proposal_source, evidence_source) =
+                write_apply_inputs(&fixture);
+            let control = fixture.root.join(".semaprax-workspace");
+            let active_path = control.join("ACTIVE");
+            let active = std::fs::read(&active_path).unwrap();
+            let generations = directory_names(&control.join("generations"));
+            let staging = directory_names(&control.join("staging"));
+            let error = apply_authenticated_with_hook(
+                &fixture.root,
+                &proposal_path,
+                &evidence_path,
+                |point, _, staged, candidate| {
+                    assert!(staged.is_none());
+                    assert!(candidate.is_none());
+                    if point == rejected {
+                        return Err(std::io::Error::other("injected prepublication rejection"));
+                    }
+                    Ok(())
+                },
+            )
+            .unwrap_err();
+            assert_eq!(error[0].code, "SPX-I211");
+            assert_eq!(std::fs::read(&active_path).unwrap(), active);
+            assert_eq!(directory_names(&control.join("generations")), generations);
+            assert_eq!(directory_names(&control.join("staging")), staging);
+            assert_eq!(
+                std::fs::read_to_string(&proposal_path).unwrap(),
+                proposal_source
+            );
+            assert_eq!(
+                std::fs::read_to_string(&evidence_path).unwrap(),
+                evidence_source
+            );
+            fixture.assert_exclusive_reacquire();
+        }
+
+        assert_eq!(std::fs::read(&active_path).unwrap(), active);
+        assert_eq!(directory_names(&control.join("generations")), generations);
+        assert_eq!(directory_names(&control.join("staging")), staging);
+        assert_eq!(
+            std::fs::read_to_string(&proposal_path).unwrap(),
+            proposal_source
+        );
+        assert_eq!(
+            std::fs::read_to_string(&evidence_path).unwrap(),
+            evidence_source
+        );
+        fixture.assert_exclusive_reacquire();
+    }
+
+    #[test]
+    fn apply_creates_then_reuses_exact_candidate_and_uses_first_free_staging_slot() {
+        let fixture = Fixture::new("apply-candidate-reuse");
+        let control = fixture.root.join(".semaprax-workspace");
+        let active_path = control.join("ACTIVE");
+        let old_active = std::fs::read(&active_path).unwrap();
+        let (proposal_path, evidence_path, _, _) = write_apply_inputs(&fixture);
+        let first_candidate = std::cell::RefCell::new(None::<PathBuf>);
+        let error = apply_authenticated_with_hook(
+            &fixture.root,
+            &proposal_path,
+            &evidence_path,
+            |point, _, staged, candidate| {
+                if point
+                    == SemanticApplyPoint::Workspace(
+                        workspace::SemanticChangeApplyPoint::AfterCandidatePrepared,
+                    )
+                {
+                    *first_candidate.borrow_mut() = candidate.map(Path::to_path_buf);
+                }
+                if point
+                    == SemanticApplyPoint::Workspace(
+                        workspace::SemanticChangeApplyPoint::AfterActiveStaged,
+                    )
+                {
+                    assert_eq!(staged.unwrap().file_name().unwrap(), "0");
+                }
+                if point
+                    == SemanticApplyPoint::Workspace(
+                        workspace::SemanticChangeApplyPoint::BeforeActiveReplace,
+                    )
+                {
+                    return Err(std::io::Error::other("retain candidate for reuse"));
+                }
+                Ok(())
+            },
+        )
+        .unwrap_err();
+        assert_eq!(error[0].code, "SPX-I211");
+        assert_eq!(std::fs::read(&active_path).unwrap(), old_active);
+        let first_candidate = first_candidate.into_inner().unwrap();
+        assert!(first_candidate.join("manifest.json").is_file());
+        fixture.assert_exclusive_reacquire();
+
+        let refreshed_evidence = evidence(&fixture.root, &proposal_path).unwrap();
+        std::fs::write(&evidence_path, refreshed_evidence).unwrap();
+        let reused_candidate = std::cell::RefCell::new(None::<PathBuf>);
+        let receipt = apply_authenticated_with_hook(
+            &fixture.root,
+            &proposal_path,
+            &evidence_path,
+            |point, _, _, candidate| {
+                if point
+                    == SemanticApplyPoint::Workspace(
+                        workspace::SemanticChangeApplyPoint::AfterCandidatePrepared,
+                    )
+                {
+                    *reused_candidate.borrow_mut() = candidate.map(Path::to_path_buf);
+                }
+                Ok(())
+            },
+        )
+        .unwrap();
+        assert_eq!(reused_candidate.into_inner().unwrap(), first_candidate);
+        assert!(receipt.contains("\"result\":\"applied\""));
+        assert_ne!(std::fs::read(&active_path).unwrap(), old_active);
+        fixture.assert_exclusive_reacquire();
+    }
+
+    #[test]
+    fn apply_selects_first_free_staging_slot_and_preserves_occupied_objects() {
+        let fixture = Fixture::new("apply-first-free");
+        let control = fixture.root.join(".semaprax-workspace");
+        std::fs::write(control.join("staging/0"), b"foreign-zero\n").unwrap();
+        std::fs::write(control.join("staging/1"), b"foreign-one\n").unwrap();
+        let (proposal_path, evidence_path, _, _) = write_apply_inputs(&fixture);
+        let active_stage = std::cell::RefCell::new(None::<PathBuf>);
+        apply_authenticated_with_hook(
+            &fixture.root,
+            &proposal_path,
+            &evidence_path,
+            |point, _, staged, _| {
+                if point
+                    == SemanticApplyPoint::Workspace(
+                        workspace::SemanticChangeApplyPoint::AfterActiveStaged,
+                    )
+                {
+                    *active_stage.borrow_mut() = staged.map(Path::to_path_buf);
+                }
+                Ok(())
+            },
+        )
+        .unwrap();
+        assert_eq!(active_stage.into_inner().unwrap().file_name().unwrap(), "2");
+        assert_eq!(
+            std::fs::read_to_string(control.join("staging/0")).unwrap(),
+            "foreign-zero\n"
+        );
+        assert_eq!(
+            std::fs::read_to_string(control.join("staging/1")).unwrap(),
+            "foreign-one\n"
+        );
+        fixture.assert_exclusive_reacquire();
+    }
+
+    #[test]
+    fn apply_all_staging_slots_occupied_is_bounded_and_preserves_foreign_objects() {
+        let fixture = Fixture::new("apply-staging-exhausted");
+        let control = fixture.root.join(".semaprax-workspace");
+        let active_path = control.join("ACTIVE");
+        let active = std::fs::read(&active_path).unwrap();
+        for ordinal in 0..workspace::MAX_STAGING_ATTEMPTS {
+            std::fs::write(
+                control.join("staging").join(ordinal.to_string()),
+                format!("foreign-{ordinal}\n"),
+            )
+            .unwrap();
+        }
+        let (proposal_path, evidence_path, _, _) = write_apply_inputs(&fixture);
+        let error = apply_authenticated_with_hook(
+            &fixture.root,
+            &proposal_path,
+            &evidence_path,
+            |_, _, _, _| Ok(()),
+        )
+        .unwrap_err();
+        assert_eq!(error[0].code, "SPX-G175");
+        assert_eq!(
+            error[0].message,
+            "Semantic Workspace `staging_attempts` exceeds 32"
+        );
+        assert_eq!(std::fs::read(&active_path).unwrap(), active);
+        for ordinal in 0..workspace::MAX_STAGING_ATTEMPTS {
+            assert_eq!(
+                std::fs::read_to_string(control.join("staging").join(ordinal.to_string())).unwrap(),
+                format!("foreign-{ordinal}\n")
+            );
+        }
+        fixture.assert_exclusive_reacquire();
+    }
+
+    #[test]
+    fn apply_uses_owned_replayed_inputs_once_and_never_writes_raw_sources() {
+        let fixture = Fixture::new("apply-owned-once");
+        let (proposal_path, evidence_path, _, _) = write_apply_inputs(&fixture);
+        let raw_paths = [
+            fixture.root.join("a/provider.spx"),
+            fixture.root.join("m/consumer.spx"),
+            fixture.root.join("z/entry.spx"),
+        ];
+        let raw_sources = raw_paths
+            .iter()
+            .map(|path| std::fs::read(path).unwrap())
+            .collect::<Vec<_>>();
+        let reached = std::cell::Cell::new(false);
+        let receipt = apply_authenticated_with_hook(
+            &fixture.root,
+            &proposal_path,
+            &evidence_path,
+            |point, _, _, _| {
+                if point == SemanticApplyPoint::AfterReplay {
+                    reached.set(true);
+                    std::fs::write(&proposal_path, b"{}\n")?;
+                    std::fs::write(&evidence_path, b"{}\n")?;
+                }
+                Ok(())
+            },
+        )
+        .unwrap();
+        assert!(reached.get());
+        assert!(receipt.contains("\"result\":\"applied\""));
+        assert_eq!(std::fs::read(&proposal_path).unwrap(), b"{}\n");
+        assert_eq!(std::fs::read(&evidence_path).unwrap(), b"{}\n");
+        for (path, source) in raw_paths.iter().zip(raw_sources) {
+            assert_eq!(std::fs::read(path).unwrap(), source);
+        }
+        fixture.assert_exclusive_reacquire();
+    }
+
+    #[test]
+    fn apply_each_commit_boundary_maps_pre_and_post_pivot_failures_exactly() {
+        use workspace::SemanticChangeApplyPoint as WorkspacePoint;
+
+        for rejected in [
+            WorkspacePoint::AfterCandidatePrepared,
+            WorkspacePoint::AfterActiveStaged,
+            WorkspacePoint::BeforeFirstFinalCheck,
+            WorkspacePoint::BeforeSecondFinalCheck,
+            WorkspacePoint::BeforeActiveReplace,
+            WorkspacePoint::AfterActiveReplace,
+        ] {
+            let fixture = Fixture::new(&format!("apply-boundary-{rejected:?}"));
+            let (proposal_path, evidence_path, _, _) = write_apply_inputs(&fixture);
+            let active_path = fixture.root.join(".semaprax-workspace/ACTIVE");
+            let old_active = std::fs::read(&active_path).unwrap();
+            let error = apply_authenticated_with_hook(
+                &fixture.root,
+                &proposal_path,
+                &evidence_path,
+                |point, _, _, _| {
+                    if point == SemanticApplyPoint::Workspace(rejected) {
+                        return Err(std::io::Error::other("injected commit-boundary failure"));
+                    }
+                    Ok(())
+                },
+            )
+            .unwrap_err();
+            if rejected == WorkspacePoint::AfterActiveReplace {
+                assert_eq!(error[0].code, "SPX-I212");
+                assert_ne!(std::fs::read(&active_path).unwrap(), old_active);
+            } else {
+                assert_eq!(error[0].code, "SPX-I211");
+                assert_eq!(std::fs::read(&active_path).unwrap(), old_active);
+            }
+            fixture.assert_exclusive_reacquire();
+        }
+    }
+
+    #[test]
+    fn apply_final_rechecks_reject_object_mutation_before_and_after_pivot() {
+        use workspace::SemanticChangeApplyPoint as WorkspacePoint;
+
+        for (label, rejected) in [
+            ("active-identity", WorkspacePoint::BeforeFirstFinalCheck),
+            ("candidate-source", WorkspacePoint::BeforeSecondFinalCheck),
+            ("post-pivot-inventory", WorkspacePoint::AfterActiveReplace),
+        ] {
+            let fixture = Fixture::new(&format!("apply-final-mutation-{label}"));
+            let (proposal_path, evidence_path, _, _) = write_apply_inputs(&fixture);
+            let control = fixture.root.join(".semaprax-workspace");
+            let active_path = control.join("ACTIVE");
+            let old_active = std::fs::read(&active_path).unwrap();
+            let residue = control.join("staging/31");
+            let error = apply_authenticated_with_hook(
+                &fixture.root,
+                &proposal_path,
+                &evidence_path,
+                |point, active, _, candidate| {
+                    if point != SemanticApplyPoint::Workspace(rejected) {
+                        return Ok(());
+                    }
+                    match label {
+                        "active-identity" => replace_same_bytes(active)?,
+                        "candidate-source" => {
+                            replace_same_bytes(&candidate.unwrap().join("files/a/provider.spx"))?
+                        }
+                        "post-pivot-inventory" => {
+                            std::fs::write(&residue, b"foreign-post-pivot\n")?;
+                        }
+                        _ => unreachable!(),
+                    }
+                    Ok(())
+                },
+            )
+            .unwrap_err();
+            if rejected == WorkspacePoint::AfterActiveReplace {
+                assert_eq!(error[0].code, "SPX-I212");
+                assert_ne!(std::fs::read(&active_path).unwrap(), old_active);
+                assert_eq!(
+                    std::fs::read_to_string(&residue).unwrap(),
+                    "foreign-post-pivot\n"
+                );
+            } else {
+                assert_eq!(error[0].code, "SPX-G153");
+                assert_eq!(std::fs::read(&active_path).unwrap(), old_active);
+            }
+            fixture.assert_exclusive_reacquire();
+        }
+    }
+
+    #[test]
+    fn apply_all_candidate_generation_hook_rejections_are_pre_pivot_i211() {
+        use workspace::GenerationPoint;
+        use workspace::SemanticChangeApplyPoint as WorkspacePoint;
+
+        for rejected in [
+            GenerationPoint::AfterSlotCreate,
+            GenerationPoint::AfterManifestWrite,
+            GenerationPoint::AfterFilesWrite,
+            GenerationPoint::BeforeStageValidation,
+            GenerationPoint::BeforeGenerationPublish,
+            GenerationPoint::DestinationChecked,
+            GenerationPoint::AfterGenerationPublish,
+        ] {
+            let fixture = Fixture::new(&format!("apply-generation-hook-{rejected:?}"));
+            let (proposal_path, evidence_path, _, _) = write_apply_inputs(&fixture);
+            let active_path = fixture.root.join(".semaprax-workspace/ACTIVE");
+            let old_active = std::fs::read(&active_path).unwrap();
+            let reached = std::cell::Cell::new(false);
+            let error = apply_authenticated_with_hook(
+                &fixture.root,
+                &proposal_path,
+                &evidence_path,
+                |point, _, _, _| {
+                    if point == SemanticApplyPoint::Workspace(WorkspacePoint::Generation(rejected))
+                    {
+                        reached.set(true);
+                        return Err(std::io::Error::other("injected generation rejection"));
+                    }
+                    Ok(())
+                },
+            )
+            .unwrap_err();
+            assert!(reached.get());
+            assert_eq!(error[0].code, "SPX-I211");
+            assert_eq!(std::fs::read(&active_path).unwrap(), old_active);
+            fixture.assert_exclusive_reacquire();
+        }
+    }
+
+    #[test]
+    fn apply_candidate_destination_races_never_clobber_foreign_objects() {
+        use workspace::GenerationPoint;
+        use workspace::SemanticChangeApplyPoint as WorkspacePoint;
+
+        for raced_at in [
+            GenerationPoint::BeforeGenerationPublish,
+            GenerationPoint::DestinationChecked,
+        ] {
+            let fixture = Fixture::new(&format!("apply-destination-race-{raced_at:?}"));
+            let (proposal_path, evidence_path, _, _) = write_apply_inputs(&fixture);
+            let active_path = fixture.root.join(".semaprax-workspace/ACTIVE");
+            let old_active = std::fs::read(&active_path).unwrap();
+            let foreign = std::cell::RefCell::new(None::<PathBuf>);
+            let error = apply_authenticated_with_hook(
+                &fixture.root,
+                &proposal_path,
+                &evidence_path,
+                |point, _, _, candidate| {
+                    if point == SemanticApplyPoint::Workspace(WorkspacePoint::Generation(raced_at))
+                    {
+                        let destination = candidate.unwrap();
+                        std::fs::write(destination, b"foreign-candidate\n")?;
+                        *foreign.borrow_mut() = Some(destination.to_path_buf());
+                    }
+                    Ok(())
+                },
+            )
+            .unwrap_err();
+            assert_eq!(error[0].code, "SPX-I211", "race point {raced_at:?}");
+            let foreign = foreign.into_inner().unwrap();
+            assert_eq!(
+                std::fs::read_to_string(foreign).unwrap(),
+                "foreign-candidate\n"
+            );
+            assert_eq!(std::fs::read(&active_path).unwrap(), old_active);
+            fixture.assert_exclusive_reacquire();
+        }
+    }
+
+    #[test]
+    fn apply_post_pivot_manifest_source_and_inventory_drift_are_i212() {
+        use workspace::SemanticChangeApplyPoint as WorkspacePoint;
+
+        for case in ["manifest", "source", "generation", "control"] {
+            let fixture = Fixture::new(&format!("apply-post-pivot-{case}"));
+            let (proposal_path, evidence_path, _, _) = write_apply_inputs(&fixture);
+            let control = fixture.root.join(".semaprax-workspace");
+            let active_path = control.join("ACTIVE");
+            let old_active = std::fs::read(&active_path).unwrap();
+            let residue = std::cell::RefCell::new(None::<PathBuf>);
+            let error = apply_authenticated_with_hook(
+                &fixture.root,
+                &proposal_path,
+                &evidence_path,
+                |point, _, _, candidate| {
+                    if point != SemanticApplyPoint::Workspace(WorkspacePoint::AfterActiveReplace) {
+                        return Ok(());
+                    }
+                    let path = match case {
+                        "manifest" => candidate.unwrap().join("manifest.json"),
+                        "source" => candidate.unwrap().join("files/a/provider.spx"),
+                        "generation" => control
+                            .join("generations")
+                            .join(format!("{:064x}", 777usize)),
+                        "control" => control.join("foreign-control"),
+                        _ => unreachable!(),
+                    };
+                    if matches!(case, "generation") {
+                        std::fs::create_dir(&path)?;
+                    } else if matches!(case, "control") {
+                        std::fs::write(&path, b"foreign-control\n")?;
+                    } else {
+                        OpenOptions::new()
+                            .append(true)
+                            .open(&path)
+                            .and_then(|mut file| file.write_all(b"x"))?;
+                    }
+                    *residue.borrow_mut() = Some(path);
+                    Ok(())
+                },
+            )
+            .unwrap_err();
+            assert_eq!(error[0].code, "SPX-I212");
+            assert_ne!(std::fs::read(&active_path).unwrap(), old_active);
+            assert!(residue.into_inner().unwrap().exists());
+            fixture.assert_exclusive_reacquire();
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn apply_permission_drift_for_lock_active_and_candidate_is_rejected_before_pivot() {
+        use std::os::unix::fs::PermissionsExt;
+        use workspace::SemanticChangeApplyPoint as WorkspacePoint;
+
+        for case in ["lock", "active", "candidate"] {
+            let fixture = Fixture::new(&format!("apply-permission-{case}"));
+            let (proposal_path, evidence_path, _, _) = write_apply_inputs(&fixture);
+            let control = fixture.root.join(".semaprax-workspace");
+            let active_path = control.join("ACTIVE");
+            let old_active = std::fs::read(&active_path).unwrap();
+            let error = apply_authenticated_with_hook(
+                &fixture.root,
+                &proposal_path,
+                &evidence_path,
+                |point, active, _, candidate| {
+                    if point != SemanticApplyPoint::Workspace(WorkspacePoint::BeforeFirstFinalCheck)
+                    {
+                        return Ok(());
+                    }
+                    let path = match case {
+                        "lock" => control.join("LOCK"),
+                        "active" => active.to_path_buf(),
+                        "candidate" => candidate.unwrap().join("manifest.json"),
+                        _ => unreachable!(),
+                    };
+                    let mut permissions = std::fs::metadata(&path)?.permissions();
+                    permissions.set_mode(permissions.mode() ^ 0o100);
+                    std::fs::set_permissions(path, permissions)
+                },
+            )
+            .unwrap_err();
+            assert_eq!(error[0].code, "SPX-G153");
+            assert_eq!(std::fs::read(&active_path).unwrap(), old_active);
+            fixture.assert_exclusive_reacquire();
+        }
     }
 }

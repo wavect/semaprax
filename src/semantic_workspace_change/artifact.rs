@@ -28,6 +28,8 @@ const REVIEW_SCHEMA: &str = "semaprax.workspace-semantic-change-review.v1";
 pub(super) const EVIDENCE_SCHEMA: &str = "semaprax.workspace-semantic-change-evidence.v1";
 pub(super) const RECEIPT_SCHEMA: &str =
     "semaprax.workspace-semantic-change-evidence-verification.v1";
+const APPLICATION_RECEIPT_SCHEMA: &str =
+    "semaprax.workspace-semantic-change-evidence-application.v1";
 const GRAPH_SCHEMA: &str = "semaprax.workspace-semantic-graph.v1";
 const MANIFEST_SCHEMA: &str = "semaprax.workspace-semantic-manifest.v1";
 
@@ -397,6 +399,36 @@ pub(super) fn render_verification_receipt(
     artifacts: &SemanticWorkspaceChangeArtifacts,
     submitted_evidence_bytes: usize,
 ) -> Result<String, Vec<Diagnostic>> {
+    render_receipt_bounded(
+        prepared,
+        artifacts,
+        submitted_evidence_bytes,
+        RECEIPT_SCHEMA,
+        "exact_replay",
+    )
+}
+
+pub(super) fn render_application_receipt(
+    prepared: &SemanticWorkspacePreparedChange,
+    artifacts: &SemanticWorkspaceChangeArtifacts,
+    submitted_evidence_bytes: usize,
+) -> Result<String, Vec<Diagnostic>> {
+    render_receipt_bounded(
+        prepared,
+        artifacts,
+        submitted_evidence_bytes,
+        APPLICATION_RECEIPT_SCHEMA,
+        "applied",
+    )
+}
+
+fn render_receipt_bounded(
+    prepared: &SemanticWorkspacePreparedChange,
+    artifacts: &SemanticWorkspaceChangeArtifacts,
+    submitted_evidence_bytes: usize,
+    schema: &str,
+    result: &str,
+) -> Result<String, Vec<Diagnostic>> {
     if submitted_evidence_bytes != artifacts.evidence.bytes.len() {
         return Err(evidence_replay());
     }
@@ -427,7 +459,7 @@ pub(super) fn render_verification_receipt(
         let usage = usage(prepared, sizes, receipt_bytes)?;
         let (receipt, overflowed) = crate::bounded_output::with_limit(receipt_limit, || {
             let mut output = CappedString::new();
-            render_receipt(&mut output, prepared, artifacts, usage);
+            render_receipt(&mut output, prepared, artifacts, usage, schema, result);
             output.into_string()
         });
         if overflowed {
@@ -1040,10 +1072,14 @@ fn render_receipt(
     prepared: &SemanticWorkspacePreparedChange,
     artifacts: &SemanticWorkspaceChangeArtifacts,
     usage: Usage,
+    schema: &str,
+    result: &str,
 ) {
     output.push_str("{\"schema\":");
-    push_json(output, RECEIPT_SCHEMA);
-    output.push_str(",\"result\":\"exact_replay\",\"workspace_manifest_schema\":");
+    push_json(output, schema);
+    output.push_str(",\"result\":");
+    push_json(output, result);
+    output.push_str(",\"workspace_manifest_schema\":");
     push_json(output, MANIFEST_SCHEMA);
     push_common_change_members(output, prepared);
     output.push_str(",\"proposal\":");

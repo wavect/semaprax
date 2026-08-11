@@ -96,7 +96,6 @@ impl SemanticWorkspaceFileFact {
         self.bytes
     }
 
-    #[cfg(test)]
     pub(crate) fn source(&self) -> &str {
         &self.source
     }

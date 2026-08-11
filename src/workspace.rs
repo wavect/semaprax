@@ -1631,6 +1631,14 @@ pub(crate) fn acquire_semantic_change_lock(
     })
 }
 
+pub(crate) fn acquire_semantic_change_apply_lock(
+    root: &Path,
+) -> Result<WorkspaceSemanticChangeLockAuthority, Vec<Diagnostic>> {
+    Ok(WorkspaceSemanticChangeLockAuthority {
+        guard: acquire_lock_only(root, true)?,
+    })
+}
+
 /// Previews one canonical workspace patch without creating candidate filesystem state.
 pub fn preview(root: &Path, patch_path: &Path) -> Result<String, Vec<Diagnostic>> {
     let build = build_read_owned(root, patch_path)?;
@@ -2180,7 +2188,7 @@ pub(crate) fn commit_workspace_authority_with_hook(
             Some(&active_stage_path),
             Some(&candidate.path),
         )
-        .map_err(|error| final_uncertainty(format!("post-pivot hook failed: {error}")))?;
+        .map_err(|error| io("SPX-I211", format!("post-pivot hook failed: {error}")))?;
         let mut published_active = authenticate_text(&active_path, MAX_MANIFEST_BYTES, "SPX-I212")
             .map_err(map_final_uncertainty)?;
         active_fingerprint
@@ -2212,6 +2220,795 @@ pub(crate) fn commit_workspace_authority_with_hook(
         Ok(plan.candidate_revision.clone())
     })();
     finish_commit_unlock(&guard.lock, active_replaced, result)
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum SemanticChangeApplyPoint {
+    Generation(GenerationPoint),
+    AfterCandidatePrepared,
+    AfterActiveStaged,
+    BeforeFirstFinalCheck,
+    BeforeSecondFinalCheck,
+    BeforeActiveReplace,
+    AfterActiveReplace,
+}
+
+pub(crate) fn commit_semantic_change_authority_with_hook(
+    authority: crate::semantic_workspace_change::SemanticWorkspaceChangeCommitAuthority,
+    mut hook: impl FnMut(
+        SemanticChangeApplyPoint,
+        &Path,
+        Option<&Path>,
+        Option<&Path>,
+    ) -> std::io::Result<()>,
+) -> Result<String, Vec<Diagnostic>> {
+    let (authority, candidate_files, candidate_manifest, candidate_revision, receipt) =
+        authority.into_parts();
+    let mut guard = authority.guard;
+    if !guard.exclusive {
+        return Err(unlock_with_diagnostics(
+            &guard.lock,
+            invariant("Semantic Workspace Change apply requires the exclusive workspace lock"),
+        ));
+    }
+    if guard.semantic_graph.is_some() {
+        return Err(unlock_with_diagnostics(
+            &guard.lock,
+            invariant("semantic workspace graph authority was not consumed exactly once"),
+        ));
+    }
+    let active_path = guard.control.join("ACTIVE");
+    let permission_paths = guard
+        .directories
+        .iter()
+        .map(|directory| directory.path.as_path())
+        .chain(guard.texts.iter().map(|text| text.path.as_path()))
+        .chain(std::iter::once(guard.lock_path.as_path()))
+        .collect::<Vec<_>>();
+    let permission_seals = match capture_permission_seals(permission_paths) {
+        Ok(seals) => seals,
+        Err(diagnostics) => return Err(unlock_with_diagnostics(&guard.lock, diagnostics)),
+    };
+    let mut active_replaced = false;
+    let result = (|| {
+        if crate::semantic_workspace::semantic_workspace_revision(&candidate_manifest)
+            != candidate_revision
+        {
+            return Err(invariant(
+                "Semantic Workspace Change candidate manifest revision disagrees",
+            ));
+        }
+        let mut candidate = ensure_semantic_candidate_generation(
+            &mut guard,
+            &candidate_files,
+            &candidate_manifest,
+            &candidate_revision,
+            |point, staged, destination| {
+                hook(
+                    SemanticChangeApplyPoint::Generation(point),
+                    &active_path,
+                    Some(staged),
+                    Some(destination),
+                )
+            },
+        )?;
+        let candidate_permission_seals = capture_permission_seals(
+            candidate
+                .directories
+                .iter()
+                .map(|directory| directory.path.as_path())
+                .chain(candidate.texts.iter().map(|text| text.path.as_path())),
+        )?;
+        hook(
+            SemanticChangeApplyPoint::AfterCandidatePrepared,
+            &active_path,
+            None,
+            Some(&candidate.path),
+        )
+        .map_err(|error| io("SPX-I211", format!("candidate hook failed: {error}")))?;
+
+        let candidate_name = revision_hex(&candidate_revision)?.to_owned();
+        let mut generation_names = guard.generation_names.clone();
+        generation_names.insert(candidate_name);
+        let (active_stage_path, mut active_stage, staging_names) =
+            stage_semantic_active(&mut guard, &candidate_revision, &generation_names)?;
+        hook(
+            SemanticChangeApplyPoint::AfterActiveStaged,
+            &active_path,
+            Some(&active_stage_path),
+            Some(&candidate.path),
+        )
+        .map_err(|error| io("SPX-I211", format!("ACTIVE staging hook failed: {error}")))?;
+
+        let active_permissions = guard
+            .texts
+            .iter()
+            .find(|text| text.path == active_path)
+            .ok_or_else(|| invariant("authenticated ACTIVE handle is unavailable"))?
+            .file
+            .metadata()
+            .map_err(|error| {
+                io(
+                    "SPX-I211",
+                    format!("cannot inspect ACTIVE permissions: {error}"),
+                )
+            })?
+            .permissions();
+        active_stage
+            .file
+            .set_permissions(active_permissions.clone())
+            .and_then(|_| active_stage.file.sync_all())
+            .map_err(|error| {
+                io(
+                    "SPX-I211",
+                    format!("cannot preserve ACTIVE permissions: {error}"),
+                )
+            })?;
+        active_stage.recheck()?;
+        hook(
+            SemanticChangeApplyPoint::BeforeFirstFinalCheck,
+            &active_path,
+            Some(&active_stage_path),
+            Some(&candidate.path),
+        )
+        .map_err(|error| {
+            io(
+                "SPX-I211",
+                format!("first final-check hook failed: {error}"),
+            )
+        })?;
+        final_semantic_change_recheck(
+            &mut guard,
+            &mut candidate,
+            &mut active_stage,
+            &candidate_files,
+            &candidate_manifest,
+            &candidate_revision,
+            &generation_names,
+            &staging_names,
+            &permission_seals,
+            &candidate_permission_seals,
+            &active_permissions,
+        )?;
+        hook(
+            SemanticChangeApplyPoint::BeforeSecondFinalCheck,
+            &active_path,
+            Some(&active_stage_path),
+            Some(&candidate.path),
+        )
+        .map_err(|error| {
+            io(
+                "SPX-I211",
+                format!("second final-check hook failed: {error}"),
+            )
+        })?;
+        hook(
+            SemanticChangeApplyPoint::BeforeActiveReplace,
+            &active_path,
+            Some(&active_stage_path),
+            Some(&candidate.path),
+        )
+        .map_err(|error| io("SPX-I211", format!("ACTIVE replacement rejected: {error}")))?;
+        final_semantic_change_recheck(
+            &mut guard,
+            &mut candidate,
+            &mut active_stage,
+            &candidate_files,
+            &candidate_manifest,
+            &candidate_revision,
+            &generation_names,
+            &staging_names,
+            &permission_seals,
+            &candidate_permission_seals,
+            &active_permissions,
+        )?;
+        let active_fingerprint =
+            GenerationFingerprint::from_text(&mut active_stage, &active_stage_path)?;
+        #[cfg(windows)]
+        drop(active_stage);
+        std::fs::rename(&active_stage_path, &active_path).map_err(|error| {
+            io(
+                "SPX-I211",
+                format!("cannot atomically replace ACTIVE: {error}"),
+            )
+        })?;
+        active_replaced = true;
+        hook(
+            SemanticChangeApplyPoint::AfterActiveReplace,
+            &active_path,
+            Some(&active_stage_path),
+            Some(&candidate.path),
+        )
+        .map_err(|error| final_uncertainty(format!("post-pivot hook failed: {error}")))?;
+        post_pivot_semantic_change_recheck(
+            &mut guard,
+            &mut candidate,
+            &candidate_files,
+            &candidate_manifest,
+            &candidate_revision,
+            &generation_names,
+            &active_path,
+            &active_fingerprint,
+            &active_permissions,
+            &permission_seals,
+            &candidate_permission_seals,
+        )?;
+        Ok(receipt)
+    })();
+    let result = if active_replaced {
+        result.map_err(map_final_uncertainty)
+    } else {
+        result
+    };
+    finish_commit_unlock(&guard.lock, active_replaced, result)
+}
+
+fn ensure_semantic_candidate_generation(
+    guard: &mut WorkspaceGuard,
+    facts: &[crate::semantic_workspace::SemanticWorkspaceFileFact],
+    manifest: &str,
+    revision: &str,
+    mut hook: impl FnMut(GenerationPoint, &Path, &Path) -> std::io::Result<()>,
+) -> Result<PreparedGeneration, Vec<Diagnostic>> {
+    guard.recheck()?;
+    guard.recheck_phase_inventory(&guard.generation_names, &guard.staging_names, None)?;
+    let destination = guard
+        .control
+        .join("generations")
+        .join(revision_hex(revision)?);
+    match std::fs::symlink_metadata(&destination) {
+        Ok(metadata) => {
+            if !metadata.is_dir()
+                || metadata.file_type().is_symlink()
+                || metadata_is_reparse(&metadata)
+            {
+                return Err(io(
+                    "SPX-I211",
+                    "candidate generation path conflicts with a foreign object",
+                ));
+            }
+            let mut candidate =
+                authenticate_semantic_generation_deep(&destination, manifest, facts, revision)?;
+            candidate.recheck()?;
+            guard.recheck_base_authority()?;
+            guard.recheck_phase_inventory(
+                &guard.generation_names,
+                &guard.staging_names,
+                Some(&candidate),
+            )?;
+            return Ok(candidate);
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => {
+            return Err(io(
+                "SPX-I211",
+                format!("cannot inspect candidate generation: {error}"),
+            ));
+        }
+    }
+    if guard.snapshot.retained_generations >= MAX_RETAINED_GENERATIONS {
+        return Err(semantic_storage_limit(
+            "retained_generations",
+            MAX_RETAINED_GENERATIONS,
+        ));
+    }
+    let staging_root = guard.control.join("staging");
+    let mut selected = None;
+    for ordinal in 0..MAX_STAGING_ATTEMPTS {
+        let slot = staging_root.join(ordinal.to_string());
+        match std::fs::create_dir(&slot) {
+            Ok(()) => {
+                selected = Some((ordinal, slot));
+                break;
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
+                validate_staging_inventory(&staging_root)?;
+            }
+            Err(error) => {
+                return Err(io(
+                    "SPX-I211",
+                    format!("cannot create staging slot: {error}"),
+                ));
+            }
+        }
+    }
+    let (ordinal, slot) =
+        selected.ok_or_else(|| semantic_storage_limit("staging_attempts", MAX_STAGING_ATTEMPTS))?;
+    let slot_directory = authenticate_directory_held(&slot)?;
+    hook(GenerationPoint::AfterSlotCreate, &slot, &destination)
+        .map_err(|error| io("SPX-I211", format!("candidate slot hook failed: {error}")))?;
+    let mut staged_names = guard.staging_names.clone();
+    staged_names.insert(ordinal.to_string());
+    guard.recheck_phase_inventory(&guard.generation_names, &staged_names, None)?;
+    let mut staged = write_semantic_generation_held(
+        &slot,
+        manifest,
+        facts,
+        slot_directory,
+        &destination,
+        &mut hook,
+    )?;
+    hook(GenerationPoint::BeforeStageValidation, &slot, &destination).map_err(|error| {
+        io(
+            "SPX-I211",
+            format!("candidate validation hook failed: {error}"),
+        )
+    })?;
+    staged.recheck()?;
+    let mut authenticated =
+        authenticate_semantic_generation_deep(&slot, manifest, facts, revision)?;
+    authenticated.recheck()?;
+    guard.recheck_base_authority()?;
+    guard.recheck_phase_inventory(&guard.generation_names, &staged_names, Some(&authenticated))?;
+    hook(
+        GenerationPoint::BeforeGenerationPublish,
+        &slot,
+        &destination,
+    )
+    .map_err(|error| {
+        io(
+            "SPX-I211",
+            format!("candidate publication hook failed: {error}"),
+        )
+    })?;
+    require_absent_destination(
+        &destination,
+        "SPX-I211",
+        "candidate generation appeared before publication",
+    )?;
+    staged.recheck()?;
+    authenticated.recheck()?;
+    guard.recheck_base_authority()?;
+    guard.recheck_phase_inventory(&guard.generation_names, &staged_names, Some(&authenticated))?;
+    let staged_fingerprint = authenticated.fingerprint()?;
+    require_absent_destination(
+        &destination,
+        "SPX-I211",
+        "candidate generation appeared before publication",
+    )?;
+    #[cfg(windows)]
+    {
+        drop(staged);
+        drop(authenticated);
+    }
+    hook(GenerationPoint::DestinationChecked, &slot, &destination).map_err(|error| {
+        io(
+            "SPX-I211",
+            format!("candidate destination hook failed: {error}"),
+        )
+    })?;
+    publish_no_replace(
+        &slot,
+        &destination,
+        "SPX-I211",
+        "cannot publish complete candidate generation",
+    )?;
+    hook(GenerationPoint::AfterGenerationPublish, &slot, &destination).map_err(|error| {
+        io(
+            "SPX-I211",
+            format!("candidate relocation hook failed: {error}"),
+        )
+    })?;
+    let mut published =
+        authenticate_semantic_generation_deep(&destination, manifest, facts, revision)
+            .map_err(map_post_publication_candidate_diagnostics)?;
+    staged_fingerprint.require_equivalent(&mut published)?;
+    published.recheck()?;
+    guard.recheck_base_authority()?;
+    let mut published_names = guard.generation_names.clone();
+    published_names.insert(revision_hex(revision)?.to_owned());
+    guard.recheck_phase_inventory(&published_names, &guard.staging_names, Some(&published))?;
+    Ok(published)
+}
+
+fn write_semantic_generation_held(
+    slot: &Path,
+    manifest: &str,
+    facts: &[crate::semantic_workspace::SemanticWorkspaceFileFact],
+    slot_directory: AuthenticatedDirectory,
+    destination: &Path,
+    hook: &mut impl FnMut(GenerationPoint, &Path, &Path) -> std::io::Result<()>,
+) -> Result<PreparedGeneration, Vec<Diagnostic>> {
+    let manifest_input = write_new_text(
+        &slot.join("manifest.json"),
+        manifest,
+        MAX_MANIFEST_BYTES,
+        "staged semantic generation manifest",
+    )?;
+    let files = slot.join("files");
+    std::fs::create_dir(&files).map_err(|error| {
+        io(
+            "SPX-I211",
+            format!("cannot create generation files: {error}"),
+        )
+    })?;
+    let files_directory = authenticate_directory_held(&files)?;
+    hook(GenerationPoint::AfterManifestWrite, slot, destination).map_err(|error| {
+        io(
+            "SPX-I211",
+            format!("candidate manifest hook failed: {error}"),
+        )
+    })?;
+    let mut directories = vec![slot_directory, files_directory];
+    let mut texts = vec![manifest_input];
+    for fact in facts {
+        let path = files.join(fact.path());
+        directories.extend(ensure_generation_parent_held(&files, fact.path())?);
+        texts.push(write_new_text(
+            &path,
+            fact.source(),
+            fact.source().len(),
+            fact.path(),
+        )?);
+    }
+    hook(GenerationPoint::AfterFilesWrite, slot, destination)
+        .map_err(|error| io("SPX-I211", format!("candidate files hook failed: {error}")))?;
+    let identities = directories
+        .iter()
+        .map(|entry| &entry.identity)
+        .chain(texts.iter().map(|entry| &entry.identity))
+        .collect::<Vec<_>>();
+    require_distinct_identities(&identities)?;
+    require_same_volume(&identities)?;
+    Ok(PreparedGeneration {
+        path: slot.to_path_buf(),
+        directories,
+        texts,
+    })
+}
+
+fn authenticate_semantic_generation_deep(
+    generation: &Path,
+    manifest: &str,
+    facts: &[crate::semantic_workspace::SemanticWorkspaceFileFact],
+    revision: &str,
+) -> Result<PreparedGeneration, Vec<Diagnostic>> {
+    let generation_directory = authenticate_directory_held(generation)?;
+    let files_root = generation.join("files");
+    let files_directory = authenticate_directory_held(&files_root)?;
+    let mut directories = vec![generation_directory, files_directory];
+    directories.extend(authenticate_directory_trie(
+        &files_root,
+        facts.iter().map(|fact| fact.path()),
+    )?);
+    let mut texts = Vec::with_capacity(facts.len() + 1);
+    let manifest_input = authenticate_text(
+        &generation.join("manifest.json"),
+        MAX_MANIFEST_BYTES,
+        "SPX-I211",
+    )?;
+    if manifest_input.source != manifest
+        || crate::semantic_workspace::semantic_workspace_revision(&manifest_input.source)
+            != revision
+    {
+        return Err(invariant(
+            "staged semantic generation manifest is not the expected revision",
+        ));
+    }
+    texts.push(manifest_input);
+    for fact in facts {
+        let input =
+            authenticate_managed_source_semantic(&files_root, fact.path(), fact.source().len())?;
+        if input.source != fact.source() {
+            return Err(invariant(
+                "staged semantic generation source differs from authenticated input",
+            ));
+        }
+        texts.push(input);
+    }
+    require_distinct_text_identities(&texts, None, None)?;
+    let expected = facts
+        .iter()
+        .map(|fact| ManifestFile {
+            path: fact.path().to_owned(),
+            source_graph_schema: fact.source_graph_schema().to_owned(),
+            source_revision: fact.source_revision().to_owned(),
+            source_digest: fact.source_digest().to_owned(),
+            bytes: fact.bytes(),
+        })
+        .collect::<Vec<_>>();
+    validate_generation_inventory(generation, &expected)?;
+    let identities = directories
+        .iter()
+        .map(|entry| &entry.identity)
+        .chain(texts.iter().map(|entry| &entry.identity))
+        .collect::<Vec<_>>();
+    require_distinct_identities(&identities)?;
+    require_same_volume(&identities)?;
+    Ok(PreparedGeneration {
+        path: generation.to_path_buf(),
+        directories,
+        texts,
+    })
+}
+
+fn stage_semantic_active(
+    guard: &mut WorkspaceGuard,
+    revision: &str,
+    generation_names: &BTreeSet<String>,
+) -> Result<(PathBuf, AuthenticatedText, BTreeSet<String>), Vec<Diagnostic>> {
+    let staging_root = guard.control.join("staging");
+    validate_staging_inventory(&staging_root)?;
+    let source = crate::semantic_workspace::render_root(revision)?;
+    for ordinal in 0..MAX_STAGING_ATTEMPTS {
+        let path = staging_root.join(ordinal.to_string());
+        let mut file = match OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create_new(true)
+            .open(&path)
+        {
+            Ok(file) => file,
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
+                validate_staging_inventory(&staging_root)?;
+                continue;
+            }
+            Err(error) => {
+                return Err(io(
+                    "SPX-I211",
+                    format!("cannot create candidate ACTIVE pointer: {error}"),
+                ));
+            }
+        };
+        file.write_all(source.as_bytes())
+            .and_then(|_| file.flush())
+            .and_then(|_| file.sync_all())
+            .map_err(|error| {
+                io(
+                    "SPX-I211",
+                    format!("cannot synchronize candidate ACTIVE pointer: {error}"),
+                )
+            })?;
+        require_single_link_file(&file, "SPX-I211")?;
+        let identity = identity_from_file(&file, "SPX-I211")?;
+        let mut active = AuthenticatedText {
+            path: path.clone(),
+            label: "candidate semantic ACTIVE pointer".to_owned(),
+            file,
+            identity,
+            source: source.clone(),
+            max: MAX_MANIFEST_BYTES,
+            code: "SPX-I211",
+        };
+        active.recheck()?;
+        let mut staging_names = guard.staging_names.clone();
+        staging_names.insert(ordinal.to_string());
+        guard.recheck_phase_inventory(generation_names, &staging_names, None)?;
+        return Ok((path, active, staging_names));
+    }
+    Err(semantic_storage_limit(
+        "staging_attempts",
+        MAX_STAGING_ATTEMPTS,
+    ))
+}
+
+#[allow(clippy::too_many_arguments)]
+fn final_semantic_change_recheck(
+    guard: &mut WorkspaceGuard,
+    candidate: &mut PreparedGeneration,
+    active_stage: &mut AuthenticatedText,
+    facts: &[crate::semantic_workspace::SemanticWorkspaceFileFact],
+    manifest: &str,
+    revision: &str,
+    generation_names: &BTreeSet<String>,
+    staging_names: &BTreeSet<String>,
+    permission_seals: &[PermissionSeal],
+    candidate_permission_seals: &[PermissionSeal],
+    active_permissions: &std::fs::Permissions,
+) -> Result<(), Vec<Diagnostic>> {
+    guard.recheck_base_authority()?;
+    candidate.recheck()?;
+    let fingerprint = candidate.fingerprint()?;
+    let mut exact =
+        authenticate_semantic_generation_deep(&candidate.path, manifest, facts, revision)?;
+    fingerprint.require_equivalent(&mut exact)?;
+    active_stage.recheck()?;
+    if active_stage.source != crate::semantic_workspace::render_root(revision)?
+        || crate::semantic_workspace::parse_root(&active_stage.source)? != revision
+    {
+        return Err(invariant(
+            "candidate semantic ACTIVE pointer differs from the planned revision",
+        ));
+    }
+    let staged_permissions = active_stage
+        .file
+        .metadata()
+        .map_err(|error| {
+            io(
+                "SPX-I211",
+                format!("cannot inspect staged ACTIVE permissions: {error}"),
+            )
+        })?
+        .permissions();
+    if !permissions_equal(active_permissions, &staged_permissions) {
+        return Err(invariant(
+            "semantic ACTIVE permissions changed during final authentication",
+        ));
+    }
+    recheck_permission_seals(permission_seals)?;
+    recheck_permission_seals(candidate_permission_seals)?;
+    guard.recheck_phase_inventory(generation_names, staging_names, Some(candidate))?;
+    let entries = guard
+        .directories
+        .iter()
+        .map(|entry| (&entry.path, &entry.identity))
+        .chain(
+            guard
+                .texts
+                .iter()
+                .map(|entry| (&entry.path, &entry.identity)),
+        )
+        .chain(
+            candidate
+                .directories
+                .iter()
+                .map(|entry| (&entry.path, &entry.identity)),
+        )
+        .chain(
+            candidate
+                .texts
+                .iter()
+                .map(|entry| (&entry.path, &entry.identity)),
+        )
+        .chain(std::iter::once((
+            &active_stage.path,
+            &active_stage.identity,
+        )))
+        .chain(std::iter::once((&guard.lock_path, &guard.lock_identity)))
+        .collect::<Vec<_>>();
+    require_distinct_path_identities(&entries)?;
+    let mut unique = BTreeMap::<PathBuf, &FileIdentity>::new();
+    for (path, identity) in entries {
+        unique.entry(path.clone()).or_insert(identity);
+    }
+    require_same_volume(&unique.into_values().collect::<Vec<_>>())?;
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn post_pivot_semantic_change_recheck(
+    guard: &mut WorkspaceGuard,
+    candidate: &mut PreparedGeneration,
+    facts: &[crate::semantic_workspace::SemanticWorkspaceFileFact],
+    manifest: &str,
+    revision: &str,
+    generation_names: &BTreeSet<String>,
+    active_path: &Path,
+    active_fingerprint: &GenerationFingerprint,
+    active_permissions: &std::fs::Permissions,
+    permission_seals: &[PermissionSeal],
+    candidate_permission_seals: &[PermissionSeal],
+) -> Result<(), Vec<Diagnostic>> {
+    recheck_lock(&guard.lock_path, &guard.lock, &guard.lock_identity)?;
+    if authenticate_directory(&guard.root)? != guard.root_identity {
+        return Err(invariant(
+            "semantic workspace root identity changed after ACTIVE replacement",
+        ));
+    }
+    for directory in &guard.directories {
+        directory.recheck()?;
+    }
+    for text in &mut guard.texts {
+        if text.path != active_path {
+            text.recheck()?;
+        }
+    }
+    validate_control(&guard.control)?;
+    candidate.recheck()?;
+    let candidate_fingerprint = candidate.fingerprint()?;
+    let mut exact =
+        authenticate_semantic_generation_deep(&candidate.path, manifest, facts, revision)?;
+    candidate_fingerprint.require_equivalent(&mut exact)?;
+    let mut published_active = authenticate_text(active_path, MAX_MANIFEST_BYTES, "SPX-I209")?;
+    active_fingerprint.require_text_equivalent(&mut published_active, active_path)?;
+    if published_active.source != crate::semantic_workspace::render_root(revision)?
+        || crate::semantic_workspace::parse_root(&published_active.source)? != revision
+    {
+        return Err(invariant(
+            "published semantic ACTIVE differs from the planned revision",
+        ));
+    }
+    let published_permissions = published_active
+        .file
+        .metadata()
+        .map_err(|error| {
+            io(
+                "SPX-I209",
+                format!("cannot inspect published ACTIVE permissions: {error}"),
+            )
+        })?
+        .permissions();
+    if !permissions_equal(active_permissions, &published_permissions) {
+        return Err(invariant(
+            "published semantic ACTIVE permissions differ from the authenticated base",
+        ));
+    }
+    recheck_permission_seals(permission_seals)?;
+    recheck_permission_seals(candidate_permission_seals)?;
+    let (_, generations) =
+        count_directories_bounded(&guard.control.join("generations"), MAX_RETAINED_GENERATIONS)?;
+    if inventory_names_from_directories(&generations)? != *generation_names {
+        return Err(invariant(
+            "published semantic generation inventory differs from the checked set",
+        ));
+    }
+    let (_, staging_directories, staging_files) =
+        validate_staging_inventory(&guard.control.join("staging"))?;
+    let staging_names = inventory_names_from_directories(&staging_directories)?
+        .into_iter()
+        .chain(inventory_names_from_texts(&staging_files)?)
+        .collect::<BTreeSet<_>>();
+    if staging_names != guard.staging_names {
+        return Err(invariant(
+            "published semantic staging inventory differs from the checked set",
+        ));
+    }
+    let expected = facts
+        .iter()
+        .map(|fact| ManifestFile {
+            path: fact.path().to_owned(),
+            source_graph_schema: fact.source_graph_schema().to_owned(),
+            source_revision: fact.source_revision().to_owned(),
+            source_digest: fact.source_digest().to_owned(),
+            bytes: fact.bytes(),
+        })
+        .collect::<Vec<_>>();
+    validate_generation_inventory(&candidate.path, &expected)?;
+    let entries = guard
+        .directories
+        .iter()
+        .map(|entry| (&entry.path, &entry.identity))
+        .chain(
+            guard
+                .texts
+                .iter()
+                .filter(|entry| entry.path != active_path)
+                .map(|entry| (&entry.path, &entry.identity)),
+        )
+        .chain(
+            candidate
+                .directories
+                .iter()
+                .map(|entry| (&entry.path, &entry.identity)),
+        )
+        .chain(
+            candidate
+                .texts
+                .iter()
+                .map(|entry| (&entry.path, &entry.identity)),
+        )
+        .chain(std::iter::once((
+            &published_active.path,
+            &published_active.identity,
+        )))
+        .chain(std::iter::once((&guard.lock_path, &guard.lock_identity)))
+        .collect::<Vec<_>>();
+    require_distinct_path_identities(&entries)?;
+    let mut unique = BTreeMap::<PathBuf, &FileIdentity>::new();
+    for (path, identity) in entries {
+        unique.entry(path.clone()).or_insert(identity);
+    }
+    require_same_volume(&unique.into_values().collect::<Vec<_>>())?;
+    candidate.recheck()?;
+    published_active.recheck()?;
+    active_fingerprint.require_text_equivalent(&mut published_active, active_path)?;
+    recheck_lock(&guard.lock_path, &guard.lock, &guard.lock_identity)?;
+    if authenticate_directory(&guard.root)? != guard.root_identity {
+        return Err(invariant(
+            "semantic workspace root identity changed during terminal authentication",
+        ));
+    }
+    for directory in &guard.directories {
+        directory.recheck()?;
+    }
+    for text in &mut guard.texts {
+        if text.path != active_path {
+            text.recheck()?;
+        }
+    }
+    recheck_permission_seals(permission_seals)?;
+    recheck_permission_seals(candidate_permission_seals)?;
+    Ok(())
 }
 
 fn finish_commit_unlock(
@@ -2442,7 +3239,7 @@ fn final_uncertainty(message: impl Into<String>) -> Vec<Diagnostic> {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[allow(dead_code)]
-enum GenerationPoint {
+pub(crate) enum GenerationPoint {
     AfterSlotCreate,
     AfterManifestWrite,
     AfterFilesWrite,

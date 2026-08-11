@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title description">
+  <title id="title">Semaprax social preview</title>
+  <description id="description">Semaprax, meaning in and verified machine code out.</description>
+  <defs>
+    <linearGradient id="surface" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#060a0f"/>
+      <stop offset="1" stop-color="#0b1b20"/>
+    </linearGradient>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M48 0H0V48" fill="none" stroke="#81c5c9" stroke-opacity="0.08"/>
+    </pattern>
+  </defs>
+  <rect width="1280" height="640" fill="url(#surface)"/>
+  <rect width="1280" height="640" fill="url(#grid)"/>
+  <path d="M760 132h142l74 74h132M820 320h122l76-76h126M750 498h168l88-88h138" fill="none" stroke="#81c5c9" stroke-opacity="0.32" stroke-width="2"/>
+  <g fill="#a7eeeb" stroke="#060a0f" stroke-width="8">
+    <circle cx="760" cy="132" r="12"/><circle cx="976" cy="206" r="12"/><circle cx="1108" cy="206" r="12"/>
+    <circle cx="820" cy="320" r="12"/><circle cx="1018" cy="244" r="12"/><circle cx="1144" cy="244" r="12"/>
+    <circle cx="750" cy="498" r="12"/><circle cx="1006" cy="410" r="12"/><circle cx="1144" cy="410" r="12"/>
+  </g>
+  <rect x="72" y="68" width="438" height="42" fill="#81c5c9" fill-opacity="0.08" stroke="#81c5c9" stroke-opacity="0.7"/>
+  <text x="92" y="96" fill="#a7eeeb" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" font-weight="700" letter-spacing="2">PRE-ALPHA RESEARCH · APACHE-2.0</text>
+  <text x="70" y="272" fill="#f2f8f6" font-family="Arial, Helvetica, sans-serif" font-size="104" font-weight="800" letter-spacing="-4">SEMAPRAX</text>
+  <text x="76" y="346" fill="#a7eeeb" font-family="Arial, Helvetica, sans-serif" font-size="37" font-weight="700">Meaning in. Verified machine code out.</text>
+  <text x="76" y="438" fill="#b2c4c3" font-family="Arial, Helvetica, sans-serif" font-size="25">An experimental agent-native systems programming language</text>
+  <text x="76" y="548" fill="#81c5c9" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="22">github.com/wavect/semaprax</text>
+</svg>

@@ -695,10 +695,12 @@ top of that managed publication model. It binds an exact Workspace Patch and
 preview to sorted per-file Review and child Patch-Evidence-v1 facts, freezes
 homogeneous v1/v2/v3 and mixed capsule/receipt KATs, and gates an opt-in apply
 route on exact replay before candidate generation or staging. Local public
-6/6, apply 5/5, hostile 2/2, units 7/7, shared Workspace 38/38, root library
-494/494, and preservation 107/107 are green; hosted exact-head evidence is
-pending. It grants no authority, performs no target/test or cross-file semantic
-reasoning, and includes neither Target Evidence nor Evidence v2. The next
+6/6, apply 5/5, hostile 2/2, units 8/8, shared Workspace 39/39, root library
+496/496, and preservation 107/107 are green. The exact
+`388986a6f12ef97b0c8b40e76466fdc83f211b39` matrix is hosted green in [run
+31487851406](https://github.com/wavect/semaprax/actions/runs/31487851406), with
+all 12 jobs passing. It grants no authority, performs no target/test or
+cross-file semantic reasoning, and includes neither Target Evidence nor Evidence v2. The next
 strategic architecture tranche remains a unified multi-file semantic Graph
 with real module/import/type/call/capability/identity resolution and repository
 Impact/Review/Context/Target/test consumers, followed by broader operations and

@@ -340,11 +340,27 @@ cargo test --locked -p semaprax --all-features --lib workspace_patch_evidence::t
 ```
 
 Focused local results are public generation/verification 6/6, apply 5/5,
-hostile 2/2, and module units 7/7. Shared Workspace core 38/38, Workspace
-integration 12/12, root library 494/494, preservation 107/107, full workspace/
+hostile 2/2, and module units 8/8. Shared Workspace core 39/39, Workspace
+integration 12/12, root library 496/496, preservation 107/107, full workspace/
 all-target/all-feature, release, examples, host 11/11 and loader 26/26
 doctests, rustdoc `-D warnings`, strict Clippy, formatting, diff, and security
-are locally green. Hosted exact-head evidence is pending; no earlier Workspace
+are locally green. The exact `388986a6f12ef97b0c8b40e76466fdc83f211b39`
+matrix is hosted green in [run
+31487851406](https://github.com/wavect/semaprax/actions/runs/31487851406), with
+all 12 jobs passing: [Dependency
+policy](https://github.com/wavect/semaprax/actions/runs/31487851406/job/93767254877),
+[Ubuntu](https://github.com/wavect/semaprax/actions/runs/31487851406/job/93767254965),
+[macOS](https://github.com/wavect/semaprax/actions/runs/31487851406/job/93767254996),
+[Windows](https://github.com/wavect/semaprax/actions/runs/31487851406/job/93767254975),
+[MSRV](https://github.com/wavect/semaprax/actions/runs/31487851406/job/93767254939),
+and [Component](https://github.com/wavect/semaprax/actions/runs/31487851406/job/93767254934).
+The exact `3e41b3a0318730fec41e7d75438414e93dafa313` predecessor [run
+31486578192](https://github.com/wavect/semaprax/actions/runs/31486578192)
+was nonqualifying at 10/12: macOS exposed snapshot-lock handoff as
+`SPX-I210` instead of the expected stale `SPX-G152`, while the Windows
+lock-precedence fixture hit OS error 33 reopening the locked `LOCK` file. The
+corrective head makes the owned-snapshot lock release explicit and avoids the
+fixture-only reopen without changing the wire contract. No earlier Workspace
 or single-file Evidence run qualifies. Status remains exactly 38 Partial/18
 Missing.
 

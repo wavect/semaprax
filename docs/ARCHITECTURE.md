@@ -1069,9 +1069,15 @@ does. `SPX-I212` remains post-pivot only.
 Exact schema/key order, bounds, domains, diagnostics, eight whole-artifact
 KATs, and the ordered nonclaims are frozen in [Semantic Workspace Patch
 Evidence v1](SEMANTIC-WORKSPACE-PATCH-EVIDENCE-V1.md). Local evidence is public
-6/6, apply 5/5, hostile 2/2, module units 7/7, shared Workspace core 38/38,
-Workspace integration 12/12, root library 494/494, and preservation 107/107.
-Full local gates and security are green; hosted exact-head evidence is pending.
+6/6, apply 5/5, hostile 2/2, module units 8/8, shared Workspace core 39/39,
+Workspace integration 12/12, root library 496/496, and preservation 107/107.
+Full local gates and security are green. The exact
+`388986a6f12ef97b0c8b40e76466fdc83f211b39` matrix is hosted green in [run
+31487851406](https://github.com/wavect/semaprax/actions/runs/31487851406), with
+all 12 jobs passing, including [Ubuntu job
+93767254965](https://github.com/wavect/semaprax/actions/runs/31487851406/job/93767254965)
+and [Windows job
+93767254975](https://github.com/wavect/semaprax/actions/runs/31487851406/job/93767254975).
 No matrix status changes: totals remain 38 Partial/18 Missing.
 
 ## Transactions

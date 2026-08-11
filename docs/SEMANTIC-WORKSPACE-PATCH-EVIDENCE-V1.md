@@ -342,16 +342,31 @@ the `sha256:` wire prefix or domain framing:
 
 Local evidence is public generation/verification 6/6, evidence-gated apply
 5/5, hostile wire/substitution/Graph-v10–v14 2/2, and module hook/limit units
-7/7. The shared Workspace core is 38/38 and Workspace integration remains
-12/12. The root library is 494/494; the focused preservation sweep is 107/107.
+8/8. The shared Workspace core is 39/39 and Workspace integration remains
+12/12. The root library is 496/496; the focused preservation sweep is 107/107.
 Full workspace/all-target/all-feature, release, examples, host 11/11 and loader
 26/26 doctests, rustdoc `-D warnings`, strict Clippy, formatting, diff, and
 independent security gates are locally green.
 
-Hosted evidence for this new exact head remains pending. Earlier hosted
-Workspace, Patch Evidence, Review, Impact, Repair, or Patch runs prove only
-preservation of their frozen contracts; none is hosted proof of this new outer
-workspace evidence or evidence-gated apply route.
+The exact `388986a6f12ef97b0c8b40e76466fdc83f211b39` matrix is hosted green in
+[run 31487851406](https://github.com/wavect/semaprax/actions/runs/31487851406),
+with all 12 jobs passing: [Dependency
+policy](https://github.com/wavect/semaprax/actions/runs/31487851406/job/93767254877),
+[Ubuntu](https://github.com/wavect/semaprax/actions/runs/31487851406/job/93767254965),
+[macOS](https://github.com/wavect/semaprax/actions/runs/31487851406/job/93767254996),
+[Windows](https://github.com/wavect/semaprax/actions/runs/31487851406/job/93767254975),
+[MSRV](https://github.com/wavect/semaprax/actions/runs/31487851406/job/93767254939),
+and [Component](https://github.com/wavect/semaprax/actions/runs/31487851406/job/93767254934).
+The exact `3e41b3a0318730fec41e7d75438414e93dafa313` predecessor [run
+31486578192](https://github.com/wavect/semaprax/actions/runs/31486578192)
+was nonqualifying at 10/12: its macOS test observed `SPX-I210` instead of the
+expected stale `SPX-G152` during snapshot-lock handoff, and its Windows
+lock-precedence fixture hit OS error 33 while reopening the locked `LOCK`
+file. The corrective head makes the owned-snapshot lock release explicit and
+avoids that fixture-only reopen without changing the frozen wire contract.
+Earlier hosted Workspace, Patch Evidence, Review, Impact, Repair, or Patch runs
+prove only preservation of their frozen contracts; none replaces this exact
+outer-workspace-evidence matrix.
 
 Focused commands are:
 

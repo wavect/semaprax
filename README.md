@@ -3,7 +3,7 @@
 > **The agent-native systems programming language**
 > **Meaning in. Verified machine code out.**
 
-SEMAPRAX is an experimental programming system where source code is the human projection and a stable, queryable semantic graph is the agent interface. The v0.2 prototype accepts a small typed language, verifies its declared meaning, and lowers it to a native executable or a deployable browser/WebAssembly package.
+Semaprax is an experimental agent-native systems programming language built around a stable semantic program graph. Its v0.2 prototype lets coding agents query typed meaning, submit revision-bound semantic patches, and lower a verified subset to native executables and browser/Wasm packages.
 
 ```text
 Human source       Atomic semantic patches
@@ -871,6 +871,19 @@ Read [RFC 0001](docs/RFC-0001.md) for the language system, [RFC 0002](docs/RFC-0
 ## Status
 
 SEMAPRAX is pre-alpha research software. Its syntax, graph schema, diagnostics, and ABI will change. Do not use it for production or safety-critical workloads.
+
+## Citation
+
+Use [CITATION.cff](CITATION.cff) for repository citation metadata and
+[CITATION.md](CITATION.md) for evidence-specific citation guidance. Cite the
+exact commit and repository document that supports a technical claim. The
+[Wavect Semaprax research page](https://wavect.io/semaprax/) is the project
+homepage and localized overview; this repository remains the code,
+specification, and implementation-evidence authority.
+
+Semaprax is created and maintained by Wavect GmbH as pre-alpha research. This
+attribution does not make Semaprax a consulting service or a production-ready
+product.
 
 ## Contributing
 

@@ -4,7 +4,7 @@ use std::process::{Command, ExitCode};
 use semaprax::diagnostic::{Diagnostic, Severity};
 use semaprax::{
     agent_economics, codegen, format, graph, impact, parse, patch, patch_evidence, quality_route,
-    repair, review, target_evidence, verify, wasm,
+    repair, review, target_evidence, verify, wasm, workspace,
 };
 
 fn main() -> ExitCode {
@@ -175,6 +175,52 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             let revision =
                 patch::apply(&source_path, &patch_path).map_err(|errors| report(&errors, false))?;
             println!("applied semantic patch; graph is now {revision}");
+            Ok(())
+        }
+        "workspace-init" => {
+            if args.len() != 3 {
+                eprintln!("workspace-init requires exactly <root> <path-set.json>");
+                return Err(2);
+            }
+            let root = required_path(&args, 1)?;
+            let path_set = required_path(&args, 2)?;
+            let revision =
+                workspace::initialize(&root, &path_set).map_err(|errors| report(&errors, false))?;
+            println!("initialized semantic workspace; workspace is {revision}");
+            Ok(())
+        }
+        "workspace-snapshot" => {
+            if args.len() != 2 {
+                eprintln!("workspace-snapshot requires exactly <root>");
+                return Err(2);
+            }
+            let root = required_path(&args, 1)?;
+            let snapshot = workspace::snapshot(&root).map_err(|errors| report(&errors, false))?;
+            println!("{}", snapshot.to_json());
+            Ok(())
+        }
+        "workspace-preview" => {
+            if args.len() != 3 {
+                eprintln!("workspace-preview requires exactly <root> <patch.wspatch>");
+                return Err(2);
+            }
+            let root = required_path(&args, 1)?;
+            let patch_path = required_path(&args, 2)?;
+            let preview =
+                workspace::preview(&root, &patch_path).map_err(|errors| report(&errors, false))?;
+            println!("{preview}");
+            Ok(())
+        }
+        "workspace-apply" => {
+            if args.len() != 3 {
+                eprintln!("workspace-apply requires exactly <root> <patch.wspatch>");
+                return Err(2);
+            }
+            let root = required_path(&args, 1)?;
+            let patch_path = required_path(&args, 2)?;
+            let revision =
+                workspace::apply(&root, &patch_path).map_err(|errors| report(&errors, false))?;
+            println!("applied semantic workspace transaction; workspace is now {revision}");
             Ok(())
         }
         "impact" => {
@@ -565,6 +611,10 @@ fn print_help() {
            semaprax run <file>\n\
            semaprax fmt <file> [--check]\n\
            semaprax patch <file> <patch.spatch>\n\
+           semaprax workspace-init <root> <path-set.json>\n\
+           semaprax workspace-snapshot <root>\n\
+           semaprax workspace-preview <root> <patch.wspatch>\n\
+           semaprax workspace-apply <root> <patch.wspatch>\n\
            semaprax impact <file> <patch.spatch> [--depth N] [--max-bytes N] [--max-nodes N]\n\
            semaprax review <file> <patch.spatch>\n\
            semaprax target-evidence <file> <patch.spatch>\n\

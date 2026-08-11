@@ -49,6 +49,7 @@ pub mod wasm;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 #[doc(hidden)]
 pub mod wit_component;
+pub mod workspace;
 
 mod graph_cleanup;
 mod host_ownership;

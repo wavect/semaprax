@@ -26,6 +26,35 @@ enum PatchSchema {
     V3,
 }
 
+#[allow(
+    dead_code,
+    reason = "consumed by the held Semantic Workspace Transaction v1 module"
+)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+enum PatchSelector {
+    AssignFunctionId(String),
+    Rename(String),
+    RenameMember(String, String),
+    RenameCase(String, String),
+    ReplaceCallTypeArgument(String, u32),
+    RequireNoNewEffects,
+}
+
+impl PatchSelector {
+    fn label(&self) -> String {
+        match self {
+            Self::AssignFunctionId(target) => format!("assign:{target}"),
+            Self::Rename(target) => format!("rename:{target}"),
+            Self::RenameMember(owner, member) => format!("member:{owner}:{member}"),
+            Self::RenameCase(owner, case) => format!("case:{owner}:{case}"),
+            Self::ReplaceCallTypeArgument(expression, index) => {
+                format!("call:{expression}:{index}")
+            }
+            Self::RequireNoNewEffects => "require:no-new-effects".to_owned(),
+        }
+    }
+}
+
 #[derive(Debug)]
 struct AssignFunctionId {
     repair_id: String,
@@ -895,7 +924,7 @@ pub(crate) fn preflight_impact_owned(
             "Semantic Impact v1 accepts only Semantic Patch v1/v2",
         )]);
     }
-    preflight_parsed_owned(source, patch_source, diagnostic_path, patch, None)
+    preflight_parsed_owned(source, patch_source, diagnostic_path, patch, None, None)
 }
 
 pub(crate) fn preflight_review_owned(
@@ -911,7 +940,7 @@ pub(crate) fn preflight_review_owned(
             format!("semantic review patch exceeds {max_operations} operations"),
         )]);
     }
-    preflight_parsed_owned(source, patch_source, diagnostic_path, patch, None)
+    preflight_parsed_owned(source, patch_source, diagnostic_path, patch, None, None)
 }
 
 pub(crate) fn preflight_target_owned(
@@ -934,7 +963,276 @@ pub(crate) fn preflight_target_owned(
         diagnostic_path,
         patch,
         Some(max_candidate_bytes),
+        None,
     )
+}
+
+#[derive(Clone, Copy)]
+struct WorkspaceAstLimits {
+    declarations: usize,
+    callables: usize,
+    call_sites: usize,
+}
+
+const WORKSPACE_FORMATTER_WORK_BYTES: usize = 16 * 1024 * 1024;
+
+#[allow(
+    dead_code,
+    reason = "consumed by the held Semantic Workspace Transaction v1 module"
+)]
+pub(crate) struct WorkspacePreflightLimits {
+    max_operations: usize,
+    max_candidate_bytes: usize,
+    remaining_declarations: usize,
+    remaining_callables: usize,
+    remaining_call_sites: usize,
+}
+
+#[allow(
+    dead_code,
+    reason = "consumed by the held Semantic Workspace Transaction v1 module"
+)]
+impl WorkspacePreflightLimits {
+    pub(crate) fn new(
+        max_operations: usize,
+        max_candidate_bytes: usize,
+        remaining_declarations: usize,
+        remaining_callables: usize,
+        remaining_call_sites: usize,
+    ) -> Self {
+        Self {
+            max_operations,
+            max_candidate_bytes,
+            remaining_declarations,
+            remaining_callables,
+            remaining_call_sites,
+        }
+    }
+}
+
+/// Parses one embedded workspace patch, requires the exact canonical workspace
+/// spelling, and performs the existing pure semantic preflight. Ordinary
+/// single-file Patch v1/v2 parsing deliberately remains trivia-tolerant.
+#[allow(
+    dead_code,
+    reason = "consumed by the held Semantic Workspace Transaction v1 module"
+)]
+pub(crate) fn preflight_workspace_owned(
+    source: String,
+    patch_source: String,
+    diagnostic_path: PathBuf,
+    limits: WorkspacePreflightLimits,
+) -> Result<PatchPreflight, Vec<Diagnostic>> {
+    preflight_workspace_owned_with_formatter_limit(
+        source,
+        patch_source,
+        diagnostic_path,
+        limits,
+        WORKSPACE_FORMATTER_WORK_BYTES,
+    )
+}
+
+fn preflight_workspace_owned_with_formatter_limit(
+    source: String,
+    patch_source: String,
+    diagnostic_path: PathBuf,
+    limits: WorkspacePreflightLimits,
+    formatter_work_bytes: usize,
+) -> Result<PatchPreflight, Vec<Diagnostic>> {
+    let patch = parse_patch(&patch_source)?;
+    let canonical = canonical_patch(&patch);
+    if patch_source != canonical {
+        return Err(vec![Diagnostic::io(
+            "SPX-G150",
+            "embedded workspace patch is not canonical",
+        )]);
+    }
+    let mut selectors = BTreeSet::new();
+    for operation in &patch.operations {
+        let selector = operation_selector(operation);
+        if !selectors.insert(selector.clone()) {
+            return Err(vec![Diagnostic::io(
+                "SPX-G150",
+                format!(
+                    "embedded workspace patch duplicates selector `{}`",
+                    selector.label()
+                ),
+            )]);
+        }
+    }
+    if patch.operations.len() > limits.max_operations {
+        return Err(vec![Diagnostic::io(
+            "SPX-G151",
+            format!(
+                "workspace patch exceeds {} operations",
+                limits.max_operations
+            ),
+        )]);
+    }
+    let max_candidate_bytes = limits.max_candidate_bytes;
+    let (preflight, formatter_overflowed) =
+        crate::bounded_output::with_limit(formatter_work_bytes, || {
+            preflight_parsed_owned(
+                source,
+                patch_source,
+                diagnostic_path,
+                patch,
+                Some(max_candidate_bytes),
+                Some(WorkspaceAstLimits {
+                    declarations: limits.remaining_declarations,
+                    callables: limits.remaining_callables,
+                    call_sites: limits.remaining_call_sites,
+                }),
+            )
+        });
+    if formatter_overflowed {
+        return Err(vec![Diagnostic::io(
+            "SPX-G151",
+            "workspace patch preflight exceeds its bounded formatter-work limit",
+        )]);
+    }
+    let preflight = preflight.map_err(|mut diagnostics| {
+        for diagnostic in &mut diagnostics {
+            if diagnostic.code == "SPX-G140" {
+                diagnostic.code = "SPX-G151";
+                diagnostic.message =
+                    "workspace candidate exceeds the total candidate-source byte limit".to_owned();
+            }
+        }
+        diagnostics
+    })?;
+    if preflight.canonical_candidate().len() > max_candidate_bytes {
+        return Err(vec![Diagnostic::io(
+            "SPX-G151",
+            "workspace candidate exceeds the total candidate-source byte limit",
+        )]);
+    }
+    if preflight.base_revision() == preflight.candidate_revision() {
+        return Err(vec![Diagnostic::io(
+            "SPX-G153",
+            "workspace changed-file patch produces no semantic revision change",
+        )]);
+    }
+    Ok(preflight)
+}
+
+#[allow(
+    dead_code,
+    reason = "consumed by the held Semantic Workspace Transaction v1 module"
+)]
+fn operation_selector(operation: &PreflightOperation) -> PatchSelector {
+    match operation {
+        PreflightOperation::AssignFunctionId { target, .. } => {
+            PatchSelector::AssignFunctionId(target.clone())
+        }
+        PreflightOperation::Rename { target, .. } => PatchSelector::Rename(target.clone()),
+        PreflightOperation::RenameMember { owner, member, .. } => {
+            PatchSelector::RenameMember(owner.clone(), member.clone())
+        }
+        PreflightOperation::RenameCase { owner, case, .. } => {
+            PatchSelector::RenameCase(owner.clone(), case.clone())
+        }
+        PreflightOperation::ReplaceCallTypeArgument {
+            expression,
+            argument_index,
+            ..
+        } => PatchSelector::ReplaceCallTypeArgument(expression.clone(), *argument_index),
+        PreflightOperation::RequireNoNewEffects { .. } => PatchSelector::RequireNoNewEffects,
+    }
+}
+
+#[allow(
+    dead_code,
+    reason = "consumed by the held Semantic Workspace Transaction v1 module"
+)]
+fn canonical_patch(patch: &SemanticPatch) -> String {
+    let mut output = String::new();
+    if patch.schema == PatchSchema::V2 {
+        output.push_str("schema semaprax.semantic-patch.v2\n");
+    } else if patch.schema == PatchSchema::V3 {
+        output.push_str("schema semaprax.semantic-patch.v3\n");
+    }
+    output.push_str("base ");
+    output.push_str(&patch.base);
+    output.push('\n');
+    for operation in &patch.operations {
+        match operation {
+            PreflightOperation::AssignFunctionId {
+                repair_id,
+                target,
+                name,
+                to,
+                ..
+            } => {
+                output.push_str("assign-function-id repair ");
+                output.push_str(repair_id);
+                output.push_str(" diagnostic SPX-S103");
+                output.push_str(" target ");
+                output.push_str(target);
+                output.push_str(" name ");
+                output.push_str(name);
+                output.push_str(" to ");
+                output.push_str(to);
+                output.push('\n');
+            }
+            PreflightOperation::Rename { target, to, .. } => {
+                output.push_str("rename ");
+                output.push_str(target);
+                output.push_str(" to ");
+                output.push_str(to);
+                output.push('\n');
+            }
+            PreflightOperation::RenameMember {
+                owner, member, to, ..
+            } => {
+                output.push_str("rename-member owner ");
+                output.push_str(owner);
+                output.push_str(" member ");
+                output.push_str(member);
+                output.push_str(" to ");
+                output.push_str(to);
+                output.push('\n');
+            }
+            PreflightOperation::RenameCase {
+                owner, case, to, ..
+            } => {
+                output.push_str("rename-case owner ");
+                output.push_str(owner);
+                output.push_str(" case ");
+                output.push_str(case);
+                output.push_str(" to ");
+                output.push_str(to);
+                output.push('\n');
+            }
+            PreflightOperation::ReplaceCallTypeArgument {
+                expression,
+                template,
+                old_instance,
+                argument_index,
+                from,
+                to,
+                ..
+            } => {
+                output.push_str("replace-call-type-argument expression ");
+                output.push_str(expression);
+                output.push_str(" template ");
+                output.push_str(template);
+                output.push_str(" old-instance ");
+                output.push_str(old_instance);
+                output.push_str(" index ");
+                output.push_str(&argument_index.to_string());
+                output.push_str(" from ");
+                output.push_str(from.text());
+                output.push_str(" to ");
+                output.push_str(to.text());
+                output.push('\n');
+            }
+            PreflightOperation::RequireNoNewEffects { .. } => {
+                output.push_str("require no-new-effects\n");
+            }
+        }
+    }
+    output
 }
 
 fn preflight_parsed_owned(
@@ -943,8 +1241,27 @@ fn preflight_parsed_owned(
     diagnostic_path: PathBuf,
     patch: SemanticPatch,
     max_candidate_bytes: Option<usize>,
+    workspace_ast_limits: Option<WorkspaceAstLimits>,
 ) -> Result<PatchPreflight, Vec<Diagnostic>> {
     let before = parse(&source, &diagnostic_path).map_err(|error| vec![error])?;
+    if let Some(limits) = workspace_ast_limits {
+        let (declarations, callables, call_sites) = crate::review::workspace_ast_counts(&before)
+            .map_err(|_| {
+                vec![Diagnostic::io(
+                    "SPX-G151",
+                    "workspace source exceeds its parsed-AST work limits",
+                )]
+            })?;
+        if declarations > limits.declarations
+            || callables > limits.callables
+            || call_sites > limits.call_sites
+        {
+            return Err(vec![Diagnostic::io(
+                "SPX-G151",
+                "workspace source exceeds its remaining parsed-AST work budget",
+            )]);
+        }
+    }
     let base_revision = graph::revision(&before);
     if base_revision != patch.base {
         return Err(vec![Diagnostic::io(
@@ -1487,6 +1804,7 @@ fn apply_with_commit_hook(
         source_path.to_path_buf(),
         parsed_patch,
         None,
+        None,
     )?;
     let prepared = prepare_a0_commit(&authenticated, &preflight)?;
     commit_prepared_a0(prepared, hook)
@@ -2020,7 +2338,11 @@ fn parse_patch(source: &str) -> Result<SemanticPatch, Vec<Diagnostic>> {
                 base = Some((*revision).to_owned());
             }
             ["rename", stable_id, "to", new_name] => {
-                reject_duplicate_selector(schema, &mut selectors, format!("rename:{stable_id}"))?;
+                reject_duplicate_selector(
+                    schema,
+                    &mut selectors,
+                    PatchSelector::Rename((*stable_id).to_owned()),
+                )?;
                 let operation_index = operations.len();
                 operations.push(PreflightOperation::Rename {
                     index: operation_index,
@@ -2039,7 +2361,7 @@ fn parse_patch(source: &str) -> Result<SemanticPatch, Vec<Diagnostic>> {
                 reject_duplicate_selector(
                     schema,
                     &mut selectors,
-                    format!("member:{owner}:{member}"),
+                    PatchSelector::RenameMember((*owner).to_owned(), (*member).to_owned()),
                 )?;
                 let operation_index = operations.len();
                 operations.push(PreflightOperation::RenameMember {
@@ -2058,7 +2380,11 @@ fn parse_patch(source: &str) -> Result<SemanticPatch, Vec<Diagnostic>> {
             ["rename-case", "owner", owner, "case", case, "to", new_name]
                 if schema == PatchSchema::V2 =>
             {
-                reject_duplicate_selector(schema, &mut selectors, format!("case:{owner}:{case}"))?;
+                reject_duplicate_selector(
+                    schema,
+                    &mut selectors,
+                    PatchSelector::RenameCase((*owner).to_owned(), (*case).to_owned()),
+                )?;
                 let operation_index = operations.len();
                 operations.push(PreflightOperation::RenameCase {
                     index: operation_index,
@@ -2094,7 +2420,7 @@ fn parse_patch(source: &str) -> Result<SemanticPatch, Vec<Diagnostic>> {
                 reject_duplicate_selector(
                     schema,
                     &mut selectors,
-                    format!("call:{expression}:{index}"),
+                    PatchSelector::ReplaceCallTypeArgument((*expression).to_owned(), index),
                 )?;
                 let operation_index = operations.len();
                 operations.push(PreflightOperation::ReplaceCallTypeArgument {
@@ -2120,7 +2446,7 @@ fn parse_patch(source: &str) -> Result<SemanticPatch, Vec<Diagnostic>> {
                 reject_duplicate_selector(
                     schema,
                     &mut selectors,
-                    "require:no-new-effects".to_owned(),
+                    PatchSelector::RequireNoNewEffects,
                 )?;
                 operations.push(PreflightOperation::RequireNoNewEffects {
                     index: operations.len(),
@@ -2236,12 +2562,13 @@ fn parse_patch_v3(source: &str) -> Result<SemanticPatch, Vec<Diagnostic>> {
 
 fn reject_duplicate_selector(
     schema: PatchSchema,
-    selectors: &mut BTreeSet<String>,
-    selector: String,
+    selectors: &mut BTreeSet<PatchSelector>,
+    selector: PatchSelector,
 ) -> Result<(), Vec<Diagnostic>> {
     if schema == PatchSchema::V2 && !selectors.insert(selector.clone()) {
         return Err(patch_conflict(format!(
-            "duplicate semantic patch selector `{selector}`"
+            "duplicate semantic patch selector `{}`",
+            selector.label()
         )));
     }
     Ok(())
@@ -3066,6 +3393,212 @@ fn main() -> i64
             preflight.canonical_candidate().matches("renamed()").count(),
             4097
         );
+    }
+
+    #[test]
+    fn typed_v2_selectors_distinguish_colons_and_reject_true_duplicates() {
+        let distinct = "schema semaprax.semantic-patch.v2\nbase sha256:0\nrename-member owner a:b member c to first\nrename-member owner a member b:c to second\n";
+        let parsed = parse_patch(distinct).unwrap();
+        assert_eq!(parsed.operations.len(), 2);
+
+        let duplicate = "schema semaprax.semantic-patch.v2\nbase sha256:0\nrename-member owner a:b member c to first\nrename-member owner a:b member c to second\n";
+        let error = parse_patch(duplicate).unwrap_err();
+        assert_eq!(error[0].code, "SPX-G106");
+    }
+
+    #[test]
+    fn workspace_patch_requires_canonical_bytes_and_a_semantic_change() {
+        let revision = graph::revision(&parse(SOURCE, "logical/module.spx").unwrap());
+        let canonical = format!("base {revision}\nrename helper.answer to computed\n");
+        let preflight = preflight_workspace_owned(
+            SOURCE.to_owned(),
+            canonical.clone(),
+            PathBuf::from("logical/module.spx"),
+            WorkspacePreflightLimits::new(4096, 16 * 1024 * 1024, 4096, 1024, 65_536),
+        )
+        .unwrap();
+        assert_ne!(preflight.base_revision(), preflight.candidate_revision());
+
+        for hostile in [
+            format!("# comment\n{canonical}"),
+            canonical.replace("rename ", "rename  "),
+            canonical.replace('\n', "\r\n"),
+            canonical.trim_end().to_owned(),
+            format!("{canonical}\n"),
+        ] {
+            let error = preflight_workspace_owned(
+                SOURCE.to_owned(),
+                hostile,
+                PathBuf::from("logical/module.spx"),
+                WorkspacePreflightLimits::new(4096, 16 * 1024 * 1024, 4096, 1024, 65_536),
+            )
+            .err()
+            .expect("hostile spelling must be rejected");
+            assert_eq!(error[0].code, "SPX-G150");
+        }
+
+        let no_op = format!("base {revision}\nrename helper.answer to answer\n");
+        let error = preflight_workspace_owned(
+            SOURCE.to_owned(),
+            no_op,
+            PathBuf::from("logical/module.spx"),
+            WorkspacePreflightLimits::new(4096, 16 * 1024 * 1024, 4096, 1024, 65_536),
+        )
+        .err()
+        .expect("semantic no-op must be rejected");
+        assert_eq!(error[0].code, "SPX-G153");
+    }
+
+    #[test]
+    fn workspace_v1_duplicate_selector_is_rejected_after_typed_canonical_parse() {
+        let revision = graph::revision(&parse(SOURCE, "logical/module.spx").unwrap());
+        let patch = format!(
+            "base {revision}\nrename helper.answer to first\nrename helper.answer to second\n"
+        );
+        let error = preflight_workspace_owned(
+            SOURCE.to_owned(),
+            patch,
+            PathBuf::from("logical/module.spx"),
+            WorkspacePreflightLimits::new(4096, 16 * 1024 * 1024, 4096, 1024, 65_536),
+        )
+        .err()
+        .expect("duplicate selector must be rejected");
+        assert_eq!(error[0].code, "SPX-G150");
+    }
+
+    #[test]
+    fn workspace_candidate_canonicalization_is_bounded_and_checked_after_formatting() {
+        let revision = graph::revision(&parse(SOURCE, "logical/module.spx").unwrap());
+        let patch = format!("base {revision}\nrename helper.answer to computed\n");
+        let unrestricted = preflight_workspace_owned_with_formatter_limit(
+            SOURCE.to_owned(),
+            patch.clone(),
+            PathBuf::from("logical/module.spx"),
+            WorkspacePreflightLimits::new(4096, 16 * 1024 * 1024, 4096, 1024, 65_536),
+            WORKSPACE_FORMATTER_WORK_BYTES,
+        )
+        .unwrap();
+        let exact_candidate_bytes = unrestricted.canonical_candidate().len();
+
+        let exact = preflight_workspace_owned_with_formatter_limit(
+            SOURCE.to_owned(),
+            patch.clone(),
+            PathBuf::from("logical/module.spx"),
+            WorkspacePreflightLimits::new(4096, exact_candidate_bytes, 4096, 1024, 65_536),
+            WORKSPACE_FORMATTER_WORK_BYTES,
+        )
+        .unwrap();
+        assert_eq!(
+            exact.canonical_candidate(),
+            unrestricted.canonical_candidate()
+        );
+
+        let over = preflight_workspace_owned_with_formatter_limit(
+            SOURCE.to_owned(),
+            patch.clone(),
+            PathBuf::from("logical/module.spx"),
+            WorkspacePreflightLimits::new(4096, exact_candidate_bytes - 1, 4096, 1024, 65_536),
+            WORKSPACE_FORMATTER_WORK_BYTES,
+        )
+        .err()
+        .expect("one byte below the candidate limit must fail");
+        assert_eq!(over[0].code, "SPX-G151");
+
+        let formatter_overflow = preflight_workspace_owned_with_formatter_limit(
+            SOURCE.to_owned(),
+            patch,
+            PathBuf::from("logical/module.spx"),
+            WorkspacePreflightLimits::new(4096, 16 * 1024 * 1024, 4096, 1024, 65_536),
+            1,
+        )
+        .err()
+        .expect("one byte of formatter work must fail closed");
+        assert_eq!(formatter_overflow[0].code, "SPX-G151");
+        assert_eq!(
+            formatter_overflow[0].message,
+            "workspace patch preflight exceeds its bounded formatter-work limit"
+        );
+    }
+
+    #[test]
+    fn workspace_rejects_canonical_expansion_beyond_the_remaining_candidate_budget() {
+        let source = "module patch.expand;@id(\"helper.answer\")fn answer()->i64{42}@id(\"app.main\")fn main()->i64{answer()}\n";
+        let revision = graph::revision(&parse(source, "logical/expand.spx").unwrap());
+        let patch = format!("base {revision}\nrename helper.answer to computed\n");
+        let raw_candidate = source.replacen("fn answer", "fn computed", 1).replacen(
+            "{answer()}",
+            "{computed()}",
+            1,
+        );
+        let unrestricted = preflight_workspace_owned_with_formatter_limit(
+            source.to_owned(),
+            patch.clone(),
+            PathBuf::from("logical/expand.spx"),
+            WorkspacePreflightLimits::new(4096, 16 * 1024 * 1024, 4096, 1024, 65_536),
+            WORKSPACE_FORMATTER_WORK_BYTES,
+        )
+        .unwrap();
+        assert!(unrestricted.canonical_candidate().len() > raw_candidate.len());
+
+        let error = preflight_workspace_owned_with_formatter_limit(
+            source.to_owned(),
+            patch,
+            PathBuf::from("logical/expand.spx"),
+            WorkspacePreflightLimits::new(4096, raw_candidate.len(), 4096, 1024, 65_536),
+            WORKSPACE_FORMATTER_WORK_BYTES,
+        )
+        .err()
+        .expect("canonical expansion beyond the remaining budget must fail");
+        assert_eq!(error[0].code, "SPX-G151");
+        assert_eq!(
+            error[0].message,
+            "workspace candidate exceeds the total candidate-source byte limit"
+        );
+    }
+
+    #[test]
+    fn workspace_v3_candidate_is_checked_against_the_remaining_budget() {
+        let (source_path, patch_path) = v3_fixture("workspace-candidate-bound");
+        let directory = source_path
+            .parent()
+            .expect("v3 fixture has a parent")
+            .to_path_buf();
+        let source = std::fs::read_to_string(&source_path).unwrap();
+        let patch = std::fs::read_to_string(&patch_path).unwrap();
+        let unrestricted = preflight_workspace_owned_with_formatter_limit(
+            source.clone(),
+            patch.clone(),
+            PathBuf::from("logical/v3.spx"),
+            WorkspacePreflightLimits::new(4096, 16 * 1024 * 1024, 4096, 1024, 65_536),
+            WORKSPACE_FORMATTER_WORK_BYTES,
+        )
+        .unwrap();
+        let exact_candidate_bytes = unrestricted.canonical_candidate().len();
+
+        let exact = preflight_workspace_owned_with_formatter_limit(
+            source.clone(),
+            patch.clone(),
+            PathBuf::from("logical/v3.spx"),
+            WorkspacePreflightLimits::new(4096, exact_candidate_bytes, 4096, 1024, 65_536),
+            WORKSPACE_FORMATTER_WORK_BYTES,
+        )
+        .unwrap();
+        assert_eq!(
+            exact.canonical_candidate(),
+            unrestricted.canonical_candidate()
+        );
+
+        let error = preflight_workspace_owned_with_formatter_limit(
+            source,
+            patch,
+            PathBuf::from("logical/v3.spx"),
+            WorkspacePreflightLimits::new(4096, exact_candidate_bytes - 1, 4096, 1024, 65_536),
+            WORKSPACE_FORMATTER_WORK_BYTES,
+        )
+        .err()
+        .expect("v3 candidate beyond the remaining budget must fail");
+        assert_eq!(error[0].code, "SPX-G151");
+        std::fs::remove_dir_all(directory).unwrap();
     }
 
     #[cfg(windows)]

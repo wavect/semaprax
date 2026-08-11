@@ -556,6 +556,13 @@ fn precheck_program(program: &Program) -> Result<AstUsage, Vec<Diagnostic>> {
     })
 }
 
+pub(crate) fn workspace_ast_counts(
+    program: &Program,
+) -> Result<(usize, usize, usize), Vec<Diagnostic>> {
+    let usage = precheck_program(program)?;
+    Ok((usage.declarations, usage.callables, usage.call_sites))
+}
+
 #[cfg(test)]
 pub(crate) fn precheck_counts_for_test(
     program: &Program,

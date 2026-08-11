@@ -381,6 +381,146 @@ pub(crate) struct SemanticWorkspaceChangeImpactEdge {
     edge: workspace_graph::WorkspaceEdge,
 }
 
+#[cfg(test)]
+#[allow(dead_code, reason = "private Structural Change exact-fact test seam")]
+impl SemanticWorkspaceChangeRoot {
+    pub(crate) const fn state(&self) -> &'static str {
+        self.state
+    }
+
+    pub(crate) const fn kind(&self) -> &'static str {
+        self.kind
+    }
+
+    pub(crate) fn id(&self) -> &str {
+        &self.id
+    }
+
+    pub(crate) fn path(&self) -> Option<&str> {
+        self.path.as_deref()
+    }
+
+    pub(crate) fn module(&self) -> Option<&str> {
+        self.module.as_deref()
+    }
+
+    pub(crate) const fn change(&self) -> &'static str {
+        self.change
+    }
+
+    pub(crate) const fn identity_origin(&self) -> Option<&'static str> {
+        self.identity_origin
+    }
+}
+
+#[cfg(test)]
+#[allow(dead_code, reason = "private Structural Change exact-fact test seam")]
+impl SemanticWorkspaceChangeEdge {
+    pub(crate) const fn state(&self) -> &'static str {
+        self.state
+    }
+
+    pub(crate) const fn change(&self) -> &'static str {
+        self.change
+    }
+
+    pub(crate) fn edge(&self) -> &workspace_graph::WorkspaceEdge {
+        &self.edge
+    }
+}
+
+#[cfg(test)]
+#[allow(dead_code, reason = "private Structural Change exact-fact test seam")]
+impl SemanticWorkspaceChangeContextNode {
+    pub(crate) const fn state(&self) -> &'static str {
+        self.state
+    }
+
+    pub(crate) const fn kind(&self) -> &'static str {
+        self.kind
+    }
+
+    pub(crate) const fn declaration_kind(&self) -> Option<&'static str> {
+        self.declaration_kind
+    }
+
+    pub(crate) const fn identity_origin(&self) -> Option<&'static str> {
+        self.identity_origin
+    }
+
+    pub(crate) fn id(&self) -> &str {
+        &self.id
+    }
+
+    pub(crate) fn path(&self) -> Option<&str> {
+        self.path.as_deref()
+    }
+
+    pub(crate) fn module(&self) -> Option<&str> {
+        self.module.as_deref()
+    }
+}
+
+#[cfg(test)]
+#[allow(dead_code, reason = "private Structural Change exact-fact test seam")]
+impl SemanticWorkspaceChangeImpactFact {
+    pub(crate) const fn state(&self) -> &'static str {
+        self.state
+    }
+
+    pub(crate) const fn kind(&self) -> &'static str {
+        self.kind
+    }
+
+    pub(crate) const fn declaration_kind(&self) -> Option<&'static str> {
+        self.declaration_kind
+    }
+
+    pub(crate) const fn identity_origin(&self) -> Option<&'static str> {
+        self.identity_origin
+    }
+
+    pub(crate) fn id(&self) -> &str {
+        &self.id
+    }
+
+    pub(crate) fn path(&self) -> Option<&str> {
+        self.path.as_deref()
+    }
+
+    pub(crate) fn module(&self) -> Option<&str> {
+        self.module.as_deref()
+    }
+
+    pub(crate) const fn minimum_depth(&self) -> usize {
+        self.minimum_depth
+    }
+
+    pub(crate) const fn impact_role(&self) -> &'static str {
+        self.impact_role
+    }
+
+    pub(crate) fn reasons(&self) -> &[&'static str] {
+        &self.reasons
+    }
+
+    pub(crate) fn root_provenance(&self) -> &[usize] {
+        &self.root_provenance
+    }
+}
+
+#[cfg(test)]
+#[allow(dead_code, reason = "private Structural Change exact-fact test seam")]
+impl SemanticWorkspaceChangeImpactEdge {
+    pub(crate) const fn state(&self) -> &'static str {
+        self.state
+    }
+
+    pub(crate) fn edge(&self) -> &workspace_graph::WorkspaceEdge {
+        &self.edge
+    }
+}
+
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 struct ChangeNodeKey {
     kind: &'static str,
@@ -1181,10 +1321,39 @@ fn prepare_owned(
     })
 }
 
-fn build_delta(
+pub(crate) fn build_delta(
     base: &workspace_graph::WorkspaceGraphChangeView,
     candidate: &workspace_graph::WorkspaceGraphChangeView,
     changed_paths: &BTreeSet<String>,
+) -> Result<
+    (
+        Vec<SemanticWorkspaceChangeRoot>,
+        Vec<SemanticWorkspaceChangeEdge>,
+    ),
+    Vec<Diagnostic>,
+> {
+    build_delta_inner(base, candidate, changed_paths, false)
+}
+
+pub(crate) fn build_structural_delta(
+    base: &workspace_graph::WorkspaceGraphChangeView,
+    candidate: &workspace_graph::WorkspaceGraphChangeView,
+    changed_paths: &BTreeSet<String>,
+) -> Result<
+    (
+        Vec<SemanticWorkspaceChangeRoot>,
+        Vec<SemanticWorkspaceChangeEdge>,
+    ),
+    Vec<Diagnostic>,
+> {
+    build_delta_inner(base, candidate, changed_paths, true)
+}
+
+fn build_delta_inner(
+    base: &workspace_graph::WorkspaceGraphChangeView,
+    candidate: &workspace_graph::WorkspaceGraphChangeView,
+    changed_paths: &BTreeSet<String>,
+    allow_derived_import_change: bool,
 ) -> Result<
     (
         Vec<SemanticWorkspaceChangeRoot>,
@@ -1214,6 +1383,7 @@ fn build_delta(
         &base_edges,
         &candidate_edges,
         &mut roots,
+        allow_derived_import_change,
     )?;
     capability_roots(&base_edges, &candidate_edges, &mut roots)?;
     roots.sort_by(|left, right| root_key(left).cmp(&root_key(right)));
@@ -1230,7 +1400,7 @@ fn build_delta(
     Ok((roots, delta_edges))
 }
 
-fn delta_builder_prebound(
+pub(crate) fn delta_builder_prebound(
     base: &workspace_graph::WorkspaceGraphChangeView,
     candidate: &workspace_graph::WorkspaceGraphChangeView,
 ) -> Result<usize, Vec<Diagnostic>> {
@@ -1302,7 +1472,7 @@ fn delta_builder_prebound(
     Ok(bytes)
 }
 
-fn build_context_nodes(
+pub(crate) fn build_context_nodes(
     base: &workspace_graph::WorkspaceGraphChangeView,
     candidate: &workspace_graph::WorkspaceGraphChangeView,
     roots: &[SemanticWorkspaceChangeRoot],
@@ -1417,7 +1587,7 @@ fn builder_limit() -> Vec<Diagnostic> {
     )
 }
 
-fn build_impact(
+pub(crate) fn build_impact(
     base: &workspace_graph::WorkspaceGraphChangeView,
     candidate: &workspace_graph::WorkspaceGraphChangeView,
     roots: &[SemanticWorkspaceChangeRoot],
@@ -1952,6 +2122,7 @@ fn module_roots(
     base_edges: &BTreeSet<&workspace_graph::WorkspaceEdge>,
     candidate_edges: &BTreeSet<&workspace_graph::WorkspaceEdge>,
     roots: &mut Vec<SemanticWorkspaceChangeRoot>,
+    allow_derived_import_change: bool,
 ) -> Result<(), Vec<Diagnostic>> {
     let base_modules = module_map(base)?;
     let candidate_modules = module_map(candidate)?;
@@ -1967,11 +2138,13 @@ fn module_roots(
         let after_imports = module_imports(candidate_edges, path);
         match (before, after) {
             (Some(before), Some(after)) => {
-                if before.module() != after.module()
-                    || before.permits() != after.permits()
-                    || before_imports != after_imports
-                {
-                    require_changed_module_path(path, changed_paths)?;
+                let authored_change =
+                    before.module() != after.module() || before.permits() != after.permits();
+                let derived_import_change = before_imports != after_imports;
+                if authored_change || derived_import_change {
+                    if authored_change || !allow_derived_import_change {
+                        require_changed_module_path(path, changed_paths)?;
+                    }
                     push_module_root(roots, "base", "modified_before", before)?;
                     push_module_root(roots, "candidate", "modified_after", after)?;
                 }
@@ -2676,46 +2849,6 @@ mod tests {
             .collect::<Vec<_>>();
         names.sort();
         names
-    }
-
-    #[cfg(windows)]
-    fn regular_file_inventory(root: &Path) -> Vec<(String, Vec<u8>)> {
-        use std::os::windows::fs::MetadataExt as _;
-
-        fn visit(root: &Path, current: &Path, output: &mut Vec<(String, Vec<u8>)>) {
-            use std::os::windows::fs::MetadataExt as _;
-
-            let mut entries = std::fs::read_dir(current)
-                .unwrap()
-                .map(|entry| entry.unwrap().path())
-                .collect::<Vec<_>>();
-            entries.sort();
-            for path in entries {
-                let metadata = std::fs::symlink_metadata(&path).unwrap();
-                assert_eq!(metadata.file_attributes() & 0x400, 0);
-                if metadata.is_dir() && !metadata.file_type().is_symlink() {
-                    visit(root, &path, output);
-                } else {
-                    assert!(metadata.is_file());
-                    assert!(!metadata.file_type().is_symlink());
-                    output.push((
-                        path.strip_prefix(root)
-                            .unwrap()
-                            .to_string_lossy()
-                            .into_owned(),
-                        std::fs::read(path).unwrap(),
-                    ));
-                }
-            }
-        }
-
-        let root_metadata = std::fs::symlink_metadata(root).unwrap();
-        assert!(root_metadata.is_dir());
-        assert!(!root_metadata.file_type().is_symlink());
-        assert_eq!(root_metadata.file_attributes() & 0x400, 0);
-        let mut output = Vec::new();
-        visit(root, root, &mut output);
-        output
     }
 
     fn replace_same_bytes(path: &Path) -> std::io::Result<()> {
@@ -4578,28 +4711,28 @@ fn main() -> i64 { 0 }
         let active_path = fixture.root.join(".semaprax-workspace/ACTIVE");
         let old_active = std::fs::read(&active_path).unwrap();
         let foreign = fixture.root.join("foreign-junction-target");
+        std::fs::create_dir(&foreign).unwrap();
+        let sentinel = foreign.join("sentinel.txt");
+        std::fs::write(&sentinel, b"foreign-junction-target\n").unwrap();
         let junction = std::cell::RefCell::new(None::<PathBuf>);
-        let expected_inventory = std::cell::RefCell::new(None::<Vec<(String, Vec<u8>)>>);
         let error = apply_authenticated_with_hook(
             &fixture.root,
             &proposal_path,
             &evidence_path,
-            |point, _, staged, _| {
+            |point, _, _, candidate| {
                 if point
                     == SemanticApplyPoint::Workspace(WorkspacePoint::Generation(
-                        GenerationPoint::AfterFilesWrite,
+                        GenerationPoint::BeforeGenerationPublish,
                     ))
                 {
-                    let files = staged.unwrap().join("files");
-                    *expected_inventory.borrow_mut() = Some(regular_file_inventory(&files));
-                    std::fs::rename(&files, &foreign)?;
+                    let destination = candidate.unwrap();
                     let status = Command::new("cmd")
                         .args(["/C", "mklink", "/J"])
-                        .arg(&files)
+                        .arg(destination)
                         .arg(&foreign)
                         .status()?;
                     assert!(status.success(), "mklink /J failed");
-                    *junction.borrow_mut() = Some(files);
+                    *junction.borrow_mut() = Some(destination.to_path_buf());
                 }
                 Ok(())
             },
@@ -4620,8 +4753,8 @@ fn main() -> i64 { 0 }
         }
         std::fs::remove_dir(junction).unwrap();
         assert_eq!(
-            regular_file_inventory(&foreign),
-            expected_inventory.into_inner().unwrap()
+            std::fs::read(&sentinel).unwrap(),
+            b"foreign-junction-target\n"
         );
         fixture.assert_exclusive_reacquire();
     }

@@ -57,6 +57,11 @@ mod host_ownership;
 mod prelude;
 pub mod semantic_workspace;
 pub mod semantic_workspace_change;
+#[allow(
+    dead_code,
+    reason = "private Structural Change Phase-A core awaits artifact and authority phases"
+)]
+mod semantic_workspace_structural_change;
 mod source_verify;
 pub mod workspace_analysis;
 pub mod workspace_graph;

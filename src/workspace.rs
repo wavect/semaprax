@@ -1018,7 +1018,8 @@ fn ensure_candidate_generation(
         "cannot publish complete candidate generation",
     )?;
     hook(GenerationPoint::AfterGenerationPublish, &slot, &destination);
-    let mut published = authenticate_expected_generation(&destination, plan, guard)?;
+    let mut published = authenticate_expected_generation(&destination, plan, guard)
+        .map_err(map_post_publication_candidate_diagnostics)?;
     staged_fingerprint.require_equivalent(&mut published)?;
     published.recheck()?;
     guard.recheck_base_authority()?;
@@ -1254,6 +1255,29 @@ fn authenticate_expected_generation(
     require_same_volume(&identities)?;
     prepared.recheck()?;
     Ok(prepared)
+}
+
+fn map_post_publication_candidate_diagnostics(diagnostics: Vec<Diagnostic>) -> Vec<Diagnostic> {
+    diagnostics
+        .into_iter()
+        .map(|diagnostic| {
+            let structural = diagnostic.code == "SPX-I209"
+                && (matches!(
+                    diagnostic.message.as_str(),
+                    "workspace directory must be real and non-aliased"
+                        | "workspace input must be a real regular file"
+                        | "workspace input must be a regular file"
+                ) || (diagnostic.message.starts_with("managed path `")
+                    && diagnostic
+                        .message
+                        .ends_with("contains a non-directory or alias")));
+            if structural {
+                Diagnostic::io("SPX-G153", diagnostic.message)
+            } else {
+                diagnostic
+            }
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -3192,7 +3216,8 @@ mod tests {
     use super::canonical_root;
     use super::{
         acquire_snapshot, bounded_manifest, count_directories_bounded, count_entries_bounded,
-        file_facts, identity_from_path, initialize, initialize_with_hook, parse_path_set,
+        file_facts, identity_from_path, initialize, initialize_with_hook,
+        map_post_publication_candidate_diagnostics, parse_path_set,
         prepare_candidate_generation_with_hook, require_distinct_path_identities,
         validate_staging_inventory, FileFact, GenerationPoint, InitializePoint,
     };
@@ -3520,6 +3545,20 @@ mod tests {
             (&beta, &alpha_identity),
         ])
         .is_err());
+    }
+
+    #[test]
+    fn post_publication_candidate_mapping_is_narrow() {
+        let structural = map_post_publication_candidate_diagnostics(vec![super::Diagnostic::io(
+            "SPX-I209",
+            "workspace directory must be real and non-aliased",
+        )]);
+        assert_eq!(structural[0].code, "SPX-G153");
+        let genuine_io = map_post_publication_candidate_diagnostics(vec![super::Diagnostic::io(
+            "SPX-I209",
+            "cannot inspect directory: access denied",
+        )]);
+        assert_eq!(genuine_io[0].code, "SPX-I209");
     }
 
     #[test]

@@ -90,6 +90,68 @@ pub struct WorkspaceSnapshot {
     json: String,
 }
 
+pub(crate) struct WorkspaceSemanticSource {
+    pub(crate) path: String,
+    pub(crate) source_graph_schema: String,
+    pub(crate) source_revision: String,
+    pub(crate) source_digest: String,
+    pub(crate) source: String,
+}
+
+pub(crate) struct WorkspaceSemanticReadAuthority {
+    guard: WorkspaceGuard,
+}
+
+impl WorkspaceSemanticReadAuthority {
+    pub(crate) fn workspace_revision(&self) -> &str {
+        self.guard.snapshot.workspace_revision()
+    }
+
+    pub(crate) fn take_sources(&mut self) -> Vec<WorkspaceSemanticSource> {
+        self.guard
+            .snapshot
+            .files
+            .iter_mut()
+            .map(|file| WorkspaceSemanticSource {
+                path: file.path.clone(),
+                source_graph_schema: file.source_graph_schema.clone(),
+                source_revision: file.source_revision.clone(),
+                source_digest: file.source_digest.clone(),
+                source: std::mem::take(&mut file.source),
+            })
+            .collect()
+    }
+
+    pub(crate) fn manifest_bytes(&self) -> usize {
+        self.guard.snapshot.manifest_bytes
+    }
+
+    pub(crate) fn retained_generations(&self) -> usize {
+        self.guard.snapshot.retained_generations
+    }
+
+    pub(crate) fn staging_attempts(&self) -> usize {
+        self.guard.snapshot.staging_attempts
+    }
+
+    pub(crate) fn finish<T>(
+        mut self,
+        result: Result<T, Vec<Diagnostic>>,
+    ) -> Result<T, Vec<Diagnostic>> {
+        let value = match result {
+            Ok(value) => value,
+            Err(diagnostics) => {
+                return Err(unlock_with_diagnostics(&self.guard.lock, diagnostics));
+            }
+        };
+        if let Err(diagnostics) = self.guard.recheck() {
+            return Err(unlock_with_diagnostics(&self.guard.lock, diagnostics));
+        }
+        unlock_file(&self.guard.lock)?;
+        Ok(value)
+    }
+}
+
 impl WorkspaceSnapshot {
     pub fn workspace_revision(&self) -> &str {
         &self.workspace_revision
@@ -570,6 +632,7 @@ struct WorkspaceGuard {
     exclusive: bool,
     generation_names: BTreeSet<String>,
     staging_names: BTreeSet<String>,
+    mode: WorkspaceMode,
 }
 
 struct WorkspaceLockGuard {
@@ -620,8 +683,18 @@ impl WorkspaceGuard {
             text.recheck()?;
         }
         validate_control(&self.control)?;
-        let current = snapshot_authenticated(&self.root, &self.control, Some(&self.lock_identity))?;
-        if current.snapshot.json != self.snapshot.json {
+        let current = snapshot_authenticated_mode(
+            &self.root,
+            &self.control,
+            Some(&self.lock_identity),
+            self.mode,
+        )?;
+        let snapshot_matches = if self.mode == WorkspaceMode::Ordinary {
+            current.snapshot.json == self.snapshot.json
+        } else {
+            semantic_snapshot_binding_eq(&current.snapshot, &self.snapshot)
+        };
+        if !snapshot_matches {
             return Err(stale(
                 "workspace authenticated snapshot changed during operation",
             ));
@@ -716,13 +789,29 @@ impl WorkspaceGuard {
     }
 }
 
+fn semantic_snapshot_binding_eq(left: &WorkspaceSnapshot, right: &WorkspaceSnapshot) -> bool {
+    left.workspace_revision == right.workspace_revision
+        && left.manifest_bytes == right.manifest_bytes
+        && left.retained_generations == right.retained_generations
+        && left.staging_attempts == right.staging_attempts
+        && left.files.len() == right.files.len()
+        && left.files.iter().zip(&right.files).all(|(left, right)| {
+            left.path == right.path
+                && left.source_graph_schema == right.source_graph_schema
+                && left.source_revision == right.source_revision
+                && left.source_digest == right.source_digest
+        })
+}
+
 /// Initializes a managed workspace without modifying the original source files.
 pub fn initialize(root: &Path, path_set_path: &Path) -> Result<String, Vec<Diagnostic>> {
     initialize_with_hook(root, path_set_path, |_| {})
 }
 
 #[derive(Clone, Copy)]
-enum InitializePoint {
+pub(crate) enum InitializePoint {
+    SemanticPreflightComplete,
+    SemanticStagingReady,
     GenerationBeforeRename,
     GenerationDestinationChecked,
     GenerationRelocated,
@@ -731,38 +820,261 @@ enum InitializePoint {
     ActiveRelocated,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum WorkspaceMode {
+    Ordinary,
+    Semantic,
+}
+
+impl WorkspaceMode {
+    fn parse_paths(self, source: &str) -> Result<Vec<String>, Vec<Diagnostic>> {
+        match self {
+            Self::Ordinary => parse_path_set(source),
+            Self::Semantic => crate::semantic_workspace::parse_path_set(source),
+        }
+    }
+
+    fn prepare_initial_facts(
+        self,
+        path_set_source: &str,
+        sources: Vec<(String, String)>,
+    ) -> Result<(Vec<FileFact>, String, String), Vec<Diagnostic>> {
+        match self {
+            Self::Ordinary => {
+                let facts = file_facts(sources, true)?;
+                validate_workspace_facts(&facts)?;
+                let manifest = bounded_manifest(&facts)?;
+                let revision = workspace_revision(&manifest);
+                Ok((facts, manifest, revision))
+            }
+            Self::Semantic => {
+                let sources = sources
+                    .into_iter()
+                    .map(
+                        |(path, source)| crate::semantic_workspace::SemanticWorkspaceSource {
+                            path,
+                            source,
+                        },
+                    )
+                    .collect();
+                let preflight =
+                    crate::semantic_workspace::preflight_owned(path_set_source, sources)?;
+                let (files, manifest, revision) = preflight.into_generation_parts();
+                let facts = files
+                    .into_iter()
+                    .map(|file| {
+                        let (path, schema, source_revision, source_digest, source) =
+                            file.into_parts();
+                        FileFact {
+                            path,
+                            module: String::new(),
+                            source_graph_schema: schema,
+                            source_revision,
+                            source_digest,
+                            source,
+                            declarations: Vec::new(),
+                            declaration_count: 0,
+                            callable_count: 0,
+                            call_count: 0,
+                        }
+                    })
+                    .collect();
+                Ok((facts, manifest, revision))
+            }
+        }
+    }
+
+    fn render_active(self, revision: &str) -> Result<String, Vec<Diagnostic>> {
+        match self {
+            Self::Ordinary => Ok(render_root(revision)),
+            Self::Semantic => crate::semantic_workspace::render_root(revision),
+        }
+    }
+
+    fn parse_active(self, source: &str) -> Result<String, Vec<Diagnostic>> {
+        match self {
+            Self::Ordinary => parse_root(source),
+            Self::Semantic => crate::semantic_workspace::parse_root(source),
+        }
+    }
+
+    fn manifest_revision(self, manifest: &str) -> String {
+        match self {
+            Self::Ordinary => workspace_revision(manifest),
+            Self::Semantic => crate::semantic_workspace::semantic_workspace_revision(manifest),
+        }
+    }
+
+    fn parse_manifest(self, source: &str) -> Result<Vec<ManifestFile>, Vec<Diagnostic>> {
+        match self {
+            Self::Ordinary => parse_manifest(source),
+            Self::Semantic => crate::semantic_workspace::parse_manifest(source).map(|files| {
+                files
+                    .into_iter()
+                    .map(|file| ManifestFile {
+                        path: file.path().to_owned(),
+                        source_graph_schema: file.source_graph_schema().to_owned(),
+                        source_revision: file.source_revision().to_owned(),
+                        source_digest: file.source_digest().to_owned(),
+                        bytes: file.bytes(),
+                    })
+                    .collect()
+            }),
+        }
+    }
+
+    fn validate_snapshot_sources(
+        self,
+        manifest: &str,
+        sources: Vec<(String, String)>,
+    ) -> Result<Vec<FileFact>, Vec<Diagnostic>> {
+        match self {
+            Self::Ordinary => {
+                let facts = file_facts(sources, true)?;
+                validate_workspace_facts(&facts)?;
+                Ok(facts)
+            }
+            Self::Semantic => {
+                let sources = sources
+                    .into_iter()
+                    .map(
+                        |(path, source)| crate::semantic_workspace::SemanticWorkspaceSource {
+                            path,
+                            source,
+                        },
+                    )
+                    .collect();
+                let preflight =
+                    crate::semantic_workspace::replay_manifest_owned(manifest, sources)?;
+                let (files, replayed_manifest, _) = preflight.into_generation_parts();
+                if replayed_manifest != manifest {
+                    return Err(invariant(
+                        "semantic managed generation manifest replay changed bytes",
+                    ));
+                }
+                Ok(files
+                    .into_iter()
+                    .map(|file| {
+                        let (path, schema, source_revision, source_digest, source) =
+                            file.into_parts();
+                        FileFact {
+                            path,
+                            module: String::new(),
+                            source_graph_schema: schema,
+                            source_revision,
+                            source_digest,
+                            source,
+                            declarations: Vec::new(),
+                            declaration_count: 0,
+                            callable_count: 0,
+                            call_count: 0,
+                        }
+                    })
+                    .collect())
+            }
+        }
+    }
+}
+
 fn initialize_with_hook(
     root: &Path,
     path_set_path: &Path,
+    hook: impl FnMut(InitializePoint),
+) -> Result<String, Vec<Diagnostic>> {
+    initialize_with_mode(root, path_set_path, WorkspaceMode::Ordinary, hook)
+}
+
+pub(crate) fn initialize_semantic_with_hook(
+    root: &Path,
+    path_set_path: &Path,
+    hook: impl FnMut(InitializePoint),
+) -> Result<String, Vec<Diagnostic>> {
+    initialize_with_mode(root, path_set_path, WorkspaceMode::Semantic, hook)
+}
+
+fn initialize_with_mode(
+    root: &Path,
+    path_set_path: &Path,
+    mode: WorkspaceMode,
     mut hook: impl FnMut(InitializePoint),
 ) -> Result<String, Vec<Diagnostic>> {
     let root = canonical_root(root)?;
     let root_dir = authenticate_directory_held(&root)?;
-    let mut paths_input = authenticate_text(path_set_path, MAX_MANIFEST_BYTES, "SPX-I209")?;
-    let paths = parse_path_set(&paths_input.source)?;
+    let mut paths_input = if mode == WorkspaceMode::Semantic {
+        authenticate_text_semantic(
+            path_set_path,
+            MAX_MANIFEST_BYTES,
+            "SPX-I209",
+            "path_set_bytes",
+            MAX_MANIFEST_BYTES,
+        )?
+    } else {
+        authenticate_text(path_set_path, MAX_MANIFEST_BYTES, "SPX-I209")?
+    };
+    let paths = mode.parse_paths(&paths_input.source)?;
     let mut total = 0usize;
     let mut sources = Vec::with_capacity(paths.len());
     let mut authenticated_sources = Vec::with_capacity(paths.len());
     for logical in paths {
-        let input = authenticate_managed_source(
-            &root,
-            &logical,
-            MAX_TOTAL_SOURCE_BYTES.saturating_sub(total),
-        )?;
+        let remaining = MAX_TOTAL_SOURCE_BYTES.saturating_sub(total);
+        let input = if mode == WorkspaceMode::Semantic {
+            authenticate_managed_source_semantic(&root, &logical, remaining)?
+        } else {
+            authenticate_managed_source(&root, &logical, remaining)?
+        };
         let source = input.source.clone();
-        total = total
-            .checked_add(source.len())
-            .ok_or_else(|| limit("source byte count overflow"))?;
+        total = total.checked_add(source.len()).ok_or_else(|| {
+            if mode == WorkspaceMode::Semantic {
+                semantic_storage_limit("total_source_bytes", MAX_TOTAL_SOURCE_BYTES)
+            } else {
+                limit("source byte count overflow")
+            }
+        })?;
         if total > MAX_TOTAL_SOURCE_BYTES {
-            return Err(limit("workspace sources exceed 16777216 bytes"));
+            return Err(if mode == WorkspaceMode::Semantic {
+                semantic_storage_limit("total_source_bytes", MAX_TOTAL_SOURCE_BYTES)
+            } else {
+                limit("workspace sources exceed 16777216 bytes")
+            });
         }
         sources.push((logical, source));
         authenticated_sources.push(input);
     }
-    let facts = file_facts(sources, true)?;
-    validate_workspace_facts(&facts)?;
-    let manifest = bounded_manifest(&facts)?;
-    let revision = workspace_revision(&manifest);
+    let mut permission_seals = if mode == WorkspaceMode::Semantic {
+        capture_permission_seals(
+            std::iter::once(root.as_path())
+                .chain(std::iter::once(paths_input.path.as_path()))
+                .chain(
+                    authenticated_sources
+                        .iter()
+                        .map(|source| source.path.as_path()),
+                ),
+        )?
+    } else {
+        Vec::new()
+    };
+    let (facts, manifest, revision) = mode.prepare_initial_facts(&paths_input.source, sources)?;
+    let semantic_original_nested_directories = if mode == WorkspaceMode::Semantic {
+        hook(InitializePoint::SemanticPreflightComplete);
+        paths_input.recheck()?;
+        for source in &mut authenticated_sources {
+            source.recheck()?;
+        }
+        require_distinct_text_identities(&authenticated_sources, Some(&paths_input), None)?;
+        let directories =
+            authenticate_directory_trie(&root, facts.iter().map(|fact| fact.path.as_str()))?;
+        let mut identities = vec![&root_dir.identity, &paths_input.identity];
+        identities.extend(authenticated_sources.iter().map(|source| &source.identity));
+        identities.extend(directories.iter().map(|directory| &directory.identity));
+        require_distinct_identities(&identities)?;
+        require_same_volume(&identities)?;
+        permission_seals.extend(capture_permission_seals(
+            directories.iter().map(|directory| directory.path.as_path()),
+        )?);
+        Some(directories)
+    } else {
+        None
+    };
     let control = root.join(CONTROL);
     std::fs::create_dir(&control).map_err(|error| {
         io(
@@ -781,146 +1093,330 @@ fn initialize_with_hook(
     require_single_link_file(&lock, "SPX-I209")?;
     let lock_identity = identity_from_file(&lock, "SPX-I209")?;
     lock_file(&lock, true)?;
-    std::fs::create_dir(control.join("generations"))
-        .map_err(|error| io("SPX-I211", format!("cannot create generations: {error}")))?;
-    std::fs::create_dir(control.join("staging"))
-        .map_err(|error| io("SPX-I211", format!("cannot create staging: {error}")))?;
-    let generations_dir = authenticate_directory_held(&control.join("generations"))?;
-    let staging_dir = authenticate_directory_held(&control.join("staging"))?;
-    let slot = control.join("staging").join("0");
-    std::fs::create_dir(&slot)
-        .map_err(|error| io("SPX-I211", format!("cannot create staging slot: {error}")))?;
-    write_generation(&slot, &manifest, &facts)?;
-    paths_input.recheck()?;
-    for source in &mut authenticated_sources {
-        source.recheck()?;
-    }
-    require_distinct_text_identities(&authenticated_sources, Some(&paths_input), None)?;
-    let mut staged = authenticate_generation_deep(&slot, &manifest, &facts, &revision)?;
-    hook(InitializePoint::GenerationBeforeRename);
-    staged.recheck()?;
-    paths_input.recheck()?;
-    for source in &mut authenticated_sources {
-        source.recheck()?;
-    }
-    let staged_fingerprint = staged.fingerprint()?;
-    let generation = control.join("generations").join(revision_hex(&revision)?);
-    require_absent_destination(
-        &generation,
-        "SPX-I211",
-        "initial generation destination already exists",
-    )?;
-    #[cfg(windows)]
-    drop(staged);
-    hook(InitializePoint::GenerationDestinationChecked);
-    publish_no_replace(
-        &slot,
-        &generation,
-        "SPX-I211",
-        "cannot publish initial generation",
-    )?;
-    hook(InitializePoint::GenerationRelocated);
-    let mut published = authenticate_generation_deep(&generation, &manifest, &facts, &revision)?;
-    staged_fingerprint.require_equivalent(&mut published)?;
-    paths_input.recheck()?;
-    for source in &mut authenticated_sources {
-        source.recheck()?;
-    }
-    let active_stage = control.join("staging").join("0");
-    write_new_file(&active_stage, render_root(&revision).as_bytes())?;
-    let mut staged_active = authenticate_text(&active_stage, MAX_MANIFEST_BYTES, "SPX-I212")?;
-    if parse_root(&staged_active.source)? != revision {
-        return Err(invariant(
-            "staged ACTIVE does not bind the initial generation",
-        ));
-    }
-    staged_active.recheck()?;
-    hook(InitializePoint::ActiveBeforeRename);
-    staged_active.recheck()?;
-    if parse_root(&staged_active.source)? != revision {
-        return Err(invariant(
-            "staged ACTIVE changed before initial publication",
-        ));
-    }
-    let active_path = control.join("ACTIVE");
-    require_absent_destination(
-        &active_path,
-        "SPX-I212",
-        "initial ACTIVE destination already exists",
-    )?;
-    let original_nested_directories =
-        authenticate_directory_trie(&root, facts.iter().map(|fact| fact.path.as_str()))?;
-    let mut initializing_identities = vec![
-        &root_dir.identity,
-        &control_dir.identity,
-        &generations_dir.identity,
-        &staging_dir.identity,
-        &lock_identity,
-        &staged_active.identity,
-    ];
-    initializing_identities.extend(
-        published
-            .directories
+    let mut active_pivoted = false;
+    let result = (|| {
+        std::fs::create_dir(control.join("generations"))
+            .map_err(|error| io("SPX-I211", format!("cannot create generations: {error}")))?;
+        std::fs::create_dir(control.join("staging"))
+            .map_err(|error| io("SPX-I211", format!("cannot create staging: {error}")))?;
+        let generations_dir = authenticate_directory_held(&control.join("generations"))?;
+        let staging_dir = authenticate_directory_held(&control.join("staging"))?;
+        if mode == WorkspaceMode::Semantic {
+            hook(InitializePoint::SemanticStagingReady);
+        }
+        let (slot, expected_staging_names) = if mode == WorkspaceMode::Ordinary {
+            let slot = control.join("staging").join("0");
+            std::fs::create_dir(&slot)
+                .map_err(|error| io("SPX-I211", format!("cannot create staging slot: {error}")))?;
+            (slot, BTreeSet::from(["0".to_owned()]))
+        } else {
+            validate_staging_inventory(&control.join("staging"))?;
+            let mut expected = BTreeSet::new();
+            let mut selected = None;
+            for ordinal in 0..MAX_STAGING_ATTEMPTS {
+                let candidate = control.join("staging").join(ordinal.to_string());
+                match std::fs::create_dir(&candidate) {
+                    Ok(()) => {
+                        expected.insert(ordinal.to_string());
+                        selected = Some(candidate);
+                        break;
+                    }
+                    Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
+                        validate_staging_inventory(&control.join("staging"))?;
+                    }
+                    Err(error) => {
+                        return Err(io(
+                            "SPX-I211",
+                            format!("cannot create staging slot: {error}"),
+                        ));
+                    }
+                }
+            }
+            (
+                selected.ok_or_else(|| semantic_storage_limit("staging_attempts", 32))?,
+                expected,
+            )
+        };
+        write_generation(&slot, &manifest, &facts)?;
+        paths_input.recheck()?;
+        for source in &mut authenticated_sources {
+            source.recheck()?;
+        }
+        require_distinct_text_identities(&authenticated_sources, Some(&paths_input), None)?;
+        let mut staged =
+            authenticate_generation_deep_mode(&slot, &manifest, &facts, &revision, mode)?;
+        hook(InitializePoint::GenerationBeforeRename);
+        staged.recheck()?;
+        paths_input.recheck()?;
+        for source in &mut authenticated_sources {
+            source.recheck()?;
+        }
+        let staged_fingerprint = staged.fingerprint()?;
+        let generation = control.join("generations").join(revision_hex(&revision)?);
+        require_absent_destination(
+            &generation,
+            "SPX-I211",
+            "initial generation destination already exists",
+        )?;
+        #[cfg(windows)]
+        drop(staged);
+        hook(InitializePoint::GenerationDestinationChecked);
+        publish_no_replace(
+            &slot,
+            &generation,
+            "SPX-I211",
+            "cannot publish initial generation",
+        )?;
+        hook(InitializePoint::GenerationRelocated);
+        let mut published =
+            authenticate_generation_deep_mode(&generation, &manifest, &facts, &revision, mode)?;
+        staged_fingerprint.require_equivalent(&mut published)?;
+        paths_input.recheck()?;
+        for source in &mut authenticated_sources {
+            source.recheck()?;
+        }
+        let active_stage = slot.clone();
+        let active_source = mode.render_active(&revision)?;
+        write_new_file(&active_stage, active_source.as_bytes())?;
+        let staged_active_code = if mode == WorkspaceMode::Semantic {
+            "SPX-I211"
+        } else {
+            "SPX-I212"
+        };
+        let mut staged_active =
+            authenticate_text(&active_stage, MAX_MANIFEST_BYTES, staged_active_code)?;
+        if mode.parse_active(&staged_active.source)? != revision {
+            return Err(invariant(
+                "staged ACTIVE does not bind the initial generation",
+            ));
+        }
+        staged_active.recheck()?;
+        staged_active.recheck()?;
+        if mode.parse_active(&staged_active.source)? != revision {
+            return Err(invariant(
+                "staged ACTIVE changed before initial publication",
+            ));
+        }
+        let active_path = control.join("ACTIVE");
+        require_absent_destination(
+            &active_path,
+            if mode == WorkspaceMode::Semantic {
+                "SPX-G153"
+            } else {
+                "SPX-I212"
+            },
+            "initial ACTIVE destination already exists",
+        )?;
+        let original_nested_directories = match semantic_original_nested_directories {
+            Some(directories) => directories,
+            None => {
+                authenticate_directory_trie(&root, facts.iter().map(|fact| fact.path.as_str()))?
+            }
+        };
+        let mut initializing_identities = vec![
+            &root_dir.identity,
+            &control_dir.identity,
+            &generations_dir.identity,
+            &staging_dir.identity,
+            &lock_identity,
+            &staged_active.identity,
+        ];
+        initializing_identities.extend(
+            published
+                .directories
+                .iter()
+                .map(|directory| &directory.identity),
+        );
+        initializing_identities.extend(published.texts.iter().map(|input| &input.identity));
+        initializing_identities.extend(authenticated_sources.iter().map(|input| &input.identity));
+        initializing_identities.extend(
+            original_nested_directories
+                .iter()
+                .map(|directory| &directory.identity),
+        );
+        require_distinct_identities(&initializing_identities)?;
+        require_same_volume(&initializing_identities)?;
+        if mode == WorkspaceMode::Semantic {
+            permission_seals.extend(capture_permission_seals(
+                std::iter::once(control.as_path())
+                    .chain(std::iter::once(control.join("generations").as_path()))
+                    .chain(std::iter::once(control.join("staging").as_path()))
+                    .chain(std::iter::once(lock_path.as_path()))
+                    .chain(std::iter::once(staged_active.path.as_path()))
+                    .chain(
+                        published
+                            .directories
+                            .iter()
+                            .map(|directory| directory.path.as_path()),
+                    )
+                    .chain(published.texts.iter().map(|text| text.path.as_path())),
+            )?);
+        }
+        let expected_manifest_files = facts
             .iter()
-            .map(|directory| &directory.identity),
-    );
-    initializing_identities.extend(published.texts.iter().map(|input| &input.identity));
-    initializing_identities.extend(authenticated_sources.iter().map(|input| &input.identity));
-    initializing_identities.extend(
-        original_nested_directories
-            .iter()
-            .map(|directory| &directory.identity),
-    );
-    require_distinct_identities(&initializing_identities)?;
-    require_same_volume(&initializing_identities)?;
-    recheck_lock(&lock_path, &lock, &lock_identity)?;
-    validate_initializing_control(&control)?;
-    if validate_staging_inventory(&control.join("staging"))?.0 != 1 {
-        return Err(invariant("initial ACTIVE staging inventory is not exact"));
-    }
-    paths_input.recheck()?;
-    for source in &mut authenticated_sources {
-        source.recheck()?;
-    }
-    published.recheck()?;
-    for directory in [&root_dir, &control_dir, &generations_dir, &staging_dir] {
-        directory.recheck()?;
-    }
-    for directory in &original_nested_directories {
-        directory.recheck()?;
-    }
-    staged_active.recheck()?;
-    if parse_root(&staged_active.source)? != revision {
-        return Err(invariant(
-            "staged ACTIVE changed before initial publication",
-        ));
-    }
-    let active_fingerprint = GenerationFingerprint::from_text(&mut staged_active, &active_stage)?;
-    require_absent_destination(
-        &active_path,
-        "SPX-I212",
-        "initial ACTIVE destination already exists",
-    )?;
-    #[cfg(windows)]
-    drop(staged_active);
-    hook(InitializePoint::ActiveDestinationChecked);
-    publish_no_replace(
-        &active_stage,
-        &active_path,
-        "SPX-I212",
-        "cannot publish ACTIVE",
-    )?;
-    hook(InitializePoint::ActiveRelocated);
-    let mut published_active = authenticate_text(&active_path, MAX_MANIFEST_BYTES, "SPX-I212")?;
-    active_fingerprint.require_text_equivalent(&mut published_active, &active_path)?;
-    if parse_root(&published_active.source)? != revision {
-        return Err(io(
-            "SPX-I212",
-            "post-pivot authentication is ambiguous: published ACTIVE revision mismatch",
-        ));
-    }
-    let loaded =
-        snapshot_authenticated(&root, &control, Some(&lock_identity)).map_err(|diagnostics| {
+            .map(|fact| ManifestFile {
+                path: fact.path.clone(),
+                source_graph_schema: fact.source_graph_schema.clone(),
+                source_revision: fact.source_revision.clone(),
+                source_digest: fact.source_digest.clone(),
+                bytes: fact.source.len(),
+            })
+            .collect::<Vec<_>>();
+        let mut complete_final_check = || -> Result<(), Vec<Diagnostic>> {
+            recheck_lock(&lock_path, &lock, &lock_identity)?;
+            validate_initializing_control(&control)?;
+            let (_, staging_directories, staging_files) =
+                validate_staging_inventory(&control.join("staging"))?;
+            let actual_staging_names = inventory_names_from_directories(&staging_directories)?
+                .into_iter()
+                .chain(inventory_names_from_texts(&staging_files)?)
+                .collect::<BTreeSet<_>>();
+            let staging_is_exact = actual_staging_names == expected_staging_names;
+            let generations_are_exact = mode == WorkspaceMode::Ordinary
+                || count_directories_bounded(
+                    &control.join("generations"),
+                    MAX_RETAINED_GENERATIONS,
+                )?
+                .0 == 1;
+            if !generations_are_exact || !staging_is_exact {
+                return Err(invariant(
+                    "initial semantic workspace generation/staging inventory is not exact",
+                ));
+            }
+            paths_input.recheck()?;
+            for source in &mut authenticated_sources {
+                source.recheck()?;
+            }
+            published.recheck()?;
+            for directory in [&root_dir, &control_dir, &generations_dir, &staging_dir] {
+                directory.recheck()?;
+            }
+            for directory in &original_nested_directories {
+                directory.recheck()?;
+            }
+            staged_active.recheck()?;
+            if mode.parse_active(&staged_active.source)? != revision {
+                return Err(invariant(
+                    "staged ACTIVE changed before initial publication",
+                ));
+            }
+            if mode == WorkspaceMode::Semantic {
+                validate_generation_inventory(&generation, &expected_manifest_files)?;
+            }
+            if mode == WorkspaceMode::Semantic {
+                recheck_permission_seals(&permission_seals)?;
+            }
+            let mut identities = vec![
+                &root_dir.identity,
+                &control_dir.identity,
+                &generations_dir.identity,
+                &staging_dir.identity,
+                &lock_identity,
+                &staged_active.identity,
+            ];
+            if mode == WorkspaceMode::Semantic {
+                identities.push(&paths_input.identity);
+            }
+            identities.extend(
+                published
+                    .directories
+                    .iter()
+                    .map(|directory| &directory.identity),
+            );
+            identities.extend(published.texts.iter().map(|text| &text.identity));
+            identities.extend(authenticated_sources.iter().map(|text| &text.identity));
+            identities.extend(
+                original_nested_directories
+                    .iter()
+                    .map(|directory| &directory.identity),
+            );
+            require_distinct_identities(&identities)?;
+            require_same_volume(&identities)?;
+            if mode == WorkspaceMode::Semantic {
+                require_absent_destination(
+                    &active_path,
+                    "SPX-G153",
+                    "initial ACTIVE destination already exists",
+                )?;
+            }
+            Ok(())
+        };
+        if mode == WorkspaceMode::Semantic {
+            complete_final_check()?;
+            hook(InitializePoint::ActiveBeforeRename);
+            complete_final_check()?;
+            hook(InitializePoint::ActiveDestinationChecked);
+            complete_final_check()?;
+        } else {
+            hook(InitializePoint::ActiveBeforeRename);
+            complete_final_check()?;
+        }
+        let active_fingerprint =
+            GenerationFingerprint::from_text(&mut staged_active, &active_stage)?;
+        require_absent_destination(
+            &active_path,
+            if mode == WorkspaceMode::Semantic {
+                "SPX-G153"
+            } else {
+                "SPX-I212"
+            },
+            "initial ACTIVE destination already exists",
+        )?;
+        #[cfg(windows)]
+        drop(staged_active);
+        if mode == WorkspaceMode::Ordinary {
+            hook(InitializePoint::ActiveDestinationChecked);
+        }
+        publish_no_replace(
+            &active_stage,
+            &active_path,
+            if mode == WorkspaceMode::Semantic {
+                "SPX-I211"
+            } else {
+                "SPX-I212"
+            },
+            "cannot publish ACTIVE",
+        )?;
+        active_pivoted = true;
+        if mode == WorkspaceMode::Semantic {
+            let active_seal = permission_seals
+                .iter_mut()
+                .find(|seal| seal.path == active_stage)
+                .ok_or_else(|| invariant("staged ACTIVE permission seal is absent"))?;
+            active_seal.path = active_path.clone();
+        }
+        hook(InitializePoint::ActiveRelocated);
+        published.recheck()?;
+        let mut published_active = authenticate_text(&active_path, MAX_MANIFEST_BYTES, "SPX-I212")?;
+        active_fingerprint.require_text_equivalent(&mut published_active, &active_path)?;
+        if mode.parse_active(&published_active.source)? != revision {
+            return Err(io(
+                "SPX-I212",
+                "post-pivot authentication is ambiguous: published ACTIVE revision mismatch",
+            ));
+        }
+        let loaded = snapshot_authenticated_mode(&root, &control, Some(&lock_identity), mode)
+            .map_err(|diagnostics| {
+                diagnostics
+                    .into_iter()
+                    .map(|diagnostic| {
+                        Diagnostic::io(
+                            "SPX-I212",
+                            format!(
+                                "post-pivot authentication is ambiguous: {}",
+                                diagnostic.message
+                            ),
+                        )
+                    })
+                    .collect::<Vec<_>>()
+            })?;
+        if loaded.snapshot.workspace_revision() != revision {
+            return Err(io(
+                "SPX-I212",
+                "post-pivot authentication is ambiguous: initialized workspace revision mismatch",
+            ));
+        }
+        recheck_lock(&lock_path, &lock, &lock_identity).map_err(|diagnostics| {
             diagnostics
                 .into_iter()
                 .map(|diagnostic| {
@@ -934,46 +1430,122 @@ fn initialize_with_hook(
                 })
                 .collect::<Vec<_>>()
         })?;
-    if loaded.snapshot.workspace_revision() != revision {
-        return Err(io(
-            "SPX-I212",
-            "post-pivot authentication is ambiguous: initialized workspace revision mismatch",
-        ));
+        if mode == WorkspaceMode::Semantic {
+            published.recheck()?;
+            published_active.recheck()?;
+            active_fingerprint.require_text_equivalent(&mut published_active, &active_path)?;
+            if mode.parse_active(&published_active.source)? != revision {
+                return Err(invariant(
+                    "published semantic ACTIVE changed after deep snapshot authentication",
+                ));
+            }
+            paths_input.recheck()?;
+            for source in &mut authenticated_sources {
+                source.recheck()?;
+            }
+            for directory in [&root_dir, &control_dir, &generations_dir, &staging_dir] {
+                directory.recheck()?;
+            }
+            for directory in &original_nested_directories {
+                directory.recheck()?;
+            }
+            recheck_lock(&lock_path, &lock, &lock_identity)?;
+            validate_control(&control)?;
+            let (_, retained_directories) =
+                count_directories_bounded(&control.join("generations"), MAX_RETAINED_GENERATIONS)?;
+            let expected_generations = BTreeSet::from([revision_hex(&revision)?.to_owned()]);
+            if inventory_names_from_directories(&retained_directories)? != expected_generations {
+                return Err(invariant(
+                    "published semantic generation inventory is not exact",
+                ));
+            }
+            let (staging_count, staging_directories, staging_files) =
+                validate_staging_inventory(&control.join("staging"))?;
+            if staging_count != 0 || !staging_directories.is_empty() || !staging_files.is_empty() {
+                return Err(invariant(
+                    "published semantic staging inventory is not empty",
+                ));
+            }
+            validate_generation_inventory(&generation, &expected_manifest_files)?;
+            recheck_permission_seals(&permission_seals)?;
+            let mut identities = vec![
+                &root_dir.identity,
+                &control_dir.identity,
+                &generations_dir.identity,
+                &staging_dir.identity,
+                &lock_identity,
+                &published_active.identity,
+                &paths_input.identity,
+            ];
+            identities.extend(
+                published
+                    .directories
+                    .iter()
+                    .map(|directory| &directory.identity),
+            );
+            identities.extend(published.texts.iter().map(|text| &text.identity));
+            identities.extend(authenticated_sources.iter().map(|text| &text.identity));
+            identities.extend(
+                original_nested_directories
+                    .iter()
+                    .map(|directory| &directory.identity),
+            );
+            require_distinct_identities(&identities)?;
+            require_same_volume(&identities)?;
+        }
+        Ok(revision.clone())
+    })();
+    let result = if active_pivoted {
+        result.map_err(|diagnostics| {
+            diagnostics
+                .into_iter()
+                .map(|diagnostic| {
+                    if diagnostic.code == "SPX-I212" {
+                        diagnostic
+                    } else {
+                        Diagnostic::io(
+                            "SPX-I212",
+                            format!(
+                                "post-pivot authentication is ambiguous: {}",
+                                diagnostic.message
+                            ),
+                        )
+                    }
+                })
+                .collect()
+        })
+    } else {
+        result
+    };
+    match unlock_file(&lock) {
+        Ok(()) => result,
+        Err(diagnostics) if !active_pivoted => Err(diagnostics),
+        Err(diagnostics) => Err(diagnostics
+            .into_iter()
+            .map(|diagnostic| {
+                Diagnostic::io(
+                    "SPX-I212",
+                    format!(
+                        "post-pivot authentication is ambiguous: {}",
+                        diagnostic.message
+                    ),
+                )
+            })
+            .collect()),
     }
-    recheck_lock(&lock_path, &lock, &lock_identity).map_err(|diagnostics| {
-        diagnostics
-            .into_iter()
-            .map(|diagnostic| {
-                Diagnostic::io(
-                    "SPX-I212",
-                    format!(
-                        "post-pivot authentication is ambiguous: {}",
-                        diagnostic.message
-                    ),
-                )
-            })
-            .collect::<Vec<_>>()
-    })?;
-    unlock_file(&lock).map_err(|diagnostics| {
-        diagnostics
-            .into_iter()
-            .map(|diagnostic| {
-                Diagnostic::io(
-                    "SPX-I212",
-                    format!(
-                        "post-pivot authentication is ambiguous: {}",
-                        diagnostic.message
-                    ),
-                )
-            })
-            .collect::<Vec<_>>()
-    })?;
-    Ok(revision)
 }
 
 /// Authenticates ACTIVE and returns an immutable owned workspace snapshot.
 pub fn snapshot(root: &Path) -> Result<WorkspaceSnapshot, Vec<Diagnostic>> {
     snapshot_inner(root, false)
+}
+
+pub(crate) fn acquire_semantic_read(
+    root: &Path,
+) -> Result<WorkspaceSemanticReadAuthority, Vec<Diagnostic>> {
+    Ok(WorkspaceSemanticReadAuthority {
+        guard: acquire_snapshot_mode(root, false, WorkspaceMode::Semantic)?,
+    })
 }
 
 /// Previews one canonical workspace patch without creating candidate filesystem state.
@@ -1720,6 +2292,52 @@ fn permissions_equal(left: &std::fs::Permissions, right: &std::fs::Permissions) 
     }
 }
 
+struct PermissionSeal {
+    path: PathBuf,
+    permissions: std::fs::Permissions,
+}
+
+fn capture_permission_seals<'a>(
+    paths: impl IntoIterator<Item = &'a Path>,
+) -> Result<Vec<PermissionSeal>, Vec<Diagnostic>> {
+    paths
+        .into_iter()
+        .map(|path| {
+            let permissions = std::fs::symlink_metadata(path)
+                .map_err(|error| {
+                    io(
+                        "SPX-I209",
+                        format!("cannot inspect workspace permissions: {error}"),
+                    )
+                })?
+                .permissions();
+            Ok(PermissionSeal {
+                path: path.to_path_buf(),
+                permissions,
+            })
+        })
+        .collect()
+}
+
+fn recheck_permission_seals(seals: &[PermissionSeal]) -> Result<(), Vec<Diagnostic>> {
+    for seal in seals {
+        let current = std::fs::symlink_metadata(&seal.path)
+            .map_err(|error| {
+                io(
+                    "SPX-I209",
+                    format!("cannot re-inspect workspace permissions: {error}"),
+                )
+            })?
+            .permissions();
+        if !permissions_equal(&seal.permissions, &current) {
+            return Err(invariant(
+                "workspace permissions changed during final authentication",
+            ));
+        }
+    }
+    Ok(())
+}
+
 fn map_final_uncertainty(diagnostics: Vec<Diagnostic>) -> Vec<Diagnostic> {
     diagnostics
         .into_iter()
@@ -2173,7 +2791,15 @@ fn snapshot_inner(root: &Path, exclusive: bool) -> Result<WorkspaceSnapshot, Vec
 }
 
 fn acquire_snapshot(root: &Path, exclusive: bool) -> Result<WorkspaceGuard, Vec<Diagnostic>> {
-    finish_snapshot_guard(acquire_lock_only(root, exclusive)?)
+    acquire_snapshot_mode(root, exclusive, WorkspaceMode::Ordinary)
+}
+
+fn acquire_snapshot_mode(
+    root: &Path,
+    exclusive: bool,
+    mode: WorkspaceMode,
+) -> Result<WorkspaceGuard, Vec<Diagnostic>> {
+    finish_snapshot_guard_mode(acquire_lock_only(root, exclusive)?, mode)
 }
 
 fn acquire_lock_only(root: &Path, exclusive: bool) -> Result<WorkspaceLockGuard, Vec<Diagnostic>> {
@@ -2219,6 +2845,13 @@ fn acquire_lock_only(root: &Path, exclusive: bool) -> Result<WorkspaceLockGuard,
 fn finish_snapshot_guard(
     lock_guard: WorkspaceLockGuard,
 ) -> Result<WorkspaceGuard, Vec<Diagnostic>> {
+    finish_snapshot_guard_mode(lock_guard, WorkspaceMode::Ordinary)
+}
+
+fn finish_snapshot_guard_mode(
+    lock_guard: WorkspaceLockGuard,
+    mode: WorkspaceMode,
+) -> Result<WorkspaceGuard, Vec<Diagnostic>> {
     let WorkspaceLockGuard {
         root,
         root_identity,
@@ -2231,7 +2864,8 @@ fn finish_snapshot_guard(
     let authenticated = match (|| {
         validate_control(&control)?;
         recheck_lock(&lock_path, &lock, &lock_identity)?;
-        let authenticated = snapshot_authenticated(&root, &control, Some(&lock_identity))?;
+        let authenticated =
+            snapshot_authenticated_mode(&root, &control, Some(&lock_identity), mode)?;
         let (_, generation_directories) =
             count_directories_bounded(&control.join("generations"), MAX_RETAINED_GENERATIONS)?;
         let generation_names = inventory_names_from_directories(&generation_directories)?;
@@ -2261,6 +2895,7 @@ fn finish_snapshot_guard(
         exclusive,
         generation_names,
         staging_names,
+        mode,
     })
 }
 
@@ -2268,6 +2903,15 @@ fn snapshot_authenticated(
     root: &Path,
     control: &Path,
     lock_identity: Option<&FileIdentity>,
+) -> Result<AuthenticatedSnapshot, Vec<Diagnostic>> {
+    snapshot_authenticated_mode(root, control, lock_identity, WorkspaceMode::Ordinary)
+}
+
+fn snapshot_authenticated_mode(
+    root: &Path,
+    control: &Path,
+    lock_identity: Option<&FileIdentity>,
+    mode: WorkspaceMode,
 ) -> Result<AuthenticatedSnapshot, Vec<Diagnostic>> {
     let root_dir = authenticate_directory_held(root)?;
     let control_dir = authenticate_directory_held(control)?;
@@ -2300,7 +2944,7 @@ fn snapshot_authenticated(
         staging_identity,
     ])?;
     let mut active = authenticate_text(&control.join("ACTIVE"), MAX_MANIFEST_BYTES, "SPX-I209")?;
-    let revision = parse_root(&active.source)?;
+    let revision = mode.parse_active(&active.source)?;
     let generation = control.join("generations").join(revision_hex(&revision)?);
     let generation_dir = authenticate_directory_held(&generation)?;
     let selected_generation_identity = generation_dir.identity;
@@ -2334,10 +2978,10 @@ fn snapshot_authenticated(
         MAX_MANIFEST_BYTES,
         "SPX-I209",
     )?;
-    let manifest = parse_manifest(&manifest_input.source)?;
+    let manifest = mode.parse_manifest(&manifest_input.source)?;
     let nested_directories =
         authenticate_directory_trie(&files_root, manifest.iter().map(|file| file.path.as_str()))?;
-    if workspace_revision(&manifest_input.source) != revision {
+    if mode.manifest_revision(&manifest_input.source) != revision {
         return Err(invariant(
             "ACTIVE does not bind the exact generation manifest",
         ));
@@ -2385,7 +3029,7 @@ fn snapshot_authenticated(
     );
     require_distinct_identities(&all_identities)?;
     require_same_volume(&all_identities)?;
-    let facts = file_facts(sources, true)?;
+    let facts = mode.validate_snapshot_sources(&manifest_input.source, sources)?;
     for (expected, fact) in manifest.iter().zip(&facts) {
         if fact.source_graph_schema != expected.source_graph_schema
             || fact.source_revision != expected.source_revision
@@ -2395,7 +3039,6 @@ fn snapshot_authenticated(
             return Err(invariant("managed generation file disagrees with manifest"));
         }
     }
-    validate_workspace_facts(&facts)?;
     validate_generation_inventory(&generation, &manifest)?;
     let (retained, retained_directories) =
         count_directories_bounded(&generations_path, MAX_RETAINED_GENERATIONS)?;
@@ -2451,7 +3094,9 @@ fn snapshot_authenticated(
         staging_attempts: staging,
         json: String::new(),
     };
-    snapshot.json = bounded_snapshot_json(&snapshot)?;
+    if mode == WorkspaceMode::Ordinary {
+        snapshot.json = bounded_snapshot_json(&snapshot)?;
+    }
     let retained_other_directories = retained_directories
         .into_iter()
         .filter(|directory| directory.identity != selected_generation_identity)
@@ -3081,11 +3726,12 @@ fn ensure_generation_parent(files_root: &Path, logical: &str) -> Result<(), Vec<
     Ok(())
 }
 
-fn authenticate_generation_payload(
+fn authenticate_generation_payload_mode(
     generation: &Path,
     manifest: &str,
     facts: &[FileFact],
     revision: &str,
+    mode: WorkspaceMode,
 ) -> Result<Vec<AuthenticatedText>, Vec<Diagnostic>> {
     authenticate_directory(generation)?;
     let files_root = generation.join("files");
@@ -3096,7 +3742,9 @@ fn authenticate_generation_payload(
         MAX_MANIFEST_BYTES,
         "SPX-I211",
     )?;
-    if manifest_input.source != manifest || workspace_revision(&manifest_input.source) != revision {
+    if manifest_input.source != manifest
+        || mode.manifest_revision(&manifest_input.source) != revision
+    {
         return Err(invariant(
             "staged generation manifest is not the expected revision",
         ));
@@ -3133,6 +3781,22 @@ fn authenticate_generation_deep(
     facts: &[FileFact],
     revision: &str,
 ) -> Result<PreparedGeneration, Vec<Diagnostic>> {
+    authenticate_generation_deep_mode(
+        generation,
+        manifest,
+        facts,
+        revision,
+        WorkspaceMode::Ordinary,
+    )
+}
+
+fn authenticate_generation_deep_mode(
+    generation: &Path,
+    manifest: &str,
+    facts: &[FileFact],
+    revision: &str,
+    mode: WorkspaceMode,
+) -> Result<PreparedGeneration, Vec<Diagnostic>> {
     let generation_directory = authenticate_directory_held(generation)?;
     let files_root = generation.join("files");
     let files_directory = authenticate_directory_held(&files_root)?;
@@ -3141,7 +3805,7 @@ fn authenticate_generation_deep(
         &files_root,
         facts.iter().map(|fact| fact.path.as_str()),
     )?);
-    let texts = authenticate_generation_payload(generation, manifest, facts, revision)?;
+    let texts = authenticate_generation_payload_mode(generation, manifest, facts, revision, mode)?;
     let identities = directories
         .iter()
         .map(|entry| &entry.identity)
@@ -3375,6 +4039,40 @@ fn authenticate_managed_source(
     path.push(segments.last().expect("validated logical path is nonempty"));
     authenticate_text_labeled(&path, max, "SPX-I209", logical)
 }
+
+fn authenticate_managed_source_semantic(
+    root: &Path,
+    logical: &str,
+    remaining: usize,
+) -> Result<AuthenticatedText, Vec<Diagnostic>> {
+    let mut path = root.to_path_buf();
+    let segments = logical.split('/').collect::<Vec<_>>();
+    for segment in &segments[..segments.len().saturating_sub(1)] {
+        path.push(segment);
+        authenticate_directory(&path).map_err(|_| {
+            io(
+                "SPX-I209",
+                format!("managed path `{logical}` contains a non-directory or alias"),
+            )
+        })?;
+    }
+    path.push(segments.last().expect("validated logical path is nonempty"));
+    authenticate_text_labeled_with_limit(
+        &path,
+        remaining,
+        "SPX-I209",
+        logical,
+        Some(("total_source_bytes", MAX_TOTAL_SOURCE_BYTES)),
+    )
+}
+
+fn semantic_storage_limit(field: &'static str, maximum: usize) -> Vec<Diagnostic> {
+    vec![Diagnostic::io(
+        "SPX-G175",
+        format!("Semantic Workspace `{field}` exceeds {maximum}"),
+    )]
+}
+
 fn authenticate_text(
     path: &Path,
     max: usize,
@@ -3383,11 +4081,37 @@ fn authenticate_text(
     authenticate_text_labeled(path, max, code, &path.display().to_string())
 }
 
+fn authenticate_text_semantic(
+    path: &Path,
+    max: usize,
+    code: &'static str,
+    field: &'static str,
+    diagnostic_maximum: usize,
+) -> Result<AuthenticatedText, Vec<Diagnostic>> {
+    authenticate_text_labeled_with_limit(
+        path,
+        max,
+        code,
+        &path.display().to_string(),
+        Some((field, diagnostic_maximum)),
+    )
+}
+
 fn authenticate_text_labeled(
     path: &Path,
     max: usize,
     code: &'static str,
     label: &str,
+) -> Result<AuthenticatedText, Vec<Diagnostic>> {
+    authenticate_text_labeled_with_limit(path, max, code, label, None)
+}
+
+fn authenticate_text_labeled_with_limit(
+    path: &Path,
+    max: usize,
+    code: &'static str,
+    label: &str,
+    semantic_limit: Option<(&'static str, usize)>,
 ) -> Result<AuthenticatedText, Vec<Diagnostic>> {
     let before = std::fs::symlink_metadata(path)
         .map_err(|error| io(code, format!("cannot inspect {label}: {error}")))?;
@@ -3396,7 +4120,10 @@ fn authenticate_text_labeled(
     }
     require_single_link_path(path, code)?;
     if before.len() > max as u64 {
-        return Err(limit("workspace input exceeds its byte limit"));
+        return Err(semantic_limit.map_or_else(
+            || limit("workspace input exceeds its byte limit"),
+            |(field, maximum)| semantic_storage_limit(field, maximum),
+        ));
     }
     let mut file = OpenOptions::new()
         .read(true)
@@ -3427,7 +4154,10 @@ fn authenticate_text_labeled(
         .read_to_end(&mut bytes)
         .map_err(|error| io(code, format!("cannot read {label}: {error}")))?;
     if bytes.len() > max {
-        return Err(limit("workspace input exceeds its byte limit"));
+        return Err(semantic_limit.map_or_else(
+            || limit("workspace input exceeds its byte limit"),
+            |(field, maximum)| semantic_storage_limit(field, maximum),
+        ));
     }
     let source = String::from_utf8(bytes).map_err(|_| io(code, "workspace input is not UTF-8"))?;
     let mut authenticated = AuthenticatedText {

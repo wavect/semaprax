@@ -55,9 +55,9 @@ pub mod workspace_patch_evidence;
 mod graph_cleanup;
 mod host_ownership;
 mod prelude;
+pub mod semantic_workspace;
 mod source_verify;
-#[allow(dead_code, reason = "private Workspace Semantic Graph Phase-A core")]
-mod workspace_graph;
+pub mod workspace_graph;
 
 use std::path::Path;
 

@@ -35,6 +35,10 @@ macro_rules! format {
 /// compiler-owned ordinary prelude that participates in checked meaning.
 pub fn revision(program: &Program) -> String {
     let source = format::canonical(program);
+    revision_from_canonical_source(&source)
+}
+
+pub(crate) fn revision_from_canonical_source(source: &str) -> String {
     let prelude_contract = prelude::contract_bytes_v1();
     let mut hasher = Sha256::new();
     hasher.update(b"semaprax.graph-revision.v2\0");
@@ -1187,10 +1191,22 @@ fn result_propagation_json(expression: &ResolvedExpr) -> String {
 }
 
 pub(crate) fn graph_schema(program: &ResolvedProgram) -> &'static str {
-    if !program.function_templates.is_empty() {
+    graph_schema_from_parts(
+        &program.types,
+        &program.functions,
+        &program.function_templates,
+    )
+}
+
+pub(crate) fn graph_schema_from_parts(
+    types: &[hir::ResolvedTypeDeclaration],
+    functions: &[ResolvedFunction],
+    function_templates: &[hir::ResolvedFunctionTemplate],
+) -> &'static str {
+    if !function_templates.is_empty() {
         return "semaprax.graph.v14";
     }
-    if program.functions.iter().any(|function| {
+    if functions.iter().any(|function| {
         function
             .requires
             .iter()
@@ -1200,13 +1216,13 @@ pub(crate) fn graph_schema(program: &ResolvedProgram) -> &'static str {
     }) {
         return "semaprax.graph.v13";
     }
-    if program.types.iter().any(|declaration| {
+    if types.iter().any(|declaration| {
         matches!(declaration.kind, ResolvedTypeDeclarationKind::Record { .. })
             && !declaration.type_parameters.is_empty()
     }) {
         return "semaprax.graph.v12";
     }
-    let has_option_try = program.functions.iter().any(|function| {
+    let has_option_try = functions.iter().any(|function| {
         function
             .requires
             .iter()

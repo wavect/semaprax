@@ -4,7 +4,8 @@ use std::process::{Command, ExitCode};
 use semaprax::diagnostic::{Diagnostic, Severity};
 use semaprax::{
     agent_economics, codegen, format, graph, impact, parse, patch, patch_evidence, quality_route,
-    repair, review, target_evidence, verify, wasm, workspace, workspace_patch_evidence,
+    repair, review, semantic_workspace, target_evidence, verify, wasm, workspace, workspace_graph,
+    workspace_patch_evidence,
 };
 
 fn main() -> ExitCode {
@@ -189,6 +190,18 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             println!("initialized semantic workspace; workspace is {revision}");
             Ok(())
         }
+        "semantic-workspace-init" => {
+            if args.len() != 3 {
+                eprintln!("semantic-workspace-init requires exactly <root> <path-set.json>");
+                return Err(2);
+            }
+            let root = required_path(&args, 1)?;
+            let path_set = required_path(&args, 2)?;
+            let revision = semantic_workspace::initialize(&root, &path_set)
+                .map_err(|errors| report(&errors, false))?;
+            println!("initialized semantic graph workspace; workspace is {revision}");
+            Ok(())
+        }
         "workspace-snapshot" => {
             if args.len() != 2 {
                 eprintln!("workspace-snapshot requires exactly <root>");
@@ -197,6 +210,18 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             let root = required_path(&args, 1)?;
             let snapshot = workspace::snapshot(&root).map_err(|errors| report(&errors, false))?;
             println!("{}", snapshot.to_json());
+            Ok(())
+        }
+        "workspace-graph" => {
+            if args.len() != 3 {
+                eprintln!("workspace-graph requires exactly <root> <entry-module>");
+                return Err(2);
+            }
+            let root = required_path(&args, 1)?;
+            let entry_module = &args[2];
+            let graph = workspace_graph::snapshot(&root, entry_module)
+                .map_err(|errors| report(&errors, false))?;
+            println!("{}", graph.to_json());
             Ok(())
         }
         "workspace-preview" => {
@@ -656,7 +681,9 @@ fn print_help() {
            semaprax fmt <file> [--check]\n\
            semaprax patch <file> <patch.spatch>\n\
            semaprax workspace-init <root> <path-set.json>\n\
+           semaprax semantic-workspace-init <root> <path-set.json>\n\
            semaprax workspace-snapshot <root>\n\
+           semaprax workspace-graph <root> <entry-module>\n\
            semaprax workspace-preview <root> <patch.wspatch>\n\
            semaprax workspace-apply <root> <patch.wspatch>\n\
            semaprax workspace-patch-evidence <root> <patch.wspatch>\n\

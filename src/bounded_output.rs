@@ -13,6 +13,11 @@ thread_local! {
 }
 
 pub(crate) fn with_limit<T>(limit: usize, operation: impl FnOnce() -> T) -> (T, bool) {
+    let (value, overflowed, _) = with_limit_usage(limit, operation);
+    (value, overflowed)
+}
+
+pub(crate) fn with_limit_usage<T>(limit: usize, operation: impl FnOnce() -> T) -> (T, bool, usize) {
     struct Restore {
         previous: Option<Rc<Budget>>,
         current: Rc<Budget>,
@@ -48,8 +53,9 @@ pub(crate) fn with_limit<T>(limit: usize, operation: impl FnOnce() -> T) -> (T, 
     };
     let value = operation();
     let overflowed = budget.overflowed.get();
+    let consumed = effective_limit.saturating_sub(budget.remaining.get());
     drop(restore);
-    (value, overflowed)
+    (value, overflowed, consumed)
 }
 
 fn active() -> Option<Rc<Budget>> {
@@ -249,7 +255,7 @@ impl Deref for CappedVec {
 mod tests {
     use std::panic::{catch_unwind, AssertUnwindSafe};
 
-    use super::{budgeted_join, with_limit, CappedString};
+    use super::{budgeted_join, with_limit, with_limit_usage, CappedString};
 
     #[test]
     fn exact_limit_succeeds_and_over_limit_fails_closed() {
@@ -321,5 +327,37 @@ mod tests {
             output.push_str("xx");
         });
         assert!(parent_overflowed);
+    }
+
+    #[test]
+    fn usage_reports_exact_debits_and_preserves_nested_restoration() {
+        let ((child_overflowed, child_used), parent_overflowed, parent_used) =
+            with_limit_usage(7, || {
+                let (_, child_overflowed, child_used) = with_limit_usage(4, || {
+                    let mut output = CappedString::new();
+                    output.push_str("abc");
+                });
+                let mut output = CappedString::new();
+                output.push_str("defg");
+                (child_overflowed, child_used)
+            });
+        assert!(!child_overflowed);
+        assert_eq!(child_used, 3);
+        assert!(!parent_overflowed);
+        assert_eq!(parent_used, 7);
+
+        let (_, overflowed, used) = with_limit_usage(2, || {
+            let mut output = CappedString::new();
+            output.push_str("abc");
+        });
+        assert!(overflowed);
+        assert_eq!(used, 0);
+
+        let (_, overflowed, used) = with_limit_usage(3, || {
+            let mut output = CappedString::new();
+            output.push_str("xyz");
+        });
+        assert!(!overflowed);
+        assert_eq!(used, 3);
     }
 }

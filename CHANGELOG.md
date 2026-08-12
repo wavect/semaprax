@@ -14,11 +14,12 @@ All notable changes to SEMAPRAX are documented here.
   `sha256:5c7a67d42ef76b3a241c0dc98f3d8919a799d3745bb6ae54a1d0289a51ee3e86`,
   and
   `sha256:80df18fea48a663e25cca66e90c0842fa8146ed35ab2ee30f2659728509dd2b7`.
-  No Operations Evidence, verifier, receipt, apply/publication, target/test,
-  provenance, or path-set authority is added; Change-v1 Evidence binds only
-  derived Change bytes, not Operations intent. Local gates are green,
-  exact-head hosted evidence is pending, and totals remain 38 Partial/18
-  Missing.
+  Added an outer canonical Operations Evidence wrapper, exact shared-lock
+  verification receipt, and exclusive fresh-replay immutable publication
+  route. Change-v1 bytes remain unchanged; a Change-v1 Evidence document alone
+  binds only derived Change bytes, not Operations intent. The complete local
+  corpus is green; exact-head hosted evidence is pending, and totals remain 38
+  Partial/18 Missing.
 
 - Added [Semantic Workspace v1](docs/SEMANTIC-WORKSPACE-V1.md),
   [Workspace Semantic Graph v1](docs/WORKSPACE-SEMANTIC-GRAPH-V1.md),

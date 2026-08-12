@@ -136,6 +136,7 @@ pub(crate) struct WorkspaceGraphOperationView {
     pub(crate) graph: WorkspaceGraphChangeView,
     pub(crate) sidecar: WorkspaceOperationSidecar,
     pub(crate) builder_bytes: usize,
+    pub(crate) change_builder_bytes: usize,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -1044,11 +1045,13 @@ impl WorkspaceGraphBuild {
             )]
         })?;
         let builder_bytes = self.operation_builder_bytes;
+        let change_builder_bytes = self.change_builder_bytes;
         let graph = self.into_change_view()?;
         Ok(WorkspaceGraphOperationView {
             graph,
             sidecar,
             builder_bytes,
+            change_builder_bytes,
         })
     }
 

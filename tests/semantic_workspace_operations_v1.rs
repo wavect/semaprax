@@ -117,6 +117,13 @@ fn run_cli(command: &str, fixture: &Fixture) -> std::process::Output {
         .unwrap()
 }
 
+fn raw_sha256(bytes: &[u8]) -> String {
+    use sha2::{Digest, Sha256};
+    let mut hasher = Sha256::new();
+    hasher.update(bytes);
+    format!("sha256:{:x}", hasher.finalize())
+}
+
 #[test]
 fn public_api_cli_getters_kats_and_no_write_are_exact() {
     let fixture = Fixture::new("api");
@@ -268,23 +275,131 @@ fn public_arity_locking_i216_and_mode_separation_are_fail_closed() {
 }
 
 #[test]
-fn public_surface_has_no_operations_evidence_verify_or_apply_command() {
-    for command in [
-        "semantic-workspace-operations-evidence",
-        "verify-semantic-workspace-operations-evidence",
-        "apply-semantic-workspace-operations-evidence",
+fn public_operations_evidence_verify_apply_api_cli_are_exact() {
+    let fixture = Fixture::new("public-evidence");
+    let before = fixture.inventory();
+    let bundle =
+        semantic_workspace_operations::generate_evidence(&fixture.root, &fixture.proposal).unwrap();
+    assert_eq!(
+        bundle.operations_proposal_digest(),
+        "sha256:3c7bf340a5313907edcec41748063e8666793ee76b903bc4e691871a843544b5"
+    );
+    assert_eq!(
+        bundle.derivation_digest(),
+        "sha256:80df18fea48a663e25cca66e90c0842fa8146ed35ab2ee30f2659728509dd2b7"
+    );
+    assert_eq!(
+        bundle.derived_change_proposal_digest(),
+        "sha256:5c7a67d42ef76b3a241c0dc98f3d8919a799d3745bb6ae54a1d0289a51ee3e86"
+    );
+    assert_eq!(
+        raw_sha256(bundle.workspace_change_evidence().as_bytes()),
+        "sha256:03896218f6cfe7ae3eebf1be35a715bfcb5c202a005afabea335ee28a540a58a"
+    );
+    assert_eq!(
+        raw_sha256(bundle.operations_evidence().as_bytes()),
+        "sha256:fc9a516a4eb049d097f87e75d612e2182861602536f92ce033fce28e77e1252c"
+    );
+    assert!(bundle
+        .workspace_change_evidence_digest()
+        .starts_with("sha256:"));
+    assert!(bundle.operations_evidence_digest().starts_with("sha256:"));
+    assert!(bundle.derivation().ends_with('\n'));
+    assert!(bundle.derived_change_proposal().ends_with('\n'));
+    assert_eq!(fixture.inventory(), before);
+    assert_eq!(
+        semantic_workspace_operations::evidence(&fixture.root, &fixture.proposal).unwrap(),
+        bundle.operations_evidence()
+    );
+    let cli_fixture = Fixture::new("public-evidence-cli");
+    let cli = run_cli("semantic-workspace-operations-evidence", &cli_fixture);
+    assert!(cli.status.success());
+    assert_eq!(cli.stdout, bundle.operations_evidence().as_bytes());
+    assert!(cli.stderr.is_empty());
+
+    let evidence_path = fixture.root.join("operations-evidence.json");
+    std::fs::write(&evidence_path, bundle.operations_evidence()).unwrap();
+    let verification =
+        semantic_workspace_operations::verify(&fixture.root, &fixture.proposal, &evidence_path)
+            .unwrap();
+    assert_eq!(
+        raw_sha256(verification.as_bytes()),
+        "sha256:b1a9f2dbba6d9bbd795446b0ae7c34f14d272daafa6e8862f27e202038a2e03e"
+    );
+    let cli_verify = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .arg("verify-semantic-workspace-operations-evidence")
+        .arg(&fixture.root)
+        .arg(&fixture.proposal)
+        .arg(&evidence_path)
+        .output()
+        .unwrap();
+    assert!(cli_verify.status.success());
+    assert_eq!(cli_verify.stdout, verification.as_bytes());
+    assert!(cli_verify.stderr.is_empty());
+
+    let apply_fixture = Fixture::new("public-apply");
+    let apply_bundle = semantic_workspace_operations::generate_evidence(
+        &apply_fixture.root,
+        &apply_fixture.proposal,
+    )
+    .unwrap();
+    let apply_evidence = apply_fixture.root.join("operations-evidence.json");
+    std::fs::write(&apply_evidence, apply_bundle.operations_evidence()).unwrap();
+    let application = semantic_workspace_operations::apply(
+        &apply_fixture.root,
+        &apply_fixture.proposal,
+        &apply_evidence,
+    )
+    .unwrap();
+    assert_eq!(
+        raw_sha256(application.as_bytes()),
+        "sha256:618d78b30dc113649b935f550d918aacb77e426ae6a7ee6ad49a727a4d6eeb35"
+    );
+    apply_fixture.assert_exclusive_reacquire();
+
+    let cli_apply_fixture = Fixture::new("public-apply-cli");
+    let cli_apply_bundle = semantic_workspace_operations::generate_evidence(
+        &cli_apply_fixture.root,
+        &cli_apply_fixture.proposal,
+    )
+    .unwrap();
+    let cli_apply_evidence = cli_apply_fixture.root.join("operations-evidence.json");
+    std::fs::write(&cli_apply_evidence, cli_apply_bundle.operations_evidence()).unwrap();
+    let cli_apply = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .arg("apply-semantic-workspace-operations-evidence")
+        .arg(&cli_apply_fixture.root)
+        .arg(&cli_apply_fixture.proposal)
+        .arg(&cli_apply_evidence)
+        .output()
+        .unwrap();
+    assert!(cli_apply.status.success());
+    assert_eq!(cli_apply.stdout, application.as_bytes());
+    assert!(cli_apply.stderr.is_empty());
+}
+
+#[test]
+fn public_operations_evidence_cli_arity_help_and_errors_are_exact() {
+    for (command, message) in [
+        (
+            "semantic-workspace-operations-evidence",
+            "semantic-workspace-operations-evidence requires exactly <root> <proposal.json>\n",
+        ),
+        (
+            "verify-semantic-workspace-operations-evidence",
+            "verify-semantic-workspace-operations-evidence requires exactly <root> <proposal.json> <evidence.json>\n",
+        ),
+        (
+            "apply-semantic-workspace-operations-evidence",
+            "apply-semantic-workspace-operations-evidence requires exactly <root> <proposal.json> <evidence.json>\n",
+        ),
     ] {
         let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
             .arg(command)
             .output()
             .unwrap();
         assert_eq!(output.status.code(), Some(2));
-        assert_eq!(
-            String::from_utf8(output.stderr).unwrap(),
-            format!("unknown command `{command}`\n\n")
-        );
-        let help = String::from_utf8(output.stdout).unwrap();
-        assert!(!help.lines().any(|line| line.contains(command)));
+        assert!(output.stdout.is_empty());
+        assert_eq!(String::from_utf8(output.stderr).unwrap(), message);
     }
 
     let help = Command::new(env!("CARGO_BIN_EXE_semaprax"))
@@ -299,13 +414,11 @@ fn public_surface_has_no_operations_evidence_verify_or_apply_command() {
         [
             "semaprax semantic-workspace-operations-derive <root> <proposal.json>",
             "semaprax semantic-workspace-operations-change-proposal <root> <proposal.json>",
+            "semaprax semantic-workspace-operations-evidence <root> <proposal.json>",
+            "semaprax verify-semantic-workspace-operations-evidence <root> <proposal.json> <evidence.json>",
+            "semaprax apply-semantic-workspace-operations-evidence <root> <proposal.json> <evidence.json>",
         ]
     );
-    for held in ["evidence", "verify", "apply"] {
-        assert!(!help.lines().any(|line| {
-            line.contains("semantic-workspace-operations-") && line.contains(held)
-        }));
-    }
 }
 
 #[test]
@@ -336,7 +449,7 @@ semaprax = {{ path = "{manifest_root}", default-features = false }}
     std::fs::create_dir(root.join("src")).unwrap();
     std::fs::write(
         root.join("src/main.rs"),
-        r#"use semaprax::semantic_workspace_operations::{derive_with_hook, parse_proposal, OperationsDerivePoint, SemanticWorkspaceOperationsDerivation};
+        r#"use semaprax::semantic_workspace_operations::{apply_with_hook, derive_with_hook, parse_proposal, OperationsDerivePoint, OperationsEvidencePoint, SemanticWorkspaceOperationsDerivation, SemanticWorkspaceOperationsEvidenceArtifacts};
 
 fn require_clone<T: Clone>() {}
 fn require_debug<T: std::fmt::Debug>() {}
@@ -344,6 +457,8 @@ fn require_debug<T: std::fmt::Debug>() {}
 fn main() {
     require_clone::<SemanticWorkspaceOperationsDerivation>();
     require_debug::<SemanticWorkspaceOperationsDerivation>();
+    require_clone::<SemanticWorkspaceOperationsEvidenceArtifacts>();
+    require_debug::<SemanticWorkspaceOperationsEvidenceArtifacts>();
     let _ = SemanticWorkspaceOperationsDerivation {
         operations_proposal_digest: String::new(),
         derived_change_proposal: String::new(),
@@ -352,8 +467,10 @@ fn main() {
         derivation_digest: String::new(),
     };
     let _ = derive_with_hook;
+    let _ = apply_with_hook;
     let _ = parse_proposal;
     let _ = std::mem::size_of::<OperationsDerivePoint>();
+    let _ = std::mem::size_of::<OperationsEvidencePoint>();
 }
 "#,
     )
@@ -369,6 +486,8 @@ fn main() {
     assert!(stderr.contains("derive_with_hook"));
     assert!(stderr.contains("parse_proposal"));
     assert!(stderr.contains("OperationsDerivePoint"));
+    assert!(stderr.contains("OperationsEvidencePoint"));
+    assert!(stderr.contains("apply_with_hook"));
     assert!(stderr.contains("Clone"));
     assert!(stderr.contains("Debug"));
     assert!(stderr.contains("private"));

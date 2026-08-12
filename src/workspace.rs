@@ -2326,6 +2326,30 @@ pub(crate) fn commit_semantic_structural_change_authority_with_hook(
     )
 }
 
+pub(crate) fn commit_semantic_operations_authority_with_hook(
+    authority: crate::semantic_workspace_operations::SemanticWorkspaceOperationsCommitAuthority,
+    hook: impl FnMut(
+        SemanticChangeApplyPoint,
+        &Path,
+        Option<&Path>,
+        Option<&Path>,
+    ) -> std::io::Result<()>,
+) -> Result<String, Vec<Diagnostic>> {
+    let (authority, candidate_files, candidate_manifest, candidate_revision, receipt) =
+        authority.into_parts();
+    commit_semantic_candidate_parts_with_hook(
+        SemanticCandidateCommitParts {
+            authority,
+            candidate_files,
+            candidate_manifest,
+            candidate_revision,
+            receipt,
+        },
+        "Semantic Workspace Operations",
+        hook,
+    )
+}
+
 fn commit_semantic_candidate_parts_with_hook(
     parts: SemanticCandidateCommitParts,
     authority_label: &'static str,

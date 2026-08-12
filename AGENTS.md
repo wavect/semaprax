@@ -70,7 +70,9 @@ proof scaffolding, not a wired native-runtime claim.
 - `src/semantic_workspace_change.rs`, `src/semantic_workspace_change/`:
   replacements-only proposal analysis, canonical Evidence and receipts, exact
   replay, and the invocation-local evidence-gated `ACTIVE` publication route.
-- `src/semantic_workspace_operations.rs`: bounded read-only stable-ID
+- `src/semantic_workspace_operations.rs`: bounded stable-ID derivation,
+  additive Operations-intent Evidence and exact replay, and exclusive
+  replay-before-publication through the existing immutable workspace core.
   declaration/import-alias operations compiled under one shared authority into
   an exact existing Change-v1 replacements proposal and derivation wrapper.
 - `src/call_index.rs`, `impact.rs`: shared validated-HIR call index and bounded,

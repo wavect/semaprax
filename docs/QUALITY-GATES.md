@@ -1,16 +1,24 @@
 # Quality gates
 
 Semantic Workspace Operations v1 changes additionally require the focused
-unit and public integration suites, exact three-digest KATs, canonical
+unit and public integration suites, exact derivation/Evidence/two-receipt KATs, canonical
 proposal/wrapper mutation matrices, proposal/per-path input exact/+1 caps,
 derivation individual and aggregate minimum-success/minus-one caps plus
 greater-than-production seam rejection, one-base/one-candidate build counters,
 lock-held one-read ownership,
 resolver-free final-drift rejection with immediate exclusive reacquisition,
 API/CLI byte parity and arity, no-write inventory proof, and preservation of
-Change-v1 and Structural Change bytes. Operations Evidence, verification, and
-apply symbols/commands must remain absent. Hosted claims require the exact-head
+Change-v1 and Structural Change bytes. Operations Evidence additionally requires
+embedded unchanged Change-v1 Evidence binding, canonical/ref/limit/budget/nonclaim
+mutation matrices, replay-before-write, one exclusive lock, a sealed invocation-local
+commit proof, dual final checks, the sole `ACTIVE` pivot, I211/I212 boundaries,
+state-relative residue, process-termination, and OS no-clobber evidence. Hosted claims require the exact-head
 Ubuntu, macOS, Windows, MSRV, Component, and dependency-policy matrix.
+The decisive Operations process-termination gate is
+`cargo test --locked -p semaprax --lib semantic_workspace_operations::tests::operations_apply_killed_process_boundaries_preserve_exact_old_or_new -- --exact --nocapture`
+on Ubuntu, macOS, and Windows. It proves the exact old-or-new authenticated
+workspace state after real child-process termination while the exclusive lock
+is held; it does not establish power-loss durability.
 
 Quality gates are executable evidence, not a checklist substitute for reasoning. Every pull request must pass the baseline and the gates for each changed semantic layer.
 

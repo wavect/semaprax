@@ -47,6 +47,10 @@ const REVIEW_DIGEST_DOMAIN: &[u8] =
 pub(super) const EVIDENCE_DIGEST_DOMAIN: &[u8] =
     b"semaprax.workspace-semantic-change-evidence.artifact-digest.v1\0";
 
+pub(crate) fn digest_evidence(source: &str) -> String {
+    digest(EVIDENCE_DIGEST_DOMAIN, source.as_bytes())
+}
+
 const MAX_TOTAL_BASE_SOURCE_BYTES: usize = 16 * 1024 * 1024;
 const MAX_TOTAL_CANDIDATE_SOURCE_BYTES: usize = 16 * 1024 * 1024;
 const MAX_CANDIDATE_MANIFEST_BYTES: usize = 1024 * 1024;
@@ -215,6 +219,27 @@ impl SemanticWorkspaceChangeArtifacts {
     pub(super) fn into_evidence(mut self) -> String {
         std::mem::take(&mut self.evidence.bytes)
     }
+
+    pub(crate) fn evidence_bytes(&self) -> &str {
+        &self.evidence.bytes
+    }
+
+    pub(crate) fn evidence_artifact_digest(&self) -> &str {
+        &self.evidence.digest
+    }
+
+    pub(crate) fn total_artifact_bytes(&self, proposal_bytes: usize) -> Option<usize> {
+        [
+            proposal_bytes,
+            self.preview.bytes.len(),
+            self.context.bytes.len(),
+            self.impact.bytes.len(),
+            self.review.bytes.len(),
+            self.evidence.bytes.len(),
+        ]
+        .into_iter()
+        .try_fold(0usize, usize::checked_add)
+    }
 }
 
 #[cfg(test)]
@@ -271,7 +296,7 @@ struct Usage {
     staging_attempts: usize,
 }
 
-pub(super) fn render_artifacts(
+pub(crate) fn render_artifacts(
     prepared: &SemanticWorkspacePreparedChange,
 ) -> Result<SemanticWorkspaceChangeArtifacts, Vec<Diagnostic>> {
     replay_prepared(prepared)?;

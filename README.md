@@ -331,8 +331,11 @@ Implemented today:
   additively compiles 2–64 explicit stable-ID declaration or direct import-alias
   renames across 2–16 managed paths into one exact existing Change-v1 proposal.
   It is shared-lock read-only: it emits only the derived proposal and a bounded
-  canonical derivation wrapper, and provides no Operations Evidence, verifier,
-  receipt, apply route, publication authority, or path-set change. Local gates
+  canonical derivation wrapper. Additive Operations Evidence embeds and binds
+  the exact unchanged Change-v1 Evidence; shared verification and exclusive
+  fresh-replay apply produce non-authorizing receipts and publish only through
+  the existing immutable-generation `ACTIVE` pivot. It provides no reusable
+  authorization token, raw-source authority, or path-set change. Local gates
   are green; exact-head hosted evidence is pending and totals remain 38
   Partial/18 Missing.
 - Native AOT output through a readable C11 lowering and Clang.
@@ -904,6 +907,11 @@ Process-termination evidence is not a power-loss durability claim.
 | `semantic-workspace-change-evidence <root> <proposal.json>` | Emit the canonical Change Evidence capsule without write authority |
 | `verify-semantic-workspace-change-evidence <root> <proposal.json> <evidence.json>` | Exact-replay Change Evidence under a shared lock and emit a non-authorizing receipt |
 | `apply-semantic-workspace-change-evidence <root> <proposal.json> <evidence.json>` | Freshly replay Evidence under an exclusive lock, then publish through the sole `ACTIVE` pivot |
+| `semantic-workspace-operations-derive <root> <proposal.json>` | Emit the canonical Operations derivation wrapper |
+| `semantic-workspace-operations-change-proposal <root> <proposal.json>` | Emit the exact derived Change-v1 proposal |
+| `semantic-workspace-operations-evidence <root> <proposal.json>` | Bind Operations intent to exact unchanged Change-v1 Evidence without write authority |
+| `verify-semantic-workspace-operations-evidence <root> <proposal.json> <evidence.json>` | Freshly replay outer and child Evidence under one shared lock |
+| `apply-semantic-workspace-operations-evidence <root> <proposal.json> <evidence.json>` | Freshly replay Operations intent under one exclusive lock before immutable publication |
 | `patch-evidence <file> <patch.spatch>` | Emit canonical bounded Semantic Patch Evidence v1 without writing source |
 | `verify-patch-evidence <file> <patch.spatch> <evidence.json>` | Independently replay a capsule and emit its canonical verification receipt |
 | `patch-with-evidence <file> <patch.spatch> <evidence.json>` | Require exact evidence replay before A0 staging and commit |

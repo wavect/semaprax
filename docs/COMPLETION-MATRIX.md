@@ -21,10 +21,14 @@ projection and atomic-agent-change rows without changing their status. It
 authenticates one managed base AST/HIR occurrence sidecar and one candidate
 graph to compile bounded explicit stable-ID declaration/direct import-alias
 renames into one exact existing Change-v1 replacements proposal and canonical
-derivation wrapper. It adds no Operations Evidence, verification, apply or
-publication authority, path-set change, target/test execution, provenance, or
-automatic identity selection. Local gates are green and exact-head hosted
-evidence is pending; totals remain 38 Partial / 18 Missing.
+derivation wrapper. Additive outer Evidence now binds the exact Operations
+intent to unchanged Change-v1 Evidence and gates one exclusive immutable
+publication route; it adds no Operations-native Context/Impact/Review or
+reusable Evidence/receipt authority, path-set change, target/test execution,
+provenance, or automatic identity selection. Exact replay inside apply mints
+only one invocation-local publication authority. The complete local corpus is
+green and exact-head hosted evidence is pending; totals remain 38 Partial / 18
+Missing.
 
 | Milestone | Status | Evidence boundary |
 | --- | --- | --- |

@@ -100,6 +100,11 @@ impl SemanticWorkspaceFileFact {
         &self.source
     }
 
+    #[cfg(test)]
+    pub(crate) fn source_mut(&mut self) -> &mut String {
+        &mut self.source
+    }
+
     pub(crate) fn into_parts(self) -> (String, String, String, String, String) {
         (
             self.path,

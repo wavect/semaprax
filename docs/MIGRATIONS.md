@@ -336,8 +336,10 @@ Semantic Workspace or Change-v1 bytes. Consumers opt in through
 `semantic-workspace-operations-change-proposal`; the latter output is an exact
 ordinary Change-v1 proposal. Existing Change-v1 Evidence may subsequently bind
 those derived Change bytes, but it does not bind or authorize the Operations
-proposal or intent. There is no Operations Evidence, receipt, verifier, apply
-route, schema negotiation, or silent fallback.
+proposal or intent. Consumers that require that binding opt in to the additive
+Operations Evidence schema and its verify/apply commands. No old derivation or
+Change-v1 Evidence is silently upgraded, no receipt is an apply token, and
+there is no schema negotiation or fallback.
 
 ## Persistent identities are NUL-free
 

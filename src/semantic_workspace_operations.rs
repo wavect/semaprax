@@ -1,11 +1,12 @@
 //! Authenticated stable-identity operation derivation for Semantic Workspace Change v1.
 //!
-//! The read-only public routes own one canonical Operations proposal while
-//! holding the shared semantic-workspace lock, derive one exact existing
-//! replacements-only Change-v1 proposal, and return the canonical derivation
-//! wrapper only after resolver-free held-workspace reauthentication and checked
-//! unlock. They provide no evidence, verification, application, publication,
-//! approval, signature, or reusable authorization authority.
+//! Read-only derivation, Evidence generation, and verification hold one shared
+//! semantic-workspace lock and return only after resolver-free held-workspace
+//! reauthentication and checked unlock. Application instead holds one exclusive
+//! lock, freshly replays the complete Operations intent and unchanged Change-v1
+//! child Evidence, and may publish only the exact immutable candidate through
+//! the existing sole `ACTIVE` pivot. Evidence and receipts provide no reusable
+//! authorization, approval, signature, provenance, rollback, or cleanup authority.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
@@ -19,6 +20,11 @@ use sha2::{Digest, Sha256};
 use crate::bounded_output::CappedString;
 use crate::diagnostic::Diagnostic;
 use crate::{semantic_workspace, semantic_workspace_change, workspace, workspace_graph};
+
+mod evidence_artifact;
+mod evidence_verification;
+
+pub use evidence_artifact::SemanticWorkspaceOperationsEvidenceArtifacts;
 
 const SCHEMA: &str = "semaprax.semantic-workspace-operations.v1";
 const DIGEST_DOMAIN: &[u8] = b"semaprax.semantic-workspace-operations.proposal-digest.v1\0";
@@ -219,16 +225,104 @@ pub(crate) struct PreparedSemanticWorkspaceOperations {
     proposal_digest: String,
     operations: Vec<Operation>,
     edits: Vec<PlannedEditFact>,
-    candidate_sources: Vec<semantic_workspace::SemanticWorkspaceSource>,
+    base_files: Vec<semantic_workspace::SemanticWorkspaceFileFact>,
+    candidate_files: Vec<semantic_workspace::SemanticWorkspaceFileFact>,
     derived_change: semantic_workspace_change::SemanticWorkspaceChangeSet,
     base_graph: workspace_graph::WorkspaceGraphChangeView,
     candidate_graph: workspace_graph::WorkspaceGraphChangeView,
+    base_change_builder_bytes: usize,
+    candidate_change_builder_bytes: usize,
     base_workspace_revision: String,
     candidate_workspace_revision: String,
     candidate_manifest: String,
     entry_module: String,
     usage: OperationsUsageFacts,
     used_operations_builder_bytes: usize,
+}
+
+struct PreparedOperationsEvidenceInput {
+    operations_proposal: String,
+    operations_proposal_digest: String,
+    derivation: SemanticWorkspaceOperationsDerivation,
+    change: semantic_workspace_change::SemanticWorkspacePreparedChange,
+}
+
+pub(crate) struct SemanticWorkspaceOperationsCommitAuthority {
+    authority: workspace::WorkspaceSemanticReadAuthority,
+    candidate_files: Vec<semantic_workspace::SemanticWorkspaceFileFact>,
+    candidate_manifest: String,
+    candidate_revision: String,
+    receipt: String,
+    operations_proposal_digest: String,
+    derivation_digest: String,
+    derived_change_proposal_digest: String,
+    workspace_change_evidence_digest: String,
+    operations_evidence_digest: String,
+}
+
+impl SemanticWorkspaceOperationsCommitAuthority {
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        workspace::WorkspaceSemanticReadAuthority,
+        Vec<semantic_workspace::SemanticWorkspaceFileFact>,
+        String,
+        String,
+        String,
+    ) {
+        assert!(
+            valid_digest(&self.operations_proposal_digest)
+                && valid_digest(&self.derivation_digest)
+                && valid_digest(&self.derived_change_proposal_digest)
+                && valid_digest(&self.workspace_change_evidence_digest)
+                && valid_digest(&self.operations_evidence_digest),
+            "sealed Operations commit authority requires exact replay digests"
+        );
+        (
+            self.authority,
+            self.candidate_files,
+            self.candidate_manifest,
+            self.candidate_revision,
+            self.receipt,
+        )
+    }
+}
+
+impl PreparedSemanticWorkspaceOperations {
+    fn into_evidence_input(
+        self,
+        derivation: SemanticWorkspaceOperationsDerivation,
+        storage: (usize, usize, usize),
+    ) -> Result<PreparedOperationsEvidenceInput, Vec<Diagnostic>> {
+        if derivation.operations_proposal_digest != self.proposal_digest
+            || derivation.derived_change_proposal != self.derived_change.source()
+        {
+            return Err(replay());
+        }
+        let operations_proposal = self.proposal_source;
+        let operations_proposal_digest = self.proposal_digest;
+        let change = semantic_workspace_change::prepare_from_operations_facts(
+            semantic_workspace_change::OperationsChangeBridge {
+                change_set: self.derived_change,
+                authenticated_revision: self.base_workspace_revision,
+                base_files: self.base_files,
+                candidate_files: self.candidate_files,
+                candidate_manifest: self.candidate_manifest,
+                candidate_workspace_revision: self.candidate_workspace_revision,
+                base_graph: self.base_graph,
+                candidate_graph: self.candidate_graph,
+                base_builder_bytes: self.base_change_builder_bytes,
+                candidate_builder_bytes: self.candidate_change_builder_bytes,
+                storage,
+            },
+        )?;
+        Ok(PreparedOperationsEvidenceInput {
+            operations_proposal,
+            operations_proposal_digest,
+            derivation,
+            change,
+        })
+    }
 }
 
 /// Opaque read-only Operations derivation bundle.
@@ -244,6 +338,18 @@ pub struct SemanticWorkspaceOperationsDerivation {
 pub(crate) enum OperationsDerivePoint {
     ProposalOwned,
     DerivationRendered,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum OperationsEvidencePoint {
+    ProposalOwned,
+    EvidenceOwned,
+    AfterOperationsReplay,
+    ChangeArtifactsRendered,
+    EvidenceRendered,
+    OperationsEvidenceReplayed,
+    ReceiptRendered,
+    Workspace(workspace::SemanticChangeApplyPoint),
 }
 
 #[derive(Clone, Copy)]
@@ -283,8 +389,8 @@ impl PreparedSemanticWorkspaceOperations {
     pub(crate) fn operations_len(&self) -> usize {
         self.operations.len()
     }
-    pub(crate) fn candidate_sources(&self) -> &[semantic_workspace::SemanticWorkspaceSource] {
-        &self.candidate_sources
+    pub(crate) fn candidate_sources(&self) -> &[semantic_workspace::SemanticWorkspaceFileFact] {
+        &self.candidate_files
     }
     pub(crate) fn base_graph(&self) -> &workspace_graph::WorkspaceGraphChangeView {
         &self.base_graph
@@ -298,22 +404,27 @@ impl PreparedSemanticWorkspaceOperations {
 }
 
 impl SemanticWorkspaceOperationsDerivation {
+    /// Returns the domain-separated digest of the exact Operations proposal.
     pub fn operations_proposal_digest(&self) -> &str {
         &self.operations_proposal_digest
     }
 
+    /// Returns the canonical derived Change-v1 proposal, including its LF.
     pub fn derived_change_proposal(&self) -> &str {
         &self.derived_change_proposal
     }
 
+    /// Returns the unchanged Change-v1 proposal digest.
     pub fn derived_change_proposal_digest(&self) -> &str {
         &self.derived_change_proposal_digest
     }
 
+    /// Returns the canonical Operations derivation wrapper, including its LF.
     pub fn derivation(&self) -> &str {
         &self.derivation
     }
 
+    /// Returns the domain-separated digest of the derivation wrapper.
     pub fn derivation_digest(&self) -> &str {
         &self.derivation_digest
     }
@@ -347,6 +458,275 @@ pub fn derived_change_proposal(
 /// Returns the canonical Operations derivation wrapper, including its terminal LF.
 pub fn derivation(root: &Path, proposal_path: &Path) -> Result<String, Vec<Diagnostic>> {
     derive(root, proposal_path).map(SemanticWorkspaceOperationsDerivation::into_derivation)
+}
+
+/// Generates the exact Operations-intent Evidence bundle.
+pub fn generate_evidence(
+    root: &Path,
+    proposal_path: &Path,
+) -> Result<SemanticWorkspaceOperationsEvidenceArtifacts, Vec<Diagnostic>> {
+    generate_evidence_with_hook(root, proposal_path, |_| {})
+}
+
+/// Returns the canonical Operations-intent Evidence document.
+pub fn evidence(root: &Path, proposal_path: &Path) -> Result<String, Vec<Diagnostic>> {
+    generate_evidence(root, proposal_path)
+        .map(SemanticWorkspaceOperationsEvidenceArtifacts::into_operations_evidence)
+}
+
+fn generate_evidence_with_hook(
+    root: &Path,
+    proposal_path: &Path,
+    mut hook: impl FnMut(OperationsEvidencePoint),
+) -> Result<SemanticWorkspaceOperationsEvidenceArtifacts, Vec<Diagnostic>> {
+    let locked = workspace::acquire_semantic_change_lock(root)?;
+    let proposal = read_operations_proposal(proposal_path).and_then(|source| {
+        hook(OperationsEvidencePoint::ProposalOwned);
+        parse_proposal(&source)
+    });
+    let (mut authority, proposal) = locked
+        .authenticate_operations(proposal)
+        .map_err(map_base_operations_builder_limit)?;
+    let result = (|| {
+        let storage = (
+            authority.manifest_bytes(),
+            authority.retained_generations(),
+            authority.staging_attempts(),
+        );
+        let authenticated_revision = authority.workspace_revision().to_owned();
+        let graph = authority.take_graph()?;
+        let sources = authority.take_sources();
+        let base = semantic_workspace::authenticated_operations_preflight(
+            &authenticated_revision,
+            sources,
+            graph,
+        )?;
+        let prepared = prepare_parsed_with_limit(proposal, base, MAX_OPERATIONS_BUILDER_BYTES)?;
+        hook(OperationsEvidencePoint::AfterOperationsReplay);
+        let derivation = render_derivation(&prepared)?;
+        let prepared = prepared.into_evidence_input(derivation, storage)?;
+        let change_artifacts =
+            semantic_workspace_change::render_prepared_artifacts(&prepared.change)?;
+        hook(OperationsEvidencePoint::ChangeArtifactsRendered);
+        let artifacts = evidence_artifact::render_evidence(&prepared, &change_artifacts)?;
+        hook(OperationsEvidencePoint::EvidenceRendered);
+        Ok(artifacts)
+    })();
+    authority.finish(result)
+}
+
+/// Verifies one submitted Operations-intent Evidence document by exact replay.
+pub fn verify(
+    root: &Path,
+    proposal_path: &Path,
+    evidence_path: &Path,
+) -> Result<String, Vec<Diagnostic>> {
+    verify_with_hook(root, proposal_path, evidence_path, |_| {})
+}
+
+/// Applies one exact Operations intent after fresh whole Evidence replay.
+pub fn apply(
+    root: &Path,
+    proposal_path: &Path,
+    evidence_path: &Path,
+) -> Result<String, Vec<Diagnostic>> {
+    apply_with_hook(root, proposal_path, evidence_path, |_, _, _, _| Ok(()))
+}
+
+pub(crate) fn apply_with_hook(
+    root: &Path,
+    proposal_path: &Path,
+    evidence_path: &Path,
+    mut hook: impl FnMut(
+        OperationsEvidencePoint,
+        &Path,
+        Option<&Path>,
+        Option<&Path>,
+    ) -> std::io::Result<()>,
+) -> Result<String, Vec<Diagnostic>> {
+    let locked = workspace::acquire_semantic_change_apply_lock(root)?;
+    let active_path = root.join(".semaprax-workspace/ACTIVE");
+    let input = read_operations_proposal(proposal_path).and_then(|proposal_source| {
+        hook(
+            OperationsEvidencePoint::ProposalOwned,
+            &active_path,
+            None,
+            None,
+        )
+        .map_err(|error| operations_apply_hook("proposal post-read hook failed", error))?;
+        let evidence_source = evidence_verification::read_evidence(evidence_path)?;
+        let submitted = evidence_verification::parse_evidence(&evidence_source)?;
+        hook(
+            OperationsEvidencePoint::EvidenceOwned,
+            &active_path,
+            None,
+            None,
+        )
+        .map_err(|error| operations_apply_hook("Evidence post-read hook failed", error))?;
+        let proposal = parse_proposal(&proposal_source)?;
+        Ok((proposal, evidence_source, submitted))
+    });
+    let (mut authority, (proposal, evidence_source, submitted)) = locked
+        .authenticate_operations(input)
+        .map_err(map_base_operations_builder_limit)?;
+    let prepublication = (|| {
+        let storage = (
+            authority.manifest_bytes(),
+            authority.retained_generations(),
+            authority.staging_attempts(),
+        );
+        let authenticated_revision = authority.workspace_revision().to_owned();
+        let graph = authority.take_graph()?;
+        let sources = authority.take_sources();
+        let base = semantic_workspace::authenticated_operations_preflight(
+            &authenticated_revision,
+            sources,
+            graph,
+        )?;
+        let prepared = prepare_parsed_with_limit(proposal, base, MAX_OPERATIONS_BUILDER_BYTES)?;
+        hook(
+            OperationsEvidencePoint::AfterOperationsReplay,
+            &active_path,
+            None,
+            None,
+        )
+        .map_err(|error| operations_apply_hook("Operations replay hook failed", error))?;
+        let derivation = render_derivation(&prepared)?;
+        let prepared = prepared.into_evidence_input(derivation, storage)?;
+        let change_artifacts =
+            semantic_workspace_change::render_prepared_artifacts(&prepared.change)?;
+        hook(
+            OperationsEvidencePoint::ChangeArtifactsRendered,
+            &active_path,
+            None,
+            None,
+        )
+        .map_err(|error| operations_apply_hook("Change artifact hook failed", error))?;
+        let artifacts = evidence_artifact::render_evidence(&prepared, &change_artifacts)?;
+        evidence_verification::verify_replay(
+            &submitted,
+            &evidence_source,
+            artifacts.operations_evidence(),
+            change_artifacts.evidence_bytes(),
+        )?;
+        let replay_token = evidence_artifact::exact_replay_token(
+            &prepared,
+            &change_artifacts,
+            &artifacts,
+            &evidence_source,
+        )?;
+        hook(
+            OperationsEvidencePoint::OperationsEvidenceReplayed,
+            &active_path,
+            None,
+            None,
+        )
+        .map_err(|error| operations_apply_hook("Operations Evidence replay hook failed", error))?;
+        let receipt =
+            evidence_artifact::render_receipt(&prepared, &artifacts, &replay_token, true)?;
+        hook(
+            OperationsEvidencePoint::ReceiptRendered,
+            &active_path,
+            None,
+            None,
+        )
+        .map_err(|error| operations_apply_hook("application receipt hook failed", error))?;
+        Ok((prepared, receipt, replay_token))
+    })();
+    let (prepared, receipt, replay_token) = match prepublication {
+        Ok(value) => value,
+        Err(diagnostics) => return authority.finish(Err(diagnostics)),
+    };
+    let (candidate_files, candidate_manifest, candidate_revision) =
+        prepared.change.into_operations_commit_parts();
+    let commit = SemanticWorkspaceOperationsCommitAuthority {
+        authority,
+        candidate_files,
+        candidate_manifest,
+        candidate_revision,
+        receipt,
+        operations_proposal_digest: replay_token.operations_proposal_digest,
+        derivation_digest: replay_token.derivation_digest,
+        derived_change_proposal_digest: replay_token.derived_change_proposal_digest,
+        workspace_change_evidence_digest: replay_token.workspace_change_evidence_digest,
+        operations_evidence_digest: replay_token.operations_evidence_digest,
+    };
+    workspace::commit_semantic_operations_authority_with_hook(
+        commit,
+        |point, active, staged, candidate| {
+            hook(
+                OperationsEvidencePoint::Workspace(point),
+                active,
+                staged,
+                candidate,
+            )
+        },
+    )
+}
+
+fn operations_apply_hook(label: &'static str, error: std::io::Error) -> Vec<Diagnostic> {
+    vec![Diagnostic::io("SPX-I211", format!("{label}: {error}"))]
+}
+
+fn verify_with_hook(
+    root: &Path,
+    proposal_path: &Path,
+    evidence_path: &Path,
+    mut hook: impl FnMut(OperationsEvidencePoint),
+) -> Result<String, Vec<Diagnostic>> {
+    let locked = workspace::acquire_semantic_change_lock(root)?;
+    let input = read_operations_proposal(proposal_path).and_then(|proposal_source| {
+        hook(OperationsEvidencePoint::ProposalOwned);
+        let evidence_source = evidence_verification::read_evidence(evidence_path)?;
+        let submitted = evidence_verification::parse_evidence(&evidence_source)?;
+        hook(OperationsEvidencePoint::EvidenceOwned);
+        let proposal = parse_proposal(&proposal_source)?;
+        Ok((proposal, evidence_source, submitted))
+    });
+    let (mut authority, (proposal, evidence_source, submitted)) = locked
+        .authenticate_operations(input)
+        .map_err(map_base_operations_builder_limit)?;
+    let result = (|| {
+        let storage = (
+            authority.manifest_bytes(),
+            authority.retained_generations(),
+            authority.staging_attempts(),
+        );
+        let authenticated_revision = authority.workspace_revision().to_owned();
+        let graph = authority.take_graph()?;
+        let sources = authority.take_sources();
+        let base = semantic_workspace::authenticated_operations_preflight(
+            &authenticated_revision,
+            sources,
+            graph,
+        )?;
+        let prepared = prepare_parsed_with_limit(proposal, base, MAX_OPERATIONS_BUILDER_BYTES)?;
+        hook(OperationsEvidencePoint::AfterOperationsReplay);
+        let derivation = render_derivation(&prepared)?;
+        let prepared = prepared.into_evidence_input(derivation, storage)?;
+        let change_artifacts =
+            semantic_workspace_change::render_prepared_artifacts(&prepared.change)?;
+        hook(OperationsEvidencePoint::ChangeArtifactsRendered);
+        let artifacts = evidence_artifact::render_evidence(&prepared, &change_artifacts)?;
+        evidence_verification::verify_replay(
+            &submitted,
+            &evidence_source,
+            artifacts.operations_evidence(),
+            change_artifacts.evidence_bytes(),
+        )?;
+        let replay_token = evidence_artifact::exact_replay_token(
+            &prepared,
+            &change_artifacts,
+            &artifacts,
+            &evidence_source,
+        )?;
+        hook(OperationsEvidencePoint::OperationsEvidenceReplayed);
+        let receipt =
+            evidence_artifact::render_receipt(&prepared, &artifacts, &replay_token, false)?;
+        hook(OperationsEvidencePoint::ReceiptRendered);
+        Ok(receipt)
+    })();
+    authority.finish(result)
 }
 
 pub(crate) fn derive_with_hook(
@@ -524,12 +904,12 @@ fn validate_derivation_usage(
         semantic_workspace::parse_manifest(&prepared.candidate_manifest).map_err(|_| replay())?;
     if semantic_workspace::render_manifest(&candidate_manifest_facts).map_err(|_| replay())?
         != prepared.candidate_manifest
-        || candidate_manifest_facts.len() != prepared.candidate_sources.len()
+        || candidate_manifest_facts.len() != prepared.candidate_files.len()
         || candidate_manifest_facts
             .iter()
-            .zip(&prepared.candidate_sources)
+            .zip(&prepared.candidate_files)
             .any(|(fact, source)| {
-                fact.path() != source.path
+                fact.path() != source.path()
                     || prepared
                         .candidate_graph
                         .modules()
@@ -538,11 +918,11 @@ fn validate_derivation_usage(
                         .is_none_or(|module| {
                             module.source_graph_schema() != fact.source_graph_schema()
                         })
-                    || fact.bytes() != source.source.len()
+                    || fact.bytes() != source.source().len()
                     || fact.source_revision()
-                        != crate::graph::revision_from_canonical_source(&source.source)
+                        != crate::graph::revision_from_canonical_source(source.source())
                     || fact.source_digest()
-                        != crate::review::source_digest(source.source.as_bytes())
+                        != crate::review::source_digest(source.source().as_bytes())
             })
     {
         return Err(replay());
@@ -561,10 +941,10 @@ fn validate_derivation_usage(
         })
         .ok_or_else(replay)?;
     let total_candidate_source_bytes = prepared
-        .candidate_sources
+        .candidate_files
         .iter()
         .try_fold(0usize, |total, source| {
-            total.checked_add(source.source.len())
+            total.checked_add(source.source().len())
         })
         .ok_or_else(replay)?;
     let total_replacement_source_bytes = prepared
@@ -940,6 +1320,7 @@ fn prepare_parsed_with_limit(
     }
     let remaining = operations_builder_limit - operation_view.builder_bytes;
     let base_builder_bytes = operation_view.builder_bytes;
+    let base_change_builder_bytes = operation_view.change_builder_bytes;
     let (result, overflowed, replay_builder_bytes) =
         crate::bounded_output::with_limit_usage(remaining, || {
             prepare_owned_inner(
@@ -947,6 +1328,7 @@ fn prepare_parsed_with_limit(
                 &base_workspace_revision,
                 base_files,
                 operation_view,
+                base_change_builder_bytes,
             )
         });
     if overflowed {
@@ -968,6 +1350,7 @@ fn prepare_owned_inner(
     base_workspace_revision: &str,
     base_files: Vec<semantic_workspace::SemanticWorkspaceFileFact>,
     operation_view: workspace_graph::WorkspaceGraphOperationView,
+    base_change_builder_bytes: usize,
 ) -> Result<PreparedSemanticWorkspaceOperations, Vec<Diagnostic>> {
     // Account for the transient serde tree, retained typed operation objects,
     // and their strings before parsing allocates any of them. Four payloads is
@@ -1098,6 +1481,7 @@ fn prepare_owned_inner(
         by_path.entry(edit.path.clone()).or_default().push(edit);
     }
     let mut candidate_sources = Vec::with_capacity(sources.len());
+    let mut retained_base_files = Vec::with_capacity(sources.len());
     reserve_operations(
         sources
             .len()
@@ -1156,6 +1540,7 @@ fn prepare_owned_inner(
             path: path.clone(),
             source,
         });
+        retained_base_files.push(file);
     }
     let candidate_total = candidate_sources
         .iter()
@@ -1187,6 +1572,7 @@ fn prepare_owned_inner(
     let candidate_view = candidate_build
         .into_operation_view()
         .map_err(|_| replay())?;
+    let candidate_change_builder_bytes = candidate_view.change_builder_bytes;
     reserve_operations(candidate_view.builder_bytes)?;
     replay_candidate(&operation_view, &candidate_view, &proposal.operations)?;
     let derived_change = semantic_workspace_change::SemanticWorkspaceChangeSet::new(
@@ -1203,6 +1589,10 @@ fn prepare_owned_inner(
     if candidate_revision == proposal.base_workspace_revision {
         return Err(replay());
     }
+    // Preserve the frozen Operations builder accounting for the retained
+    // candidate source projection. The Evidence vertical retains the richer
+    // file facts in the same allocation envelope instead of constructing a
+    // duplicate full source vector.
     reserve_operations(
         candidate_files
             .len()
@@ -1211,13 +1601,6 @@ fn prepare_owned_inner(
             >())
             .ok_or_else(|| limit("operations_builder_bytes", MAX_OPERATIONS_BUILDER_BYTES))?,
     )?;
-    let candidate_sources = candidate_files
-        .into_iter()
-        .map(|file| {
-            let (path, _, _, _, source) = file.into_parts();
-            semantic_workspace::SemanticWorkspaceSource { path, source }
-        })
-        .collect();
     let affected_paths = by_path.len();
     let usage = OperationsUsageFacts {
         managed_files: operation_view.graph.used_managed_files(),
@@ -1239,10 +1622,13 @@ fn prepare_owned_inner(
         proposal_digest: proposal.digest,
         operations: proposal.operations,
         edits,
-        candidate_sources,
+        base_files: retained_base_files,
+        candidate_files,
         derived_change,
         base_graph: operation_view.graph,
         candidate_graph: candidate_view.graph,
+        base_change_builder_bytes,
+        candidate_change_builder_bytes,
         base_workspace_revision: base_workspace_revision.to_owned(),
         candidate_workspace_revision: candidate_revision,
         candidate_manifest,
@@ -2113,10 +2499,10 @@ fn valid_ident(v: &str) -> bool {
         .is_some_and(|x| x == '_' || x.is_ascii_alphabetic())
         && c.all(|x| x == '_' || x.is_ascii_alphanumeric())
 }
-fn valid_qualified_module(value: &str) -> bool {
+pub(super) fn valid_qualified_module(value: &str) -> bool {
     !value.is_empty() && value.split('.').all(valid_ident)
 }
-fn valid_digest(value: &str) -> bool {
+pub(super) fn valid_digest(value: &str) -> bool {
     value.strip_prefix("sha256:").is_some_and(|hex| {
         hex.len() == 64
             && hex
@@ -2170,13 +2556,23 @@ fn replay() -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-G200","Semantic Workspace Operations derivation disagrees with authenticated base or candidate semantics")]
 }
 
+fn operations_evidence_replay() -> Vec<Diagnostic> {
+    vec![Diagnostic::io(
+        "SPX-G203",
+        "submitted Semantic Workspace Operations Evidence does not exactly replay the authenticated Operations proposal and derived Change Evidence",
+    )]
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use fs2::FileExt;
     use std::fs::OpenOptions;
+    use std::io::Write as _;
     use std::path::{Path, PathBuf};
+    use std::process::{Child, Command, Stdio};
     use std::sync::atomic::{AtomicU64, Ordering};
+    use std::time::{Duration, Instant};
 
     static MANAGED_SERIAL: AtomicU64 = AtomicU64::new(0);
 
@@ -2324,6 +2720,22 @@ mod tests {
             preflight.workspace_revision(),
         );
         (preflight, proposal)
+    }
+
+    fn evidence_render_fixture() -> (
+        PreparedOperationsEvidenceInput,
+        semantic_workspace_change::SemanticWorkspaceChangeArtifacts,
+    ) {
+        let (base, proposal) = fixture();
+        let manifest_bytes = base.manifest().len();
+        let prepared = prepare_owned(&proposal, base).unwrap();
+        let derivation = render_derivation(&prepared).unwrap();
+        let prepared = prepared
+            .into_evidence_input(derivation, (manifest_bytes, 1, 0))
+            .unwrap();
+        let change =
+            semantic_workspace_change::render_prepared_artifacts(&prepared.change).unwrap();
+        (prepared, change)
     }
 
     fn broad_fixture() -> (semantic_workspace::SemanticWorkspacePreflight, String) {
@@ -2544,7 +2956,7 @@ permit { audit.read }
         expect_replay(|prepared| prepared.usage.planned_edits += 1);
         expect_replay(|prepared| prepared.usage.total_candidate_source_bytes += 1);
         expect_replay(|prepared| prepared.usage.candidate_graph_builder_bytes += 1);
-        expect_replay(|prepared| prepared.candidate_sources[0].source.push('\n'));
+        expect_replay(|prepared| prepared.candidate_files[0].source_mut().push('\n'));
     }
 
     #[test]
@@ -2829,12 +3241,12 @@ permit { audit.read }
             base.workspace_revision(),
         );
         let prepared = prepare_owned(&proposal, base).unwrap();
-        let first = &prepared.candidate_sources()[0].source;
+        let first = prepared.candidate_sources()[0].source();
         assert!(first.contains("record Core"));
         assert!(first.contains("Holder<i64>"));
         assert!(first.contains("inner: Core"));
         assert!(first.contains("inner: Core {"));
-        let second = &prepared.candidate_sources()[1].source;
+        let second = prepared.candidate_sources()[1].source();
         assert!(second.contains("record Node"));
         assert!(second.contains("Holder<i64>"));
         assert!(second.contains("leaf: Node"));
@@ -2894,9 +3306,9 @@ permit { audit.read }
         let provider = &prepared
             .candidate_sources()
             .iter()
-            .find(|source| source.path == "a/provider.spx")
+            .find(|source| source.path() == "a/provider.spx")
             .unwrap()
-            .source;
+            .source();
         for expected in [
             "resource Handle",
             "record Metric",
@@ -2921,9 +3333,9 @@ permit { audit.read }
         let consumer = &prepared
             .candidate_sources()
             .iter()
-            .find(|source| source.path == "b/consumer.spx")
+            .find(|source| source.path() == "b/consumer.spx")
             .unwrap()
-            .source;
+            .source();
         for expected in [
             "from ops.provider as Metric",
             "from ops.provider as compute",
@@ -3073,17 +3485,17 @@ permit { audit.one, audit.two }
         let consumer = &prepared
             .candidate_sources()
             .iter()
-            .find(|source| source.path == "b/consumer.spx")
+            .find(|source| source.path() == "b/consumer.spx")
             .unwrap()
-            .source;
+            .source();
         assert!(consumer.contains("from ops.as as invoke"));
         assert!(consumer.contains("invoke()"));
         assert!(prepared
             .candidate_sources()
             .iter()
-            .find(|source| source.path == "a/provider.spx")
+            .find(|source| source.path() == "a/provider.spx")
             .unwrap()
-            .source
+            .source()
             .contains("module ops.as"));
         assert_eq!(
             prepared
@@ -3391,11 +3803,11 @@ permit { audit.one, audit.two }
         let late = prepared
             .candidate_sources()
             .iter()
-            .find(|source| source.path == "b/late.spx")
+            .find(|source| source.path() == "b/late.spx")
             .unwrap();
-        assert!(late.source.contains("as g31"));
-        assert!(late.source.contains("g31()"));
-        assert!((0..32).all(|index| late.source.contains(&format!("g{index:02}()"))));
+        assert!(late.source().contains("as g31"));
+        assert!(late.source().contains("g31()"));
+        assert!((0..32).all(|index| late.source().contains(&format!("g{index:02}()"))));
         assert_eq!(
             prepared
                 .base_graph()
@@ -3477,8 +3889,8 @@ permit { audit.one, audit.two }
             .candidate_sources()
             .iter()
             .map(|source| semantic_workspace::SemanticWorkspaceSource {
-                path: source.path.clone(),
-                source: source.source.clone(),
+                path: source.path().to_owned(),
+                source: source.source().to_owned(),
             })
             .collect::<Vec<_>>();
         let consumer = candidate_sources
@@ -3570,5 +3982,1306 @@ permit { audit.one, audit.two }
             });
         assert!(overflowed);
         assert_eq!(rejected.err().unwrap()[0].code, "SPX-G199");
+    }
+
+    fn raw_sha256(bytes: &[u8]) -> String {
+        let mut hasher = Sha256::new();
+        hasher.update(bytes);
+        format!("sha256:{:x}", hasher.finalize())
+    }
+
+    fn directory_names(path: &Path) -> Vec<String> {
+        let mut names = std::fs::read_dir(path)
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name().into_string().unwrap())
+            .collect::<Vec<_>>();
+        names.sort();
+        names
+    }
+
+    fn spawn_operations_apply_process(
+        fixture: &ManagedOperationsFixture,
+        evidence_path: &Path,
+        boundary: &str,
+    ) -> (Child, PathBuf) {
+        let ready = fixture
+            .root
+            .join(format!("operations-apply-{boundary}.ready"));
+        let mut child = Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "semantic_workspace_operations::tests::operations_apply_process_child",
+                "--nocapture",
+            ])
+            .env("SEMAPRAX_OPERATIONS_APPLY_CHILD", "1")
+            .env("SEMAPRAX_OPERATIONS_APPLY_ROOT", &fixture.root)
+            .env("SEMAPRAX_OPERATIONS_APPLY_PROPOSAL", &fixture.proposal_path)
+            .env("SEMAPRAX_OPERATIONS_APPLY_EVIDENCE", evidence_path)
+            .env("SEMAPRAX_OPERATIONS_APPLY_BOUNDARY", boundary)
+            .env("SEMAPRAX_OPERATIONS_APPLY_READY", &ready)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .unwrap();
+        let deadline = Instant::now() + Duration::from_secs(20);
+        while !matches!(std::fs::read(&ready), Ok(bytes) if bytes == b"ready\n") {
+            if let Some(status) = child.try_wait().unwrap() {
+                panic!("Operations apply child exited before {boundary}: {status}");
+            }
+            if Instant::now() >= deadline {
+                child.kill().unwrap();
+                child.wait().unwrap();
+                panic!("Operations apply child did not reach {boundary}");
+            }
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        (child, ready)
+    }
+
+    #[test]
+    fn operations_evidence_and_verification_are_exact_one_build_kats() {
+        let fixture = ManagedOperationsFixture::new("evidence-kat");
+        reset_base_operations_preflight_entry_count();
+        reset_candidate_preflight_entry_count();
+        let before = fixture.inventory();
+        let artifacts = generate_evidence(&fixture.root, &fixture.proposal_path).unwrap();
+        assert_eq!(base_operations_preflight_entry_count(), 1);
+        assert_eq!(candidate_preflight_entry_count(), 1);
+        assert_eq!(fixture.inventory(), before);
+        assert!(artifacts.operations_evidence().ends_with('\n'));
+        assert!(
+            !artifacts.operations_evidence()[..artifacts.operations_evidence().len() - 1]
+                .contains('\n')
+        );
+        assert!(artifacts
+            .operations_evidence_digest()
+            .starts_with("sha256:"));
+        assert_eq!(
+            raw_sha256(artifacts.workspace_change_evidence().as_bytes()),
+            "sha256:03896218f6cfe7ae3eebf1be35a715bfcb5c202a005afabea335ee28a540a58a"
+        );
+        assert_eq!(
+            raw_sha256(artifacts.operations_evidence().as_bytes()),
+            "sha256:fc9a516a4eb049d097f87e75d612e2182861602536f92ce033fce28e77e1252c"
+        );
+        assert_eq!(
+            artifacts.operations_proposal_digest(),
+            proposal_digest(&fixture.proposal_source)
+        );
+        assert!(artifacts
+            .derived_change_proposal_digest()
+            .starts_with("sha256:"));
+
+        let evidence_path = fixture.root.join("operations-evidence.json");
+        std::fs::write(&evidence_path, artifacts.operations_evidence()).unwrap();
+        reset_base_operations_preflight_entry_count();
+        reset_candidate_preflight_entry_count();
+        let receipt = verify(&fixture.root, &fixture.proposal_path, &evidence_path).unwrap();
+        assert_eq!(base_operations_preflight_entry_count(), 1);
+        assert_eq!(candidate_preflight_entry_count(), 1);
+        assert_eq!(fixture.inventory(), {
+            let mut expected = before;
+            expected.push((
+                "operations-evidence.json".to_owned(),
+                false,
+                artifacts.operations_evidence().as_bytes().to_vec(),
+            ));
+            expected.sort_by(|left, right| left.0.cmp(&right.0));
+            expected
+        });
+        assert_eq!(
+            raw_sha256(receipt.as_bytes()),
+            "sha256:b1a9f2dbba6d9bbd795446b0ae7c34f14d272daafa6e8862f27e202038a2e03e"
+        );
+        let value: Value = serde_json::from_str(receipt.trim_end()).unwrap();
+        assert_eq!(
+            value["schema"],
+            evidence_artifact::VERIFICATION_RECEIPT_SCHEMA
+        );
+        assert_eq!(value["result"], "exact_replay");
+        assert_eq!(
+            value["budget"]["used_receipt_bytes"].as_u64().unwrap() as usize,
+            receipt.len()
+        );
+        fixture.assert_exclusive_reacquire();
+    }
+
+    #[test]
+    fn operations_evidence_and_receipt_individual_and_aggregate_caps_are_exact() {
+        let (prepared, change) = evidence_render_fixture();
+        let full = evidence_artifact::render_evidence(&prepared, &change).unwrap();
+        let evidence_bytes = full.operations_evidence().len();
+        assert!(evidence_artifact::render_evidence_with_test_limits(
+            &prepared,
+            &change,
+            evidence_bytes,
+            evidence_artifact::MAX_TOTAL_BYTES,
+        )
+        .is_ok());
+        assert_eq!(
+            evidence_artifact::render_evidence_with_test_limits(
+                &prepared,
+                &change,
+                evidence_bytes - 1,
+                evidence_artifact::MAX_TOTAL_BYTES,
+            )
+            .err()
+            .unwrap()[0]
+                .message,
+            "Semantic Workspace Operations exceeds operations_evidence_bytes maximum 4194304"
+        );
+
+        let mut low = 0usize;
+        let mut high = evidence_artifact::MAX_TOTAL_BYTES;
+        while low < high {
+            let middle = low + (high - low) / 2;
+            if evidence_artifact::render_evidence_with_test_limits(
+                &prepared,
+                &change,
+                evidence_artifact::MAX_OPERATIONS_EVIDENCE_BYTES,
+                middle,
+            )
+            .is_ok()
+            {
+                high = middle;
+            } else {
+                low = middle + 1;
+            }
+        }
+        assert!(evidence_artifact::render_evidence_with_test_limits(
+            &prepared,
+            &change,
+            evidence_artifact::MAX_OPERATIONS_EVIDENCE_BYTES,
+            low,
+        )
+        .is_ok());
+        assert_eq!(
+            evidence_artifact::render_evidence_with_test_limits(
+                &prepared,
+                &change,
+                evidence_artifact::MAX_OPERATIONS_EVIDENCE_BYTES,
+                low - 1,
+            )
+            .err()
+            .unwrap()[0]
+                .message,
+            "Semantic Workspace Operations exceeds total_operations_artifact_bytes maximum 150994944"
+        );
+
+        let replay = evidence_artifact::exact_replay_token(
+            &prepared,
+            &change,
+            &full,
+            full.operations_evidence(),
+        )
+        .unwrap();
+        let receipt = evidence_artifact::render_receipt(&prepared, &full, &replay, false).unwrap();
+        assert!(evidence_artifact::render_receipt_with_test_limits(
+            &prepared,
+            &full,
+            &replay,
+            false,
+            receipt.len(),
+            evidence_artifact::MAX_TOTAL_BYTES,
+        )
+        .is_ok());
+        assert_eq!(
+            evidence_artifact::render_receipt_with_test_limits(
+                &prepared,
+                &full,
+                &replay,
+                false,
+                receipt.len() - 1,
+                evidence_artifact::MAX_TOTAL_BYTES,
+            )
+            .err()
+            .unwrap()[0]
+                .message,
+            "Semantic Workspace Operations exceeds receipt_bytes maximum 65536"
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    fn operations_evidence_cap_seam_cannot_expand_production_authority() {
+        let (prepared, change) = evidence_render_fixture();
+        let _ = evidence_artifact::render_evidence_with_test_limits(
+            &prepared,
+            &change,
+            evidence_artifact::MAX_OPERATIONS_EVIDENCE_BYTES + 1,
+            evidence_artifact::MAX_TOTAL_BYTES,
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    fn operations_receipt_cap_seam_cannot_expand_production_authority() {
+        let (prepared, change) = evidence_render_fixture();
+        let full = evidence_artifact::render_evidence(&prepared, &change).unwrap();
+        let replay = evidence_artifact::exact_replay_token(
+            &prepared,
+            &change,
+            &full,
+            full.operations_evidence(),
+        )
+        .unwrap();
+        let _ = evidence_artifact::render_receipt_with_test_limits(
+            &prepared,
+            &full,
+            &replay,
+            false,
+            evidence_artifact::MAX_RECEIPT_BYTES + 1,
+            evidence_artifact::MAX_TOTAL_BYTES,
+        );
+    }
+
+    #[test]
+    fn operations_evidence_parser_and_exact_replay_fail_closed() {
+        let fixture = ManagedOperationsFixture::new("evidence-hostile");
+        let artifacts = generate_evidence(&fixture.root, &fixture.proposal_path).unwrap();
+        let canonical = artifacts.operations_evidence();
+        let depth8: Value = serde_json::from_str("[[[[[[[0]]]]]]]").unwrap();
+        let depth9: Value = serde_json::from_str("[[[[[[[[0]]]]]]]]").unwrap();
+        assert_eq!(evidence_verification::json_depth(&depth8), 8);
+        assert_eq!(evidence_verification::json_depth(&depth9), 9);
+        let parsed = evidence_verification::parse_evidence(canonical).unwrap();
+        evidence_verification::verify_replay(
+            &parsed,
+            canonical,
+            canonical,
+            artifacts.workspace_change_evidence(),
+        )
+        .unwrap();
+
+        for (hostile, expected) in [
+            (canonical.trim_end().to_owned(), "SPX-G201"),
+            (format!("\u{feff}{canonical}"), "SPX-G201"),
+            (canonical.replace("\n", "\r\n"), "SPX-G201"),
+            (
+                canonical.replacen("\"schema\":", "\"extra\":0,\"schema\":", 1),
+                "SPX-G201",
+            ),
+            (
+                canonical.replacen("\"schema\":", "\"schema\":0,\"schema_copy\":", 1),
+                "SPX-G201",
+            ),
+            (
+                canonical.replacen(
+                    "\"schema\":",
+                    "\"schema\":\"duplicate\",\"schema\":",
+                    1,
+                ),
+                "SPX-G201",
+            ),
+            (
+                canonical.replacen(
+                    evidence_artifact::EVIDENCE_SCHEMA,
+                    evidence_artifact::VERIFICATION_RECEIPT_SCHEMA,
+                    1,
+                ),
+                "SPX-G201",
+            ),
+            (
+                canonical.replacen("\"entry_module\":\"ops.consumer\",", "", 1),
+                "SPX-G201",
+            ),
+            (
+                canonical.replacen("\"bytes\":509}", "\"bytes\":509,\"extra\":0}", 1),
+                "SPX-G201",
+            ),
+            (
+                canonical.replacen(
+                    "\"schema\":\"semaprax.semantic-workspace-operations.v1\",\"digest\":",
+                    "\"digest\":\"sha256:3c7bf340a5313907edcec41748063e8666793ee76b903bc4e691871a843544b5\",\"schema\":\"semaprax.semantic-workspace-operations.v1\",\"bytes\":509,\"digest\":",
+                    1,
+                ),
+                "SPX-G201",
+            ),
+            (
+                canonical.replacen("\"bytes\":509", "\"bytes\":\"509\"", 1),
+                "SPX-G201",
+            ),
+            (
+                canonical.replacen(
+                    "\"schema\":\"semaprax.semantic-workspace-operations.v1\",\"digest\":",
+                    "\"digest\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"schema\":\"semaprax.semantic-workspace-operations.v1\",\"digest\":",
+                    1,
+                ),
+                "SPX-G201",
+            ),
+            (
+                canonical.replacen(artifacts.operations_proposal_digest(), "invalid-digest", 1),
+                "SPX-G201",
+            ),
+            (
+                canonical.replacen(
+                    "\"document\":\"",
+                    "\"extra\":0,\"document\":\"",
+                    1,
+                ),
+                "SPX-G201",
+            ),
+            (
+                canonical.replacen("\"max_json_depth\":8,", "", 1),
+                "SPX-G201",
+            ),
+            (
+                canonical.replacen(
+                    "\"max_json_depth\":8,",
+                    "\"max_json_depth\":\"8\",",
+                    1,
+                ),
+                "SPX-G201",
+            ),
+            (
+                canonical.replacen("\"used_staging_attempts\":0,", "", 1),
+                "SPX-G201",
+            ),
+            (
+                canonical.replacen(
+                    "\"used_staging_attempts\":0,",
+                    "\"used_staging_attempts\":\"0\",",
+                    1,
+                ),
+                "SPX-G201",
+            ),
+            (
+                canonical.replacen("\"nonclaims\":[", "\"nonclaims\":{", 1),
+                "SPX-G201",
+            ),
+            (
+                canonical.replacen(
+                    "\"entry_module\":\"ops.consumer\"",
+                    "\"entry_module\":[]",
+                    1,
+                ),
+                "SPX-G201",
+            ),
+            (
+                canonical.replacen(
+                    "\"operations_proposal\":{",
+                    "\"operations_proposal\":[]",
+                    1,
+                ),
+                "SPX-G201",
+            ),
+            (
+                format!(
+                    "{{\"schema\":\"{}\",\"result\":\"exact_replay\"}}\n",
+                    evidence_artifact::VERIFICATION_RECEIPT_SCHEMA
+                ),
+                "SPX-G201",
+            ),
+            (artifacts.workspace_change_evidence().to_owned(), "SPX-G201"),
+            ("[[[[[[[[[]]]]]]]]]\n".to_owned(), "SPX-G199"),
+        ] {
+            assert_eq!(
+                evidence_verification::parse_evidence(&hostile)
+                    .err()
+                    .unwrap()[0]
+                    .code,
+                expected
+            );
+        }
+        assert_eq!(
+            evidence_verification::parse_evidence("[[[[[[[]]]]]]]\n")
+                .err()
+                .unwrap()[0]
+                .code,
+            "SPX-G201"
+        );
+
+        for hostile in [
+            canonical.replacen(
+                artifacts.workspace_change_evidence_digest(),
+                "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+                1,
+            ),
+            canonical.replacen(
+                &format!("\"bytes\":{}", artifacts.workspace_change_evidence().len()),
+                &format!(
+                    "\"bytes\":{}",
+                    artifacts.workspace_change_evidence().len() + 1
+                ),
+                1,
+            ),
+            canonical.replacen(
+                "\"used_unexpected_inventory_entries\":0",
+                "\"used_unexpected_inventory_entries\":1",
+                1,
+            ),
+        ] {
+            assert_eq!(
+                evidence_verification::parse_evidence(&hostile)
+                    .err()
+                    .unwrap()[0]
+                    .code,
+                "SPX-G202"
+            );
+        }
+
+        let mut nonclaim_hostile = canonical.to_owned();
+        let nonclaim_index = nonclaim_hostile
+            .rfind(evidence_artifact::NONCLAIMS[0])
+            .unwrap();
+        nonclaim_hostile.replace_range(
+            nonclaim_index..nonclaim_index + evidence_artifact::NONCLAIMS[0].len(),
+            "xot_signature_or_authenticated_provenance",
+        );
+        for hostile in [
+            canonical.replacen(
+                "\"max_receipt_bytes\":65536",
+                "\"max_receipt_bytes\":65535",
+                1,
+            ),
+            nonclaim_hostile,
+        ] {
+            let submitted = evidence_verification::parse_evidence(&hostile).unwrap();
+            assert_eq!(
+                evidence_verification::verify_replay(
+                    &submitted,
+                    &hostile,
+                    canonical,
+                    artifacts.workspace_change_evidence(),
+                )
+                .err()
+                .unwrap()[0]
+                    .code,
+                "SPX-G203"
+            );
+        }
+
+        let submitted = evidence_verification::parse_evidence(canonical).unwrap();
+        let regenerated = canonical.replacen(
+            artifacts.operations_proposal_digest(),
+            "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            1,
+        );
+        assert_eq!(
+            evidence_verification::verify_replay(
+                &submitted,
+                canonical,
+                &regenerated,
+                artifacts.workspace_change_evidence(),
+            )
+            .err()
+            .unwrap()[0]
+                .code,
+            "SPX-G203"
+        );
+    }
+
+    #[test]
+    fn operations_verify_io_precedence_is_read_only_and_unlocks() {
+        let fixture = ManagedOperationsFixture::new("evidence-io");
+        let before = fixture.inventory();
+        let missing_proposal = fixture.root.join("missing-operations.json");
+        let missing_evidence = fixture.root.join("missing-evidence.json");
+        let diagnostics = verify(&fixture.root, &missing_proposal, &missing_evidence)
+            .err()
+            .unwrap();
+        assert_eq!(diagnostics[0].code, "SPX-I216");
+        assert_eq!(fixture.inventory(), before);
+        fixture.assert_exclusive_reacquire();
+
+        let malformed_proposal = fixture.root.join("malformed-operations.json");
+        std::fs::write(&malformed_proposal, "{}\n").unwrap();
+        let diagnostics = verify(&fixture.root, &malformed_proposal, &missing_evidence)
+            .err()
+            .unwrap();
+        assert_eq!(diagnostics[0].code, "SPX-I217");
+        fixture.assert_exclusive_reacquire();
+
+        let malformed_evidence = fixture.root.join("malformed-evidence.json");
+        std::fs::write(&malformed_evidence, "{}\n").unwrap();
+        let diagnostics = verify(&fixture.root, &malformed_proposal, &malformed_evidence)
+            .err()
+            .unwrap();
+        assert_eq!(diagnostics[0].code, "SPX-G201");
+        fixture.assert_exclusive_reacquire();
+    }
+
+    #[test]
+    fn operations_evidence_io_owned_once_and_final_drift_are_exact() {
+        let fixture = ManagedOperationsFixture::new("evidence-io-hostiles");
+        let artifacts = generate_evidence(&fixture.root, &fixture.proposal_path).unwrap();
+
+        let directory = fixture.root.join("evidence-directory");
+        std::fs::create_dir(&directory).unwrap();
+        let diagnostics = verify(&fixture.root, &fixture.proposal_path, &directory)
+            .err()
+            .unwrap();
+        assert_eq!(diagnostics[0].code, "SPX-I217");
+        #[cfg(unix)]
+        assert_eq!(
+            diagnostics[0].message,
+            "could not read Semantic Workspace Operations Evidence: input is not a regular file"
+        );
+        #[cfg(windows)]
+        assert_eq!(
+            diagnostics[0].message,
+            "could not read Semantic Workspace Operations Evidence: open failed"
+        );
+        fixture.assert_exclusive_reacquire();
+
+        let invalid = fixture.root.join("invalid-evidence.json");
+        std::fs::write(&invalid, [0xff]).unwrap();
+        let diagnostics = verify(&fixture.root, &fixture.proposal_path, &invalid)
+            .err()
+            .unwrap();
+        assert_eq!(diagnostics[0].code, "SPX-I217");
+        assert_eq!(
+            diagnostics[0].message,
+            "could not read Semantic Workspace Operations Evidence: input is not UTF-8"
+        );
+        fixture.assert_exclusive_reacquire();
+
+        let over = fixture.root.join("over-evidence.json");
+        let over_file = File::create(&over).unwrap();
+        over_file
+            .set_len((evidence_artifact::MAX_OPERATIONS_EVIDENCE_BYTES + 1) as u64)
+            .unwrap();
+        let diagnostics = verify(&fixture.root, &fixture.proposal_path, &over)
+            .err()
+            .unwrap();
+        assert_eq!(diagnostics[0].code, "SPX-G199");
+        assert_eq!(
+            diagnostics[0].message,
+            "Semantic Workspace Operations exceeds operations_evidence_bytes maximum 4194304"
+        );
+        fixture.assert_exclusive_reacquire();
+
+        let evidence_path = fixture.root.join("owned-evidence.json");
+        std::fs::write(&evidence_path, artifacts.operations_evidence()).unwrap();
+        let baseline = verify(&fixture.root, &fixture.proposal_path, &evidence_path).unwrap();
+        let owned = verify_with_hook(
+            &fixture.root,
+            &fixture.proposal_path,
+            &evidence_path,
+            |point| {
+                if point == OperationsEvidencePoint::EvidenceOwned {
+                    std::fs::write(&evidence_path, "{}\n").unwrap();
+                    std::fs::write(&fixture.proposal_path, "{}\n").unwrap();
+                }
+            },
+        )
+        .unwrap();
+        assert_eq!(owned, baseline);
+        fixture.assert_exclusive_reacquire();
+
+        let drift = ManagedOperationsFixture::new("verify-final-drift");
+        let artifacts = generate_evidence(&drift.root, &drift.proposal_path).unwrap();
+        let evidence_path = drift.root.join("operations-evidence.json");
+        std::fs::write(&evidence_path, artifacts.operations_evidence()).unwrap();
+        let managed = drift.managed_source_path("a/provider.spx");
+        let diagnostics =
+            verify_with_hook(&drift.root, &drift.proposal_path, &evidence_path, |point| {
+                if point == OperationsEvidencePoint::ReceiptRendered {
+                    OpenOptions::new()
+                        .append(true)
+                        .open(&managed)
+                        .unwrap()
+                        .write_all(b"\n")
+                        .unwrap();
+                }
+            })
+            .err()
+            .unwrap();
+        assert_eq!(diagnostics[0].code, "SPX-G153");
+        drift.assert_exclusive_reacquire();
+
+        let generate_drift = ManagedOperationsFixture::new("generate-final-drift");
+        let managed = generate_drift.managed_source_path("a/provider.spx");
+        let diagnostics = generate_evidence_with_hook(
+            &generate_drift.root,
+            &generate_drift.proposal_path,
+            |point| {
+                if point == OperationsEvidencePoint::EvidenceRendered {
+                    OpenOptions::new()
+                        .append(true)
+                        .open(&managed)
+                        .unwrap()
+                        .write_all(b"\n")
+                        .unwrap();
+                }
+            },
+        )
+        .err()
+        .unwrap();
+        assert_eq!(diagnostics[0].code, "SPX-G153");
+        generate_drift.assert_exclusive_reacquire();
+
+        let apply_drift = ManagedOperationsFixture::new("apply-receipt-final-drift");
+        let artifacts = generate_evidence(&apply_drift.root, &apply_drift.proposal_path).unwrap();
+        let evidence_path = apply_drift.root.join("operations-evidence.json");
+        std::fs::write(&evidence_path, artifacts.operations_evidence()).unwrap();
+        let active_path = apply_drift.root.join(".semaprax-workspace/ACTIVE");
+        let old_active = std::fs::read(&active_path).unwrap();
+        let managed = apply_drift.managed_source_path("a/provider.spx");
+        let diagnostics = apply_with_hook(
+            &apply_drift.root,
+            &apply_drift.proposal_path,
+            &evidence_path,
+            |point, _, _, _| {
+                if point == OperationsEvidencePoint::ReceiptRendered {
+                    OpenOptions::new()
+                        .append(true)
+                        .open(&managed)?
+                        .write_all(b"\n")?;
+                }
+                Ok(())
+            },
+        )
+        .err()
+        .unwrap();
+        assert_eq!(diagnostics[0].code, "SPX-G153");
+        assert_eq!(std::fs::read(active_path).unwrap(), old_active);
+        assert_eq!(
+            directory_names(&apply_drift.root.join(".semaprax-workspace/generations")).len(),
+            1
+        );
+        assert!(directory_names(&apply_drift.root.join(".semaprax-workspace/staging")).is_empty());
+        apply_drift.assert_exclusive_reacquire();
+    }
+
+    #[test]
+    fn every_operations_public_route_owns_bounded_inputs_and_fails_closed() {
+        for route in ["generate", "evidence", "verify", "apply"] {
+            for case in ["directory", "utf8", "exact", "over"] {
+                let fixture = ManagedOperationsFixture::new(&format!("proposal-io-{route}-{case}"));
+                let artifacts = generate_evidence(&fixture.root, &fixture.proposal_path).unwrap();
+                let evidence_path = fixture.root.join("valid-evidence.json");
+                std::fs::write(&evidence_path, artifacts.operations_evidence()).unwrap();
+                let hostile = fixture.root.join(format!("hostile-proposal-{case}"));
+                match case {
+                    "directory" => std::fs::create_dir(&hostile).unwrap(),
+                    "utf8" => std::fs::write(&hostile, [0xff]).unwrap(),
+                    "exact" | "over" => {
+                        let file = File::create(&hostile).unwrap();
+                        file.set_len((MAX_PROPOSAL_BYTES + usize::from(case == "over")) as u64)
+                            .unwrap();
+                    }
+                    _ => unreachable!(),
+                }
+                let before = fixture.inventory();
+                let diagnostics = match route {
+                    "generate" => generate_evidence(&fixture.root, &hostile).map(|_| ()),
+                    "evidence" => evidence(&fixture.root, &hostile).map(|_| ()),
+                    "verify" => verify(&fixture.root, &hostile, &evidence_path).map(|_| ()),
+                    "apply" => apply(&fixture.root, &hostile, &evidence_path).map(|_| ()),
+                    _ => unreachable!(),
+                }
+                .err()
+                .unwrap();
+                assert_eq!(
+                    diagnostics[0].code,
+                    match case {
+                        "directory" | "utf8" => "SPX-I216",
+                        "exact" => "SPX-G196",
+                        "over" => "SPX-G199",
+                        _ => unreachable!(),
+                    },
+                    "proposal route={route} case={case}"
+                );
+                assert_eq!(fixture.inventory(), before);
+                fixture.assert_exclusive_reacquire();
+            }
+        }
+
+        for route in ["verify", "apply"] {
+            for case in ["directory", "utf8", "exact", "over"] {
+                let fixture = ManagedOperationsFixture::new(&format!("evidence-io-{route}-{case}"));
+                let hostile = fixture.root.join(format!("hostile-evidence-{case}"));
+                match case {
+                    "directory" => std::fs::create_dir(&hostile).unwrap(),
+                    "utf8" => std::fs::write(&hostile, [0xff]).unwrap(),
+                    "exact" | "over" => {
+                        let file = File::create(&hostile).unwrap();
+                        file.set_len(
+                            (evidence_artifact::MAX_OPERATIONS_EVIDENCE_BYTES
+                                + usize::from(case == "over")) as u64,
+                        )
+                        .unwrap();
+                    }
+                    _ => unreachable!(),
+                }
+                let before = fixture.inventory();
+                let diagnostics = match route {
+                    "verify" => verify(&fixture.root, &fixture.proposal_path, &hostile),
+                    "apply" => apply(&fixture.root, &fixture.proposal_path, &hostile),
+                    _ => unreachable!(),
+                }
+                .err()
+                .unwrap();
+                assert_eq!(
+                    diagnostics[0].code,
+                    match case {
+                        "directory" | "utf8" => "SPX-I217",
+                        "exact" => "SPX-G201",
+                        "over" => "SPX-G199",
+                        _ => unreachable!(),
+                    },
+                    "Evidence route={route} case={case}"
+                );
+                assert_eq!(fixture.inventory(), before);
+                fixture.assert_exclusive_reacquire();
+            }
+        }
+
+        let generated_owned = ManagedOperationsFixture::new("generate-owned-once");
+        let expected = generate_evidence(&generated_owned.root, &generated_owned.proposal_path)
+            .unwrap()
+            .operations_evidence()
+            .to_owned();
+        let output = generate_evidence_with_hook(
+            &generated_owned.root,
+            &generated_owned.proposal_path,
+            |point| {
+                if point == OperationsEvidencePoint::ProposalOwned {
+                    std::fs::write(&generated_owned.proposal_path, "{}\n").unwrap();
+                }
+            },
+        )
+        .unwrap();
+        assert_eq!(output.operations_evidence(), expected);
+        generated_owned.assert_exclusive_reacquire();
+
+        let applied_owned = ManagedOperationsFixture::new("apply-owned-once");
+        let artifacts =
+            generate_evidence(&applied_owned.root, &applied_owned.proposal_path).unwrap();
+        let evidence_path = applied_owned.root.join("owned-evidence.json");
+        std::fs::write(&evidence_path, artifacts.operations_evidence()).unwrap();
+        let receipt = apply_with_hook(
+            &applied_owned.root,
+            &applied_owned.proposal_path,
+            &evidence_path,
+            |point, _, _, _| {
+                if point == OperationsEvidencePoint::EvidenceOwned {
+                    std::fs::write(&applied_owned.proposal_path, "{}\n")?;
+                    std::fs::write(&evidence_path, "{}\n")?;
+                }
+                Ok(())
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            serde_json::from_str::<Value>(receipt.trim_end()).unwrap()["result"],
+            "applied"
+        );
+        applied_owned.assert_exclusive_reacquire();
+    }
+
+    #[test]
+    fn operations_apply_is_exact_stale_and_zero_write_before_replay() {
+        let fixture = ManagedOperationsFixture::new("evidence-apply");
+        let artifacts = generate_evidence(&fixture.root, &fixture.proposal_path).unwrap();
+        let evidence_path = fixture.root.join("operations-evidence.json");
+        std::fs::write(&evidence_path, artifacts.operations_evidence()).unwrap();
+        let raw_provider = std::fs::read(fixture.root.join("a/provider.spx")).unwrap();
+        let raw_consumer = std::fs::read(fixture.root.join("b/consumer.spx")).unwrap();
+        let receipt = apply(&fixture.root, &fixture.proposal_path, &evidence_path).unwrap();
+        assert_eq!(
+            raw_sha256(receipt.as_bytes()),
+            "sha256:618d78b30dc113649b935f550d918aacb77e426ae6a7ee6ad49a727a4d6eeb35"
+        );
+        let value: Value = serde_json::from_str(receipt.trim_end()).unwrap();
+        assert_eq!(
+            value["schema"],
+            evidence_artifact::APPLICATION_RECEIPT_SCHEMA
+        );
+        assert_eq!(value["result"], "applied");
+        assert_eq!(
+            std::fs::read(fixture.root.join("a/provider.spx")).unwrap(),
+            raw_provider
+        );
+        assert_eq!(
+            std::fs::read(fixture.root.join("b/consumer.spx")).unwrap(),
+            raw_consumer
+        );
+        fixture.assert_exclusive_reacquire();
+
+        let committed = fixture.inventory();
+        let stale = apply(&fixture.root, &fixture.proposal_path, &evidence_path)
+            .err()
+            .unwrap();
+        assert_eq!(stale[0].code, "SPX-G197");
+        assert_eq!(
+            stale[0].message,
+            "Semantic Workspace Operations target does not match one explicit user-owned pre-state declaration"
+        );
+        assert_eq!(fixture.inventory(), committed);
+        fixture.assert_exclusive_reacquire();
+
+        let replay_fixture = ManagedOperationsFixture::new("evidence-apply-replay");
+        let artifacts =
+            generate_evidence(&replay_fixture.root, &replay_fixture.proposal_path).unwrap();
+        let evidence_path = replay_fixture.root.join("operations-evidence.json");
+        let hostile = artifacts.operations_evidence().replacen(
+            artifacts.operations_proposal_digest(),
+            "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            1,
+        );
+        std::fs::write(&evidence_path, hostile).unwrap();
+        let before = replay_fixture.inventory();
+        let diagnostics = apply(
+            &replay_fixture.root,
+            &replay_fixture.proposal_path,
+            &evidence_path,
+        )
+        .err()
+        .unwrap();
+        assert_eq!(diagnostics[0].code, "SPX-G203");
+        assert_eq!(replay_fixture.inventory(), before);
+        replay_fixture.assert_exclusive_reacquire();
+    }
+
+    #[test]
+    fn every_operations_apply_boundary_fails_closed_and_unlocks_exactly() {
+        let points = [
+            OperationsEvidencePoint::ProposalOwned,
+            OperationsEvidencePoint::EvidenceOwned,
+            OperationsEvidencePoint::AfterOperationsReplay,
+            OperationsEvidencePoint::ChangeArtifactsRendered,
+            OperationsEvidencePoint::OperationsEvidenceReplayed,
+            OperationsEvidencePoint::ReceiptRendered,
+            OperationsEvidencePoint::Workspace(workspace::SemanticChangeApplyPoint::Generation(
+                workspace::GenerationPoint::AfterSlotCreate,
+            )),
+            OperationsEvidencePoint::Workspace(workspace::SemanticChangeApplyPoint::Generation(
+                workspace::GenerationPoint::AfterManifestWrite,
+            )),
+            OperationsEvidencePoint::Workspace(workspace::SemanticChangeApplyPoint::Generation(
+                workspace::GenerationPoint::AfterFilesWrite,
+            )),
+            OperationsEvidencePoint::Workspace(workspace::SemanticChangeApplyPoint::Generation(
+                workspace::GenerationPoint::BeforeStageValidation,
+            )),
+            OperationsEvidencePoint::Workspace(workspace::SemanticChangeApplyPoint::Generation(
+                workspace::GenerationPoint::BeforeGenerationPublish,
+            )),
+            OperationsEvidencePoint::Workspace(workspace::SemanticChangeApplyPoint::Generation(
+                workspace::GenerationPoint::DestinationChecked,
+            )),
+            OperationsEvidencePoint::Workspace(workspace::SemanticChangeApplyPoint::Generation(
+                workspace::GenerationPoint::AfterGenerationPublish,
+            )),
+            OperationsEvidencePoint::Workspace(
+                workspace::SemanticChangeApplyPoint::AfterCandidatePrepared,
+            ),
+            OperationsEvidencePoint::Workspace(
+                workspace::SemanticChangeApplyPoint::AfterActiveStaged,
+            ),
+            OperationsEvidencePoint::Workspace(
+                workspace::SemanticChangeApplyPoint::BeforeFirstFinalCheck,
+            ),
+            OperationsEvidencePoint::Workspace(
+                workspace::SemanticChangeApplyPoint::BeforeSecondFinalCheck,
+            ),
+            OperationsEvidencePoint::Workspace(
+                workspace::SemanticChangeApplyPoint::BeforeActiveReplace,
+            ),
+            OperationsEvidencePoint::Workspace(
+                workspace::SemanticChangeApplyPoint::AfterActiveReplace,
+            ),
+        ];
+        for (index, target) in points.into_iter().enumerate() {
+            let fixture = ManagedOperationsFixture::new(&format!("apply-boundary-{index}"));
+            let artifacts = generate_evidence(&fixture.root, &fixture.proposal_path).unwrap();
+            let evidence_path = fixture.root.join("operations-evidence.json");
+            std::fs::write(&evidence_path, artifacts.operations_evidence()).unwrap();
+            let old_revision = crate::workspace_graph::snapshot(&fixture.root, "ops.consumer")
+                .unwrap()
+                .workspace_revision()
+                .to_owned();
+            let candidate_revision = serde_json::from_str::<Value>(artifacts.operations_evidence())
+                .unwrap()["candidate_workspace_revision"]
+                .as_str()
+                .unwrap()
+                .to_owned();
+            let raw_provider = std::fs::read(fixture.root.join("a/provider.spx")).unwrap();
+            let raw_consumer = std::fs::read(fixture.root.join("b/consumer.spx")).unwrap();
+            let mut reached = false;
+            let result = apply_with_hook(
+                &fixture.root,
+                &fixture.proposal_path,
+                &evidence_path,
+                |point, _, _, _| {
+                    if point == target {
+                        reached = true;
+                        return Err(std::io::Error::other("injected boundary failure"));
+                    }
+                    Ok(())
+                },
+            );
+            assert!(reached, "boundary {target:?} was not reached");
+            let diagnostics = result.err().unwrap();
+            assert_eq!(
+                diagnostics[0].code,
+                if target
+                    == OperationsEvidencePoint::Workspace(
+                        workspace::SemanticChangeApplyPoint::AfterActiveReplace,
+                    )
+                {
+                    "SPX-I212"
+                } else {
+                    "SPX-I211"
+                },
+                "boundary {target:?}"
+            );
+            let current = crate::workspace_graph::snapshot(&fixture.root, "ops.consumer").unwrap();
+            assert_eq!(
+                current.workspace_revision(),
+                if target
+                    == OperationsEvidencePoint::Workspace(
+                        workspace::SemanticChangeApplyPoint::AfterActiveReplace,
+                    )
+                {
+                    &candidate_revision
+                } else {
+                    &old_revision
+                },
+                "boundary {target:?}"
+            );
+            let generations =
+                directory_names(&fixture.root.join(".semaprax-workspace/generations"));
+            assert!(!generations.is_empty());
+            assert!(generations.len() <= 2);
+            assert!(directory_names(&fixture.root.join(".semaprax-workspace/staging")).len() <= 1);
+            assert_eq!(
+                std::fs::read(fixture.root.join("a/provider.spx")).unwrap(),
+                raw_provider
+            );
+            assert_eq!(
+                std::fs::read(fixture.root.join("b/consumer.spx")).unwrap(),
+                raw_consumer
+            );
+            fixture.assert_exclusive_reacquire();
+        }
+    }
+
+    #[test]
+    fn operations_candidate_residue_requires_regenerated_evidence_and_is_reused() {
+        let fixture = ManagedOperationsFixture::new("candidate-residue-reuse");
+        let original = generate_evidence(&fixture.root, &fixture.proposal_path).unwrap();
+        let evidence_path = fixture.root.join("operations-evidence.json");
+        std::fs::write(&evidence_path, original.operations_evidence()).unwrap();
+        let old_revision = crate::workspace_graph::snapshot(&fixture.root, "ops.consumer")
+            .unwrap()
+            .workspace_revision()
+            .to_owned();
+        let candidate_revision = serde_json::from_str::<Value>(original.operations_evidence())
+            .unwrap()["candidate_workspace_revision"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        let mut published_candidate = None;
+        let diagnostics = apply_with_hook(
+            &fixture.root,
+            &fixture.proposal_path,
+            &evidence_path,
+            |point, _, _, candidate| {
+                if point
+                    == OperationsEvidencePoint::Workspace(
+                        workspace::SemanticChangeApplyPoint::AfterCandidatePrepared,
+                    )
+                {
+                    published_candidate = candidate.map(Path::to_path_buf);
+                    return Err(std::io::Error::other("stop before pivot"));
+                }
+                Ok(())
+            },
+        )
+        .err()
+        .unwrap();
+        assert_eq!(diagnostics[0].code, "SPX-I211");
+        assert_eq!(
+            crate::workspace_graph::snapshot(&fixture.root, "ops.consumer")
+                .unwrap()
+                .workspace_revision(),
+            old_revision
+        );
+        let published_candidate = published_candidate.unwrap();
+        assert!(published_candidate.is_dir());
+        let retained_before =
+            directory_names(&fixture.root.join(".semaprax-workspace/generations"));
+        assert_eq!(retained_before.len(), 2);
+
+        let stale = apply(&fixture.root, &fixture.proposal_path, &evidence_path)
+            .err()
+            .unwrap();
+        assert_eq!(stale[0].code, "SPX-G203");
+        assert_eq!(
+            crate::workspace_graph::snapshot(&fixture.root, "ops.consumer")
+                .unwrap()
+                .workspace_revision(),
+            old_revision
+        );
+
+        let regenerated = generate_evidence(&fixture.root, &fixture.proposal_path).unwrap();
+        assert_ne!(
+            regenerated.operations_evidence(),
+            original.operations_evidence()
+        );
+        std::fs::write(&evidence_path, regenerated.operations_evidence()).unwrap();
+        let mut reused_candidate = None;
+        let receipt = apply_with_hook(
+            &fixture.root,
+            &fixture.proposal_path,
+            &evidence_path,
+            |point, _, _, candidate| {
+                if point
+                    == OperationsEvidencePoint::Workspace(
+                        workspace::SemanticChangeApplyPoint::AfterCandidatePrepared,
+                    )
+                {
+                    reused_candidate = candidate.map(Path::to_path_buf);
+                }
+                Ok(())
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            reused_candidate.as_deref(),
+            Some(published_candidate.as_path())
+        );
+        assert_eq!(
+            directory_names(&fixture.root.join(".semaprax-workspace/generations")),
+            retained_before
+        );
+        assert_eq!(
+            crate::workspace_graph::snapshot(&fixture.root, "ops.consumer")
+                .unwrap()
+                .workspace_revision(),
+            candidate_revision
+        );
+        assert_eq!(
+            serde_json::from_str::<Value>(receipt.trim_end()).unwrap()["result"],
+            "applied"
+        );
+        fixture.assert_exclusive_reacquire();
+    }
+
+    #[test]
+    fn operations_destination_races_never_clobber_foreign_objects() {
+        for raced_at in [
+            workspace::GenerationPoint::BeforeGenerationPublish,
+            workspace::GenerationPoint::DestinationChecked,
+        ] {
+            let fixture = ManagedOperationsFixture::new(&format!("destination-race-{raced_at:?}"));
+            let artifacts = generate_evidence(&fixture.root, &fixture.proposal_path).unwrap();
+            let evidence_path = fixture.root.join("operations-evidence.json");
+            std::fs::write(&evidence_path, artifacts.operations_evidence()).unwrap();
+            let active_path = fixture.root.join(".semaprax-workspace/ACTIVE");
+            let old_active = std::fs::read(&active_path).unwrap();
+            let foreign = std::cell::RefCell::new(None::<PathBuf>);
+            let diagnostics = apply_with_hook(
+                &fixture.root,
+                &fixture.proposal_path,
+                &evidence_path,
+                |point, _, _, candidate| {
+                    if point
+                        == OperationsEvidencePoint::Workspace(
+                            workspace::SemanticChangeApplyPoint::Generation(raced_at),
+                        )
+                    {
+                        let destination = candidate.unwrap();
+                        std::fs::write(destination, b"foreign-operations-candidate\n")?;
+                        *foreign.borrow_mut() = Some(destination.to_path_buf());
+                    }
+                    Ok(())
+                },
+            )
+            .err()
+            .unwrap();
+            assert_eq!(diagnostics[0].code, "SPX-I211", "race {raced_at:?}");
+            let foreign = foreign.into_inner().unwrap();
+            assert_eq!(
+                std::fs::read(foreign).unwrap(),
+                b"foreign-operations-candidate\n"
+            );
+            assert_eq!(std::fs::read(active_path).unwrap(), old_active);
+            fixture.assert_exclusive_reacquire();
+        }
+    }
+
+    #[test]
+    fn operations_cooperative_reader_observes_old_then_new_generation() {
+        let fixture = ManagedOperationsFixture::new("cooperative-reader");
+        let artifacts = generate_evidence(&fixture.root, &fixture.proposal_path).unwrap();
+        let evidence_path = fixture.root.join("operations-evidence.json");
+        std::fs::write(&evidence_path, artifacts.operations_evidence()).unwrap();
+        let expected_revision = serde_json::from_str::<Value>(artifacts.operations_evidence())
+            .unwrap()["candidate_workspace_revision"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        let active_path = fixture.root.join(".semaprax-workspace/ACTIVE");
+        let old_active = std::fs::read(&active_path).unwrap();
+        std::thread::scope(|scope| {
+            let (arrived_tx, arrived_rx) = std::sync::mpsc::channel();
+            let (release_tx, release_rx) = std::sync::mpsc::channel();
+            let root = &fixture.root;
+            let proposal = &fixture.proposal_path;
+            let evidence = &evidence_path;
+            let writer = scope.spawn(move || {
+                apply_with_hook(root, proposal, evidence, |point, _, _, _| {
+                    if point
+                        == OperationsEvidencePoint::Workspace(
+                            workspace::SemanticChangeApplyPoint::BeforeActiveReplace,
+                        )
+                    {
+                        arrived_tx.send(()).unwrap();
+                        release_rx.recv().unwrap();
+                    }
+                    Ok(())
+                })
+            });
+            arrived_rx.recv().unwrap();
+            let diagnostics = crate::workspace_graph::snapshot(&fixture.root, "ops.consumer")
+                .err()
+                .unwrap();
+            assert_eq!(diagnostics[0].code, "SPX-I210");
+            assert_eq!(std::fs::read(&active_path).unwrap(), old_active);
+            release_tx.send(()).unwrap();
+            writer.join().unwrap().unwrap();
+        });
+        assert_eq!(
+            crate::workspace_graph::snapshot(&fixture.root, "ops.consumer")
+                .unwrap()
+                .workspace_revision(),
+            expected_revision
+        );
+        fixture.assert_exclusive_reacquire();
+    }
+
+    #[test]
+    fn operations_apply_process_child() {
+        if std::env::var_os("SEMAPRAX_OPERATIONS_APPLY_CHILD").is_none() {
+            return;
+        }
+        let root = PathBuf::from(std::env::var_os("SEMAPRAX_OPERATIONS_APPLY_ROOT").unwrap());
+        let proposal =
+            PathBuf::from(std::env::var_os("SEMAPRAX_OPERATIONS_APPLY_PROPOSAL").unwrap());
+        let evidence =
+            PathBuf::from(std::env::var_os("SEMAPRAX_OPERATIONS_APPLY_EVIDENCE").unwrap());
+        let boundary = std::env::var("SEMAPRAX_OPERATIONS_APPLY_BOUNDARY").unwrap();
+        let ready = PathBuf::from(std::env::var_os("SEMAPRAX_OPERATIONS_APPLY_READY").unwrap());
+        apply_with_hook(&root, &proposal, &evidence, |point, _, _, _| {
+            let selected = matches!(
+                (boundary.as_str(), point),
+                (
+                    "pre",
+                    OperationsEvidencePoint::Workspace(
+                        workspace::SemanticChangeApplyPoint::BeforeActiveReplace
+                    )
+                ) | (
+                    "post",
+                    OperationsEvidencePoint::Workspace(
+                        workspace::SemanticChangeApplyPoint::AfterActiveReplace
+                    )
+                )
+            );
+            if selected {
+                let mut marker = OpenOptions::new()
+                    .write(true)
+                    .create_new(true)
+                    .open(&ready)?;
+                marker.write_all(b"ready\n")?;
+                marker.sync_all()?;
+                loop {
+                    std::thread::sleep(Duration::from_secs(1));
+                }
+            }
+            Ok(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn operations_apply_killed_process_boundaries_preserve_exact_old_or_new() {
+        for boundary in ["pre", "post"] {
+            let fixture = ManagedOperationsFixture::new(&format!("process-kill-{boundary}"));
+            let artifacts = generate_evidence(&fixture.root, &fixture.proposal_path).unwrap();
+            let evidence_path = fixture.root.join("operations-evidence.json");
+            std::fs::write(&evidence_path, artifacts.operations_evidence()).unwrap();
+            let old_revision = crate::workspace_graph::snapshot(&fixture.root, "ops.consumer")
+                .unwrap()
+                .workspace_revision()
+                .to_owned();
+            let candidate_revision = serde_json::from_str::<Value>(artifacts.operations_evidence())
+                .unwrap()["candidate_workspace_revision"]
+                .as_str()
+                .unwrap()
+                .to_owned();
+            let raw_paths = ["a/provider.spx", "b/consumer.spx"];
+            let raw_bytes = raw_paths.map(|path| std::fs::read(fixture.root.join(path)).unwrap());
+
+            let (mut child, ready) =
+                spawn_operations_apply_process(&fixture, &evidence_path, boundary);
+            let held_lock = OpenOptions::new()
+                .read(true)
+                .write(true)
+                .open(fixture.root.join(".semaprax-workspace/LOCK"))
+                .unwrap();
+            assert!(FileExt::try_lock_exclusive(&held_lock).is_err());
+            child.kill().unwrap();
+            assert!(!child.wait().unwrap().success());
+            std::fs::remove_file(ready).unwrap();
+            fixture.assert_exclusive_reacquire();
+
+            let current = crate::workspace_graph::snapshot(&fixture.root, "ops.consumer").unwrap();
+            assert_eq!(
+                current.workspace_revision(),
+                if boundary == "pre" {
+                    &old_revision
+                } else {
+                    &candidate_revision
+                }
+            );
+            let mut expected_generations = [old_revision.as_str(), candidate_revision.as_str()]
+                .map(|revision| revision.strip_prefix("sha256:").unwrap().to_owned())
+                .to_vec();
+            expected_generations.sort();
+            assert_eq!(
+                directory_names(&fixture.root.join(".semaprax-workspace/generations")),
+                expected_generations
+            );
+            for generation in &expected_generations {
+                let metadata = std::fs::symlink_metadata(
+                    fixture
+                        .root
+                        .join(".semaprax-workspace/generations")
+                        .join(generation),
+                )
+                .unwrap();
+                assert!(metadata.is_dir());
+                assert!(!metadata.file_type().is_symlink());
+                #[cfg(windows)]
+                {
+                    use std::os::windows::fs::MetadataExt as _;
+                    assert_eq!(metadata.file_attributes() & 0x400, 0);
+                }
+            }
+            let staging = directory_names(&fixture.root.join(".semaprax-workspace/staging"));
+            if boundary == "pre" {
+                assert_eq!(staging, ["0"]);
+                let metadata =
+                    std::fs::symlink_metadata(fixture.root.join(".semaprax-workspace/staging/0"))
+                        .unwrap();
+                assert!(metadata.is_file());
+                assert!(!metadata.file_type().is_symlink());
+                #[cfg(windows)]
+                {
+                    use std::os::windows::fs::MetadataExt as _;
+                    assert_eq!(metadata.file_attributes() & 0x400, 0);
+                }
+            } else {
+                assert!(staging.is_empty());
+            }
+            for (path, bytes) in raw_paths.into_iter().zip(raw_bytes) {
+                assert_eq!(std::fs::read(fixture.root.join(path)).unwrap(), bytes);
+            }
+        }
     }
 }

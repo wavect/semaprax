@@ -27,6 +27,22 @@ mod verification;
 
 pub use artifact::SemanticWorkspaceChangeArtifacts;
 
+pub(crate) fn render_prepared_artifacts(
+    prepared: &SemanticWorkspacePreparedChange,
+) -> Result<SemanticWorkspaceChangeArtifacts, Vec<Diagnostic>> {
+    artifact::render_artifacts(prepared)
+}
+
+pub(crate) const EVIDENCE_SCHEMA: &str = artifact::EVIDENCE_SCHEMA;
+
+pub(crate) fn evidence_artifact_digest(source: &str) -> String {
+    artifact::digest_evidence(source)
+}
+
+pub(crate) fn validate_evidence_document(source: &str) -> Result<(), Vec<Diagnostic>> {
+    verification::parse_evidence(source).map(|_| ())
+}
+
 /// Generates the complete authenticated read-only change artifact bundle.
 pub fn generate(
     root: &Path,
@@ -944,6 +960,16 @@ impl SemanticWorkspacePreparedChange {
             self.candidate_workspace_revision,
         )
     }
+
+    pub(crate) fn into_operations_commit_parts(
+        self,
+    ) -> (
+        Vec<semantic_workspace::SemanticWorkspaceFileFact>,
+        String,
+        String,
+    ) {
+        self.into_candidate_generation_parts()
+    }
 }
 
 #[cfg(test)]
@@ -1341,6 +1367,350 @@ fn prepare_owned(
         base_workspace_graph_digest,
         candidate_workspace_graph_digest,
         base_files,
+        changed_files,
+        base_graph,
+        candidate_graph,
+        candidate_files,
+        candidate_manifest,
+        roots,
+        delta_edges,
+        context_nodes,
+        impact,
+        impact_edges,
+        used_builder_bytes,
+        used_total_replacement_source_bytes,
+        retained_generations: storage.1,
+        staging_attempts: storage.2,
+    })
+}
+
+/// Builds the unchanged Change-v1 typed artifact input from a single
+/// Operations-authenticated base/candidate pair. This bridge performs no
+/// parsing, resolution, or candidate construction.
+pub(crate) struct OperationsChangeBridge {
+    pub(crate) change_set: SemanticWorkspaceChangeSet,
+    pub(crate) authenticated_revision: String,
+    pub(crate) base_files: Vec<semantic_workspace::SemanticWorkspaceFileFact>,
+    pub(crate) candidate_files: Vec<semantic_workspace::SemanticWorkspaceFileFact>,
+    pub(crate) candidate_manifest: String,
+    pub(crate) candidate_workspace_revision: String,
+    pub(crate) base_graph: workspace_graph::WorkspaceGraphChangeView,
+    pub(crate) candidate_graph: workspace_graph::WorkspaceGraphChangeView,
+    pub(crate) base_builder_bytes: usize,
+    pub(crate) candidate_builder_bytes: usize,
+    pub(crate) storage: (usize, usize, usize),
+}
+
+pub(crate) fn prepare_from_operations_facts(
+    bridge: OperationsChangeBridge,
+) -> Result<SemanticWorkspacePreparedChange, Vec<Diagnostic>> {
+    let OperationsChangeBridge {
+        change_set,
+        authenticated_revision,
+        base_files,
+        candidate_files,
+        candidate_manifest,
+        candidate_workspace_revision,
+        base_graph,
+        candidate_graph,
+        base_builder_bytes,
+        candidate_builder_bytes,
+        storage,
+    } = bridge;
+    if change_set.base_workspace_revision != authenticated_revision
+        || candidate_workspace_revision == authenticated_revision
+        || semantic_workspace::semantic_workspace_revision(&candidate_manifest)
+            != candidate_workspace_revision
+        || base_files.len() != candidate_files.len()
+        || !base_graph
+            .modules()
+            .iter()
+            .any(|module| module.module() == change_set.entry_module)
+        || !candidate_graph
+            .modules()
+            .iter()
+            .any(|module| module.module() == change_set.entry_module)
+    {
+        return Err(replay(
+            "Semantic Workspace Operations typed Change bridge disagrees with authenticated facts",
+        ));
+    }
+    let bridge_limit = semantic_workspace::MAX_CHANGE_BUILDER_BYTES
+        .checked_sub(base_builder_bytes)
+        .and_then(|remaining| remaining.checked_sub(candidate_builder_bytes))
+        .ok_or_else(|| {
+            limit(
+                "total_analysis_builder_bytes",
+                semantic_workspace::MAX_CHANGE_BUILDER_BYTES,
+            )
+        })?;
+    let bridge_strings = base_files
+        .iter()
+        .try_fold(0usize, |total, file| {
+            total
+                .checked_add(file.path().len())
+                .and_then(|value| value.checked_add(file.source_graph_schema().len()))
+                .and_then(|value| value.checked_add(file.source_revision().len()))
+                .and_then(|value| value.checked_add(file.source_digest().len()))
+        })
+        .and_then(|value| {
+            change_set.files.iter().try_fold(value, |total, file| {
+                total
+                    .checked_add(file.path.len())
+                    .and_then(|next| next.checked_add(file.base_source_graph_schema.len()))
+                    .and_then(|next| next.checked_add(file.base_source_revision.len()))
+                    .and_then(|next| next.checked_add(file.base_source_digest.len()))
+            })
+        })
+        .and_then(|value| value.checked_mul(4))
+        .ok_or_else(|| {
+            limit(
+                "total_analysis_builder_bytes",
+                semantic_workspace::MAX_CHANGE_BUILDER_BYTES,
+            )
+        })?;
+    let bridge_structures = base_files
+        .len()
+        .checked_mul(
+            std::mem::size_of::<SemanticWorkspaceBaseFileFact>()
+                + std::mem::size_of::<(&str, &semantic_workspace::SemanticWorkspaceFileFact)>() * 2
+                + std::mem::size_of::<String>(),
+        )
+        .and_then(|value| {
+            value.checked_add(
+                change_set
+                    .files
+                    .len()
+                    .checked_mul(std::mem::size_of::<SemanticWorkspaceChangedFileFact>())?,
+            )
+        })
+        .ok_or_else(|| {
+            limit(
+                "total_analysis_builder_bytes",
+                semantic_workspace::MAX_CHANGE_BUILDER_BYTES,
+            )
+        })?;
+    let bridge_prebound = bridge_strings
+        .checked_add(bridge_structures)
+        .ok_or_else(|| {
+            limit(
+                "total_analysis_builder_bytes",
+                semantic_workspace::MAX_CHANGE_BUILDER_BYTES,
+            )
+        })?;
+    let (_, bridge_overflowed, bridge_builder_bytes) =
+        crate::bounded_output::with_limit_usage(bridge_limit, || {
+            crate::bounded_output::reserve_active(bridge_prebound)
+        });
+    if bridge_overflowed || bridge_builder_bytes != bridge_prebound {
+        return Err(limit(
+            "total_analysis_builder_bytes",
+            semantic_workspace::MAX_CHANGE_BUILDER_BYTES,
+        ));
+    }
+    for file in &change_set.files {
+        let base = base_files
+            .iter()
+            .find(|fact| fact.path() == file.path)
+            .ok_or_else(|| {
+                replay("Semantic Workspace Operations Change row has no authenticated base fact")
+            })?;
+        let candidate = candidate_files
+            .iter()
+            .find(|fact| fact.path() == file.path)
+            .ok_or_else(|| {
+                replay("Semantic Workspace Operations Change row has no candidate fact")
+            })?;
+        if file.base_source_graph_schema != base.source_graph_schema()
+            || file.base_source_revision != base.source_revision()
+            || file.base_source_digest != base.source_digest()
+            || file.source != candidate.source()
+        {
+            return Err(replay(
+                "Semantic Workspace Operations derived Change row disagrees with authenticated facts",
+            ));
+        }
+    }
+    let declared_paths = change_set
+        .files
+        .iter()
+        .map(|file| file.path.clone())
+        .collect::<BTreeSet<_>>();
+    let base_by_path = base_files
+        .iter()
+        .map(|file| (file.path(), file))
+        .collect::<BTreeMap<_, _>>();
+    let candidate_by_path = candidate_files
+        .iter()
+        .map(|file| (file.path(), file))
+        .collect::<BTreeMap<_, _>>();
+    if base_by_path.len() != base_files.len()
+        || candidate_by_path.len() != candidate_files.len()
+        || base_by_path.keys().ne(candidate_by_path.keys())
+        || !declared_paths
+            .iter()
+            .all(|path| base_by_path.contains_key(path.as_str()))
+    {
+        return Err(replay(
+            "Semantic Workspace Operations typed Change path inventory disagrees",
+        ));
+    }
+    let mut base_file_facts = Vec::with_capacity(base_files.len());
+    let mut changed_files = Vec::with_capacity(declared_paths.len());
+    for base in &base_files {
+        let candidate = candidate_by_path.get(base.path()).ok_or_else(|| {
+            replay("Semantic Workspace Operations candidate path is absent from Change bridge")
+        })?;
+        let changed = declared_paths.contains(base.path());
+        let facts_differ = base.source_graph_schema() != candidate.source_graph_schema()
+            || base.source_revision() != candidate.source_revision()
+            || base.source_digest() != candidate.source_digest()
+            || base.bytes() != candidate.bytes()
+            || base.source() != candidate.source();
+        if changed != facts_differ {
+            return Err(replay(
+                "Semantic Workspace Operations changed-file inventory disagrees with Change bridge",
+            ));
+        }
+        base_file_facts.push(SemanticWorkspaceBaseFileFact {
+            path: base.path().to_owned(),
+            source_graph_schema: base.source_graph_schema().to_owned(),
+            source_revision: base.source_revision().to_owned(),
+            source_digest: base.source_digest().to_owned(),
+            bytes: base.bytes(),
+        });
+        if changed {
+            changed_files.push(SemanticWorkspaceChangedFileFact {
+                path: base.path().to_owned(),
+                base_source_graph_schema: base.source_graph_schema().to_owned(),
+                candidate_source_graph_schema: candidate.source_graph_schema().to_owned(),
+                base_source_revision: base.source_revision().to_owned(),
+                candidate_source_revision: candidate.source_revision().to_owned(),
+                base_source_digest: base.source_digest().to_owned(),
+                candidate_source_digest: candidate.source_digest().to_owned(),
+                base_bytes: base.bytes(),
+                candidate_bytes: candidate.bytes(),
+            });
+        }
+    }
+    if changed_files.len() != declared_paths.len() {
+        return Err(replay(
+            "Semantic Workspace Operations changed-file cardinality disagrees with Change bridge",
+        ));
+    }
+    let remaining_delta_builder =
+        bridge_limit
+            .checked_sub(bridge_builder_bytes)
+            .ok_or_else(|| {
+                limit(
+                    "total_analysis_builder_bytes",
+                    semantic_workspace::MAX_CHANGE_BUILDER_BYTES,
+                )
+            })?;
+    let prebound = delta_builder_prebound(&base_graph, &candidate_graph)?;
+    let (delta, overflowed, delta_builder_bytes) =
+        crate::bounded_output::with_limit_usage(remaining_delta_builder, || {
+            if !crate::bounded_output::reserve_active(prebound) {
+                return Err(limit(
+                    "total_analysis_builder_bytes",
+                    semantic_workspace::MAX_CHANGE_BUILDER_BYTES,
+                ));
+            }
+            let base_sources = base_files
+                .iter()
+                .map(|file| workspace_graph::WorkspaceGraphChangeSourceFact {
+                    path: crate::bounded_output::budgeted_clone(file.path()),
+                    source_graph_schema: crate::bounded_output::budgeted_clone(
+                        file.source_graph_schema(),
+                    ),
+                    source_revision: crate::bounded_output::budgeted_clone(file.source_revision()),
+                    source_digest: crate::bounded_output::budgeted_clone(file.source_digest()),
+                })
+                .collect::<Vec<_>>();
+            let candidate_sources = candidate_files
+                .iter()
+                .map(|file| workspace_graph::WorkspaceGraphChangeSourceFact {
+                    path: crate::bounded_output::budgeted_clone(file.path()),
+                    source_graph_schema: crate::bounded_output::budgeted_clone(
+                        file.source_graph_schema(),
+                    ),
+                    source_revision: crate::bounded_output::budgeted_clone(file.source_revision()),
+                    source_digest: crate::bounded_output::budgeted_clone(file.source_digest()),
+                })
+                .collect::<Vec<_>>();
+            let base_workspace_graph_digest = base_graph.projection_digest(
+                &authenticated_revision,
+                &base_sources,
+                storage.0,
+                storage.1,
+                storage.2,
+                &change_set.entry_module,
+            )?;
+            let candidate_workspace_graph_digest = candidate_graph.projection_digest(
+                &candidate_workspace_revision,
+                &candidate_sources,
+                candidate_manifest.len(),
+                storage.1,
+                storage.2,
+                &change_set.entry_module,
+            )?;
+            let (roots, delta_edges) = build_delta(&base_graph, &candidate_graph, &declared_paths)?;
+            let context_nodes =
+                build_context_nodes(&base_graph, &candidate_graph, &roots, &delta_edges)?;
+            let (impact, impact_edges) = build_impact(&base_graph, &candidate_graph, &roots)?;
+            Ok((
+                base_workspace_graph_digest,
+                candidate_workspace_graph_digest,
+                roots,
+                delta_edges,
+                context_nodes,
+                impact,
+                impact_edges,
+            ))
+        });
+    if overflowed {
+        return Err(limit(
+            "total_analysis_builder_bytes",
+            semantic_workspace::MAX_CHANGE_BUILDER_BYTES,
+        ));
+    }
+    let (
+        base_workspace_graph_digest,
+        candidate_workspace_graph_digest,
+        roots,
+        delta_edges,
+        context_nodes,
+        impact,
+        impact_edges,
+    ) = delta?;
+    let used_builder_bytes = base_builder_bytes
+        .checked_add(candidate_builder_bytes)
+        .and_then(|used| used.checked_add(bridge_builder_bytes))
+        .and_then(|used| used.checked_add(delta_builder_bytes))
+        .ok_or_else(|| {
+            limit(
+                "total_analysis_builder_bytes",
+                semantic_workspace::MAX_CHANGE_BUILDER_BYTES,
+            )
+        })?;
+    let used_total_replacement_source_bytes = change_set
+        .files
+        .iter()
+        .try_fold(0usize, |total, file| total.checked_add(file.source.len()))
+        .ok_or_else(|| {
+            limit(
+                "total_replacement_source_bytes",
+                MAX_TOTAL_REPLACEMENT_SOURCE_BYTES,
+            )
+        })?;
+    Ok(SemanticWorkspacePreparedChange {
+        base_workspace_revision: authenticated_revision,
+        candidate_workspace_revision,
+        entry_module: change_set.entry_module,
+        proposal_source: change_set.proposal_source,
+        base_workspace_graph_digest,
+        candidate_workspace_graph_digest,
+        base_files: base_file_facts,
         changed_files,
         base_graph,
         candidate_graph,

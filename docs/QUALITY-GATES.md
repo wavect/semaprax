@@ -19,6 +19,23 @@ The decisive Operations process-termination gate is
 on Ubuntu, macOS, and Windows. It proves the exact old-or-new authenticated
 workspace state after real child-process termination while the exclusive lock
 is held; it does not establish power-loss durability.
+The exact `dfc04278c6ba9a7dd247d4cc4add3af91f55b936` matrix is hosted green in
+[run 31570834457](https://github.com/wavect/semaprax/actions/runs/31570834457);
+all 12 jobs passed, including the Operations process-termination gate on
+Ubuntu, macOS, and Windows. Totals remain 38 Partial/18 Missing.
+
+The unpublished Private Bounded Native Agent Runtime v1 additionally requires
+`cargo test --locked -p semaprax --lib agent_runtime::tests` with deterministic
+fake hosts on Ubuntu, macOS, and Windows. Its gate covers canonical Profile,
+Task, Action, Trace, and Evidence bytes; exact routing and retry rules;
+incremental provider/tool sinks; per-boundary cancellation, policy, and budget
+checks; deep replay; secret-sentinel absence; no-write inventory; long-ID and
+escaping boundaries; and cumulative builder accounting. It makes no live
+provider, transport, quality, public API/CLI, wallet, or economic-authority
+claim. See [Private Bounded Native Agent Runtime v1](AGENT-RUNTIME-V1.md).
+The private local fake-host corpus and strict checks are green; CI is configured
+for Ubuntu, macOS, and Windows, while exact-head hosted evidence remains pending.
+Totals remain 38 Partial/18 Missing.
 
 Quality gates are executable evidence, not a checklist substitute for reasoning. Every pull request must pass the baseline and the gates for each changed semantic layer.
 

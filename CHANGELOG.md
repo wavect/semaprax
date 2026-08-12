@@ -1,5 +1,15 @@
 # Changelog
 
+- Added an unpublished Private Bounded Native Agent Runtime v1 proof tranche:
+  canonical Profile/Task/Action/Trace/Evidence, deterministic routing, injected
+  fake-host streaming, registered read-only typed tools, capability/effect
+  checks, cooperative cancellation, cumulative budgets, and independent replay.
+  It adds no public API/CLI, provider transport, ambient authority, language or
+  backend semantics, durable memory, wallet, payment, or signing surface.
+  The private local fake-host corpus and strict checks are green; CI is
+  configured for Ubuntu, macOS, and Windows, while exact-head hosted evidence
+  remains pending. Totals remain 38 Partial/18 Missing.
+
 All notable changes to SEMAPRAX are documented here.
 
 ## 0.2.0 — 2026-08-07
@@ -17,9 +27,11 @@ All notable changes to SEMAPRAX are documented here.
   Added an outer canonical Operations Evidence wrapper, exact shared-lock
   verification receipt, and exclusive fresh-replay immutable publication
   route. Change-v1 bytes remain unchanged; a Change-v1 Evidence document alone
-  binds only derived Change bytes, not Operations intent. The complete local
-  corpus is green; exact-head hosted evidence is pending, and totals remain 38
-  Partial/18 Missing.
+  binds only derived Change bytes, not Operations intent. The exact
+  `dfc04278c6ba9a7dd247d4cc4add3af91f55b936` matrix is hosted green in [run
+  31570834457](https://github.com/wavect/semaprax/actions/runs/31570834457);
+  all 12 jobs passed, including the Operations process-termination gate on
+  Ubuntu, macOS, and Windows. Totals remain 38 Partial/18 Missing.
 
 - Added [Semantic Workspace v1](docs/SEMANTIC-WORKSPACE-V1.md),
   [Workspace Semantic Graph v1](docs/WORKSPACE-SEMANTIC-GRAPH-V1.md),

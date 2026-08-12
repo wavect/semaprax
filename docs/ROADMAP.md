@@ -2,6 +2,16 @@
 
 The roadmap follows risk, not feature spectacle. Stable semantic editing, ownership inference, and component boundaries are more important than accumulating syntax.
 
+An unpublished Private Bounded Native Agent Runtime v1 now supplies the first
+safe-Rust parser/router/state/Trace/Evidence and injected-fake-host loop proof.
+It is deliberately not a roadmap status promotion: public Agent APIs, provider
+transports, durable memory, language/backend integration, approval, target
+execution, wallets, payments, signing, and economic authority remain held. See
+[the private runtime contract](AGENT-RUNTIME-V1.md).
+The private local fake-host corpus and strict checks are green; CI is configured
+for Ubuntu, macOS, and Windows, while exact-head hosted evidence remains pending.
+Totals remain 38 Partial/18 Missing.
+
 ## 0.1 — Executable semantic seed
 
 Status: implemented in this repository.
@@ -102,11 +112,13 @@ Status: implemented in this repository.
   sidecar and one candidate graph prove complete nonoverlapping occurrence
   edits; the public API/CLI returns only the derived proposal or canonical
   derivation wrapper. Additive Operations Evidence, shared verification, and
-  exclusive replay-before-publication are implemented locally; hosted
-  exact-head promotion remains pending. Operations-native analysis,
+  exclusive replay-before-publication are implemented. The exact
+  `dfc04278c6ba9a7dd247d4cc4add3af91f55b936` matrix is hosted green in [run
+  31570834457](https://github.com/wavect/semaprax/actions/runs/31570834457);
+  all 12 jobs passed, including the Operations process-termination gate on
+  Ubuntu, macOS, and Windows. Operations-native analysis,
   path-set changes, automatic identities, target/test execution, and provenance
-  remain open. The complete local corpus is green and exact-head hosted
-  evidence is pending; totals remain 38 Partial/18 Missing.
+  remain open. Totals remain 38 Partial/18 Missing.
 - Offline context economics with exact goldens and conservative quality routing.
 - Effects, module permits, and contract guards.
 - Machine-readable diagnostics.

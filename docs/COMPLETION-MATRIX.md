@@ -5,6 +5,15 @@ The dashboard is refreshed at meaningful executable-evidence milestones, not
 for each internal refactor, so progress remains visible without inflating
 status from configuration or design alone.
 
+Private proof note: the unpublished [Bounded Native Agent Runtime
+v1](AGENT-RUNTIME-V1.md) adds deterministic fake-host parser/router/tool-loop
+and Trace/Evidence coverage only. It does not change any completion row or the
+38 Partial/18 Missing totals, and makes no public provider, language/backend,
+durable-memory, wallet, payment, signing, or economic-authority claim.
+The private local fake-host corpus and strict checks are green; CI is configured
+for Ubuntu, macOS, and Windows, while exact-head hosted evidence remains pending.
+Totals remain 38 Partial/18 Missing.
+
 Status values:
 
 - **Implemented** — the gate is covered by executable evidence.
@@ -26,9 +35,11 @@ intent to unchanged Change-v1 Evidence and gates one exclusive immutable
 publication route; it adds no Operations-native Context/Impact/Review or
 reusable Evidence/receipt authority, path-set change, target/test execution,
 provenance, or automatic identity selection. Exact replay inside apply mints
-only one invocation-local publication authority. The complete local corpus is
-green and exact-head hosted evidence is pending; totals remain 38 Partial / 18
-Missing.
+  only one invocation-local publication authority. The exact
+  `dfc04278c6ba9a7dd247d4cc4add3af91f55b936` matrix is hosted green in [run
+  31570834457](https://github.com/wavect/semaprax/actions/runs/31570834457);
+  all 12 jobs passed, including the Operations process-termination gate on
+  Ubuntu, macOS, and Windows. Totals remain 38 Partial/18 Missing.
 
 | Milestone | Status | Evidence boundary |
 | --- | --- | --- |

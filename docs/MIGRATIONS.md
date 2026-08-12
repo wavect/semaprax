@@ -340,6 +340,10 @@ proposal or intent. Consumers that require that binding opt in to the additive
 Operations Evidence schema and its verify/apply commands. No old derivation or
 Change-v1 Evidence is silently upgraded, no receipt is an apply token, and
 there is no schema negotiation or fallback.
+The exact `dfc04278c6ba9a7dd247d4cc4add3af91f55b936` matrix is hosted green in
+[run 31570834457](https://github.com/wavect/semaprax/actions/runs/31570834457);
+all 12 jobs passed, including the Operations process-termination gate on
+Ubuntu, macOS, and Windows. Totals remain 38 Partial/18 Missing.
 
 ## Persistent identities are NUL-free
 

@@ -5,6 +5,7 @@
 //! The source projection is for humans. The semantic graph is the agent API.
 
 pub mod agent_economics;
+mod agent_runtime;
 pub(crate) mod aggregate_layout;
 pub mod ast;
 pub(crate) mod bounded_output;

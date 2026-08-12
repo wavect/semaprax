@@ -296,6 +296,8 @@ Executable digest KATs are:
 - application receipt: `sha256:618d78b30dc113649b935f550d918aacb77e426ae6a7ee6ad49a727a4d6eeb35`
 
 The complete hostile authority, public API/CLI, OS/process, preservation, and
-strict local corpus is green. Exact-head Ubuntu, macOS, Windows, MSRV,
-Component, and dependency-policy evidence is pending. This adds no
-completion-status promotion; the matrix remains 38 Partial / 18 Missing.
+strict local corpus is green. The exact
+`dfc04278c6ba9a7dd247d4cc4add3af91f55b936` matrix is hosted green in [run
+31570834457](https://github.com/wavect/semaprax/actions/runs/31570834457);
+all 12 jobs passed, including the Operations process-termination gate on
+Ubuntu, macOS, and Windows. Totals remain 38 Partial/18 Missing.

@@ -1,5 +1,16 @@
 # SEMAPRAX
 
+The repository also contains an unpublished [Private Bounded Native Agent
+Runtime v1](docs/AGENT-RUNTIME-V1.md) proof tranche. It exercises canonical
+profiles, tasks, actions, deterministic routing, injected provider streaming,
+registered read-only typed tools, bounded Trace/Evidence, cancellation, and
+replay. It is not a public API, CLI, provider transport, language/backend
+feature, durable-memory system, wallet, payment, signing, or ambient-authority
+surface.
+The private local fake-host corpus and strict checks are green; CI is configured
+for Ubuntu, macOS, and Windows, while exact-head hosted evidence remains pending.
+This changes none of the 38 Partial/18 Missing totals.
+
 > **The agent-native systems programming language**
 > **Meaning in. Verified machine code out.**
 
@@ -335,9 +346,11 @@ Implemented today:
   the exact unchanged Change-v1 Evidence; shared verification and exclusive
   fresh-replay apply produce non-authorizing receipts and publish only through
   the existing immutable-generation `ACTIVE` pivot. It provides no reusable
-  authorization token, raw-source authority, or path-set change. Local gates
-  are green; exact-head hosted evidence is pending and totals remain 38
-  Partial/18 Missing.
+  authorization token, raw-source authority, or path-set change. The exact
+  `dfc04278c6ba9a7dd247d4cc4add3af91f55b936` matrix is hosted green in [run
+  31570834457](https://github.com/wavect/semaprax/actions/runs/31570834457);
+  all 12 jobs passed, including the Operations process-termination gate on
+  Ubuntu, macOS, and Windows. Totals remain 38 Partial/18 Missing.
 - Native AOT output through a readable C11 lowering and Clang.
 - Direct WebAssembly core output with a generated ES-module runtime, HTML entry point, capability manifest, checked arithmetic, and contract traps.
 - A deliberately narrow `semaprax.wasm-owned.v1` Core Wasm path for one direct

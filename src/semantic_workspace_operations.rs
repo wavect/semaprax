@@ -2701,7 +2701,9 @@ permit { audit.read }
             .inventory()
             .into_iter()
             .filter(|(path, _, _)| {
-                path.starts_with(".semaprax-workspace") && path != ".semaprax-workspace/ACTIVE"
+                path.starts_with(".semaprax-workspace")
+                    && !path.ends_with("/ACTIVE")
+                    && !path.ends_with("\\ACTIVE")
             })
             .collect::<Vec<_>>();
         let result = derive_with_hook(&drift.root, &drift.proposal_path, |point| {
@@ -2721,7 +2723,9 @@ permit { audit.read }
             .inventory()
             .into_iter()
             .filter(|(path, _, _)| {
-                path.starts_with(".semaprax-workspace") && path != ".semaprax-workspace/ACTIVE"
+                path.starts_with(".semaprax-workspace")
+                    && !path.ends_with("/ACTIVE")
+                    && !path.ends_with("\\ACTIVE")
             })
             .collect::<Vec<_>>();
         assert_eq!(after_control, before_control);

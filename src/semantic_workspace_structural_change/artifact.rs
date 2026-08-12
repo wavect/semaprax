@@ -100,8 +100,8 @@ struct ChildRefs<'a> {
     review: Option<&'a Artifact>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct SemanticWorkspaceStructuralChangeArtifacts {
+/// Opaque public bundle of canonical read-only structural-change artifacts.
+pub struct SemanticWorkspaceStructuralChangeArtifacts {
     proposal_digest: String,
     candidate_manifest_digest: String,
     preview: Artifact,
@@ -113,41 +113,49 @@ pub(crate) struct SemanticWorkspaceStructuralChangeArtifacts {
 }
 
 impl SemanticWorkspaceStructuralChangeArtifacts {
-    pub(crate) fn proposal_digest(&self) -> &str {
+    pub fn proposal_digest(&self) -> &str {
         &self.proposal_digest
     }
-    pub(crate) fn candidate_manifest_digest(&self) -> &str {
+    pub fn candidate_manifest_digest(&self) -> &str {
         &self.candidate_manifest_digest
     }
-    pub(crate) fn preview(&self) -> &str {
+    pub fn preview(&self) -> &str {
         &self.preview.bytes
     }
-    pub(crate) fn preview_digest(&self) -> &str {
+    pub fn preview_digest(&self) -> &str {
         &self.preview.digest
     }
-    pub(crate) fn context(&self) -> &str {
+    pub fn context(&self) -> &str {
         &self.context.bytes
     }
-    pub(crate) fn context_digest(&self) -> &str {
+    pub fn context_digest(&self) -> &str {
         &self.context.digest
     }
-    pub(crate) fn impact(&self) -> &str {
+    pub fn impact(&self) -> &str {
         &self.impact.bytes
     }
-    pub(crate) fn impact_digest(&self) -> &str {
+    pub fn impact_digest(&self) -> &str {
         &self.impact.digest
     }
-    pub(crate) fn review(&self) -> &str {
+    pub fn review(&self) -> &str {
         &self.review.bytes
     }
-    pub(crate) fn review_digest(&self) -> &str {
+    pub fn review_digest(&self) -> &str {
         &self.review.digest
     }
-    pub(crate) fn evidence(&self) -> &str {
+    pub fn evidence(&self) -> &str {
         &self.evidence.bytes
     }
-    pub(crate) fn evidence_digest(&self) -> &str {
+    pub fn evidence_digest(&self) -> &str {
         &self.evidence.digest
+    }
+
+    pub(super) fn into_preview(mut self) -> String {
+        std::mem::take(&mut self.preview.bytes)
+    }
+
+    pub(super) fn into_evidence(mut self) -> String {
+        std::mem::take(&mut self.evidence.bytes)
     }
 }
 
@@ -1785,6 +1793,51 @@ mod tests {
         format!("sha256:{:x}", Sha256::digest(source.as_bytes()))
     }
 
+    fn artifact_error(
+        result: Result<SemanticWorkspaceStructuralChangeArtifacts, Vec<Diagnostic>>,
+    ) -> Vec<Diagnostic> {
+        match result {
+            Ok(_) => panic!("expected structural artifact rendering to fail"),
+            Err(diagnostics) => diagnostics,
+        }
+    }
+
+    fn assert_artifacts_equal(
+        actual: &SemanticWorkspaceStructuralChangeArtifacts,
+        expected: &SemanticWorkspaceStructuralChangeArtifacts,
+    ) {
+        assert_eq!(
+            [
+                actual.proposal_digest(),
+                actual.candidate_manifest_digest(),
+                actual.preview(),
+                actual.preview_digest(),
+                actual.context(),
+                actual.context_digest(),
+                actual.impact(),
+                actual.impact_digest(),
+                actual.review(),
+                actual.review_digest(),
+                actual.evidence(),
+                actual.evidence_digest(),
+            ],
+            [
+                expected.proposal_digest(),
+                expected.candidate_manifest_digest(),
+                expected.preview(),
+                expected.preview_digest(),
+                expected.context(),
+                expected.context_digest(),
+                expected.impact(),
+                expected.impact_digest(),
+                expected.review(),
+                expected.review_digest(),
+                expected.evidence(),
+                expected.evidence_digest(),
+            ]
+        );
+    }
+
     fn top_keys(source: &str) -> Vec<String> {
         let bytes = source.as_bytes();
         let mut keys = Vec::new();
@@ -2385,7 +2438,7 @@ mod tests {
         let mut proposal_mutation = prepared();
         proposal_mutation.entry_module.push_str(".mutated");
         assert_eq!(
-            render_artifacts(&proposal_mutation).unwrap_err()[0].code,
+            artifact_error(render_artifacts(&proposal_mutation))[0].code,
             "SPX-G193"
         );
         let mut manifest_mutation = prepared();
@@ -2398,20 +2451,20 @@ mod tests {
             .candidate_manifest
             .replace_range(digit..digit + 1, "0");
         assert_eq!(
-            render_artifacts(&manifest_mutation).unwrap_err()[0].code,
+            artifact_error(render_artifacts(&manifest_mutation))[0].code,
             "SPX-G192"
         );
 
         let mut incomplete_context = prepared();
         incomplete_context.context_nodes.remove(0);
         assert_eq!(
-            render_artifacts(&incomplete_context).unwrap_err()[0].code,
+            artifact_error(render_artifacts(&incomplete_context))[0].code,
             "SPX-G194"
         );
         let mut incomplete_impact = prepared();
         incomplete_impact.impact.remove(0);
         assert_eq!(
-            render_artifacts(&incomplete_impact).unwrap_err()[0].code,
+            artifact_error(render_artifacts(&incomplete_impact))[0].code,
             "SPX-G194"
         );
     }
@@ -2466,7 +2519,7 @@ mod tests {
             }
             rerender_proposal(&mut mutation);
             assert_eq!(
-                render_artifacts(&mutation).unwrap_err()[0].code,
+                artifact_error(render_artifacts(&mutation))[0].code,
                 "SPX-G192",
                 "{case}"
             );
@@ -2475,26 +2528,26 @@ mod tests {
         let mut base_manifest_bytes = prepared();
         base_manifest_bytes.base_manifest_bytes += 1;
         assert_eq!(
-            render_artifacts(&base_manifest_bytes).unwrap_err()[0].code,
+            artifact_error(render_artifacts(&base_manifest_bytes))[0].code,
             "SPX-G192"
         );
         let mut base_revision = prepared();
         base_revision.base_workspace_revision = format!("sha256:{}", "e".repeat(64));
         rerender_proposal(&mut base_revision);
         assert_eq!(
-            render_artifacts(&base_revision).unwrap_err()[0].code,
+            artifact_error(render_artifacts(&base_revision))[0].code,
             "SPX-G192"
         );
         let mut candidate_revision = prepared();
         candidate_revision.candidate_workspace_revision = format!("sha256:{}", "c".repeat(64));
         assert_eq!(
-            render_artifacts(&candidate_revision).unwrap_err()[0].code,
+            artifact_error(render_artifacts(&candidate_revision))[0].code,
             "SPX-G192"
         );
         let mut base_fact = prepared();
         base_fact.base_files[0].source_digest = format!("sha256:{}", "b".repeat(64));
         assert_eq!(
-            render_artifacts(&base_fact).unwrap_err()[0].code,
+            artifact_error(render_artifacts(&base_fact))[0].code,
             "SPX-G192"
         );
         for candidate in [false, true] {
@@ -2504,11 +2557,14 @@ mod tests {
             } else {
                 graph.base_workspace_graph_digest = format!("sha256:{}", "d".repeat(64));
             }
-            assert_eq!(render_artifacts(&graph).unwrap_err()[0].code, "SPX-G192");
+            assert_eq!(artifact_error(render_artifacts(&graph))[0].code, "SPX-G192");
         }
         let mut supplied = prepared();
         supplied.used_total_supplied_source_bytes += 1;
-        assert_eq!(render_artifacts(&supplied).unwrap_err()[0].code, "SPX-G192");
+        assert_eq!(
+            artifact_error(render_artifacts(&supplied))[0].code,
+            "SPX-G192"
+        );
     }
 
     fn analysis_replay_with_limit(cap: usize) -> Result<usize, Vec<Diagnostic>> {
@@ -2570,11 +2626,9 @@ mod tests {
         }
 
         assert_eq!(low, expected_total);
-        assert_eq!(
-            render_artifacts_with_total_limit(&prepared, low).unwrap(),
-            expected
-        );
-        let diagnostics = render_artifacts_with_total_limit(&prepared, low - 1).unwrap_err();
+        let actual = render_artifacts_with_total_limit(&prepared, low).unwrap();
+        assert_artifacts_equal(&actual, &expected);
+        let diagnostics = artifact_error(render_artifacts_with_total_limit(&prepared, low - 1));
         assert_eq!(diagnostics.len(), 1);
         assert_eq!(diagnostics[0].code, "SPX-G191");
         assert_eq!(

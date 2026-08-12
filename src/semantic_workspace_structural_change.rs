@@ -1,8 +1,10 @@
-//! Private structural-change proposal and candidate preparation core.
+//! Authenticated semantic-workspace structural-change preview and evidence.
 //!
-//! This module has no filesystem, public API, artifact, CLI, or publication
-//! authority. It owns canonical structural proposals and derives a complete
-//! candidate source set from already-authenticated semantic-workspace facts.
+//! The read-only public routes own one canonical proposal while holding the
+//! shared semantic-workspace lock, derive one complete candidate generation,
+//! and return bounded canonical artifacts or an exact-replay receipt. They do
+//! not create, rename, delete, stage, publish, or mutate filesystem objects and
+//! provide no apply, commit, token, signature, approval, or rollback authority.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
@@ -18,6 +20,35 @@ use crate::{semantic_workspace, semantic_workspace_change, workspace, workspace_
 
 mod artifact;
 mod verification;
+
+pub use artifact::SemanticWorkspaceStructuralChangeArtifacts;
+
+/// Generates the complete authenticated read-only structural-change bundle.
+pub fn generate(
+    root: &Path,
+    proposal_path: &Path,
+) -> Result<SemanticWorkspaceStructuralChangeArtifacts, Vec<Diagnostic>> {
+    generate_with_hook(root, proposal_path, |_| {})
+}
+
+/// Generates the canonical Structural Change Preview, including its terminal LF.
+pub fn preview(root: &Path, proposal_path: &Path) -> Result<String, Vec<Diagnostic>> {
+    generate(root, proposal_path).map(SemanticWorkspaceStructuralChangeArtifacts::into_preview)
+}
+
+/// Generates the canonical Structural Change Evidence, including its terminal LF.
+pub fn evidence(root: &Path, proposal_path: &Path) -> Result<String, Vec<Diagnostic>> {
+    generate(root, proposal_path).map(SemanticWorkspaceStructuralChangeArtifacts::into_evidence)
+}
+
+/// Verifies submitted Structural Change Evidence by exact authenticated replay.
+pub fn verify(
+    root: &Path,
+    proposal_path: &Path,
+    evidence_path: &Path,
+) -> Result<String, Vec<Diagnostic>> {
+    verify_with_hook(root, proposal_path, evidence_path, |_| {})
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum StructuralGeneratePoint {
@@ -194,6 +225,7 @@ impl StructuralBaseFileFact {
     }
 }
 
+#[cfg(test)]
 impl SemanticWorkspaceStructuralChangeSet {
     pub(crate) fn source(&self) -> &str {
         &self.proposal_source
@@ -321,20 +353,6 @@ impl SemanticWorkspacePreparedStructuralChange {
 
     pub(crate) const fn staging_attempts(&self) -> usize {
         self.staging_attempts
-    }
-
-    pub(crate) fn into_candidate_generation_parts(
-        self,
-    ) -> (
-        Vec<semantic_workspace::SemanticWorkspaceFileFact>,
-        String,
-        String,
-    ) {
-        (
-            self.candidate_files,
-            self.candidate_manifest,
-            self.candidate_workspace_revision,
-        )
     }
 }
 
@@ -2775,7 +2793,36 @@ fn main() -> i64 uses { created.capability } { helper() }
                 }
             })
             .unwrap();
-            assert_eq!(artifacts, baseline);
+            assert_eq!(
+                [
+                    artifacts.proposal_digest(),
+                    artifacts.candidate_manifest_digest(),
+                    artifacts.preview(),
+                    artifacts.preview_digest(),
+                    artifacts.context(),
+                    artifacts.context_digest(),
+                    artifacts.impact(),
+                    artifacts.impact_digest(),
+                    artifacts.review(),
+                    artifacts.review_digest(),
+                    artifacts.evidence(),
+                    artifacts.evidence_digest(),
+                ],
+                [
+                    baseline.proposal_digest(),
+                    baseline.candidate_manifest_digest(),
+                    baseline.preview(),
+                    baseline.preview_digest(),
+                    baseline.context(),
+                    baseline.context_digest(),
+                    baseline.impact(),
+                    baseline.impact_digest(),
+                    baseline.review(),
+                    baseline.review_digest(),
+                    baseline.evidence(),
+                    baseline.evidence_digest(),
+                ]
+            );
         }
 
         for replace_at in ["proposal", "evidence"] {

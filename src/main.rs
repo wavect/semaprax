@@ -4,8 +4,9 @@ use std::process::{Command, ExitCode};
 use semaprax::diagnostic::{Diagnostic, Severity};
 use semaprax::{
     agent_economics, codegen, format, graph, impact, parse, patch, patch_evidence, quality_route,
-    repair, review, semantic_workspace, semantic_workspace_change, target_evidence, verify, wasm,
-    workspace, workspace_analysis, workspace_graph, workspace_patch_evidence,
+    repair, review, semantic_workspace, semantic_workspace_change,
+    semantic_workspace_structural_change, target_evidence, verify, wasm, workspace,
+    workspace_analysis, workspace_graph, workspace_patch_evidence,
 };
 
 fn main() -> ExitCode {
@@ -256,6 +257,49 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             let proposal = required_path(&args, 2)?;
             let evidence = required_path(&args, 3)?;
             let receipt = semantic_workspace_change::apply(&root, &proposal, &evidence)
+                .map_err(|errors| report(&errors, false))?;
+            print!("{receipt}");
+            Ok(())
+        }
+        "semantic-workspace-structural-change-preview" => {
+            if args.len() != 3 {
+                eprintln!(
+                    "semantic-workspace-structural-change-preview requires exactly <root> <proposal.json>"
+                );
+                return Err(2);
+            }
+            let root = required_path(&args, 1)?;
+            let proposal = required_path(&args, 2)?;
+            let output = semantic_workspace_structural_change::preview(&root, &proposal)
+                .map_err(|errors| report(&errors, false))?;
+            print!("{output}");
+            Ok(())
+        }
+        "semantic-workspace-structural-change-evidence" => {
+            if args.len() != 3 {
+                eprintln!(
+                    "semantic-workspace-structural-change-evidence requires exactly <root> <proposal.json>"
+                );
+                return Err(2);
+            }
+            let root = required_path(&args, 1)?;
+            let proposal = required_path(&args, 2)?;
+            let output = semantic_workspace_structural_change::evidence(&root, &proposal)
+                .map_err(|errors| report(&errors, false))?;
+            print!("{output}");
+            Ok(())
+        }
+        "verify-semantic-workspace-structural-change-evidence" => {
+            if args.len() != 4 {
+                eprintln!(
+                    "verify-semantic-workspace-structural-change-evidence requires exactly <root> <proposal.json> <evidence.json>"
+                );
+                return Err(2);
+            }
+            let root = required_path(&args, 1)?;
+            let proposal = required_path(&args, 2)?;
+            let evidence = required_path(&args, 3)?;
+            let receipt = semantic_workspace_structural_change::verify(&root, &proposal, &evidence)
                 .map_err(|errors| report(&errors, false))?;
             print!("{receipt}");
             Ok(())
@@ -908,6 +952,9 @@ fn print_help() {
            semaprax semantic-workspace-change-evidence <root> <proposal.json>\n\
            semaprax verify-semantic-workspace-change-evidence <root> <proposal.json> <evidence.json>\n\
            semaprax apply-semantic-workspace-change-evidence <root> <proposal.json> <evidence.json>\n\
+           semaprax semantic-workspace-structural-change-preview <root> <proposal.json>\n\
+           semaprax semantic-workspace-structural-change-evidence <root> <proposal.json>\n\
+           semaprax verify-semantic-workspace-structural-change-evidence <root> <proposal.json> <evidence.json>\n\
            semaprax workspace-snapshot <root>\n\
            semaprax workspace-graph <root> <entry-module>\n\
            semaprax workspace-context <root> <entry-module> <declaration|capability> <target> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N]\n\

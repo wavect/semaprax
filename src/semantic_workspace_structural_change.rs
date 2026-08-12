@@ -1,10 +1,11 @@
-//! Authenticated semantic-workspace structural-change preview and evidence.
+//! Authenticated semantic-workspace structural-change evidence and application.
 //!
 //! The read-only public routes own one canonical proposal while holding the
 //! shared semantic-workspace lock, derive one complete candidate generation,
-//! and return bounded canonical artifacts or an exact-replay receipt. They do
-//! not create, rename, delete, stage, publish, or mutate filesystem objects and
-//! provide no apply, commit, token, signature, approval, or rollback authority.
+//! and return bounded canonical artifacts or an exact-replay receipt. The apply
+//! route holds the exclusive lock and publishes a new immutable generation only
+//! after exact Evidence replay. No route provides a reusable token, signature,
+//! approval, or rollback authority.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
@@ -50,6 +51,17 @@ pub fn verify(
     verify_with_hook(root, proposal_path, evidence_path, |_| {})
 }
 
+/// Applies an authenticated structural change after exact Evidence replay.
+///
+/// The returned canonical application receipt includes its terminal LF.
+pub fn apply(
+    root: &Path,
+    proposal_path: &Path,
+    evidence_path: &Path,
+) -> Result<String, Vec<Diagnostic>> {
+    apply_authenticated_with_hook(root, proposal_path, evidence_path, |_, _, _, _| Ok(()))
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum StructuralGeneratePoint {
     ProposalOwned,
@@ -64,10 +76,6 @@ pub(crate) enum StructuralVerifyPoint {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[allow(
-    dead_code,
-    reason = "private Structural C1 apply hooks remain held from the public surface"
-)]
 pub(crate) enum StructuralApplyPoint {
     ProposalOwned,
     EvidenceOwned,
@@ -76,10 +84,6 @@ pub(crate) enum StructuralApplyPoint {
     Workspace(workspace::SemanticChangeApplyPoint),
 }
 
-#[allow(
-    dead_code,
-    reason = "private Structural C1 replay proof remains held from the public surface"
-)]
 pub(crate) struct SemanticWorkspaceStructuralChangeCommitAuthority {
     authority: workspace::WorkspaceSemanticReadAuthority,
     candidate_files: Vec<semantic_workspace::SemanticWorkspaceFileFact>,
@@ -88,10 +92,6 @@ pub(crate) struct SemanticWorkspaceStructuralChangeCommitAuthority {
     receipt: String,
 }
 
-#[allow(
-    dead_code,
-    reason = "private Structural C1 replay proof is consumed only by held publication"
-)]
 impl SemanticWorkspaceStructuralChangeCommitAuthority {
     pub(crate) fn into_parts(
         self,
@@ -160,10 +160,6 @@ pub(crate) fn verify_with_hook(
     })
 }
 
-#[allow(
-    dead_code,
-    reason = "private Structural C1 apply remains held pending hostile publication gates"
-)]
 pub(crate) fn apply_authenticated_with_hook(
     root: &Path,
     proposal_path: &Path,
@@ -242,10 +238,6 @@ pub(crate) fn apply_authenticated_with_hook(
     )
 }
 
-#[allow(
-    dead_code,
-    reason = "private Structural C1 hook mapping remains held with apply"
-)]
 fn apply_hook_error(label: &'static str, error: std::io::Error) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-I211", format!("{label}: {error}"))]
 }
@@ -494,10 +486,6 @@ impl SemanticWorkspacePreparedStructuralChange {
         self.staging_attempts
     }
 
-    #[allow(
-        dead_code,
-        reason = "private Structural C1 candidate parts remain held with apply"
-    )]
     fn into_candidate_generation_parts(
         self,
     ) -> (

@@ -220,6 +220,44 @@ fn raw_sha(source: &str) -> String {
     format!("sha256:{:x}", Sha256::digest(source.as_bytes()))
 }
 
+fn raw_sources(root: &Path) -> Vec<Vec<u8>> {
+    [
+        "a/provider.spx",
+        "m/consumer.spx",
+        "n/island.spx",
+        "z/entry.spx",
+    ]
+    .into_iter()
+    .map(|path| std::fs::read(root.join(path)).unwrap())
+    .collect()
+}
+
+fn active_manifest_paths(root: &Path) -> Vec<String> {
+    let active: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(root.join(".semaprax-workspace/ACTIVE")).unwrap())
+            .unwrap();
+    let revision = active["workspace_revision"]
+        .as_str()
+        .unwrap()
+        .strip_prefix("sha256:")
+        .unwrap();
+    let manifest: serde_json::Value = serde_json::from_slice(
+        &std::fs::read(
+            root.join(".semaprax-workspace/generations")
+                .join(revision)
+                .join("manifest.json"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    manifest["files"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|file| file["path"].as_str().unwrap().to_owned())
+        .collect()
+}
+
 fn assert_failure_is_read_only<T>(
     fixture: &Fixture,
     operation: impl FnOnce() -> Result<T, Vec<Diagnostic>>,
@@ -523,7 +561,7 @@ fn public_input_hostiles_confusion_and_mode_separation_fail_without_writes() {
 }
 
 #[test]
-fn cli_arity_is_exact_and_no_structural_apply_command_exists() {
+fn cli_arity_is_exact_for_every_structural_command() {
     for (command, stderr) in [
         (
             "semantic-workspace-structural-change-preview",
@@ -537,6 +575,10 @@ fn cli_arity_is_exact_and_no_structural_apply_command_exists() {
             "verify-semantic-workspace-structural-change-evidence",
             "verify-semantic-workspace-structural-change-evidence requires exactly <root> <proposal.json> <evidence.json>\n",
         ),
+        (
+            "apply-semantic-workspace-structural-change-evidence",
+            "apply-semantic-workspace-structural-change-evidence requires exactly <root> <proposal.json> <evidence.json>\n",
+        ),
     ] {
         for arguments in [vec![command], vec![command, "a", "b", "c", "d"]] {
             let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
@@ -548,16 +590,199 @@ fn cli_arity_is_exact_and_no_structural_apply_command_exists() {
             assert_eq!(output.stderr, stderr.as_bytes());
         }
     }
+}
+
+#[test]
+fn public_application_receipt_api_cli_kat_and_candidate_inventory_are_exact() {
+    let fixture = Fixture::new("apply-api");
+    let raw_before = raw_sources(&fixture.root);
+    let artifacts =
+        semantic_workspace_structural_change::generate(&fixture.root, &fixture.proposal).unwrap();
+    let evidence_path = fixture.root.join("evidence.json");
+    std::fs::write(&evidence_path, artifacts.evidence()).unwrap();
+    let receipt = semantic_workspace_structural_change::apply(
+        &fixture.root,
+        &fixture.proposal,
+        &evidence_path,
+    )
+    .unwrap();
+    assert!(receipt.ends_with('\n'));
+    assert!(!receipt[..receipt.len() - 1].contains('\n'));
+    assert_eq!(
+        raw_sha(&receipt),
+        "sha256:bc38f7d5f8cd90bed9dfdee6bceda0533258c7df64c74a95f42f0a53df41edb8"
+    );
+    let value: serde_json::Value = serde_json::from_str(&receipt).unwrap();
+    assert_eq!(
+        value["schema"],
+        "semaprax.workspace-semantic-structural-change-evidence-application.v1"
+    );
+    assert_eq!(value["result"], "applied");
+    assert_eq!(value["proposal"]["digest"], artifacts.proposal_digest());
+    assert_eq!(
+        value["workspace_structural_change_evidence"]["digest"],
+        artifacts.evidence_digest()
+    );
+    assert_eq!(
+        value["workspace_structural_change_evidence"]["bytes"],
+        artifacts.evidence().len()
+    );
+    assert_eq!(value["budget"]["used_receipt_bytes"], receipt.len());
+    assert_eq!(raw_sources(&fixture.root), raw_before);
+    assert_eq!(
+        active_manifest_paths(&fixture.root),
+        [
+            "b/created.spx",
+            "c/provider.spx",
+            "m/consumer.spx",
+            "z/entry.spx",
+        ]
+    );
+    fixture.assert_exclusive_reacquire();
+
+    let cli = Fixture::new("apply-cli");
+    let cli_raw_before = raw_sources(&cli.root);
+    let cli_evidence =
+        semantic_workspace_structural_change::evidence(&cli.root, &cli.proposal).unwrap();
+    let cli_evidence_path = cli.root.join("evidence.json");
+    std::fs::write(&cli_evidence_path, cli_evidence).unwrap();
     let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
         .arg("apply-semantic-workspace-structural-change-evidence")
+        .arg(&cli.root)
+        .arg(&cli.proposal)
+        .arg(&cli_evidence_path)
         .output()
         .unwrap();
-    assert_eq!(output.status.code(), Some(2));
-    let help = String::from_utf8(output.stdout).unwrap();
-    assert!(help.contains("Usage:"));
-    assert!(!help.contains("apply-semantic-workspace-structural-change-evidence"));
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    assert_eq!(output.stdout, receipt.as_bytes());
+    assert_eq!(raw_sources(&cli.root), cli_raw_before);
     assert_eq!(
-        output.stderr,
-        b"unknown command `apply-semantic-workspace-structural-change-evidence`\n\n"
+        active_manifest_paths(&cli.root),
+        [
+            "b/created.spx",
+            "c/provider.spx",
+            "m/consumer.spx",
+            "z/entry.spx",
+        ]
     );
+    cli.assert_exclusive_reacquire();
+}
+
+#[test]
+fn public_application_contention_input_precedence_and_receipt_confusion_are_exact() {
+    let contention = Fixture::new("apply-contention");
+    let before = inventory(&contention.root);
+    let shared = contention.lock();
+    FileExt::lock_shared(&shared).unwrap();
+    let diagnostics = semantic_workspace_structural_change::apply(
+        &contention.root,
+        &contention.root.join("missing-proposal.json"),
+        &contention.root.join("missing-evidence.json"),
+    )
+    .unwrap_err();
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(diagnostics[0].code, "SPX-I210");
+    assert_eq!(diagnostics[0].message, "workspace LOCK is busy");
+    assert_eq!(inventory(&contention.root), before);
+    FileExt::unlock(&shared).unwrap();
+    contention.assert_exclusive_reacquire();
+
+    let precedence = Fixture::new("apply-input-precedence");
+    assert_failure_is_read_only(
+        &precedence,
+        || {
+            semantic_workspace_structural_change::apply(
+                &precedence.root,
+                &precedence.root.join("missing-proposal.json"),
+                &precedence.root.join("missing-evidence.json"),
+            )
+        },
+        "SPX-I215",
+        Some("could not read Semantic Workspace Structural Change proposal: open failed"),
+    );
+    let malformed_proposal = precedence.root.join("malformed-proposal.json");
+    let malformed_evidence = precedence.root.join("malformed-evidence.json");
+    std::fs::write(&malformed_proposal, "{}\n").unwrap();
+    std::fs::write(&malformed_evidence, "{}\n").unwrap();
+    assert_failure_is_read_only(
+        &precedence,
+        || {
+            semantic_workspace_structural_change::apply(
+                &precedence.root,
+                &malformed_proposal,
+                &malformed_evidence,
+            )
+        },
+        "SPX-G193",
+        Some(
+            "Semantic Workspace Structural Change Evidence must be one canonical JSON line with one terminal LF: value type is invalid",
+        ),
+    );
+
+    let confusion = Fixture::new("apply-receipt-confusion");
+    let artifacts =
+        semantic_workspace_structural_change::generate(&confusion.root, &confusion.proposal)
+            .unwrap();
+    let evidence_path = confusion.root.join("evidence.json");
+    std::fs::write(&evidence_path, artifacts.evidence()).unwrap();
+    let verification = semantic_workspace_structural_change::verify(
+        &confusion.root,
+        &confusion.proposal,
+        &evidence_path,
+    )
+    .unwrap();
+    let receipt_path = confusion.root.join("verification-receipt.json");
+    std::fs::write(&receipt_path, verification).unwrap();
+    assert_failure_is_read_only(
+        &confusion,
+        || {
+            semantic_workspace_structural_change::apply(
+                &confusion.root,
+                &confusion.proposal,
+                &receipt_path,
+            )
+        },
+        "SPX-G193",
+        Some(
+            "Semantic Workspace Structural Change Evidence must be one canonical JSON line with one terminal LF",
+        ),
+    );
+}
+
+#[test]
+fn public_second_application_is_stale_and_preserves_the_committed_generation() {
+    let fixture = Fixture::new("apply-stale-second");
+    let raw_before = raw_sources(&fixture.root);
+    let evidence =
+        semantic_workspace_structural_change::evidence(&fixture.root, &fixture.proposal).unwrap();
+    let evidence_path = fixture.root.join("evidence.json");
+    std::fs::write(&evidence_path, evidence).unwrap();
+    semantic_workspace_structural_change::apply(&fixture.root, &fixture.proposal, &evidence_path)
+        .unwrap();
+    let committed = inventory(&fixture.root);
+    let diagnostics = semantic_workspace_structural_change::apply(
+        &fixture.root,
+        &fixture.proposal,
+        &evidence_path,
+    )
+    .unwrap_err();
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(diagnostics[0].code, "SPX-G189");
+    assert_eq!(
+        diagnostics[0].message,
+        "Semantic Workspace Structural Change base workspace revision is stale"
+    );
+    assert_eq!(inventory(&fixture.root), committed);
+    assert_eq!(raw_sources(&fixture.root), raw_before);
+    assert_eq!(
+        active_manifest_paths(&fixture.root),
+        [
+            "b/created.spx",
+            "c/provider.spx",
+            "m/consumer.spx",
+            "z/entry.spx",
+        ]
+    );
+    fixture.assert_exclusive_reacquire();
 }

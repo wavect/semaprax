@@ -24,10 +24,6 @@ const REVIEW_SCHEMA: &str = "semaprax.workspace-semantic-structural-change-revie
 const EVIDENCE_SCHEMA: &str = "semaprax.workspace-semantic-structural-change-evidence.v1";
 const VERIFICATION_RECEIPT_SCHEMA: &str =
     "semaprax.workspace-semantic-structural-change-evidence-verification.v1";
-#[allow(
-    dead_code,
-    reason = "private Structural C1 application receipt remains held from the public surface"
-)]
 const APPLICATION_RECEIPT_SCHEMA: &str =
     "semaprax.workspace-semantic-structural-change-evidence-application.v1";
 const GRAPH_SCHEMA: &str = "semaprax.workspace-semantic-graph.v1";
@@ -372,10 +368,6 @@ pub(crate) fn render_verification_receipt(
     )
 }
 
-#[allow(
-    dead_code,
-    reason = "private Structural C1 application receipt remains held from the public surface"
-)]
 pub(crate) fn render_application_receipt(
     prepared: &SemanticWorkspacePreparedStructuralChange,
     artifacts: &SemanticWorkspaceStructuralChangeArtifacts,

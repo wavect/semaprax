@@ -24,6 +24,12 @@ const REVIEW_SCHEMA: &str = "semaprax.workspace-semantic-structural-change-revie
 const EVIDENCE_SCHEMA: &str = "semaprax.workspace-semantic-structural-change-evidence.v1";
 const VERIFICATION_RECEIPT_SCHEMA: &str =
     "semaprax.workspace-semantic-structural-change-evidence-verification.v1";
+#[allow(
+    dead_code,
+    reason = "private Structural C1 application receipt remains held from the public surface"
+)]
+const APPLICATION_RECEIPT_SCHEMA: &str =
+    "semaprax.workspace-semantic-structural-change-evidence-application.v1";
 const GRAPH_SCHEMA: &str = "semaprax.workspace-semantic-graph.v1";
 const MANIFEST_SCHEMA: &str = "semaprax.workspace-semantic-manifest.v1";
 
@@ -361,6 +367,28 @@ pub(crate) fn render_verification_receipt(
         submitted_evidence_bytes,
         MAX_RECEIPT_BYTES,
         MAX_TOTAL_ARTIFACT_BYTES,
+        VERIFICATION_RECEIPT_SCHEMA,
+        "exact_replay",
+    )
+}
+
+#[allow(
+    dead_code,
+    reason = "private Structural C1 application receipt remains held from the public surface"
+)]
+pub(crate) fn render_application_receipt(
+    prepared: &SemanticWorkspacePreparedStructuralChange,
+    artifacts: &SemanticWorkspaceStructuralChangeArtifacts,
+    submitted_evidence_bytes: usize,
+) -> Result<String, Vec<Diagnostic>> {
+    render_verification_receipt_with_limits_inner(
+        prepared,
+        artifacts,
+        submitted_evidence_bytes,
+        MAX_RECEIPT_BYTES,
+        MAX_TOTAL_ARTIFACT_BYTES,
+        APPLICATION_RECEIPT_SCHEMA,
+        "applied",
     )
 }
 
@@ -380,6 +408,8 @@ pub(crate) fn render_verification_receipt_with_limits(
         submitted_evidence_bytes,
         receipt_limit,
         total_limit,
+        VERIFICATION_RECEIPT_SCHEMA,
+        "exact_replay",
     )
 }
 
@@ -389,6 +419,8 @@ fn render_verification_receipt_with_limits_inner(
     submitted_evidence_bytes: usize,
     receipt_limit: usize,
     total_limit: usize,
+    schema: &str,
+    result: &str,
 ) -> Result<String, Vec<Diagnostic>> {
     if submitted_evidence_bytes != artifacts.evidence.bytes.len() {
         return Err(evidence_replay());
@@ -409,7 +441,15 @@ fn render_verification_receipt_with_limits_inner(
         )?;
         let (receipt, overflowed) = crate::bounded_output::with_limit(effective_limit, || {
             let mut output = CappedString::new();
-            render_receipt(&mut output, prepared, artifacts, &paths, usage);
+            render_receipt(
+                &mut output,
+                prepared,
+                artifacts,
+                &paths,
+                usage,
+                schema,
+                result,
+            );
             output.into_string()
         });
         if overflowed || receipt.len() > effective_limit {
@@ -433,10 +473,14 @@ fn render_receipt(
     artifacts: &SemanticWorkspaceStructuralChangeArtifacts,
     paths: &[PathFact],
     usage: Usage,
+    schema: &str,
+    result: &str,
 ) {
     output.push_str("{\"schema\":");
-    push_json(output, VERIFICATION_RECEIPT_SCHEMA);
-    output.push_str(",\"result\":\"exact_replay\",\"workspace_manifest_schema\":");
+    push_json(output, schema);
+    output.push_str(",\"result\":");
+    push_json(output, result);
+    output.push_str(",\"workspace_manifest_schema\":");
     push_json(output, MANIFEST_SCHEMA);
     push_common(output, prepared);
     output.push_str(",\"proposal\":");

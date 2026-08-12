@@ -63,6 +63,55 @@ pub(crate) enum StructuralVerifyPoint {
     ReceiptRendered,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[allow(
+    dead_code,
+    reason = "private Structural C1 apply hooks remain held from the public surface"
+)]
+pub(crate) enum StructuralApplyPoint {
+    ProposalOwned,
+    EvidenceOwned,
+    AfterReplay,
+    ReceiptRendered,
+    Workspace(workspace::SemanticChangeApplyPoint),
+}
+
+#[allow(
+    dead_code,
+    reason = "private Structural C1 replay proof remains held from the public surface"
+)]
+pub(crate) struct SemanticWorkspaceStructuralChangeCommitAuthority {
+    authority: workspace::WorkspaceSemanticReadAuthority,
+    candidate_files: Vec<semantic_workspace::SemanticWorkspaceFileFact>,
+    candidate_manifest: String,
+    candidate_revision: String,
+    receipt: String,
+}
+
+#[allow(
+    dead_code,
+    reason = "private Structural C1 replay proof is consumed only by held publication"
+)]
+impl SemanticWorkspaceStructuralChangeCommitAuthority {
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        workspace::WorkspaceSemanticReadAuthority,
+        Vec<semantic_workspace::SemanticWorkspaceFileFact>,
+        String,
+        String,
+        String,
+    ) {
+        (
+            self.authority,
+            self.candidate_files,
+            self.candidate_manifest,
+            self.candidate_revision,
+            self.receipt,
+        )
+    }
+}
+
 pub(crate) fn generate_with_hook(
     root: &Path,
     proposal_path: &Path,
@@ -109,6 +158,96 @@ pub(crate) fn verify_with_hook(
         hook(StructuralVerifyPoint::ReceiptRendered);
         Ok(receipt)
     })
+}
+
+#[allow(
+    dead_code,
+    reason = "private Structural C1 apply remains held pending hostile publication gates"
+)]
+pub(crate) fn apply_authenticated_with_hook(
+    root: &Path,
+    proposal_path: &Path,
+    evidence_path: &Path,
+    mut hook: impl FnMut(
+        StructuralApplyPoint,
+        &Path,
+        Option<&Path>,
+        Option<&Path>,
+    ) -> std::io::Result<()>,
+) -> Result<String, Vec<Diagnostic>> {
+    let locked = workspace::acquire_semantic_change_apply_lock(root)?;
+    let active_path = root.join(".semaprax-workspace/ACTIVE");
+    let input = read_proposal(proposal_path).and_then(|proposal_source| {
+        hook(
+            StructuralApplyPoint::ProposalOwned,
+            &active_path,
+            None,
+            None,
+        )
+        .map_err(|error| apply_hook_error("proposal post-read hook failed", error))?;
+        let evidence_source = verification::read_evidence(evidence_path)?;
+        let submitted = verification::parse_evidence(&evidence_source)?;
+        hook(
+            StructuralApplyPoint::EvidenceOwned,
+            &active_path,
+            None,
+            None,
+        )
+        .map_err(|error| apply_hook_error("Evidence post-read hook failed", error))?;
+        let change_set = parse_proposal(&proposal_source)?;
+        Ok((change_set, evidence_source, submitted))
+    });
+    let (authority, (change_set, evidence_source, submitted)) =
+        locked.authenticate(input).map_err(map_base_builder_limit)?;
+    let (authority, prepared) = prepare_authenticated_structural_authority(authority, change_set)?;
+    let prepublication = (|| {
+        let artifacts = artifact::render_artifacts(&prepared)?;
+        verification::verify_replay(&submitted, &evidence_source, &artifacts)?;
+        hook(StructuralApplyPoint::AfterReplay, &active_path, None, None)
+            .map_err(|error| apply_hook_error("exact replay hook failed", error))?;
+        let receipt =
+            artifact::render_application_receipt(&prepared, &artifacts, evidence_source.len())?;
+        hook(
+            StructuralApplyPoint::ReceiptRendered,
+            &active_path,
+            None,
+            None,
+        )
+        .map_err(|error| apply_hook_error("application receipt hook failed", error))?;
+        Ok(receipt)
+    })();
+    let receipt = match prepublication {
+        Ok(receipt) => receipt,
+        Err(diagnostics) => return authority.finish(Err(diagnostics)),
+    };
+    let (candidate_files, candidate_manifest, candidate_revision) =
+        prepared.into_candidate_generation_parts();
+    let commit = SemanticWorkspaceStructuralChangeCommitAuthority {
+        authority,
+        candidate_files,
+        candidate_manifest,
+        candidate_revision,
+        receipt,
+    };
+    workspace::commit_semantic_structural_change_authority_with_hook(
+        commit,
+        |point, active, staged, candidate| {
+            hook(
+                StructuralApplyPoint::Workspace(point),
+                active,
+                staged,
+                candidate,
+            )
+        },
+    )
+}
+
+#[allow(
+    dead_code,
+    reason = "private Structural C1 hook mapping remains held with apply"
+)]
+fn apply_hook_error(label: &'static str, error: std::io::Error) -> Vec<Diagnostic> {
+    vec![Diagnostic::io("SPX-I211", format!("{label}: {error}"))]
 }
 
 pub(crate) const SCHEMA: &str = "semaprax.workspace-semantic-structural-change.v1";
@@ -353,6 +492,24 @@ impl SemanticWorkspacePreparedStructuralChange {
 
     pub(crate) const fn staging_attempts(&self) -> usize {
         self.staging_attempts
+    }
+
+    #[allow(
+        dead_code,
+        reason = "private Structural C1 candidate parts remain held with apply"
+    )]
+    fn into_candidate_generation_parts(
+        self,
+    ) -> (
+        Vec<semantic_workspace::SemanticWorkspaceFileFact>,
+        String,
+        String,
+    ) {
+        (
+            self.candidate_files,
+            self.candidate_manifest,
+            self.candidate_workspace_revision,
+        )
     }
 }
 
@@ -1522,6 +1679,28 @@ pub(super) mod tests {
             FileExt::try_lock_exclusive(&lock).unwrap();
             FileExt::unlock(&lock).unwrap();
         }
+
+        fn raw_inventory(&self) -> Vec<(String, bool, Vec<u8>)> {
+            self.inventory()
+                .into_iter()
+                .filter(|(path, _, _)| !path.starts_with(".semaprax-workspace"))
+                .collect()
+        }
+
+        fn authenticated_paths_and_storage(&self) -> (Vec<String>, usize, usize) {
+            let mut authority = workspace::acquire_semantic_change_read(&self.root).unwrap();
+            let retained = authority.retained_generations();
+            let staging = authority.staging_attempts();
+            let mut paths = authority
+                .take_sources()
+                .into_iter()
+                .map(|source| source.path)
+                .collect::<Vec<_>>();
+            paths.sort();
+            let _graph = authority.take_graph().unwrap();
+            authority.finish(Ok(())).unwrap();
+            (paths, retained, staging)
+        }
     }
 
     impl Drop for ManagedFixture {
@@ -1552,6 +1731,62 @@ pub(super) mod tests {
         assert_eq!(fixture.inventory(), before);
         fixture.assert_exclusive_reacquire();
         error
+    }
+
+    fn application_fixture(label: &str) -> (ManagedFixture, PathBuf) {
+        let fixture = ManagedFixture::new(label);
+        let artifacts = generate_with_hook(&fixture.root, &fixture.proposal_path, |_| {}).unwrap();
+        let evidence_path = fixture.root.join("evidence.json");
+        std::fs::write(&evidence_path, artifacts.evidence()).unwrap();
+        (fixture, evidence_path)
+    }
+
+    fn apply_point_name(point: StructuralApplyPoint) -> &'static str {
+        match point {
+            StructuralApplyPoint::ProposalOwned => "proposal_owned",
+            StructuralApplyPoint::EvidenceOwned => "evidence_owned",
+            StructuralApplyPoint::AfterReplay => "after_replay",
+            StructuralApplyPoint::ReceiptRendered => "receipt_rendered",
+            StructuralApplyPoint::Workspace(workspace::SemanticChangeApplyPoint::Generation(
+                workspace::GenerationPoint::AfterSlotCreate,
+            )) => "generation_after_slot_create",
+            StructuralApplyPoint::Workspace(workspace::SemanticChangeApplyPoint::Generation(
+                workspace::GenerationPoint::AfterManifestWrite,
+            )) => "generation_after_manifest_write",
+            StructuralApplyPoint::Workspace(workspace::SemanticChangeApplyPoint::Generation(
+                workspace::GenerationPoint::AfterFilesWrite,
+            )) => "generation_after_files_write",
+            StructuralApplyPoint::Workspace(workspace::SemanticChangeApplyPoint::Generation(
+                workspace::GenerationPoint::BeforeStageValidation,
+            )) => "generation_before_stage_validation",
+            StructuralApplyPoint::Workspace(workspace::SemanticChangeApplyPoint::Generation(
+                workspace::GenerationPoint::BeforeGenerationPublish,
+            )) => "generation_before_publish",
+            StructuralApplyPoint::Workspace(workspace::SemanticChangeApplyPoint::Generation(
+                workspace::GenerationPoint::DestinationChecked,
+            )) => "generation_destination_checked",
+            StructuralApplyPoint::Workspace(workspace::SemanticChangeApplyPoint::Generation(
+                workspace::GenerationPoint::AfterGenerationPublish,
+            )) => "generation_after_publish",
+            StructuralApplyPoint::Workspace(
+                workspace::SemanticChangeApplyPoint::AfterCandidatePrepared,
+            ) => "after_candidate_prepared",
+            StructuralApplyPoint::Workspace(
+                workspace::SemanticChangeApplyPoint::AfterActiveStaged,
+            ) => "after_active_staged",
+            StructuralApplyPoint::Workspace(
+                workspace::SemanticChangeApplyPoint::BeforeFirstFinalCheck,
+            ) => "before_first_final_check",
+            StructuralApplyPoint::Workspace(
+                workspace::SemanticChangeApplyPoint::BeforeSecondFinalCheck,
+            ) => "before_second_final_check",
+            StructuralApplyPoint::Workspace(
+                workspace::SemanticChangeApplyPoint::BeforeActiveReplace,
+            ) => "before_active_replace",
+            StructuralApplyPoint::Workspace(
+                workspace::SemanticChangeApplyPoint::AfterActiveReplace,
+            ) => "after_active_replace",
+        }
     }
 
     fn replace_owned_path(path: &Path, replacement: &Path) {
@@ -3106,6 +3341,421 @@ fn main() -> i64 uses { created.capability } { helper() }
                 error.message,
                 "Semantic Workspace Structural Change Evidence does not exactly replay the authenticated proposal and candidate"
             );
+        }
+    }
+
+    #[test]
+    fn structural_apply_publishes_exact_candidate_once_without_raw_writes() {
+        let (fixture, evidence_path) = application_fixture("apply-success");
+        let raw_before = fixture.raw_inventory();
+        let active_before = std::fs::read(fixture.root.join(".semaprax-workspace/ACTIVE")).unwrap();
+        let points = std::cell::RefCell::new(Vec::new());
+        let candidate_path = std::cell::RefCell::new(None::<PathBuf>);
+        let receipt = apply_authenticated_with_hook(
+            &fixture.root,
+            &fixture.proposal_path,
+            &evidence_path,
+            |point, _, _, candidate| {
+                points.borrow_mut().push(apply_point_name(point));
+                if let Some(candidate) = candidate {
+                    *candidate_path.borrow_mut() = Some(candidate.to_owned());
+                }
+                Ok(())
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            *points.borrow(),
+            [
+                "proposal_owned",
+                "evidence_owned",
+                "after_replay",
+                "receipt_rendered",
+                "generation_after_slot_create",
+                "generation_after_manifest_write",
+                "generation_after_files_write",
+                "generation_before_stage_validation",
+                "generation_before_publish",
+                "generation_destination_checked",
+                "generation_after_publish",
+                "after_candidate_prepared",
+                "after_active_staged",
+                "before_first_final_check",
+                "before_second_final_check",
+                "before_active_replace",
+                "after_active_replace",
+            ]
+        );
+        let receipt_value: Value = serde_json::from_str(&receipt).unwrap();
+        assert_eq!(
+            receipt_value["schema"],
+            "semaprax.workspace-semantic-structural-change-evidence-application.v1"
+        );
+        assert_eq!(receipt_value["result"], "applied");
+        assert_eq!(
+            raw_sha(&receipt),
+            "sha256:bc38f7d5f8cd90bed9dfdee6bceda0533258c7df64c74a95f42f0a53df41edb8"
+        );
+        assert_eq!(fixture.raw_inventory(), raw_before);
+        assert_ne!(
+            std::fs::read(fixture.root.join(".semaprax-workspace/ACTIVE")).unwrap(),
+            active_before
+        );
+        assert!(candidate_path.borrow().as_ref().unwrap().is_dir());
+        assert_eq!(
+            fixture.authenticated_paths_and_storage(),
+            (
+                vec![
+                    "b/created.spx".to_owned(),
+                    "c/provider.spx".to_owned(),
+                    "m/consumer.spx".to_owned(),
+                    "z/entry.spx".to_owned(),
+                ],
+                2,
+                0,
+            )
+        );
+        fixture.assert_exclusive_reacquire();
+    }
+
+    #[test]
+    fn every_structural_apply_hook_maps_pre_and_post_pivot_failures_exactly() {
+        for target in [
+            "proposal_owned",
+            "evidence_owned",
+            "after_replay",
+            "receipt_rendered",
+            "generation_after_slot_create",
+            "generation_after_manifest_write",
+            "generation_after_files_write",
+            "generation_before_stage_validation",
+            "generation_before_publish",
+            "generation_destination_checked",
+            "generation_after_publish",
+            "after_candidate_prepared",
+            "after_active_staged",
+            "before_first_final_check",
+            "before_second_final_check",
+            "before_active_replace",
+            "after_active_replace",
+        ] {
+            let (fixture, evidence_path) = application_fixture(target);
+            let active_before =
+                std::fs::read(fixture.root.join(".semaprax-workspace/ACTIVE")).unwrap();
+            let reached = std::cell::Cell::new(false);
+            let error = diagnostic(apply_authenticated_with_hook(
+                &fixture.root,
+                &fixture.proposal_path,
+                &evidence_path,
+                |point, _, _, _| {
+                    if apply_point_name(point) == target {
+                        reached.set(true);
+                        return Err(std::io::Error::other("injected boundary failure"));
+                    }
+                    Ok(())
+                },
+            ));
+            assert!(reached.get(), "hook was not reached: {target}");
+            assert_eq!(
+                error.code,
+                if target == "after_active_replace" {
+                    "SPX-I212"
+                } else {
+                    "SPX-I211"
+                },
+                "unexpected diagnostic at {target}: {error:?}"
+            );
+            let active_after =
+                std::fs::read(fixture.root.join(".semaprax-workspace/ACTIVE")).unwrap();
+            if target == "after_active_replace" {
+                assert_ne!(active_after, active_before);
+            } else {
+                assert_eq!(active_after, active_before);
+            }
+            fixture.assert_exclusive_reacquire();
+        }
+    }
+
+    #[test]
+    fn published_candidate_residue_requires_new_evidence_then_reuses_exact_path() {
+        let (fixture, evidence_path) = application_fixture("candidate-residue");
+        let active_before = std::fs::read(fixture.root.join(".semaprax-workspace/ACTIVE")).unwrap();
+        let first_candidate = std::cell::RefCell::new(None::<PathBuf>);
+        let error = diagnostic(apply_authenticated_with_hook(
+            &fixture.root,
+            &fixture.proposal_path,
+            &evidence_path,
+            |point, _, _, candidate| {
+                if matches!(
+                    point,
+                    StructuralApplyPoint::Workspace(
+                        workspace::SemanticChangeApplyPoint::AfterCandidatePrepared
+                    )
+                ) {
+                    *first_candidate.borrow_mut() = candidate.map(Path::to_owned);
+                    return Err(std::io::Error::other("stop after candidate publication"));
+                }
+                Ok(())
+            },
+        ));
+        assert_eq!(error.code, "SPX-I211");
+        let first_candidate = first_candidate.into_inner().unwrap();
+        let candidate_inventory = {
+            let fixture_inventory = fixture.inventory();
+            fixture_inventory
+                .into_iter()
+                .filter(|(path, _, _)| {
+                    first_candidate
+                        .strip_prefix(&fixture.root)
+                        .is_ok_and(|prefix| path.starts_with(prefix.to_string_lossy().as_ref()))
+                })
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(
+            std::fs::read(fixture.root.join(".semaprax-workspace/ACTIVE")).unwrap(),
+            active_before
+        );
+        assert_eq!(fixture.authenticated_paths_and_storage().1, 2);
+
+        let stale = diagnostic(apply_authenticated_with_hook(
+            &fixture.root,
+            &fixture.proposal_path,
+            &evidence_path,
+            |_, _, _, _| Ok(()),
+        ));
+        assert_eq!(stale.code, "SPX-G195");
+        let regenerated =
+            generate_with_hook(&fixture.root, &fixture.proposal_path, |_| {}).unwrap();
+        std::fs::write(&evidence_path, regenerated.evidence()).unwrap();
+        let reused_candidate = std::cell::RefCell::new(None::<PathBuf>);
+        apply_authenticated_with_hook(
+            &fixture.root,
+            &fixture.proposal_path,
+            &evidence_path,
+            |point, _, _, candidate| {
+                if matches!(
+                    point,
+                    StructuralApplyPoint::Workspace(
+                        workspace::SemanticChangeApplyPoint::AfterCandidatePrepared
+                    )
+                ) {
+                    *reused_candidate.borrow_mut() = candidate.map(Path::to_owned);
+                }
+                Ok(())
+            },
+        )
+        .unwrap();
+        assert_eq!(reused_candidate.into_inner().unwrap(), first_candidate);
+        assert_eq!(fixture.authenticated_paths_and_storage().1, 2);
+        let after_inventory = fixture.inventory();
+        for fact in candidate_inventory {
+            assert!(after_inventory.contains(&fact));
+        }
+        fixture.assert_exclusive_reacquire();
+    }
+
+    #[test]
+    fn structural_final_rechecks_detect_identity_and_post_pivot_candidate_drift() {
+        let (identity_fixture, identity_evidence) = application_fixture("identity-drift");
+        let active_path = identity_fixture.root.join(".semaprax-workspace/ACTIVE");
+        let active_before = std::fs::read(&active_path).unwrap();
+        let error = diagnostic(apply_authenticated_with_hook(
+            &identity_fixture.root,
+            &identity_fixture.proposal_path,
+            &identity_evidence,
+            |point, active, _, _| {
+                if matches!(
+                    point,
+                    StructuralApplyPoint::Workspace(
+                        workspace::SemanticChangeApplyPoint::BeforeFirstFinalCheck
+                    )
+                ) {
+                    let replacement = active.with_extension("replacement");
+                    std::fs::write(&replacement, std::fs::read(active).unwrap())?;
+                    std::fs::remove_file(active)?;
+                    std::fs::rename(replacement, active)?;
+                }
+                Ok(())
+            },
+        ));
+        assert_eq!(error.code, "SPX-G153");
+        assert_eq!(std::fs::read(&active_path).unwrap(), active_before);
+        identity_fixture.assert_exclusive_reacquire();
+
+        let (post_fixture, post_evidence) = application_fixture("post-pivot-drift");
+        let error = diagnostic(apply_authenticated_with_hook(
+            &post_fixture.root,
+            &post_fixture.proposal_path,
+            &post_evidence,
+            |point, _, _, candidate| {
+                if matches!(
+                    point,
+                    StructuralApplyPoint::Workspace(
+                        workspace::SemanticChangeApplyPoint::AfterActiveReplace
+                    )
+                ) {
+                    let candidate = candidate.unwrap();
+                    OpenOptions::new()
+                        .append(true)
+                        .open(candidate.join("files/z/entry.spx"))?
+                        .write_all(b"x")?;
+                }
+                Ok(())
+            },
+        ));
+        assert_eq!(error.code, "SPX-I212");
+        post_fixture.assert_exclusive_reacquire();
+    }
+
+    #[test]
+    fn structural_apply_replay_failure_is_zero_write_and_destination_races_never_clobber() {
+        let (fixture, evidence_path) = application_fixture("apply-replay-zero-write");
+        let evidence = std::fs::read_to_string(&evidence_path).unwrap().replace(
+            "\"entry_module\":\"structural.entry\"",
+            "\"entry_module\":\"structural.entri\"",
+        );
+        verification::parse_evidence(&evidence).unwrap();
+        std::fs::write(&evidence_path, evidence).unwrap();
+        let before = fixture.inventory();
+        let error = diagnostic(apply_authenticated_with_hook(
+            &fixture.root,
+            &fixture.proposal_path,
+            &evidence_path,
+            |_, _, _, _| Ok(()),
+        ));
+        assert_eq!(error.code, "SPX-G195");
+        assert_eq!(fixture.inventory(), before);
+        fixture.assert_exclusive_reacquire();
+
+        for kind in ["file", "directory"] {
+            let (fixture, evidence_path) = application_fixture(&format!("destination-{kind}"));
+            let active_before =
+                std::fs::read(fixture.root.join(".semaprax-workspace/ACTIVE")).unwrap();
+            let foreign = std::cell::RefCell::new(None::<PathBuf>);
+            let error = diagnostic(apply_authenticated_with_hook(
+                &fixture.root,
+                &fixture.proposal_path,
+                &evidence_path,
+                |point, _, _, candidate| {
+                    if matches!(
+                        point,
+                        StructuralApplyPoint::Workspace(
+                            workspace::SemanticChangeApplyPoint::Generation(
+                                workspace::GenerationPoint::DestinationChecked
+                            )
+                        )
+                    ) {
+                        let candidate = candidate.unwrap();
+                        if kind == "file" {
+                            std::fs::write(candidate, "foreign structural generation\n")?;
+                        } else {
+                            std::fs::create_dir(candidate)?;
+                        }
+                        *foreign.borrow_mut() = Some(candidate.to_owned());
+                    }
+                    Ok(())
+                },
+            ));
+            assert_eq!(error.code, "SPX-I211");
+            let foreign = foreign.into_inner().unwrap();
+            assert_eq!(foreign.is_file(), kind == "file");
+            assert_eq!(foreign.is_dir(), kind == "directory");
+            assert_eq!(
+                std::fs::read(fixture.root.join(".semaprax-workspace/ACTIVE")).unwrap(),
+                active_before
+            );
+            fixture.assert_exclusive_reacquire();
+        }
+    }
+
+    #[test]
+    fn structural_generation_rechecks_reject_same_byte_manifest_and_source_substitution() {
+        for (label, point, relative) in [
+            (
+                "manifest",
+                workspace::GenerationPoint::AfterManifestWrite,
+                "manifest.json",
+            ),
+            (
+                "source",
+                workspace::GenerationPoint::AfterFilesWrite,
+                "files/z/entry.spx",
+            ),
+        ] {
+            let (fixture, evidence_path) = application_fixture(&format!("generation-{label}"));
+            let active_before =
+                std::fs::read(fixture.root.join(".semaprax-workspace/ACTIVE")).unwrap();
+            let substituted = std::cell::Cell::new(false);
+            let error = diagnostic(apply_authenticated_with_hook(
+                &fixture.root,
+                &fixture.proposal_path,
+                &evidence_path,
+                |current, _, staged, _| {
+                    if matches!(
+                        current,
+                        StructuralApplyPoint::Workspace(
+                            workspace::SemanticChangeApplyPoint::Generation(observed)
+                        ) if observed == point
+                    ) {
+                        let path = staged.unwrap().join(relative);
+                        let bytes = std::fs::read(&path)?;
+                        std::fs::remove_file(&path)?;
+                        std::fs::write(path, bytes)?;
+                        substituted.set(true);
+                    }
+                    Ok(())
+                },
+            ));
+            assert!(substituted.get());
+            assert_eq!(error.code, "SPX-G153");
+            assert_eq!(
+                std::fs::read(fixture.root.join(".semaprax-workspace/ACTIVE")).unwrap(),
+                active_before
+            );
+            fixture.assert_exclusive_reacquire();
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn structural_generation_rejects_staged_symlink_and_hardlink_aliases() {
+        use std::os::unix::fs::symlink;
+
+        for kind in ["symlink", "hardlink"] {
+            let (fixture, evidence_path) = application_fixture(&format!("alias-{kind}"));
+            let active_before =
+                std::fs::read(fixture.root.join(".semaprax-workspace/ACTIVE")).unwrap();
+            let error = diagnostic(apply_authenticated_with_hook(
+                &fixture.root,
+                &fixture.proposal_path,
+                &evidence_path,
+                |point, _, staged, _| {
+                    if matches!(
+                        point,
+                        StructuralApplyPoint::Workspace(
+                            workspace::SemanticChangeApplyPoint::Generation(
+                                workspace::GenerationPoint::AfterFilesWrite
+                            )
+                        )
+                    ) {
+                        let staged = staged.unwrap();
+                        let target = staged.join("files/z/entry.spx");
+                        std::fs::remove_file(&target)?;
+                        if kind == "symlink" {
+                            symlink(&fixture.proposal_path, target)?;
+                        } else {
+                            std::fs::hard_link(staged.join("files/m/consumer.spx"), target)?;
+                        }
+                    }
+                    Ok(())
+                },
+            ));
+            assert_eq!(error.code, "SPX-G153");
+            assert_eq!(
+                std::fs::read(fixture.root.join(".semaprax-workspace/ACTIVE")).unwrap(),
+                active_before
+            );
+            fixture.assert_exclusive_reacquire();
         }
     }
 }

@@ -2233,9 +2233,17 @@ pub(crate) enum SemanticChangeApplyPoint {
     AfterActiveReplace,
 }
 
+struct SemanticCandidateCommitParts {
+    authority: WorkspaceSemanticReadAuthority,
+    candidate_files: Vec<crate::semantic_workspace::SemanticWorkspaceFileFact>,
+    candidate_manifest: String,
+    candidate_revision: String,
+    receipt: String,
+}
+
 pub(crate) fn commit_semantic_change_authority_with_hook(
     authority: crate::semantic_workspace_change::SemanticWorkspaceChangeCommitAuthority,
-    mut hook: impl FnMut(
+    hook: impl FnMut(
         SemanticChangeApplyPoint,
         &Path,
         Option<&Path>,
@@ -2244,11 +2252,71 @@ pub(crate) fn commit_semantic_change_authority_with_hook(
 ) -> Result<String, Vec<Diagnostic>> {
     let (authority, candidate_files, candidate_manifest, candidate_revision, receipt) =
         authority.into_parts();
+    commit_semantic_candidate_parts_with_hook(
+        SemanticCandidateCommitParts {
+            authority,
+            candidate_files,
+            candidate_manifest,
+            candidate_revision,
+            receipt,
+        },
+        "Semantic Workspace Change",
+        hook,
+    )
+}
+
+#[allow(
+    dead_code,
+    reason = "private Structural C1 publication remains held from the public surface"
+)]
+pub(crate) fn commit_semantic_structural_change_authority_with_hook(
+    authority: crate::semantic_workspace_structural_change::SemanticWorkspaceStructuralChangeCommitAuthority,
+    hook: impl FnMut(
+        SemanticChangeApplyPoint,
+        &Path,
+        Option<&Path>,
+        Option<&Path>,
+    ) -> std::io::Result<()>,
+) -> Result<String, Vec<Diagnostic>> {
+    let (authority, candidate_files, candidate_manifest, candidate_revision, receipt) =
+        authority.into_parts();
+    commit_semantic_candidate_parts_with_hook(
+        SemanticCandidateCommitParts {
+            authority,
+            candidate_files,
+            candidate_manifest,
+            candidate_revision,
+            receipt,
+        },
+        "Semantic Workspace Structural Change",
+        hook,
+    )
+}
+
+fn commit_semantic_candidate_parts_with_hook(
+    parts: SemanticCandidateCommitParts,
+    authority_label: &'static str,
+    mut hook: impl FnMut(
+        SemanticChangeApplyPoint,
+        &Path,
+        Option<&Path>,
+        Option<&Path>,
+    ) -> std::io::Result<()>,
+) -> Result<String, Vec<Diagnostic>> {
+    let SemanticCandidateCommitParts {
+        authority,
+        candidate_files,
+        candidate_manifest,
+        candidate_revision,
+        receipt,
+    } = parts;
     let mut guard = authority.guard;
     if !guard.exclusive {
         return Err(unlock_with_diagnostics(
             &guard.lock,
-            invariant("Semantic Workspace Change apply requires the exclusive workspace lock"),
+            invariant(format!(
+                "{authority_label} apply requires the exclusive workspace lock"
+            )),
         ));
     }
     if guard.semantic_graph.is_some() {
@@ -2274,9 +2342,9 @@ pub(crate) fn commit_semantic_change_authority_with_hook(
         if crate::semantic_workspace::semantic_workspace_revision(&candidate_manifest)
             != candidate_revision
         {
-            return Err(invariant(
-                "Semantic Workspace Change candidate manifest revision disagrees",
-            ));
+            return Err(invariant(format!(
+                "{authority_label} candidate manifest revision disagrees"
+            )));
         }
         let mut candidate = ensure_semantic_candidate_generation(
             &mut guard,

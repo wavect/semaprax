@@ -169,10 +169,39 @@ pub(crate) fn preflight_owned_for_change(
     preflight_owned_inner(path_set_source, sources, Some(change_builder_limit))
 }
 
+pub(crate) fn preflight_owned_for_operations(
+    path_set_source: &str,
+    sources: Vec<SemanticWorkspaceSource>,
+    graph_builder_limit: usize,
+    operations_builder_limit: usize,
+) -> Result<SemanticWorkspacePreflight, Vec<Diagnostic>> {
+    assert!(
+        operations_builder_limit <= 67_108_864,
+        "private Semantic Workspace Operations builder limit cannot exceed the production maximum"
+    );
+    preflight_owned_inner_mode(
+        path_set_source,
+        sources,
+        Some(operations_builder_limit),
+        true,
+        Some(graph_builder_limit),
+    )
+}
+
 fn preflight_owned_inner(
     path_set_source: &str,
     sources: Vec<SemanticWorkspaceSource>,
     change_builder_limit: Option<usize>,
+) -> Result<SemanticWorkspacePreflight, Vec<Diagnostic>> {
+    preflight_owned_inner_mode(path_set_source, sources, change_builder_limit, false, None)
+}
+
+fn preflight_owned_inner_mode(
+    path_set_source: &str,
+    sources: Vec<SemanticWorkspaceSource>,
+    change_builder_limit: Option<usize>,
+    retain_operations: bool,
+    graph_builder_limit: Option<usize>,
 ) -> Result<SemanticWorkspacePreflight, Vec<Diagnostic>> {
     let path_set = parse_path_set(path_set_source)?;
     if sources.len() != path_set.len() {
@@ -213,10 +242,18 @@ fn preflight_owned_inner(
         })
         .collect();
     let (graph, recovered_sources) = if let Some(change_builder_limit) = change_builder_limit {
-        workspace_graph::build_owned_retaining_sources_for_change(
-            graph_sources,
-            change_builder_limit,
-        )?
+        if retain_operations {
+            workspace_graph::build_owned_retaining_sources_for_operations(
+                graph_sources,
+                graph_builder_limit.expect("operations preflight supplies Graph limit"),
+                change_builder_limit,
+            )?
+        } else {
+            workspace_graph::build_owned_retaining_sources_for_change(
+                graph_sources,
+                change_builder_limit,
+            )?
+        }
     } else {
         workspace_graph::build_owned_retaining_sources(graph_sources)?
     };

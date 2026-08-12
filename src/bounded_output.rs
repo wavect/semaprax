@@ -80,6 +80,10 @@ pub(crate) fn reserve_active(length: usize) -> bool {
     reserve(budget.as_deref(), length)
 }
 
+pub(crate) fn active_remaining() -> Option<usize> {
+    active().map(|budget| budget.remaining.get())
+}
+
 fn reserve_sink(captured: Option<&Rc<Budget>>, length: usize) -> bool {
     let current = active();
     reserve(

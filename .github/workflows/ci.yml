@@ -75,6 +75,10 @@ jobs:
         run: cargo test --locked -p semaprax --lib agent_runtime::tests -- --nocapture
       - name: Require public bounded Agent Runtime injected-host evidence
         run: cargo test --locked -p semaprax --test agent_runtime_v1 -- --nocapture
+      - name: Require private Economic Agent deterministic fake-host evidence
+        run: cargo test --locked -p semaprax --lib economic_agent::tests -- --nocapture
+      - name: Require private Economic Agent durable marker process-termination evidence
+        run: cargo test --locked -p semaprax --lib economic_agent::tests::economic_process_kill_markers_never_repeat_sign_or_broadcast -- --exact --nocapture
       - name: Require Windows callable-v2 and private callable-v3 physical evidence
         if: runner.os == 'Windows'
         shell: pwsh

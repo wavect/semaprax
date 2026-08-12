@@ -8,10 +8,7 @@ Its C1 injected-host Rust API remains deliberately narrow: provider transports,
 durable memory, language/backend integration, approval, target
 execution, wallets, payments, signing, and economic authority remain held. See
 [the private runtime contract](AGENT-RUNTIME-V1.md).
-The exact `cd2f6393bb84657f7ef4f0094e1136eb5a401355` A+B matrix is hosted green in
-[run 31585682213](https://github.com/wavect/semaprax/actions/runs/31585682213),
-including the fake-host gate on all three host OSes. C1 public integration is
-locally green 4/4 and hosted promotion remains pending.
+Public Agent Runtime v1 is hosted GREEN at 8cf29aff8d1be3ccf74c36bc8c837f0c666ca067 (run 31591039261, 12/12 jobs, private and public deterministic fake-host gates on Ubuntu, macOS, and Windows). Private Economic Agent A+B implementation is in progress; local/hosted evidence and public C remain pending.
 Totals remain 38 Partial/18 Missing.
 
 ## 0.1 — Executable semantic seed
@@ -612,13 +609,35 @@ Exit criterion: implement a zero-copy parser and server without a tracing GC.
 - WIT import/export and WebAssembly Component output.
 - Portable canonical ABI plus native fast ABI.
 - Generated C headers and safe wrapper annotations.
+- Bidirectional native Rust interoperability on compatible targets. Rust crates
+  must be able to call exported SEMAPRAX declarations through generated safe
+  wrappers, and SEMAPRAX packages must be able to import explicitly admitted
+  Rust declarations through generated adapters, without routing either
+  direction through Wasm.
+- Freeze the Rust boundary as a versioned interface/ABI contract covering exact
+  symbol and type identity, layouts, ownership and borrowing, allocation and
+  deallocation ownership, panic/unwind containment, thread affinity,
+  capabilities/effects, error translation, and toolchain/target compatibility.
+  Start with direct scalar calls, then admit records, variants, borrowed
+  slices/strings, owned resources, callbacks, and async only as separately
+  evidenced shapes; unsupported shapes fail at build time rather than falling
+  back to an unchecked C ABI.
+- Generate Cargo/link metadata and a narrow Rust crate facade for SEMAPRAX
+  exports, plus a quarantined native shim for admitted Rust imports. Require
+  round-trip conformance, ownership/failure hostility, sanitizer coverage, and
+  Ubuntu/macOS/Windows evidence in both call directions before describing a
+  shape as supported. Rust `unsafe` remains confined to reviewed boundary code
+  and never becomes ambient SEMAPRAX authority.
 - Capability-sandboxed reproducible package builds.
 - Provenance, SBOM, license, and unsafe-code metadata.
 - Capability-sandboxed agent-tool components, a non-exporting secret-store
   interface, signed/versioned model catalogs, and canonical audit events. Network,
   home-directory, credential, and ambient tool access remain denied by default.
 
-Exit criterion: compose SEMAPRAX, Rust, and JavaScript components behind one interface contract.
+Exit criterion: compose SEMAPRAX, Rust, and JavaScript components behind one
+interface contract, including hosted native Rust-to-SEMAPRAX and
+SEMAPRAX-to-Rust calls with matching ownership, failure, and capability
+semantics.
 
 ## 0.5 — Concurrency and applications
 

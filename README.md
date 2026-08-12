@@ -172,8 +172,7 @@ does not satisfy a broader product gate.
 | Agent runtime | A bounded injected-host Rust API has hosted deterministic fake-host evidence. It is not a live provider transport, CLI agent, durable-memory system, wallet, payment, signing, or ambient-authority surface. |
 
 The bounded public Agent Runtime v1 gate is hosted green at
-[`8cf29aff`](https://github.com/wavect/semaprax/commit/8cf29aff8d1be3ccf74c36bc8c837f0c666ca067)
-([12/12 CI jobs](https://github.com/wavect/semaprax/actions/runs/31591039261)).
+Public Agent Runtime v1 is hosted GREEN at 8cf29aff8d1be3ccf74c36bc8c837f0c666ca067 (run 31591039261, 12/12 jobs, private and public deterministic fake-host gates on Ubuntu, macOS, and Windows).
 Private Economic Agent v1 A+B work is in progress; its promotion evidence is
 pending and its public surface remains held. Neither changes the matrix totals.
 

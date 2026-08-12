@@ -711,6 +711,24 @@ impl AgentRun {
     pub fn evidence_digest(&self) -> &str {
         &self.evidence_digest
     }
+
+    pub(crate) fn economic_binding(&self) -> EconomicAgentBinding<'_> {
+        EconomicAgentBinding {
+            status: self.status,
+            final_message: self.replay.final_message(),
+            run_id: self.replay.run_id(),
+            evidence: &self.evidence,
+            evidence_digest: &self.evidence_digest,
+        }
+    }
+}
+
+pub(crate) struct EconomicAgentBinding<'a> {
+    pub(crate) status: AgentRunStatus,
+    pub(crate) final_message: Option<&'a str>,
+    pub(crate) run_id: &'a str,
+    pub(crate) evidence: &'a str,
+    pub(crate) evidence_digest: &'a str,
 }
 
 type RunStatus = AgentRunStatus;
@@ -1098,6 +1116,9 @@ fn render_effective_limits(limits: EffectiveLimits) -> String {
 // are split into sibling implementation files to keep each authority boundary
 // reviewable.
 mod private;
+
+#[cfg(test)]
+pub(crate) use private::completed_run_for_economic_test;
 
 #[cfg(test)]
 mod tests;

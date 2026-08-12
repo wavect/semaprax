@@ -50,6 +50,10 @@ impl EvidenceReplay {
     pub(super) fn final_message(&self) -> Option<&str> {
         self.state.final_message.as_deref()
     }
+
+    pub(super) fn run_id(&self) -> &str {
+        &self.state.run_id
+    }
 }
 
 struct Route {
@@ -747,6 +751,121 @@ impl<H: AgentHost> TestAgent<H> {
 #[cfg(test)]
 pub(super) fn new_agent<H: AgentHost>(profile_source: &str, host: H) -> TestAgent<H> {
     TestAgent(Agent::new(profile_source, host, AgentCancellation::new()).unwrap())
+}
+
+#[cfg(test)]
+pub(crate) fn completed_run_for_economic_test(message: &str) -> AgentRun {
+    struct Probe;
+    impl AgentBoundaryProbe for Probe {
+        fn policy_epoch(&self) -> u64 {
+            1
+        }
+        fn elapsed_ms(&self) -> u64 {
+            0
+        }
+    }
+    struct Host {
+        response: Vec<u8>,
+    }
+    impl AgentHost for Host {
+        fn policy_epoch(&self) -> u64 {
+            1
+        }
+        fn elapsed_ms(&self) -> u64 {
+            0
+        }
+        fn boundary_probe(&self) -> Box<dyn AgentBoundaryProbe> {
+            Box::new(Probe)
+        }
+        fn tokenize(&mut self, _: &str, request: &str) -> Option<u64> {
+            Some(request.len() as u64)
+        }
+        fn attempt_provider(
+            &mut self,
+            _: &str,
+            _: &str,
+            request: &str,
+            _: u64,
+            sink: &mut AgentProviderSink,
+        ) -> AgentProviderAttempt {
+            assert!(sink.push(&self.response));
+            AgentProviderAttempt::new(
+                AgentProviderDisposition::Succeeded,
+                AgentProviderUsage::new(request.len() as u64, self.response.len() as u64, 0),
+            )
+        }
+        fn invoke_tool(&mut self, _: &str, _: &str, _: &str, _: &mut AgentToolResultSink) -> bool {
+            false
+        }
+    }
+    let profile = Profile {
+        agent_id: "economic.fixture.agent".to_owned(),
+        models: vec![Model {
+            provider_id: "fixture.local".to_owned(),
+            model_id: "fixture-economic".to_owned(),
+            locality: Locality::Local,
+            quality_tier: QualityTier::Basic,
+            tokenizer_id: "fixture.bytes-v1".to_owned(),
+            max_context_tokens: 1_048_576,
+            input_price: 0,
+            output_price: 0,
+            capabilities: vec!["text".to_owned()],
+        }],
+        tools: vec![],
+        policy: Policy {
+            allowed_provider_ids: vec!["fixture.local".to_owned()],
+            allowed_model_ids: vec!["fixture-economic".to_owned()],
+            required_locality: RequiredLocality::LocalOnly,
+            minimum_quality_tier: QualityTier::Basic,
+            required_model_capabilities: vec!["text".to_owned()],
+            granted_capabilities: vec![],
+            allowed_tool_ids: vec![],
+        },
+        limits: EffectiveLimits {
+            max_turns: 1,
+            max_provider_attempts: 1,
+            max_retries_per_turn: 0,
+            max_concurrency: 1,
+            max_elapsed_ms: 10_000,
+            max_provider_request_bytes: 2_097_152,
+            max_provider_response_bytes: 1_048_576,
+            max_stream_chunks: 4,
+            max_total_provider_input_bytes: 2_097_152,
+            max_total_provider_output_bytes: 1_048_576,
+            max_reported_model_input_tokens: 2_097_152,
+            max_reported_model_output_tokens: 262_144,
+            max_usd_microunits: 0,
+            max_tool_calls: 0,
+            max_tool_arguments_bytes: 1,
+            max_tool_result_bytes: 1,
+            max_total_tool_bytes: 1,
+            max_retained_state_bytes: 2_097_152,
+            max_trace_events: 32,
+            max_trace_bytes: 262_144,
+            max_evidence_bytes: 2_097_152,
+            max_builder_bytes: 67_108_864,
+        },
+        source: String::new(),
+        digest: String::new(),
+    };
+    let profile_source = render_profile(&profile);
+    let task = Task {
+        nonce: "0".repeat(64),
+        objective: "Return the exact economic proposal.".to_owned(),
+        context: vec![],
+        source: String::new(),
+        digest: String::new(),
+    };
+    let task_source = render_task(&task);
+    let response = format!(
+        "{{\"schema\":\"{ACTION_SCHEMA}\",\"kind\":\"final\",\"message\":{}}}\n",
+        quote_json(message)
+    )
+    .into_bytes();
+    Agent::new(&profile_source, Host { response }, AgentCancellation::new())
+        .unwrap()
+        .run(&task_source)
+        .unwrap()
 }
 
 impl<H: AgentHost> Agent<H> {

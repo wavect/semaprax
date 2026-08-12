@@ -35,10 +35,8 @@ provider, transport, quality, public API/CLI, wallet, or economic-authority
 claim. C1 additionally requires an external-crate host, exact public surface and
 opacity locks, cancellation/retry/cap/secret/no-write checks, package/rustdoc,
 and an explicit Ubuntu/macOS/Windows public integration gate. See [Bounded Native
-Agent Runtime v1](AGENT-RUNTIME-V1.md). The exact
-`cd2f6393bb84657f7ef4f0094e1136eb5a401355` A+B matrix is hosted green in
-[run 31585682213](https://github.com/wavect/semaprax/actions/runs/31585682213);
-C1 public integration is locally green 4/4; hosted promotion remains pending.
+Agent Runtime v1](AGENT-RUNTIME-V1.md). Public Agent Runtime v1 is hosted GREEN at 8cf29aff8d1be3ccf74c36bc8c837f0c666ca067 (run 31591039261, 12/12 jobs, private and public deterministic fake-host gates on Ubuntu, macOS, and Windows).
+Private Economic Agent v1 additionally configures `cargo test --locked -p semaprax --lib economic_agent::tests -- --nocapture` and `cargo test --locked -p semaprax --lib economic_agent::tests::economic_process_kill_markers_never_repeat_sign_or_broadcast -- --exact --nocapture` on Ubuntu, macOS, and Windows. Its local and hosted promotion evidence remain pending; public C is held.
 Totals remain 38 Partial/18 Missing.
 
 Quality gates are executable evidence, not a checklist substitute for reasoning. Every pull request must pass the baseline and the gates for each changed semantic layer.

@@ -15,6 +15,7 @@ pub mod cleanup_plan;
 pub mod codegen;
 pub mod conformance;
 pub mod diagnostic;
+mod economic_agent;
 pub mod format;
 pub mod graph;
 pub mod hir;

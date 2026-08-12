@@ -1,7 +1,7 @@
 # Bounded Native Agent Runtime v1
 
-Status: the A+B private proof is hosted green; C1 exposes an additive injected-
-host Rust API whose new exact-head hosted promotion gate remains pending. It does
+Status: the A+B private proof and additive C1 injected-host Rust API are hosted
+green. It does
 not add language syntax, compiler semantics, a provider transport, a CLI, or a
 backend.
 
@@ -67,11 +67,7 @@ retry; tool schema/effect/capability/policy/result failures; cancellation and
 deadline boundaries; replay mutations; secret-sentinel absence; no-write
 inventory; 240-byte identities and JSON escaping; and cumulative builder
 limits. CI is configured to run the fake-host corpus on Ubuntu, macOS, and
-Windows. The exact `cd2f6393bb84657f7ef4f0094e1136eb5a401355` A+B matrix is
-hosted green in [run 31585682213](https://github.com/wavect/semaprax/actions/runs/31585682213);
-all 12 jobs passed, including the deterministic fake-host gate on Ubuntu,
-macOS, and Windows. C1 public integration is locally green 4/4 and must pass a
-fresh exact-head hosted matrix before promotion. There is no live-
+Windows. Public Agent Runtime v1 is hosted GREEN at 8cf29aff8d1be3ccf74c36bc8c837f0c666ca067 (run 31591039261, 12/12 jobs, private and public deterministic fake-host gates on Ubuntu, macOS, and Windows). There is no live-
 provider or provider-quality claim.
 
 ## Public C1 surface

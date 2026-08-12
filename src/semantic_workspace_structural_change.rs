@@ -1581,7 +1581,9 @@ pub(super) mod tests {
     use std::fs::{File, OpenOptions};
     use std::io::Write as _;
     use std::path::{Path, PathBuf};
+    use std::process::{Child, Command, Stdio};
     use std::sync::atomic::{AtomicU64, Ordering};
+    use std::time::{Duration, Instant};
 
     use super::*;
     use fs2::FileExt;
@@ -1739,6 +1741,55 @@ pub(super) mod tests {
         let evidence_path = fixture.root.join("evidence.json");
         std::fs::write(&evidence_path, artifacts.evidence()).unwrap();
         (fixture, evidence_path)
+    }
+
+    fn spawn_structural_apply_process(
+        fixture: &ManagedFixture,
+        evidence_path: &Path,
+        boundary: &str,
+    ) -> (Child, PathBuf) {
+        let ready = fixture
+            .root
+            .join(format!("structural-apply-{boundary}.ready"));
+        let mut child = Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "semantic_workspace_structural_change::tests::structural_apply_process_child",
+                "--nocapture",
+            ])
+            .env("SEMAPRAX_STRUCTURAL_APPLY_CHILD", "1")
+            .env("SEMAPRAX_STRUCTURAL_APPLY_ROOT", &fixture.root)
+            .env("SEMAPRAX_STRUCTURAL_APPLY_PROPOSAL", &fixture.proposal_path)
+            .env("SEMAPRAX_STRUCTURAL_APPLY_EVIDENCE", evidence_path)
+            .env("SEMAPRAX_STRUCTURAL_APPLY_BOUNDARY", boundary)
+            .env("SEMAPRAX_STRUCTURAL_APPLY_READY", &ready)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .unwrap();
+        let deadline = Instant::now() + Duration::from_secs(20);
+        while !matches!(std::fs::read(&ready), Ok(bytes) if bytes == b"ready\n") {
+            if let Some(status) = child.try_wait().unwrap() {
+                panic!("structural apply child exited before {boundary}: {status}");
+            }
+            if Instant::now() >= deadline {
+                child.kill().unwrap();
+                child.wait().unwrap();
+                panic!("structural apply child did not reach {boundary}");
+            }
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        (child, ready)
+    }
+
+    fn directory_names(path: &Path) -> Vec<String> {
+        let mut names = std::fs::read_dir(path)
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name().into_string().unwrap())
+            .collect::<Vec<_>>();
+        names.sort();
+        names
     }
 
     fn apply_point_name(point: StructuralApplyPoint) -> &'static str {
@@ -3345,6 +3396,124 @@ fn main() -> i64 uses { created.capability } { helper() }
     }
 
     #[test]
+    fn structural_apply_process_child() {
+        if std::env::var_os("SEMAPRAX_STRUCTURAL_APPLY_CHILD").is_none() {
+            return;
+        }
+        let root = PathBuf::from(std::env::var_os("SEMAPRAX_STRUCTURAL_APPLY_ROOT").unwrap());
+        let proposal =
+            PathBuf::from(std::env::var_os("SEMAPRAX_STRUCTURAL_APPLY_PROPOSAL").unwrap());
+        let evidence =
+            PathBuf::from(std::env::var_os("SEMAPRAX_STRUCTURAL_APPLY_EVIDENCE").unwrap());
+        let boundary = std::env::var("SEMAPRAX_STRUCTURAL_APPLY_BOUNDARY").unwrap();
+        let ready = PathBuf::from(std::env::var_os("SEMAPRAX_STRUCTURAL_APPLY_READY").unwrap());
+        apply_authenticated_with_hook(&root, &proposal, &evidence, |point, _, _, _| {
+            let selected = matches!(
+                (boundary.as_str(), point),
+                (
+                    "pre",
+                    StructuralApplyPoint::Workspace(
+                        workspace::SemanticChangeApplyPoint::BeforeActiveReplace
+                    )
+                ) | (
+                    "post",
+                    StructuralApplyPoint::Workspace(
+                        workspace::SemanticChangeApplyPoint::AfterActiveReplace
+                    )
+                )
+            );
+            if selected {
+                let mut marker = OpenOptions::new()
+                    .write(true)
+                    .create_new(true)
+                    .open(&ready)?;
+                marker.write_all(b"ready\n")?;
+                marker.sync_all()?;
+                loop {
+                    std::thread::sleep(Duration::from_secs(1));
+                }
+            }
+            Ok(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn structural_apply_killed_process_boundaries_preserve_exact_old_or_new() {
+        for boundary in ["pre", "post"] {
+            let (fixture, evidence_path) = application_fixture(&format!("process-kill-{boundary}"));
+            let old_revision = workspace_graph::snapshot(&fixture.root, "structural.entry")
+                .unwrap()
+                .workspace_revision()
+                .to_owned();
+            let evidence = std::fs::read_to_string(&evidence_path).unwrap();
+            let candidate_revision = serde_json::from_str::<Value>(&evidence).unwrap()
+                ["candidate_workspace_revision"]
+                .as_str()
+                .unwrap()
+                .to_owned();
+            let raw_before = fixture.raw_inventory();
+
+            let (mut child, ready) =
+                spawn_structural_apply_process(&fixture, &evidence_path, boundary);
+            assert_eq!(std::fs::read(&ready).unwrap(), b"ready\n");
+            let held_lock = OpenOptions::new()
+                .read(true)
+                .write(true)
+                .open(fixture.root.join(".semaprax-workspace/LOCK"))
+                .unwrap();
+            assert!(FileExt::try_lock_exclusive(&held_lock).is_err());
+            child.kill().unwrap();
+            assert!(!child.wait().unwrap().success());
+            std::fs::remove_file(&ready).unwrap();
+
+            fixture.assert_exclusive_reacquire();
+            let current = workspace_graph::snapshot(&fixture.root, "structural.entry").unwrap();
+            assert_eq!(
+                current.workspace_revision(),
+                if boundary == "pre" {
+                    &old_revision
+                } else {
+                    &candidate_revision
+                }
+            );
+            let mut expected_generations = [old_revision.as_str(), candidate_revision.as_str()]
+                .map(|revision| revision.strip_prefix("sha256:").unwrap().to_owned())
+                .to_vec();
+            expected_generations.sort();
+            let generations_path = fixture.root.join(".semaprax-workspace/generations");
+            assert_eq!(directory_names(&generations_path), expected_generations);
+            for generation in &expected_generations {
+                let metadata =
+                    std::fs::symlink_metadata(generations_path.join(generation)).unwrap();
+                assert!(metadata.is_dir());
+                assert!(!metadata.file_type().is_symlink());
+                #[cfg(windows)]
+                {
+                    use std::os::windows::fs::MetadataExt as _;
+                    assert_eq!(metadata.file_attributes() & 0x400, 0);
+                }
+            }
+            let staging_path = fixture.root.join(".semaprax-workspace/staging");
+            let staging_names = directory_names(&staging_path);
+            if boundary == "pre" {
+                assert_eq!(staging_names, ["0"]);
+                let metadata = std::fs::symlink_metadata(staging_path.join("0")).unwrap();
+                assert!(metadata.is_file());
+                assert!(!metadata.file_type().is_symlink());
+                #[cfg(windows)]
+                {
+                    use std::os::windows::fs::MetadataExt as _;
+                    assert_eq!(metadata.file_attributes() & 0x400, 0);
+                }
+            } else {
+                assert!(staging_names.is_empty());
+            }
+            assert_eq!(fixture.raw_inventory(), raw_before);
+        }
+    }
+
+    #[test]
     fn structural_apply_publishes_exact_candidate_once_without_raw_writes() {
         let (fixture, evidence_path) = application_fixture("apply-success");
         let raw_before = fixture.raw_inventory();
@@ -3757,5 +3926,349 @@ fn main() -> i64 uses { created.capability } { helper() }
             );
             fixture.assert_exclusive_reacquire();
         }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn structural_candidate_destination_aliases_preserve_foreign_targets() {
+        use std::os::unix::fs::symlink;
+
+        for kind in ["symlink", "hardlink"] {
+            let (fixture, evidence_path) = application_fixture(&format!("destination-{kind}"));
+            let active_path = fixture.root.join(".semaprax-workspace/ACTIVE");
+            let active_before = std::fs::read(&active_path).unwrap();
+            let foreign = fixture.root.join(format!("foreign-{kind}-target"));
+            if kind == "symlink" {
+                std::fs::create_dir(&foreign).unwrap();
+                std::fs::write(foreign.join("sentinel.txt"), b"foreign-directory-target\n")
+                    .unwrap();
+            } else {
+                std::fs::write(&foreign, b"foreign-file-target\n").unwrap();
+            }
+            let alias = std::cell::RefCell::new(None::<PathBuf>);
+            let error = diagnostic(apply_authenticated_with_hook(
+                &fixture.root,
+                &fixture.proposal_path,
+                &evidence_path,
+                |point, _, _, candidate| {
+                    if matches!(
+                        point,
+                        StructuralApplyPoint::Workspace(
+                            workspace::SemanticChangeApplyPoint::Generation(
+                                workspace::GenerationPoint::DestinationChecked
+                            )
+                        )
+                    ) {
+                        let destination = candidate.unwrap();
+                        if kind == "symlink" {
+                            symlink(&foreign, destination)?;
+                        } else {
+                            std::fs::hard_link(&foreign, destination)?;
+                        }
+                        *alias.borrow_mut() = Some(destination.to_owned());
+                    }
+                    Ok(())
+                },
+            ));
+            assert_eq!(error.code, "SPX-I211");
+            assert_eq!(std::fs::read(&active_path).unwrap(), active_before);
+            let alias = alias.into_inner().unwrap();
+            if kind == "symlink" {
+                assert!(std::fs::symlink_metadata(&alias)
+                    .unwrap()
+                    .file_type()
+                    .is_symlink());
+                std::fs::remove_file(alias).unwrap();
+                assert_eq!(
+                    std::fs::read(foreign.join("sentinel.txt")).unwrap(),
+                    b"foreign-directory-target\n"
+                );
+            } else {
+                assert!(alias.is_file());
+                assert_eq!(std::fs::read(&alias).unwrap(), b"foreign-file-target\n");
+                std::fs::remove_file(alias).unwrap();
+                assert_eq!(std::fs::read(&foreign).unwrap(), b"foreign-file-target\n");
+            }
+            fixture.assert_exclusive_reacquire();
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn structural_apply_rejects_permission_drift_without_pivot() {
+        use std::os::unix::fs::PermissionsExt;
+
+        for case in ["lock", "active", "candidate"] {
+            let (fixture, evidence_path) = application_fixture(&format!("permission-{case}"));
+            let control = fixture.root.join(".semaprax-workspace");
+            let active_path = control.join("ACTIVE");
+            let active_before = std::fs::read(&active_path).unwrap();
+            let changed = std::cell::RefCell::new(None::<(PathBuf, std::fs::Permissions)>);
+            let error = diagnostic(apply_authenticated_with_hook(
+                &fixture.root,
+                &fixture.proposal_path,
+                &evidence_path,
+                |point, active, _, candidate| {
+                    if !matches!(
+                        point,
+                        StructuralApplyPoint::Workspace(
+                            workspace::SemanticChangeApplyPoint::BeforeFirstFinalCheck
+                        )
+                    ) {
+                        return Ok(());
+                    }
+                    let path = match case {
+                        "lock" => control.join("LOCK"),
+                        "active" => active.to_owned(),
+                        "candidate" => candidate.unwrap().join("manifest.json"),
+                        _ => unreachable!(),
+                    };
+                    let original = std::fs::metadata(&path)?.permissions();
+                    let mut altered = original.clone();
+                    altered.set_mode(altered.mode() ^ 0o100);
+                    std::fs::set_permissions(&path, altered)?;
+                    *changed.borrow_mut() = Some((path, original));
+                    Ok(())
+                },
+            ));
+            assert_eq!(error.code, "SPX-G153");
+            assert_eq!(std::fs::read(&active_path).unwrap(), active_before);
+            let (path, permissions) = changed.into_inner().unwrap();
+            std::fs::set_permissions(path, permissions).unwrap();
+            fixture.assert_exclusive_reacquire();
+        }
+    }
+
+    #[test]
+    fn cooperative_reader_observes_only_locked_old_then_complete_new_structural_state() {
+        let (fixture, evidence_path) = application_fixture("cooperative-reader");
+        let artifacts = generate_with_hook(&fixture.root, &fixture.proposal_path, |_| {}).unwrap();
+        let expected_revision = serde_json::from_str::<Value>(artifacts.evidence()).unwrap()
+            ["candidate_workspace_revision"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        let active_path = fixture.root.join(".semaprax-workspace/ACTIVE");
+        let active_before = std::fs::read(&active_path).unwrap();
+        let (arrived_tx, arrived_rx) = std::sync::mpsc::sync_channel(0);
+        let (release_tx, release_rx) = std::sync::mpsc::sync_channel(0);
+        std::thread::scope(|scope| {
+            let root = fixture.root.as_path();
+            let proposal_path = fixture.proposal_path.as_path();
+            let evidence_path = evidence_path.as_path();
+            let writer = scope.spawn(move || {
+                apply_authenticated_with_hook(
+                    root,
+                    proposal_path,
+                    evidence_path,
+                    |point, _, _, _| {
+                        if matches!(
+                            point,
+                            StructuralApplyPoint::Workspace(
+                                workspace::SemanticChangeApplyPoint::BeforeActiveReplace
+                            )
+                        ) {
+                            arrived_tx.send(()).unwrap();
+                            release_rx.recv().unwrap();
+                        }
+                        Ok(())
+                    },
+                )
+            });
+            arrived_rx.recv().unwrap();
+            let diagnostics = match workspace_graph::snapshot(&fixture.root, "structural.entry") {
+                Ok(_) => panic!("reader must not observe an in-progress structural generation"),
+                Err(diagnostics) => diagnostics,
+            };
+            assert_eq!(diagnostics.len(), 1);
+            assert_eq!(diagnostics[0].code, "SPX-I210");
+            assert_eq!(std::fs::read(&active_path).unwrap(), active_before);
+            release_tx.send(()).unwrap();
+            writer.join().unwrap().unwrap();
+        });
+        assert_eq!(
+            workspace_graph::snapshot(&fixture.root, "structural.entry")
+                .unwrap()
+                .workspace_revision(),
+            expected_revision
+        );
+        fixture.assert_exclusive_reacquire();
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn structural_apply_rejects_windows_junction_and_casefold_destination_without_clobber() {
+        use std::process::Command;
+
+        let (junction_fixture, junction_evidence) = application_fixture("windows-junction");
+        let active_path = junction_fixture.root.join(".semaprax-workspace/ACTIVE");
+        let active_before = std::fs::read(&active_path).unwrap();
+        let foreign = junction_fixture.root.join("foreign-junction-target");
+        std::fs::create_dir(&foreign).unwrap();
+        let sentinel = foreign.join("sentinel.txt");
+        std::fs::write(&sentinel, b"structural-foreign-junction\n").unwrap();
+        let junction = std::cell::RefCell::new(None::<PathBuf>);
+        let error = diagnostic(apply_authenticated_with_hook(
+            &junction_fixture.root,
+            &junction_fixture.proposal_path,
+            &junction_evidence,
+            |point, _, _, candidate| {
+                if matches!(
+                    point,
+                    StructuralApplyPoint::Workspace(
+                        workspace::SemanticChangeApplyPoint::Generation(
+                            workspace::GenerationPoint::BeforeGenerationPublish
+                        )
+                    )
+                ) {
+                    let destination = candidate.unwrap();
+                    let status = Command::new("cmd")
+                        .args(["/C", "mklink", "/J"])
+                        .arg(destination)
+                        .arg(&foreign)
+                        .status()?;
+                    assert!(status.success(), "mklink /J failed");
+                    *junction.borrow_mut() = Some(destination.to_owned());
+                }
+                Ok(())
+            },
+        ));
+        assert_eq!(error.code, "SPX-I211");
+        assert_eq!(std::fs::read(&active_path).unwrap(), active_before);
+        let junction = junction.into_inner().unwrap();
+        {
+            use std::os::windows::fs::MetadataExt as _;
+            assert!(
+                std::fs::symlink_metadata(&junction)
+                    .unwrap()
+                    .file_attributes()
+                    & 0x400
+                    != 0
+            );
+        }
+        std::fs::remove_dir(junction).unwrap();
+        assert_eq!(
+            std::fs::read(&sentinel).unwrap(),
+            b"structural-foreign-junction\n"
+        );
+        junction_fixture.assert_exclusive_reacquire();
+
+        let (case_fixture, case_evidence) = application_fixture("windows-casefold");
+        let active_path = case_fixture.root.join(".semaprax-workspace/ACTIVE");
+        let active_before = std::fs::read(&active_path).unwrap();
+        let alias = std::cell::RefCell::new(None::<PathBuf>);
+        let error = diagnostic(apply_authenticated_with_hook(
+            &case_fixture.root,
+            &case_fixture.proposal_path,
+            &case_evidence,
+            |point, _, _, candidate| {
+                if matches!(
+                    point,
+                    StructuralApplyPoint::Workspace(
+                        workspace::SemanticChangeApplyPoint::Generation(
+                            workspace::GenerationPoint::DestinationChecked
+                        )
+                    )
+                ) {
+                    let candidate = candidate.unwrap();
+                    let name = candidate.file_name().unwrap().to_string_lossy();
+                    let upper = name.to_ascii_uppercase();
+                    assert_ne!(upper, name);
+                    let path = candidate.with_file_name(upper);
+                    std::fs::create_dir(&path)?;
+                    *alias.borrow_mut() = Some(path);
+                }
+                Ok(())
+            },
+        ));
+        assert_eq!(error.code, "SPX-I211");
+        assert_eq!(std::fs::read(&active_path).unwrap(), active_before);
+        assert!(alias.into_inner().unwrap().is_dir());
+        case_fixture.assert_exclusive_reacquire();
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn structural_apply_rejects_windows_readonly_permission_drift() {
+        for case in ["lock", "active", "candidate"] {
+            let (fixture, evidence_path) = application_fixture(&format!("windows-readonly-{case}"));
+            let control = fixture.root.join(".semaprax-workspace");
+            let active_path = control.join("ACTIVE");
+            let active_before = std::fs::read(&active_path).unwrap();
+            let changed = std::cell::RefCell::new(None::<(PathBuf, std::fs::Permissions)>);
+            let error = diagnostic(apply_authenticated_with_hook(
+                &fixture.root,
+                &fixture.proposal_path,
+                &evidence_path,
+                |point, active, _, candidate| {
+                    if !matches!(
+                        point,
+                        StructuralApplyPoint::Workspace(
+                            workspace::SemanticChangeApplyPoint::BeforeFirstFinalCheck
+                        )
+                    ) {
+                        return Ok(());
+                    }
+                    let path = match case {
+                        "lock" => control.join("LOCK"),
+                        "active" => active.to_owned(),
+                        "candidate" => candidate.unwrap().join("manifest.json"),
+                        _ => unreachable!(),
+                    };
+                    let original = std::fs::metadata(&path)?.permissions();
+                    let mut altered = original.clone();
+                    altered.set_readonly(!altered.readonly());
+                    std::fs::set_permissions(&path, altered)?;
+                    *changed.borrow_mut() = Some((path, original));
+                    Ok(())
+                },
+            ));
+            assert_eq!(error.code, "SPX-G153");
+            assert_eq!(std::fs::read(&active_path).unwrap(), active_before);
+            let (path, permissions) = changed.into_inner().unwrap();
+            std::fs::set_permissions(path, permissions).unwrap();
+            fixture.assert_exclusive_reacquire();
+        }
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn structural_apply_rejects_windows_same_byte_file_index_substitution() {
+        let (fixture, evidence_path) = application_fixture("windows-file-index");
+        let active_path = fixture.root.join(".semaprax-workspace/ACTIVE");
+        let active_before = std::fs::read(&active_path).unwrap();
+        let identities = std::cell::RefCell::new(None::<(u64, u64)>);
+        let error = diagnostic(apply_authenticated_with_hook(
+            &fixture.root,
+            &fixture.proposal_path,
+            &evidence_path,
+            |point, _, _, candidate| {
+                if !matches!(
+                    point,
+                    StructuralApplyPoint::Workspace(
+                        workspace::SemanticChangeApplyPoint::BeforeFirstFinalCheck
+                    )
+                ) {
+                    return Ok(());
+                }
+                let path = candidate.unwrap().join("files/z/entry.spx");
+                let before = winapi_util::Handle::from_path_any(&path)
+                    .and_then(winapi_util::file::information)?
+                    .file_index();
+                let bytes = std::fs::read(&path)?;
+                std::fs::remove_file(&path)?;
+                std::fs::write(&path, bytes)?;
+                let after = winapi_util::Handle::from_path_any(&path)
+                    .and_then(winapi_util::file::information)?
+                    .file_index();
+                assert_ne!(before, after);
+                *identities.borrow_mut() = Some((before, after));
+                Ok(())
+            },
+        ));
+        assert_eq!(error.code, "SPX-G153");
+        assert!(identities.into_inner().is_some());
+        assert_eq!(std::fs::read(&active_path).unwrap(), active_before);
+        fixture.assert_exclusive_reacquire();
     }
 }

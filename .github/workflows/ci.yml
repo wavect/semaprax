@@ -67,6 +67,8 @@ jobs:
       - run: cargo test --locked --workspace --all-targets --all-features
       - name: Require semantic-workspace change pre/post-pivot process termination evidence
         run: cargo test --locked -p semaprax --lib semantic_workspace_change::tests::semantic_change_apply_killed_process_boundaries_preserve_exact_old_or_new -- --exact --nocapture
+      - name: Require structural-change pre/post-pivot process termination evidence
+        run: cargo test --locked -p semaprax --lib semantic_workspace_structural_change::tests::structural_apply_killed_process_boundaries_preserve_exact_old_or_new -- --exact --nocapture
       - name: Require Windows callable-v2 and private callable-v3 physical evidence
         if: runner.os == 'Windows'
         shell: pwsh

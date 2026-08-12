@@ -79,6 +79,8 @@ jobs:
         run: cargo test --locked -p semaprax --lib economic_agent::tests -- --nocapture
       - name: Require private Economic Agent durable marker process-termination evidence
         run: cargo test --locked -p semaprax --lib economic_agent::tests::economic_process_kill_markers_never_repeat_sign_or_broadcast -- --exact --nocapture
+      - name: Require public Economic Agent injected-host evidence
+        run: cargo test --locked -p semaprax --test economic_agent_v1 -- --nocapture
       - name: Require Windows callable-v2 and private callable-v3 physical evidence
         if: runner.os == 'Windows'
         shell: pwsh

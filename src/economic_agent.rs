@@ -1,7 +1,9 @@
-//! Private Economic Agent v1 A+B authority and replay core.
+//! Bounded Economic Agent v1 injected-host API.
 //!
-//! This module is intentionally not re-exported. It contains no transport,
-//! DNS, filesystem, process, environment, key, or signing implementation.
+//! This safe-Rust state machine has no built-in transport, DNS, filesystem,
+//! process, environment, key, custody, journal, or wallet implementation.
+//! Caller implementations of the host traits are trusted authorities; all
+//! adapter documents and bytes remain untrusted input.
 
 #![forbid(unsafe_code)]
 #![allow(
@@ -9,7 +11,7 @@
     clippy::field_reassign_with_default,
     clippy::format_collect,
     clippy::too_many_arguments,
-    reason = "private A+B remains held until exact hosted promotion"
+    reason = "private typed and replay internals support the opaque public C surface"
 )]
 
 use std::collections::BTreeMap;
@@ -114,7 +116,8 @@ const NONCLAIMS: [&str; 28] = [
 ];
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum EconomicAdapterDisposition {
+/// Outcome reported by an injected Economic Agent authority boundary.
+pub enum EconomicAdapterDisposition {
     Succeeded,
     DefinitelyNotStarted,
     FailedUncertain,
@@ -122,7 +125,8 @@ pub(crate) enum EconomicAdapterDisposition {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum EconomicJournalLoad {
+/// Outcome of the single injected journal load for an operation.
+pub enum EconomicJournalLoad {
     Missing,
     Present,
     DefinitelyNotStarted,
@@ -130,13 +134,15 @@ pub(crate) enum EconomicJournalLoad {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum EconomicRail {
+/// Frozen native-asset settlement rail.
+pub enum EconomicRail {
     Evm,
     Solana,
     Bitcoin,
 }
 
-pub(crate) struct EconomicRollingReservation {
+/// Opaque rolling-window reservation supplied only to the journal CAS.
+pub struct EconomicRollingReservation {
     wallet_id: String,
     rail: EconomicRail,
     network: String,
@@ -146,29 +152,37 @@ pub(crate) struct EconomicRollingReservation {
     max_rolling_24h_atomic: u64,
 }
 impl EconomicRollingReservation {
-    pub(crate) fn wallet_id(&self) -> &str {
+    /// Bound wallet identifier.
+    pub fn wallet_id(&self) -> &str {
         &self.wallet_id
     }
-    pub(crate) const fn rail(&self) -> EconomicRail {
+    /// Bound settlement rail.
+    pub const fn rail(&self) -> EconomicRail {
         self.rail
     }
-    pub(crate) fn network(&self) -> &str {
+    /// Bound test network.
+    pub fn network(&self) -> &str {
         &self.network
     }
-    pub(crate) fn asset(&self) -> &str {
+    /// Bound native asset.
+    pub fn asset(&self) -> &str {
         &self.asset
     }
-    pub(crate) const fn requested_at_ms(&self) -> u64 {
+    /// Admitted intent timestamp; the journal owns trusted clock time.
+    pub const fn requested_at_ms(&self) -> u64 {
         self.requested_at_ms
     }
-    pub(crate) const fn amount_atomic(&self) -> u64 {
+    /// Amount reserved in atomic native-asset units.
+    pub const fn amount_atomic(&self) -> u64 {
         self.amount_atomic
     }
-    pub(crate) const fn max_rolling_24h_atomic(&self) -> u64 {
+    /// Policy maximum for the matching rolling 24-hour tuple.
+    pub const fn max_rolling_24h_atomic(&self) -> u64 {
         self.max_rolling_24h_atomic
     }
 }
-pub(crate) enum EconomicRollingReservationUpdate<'a> {
+/// Atomic rolling-reservation update accompanying a journal CAS.
+pub enum EconomicRollingReservationUpdate<'a> {
     Reserve(&'a EconomicRollingReservation),
     Retain,
     Release,
@@ -185,7 +199,8 @@ impl EconomicRail {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum EconomicRunStatus {
+/// Closed terminal status returned by an Economic Agent operation.
+pub enum EconomicRunStatus {
     Confirmed,
     Pending,
     Reorged,
@@ -223,7 +238,8 @@ impl EconomicRunStatus {
     }
 }
 
-pub(crate) struct EconomicDocumentSink {
+/// Push-only bounded sink for canonical adapter documents.
+pub struct EconomicDocumentSink {
     bytes: Vec<u8>,
     limit: usize,
     closed: Option<SinkClose>,
@@ -266,7 +282,8 @@ impl EconomicDocumentSink {
         }
     }
 
-    pub(crate) fn push(&mut self, chunk: &[u8]) -> bool {
+    /// Appends one chunk, returning `false` permanently after closure.
+    pub fn push(&mut self, chunk: &[u8]) -> bool {
         if self.closed.is_some() {
             return false;
         }
@@ -315,7 +332,8 @@ impl EconomicDocumentSink {
     }
 }
 
-pub(crate) struct EconomicBytesSink {
+/// Push-only bounded sink for opaque custody-produced signed bytes.
+pub struct EconomicBytesSink {
     bytes: Vec<u8>,
     limit: usize,
     closed: Option<SinkClose>,
@@ -350,7 +368,8 @@ impl EconomicBytesSink {
         }
     }
 
-    pub(crate) fn push(&mut self, chunk: &[u8]) -> bool {
+    /// Appends one chunk, returning `false` permanently after closure.
+    pub fn push(&mut self, chunk: &[u8]) -> bool {
         if self.closed.is_some() {
             return false;
         }
@@ -398,12 +417,15 @@ impl EconomicBytesSink {
     }
 }
 
-pub(crate) trait PaymentJournal {
+/// Caller-injected durable journal and rolling-window authority.
+pub trait PaymentJournal {
+    /// Loads the exact journal bound to `idempotency_key` into `sink`.
     fn load(
         &mut self,
         idempotency_key: &str,
         sink: &mut EconomicDocumentSink,
     ) -> EconomicJournalLoad;
+    /// Atomically compares the version, writes canonical Journal bytes, and applies rolling policy.
     fn compare_and_swap(
         &mut self,
         idempotency_key: &str,
@@ -413,7 +435,9 @@ pub(crate) trait PaymentJournal {
     ) -> EconomicAdapterDisposition;
 }
 
-pub(crate) trait X402InvoiceAdapter {
+/// Caller-injected x402 invoice data adapter; it performs no redirects through this API.
+pub trait X402InvoiceAdapter {
+    /// Fetches the invoice bound to the admitted origin, method, and resource.
     fn fetch_invoice(
         &mut self,
         origin: &str,
@@ -425,23 +449,28 @@ pub(crate) trait X402InvoiceAdapter {
 
 macro_rules! rail_adapter {
     ($name:ident,$snapshot:ident,$simulate:ident,$broadcast:ident,$reconcile:ident) => {
-        pub(crate) trait $name {
+        /// Caller-injected test-network chain observation and broadcast adapter.
+        pub trait $name {
+            /// Returns one canonical snapshot for the admitted Intent.
             fn $snapshot(
                 &mut self,
                 intent: &str,
                 sink: &mut EconomicDocumentSink,
             ) -> EconomicAdapterDisposition;
+            /// Simulates the core-built unsigned transaction against its canonical Plan.
             fn $simulate(
                 &mut self,
                 plan: &str,
                 unsigned_transaction: &[u8],
                 sink: &mut EconomicDocumentSink,
             ) -> EconomicAdapterDisposition;
+            /// Broadcasts the exact independently validated signed transaction once.
             fn $broadcast(
                 &mut self,
                 signed_transaction: &[u8],
                 sink: &mut EconomicDocumentSink,
             ) -> EconomicAdapterDisposition;
+            /// Returns one reconciliation observation for the bound transaction ID.
             fn $reconcile(
                 &mut self,
                 transaction_id: &str,
@@ -472,7 +501,9 @@ rail_adapter!(
     bitcoin_reconcile
 );
 
-pub(crate) trait PaymentApprover {
+/// Caller-injected approval authority for an exact canonical Approval Request.
+pub trait PaymentApprover {
+    /// Returns one canonical Approval document.
     fn approve(
         &mut self,
         approval_request: &str,
@@ -480,7 +511,9 @@ pub(crate) trait PaymentApprover {
     ) -> EconomicAdapterDisposition;
 }
 
-pub(crate) trait WalletCustody {
+/// Caller-injected opaque signing authority; key material never crosses this API.
+pub trait WalletCustody {
+    /// Signs exact digest-bound unsigned bytes into the push-only sink.
     fn sign(
         &mut self,
         wallet_id: &str,
@@ -493,11 +526,13 @@ pub(crate) trait WalletCustody {
 }
 
 /// Pure caller-injected monotonic observation for one Economic Agent run.
-pub(crate) trait EconomicBoundaryProbe {
+pub trait EconomicBoundaryProbe {
+    /// Returns a nondecreasing local elapsed-millisecond observation.
     fn elapsed_ms(&self) -> u64;
 }
 
-pub(crate) trait EconomicAgentHost:
+/// Complete caller-injected authority set required by [`EconomicAgent`].
+pub trait EconomicAgentHost:
     PaymentJournal
     + X402InvoiceAdapter
     + EvmPaymentAdapter
@@ -506,6 +541,7 @@ pub(crate) trait EconomicAgentHost:
     + PaymentApprover
     + WalletCustody
 {
+    /// Creates a pure local elapsed-time probe; this method must not cross an external-effect boundary.
     fn boundary_probe(&self) -> Box<dyn EconomicBoundaryProbe>;
 }
 
@@ -848,7 +884,8 @@ struct Budget {
     unexpected_authority_calls: u64,
 }
 
-pub(crate) struct EconomicRun {
+/// Opaque replay-validated Economic Agent result.
+pub struct EconomicRun {
     status: EconomicRunStatus,
     transaction_id: Option<String>,
     confirmation_status: Option<String>,
@@ -859,30 +896,38 @@ pub(crate) struct EconomicRun {
 }
 
 impl EconomicRun {
-    pub(crate) const fn status(&self) -> EconomicRunStatus {
+    /// Returns the closed terminal status.
+    pub const fn status(&self) -> EconomicRunStatus {
         self.status
     }
-    pub(crate) fn transaction_id(&self) -> Option<&str> {
+    /// Returns the bound transaction ID when present.
+    pub fn transaction_id(&self) -> Option<&str> {
         self.transaction_id.as_deref()
     }
-    pub(crate) fn confirmation_status(&self) -> Option<&str> {
+    /// Returns the latest confirmation status when present.
+    pub fn confirmation_status(&self) -> Option<&str> {
         self.confirmation_status.as_deref()
     }
-    pub(crate) fn trace(&self) -> &str {
+    /// Returns canonical Trace v1 JSON.
+    pub fn trace(&self) -> &str {
         &self.trace
     }
-    pub(crate) fn trace_digest(&self) -> &str {
+    /// Returns the domain-separated Trace digest.
+    pub fn trace_digest(&self) -> &str {
         &self.trace_digest
     }
-    pub(crate) fn evidence(&self) -> &str {
+    /// Returns canonical Evidence v1 JSON.
+    pub fn evidence(&self) -> &str {
         &self.evidence
     }
-    pub(crate) fn evidence_digest(&self) -> &str {
+    /// Returns the domain-separated Evidence digest.
+    pub fn evidence_digest(&self) -> &str {
         &self.evidence_digest
     }
 }
 
-pub(crate) struct EconomicAgent<H: EconomicAgentHost> {
+/// Opaque single-concurrency Economic Agent owning its injected host.
+pub struct EconomicAgent<H: EconomicAgentHost> {
     policy: Policy,
     retained_policy_bytes: usize,
     host: H,
@@ -901,7 +946,8 @@ impl<H: EconomicAgentHost> EconomicAgent<H> {
         Ok(lane)
     }
 
-    pub(crate) fn new(
+    /// Parses and retains one canonical Policy before consulting the host.
+    pub fn new(
         policy: &str,
         host: H,
         cancellation: AgentCancellation,
@@ -925,7 +971,8 @@ impl<H: EconomicAgentHost> EconomicAgent<H> {
             .map_err(|diagnostic| vec![diagnostic])
     }
 
-    pub(crate) fn execute(&mut self, source: &AgentRun) -> Result<EconomicRun, Vec<Diagnostic>> {
+    /// Executes one canonical Payment Intent proposed by a completed sealed Agent run.
+    pub fn execute(&mut self, source: &AgentRun) -> Result<EconomicRun, Vec<Diagnostic>> {
         let binding = source.economic_binding();
         if binding.status != AgentRunStatus::Completed {
             return Err(vec![g212("agent run not completed")]);
@@ -3032,7 +3079,8 @@ impl<H: EconomicAgentHost> EconomicAgent<H> {
         )
     }
 
-    pub(crate) fn reconcile(
+    /// Reconciles an idempotency binding using the same sealed Agent source.
+    pub fn reconcile(
         &mut self,
         idempotency_key: &str,
         source: &AgentRun,
@@ -3230,9 +3278,10 @@ impl<H: EconomicAgentHost> EconomicAgent<H> {
                 },
             )?,
         )?;
-        journal = match parse_journal(&source, &self.policy, &intent, &economic_run_id) {
+        journal = match parse_journal_classified(&source, &self.policy, &intent, &economic_run_id) {
             Ok(journal) => journal,
-            Err(diagnostic) => {
+            Err(JournalParseFailure::BindingMismatch) => return Err(g215()),
+            Err(JournalParseFailure::Diagnostic(diagnostic)) => {
                 return self.finish_failure(
                     binding,
                     &intent,
@@ -6853,12 +6902,35 @@ fn signed_journal_ref(value: &Value, maximum: u64) -> Result<Option<(String, usi
     }
     Ok(Some((digest_value, bytes as usize)))
 }
+enum JournalParseFailure {
+    BindingMismatch,
+    Diagnostic(Diagnostic),
+}
+
+impl From<Diagnostic> for JournalParseFailure {
+    fn from(diagnostic: Diagnostic) -> Self {
+        Self::Diagnostic(diagnostic)
+    }
+}
+
 fn parse_journal(
     source: &str,
     policy: &Policy,
     intent: &Intent,
     run_id: &str,
 ) -> Result<Journal, Diagnostic> {
+    parse_journal_classified(source, policy, intent, run_id).map_err(|failure| match failure {
+        JournalParseFailure::BindingMismatch => g215(),
+        JournalParseFailure::Diagnostic(diagnostic) => diagnostic,
+    })
+}
+
+fn parse_journal_classified(
+    source: &str,
+    policy: &Policy,
+    intent: &Intent,
+    run_id: &str,
+) -> Result<Journal, JournalParseFailure> {
     configured_document_limits(
         source,
         "journal",
@@ -6867,7 +6939,7 @@ fn parse_journal(
     )?;
     let sidecar = source.len().checked_mul(2).ok_or_else(g217)?;
     if active_remaining().is_some_and(|remaining| sidecar > remaining) || !reserve_active(sidecar) {
-        return Err(g216("builder_bytes", policy.limits.max_builder_bytes));
+        return Err(g216("builder_bytes", policy.limits.max_builder_bytes).into());
     }
     let (_, value) = canonical(
         source,
@@ -6898,7 +6970,7 @@ fn parse_journal(
             "updated_at_ms",
         ],
     ) {
-        return Err(g215());
+        return Err(g215().into());
     }
     let policy_doc = Doc {
         source: policy.source.clone(),
@@ -6913,7 +6985,7 @@ fn parse_journal(
         || !ref_matches(&row["policy"], POLICY_SCHEMA, &policy_doc)
         || !ref_matches(&row["intent"], INTENT_SCHEMA, &intent_doc)
     {
-        return Err(g215());
+        return Err(JournalParseFailure::BindingMismatch);
     }
     let broadcast = capsule_doc(
         &row["broadcast"],
@@ -6965,7 +7037,7 @@ fn parse_journal(
         updated_at: number(row, "updated_at_ms", "journal", JOURNAL_SCHEMA)?,
     };
     if journal.reserved_amount != intent.amount() || journal.reserved_fee != intent.max_fee() {
-        return Err(g215());
+        return Err(g215().into());
     }
     let prepared =
         journal.plan.is_some() && journal.simulation.is_some() && journal.unsigned.is_some();
@@ -7025,7 +7097,7 @@ fn parse_journal(
         JournalState::Cancelled | JournalState::Failed => journal.version >= 2,
     };
     if !valid_shape || !version_shape {
-        return Err(g215());
+        return Err(g215().into());
     }
     if let Some(broadcast_doc) = journal.broadcast.as_ref() {
         let signed_digest = journal.signed.as_ref().ok_or_else(g215)?.0.as_str();
@@ -7042,7 +7114,7 @@ fn parse_journal(
                 JournalState::Confirmed | JournalState::Reorged | JournalState::Dropped
             ) && (journal.reconciliation.is_none() || attempts == 0 || odd))
         {
-            return Err(g215());
+            return Err(g215().into());
         }
         let broadcast = if provisional {
             let value: Value =
@@ -7078,7 +7150,7 @@ fn parse_journal(
             _ => false,
         };
         if !allowed_disposition {
-            return Err(g215());
+            return Err(g215().into());
         }
         if let Some(reconciliation_doc) = journal.reconciliation.as_ref() {
             let reconciliation = parse_reconciliation(
@@ -7099,7 +7171,7 @@ fn parse_journal(
                 || reconciliation.observed != journal.updated_at
                 || !status_matches
             {
-                return Err(g215());
+                return Err(g215().into());
             }
         } else if journal.updated_at != broadcast.observed
             && !(journal.state == JournalState::BroadcastUnknown
@@ -7107,7 +7179,7 @@ fn parse_journal(
                 && broadcast.disposition == "unknown"
                 && broadcast.observed == 0)
         {
-            return Err(g215());
+            return Err(g215().into());
         }
     }
     Ok(journal)

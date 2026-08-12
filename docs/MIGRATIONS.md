@@ -6,9 +6,9 @@ Bounded Native Agent Runtime v1 C1 is additive. Existing consumers require no
 migration; callers opt into the injected `AgentHost` API explicitly, and no CLI,
 language, Graph, backend, provider transport, write, or wallet surface changed.
 
-Private Economic Agent v1 A+B is additive proof scaffolding and requires no
-migration. It is not re-exported and adds no CLI, transport, custody, wallet,
-language, Graph, cleanup, or backend surface. Public C remains held.
+Economic Agent v1 is additive and requires no migration. Callers may opt into
+the injected-host API; it adds no CLI, built-in transport, custody, wallet,
+language, Graph, cleanup, or backend authority.
 
 ## Graph-v6 CLI context to agent-context v1
 

@@ -1,8 +1,7 @@
 # Economic Agent v1
 
-Status: private A+B implementation is in progress; local and exact-head hosted
-promotion evidence remain pending. Public C is held. This changes none of the
-38 Partial/18 Missing totals.
+Private Economic Agent v1 A+B is exact-head hosted green at fe75c38d898b71e3ed5c57411fb46d0dbd4fc34b in run 31611748969, including both Economic gates on Ubuntu, macOS, and Windows. Public C local evidence is green; exact-head hosted promotion is pending.
+This changes none of the 38 Partial/18 Missing totals.
 
 ## Authority boundary
 
@@ -14,7 +13,7 @@ and Approval Request. Opaque injected custody receives only the approved
 unsigned transaction and digest bindings; keys and credentials never enter the
 runtime, Trace, Evidence, or diagnostics.
 
-The private tranche admits only native assets on Sepolia EIP-1559 type-2,
+The public injected-host API admits only native assets on Sepolia EIP-1559 type-2,
 Solana devnet System Program transfers, Bitcoin regtest P2WPKH PSBT v2, and an
 x402 invoice overlay over one of those rails. It includes no built-in HTTP,
 DNS, chain node, journal, approver, custody, signing key, filesystem, process,
@@ -67,9 +66,9 @@ consumer checks. Test-network names are encoding namespaces; CI performs no
 live node, faucet, credential, or external-network request. Process-kill gates
 prove OS process termination and journal replay, not power-loss durability.
 
-Public C remains held until the exact committed private A+B head is hosted
-green in all 12 jobs, including the deterministic private gate on all three
-host operating systems.
+The additive public C surface now exposes only the opaque injected-host dialect
+documented below. Its local evidence is green; hosted promotion remains pending
+an exact-head 12/12 run with the public gate on all three host operating systems.
 
 ## Exact canonical wire ledger
 
@@ -211,10 +210,10 @@ Exact diagnostic ownership is:
 - `SPX-I228`: `Economic Agent run was cancelled`.
 - `SPX-I229`: `Economic Agent deadline was exceeded`.
 
-## Private injected contract
+## Public injected contract
 
-The private A+B implementation uses the future-public dialect without exposing
-it from the crate. Its exact entry points are
+The public C surface is a visibility-only promotion over the hosted A+B core.
+Its exact entry points are
 `EconomicAgent::new(policy:&str,host:H,cancellation:AgentCancellation)`,
 `execute(&mut self,source:&AgentRun)`, and
 `reconcile(&mut self,idempotency_key:&str,source:&AgentRun)`.

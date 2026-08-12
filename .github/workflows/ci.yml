@@ -47,7 +47,7 @@ jobs:
 
   verify:
     name: Rust ${{ matrix.os }}
-    timeout-minutes: 25
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:

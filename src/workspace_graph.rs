@@ -193,6 +193,7 @@ pub(crate) struct WorkspaceGraphChangeSourceFact {
 pub(crate) struct WorkspaceGraphChangeModule {
     path: String,
     module: String,
+    source_graph_schema: &'static str,
     permits: Vec<String>,
 }
 
@@ -976,10 +977,18 @@ impl WorkspaceGraphBuild {
             .hir
             .modules
             .into_iter()
-            .map(|module| WorkspaceGraphChangeModule {
-                path: module.path,
-                module: module.module,
-                permits: module.permits,
+            .map(|module| {
+                let source_graph_schema = graph::graph_schema_from_parts(
+                    &module.types,
+                    &module.functions,
+                    &module.function_templates,
+                );
+                WorkspaceGraphChangeModule {
+                    path: module.path,
+                    module: module.module,
+                    source_graph_schema,
+                    permits: module.permits,
+                }
             })
             .collect();
         let declarations = self
@@ -1071,6 +1080,18 @@ impl WorkspaceGraphBuild {
 }
 
 impl WorkspaceGraphChangeView {
+    pub(crate) const fn used_managed_files(&self) -> usize {
+        self.usage.managed_files
+    }
+
+    pub(crate) const fn used_total_source_bytes(&self) -> usize {
+        self.usage.total_source_bytes
+    }
+
+    pub(crate) const fn used_builder_bytes(&self) -> usize {
+        self.usage.builder_bytes
+    }
+
     pub(crate) fn modules(&self) -> &[WorkspaceGraphChangeModule] {
         &self.modules
     }
@@ -1303,6 +1324,10 @@ impl WorkspaceGraphChangeModule {
 
     pub(crate) fn module(&self) -> &str {
         &self.module
+    }
+
+    pub(crate) const fn source_graph_schema(&self) -> &'static str {
+        self.source_graph_schema
     }
 
     pub(crate) fn permits(&self) -> &[String] {

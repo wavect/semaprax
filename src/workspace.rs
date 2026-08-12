@@ -120,6 +120,22 @@ impl WorkspaceSemanticChangeLockAuthority {
         let guard = finish_snapshot_guard_mode(self.guard, WorkspaceMode::SemanticChange)?;
         Ok((WorkspaceSemanticReadAuthority { guard }, value))
     }
+
+    pub(crate) fn authenticate_operations<T>(
+        self,
+        input: Result<T, Vec<Diagnostic>>,
+    ) -> Result<(WorkspaceSemanticReadAuthority, T), Vec<Diagnostic>> {
+        let value = match input {
+            Ok(value) => value,
+            Err(diagnostics) => {
+                return Err(unlock_with_diagnostics(&self.guard.lock, diagnostics));
+            }
+        };
+        #[cfg(test)]
+        crate::semantic_workspace_operations::mark_base_operations_preflight_entry();
+        let guard = finish_snapshot_guard_mode(self.guard, WorkspaceMode::SemanticOperations)?;
+        Ok((WorkspaceSemanticReadAuthority { guard }, value))
+    }
 }
 
 impl WorkspaceSemanticReadAuthority {
@@ -715,7 +731,9 @@ impl WorkspaceGuard {
     fn recheck(&mut self) -> Result<(), Vec<Diagnostic>> {
         if matches!(
             self.mode,
-            WorkspaceMode::Semantic | WorkspaceMode::SemanticChange
+            WorkspaceMode::Semantic
+                | WorkspaceMode::SemanticChange
+                | WorkspaceMode::SemanticOperations
         ) {
             self.recheck_base_authority()?;
             let manifest = self.semantic_manifest.as_deref().ok_or_else(|| {
@@ -866,13 +884,14 @@ enum WorkspaceMode {
     Ordinary,
     Semantic,
     SemanticChange,
+    SemanticOperations,
 }
 
 impl WorkspaceMode {
     fn parse_paths(self, source: &str) -> Result<Vec<String>, Vec<Diagnostic>> {
         match self {
             Self::Ordinary => parse_path_set(source),
-            Self::Semantic | Self::SemanticChange => {
+            Self::Semantic | Self::SemanticChange | Self::SemanticOperations => {
                 crate::semantic_workspace::parse_path_set(source)
             }
         }
@@ -891,7 +910,7 @@ impl WorkspaceMode {
                 let revision = workspace_revision(&manifest);
                 Ok((facts, manifest, revision))
             }
-            Self::Semantic | Self::SemanticChange => {
+            Self::Semantic | Self::SemanticChange | Self::SemanticOperations => {
                 let sources = sources
                     .into_iter()
                     .map(
@@ -931,7 +950,7 @@ impl WorkspaceMode {
     fn render_active(self, revision: &str) -> Result<String, Vec<Diagnostic>> {
         match self {
             Self::Ordinary => Ok(render_root(revision)),
-            Self::Semantic | Self::SemanticChange => {
+            Self::Semantic | Self::SemanticChange | Self::SemanticOperations => {
                 crate::semantic_workspace::render_root(revision)
             }
         }
@@ -940,14 +959,16 @@ impl WorkspaceMode {
     fn parse_active(self, source: &str) -> Result<String, Vec<Diagnostic>> {
         match self {
             Self::Ordinary => parse_root(source),
-            Self::Semantic | Self::SemanticChange => crate::semantic_workspace::parse_root(source),
+            Self::Semantic | Self::SemanticChange | Self::SemanticOperations => {
+                crate::semantic_workspace::parse_root(source)
+            }
         }
     }
 
     fn manifest_revision(self, manifest: &str) -> String {
         match self {
             Self::Ordinary => workspace_revision(manifest),
-            Self::Semantic | Self::SemanticChange => {
+            Self::Semantic | Self::SemanticChange | Self::SemanticOperations => {
                 crate::semantic_workspace::semantic_workspace_revision(manifest)
             }
         }
@@ -956,7 +977,7 @@ impl WorkspaceMode {
     fn parse_manifest(self, source: &str) -> Result<Vec<ManifestFile>, Vec<Diagnostic>> {
         match self {
             Self::Ordinary => parse_manifest(source),
-            Self::Semantic | Self::SemanticChange => {
+            Self::Semantic | Self::SemanticChange | Self::SemanticOperations => {
                 crate::semantic_workspace::parse_manifest(source).map(|files| {
                     files
                         .into_iter()
@@ -990,7 +1011,7 @@ impl WorkspaceMode {
                 validate_workspace_facts(&facts)?;
                 Ok((facts, None))
             }
-            Self::Semantic | Self::SemanticChange => {
+            Self::Semantic | Self::SemanticChange | Self::SemanticOperations => {
                 let sources = sources
                     .into_iter()
                     .map(
@@ -1000,14 +1021,26 @@ impl WorkspaceMode {
                         },
                     )
                     .collect();
-                let preflight = if self == Self::SemanticChange {
-                    crate::semantic_workspace::replay_manifest_owned_for_change(
-                        manifest,
-                        sources,
-                        crate::semantic_workspace::MAX_CHANGE_BUILDER_BYTES,
-                    )?
-                } else {
-                    crate::semantic_workspace::replay_manifest_owned(manifest, sources)?
+                let preflight = match self {
+                    Self::SemanticChange => {
+                        crate::semantic_workspace::replay_manifest_owned_for_change(
+                            manifest,
+                            sources,
+                            crate::semantic_workspace::MAX_CHANGE_BUILDER_BYTES,
+                        )?
+                    }
+                    Self::SemanticOperations => {
+                        crate::semantic_workspace::replay_manifest_owned_for_operations(
+                            manifest,
+                            sources,
+                            crate::semantic_workspace_operations::MAX_CANDIDATE_GRAPH_BUILDER_BYTES,
+                            crate::semantic_workspace_operations::MAX_OPERATIONS_BUILDER_BYTES,
+                        )?
+                    }
+                    Self::Semantic => {
+                        crate::semantic_workspace::replay_manifest_owned(manifest, sources)?
+                    }
+                    Self::Ordinary => unreachable!("ordinary snapshots use ordinary facts"),
                 };
                 let (files, replayed_manifest, _, graph) = preflight.into_snapshot_parts();
                 if replayed_manifest != manifest {
@@ -3822,7 +3855,7 @@ fn finish_snapshot_guard_mode(
     };
     let semantic_manifest = matches!(
         mode,
-        WorkspaceMode::Semantic | WorkspaceMode::SemanticChange
+        WorkspaceMode::Semantic | WorkspaceMode::SemanticChange | WorkspaceMode::SemanticOperations
     )
     .then(|| {
         authenticated

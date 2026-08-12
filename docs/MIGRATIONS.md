@@ -330,6 +330,15 @@ raw-tree atomicity, or durability from either receipt. Process-termination
 tests establish OS lock release and old/new managed state only; they are not
 power-loss or reboot recovery evidence.
 
+Semantic Workspace Operations v1 is additive and requires no migration of
+Semantic Workspace or Change-v1 bytes. Consumers opt in through
+`semantic-workspace-operations-derive` or
+`semantic-workspace-operations-change-proposal`; the latter output is an exact
+ordinary Change-v1 proposal. Existing Change-v1 Evidence may subsequently bind
+those derived Change bytes, but it does not bind or authorize the Operations
+proposal or intent. There is no Operations Evidence, receipt, verifier, apply
+route, schema negotiation, or silent fallback.
+
 ## Persistent identities are NUL-free
 
 Persistent semantic identities and logical import keys may not contain a literal NUL byte. Source validation reports the declaration-specific stable diagnostic before resolution or graph serialization; `\0` remains an unsupported source-string escape. Public consumers of transformed resolved HIR must likewise reject NUL in declaration IDs, types, expressions, places, call/record/field references, and attached cleanup inventory or plan metadata before code generation or serialization. Regenerate or rename any pre-alpha fixture that constructed such an identity directly.

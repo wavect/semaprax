@@ -4,6 +4,22 @@ All notable changes to SEMAPRAX are documented here.
 
 ## 0.2.0 — 2026-08-07
 
+- Added [Semantic Workspace Operations v1](docs/SEMANTIC-WORKSPACE-OPERATIONS-V1.md),
+  a bounded shared-lock read-only compiler for explicit stable-ID declaration
+  and direct import-alias renames over existing managed paths. It consumes one
+  retained base graph/AST-HIR sidecar, builds one candidate graph, and emits an
+  exact existing Change-v1 replacements proposal plus canonical derivation
+  wrapper. Digest KATs are
+  `sha256:3c7bf340a5313907edcec41748063e8666793ee76b903bc4e691871a843544b5`,
+  `sha256:5c7a67d42ef76b3a241c0dc98f3d8919a799d3745bb6ae54a1d0289a51ee3e86`,
+  and
+  `sha256:80df18fea48a663e25cca66e90c0842fa8146ed35ab2ee30f2659728509dd2b7`.
+  No Operations Evidence, verifier, receipt, apply/publication, target/test,
+  provenance, or path-set authority is added; Change-v1 Evidence binds only
+  derived Change bytes, not Operations intent. Local gates are green,
+  exact-head hosted evidence is pending, and totals remain 38 Partial/18
+  Missing.
+
 - Added [Semantic Workspace v1](docs/SEMANTIC-WORKSPACE-V1.md),
   [Workspace Semantic Graph v1](docs/WORKSPACE-SEMANTIC-GRAPH-V1.md),
   [Workspace Analysis v1](docs/WORKSPACE-ANALYSIS-V1.md), and

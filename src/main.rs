@@ -4,7 +4,7 @@ use std::process::{Command, ExitCode};
 use semaprax::diagnostic::{Diagnostic, Severity};
 use semaprax::{
     agent_economics, codegen, format, graph, impact, parse, patch, patch_evidence, quality_route,
-    repair, review, semantic_workspace, semantic_workspace_change,
+    repair, review, semantic_workspace, semantic_workspace_change, semantic_workspace_operations,
     semantic_workspace_structural_change, target_evidence, verify, wasm, workspace,
     workspace_analysis, workspace_graph, workspace_patch_evidence,
 };
@@ -317,6 +317,34 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             let receipt = semantic_workspace_structural_change::apply(&root, &proposal, &evidence)
                 .map_err(|errors| report(&errors, false))?;
             print!("{receipt}");
+            Ok(())
+        }
+        "semantic-workspace-operations-derive" => {
+            if args.len() != 3 {
+                eprintln!(
+                    "semantic-workspace-operations-derive requires exactly <root> <proposal.json>"
+                );
+                return Err(2);
+            }
+            let root = required_path(&args, 1)?;
+            let proposal = required_path(&args, 2)?;
+            let output = semantic_workspace_operations::derivation(&root, &proposal)
+                .map_err(|errors| report(&errors, false))?;
+            print!("{output}");
+            Ok(())
+        }
+        "semantic-workspace-operations-change-proposal" => {
+            if args.len() != 3 {
+                eprintln!(
+                    "semantic-workspace-operations-change-proposal requires exactly <root> <proposal.json>"
+                );
+                return Err(2);
+            }
+            let root = required_path(&args, 1)?;
+            let proposal = required_path(&args, 2)?;
+            let output = semantic_workspace_operations::derived_change_proposal(&root, &proposal)
+                .map_err(|errors| report(&errors, false))?;
+            print!("{output}");
             Ok(())
         }
         "workspace-snapshot" => {
@@ -971,6 +999,8 @@ fn print_help() {
            semaprax semantic-workspace-structural-change-evidence <root> <proposal.json>\n\
            semaprax verify-semantic-workspace-structural-change-evidence <root> <proposal.json> <evidence.json>\n\
            semaprax apply-semantic-workspace-structural-change-evidence <root> <proposal.json> <evidence.json>\n\
+           semaprax semantic-workspace-operations-derive <root> <proposal.json>\n\
+           semaprax semantic-workspace-operations-change-proposal <root> <proposal.json>\n\
            semaprax workspace-snapshot <root>\n\
            semaprax workspace-graph <root> <entry-module>\n\
            semaprax workspace-context <root> <entry-module> <declaration|capability> <target> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N]\n\

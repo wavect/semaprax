@@ -33,6 +33,9 @@ workspace Context/Impact/Review, or replacements-only evidence-gated change
 route, also read `docs/SEMANTIC-WORKSPACE-V1.md`,
 `docs/WORKSPACE-SEMANTIC-GRAPH-V1.md`, `docs/WORKSPACE-ANALYSIS-V1.md`, and
 `docs/SEMANTIC-WORKSPACE-CHANGE-V1.md`.
+For bounded stable-ID multi-file rename/alias derivation into an existing
+Change-v1 replacements proposal, also read
+`docs/SEMANTIC-WORKSPACE-OPERATIONS-V1.md`.
 For native owned-call recovery, physical failure, settlement, or quiescence,
 also read `docs/RFC-0004-NATIVE-CALL-SETTLEMENT.md`; its hidden Rust model is
 proof scaffolding, not a wired native-runtime claim.
@@ -67,6 +70,9 @@ proof scaffolding, not a wired native-runtime claim.
 - `src/semantic_workspace_change.rs`, `src/semantic_workspace_change/`:
   replacements-only proposal analysis, canonical Evidence and receipts, exact
   replay, and the invocation-local evidence-gated `ACTIVE` publication route.
+- `src/semantic_workspace_operations.rs`: bounded read-only stable-ID
+  declaration/import-alias operations compiled under one shared authority into
+  an exact existing Change-v1 replacements proposal and derivation wrapper.
 - `src/call_index.rs`, `impact.rs`: shared validated-HIR call index and bounded,
   read-only single-file Semantic Impact v1 preview.
 - `src/repair.rs`: bounded read-only Diagnostic Repair v1 discovery and

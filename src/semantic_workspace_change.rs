@@ -532,6 +532,26 @@ struct SemanticWorkspaceBaseFileFact {
 }
 
 impl SemanticWorkspaceChangeFile {
+    pub(crate) fn path(&self) -> &str {
+        &self.path
+    }
+
+    pub(crate) fn replacement_source(&self) -> &str {
+        &self.source
+    }
+
+    pub(crate) fn base_source_graph_schema(&self) -> &str {
+        &self.base_source_graph_schema
+    }
+
+    pub(crate) fn base_source_revision(&self) -> &str {
+        &self.base_source_revision
+    }
+
+    pub(crate) fn base_source_digest(&self) -> &str {
+        &self.base_source_digest
+    }
+
     pub(crate) fn new(
         path: String,
         base_source_graph_schema: String,
@@ -622,6 +642,28 @@ impl SemanticWorkspaceChangeSet {
 
     pub(crate) fn source(&self) -> &str {
         &self.proposal_source
+    }
+
+    pub(crate) fn entry_module(&self) -> &str {
+        &self.entry_module
+    }
+
+    pub(crate) fn base_workspace_revision(&self) -> &str {
+        &self.base_workspace_revision
+    }
+
+    pub(crate) fn files(&self) -> &[SemanticWorkspaceChangeFile] {
+        &self.files
+    }
+
+    pub(crate) fn changed_file_count(&self) -> usize {
+        self.files.len()
+    }
+
+    pub(crate) fn total_replacement_source_bytes(&self) -> Option<usize> {
+        self.files
+            .iter()
+            .try_fold(0usize, |total, file| total.checked_add(file.source.len()))
     }
 }
 

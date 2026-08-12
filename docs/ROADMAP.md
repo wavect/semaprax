@@ -96,6 +96,15 @@ Status: implemented in this repository.
   evidence, broader import/package/ownership semantics, persistence,
   compatibility, and power-loss durability remain open. Totals remain 38
   Partial/18 Missing.
+- Semantic Workspace Operations v1 now provides a bounded read-only bridge from
+  explicit stable-ID declaration and direct import-alias intent to one exact
+  existing replacements-only Change-v1 proposal. One authenticated base
+  sidecar and one candidate graph prove complete nonoverlapping occurrence
+  edits; the public API/CLI returns only the derived proposal or canonical
+  derivation wrapper. Operations Evidence, verification, apply/publication,
+  path-set changes, automatic identities, target/test execution, and provenance
+  remain open. Local gates are green and exact-head hosted evidence is pending;
+  totals remain 38 Partial/18 Missing.
 - Offline context economics with exact goldens and conservative quality routing.
 - Effects, module permits, and contract guards.
 - Machine-readable diagnostics.

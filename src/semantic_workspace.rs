@@ -311,6 +311,78 @@ pub(crate) fn replay_manifest_owned_for_change(
     Ok(preflight)
 }
 
+pub(crate) fn replay_manifest_owned_for_operations(
+    manifest: &str,
+    sources: Vec<SemanticWorkspaceSource>,
+    graph_builder_limit: usize,
+    operations_builder_limit: usize,
+) -> Result<SemanticWorkspacePreflight, Vec<Diagnostic>> {
+    let expected = parse_manifest(manifest)?;
+    let paths = expected
+        .iter()
+        .map(|file| file.path.clone())
+        .collect::<Vec<_>>();
+    let path_set = render_path_set(&paths)?;
+    let preflight = preflight_owned_for_operations(
+        &path_set,
+        sources,
+        graph_builder_limit,
+        operations_builder_limit,
+    )?;
+    if preflight.manifest != manifest
+        || preflight.files.len() != expected.len()
+        || preflight
+            .files
+            .iter()
+            .zip(&expected)
+            .any(|(actual, expected)| !same_manifest_fact(actual, expected))
+    {
+        return Err(invariant(
+            "Semantic Workspace Operations managed generation disagrees with its manifest",
+        ));
+    }
+    Ok(preflight)
+}
+
+pub(crate) fn authenticated_operations_preflight(
+    authenticated_revision: &str,
+    sources: Vec<workspace::WorkspaceSemanticSource>,
+    graph: workspace_graph::WorkspaceGraphBuild,
+) -> Result<SemanticWorkspacePreflight, Vec<Diagnostic>> {
+    let mut files = sources
+        .into_iter()
+        .map(|source| SemanticWorkspaceFileFact {
+            bytes: source.source.len(),
+            path: source.path,
+            source_graph_schema: source.source_graph_schema,
+            source_revision: source.source_revision,
+            source_digest: source.source_digest,
+            source: source.source,
+        })
+        .collect::<Vec<_>>();
+    files.sort_by(|left, right| left.path.cmp(&right.path));
+    let path_set = files
+        .iter()
+        .map(|file| file.path.clone())
+        .collect::<Vec<_>>();
+    let manifest = render_manifest(&files)?;
+    let workspace_revision = semantic_workspace_revision(&manifest);
+    if workspace_revision != authenticated_revision {
+        return Err(invariant(
+            "Semantic Workspace Operations authenticated manifest replay changed revision",
+        ));
+    }
+    let preflight = SemanticWorkspacePreflight {
+        path_set,
+        files,
+        manifest,
+        workspace_revision,
+        graph,
+    };
+    validate_preflight_replay(&preflight)?;
+    Ok(preflight)
+}
+
 pub(crate) fn replay_manifest_owned(
     manifest: &str,
     sources: Vec<SemanticWorkspaceSource>,

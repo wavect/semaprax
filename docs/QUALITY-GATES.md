@@ -1,5 +1,17 @@
 # Quality gates
 
+Semantic Workspace Operations v1 changes additionally require the focused
+unit and public integration suites, exact three-digest KATs, canonical
+proposal/wrapper mutation matrices, proposal/per-path input exact/+1 caps,
+derivation individual and aggregate minimum-success/minus-one caps plus
+greater-than-production seam rejection, one-base/one-candidate build counters,
+lock-held one-read ownership,
+resolver-free final-drift rejection with immediate exclusive reacquisition,
+API/CLI byte parity and arity, no-write inventory proof, and preservation of
+Change-v1 and Structural Change bytes. Operations Evidence, verification, and
+apply symbols/commands must remain absent. Hosted claims require the exact-head
+Ubuntu, macOS, Windows, MSRV, Component, and dependency-policy matrix.
+
 Quality gates are executable evidence, not a checklist substitute for reasoning. Every pull request must pass the baseline and the gates for each changed semantic layer.
 
 ## Baseline

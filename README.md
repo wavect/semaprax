@@ -327,6 +327,14 @@ Implemented today:
   authority through Evidence or either receipt. Local public C3 is 10/10 and
   private authority evidence is 11/11; exact-head hosted Ubuntu/macOS/Windows
   promotion remains pending. The dashboard remains 38 Partial/18 Missing.
+- [Semantic Workspace Operations v1](docs/SEMANTIC-WORKSPACE-OPERATIONS-V1.md)
+  additively compiles 2–64 explicit stable-ID declaration or direct import-alias
+  renames across 2–16 managed paths into one exact existing Change-v1 proposal.
+  It is shared-lock read-only: it emits only the derived proposal and a bounded
+  canonical derivation wrapper, and provides no Operations Evidence, verifier,
+  receipt, apply route, publication authority, or path-set change. Local gates
+  are green; exact-head hosted evidence is pending and totals remain 38
+  Partial/18 Missing.
 - Native AOT output through a readable C11 lowering and Clang.
 - Direct WebAssembly core output with a generated ES-module runtime, HTML entry point, capability manifest, checked arithmetic, and contract traps.
 - A deliberately narrow `semaprax.wasm-owned.v1` Core Wasm path for one direct

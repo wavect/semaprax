@@ -1139,6 +1139,17 @@ Real process termination at the two pivot boundaries proves only lock release
 and authenticated old/new state on tested filesystems; it does not prove
 parent-directory, journal, storage-device, reboot, or power-loss durability.
 
+Semantic Workspace Operations v1 is a separate read-only layer over this
+authenticated workspace. One Operations-specific shared snapshot build retains
+the base AST/HIR occurrence sidecar together with the unified graph. A canonical
+2–64-operation proposal selects explicit stable-ID declarations or direct
+function/type import aliases across 2–16 existing paths; one simultaneous edit
+plan and one candidate graph then derive the exact unchanged Change-v1
+replacements proposal. The canonical derivation wrapper binds both proposal
+digests and exact usage, but is not Evidence or authority. Final recheck is over
+held structural/byte/permission/inventory facts and performs no second resolver
+pass. The contract is [Semantic Workspace Operations v1](SEMANTIC-WORKSPACE-OPERATIONS-V1.md).
+
 ## Transactions
 
 The `.spatch` protocol is intentionally smaller than a text patch:

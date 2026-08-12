@@ -1,18 +1,28 @@
-//! Private stable-identity operation compiler for Semantic Workspace Change v1.
+//! Authenticated stable-identity operation derivation for Semantic Workspace Change v1.
+//!
+//! The read-only public routes own one canonical Operations proposal while
+//! holding the shared semantic-workspace lock, derive one exact existing
+//! replacements-only Change-v1 proposal, and return the canonical derivation
+//! wrapper only after resolver-free held-workspace reauthentication and checked
+//! unlock. They provide no evidence, verification, application, publication,
+//! approval, signature, or reusable authorization authority.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
+use std::fs::File;
+use std::io::Read as _;
+use std::path::Path;
 
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 
 use crate::bounded_output::CappedString;
 use crate::diagnostic::Diagnostic;
-use crate::{semantic_workspace, semantic_workspace_change, workspace_graph};
+use crate::{semantic_workspace, semantic_workspace_change, workspace, workspace_graph};
 
 const SCHEMA: &str = "semaprax.semantic-workspace-operations.v1";
 const DIGEST_DOMAIN: &[u8] = b"semaprax.semantic-workspace-operations.proposal-digest.v1\0";
-const MAX_PROPOSAL_BYTES: usize = 1_048_576;
+pub(crate) const MAX_PROPOSAL_BYTES: usize = 1_048_576;
 const MAX_OPERATIONS: usize = 64;
 const MAX_AFFECTED_PATHS: usize = 16;
 const MAX_PATH_BYTES: usize = 240;
@@ -25,14 +35,22 @@ const MAX_EDIT_REPLACEMENT_BYTES: usize = 16_777_216;
 const MAX_TOTAL_SOURCE_BYTES: usize = 16_777_216;
 const MAX_TOTAL_REPLACEMENT_SOURCE_BYTES: usize = 4_194_304;
 const MAX_REPLACEMENT_SOURCE_BYTES_PER_PATH: usize = 1_048_576;
-const MAX_CANDIDATE_GRAPH_BUILDER_BYTES: usize = 16_777_216;
-const MAX_OPERATIONS_BUILDER_BYTES: usize = 67_108_864;
+pub(crate) const MAX_CANDIDATE_GRAPH_BUILDER_BYTES: usize = 16_777_216;
+pub(crate) const MAX_OPERATIONS_BUILDER_BYTES: usize = 67_108_864;
 const MAX_DERIVED_CHANGE_PROPOSAL_BYTES: usize = 33_554_432;
+const DERIVATION_SCHEMA: &str = "semaprax.semantic-workspace-operations-derivation.v1";
+const DERIVATION_DOMAIN: &[u8] =
+    b"semaprax.semantic-workspace-operations-derivation.artifact-digest.v1\0";
+const WORKSPACE_MANIFEST_SCHEMA: &str = "semaprax.workspace-semantic-manifest.v1";
+const CHANGE_SCHEMA: &str = "semaprax.workspace-semantic-change.v1";
+const MAX_DERIVATION_BYTES: usize = 33_554_432;
+const MAX_TOTAL_DERIVATION_BYTES: usize = 67_108_864;
 const MAX_JSON_DEPTH: usize = 8;
 
 #[cfg(test)]
 thread_local! {
     static CANDIDATE_PREFLIGHT_ENTRY_COUNT: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+    static BASE_PREFLIGHT_ENTRY_COUNT: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
 
 #[cfg(test)]
@@ -43,6 +61,21 @@ fn reset_candidate_preflight_entry_count() {
 #[cfg(test)]
 fn candidate_preflight_entry_count() -> usize {
     CANDIDATE_PREFLIGHT_ENTRY_COUNT.with(std::cell::Cell::get)
+}
+
+#[cfg(test)]
+fn reset_base_operations_preflight_entry_count() {
+    BASE_PREFLIGHT_ENTRY_COUNT.with(|count| count.set(0));
+}
+
+#[cfg(test)]
+fn base_operations_preflight_entry_count() -> usize {
+    BASE_PREFLIGHT_ENTRY_COUNT.with(std::cell::Cell::get)
+}
+
+#[cfg(test)]
+pub(crate) fn mark_base_operations_preflight_entry() {
+    BASE_PREFLIGHT_ENTRY_COUNT.with(|count| count.set(count.get() + 1));
 }
 
 #[cfg(test)]
@@ -190,9 +223,47 @@ pub(crate) struct PreparedSemanticWorkspaceOperations {
     derived_change: semantic_workspace_change::SemanticWorkspaceChangeSet,
     base_graph: workspace_graph::WorkspaceGraphChangeView,
     candidate_graph: workspace_graph::WorkspaceGraphChangeView,
+    base_workspace_revision: String,
+    candidate_workspace_revision: String,
+    candidate_manifest: String,
+    entry_module: String,
+    usage: OperationsUsageFacts,
     used_operations_builder_bytes: usize,
 }
 
+/// Opaque read-only Operations derivation bundle.
+pub struct SemanticWorkspaceOperationsDerivation {
+    operations_proposal_digest: String,
+    derived_change_proposal: String,
+    derived_change_proposal_digest: String,
+    derivation: String,
+    derivation_digest: String,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum OperationsDerivePoint {
+    ProposalOwned,
+    DerivationRendered,
+}
+
+#[derive(Clone, Copy)]
+struct OperationsUsageFacts {
+    managed_files: usize,
+    operations: usize,
+    affected_paths: usize,
+    planned_edits: usize,
+    edit_replacement_bytes: usize,
+    total_base_source_bytes: usize,
+    total_candidate_source_bytes: usize,
+    total_replacement_source_bytes: usize,
+    entry_module_bytes: usize,
+    operations_proposal_bytes: usize,
+    candidate_graph_builder_bytes: usize,
+    derived_changed_files: usize,
+    derived_change_proposal_bytes: usize,
+}
+
+#[cfg(test)]
 impl PreparedSemanticWorkspaceOperations {
     pub(crate) fn proposal_source(&self) -> &str {
         &self.proposal_source
@@ -224,6 +295,385 @@ impl PreparedSemanticWorkspaceOperations {
     pub(crate) fn used_operations_builder_bytes(&self) -> usize {
         self.used_operations_builder_bytes
     }
+}
+
+impl SemanticWorkspaceOperationsDerivation {
+    pub fn operations_proposal_digest(&self) -> &str {
+        &self.operations_proposal_digest
+    }
+
+    pub fn derived_change_proposal(&self) -> &str {
+        &self.derived_change_proposal
+    }
+
+    pub fn derived_change_proposal_digest(&self) -> &str {
+        &self.derived_change_proposal_digest
+    }
+
+    pub fn derivation(&self) -> &str {
+        &self.derivation
+    }
+
+    pub fn derivation_digest(&self) -> &str {
+        &self.derivation_digest
+    }
+
+    fn into_derived_change_proposal(self) -> String {
+        self.derived_change_proposal
+    }
+
+    fn into_derivation(self) -> String {
+        self.derivation
+    }
+}
+
+/// Derives one exact Change-v1 proposal and its canonical Operations wrapper.
+pub fn derive(
+    root: &Path,
+    proposal_path: &Path,
+) -> Result<SemanticWorkspaceOperationsDerivation, Vec<Diagnostic>> {
+    derive_with_hook(root, proposal_path, |_| {})
+}
+
+/// Returns the exact derived Change-v1 proposal, including its terminal LF.
+pub fn derived_change_proposal(
+    root: &Path,
+    proposal_path: &Path,
+) -> Result<String, Vec<Diagnostic>> {
+    derive(root, proposal_path)
+        .map(SemanticWorkspaceOperationsDerivation::into_derived_change_proposal)
+}
+
+/// Returns the canonical Operations derivation wrapper, including its terminal LF.
+pub fn derivation(root: &Path, proposal_path: &Path) -> Result<String, Vec<Diagnostic>> {
+    derive(root, proposal_path).map(SemanticWorkspaceOperationsDerivation::into_derivation)
+}
+
+pub(crate) fn derive_with_hook(
+    root: &Path,
+    proposal_path: &Path,
+    mut hook: impl FnMut(OperationsDerivePoint),
+) -> Result<SemanticWorkspaceOperationsDerivation, Vec<Diagnostic>> {
+    let locked = workspace::acquire_semantic_change_lock(root)?;
+    let proposal = read_operations_proposal(proposal_path).and_then(|source| {
+        hook(OperationsDerivePoint::ProposalOwned);
+        parse_proposal(&source)
+    });
+    let (mut authority, proposal) = locked
+        .authenticate_operations(proposal)
+        .map_err(map_base_operations_builder_limit)?;
+    let result = (|| {
+        let authenticated_revision = authority.workspace_revision().to_owned();
+        let graph = authority.take_graph()?;
+        let sources = authority.take_sources();
+        let base = semantic_workspace::authenticated_operations_preflight(
+            &authenticated_revision,
+            sources,
+            graph,
+        )?;
+        let prepared = prepare_parsed_with_limit(proposal, base, MAX_OPERATIONS_BUILDER_BYTES)?;
+        let derivation = render_derivation(&prepared)?;
+        hook(OperationsDerivePoint::DerivationRendered);
+        Ok(derivation)
+    })();
+    authority.finish(result)
+}
+
+fn read_operations_proposal(path: &Path) -> Result<String, Vec<Diagnostic>> {
+    let mut file = File::open(path).map_err(|_| proposal_io("open failed"))?;
+    let metadata = file
+        .metadata()
+        .map_err(|_| proposal_io("metadata inspection failed"))?;
+    if !metadata.is_file() {
+        return Err(proposal_io("input is not a regular file"));
+    }
+    if metadata.len() > MAX_PROPOSAL_BYTES as u64 {
+        return Err(limit("operations_proposal_bytes", MAX_PROPOSAL_BYTES));
+    }
+    let mut bytes = Vec::with_capacity((metadata.len() as usize).saturating_add(1));
+    file.by_ref()
+        .take((MAX_PROPOSAL_BYTES as u64) + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|_| proposal_io("read failed"))?;
+    if bytes.len() > MAX_PROPOSAL_BYTES {
+        return Err(limit("operations_proposal_bytes", MAX_PROPOSAL_BYTES));
+    }
+    String::from_utf8(bytes).map_err(|_| proposal_io("input is not UTF-8"))
+}
+
+fn proposal_io(detail: &'static str) -> Vec<Diagnostic> {
+    vec![Diagnostic::io(
+        "SPX-I216",
+        format!("could not read Semantic Workspace Operations proposal: {detail}"),
+    )]
+}
+
+fn map_base_operations_builder_limit(diagnostics: Vec<Diagnostic>) -> Vec<Diagnostic> {
+    if diagnostics.len() == 1
+        && diagnostics[0].code == "SPX-G171"
+        && diagnostics[0].message
+            == format!(
+                "Workspace Semantic Graph `change_builder_bytes` exceeds {MAX_OPERATIONS_BUILDER_BYTES}"
+            )
+    {
+        limit("operations_builder_bytes", MAX_OPERATIONS_BUILDER_BYTES)
+    } else {
+        diagnostics
+    }
+}
+
+fn render_derivation(
+    prepared: &PreparedSemanticWorkspaceOperations,
+) -> Result<SemanticWorkspaceOperationsDerivation, Vec<Diagnostic>> {
+    render_derivation_with_limits(prepared, MAX_DERIVATION_BYTES, MAX_TOTAL_DERIVATION_BYTES)
+}
+
+#[cfg(test)]
+fn render_derivation_with_test_limits(
+    prepared: &PreparedSemanticWorkspaceOperations,
+    derivation_limit: usize,
+    total_limit: usize,
+) -> Result<SemanticWorkspaceOperationsDerivation, Vec<Diagnostic>> {
+    assert!(derivation_limit <= MAX_DERIVATION_BYTES);
+    assert!(total_limit <= MAX_TOTAL_DERIVATION_BYTES);
+    render_derivation_with_limits(prepared, derivation_limit, total_limit)
+}
+
+fn render_derivation_with_limits(
+    prepared: &PreparedSemanticWorkspaceOperations,
+    derivation_limit: usize,
+    total_limit: usize,
+) -> Result<SemanticWorkspaceOperationsDerivation, Vec<Diagnostic>> {
+    validate_derivation_usage(prepared)?;
+    let derived_change_proposal = prepared.derived_change.source().to_owned();
+    let derived_change_proposal_digest = digest_without_length(
+        b"semaprax.workspace-semantic-change.proposal-digest.v1\0",
+        derived_change_proposal.as_bytes(),
+    );
+    let input_bytes = prepared.proposal_source.len();
+    let derived_bytes = derived_change_proposal.len();
+    let fixed_bytes = input_bytes
+        .checked_add(derived_bytes)
+        .ok_or_else(|| limit("total_derivation_bytes", MAX_TOTAL_DERIVATION_BYTES))?;
+    if fixed_bytes > total_limit {
+        return Err(limit("total_derivation_bytes", MAX_TOTAL_DERIVATION_BYTES));
+    }
+    let aggregate_remaining = total_limit - fixed_bytes;
+    let output_limit = derivation_limit.min(aggregate_remaining);
+    let mut used_derivation_bytes = 0usize;
+    let derivation = loop {
+        let total = fixed_bytes
+            .checked_add(used_derivation_bytes)
+            .ok_or_else(|| limit("total_derivation_bytes", MAX_TOTAL_DERIVATION_BYTES))?;
+        let (document, overflowed) = crate::bounded_output::with_limit(output_limit, || {
+            render_derivation_document(
+                prepared,
+                &derived_change_proposal_digest,
+                used_derivation_bytes,
+                total,
+            )
+        });
+        if overflowed {
+            return Err(if aggregate_remaining < derivation_limit {
+                limit("total_derivation_bytes", MAX_TOTAL_DERIVATION_BYTES)
+            } else {
+                limit("derivation_bytes", MAX_DERIVATION_BYTES)
+            });
+        }
+        if document.len() > derivation_limit {
+            return Err(limit("derivation_bytes", MAX_DERIVATION_BYTES));
+        }
+        if document.len() > aggregate_remaining {
+            return Err(limit("total_derivation_bytes", MAX_TOTAL_DERIVATION_BYTES));
+        }
+        if document.len() == used_derivation_bytes {
+            break document;
+        }
+        used_derivation_bytes = document.len();
+    };
+    if prepared.proposal_digest != proposal_digest(&prepared.proposal_source)
+        || derived_change_proposal != prepared.derived_change.source()
+    {
+        return Err(replay());
+    }
+    let derivation_digest = digest_without_length(DERIVATION_DOMAIN, derivation.as_bytes());
+    Ok(SemanticWorkspaceOperationsDerivation {
+        operations_proposal_digest: prepared.proposal_digest.clone(),
+        derived_change_proposal,
+        derived_change_proposal_digest,
+        derivation,
+        derivation_digest,
+    })
+}
+
+fn validate_derivation_usage(
+    prepared: &PreparedSemanticWorkspaceOperations,
+) -> Result<(), Vec<Diagnostic>> {
+    let usage = prepared.usage;
+    let replayed_operations = parse_proposal(&prepared.proposal_source).map_err(|_| replay())?;
+    if replayed_operations.source != prepared.proposal_source
+        || replayed_operations.digest != prepared.proposal_digest
+        || replayed_operations.base_workspace_revision != prepared.base_workspace_revision
+        || replayed_operations.entry_module != prepared.entry_module
+        || replayed_operations.operations != prepared.operations
+        || prepared.candidate_workspace_revision == prepared.base_workspace_revision
+    {
+        return Err(replay());
+    }
+    let candidate_manifest_facts =
+        semantic_workspace::parse_manifest(&prepared.candidate_manifest).map_err(|_| replay())?;
+    if semantic_workspace::render_manifest(&candidate_manifest_facts).map_err(|_| replay())?
+        != prepared.candidate_manifest
+        || candidate_manifest_facts.len() != prepared.candidate_sources.len()
+        || candidate_manifest_facts
+            .iter()
+            .zip(&prepared.candidate_sources)
+            .any(|(fact, source)| {
+                fact.path() != source.path
+                    || prepared
+                        .candidate_graph
+                        .modules()
+                        .iter()
+                        .find(|module| module.path() == fact.path())
+                        .is_none_or(|module| {
+                            module.source_graph_schema() != fact.source_graph_schema()
+                        })
+                    || fact.bytes() != source.source.len()
+                    || fact.source_revision()
+                        != crate::graph::revision_from_canonical_source(&source.source)
+                    || fact.source_digest()
+                        != crate::review::source_digest(source.source.as_bytes())
+            })
+    {
+        return Err(replay());
+    }
+    let affected_paths = prepared
+        .operations
+        .iter()
+        .map(Operation::path)
+        .collect::<BTreeSet<_>>()
+        .len();
+    let edit_replacement_bytes = prepared
+        .edits
+        .iter()
+        .try_fold(0usize, |total, edit| {
+            total.checked_add(edit.replacement.len())
+        })
+        .ok_or_else(replay)?;
+    let total_candidate_source_bytes = prepared
+        .candidate_sources
+        .iter()
+        .try_fold(0usize, |total, source| {
+            total.checked_add(source.source.len())
+        })
+        .ok_or_else(replay)?;
+    let total_replacement_source_bytes = prepared
+        .derived_change
+        .total_replacement_source_bytes()
+        .ok_or_else(replay)?;
+    let replayed_change =
+        semantic_workspace_change::parse_proposal(prepared.derived_change.source())
+            .map_err(|_| replay())?;
+    if replayed_change.source() != prepared.derived_change.source()
+        || replayed_change.base_workspace_revision() != prepared.base_workspace_revision
+        || replayed_change.entry_module() != prepared.entry_module
+        || replayed_change.changed_file_count() != affected_paths
+        || replayed_change.files().len() != prepared.derived_change.files().len()
+        || replayed_change
+            .files()
+            .iter()
+            .zip(prepared.derived_change.files())
+            .any(|(left, right)| {
+                left.path() != right.path()
+                    || left.base_source_graph_schema() != right.base_source_graph_schema()
+                    || left.base_source_revision() != right.base_source_revision()
+                    || left.base_source_digest() != right.base_source_digest()
+                    || left.replacement_source() != right.replacement_source()
+            })
+        || prepared.base_graph.used_managed_files() != prepared.candidate_graph.used_managed_files()
+        || prepared.base_workspace_revision != prepared.derived_change.base_workspace_revision()
+        || semantic_workspace::semantic_workspace_revision(&prepared.candidate_manifest)
+            != prepared.candidate_workspace_revision
+    {
+        return Err(replay());
+    }
+    if usage.managed_files != prepared.base_graph.used_managed_files()
+        || usage.operations != prepared.operations.len()
+        || usage.affected_paths != affected_paths
+        || usage.planned_edits != prepared.edits.len()
+        || usage.edit_replacement_bytes != edit_replacement_bytes
+        || usage.total_base_source_bytes != prepared.base_graph.used_total_source_bytes()
+        || usage.total_candidate_source_bytes != total_candidate_source_bytes
+        || usage.total_candidate_source_bytes != prepared.candidate_graph.used_total_source_bytes()
+        || usage.total_replacement_source_bytes != total_replacement_source_bytes
+        || usage.entry_module_bytes != prepared.entry_module.len()
+        || usage.entry_module_bytes != prepared.derived_change.entry_module().len()
+        || usage.operations_proposal_bytes != prepared.proposal_source.len()
+        || usage.candidate_graph_builder_bytes != prepared.candidate_graph.used_builder_bytes()
+        || usage.derived_changed_files != prepared.derived_change.changed_file_count()
+        || usage.derived_change_proposal_bytes != prepared.derived_change.source().len()
+    {
+        return Err(replay());
+    }
+    for (field, used, maximum) in [
+        ("managed_files", usage.managed_files, 16),
+        ("operations", usage.operations, MAX_OPERATIONS),
+        ("affected_paths", usage.affected_paths, MAX_AFFECTED_PATHS),
+        ("planned_edits", usage.planned_edits, MAX_PLANNED_EDITS),
+        (
+            "edit_replacement_bytes",
+            usage.edit_replacement_bytes,
+            MAX_EDIT_REPLACEMENT_BYTES,
+        ),
+        (
+            "total_base_source_bytes",
+            usage.total_base_source_bytes,
+            MAX_TOTAL_SOURCE_BYTES,
+        ),
+        (
+            "total_candidate_source_bytes",
+            usage.total_candidate_source_bytes,
+            MAX_TOTAL_SOURCE_BYTES,
+        ),
+        (
+            "total_replacement_source_bytes",
+            usage.total_replacement_source_bytes,
+            MAX_TOTAL_REPLACEMENT_SOURCE_BYTES,
+        ),
+        (
+            "entry_module_bytes",
+            usage.entry_module_bytes,
+            MAX_ENTRY_MODULE_BYTES,
+        ),
+        (
+            "operations_proposal_bytes",
+            usage.operations_proposal_bytes,
+            MAX_PROPOSAL_BYTES,
+        ),
+        (
+            "candidate_graph_builder_bytes",
+            usage.candidate_graph_builder_bytes,
+            MAX_CANDIDATE_GRAPH_BUILDER_BYTES,
+        ),
+        (
+            "operations_builder_bytes",
+            prepared.used_operations_builder_bytes,
+            MAX_OPERATIONS_BUILDER_BYTES,
+        ),
+        (
+            "derived_change_proposal_bytes",
+            usage.derived_change_proposal_bytes,
+            MAX_DERIVED_CHANGE_PROPOSAL_BYTES,
+        ),
+    ] {
+        if used > maximum {
+            return Err(limit(field, maximum));
+        }
+    }
+    if usage.derived_changed_files != usage.affected_paths {
+        return Err(replay());
+    }
+    Ok(())
 }
 
 fn parse_proposal(source: &str) -> Result<OperationsProposal, Vec<Diagnostic>> {
@@ -445,6 +895,7 @@ fn parse_operation(value: &Value) -> Result<Operation, Vec<Diagnostic>> {
     Ok(operation)
 }
 
+#[cfg(test)]
 pub(crate) fn prepare_owned(
     proposal_source: &str,
     base: semantic_workspace::SemanticWorkspacePreflight,
@@ -452,8 +903,18 @@ pub(crate) fn prepare_owned(
     prepare_owned_with_limit(proposal_source, base, MAX_OPERATIONS_BUILDER_BYTES)
 }
 
+#[cfg(test)]
 fn prepare_owned_with_limit(
     proposal_source: &str,
+    base: semantic_workspace::SemanticWorkspacePreflight,
+    operations_builder_limit: usize,
+) -> Result<PreparedSemanticWorkspaceOperations, Vec<Diagnostic>> {
+    let proposal = parse_proposal(proposal_source)?;
+    prepare_parsed_with_limit(proposal, base, operations_builder_limit)
+}
+
+fn prepare_parsed_with_limit(
+    proposal: OperationsProposal,
     base: semantic_workspace::SemanticWorkspacePreflight,
     operations_builder_limit: usize,
 ) -> Result<PreparedSemanticWorkspaceOperations, Vec<Diagnostic>> {
@@ -482,7 +943,7 @@ fn prepare_owned_with_limit(
     let (result, overflowed, replay_builder_bytes) =
         crate::bounded_output::with_limit_usage(remaining, || {
             prepare_owned_inner(
-                proposal_source,
+                proposal,
                 &base_workspace_revision,
                 base_files,
                 operation_view,
@@ -503,7 +964,7 @@ fn prepare_owned_with_limit(
 }
 
 fn prepare_owned_inner(
-    proposal_source: &str,
+    proposal: OperationsProposal,
     base_workspace_revision: &str,
     base_files: Vec<semantic_workspace::SemanticWorkspaceFileFact>,
     operation_view: workspace_graph::WorkspaceGraphOperationView,
@@ -512,13 +973,13 @@ fn prepare_owned_inner(
     // and their strings before parsing allocates any of them. Four payloads is
     // a conservative bound for this shallow, capped canonical grammar.
     reserve_operations(
-        proposal_source
+        proposal
+            .source
             .len()
             .checked_mul(4)
             .and_then(|bytes| bytes.checked_add(MAX_OPERATIONS * std::mem::size_of::<Operation>()))
             .ok_or_else(|| limit("operations_builder_bytes", MAX_OPERATIONS_BUILDER_BYTES))?,
     )?;
-    let proposal = parse_proposal(proposal_source)?;
     if base_workspace_revision != proposal.base_workspace_revision {
         return Err(binding(false));
     }
@@ -721,10 +1182,12 @@ fn prepare_owned_inner(
     .map_err(|diagnostics| {
         map_candidate_diagnostics(diagnostics, candidate_graph_limit, remaining_operations)
     })?;
-    let (candidate_files, _, candidate_revision, candidate_build) = candidate.into_snapshot_parts();
+    let (candidate_files, candidate_manifest, candidate_revision, candidate_build) =
+        candidate.into_snapshot_parts();
     let candidate_view = candidate_build
         .into_operation_view()
         .map_err(|_| replay())?;
+    reserve_operations(candidate_view.builder_bytes)?;
     replay_candidate(&operation_view, &candidate_view, &proposal.operations)?;
     let derived_change = semantic_workspace_change::SemanticWorkspaceChangeSet::new(
         proposal.base_workspace_revision.clone(),
@@ -755,6 +1218,22 @@ fn prepare_owned_inner(
             semantic_workspace::SemanticWorkspaceSource { path, source }
         })
         .collect();
+    let affected_paths = by_path.len();
+    let usage = OperationsUsageFacts {
+        managed_files: operation_view.graph.used_managed_files(),
+        operations: proposal.operations.len(),
+        affected_paths,
+        planned_edits: edits.len(),
+        edit_replacement_bytes: replacement_bytes,
+        total_base_source_bytes: operation_view.graph.used_total_source_bytes(),
+        total_candidate_source_bytes: candidate_total,
+        total_replacement_source_bytes: replacement_total,
+        entry_module_bytes: proposal.entry_module.len(),
+        operations_proposal_bytes: proposal.source.len(),
+        candidate_graph_builder_bytes: candidate_view.graph.used_builder_bytes(),
+        derived_changed_files: affected_paths,
+        derived_change_proposal_bytes: derived_change.source().len(),
+    };
     Ok(PreparedSemanticWorkspaceOperations {
         proposal_source: proposal.source,
         proposal_digest: proposal.digest,
@@ -764,6 +1243,11 @@ fn prepare_owned_inner(
         derived_change,
         base_graph: operation_view.graph,
         candidate_graph: candidate_view.graph,
+        base_workspace_revision: base_workspace_revision.to_owned(),
+        candidate_workspace_revision: candidate_revision,
+        candidate_manifest,
+        entry_module: proposal.entry_module,
+        usage,
         used_operations_builder_bytes: 0,
     })
 }
@@ -1338,6 +1822,198 @@ fn render_proposal(p: &OperationsProposal) -> Result<String, Vec<Diagnostic>> {
         Ok(s)
     }
 }
+
+fn render_derivation_document(
+    prepared: &PreparedSemanticWorkspaceOperations,
+    derived_change_digest: &str,
+    used_derivation_bytes: usize,
+    used_total_derivation_bytes: usize,
+) -> String {
+    let mut out = CappedString::new();
+    out.push_str("{\"schema\":");
+    json(&mut out, DERIVATION_SCHEMA);
+    out.push_str(",\"workspace_manifest_schema\":");
+    json(&mut out, WORKSPACE_MANIFEST_SCHEMA);
+    out.push_str(",\"base_workspace_revision\":");
+    json(&mut out, &prepared.base_workspace_revision);
+    out.push_str(",\"candidate_workspace_revision\":");
+    json(&mut out, &prepared.candidate_workspace_revision);
+    out.push_str(",\"entry_module\":");
+    json(&mut out, &prepared.entry_module);
+    out.push_str(",\"operations_proposal\":{\"schema\":");
+    json(&mut out, SCHEMA);
+    out.push_str(",\"digest\":");
+    json(&mut out, &prepared.proposal_digest);
+    out.push_str(",\"bytes\":");
+    number(&mut out, prepared.proposal_source.len());
+    out.push_str("},\"derived_workspace_change_proposal\":{\"schema\":");
+    json(&mut out, CHANGE_SCHEMA);
+    out.push_str(",\"digest\":");
+    json(&mut out, derived_change_digest);
+    out.push_str(",\"bytes\":");
+    number(&mut out, prepared.derived_change.source().len());
+    out.push_str("},\"limits\":");
+    render_derivation_limits(&mut out);
+    out.push_str(",\"budget\":");
+    render_derivation_budget(
+        &mut out,
+        prepared,
+        used_derivation_bytes,
+        used_total_derivation_bytes,
+    );
+    out.push_str(",\"nonclaims\":[");
+    for (index, claim) in DERIVATION_NONCLAIMS.iter().enumerate() {
+        if index > 0 {
+            out.push(',');
+        }
+        json(&mut out, claim);
+    }
+    out.push_str("]}\n");
+    out.into_string()
+}
+
+fn render_derivation_limits(out: &mut CappedString) {
+    out.push('{');
+    for (index, (field, value)) in DERIVATION_LIMITS.iter().enumerate() {
+        if index > 0 {
+            out.push(',');
+        }
+        json(out, field);
+        out.push(':');
+        number(out, *value);
+    }
+    out.push('}');
+}
+
+fn render_derivation_budget(
+    out: &mut CappedString,
+    prepared: &PreparedSemanticWorkspaceOperations,
+    used_derivation_bytes: usize,
+    used_total_derivation_bytes: usize,
+) {
+    let usage = prepared.usage;
+    let values = [
+        usage.managed_files,
+        usage.operations,
+        usage.affected_paths,
+        usage.planned_edits,
+        usage.edit_replacement_bytes,
+        usage.total_base_source_bytes,
+        usage.total_candidate_source_bytes,
+        usage.total_replacement_source_bytes,
+        usage.entry_module_bytes,
+        usage.operations_proposal_bytes,
+        usage.candidate_graph_builder_bytes,
+        prepared.used_operations_builder_bytes,
+        usage.derived_changed_files,
+        usage.derived_change_proposal_bytes,
+        used_derivation_bytes,
+        used_total_derivation_bytes,
+    ];
+    out.push('{');
+    for (index, (field, value)) in DERIVATION_BUDGET_FIELDS.iter().zip(values).enumerate() {
+        if index > 0 {
+            out.push(',');
+        }
+        json(out, field);
+        out.push(':');
+        number(out, value);
+    }
+    out.push('}');
+}
+
+fn number(out: &mut CappedString, value: usize) {
+    let _ = write!(out, "{value}");
+}
+
+fn digest_without_length(domain: &[u8], bytes: &[u8]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(domain);
+    hasher.update(bytes);
+    format!("sha256:{:x}", hasher.finalize())
+}
+
+const DERIVATION_LIMITS: [(&str, usize); 21] = [
+    ("max_managed_files", 16),
+    ("max_operations_proposal_bytes", MAX_PROPOSAL_BYTES),
+    ("max_operations", MAX_OPERATIONS),
+    ("max_affected_paths", MAX_AFFECTED_PATHS),
+    ("max_path_bytes", MAX_PATH_BYTES),
+    ("max_target_id_bytes", MAX_TARGET_ID_BYTES),
+    ("max_target_module_bytes", MAX_TARGET_MODULE_BYTES),
+    ("max_entry_module_bytes", MAX_ENTRY_MODULE_BYTES),
+    ("max_name_bytes", MAX_NAME_BYTES),
+    ("max_planned_edits", MAX_PLANNED_EDITS),
+    ("max_edit_replacement_bytes", MAX_EDIT_REPLACEMENT_BYTES),
+    ("max_total_base_source_bytes", MAX_TOTAL_SOURCE_BYTES),
+    ("max_total_candidate_source_bytes", MAX_TOTAL_SOURCE_BYTES),
+    (
+        "max_total_replacement_source_bytes",
+        MAX_TOTAL_REPLACEMENT_SOURCE_BYTES,
+    ),
+    (
+        "max_replacement_source_bytes_per_path",
+        MAX_REPLACEMENT_SOURCE_BYTES_PER_PATH,
+    ),
+    (
+        "max_candidate_graph_builder_bytes",
+        MAX_CANDIDATE_GRAPH_BUILDER_BYTES,
+    ),
+    ("max_operations_builder_bytes", MAX_OPERATIONS_BUILDER_BYTES),
+    (
+        "max_derived_change_proposal_bytes",
+        MAX_DERIVED_CHANGE_PROPOSAL_BYTES,
+    ),
+    ("max_derivation_bytes", MAX_DERIVATION_BYTES),
+    ("max_total_derivation_bytes", MAX_TOTAL_DERIVATION_BYTES),
+    ("max_json_depth", MAX_JSON_DEPTH),
+];
+
+const DERIVATION_BUDGET_FIELDS: [&str; 16] = [
+    "used_managed_files",
+    "used_operations",
+    "used_affected_paths",
+    "used_planned_edits",
+    "used_edit_replacement_bytes",
+    "used_total_base_source_bytes",
+    "used_total_candidate_source_bytes",
+    "used_total_replacement_source_bytes",
+    "used_entry_module_bytes",
+    "used_operations_proposal_bytes",
+    "used_candidate_graph_builder_bytes",
+    "used_operations_builder_bytes",
+    "used_derived_changed_files",
+    "used_derived_change_proposal_bytes",
+    "used_derivation_bytes",
+    "used_total_derivation_bytes",
+];
+
+const DERIVATION_NONCLAIMS: [&str; 24] = [
+    "not_signature_or_authenticated_provenance",
+    "not_human_approval_or_policy",
+    "not_safe_compatible_or_target_verified",
+    "no_reusable_authorization_token",
+    "no_test_or_target_execution",
+    "no_target_evidence_or_machine_code_claim",
+    "no_context_impact_review_or_evidence",
+    "no_operations_evidence_verification_receipt_or_apply_authority",
+    "no_commit_or_publication_authority_in_derivation",
+    "no_existing_change_v1_evidence_binding_to_operations_intent",
+    "no_raw_path_create_delete_move_or_write",
+    "no_path_set_change",
+    "no_automatic_or_compiler_identity_targeting",
+    "no_unmanaged_path_or_raw_tree_authority",
+    "no_raw_tree_git_or_editor_atomic_visibility",
+    "no_automatic_rollback_cleanup_or_gc",
+    "no_power_loss_durability_guarantee",
+    "no_network_distributed_nfs_or_overlay_guarantee",
+    "no_acl_xattr_ads_preservation",
+    "no_general_proof_system",
+    "no_persistence_or_incrementality",
+    "no_external_consumer_compatibility",
+    "no_new_language_graph_cleanup_backend_or_runtime_semantics",
+    "no_change_v1_schema_api_or_kat_modification",
+];
 fn render_op(x: &mut CappedString, op: &Operation) {
     match op {
         Operation::Declaration {
@@ -1497,7 +2173,119 @@ fn replay() -> Vec<Diagnostic> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::Path;
+    use fs2::FileExt;
+    use std::fs::OpenOptions;
+    use std::path::{Path, PathBuf};
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    static MANAGED_SERIAL: AtomicU64 = AtomicU64::new(0);
+
+    struct ManagedOperationsFixture {
+        root: PathBuf,
+        proposal_path: PathBuf,
+        proposal_source: String,
+    }
+
+    impl ManagedOperationsFixture {
+        fn new(label: &str) -> Self {
+            let serial = MANAGED_SERIAL.fetch_add(1, Ordering::Relaxed);
+            let root = std::env::temp_dir().join(format!(
+                "semaprax-semantic-workspace-operations-{label}-{}-{serial}",
+                std::process::id()
+            ));
+            std::fs::create_dir(&root).unwrap();
+            let provider = canonical(
+                "a/provider.spx",
+                "module ops.provider; @id(\"ops.answer\") fn answer()->i64{1}",
+            );
+            let consumer = canonical(
+                "b/consumer.spx",
+                "module ops.consumer; use function @id(\"ops.answer\") from ops.provider as answer; @id(\"ops.main\") fn main()->i64{answer()}",
+            );
+            for (path, source) in [("a/provider.spx", provider), ("b/consumer.spx", consumer)] {
+                let destination = root.join(path);
+                std::fs::create_dir_all(destination.parent().unwrap()).unwrap();
+                std::fs::write(destination, source).unwrap();
+            }
+            let path_set = root.join("paths.json");
+            std::fs::write(
+                &path_set,
+                semantic_workspace::render_path_set(&[
+                    "a/provider.spx".to_owned(),
+                    "b/consumer.spx".to_owned(),
+                ])
+                .unwrap(),
+            )
+            .unwrap();
+            let revision = semantic_workspace::initialize(&root, &path_set).unwrap();
+            let proposal_source = format!(
+                "{{\"schema\":\"{SCHEMA}\",\"base_workspace_revision\":\"{revision}\",\"entry_module\":\"ops.consumer\",\"operations\":[{{\"kind\":\"rename_declaration\",\"path\":\"a/provider.spx\",\"declaration_kind\":\"function\",\"target_id\":\"ops.answer\",\"from\":\"answer\",\"to\":\"response\"}},{{\"kind\":\"rename_import_alias\",\"path\":\"b/consumer.spx\",\"import_kind\":\"function\",\"target_id\":\"ops.answer\",\"target_module\":\"ops.provider\",\"from\":\"answer\",\"to\":\"response\"}}]}}\n"
+            );
+            let proposal_path = root.join("operations.json");
+            std::fs::write(&proposal_path, &proposal_source).unwrap();
+            Self {
+                root,
+                proposal_path,
+                proposal_source,
+            }
+        }
+
+        fn inventory(&self) -> Vec<(String, bool, Vec<u8>)> {
+            fn walk(root: &Path, path: &Path, facts: &mut Vec<(String, bool, Vec<u8>)>) {
+                let mut entries = std::fs::read_dir(path)
+                    .unwrap()
+                    .map(|entry| entry.unwrap())
+                    .collect::<Vec<_>>();
+                entries.sort_by_key(std::fs::DirEntry::file_name);
+                for entry in entries {
+                    let path = entry.path();
+                    let relative = path
+                        .strip_prefix(root)
+                        .unwrap()
+                        .to_str()
+                        .unwrap()
+                        .to_owned();
+                    let metadata = std::fs::symlink_metadata(&path).unwrap();
+                    if metadata.is_dir() {
+                        facts.push((relative, true, Vec::new()));
+                        walk(root, &path, facts);
+                    } else {
+                        facts.push((relative, false, std::fs::read(path).unwrap()));
+                    }
+                }
+            }
+            let mut facts = Vec::new();
+            walk(&self.root, &self.root, &mut facts);
+            facts
+        }
+
+        fn assert_exclusive_reacquire(&self) {
+            let lock = OpenOptions::new()
+                .read(true)
+                .write(true)
+                .open(self.root.join(".semaprax-workspace/LOCK"))
+                .unwrap();
+            FileExt::try_lock_exclusive(&lock).unwrap();
+            FileExt::unlock(&lock).unwrap();
+        }
+
+        fn managed_source_path(&self, relative: &str) -> PathBuf {
+            let generations = self.root.join(".semaprax-workspace/generations");
+            let entries = std::fs::read_dir(&generations)
+                .unwrap()
+                .map(|entry| entry.unwrap())
+                .filter(|entry| entry.file_type().unwrap().is_dir())
+                .collect::<Vec<_>>();
+            assert_eq!(entries.len(), 1);
+            entries[0].path().join("files").join(relative)
+        }
+    }
+
+    impl Drop for ManagedOperationsFixture {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.root);
+        }
+    }
 
     fn canonical(path: &str, source: &str) -> String {
         let program = crate::parse(source, Path::new(path)).unwrap();
@@ -1631,6 +2419,351 @@ permit { audit.read }
                 .source(),
             prepared.derived_change_proposal()
         );
+    }
+
+    #[test]
+    fn derivation_wrapper_binds_exact_retained_proposals_and_fixed_point_usage() {
+        let (base, proposal) = fixture();
+        let prepared = prepare_owned(&proposal, base).unwrap();
+        let output = render_derivation(&prepared).unwrap();
+        let document: Value = serde_json::from_str(output.derivation().trim_end()).unwrap();
+        assert_eq!(document["schema"], DERIVATION_SCHEMA);
+        assert_eq!(
+            document["operations_proposal"]["digest"],
+            output.operations_proposal_digest()
+        );
+        assert_eq!(
+            document["derived_workspace_change_proposal"]["digest"],
+            output.derived_change_proposal_digest()
+        );
+        assert_eq!(
+            document["derived_workspace_change_proposal"]["bytes"],
+            output.derived_change_proposal().len()
+        );
+        assert_eq!(
+            document["budget"]["used_derivation_bytes"],
+            output.derivation().len()
+        );
+        assert_eq!(
+            document["budget"]["used_total_derivation_bytes"],
+            proposal.len() + output.derived_change_proposal().len() + output.derivation().len()
+        );
+        assert_eq!(
+            output.derivation_digest(),
+            digest_without_length(DERIVATION_DOMAIN, output.derivation().as_bytes())
+        );
+        assert!(output.derivation().ends_with('\n'));
+    }
+
+    #[test]
+    fn authenticated_derivation_kat_binds_refs_budget_nonclaims_and_build_counts() {
+        let fixture = ManagedOperationsFixture::new("derivation-kat");
+        reset_base_operations_preflight_entry_count();
+        reset_candidate_preflight_entry_count();
+        let before = fixture.inventory();
+        let output = derive_with_hook(&fixture.root, &fixture.proposal_path, |_| {}).unwrap();
+        assert_eq!(base_operations_preflight_entry_count(), 1);
+        assert_eq!(candidate_preflight_entry_count(), 1);
+        assert_eq!(fixture.inventory(), before);
+        fixture.assert_exclusive_reacquire();
+
+        let document: Value = serde_json::from_str(output.derivation().trim_end()).unwrap();
+        assert_eq!(document["schema"], DERIVATION_SCHEMA);
+        assert_eq!(document["operations_proposal"]["schema"], SCHEMA);
+        assert_eq!(
+            document["operations_proposal"]["digest"],
+            proposal_digest(&fixture.proposal_source)
+        );
+        assert_eq!(
+            document["operations_proposal"]["bytes"],
+            fixture.proposal_source.len()
+        );
+        assert_eq!(
+            document["derived_workspace_change_proposal"]["schema"],
+            CHANGE_SCHEMA
+        );
+        assert_eq!(
+            document["derived_workspace_change_proposal"]["digest"],
+            output.derived_change_proposal_digest()
+        );
+        assert_eq!(
+            document["derived_workspace_change_proposal"]["bytes"],
+            output.derived_change_proposal().len()
+        );
+        assert_eq!(
+            document["nonclaims"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|value| value.as_str().unwrap())
+                .collect::<Vec<_>>(),
+            DERIVATION_NONCLAIMS
+        );
+        assert_eq!(
+            document["budget"]["used_derivation_bytes"],
+            output.derivation().len()
+        );
+        assert_eq!(
+            document["budget"]["used_total_derivation_bytes"],
+            fixture.proposal_source.len()
+                + output.derived_change_proposal().len()
+                + output.derivation().len()
+        );
+        assert_eq!(
+            output.operations_proposal_digest(),
+            "sha256:3c7bf340a5313907edcec41748063e8666793ee76b903bc4e691871a843544b5"
+        );
+        assert_eq!(
+            output.derived_change_proposal_digest(),
+            "sha256:5c7a67d42ef76b3a241c0dc98f3d8919a799d3745bb6ae54a1d0289a51ee3e86"
+        );
+        assert_eq!(
+            output.derivation_digest(),
+            "sha256:80df18fea48a663e25cca66e90c0842fa8146ed35ab2ee30f2659728509dd2b7"
+        );
+    }
+
+    #[test]
+    fn derivation_refs_usage_and_candidate_facts_fail_closed_on_mutation() {
+        fn expect_replay(mutator: impl FnOnce(&mut PreparedSemanticWorkspaceOperations)) {
+            let (base, proposal) = fixture();
+            let mut prepared = prepare_owned(&proposal, base).unwrap();
+            mutator(&mut prepared);
+            let diagnostics = render_derivation(&prepared).err().unwrap();
+            assert_eq!(diagnostics.len(), 1);
+            assert_eq!(diagnostics[0].code, "SPX-G200");
+        }
+
+        expect_replay(|prepared| prepared.proposal_digest.push('0'));
+        expect_replay(|prepared| prepared.base_workspace_revision.push('0'));
+        expect_replay(|prepared| prepared.candidate_workspace_revision.push('0'));
+        expect_replay(|prepared| prepared.entry_module.push_str(".other"));
+        expect_replay(|prepared| prepared.candidate_manifest.push(' '));
+        expect_replay(|prepared| prepared.usage.operations += 1);
+        expect_replay(|prepared| prepared.usage.affected_paths += 1);
+        expect_replay(|prepared| prepared.usage.planned_edits += 1);
+        expect_replay(|prepared| prepared.usage.total_candidate_source_bytes += 1);
+        expect_replay(|prepared| prepared.usage.candidate_graph_builder_bytes += 1);
+        expect_replay(|prepared| prepared.candidate_sources[0].source.push('\n'));
+    }
+
+    #[test]
+    fn derivation_individual_and_aggregate_caps_are_exact_and_cannot_expand() {
+        let (base, proposal) = fixture();
+        let prepared = prepare_owned(&proposal, base).unwrap();
+        let output = render_derivation(&prepared).unwrap();
+        let derivation_bytes = output.derivation().len();
+        let total_bytes =
+            proposal.len() + output.derived_change_proposal().len() + derivation_bytes;
+        assert!(render_derivation_with_test_limits(
+            &prepared,
+            derivation_bytes,
+            MAX_TOTAL_DERIVATION_BYTES
+        )
+        .is_ok());
+        assert_eq!(
+            render_derivation_with_test_limits(
+                &prepared,
+                derivation_bytes - 1,
+                MAX_TOTAL_DERIVATION_BYTES
+            )
+            .err()
+            .unwrap()[0]
+                .message,
+            "Semantic Workspace Operations exceeds derivation_bytes maximum 33554432"
+        );
+        assert!(
+            render_derivation_with_test_limits(&prepared, MAX_DERIVATION_BYTES, total_bytes)
+                .is_ok()
+        );
+        assert_eq!(
+            render_derivation_with_test_limits(&prepared, MAX_DERIVATION_BYTES, total_bytes - 1)
+                .err()
+                .unwrap()[0]
+                .message,
+            "Semantic Workspace Operations exceeds total_derivation_bytes maximum 67108864"
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    fn derivation_limit_test_seam_cannot_expand_production_authority() {
+        let (base, proposal) = fixture();
+        let prepared = prepare_owned(&proposal, base).unwrap();
+        let _ = render_derivation_with_test_limits(
+            &prepared,
+            MAX_DERIVATION_BYTES + 1,
+            MAX_TOTAL_DERIVATION_BYTES,
+        );
+    }
+
+    #[test]
+    fn operations_input_ownership_lock_precedence_and_limits_are_fail_closed() {
+        let fixture = ManagedOperationsFixture::new("input-hostiles");
+        let baseline = fixture.inventory();
+        let missing = fixture.root.join("missing.json");
+        let lock = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(fixture.root.join(".semaprax-workspace/LOCK"))
+            .unwrap();
+        FileExt::try_lock_exclusive(&lock).unwrap();
+        let diagnostics = derive_with_hook(&fixture.root, &missing, |_| {})
+            .err()
+            .unwrap();
+        assert_eq!(diagnostics[0].code, "SPX-I210");
+        FileExt::unlock(&lock).unwrap();
+        assert_eq!(fixture.inventory(), baseline);
+
+        let directory = fixture.root.join("proposal-dir");
+        std::fs::create_dir(&directory).unwrap();
+        let diagnostics = derive_with_hook(&fixture.root, &directory, |_| {})
+            .err()
+            .unwrap();
+        assert_eq!(diagnostics[0].code, "SPX-I216");
+        #[cfg(windows)]
+        assert_eq!(
+            diagnostics[0].message,
+            "could not read Semantic Workspace Operations proposal: open failed"
+        );
+        #[cfg(not(windows))]
+        assert_eq!(
+            diagnostics[0].message,
+            "could not read Semantic Workspace Operations proposal: input is not a regular file"
+        );
+        fixture.assert_exclusive_reacquire();
+
+        let invalid = fixture.root.join("invalid-utf8.json");
+        std::fs::write(&invalid, [0xff]).unwrap();
+        let diagnostics = derive_with_hook(&fixture.root, &invalid, |_| {})
+            .err()
+            .unwrap();
+        assert_eq!(diagnostics[0].code, "SPX-I216");
+        assert_eq!(
+            diagnostics[0].message,
+            "could not read Semantic Workspace Operations proposal: input is not UTF-8"
+        );
+        fixture.assert_exclusive_reacquire();
+
+        let exact = fixture.root.join("exact-limit.json");
+        let exact_file = std::fs::File::create(&exact).unwrap();
+        exact_file.set_len(MAX_PROPOSAL_BYTES as u64).unwrap();
+        let diagnostics = derive_with_hook(&fixture.root, &exact, |_| {})
+            .err()
+            .unwrap();
+        assert_eq!(diagnostics[0].code, "SPX-G196");
+        fixture.assert_exclusive_reacquire();
+
+        let over = fixture.root.join("over-limit.json");
+        let over_file = std::fs::File::create(&over).unwrap();
+        over_file.set_len(MAX_PROPOSAL_BYTES as u64 + 1).unwrap();
+        let diagnostics = derive_with_hook(&fixture.root, &over, |_| {})
+            .err()
+            .unwrap();
+        assert_eq!(diagnostics[0].code, "SPX-G199");
+        assert_eq!(
+            diagnostics[0].message,
+            "Semantic Workspace Operations exceeds operations_proposal_bytes maximum 1048576"
+        );
+        fixture.assert_exclusive_reacquire();
+    }
+
+    #[test]
+    fn operations_proposal_is_owned_once_and_final_drift_returns_no_derivation() {
+        let baseline_fixture = ManagedOperationsFixture::new("owned-baseline");
+        let baseline = derive_with_hook(
+            &baseline_fixture.root,
+            &baseline_fixture.proposal_path,
+            |_| {},
+        )
+        .unwrap();
+
+        let owned = ManagedOperationsFixture::new("owned-replacement");
+        let output = derive_with_hook(&owned.root, &owned.proposal_path, |point| {
+            if point == OperationsDerivePoint::ProposalOwned {
+                std::fs::write(&owned.proposal_path, "{}\n").unwrap();
+            }
+        })
+        .unwrap();
+        assert_eq!(output.derivation(), baseline.derivation());
+        assert_eq!(
+            output.derived_change_proposal(),
+            baseline.derived_change_proposal()
+        );
+        assert_eq!(
+            std::fs::read_to_string(&owned.proposal_path).unwrap(),
+            "{}\n"
+        );
+        owned.assert_exclusive_reacquire();
+
+        let drift = ManagedOperationsFixture::new("final-drift");
+        let before_control = drift
+            .inventory()
+            .into_iter()
+            .filter(|(path, _, _)| {
+                path.starts_with(".semaprax-workspace") && path != ".semaprax-workspace/ACTIVE"
+            })
+            .collect::<Vec<_>>();
+        let result = derive_with_hook(&drift.root, &drift.proposal_path, |point| {
+            if point == OperationsDerivePoint::DerivationRendered {
+                use std::io::Write as _;
+                OpenOptions::new()
+                    .append(true)
+                    .open(drift.root.join(".semaprax-workspace/ACTIVE"))
+                    .unwrap()
+                    .write_all(b"x")
+                    .unwrap();
+            }
+        });
+        assert!(result.is_err());
+        assert_eq!(result.err().unwrap()[0].code, "SPX-G153");
+        let after_control = drift
+            .inventory()
+            .into_iter()
+            .filter(|(path, _, _)| {
+                path.starts_with(".semaprax-workspace") && path != ".semaprax-workspace/ACTIVE"
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(after_control, before_control);
+        drift.assert_exclusive_reacquire();
+
+        let same_identity = ManagedOperationsFixture::new("same-byte-identity-drift");
+        let managed = same_identity.managed_source_path("a/provider.spx");
+        let held = managed.with_extension("held");
+        let original = std::fs::read(&managed).unwrap();
+        let result = derive_with_hook(&same_identity.root, &same_identity.proposal_path, |point| {
+            if point == OperationsDerivePoint::DerivationRendered {
+                std::fs::rename(&managed, &held).unwrap();
+                std::fs::write(&managed, &original).unwrap();
+            }
+        });
+        assert_eq!(result.err().unwrap()[0].code, "SPX-G153");
+        assert_eq!(std::fs::read(&managed).unwrap(), original);
+        assert_eq!(std::fs::read(&held).unwrap(), original);
+        same_identity.assert_exclusive_reacquire();
+
+        let content_drift = ManagedOperationsFixture::new("managed-content-drift");
+        let managed = content_drift.managed_source_path("a/provider.spx");
+        let result = derive_with_hook(&content_drift.root, &content_drift.proposal_path, |point| {
+            if point == OperationsDerivePoint::DerivationRendered {
+                std::fs::write(&managed, b"module changed.managed;\n").unwrap();
+            }
+        });
+        assert_eq!(result.err().unwrap()[0].code, "SPX-G153");
+        content_drift.assert_exclusive_reacquire();
+
+        let staging_drift = ManagedOperationsFixture::new("staging-inventory-drift");
+        let foreign = staging_drift
+            .root
+            .join(".semaprax-workspace/staging/foreign");
+        let result = derive_with_hook(&staging_drift.root, &staging_drift.proposal_path, |point| {
+            if point == OperationsDerivePoint::DerivationRendered {
+                std::fs::create_dir(&foreign).unwrap();
+            }
+        });
+        assert_eq!(result.err().unwrap()[0].code, "SPX-G153");
+        assert!(foreign.is_dir());
+        staging_drift.assert_exclusive_reacquire();
     }
 
     #[test]

@@ -57,11 +57,7 @@ mod host_ownership;
 mod prelude;
 pub mod semantic_workspace;
 pub mod semantic_workspace_change;
-#[allow(
-    dead_code,
-    reason = "private Operations v1 Phase-A compiler awaits its authenticated route"
-)]
-mod semantic_workspace_operations;
+pub mod semantic_workspace_operations;
 pub mod semantic_workspace_structural_change;
 mod source_verify;
 pub mod workspace_analysis;

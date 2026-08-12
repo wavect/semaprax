@@ -22,6 +22,8 @@ const CONTEXT_SCHEMA: &str = "semaprax.workspace-semantic-structural-change-cont
 const IMPACT_SCHEMA: &str = "semaprax.workspace-semantic-structural-change-impact.v1";
 const REVIEW_SCHEMA: &str = "semaprax.workspace-semantic-structural-change-review.v1";
 const EVIDENCE_SCHEMA: &str = "semaprax.workspace-semantic-structural-change-evidence.v1";
+const VERIFICATION_RECEIPT_SCHEMA: &str =
+    "semaprax.workspace-semantic-structural-change-evidence-verification.v1";
 const GRAPH_SCHEMA: &str = "semaprax.workspace-semantic-graph.v1";
 const MANIFEST_SCHEMA: &str = "semaprax.workspace-semantic-manifest.v1";
 
@@ -107,6 +109,7 @@ pub(crate) struct SemanticWorkspaceStructuralChangeArtifacts {
     impact: Artifact,
     review: Artifact,
     evidence: Artifact,
+    usage: Usage,
 }
 
 impl SemanticWorkspaceStructuralChangeArtifacts {
@@ -157,7 +160,7 @@ struct ArtifactSizes {
     evidence: usize,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct Usage {
     base_managed_files: usize,
     candidate_managed_files: usize,
@@ -181,6 +184,7 @@ struct Usage {
     impact_depth: usize,
     analysis_builder_bytes: usize,
     sizes: ArtifactSizes,
+    receipt_bytes: usize,
     total_artifact_bytes: usize,
     retained_generations: usize,
     staging_attempts: usize,
@@ -222,7 +226,7 @@ fn render_artifacts_with_total_limit_inner(
 ) -> Result<SemanticWorkspaceStructuralChangeArtifacts, Vec<Diagnostic>> {
     let paths = replay_paths(prepared)?;
     replay_prepared(prepared, &paths)?;
-    let _ = usage(prepared, &paths, ArtifactSizes::default(), 0)?;
+    let _ = usage(prepared, &paths, ArtifactSizes::default(), 0, 0)?;
     let replay_builder_bytes = replay_bindings(prepared)?;
     let proposal_digest = digest(
         PROPOSAL_DIGEST_DOMAIN,
@@ -234,7 +238,7 @@ fn render_artifacts_with_total_limit_inner(
     );
     let mut sizes = ArtifactSizes::default();
     for _ in 0..24 {
-        let usage = usage(prepared, &paths, sizes, replay_builder_bytes)?;
+        let usage = usage(prepared, &paths, sizes, replay_builder_bytes, 0)?;
         let mut remaining = total_limit
             .checked_sub(prepared.proposal_source().len())
             .ok_or_else(|| limit("total_artifact_bytes", MAX_TOTAL_ARTIFACT_BYTES))?;
@@ -320,6 +324,7 @@ fn render_artifacts_with_total_limit_inner(
             impact,
             review,
             evidence,
+            usage,
         };
         let next = ArtifactSizes {
             preview: artifacts.preview.bytes.len(),
@@ -335,6 +340,135 @@ fn render_artifacts_with_total_limit_inner(
         sizes = next;
     }
     Err(replay())
+}
+
+pub(crate) fn render_verification_receipt(
+    prepared: &SemanticWorkspacePreparedStructuralChange,
+    artifacts: &SemanticWorkspaceStructuralChangeArtifacts,
+    submitted_evidence_bytes: usize,
+) -> Result<String, Vec<Diagnostic>> {
+    render_verification_receipt_with_limits_inner(
+        prepared,
+        artifacts,
+        submitted_evidence_bytes,
+        MAX_RECEIPT_BYTES,
+        MAX_TOTAL_ARTIFACT_BYTES,
+    )
+}
+
+#[cfg(test)]
+pub(crate) fn render_verification_receipt_with_limits(
+    prepared: &SemanticWorkspacePreparedStructuralChange,
+    artifacts: &SemanticWorkspaceStructuralChangeArtifacts,
+    submitted_evidence_bytes: usize,
+    receipt_limit: usize,
+    total_limit: usize,
+) -> Result<String, Vec<Diagnostic>> {
+    assert!(receipt_limit <= MAX_RECEIPT_BYTES);
+    assert!(total_limit <= MAX_TOTAL_ARTIFACT_BYTES);
+    render_verification_receipt_with_limits_inner(
+        prepared,
+        artifacts,
+        submitted_evidence_bytes,
+        receipt_limit,
+        total_limit,
+    )
+}
+
+fn render_verification_receipt_with_limits_inner(
+    prepared: &SemanticWorkspacePreparedStructuralChange,
+    artifacts: &SemanticWorkspaceStructuralChangeArtifacts,
+    submitted_evidence_bytes: usize,
+    receipt_limit: usize,
+    total_limit: usize,
+) -> Result<String, Vec<Diagnostic>> {
+    if submitted_evidence_bytes != artifacts.evidence.bytes.len() {
+        return Err(evidence_replay());
+    }
+    let paths = replay_paths(prepared)?;
+    let aggregate_remaining = total_limit
+        .checked_sub(artifacts.usage.total_artifact_bytes)
+        .ok_or_else(|| limit("total_artifact_bytes", MAX_TOTAL_ARTIFACT_BYTES))?;
+    let effective_limit = receipt_limit.min(aggregate_remaining);
+    let mut receipt_bytes = 0usize;
+    for _ in 0..24 {
+        let usage = usage(
+            prepared,
+            &paths,
+            artifacts.usage.sizes,
+            artifacts.usage.analysis_builder_bytes,
+            receipt_bytes,
+        )?;
+        let (receipt, overflowed) = crate::bounded_output::with_limit(effective_limit, || {
+            let mut output = CappedString::new();
+            render_receipt(&mut output, prepared, artifacts, &paths, usage);
+            output.into_string()
+        });
+        if overflowed || receipt.len() > effective_limit {
+            return Err(if aggregate_remaining < receipt_limit {
+                limit("total_artifact_bytes", MAX_TOTAL_ARTIFACT_BYTES)
+            } else {
+                limit("receipt_bytes", MAX_RECEIPT_BYTES)
+            });
+        }
+        if receipt.len() == receipt_bytes {
+            return Ok(receipt);
+        }
+        receipt_bytes = receipt.len();
+    }
+    Err(replay())
+}
+
+fn render_receipt(
+    output: &mut CappedString,
+    prepared: &SemanticWorkspacePreparedStructuralChange,
+    artifacts: &SemanticWorkspaceStructuralChangeArtifacts,
+    paths: &[PathFact],
+    usage: Usage,
+) {
+    output.push_str("{\"schema\":");
+    push_json(output, VERIFICATION_RECEIPT_SCHEMA);
+    output.push_str(",\"result\":\"exact_replay\",\"workspace_manifest_schema\":");
+    push_json(output, MANIFEST_SCHEMA);
+    push_common(output, prepared);
+    output.push_str(",\"proposal\":");
+    push_ref(
+        output,
+        SCHEMA,
+        artifacts.proposal_digest(),
+        prepared.proposal_source().len(),
+    );
+    output.push_str(",\"base_workspace_graph\":");
+    push_graph_ref(output, prepared.base_workspace_graph_digest());
+    output.push_str(",\"candidate_workspace_graph\":");
+    push_graph_ref(output, prepared.candidate_workspace_graph_digest());
+    output.push_str(",\"candidate_manifest\":");
+    push_ref(
+        output,
+        MANIFEST_SCHEMA,
+        artifacts.candidate_manifest_digest(),
+        prepared.candidate_manifest().len(),
+    );
+    output.push_str(",\"structural_change_preview\":");
+    push_artifact_ref(output, &artifacts.preview);
+    output.push_str(",\"context\":");
+    push_artifact_ref(output, &artifacts.context);
+    output.push_str(",\"impact\":");
+    push_artifact_ref(output, &artifacts.impact);
+    output.push_str(",\"review\":");
+    push_artifact_ref(output, &artifacts.review);
+    output.push_str(",\"workspace_structural_change_evidence\":");
+    push_artifact_ref(output, &artifacts.evidence);
+    output.push_str(",\"paths\":");
+    push_paths(output, paths);
+    push_tail(output, usage);
+}
+
+fn evidence_replay() -> Vec<Diagnostic> {
+    vec![Diagnostic::io(
+        "SPX-G195",
+        "Semantic Workspace Structural Change Evidence does not exactly replay the authenticated proposal and candidate",
+    )]
 }
 
 fn replay_bindings(
@@ -805,6 +939,7 @@ fn usage(
     paths: &[PathFact],
     sizes: ArtifactSizes,
     replay_builder_bytes: usize,
+    receipt_bytes: usize,
 ) -> Result<Usage, Vec<Diagnostic>> {
     let total_base_source_bytes = checked_sum(
         prepared.base_files().iter().map(|file| file.bytes()),
@@ -848,6 +983,7 @@ fn usage(
         sizes.impact,
         sizes.review,
         sizes.evidence,
+        receipt_bytes,
     ]
     .into_iter()
     .try_fold(0usize, usize::checked_add)
@@ -958,6 +1094,7 @@ fn usage(
             .used_analysis_builder_bytes()
             .max(replay_builder_bytes),
         sizes,
+        receipt_bytes,
         total_artifact_bytes,
         retained_generations: prepared.retained_generations(),
         staging_attempts: prepared.staging_attempts(),
@@ -1537,13 +1674,13 @@ fn push_limits(output: &mut CappedString) {
 
 fn push_budget(output: &mut CappedString, usage: Usage) {
     write!(output,
-        "{{\"used_base_managed_files\":{},\"used_candidate_managed_files\":{},\"used_operations\":{},\"used_affected_paths\":{},\"used_created_files\":{},\"used_deleted_files\":{},\"used_moved_files\":{},\"used_replaced_files\":{},\"used_total_base_source_bytes\":{},\"used_total_candidate_source_bytes\":{},\"used_total_supplied_source_bytes\":{},\"used_entry_module_bytes\":{},\"used_proposal_bytes\":{},\"used_candidate_manifest_bytes\":{},\"used_delta_roots\":{},\"used_delta_edges\":{},\"used_context_nodes\":{},\"used_impact_nodes\":{},\"used_impact_provenance\":{},\"used_impact_depth\":{},\"used_analysis_builder_bytes\":{},\"used_structural_change_preview_bytes\":{},\"used_context_bytes\":{},\"used_impact_bytes\":{},\"used_review_bytes\":{},\"used_evidence_bytes\":{},\"used_receipt_bytes\":0,\"used_total_artifact_bytes\":{},\"used_retained_generations\":{},\"used_staging_attempts\":{},\"used_unexpected_inventory_entries\":0}}",
+        "{{\"used_base_managed_files\":{},\"used_candidate_managed_files\":{},\"used_operations\":{},\"used_affected_paths\":{},\"used_created_files\":{},\"used_deleted_files\":{},\"used_moved_files\":{},\"used_replaced_files\":{},\"used_total_base_source_bytes\":{},\"used_total_candidate_source_bytes\":{},\"used_total_supplied_source_bytes\":{},\"used_entry_module_bytes\":{},\"used_proposal_bytes\":{},\"used_candidate_manifest_bytes\":{},\"used_delta_roots\":{},\"used_delta_edges\":{},\"used_context_nodes\":{},\"used_impact_nodes\":{},\"used_impact_provenance\":{},\"used_impact_depth\":{},\"used_analysis_builder_bytes\":{},\"used_structural_change_preview_bytes\":{},\"used_context_bytes\":{},\"used_impact_bytes\":{},\"used_review_bytes\":{},\"used_evidence_bytes\":{},\"used_receipt_bytes\":{},\"used_total_artifact_bytes\":{},\"used_retained_generations\":{},\"used_staging_attempts\":{},\"used_unexpected_inventory_entries\":0}}",
         usage.base_managed_files, usage.candidate_managed_files, usage.operations, usage.affected_paths,
         usage.created_files, usage.deleted_files, usage.moved_files, usage.replaced_files,
         usage.total_base_source_bytes, usage.total_candidate_source_bytes, usage.total_supplied_source_bytes,
         usage.entry_module_bytes, usage.proposal_bytes, usage.candidate_manifest_bytes, usage.delta_roots, usage.delta_edges,
         usage.context_nodes, usage.impact_nodes, usage.impact_provenance, usage.impact_depth, usage.analysis_builder_bytes,
-        usage.sizes.preview, usage.sizes.context, usage.sizes.impact, usage.sizes.review, usage.sizes.evidence,
+        usage.sizes.preview, usage.sizes.context, usage.sizes.impact, usage.sizes.review, usage.sizes.evidence, usage.receipt_bytes,
         usage.total_artifact_bytes, usage.retained_generations, usage.staging_attempts).expect("string write");
 }
 
@@ -2453,6 +2590,136 @@ mod tests {
     fn aggregate_artifact_test_limit_cannot_exceed_production_limit() {
         let prepared = prepared();
         let _ = render_artifacts_with_total_limit(&prepared, MAX_TOTAL_ARTIFACT_BYTES + 1);
+    }
+
+    #[test]
+    fn verification_receipt_individual_and_aggregate_limits_are_exact() {
+        let prepared = prepared();
+        let artifacts = render_artifacts(&prepared).unwrap();
+        let expected =
+            render_verification_receipt(&prepared, &artifacts, artifacts.evidence.bytes.len())
+                .unwrap();
+
+        let mut low = 0usize;
+        let mut high = MAX_RECEIPT_BYTES;
+        while low < high {
+            let middle = low + (high - low) / 2;
+            if render_verification_receipt_with_limits(
+                &prepared,
+                &artifacts,
+                artifacts.evidence.bytes.len(),
+                middle,
+                MAX_TOTAL_ARTIFACT_BYTES,
+            )
+            .is_ok()
+            {
+                high = middle;
+            } else {
+                low = middle + 1;
+            }
+        }
+        assert_eq!(low, expected.len());
+        assert_eq!(
+            render_verification_receipt_with_limits(
+                &prepared,
+                &artifacts,
+                artifacts.evidence.bytes.len(),
+                low,
+                MAX_TOTAL_ARTIFACT_BYTES,
+            )
+            .unwrap(),
+            expected
+        );
+        let diagnostics = render_verification_receipt_with_limits(
+            &prepared,
+            &artifacts,
+            artifacts.evidence.bytes.len(),
+            low - 1,
+            MAX_TOTAL_ARTIFACT_BYTES,
+        )
+        .unwrap_err();
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(diagnostics[0].code, "SPX-G191");
+        assert_eq!(
+            diagnostics[0].message,
+            format!(
+                "Semantic Workspace Structural Change limit exceeded: receipt_bytes maximum {MAX_RECEIPT_BYTES}"
+            )
+        );
+
+        let expected_total = artifacts.usage.total_artifact_bytes + expected.len();
+        low = 0;
+        high = MAX_TOTAL_ARTIFACT_BYTES;
+        while low < high {
+            let middle = low + (high - low) / 2;
+            if render_verification_receipt_with_limits(
+                &prepared,
+                &artifacts,
+                artifacts.evidence.bytes.len(),
+                MAX_RECEIPT_BYTES,
+                middle,
+            )
+            .is_ok()
+            {
+                high = middle;
+            } else {
+                low = middle + 1;
+            }
+        }
+        assert_eq!(low, expected_total);
+        assert_eq!(
+            render_verification_receipt_with_limits(
+                &prepared,
+                &artifacts,
+                artifacts.evidence.bytes.len(),
+                MAX_RECEIPT_BYTES,
+                low,
+            )
+            .unwrap(),
+            expected
+        );
+        let diagnostics = render_verification_receipt_with_limits(
+            &prepared,
+            &artifacts,
+            artifacts.evidence.bytes.len(),
+            MAX_RECEIPT_BYTES,
+            low - 1,
+        )
+        .unwrap_err();
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(diagnostics[0].code, "SPX-G191");
+        assert_eq!(
+            diagnostics[0].message,
+            format!(
+                "Semantic Workspace Structural Change limit exceeded: total_artifact_bytes maximum {MAX_TOTAL_ARTIFACT_BYTES}"
+            )
+        );
+    }
+
+    #[test]
+    fn verification_receipt_test_limits_cannot_exceed_production_limits() {
+        let prepared = prepared();
+        let artifacts = render_artifacts(&prepared).unwrap();
+        assert!(std::panic::catch_unwind(|| {
+            let _ = render_verification_receipt_with_limits(
+                &prepared,
+                &artifacts,
+                artifacts.evidence.bytes.len(),
+                MAX_RECEIPT_BYTES + 1,
+                MAX_TOTAL_ARTIFACT_BYTES,
+            );
+        })
+        .is_err());
+        assert!(std::panic::catch_unwind(|| {
+            let _ = render_verification_receipt_with_limits(
+                &prepared,
+                &artifacts,
+                artifacts.evidence.bytes.len(),
+                MAX_RECEIPT_BYTES,
+                MAX_TOTAL_ARTIFACT_BYTES + 1,
+            );
+        })
+        .is_err());
     }
 }
 

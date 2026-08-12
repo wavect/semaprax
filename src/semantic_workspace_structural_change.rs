@@ -6,6 +6,9 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
+use std::fs::File;
+use std::io::Read as _;
+use std::path::Path;
 
 use serde_json::{Map, Value};
 
@@ -14,6 +17,68 @@ use crate::diagnostic::Diagnostic;
 use crate::{semantic_workspace, semantic_workspace_change, workspace, workspace_graph};
 
 mod artifact;
+mod verification;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum StructuralGeneratePoint {
+    ProposalOwned,
+    ArtifactsRendered,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum StructuralVerifyPoint {
+    ProposalOwned,
+    EvidenceOwned,
+    ReceiptRendered,
+}
+
+pub(crate) fn generate_with_hook(
+    root: &Path,
+    proposal_path: &Path,
+    mut hook: impl FnMut(StructuralGeneratePoint),
+) -> Result<artifact::SemanticWorkspaceStructuralChangeArtifacts, Vec<Diagnostic>> {
+    let locked = workspace::acquire_semantic_change_lock(root)?;
+    let proposal = read_proposal(proposal_path).and_then(|source| {
+        let change_set = parse_proposal(&source)?;
+        hook(StructuralGeneratePoint::ProposalOwned);
+        Ok(change_set)
+    });
+    let (authority, change_set) = locked
+        .authenticate(proposal)
+        .map_err(map_base_builder_limit)?;
+    with_authenticated_structural_authority(authority, change_set, |prepared| {
+        let artifacts = artifact::render_artifacts(&prepared)?;
+        hook(StructuralGeneratePoint::ArtifactsRendered);
+        Ok(artifacts)
+    })
+}
+
+pub(crate) fn verify_with_hook(
+    root: &Path,
+    proposal_path: &Path,
+    evidence_path: &Path,
+    mut hook: impl FnMut(StructuralVerifyPoint),
+) -> Result<String, Vec<Diagnostic>> {
+    let locked = workspace::acquire_semantic_change_lock(root)?;
+    let input = read_proposal(proposal_path).and_then(|proposal_source| {
+        hook(StructuralVerifyPoint::ProposalOwned);
+        let evidence_source = verification::read_evidence(evidence_path)?;
+        let submitted = verification::parse_evidence(&evidence_source)?;
+        hook(StructuralVerifyPoint::EvidenceOwned);
+        let change_set = parse_proposal(&proposal_source)?;
+        Ok((change_set, evidence_source, submitted))
+    });
+    let (authority, (change_set, evidence_source, submitted)) =
+        locked.authenticate(input).map_err(map_base_builder_limit)?;
+    with_authenticated_structural_authority(authority, change_set, |prepared| {
+        let artifacts = artifact::render_artifacts(&prepared)?;
+        verification::verify_replay(&submitted, &evidence_source, &artifacts)?;
+        let receipt =
+            artifact::render_verification_receipt(&prepared, &artifacts, evidence_source.len())?;
+        hook(StructuralVerifyPoint::ReceiptRendered);
+        Ok(receipt)
+    })
+}
 
 pub(crate) const SCHEMA: &str = "semaprax.workspace-semantic-structural-change.v1";
 const MAX_PROPOSAL_BYTES: usize = 32 * 1024 * 1024;
@@ -270,6 +335,96 @@ impl SemanticWorkspacePreparedStructuralChange {
             self.candidate_manifest,
             self.candidate_workspace_revision,
         )
+    }
+}
+
+fn with_authenticated_structural_authority<T>(
+    authority: workspace::WorkspaceSemanticReadAuthority,
+    change_set: SemanticWorkspaceStructuralChangeSet,
+    operation: impl FnOnce(SemanticWorkspacePreparedStructuralChange) -> Result<T, Vec<Diagnostic>>,
+) -> Result<T, Vec<Diagnostic>> {
+    let (authority, prepared) = prepare_authenticated_structural_authority(authority, change_set)?;
+    let result = operation(prepared);
+    authority.finish(result)
+}
+
+fn prepare_authenticated_structural_authority(
+    mut authority: workspace::WorkspaceSemanticReadAuthority,
+    change_set: SemanticWorkspaceStructuralChangeSet,
+) -> Result<
+    (
+        workspace::WorkspaceSemanticReadAuthority,
+        SemanticWorkspacePreparedStructuralChange,
+    ),
+    Vec<Diagnostic>,
+> {
+    let base_workspace_revision = authority.workspace_revision().to_owned();
+    let storage = (
+        authority.manifest_bytes(),
+        authority.retained_generations(),
+        authority.staging_attempts(),
+    );
+    let result = (|| {
+        let base_graph = authority.take_graph()?;
+        let sources = authority.take_sources();
+        prepare_owned(
+            base_workspace_revision,
+            sources,
+            base_graph,
+            storage,
+            change_set,
+        )
+    })();
+    match result {
+        Ok(prepared) => Ok((authority, prepared)),
+        Err(diagnostics) => match authority.finish::<()>(Err(diagnostics)) {
+            Err(diagnostics) => Err(diagnostics),
+            Ok(()) => Err(replay()),
+        },
+    }
+}
+
+fn read_proposal(path: &Path) -> Result<String, Vec<Diagnostic>> {
+    let mut file = File::open(path).map_err(|_| proposal_io("open failed"))?;
+    let metadata = file
+        .metadata()
+        .map_err(|_| proposal_io("metadata inspection failed"))?;
+    if !metadata.is_file() {
+        return Err(proposal_io("input is not a regular file"));
+    }
+    if metadata.len() > MAX_PROPOSAL_BYTES as u64 {
+        return Err(limit("proposal_bytes", MAX_PROPOSAL_BYTES));
+    }
+    let mut bytes = Vec::with_capacity((metadata.len() as usize).saturating_add(1));
+    file.by_ref()
+        .take((MAX_PROPOSAL_BYTES as u64) + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|_| proposal_io("read failed"))?;
+    if bytes.len() > MAX_PROPOSAL_BYTES {
+        return Err(limit("proposal_bytes", MAX_PROPOSAL_BYTES));
+    }
+    String::from_utf8(bytes).map_err(|_| proposal_io("input is not UTF-8"))
+}
+
+fn proposal_io(detail: &'static str) -> Vec<Diagnostic> {
+    vec![Diagnostic::io(
+        "SPX-I215",
+        format!("could not read Semantic Workspace Structural Change proposal: {detail}"),
+    )]
+}
+
+fn map_base_builder_limit(diagnostics: Vec<Diagnostic>) -> Vec<Diagnostic> {
+    let expected = crate::bounded_output::budgeted_format(format_args!(
+        "Workspace Semantic Graph `change_builder_bytes` exceeds {}",
+        semantic_workspace::MAX_CHANGE_BUILDER_BYTES
+    ));
+    if diagnostics.len() == 1
+        && diagnostics[0].code == "SPX-G171"
+        && diagnostics[0].message == expected
+    {
+        limit("analysis_builder_bytes", MAX_ANALYSIS_BUILDER_BYTES)
+    } else {
+        diagnostics
     }
 }
 
@@ -1248,14 +1403,266 @@ fn map_candidate_builder_limit(
 
 #[cfg(test)]
 pub(super) mod tests {
+    use std::fs::{File, OpenOptions};
+    use std::io::Write as _;
+    use std::path::{Path, PathBuf};
+    use std::sync::atomic::{AtomicU64, Ordering};
+
     use super::*;
+    use fs2::FileExt;
     use sha2::{Digest, Sha256};
+
+    static MANAGED_SERIAL: AtomicU64 = AtomicU64::new(0);
+    const TEST_MAX_EVIDENCE_BYTES: usize = 1_048_576;
 
     pub(super) struct BaseFixture {
         pub(super) revision: String,
         pub(super) manifest_bytes: usize,
         pub(super) sources: Vec<workspace::WorkspaceSemanticSource>,
         pub(super) graph: workspace_graph::WorkspaceGraphBuild,
+    }
+
+    struct ManagedFixture {
+        root: PathBuf,
+        proposal_path: PathBuf,
+        proposal_source: String,
+    }
+
+    impl ManagedFixture {
+        fn new(label: &str) -> Self {
+            let base = base_fixture();
+            let proposal_source = mixed_proposal(&base);
+            let serial = MANAGED_SERIAL.fetch_add(1, Ordering::Relaxed);
+            let root = std::env::temp_dir().join(format!(
+                "semaprax-semantic-workspace-structural-change-{label}-{}-{serial}",
+                std::process::id()
+            ));
+            std::fs::create_dir(&root).unwrap();
+            let mut paths = Vec::new();
+            for source in &base.sources {
+                let destination = root.join(&source.path);
+                std::fs::create_dir_all(destination.parent().unwrap()).unwrap();
+                std::fs::write(&destination, &source.source).unwrap();
+                paths.push(source.path.clone());
+            }
+            paths.sort();
+            let path_set = root.join("paths.json");
+            std::fs::write(
+                &path_set,
+                semantic_workspace::render_path_set(&paths).unwrap(),
+            )
+            .unwrap();
+            assert_eq!(
+                semantic_workspace::initialize(&root, &path_set).unwrap(),
+                base.revision
+            );
+            let proposal_path = root.join("structural-change.json");
+            std::fs::write(&proposal_path, &proposal_source).unwrap();
+            Self {
+                root,
+                proposal_path,
+                proposal_source,
+            }
+        }
+
+        fn inventory(&self) -> Vec<(String, bool, Vec<u8>)> {
+            fn walk(root: &Path, path: &Path, facts: &mut Vec<(String, bool, Vec<u8>)>) {
+                let mut entries = std::fs::read_dir(path)
+                    .unwrap()
+                    .map(|entry| entry.unwrap())
+                    .collect::<Vec<_>>();
+                entries.sort_by_key(std::fs::DirEntry::file_name);
+                for entry in entries {
+                    let path = entry.path();
+                    let relative = path
+                        .strip_prefix(root)
+                        .unwrap()
+                        .to_str()
+                        .unwrap()
+                        .to_owned();
+                    let metadata = std::fs::symlink_metadata(&path).unwrap();
+                    if metadata.is_dir() {
+                        facts.push((relative, true, Vec::new()));
+                        walk(root, &path, facts);
+                    } else {
+                        facts.push((relative, false, std::fs::read(&path).unwrap()));
+                    }
+                }
+            }
+
+            let mut facts = Vec::new();
+            walk(&self.root, &self.root, &mut facts);
+            facts
+        }
+
+        fn assert_exclusive_reacquire(&self) {
+            let lock = OpenOptions::new()
+                .read(true)
+                .write(true)
+                .open(self.root.join(".semaprax-workspace/LOCK"))
+                .unwrap();
+            FileExt::try_lock_exclusive(&lock).unwrap();
+            FileExt::unlock(&lock).unwrap();
+        }
+    }
+
+    impl Drop for ManagedFixture {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.root);
+        }
+    }
+
+    fn raw_sha(source: &str) -> String {
+        format!("sha256:{:x}", Sha256::digest(source.as_bytes()))
+    }
+
+    fn diagnostic(result: Result<impl Sized, Vec<Diagnostic>>) -> Diagnostic {
+        let diagnostics = match result {
+            Ok(_) => panic!("expected failure"),
+            Err(diagnostics) => diagnostics,
+        };
+        assert_eq!(diagnostics.len(), 1);
+        diagnostics.into_iter().next().unwrap()
+    }
+
+    fn read_only_failure<T>(
+        fixture: &ManagedFixture,
+        operation: impl FnOnce() -> Result<T, Vec<Diagnostic>>,
+    ) -> Diagnostic {
+        let before = fixture.inventory();
+        let error = diagnostic(operation());
+        assert_eq!(fixture.inventory(), before);
+        fixture.assert_exclusive_reacquire();
+        error
+    }
+
+    fn replace_owned_path(path: &Path, replacement: &Path) {
+        std::fs::remove_file(path).unwrap();
+        std::fs::rename(replacement, path).unwrap();
+    }
+
+    fn object_after<'a>(source: &'a str, marker: &str) -> &'a str {
+        let marker = source.find(marker).unwrap() + marker.len();
+        let start = marker + source[marker..].find('{').unwrap();
+        let mut depth = 0usize;
+        let mut in_string = false;
+        let mut escaped = false;
+        for (offset, byte) in source[start..].bytes().enumerate() {
+            if in_string {
+                if escaped {
+                    escaped = false;
+                } else if byte == b'\\' {
+                    escaped = true;
+                } else if byte == b'"' {
+                    in_string = false;
+                }
+                continue;
+            }
+            match byte {
+                b'"' => in_string = true,
+                b'{' => depth += 1,
+                b'}' => {
+                    depth -= 1;
+                    if depth == 0 {
+                        return &source[start..=start + offset];
+                    }
+                }
+                _ => {}
+            }
+        }
+        panic!("object after marker is unterminated")
+    }
+
+    fn replace_scalar_field(object: &str, field: &str, replacement: &str) -> String {
+        let needle = format!("\"{field}\":");
+        let start = object.find(&needle).unwrap() + needle.len();
+        let bytes = object.as_bytes();
+        let end = if bytes[start] == b'"' {
+            let mut index = start + 1;
+            let mut escaped = false;
+            loop {
+                if escaped {
+                    escaped = false;
+                } else if bytes[index] == b'\\' {
+                    escaped = true;
+                } else if bytes[index] == b'"' {
+                    break index + 1;
+                }
+                index += 1;
+            }
+        } else {
+            let mut index = start;
+            while !matches!(bytes[index], b',' | b'}') {
+                index += 1;
+            }
+            index
+        };
+        format!("{}{}{}", &object[..start], replacement, &object[end..])
+    }
+
+    fn remove_nonfirst_scalar_field(object: &str, field: &str) -> String {
+        let needle = format!(",\"{field}\":");
+        let start = object.find(&needle).unwrap();
+        let value_start = start + needle.len();
+        let bytes = object.as_bytes();
+        let end = if bytes[value_start] == b'"' {
+            let mut index = value_start + 1;
+            let mut escaped = false;
+            loop {
+                if escaped {
+                    escaped = false;
+                } else if bytes[index] == b'\\' {
+                    escaped = true;
+                } else if bytes[index] == b'"' {
+                    break index + 1;
+                }
+                index += 1;
+            }
+        } else {
+            let mut index = value_start;
+            while !matches!(bytes[index], b',' | b'}') {
+                index += 1;
+            }
+            index
+        };
+        format!("{}{}", &object[..start], &object[end..])
+    }
+
+    fn duplicate_first_field(object: &str) -> String {
+        let comma = object.find(',').unwrap();
+        format!("{{{},{}", &object[1..comma], &object[1..])
+    }
+
+    fn reorder_first_two_fields(object: &str) -> String {
+        let first_comma = object.find(',').unwrap();
+        let second_end = object[first_comma + 1..]
+            .find(',')
+            .map_or(object.len() - 1, |offset| first_comma + 1 + offset);
+        format!(
+            "{{{},{}{}",
+            &object[first_comma + 1..second_end],
+            &object[1..first_comma],
+            &object[second_end..]
+        )
+    }
+
+    fn nested_shape_mutations(
+        source: &str,
+        marker: &str,
+        first_field: &str,
+        second_field: &str,
+    ) -> Vec<String> {
+        let object = object_after(source, marker);
+        [
+            remove_nonfirst_scalar_field(object, second_field),
+            object.replacen('{', "{\"extra\":0,", 1),
+            duplicate_first_field(object),
+            reorder_first_two_fields(object),
+            replace_scalar_field(object, first_field, "[]"),
+        ]
+        .into_iter()
+        .map(|mutation| source.replacen(object, &mutation, 1))
+        .collect()
     }
 
     fn canonical(source: &str, path: &str) -> String {
@@ -2094,5 +2501,564 @@ fn main() -> i64 uses { created.capability } { helper() }
                 "Semantic Workspace Structural Change limit exceeded: analysis_builder_bytes maximum {MAX_ANALYSIS_BUILDER_BYTES}"
             )
         );
+    }
+
+    #[test]
+    fn managed_generate_and_verify_are_exact_read_only_kats_under_one_shared_lock() {
+        let fixture = ManagedFixture::new("generate-verify-kat");
+        let before_generate = fixture.inventory();
+        let generate_points = std::cell::RefCell::new(Vec::new());
+        let artifacts = generate_with_hook(&fixture.root, &fixture.proposal_path, |point| {
+            generate_points.borrow_mut().push(point);
+            let lock = OpenOptions::new()
+                .read(true)
+                .write(true)
+                .open(fixture.root.join(".semaprax-workspace/LOCK"))
+                .unwrap();
+            assert!(FileExt::try_lock_exclusive(&lock).is_err());
+        })
+        .unwrap();
+        assert_eq!(
+            *generate_points.borrow(),
+            [
+                StructuralGeneratePoint::ProposalOwned,
+                StructuralGeneratePoint::ArtifactsRendered,
+            ]
+        );
+        assert_eq!(fixture.inventory(), before_generate);
+        assert_eq!(
+            [
+                raw_sha(artifacts.preview()),
+                raw_sha(artifacts.context()),
+                raw_sha(artifacts.impact()),
+                raw_sha(artifacts.review()),
+                raw_sha(artifacts.evidence()),
+            ],
+            [
+                "sha256:1bf3eadefd58b3fa92c06e830979ba782b5ede6563f70a0ae7eeff5ca41e76d0",
+                "sha256:fd06527f1ae53b3e38218f419cef8e48a723319e05962106f38ecaa7b4561a3d",
+                "sha256:8adf3902746a7d8d316e67f015ddd4f103b04fed8f5b8d42bd726ddcac46c57f",
+                "sha256:252c99954b7e0e82b288df2d536c9d413e875a3d1373fcb492b9414ea5a43809",
+                "sha256:c163c425df9f6fefb354989453d7770174637c0aca5d1cad7f0f0cc7e56d2dac",
+            ]
+        );
+
+        let evidence_path = fixture.root.join("evidence.json");
+        std::fs::write(&evidence_path, artifacts.evidence()).unwrap();
+        let before_verify = fixture.inventory();
+        let verify_points = std::cell::RefCell::new(Vec::new());
+        let receipt = verify_with_hook(
+            &fixture.root,
+            &fixture.proposal_path,
+            &evidence_path,
+            |point| {
+                verify_points.borrow_mut().push(point);
+                let lock = OpenOptions::new()
+                    .read(true)
+                    .write(true)
+                    .open(fixture.root.join(".semaprax-workspace/LOCK"))
+                    .unwrap();
+                assert!(FileExt::try_lock_exclusive(&lock).is_err());
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            *verify_points.borrow(),
+            [
+                StructuralVerifyPoint::ProposalOwned,
+                StructuralVerifyPoint::EvidenceOwned,
+                StructuralVerifyPoint::ReceiptRendered,
+            ]
+        );
+        assert_eq!(fixture.inventory(), before_verify);
+        assert!(receipt.ends_with('\n'));
+        assert!(!receipt[..receipt.len() - 1].contains('\n'));
+        let value: serde_json::Value = serde_json::from_str(&receipt).unwrap();
+        assert_eq!(
+            value["schema"],
+            "semaprax.workspace-semantic-structural-change-evidence-verification.v1"
+        );
+        assert_eq!(value["result"], "exact_replay");
+        assert_eq!(
+            value["workspace_structural_change_evidence"]["bytes"],
+            artifacts.evidence().len()
+        );
+        assert_eq!(value["budget"]["used_receipt_bytes"], receipt.len());
+        assert_eq!(
+            raw_sha(&receipt),
+            "sha256:d2c4441326bf311c2593f58a80008c79790f65ecf8868519add6a7fe509b766e"
+        );
+        fixture.assert_exclusive_reacquire();
+    }
+
+    #[test]
+    fn input_ownership_precedence_and_exact_read_limits_are_fail_closed() {
+        let fixture = ManagedFixture::new("input-precedence");
+        let missing_proposal = fixture.root.join("missing-proposal.json");
+        let missing_evidence = fixture.root.join("missing-evidence.json");
+        let error = read_only_failure(&fixture, || {
+            verify_with_hook(&fixture.root, &missing_proposal, &missing_evidence, |_| {})
+        });
+        assert_eq!(error.code, "SPX-I215");
+        assert_eq!(
+            error.message,
+            "could not read Semantic Workspace Structural Change proposal: open failed"
+        );
+
+        let malformed_proposal = fixture.root.join("malformed-proposal.json");
+        std::fs::write(&malformed_proposal, "{}\n").unwrap();
+        let error = read_only_failure(&fixture, || {
+            verify_with_hook(
+                &fixture.root,
+                &malformed_proposal,
+                &missing_evidence,
+                |_| {},
+            )
+        });
+        assert_eq!(error.code, "SPX-I215");
+        assert_eq!(
+            error.message,
+            "could not read Semantic Workspace Structural Change Evidence: open failed"
+        );
+        let malformed_evidence = fixture.root.join("malformed-evidence.json");
+        std::fs::write(&malformed_evidence, "{}\n").unwrap();
+        assert_eq!(
+            read_only_failure(&fixture, || verify_with_hook(
+                &fixture.root,
+                &malformed_proposal,
+                &malformed_evidence,
+                |_| {},
+            ))
+            .code,
+            "SPX-G193"
+        );
+
+        let proposal_dir = fixture.root.join("proposal-dir");
+        std::fs::create_dir(&proposal_dir).unwrap();
+        let error = read_only_failure(&fixture, || {
+            generate_with_hook(&fixture.root, &proposal_dir, |_| {})
+        });
+        assert_eq!(error.code, "SPX-I215");
+        #[cfg(windows)]
+        assert_eq!(
+            error.message,
+            "could not read Semantic Workspace Structural Change proposal: open failed"
+        );
+        #[cfg(not(windows))]
+        assert_eq!(
+            error.message,
+            "could not read Semantic Workspace Structural Change proposal: input is not a regular file"
+        );
+
+        let invalid_proposal = fixture.root.join("invalid-proposal.json");
+        std::fs::write(&invalid_proposal, [0xff]).unwrap();
+        let error = read_only_failure(&fixture, || {
+            generate_with_hook(&fixture.root, &invalid_proposal, |_| {})
+        });
+        assert_eq!(error.code, "SPX-I215");
+        assert_eq!(
+            error.message,
+            "could not read Semantic Workspace Structural Change proposal: input is not UTF-8"
+        );
+
+        let exact_proposal = fixture.root.join("exact-proposal.json");
+        File::create(&exact_proposal)
+            .unwrap()
+            .set_len(MAX_PROPOSAL_BYTES as u64)
+            .unwrap();
+        assert_eq!(
+            read_only_failure(&fixture, || {
+                generate_with_hook(&fixture.root, &exact_proposal, |_| {})
+            })
+            .code,
+            "SPX-G188"
+        );
+        let oversized_proposal = fixture.root.join("oversized-proposal.json");
+        File::create(&oversized_proposal)
+            .unwrap()
+            .set_len(MAX_PROPOSAL_BYTES as u64 + 1)
+            .unwrap();
+        assert_eq!(
+            read_only_failure(&fixture, || generate_with_hook(
+                &fixture.root,
+                &oversized_proposal,
+                |_| {}
+            ))
+            .code,
+            "SPX-G191"
+        );
+
+        let evidence_dir = fixture.root.join("evidence-dir");
+        std::fs::create_dir(&evidence_dir).unwrap();
+        let error = read_only_failure(&fixture, || {
+            verify_with_hook(&fixture.root, &fixture.proposal_path, &evidence_dir, |_| {})
+        });
+        assert_eq!(error.code, "SPX-I215");
+        #[cfg(windows)]
+        assert_eq!(
+            error.message,
+            "could not read Semantic Workspace Structural Change Evidence: open failed"
+        );
+        #[cfg(not(windows))]
+        assert_eq!(
+            error.message,
+            "could not read Semantic Workspace Structural Change Evidence: input is not a regular file"
+        );
+        let invalid_evidence = fixture.root.join("invalid-evidence.json");
+        std::fs::write(&invalid_evidence, [0xff]).unwrap();
+        let error = read_only_failure(&fixture, || {
+            verify_with_hook(
+                &fixture.root,
+                &fixture.proposal_path,
+                &invalid_evidence,
+                |_| {},
+            )
+        });
+        assert_eq!(error.code, "SPX-I215");
+        assert_eq!(
+            error.message,
+            "could not read Semantic Workspace Structural Change Evidence: input is not UTF-8"
+        );
+        let exact_evidence = fixture.root.join("exact-evidence.json");
+        File::create(&exact_evidence)
+            .unwrap()
+            .set_len(TEST_MAX_EVIDENCE_BYTES as u64)
+            .unwrap();
+        assert_eq!(
+            read_only_failure(&fixture, || verify_with_hook(
+                &fixture.root,
+                &fixture.proposal_path,
+                &exact_evidence,
+                |_| {},
+            ))
+            .code,
+            "SPX-G193"
+        );
+        let oversized_evidence = fixture.root.join("oversized-evidence.json");
+        File::create(&oversized_evidence)
+            .unwrap()
+            .set_len(TEST_MAX_EVIDENCE_BYTES as u64 + 1)
+            .unwrap();
+        assert_eq!(
+            read_only_failure(&fixture, || verify_with_hook(
+                &fixture.root,
+                &fixture.proposal_path,
+                &oversized_evidence,
+                |_| {},
+            ))
+            .code,
+            "SPX-G191"
+        );
+    }
+
+    #[test]
+    fn owned_inputs_are_never_reopened_and_final_drift_discards_outputs() {
+        let fixture = ManagedFixture::new("owned-inputs");
+        let baseline = generate_with_hook(&fixture.root, &fixture.proposal_path, |_| {}).unwrap();
+        let evidence_path = fixture.root.join("owned-evidence.json");
+        std::fs::write(&evidence_path, baseline.evidence()).unwrap();
+        let baseline_receipt = verify_with_hook(
+            &fixture.root,
+            &fixture.proposal_path,
+            &evidence_path,
+            |_| {},
+        )
+        .unwrap();
+
+        for replacement in [fixture.proposal_source.as_bytes(), b"{}\n".as_slice()] {
+            std::fs::write(&fixture.proposal_path, &fixture.proposal_source).unwrap();
+            let replacement_path = fixture.root.join("generate-replacement.json");
+            std::fs::write(&replacement_path, replacement).unwrap();
+            let artifacts = generate_with_hook(&fixture.root, &fixture.proposal_path, |point| {
+                if matches!(point, StructuralGeneratePoint::ProposalOwned) {
+                    replace_owned_path(&fixture.proposal_path, &replacement_path);
+                }
+            })
+            .unwrap();
+            assert_eq!(artifacts, baseline);
+        }
+
+        for replace_at in ["proposal", "evidence"] {
+            std::fs::write(&fixture.proposal_path, &fixture.proposal_source).unwrap();
+            std::fs::write(&evidence_path, baseline.evidence()).unwrap();
+            let replacement_path = fixture.root.join(format!("{replace_at}-replacement.json"));
+            std::fs::write(&replacement_path, "{}\n").unwrap();
+            let receipt = verify_with_hook(
+                &fixture.root,
+                &fixture.proposal_path,
+                &evidence_path,
+                |point| match (replace_at, point) {
+                    ("proposal", StructuralVerifyPoint::ProposalOwned) => {
+                        replace_owned_path(&fixture.proposal_path, &replacement_path);
+                    }
+                    ("evidence", StructuralVerifyPoint::EvidenceOwned) => {
+                        replace_owned_path(&evidence_path, &replacement_path);
+                    }
+                    _ => {}
+                },
+            )
+            .unwrap();
+            assert_eq!(receipt, baseline_receipt);
+        }
+        fixture.assert_exclusive_reacquire();
+
+        let generate_drift = ManagedFixture::new("generate-final-drift");
+        let error = diagnostic(generate_with_hook(
+            &generate_drift.root,
+            &generate_drift.proposal_path,
+            |point| {
+                if matches!(point, StructuralGeneratePoint::ArtifactsRendered) {
+                    OpenOptions::new()
+                        .append(true)
+                        .open(generate_drift.root.join(".semaprax-workspace/ACTIVE"))
+                        .unwrap()
+                        .write_all(b"x")
+                        .unwrap();
+                }
+            },
+        ));
+        assert_eq!(error.code, "SPX-G153");
+        generate_drift.assert_exclusive_reacquire();
+
+        let verify_drift = ManagedFixture::new("verify-final-drift");
+        let artifacts =
+            generate_with_hook(&verify_drift.root, &verify_drift.proposal_path, |_| {}).unwrap();
+        let evidence_path = verify_drift.root.join("evidence.json");
+        std::fs::write(&evidence_path, artifacts.evidence()).unwrap();
+        let error = diagnostic(verify_with_hook(
+            &verify_drift.root,
+            &verify_drift.proposal_path,
+            &evidence_path,
+            |point| {
+                if matches!(point, StructuralVerifyPoint::ReceiptRendered) {
+                    OpenOptions::new()
+                        .append(true)
+                        .open(verify_drift.root.join(".semaprax-workspace/ACTIVE"))
+                        .unwrap()
+                        .write_all(b"x")
+                        .unwrap();
+                }
+            },
+        ));
+        assert_eq!(error.code, "SPX-G153");
+        verify_drift.assert_exclusive_reacquire();
+    }
+
+    #[test]
+    fn evidence_format_confusion_and_exact_replay_mutations_fail_closed() {
+        let fixture = ManagedFixture::new("evidence-hostile");
+        let artifacts = generate_with_hook(&fixture.root, &fixture.proposal_path, |_| {}).unwrap();
+        let evidence = artifacts.evidence();
+        let schema_prefix = concat!(
+            "{\"schema\":\"semaprax.workspace-semantic-structural-change-evidence.v1\",",
+            "\"workspace_manifest_schema\":\"semaprax.workspace-semantic-manifest.v1\""
+        );
+        let reordered_prefix = concat!(
+            "{\"workspace_manifest_schema\":\"semaprax.workspace-semantic-manifest.v1\",",
+            "\"schema\":\"semaprax.workspace-semantic-structural-change-evidence.v1\""
+        );
+        let mut missing = evidence.to_owned();
+        missing = missing.replace("\"entry_module\":\"structural.entry\",", "");
+        let extra = evidence.replacen("{\"schema\":", "{\"extra\":0,\"schema\":", 1);
+        let duplicate =
+            evidence.replacen("{\"schema\":", "{\"schema\":\"duplicate\",\"schema\":", 1);
+        let reordered = evidence.replacen(schema_prefix, reordered_prefix, 1);
+        let wrong_type = evidence.replace(
+            "\"entry_module\":\"structural.entry\"",
+            "\"entry_module\":0",
+        );
+        let no_lf = evidence.trim_end_matches('\n').to_owned();
+        let crlf = format!("{}\r\n", evidence.trim_end_matches('\n'));
+        let bom = format!("\u{feff}{evidence}");
+        let two_lines = format!("{evidence}\n");
+        let proposal_ref = object_after(evidence, "\"proposal\":");
+        let missing_proposal_ref_field = evidence.replacen(
+            proposal_ref,
+            &remove_nonfirst_scalar_field(proposal_ref, "bytes"),
+            1,
+        );
+        let extra_proposal_ref_field = evidence.replacen(
+            proposal_ref,
+            &proposal_ref.replacen('{', "{\"extra\":0,", 1),
+            1,
+        );
+        let wrong_proposal_ref_type = evidence.replacen(
+            proposal_ref,
+            &replace_scalar_field(proposal_ref, "bytes", "\"invalid\""),
+            1,
+        );
+        let graph_ref = object_after(evidence, "\"base_workspace_graph\":");
+        let missing_graph_digest = evidence.replacen(
+            graph_ref,
+            &remove_nonfirst_scalar_field(graph_ref, "digest"),
+            1,
+        );
+        let path_row = object_after(evidence, "\"paths\":[");
+        let missing_path_peer = evidence.replacen(
+            path_row,
+            &remove_nonfirst_scalar_field(path_row, "peer_path"),
+            1,
+        );
+        let limits = object_after(evidence, "\"limits\":");
+        let missing_limit = evidence.replacen(
+            limits,
+            &remove_nonfirst_scalar_field(limits, "max_operations"),
+            1,
+        );
+        let budget = object_after(evidence, "\"budget\":");
+        let wrong_budget_type = evidence.replacen(
+            budget,
+            &replace_scalar_field(budget, "used_operations", "\"four\""),
+            1,
+        );
+        let wrong_nonclaim_type =
+            evidence.replacen("\"not_signature_or_authenticated_provenance\"", "0", 1);
+        let evidence_path = fixture.root.join("evidence.json");
+        let mut format_hostiles = vec![
+            missing,
+            extra,
+            duplicate,
+            reordered,
+            wrong_type,
+            no_lf,
+            crlf,
+            bom,
+            two_lines,
+            "[[[[[[[[[[]]]]]]]]]\n".to_owned(),
+            missing_proposal_ref_field,
+            extra_proposal_ref_field,
+            wrong_proposal_ref_type,
+            missing_graph_digest,
+            missing_path_peer,
+            missing_limit,
+            wrong_budget_type,
+            wrong_nonclaim_type,
+        ];
+        for (marker, first, second) in [
+            ("\"proposal\":", "schema", "digest"),
+            ("\"base_workspace_graph\":", "schema", "digest"),
+            ("\"paths\":[", "path", "change"),
+            ("\"limits\":", "max_managed_files", "max_operations"),
+            (
+                "\"budget\":",
+                "used_base_managed_files",
+                "used_candidate_managed_files",
+            ),
+        ] {
+            format_hostiles.extend(nested_shape_mutations(evidence, marker, first, second));
+        }
+        for hostile in format_hostiles {
+            assert_eq!(
+                diagnostic(verification::parse_evidence(&hostile)).code,
+                "SPX-G193"
+            );
+            std::fs::write(&evidence_path, hostile).unwrap();
+            assert_eq!(
+                read_only_failure(&fixture, || verify_with_hook(
+                    &fixture.root,
+                    &fixture.proposal_path,
+                    &evidence_path,
+                    |_| {},
+                ))
+                .code,
+                "SPX-G193"
+            );
+        }
+
+        std::fs::write(&evidence_path, evidence).unwrap();
+        let receipt = verify_with_hook(
+            &fixture.root,
+            &fixture.proposal_path,
+            &evidence_path,
+            |_| {},
+        )
+        .unwrap();
+        assert_eq!(
+            diagnostic(verification::parse_evidence(&receipt)).code,
+            "SPX-G193"
+        );
+        std::fs::write(&evidence_path, &receipt).unwrap();
+        let malformed_proposal = fixture.root.join("receipt-confusion-proposal.json");
+        std::fs::write(&malformed_proposal, "{}\n").unwrap();
+        assert_eq!(
+            read_only_failure(&fixture, || verify_with_hook(
+                &fixture.root,
+                &malformed_proposal,
+                &evidence_path,
+                |_| {},
+            ))
+            .code,
+            "SPX-G193"
+        );
+
+        let path_row = object_after(evidence, "\"paths\":[");
+        let proposal_ref = object_after(evidence, "\"proposal\":");
+        let graph_ref = object_after(evidence, "\"base_workspace_graph\":");
+        let limits = object_after(evidence, "\"limits\":");
+        let budget = object_after(evidence, "\"budget\":");
+        let replay_mutations = [
+            evidence.replace(
+                "\"entry_module\":\"structural.entry\"",
+                "\"entry_module\":\"structural.entri\"",
+            ),
+            evidence.replacen(
+                proposal_ref,
+                &replace_scalar_field(
+                    proposal_ref,
+                    "digest",
+                    &format!("\"sha256:{}\"", "0".repeat(64)),
+                ),
+                1,
+            ),
+            evidence.replacen(
+                graph_ref,
+                &replace_scalar_field(
+                    graph_ref,
+                    "digest",
+                    &format!("\"sha256:{}\"", "0".repeat(64)),
+                ),
+                1,
+            ),
+            evidence.replacen(
+                path_row,
+                &replace_scalar_field(path_row, "change", "\"mutated\""),
+                1,
+            ),
+            evidence.replacen(
+                limits,
+                &replace_scalar_field(limits, "max_managed_files", "15"),
+                1,
+            ),
+            evidence.replacen(
+                budget,
+                &replace_scalar_field(budget, "used_operations", "3"),
+                1,
+            ),
+            evidence.replacen(
+                "\"not_signature_or_authenticated_provenance\"",
+                "\"mutated_nonclaim\"",
+                1,
+            ),
+        ];
+        for mutated in replay_mutations {
+            if let Err(diagnostics) = verification::parse_evidence(&mutated) {
+                assert_eq!(diagnostics.len(), 1);
+                assert_eq!(diagnostics[0].code, "SPX-G195");
+            }
+            std::fs::write(&evidence_path, mutated).unwrap();
+            let error = read_only_failure(&fixture, || {
+                verify_with_hook(
+                    &fixture.root,
+                    &fixture.proposal_path,
+                    &evidence_path,
+                    |_| {},
+                )
+            });
+            assert_eq!(error.code, "SPX-G195");
+            assert_eq!(
+                error.message,
+                "Semantic Workspace Structural Change Evidence does not exactly replay the authenticated proposal and candidate"
+            );
+        }
     }
 }

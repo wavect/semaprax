@@ -4,7 +4,9 @@ use std::ops::Deref;
 use std::rc::Rc;
 
 struct Budget {
+    initial: usize,
     remaining: Cell<usize>,
+    floor: Cell<usize>,
     overflowed: Cell<bool>,
 }
 
@@ -42,7 +44,9 @@ pub(crate) fn with_limit_usage<T>(limit: usize, operation: impl FnOnce() -> T) -
         .as_ref()
         .map_or(limit, |budget| limit.min(budget.remaining.get()));
     let budget = Rc::new(Budget {
+        initial: effective_limit,
         remaining: Cell::new(effective_limit),
+        floor: Cell::new(0),
         overflowed: Cell::new(false),
     });
     let previous = ACTIVE.with(|active| active.replace(Some(Rc::clone(&budget))));
@@ -71,6 +75,12 @@ fn reserve(budget: Option<&Budget>, length: usize) -> bool {
         budget.overflowed.set(true);
         return false;
     }
+    if length
+        .checked_add(budget.floor.get())
+        .is_none_or(|required| required > remaining)
+    {
+        return false;
+    }
     budget.remaining.set(remaining - length);
     true
 }
@@ -80,8 +90,44 @@ pub(crate) fn reserve_active(length: usize) -> bool {
     reserve(budget.as_deref(), length)
 }
 
+pub(crate) fn reserve_active_preserving(length: usize, floor: usize) -> bool {
+    let budget = active();
+    let Some(budget) = budget.as_deref() else {
+        return true;
+    };
+    let floor = floor.max(budget.floor.get());
+    let Some(required) = length.checked_add(floor) else {
+        return false;
+    };
+    if required > budget.remaining.get() {
+        return false;
+    }
+    reserve(Some(budget), length)
+}
+
+pub(crate) fn set_active_floor(floor: usize) -> bool {
+    let Some(budget) = active() else {
+        return true;
+    };
+    if floor > budget.remaining.get() {
+        return false;
+    }
+    budget.floor.set(floor);
+    true
+}
+
+pub(crate) fn clear_active_floor() {
+    if let Some(budget) = active() {
+        budget.floor.set(0);
+    }
+}
+
 pub(crate) fn active_remaining() -> Option<usize> {
     active().map(|budget| budget.remaining.get())
+}
+
+pub(crate) fn active_limit() -> Option<usize> {
+    active().map(|budget| budget.initial)
 }
 
 fn reserve_sink(captured: Option<&Rc<Budget>>, length: usize) -> bool {

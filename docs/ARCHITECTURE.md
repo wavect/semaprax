@@ -1273,10 +1273,7 @@ runtime-owned sinks, closed provider attempt values, cancellation handle, and
 opaque run getters; the unsealed host is injected and trusted for its declared
 transport/tools. The module has no built-in transport, process/environment/home access, filesystem mutation, durable
 memory, wallet, payment, signing, language, Graph, cleanup, or backend surface.
-The exact `cd2f6393bb84657f7ef4f0094e1136eb5a401355` A+B matrix is hosted green in
-[run 31585682213](https://github.com/wavect/semaprax/actions/runs/31585682213),
-including three-OS fake-host evidence. C1 public integration is locally green
-4/4; hosted promotion remains pending.
+Public Agent Runtime v1 is hosted GREEN at 8cf29aff8d1be3ccf74c36bc8c837f0c666ca067 (run 31591039261, 12/12 jobs, private and public deterministic fake-host gates on Ubuntu, macOS, and Windows). Private [Economic Agent v1](ECONOMIC-AGENT-V1.md) A+B implementation is in progress; local/hosted evidence and public C remain pending.
 This private proof changes none of the 38 Partial/18 Missing totals.
 
 ## Trust boundaries

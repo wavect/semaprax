@@ -80,6 +80,10 @@ proof scaffolding, not a wired native-runtime claim.
 - `src/agent_runtime.rs`, `src/agent_runtime/`: bounded injected-host Agent
   profile, runtime-owned streaming sinks, cancellation, Trace, and Evidence;
   no built-in transport, write tool, durable memory, or economic authority.
+- `src/economic_agent.rs`: private test-network/native-asset Economic Agent A+B
+  policy, intent, chain-plan, approval, custody, journal, reconciliation,
+  Trace, and Evidence proof core; no public API, built-in transport, key, or
+  mainnet authority.
 - `src/repair.rs`: bounded read-only Diagnostic Repair v1 discovery and
   instantiation plus the independently replayed Patch-v3 identity-rebase gate.
 - `src/review.rs`: bounded read-only Semantic Review v1 over complete Impact-v1

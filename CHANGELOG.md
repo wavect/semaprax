@@ -7,11 +7,7 @@
   checks, cooperative cancellation, cumulative budgets, and independent replay.
   C1 exposes opaque Agent/run/sink types and no CLI, provider transport, ambient authority, language or
   backend semantics, durable memory, wallet, payment, or signing surface.
-  The exact `cd2f6393bb84657f7ef4f0094e1136eb5a401355` A+B matrix is hosted green
-  in [run 31585682213](https://github.com/wavect/semaprax/actions/runs/31585682213),
-  with all 12 jobs passing including Ubuntu/macOS/Windows fake-host evidence.
-  C1 public integration is locally green 4/4 and hosted promotion remains
-  pending. Totals remain 38 Partial/18 Missing.
+  Public Agent Runtime v1 is hosted GREEN at 8cf29aff8d1be3ccf74c36bc8c837f0c666ca067 (run 31591039261, 12/12 jobs, private and public deterministic fake-host gates on Ubuntu, macOS, and Windows). Private Economic Agent A+B implementation is in progress; local/hosted evidence and public C remain pending. Totals remain 38 Partial/18 Missing.
 
 All notable changes to SEMAPRAX are documented here.
 

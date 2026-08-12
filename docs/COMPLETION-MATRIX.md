@@ -10,7 +10,7 @@ deterministic fake-host parser/router/tool-loop and Trace/Evidence coverage plus
 a narrow injected-host C1 Rust API. It does not change any completion row or the
 38 Partial/18 Missing totals, and makes no public provider, language/backend,
 durable-memory, wallet, payment, signing, or economic-authority claim.
-Public Agent Runtime v1 is hosted GREEN at 8cf29aff8d1be3ccf74c36bc8c837f0c666ca067 (run 31591039261, 12/12 jobs, private and public deterministic fake-host gates on Ubuntu, macOS, and Windows). Private Economic Agent A+B implementation has local/hosted evidence pending and public C remains held.
+Public Agent Runtime v1 is hosted GREEN at 8cf29aff8d1be3ccf74c36bc8c837f0c666ca067 (run 31591039261, 12/12 jobs, private and public deterministic fake-host gates on Ubuntu, macOS, and Windows). Private Economic Agent v1 A+B is exact-head hosted green at fe75c38d898b71e3ed5c57411fb46d0dbd4fc34b in run 31611748969, including both Economic gates on Ubuntu, macOS, and Windows. Public C local evidence is green; exact-head hosted promotion is pending.
 Totals remain 38 Partial/18 Missing.
 
 Status values:

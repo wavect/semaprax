@@ -381,8 +381,7 @@ pub(crate) struct SemanticWorkspaceChangeImpactEdge {
     edge: workspace_graph::WorkspaceEdge,
 }
 
-#[cfg(test)]
-#[allow(dead_code, reason = "private Structural Change exact-fact test seam")]
+#[allow(dead_code, reason = "private typed artifact and exact-fact seam")]
 impl SemanticWorkspaceChangeRoot {
     pub(crate) const fn state(&self) -> &'static str {
         self.state
@@ -413,8 +412,7 @@ impl SemanticWorkspaceChangeRoot {
     }
 }
 
-#[cfg(test)]
-#[allow(dead_code, reason = "private Structural Change exact-fact test seam")]
+#[allow(dead_code, reason = "private typed artifact and exact-fact seam")]
 impl SemanticWorkspaceChangeEdge {
     pub(crate) const fn state(&self) -> &'static str {
         self.state
@@ -429,8 +427,7 @@ impl SemanticWorkspaceChangeEdge {
     }
 }
 
-#[cfg(test)]
-#[allow(dead_code, reason = "private Structural Change exact-fact test seam")]
+#[allow(dead_code, reason = "private typed artifact and exact-fact seam")]
 impl SemanticWorkspaceChangeContextNode {
     pub(crate) const fn state(&self) -> &'static str {
         self.state
@@ -461,8 +458,7 @@ impl SemanticWorkspaceChangeContextNode {
     }
 }
 
-#[cfg(test)]
-#[allow(dead_code, reason = "private Structural Change exact-fact test seam")]
+#[allow(dead_code, reason = "private typed artifact and exact-fact seam")]
 impl SemanticWorkspaceChangeImpactFact {
     pub(crate) const fn state(&self) -> &'static str {
         self.state
@@ -509,8 +505,7 @@ impl SemanticWorkspaceChangeImpactFact {
     }
 }
 
-#[cfg(test)]
-#[allow(dead_code, reason = "private Structural Change exact-fact test seam")]
+#[allow(dead_code, reason = "private typed artifact and exact-fact seam")]
 impl SemanticWorkspaceChangeImpactEdge {
     pub(crate) const fn state(&self) -> &'static str {
         self.state

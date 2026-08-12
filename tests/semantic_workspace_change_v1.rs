@@ -377,13 +377,14 @@ fn hostile_proposal_inputs_fail_exactly_and_release_the_shared_lock() {
         .unwrap()
         .set_len(33_554_433)
         .unwrap();
+    #[cfg(windows)]
+    let directory_message = "could not read Semantic Workspace Change proposal: open failed";
+    #[cfg(not(windows))]
+    let directory_message =
+        "could not read Semantic Workspace Change proposal: input is not a regular file";
 
     for (path, code, message) in [
-        (
-            directory.as_path(),
-            "SPX-I214",
-            "could not read Semantic Workspace Change proposal: input is not a regular file",
-        ),
+        (directory.as_path(), "SPX-I214", directory_message),
         (
             invalid_utf8.as_path(),
             "SPX-I214",
@@ -615,12 +616,13 @@ fn evidence_parser_replay_confusion_and_read_hostiles_fail_closed() {
     std::fs::write(&invalid, [0xff]).unwrap();
     let sparse = fixture.root.join("evidence-sparse.json");
     File::create(&sparse).unwrap().set_len(1_048_577).unwrap();
+    #[cfg(windows)]
+    let directory_message = "could not read Semantic Workspace Change Evidence: open failed";
+    #[cfg(not(windows))]
+    let directory_message =
+        "could not read Semantic Workspace Change Evidence: input is not a regular file";
     for (path, code, message) in [
-        (
-            directory.as_path(),
-            "SPX-I214",
-            "could not read Semantic Workspace Change Evidence: input is not a regular file",
-        ),
+        (directory.as_path(), "SPX-I214", directory_message),
         (
             invalid.as_path(),
             "SPX-I214",

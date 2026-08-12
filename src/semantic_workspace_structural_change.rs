@@ -13,6 +13,8 @@ use crate::bounded_output::CappedString;
 use crate::diagnostic::Diagnostic;
 use crate::{semantic_workspace, semantic_workspace_change, workspace, workspace_graph};
 
+mod artifact;
+
 pub(crate) const SCHEMA: &str = "semaprax.workspace-semantic-structural-change.v1";
 const MAX_PROPOSAL_BYTES: usize = 32 * 1024 * 1024;
 const MAX_OPERATIONS: usize = 16;
@@ -100,6 +102,7 @@ pub(crate) struct SemanticWorkspacePreparedStructuralChange {
     impact_edges: Vec<semantic_workspace_change::SemanticWorkspaceChangeImpactEdge>,
     used_analysis_builder_bytes: usize,
     used_total_supplied_source_bytes: usize,
+    base_manifest_bytes: usize,
     retained_generations: usize,
     staging_attempts: usize,
 }
@@ -245,6 +248,10 @@ impl SemanticWorkspacePreparedStructuralChange {
 
     pub(crate) const fn retained_generations(&self) -> usize {
         self.retained_generations
+    }
+
+    pub(crate) const fn base_manifest_bytes(&self) -> usize {
+        self.base_manifest_bytes
     }
 
     pub(crate) const fn staging_attempts(&self) -> usize {
@@ -808,6 +815,7 @@ fn prepare_owned_with_limit(
         impact_edges,
         used_analysis_builder_bytes,
         used_total_supplied_source_bytes: supplied_source_bytes,
+        base_manifest_bytes: storage.0,
         retained_generations: storage.1,
         staging_attempts: storage.2,
     })
@@ -816,16 +824,28 @@ fn prepare_owned_with_limit(
 pub(crate) fn render_proposal(
     change_set: &SemanticWorkspaceStructuralChangeSet,
 ) -> Result<String, Vec<Diagnostic>> {
+    render_proposal_facts(
+        &change_set.base_workspace_revision,
+        &change_set.entry_module,
+        &change_set.operations,
+    )
+}
+
+pub(crate) fn render_proposal_facts(
+    base_workspace_revision: &str,
+    entry_module: &str,
+    operations: &[SemanticWorkspaceStructuralOperation],
+) -> Result<String, Vec<Diagnostic>> {
     let (output, overflowed) = crate::bounded_output::with_limit(MAX_PROPOSAL_BYTES, || {
         let mut output = CappedString::new();
         output.push_str("{\"schema\":");
         push_json(&mut output, SCHEMA);
         output.push_str(",\"base_workspace_revision\":");
-        push_json(&mut output, &change_set.base_workspace_revision);
+        push_json(&mut output, base_workspace_revision);
         output.push_str(",\"entry_module\":");
-        push_json(&mut output, &change_set.entry_module);
+        push_json(&mut output, entry_module);
         output.push_str(",\"operations\":[");
-        for (index, operation) in change_set.operations.iter().enumerate() {
+        for (index, operation) in operations.iter().enumerate() {
             if index != 0 {
                 output.push(',');
             }
@@ -1227,15 +1247,15 @@ fn map_candidate_builder_limit(
 }
 
 #[cfg(test)]
-mod tests {
+pub(super) mod tests {
     use super::*;
     use sha2::{Digest, Sha256};
 
-    struct BaseFixture {
-        revision: String,
-        manifest_bytes: usize,
-        sources: Vec<workspace::WorkspaceSemanticSource>,
-        graph: workspace_graph::WorkspaceGraphBuild,
+    pub(super) struct BaseFixture {
+        pub(super) revision: String,
+        pub(super) manifest_bytes: usize,
+        pub(super) sources: Vec<workspace::WorkspaceSemanticSource>,
+        pub(super) graph: workspace_graph::WorkspaceGraphBuild,
     }
 
     fn canonical(source: &str, path: &str) -> String {
@@ -1344,7 +1364,7 @@ fn main() -> i64 uses { created.capability } { helper() }
         )
     }
 
-    fn base_fixture() -> BaseFixture {
+    pub(super) fn base_fixture() -> BaseFixture {
         base_fixture_with_order(false)
     }
 
@@ -1468,7 +1488,7 @@ fn main() -> i64 uses { created.capability } { helper() }
             .unwrap()
     }
 
-    fn mixed_proposal(base: &BaseFixture) -> String {
+    pub(super) fn mixed_proposal(base: &BaseFixture) -> String {
         proposal(
             &base.revision,
             "structural.entry",

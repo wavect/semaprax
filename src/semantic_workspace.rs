@@ -514,6 +514,55 @@ pub(crate) fn render_manifest(
     })
 }
 
+pub(crate) fn render_manifest_facts(
+    files: &[(&str, &str, &str, &str, usize)],
+) -> Result<String, Vec<Diagnostic>> {
+    if files.len() < 2 {
+        return Err(grammar("Semantic Workspace requires 2..16 source files"));
+    }
+    if files.len() > MAX_MANAGED_FILES {
+        return Err(storage_limit("managed_files", MAX_MANAGED_FILES));
+    }
+    let mut total = 0usize;
+    for (index, (path, schema, revision, digest, bytes)) in files.iter().enumerate() {
+        if !workspace::evidence_path_is_valid(path)
+            || !is_source_graph_schema(schema)
+            || index != 0 && files[index - 1].0 >= *path
+        {
+            return Err(grammar(
+                "Semantic Workspace manifest values are not canonical",
+            ));
+        }
+        require_digest(revision)?;
+        require_digest(digest)?;
+        total = total
+            .checked_add(*bytes)
+            .ok_or_else(|| storage_limit("total_source_bytes", MAX_TOTAL_SOURCE_BYTES))?;
+        if total > MAX_TOTAL_SOURCE_BYTES {
+            return Err(storage_limit("total_source_bytes", MAX_TOTAL_SOURCE_BYTES));
+        }
+    }
+    render_bounded("manifest_bytes", |output| {
+        write!(
+            output,
+            "{{\"schema\":{},\"files\":[",
+            quote_json(MANIFEST_SCHEMA)
+        )
+        .unwrap();
+        for (index, (path, schema, revision, digest, bytes)) in files.iter().enumerate() {
+            if index != 0 {
+                output.push(',');
+            }
+            write!(
+                output,
+                "{{\"path\":{},\"source_graph_schema\":{},\"source_revision\":{},\"source_digest\":{},\"bytes\":{}}}",
+                quote_json(path), quote_json(schema), quote_json(revision), quote_json(digest), bytes
+            ).unwrap();
+        }
+        output.push_str("]}\n");
+    })
+}
+
 fn validate_path_set_values(paths: &[String]) -> Result<(), Vec<Diagnostic>> {
     if paths.len() < 2 {
         return Err(grammar("Semantic Workspace requires 2..16 source files"));

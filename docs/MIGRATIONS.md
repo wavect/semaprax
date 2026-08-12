@@ -2,6 +2,10 @@
 
 SEMAPRAX is pre-alpha, but agent-facing changes are still explicit. Consumers must inspect the declared schema field rather than assuming every JSON object has the latest shape.
 
+Bounded Native Agent Runtime v1 C1 is additive. Existing consumers require no
+migration; callers opt into the injected `AgentHost` API explicitly, and no CLI,
+language, Graph, backend, provider transport, write, or wallet surface changed.
+
 ## Graph-v6 CLI context to agent-context v1
 
 `semaprax context` now emits `semaprax.agent-context.v1` instead of a Graph-v6

@@ -24,7 +24,7 @@ The exact `dfc04278c6ba9a7dd247d4cc4add3af91f55b936` matrix is hosted green in
 all 12 jobs passed, including the Operations process-termination gate on
 Ubuntu, macOS, and Windows. Totals remain 38 Partial/18 Missing.
 
-The unpublished Private Bounded Native Agent Runtime v1 additionally requires
+Bounded Native Agent Runtime v1 additionally requires
 `cargo test --locked -p semaprax --lib agent_runtime::tests` with deterministic
 fake hosts on Ubuntu, macOS, and Windows. Its gate covers canonical Profile,
 Task, Action, Trace, and Evidence bytes; exact routing and retry rules;
@@ -32,9 +32,13 @@ incremental provider/tool sinks; per-boundary cancellation, policy, and budget
 checks; deep replay; secret-sentinel absence; no-write inventory; long-ID and
 escaping boundaries; and cumulative builder accounting. It makes no live
 provider, transport, quality, public API/CLI, wallet, or economic-authority
-claim. See [Private Bounded Native Agent Runtime v1](AGENT-RUNTIME-V1.md).
-The private local fake-host corpus and strict checks are green; CI is configured
-for Ubuntu, macOS, and Windows, while exact-head hosted evidence remains pending.
+claim. C1 additionally requires an external-crate host, exact public surface and
+opacity locks, cancellation/retry/cap/secret/no-write checks, package/rustdoc,
+and an explicit Ubuntu/macOS/Windows public integration gate. See [Bounded Native
+Agent Runtime v1](AGENT-RUNTIME-V1.md). The exact
+`cd2f6393bb84657f7ef4f0094e1136eb5a401355` A+B matrix is hosted green in
+[run 31585682213](https://github.com/wavect/semaprax/actions/runs/31585682213);
+C1 public integration is locally green 4/4; hosted promotion remains pending.
 Totals remain 38 Partial/18 Missing.
 
 Quality gates are executable evidence, not a checklist substitute for reasoning. Every pull request must pass the baseline and the gates for each changed semantic layer.

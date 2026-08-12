@@ -77,6 +77,9 @@ proof scaffolding, not a wired native-runtime claim.
   an exact existing Change-v1 replacements proposal and derivation wrapper.
 - `src/call_index.rs`, `impact.rs`: shared validated-HIR call index and bounded,
   read-only single-file Semantic Impact v1 preview.
+- `src/agent_runtime.rs`, `src/agent_runtime/`: bounded injected-host Agent
+  profile, runtime-owned streaming sinks, cancellation, Trace, and Evidence;
+  no built-in transport, write tool, durable memory, or economic authority.
 - `src/repair.rs`: bounded read-only Diagnostic Repair v1 discovery and
   instantiation plus the independently replayed Patch-v3 identity-rebase gate.
 - `src/review.rs`: bounded read-only Semantic Review v1 over complete Impact-v1

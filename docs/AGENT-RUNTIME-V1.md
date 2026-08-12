@@ -1,8 +1,9 @@
-# Private Bounded Native Agent Runtime v1
+# Bounded Native Agent Runtime v1
 
-Status: private proof tranche. The implementation is not publicly exported and
-does not add language syntax, compiler semantics, a provider transport, a CLI,
-or a backend.
+Status: the A+B private proof is hosted green; C1 exposes an additive injected-
+host Rust API whose new exact-head hosted promotion gate remains pending. It does
+not add language syntax, compiler semantics, a provider transport, a CLI, or a
+backend.
 
 ## Boundary
 
@@ -66,8 +67,24 @@ retry; tool schema/effect/capability/policy/result failures; cancellation and
 deadline boundaries; replay mutations; secret-sentinel absence; no-write
 inventory; 240-byte identities and JSON escaping; and cumulative builder
 limits. CI is configured to run the fake-host corpus on Ubuntu, macOS, and
-Windows; exact-head hosted evidence remains pending. There is no live-provider
-or provider-quality claim.
+Windows. The exact `cd2f6393bb84657f7ef4f0094e1136eb5a401355` A+B matrix is
+hosted green in [run 31585682213](https://github.com/wavect/semaprax/actions/runs/31585682213);
+all 12 jobs passed, including the deterministic fake-host gate on Ubuntu,
+macOS, and Windows. C1 public integration is locally green 4/4 and must pass a
+fresh exact-head hosted matrix before promotion. There is no live-
+provider or provider-quality claim.
+
+## Public C1 surface
+
+The public Rust surface owns an opaque `Agent<H: AgentHost>`, monotonic shared
+`AgentCancellation`, runtime-owned streaming sinks, closed provider attempt and
+usage values, and an opaque `AgentRun` exposing only status, an untrusted final
+message, and canonical Trace/Evidence bytes and digests. The injected, unsealed
+host owns its provider transport and declared read-only tool implementations.
+Its policy, elapsed-time, boundary-probe, and tokenization methods are pure local
+accounting observations; only provider attempts and tool invocation are external
+boundaries. A host that violates that contract is outside v1 evidence. The
+runtime neither proves host side effects absent nor mints tool authority.
 
 The fixture documents have these executable raw SHA-256 known answers
 (including the terminal LF):

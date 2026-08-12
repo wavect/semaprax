@@ -73,6 +73,8 @@ jobs:
         run: cargo test --locked -p semaprax --lib semantic_workspace_operations::tests::operations_apply_killed_process_boundaries_preserve_exact_old_or_new -- --exact --nocapture
       - name: Require private bounded Agent Runtime deterministic fake-host evidence
         run: cargo test --locked -p semaprax --lib agent_runtime::tests -- --nocapture
+      - name: Require public bounded Agent Runtime injected-host evidence
+        run: cargo test --locked -p semaprax --test agent_runtime_v1 -- --nocapture
       - name: Require Windows callable-v2 and private callable-v3 physical evidence
         if: runner.os == 'Windows'
         shell: pwsh

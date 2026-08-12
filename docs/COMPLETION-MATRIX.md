@@ -5,13 +5,15 @@ The dashboard is refreshed at meaningful executable-evidence milestones, not
 for each internal refactor, so progress remains visible without inflating
 status from configuration or design alone.
 
-Private proof note: the unpublished [Bounded Native Agent Runtime
-v1](AGENT-RUNTIME-V1.md) adds deterministic fake-host parser/router/tool-loop
-and Trace/Evidence coverage only. It does not change any completion row or the
+Agent Runtime note: [Bounded Native Agent Runtime v1](AGENT-RUNTIME-V1.md) adds
+deterministic fake-host parser/router/tool-loop and Trace/Evidence coverage plus
+a narrow injected-host C1 Rust API. It does not change any completion row or the
 38 Partial/18 Missing totals, and makes no public provider, language/backend,
 durable-memory, wallet, payment, signing, or economic-authority claim.
-The private local fake-host corpus and strict checks are green; CI is configured
-for Ubuntu, macOS, and Windows, while exact-head hosted evidence remains pending.
+The exact `cd2f6393bb84657f7ef4f0094e1136eb5a401355` A+B matrix is hosted green in
+[run 31585682213](https://github.com/wavect/semaprax/actions/runs/31585682213),
+including the three-OS fake-host gate. C1 public integration is locally green
+4/4 and hosted promotion remains pending.
 Totals remain 38 Partial/18 Missing.
 
 Status values:

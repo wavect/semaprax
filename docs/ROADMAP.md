@@ -2,14 +2,16 @@
 
 The roadmap follows risk, not feature spectacle. Stable semantic editing, ownership inference, and component boundaries are more important than accumulating syntax.
 
-An unpublished Private Bounded Native Agent Runtime v1 now supplies the first
+Bounded Native Agent Runtime v1 now supplies the first
 safe-Rust parser/router/state/Trace/Evidence and injected-fake-host loop proof.
-It is deliberately not a roadmap status promotion: public Agent APIs, provider
-transports, durable memory, language/backend integration, approval, target
+Its C1 injected-host Rust API remains deliberately narrow: provider transports,
+durable memory, language/backend integration, approval, target
 execution, wallets, payments, signing, and economic authority remain held. See
 [the private runtime contract](AGENT-RUNTIME-V1.md).
-The private local fake-host corpus and strict checks are green; CI is configured
-for Ubuntu, macOS, and Windows, while exact-head hosted evidence remains pending.
+The exact `cd2f6393bb84657f7ef4f0094e1136eb5a401355` A+B matrix is hosted green in
+[run 31585682213](https://github.com/wavect/semaprax/actions/runs/31585682213),
+including the fake-host gate on all three host OSes. C1 public integration is
+locally green 4/4 and hosted promotion remains pending.
 Totals remain 38 Partial/18 Missing.
 
 ## 0.1 — Executable semantic seed

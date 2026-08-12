@@ -1,17 +1,18 @@
-//! Private bounded native Agent Runtime v1 proof lane.
+//! Bounded native Agent Runtime v1 injected-host API.
 //!
-//! This module is deliberately not re-exported. It is a safe-Rust,
-//! injected-adapter state machine with no built-in transport, process,
+//! This safe-Rust injected-adapter state machine has no built-in transport, process,
 //! environment, filesystem, mutation, publication, credential, or economic
 //! authority. Model and tool bytes remain untrusted data.
 
 #![allow(
     dead_code,
-    reason = "the complete runtime remains private until its hostile A+B gates are frozen"
+    reason = "private typed and replay internals support the opaque public C1 surface"
 )]
 
 use std::collections::BTreeSet;
 use std::fmt;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
 use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
@@ -335,8 +336,9 @@ struct TraceEvent {
     usage: UsageDelta,
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
-enum RunStatus {
+/// The terminal status of one bounded Agent run.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum AgentRunStatus {
     Completed,
     Cancelled,
     DeadlineExceeded,
@@ -346,13 +348,7 @@ enum RunStatus {
     PolicyRejected,
 }
 
-impl fmt::Debug for RunStatus {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str(self.text())
-    }
-}
-
-impl RunStatus {
+impl AgentRunStatus {
     fn text(self) -> &'static str {
         match self {
             Self::Completed => "completed",
@@ -373,19 +369,14 @@ struct Termination {
     message: Option<String>,
 }
 
-struct AgentRuntimeEvidence {
+/// Opaque canonical Trace and Evidence produced by one run.
+pub struct AgentRun {
     trace: String,
     trace_digest: String,
     evidence: String,
     evidence_digest: String,
-    status: RunStatus,
+    status: AgentRunStatus,
     replay: private::EvidenceReplay,
-}
-
-impl fmt::Debug for AgentRuntimeEvidence {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str("AgentRuntimeEvidence(<redacted>)")
-    }
 }
 
 impl fmt::Debug for Profile {
@@ -401,54 +392,112 @@ impl fmt::Debug for Task {
 }
 
 /// An injected provider response. The runtime owns no transport.
-struct ProviderAttempt {
+/// The closed result of one injected provider attempt.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct AgentProviderAttempt {
     disposition: ProviderDisposition,
     usage: ProviderUsage,
 }
 
-enum ProviderDisposition {
+impl AgentProviderAttempt {
+    /// Constructs one closed attempt result without an error-text channel.
+    pub const fn new(disposition: AgentProviderDisposition, usage: AgentProviderUsage) -> Self {
+        Self { disposition, usage }
+    }
+
+    /// Returns whether the provider attempt started and how it finished.
+    pub const fn disposition(&self) -> AgentProviderDisposition {
+        self.disposition
+    }
+    /// Returns the closed reported usage.
+    pub const fn usage(&self) -> AgentProviderUsage {
+        self.usage
+    }
+}
+
+/// Whether an injected provider attempt started and how it finished.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum AgentProviderDisposition {
     Succeeded,
     DefinitelyNotStarted,
     FailedUncertain,
 }
 
-#[derive(Clone, Copy, Default)]
-struct ProviderUsage {
+/// Closed provider-reported usage for one attempt.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct AgentProviderUsage {
     input_tokens: u64,
     output_tokens: u64,
     usd_microunits: u64,
 }
 
-trait AgentHost {
+impl AgentProviderUsage {
+    /// Constructs closed provider-reported usage.
+    pub const fn new(input_tokens: u64, output_tokens: u64, usd_microunits: u64) -> Self {
+        Self {
+            input_tokens,
+            output_tokens,
+            usd_microunits,
+        }
+    }
+
+    /// Returns reported input tokens.
+    pub const fn input_tokens(&self) -> u64 {
+        self.input_tokens
+    }
+    /// Returns reported output tokens.
+    pub const fn output_tokens(&self) -> u64 {
+        self.output_tokens
+    }
+    /// Returns reported cost in USD microunits.
+    pub const fn usd_microunits(&self) -> u64 {
+        self.usd_microunits
+    }
+}
+
+/// Caller-injected provider and read-only tool host.
+///
+/// Observation, probing, and tokenization methods are pure local observations.
+/// Only `attempt_provider` and `invoke_tool` may cross an external-effect
+/// boundary. Implementations that violate this contract are outside v1.
+pub trait AgentHost {
+    /// Returns the current monotonic policy epoch as a pure observation.
     fn policy_epoch(&self) -> u64;
-    fn cancelled(&self) -> bool;
+    /// Returns elapsed milliseconds as a pure observation.
     fn elapsed_ms(&self) -> u64;
+    /// Returns a pure policy/time probe for runtime-owned sinks.
     fn boundary_probe(&self) -> Box<dyn AgentBoundaryProbe>;
-    fn tokenize(&mut self, tokenizer_id: &str, request: &str) -> Result<u64, ()>;
+    /// Counts request tokens locally without crossing an external boundary.
+    fn tokenize(&mut self, tokenizer_id: &str, request: &str) -> Option<u64>;
+    /// Performs the sole provider external boundary and streams into `sink`.
     fn attempt_provider(
         &mut self,
         provider_id: &str,
         model_id: &str,
         request: &str,
         deadline_ms: u64,
-        sink: &mut ProviderSink,
-    ) -> ProviderAttempt;
+        sink: &mut AgentProviderSink,
+    ) -> AgentProviderAttempt;
+    /// Invokes one contractually read-only registered tool external boundary.
     fn invoke_tool(
         &mut self,
         call_id: &str,
         tool_id: &str,
-        arguments: &Value,
-        sink: &mut ToolResultSink,
-    ) -> Result<(), ()>;
+        arguments_json: &str,
+        sink: &mut AgentToolResultSink,
+    ) -> bool;
 }
 
-trait AgentBoundaryProbe {
+/// Pure boundary observations used by runtime-owned streaming sinks.
+pub trait AgentBoundaryProbe {
+    /// Returns the current monotonic policy epoch without external effects.
     fn policy_epoch(&self) -> u64;
-    fn cancelled(&self) -> bool;
+    /// Returns elapsed milliseconds without external effects.
     fn elapsed_ms(&self) -> u64;
 }
 
-struct ProviderSink {
+/// Opaque runtime-owned bounded provider response sink.
+pub struct AgentProviderSink {
     bytes: Vec<u8>,
     chunks: u64,
     byte_limit: usize,
@@ -457,7 +506,8 @@ struct ProviderSink {
     probe: Box<dyn AgentBoundaryProbe>,
     admitted_policy_epoch: u64,
     deadline_ms: u64,
-    boundary: Option<RunStatus>,
+    boundary: Option<AgentRunStatus>,
+    cancellation: AgentCancellation,
     builder_prepaid: bool,
 }
 
@@ -468,12 +518,13 @@ enum SinkRejection {
     Builder,
 }
 
-impl ProviderSink {
+impl AgentProviderSink {
     fn new(
         limits: EffectiveLimits,
         byte_limit: u64,
         probe: Box<dyn AgentBoundaryProbe>,
         admitted_policy_epoch: u64,
+        cancellation: AgentCancellation,
     ) -> Self {
         Self {
             bytes: Vec::new(),
@@ -485,21 +536,26 @@ impl ProviderSink {
             admitted_policy_epoch,
             deadline_ms: limits.max_elapsed_ms,
             boundary: None,
+            cancellation,
             builder_prepaid: true,
         }
     }
 
-    fn push(&mut self, chunk: &[u8]) -> bool {
-        if self.probe.cancelled() {
-            self.boundary = Some(RunStatus::Cancelled);
+    /// Appends one bounded chunk; after the first `false`, all later pushes fail.
+    pub fn push(&mut self, chunk: &[u8]) -> bool {
+        if self.rejection.is_some() || self.boundary.is_some() {
+            return false;
+        }
+        if self.cancellation.is_cancelled() {
+            self.boundary = Some(AgentRunStatus::Cancelled);
             return false;
         }
         if self.probe.elapsed_ms() > self.deadline_ms {
-            self.boundary = Some(RunStatus::DeadlineExceeded);
+            self.boundary = Some(AgentRunStatus::DeadlineExceeded);
             return false;
         }
         if self.probe.policy_epoch() != self.admitted_policy_epoch {
-            self.boundary = Some(RunStatus::PolicyRejected);
+            self.boundary = Some(AgentRunStatus::PolicyRejected);
             return false;
         }
         self.chunks = self.chunks.saturating_add(1);
@@ -524,23 +580,26 @@ impl ProviderSink {
     }
 }
 
-struct ToolResultSink {
+/// Opaque runtime-owned bounded tool-result sink.
+pub struct AgentToolResultSink {
     bytes: Vec<u8>,
     byte_limit: usize,
     rejection: Option<SinkRejection>,
     probe: Box<dyn AgentBoundaryProbe>,
     admitted_policy_epoch: u64,
     deadline_ms: u64,
-    boundary: Option<RunStatus>,
+    boundary: Option<AgentRunStatus>,
+    cancellation: AgentCancellation,
     builder_prepaid: bool,
 }
 
-impl ToolResultSink {
+impl AgentToolResultSink {
     fn new(
         limit: u64,
         probe: Box<dyn AgentBoundaryProbe>,
         admitted_policy_epoch: u64,
         deadline_ms: u64,
+        cancellation: AgentCancellation,
     ) -> Self {
         Self {
             bytes: Vec::new(),
@@ -550,20 +609,25 @@ impl ToolResultSink {
             admitted_policy_epoch,
             deadline_ms,
             boundary: None,
+            cancellation,
             builder_prepaid: true,
         }
     }
-    fn push(&mut self, chunk: &[u8]) -> bool {
-        if self.probe.cancelled() {
-            self.boundary = Some(RunStatus::Cancelled);
+    /// Appends one bounded chunk; after the first `false`, all later pushes fail.
+    pub fn push(&mut self, chunk: &[u8]) -> bool {
+        if self.rejection.is_some() || self.boundary.is_some() {
+            return false;
+        }
+        if self.cancellation.is_cancelled() {
+            self.boundary = Some(AgentRunStatus::Cancelled);
             return false;
         }
         if self.probe.elapsed_ms() > self.deadline_ms {
-            self.boundary = Some(RunStatus::DeadlineExceeded);
+            self.boundary = Some(AgentRunStatus::DeadlineExceeded);
             return false;
         }
         if self.probe.policy_epoch() != self.admitted_policy_epoch {
-            self.boundary = Some(RunStatus::PolicyRejected);
+            self.boundary = Some(AgentRunStatus::PolicyRejected);
             return false;
         }
         let Some(length) = self.bytes.len().checked_add(chunk.len()) else {
@@ -583,11 +647,79 @@ impl ToolResultSink {
     }
 }
 
-/// Opaque, non-cloneable, non-debuggable, invocation-local Agent.
-struct Agent<'a, H: AgentHost> {
-    profile_source: &'a str,
+/// Opaque single-run-at-a-time Agent over one caller-injected host.
+pub struct Agent<H: AgentHost> {
+    profile: Profile,
+    profile_builder_bytes: u64,
     host: H,
+    cancellation: AgentCancellation,
 }
+
+/// Monotonic cooperative cancellation shared by an Agent and its sinks.
+#[derive(Clone)]
+pub struct AgentCancellation {
+    cancelled: Arc<AtomicBool>,
+}
+
+impl AgentCancellation {
+    /// Creates an uncancelled monotonic cancellation handle.
+    pub fn new() -> Self {
+        Self {
+            cancelled: Arc::new(AtomicBool::new(false)),
+        }
+    }
+
+    /// Cancels every clone permanently.
+    pub fn cancel(&self) {
+        self.cancelled.store(true, Ordering::Release);
+    }
+
+    /// Returns whether cancellation has been requested.
+    pub fn is_cancelled(&self) -> bool {
+        self.cancelled.load(Ordering::Acquire)
+    }
+}
+
+impl Default for AgentCancellation {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl AgentRun {
+    /// Returns the closed terminal status.
+    pub const fn status(&self) -> AgentRunStatus {
+        self.status
+    }
+    /// Returns the untrusted final model message only for a completed run.
+    pub fn final_message(&self) -> Option<&str> {
+        self.replay.final_message()
+    }
+    /// Returns the canonical Trace document including its terminal LF.
+    pub fn trace(&self) -> &str {
+        &self.trace
+    }
+    /// Returns the domain-separated Trace digest.
+    pub fn trace_digest(&self) -> &str {
+        &self.trace_digest
+    }
+    /// Returns the canonical Evidence document including its terminal LF.
+    pub fn evidence(&self) -> &str {
+        &self.evidence
+    }
+    /// Returns the domain-separated Evidence digest.
+    pub fn evidence_digest(&self) -> &str {
+        &self.evidence_digest
+    }
+}
+
+type RunStatus = AgentRunStatus;
+type AgentRuntimeEvidence = AgentRun;
+type ProviderAttempt = AgentProviderAttempt;
+type ProviderDisposition = AgentProviderDisposition;
+type ProviderUsage = AgentProviderUsage;
+type ProviderSink = AgentProviderSink;
+type ToolResultSink = AgentToolResultSink;
 
 fn g204(document: &str, schema: &str) -> Diagnostic {
     Diagnostic::io(

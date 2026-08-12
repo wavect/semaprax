@@ -1262,17 +1262,21 @@ provenance.
 
 `AGENTS.md` defines the repository invariants and change protocol. `docs/QUALITY-GATES.md` defines baseline and semantic-layer-specific evidence. CI runs formatting, strict linting, tests, release builds, native execution, Wasm instantiation, crate packaging, and the declared Rust minimum version. These gates reduce regressions; they do not turn a partial completion-matrix row into a completed one.
 
-The unpublished [Private Bounded Native Agent Runtime v1](AGENT-RUNTIME-V1.md)
-is an isolated safe-Rust proof tranche. A caller-authenticated catalog and an
+The [Bounded Native Agent Runtime v1](AGENT-RUNTIME-V1.md) is an isolated safe-
+Rust runtime. A caller-authenticated catalog and an
 injected `AgentHost` drive one sequential, bounded loop; canonical model actions
-can select only registered read-only typed tools after immediate schema,
+can select only registered contractually read-only typed tools after immediate schema,
 effect, capability, policy, cancellation, deadline, and budget checks. Provider
 and tool bytes enter runtime-owned incremental sinks, and Trace/Evidence records
-only digests, lengths, usage, and decisions. The module has no public re-export,
-transport, process/environment/home access, filesystem mutation, durable
+only digests, lengths, usage, and decisions. C1 publicly exposes the opaque Agent,
+runtime-owned sinks, closed provider attempt values, cancellation handle, and
+opaque run getters; the unsealed host is injected and trusted for its declared
+transport/tools. The module has no built-in transport, process/environment/home access, filesystem mutation, durable
 memory, wallet, payment, signing, language, Graph, cleanup, or backend surface.
-The private local fake-host corpus and strict checks are green; CI is configured
-for Ubuntu, macOS, and Windows, while exact-head hosted evidence remains pending.
+The exact `cd2f6393bb84657f7ef4f0094e1136eb5a401355` A+B matrix is hosted green in
+[run 31585682213](https://github.com/wavect/semaprax/actions/runs/31585682213),
+including three-OS fake-host evidence. C1 public integration is locally green
+4/4; hosted promotion remains pending.
 This private proof changes none of the 38 Partial/18 Missing totals.
 
 ## Trust boundaries

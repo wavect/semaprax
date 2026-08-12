@@ -46,6 +46,12 @@ pub(super) struct EvidenceReplay {
     budget: EvidenceBudget,
 }
 
+impl EvidenceReplay {
+    pub(super) fn final_message(&self) -> Option<&str> {
+        self.state.final_message.as_deref()
+    }
+}
+
 struct Route {
     model_index: usize,
     request: String,
@@ -728,46 +734,82 @@ fn validate_schema(value: &Value, schema: &ClosedSchema, maximum: u64) -> Result
     Ok(output)
 }
 
-pub(super) fn new_agent<H: AgentHost>(profile_source: &str, host: H) -> Agent<'_, H> {
-    Agent {
-        profile_source,
-        host,
+#[cfg(test)]
+pub(super) struct TestAgent<H: AgentHost>(Agent<H>);
+
+#[cfg(test)]
+impl<H: AgentHost> TestAgent<H> {
+    pub(super) fn run(mut self, task: &str) -> Result<AgentRun, Vec<Diagnostic>> {
+        self.0.run(task)
     }
 }
 
-impl<H: AgentHost> Agent<'_, H> {
-    pub(super) fn run(
-        mut self,
-        task_source: &str,
-    ) -> Result<AgentRuntimeEvidence, Vec<Diagnostic>> {
+#[cfg(test)]
+pub(super) fn new_agent<H: AgentHost>(profile_source: &str, host: H) -> TestAgent<H> {
+    TestAgent(Agent::new(profile_source, host, AgentCancellation::new()).unwrap())
+}
+
+impl<H: AgentHost> Agent<H> {
+    /// Parses and owns one canonical Agent Runtime Profile before observing the host.
+    pub fn new(
+        profile_source: &str,
+        host: H,
+        cancellation: AgentCancellation,
+    ) -> Result<Self, Vec<Diagnostic>> {
+        let (profile, overflowed, used) = with_limit_usage(MAX_BUILDER_BYTES, || {
+            reserve_parse_bound(profile_source)?;
+            parse_profile(profile_source)
+        });
+        if overflowed {
+            return Err(vec![g208("builder_bytes", MAX_BUILDER_BYTES as u64)]);
+        }
+        Ok(Self {
+            profile: profile.map_err(|diagnostic| vec![diagnostic])?,
+            profile_builder_bytes: used as u64,
+            host,
+            cancellation,
+        })
+    }
+
+    /// Runs one canonical task through the bounded injected-host state machine.
+    pub fn run(&mut self, task_source: &str) -> Result<AgentRun, Vec<Diagnostic>> {
         let (result, overflowed, _) = with_limit_usage(MAX_BUILDER_BYTES, || {
-            reserve_parse_bound(self.profile_source)?;
-            let profile = parse_profile(self.profile_source)?;
+            if !reserve_active(self.profile_builder_bytes as usize) {
+                return Err(g208("builder_bytes", self.profile.limits.max_builder_bytes));
+            }
             reserve_parse_bound(task_source)?;
             let task = parse_task(task_source)?;
             let parse_used = MAX_BUILDER_BYTES
                 .saturating_sub(crate::bounded_output::active_remaining().unwrap_or(0))
                 as u64;
-            if parse_used > profile.limits.max_builder_bytes {
-                return Err(g208("builder_bytes", profile.limits.max_builder_bytes));
+            if parse_used > self.profile.limits.max_builder_bytes {
+                return Err(g208("builder_bytes", self.profile.limits.max_builder_bytes));
             }
-            let remaining = usize::try_from(profile.limits.max_builder_bytes - parse_used)
-                .map_err(|_| g208("builder_bytes", profile.limits.max_builder_bytes))?;
+            let remaining = usize::try_from(self.profile.limits.max_builder_bytes - parse_used)
+                .map_err(|_| g208("builder_bytes", self.profile.limits.max_builder_bytes))?;
             let (run, child_overflowed, child_used) = with_limit_usage(remaining, || {
                 let admitted_policy_epoch = self.host.policy_epoch();
-                let state = run_bounded(&profile, &mut self.host, admitted_policy_epoch, task)?;
-                render_bundle(&profile, state, parse_used, remaining as u64)
+                let state = run_bounded(
+                    &self.profile,
+                    &mut self.host,
+                    &self.cancellation,
+                    admitted_policy_epoch,
+                    task,
+                )?;
+                render_bundle(&self.profile, state, parse_used, remaining as u64)
             });
             let artifact = run?;
-            let expected_builder_message =
-                format!("builder_bytes exceeds {}", profile.limits.max_builder_bytes);
+            let expected_builder_message = format!(
+                "builder_bytes exceeds {}",
+                self.profile.limits.max_builder_bytes
+            );
             if child_overflowed
                 && !(artifact.status == RunStatus::BudgetExhausted
                     && artifact.replay.state.termination.code == Some("SPX-G208")
                     && artifact.replay.state.termination.message.as_deref()
                         == Some(expected_builder_message.as_str()))
             {
-                return Err(g208("builder_bytes", profile.limits.max_builder_bytes));
+                return Err(g208("builder_bytes", self.profile.limits.max_builder_bytes));
             }
             let sealed_builder_overflow = artifact.status == RunStatus::BudgetExhausted
                 && artifact.replay.state.termination.code == Some("SPX-G208")
@@ -776,7 +818,7 @@ impl<H: AgentHost> Agent<'_, H> {
             Ok((
                 artifact,
                 parse_used.saturating_add(child_used as u64),
-                profile.limits.max_builder_bytes,
+                self.profile.limits.max_builder_bytes,
                 sealed_builder_overflow,
             ))
         });
@@ -818,6 +860,7 @@ fn reserve_parse_bound(source: &str) -> Result<(), Diagnostic> {
 fn run_bounded<H: AgentHost>(
     profile: &Profile,
     host: &mut H,
+    cancellation: &AgentCancellation,
     policy_epoch: u64,
     task: Task,
 ) -> Result<RunState, Diagnostic> {
@@ -866,14 +909,18 @@ fn run_bounded<H: AgentHost>(
     if profile.limits.max_trace_events < 2 {
         return Err(g208("trace_events", profile.limits.max_trace_events));
     }
-    let drive = drive(profile, host, policy_epoch, &task, &mut state);
+    if cancellation.is_cancelled() {
+        return Err(operational("SPX-I220", "Agent Runtime run was cancelled"));
+    }
+    let drive = drive(profile, host, cancellation, policy_epoch, &task, &mut state);
     if let Err(diagnostic) = drive {
         if !state.external_effect_crossed
-            && diagnostic.code == "SPX-G208"
-            && (diagnostic.message.starts_with("trace_bytes exceeds ")
-                || diagnostic.message.starts_with("evidence_bytes exceeds ")
-                || diagnostic.message.starts_with("trace_events exceeds ")
-                || diagnostic.message.starts_with("builder_bytes exceeds "))
+            && ((diagnostic.code == "SPX-G208"
+                && (diagnostic.message.starts_with("trace_bytes exceeds ")
+                    || diagnostic.message.starts_with("evidence_bytes exceeds ")
+                    || diagnostic.message.starts_with("trace_events exceeds ")
+                    || diagnostic.message.starts_with("builder_bytes exceeds ")))
+                || diagnostic.code == "SPX-I220")
         {
             return Err(diagnostic);
         }
@@ -1346,6 +1393,7 @@ fn count_evidence_bytes(
 fn drive<H: AgentHost>(
     profile: &Profile,
     host: &mut H,
+    cancellation: &AgentCancellation,
     policy_epoch: u64,
     task: &Task,
     state: &mut RunState,
@@ -1354,12 +1402,15 @@ fn drive<H: AgentHost>(
         let previous_usage = state.usage.clone();
         let previous_turn = state.last_turn;
         state.last_turn = turn;
-        if let Some(termination) = boundary_termination(profile, host, policy_epoch) {
+        if let Some(termination) = boundary_termination(profile, host, cancellation, policy_epoch) {
+            if termination.status == RunStatus::Cancelled && !state.external_effect_crossed {
+                return Err(operational("SPX-I220", "Agent Runtime run was cancelled"));
+            }
             state.termination = termination;
             return Ok(());
         }
         state.usage.turns = turn;
-        let route = match route(profile, host, task, state, turn) {
+        let route = match route(profile, host, cancellation, task, state, turn) {
             Ok(route) => route,
             Err(diagnostic) => {
                 state.usage = previous_usage;
@@ -1384,12 +1435,28 @@ fn drive<H: AgentHost>(
             state.last_turn = previous_turn;
             return Err(diagnostic);
         }
-        let action = provider_turn(profile, host, policy_epoch, state, turn, model, &route)?;
+        let action = provider_turn(
+            profile,
+            host,
+            cancellation,
+            policy_epoch,
+            state,
+            turn,
+            model,
+            &route,
+        )?;
         let Some(action) = action else {
             return Ok(());
         };
         match action {
             Action::Final { message, source } => {
+                if cancellation.is_cancelled() {
+                    state.termination = termination_from_diagnostic(operational(
+                        "SPX-I220",
+                        "Agent Runtime run was cancelled",
+                    ));
+                    return Ok(());
+                }
                 push_internal_event(
                     profile,
                     state,
@@ -1418,6 +1485,7 @@ fn drive<H: AgentHost>(
                 execute_tool(
                     profile,
                     host,
+                    cancellation,
                     policy_epoch,
                     task,
                     state,
@@ -1450,9 +1518,11 @@ fn drive<H: AgentHost>(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn provider_turn<H: AgentHost>(
     profile: &Profile,
     host: &mut H,
+    cancellation: &AgentCancellation,
     policy_epoch: u64,
     state: &mut RunState,
     turn: u64,
@@ -1461,7 +1531,10 @@ fn provider_turn<H: AgentHost>(
 ) -> Result<Option<Action>, Diagnostic> {
     let mut retry = 0;
     loop {
-        if let Some(termination) = boundary_termination(profile, host, policy_epoch) {
+        if let Some(termination) = boundary_termination(profile, host, cancellation, policy_epoch) {
+            if termination.status == RunStatus::Cancelled && !state.external_effect_crossed {
+                return Err(operational("SPX-I220", "Agent Runtime run was cancelled"));
+            }
             state.termination = termination;
             return Ok(None);
         }
@@ -1525,10 +1598,14 @@ fn provider_turn<H: AgentHost>(
             response_remaining,
             host.boundary_probe(),
             policy_epoch,
+            cancellation.clone(),
         );
         preflight_external_capacity(profile, state, ExternalBoundary::Provider(model, route))?;
         if crate::bounded_output::active_remaining().is_some_and(|remaining| remaining == 0) {
             return Err(g208("builder_bytes", profile.limits.max_builder_bytes));
+        }
+        if cancellation.is_cancelled() {
+            return Err(operational("SPX-I220", "Agent Runtime run was cancelled"));
         }
         state.usage = next_usage;
         if let Err(diagnostic) = push_event(
@@ -1551,6 +1628,11 @@ fn provider_turn<H: AgentHost>(
             state.usage = previous_usage;
             return Err(diagnostic);
         }
+        if cancellation.is_cancelled() {
+            state.events.pop();
+            state.usage = previous_usage;
+            return Err(operational("SPX-I220", "Agent Runtime run was cancelled"));
+        }
         state.external_effect_crossed = true;
         let attempt = host.attempt_provider(
             &model.provider_id,
@@ -1559,6 +1641,9 @@ fn provider_turn<H: AgentHost>(
             profile.limits.max_elapsed_ms,
             &mut sink,
         );
+        if cancellation.is_cancelled() && sink.boundary.is_none() {
+            sink.boundary = Some(RunStatus::Cancelled);
+        }
         if let Some(boundary) = sink.boundary {
             account_partial_provider(state, &sink, attempt.usage, route, profile.limits)?;
             state.termination = termination_for_status(boundary);
@@ -1581,7 +1666,7 @@ fn provider_turn<H: AgentHost>(
             )?;
             return Ok(None);
         }
-        if let Some(termination) = boundary_termination(profile, host, policy_epoch) {
+        if let Some(termination) = boundary_termination(profile, host, cancellation, policy_epoch) {
             account_partial_provider(state, &sink, attempt.usage, route, profile.limits)?;
             state.termination = termination;
             let status = state.termination.status.text();
@@ -1858,6 +1943,7 @@ fn provider_turn<H: AgentHost>(
 fn execute_tool<H: AgentHost>(
     profile: &Profile,
     host: &mut H,
+    cancellation: &AgentCancellation,
     policy_epoch: u64,
     task: &Task,
     state: &mut RunState,
@@ -1950,7 +2036,7 @@ fn execute_tool<H: AgentHost>(
         state.usage = previous_usage;
         return Err(diagnostic);
     }
-    if let Some(termination) = boundary_termination(profile, host, policy_epoch) {
+    if let Some(termination) = boundary_termination(profile, host, cancellation, policy_epoch) {
         state.termination = termination;
         return Ok(());
     }
@@ -1970,6 +2056,7 @@ fn execute_tool<H: AgentHost>(
         host.boundary_probe(),
         policy_epoch,
         profile.limits.max_elapsed_ms,
+        cancellation.clone(),
     );
     reserve_builder_copy(
         usize::try_from(payload_limit)
@@ -1977,8 +2064,16 @@ fn execute_tool<H: AgentHost>(
         MAX_JSON_DEPTH + 4,
     )?;
     preflight_external_capacity(profile, state, ExternalBoundary::Tool(model, &tool_id))?;
+    if cancellation.is_cancelled() {
+        state.termination =
+            termination_from_diagnostic(operational("SPX-I220", "Agent Runtime run was cancelled"));
+        return Ok(());
+    }
     state.external_effect_crossed = true;
-    let invocation = host.invoke_tool(&call_id, &tool_id, &arguments, &mut sink);
+    let invocation = host.invoke_tool(&call_id, &tool_id, &arguments_json, &mut sink);
+    if cancellation.is_cancelled() && sink.boundary.is_none() {
+        sink.boundary = Some(RunStatus::Cancelled);
+    }
     if let Some(boundary) = sink.boundary {
         checked_add(
             &mut state.usage.tool_result_bytes,
@@ -2035,7 +2130,7 @@ fn execute_tool<H: AgentHost>(
         )?;
         return Ok(());
     }
-    if invocation.is_err() {
+    if !invocation {
         checked_add(
             &mut state.usage.tool_result_bytes,
             sink.bytes.len() as u64,
@@ -2063,7 +2158,7 @@ fn execute_tool<H: AgentHost>(
         )?;
         return Ok(());
     }
-    if let Some(termination) = boundary_termination(profile, host, policy_epoch) {
+    if let Some(termination) = boundary_termination(profile, host, cancellation, policy_epoch) {
         checked_add(
             &mut state.usage.tool_result_bytes,
             sink.bytes.len() as u64,
@@ -2251,9 +2346,10 @@ fn finish_failed_tool_result(
 fn boundary_termination<H: AgentHost>(
     profile: &Profile,
     host: &H,
+    cancellation: &AgentCancellation,
     policy_epoch: u64,
 ) -> Option<Termination> {
-    if host.cancelled() {
+    if cancellation.is_cancelled() {
         return Some(termination_from_diagnostic(operational(
             "SPX-I220",
             "Agent Runtime run was cancelled",
@@ -2288,6 +2384,7 @@ fn termination_for_status(status: RunStatus) -> Termination {
 fn route<H: AgentHost>(
     profile: &Profile,
     host: &mut H,
+    cancellation: &AgentCancellation,
     task: &Task,
     state: &RunState,
     turn: u64,
@@ -2333,6 +2430,9 @@ fn route<H: AgentHost>(
         let mut request = String::new();
         let mut tokens = 0;
         for _ in 0..8 {
+            if cancellation.is_cancelled() {
+                return Err(operational("SPX-I220", "Agent Runtime run was cancelled"));
+            }
             let request_bound =
                 provider_request_builder_bound(task, &state.history, &profile.tools)?;
             if crate::bounded_output::active_remaining().is_some_and(|value| request_bound > value)
@@ -2353,12 +2453,14 @@ fn route<H: AgentHost>(
                 break;
             }
             validate_provider_request(&request)?;
-            tokens = host.tokenize(&model.tokenizer_id, &request).map_err(|()| {
-                operational(
-                    "SPX-I218",
-                    "Agent Runtime provider adapter failed: usage invalid",
-                )
-            })?;
+            tokens = host
+                .tokenize(&model.tokenizer_id, &request)
+                .ok_or_else(|| {
+                    operational(
+                        "SPX-I218",
+                        "Agent Runtime provider adapter failed: usage invalid",
+                    )
+                })?;
             let next = profile
                 .limits
                 .max_reported_model_output_tokens

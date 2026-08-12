@@ -1,14 +1,17 @@
 # SEMAPRAX
 
-The repository also contains an unpublished [Private Bounded Native Agent
-Runtime v1](docs/AGENT-RUNTIME-V1.md) proof tranche. It exercises canonical
+The repository also contains a [Bounded Native Agent Runtime
+v1](docs/AGENT-RUNTIME-V1.md). It exercises canonical
 profiles, tasks, actions, deterministic routing, injected provider streaming,
 registered read-only typed tools, bounded Trace/Evidence, cancellation, and
-replay. It is not a public API, CLI, provider transport, language/backend
-feature, durable-memory system, wallet, payment, signing, or ambient-authority
-surface.
-The private local fake-host corpus and strict checks are green; CI is configured
-for Ubuntu, macOS, and Windows, while exact-head hosted evidence remains pending.
+replay. C1 exposes only an injected-host Rust API and opaque result/sink types;
+it is not a CLI, provider transport, language/backend feature, durable-memory
+system, wallet, payment, signing, or ambient-authority surface.
+The exact `cd2f6393bb84657f7ef4f0094e1136eb5a401355` A+B matrix is hosted green in
+[run 31585682213](https://github.com/wavect/semaprax/actions/runs/31585682213),
+with all 12 jobs passing including the fake-host gate on Ubuntu, macOS, and
+Windows. C1 public integration is locally green 4/4; promotion requires a fresh
+exact-head hosted matrix.
 This changes none of the 38 Partial/18 Missing totals.
 
 > **The agent-native systems programming language**

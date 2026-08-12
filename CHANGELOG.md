@@ -1,14 +1,17 @@
 # Changelog
 
-- Added an unpublished Private Bounded Native Agent Runtime v1 proof tranche:
+- Added Bounded Native Agent Runtime v1 A+B proof and the additive C1 injected-
+  host Rust API:
   canonical Profile/Task/Action/Trace/Evidence, deterministic routing, injected
   fake-host streaming, registered read-only typed tools, capability/effect
   checks, cooperative cancellation, cumulative budgets, and independent replay.
-  It adds no public API/CLI, provider transport, ambient authority, language or
+  C1 exposes opaque Agent/run/sink types and no CLI, provider transport, ambient authority, language or
   backend semantics, durable memory, wallet, payment, or signing surface.
-  The private local fake-host corpus and strict checks are green; CI is
-  configured for Ubuntu, macOS, and Windows, while exact-head hosted evidence
-  remains pending. Totals remain 38 Partial/18 Missing.
+  The exact `cd2f6393bb84657f7ef4f0094e1136eb5a401355` A+B matrix is hosted green
+  in [run 31585682213](https://github.com/wavect/semaprax/actions/runs/31585682213),
+  with all 12 jobs passing including Ubuntu/macOS/Windows fake-host evidence.
+  C1 public integration is locally green 4/4 and hosted promotion remains
+  pending. Totals remain 38 Partial/18 Missing.
 
 All notable changes to SEMAPRAX are documented here.
 

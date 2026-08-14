@@ -1,7 +1,7 @@
 # Native Rust Interoperability v1
 
-Status: private A+B design and implementation are in progress. Public C and
-hosted promotion remain held. The six output artifacts now have frozen
+Status: private A+B design and implementation are locally green. Public C and
+hosted promotion remain held. The six output artifacts have frozen
 whole-byte known-answer identities after independent exact replay and exhaustive
 byte-edit rejection; this wire freeze is not an A+B runtime or platform GO.
 
@@ -101,6 +101,16 @@ the only generated unsafe quarantine.
 
 Private A is pure:
 `prepare_native_rust_interop(&Program,&[u8]) -> PreparedNativeRustInterop`.
+Its cumulative authority is reserved before phase entry. Pre-resolution HIR,
+cleanup inventory/plan, TypeFacts, post-HIR fact construction, the five
+renderers, Descriptor replay, and the independent C-expression replay have
+named retained-versus-scratch envelopes, iterative depth-bounded traversals,
+observed high-water gates, and exact/minus-one entry tests. Persistent facts
+and final artifact sinks are charged separately from sequential scratch; the
+Spec allocation is transferred rather than charged twice. These are local
+bounded-memory facts for this private preparation path, not a general compiler
+allocation or no-allocation claim.
+
 Private B calls A once. `RUSTC` must name an explicit absolute discovery
 executable; that executable may only run the frozen bounded sysroot query and
 produces no accepted artifact. B independently opens the reported sysroot and
@@ -111,7 +121,12 @@ Clang is independently held. One exact pre-effect process arena is consumed by
 the four discovery/version operations and eight build/link/run operations,
 exactly replays Descriptor and Manifest bytes, and generates
 header/C/safe-Rust/private-FFI artifacts with independent ordered exact-byte
-consumers. The canonical Spec input and all six outputs reject every-byte
+consumers. Prepared invocations bind the admitted current-host target spelling,
+including underscore-bearing target components, while rejecting other
+punctuation. The four required `rustc -vV` fields share one preallocated
+65,536-byte fixed-capacity store; parsing is no-growth and its retained capacity
+is transferred exactly into Phase B rather than reserving four independent
+maximum strings. The canonical Spec input and all six outputs reject every-byte
 substitution, deletion, insertion, and truncation. One fixed-target fixture pins
 the byte length and independently recomputed raw SHA-256 of Descriptor, Manifest,
 header, C, safe Rust, and private FFI; it additionally pins the existing protocol
@@ -169,4 +184,7 @@ stable Rust ABI, public CLI/registry/network, general interop readiness, and a
 completion-matrix promotion.
 
 Public C remains held until this private A+B surface is committed and its exact
-head is green on Ubuntu, macOS, and Windows.
+head is green on Ubuntu, macOS, and Windows, including the required Windows
+runtime/capacity settlement and Linux sanitizer lanes. Local runs qualify only
+when `RUSTC` and `CLANG` explicitly select the admitted absolute tools; ambient
+launcher or proxy discovery is intentionally not equivalent evidence.

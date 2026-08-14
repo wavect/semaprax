@@ -15936,35 +15936,74 @@ fn configured_tool(variable: &str) -> Result<TestTool, Diagnostic> {
 }
 
 struct RustcVersion {
-    release: String,
-    commit_hash: String,
-    host: String,
-    llvm_version: String,
+    storage: String,
+    boundaries: [usize; 5],
 }
 
 impl RustcVersion {
     fn prepared() -> Result<Self, PhaseBLocalError> {
-        let make = || {
-            let value = String::with_capacity(PHASE_B_TOOL_VERSION_CAPACITY);
-            if value.capacity() == PHASE_B_TOOL_VERSION_CAPACITY {
-                Ok(value)
-            } else {
-                Err(PhaseBLocalError::BuilderBudget)
-            }
-        };
+        let storage = String::with_capacity(PHASE_B_TOOL_VERSION_CAPACITY);
+        if storage.capacity() != PHASE_B_TOOL_VERSION_CAPACITY {
+            return Err(PhaseBLocalError::BuilderBudget);
+        }
         Ok(Self {
-            release: make()?,
-            commit_hash: make()?,
-            host: make()?,
-            llvm_version: make()?,
+            storage,
+            boundaries: [0; 5],
         })
     }
 
     fn capacity(&self) -> usize {
-        self.release.capacity()
-            + self.commit_hash.capacity()
-            + self.host.capacity()
-            + self.llvm_version.capacity()
+        self.storage.capacity()
+    }
+
+    fn field(&self, index: usize) -> &str {
+        &self.storage[self.boundaries[index]..self.boundaries[index + 1]]
+    }
+
+    fn release(&self) -> &str {
+        self.field(0)
+    }
+
+    fn commit_hash(&self) -> &str {
+        self.field(1)
+    }
+
+    fn host(&self) -> &str {
+        self.field(2)
+    }
+
+    fn llvm_version(&self) -> &str {
+        self.field(3)
+    }
+
+    fn store(&mut self, values: [&str; 4]) -> Result<(), PhaseBLocalError> {
+        if self.capacity() != PHASE_B_TOOL_VERSION_CAPACITY
+            || !self.storage.is_empty()
+            || self.boundaries != [0; 5]
+        {
+            return Err(PhaseBLocalError::BuilderBudget);
+        }
+        let total = values
+            .iter()
+            .try_fold(0usize, |total, value| total.checked_add(value.len()));
+        if total.is_none_or(|total| total > self.capacity()) {
+            return Err(PhaseBLocalError::Unsupported);
+        }
+        for (index, value) in values.into_iter().enumerate() {
+            self.storage.push_str(value);
+            self.boundaries[index + 1] = self.storage.len();
+        }
+        if self.capacity() != PHASE_B_TOOL_VERSION_CAPACITY {
+            return Err(PhaseBLocalError::BuilderBudget);
+        }
+        Ok(())
+    }
+
+    #[cfg(test)]
+    fn from_fields(values: [&str; 4]) -> Self {
+        let mut version = Self::prepared().unwrap();
+        version.store(values).unwrap();
+        version
     }
 }
 
@@ -16117,12 +16156,10 @@ fn prepare_toolchain_plan() -> Result<PreparedToolchainPlan, PhaseBLocalError> {
     if command_owned > command_budget.maximum() {
         return Err(PhaseBLocalError::BuilderBudget);
     }
-    let persistent = PHASE_B_TOOL_VERSION_CAPACITY
-        .checked_mul(4)
-        .ok_or(PhaseBLocalError::BuilderBudget)?;
+    let persistent = PHASE_B_TOOL_VERSION_CAPACITY;
     let persistent_budget = reserve_phase_b(persistent)?;
     let rustc_version = RustcVersion::prepared()?;
-    if rustc_version.capacity() != PHASE_B_TOOL_VERSION_CAPACITY * 4 {
+    if rustc_version.capacity() != PHASE_B_TOOL_VERSION_CAPACITY {
         return Err(PhaseBLocalError::BuilderBudget);
     }
     retain_phase_b(persistent_budget, rustc_version.capacity())?;
@@ -16269,7 +16306,7 @@ fn authenticate_toolchain(
     parse_rustc_version(rustc_text, &mut rustc_version)?;
     drop(rustc_bytes);
     drop(rustc_output_budget);
-    if rustc_version.host != target.triple {
+    if rustc_version.host() != target.triple {
         return Err(PhaseBLocalError::Unsupported);
     }
     #[cfg(test)]
@@ -16315,11 +16352,9 @@ fn planned_sanitizers(plan: &PreparedToolchainPlan) -> bool {
 }
 
 fn parse_rustc_version(source: &str, output: &mut RustcVersion) -> Result<(), PhaseBLocalError> {
-    if output.capacity() != PHASE_B_TOOL_VERSION_CAPACITY * 4
-        || !output.release.is_empty()
-        || !output.commit_hash.is_empty()
-        || !output.host.is_empty()
-        || !output.llvm_version.is_empty()
+    if output.capacity() != PHASE_B_TOOL_VERSION_CAPACITY
+        || !output.storage.is_empty()
+        || output.boundaries != [0; 5]
     {
         return Err(PhaseBLocalError::BuilderBudget);
     }
@@ -16369,14 +16404,7 @@ fn parse_rustc_version(source: &str, output: &mut RustcVersion) -> Result<(), Ph
     {
         return Err(PhaseBLocalError::Unsupported);
     }
-    output.release.push_str(release);
-    output.commit_hash.push_str(commit_hash);
-    output.host.push_str(host);
-    output.llvm_version.push_str(llvm_version);
-    if output.capacity() != PHASE_B_TOOL_VERSION_CAPACITY * 4 {
-        return Err(PhaseBLocalError::BuilderBudget);
-    }
-    Ok(())
+    output.store([release, commit_hash, host, llvm_version])
 }
 
 /// Canonical manifest row order is a wire contract.  The platform object is
@@ -16459,13 +16487,13 @@ fn write_manifest(
         write_manifest_file_row(output, path, bytes)?;
     }
     output.write_str("],\"toolchain\":{\"rustc_release\":")?;
-    write_json_string(output, &rustc.release)?;
+    write_json_string(output, rustc.release())?;
     output.write_str(",\"rustc_commit_hash\":")?;
-    write_json_string(output, &rustc.commit_hash)?;
+    write_json_string(output, rustc.commit_hash())?;
     output.write_str(",\"host\":")?;
-    write_json_string(output, &rustc.host)?;
+    write_json_string(output, rustc.host())?;
     output.write_str(",\"llvm_version\":")?;
-    write_json_string(output, &rustc.llvm_version)?;
+    write_json_string(output, rustc.llvm_version())?;
     output.write_str(",\"clang_path\":")?;
     write_json_string(output, clang_path)?;
     output.write_str(",\"clang_version\":")?;
@@ -16556,13 +16584,13 @@ fn replay_manifest_bytes_exact(
         exact.text("}");
     }
     exact.text("],\"toolchain\":{\"rustc_release\":");
-    exact.json(&rustc.release);
+    exact.json(rustc.release());
     exact.text(",\"rustc_commit_hash\":");
-    exact.json(&rustc.commit_hash);
+    exact.json(rustc.commit_hash());
     exact.text(",\"host\":");
-    exact.json(&rustc.host);
+    exact.json(rustc.host());
     exact.text(",\"llvm_version\":");
-    exact.json(&rustc.llvm_version);
+    exact.json(rustc.llvm_version());
     exact.text(",\"clang_path\":");
     exact.json(clang_path);
     exact.text(",\"clang_version\":");
@@ -16800,13 +16828,13 @@ fn replay_manifest_semantic(
         cursor.expect(b"}")?;
     }
     cursor.expect(b"],\"toolchain\":{\"rustc_release\":")?;
-    cursor.string_eq(&rustc.release)?;
+    cursor.string_eq(rustc.release())?;
     cursor.expect(b",\"rustc_commit_hash\":")?;
-    cursor.string_eq(&rustc.commit_hash)?;
+    cursor.string_eq(rustc.commit_hash())?;
     cursor.expect(b",\"host\":")?;
-    cursor.string_eq(&rustc.host)?;
+    cursor.string_eq(rustc.host())?;
     cursor.expect(b",\"llvm_version\":")?;
-    cursor.string_eq(&rustc.llvm_version)?;
+    cursor.string_eq(rustc.llvm_version())?;
     cursor.expect(b",\"clang_path\":")?;
     cursor.string_eq(clang_path)?;
     cursor.expect(b",\"clang_version\":")?;
@@ -16995,7 +17023,15 @@ fn prepare_invocation<T>(
     capacity: impl FnOnce(&T) -> usize,
 ) -> Result<(T, TemporaryBudget), PhaseBLocalError> {
     let budget = reserve_phase_b(maximum)?;
-    let invocation = prepare().map_err(|_| PhaseBLocalError::BuilderBudget)?;
+    let invocation = prepare().map_err(|error| match error {
+        platform::Error::OutputLimit => PhaseBLocalError::BuilderBudget,
+        platform::Error::Invalid
+        | platform::Error::Unsupported
+        | platform::Error::Exists
+        | platform::Error::Changed
+        | platform::Error::Spawn
+        | platform::Error::Exit => PhaseBLocalError::Unsupported,
+    })?;
     if capacity(&invocation) > budget.maximum() {
         return Err(PhaseBLocalError::BuilderBudget);
     }
@@ -20317,12 +20353,12 @@ fn main() -> i64 { 0 }
         }
 
         let files = [("descriptor.json", prepared.descriptor.as_bytes())];
-        let rustc = RustcVersion {
-            release: "1.0.0".to_owned(),
-            commit_hash: "0123456789abcdef".to_owned(),
-            host: prepared.target.triple.clone(),
-            llvm_version: "20.0.0".to_owned(),
-        };
+        let rustc = RustcVersion::from_fields([
+            "1.0.0",
+            "0123456789abcdef",
+            &prepared.target.triple,
+            "20.0.0",
+        ]);
         let manifest = render_manifest(
             &prepared,
             &files,
@@ -20465,12 +20501,12 @@ fn main() -> i64 { 0 }
                         prepared.private_ffi_source.as_bytes(),
                     ),
                 ];
-                let rustc = RustcVersion {
-                    release: "1.88.0".to_owned(),
-                    commit_hash: "0123456789abcdef".to_owned(),
-                    host: prepared.target.triple.clone(),
-                    llvm_version: "20.1.0".to_owned(),
-                };
+                let rustc = RustcVersion::from_fields([
+                    "1.88.0",
+                    "0123456789abcdef",
+                    &prepared.target.triple,
+                    "20.1.0",
+                ]);
                 let manifest = render_manifest(
                     &prepared,
                     &files,
@@ -20910,23 +20946,33 @@ fn main() -> i64 { 0 }
         ] {
             assert!(source.len() <= PHASE_B_TOOL_VERSION_CAPACITY);
             let mut parsed = RustcVersion::prepared().unwrap();
-            let capacities = (
-                parsed.release.capacity(),
-                parsed.commit_hash.capacity(),
-                parsed.host.capacity(),
-                parsed.llvm_version.capacity(),
-            );
+            let capacity = parsed.capacity();
             parse_rustc_version(&source, &mut parsed).unwrap();
-            assert_eq!(
-                (
-                    parsed.release.capacity(),
-                    parsed.commit_hash.capacity(),
-                    parsed.host.capacity(),
-                    parsed.llvm_version.capacity(),
-                ),
-                capacities,
-            );
+            assert_eq!(parsed.capacity(), capacity);
+            assert_eq!(parsed.release(), "1.88.0");
+            assert_eq!(parsed.commit_hash(), "0123456789abcdef");
+            assert_eq!(parsed.host(), "x86_64-unknown-linux-gnu");
         }
+
+        let exact_first = "r".repeat(PHASE_B_TOOL_VERSION_CAPACITY - 3);
+        let mut exact = RustcVersion::prepared().unwrap();
+        let exact_pointer = exact.storage.as_ptr();
+        exact.store([&exact_first, "c", "h", "l"]).unwrap();
+        assert_eq!(exact.storage.len(), PHASE_B_TOOL_VERSION_CAPACITY);
+        assert_eq!(exact.storage.capacity(), PHASE_B_TOOL_VERSION_CAPACITY);
+        assert_eq!(exact.storage.as_ptr(), exact_pointer);
+
+        let overflow_first = "r".repeat(PHASE_B_TOOL_VERSION_CAPACITY - 2);
+        let mut overflow = RustcVersion::prepared().unwrap();
+        let overflow_pointer = overflow.storage.as_ptr();
+        assert_eq!(
+            overflow.store([&overflow_first, "c", "h", "l"]),
+            Err(PhaseBLocalError::Unsupported),
+        );
+        assert!(overflow.storage.is_empty());
+        assert_eq!(overflow.boundaries, [0; 5]);
+        assert_eq!(overflow.storage.capacity(), PHASE_B_TOOL_VERSION_CAPACITY);
+        assert_eq!(overflow.storage.as_ptr(), overflow_pointer);
 
         for invalid in [
             "rustc 1.88.0\nrelease: 1.88.0\nrelease: 1.88.0\ncommit-hash: 0123456\nhost: h\nLLVM version: 1",
@@ -20992,6 +21038,34 @@ fn main() -> i64 { 0 }
         assert_eq!(PHASE_B_OUTPUT_PROBES.with(std::cell::Cell::get), 0);
         assert_eq!(PHASE_B_TOOL_HOLDS.with(std::cell::Cell::get), 0);
         assert_eq!(PHASE_B_TOOL_PROCESSES.with(std::cell::Cell::get), 0);
+    }
+
+    #[test]
+    fn phase_b_prepared_invocations_admit_linux_underscore_and_reject_other_punctuation_as_b110() {
+        let mut prepared = with_test_target(
+            Target {
+                triple: "x86_64-unknown-linux-gnu".to_owned(),
+                pointer_width: 64,
+                endian: "little".to_owned(),
+                panic_strategy: "unwind".to_owned(),
+                thread_policy: "same_thread".to_owned(),
+            },
+            || {
+                let (program, spec) = fixture();
+                prepare_native_rust_interop(&program, spec.as_bytes()).unwrap()
+            },
+        );
+        PHASE_B_BUILD_INVOCATION_PLANS.with(|count| count.set(0));
+        let plans = prepare_build_invocations(&prepared, false).unwrap();
+        assert_eq!(PHASE_B_BUILD_INVOCATION_PLANS.with(std::cell::Cell::get), 8);
+        drop(plans);
+
+        prepared.target.triple = "x86_64-unknown/linux-gnu".to_owned();
+        let error = match prepare_build_invocations(&prepared, false) {
+            Ok(_) => panic!("noncanonical target punctuation was admitted"),
+            Err(error) => error,
+        };
+        assert_eq!(error, PhaseBLocalError::Unsupported);
     }
 
     #[test]

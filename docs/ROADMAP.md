@@ -629,9 +629,11 @@ Exit criterion: implement a zero-copy parser and server without a tracing GC.
   shape as supported. Rust `unsafe` remains confined to reviewed boundary code
   and never becomes ambient SEMAPRAX authority.
 - The private scalar A+B precursor is locally green with direct-rustc
-  fixed-point authority, a pre-effect 12-use process arena, prepared
-  filesystem/publication authority, and fail-stop settlement. Exact-head
-  Ubuntu/macOS/Windows and Linux sanitizer evidence remain the promotion gate;
+  fixed-point authority, named pre-HIR/post-HIR capacity envelopes and exact
+  transfers, a pre-effect 12-use process arena, fixed-capacity tool-version
+  storage, prepared filesystem/publication authority, and fail-stop settlement.
+  Exact-head Ubuntu/macOS/Windows and Linux sanitizer evidence remain the
+  promotion gate;
   compiler sysroot/dynamic-library descendant provenance remains a nonclaim.
 - Capability-sandboxed reproducible package builds.
 - Provenance, SBOM, license, and unsafe-code metadata.

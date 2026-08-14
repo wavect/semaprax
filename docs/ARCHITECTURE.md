@@ -70,22 +70,33 @@ canonical Spec input and all six outputs, and a portable fixed-target fixture
 freezes each output's byte length and raw SHA-256 plus the existing Descriptor
 and Manifest protocol-domain digests. This freezes those wire identities without
 claiming hosted execution or public promotion.
+Preparation reserves its cumulative authority before each semantic phase. The
+local capacity corpus separates persistent HIR/facts/artifact storage from
+sequential scratch, iteratively traverses admitted depth, transfers the Spec
+allocation once, and exercises named post-HIR fact/render/replay high waters and
+minimum-minus-one zero-entry boundaries. This is evidence for the private
+preparation route only, not a general compiler allocation claim.
 The build stage requires an explicitly configured absolute Rust launcher and
 uses it only for one bounded sysroot discovery. It independently holds the
 direct compiler at that sysroot, requires the direct compiler to reproduce the
 same held sysroot, validates its version, and restricts every Rust artifact
 operation to the distinct direct-compiler authority. Rust discovery/version,
 Clang version, and the eight build/link/run operations consume one exact
-pre-effect 12-use process arena. Prepared native names, inventories, artifact
+pre-effect 12-use process arena. The four retained `rustc -vV` fields occupy one
+fixed-capacity no-growth store, and prepared target arguments admit the host's
+underscore-bearing components without widening the closed punctuation grammar.
+Prepared native names, inventories, artifact
 comparisons, and the final no-clobber rename leave no allocation or new local
 budget failure after the final inventory scan. The build uses statically linked
 generated objects, executes a generated round trip, and publishes one
-create-new exact inventory through held platform authority. Each private build
+create-new exact inventory through held platform authority. Windows directory
+authority binds volume, full file identity, and reparse state rather than
+mutable directory length. Each private build
 stage is required to retain its create-returned directory authority until
 settlement and attempt one exact-inventory cleanup on success or failure.
 Cleanup must stop on identity, reparse/symlink, or inventory disagreement,
 preserve foreign sentinels, and expose no generic recursive-delete primitive.
-Local builder 94/94, platform-system 20/20, platform 10/10, source-contract
+Local builder 97/97, platform-system 21/21, platform 10/10, source-contract
 6/6, strict-Clippy, formatting, and security evidence are green. Exact-head
 hosted cleanup/process authority and sanitizer evidence on Ubuntu, macOS, and
 Windows remain held; Windows process-arena runtime and capacity-minus-one

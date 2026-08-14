@@ -136,6 +136,8 @@ fn preview_with_hook(
 pub(crate) fn build_from_review(
     build: &review::ReviewBuild,
 ) -> Result<TargetEvidenceFacts, Vec<Diagnostic>> {
+    graph::reject_native_rust_imports(build.before_resolved()).map_err(|error| vec![error])?;
+    graph::reject_native_rust_imports(build.candidate_resolved()).map_err(|error| vec![error])?;
     let base_graph = bounded_graph(build.before_resolved(), build.base_revision())?;
     let base_graph_bytes = base_graph.len();
     let base_graph_digest = domain_digest(GRAPH_DIGEST_DOMAIN, base_graph.as_bytes());

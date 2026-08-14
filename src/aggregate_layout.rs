@@ -214,6 +214,7 @@ fn layout_type(
     visiting: &mut BTreeSet<String>,
 ) -> Result<ValueLayout, Diagnostic> {
     match ty {
+        ResolvedType::Unit => Err(layout_error("unit has no aggregate value layout")),
         ResolvedType::I64 | ResolvedType::Bool => {
             let (size, align) = scalar_size_align(target, ty)?;
             scalar_layout(target, ty, size, align)
@@ -443,6 +444,11 @@ fn collect_expr_record_types(
     match &expression.kind {
         ResolvedExprKind::Call { args, .. } => {
             for argument in args {
+                collect_expr_record_types(program, argument, instances)?;
+            }
+        }
+        ResolvedExprKind::NativeRustImportCall(call) => {
+            for argument in &call.args {
                 collect_expr_record_types(program, argument, instances)?;
             }
         }

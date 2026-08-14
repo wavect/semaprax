@@ -122,6 +122,7 @@ impl ByteOutput for crate::bounded_output::CappedVec {
 }
 
 pub fn emit_module(program: &Program) -> Result<Vec<u8>, Diagnostic> {
+    reject_native_rust_imports(program)?;
     let resolved = hir::resolve(program).map_err(|diagnostics| {
         diagnostics
             .into_iter()
@@ -137,6 +138,17 @@ pub fn emit_module(program: &Program) -> Result<Vec<u8>, Diagnostic> {
 /// source first. This entry point exists for semantic consumers that already
 /// hold HIR and keeps all backend lowering independent of source-level names.
 pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagnostic> {
+    if program
+        .interfaces
+        .iter()
+        .flat_map(|interface| &interface.imports)
+        .any(|import| import.native_rust)
+    {
+        return Err(Diagnostic::io(
+            "SPX-W114",
+            "Native Rust imports are unavailable for WebAssembly targets",
+        ));
+    }
     hir::validate(program)?;
     let concrete_variants = VariantLayoutCache::build(program, VariantTarget::Wasm32)?;
     let has_authored_aggregate = program.types.iter().any(|declaration| {
@@ -480,6 +492,7 @@ pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagno
 }
 
 pub fn build_web(program: &Program, output: &Path) -> Result<(), Diagnostic> {
+    reject_native_rust_imports(program)?;
     let resolved = hir::resolve(program).map_err(|diagnostics| {
         diagnostics
             .into_iter()
@@ -548,6 +561,22 @@ pub fn build_web(program: &Program, output: &Path) -> Result<(), Diagnostic> {
     Ok(())
 }
 
+fn reject_native_rust_imports(program: &Program) -> Result<(), Diagnostic> {
+    if program
+        .interfaces
+        .iter()
+        .flat_map(|interface| &interface.imports)
+        .any(|import| import.native_rust)
+    {
+        Err(Diagnostic::io(
+            "SPX-W114",
+            "Native Rust imports are unavailable for WebAssembly targets",
+        ))
+    } else {
+        Ok(())
+    }
+}
+
 fn collect_locals(
     expr: &ResolvedExpr,
     parameter_count: u32,
@@ -556,6 +585,11 @@ fn collect_locals(
     match &expr.kind {
         ResolvedExprKind::Call { args, .. } => {
             for arg in args {
+                collect_locals(arg, parameter_count, layout)?;
+            }
+        }
+        ResolvedExprKind::NativeRustImportCall(call) => {
+            for arg in &call.args {
                 collect_locals(arg, parameter_count, layout)?;
             }
         }
@@ -684,6 +718,12 @@ fn emit_expr(
                     Diagnostic::io("SPX-W104", format!("unknown function identity `{callee}`"))
                 })?,
             );
+        }
+        ResolvedExprKind::NativeRustImportCall(_) => {
+            return Err(Diagnostic::io(
+                "SPX-W114",
+                "Native Rust imports are unavailable for WebAssembly targets",
+            ));
         }
         ResolvedExprKind::Unary { op, value } => match op {
             UnaryOp::Neg => {
@@ -896,6 +936,10 @@ fn call_import(output: &mut impl ByteOutput, index: u32) {
 
 fn wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
     match ty {
+        ResolvedType::Unit => Err(Diagnostic::io(
+            "SPX-W101",
+            "unit is not a WebAssembly value type",
+        )),
         ResolvedType::I64 => Ok(I64),
         ResolvedType::Bool | ResolvedType::Nominal { .. } => Ok(I32),
         ResolvedType::TypeParameter { .. } => Err(Diagnostic::io(

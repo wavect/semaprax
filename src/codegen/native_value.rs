@@ -170,6 +170,11 @@ pub(crate) fn plan(
     let body_value = planner.lower_body_tail(tail)?;
 
     let result = match &function.return_type {
+        ResolvedType::Unit => {
+            return Err(value_error(
+                "unit result is outside the ordinary native value corpus",
+            ));
+        }
         ResolvedType::I64 => {
             let result = planner.new_scalar(&function.body.id, "int64_t")?;
             planner.push(NativeValueStep::Copy {
@@ -951,6 +956,9 @@ fn validate_signature(
     }
     for parameter in &function.params {
         match &parameter.ty {
+            ResolvedType::Unit => {
+                return Err(value_error("unit is not an ordinary native parameter"));
+            }
             ResolvedType::I64 | ResolvedType::Bool => {
                 if parameter.ownership != OwnershipMode::Value {
                     return Err(value_error("scalar parameter is not passed by value"));
@@ -985,7 +993,10 @@ fn validate_signature(
             let _ = abi.c_type(program, &function.return_type)?;
             Ok(())
         }
-        ResolvedType::Bool | ResolvedType::TypeParameter { .. } | ResolvedType::Nominal { .. } => {
+        ResolvedType::Unit
+        | ResolvedType::Bool
+        | ResolvedType::TypeParameter { .. }
+        | ResolvedType::Nominal { .. } => {
             Err(value_error("result type is outside the staged corpus"))
         }
     }

@@ -27,6 +27,38 @@ macro_rules! format {
     };
 }
 
+pub(crate) fn reject_native_rust_imports(program: &ResolvedProgram) -> Result<(), Diagnostic> {
+    if program
+        .interfaces
+        .iter()
+        .flat_map(|interface| &interface.imports)
+        .any(|import| import.native_rust)
+    {
+        Err(Diagnostic::io(
+            "SPX-G218",
+            "Native Rust import declarations are outside the current semantic Graph schemas",
+        ))
+    } else {
+        Ok(())
+    }
+}
+
+fn reject_source_native_rust_imports(program: &Program) -> Result<(), Vec<Diagnostic>> {
+    if program
+        .interfaces
+        .iter()
+        .flat_map(|interface| &interface.imports)
+        .any(|import| import.native_rust)
+    {
+        Err(vec![Diagnostic::io(
+            "SPX-G218",
+            "Native Rust import declarations are outside the current semantic Graph schemas",
+        )])
+    } else {
+        Ok(())
+    }
+}
+
 /// Hash the canonical human-readable source projection and implicit prelude.
 ///
 /// This revision intentionally does not depend on HIR spans, display metadata,
@@ -60,6 +92,7 @@ pub(crate) fn revision_from_canonical_source(source: &str) -> String {
 /// Resolution is deliberately part of this public boundary. Invalid source
 /// cannot be mistaken for a checked semantic graph by library callers.
 pub fn to_json(program: &Program) -> Result<String, Vec<Diagnostic>> {
+    reject_source_native_rust_imports(program)?;
     let revision = revision(program);
     let resolved = hir::resolve(program)?;
     to_hir_json(&resolved, &revision).map_err(|diagnostic| vec![diagnostic])
@@ -75,8 +108,10 @@ pub fn context_json(
     symbol: &str,
     depth: usize,
 ) -> Result<Option<String>, Vec<Diagnostic>> {
+    reject_source_native_rust_imports(program)?;
     let revision = revision(program);
     let resolved = hir::resolve(program)?;
+    reject_native_rust_imports(&resolved).map_err(|diagnostic| vec![diagnostic])?;
     context_hir_json(&resolved, &revision, symbol, depth).map_err(|diagnostic| vec![diagnostic])
 }
 
@@ -320,8 +355,10 @@ pub fn agent_context_json(
     symbol: &str,
     options: &AgentContextOptions,
 ) -> Result<Option<String>, Vec<Diagnostic>> {
+    reject_source_native_rust_imports(program)?;
     let source_revision = revision(program);
     let resolved = hir::resolve(program)?;
+    reject_native_rust_imports(&resolved).map_err(|diagnostic| vec![diagnostic])?;
     agent_context_hir_json(&resolved, &source_revision, symbol, options)
         .map_err(|diagnostic| vec![diagnostic])
 }
@@ -333,8 +370,10 @@ pub fn agent_context_v2_json(
     symbol: &str,
     options: &AgentContextV2Options,
 ) -> Result<Option<String>, Vec<Diagnostic>> {
+    reject_source_native_rust_imports(program)?;
     let source_revision = revision(program);
     let resolved = hir::resolve(program)?;
+    reject_native_rust_imports(&resolved).map_err(|diagnostic| vec![diagnostic])?;
     agent_context_v2_hir_json(&resolved, &source_revision, symbol, options)
         .map_err(|diagnostic| vec![diagnostic])
 }
@@ -1095,6 +1134,11 @@ fn collect_result_propagations<'a>(
                 collect_result_propagations(argument, propagations);
             }
         }
+        ResolvedExprKind::NativeRustImportCall(call) => {
+            for argument in &call.args {
+                collect_result_propagations(argument, propagations);
+            }
+        }
         ResolvedExprKind::Unary { value, .. } | ResolvedExprKind::Project { base: value, .. } => {
             collect_result_propagations(value, propagations);
         }
@@ -1246,6 +1290,9 @@ pub(crate) fn graph_schema_from_parts(
 fn expression_has_record_pattern(expression: &ResolvedExpr) -> bool {
     match &expression.kind {
         ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_record_pattern),
+        ResolvedExprKind::NativeRustImportCall(call) => {
+            call.args.iter().any(expression_has_record_pattern)
+        }
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Try { operand: value, .. }
         | ResolvedExprKind::TryOption { operand: value, .. }
@@ -1348,6 +1395,11 @@ fn collect_agent_contract_values(expression: &ResolvedExpr, values: &mut BTreeSe
                 collect_agent_contract_values(argument, values);
             }
         }
+        ResolvedExprKind::NativeRustImportCall(call) => {
+            for argument in &call.args {
+                collect_agent_contract_values(argument, values);
+            }
+        }
         ResolvedExprKind::Unary { value, .. } => collect_agent_contract_values(value, values),
         ResolvedExprKind::Binary { left, right, .. } => {
             collect_agent_contract_values(left, values);
@@ -1444,6 +1496,12 @@ fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnos
                     args
                 )
             }
+        }
+        ResolvedExprKind::NativeRustImportCall(_) => {
+            return Err(Diagnostic::io(
+                "SPX-G218",
+                "Native Rust import declarations are outside the current semantic Graph schemas",
+            ));
         }
         ResolvedExprKind::Unary { op, value } => format!(
             "{{\"kind\":\"unary\",\"op\":{},\"value\":{}}}",
@@ -2275,6 +2333,7 @@ pub(crate) fn to_hir_json(
     program: &ResolvedProgram,
     source_revision: &str,
 ) -> Result<String, Diagnostic> {
+    reject_native_rust_imports(program)?;
     hir::validate(program)?;
     let selected_functions = program
         .functions
@@ -3031,6 +3090,11 @@ fn visit_expr_call_instances(
                 visit_expr_call_instances(argument, visit);
             }
         }
+        ResolvedExprKind::NativeRustImportCall(call) => {
+            for argument in &call.args {
+                visit_expr_call_instances(argument, visit);
+            }
+        }
         ResolvedExprKind::Unary { value, .. } | ResolvedExprKind::Project { base: value, .. } => {
             visit_expr_call_instances(value, visit);
         }
@@ -3084,6 +3148,11 @@ fn visit_expr_calls(expression: &ResolvedExpr, visit: &mut impl FnMut(&Declarati
         ResolvedExprKind::Call { callee, args, .. } => {
             visit(callee);
             for argument in args {
+                visit_expr_calls(argument, visit);
+            }
+        }
+        ResolvedExprKind::NativeRustImportCall(call) => {
+            for argument in &call.args {
                 visit_expr_calls(argument, visit);
             }
         }
@@ -3163,6 +3232,11 @@ fn collect_expr_type_declarations(
         ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
         ResolvedExprKind::Call { args, .. } => {
             for argument in args {
+                collect_expr_type_declarations(argument, declarations);
+            }
+        }
+        ResolvedExprKind::NativeRustImportCall(call) => {
+            for argument in &call.args {
                 collect_expr_type_declarations(argument, declarations);
             }
         }
@@ -3387,6 +3461,12 @@ fn expr_json(program: &ResolvedProgram, expression: &ResolvedExpr) -> Result<Str
                     args
                 )
             }
+        }
+        ResolvedExprKind::NativeRustImportCall(_) => {
+            return Err(Diagnostic::io(
+                "SPX-G218",
+                "Native Rust import declarations are outside the current semantic Graph schemas",
+            ));
         }
         ResolvedExprKind::Unary { op, value } => format!(
             "{{{header},\"kind\":\"unary\",\"op\":{},\"value\":{}}}",
@@ -3666,6 +3746,11 @@ fn collect_expr_types(expression: &ResolvedExpr, types: &mut BTreeMap<String, Re
                 collect_expr_types(argument, types);
             }
         }
+        ResolvedExprKind::NativeRustImportCall(call) => {
+            for argument in &call.args {
+                collect_expr_types(argument, types);
+            }
+        }
         ResolvedExprKind::Unary { value, .. } => collect_expr_types(value, types),
         ResolvedExprKind::Binary { left, right, .. } => {
             collect_expr_types(left, types);
@@ -3768,6 +3853,7 @@ fn collect_type(ty: &ResolvedType, types: &mut BTreeMap<String, ResolvedType>) {
 
 fn type_json(ty: &ResolvedType) -> String {
     match ty {
+        ResolvedType::Unit => unreachable!("native Rust Unit is excluded before Graph projection"),
         ResolvedType::I64 => "{\"kind\":\"primitive\",\"name\":\"i64\"}".to_owned(),
         ResolvedType::Bool => "{\"kind\":\"primitive\",\"name\":\"bool\"}".to_owned(),
         ResolvedType::TypeParameter { owner, index } => format!(

@@ -30,6 +30,8 @@ pub mod owned_resource_corpus;
 pub mod parser;
 pub mod patch;
 pub mod patch_evidence;
+#[allow(dead_code, reason = "path-included by the unpublished native builder")]
+mod private_capacity_contract;
 pub mod quality_route;
 pub mod repair;
 pub mod review;

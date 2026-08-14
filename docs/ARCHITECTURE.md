@@ -56,6 +56,53 @@ The declaration index is the single current source of target-independent type fa
 
 The native and Wasm emitters now consume only validated HIR for semantic lowering; their parsed-AST entry points are compatibility wrappers that resolve first. A centralized HIR validator rejects duplicate/non-canonical identities, invalid declarations and nominal types, lexical-scope violations, inconsistent expression/call types, definite or conditional resource reuse, contract transfers, undeclared or unpermitted effects, effectful contracts, invalid result bindings, and an invalid entrypoint before either backend emits an artifact. Only after those checks pass, `cleanup` independently rebuilds the structural storage inventory; `cleanup_plan` then rebuilds and exact-compares the complete target-neutral plan. A hostile direct-HIR transform therefore cannot remove, retarget, reorder, or forge cleanup meaning before reaching Graph or a backend.
 
+The private Native Rust Interoperability v1 A+B lane is a separate unpublished
+current-host bridge, not another public backend. Its additive `import rust fn`
+declarations require an explicit `failure infallible;` or status-domain clause
+and resolve to a distinct scalar-only HIR call kind. Rust imports alone may
+return unit; selected Rust-facing exports return `i64` or `bool`. A pure preflight
+selects explicit-ID exports/imports and their bounded acyclic closure, derives
+canonical Spec and Descriptor documents, and emits the generated C
+header/source plus safe Rust facade and private unsafe FFI sibling. Descriptor
+and Manifest, header, C, safe Rust, and private FFI replay now use independently
+structured ordered exact-byte consumers. Exhaustive byte-edit tests cover the
+canonical Spec input and all six outputs, and a portable fixed-target fixture
+freezes each output's byte length and raw SHA-256 plus the existing Descriptor
+and Manifest protocol-domain digests. This freezes those wire identities without
+claiming hosted execution or public promotion.
+The build stage requires an explicitly configured absolute Rust launcher and
+uses it only for one bounded sysroot discovery. It independently holds the
+direct compiler at that sysroot, requires the direct compiler to reproduce the
+same held sysroot, validates its version, and restricts every Rust artifact
+operation to the distinct direct-compiler authority. Rust discovery/version,
+Clang version, and the eight build/link/run operations consume one exact
+pre-effect 12-use process arena. Prepared native names, inventories, artifact
+comparisons, and the final no-clobber rename leave no allocation or new local
+budget failure after the final inventory scan. The build uses statically linked
+generated objects, executes a generated round trip, and publishes one
+create-new exact inventory through held platform authority. Each private build
+stage is required to retain its create-returned directory authority until
+settlement and attempt one exact-inventory cleanup on success or failure.
+Cleanup must stop on identity, reparse/symlink, or inventory disagreement,
+preserve foreign sentinels, and expose no generic recursive-delete primitive.
+Local builder 94/94, platform-system 20/20, platform 10/10, source-contract
+6/6, strict-Clippy, formatting, and security evidence are green. Exact-head
+hosted cleanup/process authority and sanitizer evidence on Ubuntu, macOS, and
+Windows remain held; Windows process-arena runtime and capacity-minus-one
+evidence remain hosted-only. Compiler sysroot/dynamic-library descendant
+provenance is not claimed. Graph
+and Wasm
+reject programs containing the private declaration kind with `SPX-G218` and
+`SPX-W114`; callable v2/v3, the loader/host, and ordinary native/Wasm bytes are
+unchanged. The scalar C ABI carries caller-owned result storage, a
+capability-digest-bound context, a typed callback table, and closed canonical
+status words; generated safe Rust contains panic, thread, reentry, and call
+budgets around the private unsafe quarantine. This lane grants no dynamic
+loading, allocator, resource, pointer, async, cross-thread, network, custody,
+public CLI/API, general Rust ABI, or production-readiness claim. See
+[`NATIVE-RUST-INTEROP-V1.md`](NATIVE-RUST-INTEROP-V1.md); public C remains held
+until exact-head Ubuntu/macOS/Windows and Linux sanitizer evidence is green.
+
 This remains staged groundwork rather than the sole compiler IR: the current verifier still establishes meaning from parsed AST before HIR resolution. Explicit trivial/imported resource lifecycles, declaration-only interface/import contracts, record declarations/updates, bounded explicitly instantiated generic Copy records, bounded copy-variant templates/construction/exhaustive matching, typed ordinary-`Result` and ordinary-`Option` propagation, stable type/member/case identities, recursive resource/type facts, and by-value recursion rejection now reach validated HIR and the semantic graph. Generic parameters are owner/index-stable and the admitted concrete arguments are direct `i64`/`bool`; generic record fields are restricted to direct scalars or parameters owned by that record, and every construction/update/projection substitutes the exact ordered concrete instance. The compiler-owned `semaprax.prelude.v1` injects ordinary `Option<T>` and `Result<T, E>` variants before checking. The bounded postfix `?` form accepts only direct-scalar Copy instances: `Result<T, E>` requires an enclosing `Result<U, E>`, while `Option<T>` requires an enclosing `Option<U>`. It evaluates its operand once, reconstructs the exact outer `Err` or payload-free `None`, and routes both ordinary-body and propagated results through shared postconditions and publication. The source checker and HIR validator independently replay lifecycle compatibility, lifecycle-effect authority, prefix-aware partial-place availability, exact generic substitution, exact construction, copy-match exhaustiveness, and every compiler-owned carrier/member/source/target identity. `aggregate_layout` computes checked deterministic Native64 and Wasm32 record layouts keyed by the full record ID plus ordered arguments; its digest and native symbol bind the same exact instance even when two instances have identical physical fields. `variant_layout` computes independently reconstructable per-concrete-instance internal layouts with declaration-order `u32` tags, an aligned maximum-payload area, and one inert byte for an empty payload. Its v2 digest authenticates the full concrete instance and both template and substituted field types; physical tags and representation are unchanged from v1. `CleanupInventory` remains a structural discovery boundary. Every `ResolvedFunction` carries a cleanup plan: v2 remains canonical unless authenticated Option propagation is present, which requires v3. Both schemas include typed blocks, edges, lexical regions, entry liveness, storage/leaf flags, atomic call commits, sticky status sources, guarded finalizers, scalar/owned result publication, and exact body-versus-propagated Copy-result staging; v3 adds an authenticated payload-free Option-None source. Generic records add no cleanup action because the admitted instances are direct-scalar Copy values; canonical replay remains bound to exact HIR types. Immutable update consumes its base first, evaluates replacements in authored order, transfers untouched fields, and cleans displaced live fields exactly once in reverse order. Copy matches branch on an exact scrutinee expression and stable case IDs without inventing droppable payload leaves; distinct concrete instances therefore cannot share a cleanup decision. Propagation uses complementary predicates on the authenticated success case and cannot be confused with physical failure selection. The builder covers every current HIR expression and normal/checked-failure path; the validator reconstructs the plan from core HIR rather than trusting attached metadata.
 
 The bounded record-pattern tranche is irrefutable and Copy-only. One explicit

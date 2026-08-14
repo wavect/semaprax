@@ -40,6 +40,52 @@ Private Economic Agent v1 additionally configures `cargo test --locked -p semapr
 Public C additionally runs `cargo test --locked -p semaprax --test economic_agent_v1 -- --nocapture` on Ubuntu, macOS, and Windows.
 Totals remain 38 Partial/18 Missing.
 
+Private Native Rust Interoperability v1 A+B additionally requires three named
+gates on Ubuntu, macOS, and Windows:
+
+```sh
+cargo test --locked -p semaprax --test native_rust_interop_v1 -- --nocapture
+cargo test --locked -p semaprax --test native_rust_interop_ci_contract -- --nocapture
+cargo test --locked -p semaprax-native-rust-interop -- --nocapture
+cargo test --locked -p semaprax-native-rust-interop-platform --all-targets -- --nocapture
+```
+
+The first gate freezes the additive syntax, distinct HIR call kind, exact
+diagnostics, and explicit Graph/Wasm exclusions. The source-contract gate keeps
+the private crates unpublished and quarantined and rejects a public builder
+surface. The private builder suite must independently replay the canonical
+Spec, Descriptor, generated sources, and Manifest; reject every-byte
+substitution, deletion, insertion, and truncation; freeze byte length and raw
+SHA-256 for Descriptor, Manifest, header, C, safe Rust, and private FFI plus the
+protocol-domain digests for Descriptor and Manifest; prove the cumulative builder
+cap and create-new inventory; compile and statically link generated C and Rust
+at both `-O0` and `-O2`; and execute
+Rust-to-SEMAPRAX, SEMAPRAX-to-Rust, and round-trip success/failure cases. Its
+hostile corpus covers ABI/version/size/alignment/bool/status/capability/result
+publication, panic containment, same-thread/non-reentrant use, depth and call
+budgets, tool and artifact substitution, race hooks, and safe-facade opacity.
+The platform gate must prove held directory/file/executable identity,
+no-clobber publication, reparse/symlink rejection, empty child environment,
+ambient FD/handle closure, bounded output kill-and-reap, and the corresponding
+Windows handle/job/process behavior rather than treating an unsupported stub as
+Windows evidence. Windows must also cover zero/small stdout EOF, silent timeout,
+descendant-held stdout without overflow, exact reserved/case-folded name
+handling, and injected image/assign/resume/terminate/wait/query/peek/read
+failures. Ordinary errors publish their sticky code only after proven leader and
+Job quiescence; settlement-proof failure fail-stops before later build or
+publication actions. Every created build stage remains bound to its create-returned
+directory authority through settlement. Success and every failure path attempt
+one exact-inventory cleanup; identity, reparse/symlink, or inventory mismatch
+must stop cleanup, preserve the foreign sentinel, and leave only inert residue.
+Neither the facade nor its system quarantine may expose generic or recursive
+path deletion. Linux additionally requires the generated boundary under Clang
+ASan+UBSan. Package/source locks must keep the three unpublished private crates
+out of the public `semaprax` package, reject dynamic loading/link lookup, and
+preserve existing Graph, Wasm, callable-v2/v3, Agent, Economic, Workspace,
+Patch, CLI, API, and KAT bytes. Exact-head hosted promotion requires the whole
+matrix; one host, a compile-only lane, or a platform-disabled test is not
+evidence for the other hosts. Public C remains held until that gate is green.
+
 Quality gates are executable evidence, not a checklist substitute for reasoning. Every pull request must pass the baseline and the gates for each changed semantic layer.
 
 ## Baseline

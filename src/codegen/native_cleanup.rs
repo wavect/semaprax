@@ -543,6 +543,10 @@ fn validate_supported_type(
     context: &str,
 ) -> Result<(), Diagnostic> {
     match ty {
+        ResolvedType::Unit => Err(unsupported(
+            function,
+            format!("does not support a unit {context} value"),
+        )),
         ResolvedType::I64 | ResolvedType::Bool => Ok(()),
         ResolvedType::TypeParameter { .. } => Err(unsupported(
             function,
@@ -691,6 +695,15 @@ fn validate_expression(
                 format!(
                     "does not support call execution `{}` to `{callee}` while native cleanup conformance is single-frame",
                     expression.id
+                ),
+            ));
+        }
+        ResolvedExprKind::NativeRustImportCall(call) => {
+            return Err(unsupported(
+                function,
+                format!(
+                    "does not support native Rust import execution `{}` to `{}` in the ordinary native cleanup backend",
+                    expression.id, call.import
                 ),
             ));
         }

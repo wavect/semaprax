@@ -62,6 +62,13 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
+      - name: Resolve the real held rustc image (Unix)
+        if: runner.os != 'Windows'
+        run: echo "RUSTC=$(rustup which rustc)" >> "$GITHUB_ENV"
+      - name: Resolve the real held rustc image (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: "RUSTC=$(rustup which rustc)" >> $env:GITHUB_ENV
       - run: cargo fmt --all --check
       - run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
       - run: cargo test --locked --workspace --all-targets --all-features
@@ -81,6 +88,14 @@ jobs:
         run: cargo test --locked -p semaprax --lib economic_agent::tests::economic_process_kill_markers_never_repeat_sign_or_broadcast -- --exact --nocapture
       - name: Require public Economic Agent injected-host evidence
         run: cargo test --locked -p semaprax --test economic_agent_v1 -- --nocapture
+      - name: Require private Native Rust Interop language, HIR, Graph, and Wasm preservation evidence
+        run: |
+          cargo test --locked -p semaprax --test native_rust_interop_v1 -- --nocapture
+          cargo test --locked -p semaprax --test native_rust_interop_ci_contract -- --nocapture
+      - name: Require private Native Rust Interop A+B replay, static-link, runtime, and hostile evidence
+        run: cargo test --locked -p semaprax-native-rust-interop -- --nocapture
+      - name: Require private Native Rust Interop platform authority evidence
+        run: cargo test --locked -p semaprax-native-rust-interop-platform --all-targets -- --nocapture
       - name: Require Windows callable-v2 and private callable-v3 physical evidence
         if: runner.os == 'Windows'
         shell: pwsh
@@ -123,6 +138,13 @@ jobs:
         run: |
           cargo test --locked -p semaprax --lib codegen::native_callable_provider_v3::tests::authoritative_fourteen_case_graph_providers_execute_and_settle_at_o0_o2 -- --exact
           cargo test --locked -p semaprax --lib codegen::native_callable_provider_v3::tests::physical_failure_injection_and_durable_settlement_boundaries_are_exact_at_o0_o2 -- --exact
+      - name: Require private Native Rust Interop ASan + UBSan round trip (Linux)
+        if: runner.os == 'Linux'
+        env:
+          SEMAPRAX_REQUIRE_NATIVE_RUST_INTEROP_SANITIZERS: "1"
+          ASAN_OPTIONS: detect_leaks=0:halt_on_error=1:abort_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: cargo test --locked -p semaprax-native-rust-interop --lib implementation::tests::linked_bridge_round_trips_rust_to_semaprax_to_rust_and_closes_failures -- --exact --nocapture
       - run: cargo test --locked --workspace --all-features --doc
       - run: cargo doc --locked --workspace --all-features --no-deps
         env:

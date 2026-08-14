@@ -346,4 +346,253 @@ impl CleanupPlan {
             exits: Vec::new(),
         }
     }
+
+    #[cfg(test)]
+    #[allow(dead_code)]
+    fn owned_capacity_bytes(&self) -> Option<usize> {
+        fn storage_bytes(storage: &StorageId) -> usize {
+            match storage {
+                StorageId::Value(value) => value.as_str().len(),
+                StorageId::Temporary(expression) => expression.as_str().len(),
+                StorageId::CallArgument {
+                    call,
+                    value_expression,
+                    ..
+                } => call
+                    .as_str()
+                    .len()
+                    .checked_add(value_expression.as_str().len())
+                    .unwrap_or(usize::MAX),
+                StorageId::ProvisionalResult => 0,
+            }
+        }
+        fn place_bytes(place: &CleanupPlace) -> Option<usize> {
+            place
+                .projections
+                .iter()
+                .try_fold(storage_bytes(&place.storage), |bytes, projection| {
+                    bytes.checked_add(projection.as_str().len())
+                })?
+                .checked_add(place.projections.capacity() * std::mem::size_of::<DeclarationId>())
+        }
+        fn status_id_bytes(status: &StatusSourceId) -> usize {
+            status.expression.as_str().len()
+        }
+        let mut total = self
+            .entry_state
+            .live_owned_parameters
+            .capacity()
+            .checked_mul(std::mem::size_of::<CleanupPlace>())?
+            .checked_add(self.slots.capacity() * std::mem::size_of::<CleanupSlot>())?
+            .checked_add(self.status_sources.capacity() * std::mem::size_of::<StatusSource>())?
+            .checked_add(self.blocks.capacity() * std::mem::size_of::<CleanupBlock>())?
+            .checked_add(self.edges.capacity() * std::mem::size_of::<CleanupEdge>())?
+            .checked_add(self.regions.capacity() * std::mem::size_of::<CleanupRegion>())?
+            .checked_add(self.exits.capacity() * std::mem::size_of::<ExitTarget>())?;
+        for place in &self.entry_state.live_owned_parameters {
+            total = total.checked_add(place_bytes(place)?)?;
+        }
+        for slot in &self.slots {
+            total = total
+                .checked_add(storage_bytes(&slot.storage))?
+                .checked_add(resolved_type_owned_capacity(&slot.ty)?)?
+                .checked_add(field_shape_bytes(&slot.field_liveness_shape)?)?;
+        }
+        for status in &self.status_sources {
+            total = total.checked_add(status_id_bytes(&status.id))?;
+            match &status.producer {
+                StatusProducer::PropagatedCall { callee } => {
+                    total = total.checked_add(callee.as_str().len())?;
+                }
+                StatusProducer::CheckedArithmetic {
+                    normalized_cases, ..
+                } => {
+                    total = total.checked_add(
+                        normalized_cases.capacity() * std::mem::size_of::<StatusCase>(),
+                    )?;
+                }
+                StatusProducer::ContractFalse { .. } => {}
+            }
+        }
+        for block in &self.blocks {
+            total = total.checked_add(
+                block.transitions.capacity() * std::mem::size_of::<CleanupTransition>(),
+            )?;
+            for transition in &block.transitions {
+                match transition {
+                    CleanupTransition::Initialize { at, destination } => {
+                        total = total
+                            .checked_add(at.as_str().len())?
+                            .checked_add(place_bytes(destination)?)?;
+                    }
+                    CleanupTransition::Transfer {
+                        at,
+                        source,
+                        destination,
+                    } => {
+                        total = total
+                            .checked_add(at.as_str().len())?
+                            .checked_add(place_bytes(source)?)?
+                            .checked_add(place_bytes(destination)?)?;
+                    }
+                    CleanupTransition::CallCommit { call, arguments } => {
+                        total = total.checked_add(call.as_str().len())?.checked_add(
+                            arguments.capacity() * std::mem::size_of::<CallArgumentTransfer>(),
+                        )?;
+                        for argument in arguments {
+                            total = total.checked_add(place_bytes(&argument.source)?)?;
+                        }
+                    }
+                    CleanupTransition::SelectFailure { source } => {
+                        total = total.checked_add(status_id_bytes(source))?;
+                    }
+                    CleanupTransition::StageCopyResult { source } => {
+                        total = total.checked_add(staged_result_bytes(source)?)?;
+                    }
+                }
+            }
+            if let CleanupTerminator::Branch(edges) = &block.terminator {
+                total = total.checked_add(edges.capacity() * std::mem::size_of::<EdgeId>())?;
+            }
+        }
+        for edge in &self.edges {
+            total = total.checked_add(match &edge.condition {
+                EdgeCondition::Always => 0,
+                EdgeCondition::BooleanResult(expression, _) => expression.as_str().len(),
+                EdgeCondition::VariantCase {
+                    scrutinee, case, ..
+                } => scrutinee
+                    .as_str()
+                    .len()
+                    .checked_add(case.as_str().len())
+                    .unwrap_or(usize::MAX),
+                EdgeCondition::StatusZero(status) | EdgeCondition::StatusNonzero(status) => {
+                    status_id_bytes(status)
+                }
+            })?;
+        }
+        for region in &self.regions {
+            total =
+                total.checked_add(region.slots.capacity() * std::mem::size_of::<StorageId>())?;
+            for storage in &region.slots {
+                total = total.checked_add(storage_bytes(storage))?;
+            }
+        }
+        for exit in &self.exits {
+            total = total
+                .checked_add(
+                    exit.leaves_regions.capacity() * std::mem::size_of::<CleanupRegionId>(),
+                )?
+                .checked_add(
+                    exit.finalize_in_order.capacity() * std::mem::size_of::<FinalizeAction>(),
+                )?;
+            for action in &exit.finalize_in_order {
+                total = total
+                    .checked_add(place_bytes(&action.source)?)?
+                    .checked_add(action.lifecycle_id.as_str().len())?;
+            }
+            total = total.checked_add(match &exit.continuation {
+                ExitContinuation::Continue(_) | ExitContinuation::ReturnUnit => 0,
+                ExitContinuation::CommitResult { source } => match source {
+                    CleanupResultSource::Scalar { expression } => expression.as_str().len(),
+                    CleanupResultSource::Owned { storage } => place_bytes(storage)?,
+                },
+                ExitContinuation::ReturnFailure { source } => status_id_bytes(source),
+            })?;
+        }
+        Some(total)
+    }
+}
+
+#[allow(dead_code)]
+fn resolved_type_owned_capacity(ty: &ResolvedType) -> Option<usize> {
+    match ty {
+        ResolvedType::Unit | ResolvedType::I64 | ResolvedType::Bool => Some(0),
+        ResolvedType::TypeParameter { owner, .. } => Some(owner.as_str().len()),
+        ResolvedType::Nominal {
+            declaration,
+            arguments,
+        } => arguments
+            .iter()
+            .try_fold(declaration.as_str().len(), |bytes, argument| {
+                bytes.checked_add(resolved_type_owned_capacity(argument)?)
+            })?
+            .checked_add(arguments.capacity() * std::mem::size_of::<ResolvedType>()),
+    }
+}
+
+#[allow(dead_code)]
+fn field_shape_bytes(shape: &FieldLivenessShape) -> Option<usize> {
+    match shape {
+        FieldLivenessShape::NoDrop => Some(0),
+        FieldLivenessShape::Leaf { lifecycle, .. } => Some(lifecycle.as_str().len()),
+        FieldLivenessShape::Record {
+            declaration,
+            fields,
+        } => fields
+            .iter()
+            .try_fold(declaration.as_str().len(), |bytes, field| {
+                bytes
+                    .checked_add(field.field.as_str().len())?
+                    .checked_add(field_shape_bytes(&field.shape)?)
+            })?
+            .checked_add(fields.capacity() * std::mem::size_of::<crate::cleanup::FieldLiveness>()),
+    }
+}
+
+#[allow(dead_code)]
+fn staged_result_bytes(source: &StagedCopyResultSource) -> Option<usize> {
+    match source {
+        StagedCopyResultSource::Body {
+            expression,
+            instance,
+        } => expression
+            .as_str()
+            .len()
+            .checked_add(resolved_type_owned_capacity(instance)?),
+        StagedCopyResultSource::TryResidual {
+            expression,
+            operand,
+            source_instance,
+            target_instance,
+            result,
+            ok_case,
+            ok_field,
+            err_case,
+            err_field,
+        } => [
+            expression.as_str().len(),
+            operand.as_str().len(),
+            result.as_str().len(),
+            ok_case.as_str().len(),
+            ok_field.as_str().len(),
+            err_case.as_str().len(),
+            err_field.as_str().len(),
+        ]
+        .into_iter()
+        .try_fold(0usize, usize::checked_add)?
+        .checked_add(resolved_type_owned_capacity(source_instance)?)?
+        .checked_add(resolved_type_owned_capacity(target_instance)?),
+        StagedCopyResultSource::TryOptionNone {
+            expression,
+            operand,
+            source_instance,
+            target_instance,
+            option,
+            some_case,
+            some_field,
+            none_case,
+        } => [
+            expression.as_str().len(),
+            operand.as_str().len(),
+            option.as_str().len(),
+            some_case.as_str().len(),
+            some_field.as_str().len(),
+            none_case.as_str().len(),
+        ]
+        .into_iter()
+        .try_fold(0usize, usize::checked_add)?
+        .checked_add(resolved_type_owned_capacity(source_instance)?)?
+        .checked_add(resolved_type_owned_capacity(target_instance)?),
+    }
 }

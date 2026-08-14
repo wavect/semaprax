@@ -1,0 +1,14 @@
+[package]
+name = "semaprax-native-rust-interop-platform"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+publish = false
+description = "Safe held-handle facade for private SEMAPRAX Native Rust Interop builds"
+license = "Apache-2.0"
+
+[dependencies]
+semaprax-native-rust-interop-platform-sys = { path = "../semaprax-native-rust-interop-platform-sys" }
+
+[lints.rust]
+unsafe_code = "forbid"

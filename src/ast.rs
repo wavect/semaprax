@@ -28,24 +28,36 @@ pub enum Type {
 
 impl fmt::Display for Type {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Type::I64 => write!(f, "i64"),
-            Type::Bool => write!(f, "bool"),
-            Type::Named { name, arguments } => {
-                write!(f, "{name}")?;
-                if !arguments.is_empty() {
-                    write!(f, "<")?;
-                    for (index, argument) in arguments.iter().enumerate() {
-                        if index != 0 {
-                            write!(f, ", ")?;
-                        }
-                        write!(f, "{argument}")?;
+        enum Frame<'a> {
+            Type(&'a Type),
+            Arguments(&'a [Type], usize),
+        }
+        let mut frames = vec![Frame::Type(self)];
+        while let Some(frame) = frames.pop() {
+            match frame {
+                Frame::Type(Type::I64) => f.write_str("i64")?,
+                Frame::Type(Type::Bool) => f.write_str("bool")?,
+                Frame::Type(Type::Named { name, arguments }) => {
+                    f.write_str(name)?;
+                    if !arguments.is_empty() {
+                        f.write_str("<")?;
+                        frames.push(Frame::Arguments(arguments, 0));
                     }
-                    write!(f, ">")?;
                 }
-                Ok(())
+                Frame::Arguments(arguments, index) => {
+                    if let Some(argument) = arguments.get(index) {
+                        if index != 0 {
+                            f.write_str(", ")?;
+                        }
+                        frames.push(Frame::Arguments(arguments, index + 1));
+                        frames.push(Frame::Type(argument));
+                    } else {
+                        f.write_str(">")?;
+                    }
+                }
             }
         }
+        Ok(())
     }
 }
 
@@ -180,12 +192,31 @@ pub struct ImportDeclaration {
     pub explicit_id: bool,
     pub name: String,
     pub name_span: Span,
+    pub native_rust: bool,
     pub params: Vec<Param>,
+    pub result: ImportResult,
     pub effects: Vec<String>,
     pub failure: ImportFailure,
     pub consumes: String,
     pub consumes_span: Span,
     pub span: Span,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ImportResult {
+    Unit,
+    I64,
+    Bool,
+}
+
+impl fmt::Display for ImportResult {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Unit => "unit",
+            Self::I64 => "i64",
+            Self::Bool => "bool",
+        })
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -449,119 +480,321 @@ impl BinaryOp {
 }
 
 impl Expr {
-    pub fn visit_calls(&self, visit: &mut impl FnMut(&str, Span)) {
-        match &self.kind {
-            ExprKind::Call { name, args, .. } => {
-                visit(name, self.span);
-                for arg in args {
-                    arg.visit_calls(visit);
-                }
+    fn visit_call_nodes(&self, mut visit: impl FnMut(&Expr)) {
+        const FIXED_DEPTH: usize = 513;
+        let mut stack = [None; FIXED_DEPTH];
+        stack[0] = Some((self, 0usize));
+        let mut len = 1usize;
+        let mut overflow = Vec::new();
+        loop {
+            let state = if let Some(state) = overflow.pop() {
+                state
+            } else if len != 0 {
+                len -= 1;
+                stack[len].take().expect("call visitor frame retained")
+            } else {
+                break;
+            };
+            let (expression, next_child) = state;
+            if next_child == 0 {
+                visit(expression);
             }
-            ExprKind::Unary { value, .. } => value.visit_calls(visit),
-            ExprKind::Binary { left, right, .. } => {
-                left.visit_calls(visit);
-                right.visit_calls(visit);
-            }
-            ExprKind::Block { statements, tail } => {
-                for statement in statements {
-                    match statement {
-                        Statement::Let { value, .. } => value.visit_calls(visit),
+            if let Some(child) = expression.child(next_child) {
+                let parent = (expression, next_child + 1);
+                if overflow.is_empty() && len + 2 <= stack.len() {
+                    stack[len] = Some(parent);
+                    stack[len + 1] = Some((child, 0));
+                    len += 2;
+                } else {
+                    if overflow.is_empty() {
+                        overflow.extend(stack[..len].iter_mut().filter_map(Option::take));
+                        len = 0;
                     }
-                }
-                tail.visit_calls(visit);
-            }
-            ExprKind::If {
-                condition,
-                then_branch,
-                else_branch,
-            } => {
-                condition.visit_calls(visit);
-                then_branch.visit_calls(visit);
-                else_branch.visit_calls(visit);
-            }
-            ExprKind::ConstructRecord { fields, .. } => {
-                for field in fields {
-                    field.value.visit_calls(visit);
+                    overflow.push(parent);
+                    overflow.push((child, 0));
                 }
             }
-            ExprKind::ConstructVariant { fields, .. } => {
-                for field in fields {
-                    field.value.visit_calls(visit);
-                }
-            }
-            ExprKind::Match { scrutinee, arms } => {
-                scrutinee.visit_calls(visit);
-                for arm in arms {
-                    arm.value.visit_calls(visit);
-                }
-            }
-            ExprKind::Try { operand } => operand.visit_calls(visit),
-            ExprKind::UpdateRecord { base, fields } => {
-                base.visit_calls(visit);
-                for field in fields {
-                    field.value.visit_calls(visit);
-                }
-            }
-            ExprKind::Project { base, .. } => base.visit_calls(visit),
-            ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Var(_) => {}
         }
     }
 
-    pub fn visit_call_instances(&self, visit: &mut impl FnMut(&str, &[Type], Span)) {
+    fn child(&self, index: usize) -> Option<&Expr> {
         match &self.kind {
-            ExprKind::Call {
-                name,
-                type_arguments,
-                args,
-            } => {
-                visit(name, type_arguments, self.span);
-                for arg in args {
-                    arg.visit_call_instances(visit);
-                }
-            }
-            ExprKind::Unary { value, .. } => value.visit_call_instances(visit),
+            ExprKind::Call { args, .. } => args.get(index),
+            ExprKind::Unary { value, .. }
+            | ExprKind::Try { operand: value }
+            | ExprKind::Project { base: value, .. } => (index == 0).then_some(value),
             ExprKind::Binary { left, right, .. } => {
-                left.visit_call_instances(visit);
-                right.visit_call_instances(visit);
+                [left.as_ref(), right.as_ref()].get(index).copied()
             }
-            ExprKind::Block { statements, tail } => {
-                for statement in statements {
-                    match statement {
-                        Statement::Let { value, .. } => value.visit_call_instances(visit),
-                    }
-                }
-                tail.visit_call_instances(visit);
-            }
+            ExprKind::Block { statements, tail } => statements
+                .get(index)
+                .map(|statement| match statement {
+                    Statement::Let { value, .. } => value,
+                })
+                .or_else(|| (index == statements.len()).then_some(tail)),
             ExprKind::If {
                 condition,
                 then_branch,
                 else_branch,
-            } => {
-                condition.visit_call_instances(visit);
-                then_branch.visit_call_instances(visit);
-                else_branch.visit_call_instances(visit);
-            }
+            } => [
+                condition.as_ref(),
+                then_branch.as_ref(),
+                else_branch.as_ref(),
+            ]
+            .get(index)
+            .copied(),
             ExprKind::ConstructRecord { fields, .. }
             | ExprKind::ConstructVariant { fields, .. } => {
-                for field in fields {
-                    field.value.visit_call_instances(visit);
-                }
+                fields.get(index).map(|field| &field.value)
             }
-            ExprKind::Match { scrutinee, arms } => {
-                scrutinee.visit_call_instances(visit);
-                for arm in arms {
-                    arm.value.visit_call_instances(visit);
-                }
-            }
-            ExprKind::Try { operand } => operand.visit_call_instances(visit),
-            ExprKind::UpdateRecord { base, fields } => {
-                base.visit_call_instances(visit);
-                for field in fields {
-                    field.value.visit_call_instances(visit);
-                }
-            }
-            ExprKind::Project { base, .. } => base.visit_call_instances(visit),
-            ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Var(_) => {}
+            ExprKind::Match { scrutinee, arms } => (index == 0)
+                .then_some(scrutinee.as_ref())
+                .or_else(|| arms.get(index - 1).map(|arm| &arm.value)),
+            ExprKind::UpdateRecord { base, fields } => (index == 0)
+                .then_some(base.as_ref())
+                .or_else(|| fields.get(index - 1).map(|field| &field.value)),
+            ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Var(_) => None,
         }
+    }
+
+    pub fn visit_calls(&self, visit: &mut impl FnMut(&str, Span)) {
+        self.visit_call_nodes(|expression| {
+            if let ExprKind::Call { name, .. } = &expression.kind {
+                visit(name, expression.span);
+            }
+        });
+    }
+
+    pub fn visit_call_instances(&self, visit: &mut impl FnMut(&str, &[Type], Span)) {
+        self.visit_call_nodes(|expression| {
+            if let ExprKind::Call {
+                name,
+                type_arguments,
+                ..
+            } = &expression.kind
+            {
+                visit(name, type_arguments, expression.span);
+            }
+        });
+    }
+}
+
+#[cfg(test)]
+mod call_visitor_tests {
+    use super::*;
+
+    fn call(name: &str, marker: usize) -> Expr {
+        Expr {
+            span: Span {
+                start: marker,
+                end: marker + 1,
+                line: 1,
+                column: marker + 1,
+            },
+            kind: ExprKind::Call {
+                name: name.to_owned(),
+                type_arguments: vec![Type::Named {
+                    name: format!("T{marker}"),
+                    arguments: Vec::new(),
+                }],
+                args: Vec::new(),
+            },
+        }
+    }
+
+    #[test]
+    fn iterative_call_visitors_preserve_preorder_and_authored_child_order() {
+        let span = Span::default();
+        let expression = Expr {
+            span,
+            kind: ExprKind::Call {
+                name: "outer".to_owned(),
+                type_arguments: vec![Type::Named {
+                    name: "T0".to_owned(),
+                    arguments: Vec::new(),
+                }],
+                args: vec![
+                    Expr {
+                        span,
+                        kind: ExprKind::Block {
+                            statements: vec![Statement::Let {
+                                name: "value".to_owned(),
+                                name_span: span,
+                                value: call("first", 1),
+                                span,
+                            }],
+                            tail: Box::new(Expr {
+                                span,
+                                kind: ExprKind::If {
+                                    condition: Box::new(call("second", 2)),
+                                    then_branch: Box::new(call("third", 3)),
+                                    else_branch: Box::new(call("fourth", 4)),
+                                },
+                            }),
+                        },
+                    },
+                    Expr {
+                        span,
+                        kind: ExprKind::ConstructRecord {
+                            type_name: "Pair".to_owned(),
+                            type_span: span,
+                            type_arguments: Vec::new(),
+                            fields: vec![
+                                FieldInitializer {
+                                    name: "left".to_owned(),
+                                    name_span: span,
+                                    value: call("fifth", 5),
+                                    span,
+                                },
+                                FieldInitializer {
+                                    name: "right".to_owned(),
+                                    name_span: span,
+                                    value: call("sixth", 6),
+                                    span,
+                                },
+                            ],
+                        },
+                    },
+                    Expr {
+                        span,
+                        kind: ExprKind::Match {
+                            scrutinee: Box::new(call("seventh", 7)),
+                            arms: vec![
+                                MatchArm {
+                                    pattern: MatchPattern::Wildcard { span },
+                                    value: call("eighth", 8),
+                                    span,
+                                },
+                                MatchArm {
+                                    pattern: MatchPattern::Wildcard { span },
+                                    value: call("ninth", 9),
+                                    span,
+                                },
+                            ],
+                        },
+                    },
+                    Expr {
+                        span,
+                        kind: ExprKind::UpdateRecord {
+                            base: Box::new(call("tenth", 10)),
+                            fields: vec![
+                                FieldInitializer {
+                                    name: "left".to_owned(),
+                                    name_span: span,
+                                    value: call("eleventh", 11),
+                                    span,
+                                },
+                                FieldInitializer {
+                                    name: "right".to_owned(),
+                                    name_span: span,
+                                    value: call("twelfth", 12),
+                                    span,
+                                },
+                            ],
+                        },
+                    },
+                    Expr {
+                        span,
+                        kind: ExprKind::Try {
+                            operand: Box::new(call("thirteenth", 13)),
+                        },
+                    },
+                    Expr {
+                        span,
+                        kind: ExprKind::Project {
+                            base: Box::new(call("fourteenth", 14)),
+                            field: "value".to_owned(),
+                            field_span: span,
+                        },
+                    },
+                    Expr {
+                        span,
+                        kind: ExprKind::ConstructVariant {
+                            type_name: "Choice".to_owned(),
+                            type_span: span,
+                            type_arguments: Vec::new(),
+                            case_name: "Value".to_owned(),
+                            case_span: span,
+                            fields: vec![FieldInitializer {
+                                name: "value".to_owned(),
+                                name_span: span,
+                                value: call("fifteenth", 15),
+                                span,
+                            }],
+                        },
+                    },
+                    Expr {
+                        span,
+                        kind: ExprKind::Binary {
+                            op: BinaryOp::Add,
+                            left: Box::new(call("sixteenth", 16)),
+                            right: Box::new(call("seventeenth", 17)),
+                        },
+                    },
+                ],
+            },
+        };
+
+        let expected_names = [
+            "outer",
+            "first",
+            "second",
+            "third",
+            "fourth",
+            "fifth",
+            "sixth",
+            "seventh",
+            "eighth",
+            "ninth",
+            "tenth",
+            "eleventh",
+            "twelfth",
+            "thirteenth",
+            "fourteenth",
+            "fifteenth",
+            "sixteenth",
+            "seventeenth",
+        ];
+        let mut calls = Vec::new();
+        expression.visit_calls(&mut |name, span| calls.push((name.to_owned(), span.start)));
+        assert_eq!(
+            calls
+                .iter()
+                .map(|(name, _)| name.as_str())
+                .collect::<Vec<_>>(),
+            expected_names
+        );
+        assert_eq!(
+            calls.iter().map(|(_, marker)| *marker).collect::<Vec<_>>(),
+            (0..=17).collect::<Vec<_>>()
+        );
+
+        let mut instances = Vec::new();
+        expression.visit_call_instances(&mut |name, arguments, span| {
+            instances.push((name.to_owned(), arguments[0].to_string(), span.start));
+        });
+        assert_eq!(
+            instances
+                .iter()
+                .map(|(name, _, _)| name.as_str())
+                .collect::<Vec<_>>(),
+            expected_names
+        );
+        assert_eq!(
+            instances
+                .iter()
+                .map(|(_, ty, _)| ty.as_str())
+                .collect::<Vec<_>>(),
+            (0..=17)
+                .map(|marker| format!("T{marker}"))
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(
+            instances
+                .iter()
+                .map(|(_, _, marker)| *marker)
+                .collect::<Vec<_>>(),
+            (0..=17).collect::<Vec<_>>()
+        );
     }
 }

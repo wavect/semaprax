@@ -1,0 +1,29 @@
+[package]
+name = "semaprax-native-rust-interop-platform-sys"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+publish = false
+description = "Audited OS quarantine for private SEMAPRAX Native Rust Interop builds"
+license = "Apache-2.0"
+
+[target.'cfg(unix)'.dependencies]
+libc = "=0.2.189"
+sha2 = "=0.10.9"
+
+[target.'cfg(windows)'.dependencies]
+sha2 = "=0.10.9"
+windows-sys = { version = "=0.61.2", features = [
+    "Wdk_Foundation",
+    "Wdk_Storage_FileSystem",
+    "Win32_Foundation",
+    "Win32_Storage_FileSystem",
+    "Win32_System_IO",
+    "Win32_System_JobObjects",
+    "Win32_System_Pipes",
+    "Win32_System_Threading",
+    "Win32_Security",
+] }
+
+[lints.rust]
+unsafe_op_in_unsafe_fn = "deny"

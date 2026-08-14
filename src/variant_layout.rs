@@ -421,6 +421,11 @@ fn collect_expr_variant_types(
                 collect_expr_variant_types(program, argument, instances)?;
             }
         }
+        ResolvedExprKind::NativeRustImportCall(call) => {
+            for argument in &call.args {
+                collect_expr_variant_types(program, argument, instances)?;
+            }
+        }
         ResolvedExprKind::Unary { value, .. } | ResolvedExprKind::Project { base: value, .. } => {
             collect_expr_variant_types(program, value, instances)?;
         }

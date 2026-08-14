@@ -225,6 +225,11 @@ impl CappedString {
         }
     }
 
+    #[cfg(test)]
+    pub(crate) fn allocated_capacity(&self) -> usize {
+        self.bytes.capacity()
+    }
+
     pub(crate) fn push_str(&mut self, value: &str) {
         if reserve_sink(self.budget.as_ref(), value.len()) {
             self.bytes.push_str(value);

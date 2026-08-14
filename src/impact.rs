@@ -189,6 +189,8 @@ fn build_report_with_complete_limits(
     let candidate = hir::resolve(preflight.candidate())?;
     hir::validate(&before).map_err(|error| vec![error])?;
     hir::validate(&candidate).map_err(|error| vec![error])?;
+    graph::reject_native_rust_imports(&before).map_err(|error| vec![error])?;
+    graph::reject_native_rust_imports(&candidate).map_err(|error| vec![error])?;
     let base_schema = graph::graph_schema(&before);
     let candidate_schema = graph::graph_schema(&candidate);
     if base_schema != candidate_schema {

@@ -2426,6 +2426,17 @@ fn build_owned_inner(
     for source in &sources {
         let program =
             parse(&source.source, Path::new(&source.path)).map_err(|error| vec![error])?;
+        if program
+            .interfaces
+            .iter()
+            .flat_map(|interface| &interface.imports)
+            .any(|import| import.native_rust)
+        {
+            return Err(vec![graph_error(
+                "SPX-G218",
+                "Native Rust import declarations are outside the current semantic Graph schemas",
+            )]);
+        }
         let remaining = active_builder_limit().saturating_sub(canonical_bytes);
         let (canonical, overflowed) =
             crate::bounded_output::with_limit(remaining, || format::canonical(&program));
@@ -2583,6 +2594,13 @@ type ResolvedCore = (
     Vec<WorkspaceEdge>,
 );
 
+// Native Rust name resolution adds a private declaration-index map, but this
+// Graph route rejects Native Rust imports before resolution. Preserve the
+// frozen no-native workspace accounting bytes rather than charging an empty,
+// backend-private map into existing Graph evidence.
+const GRAPH_ACCOUNTED_RESOLVED_PROGRAM_BYTES: usize = std::mem::size_of::<hir::ResolvedProgram>()
+    - std::mem::size_of::<BTreeMap<String, hir::DeclarationId>>();
+
 fn build_resolved_core(
     programs: &[Program],
     module_paths: &BTreeMap<&str, &str>,
@@ -2596,7 +2614,7 @@ fn build_resolved_core(
     reserve_builder_structure(
         programs
             .len()
-            .checked_mul(std::mem::size_of::<(String, hir::ResolvedProgram)>())
+            .checked_mul(std::mem::size_of::<String>() + GRAPH_ACCOUNTED_RESOLVED_PROGRAM_BYTES)
             .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?,
     )?;
     let mut synthetic_modules = Vec::with_capacity(programs.len());
@@ -4608,6 +4626,11 @@ fn visit_resolved_calls(
                 visit_resolved_calls(argument, visit);
             }
         }
+        hir::ResolvedExprKind::NativeRustImportCall(call) => {
+            for argument in &call.args {
+                visit_resolved_calls(argument, visit);
+            }
+        }
         hir::ResolvedExprKind::Unary { value, .. } => visit_resolved_calls(value, visit),
         hir::ResolvedExprKind::Binary { left, right, .. } => {
             visit_resolved_calls(left, visit);
@@ -5001,6 +5024,19 @@ fn collect_resolved_expression_type_sites(
                     owner,
                     argument,
                     &crate::bounded_output::budgeted_format(format_args!("{path}.arg.{index}")),
+                    imported,
+                    out,
+                )?;
+            }
+        }
+        hir::ResolvedExprKind::NativeRustImportCall(call) => {
+            for (index, argument) in call.args.iter().enumerate() {
+                collect_resolved_expression_type_sites(
+                    owner,
+                    argument,
+                    &crate::bounded_output::budgeted_format(format_args!(
+                        "{path}.native_rust_arg.{index}"
+                    )),
                     imported,
                     out,
                 )?;

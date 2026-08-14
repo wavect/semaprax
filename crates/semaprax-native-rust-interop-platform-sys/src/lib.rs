@@ -290,6 +290,17 @@ mod platform {
     }
     pub struct PreparedRunInvocation(PreparedCommand);
 
+    #[cfg(target_os = "linux")]
+    const LINUX_RUST_STATICLIB_NATIVE_LIBS: [&str; 7] = [
+        "-lgcc_s",
+        "-lutil",
+        "-lrt",
+        "-lpthread",
+        "-lm",
+        "-ldl",
+        "-lc",
+    ];
+
     fn prepare_command(values: &[&str], output_capacity: usize) -> Result<PreparedCommand, Error> {
         let mut arguments = Vec::with_capacity(values.len());
         if arguments.capacity() != values.len() {
@@ -3502,7 +3513,7 @@ mod platform {
         {
             return Err(Error::Invalid);
         }
-        let mut values = [""; 12];
+        let mut values = [""; 20];
         let mut count = 0usize;
         for value in ["-target", target] {
             values[count] = value;
@@ -3526,6 +3537,11 @@ mod platform {
             "-o",
             output.to_str().ok_or(Error::Invalid)?,
         ] {
+            values[count] = value;
+            count += 1;
+        }
+        #[cfg(target_os = "linux")]
+        for value in LINUX_RUST_STATICLIB_NATIVE_LIBS {
             values[count] = value;
             count += 1;
         }
@@ -3710,6 +3726,13 @@ mod platform {
             argument("-o")?,
             argument(output.to_str().ok_or(Error::Invalid)?)?,
         ];
+        #[cfg(target_os = "linux")]
+        arguments.extend(
+            LINUX_RUST_STATICLIB_NATIVE_LIBS
+                .into_iter()
+                .map(argument)
+                .collect::<Result<Vec<_>, _>>()?,
+        );
         #[cfg(target_os = "macos")]
         arguments.insert(2, argument("-Wl,-no_warn_duplicate_libraries")?);
         if sanitizers {
@@ -7966,6 +7989,45 @@ mod tests {
                 "missing stable Windows directory identity contract: {required}",
             );
         }
+    }
+
+    #[test]
+    fn linux_rust_staticlib_link_tail_is_frozen_for_prepared_and_legacy_paths() {
+        let source = include_str!("lib.rs");
+        let unix_start = source.find("#[cfg(unix)]\nmod platform").unwrap();
+        let windows_start = source.find("#[cfg(windows)]\nmod platform").unwrap();
+        let unix = &source[unix_start..windows_start];
+        let native_start = unix
+            .find("const LINUX_RUST_STATICLIB_NATIVE_LIBS: [&str; 7]")
+            .unwrap();
+        let native_end = unix[native_start..]
+            .find("\n    ];")
+            .map(|offset| native_start + offset + "\n    ];".len())
+            .unwrap();
+        let native = &unix[native_start..native_end];
+        let mut previous = 0usize;
+        for required in [
+            "-lgcc_s",
+            "-lutil",
+            "-lrt",
+            "-lpthread",
+            "-lm",
+            "-ldl",
+            "-lc",
+        ] {
+            let offset = native.find(required).unwrap();
+            assert!(
+                offset >= previous,
+                "Linux native-static library order changed"
+            );
+            previous = offset;
+        }
+        assert_eq!(
+            unix.matches("LINUX_RUST_STATICLIB_NATIVE_LIBS")
+                .count(),
+            3,
+            "the frozen Linux native-static library tail must have one definition and exactly two link consumers",
+        );
     }
 
     #[cfg(windows)]

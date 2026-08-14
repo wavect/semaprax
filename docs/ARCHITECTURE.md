@@ -96,7 +96,7 @@ stage is required to retain its create-returned directory authority until
 settlement and attempt one exact-inventory cleanup on success or failure.
 Cleanup must stop on identity, reparse/symlink, or inventory disagreement,
 preserve foreign sentinels, and expose no generic recursive-delete primitive.
-Local builder 97/97, platform-system 21/21, platform 10/10, source-contract
+Local builder 97/97, platform-system 22/22, platform 10/10, source-contract
 6/6, strict-Clippy, formatting, and security evidence are green. Exact-head
 hosted cleanup/process authority and sanitizer evidence on Ubuntu, macOS, and
 Windows remain held; Windows process-arena runtime and capacity-minus-one

@@ -115,7 +115,11 @@ fn resolved_tool(name: &str) -> PathBuf {
 fn darwin_installed_tools_are_suspended_vnode_attested_before_resume() {
     let root = root("darwin-attestation");
     let cwd = hold_directory(root.as_ref()).unwrap();
-    let rustc = hold_external_executable(&resolved_tool("rustc")).unwrap();
+    let rustc_path = std::env::var_os("RUSTC")
+        .map(PathBuf::from)
+        .map(|path| std::fs::canonicalize(path).expect("resolved RUSTC image"))
+        .unwrap_or_else(|| resolved_tool("rustc"));
+    let rustc = hold_external_executable(&rustc_path).unwrap();
     let clang = hold_external_executable(&resolved_tool("clang")).unwrap();
 
     let rustc_output = rustc_version(&rustc, &cwd).unwrap();
@@ -485,5 +489,12 @@ fn main(){let _=hold_directory(std::path::Path::new("/"));let _=semaprax_native_
     );
     assert!(stderr.contains("Clone"), "{stderr}");
     assert!(stderr.contains("doesn't implement `Debug`"), "{stderr}");
-    assert!(stderr.contains("failed to resolve"), "{stderr}");
+    assert!(
+        stderr.contains("semaprax_native_rust_interop_platform_sys"),
+        "{stderr}"
+    );
+    assert!(
+        stderr.contains("failed to resolve") || stderr.contains("cannot find module or crate"),
+        "{stderr}"
+    );
 }

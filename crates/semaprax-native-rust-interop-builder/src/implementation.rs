@@ -72,6 +72,7 @@ thread_local! {
     static POST_HIR_FACTS_ENTRY_COUNT: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
     static POST_HIR_FACTS_CAPACITY_HIGH_WATER: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
     static POST_HIR_FACTS_SCRATCH_HIGH_WATER: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+    static POST_HIR_AUTHORITY_TRANSFER_TERMS: std::cell::Cell<[usize; 5]> = const { std::cell::Cell::new([0; 5]) };
     static POST_HIR_RENDER_CAPACITY_HIGH_WATER: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
     static POST_HIR_REPLAY_CAPACITY_HIGH_WATER: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
     static EXACT_ARTIFACT_OUTPUT_ALLOCATION_COUNT: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
@@ -741,7 +742,7 @@ fn post_hir_facts_capacity(
             bytes.checked_add(closure.len().checked_mul(std::mem::size_of::<String>())?)
         })
         .and_then(|bytes| bytes.checked_add(closure_id_bytes))
-        .and_then(|bytes| bytes.checked_add(spec.source_revision.len()))
+        .and_then(|bytes| bytes.checked_add(spec.source_revision.capacity()))
         .and_then(|bytes| bytes.checked_add(final_digest_payload))
         .and_then(|bytes| bytes.checked_add(target_retained_payload))
         .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
@@ -4791,11 +4792,17 @@ fn prepare_native_rust_interop_bounded(
         &closure,
         &spec,
     )?;
-    let facts_budget = reserve_temporary_exact(
-        facts_capacity
-            .complete()
-            .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?,
-    )?;
+    let spec_transfer_capacity = prepared_spec_transfer_capacity(&spec)
+        .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+    // The source revision and target strings are still owned by `spec` and
+    // therefore already covered by `spec_authority`. Reserve only the new
+    // facts topology here; the existing authority is narrowed and retained
+    // when those exact allocations move into Prepared below.
+    let facts_complete_without_spec_transfer = facts_capacity
+        .complete()
+        .and_then(|complete| complete.checked_sub(spec_transfer_capacity))
+        .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+    let facts_budget = reserve_temporary_exact(facts_complete_without_spec_transfer)?;
     #[cfg(test)]
     note_post_hir_facts_entry();
     if reached_imports != spec.imports.iter().cloned().collect() {
@@ -5496,8 +5503,6 @@ fn prepare_native_rust_interop_bounded(
     if spec_authority.maximum() != spec_authority_bytes {
         return Err(b109("max_builder_bytes", MAX_BUILDER_BYTES));
     }
-    let spec_transfer_capacity = prepared_spec_transfer_capacity(&spec)
-        .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
     let closure_id_bytes = closure_ids
         .iter()
         .try_fold(0usize, |bytes, id| bytes.checked_add(id.capacity()))
@@ -5519,10 +5524,27 @@ fn prepare_native_rust_interop_bounded(
     let persistent_facts = persistent_without_spec_transfer
         .checked_add(spec_transfer_capacity)
         .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+    #[cfg(test)]
+    POST_HIR_AUTHORITY_TRANSFER_TERMS.with(|terms| {
+        terms.set([
+            facts_capacity.complete().expect("checked facts capacity"),
+            spec_transfer_capacity,
+            facts_complete_without_spec_transfer,
+            persistent_without_spec_transfer,
+            persistent_facts,
+        ]);
+    });
     if persistent_facts > facts_capacity.retained_upper {
         return Err(b109("max_builder_bytes", MAX_BUILDER_BYTES));
     }
     if spec_transfer_capacity > spec_authority_bytes {
+        return Err(b109("max_builder_bytes", MAX_BUILDER_BYTES));
+    }
+    let retained_without_spec_transfer_upper = facts_capacity
+        .retained_upper
+        .checked_sub(spec_transfer_capacity)
+        .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+    if persistent_without_spec_transfer > retained_without_spec_transfer_upper {
         return Err(b109("max_builder_bytes", MAX_BUILDER_BYTES));
     }
     #[cfg(test)]
@@ -5531,9 +5553,12 @@ fn prepare_native_rust_interop_bounded(
     #[cfg(test)]
     let facts_reserved_before_transfer = facts_budget.maximum();
     let Spec {
+        module,
         source_revision,
         target,
-        ..
+        exports: spec_exports,
+        imports: spec_imports,
+        capabilities: spec_capabilities,
     } = spec;
     #[cfg(test)]
     assert_eq!(
@@ -5557,19 +5582,28 @@ fn prepare_native_rust_interop_bounded(
     if moved_transfer_capacity != spec_transfer_capacity {
         return Err(b109("max_builder_bytes", MAX_BUILDER_BYTES));
     }
-    drop(spec_authority);
-    facts_budget.retain(persistent_facts)?;
+    // Destroy every non-transferred Spec allocation before narrowing its
+    // authority; the five moved allocations remain continuously covered.
+    drop((module, spec_exports, spec_imports, spec_capabilities));
+    #[cfg(test)]
+    let expected_remaining_after_transfer = ledger_before_transfer
+        .checked_add(
+            spec_authority_bytes
+                .checked_sub(spec_transfer_capacity)
+                .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?,
+        )
+        .and_then(|bytes| {
+            bytes.checked_add(
+                facts_reserved_before_transfer.checked_sub(persistent_without_spec_transfer)?,
+            )
+        })
+        .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+    spec_authority.retain(spec_transfer_capacity)?;
+    facts_budget.retain(persistent_without_spec_transfer)?;
     #[cfg(test)]
     assert_eq!(
         crate::bounded_output::remaining_active(),
-        Some(
-            ledger_before_transfer
-                .checked_add(spec_authority_bytes)
-                .and_then(|bytes| {
-                    bytes.checked_add(facts_reserved_before_transfer.checked_sub(persistent_facts)?)
-                })
-                .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?,
-        ),
+        Some(expected_remaining_after_transfer),
         "Spec authority must release exactly once before Prepared facts retain",
     );
     drop(closure);
@@ -15874,7 +15908,13 @@ fn configured_tool(variable: &str) -> Result<TestTool, Diagnostic> {
         return Ok(TestTool { path });
     }
     let name = if variable == "RUSTC" {
-        "rustc"
+        if cfg!(windows) {
+            "rustc.exe"
+        } else {
+            "rustc"
+        }
+    } else if cfg!(windows) {
+        "clang.exe"
     } else {
         "clang"
     };
@@ -16001,6 +16041,8 @@ fn freeze_tool_environment() -> Result<FrozenToolEnvironment, PhaseBLocalError> 
 
 fn prepare_toolchain_plan() -> Result<PreparedToolchainPlan, PhaseBLocalError> {
     let environment = freeze_tool_environment()?;
+    let clang_name = if cfg!(windows) { "clang.exe" } else { "clang" };
+    let rustc_name = if cfg!(windows) { "rustc.exe" } else { "rustc" };
     let path_budget = reserve_phase_b(
         PHASE_B_TOOL_RESOLVER_CAPACITY
             .checked_mul(4)
@@ -16015,14 +16057,15 @@ fn prepare_toolchain_plan() -> Result<PreparedToolchainPlan, PhaseBLocalError> {
             .checked_mul(4)
             .ok_or(PhaseBLocalError::BuilderBudget)?,
     )?;
-    let clang_resolver = platform::prepare_tool_resolver("clang", PHASE_B_TOOL_PATH_CAPACITY)
+    let clang_resolver = platform::prepare_tool_resolver(clang_name, PHASE_B_TOOL_PATH_CAPACITY)
         .map_err(|_| PhaseBLocalError::BuilderBudget)?;
-    let discovery_resolver = platform::prepare_tool_resolver("rustc", PHASE_B_TOOL_PATH_CAPACITY)
-        .map_err(|_| PhaseBLocalError::BuilderBudget)?;
-    let direct_resolver = platform::prepare_tool_resolver("rustc", PHASE_B_TOOL_PATH_CAPACITY)
+    let discovery_resolver =
+        platform::prepare_tool_resolver(rustc_name, PHASE_B_TOOL_PATH_CAPACITY)
+            .map_err(|_| PhaseBLocalError::BuilderBudget)?;
+    let direct_resolver = platform::prepare_tool_resolver(rustc_name, PHASE_B_TOOL_PATH_CAPACITY)
         .map_err(|_| PhaseBLocalError::BuilderBudget)?;
     let direct_recheck_resolver =
-        platform::prepare_tool_resolver("rustc", PHASE_B_TOOL_PATH_CAPACITY)
+        platform::prepare_tool_resolver(rustc_name, PHASE_B_TOOL_PATH_CAPACITY)
             .map_err(|_| PhaseBLocalError::BuilderBudget)?;
     let resolver_owned = platform::prepared_tool_resolver_owned_capacity(&clang_resolver)
         .checked_add(platform::prepared_tool_resolver_owned_capacity(
@@ -21597,6 +21640,9 @@ fn main() -> i64 { 0 }
                     &inventory,
                 )
                 .unwrap();
+                // Windows finalizes the delete disposition only after the
+                // last authenticated directory handle closes.
+                drop(stage);
                 assert!(!root.join(stage_name).exists());
             }
             std::fs::remove_dir_all(&root).unwrap();
@@ -25207,7 +25253,7 @@ module capacity.cleanup_shadow;
     }
 
     #[test]
-    fn post_hir_complete_reservation_precedes_all_fact_and_render_work() {
+    fn post_hir_nontransfer_reservation_precedes_all_fact_and_render_work() {
         let (program, canonical_spec) = fixture();
         let canonical_source = crate::format::canonical(&program);
         let spec =
@@ -25223,13 +25269,15 @@ module capacity.cleanup_shadow;
         )
         .unwrap();
         let complete = capacity.complete().unwrap();
+        let transfer = prepared_spec_transfer_capacity(&spec).unwrap();
+        let reservation = complete.checked_sub(transfer).unwrap();
 
         POST_HIR_FACTS_ENTRY_COUNT.with(|count| count.set(0));
         POST_HIR_FACTS_CAPACITY_HIGH_WATER.with(|water| water.set(0));
         POST_HIR_FACTS_SCRATCH_HIGH_WATER.with(|water| water.set(0));
         let (result, overflowed, consumed) =
-            crate::bounded_output::with_limit_usage(complete - 1, || {
-                let _budget = reserve_temporary_exact(complete)?;
+            crate::bounded_output::with_limit_usage(reservation - 1, || {
+                let _budget = reserve_temporary_exact(reservation)?;
                 note_post_hir_facts_entry();
                 Ok::<_, Diagnostic>(())
             });
@@ -25241,8 +25289,8 @@ module capacity.cleanup_shadow;
 
         POST_HIR_FACTS_ENTRY_COUNT.with(|count| count.set(0));
         let (result, overflowed, consumed) =
-            crate::bounded_output::with_limit_usage(complete, || {
-                let budget = reserve_temporary_exact(complete)?;
+            crate::bounded_output::with_limit_usage(reservation, || {
+                let budget = reserve_temporary_exact(reservation)?;
                 note_post_hir_facts_entry();
                 drop(budget);
                 Ok::<_, Diagnostic>(())
@@ -25251,6 +25299,88 @@ module capacity.cleanup_shadow;
         assert!(!overflowed);
         assert_eq!(consumed, 0);
         POST_HIR_FACTS_ENTRY_COUNT.with(|count| assert_eq!(count.get(), 1));
+    }
+
+    #[test]
+    fn post_hir_spec_transfer_is_single_charged_across_target_triple_lengths() {
+        fn terms(triple: &str) -> [usize; 5] {
+            with_test_target(
+                Target {
+                    triple: triple.to_owned(),
+                    pointer_width: 64,
+                    endian: "little".to_owned(),
+                    panic_strategy: "unwind".to_owned(),
+                    thread_policy: "same_thread".to_owned(),
+                },
+                || {
+                    let (program, canonical_spec) = fixture();
+                    POST_HIR_AUTHORITY_TRANSFER_TERMS.with(|terms| terms.set([0; 5]));
+                    prepare_native_rust_interop(&program, canonical_spec.as_bytes()).unwrap();
+                    POST_HIR_AUTHORITY_TRANSFER_TERMS.with(std::cell::Cell::get)
+                },
+            )
+        }
+
+        // [complete formula, moved Spec ownership, net facts reservation,
+        //  new persistent facts, total persistent Prepared ownership]
+        let apple = terms("aarch64-apple-darwin");
+        let linux = terms("x86_64-unknown-linux-gnu");
+        for observed in [apple, linux] {
+            assert!(observed.into_iter().all(|value| value > 0));
+            assert_eq!(observed[0] - observed[1], observed[2]);
+            assert_eq!(observed[4] - observed[1], observed[3]);
+        }
+        assert_eq!(linux[0] - apple[0], 4);
+        assert_eq!(linux[1] - apple[1], 4);
+        assert_eq!(linux[2], apple[2]);
+        assert_eq!(linux[3], apple[3]);
+        assert_eq!(linux[4] - apple[4], 4);
+    }
+
+    #[test]
+    fn post_hir_spec_transfer_capacity_slack_does_not_consume_scratch_authority() {
+        let (program, canonical_spec) = fixture();
+        let canonical_source = crate::format::canonical(&program);
+        let mut spec =
+            parse_spec_with_source(&program, canonical_spec.as_bytes(), &canonical_source).unwrap();
+        let resolved = hir::resolve(&program).unwrap();
+        let (closure, _) = selected_closure(&resolved, &spec.exports).unwrap();
+
+        let base = post_hir_facts_capacity(
+            canonical_source.len(),
+            canonical_spec.len(),
+            &resolved,
+            &closure,
+            &spec,
+        )
+        .unwrap();
+        let base_transfer = prepared_spec_transfer_capacity(&spec).unwrap();
+        let digest = spec.source_revision.clone();
+        let requested_capacity = digest.len() + 37;
+        let mut over_capacity_digest = String::with_capacity(requested_capacity);
+        over_capacity_digest.push_str(&digest);
+        assert!(over_capacity_digest.capacity() > over_capacity_digest.len());
+        spec.source_revision = over_capacity_digest;
+
+        let hostile = post_hir_facts_capacity(
+            canonical_source.len(),
+            canonical_spec.len(),
+            &resolved,
+            &closure,
+            &spec,
+        )
+        .unwrap();
+        let hostile_transfer = prepared_spec_transfer_capacity(&spec).unwrap();
+        let transfer_delta = hostile_transfer.checked_sub(base_transfer).unwrap();
+        assert!(transfer_delta > 0);
+        assert_eq!(
+            hostile.complete().unwrap() - base.complete().unwrap(),
+            transfer_delta,
+        );
+        assert_eq!(
+            hostile.complete().unwrap() - hostile_transfer,
+            base.complete().unwrap() - base_transfer,
+        );
     }
 
     #[test]
@@ -25414,53 +25544,68 @@ module capacity.cleanup_shadow;
             )
         }
 
-        let (program, canonical_spec) = fixture();
-        let canonical_source = crate::format::canonical(&program);
-        let spec =
-            parse_spec_with_source(&program, canonical_spec.as_bytes(), &canonical_source).unwrap();
-        let representative = measure(&program, &spec);
+        // This historical evidence tuple was authorized for the Apple-arm
+        // target. Freeze that target explicitly so host triple length cannot
+        // silently repin a target-specific retained-allocation census.
+        with_test_target(
+            Target {
+                triple: "aarch64-apple-darwin".to_owned(),
+                pointer_width: 64,
+                endian: "little".to_owned(),
+                panic_strategy: "unwind".to_owned(),
+                thread_policy: "same_thread".to_owned(),
+            },
+            || {
+                let (program, canonical_spec) = fixture();
+                let canonical_source = crate::format::canonical(&program);
+                let spec =
+                    parse_spec_with_source(&program, canonical_spec.as_bytes(), &canonical_source)
+                        .unwrap();
+                let representative = measure(&program, &spec);
 
-        let mut deep = program;
-        let function = deep
-            .functions
-            .iter_mut()
-            .find(|function| function.stable_id == "interop.add")
-            .unwrap();
-        for _ in 0..MAX_SEMANTIC_EXPRESSION_DEPTH - 4 {
-            let expression = function.body.clone();
-            function.body = crate::ast::Expr {
-                span: expression.span,
-                kind: crate::ast::ExprKind::Unary {
-                    op: crate::ast::UnaryOp::Neg,
-                    value: Box::new(expression),
-                },
-            };
-        }
-        validate_native_rust_source_expression_budget(&deep).unwrap();
-        let deep_source = crate::format::canonical(&deep);
-        let deep_spec = Spec {
-            module: deep.module.clone(),
-            source_revision: domain_digest(SOURCE_DOMAIN, deep_source.as_bytes()),
-            target: current_target().unwrap(),
-            exports: vec!["interop.add".to_owned()],
-            imports: vec!["host.add".to_owned()],
-            capabilities: vec!["host.math".to_owned()],
-        };
-        let deep = measure(&deep, &deep_spec);
+                let mut deep = program;
+                let function = deep
+                    .functions
+                    .iter_mut()
+                    .find(|function| function.stable_id == "interop.add")
+                    .unwrap();
+                for _ in 0..MAX_SEMANTIC_EXPRESSION_DEPTH - 4 {
+                    let expression = function.body.clone();
+                    function.body = crate::ast::Expr {
+                        span: expression.span,
+                        kind: crate::ast::ExprKind::Unary {
+                            op: crate::ast::UnaryOp::Neg,
+                            value: Box::new(expression),
+                        },
+                    };
+                }
+                validate_native_rust_source_expression_budget(&deep).unwrap();
+                let deep_source = crate::format::canonical(&deep);
+                let deep_spec = Spec {
+                    module: deep.module.clone(),
+                    source_revision: domain_digest(SOURCE_DOMAIN, deep_source.as_bytes()),
+                    target: current_target().unwrap(),
+                    exports: vec!["interop.add".to_owned()],
+                    imports: vec!["host.add".to_owned()],
+                    capabilities: vec!["host.math".to_owned()],
+                };
+                let deep = measure(&deep, &deep_spec);
 
-        assert_eq!(
-            [representative, deep],
-            [
-                (
-                    [1_630, 115_266, 8_390_881, 8_390_881],
-                    [116_499, 4_195_020, 4_195_020]
-                ),
-                (
-                    [1_630, 115_266, 8_447_777, 8_447_777],
-                    [116_499, 4_251_916, 4_251_916]
-                ),
-            ],
-            "named phase formula or observed high-water pins drifted"
+                assert_eq!(
+                    [representative, deep],
+                    [
+                        (
+                            [1_630, 115_266, 8_390_881, 8_390_881],
+                            [116_499, 4_195_020, 4_195_020]
+                        ),
+                        (
+                            [1_630, 115_266, 8_447_777, 8_447_777],
+                            [116_499, 4_251_916, 4_251_916]
+                        ),
+                    ],
+                    "named phase formula or observed high-water pins drifted"
+                );
+            },
         );
     }
 
@@ -25706,9 +25851,17 @@ module capacity.cleanup_shadow;
     #[test]
     fn serde_json_lock_and_near_max_escaped_payload_match_parser_contract() {
         assert!(include_str!("../Cargo.toml").contains("serde_json = \"=1.0.151\""));
-        assert!(include_str!("../../../Cargo.lock").contains(
-            "name = \"serde_json\"\nversion = \"1.0.151\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\nchecksum = \"c841b55ecdae098c80dcae9cf767f6f8a0c2cdb3416bbef72181df4d0fe73f14\""
-        ));
+        let serde_package = include_str!("../../../Cargo.lock")
+            .split("[[package]]")
+            .find(|package| package.lines().any(|line| line == "name = \"serde_json\""))
+            .expect("serde_json package is locked");
+        for expected in [
+            "version = \"1.0.151\"",
+            "source = \"registry+https://github.com/rust-lang/crates.io-index\"",
+            "checksum = \"c841b55ecdae098c80dcae9cf767f6f8a0c2cdb3416bbef72181df4d0fe73f14\"",
+        ] {
+            assert!(serde_package.lines().any(|line| line == expected));
+        }
         let mut encoded = String::with_capacity(MAX_DESCRIPTOR_BYTES);
         encoded.push_str("{\"escaped\":\"");
         while encoded.len() + "\\u0061\"}".len() <= MAX_DESCRIPTOR_BYTES {

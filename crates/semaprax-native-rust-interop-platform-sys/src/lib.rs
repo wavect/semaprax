@@ -2947,7 +2947,7 @@ mod platform {
         }
         let env = [std::ptr::null::<libc::c_char>()];
         const EXECUTABLE_FD: libc::c_int = 1020;
-        const EXECUTABLE_FD_PATH: &CStr = c"/proc/self/fd/1020";
+        const EXECUTABLE_FD_PATH: &std::ffi::CStr = c"/proc/self/fd/1020";
         let mut argv0 = [0_u8; 32_770];
         let pid = unsafe { libc::fork() };
         if pid < 0 {

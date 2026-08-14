@@ -130,8 +130,10 @@ maximum strings. The canonical Spec input and all six outputs reject every-byte
 substitution, deletion, insertion, and truncation. One fixed-target fixture pins
 the byte length and independently recomputed raw SHA-256 of Descriptor, Manifest,
 header, C, safe Rust, and private FFI; it additionally pins the existing protocol
-domain digests for Descriptor and Manifest. It compiles strict C and Rust, statically links the
-object, executes the round trip, then publishes a create-new exact inventory.
+domain digests for Descriptor and Manifest. It compiles strict C and Rust,
+statically links the object with the frozen Linux native-static library tail
+when applicable, executes the round trip, then publishes a create-new exact
+inventory.
 There is no dylib, loader, symbol lookup, network, CLI, or public execution
 surface.
 

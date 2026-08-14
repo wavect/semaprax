@@ -12,8 +12,9 @@
   post-HIR retained/scratch envelopes, iterative renderer/replayer traversal,
   exact persistent allocation transfers, and minimum-minus-one entry gates;
   prepared Phase-B target arguments admit current-host underscore components
-  without opening other punctuation. Local builder 97/97, platform-system
-  21/21, platform 10/10, source-contract 6/6, strict-Clippy, formatting, and
+  without opening other punctuation, and the Linux link plan freezes the
+  target's native-static library tail. Local builder 97/97, platform-system
+  22/22, platform 10/10, source-contract 6/6, strict-Clippy, formatting, and
   security gates are green; Windows directory authority now excludes mutable
   directory length while retaining full file identity and reparse rejection.
   Windows runtime, exact-head three-OS, and Linux sanitizer evidence

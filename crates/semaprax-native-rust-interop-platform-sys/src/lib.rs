@@ -8127,8 +8127,8 @@ mod tests {
             Err(Error::OutputLimit)
         ));
 
-        let include = OsStr::new(r"C:\sdk\include;C:\msvc\include");
-        let libraries = OsStr::new(r"C:\sdk\lib;C:\msvc\lib");
+        let include = std::ffi::OsStr::new(r"C:\sdk\include;C:\msvc\include");
+        let libraries = std::ffi::OsStr::new(r"C:\sdk\lib;C:\msvc\lib");
         let plan = super::platform::prepare_process_arena_plan_with_environment(
             12,
             Some(include),

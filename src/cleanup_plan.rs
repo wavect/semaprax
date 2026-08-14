@@ -361,8 +361,7 @@ impl CleanupPlan {
                 } => call
                     .as_str()
                     .len()
-                    .checked_add(value_expression.as_str().len())
-                    .unwrap_or(usize::MAX),
+                    .saturating_add(value_expression.as_str().len()),
                 StorageId::ProvisionalResult => 0,
             }
         }
@@ -461,11 +460,7 @@ impl CleanupPlan {
                 EdgeCondition::BooleanResult(expression, _) => expression.as_str().len(),
                 EdgeCondition::VariantCase {
                     scrutinee, case, ..
-                } => scrutinee
-                    .as_str()
-                    .len()
-                    .checked_add(case.as_str().len())
-                    .unwrap_or(usize::MAX),
+                } => scrutinee.as_str().len().saturating_add(case.as_str().len()),
                 EdgeCondition::StatusZero(status) | EdgeCondition::StatusNonzero(status) => {
                     status_id_bytes(status)
                 }

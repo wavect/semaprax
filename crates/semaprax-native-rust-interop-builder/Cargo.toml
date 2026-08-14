@@ -2,11 +2,14 @@
 name = "semaprax-native-rust-interop"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.85"
 publish = false
+description = "Private bounded Native Rust Interop builder for SEMAPRAX"
+license = "Apache-2.0"
 
 [dependencies]
-semaprax = { path = "../..", default-features = false }
-semaprax-native-rust-interop-platform = { path = "../semaprax-native-rust-interop-platform" }
+semaprax = { version = "=0.2.0", path = "../..", default-features = false }
+semaprax-native-rust-interop-platform = { version = "=0.1.0", path = "../semaprax-native-rust-interop-platform" }
 serde_json = "=1.0.151"
 sha2 = "=0.10.9"
 

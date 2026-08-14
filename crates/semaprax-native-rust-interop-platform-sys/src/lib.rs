@@ -295,6 +295,9 @@ mod platform {
     pub struct PreparedRunInvocation(PreparedCommand);
 
     #[cfg(target_os = "linux")]
+    const LINUX_LINKER_ARGUMENT: &str = "-fuse-ld=/usr/bin/ld";
+
+    #[cfg(target_os = "linux")]
     const LINUX_RUST_STATICLIB_NATIVE_LIBS: [&str; 7] = [
         "-lgcc_s",
         "-lutil",
@@ -3560,6 +3563,11 @@ mod platform {
                 count += 1;
             }
         }
+        #[cfg(target_os = "linux")]
+        {
+            values[count] = LINUX_LINKER_ARGUMENT;
+            count += 1;
+        }
         #[cfg(target_os = "macos")]
         {
             values[count] = "-Wl,-no_warn_duplicate_libraries";
@@ -3761,6 +3769,8 @@ mod platform {
             argument("-o")?,
             argument(output.to_str().ok_or(Error::Invalid)?)?,
         ];
+        #[cfg(target_os = "linux")]
+        arguments.insert(2, argument(LINUX_LINKER_ARGUMENT)?);
         #[cfg(target_os = "linux")]
         arguments.extend(
             LINUX_RUST_STATICLIB_NATIVE_LIBS
@@ -8172,6 +8182,11 @@ mod tests {
             3,
             "the frozen Linux native-static library tail must have one definition and exactly two link consumers",
         );
+        assert_eq!(
+            unix.matches("LINUX_LINKER_ARGUMENT").count(),
+            3,
+            "the absolute Linux linker argument must have one definition and exactly two link consumers",
+        );
 
         let prepared_start = unix.find("pub fn prepare_link_invocation(").unwrap();
         let prepared_end = unix[prepared_start..]
@@ -8179,12 +8194,19 @@ mod tests {
             .map(|offset| prepared_start + offset)
             .unwrap();
         let prepared = &unix[prepared_start..prepared_end];
+        let prepared_linker = prepared
+            .find("values[count] = LINUX_LINKER_ARGUMENT")
+            .unwrap();
         let prepared_archive = prepared.find("rust_archive.to_str()").unwrap();
         let prepared_output = prepared.find("output.to_str()").unwrap();
         let prepared_tail = prepared
             .find("for value in LINUX_RUST_STATICLIB_NATIVE_LIBS")
             .unwrap();
-        assert!(prepared_archive < prepared_output && prepared_output < prepared_tail);
+        assert!(
+            prepared_linker < prepared_archive
+                && prepared_archive < prepared_output
+                && prepared_output < prepared_tail
+        );
 
         let legacy_start = unix.find("pub fn link_harness(").unwrap();
         let legacy_end = unix[legacy_start..]
@@ -8192,6 +8214,7 @@ mod tests {
             .map(|offset| legacy_start + offset)
             .unwrap();
         let legacy = &unix[legacy_start..legacy_end];
+        assert!(legacy.contains("arguments.insert(2, argument(LINUX_LINKER_ARGUMENT)?)"));
         let legacy_archive = legacy.find("rust_archive.to_str()").unwrap();
         let legacy_output = legacy.find("output.to_str()").unwrap();
         let legacy_tail = legacy.find("LINUX_RUST_STATICLIB_NATIVE_LIBS").unwrap();

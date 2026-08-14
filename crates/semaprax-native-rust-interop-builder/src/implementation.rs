@@ -7790,10 +7790,10 @@ fn cleanup_binding_flow<'a>(
 
         let mut flow = flows[frame_index];
         match &expression.kind {
-            crate::ast::ExprKind::If { .. } | crate::ast::ExprKind::Match { .. } => {
-                if flow.live_after {
-                    flow.live_after = branch_live[frame_index];
-                }
+            crate::ast::ExprKind::If { .. } | crate::ast::ExprKind::Match { .. }
+                if flow.live_after =>
+            {
+                flow.live_after = branch_live[frame_index];
             }
             _ => {}
         }
@@ -11113,11 +11113,9 @@ fn hir_expr_owned_capacity(expression: &ResolvedExpr) -> Result<usize, Diagnosti
                     total = total
                         .checked_add(match projection {
                             crate::hir::PlaceProjection::Field(field) => field.as_str().len(),
-                            crate::hir::PlaceProjection::VariantField { case, field } => case
-                                .as_str()
-                                .len()
-                                .checked_add(field.as_str().len())
-                                .unwrap_or(usize::MAX),
+                            crate::hir::PlaceProjection::VariantField { case, field } => {
+                                case.as_str().len().saturating_add(field.as_str().len())
+                            }
                         })
                         .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
                 }

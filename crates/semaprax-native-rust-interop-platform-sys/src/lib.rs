@@ -39,19 +39,33 @@ pub enum Error {
 #[repr(u8)]
 #[derive(Clone, Copy)]
 enum TestSettlementFailure {
+    #[cfg(unix)]
     UnixWait,
+    #[cfg(unix)]
     UnixGroup,
+    #[cfg(unix)]
     UnixSettleClose,
+    #[cfg(unix)]
     UnixSuccessReadClose,
+    #[cfg(unix)]
     UnixParentWriteClose,
+    #[cfg(unix)]
     UnixParentNullClose,
+    #[cfg(unix)]
     UnixPipeReadFcntl,
+    #[cfg(unix)]
     UnixPipeWriteFcntl,
+    #[cfg(unix)]
     UnixDrainFcntl,
+    #[cfg(unix)]
     UnixPoll,
+    #[cfg(unix)]
     UnixRead,
+    #[cfg(unix)]
     UnixReadConversion,
+    #[cfg(unix)]
     UnixWaitpid,
+    #[cfg(unix)]
     UnixDeadline,
     #[cfg(target_os = "macos")]
     DarwinActionsDestroy,

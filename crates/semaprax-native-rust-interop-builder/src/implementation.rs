@@ -96,6 +96,10 @@ thread_local! {
     static PHASE_B_OUTPUT_PROBES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
     static PHASE_B_TOOL_HOLDS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
     static PHASE_B_TOOL_PROCESSES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+    static PHASE_B_PROCESS_ARENA_DROPS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+    static PHASE_B_PROCESS_ARENA_BUDGET_DROPS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+    static PHASE_B_PROCESS_ARENA_DROP_ORDER: std::cell::Cell<[u8; 2]> = const { std::cell::Cell::new([0; 2]) };
+    static PHASE_B_PROCESS_ARENA_DROP_ORDER_LENGTH: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
     static PHASE_B_INVALID_TOOL_ENV_INJECTION: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static PHASE_B_DIRECT_SYSROOT_MISMATCH_INJECTION: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static PHASE_B_BUILD_INVOCATION_PLANS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
@@ -16015,10 +16019,59 @@ struct FrozenToolEnvironment {
     budget: TemporaryBudget,
 }
 
+struct AuthorizedProcessArena {
+    arena: Option<platform::PreparedProcessArena>,
+    budget: Option<TemporaryBudget>,
+}
+
+impl AuthorizedProcessArena {
+    fn new(arena: platform::PreparedProcessArena, budget: TemporaryBudget) -> Self {
+        Self {
+            arena: Some(arena),
+            budget: Some(budget),
+        }
+    }
+
+    fn arena(&self) -> Result<&platform::PreparedProcessArena, PhaseBLocalError> {
+        self.arena.as_ref().ok_or(PhaseBLocalError::BuilderBudget)
+    }
+
+    fn arena_mut(&mut self) -> Result<&mut platform::PreparedProcessArena, PhaseBLocalError> {
+        self.arena.as_mut().ok_or(PhaseBLocalError::BuilderBudget)
+    }
+
+    fn authorized_capacity(&self) -> Result<usize, PhaseBLocalError> {
+        self.budget
+            .as_ref()
+            .map(TemporaryBudget::maximum)
+            .ok_or(PhaseBLocalError::BuilderBudget)
+    }
+}
+
+impl Drop for AuthorizedProcessArena {
+    fn drop(&mut self) {
+        if let Some(arena) = self.arena.take() {
+            drop(arena);
+            #[cfg(test)]
+            {
+                PHASE_B_PROCESS_ARENA_DROPS.with(|drops| drops.set(drops.get() + 1));
+                note_phase_b_process_arena_drop(1);
+            }
+        }
+        if let Some(budget) = self.budget.take() {
+            drop(budget);
+            #[cfg(test)]
+            {
+                PHASE_B_PROCESS_ARENA_BUDGET_DROPS.with(|drops| drops.set(drops.get() + 1));
+                note_phase_b_process_arena_drop(2);
+            }
+        }
+    }
+}
+
 struct PreparedToolchainPlan {
     environment: FrozenToolEnvironment,
     path_budget: TemporaryBudget,
-    process_arena_budget: TemporaryBudget,
     discovery_output_budget: TemporaryBudget,
     direct_sysroot_output_budget: TemporaryBudget,
     rustc_output_budget: TemporaryBudget,
@@ -16032,15 +16085,14 @@ struct PreparedToolchainPlan {
     direct_sysroot_invocation: platform::PreparedSysrootInvocation,
     rustc_invocation: platform::PreparedRustcVersionInvocation,
     clang_invocation: platform::PreparedVersionInvocation,
-    process_arena: platform::PreparedProcessArena,
+    process_arena: AuthorizedProcessArena,
     rustc_version: RustcVersion,
 }
 
 struct ToolchainFacts {
     rustc: platform::HeldDirectRustc,
     clang: platform::HeldTool,
-    process_arena: Option<platform::PreparedProcessArena>,
-    process_arena_budget: Option<TemporaryBudget>,
+    process_arena: Option<AuthorizedProcessArena>,
     rustc_version: RustcVersion,
     clang_version: String,
 }
@@ -16163,17 +16215,10 @@ fn prepare_toolchain_plan() -> Result<PreparedToolchainPlan, PhaseBLocalError> {
         return Err(PhaseBLocalError::BuilderBudget);
     }
     retain_phase_b(persistent_budget, rustc_version.capacity())?;
-    let process_arena_budget = reserve_phase_b(PHASE_B_PROCESS_ARENA_CAPACITY)?;
-    let process_arena = platform::prepare_process_arena(PHASE_B_PROCESS_INVOCATIONS)
-        .map_err(|_| PhaseBLocalError::BuilderBudget)?;
-    let process_arena_capacity = platform::prepared_process_arena_owned_capacity(&process_arena);
-    if process_arena_capacity != PHASE_B_PROCESS_ARENA_CAPACITY {
-        return Err(PhaseBLocalError::BuilderBudget);
-    }
+    let process_arena = prepare_process_arena_authorized()?;
     Ok(PreparedToolchainPlan {
         environment,
         path_budget,
-        process_arena_budget,
         discovery_output_budget,
         direct_sysroot_output_budget,
         rustc_output_budget,
@@ -16200,7 +16245,6 @@ fn authenticate_toolchain(
     let PreparedToolchainPlan {
         environment,
         path_budget,
-        process_arena_budget,
         discovery_output_budget,
         direct_sysroot_output_budget,
         rustc_output_budget,
@@ -16251,7 +16295,7 @@ fn authenticate_toolchain(
         &discovery,
         cwd,
         discovery_invocation,
-        &mut process_arena,
+        process_arena.arena_mut()?,
     )
     .map_err(|_| PhaseBLocalError::Unsupported)?;
     if discovery_sysroot.capacity() != PHASE_B_TOOL_VERSION_CAPACITY {
@@ -16270,7 +16314,7 @@ fn authenticate_toolchain(
         &rustc,
         cwd,
         direct_sysroot_invocation,
-        &mut process_arena,
+        process_arena.arena_mut()?,
     )
     .map_err(|_| PhaseBLocalError::Unsupported)?;
     if direct_sysroot.capacity() != PHASE_B_TOOL_VERSION_CAPACITY {
@@ -16293,9 +16337,13 @@ fn authenticate_toolchain(
     retain_phase_b(path_budget, platform::tool_path_capacity(&clang))?;
     #[cfg(test)]
     PHASE_B_TOOL_PROCESSES.with(|count| count.set(count.get().saturating_add(1)));
-    let rustc_text =
-        platform::direct_rustc_version_prepared(&rustc, cwd, rustc_invocation, &mut process_arena)
-            .map_err(|_| PhaseBLocalError::Unsupported)?;
+    let rustc_text = platform::direct_rustc_version_prepared(
+        &rustc,
+        cwd,
+        rustc_invocation,
+        process_arena.arena_mut()?,
+    )
+    .map_err(|_| PhaseBLocalError::Unsupported)?;
     if rustc_text.capacity() != PHASE_B_TOOL_VERSION_CAPACITY {
         return Err(PhaseBLocalError::BuilderBudget);
     }
@@ -16312,7 +16360,7 @@ fn authenticate_toolchain(
     #[cfg(test)]
     PHASE_B_TOOL_PROCESSES.with(|count| count.set(count.get().saturating_add(1)));
     let clang_text =
-        platform::tool_version_prepared(&clang, cwd, clang_invocation, &mut process_arena)
+        platform::tool_version_prepared(&clang, cwd, clang_invocation, process_arena.arena_mut()?)
             .map_err(|_| PhaseBLocalError::Unsupported)?;
     if clang_text.capacity() != PHASE_B_TOOL_VERSION_CAPACITY {
         return Err(PhaseBLocalError::BuilderBudget);
@@ -16332,7 +16380,8 @@ fn authenticate_toolchain(
     if clang_version.is_empty() {
         return Err(PhaseBLocalError::Unsupported);
     }
-    if platform::prepared_process_arena_remaining(&process_arena) != PHASE_B_PROCESS_INVOCATIONS - 4
+    if platform::prepared_process_arena_remaining(process_arena.arena()?)
+        != PHASE_B_PROCESS_INVOCATIONS - 4
     {
         return Err(PhaseBLocalError::BuilderBudget);
     }
@@ -16340,7 +16389,6 @@ fn authenticate_toolchain(
         rustc,
         clang,
         process_arena: Some(process_arena),
-        process_arena_budget: Some(process_arena_budget),
         rustc_version,
         clang_version,
     })
@@ -17178,9 +17226,65 @@ const PHASE_B_VERSION_COMMAND_CAPACITY: usize = 256;
 const PHASE_B_TOOL_RESOLVER_CAPACITY: usize = PHASE_B_TOOL_PATH_CAPACITY * 7 + 256;
 const PHASE_B_PROCESS_INVOCATIONS: usize = 12;
 #[cfg(windows)]
-const PHASE_B_PROCESS_ARENA_CAPACITY: usize = 1_245_190;
+const PHASE_B_PROCESS_ARENA_MAX_CAPACITY: usize = 1_245_190;
 #[cfg(unix)]
-const PHASE_B_PROCESS_ARENA_CAPACITY: usize = 0;
+const PHASE_B_PROCESS_ARENA_MAX_CAPACITY: usize = 0;
+
+fn prepare_process_arena_authorized() -> Result<AuthorizedProcessArena, PhaseBLocalError> {
+    let plan =
+        platform::prepare_process_arena_plan(PHASE_B_PROCESS_INVOCATIONS).map_err(|error| {
+            match error {
+                platform::Error::OutputLimit => PhaseBLocalError::BuilderBudget,
+                platform::Error::Invalid
+                | platform::Error::Unsupported
+                | platform::Error::Exists
+                | platform::Error::Changed
+                | platform::Error::Spawn
+                | platform::Error::Exit => PhaseBLocalError::Unsupported,
+            }
+        })?;
+    let required = platform::prepared_process_arena_plan_capacity(&plan);
+    if required > PHASE_B_PROCESS_ARENA_MAX_CAPACITY {
+        return Err(PhaseBLocalError::BuilderBudget);
+    }
+    let budget = reserve_phase_b(required)?;
+    let arena = platform::materialize_process_arena(plan).map_err(|error| match error {
+        platform::Error::OutputLimit => PhaseBLocalError::BuilderBudget,
+        platform::Error::Invalid
+        | platform::Error::Unsupported
+        | platform::Error::Exists
+        | platform::Error::Changed
+        | platform::Error::Spawn
+        | platform::Error::Exit => PhaseBLocalError::Unsupported,
+    })?;
+    if platform::prepared_process_arena_owned_capacity(&arena) != required {
+        return Err(PhaseBLocalError::BuilderBudget);
+    }
+    Ok(AuthorizedProcessArena::new(arena, budget))
+}
+
+#[cfg(test)]
+fn note_phase_b_process_arena_drop(value: u8) {
+    PHASE_B_PROCESS_ARENA_DROP_ORDER.with(|order| {
+        PHASE_B_PROCESS_ARENA_DROP_ORDER_LENGTH.with(|length| {
+            let index = length.get();
+            if index < 2 {
+                let mut values = order.get();
+                values[index] = value;
+                order.set(values);
+                length.set(index + 1);
+            }
+        });
+    });
+}
+
+#[cfg(test)]
+fn reset_phase_b_process_arena_drop_observer() {
+    PHASE_B_PROCESS_ARENA_DROPS.with(|drops| drops.set(0));
+    PHASE_B_PROCESS_ARENA_BUDGET_DROPS.with(|drops| drops.set(0));
+    PHASE_B_PROCESS_ARENA_DROP_ORDER.with(|order| order.set([0; 2]));
+    PHASE_B_PROCESS_ARENA_DROP_ORDER_LENGTH.with(|length| length.set(0));
+}
 
 #[cfg(test)]
 fn reset_phase_b_error_materialization_observer() {
@@ -18798,7 +18902,8 @@ fn build_stage_platform(
             tools
                 .process_arena
                 .as_mut()
-                .ok_or(PhaseBLocalError::BuilderBudget)?,
+                .ok_or(PhaseBLocalError::BuilderBudget)?
+                .arena_mut()?,
         )
         .map_err(|_| PhaseBLocalError::Compile)?;
         let object = output.into_bytes();
@@ -18876,7 +18981,8 @@ fn build_stage_platform(
         tools
             .process_arena
             .as_mut()
-            .ok_or(PhaseBLocalError::BuilderBudget)?,
+            .ok_or(PhaseBLocalError::BuilderBudget)?
+            .arena_mut()?,
     )
     .map_err(|error| {
         #[cfg(test)]
@@ -18902,7 +19008,8 @@ fn build_stage_platform(
         tools
             .process_arena
             .as_mut()
-            .ok_or(PhaseBLocalError::BuilderBudget)?,
+            .ok_or(PhaseBLocalError::BuilderBudget)?
+            .arena_mut()?,
     )
     .map_err(|_| PhaseBLocalError::Compile)?;
     write_platform_file(
@@ -18950,7 +19057,8 @@ fn build_stage_platform(
             tools
                 .process_arena
                 .as_mut()
-                .ok_or(PhaseBLocalError::BuilderBudget)?,
+                .ok_or(PhaseBLocalError::BuilderBudget)?
+                .arena_mut()?,
         )
         .map_err(|_| PhaseBLocalError::Link)?;
         drop(link_invocation_budget);
@@ -18971,7 +19079,8 @@ fn build_stage_platform(
             tools
                 .process_arena
                 .as_mut()
-                .ok_or(PhaseBLocalError::BuilderBudget)?,
+                .ok_or(PhaseBLocalError::BuilderBudget)?
+                .arena_mut()?,
         )
         .map_err(|_| PhaseBLocalError::Link)?;
         drop(run_invocation_budget);
@@ -18980,21 +19089,16 @@ fn build_stage_platform(
         .process_arena
         .take()
         .ok_or(PhaseBLocalError::BuilderBudget)?;
-    if platform::prepared_process_arena_remaining(&process_arena) != 0 {
+    if platform::prepared_process_arena_remaining(process_arena.arena()?) != 0 {
         return Err(PhaseBLocalError::BuilderBudget);
     }
-    if platform::prepared_process_arena_owned_capacity(&process_arena)
-        != PHASE_B_PROCESS_ARENA_CAPACITY
+    let process_arena_capacity = process_arena.authorized_capacity()?;
+    if platform::prepared_process_arena_owned_capacity(process_arena.arena()?)
+        != process_arena_capacity
     {
         return Err(PhaseBLocalError::BuilderBudget);
     }
     drop(process_arena);
-    drop(
-        tools
-            .process_arena_budget
-            .take()
-            .ok_or(PhaseBLocalError::BuilderBudget)?,
-    );
     hook(
         NativeRustBuildPoint::BeforeObjectRead,
         &stage.path,
@@ -20703,10 +20807,17 @@ fn main() -> i64 { 0 }
         while low < high {
             let middle = low + (high - low) / 2;
             nonce += 1;
-            if probe(middle, nonce).is_ok() {
-                high = middle;
-            } else {
-                low = middle + 1;
+            match probe(middle, nonce) {
+                Ok(()) => high = middle,
+                Err(error) => {
+                    assert_eq!(error.len(), 1);
+                    assert_eq!(error[0].code, "SPX-B109");
+                    assert_eq!(
+                        error[0].message,
+                        "Native Rust Interop max_builder_bytes exceeds 33554432"
+                    );
+                    low = middle + 1;
+                }
             }
         }
         let minimum = low;
@@ -20985,6 +21096,117 @@ fn main() -> i64 { 0 }
                 Err(PhaseBLocalError::Unsupported),
             );
         }
+    }
+
+    #[test]
+    fn phase_b_process_arena_reservation_precedes_materialization_source_contract() {
+        let source = include_str!("implementation.rs");
+        let start = source.find("fn prepare_process_arena_authorized(").unwrap();
+        let end = source[start..]
+            .find("#[cfg(test)]\nfn reset_phase_b_error_materialization_observer")
+            .map(|offset| start + offset)
+            .unwrap();
+        let helper = &source[start..end];
+        let plan = helper
+            .find("platform::prepare_process_arena_plan(")
+            .unwrap();
+        let required = helper
+            .find("platform::prepared_process_arena_plan_capacity(&plan)")
+            .unwrap();
+        let reserve = helper.find("reserve_phase_b(required)?").unwrap();
+        let allocate = helper
+            .find("platform::materialize_process_arena(plan)")
+            .unwrap();
+        assert!(plan < required && required < reserve && reserve < allocate);
+        assert!(helper.contains("required > PHASE_B_PROCESS_ARENA_MAX_CAPACITY"));
+        assert!(
+            helper.contains("platform::prepared_process_arena_owned_capacity(&arena) != required")
+        );
+
+        let wrapper_start = source.find("struct AuthorizedProcessArena {").unwrap();
+        let wrapper_end = source[wrapper_start..]
+            .find("struct PreparedToolchainPlan {")
+            .map(|offset| wrapper_start + offset)
+            .unwrap();
+        let wrapper = &source[wrapper_start..wrapper_end];
+        assert!(wrapper.find("arena:").unwrap() < wrapper.find("budget:").unwrap());
+        assert!(wrapper.find("drop(arena)").unwrap() < wrapper.find("drop(budget)").unwrap());
+        assert!(
+            !source[source.find("struct PreparedToolchainPlan {").unwrap()..]
+                .split("struct ToolchainFacts {")
+                .next()
+                .unwrap()
+                .contains("process_arena_budget")
+        );
+    }
+
+    #[test]
+    fn phase_b_process_arena_drops_bytes_before_authority_on_early_plan_failure() {
+        reset_phase_b_process_arena_drop_observer();
+        let (plan, overflowed) =
+            crate::bounded_output::with_limit(MAX_BUILDER_BYTES, prepare_toolchain_plan);
+        assert!(!overflowed);
+        let plan = plan.unwrap();
+        assert_eq!(PHASE_B_PROCESS_ARENA_DROPS.with(std::cell::Cell::get), 0);
+        assert_eq!(
+            PHASE_B_PROCESS_ARENA_BUDGET_DROPS.with(std::cell::Cell::get),
+            0
+        );
+        drop(plan);
+        assert_eq!(PHASE_B_PROCESS_ARENA_DROPS.with(std::cell::Cell::get), 1);
+        assert_eq!(
+            PHASE_B_PROCESS_ARENA_BUDGET_DROPS.with(std::cell::Cell::get),
+            1
+        );
+        assert_eq!(
+            PHASE_B_PROCESS_ARENA_DROP_ORDER.with(std::cell::Cell::get),
+            [1, 2]
+        );
+        assert_eq!(
+            PHASE_B_PROCESS_ARENA_DROP_ORDER_LENGTH.with(std::cell::Cell::get),
+            2
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn phase_b_process_arena_exact_and_one_less_is_zero_effect() {
+        let sizing = platform::prepare_process_arena_plan(PHASE_B_PROCESS_INVOCATIONS).unwrap();
+        let required = platform::prepared_process_arena_plan_capacity(&sizing);
+        assert!(required > 0 && required <= PHASE_B_PROCESS_ARENA_MAX_CAPACITY);
+
+        let (exact, overflowed, used) =
+            crate::bounded_output::with_limit_usage(required, prepare_process_arena_authorized);
+        assert!(!overflowed);
+        let arena = exact.unwrap();
+        assert_eq!(used, required);
+        assert_eq!(arena.authorized_capacity().unwrap(), required);
+        assert_eq!(
+            platform::prepared_process_arena_owned_capacity(arena.arena().unwrap()),
+            required
+        );
+        assert_eq!(
+            platform::prepared_process_arena_remaining(arena.arena().unwrap()),
+            PHASE_B_PROCESS_INVOCATIONS
+        );
+        drop(arena);
+
+        PHASE_B_OUTPUT_PROBES.with(|count| count.set(0));
+        PHASE_B_TOOL_HOLDS.with(|count| count.set(0));
+        PHASE_B_TOOL_PROCESSES.with(|count| count.set(0));
+        reset_phase_b_error_materialization_observer();
+        let (one_less, overflowed) =
+            crate::bounded_output::with_limit(required - 1, || prepare_process_arena_authorized());
+        assert!(!overflowed);
+        assert!(matches!(one_less, Err(PhaseBLocalError::BuilderBudget)));
+        assert_eq!(PHASE_B_OUTPUT_PROBES.with(std::cell::Cell::get), 0);
+        assert_eq!(PHASE_B_TOOL_HOLDS.with(std::cell::Cell::get), 0);
+        assert_eq!(PHASE_B_TOOL_PROCESSES.with(std::cell::Cell::get), 0);
+        assert_eq!(
+            PHASE_B_POST_EFFECT_ERROR_MATERIALIZATIONS.with(std::cell::Cell::get),
+            0
+        );
+        assert!(!PHASE_B_EFFECT_STARTED.with(std::cell::Cell::get));
     }
 
     #[test]

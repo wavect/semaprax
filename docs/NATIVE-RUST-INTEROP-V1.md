@@ -118,7 +118,9 @@ its exact `bin/rustc`/`bin/rustc.exe`, rejects path indirection, requires that
 direct compiler to reproduce the same held sysroot, validates its version, and
 admits Rust artifacts only through the distinct held-direct-rustc authority.
 Clang is independently held. One exact pre-effect process arena is consumed by
-the four discovery/version operations and eight build/link/run operations,
+the four discovery/version operations and eight build/link/run operations. On
+Windows its attribute-list size is queried once before effects, capped,
+aligned, reserved before allocation, and rechecked on every use. Private B
 exactly replays Descriptor and Manifest bytes, and generates
 header/C/safe-Rust/private-FFI artifacts with independent ordered exact-byte
 consumers. Prepared invocations bind the admitted current-host target spelling,

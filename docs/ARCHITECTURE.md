@@ -82,7 +82,8 @@ direct compiler at that sysroot, requires the direct compiler to reproduce the
 same held sysroot, validates its version, and restricts every Rust artifact
 operation to the distinct direct-compiler authority. Rust discovery/version,
 Clang version, and the eight build/link/run operations consume one exact
-pre-effect 12-use process arena. The four retained `rustc -vV` fields occupy one
+pre-effect 12-use process arena. Windows queries and bounds the attribute-list
+size before reserving and materializing that arena. The four retained `rustc -vV` fields occupy one
 fixed-capacity no-growth store, and prepared target arguments admit the host's
 underscore-bearing components without widening the closed punctuation grammar.
 Prepared native names, inventories, artifact
@@ -96,7 +97,7 @@ stage is required to retain its create-returned directory authority until
 settlement and attempt one exact-inventory cleanup on success or failure.
 Cleanup must stop on identity, reparse/symlink, or inventory disagreement,
 preserve foreign sentinels, and expose no generic recursive-delete primitive.
-Local builder 97/97, platform-system 22/22, platform 10/10, source-contract
+Local builder 99/99, platform-system 22/22, platform 10/10, source-contract
 6/6, strict-Clippy, formatting, and security evidence are green. Exact-head
 hosted cleanup/process authority and sanitizer evidence on Ubuntu, macOS, and
 Windows remain held; Windows process-arena runtime and capacity-minus-one

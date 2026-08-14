@@ -262,6 +262,10 @@ mod platform {
         remaining: usize,
     }
 
+    pub struct PreparedProcessArenaPlan {
+        uses: usize,
+    }
+
     impl Drop for PreparedProcessArena {
         fn drop(&mut self) {}
     }
@@ -412,11 +416,27 @@ mod platform {
             .saturating_add(prepared.output.capacity())
     }
 
-    pub fn prepare_process_arena(uses: usize) -> Result<PreparedProcessArena, Error> {
+    pub fn prepare_process_arena_plan(uses: usize) -> Result<PreparedProcessArenaPlan, Error> {
         if uses == 0 || uses > 32 {
             return Err(Error::Invalid);
         }
-        Ok(PreparedProcessArena { remaining: uses })
+        Ok(PreparedProcessArenaPlan { uses })
+    }
+
+    pub fn prepared_process_arena_plan_capacity(_: &PreparedProcessArenaPlan) -> usize {
+        0
+    }
+
+    pub fn materialize_process_arena(
+        plan: PreparedProcessArenaPlan,
+    ) -> Result<PreparedProcessArena, Error> {
+        Ok(PreparedProcessArena {
+            remaining: plan.uses,
+        })
+    }
+
+    pub fn prepare_process_arena(uses: usize) -> Result<PreparedProcessArena, Error> {
+        materialize_process_arena(prepare_process_arena_plan(uses)?)
     }
 
     pub fn prepared_process_arena_owned_capacity(_: &PreparedProcessArena) -> usize {
@@ -3770,9 +3790,10 @@ mod platform {
         FILE_SYNCHRONOUS_IO_NONALERT,
     };
     use windows_sys::Win32::Foundation::{
-        CloseHandle, GetLastError, SetHandleInformation, ERROR_BROKEN_PIPE, ERROR_NO_MORE_FILES,
-        ERROR_PIPE_NOT_CONNECTED, HANDLE, HANDLE_FLAG_INHERIT, INVALID_HANDLE_VALUE,
-        STATUS_OBJECT_NAME_COLLISION, UNICODE_STRING, WAIT_FAILED, WAIT_OBJECT_0, WAIT_TIMEOUT,
+        CloseHandle, GetLastError, SetHandleInformation, ERROR_BROKEN_PIPE,
+        ERROR_INSUFFICIENT_BUFFER, ERROR_NO_MORE_FILES, ERROR_PIPE_NOT_CONNECTED, HANDLE,
+        HANDLE_FLAG_INHERIT, INVALID_HANDLE_VALUE, STATUS_OBJECT_NAME_COLLISION, UNICODE_STRING,
+        WAIT_FAILED, WAIT_OBJECT_0, WAIT_TIMEOUT,
     };
     use windows_sys::Win32::Security::SECURITY_ATTRIBUTES;
     use windows_sys::Win32::Storage::FileSystem::{
@@ -3873,14 +3894,22 @@ mod platform {
     pub struct PreparedRustcVersionInvocation(PreparedVersionInvocation);
 
     const PROCESS_PATH_UNITS: usize = 32_769;
-    const PROCESS_ATTRIBUTE_WORDS: usize = 131_072;
+    const MAX_PROCESS_ATTRIBUTE_BYTES: usize = 1_048_576;
 
     pub struct PreparedProcessArena {
         application: Vec<u16>,
         cwd: Vec<u16>,
         image: Vec<u16>,
         attributes: Vec<u64>,
+        attribute_bytes: usize,
         remaining: usize,
+    }
+
+    pub struct PreparedProcessArenaPlan {
+        uses: usize,
+        attribute_bytes: usize,
+        attribute_words: usize,
+        owned_capacity: usize,
     }
 
     pub struct PreparedToolResolver {
@@ -4036,18 +4065,68 @@ mod platform {
         prepared_version_owned_capacity(&prepared.0)
     }
 
-    pub fn prepare_process_arena(uses: usize) -> Result<PreparedProcessArena, Error> {
+    pub(super) fn process_arena_plan(
+        uses: usize,
+        attribute_bytes: usize,
+    ) -> Result<PreparedProcessArenaPlan, Error> {
         if uses == 0 || uses > 32 {
             return Err(Error::Invalid);
         }
+        if attribute_bytes == 0 {
+            return Err(Error::Unsupported);
+        }
+        if attribute_bytes > MAX_PROCESS_ATTRIBUTE_BYTES {
+            return Err(Error::OutputLimit);
+        }
+        let attribute_words = attribute_bytes
+            .checked_add(std::mem::size_of::<u64>() - 1)
+            .and_then(|bytes| bytes.checked_div(std::mem::size_of::<u64>()))
+            .ok_or(Error::OutputLimit)?;
+        let path_capacity = PROCESS_PATH_UNITS
+            .checked_mul(std::mem::size_of::<u16>())
+            .and_then(|bytes| bytes.checked_mul(3))
+            .ok_or(Error::OutputLimit)?;
+        let owned_capacity = attribute_words
+            .checked_mul(std::mem::size_of::<u64>())
+            .and_then(|bytes| path_capacity.checked_add(bytes))
+            .ok_or(Error::OutputLimit)?;
+        Ok(PreparedProcessArenaPlan {
+            uses,
+            attribute_bytes,
+            attribute_words,
+            owned_capacity,
+        })
+    }
+
+    pub fn prepare_process_arena_plan(uses: usize) -> Result<PreparedProcessArenaPlan, Error> {
+        if uses == 0 || uses > 32 {
+            return Err(Error::Invalid);
+        }
+        let mut attribute_bytes = 0_usize;
+        let initialized = unsafe {
+            InitializeProcThreadAttributeList(std::ptr::null_mut(), 1, 0, &mut attribute_bytes)
+        };
+        if initialized != 0 || unsafe { GetLastError() } != ERROR_INSUFFICIENT_BUFFER {
+            return Err(Error::Unsupported);
+        }
+        process_arena_plan(uses, attribute_bytes)
+    }
+
+    pub fn prepared_process_arena_plan_capacity(plan: &PreparedProcessArenaPlan) -> usize {
+        plan.owned_capacity
+    }
+
+    pub fn materialize_process_arena(
+        plan: PreparedProcessArenaPlan,
+    ) -> Result<PreparedProcessArena, Error> {
         let application = Vec::with_capacity(PROCESS_PATH_UNITS);
         let cwd = Vec::with_capacity(PROCESS_PATH_UNITS);
         let image = Vec::with_capacity(PROCESS_PATH_UNITS);
-        let attributes = Vec::with_capacity(PROCESS_ATTRIBUTE_WORDS);
+        let attributes = Vec::with_capacity(plan.attribute_words);
         if application.capacity() != PROCESS_PATH_UNITS
             || cwd.capacity() != PROCESS_PATH_UNITS
             || image.capacity() != PROCESS_PATH_UNITS
-            || attributes.capacity() != PROCESS_ATTRIBUTE_WORDS
+            || attributes.capacity() != plan.attribute_words
         {
             return Err(Error::OutputLimit);
         }
@@ -4056,8 +4135,13 @@ mod platform {
             cwd,
             image,
             attributes,
-            remaining: uses,
+            attribute_bytes: plan.attribute_bytes,
+            remaining: plan.uses,
         })
+    }
+
+    pub fn prepare_process_arena(uses: usize) -> Result<PreparedProcessArena, Error> {
+        materialize_process_arena(prepare_process_arena_plan(uses)?)
     }
 
     pub fn prepared_process_arena_owned_capacity(prepared: &PreparedProcessArena) -> usize {
@@ -4090,7 +4174,16 @@ mod platform {
     }
 
     pub(super) fn consume_process_arena(prepared: &mut PreparedProcessArena) -> Result<(), Error> {
-        if prepared_process_arena_owned_capacity(prepared) != 1_245_190 {
+        let attribute_words = prepared
+            .attribute_bytes
+            .checked_add(std::mem::size_of::<u64>() - 1)
+            .and_then(|bytes| bytes.checked_div(std::mem::size_of::<u64>()))
+            .ok_or(Error::OutputLimit)?;
+        if prepared.application.capacity() != PROCESS_PATH_UNITS
+            || prepared.cwd.capacity() != PROCESS_PATH_UNITS
+            || prepared.image.capacity() != PROCESS_PATH_UNITS
+            || prepared.attributes.capacity() != attribute_words
+        {
             return Err(Error::OutputLimit);
         }
         prepared.remaining = prepared
@@ -5945,26 +6038,25 @@ mod platform {
         }
 
         let inherited = [null_handle.raw(), write_pipe.raw()];
-        let mut attribute_bytes = 0_usize;
-        unsafe {
-            InitializeProcThreadAttributeList(std::ptr::null_mut(), 1, 0, &mut attribute_bytes);
-        }
-        if attribute_bytes == 0 || attribute_bytes > 1_048_576 {
-            return Err(Error::Spawn);
-        }
-        process_arena.attributes.resize(PROCESS_ATTRIBUTE_WORDS, 0);
+        let mut attribute_bytes = process_arena.attribute_bytes;
+        let attribute_words = attribute_bytes
+            .checked_add(std::mem::size_of::<u64>() - 1)
+            .and_then(|bytes| bytes.checked_div(std::mem::size_of::<u64>()))
+            .ok_or(Error::OutputLimit)?;
+        process_arena.attributes.resize(attribute_words, 0);
         if attribute_bytes
             > process_arena
                 .attributes
                 .len()
                 .saturating_mul(std::mem::size_of::<u64>())
-            || process_arena.attributes.capacity() != PROCESS_ATTRIBUTE_WORDS
+            || process_arena.attributes.capacity() != attribute_words
         {
             return Err(Error::OutputLimit);
         }
         let attribute_list = process_arena.attributes.as_mut_ptr().cast();
         if unsafe { InitializeProcThreadAttributeList(attribute_list, 1, 0, &mut attribute_bytes) }
             == 0
+            || attribute_bytes != process_arena.attribute_bytes
         {
             return Err(Error::Spawn);
         }
@@ -7850,12 +7942,13 @@ mod tests {
 
     #[test]
     fn prepared_process_arena_is_exact_and_consumes_twelve_without_growth() {
-        let mut arena = super::platform::prepare_process_arena(12).unwrap();
+        let plan = super::platform::prepare_process_arena_plan(12).unwrap();
+        let required = super::platform::prepared_process_arena_plan_capacity(&plan);
+        let mut arena = super::platform::materialize_process_arena(plan).unwrap();
         let capacity = super::platform::prepared_process_arena_owned_capacity(&arena);
-        #[cfg(unix)]
-        assert_eq!(capacity, 0);
+        assert_eq!(capacity, required);
         #[cfg(windows)]
-        assert_eq!(capacity, 1_245_190);
+        assert!((196_614 + 8..=1_245_190).contains(&capacity));
         for remaining in (0..12).rev() {
             super::platform::consume_process_arena(&mut arena).unwrap();
             assert_eq!(
@@ -7871,6 +7964,34 @@ mod tests {
             super::platform::consume_process_arena(&mut arena),
             Err(Error::OutputLimit)
         );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_process_arena_attribute_plan_is_exact_aligned_and_bounded() {
+        const MAX_ATTRIBUTE_BYTES: usize = 1_048_576;
+        for attribute_bytes in [1, 8, 9, 65_537, MAX_ATTRIBUTE_BYTES] {
+            let plan = super::platform::process_arena_plan(12, attribute_bytes).unwrap();
+            let aligned =
+                attribute_bytes.div_ceil(std::mem::size_of::<u64>()) * std::mem::size_of::<u64>();
+            assert_eq!(
+                super::platform::prepared_process_arena_plan_capacity(&plan),
+                196_614 + aligned
+            );
+            let arena = super::platform::materialize_process_arena(plan).unwrap();
+            assert_eq!(
+                super::platform::prepared_process_arena_owned_capacity(&arena),
+                196_614 + aligned
+            );
+        }
+        assert!(matches!(
+            super::platform::process_arena_plan(12, 0),
+            Err(Error::Unsupported)
+        ));
+        assert!(matches!(
+            super::platform::process_arena_plan(12, MAX_ATTRIBUTE_BYTES + 1),
+            Err(Error::OutputLimit)
+        ));
     }
 
     #[cfg(unix)]
@@ -7933,7 +8054,8 @@ mod tests {
             "final_path_prepared(&executable.file.file, &mut process_arena.application)",
             "final_path_prepared(&cwd.file, &mut process_arena.cwd)",
             "process_arena.image.resize(PROCESS_PATH_UNITS, 0)",
-            "process_arena.attributes.resize(PROCESS_ATTRIBUTE_WORDS, 0)",
+            "let mut attribute_bytes = process_arena.attribute_bytes",
+            "process_arena.attributes.resize(attribute_words, 0)",
             "let null_name = [u16::from(b'N'), u16::from(b'U'), u16::from(b'L'), 0]",
             "must_terminate_unassigned(process_handle.raw())",
             "failed |= thread_handle.close().is_err()",
@@ -7950,12 +8072,19 @@ mod tests {
             "vec![0_u8; attribute_bytes]",
             "String::from_utf16",
             "PathBuf::from",
+            "InitializeProcThreadAttributeList(std::ptr::null_mut()",
         ] {
             assert!(
                 !windows.contains(forbidden),
                 "late Windows process allocation: {forbidden}"
             );
         }
+        let obsolete_attribute_words = ["PROCESS_ATTRIBUTE_", "WORDS"].concat();
+        assert!(!source.contains(&obsolete_attribute_words));
+        assert!(source.contains("pub fn prepare_process_arena_plan(uses: usize)"));
+        assert!(source.contains(
+            "InitializeProcThreadAttributeList(std::ptr::null_mut(), 1, 0, &mut attribute_bytes)"
+        ));
     }
 
     #[test]
@@ -8028,6 +8157,30 @@ mod tests {
             3,
             "the frozen Linux native-static library tail must have one definition and exactly two link consumers",
         );
+
+        let prepared_start = unix.find("pub fn prepare_link_invocation(").unwrap();
+        let prepared_end = unix[prepared_start..]
+            .find("pub fn prepared_link_owned_capacity(")
+            .map(|offset| prepared_start + offset)
+            .unwrap();
+        let prepared = &unix[prepared_start..prepared_end];
+        let prepared_archive = prepared.find("rust_archive.to_str()").unwrap();
+        let prepared_output = prepared.find("output.to_str()").unwrap();
+        let prepared_tail = prepared
+            .find("for value in LINUX_RUST_STATICLIB_NATIVE_LIBS")
+            .unwrap();
+        assert!(prepared_archive < prepared_output && prepared_output < prepared_tail);
+
+        let legacy_start = unix.find("pub fn link_harness(").unwrap();
+        let legacy_end = unix[legacy_start..]
+            .find("let mut process_arena = prepare_process_arena(1)?")
+            .map(|offset| legacy_start + offset)
+            .unwrap();
+        let legacy = &unix[legacy_start..legacy_end];
+        let legacy_archive = legacy.find("rust_archive.to_str()").unwrap();
+        let legacy_output = legacy.find("output.to_str()").unwrap();
+        let legacy_tail = legacy.find("LINUX_RUST_STATICLIB_NATIVE_LIBS").unwrap();
+        assert!(legacy_archive < legacy_output && legacy_output < legacy_tail);
     }
 
     #[cfg(windows)]

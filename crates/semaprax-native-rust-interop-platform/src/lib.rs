@@ -27,6 +27,9 @@ pub struct PreparedSysrootInvocation(
 pub struct PreparedRustcVersionInvocation(
     semaprax_native_rust_interop_platform_sys::PreparedRustcVersionInvocation,
 );
+pub struct PreparedProcessArenaPlan(
+    semaprax_native_rust_interop_platform_sys::PreparedProcessArenaPlan,
+);
 pub struct PreparedProcessArena(semaprax_native_rust_interop_platform_sys::PreparedProcessArena);
 pub struct PreparedToolResolver(semaprax_native_rust_interop_platform_sys::PreparedToolResolver);
 pub struct PreparedCCompileInvocation(
@@ -381,8 +384,20 @@ pub fn prepared_rustc_version_owned_capacity(prepared: &PreparedRustcVersionInvo
     semaprax_native_rust_interop_platform_sys::prepared_rustc_version_owned_capacity(&prepared.0)
 }
 
-pub fn prepare_process_arena(uses: usize) -> Result<PreparedProcessArena, Error> {
-    semaprax_native_rust_interop_platform_sys::prepare_process_arena(uses).map(PreparedProcessArena)
+pub fn prepare_process_arena_plan(uses: usize) -> Result<PreparedProcessArenaPlan, Error> {
+    semaprax_native_rust_interop_platform_sys::prepare_process_arena_plan(uses)
+        .map(PreparedProcessArenaPlan)
+}
+
+pub fn prepared_process_arena_plan_capacity(plan: &PreparedProcessArenaPlan) -> usize {
+    semaprax_native_rust_interop_platform_sys::prepared_process_arena_plan_capacity(&plan.0)
+}
+
+pub fn materialize_process_arena(
+    plan: PreparedProcessArenaPlan,
+) -> Result<PreparedProcessArena, Error> {
+    semaprax_native_rust_interop_platform_sys::materialize_process_arena(plan.0)
+        .map(PreparedProcessArena)
 }
 
 pub fn prepared_process_arena_owned_capacity(prepared: &PreparedProcessArena) -> usize {

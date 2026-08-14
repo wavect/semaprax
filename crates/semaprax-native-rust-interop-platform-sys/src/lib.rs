@@ -426,6 +426,17 @@ mod platform {
         Ok(PreparedProcessArenaPlan { uses })
     }
 
+    pub fn prepare_process_arena_plan_with_environment(
+        uses: usize,
+        include: Option<&OsStr>,
+        libraries: Option<&OsStr>,
+    ) -> Result<PreparedProcessArenaPlan, Error> {
+        if include.is_some() || libraries.is_some() {
+            return Err(Error::Invalid);
+        }
+        prepare_process_arena_plan(uses)
+    }
+
     pub fn prepared_process_arena_plan_capacity(_: &PreparedProcessArenaPlan) -> usize {
         0
     }
@@ -436,6 +447,17 @@ mod platform {
         Ok(PreparedProcessArena {
             remaining: plan.uses,
         })
+    }
+
+    pub fn materialize_process_arena_with_environment(
+        plan: PreparedProcessArenaPlan,
+        include: Option<&OsStr>,
+        libraries: Option<&OsStr>,
+    ) -> Result<PreparedProcessArena, Error> {
+        if include.is_some() || libraries.is_some() {
+            return Err(Error::Invalid);
+        }
+        materialize_process_arena(plan)
     }
 
     pub fn prepare_process_arena(uses: usize) -> Result<PreparedProcessArena, Error> {
@@ -3919,12 +3941,13 @@ mod platform {
     pub struct PreparedRustcVersionInvocation(PreparedVersionInvocation);
 
     const PROCESS_PATH_UNITS: usize = 32_769;
+    const MAX_PROCESS_ENVIRONMENT_UNITS: usize = 32_768;
     const MAX_PROCESS_ATTRIBUTE_BYTES: usize = 1_048_576;
 
     pub struct PreparedProcessArena {
         application: Vec<u16>,
         cwd: Vec<u16>,
-        image: Vec<u16>,
+        environment: Vec<u16>,
         attributes: Vec<u64>,
         attribute_bytes: usize,
         remaining: usize,
@@ -3934,6 +3957,7 @@ mod platform {
         uses: usize,
         attribute_bytes: usize,
         attribute_words: usize,
+        environment_units: usize,
         owned_capacity: usize,
     }
 
@@ -4093,6 +4117,7 @@ mod platform {
     pub(super) fn process_arena_plan(
         uses: usize,
         attribute_bytes: usize,
+        environment_units: usize,
     ) -> Result<PreparedProcessArenaPlan, Error> {
         if uses == 0 || uses > 32 {
             return Err(Error::Invalid);
@@ -4103,24 +4128,67 @@ mod platform {
         if attribute_bytes > MAX_PROCESS_ATTRIBUTE_BYTES {
             return Err(Error::OutputLimit);
         }
+        if !(2..=MAX_PROCESS_ENVIRONMENT_UNITS).contains(&environment_units) {
+            return Err(Error::OutputLimit);
+        }
         let attribute_words = attribute_bytes
             .checked_add(std::mem::size_of::<u64>() - 1)
             .and_then(|bytes| bytes.checked_div(std::mem::size_of::<u64>()))
             .ok_or(Error::OutputLimit)?;
         let path_capacity = PROCESS_PATH_UNITS
             .checked_mul(std::mem::size_of::<u16>())
-            .and_then(|bytes| bytes.checked_mul(3))
+            .and_then(|bytes| bytes.checked_mul(2))
             .ok_or(Error::OutputLimit)?;
         let owned_capacity = attribute_words
             .checked_mul(std::mem::size_of::<u64>())
             .and_then(|bytes| path_capacity.checked_add(bytes))
+            .and_then(|bytes| {
+                environment_units
+                    .checked_mul(std::mem::size_of::<u16>())
+                    .and_then(|environment| bytes.checked_add(environment))
+            })
             .ok_or(Error::OutputLimit)?;
         Ok(PreparedProcessArenaPlan {
             uses,
             attribute_bytes,
             attribute_words,
+            environment_units,
             owned_capacity,
         })
+    }
+
+    fn process_environment_units(
+        include: Option<&OsStr>,
+        libraries: Option<&OsStr>,
+    ) -> Result<usize, Error> {
+        match (include, libraries) {
+            (None, None) => Ok(2),
+            (Some(include), Some(libraries)) => {
+                let include_units = include.encode_wide().try_fold(0usize, |count, unit| {
+                    if unit == 0 {
+                        Err(Error::Invalid)
+                    } else {
+                        count.checked_add(1).ok_or(Error::OutputLimit)
+                    }
+                })?;
+                let library_units = libraries.encode_wide().try_fold(0usize, |count, unit| {
+                    if unit == 0 {
+                        Err(Error::Invalid)
+                    } else {
+                        count.checked_add(1).ok_or(Error::OutputLimit)
+                    }
+                })?;
+                8usize
+                    .checked_add(include_units)
+                    .and_then(|units| units.checked_add(1))
+                    .and_then(|units| units.checked_add(4))
+                    .and_then(|units| units.checked_add(library_units))
+                    .and_then(|units| units.checked_add(2))
+                    .filter(|units| *units <= MAX_PROCESS_ENVIRONMENT_UNITS)
+                    .ok_or(Error::OutputLimit)
+            }
+            _ => Err(Error::Invalid),
+        }
     }
 
     pub fn prepare_process_arena_plan(uses: usize) -> Result<PreparedProcessArenaPlan, Error> {
@@ -4134,7 +4202,23 @@ mod platform {
         if initialized != 0 || unsafe { GetLastError() } != ERROR_INSUFFICIENT_BUFFER {
             return Err(Error::Unsupported);
         }
-        process_arena_plan(uses, attribute_bytes)
+        process_arena_plan(uses, attribute_bytes, 2)
+    }
+
+    pub fn prepare_process_arena_plan_with_environment(
+        uses: usize,
+        include: Option<&OsStr>,
+        libraries: Option<&OsStr>,
+    ) -> Result<PreparedProcessArenaPlan, Error> {
+        let environment_units = process_environment_units(include, libraries)?;
+        let mut attribute_bytes = 0_usize;
+        let initialized = unsafe {
+            InitializeProcThreadAttributeList(std::ptr::null_mut(), 1, 0, &mut attribute_bytes)
+        };
+        if initialized != 0 || unsafe { GetLastError() } != ERROR_INSUFFICIENT_BUFFER {
+            return Err(Error::Unsupported);
+        }
+        process_arena_plan(uses, attribute_bytes, environment_units)
     }
 
     pub fn prepared_process_arena_plan_capacity(plan: &PreparedProcessArenaPlan) -> usize {
@@ -4144,13 +4228,37 @@ mod platform {
     pub fn materialize_process_arena(
         plan: PreparedProcessArenaPlan,
     ) -> Result<PreparedProcessArena, Error> {
+        materialize_process_arena_with_environment(plan, None, None)
+    }
+
+    pub fn materialize_process_arena_with_environment(
+        plan: PreparedProcessArenaPlan,
+        include: Option<&OsStr>,
+        libraries: Option<&OsStr>,
+    ) -> Result<PreparedProcessArena, Error> {
+        if process_environment_units(include, libraries)? != plan.environment_units {
+            return Err(Error::Invalid);
+        }
         let application = Vec::with_capacity(PROCESS_PATH_UNITS);
         let cwd = Vec::with_capacity(PROCESS_PATH_UNITS);
-        let image = Vec::with_capacity(PROCESS_PATH_UNITS);
+        let mut environment = Vec::with_capacity(plan.environment_units);
+        match (include, libraries) {
+            (None, None) => environment.extend([0, 0]),
+            (Some(include), Some(libraries)) => {
+                environment.extend("INCLUDE=".encode_utf16());
+                environment.extend(include.encode_wide());
+                environment.push(0);
+                environment.extend("LIB=".encode_utf16());
+                environment.extend(libraries.encode_wide());
+                environment.extend([0, 0]);
+            }
+            _ => return Err(Error::Invalid),
+        }
         let attributes = Vec::with_capacity(plan.attribute_words);
         if application.capacity() != PROCESS_PATH_UNITS
             || cwd.capacity() != PROCESS_PATH_UNITS
-            || image.capacity() != PROCESS_PATH_UNITS
+            || environment.capacity() != plan.environment_units
+            || environment.len() != plan.environment_units
             || attributes.capacity() != plan.attribute_words
         {
             return Err(Error::OutputLimit);
@@ -4158,7 +4266,7 @@ mod platform {
         Ok(PreparedProcessArena {
             application,
             cwd,
-            image,
+            environment,
             attributes,
             attribute_bytes: plan.attribute_bytes,
             remaining: plan.uses,
@@ -4176,13 +4284,13 @@ mod platform {
             .saturating_mul(std::mem::size_of::<u16>())
             .saturating_add(
                 prepared
-                    .cwd
+                    .environment
                     .capacity()
                     .saturating_mul(std::mem::size_of::<u16>()),
             )
             .saturating_add(
                 prepared
-                    .image
+                    .cwd
                     .capacity()
                     .saturating_mul(std::mem::size_of::<u16>()),
             )
@@ -4206,7 +4314,9 @@ mod platform {
             .ok_or(Error::OutputLimit)?;
         if prepared.application.capacity() != PROCESS_PATH_UNITS
             || prepared.cwd.capacity() != PROCESS_PATH_UNITS
-            || prepared.image.capacity() != PROCESS_PATH_UNITS
+            || !(2..=MAX_PROCESS_ENVIRONMENT_UNITS).contains(&prepared.environment.capacity())
+            || prepared.environment.len() != prepared.environment.capacity()
+            || !prepared.environment.ends_with(&[0, 0])
             || prepared.attributes.capacity() != attribute_words
         {
             return Err(Error::OutputLimit);
@@ -4217,7 +4327,6 @@ mod platform {
             .ok_or(Error::OutputLimit)?;
         prepared.application.clear();
         prepared.cwd.clear();
-        prepared.image.clear();
         prepared.attributes.clear();
         Ok(())
     }
@@ -6021,7 +6130,6 @@ mod platform {
         final_path_prepared(&executable.file.file, &mut process_arena.application)?;
         final_path_prepared(&cwd.file, &mut process_arena.cwd)?;
         let mut command_line = prepared_command_line.ok_or(Error::Invalid)?;
-        let empty_environment = [0_u16, 0_u16];
 
         let security = SECURITY_ATTRIBUTES {
             nLength: u32::try_from(std::mem::size_of::<SECURITY_ATTRIBUTES>())
@@ -6143,7 +6251,7 @@ mod platform {
                 std::ptr::null(),
                 1,
                 CREATE_SUSPENDED | EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT,
-                empty_environment.as_ptr().cast(),
+                process_arena.environment.as_ptr().cast(),
                 process_arena.cwd.as_ptr(),
                 &startup.StartupInfo,
                 &mut process,
@@ -6185,14 +6293,15 @@ mod platform {
         }
 
         let image_matches = (|| {
-            process_arena.image.resize(PROCESS_PATH_UNITS, 0);
+            process_arena.application.clear();
+            process_arena.application.resize(PROCESS_PATH_UNITS, 0);
             let mut image_len =
-                u32::try_from(process_arena.image.len()).map_err(|_| Error::Spawn)?;
+                u32::try_from(process_arena.application.len()).map_err(|_| Error::Spawn)?;
             if unsafe {
                 QueryFullProcessImageNameW(
                     process_handle.raw(),
                     0,
-                    process_arena.image.as_mut_ptr(),
+                    process_arena.application.as_mut_ptr(),
                     &mut image_len,
                 )
             } == 0
@@ -6203,11 +6312,11 @@ mod platform {
             if image_len == 0 || image_len.saturating_add(1) > PROCESS_PATH_UNITS {
                 return Err(Error::OutputLimit);
             }
-            process_arena.image.truncate(image_len);
-            process_arena.image.push(0);
+            process_arena.application.truncate(image_len);
+            process_arena.application.push(0);
             let file_handle = unsafe {
                 CreateFileW(
-                    process_arena.image.as_ptr(),
+                    process_arena.application.as_ptr(),
                     REGULAR_READ_ACCESS,
                     HELD_SHARE,
                     std::ptr::null(),
@@ -7973,7 +8082,7 @@ mod tests {
         let capacity = super::platform::prepared_process_arena_owned_capacity(&arena);
         assert_eq!(capacity, required);
         #[cfg(windows)]
-        assert!((196_614 + 8..=1_245_190).contains(&capacity));
+        assert!((131_080 + 8..=1_245_188).contains(&capacity));
         for remaining in (0..12).rev() {
             super::platform::consume_process_arena(&mut arena).unwrap();
             assert_eq!(
@@ -7996,27 +8105,47 @@ mod tests {
     fn windows_process_arena_attribute_plan_is_exact_aligned_and_bounded() {
         const MAX_ATTRIBUTE_BYTES: usize = 1_048_576;
         for attribute_bytes in [1, 8, 9, 65_537, MAX_ATTRIBUTE_BYTES] {
-            let plan = super::platform::process_arena_plan(12, attribute_bytes).unwrap();
+            let plan = super::platform::process_arena_plan(12, attribute_bytes, 2).unwrap();
             let aligned =
                 attribute_bytes.div_ceil(std::mem::size_of::<u64>()) * std::mem::size_of::<u64>();
             assert_eq!(
                 super::platform::prepared_process_arena_plan_capacity(&plan),
-                196_614 + aligned
+                131_080 + aligned
             );
             let arena = super::platform::materialize_process_arena(plan).unwrap();
             assert_eq!(
                 super::platform::prepared_process_arena_owned_capacity(&arena),
-                196_614 + aligned
+                131_080 + aligned
             );
         }
         assert!(matches!(
-            super::platform::process_arena_plan(12, 0),
+            super::platform::process_arena_plan(12, 0, 2),
             Err(Error::Unsupported)
         ));
         assert!(matches!(
-            super::platform::process_arena_plan(12, MAX_ATTRIBUTE_BYTES + 1),
+            super::platform::process_arena_plan(12, MAX_ATTRIBUTE_BYTES + 1, 2),
             Err(Error::OutputLimit)
         ));
+
+        let include = OsStr::new(r"C:\sdk\include;C:\msvc\include");
+        let libraries = OsStr::new(r"C:\sdk\lib;C:\msvc\lib");
+        let plan = super::platform::prepare_process_arena_plan_with_environment(
+            12,
+            Some(include),
+            Some(libraries),
+        )
+        .unwrap();
+        let required = super::platform::prepared_process_arena_plan_capacity(&plan);
+        let arena = super::platform::materialize_process_arena_with_environment(
+            plan,
+            Some(include),
+            Some(libraries),
+        )
+        .unwrap();
+        assert_eq!(
+            super::platform::prepared_process_arena_owned_capacity(&arena),
+            required
+        );
     }
 
     #[cfg(unix)]
@@ -8078,7 +8207,8 @@ mod tests {
         for required in [
             "final_path_prepared(&executable.file.file, &mut process_arena.application)",
             "final_path_prepared(&cwd.file, &mut process_arena.cwd)",
-            "process_arena.image.resize(PROCESS_PATH_UNITS, 0)",
+            "process_arena.application.resize(PROCESS_PATH_UNITS, 0)",
+            "process_arena.environment.as_ptr().cast()",
             "let mut attribute_bytes = process_arena.attribute_bytes",
             "process_arena.attributes.resize(attribute_words, 0)",
             "let null_name = [u16::from(b'N'), u16::from(b'U'), u16::from(b'L'), 0]",
@@ -8098,6 +8228,7 @@ mod tests {
             "String::from_utf16",
             "PathBuf::from",
             "InitializeProcThreadAttributeList(std::ptr::null_mut()",
+            "let empty_environment",
         ] {
             assert!(
                 !windows.contains(forbidden),

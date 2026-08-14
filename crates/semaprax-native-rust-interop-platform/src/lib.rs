@@ -389,6 +389,17 @@ pub fn prepare_process_arena_plan(uses: usize) -> Result<PreparedProcessArenaPla
         .map(PreparedProcessArenaPlan)
 }
 
+pub fn prepare_process_arena_plan_with_environment(
+    uses: usize,
+    include: Option<&OsStr>,
+    libraries: Option<&OsStr>,
+) -> Result<PreparedProcessArenaPlan, Error> {
+    semaprax_native_rust_interop_platform_sys::prepare_process_arena_plan_with_environment(
+        uses, include, libraries,
+    )
+    .map(PreparedProcessArenaPlan)
+}
+
 pub fn prepared_process_arena_plan_capacity(plan: &PreparedProcessArenaPlan) -> usize {
     semaprax_native_rust_interop_platform_sys::prepared_process_arena_plan_capacity(&plan.0)
 }
@@ -398,6 +409,17 @@ pub fn materialize_process_arena(
 ) -> Result<PreparedProcessArena, Error> {
     semaprax_native_rust_interop_platform_sys::materialize_process_arena(plan.0)
         .map(PreparedProcessArena)
+}
+
+pub fn materialize_process_arena_with_environment(
+    plan: PreparedProcessArenaPlan,
+    include: Option<&OsStr>,
+    libraries: Option<&OsStr>,
+) -> Result<PreparedProcessArena, Error> {
+    semaprax_native_rust_interop_platform_sys::materialize_process_arena_with_environment(
+        plan.0, include, libraries,
+    )
+    .map(PreparedProcessArena)
 }
 
 pub fn prepared_process_arena_owned_capacity(prepared: &PreparedProcessArena) -> usize {

@@ -15939,6 +15939,14 @@ fn configured_tool(variable: &str) -> Result<TestTool, Diagnostic> {
     Err(b110())
 }
 
+#[cfg(test)]
+fn bind_linux_test_linker(command: &mut std::process::Command) {
+    #[cfg(target_os = "linux")]
+    command.args(["-C", "link-arg=-fuse-ld=/usr/bin/ld"]);
+    #[cfg(not(target_os = "linux"))]
+    let _ = command;
+}
+
 struct RustcVersion {
     storage: String,
     boundaries: [usize; 5],
@@ -19736,9 +19744,16 @@ fn main() -> i64
                 NativeRustBuildPoint::BeforeClang
                 | NativeRustBuildPoint::BeforeRustLink
                 | NativeRustBuildPoint::BeforeExecutableAuthentication
-                | NativeRustBuildPoint::BeforeExecute
-                | NativeRustBuildPoint::BeforeObjectRead => {
+                | NativeRustBuildPoint::BeforeExecute => {
                     assert_eq!(stages.len(), 1, "mutated held bytes must leave one inert stage rather than deleting uncertain data");
+                }
+                NativeRustBuildPoint::BeforeObjectRead => {
+                    let expected = if cfg!(target_os = "linux") { 2 } else { 1 };
+                    assert_eq!(
+                        stages.len(),
+                        expected,
+                        "mutating the hard-linked Linux object must preserve both uncertain stages"
+                    );
                 }
                 NativeRustBuildPoint::BeforeBundlePublish => {
                     assert!(stages.is_empty(), "owned publish stage must settle when only the foreign final output conflicts");
@@ -27379,6 +27394,7 @@ match bounded.{export_method}(1,2){{Err(NativeRustCallError::AdapterRejected)=>{
                 "-o",
                 linked_executable,
             ]);
+            bind_linux_test_linker(&mut roundtrip_compile);
             if sanitizers {
                 roundtrip_compile.args([
                     "-C",
@@ -27473,6 +27489,7 @@ let mut context_bytes=[0u8;128];let misaligned_context=context_bytes.as_mut_ptr(
                 "-o",
                 linked_executable,
             ]);
+            bind_linux_test_linker(&mut abi_compile);
             if sanitizers {
                 abi_compile.args([
                     "-C",
@@ -27747,6 +27764,7 @@ fn main(){{unsafe{{let imports=Imports{{abi_version:1,size:core::mem::size_of::<
                     "-o",
                     &executable,
                 ]);
+                bind_linux_test_linker(&mut compile);
                 if sanitizers {
                     compile.args([
                         "-C",

@@ -35,6 +35,7 @@ pub enum Error {
 }
 
 #[cfg(test)]
+#[allow(clippy::enum_variant_names)]
 #[repr(u8)]
 #[derive(Clone, Copy)]
 enum TestSettlementFailure {
@@ -5147,9 +5148,12 @@ mod platform {
             }
             prepared.candidate.push(unit);
         }
+        let drive = prepared.candidate.first().copied().ok_or(Error::Invalid)?;
+        let drive_is_ascii_alphabetic =
+            u8::try_from(drive).is_ok_and(|unit| unit.is_ascii_alphabetic());
         if prepared.candidate.capacity() != prepared.maximum
             || prepared.candidate.len() < 4
-            || !prepared.candidate[0].is_ascii_alphabetic()
+            || !drive_is_ascii_alphabetic
             || prepared.candidate[1] != u16::from(b':')
             || !matches!(prepared.candidate[2], 47 | 92)
             || matches!(prepared.candidate.last(), Some(47 | 92))

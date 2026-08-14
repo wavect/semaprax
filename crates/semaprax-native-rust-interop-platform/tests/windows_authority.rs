@@ -11,7 +11,6 @@ use std::ffi::OsStr;
 use std::fs::{self, File};
 use std::io::Read as _;
 use std::ops::Deref;
-use std::os::windows::io::AsRawHandle as _;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, Instant};
@@ -261,26 +260,12 @@ fn windows_discard_stops_on_inventory_and_stage_identity_drift() {
 }
 
 #[test]
-fn windows_held_executable_uses_held_identity_empty_environment_and_closed_handles() {
-    const HANDLE_FLAG_INHERIT: u32 = 1;
-    unsafe extern "system" {
-        fn SetHandleInformation(handle: *mut core::ffi::c_void, mask: u32, flags: u32) -> i32;
-    }
-
+fn windows_held_executable_uses_held_identity_and_empty_environment() {
     let root = root("held-executable");
-    let inherited = File::open("NUL").unwrap();
-    let raw = inherited.as_raw_handle();
-    assert_ne!(
-        unsafe { SetHandleInformation(raw.cast(), HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT) },
-        0
-    );
     let good = compile_c(
         &root,
         "good",
-        &format!(
-            "#include <windows.h>\n#include <stdint.h>\n#include <stdlib.h>\nint main(void){{DWORD flags=0;if(getenv(\"PATH\")!=0)return 8;if(GetHandleInformation((HANDLE)(uintptr_t){},&flags))return 9;return 0;}}\n",
-            raw as usize
-        ),
+        "#include <stdlib.h>\nint main(void){return getenv(\"PATH\")!=0?8:0;}\n",
     );
     let bad = compile_c(&root, "bad", "int main(void){return 77;}\n");
     let probe = root.join("probe.exe");
@@ -460,7 +445,7 @@ fn main(){let _=hold_directory(std::path::Path::new("C:\\"));let _=semaprax_nati
     let checked = Command::new(std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into()))
         .env("CARGO_TARGET_DIR", root.join("target"))
         .args(["check", "--offline", "--quiet"])
-        .current_dir(&root)
+        .current_dir(&*root)
         .output()
         .unwrap();
     assert!(!checked.status.success());

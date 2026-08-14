@@ -6694,6 +6694,32 @@ mod platform {
         }
     }
 
+    #[cfg(test)]
+    pub(super) fn execute_harness_with_argument(
+        executable: &Executable,
+        cwd: &Directory,
+        argument: &str,
+    ) -> Result<(), Error> {
+        let arguments = [argument.to_owned()];
+        let command_line = windows_command_line(&arguments)?;
+        let mut process_arena = prepare_process_arena(1)?;
+        if run_argv(
+            executable,
+            cwd,
+            &arguments,
+            0,
+            Some(command_line),
+            Some(Vec::new()),
+            &mut process_arena,
+        )?
+        .is_empty()
+        {
+            Ok(())
+        } else {
+            Err(Error::OutputLimit)
+        }
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn link_harness(
         clang: &Executable,
@@ -7261,6 +7287,10 @@ mod tests {
                 "output",
                 "#include <windows.h>\n#include <stdio.h>\nint main(void){fputs(\"x\",stdout);fflush(stdout);Sleep(30000);return 0;}\n",
             ),
+            (
+                "handle_probe",
+                "#include <windows.h>\n#include <stdint.h>\n#include <stdlib.h>\nint main(int argc,char **argv){if(argc!=2)return 7;char *end=0;uintptr_t handle=(uintptr_t)_strtoui64(argv[1],&end,10);if(!end||*end)return 6;DWORD flags=0;if(getenv(\"PATH\")!=0)return 8;if(GetHandleInformation((HANDLE)handle,&flags))return 9;return 0;}\n",
+            ),
         ] {
             let source_path = root.join(format!("{name}.c"));
             std::fs::write(&source_path, source).unwrap();
@@ -7280,6 +7310,32 @@ mod tests {
                 String::from_utf8_lossy(&built.stderr)
             );
         }
+        use std::os::windows::io::AsRawHandle as _;
+        let inherited = std::fs::File::open("NUL").unwrap();
+        let raw = inherited.as_raw_handle();
+        assert_ne!(
+            unsafe {
+                windows_sys::Win32::Foundation::SetHandleInformation(
+                    raw.cast(),
+                    windows_sys::Win32::Foundation::HANDLE_FLAG_INHERIT,
+                    windows_sys::Win32::Foundation::HANDLE_FLAG_INHERIT,
+                )
+            },
+            0
+        );
+        let directory = super::platform::hold_directory(&root).unwrap();
+        let executable =
+            super::platform::hold_executable(&directory, std::ffi::OsStr::new("handle_probe.exe"))
+                .unwrap();
+        super::platform::execute_harness_with_argument(
+            &executable,
+            &directory,
+            &(raw as usize).to_string(),
+        )
+        .unwrap();
+        drop(executable);
+        drop(directory);
+        drop(inherited);
         let current = std::env::current_exe().unwrap();
         for helper in [
             "tests::helper_windows_image",

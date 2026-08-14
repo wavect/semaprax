@@ -15940,10 +15940,16 @@ fn configured_tool(variable: &str) -> Result<TestTool, Diagnostic> {
 }
 
 #[cfg(test)]
-fn bind_linux_test_linker(command: &mut std::process::Command) {
+fn bind_test_tool_environment(command: &mut std::process::Command) {
     #[cfg(target_os = "linux")]
     command.args(["-C", "link-arg=-fuse-ld=/usr/bin/ld"]);
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(windows)]
+    for variable in ["INCLUDE", "LIB"] {
+        if let Some(value) = std::env::var_os(variable) {
+            command.env(variable, value);
+        }
+    }
+    #[cfg(not(any(target_os = "linux", windows)))]
     let _ = command;
 }
 
@@ -16024,6 +16030,8 @@ struct FrozenToolEnvironment {
     rustc: Option<OsString>,
     path: Option<OsString>,
     sanitizer: Option<OsString>,
+    include: Option<OsString>,
+    libraries: Option<OsString>,
     budget: TemporaryBudget,
 }
 
@@ -16122,7 +16130,17 @@ fn freeze_tool_environment() -> Result<FrozenToolEnvironment, PhaseBLocalError> 
     };
     let path = std::env::var_os("PATH");
     let sanitizer = std::env::var_os("SEMAPRAX_REQUIRE_NATIVE_RUST_INTEROP_SANITIZERS");
-    let capacity = [&clang, &rustc, &path, &sanitizer]
+    let include = if cfg!(windows) {
+        std::env::var_os("INCLUDE")
+    } else {
+        None
+    };
+    let libraries = if cfg!(windows) {
+        std::env::var_os("LIB")
+    } else {
+        None
+    };
+    let capacity = [&clang, &rustc, &path, &sanitizer, &include, &libraries]
         .into_iter()
         .try_fold(0usize, |total, value| {
             total.checked_add(value.as_ref().map_or(0, OsString::capacity))
@@ -16134,6 +16152,8 @@ fn freeze_tool_environment() -> Result<FrozenToolEnvironment, PhaseBLocalError> 
         rustc,
         path,
         sanitizer,
+        include,
+        libraries,
         budget,
     })
 }
@@ -16223,7 +16243,10 @@ fn prepare_toolchain_plan() -> Result<PreparedToolchainPlan, PhaseBLocalError> {
         return Err(PhaseBLocalError::BuilderBudget);
     }
     retain_phase_b(persistent_budget, rustc_version.capacity())?;
-    let process_arena = prepare_process_arena_authorized()?;
+    let process_arena = prepare_process_arena_authorized(
+        environment.include.as_deref(),
+        environment.libraries.as_deref(),
+    )?;
     Ok(PreparedToolchainPlan {
         environment,
         path_budget,
@@ -16274,6 +16297,8 @@ fn authenticate_toolchain(
         rustc: configured_rustc,
         path,
         sanitizer,
+        include,
+        libraries,
         budget: environment_budget,
     } = environment;
     match sanitizer {
@@ -16297,6 +16322,8 @@ fn authenticate_toolchain(
     PHASE_B_TOOL_HOLDS.with(|count| count.set(count.get().saturating_add(1)));
     drop(configured_clang);
     drop(configured_rustc);
+    drop(include);
+    drop(libraries);
     #[cfg(test)]
     PHASE_B_TOOL_PROCESSES.with(|count| count.set(count.get().saturating_add(1)));
     let discovery_sysroot = platform::rustc_discovery_output_prepared(
@@ -17234,29 +17261,23 @@ const PHASE_B_VERSION_COMMAND_CAPACITY: usize = 256;
 const PHASE_B_TOOL_RESOLVER_CAPACITY: usize = PHASE_B_TOOL_PATH_CAPACITY * 7 + 256;
 const PHASE_B_PROCESS_INVOCATIONS: usize = 12;
 #[cfg(windows)]
-const PHASE_B_PROCESS_ARENA_MAX_CAPACITY: usize = 1_245_190;
+const PHASE_B_PROCESS_ARENA_MAX_CAPACITY: usize = 1_245_188;
 #[cfg(unix)]
 const PHASE_B_PROCESS_ARENA_MAX_CAPACITY: usize = 0;
 
-fn prepare_process_arena_authorized() -> Result<AuthorizedProcessArena, PhaseBLocalError> {
-    let plan =
-        platform::prepare_process_arena_plan(PHASE_B_PROCESS_INVOCATIONS).map_err(|error| {
-            match error {
-                platform::Error::OutputLimit => PhaseBLocalError::BuilderBudget,
-                platform::Error::Invalid
-                | platform::Error::Unsupported
-                | platform::Error::Exists
-                | platform::Error::Changed
-                | platform::Error::Spawn
-                | platform::Error::Exit => PhaseBLocalError::Unsupported,
-            }
-        })?;
-    let required = platform::prepared_process_arena_plan_capacity(&plan);
-    if required > PHASE_B_PROCESS_ARENA_MAX_CAPACITY {
-        return Err(PhaseBLocalError::BuilderBudget);
+fn prepare_process_arena_authorized(
+    include: Option<&OsStr>,
+    libraries: Option<&OsStr>,
+) -> Result<AuthorizedProcessArena, PhaseBLocalError> {
+    if cfg!(windows) && (include.is_none() || libraries.is_none()) {
+        return Err(PhaseBLocalError::Unsupported);
     }
-    let budget = reserve_phase_b(required)?;
-    let arena = platform::materialize_process_arena(plan).map_err(|error| match error {
+    let plan = platform::prepare_process_arena_plan_with_environment(
+        PHASE_B_PROCESS_INVOCATIONS,
+        include,
+        libraries,
+    )
+    .map_err(|error| match error {
         platform::Error::OutputLimit => PhaseBLocalError::BuilderBudget,
         platform::Error::Invalid
         | platform::Error::Unsupported
@@ -17265,6 +17286,21 @@ fn prepare_process_arena_authorized() -> Result<AuthorizedProcessArena, PhaseBLo
         | platform::Error::Spawn
         | platform::Error::Exit => PhaseBLocalError::Unsupported,
     })?;
+    let required = platform::prepared_process_arena_plan_capacity(&plan);
+    if required > PHASE_B_PROCESS_ARENA_MAX_CAPACITY {
+        return Err(PhaseBLocalError::BuilderBudget);
+    }
+    let budget = reserve_phase_b(required)?;
+    let arena = platform::materialize_process_arena_with_environment(plan, include, libraries)
+        .map_err(|error| match error {
+            platform::Error::OutputLimit => PhaseBLocalError::BuilderBudget,
+            platform::Error::Invalid
+            | platform::Error::Unsupported
+            | platform::Error::Exists
+            | platform::Error::Changed
+            | platform::Error::Spawn
+            | platform::Error::Exit => PhaseBLocalError::Unsupported,
+        })?;
     if platform::prepared_process_arena_owned_capacity(&arena) != required {
         return Err(PhaseBLocalError::BuilderBudget);
     }
@@ -21123,14 +21159,14 @@ fn main() -> i64 { 0 }
             .unwrap();
         let helper = &source[start..end];
         let plan = helper
-            .find("platform::prepare_process_arena_plan(")
+            .find("platform::prepare_process_arena_plan_with_environment(")
             .unwrap();
         let required = helper
             .find("platform::prepared_process_arena_plan_capacity(&plan)")
             .unwrap();
         let reserve = helper.find("reserve_phase_b(required)?").unwrap();
         let allocate = helper
-            .find("platform::materialize_process_arena(plan)")
+            .find("platform::materialize_process_arena_with_environment(")
             .unwrap();
         assert!(plan < required && required < reserve && reserve < allocate);
         assert!(helper.contains("required > PHASE_B_PROCESS_ARENA_MAX_CAPACITY"));
@@ -21186,12 +21222,20 @@ fn main() -> i64 { 0 }
     #[cfg(windows)]
     #[test]
     fn phase_b_process_arena_exact_and_one_less_is_zero_effect() {
-        let sizing = platform::prepare_process_arena_plan(PHASE_B_PROCESS_INVOCATIONS).unwrap();
+        let include = OsStr::new(r"C:\sdk\include");
+        let libraries = OsStr::new(r"C:\sdk\lib");
+        let sizing = platform::prepare_process_arena_plan_with_environment(
+            PHASE_B_PROCESS_INVOCATIONS,
+            Some(include),
+            Some(libraries),
+        )
+        .unwrap();
         let required = platform::prepared_process_arena_plan_capacity(&sizing);
         assert!(required > 0 && required <= PHASE_B_PROCESS_ARENA_MAX_CAPACITY);
 
-        let (exact, overflowed, used) =
-            crate::bounded_output::with_limit_usage(required, prepare_process_arena_authorized);
+        let (exact, overflowed, used) = crate::bounded_output::with_limit_usage(required, || {
+            prepare_process_arena_authorized(Some(include), Some(libraries))
+        });
         assert!(!overflowed);
         let arena = exact.unwrap();
         assert_eq!(used, required);
@@ -21210,8 +21254,9 @@ fn main() -> i64 { 0 }
         PHASE_B_TOOL_HOLDS.with(|count| count.set(0));
         PHASE_B_TOOL_PROCESSES.with(|count| count.set(0));
         reset_phase_b_error_materialization_observer();
-        let (one_less, overflowed) =
-            crate::bounded_output::with_limit(required - 1, prepare_process_arena_authorized);
+        let (one_less, overflowed) = crate::bounded_output::with_limit(required - 1, || {
+            prepare_process_arena_authorized(Some(include), Some(libraries))
+        });
         assert!(!overflowed);
         assert!(matches!(one_less, Err(PhaseBLocalError::BuilderBudget)));
         assert_eq!(PHASE_B_OUTPUT_PROBES.with(std::cell::Cell::get), 0);
@@ -27007,24 +27052,22 @@ module capacity.cleanup_shadow;
         } else {
             "probe.o"
         };
-        let probe = Command::new(&clang.path)
-            .env_clear()
-            .current_dir(&root)
-            .args([
-                "-std=c11",
-                "-target",
-                &prepared.target.triple,
-                "-Wall",
-                "-Wextra",
-                "-Werror",
-                "-O2",
-                "-c",
-                "module.c",
-                "-o",
-                probe_object,
-            ])
-            .output()
-            .unwrap();
+        let mut probe = Command::new(&clang.path);
+        probe.env_clear().current_dir(&root).args([
+            "-std=c11",
+            "-target",
+            &prepared.target.triple,
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-O2",
+            "-c",
+            "module.c",
+            "-o",
+            probe_object,
+        ]);
+        bind_test_tool_environment(&mut probe);
+        let probe = probe.output().unwrap();
         assert!(
             probe.status.success(),
             "{}",
@@ -27374,6 +27417,7 @@ match bounded.{export_method}(1,2){{Err(NativeRustCallError::AdapterRejected)=>{
             "-o",
             o0_object,
         ]);
+        bind_test_tool_environment(&mut o0_compile);
         if sanitizers {
             o0_compile.args(REQUIRED_NATIVE_RUST_SANITIZER_FLAGS);
         }
@@ -27394,7 +27438,7 @@ match bounded.{export_method}(1,2){{Err(NativeRustCallError::AdapterRejected)=>{
                 "-o",
                 linked_executable,
             ]);
-            bind_linux_test_linker(&mut roundtrip_compile);
+            bind_test_tool_environment(&mut roundtrip_compile);
             if sanitizers {
                 roundtrip_compile.args([
                     "-C",
@@ -27489,7 +27533,7 @@ let mut context_bytes=[0u8;128];let misaligned_context=context_bytes.as_mut_ptr(
                 "-o",
                 linked_executable,
             ]);
-            bind_linux_test_linker(&mut abi_compile);
+            bind_test_tool_environment(&mut abi_compile);
             if sanitizers {
                 abi_compile.args([
                     "-C",
@@ -27700,6 +27744,7 @@ fn main() -> i64
             "-o",
             o0_object,
         ]);
+        bind_test_tool_environment(&mut o0_compile);
         if sanitizers {
             o0_compile.args(REQUIRED_NATIVE_RUST_SANITIZER_FLAGS);
         }
@@ -27764,7 +27809,7 @@ fn main(){{unsafe{{let imports=Imports{{abi_version:1,size:core::mem::size_of::<
                     "-o",
                     &executable,
                 ]);
-                bind_linux_test_linker(&mut compile);
+                bind_test_tool_environment(&mut compile);
                 if sanitizers {
                     compile.args([
                         "-C",

@@ -21196,7 +21196,7 @@ fn main() -> i64 { 0 }
         PHASE_B_TOOL_PROCESSES.with(|count| count.set(0));
         reset_phase_b_error_materialization_observer();
         let (one_less, overflowed) =
-            crate::bounded_output::with_limit(required - 1, || prepare_process_arena_authorized());
+            crate::bounded_output::with_limit(required - 1, prepare_process_arena_authorized);
         assert!(!overflowed);
         assert!(matches!(one_less, Err(PhaseBLocalError::BuilderBudget)));
         assert_eq!(PHASE_B_OUTPUT_PROBES.with(std::cell::Cell::get), 0);

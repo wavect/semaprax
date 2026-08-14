@@ -7,6 +7,9 @@
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
+#[cfg(test)]
+use std::cell::Cell;
+
 use crate::ast::{BinaryOp, UnaryOp};
 use crate::cleanup::{CleanupStorageOrigin, FieldLiveness, FieldLivenessShape, LivenessFlagId};
 use crate::diagnostic::Diagnostic;
@@ -26,16 +29,29 @@ use super::{
 };
 
 const MAX_REPLAY_PATHS: usize = 65_536;
-const MAX_REPLAY_WORK_UNITS: usize = 1_000_000;
+// Independent fail-closed work cap. Valid admitted shapes are preflighted
+// before path materialization; depth alone is not a work bound because wide
+// calls and blocks can emit several observations per node.
+const MAX_REPLAY_WORK_UNITS: usize = 8_000_000;
 
 struct ReplayBudget {
     remaining: usize,
+    skeleton_remaining: usize,
 }
 
 impl ReplayBudget {
     fn new() -> Self {
         Self {
             remaining: MAX_REPLAY_WORK_UNITS,
+            skeleton_remaining: 0,
+        }
+    }
+
+    #[cfg(test)]
+    fn with_skeleton_limit(limit: usize) -> Self {
+        Self {
+            remaining: MAX_REPLAY_WORK_UNITS,
+            skeleton_remaining: limit,
         }
     }
 
@@ -53,6 +69,93 @@ impl ReplayBudget {
         })?;
         Ok(())
     }
+
+    fn reserve_skeleton(
+        &mut self,
+        function: &ResolvedFunction,
+        units: usize,
+    ) -> Result<(), Diagnostic> {
+        self.remaining = self.remaining.checked_sub(units).ok_or_else(|| {
+            replay_error(
+                function,
+                "cleanup replay skeleton-work preflight exceeds the global budget",
+            )
+        })?;
+        self.skeleton_remaining = units;
+        Ok(())
+    }
+
+    fn charge_skeleton(
+        &mut self,
+        function: &ResolvedFunction,
+        units: usize,
+        phase: &str,
+    ) -> Result<(), Diagnostic> {
+        self.skeleton_remaining = self.skeleton_remaining.checked_sub(units).ok_or_else(|| {
+            replay_error(
+                function,
+                format!("cleanup replay work budget exhausted during {phase}"),
+            )
+        })?;
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+thread_local! {
+    static SKELETON_MATERIALIZATIONS: Cell<usize> = const { Cell::new(0) };
+}
+
+fn note_skeleton_materialization() {
+    #[cfg(test)]
+    SKELETON_MATERIALIZATIONS.with(|count| count.set(count.get().saturating_add(1)));
+}
+
+#[cfg(test)]
+fn reset_skeleton_materializations() {
+    SKELETON_MATERIALIZATIONS.with(|count| count.set(0));
+}
+
+#[cfg(test)]
+fn skeleton_materializations() -> usize {
+    SKELETON_MATERIALIZATIONS.with(Cell::get)
+}
+
+fn skeleton_clone<T: Clone>(
+    budget: &mut ReplayBudget,
+    function: &ResolvedFunction,
+    value: &T,
+    phase: &str,
+) -> Result<T, Diagnostic> {
+    budget.charge_skeleton(function, 1, phase)?;
+    note_skeleton_materialization();
+    Ok(value.clone())
+}
+
+fn skeleton_push<T>(
+    budget: &mut ReplayBudget,
+    function: &ResolvedFunction,
+    target: &mut Vec<T>,
+    value: T,
+    phase: &str,
+) -> Result<(), Diagnostic> {
+    budget.charge_skeleton(function, 1, phase)?;
+    note_skeleton_materialization();
+    target.push(value);
+    Ok(())
+}
+
+fn skeleton_queue_push<T>(
+    budget: &mut ReplayBudget,
+    function: &ResolvedFunction,
+    target: &mut VecDeque<T>,
+    value: T,
+    phase: &str,
+) -> Result<(), Diagnostic> {
+    budget.charge_skeleton(function, 1, phase)?;
+    note_skeleton_materialization();
+    target.push_back(value);
+    Ok(())
 }
 
 #[derive(Clone)]
@@ -128,6 +231,13 @@ struct ExprSkeletonPath {
     residual: bool,
 }
 
+type BooleanSkeletonSplit = (
+    Vec<ExprSkeletonPath>,
+    Vec<ExprSkeletonPath>,
+    Vec<ExprSkeletonPath>,
+);
+type CallSkeletonState = (ExprSkeletonPath, Vec<(u32, CleanupPlace)>);
+
 /// Validate the structure of the cleanup plan attached to `function` without
 /// rebuilding it from HIR.
 #[cfg(test)]
@@ -136,11 +246,22 @@ fn validate_structure(
     function: &ResolvedFunction,
 ) -> Result<(), Diagnostic> {
     let mut budget = ReplayBudget::new();
+    reserve_program_skeleton_work(program, std::iter::once(function), &mut budget)?;
     validate_structure_with_budget(program, function, &mut budget)
 }
 
 pub(super) fn validate_program(program: &ResolvedProgram) -> Result<(), Diagnostic> {
     let mut budget = ReplayBudget::new();
+    reserve_program_skeleton_work(
+        program,
+        program.functions.iter().chain(
+            program
+                .function_instances
+                .iter()
+                .map(|instance| &instance.function),
+        ),
+        &mut budget,
+    )?;
     for function in &program.functions {
         validate_structure_with_budget(program, function, &mut budget)?;
     }
@@ -148,6 +269,35 @@ pub(super) fn validate_program(program: &ResolvedProgram) -> Result<(), Diagnost
         validate_structure_with_budget(program, &instance.function, &mut budget)?;
     }
     Ok(())
+}
+
+fn reserve_program_skeleton_work<'a>(
+    program: &ResolvedProgram,
+    functions: impl IntoIterator<Item = &'a ResolvedFunction>,
+    budget: &mut ReplayBudget,
+) -> Result<usize, Diagnostic> {
+    let mut total = 0usize;
+    let mut first = None;
+    for function in functions {
+        first.get_or_insert(function);
+        let function_upper = skeleton_work_upper(program, function)?;
+        total = total.checked_add(function_upper).ok_or_else(|| {
+            replay_error(
+                function,
+                "cleanup replay program-wide skeleton-work preflight overflowed",
+            )
+        })?;
+        if total > MAX_REPLAY_WORK_UNITS {
+            return Err(replay_error(
+                function,
+                "cleanup replay program-wide skeleton-work preflight exceeds the global budget",
+            ));
+        }
+    }
+    if let Some(function) = first {
+        budget.reserve_skeleton(function, total)?;
+    }
+    Ok(total)
 }
 
 fn validate_structure_with_budget(
@@ -226,45 +376,22 @@ fn validate_replay_size_budget(function: &ResolvedFunction) -> Result<(), Diagno
             "cleanup replay structure exceeds the global work budget",
         ));
     }
-    let plan_boolean_splits = function
-        .cleanup_plan
-        .edges
-        .iter()
-        .filter(|edge| {
-            matches!(
-                edge.condition,
-                EdgeCondition::BooleanResult(_, true)
-                    | EdgeCondition::VariantCase { matches: true, .. }
-            )
-        })
-        .count();
-    let hir_boolean_splits = function
-        .requires
-        .iter()
-        .chain(std::iter::once(&function.body))
-        .chain(&function.ensures)
-        .fold(
-            function
-                .requires
-                .len()
-                .saturating_add(function.ensures.len()),
-            |total, expression| total.saturating_add(expression_boolean_splits(expression)),
-        );
-    let boolean_splits = plan_boolean_splits.max(hir_boolean_splits);
-    let status_splits = function.cleanup_plan.status_sources.len();
-    let boolean_paths = 1_usize
-        .checked_shl(u32::try_from(boolean_splits).unwrap_or(u32::MAX))
-        .unwrap_or(usize::MAX);
-    let path_bound = boolean_paths.saturating_mul(status_splits.saturating_add(1));
-    if path_bound > MAX_REPLAY_PATHS {
+    let cfg = branch_sensitive_cfg_bounds(function)?;
+    if cfg.terminal_paths > MAX_REPLAY_PATHS {
         return Err(replay_error(
             function,
             "cleanup replay path bound exceeds the global path budget",
         ));
     }
+    let semantic_paths = hir_terminal_path_bound(function)?;
+    if semantic_paths > MAX_REPLAY_PATHS {
+        return Err(replay_error(
+            function,
+            "cleanup replay semantic path bound exceeds the global path budget",
+        ));
+    }
     let expression_units = expression_facts(function)?.len();
-    let per_path_units = structure_units.max(expression_units).max(1);
-    if per_path_units.saturating_mul(path_bound) > MAX_REPLAY_WORK_UNITS {
+    if cfg.work.saturating_add(expression_units) > MAX_REPLAY_WORK_UNITS {
         return Err(replay_error(
             function,
             "cleanup replay combined path/work bound exceeds the global budget",
@@ -273,59 +400,547 @@ fn validate_replay_size_budget(function: &ResolvedFunction) -> Result<(), Diagno
     Ok(())
 }
 
-fn expression_boolean_splits(expression: &ResolvedExpr) -> usize {
-    match &expression.kind {
-        ResolvedExprKind::Call { args, .. } => args.iter().fold(0_usize, |total, argument| {
-            total.saturating_add(expression_boolean_splits(argument))
-        }),
-        ResolvedExprKind::Unary { value, .. } | ResolvedExprKind::Project { base: value, .. } => {
-            expression_boolean_splits(value)
-        }
-        ResolvedExprKind::Binary { op, left, right } => {
-            let own = usize::from(matches!(op, BinaryOp::And | BinaryOp::Or));
-            own.saturating_add(expression_boolean_splits(left))
-                .saturating_add(expression_boolean_splits(right))
-        }
-        ResolvedExprKind::Block { statements, tail } => {
-            statements
+struct CfgReplayBounds {
+    terminal_paths: usize,
+    work: usize,
+}
+
+/// Bound actual CFG traversal work without multiplying every structure item by
+/// every terminal path. The cleanup graph is authenticated as acyclic later;
+/// this independent saturating propagation is deliberately cycle-safe and
+/// fails closed if a forged graph keeps increasing multiplicity.
+fn branch_sensitive_cfg_bounds(function: &ResolvedFunction) -> Result<CfgReplayBounds, Diagnostic> {
+    let plan = &function.cleanup_plan;
+    let invalid = || {
+        replay_error(
+            function,
+            "cleanup replay preflight references an unknown id",
+        )
+    };
+    let entry = plan
+        .blocks
+        .get(plan.entry.0 as usize)
+        .map(|_| plan.entry.0 as usize)
+        .ok_or_else(invalid)?;
+    let mut successors = vec![Vec::<usize>::new(); plan.blocks.len()];
+    let mut terminal = vec![false; plan.blocks.len()];
+    for (index, block) in plan.blocks.iter().enumerate() {
+        let targets = match &block.terminator {
+            CleanupTerminator::Goto(edge) => plan
+                .edges
+                .get(edge.0 as usize)
+                .map(|edge| vec![edge.to.0 as usize])
+                .ok_or_else(invalid)?,
+            CleanupTerminator::Branch(edges) => edges
                 .iter()
-                .fold(expression_boolean_splits(tail), |total, statement| {
-                    let ResolvedStatement::Let { value, .. } = statement;
-                    total.saturating_add(expression_boolean_splits(value))
+                .map(|edge| {
+                    plan.edges
+                        .get(edge.0 as usize)
+                        .map(|edge| edge.to.0 as usize)
+                        .ok_or_else(invalid)
                 })
+                .collect::<Result<Vec<_>, _>>()?,
+            CleanupTerminator::Exit(exit) => {
+                match &plan
+                    .exits
+                    .get(exit.0 as usize)
+                    .ok_or_else(invalid)?
+                    .continuation
+                {
+                    ExitContinuation::Continue(edge) => plan
+                        .edges
+                        .get(edge.0 as usize)
+                        .map(|edge| vec![edge.to.0 as usize])
+                        .ok_or_else(invalid)?,
+                    ExitContinuation::CommitResult { .. }
+                    | ExitContinuation::ReturnUnit
+                    | ExitContinuation::ReturnFailure { .. } => {
+                        terminal[index] = true;
+                        Vec::new()
+                    }
+                }
+            }
+        };
+        if targets.iter().any(|target| *target >= plan.blocks.len()) {
+            return Err(invalid());
         }
-        ResolvedExprKind::If {
-            condition,
-            then_branch,
-            else_branch,
-        } => 1_usize
-            .saturating_add(expression_boolean_splits(condition))
-            .saturating_add(expression_boolean_splits(then_branch))
-            .saturating_add(expression_boolean_splits(else_branch)),
-        ResolvedExprKind::ConstructRecord { fields, .. } => {
-            fields.iter().fold(0_usize, |total, field| {
-                total.saturating_add(expression_boolean_splits(&field.value))
-            })
-        }
-        ResolvedExprKind::ConstructVariant { fields, .. } => {
-            fields.iter().fold(0_usize, |total, field| {
-                total.saturating_add(expression_boolean_splits(&field.value))
-            })
-        }
-        ResolvedExprKind::Try { operand, .. } | ResolvedExprKind::TryOption { operand, .. } => {
-            expression_boolean_splits(operand).saturating_add(1)
-        }
-        ResolvedExprKind::Match { scrutinee, arms } => arms.iter().fold(
-            expression_boolean_splits(scrutinee).saturating_add(arms.len().saturating_sub(1)),
-            |total, arm| total.saturating_add(expression_boolean_splits(&arm.value)),
-        ),
-        ResolvedExprKind::UpdateRecord { base, fields, .. } => fields
-            .iter()
-            .fold(expression_boolean_splits(base), |total, field| {
-                total.saturating_add(expression_boolean_splits(&field.value))
-            }),
-        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => 0,
+        successors[index] = targets;
     }
+
+    let mut reachable = vec![false; plan.blocks.len()];
+    let mut discover = vec![entry];
+    while let Some(index) = discover.pop() {
+        if std::mem::replace(&mut reachable[index], true) {
+            continue;
+        }
+        discover.extend(successors[index].iter().copied());
+    }
+    let mut indegree = vec![0_usize; plan.blocks.len()];
+    for (index, targets) in successors.iter().enumerate() {
+        if reachable[index] {
+            for target in targets {
+                indegree[*target] = indegree[*target].saturating_add(1);
+            }
+        }
+    }
+    let mut pending = VecDeque::from([entry]);
+    let mut incoming = vec![0_usize; plan.blocks.len()];
+    incoming[entry] = 1;
+    let mut total = 0_usize;
+    let mut terminal_paths = 0_usize;
+    let mut visited = 0_usize;
+    let ceiling = MAX_REPLAY_WORK_UNITS.saturating_add(1);
+
+    while let Some(index) = pending.pop_front() {
+        visited = visited.saturating_add(1);
+        let paths = incoming[index];
+        let block = &plan.blocks[index];
+        let local = block.transitions.len().saturating_add(1);
+        total = total
+            .saturating_add(local.saturating_mul(paths))
+            .min(ceiling);
+        if terminal[index] {
+            terminal_paths = terminal_paths.saturating_add(paths);
+        }
+        for successor in &successors[index] {
+            incoming[*successor] = incoming[*successor].saturating_add(paths).min(ceiling);
+            indegree[*successor] = indegree[*successor].saturating_sub(1);
+            if indegree[*successor] == 0 {
+                pending.push_back(*successor);
+            }
+        }
+        if total >= ceiling {
+            return Ok(CfgReplayBounds {
+                terminal_paths: MAX_REPLAY_PATHS.saturating_add(1),
+                work: ceiling,
+            });
+        }
+    }
+    if visited != reachable.iter().filter(|reachable| **reachable).count() {
+        return Err(replay_error(function, "cleanup CFG contains a cycle"));
+    }
+    Ok(CfgReplayBounds {
+        terminal_paths,
+        work: total,
+    })
+}
+
+#[derive(Clone, Copy, Default)]
+struct HirPathCounts {
+    normal: usize,
+    failed: usize,
+    residual: usize,
+}
+
+impl HirPathCounts {
+    const ONE: Self = Self {
+        normal: 1,
+        failed: 0,
+        residual: 0,
+    };
+
+    fn total(self) -> usize {
+        self.normal
+            .saturating_add(self.failed)
+            .saturating_add(self.residual)
+    }
+}
+
+fn sequence_path_counts(left: HirPathCounts, right: HirPathCounts) -> HirPathCounts {
+    HirPathCounts {
+        normal: left.normal.saturating_mul(right.normal),
+        failed: left
+            .failed
+            .saturating_add(left.normal.saturating_mul(right.failed)),
+        residual: left
+            .residual
+            .saturating_add(left.normal.saturating_mul(right.residual)),
+    }
+}
+
+fn hir_terminal_path_bound(function: &ResolvedFunction) -> Result<usize, Diagnostic> {
+    let mut paths = HirPathCounts::ONE;
+    for contract in &function.requires {
+        paths = sequence_path_counts(paths, expression_path_counts(function, contract)?);
+        paths.failed = paths.failed.saturating_add(paths.normal);
+    }
+    paths = sequence_path_counts(paths, expression_path_counts(function, &function.body)?);
+    // Residual paths terminate at the function boundary; successful body paths
+    // continue through postconditions.
+    for contract in &function.ensures {
+        paths = sequence_path_counts(paths, expression_path_counts(function, contract)?);
+        paths.failed = paths.failed.saturating_add(paths.normal);
+    }
+    Ok(paths.total())
+}
+
+fn skeleton_work_upper(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+) -> Result<usize, Diagnostic> {
+    let semantic_paths = hir_terminal_path_bound(function)?.max(1);
+    if semantic_paths > MAX_REPLAY_PATHS {
+        return Ok(0);
+    }
+    let mut hir_upper = checked_skeleton_mul(function, 4, semantic_paths)?;
+    for expression in function
+        .requires
+        .iter()
+        .chain(std::iter::once(&function.body))
+        .chain(&function.ensures)
+    {
+        hir_upper = checked_skeleton_add(
+            function,
+            hir_upper,
+            expression_skeleton_work_upper(program, function, expression)?,
+        )?;
+    }
+    hir_upper = checked_skeleton_add(
+        function,
+        hir_upper,
+        checked_skeleton_mul(
+            function,
+            function
+                .requires
+                .len()
+                .checked_add(function.ensures.len())
+                .and_then(|contracts| contracts.checked_mul(6))
+                .ok_or_else(|| skeleton_preflight_overflow(function))?,
+            semantic_paths,
+        )?,
+    )?;
+
+    let cfg = match branch_sensitive_cfg_bounds(function) {
+        Ok(cfg) if cfg.terminal_paths <= MAX_REPLAY_PATHS => cfg,
+        Ok(_) | Err(_) => return Ok(0),
+    };
+    let mut max_unit_weight = 10usize;
+    for block in &function.cleanup_plan.blocks {
+        for transition in &block.transitions {
+            let weight = match transition {
+                CleanupTransition::Initialize { .. } => 4,
+                CleanupTransition::Transfer { .. } => 5,
+                CleanupTransition::CallCommit { arguments, .. } => arguments
+                    .len()
+                    .checked_mul(2)
+                    .and_then(|arguments| arguments.checked_add(4))
+                    .ok_or_else(|| skeleton_preflight_overflow(function))?,
+                CleanupTransition::SelectFailure { .. } => 1,
+                CleanupTransition::StageCopyResult { .. } => 3,
+            };
+            max_unit_weight = max_unit_weight.max(weight);
+        }
+    }
+    let plan_expansion = checked_skeleton_mul(function, cfg.work.max(1), max_unit_weight)?;
+    let plan_terminals = checked_skeleton_mul(function, cfg.terminal_paths.max(1), 4)?;
+    let comparison = checked_skeleton_mul(function, semantic_paths.max(cfg.terminal_paths), 2)?;
+    checked_skeleton_add(
+        function,
+        checked_skeleton_add(function, hir_upper, plan_expansion)?,
+        checked_skeleton_add(function, plan_terminals, comparison)?,
+    )
+}
+
+fn expression_skeleton_work_upper(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    root: &ResolvedExpr,
+) -> Result<usize, Diagnostic> {
+    let mut stack = [None; 515];
+    stack[0] = Some((root, 0usize));
+    let mut len = 1usize;
+    let mut weight = 0usize;
+    while len != 0 {
+        let (expression, next) = stack[len - 1]
+            .as_mut()
+            .expect("skeleton census frame retained");
+        if *next == 0 {
+            let local = match &expression.kind {
+                ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) => 2,
+                ResolvedExprKind::Place(place) => place.projections.len().saturating_mul(2) + 8,
+                ResolvedExprKind::Unary { .. } => 8,
+                ResolvedExprKind::Binary { .. } => 12,
+                ResolvedExprKind::Call { args, .. } => args.len().saturating_mul(6) + 14,
+                ResolvedExprKind::NativeRustImportCall(call) => {
+                    call.args.len().saturating_mul(4) + 8
+                }
+                ResolvedExprKind::Block { statements, .. } => {
+                    statements.len().saturating_mul(4) + 5
+                }
+                ResolvedExprKind::ConstructVariant { fields, .. }
+                | ResolvedExprKind::ConstructRecord { fields, .. } => {
+                    fields.len().saturating_mul(4) + 6
+                }
+                ResolvedExprKind::UpdateRecord { record, fields, .. } => checked_skeleton_add(
+                    function,
+                    fields
+                        .len()
+                        .checked_mul(5)
+                        .and_then(|fields| fields.checked_add(8))
+                        .ok_or_else(|| skeleton_preflight_overflow(function))?,
+                    untouched_update_field_work_upper(
+                        program, function, expression, record, fields,
+                    )?,
+                )?,
+                ResolvedExprKind::Try { .. } | ResolvedExprKind::TryOption { .. } => 10,
+                ResolvedExprKind::Project { .. } => 6,
+                ResolvedExprKind::If { .. } => 10,
+                ResolvedExprKind::Match { arms, .. } => arms.len().saturating_mul(4) + 8,
+            };
+            let paths = expression_path_counts(function, expression)?.total().max(1);
+            if paths > MAX_REPLAY_PATHS {
+                return Ok(0);
+            }
+            weight = checked_skeleton_add(
+                function,
+                weight,
+                checked_skeleton_mul(function, local, paths)?,
+            )?;
+        }
+        if let Some(child) = replay_expression_child(expression, *next) {
+            *next += 1;
+            if len == stack.len() {
+                return Err(replay_error(
+                    function,
+                    "typed-HIR skeleton-work census exceeds the admitted expression depth",
+                ));
+            }
+            stack[len] = Some((child, 0));
+            len += 1;
+        } else {
+            len -= 1;
+            stack[len] = None;
+        }
+    }
+    Ok(weight)
+}
+
+fn untouched_update_field_work_upper(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    expression: &ResolvedExpr,
+    record: &DeclarationId,
+    replacements: &[crate::hir::ResolvedFieldInitializer],
+) -> Result<usize, Diagnostic> {
+    if expression.ownership != OwnershipMode::Own
+        || !type_needs_drop(program, function, &expression.ty)?
+    {
+        return Ok(0);
+    }
+    let declarations = program.declarations.record_fields(record).ok_or_else(|| {
+        replay_error(
+            function,
+            format!("record update has unknown record `{record}`"),
+        )
+    })?;
+    let mut untouched_droppable = 0usize;
+    for field in declarations {
+        if replacements
+            .iter()
+            .any(|replacement| replacement.field == field.id)
+            || !type_needs_drop(program, function, &field.ty)?
+        {
+            continue;
+        }
+        untouched_droppable = untouched_droppable
+            .checked_add(1)
+            .ok_or_else(|| skeleton_preflight_overflow(function))?;
+    }
+    let active_paths = expression_path_counts(function, expression)?.normal;
+    checked_skeleton_mul(
+        function,
+        checked_skeleton_mul(function, untouched_droppable, active_paths)?,
+        8,
+    )
+}
+
+fn checked_skeleton_add(
+    function: &ResolvedFunction,
+    left: usize,
+    right: usize,
+) -> Result<usize, Diagnostic> {
+    left.checked_add(right)
+        .ok_or_else(|| skeleton_preflight_overflow(function))
+}
+
+fn checked_skeleton_mul(
+    function: &ResolvedFunction,
+    left: usize,
+    right: usize,
+) -> Result<usize, Diagnostic> {
+    left.checked_mul(right)
+        .ok_or_else(|| skeleton_preflight_overflow(function))
+}
+
+fn skeleton_preflight_overflow(function: &ResolvedFunction) -> Diagnostic {
+    replay_error(
+        function,
+        "cleanup replay program-wide skeleton-work preflight overflowed",
+    )
+}
+
+fn expression_path_counts(
+    function: &ResolvedFunction,
+    expression: &ResolvedExpr,
+) -> Result<HirPathCounts, Diagnostic> {
+    #[derive(Clone, Copy)]
+    struct Frame<'a> {
+        expression: &'a ResolvedExpr,
+        next: usize,
+        accumulator: HirPathCounts,
+        first: HirPathCounts,
+    }
+    let mut stack = [None; 514];
+    stack[0] = Some(Frame {
+        expression,
+        next: 0,
+        accumulator: HirPathCounts::ONE,
+        first: HirPathCounts::default(),
+    });
+    let mut len = 1usize;
+    let mut result = HirPathCounts::ONE;
+    while len != 0 {
+        len -= 1;
+        let mut frame = stack[len].take().expect("path-count frame retained");
+        if frame.next != 0 {
+            let child_index = frame.next - 1;
+            match &frame.expression.kind {
+                ResolvedExprKind::If { .. } => match child_index {
+                    0 => frame.first = result,
+                    1 => frame.accumulator = result,
+                    2 => {
+                        let condition = frame.first;
+                        frame.accumulator = HirPathCounts {
+                            normal: condition.normal.saturating_mul(
+                                frame.accumulator.normal.saturating_add(result.normal),
+                            ),
+                            failed: condition.failed.saturating_add(
+                                condition.normal.saturating_mul(
+                                    frame.accumulator.failed.saturating_add(result.failed),
+                                ),
+                            ),
+                            residual: condition.residual.saturating_add(
+                                condition.normal.saturating_mul(
+                                    frame.accumulator.residual.saturating_add(result.residual),
+                                ),
+                            ),
+                        };
+                    }
+                    _ => unreachable!(),
+                },
+                ResolvedExprKind::Binary {
+                    op: BinaryOp::And | BinaryOp::Or,
+                    ..
+                } => {
+                    if child_index == 0 {
+                        frame.first = result;
+                    } else {
+                        let left = frame.first;
+                        frame.accumulator = HirPathCounts {
+                            normal: left.normal.saturating_mul(result.normal.saturating_add(1)),
+                            failed: left
+                                .failed
+                                .saturating_add(left.normal.saturating_mul(result.failed)),
+                            residual: left
+                                .residual
+                                .saturating_add(left.normal.saturating_mul(result.residual)),
+                        };
+                    }
+                }
+                ResolvedExprKind::Match { .. } => {
+                    if child_index == 0 {
+                        frame.first = result;
+                        frame.accumulator = HirPathCounts::default();
+                    } else {
+                        frame.accumulator.normal =
+                            frame.accumulator.normal.saturating_add(result.normal);
+                        frame.accumulator.failed =
+                            frame.accumulator.failed.saturating_add(result.failed);
+                        frame.accumulator.residual =
+                            frame.accumulator.residual.saturating_add(result.residual);
+                    }
+                }
+                _ => frame.accumulator = sequence_path_counts(frame.accumulator, result),
+            }
+        }
+        if frame.accumulator.total() > MAX_REPLAY_PATHS || frame.first.total() > MAX_REPLAY_PATHS {
+            return Ok(HirPathCounts {
+                normal: MAX_REPLAY_PATHS + 1,
+                failed: 0,
+                residual: 0,
+            });
+        }
+        if let Some(child) = replay_expression_child(frame.expression, frame.next) {
+            if len + 2 > stack.len() {
+                return Err(replay_error(
+                    function,
+                    "typed-HIR path census exceeds the admitted expression depth",
+                ));
+            }
+            frame.next += 1;
+            stack[len] = Some(frame);
+            stack[len + 1] = Some(Frame {
+                expression: child,
+                next: 0,
+                accumulator: HirPathCounts::ONE,
+                first: HirPathCounts::default(),
+            });
+            len += 2;
+            continue;
+        }
+        result = match &frame.expression.kind {
+            ResolvedExprKind::Call { .. } => HirPathCounts {
+                normal: frame.accumulator.normal,
+                failed: frame
+                    .accumulator
+                    .failed
+                    .saturating_add(frame.accumulator.normal),
+                residual: frame.accumulator.residual,
+            },
+            ResolvedExprKind::Unary {
+                op: UnaryOp::Neg, ..
+            }
+            | ResolvedExprKind::Binary {
+                op: BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem,
+                ..
+            } => HirPathCounts {
+                normal: frame.accumulator.normal,
+                failed: frame
+                    .accumulator
+                    .failed
+                    .saturating_add(frame.accumulator.normal),
+                residual: frame.accumulator.residual,
+            },
+            ResolvedExprKind::Try { .. } | ResolvedExprKind::TryOption { .. } => HirPathCounts {
+                normal: frame.accumulator.normal,
+                failed: frame.accumulator.failed,
+                residual: frame
+                    .accumulator
+                    .residual
+                    .saturating_add(frame.accumulator.normal),
+            },
+            ResolvedExprKind::If { .. }
+            | ResolvedExprKind::Binary {
+                op: BinaryOp::And | BinaryOp::Or,
+                ..
+            } => frame.accumulator,
+            ResolvedExprKind::Match { .. } => HirPathCounts {
+                normal: frame.first.normal.saturating_mul(frame.accumulator.normal),
+                failed: frame
+                    .first
+                    .failed
+                    .saturating_add(frame.first.normal.saturating_mul(frame.accumulator.failed)),
+                residual: frame.first.residual.saturating_add(
+                    frame
+                        .first
+                        .normal
+                        .saturating_mul(frame.accumulator.residual),
+                ),
+            },
+            _ => frame.accumulator,
+        };
+    }
+    Ok(result)
 }
 
 fn validate_inventory_coverage(
@@ -462,32 +1077,76 @@ fn collect_supplemental_slots(
     next_flag: &mut u32,
     slots: &mut Vec<ExpectedSupplementalSlot>,
 ) -> Result<(), Diagnostic> {
-    match &expression.kind {
-        ResolvedExprKind::Call {
-            callee,
-            instance,
-            args,
-            ..
-        } => {
-            let target = program
-                .resolve_call_target(callee, instance.as_ref())
-                .ok_or_else(|| {
-                    replay_error(
-                        function,
-                        format!(
-                            "cleanup call `{}` has unknown callee `{callee}`",
-                            expression.id
-                        ),
-                    )
-                })?;
-            if target.params.len() != args.len() {
-                return Err(replay_error(
-                    function,
-                    format!("cleanup call `{}` has inconsistent arity", expression.id),
-                ));
+    enum Frame<'a> {
+        Expr(&'a ResolvedExpr, usize),
+        CallArgument(&'a ResolvedExpr, usize),
+    }
+    let mut frames = Vec::with_capacity(1028);
+    frames.push(Frame::Expr(expression, 0));
+    while let Some(frame) = frames.pop() {
+        match frame {
+            Frame::Expr(expression, next) => {
+                if let ResolvedExprKind::Call {
+                    callee,
+                    instance,
+                    args,
+                    ..
+                } = &expression.kind
+                {
+                    let target = program
+                        .resolve_call_target(callee, instance.as_ref())
+                        .ok_or_else(|| {
+                            replay_error(
+                                function,
+                                format!(
+                                    "cleanup call `{}` has unknown callee `{callee}`",
+                                    expression.id
+                                ),
+                            )
+                        })?;
+                    if target.params.len() != args.len() {
+                        return Err(replay_error(
+                            function,
+                            format!("cleanup call `{}` has inconsistent arity", expression.id),
+                        ));
+                    }
+                    if let Some(argument) = args.get(next) {
+                        if frames.len() + 3 > frames.capacity() {
+                            return Err(replay_error(
+                                function,
+                                "supplemental-slot traversal exceeds the admitted depth",
+                            ));
+                        }
+                        frames.push(Frame::Expr(expression, next + 1));
+                        frames.push(Frame::CallArgument(expression, next));
+                        frames.push(Frame::Expr(argument, 0));
+                    }
+                } else if let Some(child) = replay_expression_child(expression, next) {
+                    if frames.len() + 2 > frames.capacity() {
+                        return Err(replay_error(
+                            function,
+                            "supplemental-slot traversal exceeds the admitted depth",
+                        ));
+                    }
+                    frames.push(Frame::Expr(expression, next + 1));
+                    frames.push(Frame::Expr(child, 0));
+                }
             }
-            for (index, (argument, parameter)) in args.iter().zip(&target.params).enumerate() {
-                collect_supplemental_slots(program, function, argument, next_flag, slots)?;
+            Frame::CallArgument(expression, index) => {
+                let ResolvedExprKind::Call {
+                    callee,
+                    instance,
+                    args,
+                    ..
+                } = &expression.kind
+                else {
+                    unreachable!("call-argument continuation retains a call");
+                };
+                let target = program
+                    .resolve_call_target(callee, instance.as_ref())
+                    .ok_or_else(|| replay_error(function, "cleanup call target disappeared"))?;
+                let argument = &args[index];
+                let parameter = &target.params[index];
                 if parameter.ownership == OwnershipMode::Own
                     && type_needs_drop(program, function, &parameter.ty)?
                 {
@@ -508,55 +1167,6 @@ fn collect_supplemental_slots(
                 }
             }
         }
-        ResolvedExprKind::Unary { value, .. } | ResolvedExprKind::Project { base: value, .. } => {
-            collect_supplemental_slots(program, function, value, next_flag, slots)?;
-        }
-        ResolvedExprKind::Binary { left, right, .. } => {
-            collect_supplemental_slots(program, function, left, next_flag, slots)?;
-            collect_supplemental_slots(program, function, right, next_flag, slots)?;
-        }
-        ResolvedExprKind::Block { statements, tail } => {
-            for statement in statements {
-                let crate::hir::ResolvedStatement::Let { value, .. } = statement;
-                collect_supplemental_slots(program, function, value, next_flag, slots)?;
-            }
-            collect_supplemental_slots(program, function, tail, next_flag, slots)?;
-        }
-        ResolvedExprKind::If {
-            condition,
-            then_branch,
-            else_branch,
-        } => {
-            collect_supplemental_slots(program, function, condition, next_flag, slots)?;
-            collect_supplemental_slots(program, function, then_branch, next_flag, slots)?;
-            collect_supplemental_slots(program, function, else_branch, next_flag, slots)?;
-        }
-        ResolvedExprKind::ConstructRecord { fields, .. } => {
-            for field in fields {
-                collect_supplemental_slots(program, function, &field.value, next_flag, slots)?;
-            }
-        }
-        ResolvedExprKind::ConstructVariant { fields, .. } => {
-            for field in fields {
-                collect_supplemental_slots(program, function, &field.value, next_flag, slots)?;
-            }
-        }
-        ResolvedExprKind::Try { operand, .. } | ResolvedExprKind::TryOption { operand, .. } => {
-            collect_supplemental_slots(program, function, operand, next_flag, slots)?;
-        }
-        ResolvedExprKind::Match { scrutinee, arms } => {
-            collect_supplemental_slots(program, function, scrutinee, next_flag, slots)?;
-            for arm in arms {
-                collect_supplemental_slots(program, function, &arm.value, next_flag, slots)?;
-            }
-        }
-        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
-            collect_supplemental_slots(program, function, base, next_flag, slots)?;
-            for field in fields {
-                collect_supplemental_slots(program, function, &field.value, next_flag, slots)?;
-            }
-        }
-        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
     }
     Ok(())
 }
@@ -689,124 +1299,103 @@ fn collect_expression_statuses(
     expression: &ResolvedExpr,
     statuses: &mut Vec<StatusSource>,
 ) -> Result<(), Diagnostic> {
-    match &expression.kind {
-        ResolvedExprKind::Call {
-            callee,
-            instance,
-            args,
-            ..
-        } => {
-            for argument in args {
-                collect_expression_statuses(program, function, argument, statuses)?;
-            }
-            if program
-                .resolve_call_target(callee, instance.as_ref())
-                .is_none()
-            {
+    let mut stack = [None; 514];
+    stack[0] = Some((expression, 0usize));
+    let mut len = 1usize;
+    while len != 0 {
+        len -= 1;
+        let (expression, next) = stack[len].take().expect("status frame retained");
+        if let Some(child) = replay_expression_child(expression, next) {
+            if len + 2 > stack.len() {
                 return Err(replay_error(
                     function,
-                    format!("status source call has unknown callee `{callee}`"),
+                    "cleanup status expression depth exceeds 512",
                 ));
             }
-            statuses.push(StatusSource {
-                id: StatusSourceId {
-                    expression: expression.id.clone(),
-                    lane: StatusLane::OperationFailure,
-                },
-                producer: StatusProducer::PropagatedCall {
-                    callee: callee.clone(),
-                },
-            });
+            stack[len] = Some((expression, next + 1));
+            stack[len + 1] = Some((child, 0));
+            len += 2;
+            continue;
         }
-        ResolvedExprKind::Unary { op, value } => {
-            collect_expression_statuses(program, function, value, statuses)?;
-            if *op == UnaryOp::Neg {
-                statuses.push(checked_status(
-                    expression,
-                    super::CheckedOperation::Neg,
-                    vec![StatusCase::NegationOverflow],
-                ));
-            }
-        }
-        ResolvedExprKind::Binary { op, left, right } => {
-            collect_expression_statuses(program, function, left, statuses)?;
-            collect_expression_statuses(program, function, right, statuses)?;
-            let checked = match op {
-                BinaryOp::Add => {
-                    Some((super::CheckedOperation::Add, vec![StatusCase::AddOverflow]))
+        match &expression.kind {
+            ResolvedExprKind::Call {
+                callee, instance, ..
+            } => {
+                if program
+                    .resolve_call_target(callee, instance.as_ref())
+                    .is_none()
+                {
+                    return Err(replay_error(
+                        function,
+                        format!("status source call has unknown callee `{callee}`"),
+                    ));
                 }
-                BinaryOp::Sub => {
-                    Some((super::CheckedOperation::Sub, vec![StatusCase::SubOverflow]))
+                statuses.push(StatusSource {
+                    id: StatusSourceId {
+                        expression: expression.id.clone(),
+                        lane: StatusLane::OperationFailure,
+                    },
+                    producer: StatusProducer::PropagatedCall {
+                        callee: callee.clone(),
+                    },
+                });
+            }
+            ResolvedExprKind::Unary {
+                op: UnaryOp::Neg, ..
+            } => statuses.push(checked_status(
+                expression,
+                super::CheckedOperation::Neg,
+                vec![StatusCase::NegationOverflow],
+            )),
+            ResolvedExprKind::Unary {
+                op: UnaryOp::Not, ..
+            } => {}
+            ResolvedExprKind::Binary { op, .. } => {
+                let checked = match op {
+                    BinaryOp::Add => {
+                        Some((super::CheckedOperation::Add, vec![StatusCase::AddOverflow]))
+                    }
+                    BinaryOp::Sub => {
+                        Some((super::CheckedOperation::Sub, vec![StatusCase::SubOverflow]))
+                    }
+                    BinaryOp::Mul => {
+                        Some((super::CheckedOperation::Mul, vec![StatusCase::MulOverflow]))
+                    }
+                    BinaryOp::Div => Some((
+                        super::CheckedOperation::Div,
+                        vec![StatusCase::DivisionByZero, StatusCase::DivisionOverflow],
+                    )),
+                    BinaryOp::Rem => Some((
+                        super::CheckedOperation::Rem,
+                        vec![StatusCase::RemainderByZero, StatusCase::RemainderOverflow],
+                    )),
+                    BinaryOp::Eq
+                    | BinaryOp::Ne
+                    | BinaryOp::Lt
+                    | BinaryOp::Le
+                    | BinaryOp::Gt
+                    | BinaryOp::Ge
+                    | BinaryOp::And
+                    | BinaryOp::Or => None,
+                };
+                if let Some((operation, cases)) = checked {
+                    statuses.push(checked_status(expression, operation, cases));
                 }
-                BinaryOp::Mul => {
-                    Some((super::CheckedOperation::Mul, vec![StatusCase::MulOverflow]))
-                }
-                BinaryOp::Div => Some((
-                    super::CheckedOperation::Div,
-                    vec![StatusCase::DivisionByZero, StatusCase::DivisionOverflow],
-                )),
-                BinaryOp::Rem => Some((
-                    super::CheckedOperation::Rem,
-                    vec![StatusCase::RemainderByZero, StatusCase::RemainderOverflow],
-                )),
-                BinaryOp::Eq
-                | BinaryOp::Ne
-                | BinaryOp::Lt
-                | BinaryOp::Le
-                | BinaryOp::Gt
-                | BinaryOp::Ge
-                | BinaryOp::And
-                | BinaryOp::Or => None,
-            };
-            if let Some((operation, cases)) = checked {
-                statuses.push(checked_status(expression, operation, cases));
             }
+            ResolvedExprKind::NativeRustImportCall(_)
+            | ResolvedExprKind::Block { .. }
+            | ResolvedExprKind::If { .. }
+            | ResolvedExprKind::ConstructRecord { .. }
+            | ResolvedExprKind::ConstructVariant { .. }
+            | ResolvedExprKind::Try { .. }
+            | ResolvedExprKind::TryOption { .. }
+            | ResolvedExprKind::Match { .. }
+            | ResolvedExprKind::UpdateRecord { .. }
+            | ResolvedExprKind::Project { .. }
+            | ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::Place(_) => {}
         }
-        ResolvedExprKind::Block { statements, tail } => {
-            for statement in statements {
-                let crate::hir::ResolvedStatement::Let { value, .. } = statement;
-                collect_expression_statuses(program, function, value, statuses)?;
-            }
-            collect_expression_statuses(program, function, tail, statuses)?;
-        }
-        ResolvedExprKind::If {
-            condition,
-            then_branch,
-            else_branch,
-        } => {
-            collect_expression_statuses(program, function, condition, statuses)?;
-            collect_expression_statuses(program, function, then_branch, statuses)?;
-            collect_expression_statuses(program, function, else_branch, statuses)?;
-        }
-        ResolvedExprKind::ConstructRecord { fields, .. } => {
-            for field in fields {
-                collect_expression_statuses(program, function, &field.value, statuses)?;
-            }
-        }
-        ResolvedExprKind::ConstructVariant { fields, .. } => {
-            for field in fields {
-                collect_expression_statuses(program, function, &field.value, statuses)?;
-            }
-        }
-        ResolvedExprKind::Try { operand, .. } | ResolvedExprKind::TryOption { operand, .. } => {
-            collect_expression_statuses(program, function, operand, statuses)?;
-        }
-        ResolvedExprKind::Match { scrutinee, arms } => {
-            collect_expression_statuses(program, function, scrutinee, statuses)?;
-            for arm in arms {
-                collect_expression_statuses(program, function, &arm.value, statuses)?;
-            }
-        }
-        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
-            collect_expression_statuses(program, function, base, statuses)?;
-            for field in fields {
-                collect_expression_statuses(program, function, &field.value, statuses)?;
-            }
-        }
-        ResolvedExprKind::Project { base, .. } => {
-            collect_expression_statuses(program, function, base, statuses)?;
-        }
-        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
     }
     Ok(())
 }
@@ -1545,11 +2134,7 @@ fn validate_typed_control_skeleton(
     function: &ResolvedFunction,
     budget: &mut ReplayBudget,
 ) -> Result<(), Diagnostic> {
-    let mut expected = hir_skeleton_paths(program, function)?;
-    let expected_units = expected.iter().fold(0_usize, |total, path| {
-        total.saturating_add(path.observations.len().saturating_add(1))
-    });
-    budget.charge(function, expected_units, "typed-HIR skeleton expansion")?;
+    let mut expected = hir_skeleton_paths(program, function, budget)?;
     let mut actual = plan_skeleton_paths(function, budget)?;
     expected.sort();
     actual.sort();
@@ -1565,13 +2150,15 @@ fn validate_typed_control_skeleton(
 fn hir_skeleton_paths(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
+    budget: &mut ReplayBudget,
 ) -> Result<Vec<SkeletonPath>, Diagnostic> {
-    let mut paths = vec![empty_expr_path()];
+    let mut work = SkeletonWork { function, budget };
+    let mut paths = work.singleton_path(empty_expr_path(), "HIR root path")?;
     for contract in &function.requires {
-        paths = sequence_expression(program, function, paths, contract)?;
-        paths = split_contract(paths, contract);
+        paths = sequence_expression(program, function, paths, contract, &mut work)?;
+        paths = split_contract(paths, contract, &mut work)?;
     }
-    paths = sequence_expression(program, function, paths, &function.body)?;
+    paths = sequence_expression(program, function, paths, &function.body, &mut work)?;
     if paths.iter().any(|path| path.residual) {
         if !function.cleanup_plan.slots.is_empty() {
             return Err(replay_error(
@@ -1584,43 +2171,150 @@ fn hir_skeleton_paths(
                 continue;
             }
             if !path.residual {
-                path.observations.push(SkeletonObservation::StageCopyResult(
-                    StagedCopyResultSource::Body {
-                        expression: function.body.id.clone(),
-                        instance: function.return_type.clone(),
-                    },
-                ));
+                let expression =
+                    work.clone_owned(&function.body.id, "body result expression clone")?;
+                let instance = work.clone_owned(&function.return_type, "body result type clone")?;
+                work.push_observation(
+                    path,
+                    SkeletonObservation::StageCopyResult(StagedCopyResultSource::Body {
+                        expression,
+                        instance,
+                    }),
+                    "body result staging",
+                )?;
             }
             path.residual = false;
         }
     }
     if type_needs_drop(program, function, &function.return_type)? {
+        let body_id = work.clone_owned(&function.body.id, "owned result expression clone")?;
         paths = transfer_completed_paths(
             function,
             paths,
-            function.body.id.clone(),
+            body_id,
             CleanupPlace {
                 storage: StorageId::ProvisionalResult,
                 projections: Vec::new(),
             },
             "owned function result",
+            &mut work,
         )?;
     }
     for contract in &function.ensures {
-        paths = sequence_expression(program, function, paths, contract)?;
-        paths = split_contract(paths, contract);
+        paths = sequence_expression(program, function, paths, contract, &mut work)?;
+        paths = split_contract(paths, contract, &mut work)?;
     }
-    Ok(paths
-        .into_iter()
-        .map(|path| SkeletonPath {
-            observations: path.observations,
-            terminal: if path.failed {
-                SkeletonTerminal::Failure
-            } else {
-                SkeletonTerminal::Success
+    let mut completed = Vec::new();
+    for path in paths {
+        work.push_skeleton_path(
+            &mut completed,
+            SkeletonPath {
+                observations: path.observations,
+                terminal: if path.failed {
+                    SkeletonTerminal::Failure
+                } else {
+                    SkeletonTerminal::Success
+                },
             },
-        })
-        .collect())
+            "completed HIR skeleton path",
+        )?;
+    }
+    Ok(completed)
+}
+
+struct SkeletonWork<'a, 'b> {
+    function: &'a ResolvedFunction,
+    budget: &'b mut ReplayBudget,
+}
+
+impl SkeletonWork<'_, '_> {
+    fn charge(&mut self, units: usize, phase: &str) -> Result<(), Diagnostic> {
+        self.budget.charge_skeleton(self.function, units, phase)
+    }
+
+    fn clone_owned<T: Clone>(&mut self, value: &T, phase: &str) -> Result<T, Diagnostic> {
+        self.charge(1, phase)?;
+        note_skeleton_materialization();
+        Ok(value.clone())
+    }
+
+    fn push_expr_path(
+        &mut self,
+        paths: &mut Vec<ExprSkeletonPath>,
+        path: ExprSkeletonPath,
+        phase: &str,
+    ) -> Result<(), Diagnostic> {
+        self.charge(1, phase)?;
+        note_skeleton_materialization();
+        paths.push(path);
+        Ok(())
+    }
+
+    fn push_skeleton_path(
+        &mut self,
+        paths: &mut Vec<SkeletonPath>,
+        path: SkeletonPath,
+        phase: &str,
+    ) -> Result<(), Diagnostic> {
+        self.charge(1, phase)?;
+        note_skeleton_materialization();
+        paths.push(path);
+        Ok(())
+    }
+
+    fn singleton_path(
+        &mut self,
+        path: ExprSkeletonPath,
+        phase: &str,
+    ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
+        let mut paths = Vec::new();
+        self.push_expr_path(&mut paths, path, phase)?;
+        Ok(paths)
+    }
+
+    fn clone_expr_path(
+        &mut self,
+        path: &ExprSkeletonPath,
+        phase: &str,
+    ) -> Result<ExprSkeletonPath, Diagnostic> {
+        self.charge(1, phase)?;
+        note_skeleton_materialization();
+        Ok(path.clone())
+    }
+
+    fn clone_observations(
+        &mut self,
+        observations: &[SkeletonObservation],
+        phase: &str,
+    ) -> Result<Vec<SkeletonObservation>, Diagnostic> {
+        self.charge(1, phase)?;
+        note_skeleton_materialization();
+        Ok(observations.to_vec())
+    }
+
+    fn extend_observations(
+        &mut self,
+        target: &mut Vec<SkeletonObservation>,
+        observations: &[SkeletonObservation],
+        phase: &str,
+    ) -> Result<(), Diagnostic> {
+        self.charge(1, phase)?;
+        note_skeleton_materialization();
+        target.extend_from_slice(observations);
+        Ok(())
+    }
+
+    fn push_observation(
+        &mut self,
+        path: &mut ExprSkeletonPath,
+        observation: SkeletonObservation,
+        phase: &str,
+    ) -> Result<(), Diagnostic> {
+        self.charge(1, phase)?;
+        note_skeleton_materialization();
+        path.observations.push(observation);
+        Ok(())
+    }
 }
 
 fn empty_expr_path() -> ExprSkeletonPath {
@@ -1637,145 +2331,633 @@ fn sequence_expression(
     function: &ResolvedFunction,
     prefixes: Vec<ExprSkeletonPath>,
     expression: &ResolvedExpr,
+    work: &mut SkeletonWork<'_, '_>,
 ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
-    let suffixes = expression_skeleton(program, function, expression)?;
+    if !has_active_paths(&prefixes) {
+        return Ok(prefixes);
+    }
+    let suffixes = expression_skeleton(program, function, expression, work)?;
+    sequence_skeleton_paths(prefixes, &suffixes, work)
+}
+
+fn sequence_skeleton_paths(
+    prefixes: Vec<ExprSkeletonPath>,
+    suffixes: &[ExprSkeletonPath],
+    work: &mut SkeletonWork<'_, '_>,
+) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
     let mut combined = Vec::new();
     for prefix in prefixes {
         if prefix.failed || prefix.residual {
-            combined.push(prefix);
+            work.push_expr_path(&mut combined, prefix, "short-circuited skeleton path")?;
             continue;
         }
-        for suffix in &suffixes {
-            let mut observations = prefix.observations.clone();
-            observations.extend(suffix.observations.clone());
-            combined.push(ExprSkeletonPath {
-                observations,
-                owned_source: suffix.owned_source.clone(),
-                failed: suffix.failed,
-                residual: suffix.residual,
-            });
+        for suffix in suffixes {
+            let mut observations =
+                work.clone_observations(&prefix.observations, "skeleton prefix clone")?;
+            work.extend_observations(
+                &mut observations,
+                &suffix.observations,
+                "skeleton suffix clone",
+            )?;
+            let owned_source = work.clone_owned(
+                &suffix.owned_source,
+                "sequenced skeleton owned-source clone",
+            )?;
+            work.push_expr_path(
+                &mut combined,
+                ExprSkeletonPath {
+                    observations,
+                    owned_source,
+                    failed: suffix.failed,
+                    residual: suffix.residual,
+                },
+                "sequenced skeleton path",
+            )?;
         }
     }
     Ok(combined)
+}
+
+fn has_active_paths(paths: &[ExprSkeletonPath]) -> bool {
+    paths.iter().any(|path| !path.failed && !path.residual)
 }
 
 fn expression_skeleton(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
     expression: &ResolvedExpr,
+    work: &mut SkeletonWork<'_, '_>,
 ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
-    match &expression.kind {
-        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) => Ok(vec![empty_expr_path()]),
-        ResolvedExprKind::Place(place) => {
-            let owned_source = if expression.ownership == OwnershipMode::Own
-                && type_needs_drop(program, function, &expression.ty)?
-            {
-                Some(cleanup_place_from_hir(function, place)?)
-            } else {
-                None
-            };
-            Ok(vec![ExprSkeletonPath {
-                observations: Vec::new(),
-                owned_source,
-                failed: false,
-                residual: false,
-            }])
-        }
-        ResolvedExprKind::Call {
-            callee,
-            instance,
-            args,
-            ..
-        } => call_skeleton(
-            program,
-            function,
-            expression,
-            callee,
-            instance.as_ref(),
-            args,
-        ),
-        ResolvedExprKind::Unary { op, value } => {
-            let paths = sequence_expression(program, function, vec![empty_expr_path()], value)?;
-            if *op == UnaryOp::Neg {
-                Ok(split_status_paths(
-                    paths,
-                    StatusSourceId {
-                        expression: expression.id.clone(),
-                        lane: StatusLane::OperationFailure,
-                    },
-                ))
-            } else {
-                Ok(paths)
+    enum Frame<'a> {
+        Eval(&'a ResolvedExpr),
+        Unary {
+            expression: &'a ResolvedExpr,
+            op: UnaryOp,
+        },
+        BinaryLeft {
+            expression: &'a ResolvedExpr,
+            op: BinaryOp,
+            right: &'a ResolvedExpr,
+        },
+        BinaryRight {
+            expression: &'a ResolvedExpr,
+            op: BinaryOp,
+            left_paths: Vec<ExprSkeletonPath>,
+        },
+        LazyRight {
+            expression: &'a ResolvedExpr,
+            op: BinaryOp,
+            left: &'a ResolvedExpr,
+            left_paths: Vec<ExprSkeletonPath>,
+        },
+        CallArgument {
+            expression: &'a ResolvedExpr,
+            target: &'a ResolvedFunction,
+            args: &'a [ResolvedExpr],
+            index: usize,
+            states: Vec<CallSkeletonState>,
+        },
+        NativeArgument {
+            args: &'a [ResolvedExpr],
+            index: usize,
+            paths: Vec<ExprSkeletonPath>,
+        },
+        BlockValue {
+            expression: &'a ResolvedExpr,
+            statements: &'a [ResolvedStatement],
+            tail: &'a ResolvedExpr,
+            index: usize,
+            paths: Vec<ExprSkeletonPath>,
+        },
+        BlockTail {
+            expression: &'a ResolvedExpr,
+            paths: Vec<ExprSkeletonPath>,
+        },
+        VariantField {
+            fields: &'a [crate::hir::ResolvedFieldInitializer],
+            index: usize,
+            paths: Vec<ExprSkeletonPath>,
+        },
+        RecordField {
+            expression: &'a ResolvedExpr,
+            fields: &'a [crate::hir::ResolvedFieldInitializer],
+            index: usize,
+            paths: Vec<ExprSkeletonPath>,
+        },
+        UpdateBase {
+            expression: &'a ResolvedExpr,
+            base: &'a ResolvedExpr,
+            record: &'a DeclarationId,
+            fields: &'a [crate::hir::ResolvedFieldInitializer],
+        },
+        UpdateField {
+            expression: &'a ResolvedExpr,
+            base: &'a ResolvedExpr,
+            record: &'a DeclarationId,
+            fields: &'a [crate::hir::ResolvedFieldInitializer],
+            index: usize,
+            paths: Vec<ExprSkeletonPath>,
+            replaced: BTreeSet<DeclarationId>,
+            needs_cleanup: bool,
+        },
+        Try {
+            expression: &'a ResolvedExpr,
+        },
+        TryOption {
+            expression: &'a ResolvedExpr,
+        },
+        Project {
+            expression: &'a ResolvedExpr,
+            field: &'a DeclarationId,
+        },
+        IfCondition {
+            expression: &'a ResolvedExpr,
+            condition: &'a ResolvedExpr,
+            then_branch: &'a ResolvedExpr,
+            else_branch: &'a ResolvedExpr,
+        },
+        IfThen {
+            expression: &'a ResolvedExpr,
+            else_branch: &'a ResolvedExpr,
+            true_prefixes: Vec<ExprSkeletonPath>,
+            false_prefixes: Vec<ExprSkeletonPath>,
+            results: Vec<ExprSkeletonPath>,
+        },
+        IfElse {
+            expression: &'a ResolvedExpr,
+            false_prefixes: Vec<ExprSkeletonPath>,
+            results: Vec<ExprSkeletonPath>,
+        },
+        MatchScrutinee {
+            expression: &'a ResolvedExpr,
+            scrutinee: &'a ResolvedExpr,
+            arms: &'a [ResolvedMatchArm],
+        },
+        MatchArm {
+            expression: &'a ResolvedExpr,
+            scrutinee: &'a ResolvedExpr,
+            arms: &'a [ResolvedMatchArm],
+            index: usize,
+            remaining: Vec<ExprSkeletonPath>,
+            results: Vec<ExprSkeletonPath>,
+            is_record: bool,
+        },
+    }
+
+    macro_rules! push_frame {
+        ($frames:expr, $frame:expr) => {{
+            if $frames.len() == $frames.capacity() {
+                return Err(replay_error(
+                    function,
+                    "typed-HIR skeleton traversal exceeds the admitted depth",
+                ));
             }
-        }
-        ResolvedExprKind::Binary {
-            op: BinaryOp::And | BinaryOp::Or,
-            left,
-            right,
-        } => lazy_skeleton(
-            program,
-            function,
-            expression.clone(),
-            *left.clone(),
-            *right.clone(),
-        ),
-        ResolvedExprKind::Binary { op, left, right } => {
-            let paths = sequence_expression(program, function, vec![empty_expr_path()], left)?;
-            let paths = sequence_expression(program, function, paths, right)?;
-            if matches!(
+            work.charge(1, "typed-HIR skeleton continuation push")?;
+            note_skeleton_materialization();
+            $frames.push($frame);
+        }};
+    }
+
+    // The semantic depth ceiling excludes the function-body block.  The
+    // continuation machine also holds the currently evaluated child beside
+    // that block and the 512 authored expression ancestors.
+    let mut frames = Vec::with_capacity(515);
+    push_frame!(frames, Frame::Eval(expression));
+    let mut produced = None;
+    while let Some(frame) = frames.pop() {
+        match frame {
+            Frame::Eval(expression) => {
+                debug_assert!(produced.is_none());
+                match &expression.kind {
+                    ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) => {
+                        produced =
+                            Some(work.singleton_path(empty_expr_path(), "literal skeleton path")?);
+                    }
+                    ResolvedExprKind::Place(place) => {
+                        let owned_source = if expression.ownership == OwnershipMode::Own
+                            && type_needs_drop(program, function, &expression.ty)?
+                        {
+                            Some(cleanup_place_from_hir(function, place, work)?)
+                        } else {
+                            None
+                        };
+                        produced = Some(work.singleton_path(
+                            ExprSkeletonPath {
+                                observations: Vec::new(),
+                                owned_source,
+                                failed: false,
+                                residual: false,
+                            },
+                            "place skeleton path",
+                        )?);
+                    }
+                    ResolvedExprKind::Unary { op, value } => {
+                        push_frame!(
+                            frames,
+                            Frame::Unary {
+                                expression,
+                                op: *op
+                            }
+                        );
+                        push_frame!(frames, Frame::Eval(value));
+                    }
+                    ResolvedExprKind::Try { operand, .. } => {
+                        push_frame!(frames, Frame::Try { expression });
+                        push_frame!(frames, Frame::Eval(operand));
+                    }
+                    ResolvedExprKind::TryOption { operand, .. } => {
+                        push_frame!(frames, Frame::TryOption { expression });
+                        push_frame!(frames, Frame::Eval(operand));
+                    }
+                    ResolvedExprKind::Project { base, field } => {
+                        push_frame!(frames, Frame::Project { expression, field });
+                        push_frame!(frames, Frame::Eval(base));
+                    }
+                    ResolvedExprKind::Binary { op, left, right } => {
+                        push_frame!(
+                            frames,
+                            Frame::BinaryLeft {
+                                expression,
+                                op: *op,
+                                right,
+                            }
+                        );
+                        push_frame!(frames, Frame::Eval(left));
+                    }
+                    ResolvedExprKind::Call {
+                        callee,
+                        instance,
+                        args,
+                        ..
+                    } => {
+                        let target = program
+                            .resolve_call_target(callee, instance.as_ref())
+                            .ok_or_else(|| {
+                                replay_error(
+                                    function,
+                                    format!("unknown skeleton callee `{callee}`"),
+                                )
+                            })?;
+                        work.charge(1, "call skeleton root state")?;
+                        let states = vec![(empty_expr_path(), Vec::new())];
+                        if let Some(argument) = args.first() {
+                            push_frame!(
+                                frames,
+                                Frame::CallArgument {
+                                    expression,
+                                    target,
+                                    args,
+                                    index: 0,
+                                    states,
+                                }
+                            );
+                            push_frame!(frames, Frame::Eval(argument));
+                        } else {
+                            produced = Some(finish_call_states(
+                                program, function, expression, states, work,
+                            )?);
+                        }
+                    }
+                    ResolvedExprKind::NativeRustImportCall(call) => {
+                        let paths =
+                            work.singleton_path(empty_expr_path(), "native-call root path")?;
+                        if let Some(argument) = call.args.first() {
+                            push_frame!(
+                                frames,
+                                Frame::NativeArgument {
+                                    args: &call.args,
+                                    index: 0,
+                                    paths,
+                                }
+                            );
+                            push_frame!(frames, Frame::Eval(argument));
+                        } else {
+                            produced = Some(paths);
+                        }
+                    }
+                    ResolvedExprKind::Block { statements, tail } => {
+                        let paths = work.singleton_path(empty_expr_path(), "block root path")?;
+                        if let Some(ResolvedStatement::Let { value, .. }) = statements.first() {
+                            push_frame!(
+                                frames,
+                                Frame::BlockValue {
+                                    expression,
+                                    statements,
+                                    tail,
+                                    index: 0,
+                                    paths,
+                                }
+                            );
+                            push_frame!(frames, Frame::Eval(value));
+                        } else {
+                            push_frame!(frames, Frame::BlockTail { expression, paths });
+                            push_frame!(frames, Frame::Eval(tail));
+                        }
+                    }
+                    ResolvedExprKind::ConstructVariant { fields, .. } => {
+                        let paths = work
+                            .singleton_path(empty_expr_path(), "variant-construction root path")?;
+                        if let Some(field) = fields.first() {
+                            push_frame!(
+                                frames,
+                                Frame::VariantField {
+                                    fields,
+                                    index: 0,
+                                    paths,
+                                }
+                            );
+                            push_frame!(frames, Frame::Eval(&field.value));
+                        } else {
+                            produced = Some(paths);
+                        }
+                    }
+                    ResolvedExprKind::ConstructRecord { fields, .. } => {
+                        let paths = work
+                            .singleton_path(empty_expr_path(), "record-construction root path")?;
+                        if let Some(field) = fields.first() {
+                            push_frame!(
+                                frames,
+                                Frame::RecordField {
+                                    expression,
+                                    fields,
+                                    index: 0,
+                                    paths,
+                                }
+                            );
+                            push_frame!(frames, Frame::Eval(&field.value));
+                        } else {
+                            produced = Some(finish_record_paths(expression, paths, work)?);
+                        }
+                    }
+                    ResolvedExprKind::UpdateRecord {
+                        base,
+                        record,
+                        fields,
+                    } => {
+                        push_frame!(
+                            frames,
+                            Frame::UpdateBase {
+                                expression,
+                                base,
+                                record,
+                                fields,
+                            }
+                        );
+                        push_frame!(frames, Frame::Eval(base));
+                    }
+                    ResolvedExprKind::If {
+                        condition,
+                        then_branch,
+                        else_branch,
+                    } => {
+                        push_frame!(
+                            frames,
+                            Frame::IfCondition {
+                                expression,
+                                condition,
+                                then_branch,
+                                else_branch,
+                            }
+                        );
+                        push_frame!(frames, Frame::Eval(condition));
+                    }
+                    ResolvedExprKind::Match { scrutinee, arms } => {
+                        push_frame!(
+                            frames,
+                            Frame::MatchScrutinee {
+                                expression,
+                                scrutinee,
+                                arms,
+                            }
+                        );
+                        push_frame!(frames, Frame::Eval(scrutinee));
+                    }
+                }
+            }
+            Frame::Unary { expression, op } => {
+                let paths = produced.take().expect("unary operand path retained");
+                produced = Some(if op == UnaryOp::Neg {
+                    let expression_id =
+                        work.clone_owned(&expression.id, "unary status expression clone")?;
+                    split_status_paths(
+                        paths,
+                        StatusSourceId {
+                            expression: expression_id,
+                            lane: StatusLane::OperationFailure,
+                        },
+                        work,
+                    )?
+                } else {
+                    paths
+                });
+            }
+            Frame::BinaryLeft {
+                expression,
                 op,
-                BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
-            ) {
-                Ok(split_status_paths(
-                    paths,
-                    StatusSourceId {
-                        expression: expression.id.clone(),
-                        lane: StatusLane::OperationFailure,
-                    },
-                ))
-            } else {
-                Ok(paths)
+                right,
+            } => {
+                let left_paths = produced.take().expect("binary left path retained");
+                if !has_active_paths(&left_paths) {
+                    produced = Some(left_paths);
+                } else if matches!(op, BinaryOp::And | BinaryOp::Or) {
+                    push_frame!(
+                        frames,
+                        Frame::LazyRight {
+                            expression,
+                            op,
+                            left: match &expression.kind {
+                                ResolvedExprKind::Binary { left, .. } => left,
+                                _ => unreachable!(),
+                            },
+                            left_paths,
+                        }
+                    );
+                    push_frame!(frames, Frame::Eval(right));
+                } else {
+                    push_frame!(
+                        frames,
+                        Frame::BinaryRight {
+                            expression,
+                            op,
+                            left_paths,
+                        }
+                    );
+                    push_frame!(frames, Frame::Eval(right));
+                }
             }
-        }
-        ResolvedExprKind::Block { statements, tail } => {
-            let mut paths = vec![empty_expr_path()];
-            for statement in statements {
-                let ResolvedStatement::Let { binding, value, .. } = statement;
-                paths = sequence_expression(program, function, paths, value)?;
+            Frame::BinaryRight {
+                expression,
+                op,
+                left_paths,
+            } => {
+                let right_paths = produced.take().expect("binary right path retained");
+                let paths = sequence_skeleton_paths(left_paths, &right_paths, work)?;
+                produced = Some(
+                    if matches!(
+                        op,
+                        BinaryOp::Add
+                            | BinaryOp::Sub
+                            | BinaryOp::Mul
+                            | BinaryOp::Div
+                            | BinaryOp::Rem
+                    ) {
+                        let expression_id =
+                            work.clone_owned(&expression.id, "binary status expression clone")?;
+                        split_status_paths(
+                            paths,
+                            StatusSourceId {
+                                expression: expression_id,
+                                lane: StatusLane::OperationFailure,
+                            },
+                            work,
+                        )?
+                    } else {
+                        paths
+                    },
+                );
+            }
+            Frame::LazyRight {
+                expression,
+                op,
+                left,
+                left_paths,
+            } => {
+                let right_paths = produced.take().expect("lazy right path retained");
+                produced = Some(finish_lazy_paths(
+                    function,
+                    expression,
+                    op,
+                    left,
+                    left_paths,
+                    &right_paths,
+                    work,
+                )?);
+            }
+            Frame::NativeArgument { args, index, paths } => {
+                let suffixes = produced.take().expect("native argument path retained");
+                let paths = sequence_skeleton_paths(paths, &suffixes, work)?;
+                let next = index + 1;
+                if has_active_paths(&paths) && next < args.len() {
+                    push_frame!(
+                        frames,
+                        Frame::NativeArgument {
+                            args,
+                            index: next,
+                            paths,
+                        }
+                    );
+                    push_frame!(frames, Frame::Eval(&args[next]));
+                } else {
+                    produced = Some(paths);
+                }
+            }
+            Frame::CallArgument {
+                expression,
+                target,
+                args,
+                index,
+                states,
+            } => {
+                let suffixes = produced.take().expect("call argument path retained");
+                let states = sequence_call_argument(
+                    program, function, expression, target, args, index, states, &suffixes, work,
+                )?;
+                let next = index + 1;
+                if call_states_have_active(&states) && next < args.len() {
+                    push_frame!(
+                        frames,
+                        Frame::CallArgument {
+                            expression,
+                            target,
+                            args,
+                            index: next,
+                            states,
+                        }
+                    );
+                    push_frame!(frames, Frame::Eval(&args[next]));
+                } else {
+                    produced = Some(finish_call_states(
+                        program, function, expression, states, work,
+                    )?);
+                }
+            }
+            Frame::BlockValue {
+                expression,
+                statements,
+                tail,
+                index,
+                paths,
+            } => {
+                let suffixes = produced.take().expect("binding path retained");
+                let mut paths = sequence_skeleton_paths(paths, &suffixes, work)?;
+                let ResolvedStatement::Let { binding, value, .. } = &statements[index];
                 if binding.ownership == OwnershipMode::Own
                     && type_needs_drop(program, function, &binding.ty)?
                 {
+                    let value_id = work.clone_owned(&value.id, "binding value expression clone")?;
+                    let binding_id = work.clone_owned(&binding.id, "binding storage clone")?;
                     paths = transfer_completed_paths(
                         function,
                         paths,
-                        value.id.clone(),
+                        value_id,
                         CleanupPlace {
-                            storage: StorageId::Value(binding.id.clone()),
+                            storage: StorageId::Value(binding_id),
                             projections: Vec::new(),
                         },
                         "owned binding",
+                        work,
                     )?;
                 }
+                let next = index + 1;
+                if has_active_paths(&paths) && next < statements.len() {
+                    let ResolvedStatement::Let { value, .. } = &statements[next];
+                    push_frame!(
+                        frames,
+                        Frame::BlockValue {
+                            expression,
+                            statements,
+                            tail,
+                            index: next,
+                            paths,
+                        }
+                    );
+                    push_frame!(frames, Frame::Eval(value));
+                } else if has_active_paths(&paths) {
+                    push_frame!(frames, Frame::BlockTail { expression, paths });
+                    push_frame!(frames, Frame::Eval(tail));
+                } else {
+                    produced = Some(paths);
+                }
             }
-            paths = sequence_expression(program, function, paths, tail)?;
-            if expression.ownership == OwnershipMode::Own
-                && type_needs_drop(program, function, &expression.ty)?
-            {
-                paths = transfer_completed_paths(
-                    function,
-                    paths,
-                    expression.id.clone(),
-                    temporary_place(expression),
-                    "owned block result",
-                )?;
+            Frame::BlockTail { expression, paths } => {
+                let suffixes = produced.take().expect("block tail path retained");
+                let mut paths = sequence_skeleton_paths(paths, &suffixes, work)?;
+                if expression.ownership == OwnershipMode::Own
+                    && type_needs_drop(program, function, &expression.ty)?
+                {
+                    let expression_id =
+                        work.clone_owned(&expression.id, "block result expression clone")?;
+                    paths = transfer_completed_paths(
+                        function,
+                        paths,
+                        expression_id,
+                        temporary_place(expression, work)?,
+                        "owned block result",
+                        work,
+                    )?;
+                }
+                produced = Some(paths);
             }
-            Ok(paths)
-        }
-        ResolvedExprKind::ConstructVariant { fields, .. } => {
-            let mut paths = vec![empty_expr_path()];
-            for field in fields {
-                paths = sequence_expression(program, function, paths, &field.value)?;
-                if field.value.ownership == OwnershipMode::Own
+            Frame::VariantField {
+                fields,
+                index,
+                paths,
+            } => {
+                let suffixes = produced.take().expect("variant field path retained");
+                let paths = sequence_skeleton_paths(paths, &suffixes, work)?;
+                let field = &fields[index];
+                if has_active_paths(&paths)
+                    && field.value.ownership == OwnershipMode::Own
                     && type_needs_drop(program, function, &field.value.ty)?
                 {
                     return Err(replay_error(
@@ -1783,270 +2965,406 @@ fn expression_skeleton(
                         "droppable variant payload reached the copy-only cleanup skeleton",
                     ));
                 }
-            }
-            Ok(paths)
-        }
-        ResolvedExprKind::Try {
-            operand,
-            result,
-            ok_case,
-            ok_field,
-            err_case,
-            err_field,
-            residual_type,
-        } => {
-            let source = authenticated_try_stage_source(
-                program,
-                function,
-                expression,
-                operand,
-                result,
-                ok_case,
-                ok_field,
-                err_case,
-                err_field,
-                residual_type,
-            )?;
-            let operand_paths = expression_skeleton(program, function, operand)?;
-            let mut paths = Vec::with_capacity(operand_paths.len().saturating_mul(2));
-            for path in operand_paths {
-                if path.failed || path.residual {
-                    paths.push(path);
-                    continue;
+                let next = index + 1;
+                if has_active_paths(&paths) && next < fields.len() {
+                    push_frame!(
+                        frames,
+                        Frame::VariantField {
+                            fields,
+                            index: next,
+                            paths,
+                        }
+                    );
+                    push_frame!(frames, Frame::Eval(&fields[next].value));
+                } else {
+                    produced = Some(paths);
                 }
-                let mut success = path.clone();
-                success.observations.push(SkeletonObservation::VariantCase {
-                    scrutinee: operand.id.clone(),
-                    case: ok_case.clone(),
-                    matches: true,
-                });
-                paths.push(success);
-
-                let mut residual = path;
-                residual
-                    .observations
-                    .push(SkeletonObservation::VariantCase {
-                        scrutinee: operand.id.clone(),
-                        case: ok_case.clone(),
-                        matches: false,
-                    });
-                residual
-                    .observations
-                    .push(SkeletonObservation::StageCopyResult(source.clone()));
-                residual.residual = true;
-                paths.push(residual);
             }
-            Ok(paths)
-        }
-        ResolvedExprKind::TryOption {
-            operand,
-            option,
-            some_case,
-            some_field,
-            none_case,
-            residual_type,
-        } => {
-            let source = authenticated_try_option_stage_source(
-                program,
-                function,
+            Frame::RecordField {
                 expression,
-                operand,
-                option,
-                some_case,
-                some_field,
-                none_case,
-                residual_type,
-            )?;
-            let operand_paths = expression_skeleton(program, function, operand)?;
-            let mut paths = Vec::with_capacity(operand_paths.len().saturating_mul(2));
-            for path in operand_paths {
-                if path.failed || path.residual {
-                    paths.push(path);
-                    continue;
-                }
-                let mut success = path.clone();
-                success.observations.push(SkeletonObservation::VariantCase {
-                    scrutinee: operand.id.clone(),
-                    case: some_case.clone(),
-                    matches: true,
-                });
-                paths.push(success);
-
-                let mut residual = path;
-                residual
-                    .observations
-                    .push(SkeletonObservation::VariantCase {
-                        scrutinee: operand.id.clone(),
-                        case: some_case.clone(),
-                        matches: false,
-                    });
-                residual
-                    .observations
-                    .push(SkeletonObservation::StageCopyResult(source.clone()));
-                residual.residual = true;
-                paths.push(residual);
-            }
-            Ok(paths)
-        }
-        ResolvedExprKind::Match { scrutinee, arms } => {
-            match_skeleton(program, function, expression, scrutinee, arms)
-        }
-        ResolvedExprKind::If {
-            condition,
-            then_branch,
-            else_branch,
-        } => if_skeleton(
-            program,
-            function,
-            expression,
-            condition,
-            then_branch,
-            else_branch,
-        ),
-        ResolvedExprKind::ConstructRecord { fields, .. } => {
-            let mut paths = vec![empty_expr_path()];
-            let destination = temporary_place(expression);
-            for field in fields {
-                paths = sequence_expression(program, function, paths, &field.value)?;
+                fields,
+                index,
+                paths,
+            } => {
+                let suffixes = produced.take().expect("record field path retained");
+                let mut paths = sequence_skeleton_paths(paths, &suffixes, work)?;
+                let field = &fields[index];
                 if field.value.ownership == OwnershipMode::Own
                     && type_needs_drop(program, function, &field.value.ty)?
                 {
-                    let mut field_destination = destination.clone();
-                    field_destination.projections.push(field.field.clone());
+                    let mut destination = temporary_place(expression, work)?;
+                    let field_id =
+                        work.clone_owned(&field.field, "record field projection clone")?;
+                    work.charge(1, "record field projection push")?;
+                    note_skeleton_materialization();
+                    destination.projections.push(field_id);
+                    let value_id = work.clone_owned(&field.value.id, "record field value clone")?;
                     paths = transfer_completed_paths(
                         function,
                         paths,
-                        field.value.id.clone(),
-                        field_destination,
+                        value_id,
+                        destination,
                         "owned record field",
+                        work,
                     )?;
                 }
-            }
-            for path in &mut paths {
-                if !path.failed && !path.residual {
-                    path.owned_source = Some(destination.clone());
+                let next = index + 1;
+                if has_active_paths(&paths) && next < fields.len() {
+                    push_frame!(
+                        frames,
+                        Frame::RecordField {
+                            expression,
+                            fields,
+                            index: next,
+                            paths,
+                        }
+                    );
+                    push_frame!(frames, Frame::Eval(&fields[next].value));
+                } else {
+                    produced = Some(finish_record_paths(expression, paths, work)?);
                 }
             }
-            Ok(paths)
-        }
-        ResolvedExprKind::UpdateRecord {
-            base,
-            record,
-            fields,
-        } => {
-            let mut paths = sequence_expression(program, function, vec![empty_expr_path()], base)?;
-            let needs_cleanup = expression.ownership == OwnershipMode::Own
-                && type_needs_drop(program, function, &expression.ty)?;
-            if !needs_cleanup {
-                for field in fields {
-                    paths = sequence_expression(program, function, paths, &field.value)?;
+            Frame::UpdateBase {
+                expression,
+                base,
+                record,
+                fields,
+            } => {
+                let mut paths = produced.take().expect("update base path retained");
+                let needs_cleanup = expression.ownership == OwnershipMode::Own
+                    && type_needs_drop(program, function, &expression.ty)?;
+                if needs_cleanup {
+                    let staged_base = temporary_place(base, work)?;
+                    for path in &mut paths {
+                        if path.failed || path.residual {
+                            continue;
+                        }
+                        let source = path.owned_source.take().ok_or_else(|| {
+                            replay_error(
+                                function,
+                                "owned record update base has no HIR cleanup source",
+                            )
+                        })?;
+                        if source != staged_base {
+                            let at = work.clone_owned(&base.id, "update base expression clone")?;
+                            let staged =
+                                work.clone_owned(&staged_base, "update base destination clone")?;
+                            work.push_observation(
+                                path,
+                                SkeletonObservation::Transfer {
+                                    at,
+                                    source,
+                                    destination: staged,
+                                },
+                                "update base transfer",
+                            )?;
+                        }
+                        path.owned_source =
+                            Some(work.clone_owned(&staged_base, "update base source clone")?);
+                    }
                 }
-                return Ok(paths);
-            }
-
-            let staged_base = temporary_place(base);
-            for path in &mut paths {
-                if path.failed || path.residual {
-                    continue;
-                }
-                let source = path.owned_source.take().ok_or_else(|| {
-                    replay_error(
+                if has_active_paths(&paths) && !fields.is_empty() {
+                    push_frame!(
+                        frames,
+                        Frame::UpdateField {
+                            expression,
+                            base,
+                            record,
+                            fields,
+                            index: 0,
+                            paths,
+                            replaced: BTreeSet::new(),
+                            needs_cleanup,
+                        }
+                    );
+                    push_frame!(frames, Frame::Eval(&fields[0].value));
+                } else {
+                    produced = Some(finish_update_paths(
+                        program,
                         function,
-                        "owned record update base has no HIR cleanup source",
-                    )
-                })?;
-                if source != staged_base {
-                    path.observations.push(SkeletonObservation::Transfer {
-                        at: base.id.clone(),
-                        source,
-                        destination: staged_base.clone(),
-                    });
+                        expression,
+                        base,
+                        record,
+                        paths,
+                        &BTreeSet::new(),
+                        needs_cleanup,
+                        work,
+                    )?);
                 }
-                path.owned_source = Some(staged_base.clone());
             }
-
-            let destination = temporary_place(expression);
-            let mut replaced = BTreeSet::new();
-            for field in fields {
-                if !replaced.insert(field.field.clone()) {
+            Frame::UpdateField {
+                expression,
+                base,
+                record,
+                fields,
+                index,
+                paths,
+                mut replaced,
+                needs_cleanup,
+            } => {
+                let field = &fields[index];
+                let field_id = work.clone_owned(&field.field, "updated-field set clone")?;
+                work.charge(1, "updated-field set insertion")?;
+                note_skeleton_materialization();
+                if !replaced.insert(field_id) {
                     return Err(replay_error(
                         function,
                         format!("record update repeats field `{}`", field.field),
                     ));
                 }
-                paths = sequence_expression(program, function, paths, &field.value)?;
-                if field.value.ownership == OwnershipMode::Own
+                let suffixes = produced.take().expect("update field path retained");
+                let mut paths = sequence_skeleton_paths(paths, &suffixes, work)?;
+                if needs_cleanup
+                    && field.value.ownership == OwnershipMode::Own
                     && type_needs_drop(program, function, &field.value.ty)?
                 {
-                    let mut field_destination = destination.clone();
-                    field_destination.projections.push(field.field.clone());
+                    let mut destination = temporary_place(expression, work)?;
+                    let field_id =
+                        work.clone_owned(&field.field, "update field projection clone")?;
+                    work.charge(1, "update field projection push")?;
+                    note_skeleton_materialization();
+                    destination.projections.push(field_id);
+                    let value_id = work.clone_owned(&field.value.id, "update field value clone")?;
                     paths = transfer_completed_paths(
                         function,
                         paths,
-                        field.value.id.clone(),
-                        field_destination,
+                        value_id,
+                        destination,
                         "owned record replacement",
+                        work,
                     )?;
                 }
+                let next = index + 1;
+                if has_active_paths(&paths) && next < fields.len() {
+                    push_frame!(
+                        frames,
+                        Frame::UpdateField {
+                            expression,
+                            base,
+                            record,
+                            fields,
+                            index: next,
+                            paths,
+                            replaced,
+                            needs_cleanup,
+                        }
+                    );
+                    push_frame!(frames, Frame::Eval(&fields[next].value));
+                } else {
+                    produced = Some(finish_update_paths(
+                        program,
+                        function,
+                        expression,
+                        base,
+                        record,
+                        paths,
+                        &replaced,
+                        needs_cleanup,
+                        work,
+                    )?);
+                }
             }
-
-            let declarations = program.declarations.record_fields(record).ok_or_else(|| {
-                replay_error(
+            Frame::Try { expression } => {
+                let operand_paths = produced.take().expect("try operand path retained");
+                produced = Some(finish_try_paths(
+                    program,
                     function,
-                    format!("record update has unknown record `{record}`"),
-                )
-            })?;
-            for field in declarations {
-                if replaced.contains(&field.id) || !type_needs_drop(program, function, &field.ty)? {
+                    expression,
+                    operand_paths,
+                    false,
+                    work,
+                )?);
+            }
+            Frame::TryOption { expression } => {
+                let operand_paths = produced.take().expect("Option try operand path retained");
+                produced = Some(finish_try_paths(
+                    program,
+                    function,
+                    expression,
+                    operand_paths,
+                    true,
+                    work,
+                )?);
+            }
+            Frame::Project { expression, field } => {
+                let mut paths = produced.take().expect("projection base path retained");
+                if expression.ownership == OwnershipMode::Own
+                    && type_needs_drop(program, function, &expression.ty)?
+                {
+                    for path in &mut paths {
+                        if path.failed || path.residual {
+                            continue;
+                        }
+                        let mut source = path.owned_source.take().ok_or_else(|| {
+                            replay_error(function, "owned projection has no HIR cleanup source")
+                        })?;
+                        let field = work.clone_owned(field, "projection field clone")?;
+                        work.charge(1, "projection field push")?;
+                        note_skeleton_materialization();
+                        source.projections.push(field);
+                        let destination = temporary_place(expression, work)?;
+                        let at = work.clone_owned(&expression.id, "projection expression clone")?;
+                        let transferred_destination = work
+                            .clone_owned(&destination, "projection transfer destination clone")?;
+                        work.push_observation(
+                            path,
+                            SkeletonObservation::Transfer {
+                                at,
+                                source,
+                                destination: transferred_destination,
+                            },
+                            "owned projection transfer",
+                        )?;
+                        path.owned_source = Some(destination);
+                    }
+                }
+                produced = Some(paths);
+            }
+            Frame::IfCondition {
+                expression,
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                let condition_paths = produced.take().expect("if condition path retained");
+                let (results, true_prefixes, false_prefixes) =
+                    split_boolean_prefixes(condition_paths, &condition.id, work)?;
+                if true_prefixes.is_empty() && false_prefixes.is_empty() {
+                    produced = Some(results);
+                } else if true_prefixes.is_empty() {
+                    push_frame!(
+                        frames,
+                        Frame::IfElse {
+                            expression,
+                            false_prefixes,
+                            results,
+                        }
+                    );
+                    push_frame!(frames, Frame::Eval(else_branch));
+                } else {
+                    push_frame!(
+                        frames,
+                        Frame::IfThen {
+                            expression,
+                            else_branch,
+                            true_prefixes,
+                            false_prefixes,
+                            results,
+                        }
+                    );
+                    push_frame!(frames, Frame::Eval(then_branch));
+                }
+            }
+            Frame::IfThen {
+                expression,
+                else_branch,
+                true_prefixes,
+                false_prefixes,
+                mut results,
+            } => {
+                let then_paths = produced.take().expect("if then path retained");
+                let mut selected = sequence_skeleton_paths(true_prefixes, &then_paths, work)?;
+                selected =
+                    finish_conditional_result(program, function, expression, selected, work)?;
+                append_expr_paths(&mut results, selected, work, "if then result")?;
+                if false_prefixes.is_empty() {
+                    produced = Some(results);
+                } else {
+                    push_frame!(
+                        frames,
+                        Frame::IfElse {
+                            expression,
+                            false_prefixes,
+                            results,
+                        }
+                    );
+                    push_frame!(frames, Frame::Eval(else_branch));
+                }
+            }
+            Frame::IfElse {
+                expression,
+                false_prefixes,
+                mut results,
+            } => {
+                let else_paths = produced.take().expect("if else path retained");
+                let mut selected = sequence_skeleton_paths(false_prefixes, &else_paths, work)?;
+                selected =
+                    finish_conditional_result(program, function, expression, selected, work)?;
+                append_expr_paths(&mut results, selected, work, "if else result")?;
+                produced = Some(results);
+            }
+            Frame::MatchScrutinee {
+                expression,
+                scrutinee,
+                arms,
+            } => {
+                let scrutinee_paths = produced.take().expect("match scrutinee path retained");
+                if !has_active_paths(&scrutinee_paths) {
+                    produced = Some(scrutinee_paths);
                     continue;
                 }
-                for path in &mut paths {
-                    if path.failed || path.residual {
-                        continue;
+                let is_record =
+                    validate_match_skeleton_shape(program, function, expression, scrutinee, arms)?;
+                push_frame!(
+                    frames,
+                    Frame::MatchArm {
+                        expression,
+                        scrutinee,
+                        arms,
+                        index: 0,
+                        remaining: scrutinee_paths,
+                        results: Vec::new(),
+                        is_record,
                     }
-                    let mut source = staged_base.clone();
-                    source.projections.push(field.id.clone());
-                    let mut field_destination = destination.clone();
-                    field_destination.projections.push(field.id.clone());
-                    path.observations.push(SkeletonObservation::Transfer {
-                        at: expression.id.clone(),
-                        source,
-                        destination: field_destination,
-                    });
+                );
+                push_frame!(frames, Frame::Eval(&arms[0].value));
+            }
+            Frame::MatchArm {
+                expression,
+                scrutinee,
+                arms,
+                index,
+                remaining,
+                mut results,
+                is_record,
+            } => {
+                let arm_paths = produced.take().expect("match arm path retained");
+                let next_remaining = finish_match_arm(
+                    program,
+                    function,
+                    expression,
+                    scrutinee,
+                    arms,
+                    index,
+                    remaining,
+                    &arm_paths,
+                    &mut results,
+                    is_record,
+                    work,
+                )?;
+                let next = index + 1;
+                if !next_remaining.is_empty() && next < arms.len() {
+                    push_frame!(
+                        frames,
+                        Frame::MatchArm {
+                            expression,
+                            scrutinee,
+                            arms,
+                            index: next,
+                            remaining: next_remaining,
+                            results,
+                            is_record,
+                        }
+                    );
+                    push_frame!(frames, Frame::Eval(&arms[next].value));
+                } else {
+                    append_expr_paths(&mut results, next_remaining, work, "match remaining path")?;
+                    produced = Some(results);
                 }
             }
-            for path in &mut paths {
-                if !path.failed && !path.residual {
-                    path.owned_source = Some(destination.clone());
-                }
-            }
-            Ok(paths)
-        }
-        ResolvedExprKind::Project { base, field } => {
-            let mut paths = sequence_expression(program, function, vec![empty_expr_path()], base)?;
-            if expression.ownership == OwnershipMode::Own
-                && type_needs_drop(program, function, &expression.ty)?
-            {
-                for path in &mut paths {
-                    if path.failed || path.residual {
-                        continue;
-                    }
-                    let mut source = path.owned_source.take().ok_or_else(|| {
-                        replay_error(function, "owned projection has no HIR cleanup source")
-                    })?;
-                    source.projections.push(field.clone());
-                    let destination = temporary_place(expression);
-                    path.observations.push(SkeletonObservation::Transfer {
-                        at: expression.id.clone(),
-                        source,
-                        destination: destination.clone(),
-                    });
-                    path.owned_source = Some(destination);
-                }
-            }
-            Ok(paths)
         }
     }
+    produced.ok_or_else(|| replay_error(function, "typed-HIR skeleton produced no root value"))
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -2061,6 +3379,7 @@ fn authenticated_try_stage_source(
     err_case: &DeclarationId,
     err_field: &DeclarationId,
     residual_type: &ResolvedType,
+    work: &mut SkeletonWork<'_, '_>,
 ) -> Result<StagedCopyResultSource, Diagnostic> {
     if result.as_str() != prelude::RESULT_ID
         || ok_case.as_str() != prelude::RESULT_OK_ID
@@ -2113,15 +3432,15 @@ fn authenticated_try_stage_source(
         }
     }
     Ok(StagedCopyResultSource::TryResidual {
-        expression: expression.id.clone(),
-        operand: operand.id.clone(),
-        source_instance: operand.ty.clone(),
-        target_instance: residual_type.clone(),
-        result: result.clone(),
-        ok_case: ok_case.clone(),
-        ok_field: ok_field.clone(),
-        err_case: err_case.clone(),
-        err_field: err_field.clone(),
+        expression: work.clone_owned(&expression.id, "try source expression clone")?,
+        operand: work.clone_owned(&operand.id, "try source operand clone")?,
+        source_instance: work.clone_owned(&operand.ty, "try source instance clone")?,
+        target_instance: work.clone_owned(residual_type, "try target instance clone")?,
+        result: work.clone_owned(result, "try Result identity clone")?,
+        ok_case: work.clone_owned(ok_case, "try Ok identity clone")?,
+        ok_field: work.clone_owned(ok_field, "try Ok field clone")?,
+        err_case: work.clone_owned(err_case, "try Err identity clone")?,
+        err_field: work.clone_owned(err_field, "try Err field clone")?,
     })
 }
 
@@ -2136,6 +3455,7 @@ fn authenticated_try_option_stage_source(
     some_field: &DeclarationId,
     none_case: &DeclarationId,
     residual_type: &ResolvedType,
+    work: &mut SkeletonWork<'_, '_>,
 ) -> Result<StagedCopyResultSource, Diagnostic> {
     if option.as_str() != prelude::OPTION_ID
         || some_case.as_str() != prelude::OPTION_SOME_ID
@@ -2189,14 +3509,14 @@ fn authenticated_try_option_stage_source(
         }
     }
     Ok(StagedCopyResultSource::TryOptionNone {
-        expression: expression.id.clone(),
-        operand: operand.id.clone(),
-        source_instance: operand.ty.clone(),
-        target_instance: residual_type.clone(),
-        option: option.clone(),
-        some_case: some_case.clone(),
-        some_field: some_field.clone(),
-        none_case: none_case.clone(),
+        expression: work.clone_owned(&expression.id, "Option try expression clone")?,
+        operand: work.clone_owned(&operand.id, "Option try operand clone")?,
+        source_instance: work.clone_owned(&operand.ty, "Option try source instance clone")?,
+        target_instance: work.clone_owned(residual_type, "Option try target instance clone")?,
+        option: work.clone_owned(option, "Option try identity clone")?,
+        some_case: work.clone_owned(some_case, "Option Some identity clone")?,
+        some_field: work.clone_owned(some_field, "Option Some field clone")?,
+        none_case: work.clone_owned(none_case, "Option None identity clone")?,
     })
 }
 
@@ -2245,13 +3565,13 @@ fn replay_option_arguments<'a>(
     Ok(arguments)
 }
 
-fn match_skeleton(
+fn validate_match_skeleton_shape(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
     expression: &ResolvedExpr,
     scrutinee: &ResolvedExpr,
     arms: &[ResolvedMatchArm],
-) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
+) -> Result<bool, Diagnostic> {
     if type_needs_drop(program, function, &expression.ty)? {
         return Err(replay_error(
             function,
@@ -2268,13 +3588,15 @@ fn match_skeleton(
         return Err(replay_error(function, "copy-variant match has no arms"));
     }
 
-    let scrutinee_paths = expression_skeleton(program, function, scrutinee)?;
     let is_record = match &scrutinee.ty {
         ResolvedType::Nominal { declaration, .. } => program
             .declarations
             .declaration(declaration)
             .is_some_and(|item| item.kind == DeclarationKind::Record),
-        ResolvedType::I64 | ResolvedType::Bool | ResolvedType::TypeParameter { .. } => false,
+        ResolvedType::Unit
+        | ResolvedType::I64
+        | ResolvedType::Bool
+        | ResolvedType::TypeParameter { .. } => false,
     };
     if is_record {
         let [arm] = arms else {
@@ -2289,252 +3611,531 @@ fn match_skeleton(
                 "variant pattern has a record match scrutinee",
             ));
         }
-        let mut results = Vec::new();
-        for mut path in scrutinee_paths {
-            if path.failed || path.residual {
-                results.push(path);
-                continue;
-            }
-            path.owned_source = None;
-            results.extend(sequence_expression(
-                program,
-                function,
-                vec![path],
-                &arm.value,
-            )?);
-        }
-        return Ok(results);
     }
-    let mut results = Vec::new();
-    for mut path in scrutinee_paths {
-        if path.failed || path.residual {
-            results.push(path);
-            continue;
-        }
-        path.owned_source = None;
-        for (index, arm) in arms.iter().enumerate() {
-            let final_arm = index + 1 == arms.len();
-            let mut selected = path.clone();
-            if !final_arm {
-                let ResolvedMatchPattern::Variant { case, .. } = &arm.pattern else {
-                    return Err(replay_error(
-                        function,
-                        "wildcard match arm must be the final exhaustive arm",
-                    ));
-                };
-                selected
-                    .observations
-                    .push(SkeletonObservation::VariantCase {
-                        scrutinee: scrutinee.id.clone(),
-                        case: case.clone(),
-                        matches: true,
-                    });
-                path.observations.push(SkeletonObservation::VariantCase {
-                    scrutinee: scrutinee.id.clone(),
-                    case: case.clone(),
-                    matches: false,
-                });
-            }
-            results.extend(sequence_expression(
-                program,
-                function,
-                vec![selected],
-                &arm.value,
-            )?);
-        }
-    }
-    Ok(results)
+    Ok(is_record)
 }
 
-fn call_skeleton(
+#[allow(clippy::too_many_arguments)]
+fn finish_match_arm(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
     expression: &ResolvedExpr,
-    callee: &DeclarationId,
-    instance: Option<&FunctionInstanceId>,
-    args: &[ResolvedExpr],
+    scrutinee: &ResolvedExpr,
+    arms: &[ResolvedMatchArm],
+    index: usize,
+    remaining: Vec<ExprSkeletonPath>,
+    arm_paths: &[ExprSkeletonPath],
+    results: &mut Vec<ExprSkeletonPath>,
+    is_record: bool,
+    work: &mut SkeletonWork<'_, '_>,
 ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
-    let target = program
-        .resolve_call_target(callee, instance)
-        .ok_or_else(|| replay_error(function, format!("unknown skeleton callee `{callee}`")))?;
-    let mut states = vec![(empty_expr_path(), Vec::<(u32, CleanupPlace)>::new())];
-    for (index, (argument, parameter)) in args.iter().zip(&target.params).enumerate() {
-        let suffixes = expression_skeleton(program, function, argument)?;
-        let mut next = Vec::new();
-        for (prefix, commits) in states {
-            if prefix.failed || prefix.residual {
-                next.push((prefix, commits));
+    let mut next_remaining = Vec::new();
+    for mut path in remaining {
+        if path.failed || path.residual {
+            work.push_expr_path(results, path, "match terminal scrutinee path")?;
+            continue;
+        }
+        path.owned_source = None;
+        if is_record || index + 1 == arms.len() {
+            let selected = sequence_skeleton_paths(
+                work.singleton_path(path, "match selected prefix")?,
+                arm_paths,
+                work,
+            )?;
+            let selected =
+                finish_conditional_result(program, function, expression, selected, work)?;
+            append_expr_paths(results, selected, work, "match selected result")?;
+            continue;
+        }
+        let ResolvedMatchPattern::Variant { case, .. } = &arms[index].pattern else {
+            return Err(replay_error(
+                function,
+                "wildcard match arm must be the final exhaustive arm",
+            ));
+        };
+        let mut selected = work.clone_expr_path(&path, "match selected path clone")?;
+        let selected_scrutinee =
+            work.clone_owned(&scrutinee.id, "match selected scrutinee clone")?;
+        let selected_case = work.clone_owned(case, "match selected case clone")?;
+        work.push_observation(
+            &mut selected,
+            SkeletonObservation::VariantCase {
+                scrutinee: selected_scrutinee,
+                case: selected_case,
+                matches: true,
+            },
+            "match selected observation",
+        )?;
+        let selected = sequence_skeleton_paths(
+            work.singleton_path(selected, "match selected prefix")?,
+            arm_paths,
+            work,
+        )?;
+        let selected = finish_conditional_result(program, function, expression, selected, work)?;
+        append_expr_paths(results, selected, work, "match selected result")?;
+        let rejected_scrutinee =
+            work.clone_owned(&scrutinee.id, "match rejected scrutinee clone")?;
+        let rejected_case = work.clone_owned(case, "match rejected case clone")?;
+        work.push_observation(
+            &mut path,
+            SkeletonObservation::VariantCase {
+                scrutinee: rejected_scrutinee,
+                case: rejected_case,
+                matches: false,
+            },
+            "match rejected observation",
+        )?;
+        work.push_expr_path(&mut next_remaining, path, "match remaining scrutinee path")?;
+    }
+    Ok(next_remaining)
+}
+
+fn append_expr_paths(
+    target: &mut Vec<ExprSkeletonPath>,
+    paths: Vec<ExprSkeletonPath>,
+    work: &mut SkeletonWork<'_, '_>,
+    phase: &str,
+) -> Result<(), Diagnostic> {
+    for path in paths {
+        work.push_expr_path(target, path, phase)?;
+    }
+    Ok(())
+}
+
+fn finish_record_paths(
+    expression: &ResolvedExpr,
+    mut paths: Vec<ExprSkeletonPath>,
+    work: &mut SkeletonWork<'_, '_>,
+) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
+    let destination = temporary_place(expression, work)?;
+    for path in &mut paths {
+        if !path.failed && !path.residual {
+            path.owned_source =
+                Some(work.clone_owned(&destination, "record result destination clone")?);
+        }
+    }
+    Ok(paths)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn finish_update_paths(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    expression: &ResolvedExpr,
+    base: &ResolvedExpr,
+    record: &DeclarationId,
+    mut paths: Vec<ExprSkeletonPath>,
+    replaced: &BTreeSet<DeclarationId>,
+    needs_cleanup: bool,
+    work: &mut SkeletonWork<'_, '_>,
+) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
+    if !needs_cleanup {
+        return Ok(paths);
+    }
+    let staged_base = temporary_place(base, work)?;
+    let destination = temporary_place(expression, work)?;
+    let declarations = program.declarations.record_fields(record).ok_or_else(|| {
+        replay_error(
+            function,
+            format!("record update has unknown record `{record}`"),
+        )
+    })?;
+    for field in declarations {
+        if replaced.contains(&field.id) || !type_needs_drop(program, function, &field.ty)? {
+            continue;
+        }
+        for path in &mut paths {
+            if path.failed || path.residual {
                 continue;
             }
-            for suffix in &suffixes {
-                let mut observations = prefix.observations.clone();
-                observations.extend(suffix.observations.clone());
-                let mut path = ExprSkeletonPath {
-                    observations,
-                    owned_source: suffix.owned_source.clone(),
-                    failed: suffix.failed,
-                    residual: suffix.residual,
-                };
-                let mut path_commits = commits.clone();
-                if !path.failed
-                    && !path.residual
-                    && parameter.ownership == OwnershipMode::Own
-                    && type_needs_drop(program, function, &parameter.ty)?
-                {
-                    let parameter_index = u32::try_from(index)
-                        .map_err(|_| replay_error(function, "too many skeleton call arguments"))?;
-                    let epoch = CleanupPlace {
-                        storage: StorageId::CallArgument {
-                            call: expression.id.clone(),
-                            parameter_index,
-                            value_expression: argument.id.clone(),
-                        },
-                        projections: Vec::new(),
-                    };
-                    let source = path.owned_source.take().ok_or_else(|| {
-                        replay_error(function, "owned call argument has no HIR cleanup source")
-                    })?;
-                    path.observations.push(SkeletonObservation::Transfer {
-                        at: argument.id.clone(),
-                        source,
-                        destination: epoch.clone(),
-                    });
-                    path_commits.push((parameter_index, epoch));
-                }
-                next.push((path, path_commits));
-            }
+            let mut source = work.clone_owned(&staged_base, "update source place clone")?;
+            let source_field = work.clone_owned(&field.id, "update source field clone")?;
+            work.charge(1, "update source projection push")?;
+            note_skeleton_materialization();
+            source.projections.push(source_field);
+            let mut field_destination =
+                work.clone_owned(&destination, "update destination place clone")?;
+            let destination_field =
+                work.clone_owned(&field.id, "update destination field clone")?;
+            work.charge(1, "update destination projection push")?;
+            note_skeleton_materialization();
+            field_destination.projections.push(destination_field);
+            let at = work.clone_owned(&expression.id, "update transfer expression clone")?;
+            work.push_observation(
+                path,
+                SkeletonObservation::Transfer {
+                    at,
+                    source,
+                    destination: field_destination,
+                },
+                "untouched update-field transfer",
+            )?;
         }
-        states = next;
     }
+    finish_record_paths(expression, paths, work)
+}
 
+fn finish_try_paths(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    expression: &ResolvedExpr,
+    operand_paths: Vec<ExprSkeletonPath>,
+    option: bool,
+    work: &mut SkeletonWork<'_, '_>,
+) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
+    let (operand, success_case, source) = if option {
+        let ResolvedExprKind::TryOption {
+            operand,
+            option,
+            some_case,
+            some_field,
+            none_case,
+            residual_type,
+        } = &expression.kind
+        else {
+            unreachable!("Option try continuation retains Option try HIR")
+        };
+        (
+            operand.as_ref(),
+            some_case,
+            authenticated_try_option_stage_source(
+                program,
+                function,
+                expression,
+                operand,
+                option,
+                some_case,
+                some_field,
+                none_case,
+                residual_type,
+                work,
+            )?,
+        )
+    } else {
+        let ResolvedExprKind::Try {
+            operand,
+            result,
+            ok_case,
+            ok_field,
+            err_case,
+            err_field,
+            residual_type,
+        } = &expression.kind
+        else {
+            unreachable!("try continuation retains Result try HIR")
+        };
+        (
+            operand.as_ref(),
+            ok_case,
+            authenticated_try_stage_source(
+                program,
+                function,
+                expression,
+                operand,
+                result,
+                ok_case,
+                ok_field,
+                err_case,
+                err_field,
+                residual_type,
+                work,
+            )?,
+        )
+    };
+    let mut paths = Vec::new();
+    for path in operand_paths {
+        if path.failed || path.residual {
+            work.push_expr_path(&mut paths, path, "short-circuited try path")?;
+            continue;
+        }
+        let mut success = work.clone_expr_path(&path, "try success path clone")?;
+        let success_scrutinee = work.clone_owned(&operand.id, "try success scrutinee clone")?;
+        let selected_case = work.clone_owned(success_case, "try success case clone")?;
+        let residual_case = work.clone_owned(success_case, "try residual case clone")?;
+        work.push_observation(
+            &mut success,
+            SkeletonObservation::VariantCase {
+                scrutinee: success_scrutinee,
+                case: selected_case,
+                matches: true,
+            },
+            "try success observation",
+        )?;
+        work.push_expr_path(&mut paths, success, "try success path")?;
+
+        let mut residual = path;
+        let residual_scrutinee = work.clone_owned(&operand.id, "try residual scrutinee clone")?;
+        work.push_observation(
+            &mut residual,
+            SkeletonObservation::VariantCase {
+                scrutinee: residual_scrutinee,
+                case: residual_case,
+                matches: false,
+            },
+            "try residual case observation",
+        )?;
+        let staged_source = work.clone_owned(&source, "try staged-result source clone")?;
+        work.push_observation(
+            &mut residual,
+            SkeletonObservation::StageCopyResult(staged_source),
+            "try residual staging observation",
+        )?;
+        residual.residual = true;
+        work.push_expr_path(&mut paths, residual, "try residual path")?;
+    }
+    Ok(paths)
+}
+
+fn split_boolean_prefixes(
+    paths: Vec<ExprSkeletonPath>,
+    expression: &ExpressionId,
+    work: &mut SkeletonWork<'_, '_>,
+) -> Result<BooleanSkeletonSplit, Diagnostic> {
+    let mut terminal = Vec::new();
+    let mut true_paths = Vec::new();
+    let mut false_paths = Vec::new();
+    for mut path in paths {
+        if path.failed || path.residual {
+            work.push_expr_path(&mut terminal, path, "conditional terminal path")?;
+            continue;
+        }
+        let mut when_true = work.clone_expr_path(&path, "conditional true path clone")?;
+        let true_expression = work.clone_owned(expression, "conditional true expression clone")?;
+        work.push_observation(
+            &mut when_true,
+            SkeletonObservation::Boolean {
+                expression: true_expression,
+                value: true,
+            },
+            "conditional true observation",
+        )?;
+        work.push_expr_path(&mut true_paths, when_true, "conditional true prefix")?;
+        let false_expression =
+            work.clone_owned(expression, "conditional false expression clone")?;
+        work.push_observation(
+            &mut path,
+            SkeletonObservation::Boolean {
+                expression: false_expression,
+                value: false,
+            },
+            "conditional false observation",
+        )?;
+        work.push_expr_path(&mut false_paths, path, "conditional false prefix")?;
+    }
+    Ok((terminal, true_paths, false_paths))
+}
+
+fn finish_conditional_result(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    expression: &ResolvedExpr,
+    paths: Vec<ExprSkeletonPath>,
+    work: &mut SkeletonWork<'_, '_>,
+) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
+    if expression.ownership == OwnershipMode::Own
+        && type_needs_drop(program, function, &expression.ty)?
+    {
+        let expression_id =
+            work.clone_owned(&expression.id, "conditional result expression clone")?;
+        transfer_completed_paths(
+            function,
+            paths,
+            expression_id,
+            temporary_place(expression, work)?,
+            "owned conditional result",
+            work,
+        )
+    } else {
+        Ok(paths)
+    }
+}
+
+fn finish_lazy_paths(
+    function: &ResolvedFunction,
+    _expression: &ResolvedExpr,
+    op: BinaryOp,
+    left: &ResolvedExpr,
+    left_paths: Vec<ExprSkeletonPath>,
+    right_paths: &[ExprSkeletonPath],
+    work: &mut SkeletonWork<'_, '_>,
+) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
+    if !matches!(op, BinaryOp::And | BinaryOp::Or) {
+        return Err(replay_error(function, "invalid lazy skeleton operation"));
+    }
+    let (mut terminal, true_paths, false_paths) =
+        split_boolean_prefixes(left_paths, &left.id, work)?;
+    let (evaluated, short) = if op == BinaryOp::And {
+        (true_paths, false_paths)
+    } else {
+        (false_paths, true_paths)
+    };
+    for mut path in short {
+        path.owned_source = None;
+        work.push_expr_path(&mut terminal, path, "lazy short-circuit path")?;
+    }
+    let evaluated = sequence_skeleton_paths(evaluated, right_paths, work)?;
+    append_expr_paths(&mut terminal, evaluated, work, "lazy evaluated-right path")?;
+    Ok(terminal)
+}
+
+fn call_states_have_active(states: &[CallSkeletonState]) -> bool {
+    states
+        .iter()
+        .any(|(path, _)| !path.failed && !path.residual)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn sequence_call_argument(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    expression: &ResolvedExpr,
+    target: &ResolvedFunction,
+    args: &[ResolvedExpr],
+    index: usize,
+    states: Vec<CallSkeletonState>,
+    suffixes: &[ExprSkeletonPath],
+    work: &mut SkeletonWork<'_, '_>,
+) -> Result<Vec<CallSkeletonState>, Diagnostic> {
+    let argument = &args[index];
+    let parameter = target
+        .params
+        .get(index)
+        .ok_or_else(|| replay_error(function, "skeleton call arity is inconsistent"))?;
+    let mut next = Vec::new();
+    for (prefix, commits) in states {
+        if prefix.failed || prefix.residual {
+            work.charge(1, "short-circuited call state push")?;
+            note_skeleton_materialization();
+            next.push((prefix, commits));
+            continue;
+        }
+        for suffix in suffixes {
+            let mut observations =
+                work.clone_observations(&prefix.observations, "call prefix clone")?;
+            work.extend_observations(&mut observations, &suffix.observations, "call suffix clone")?;
+            let owned_source =
+                work.clone_owned(&suffix.owned_source, "call suffix owned-source clone")?;
+            let mut path = ExprSkeletonPath {
+                observations,
+                owned_source,
+                failed: suffix.failed,
+                residual: suffix.residual,
+            };
+            let mut path_commits = work.clone_owned(&commits, "call commit-state clone")?;
+            if !path.failed
+                && !path.residual
+                && parameter.ownership == OwnershipMode::Own
+                && type_needs_drop(program, function, &parameter.ty)?
+            {
+                let parameter_index = u32::try_from(index)
+                    .map_err(|_| replay_error(function, "too many skeleton call arguments"))?;
+                let call = work.clone_owned(&expression.id, "call-epoch call identity clone")?;
+                let value_expression =
+                    work.clone_owned(&argument.id, "call-epoch value identity clone")?;
+                let epoch = CleanupPlace {
+                    storage: StorageId::CallArgument {
+                        call,
+                        parameter_index,
+                        value_expression,
+                    },
+                    projections: Vec::new(),
+                };
+                let source = path.owned_source.take().ok_or_else(|| {
+                    replay_error(function, "owned call argument has no HIR cleanup source")
+                })?;
+                let at = work.clone_owned(&argument.id, "call-argument transfer identity clone")?;
+                let destination = work.clone_owned(&epoch, "call-argument epoch clone")?;
+                work.push_observation(
+                    &mut path,
+                    SkeletonObservation::Transfer {
+                        at,
+                        source,
+                        destination,
+                    },
+                    "owned call-argument transfer",
+                )?;
+                work.charge(1, "call-commit argument push")?;
+                note_skeleton_materialization();
+                path_commits.push((parameter_index, epoch));
+            }
+            work.charge(1, "call state push")?;
+            note_skeleton_materialization();
+            next.push((path, path_commits));
+        }
+    }
+    Ok(next)
+}
+
+fn finish_call_states(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    expression: &ResolvedExpr,
+    states: Vec<CallSkeletonState>,
+    work: &mut SkeletonWork<'_, '_>,
+) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
+    let source_expression =
+        work.clone_owned(&expression.id, "call status source expression clone")?;
     let source = StatusSourceId {
-        expression: expression.id.clone(),
+        expression: source_expression,
         lane: StatusLane::OperationFailure,
     };
     let mut results = Vec::new();
     for (mut path, commits) in states {
         if path.failed || path.residual {
-            results.push(path);
+            work.push_expr_path(&mut results, path, "short-circuited call path")?;
             continue;
         }
-        path.observations.push(SkeletonObservation::CallCommit {
-            call: expression.id.clone(),
-            arguments: commits,
-        });
-        let mut failure = path.clone();
-        failure.observations.push(SkeletonObservation::Status {
-            source: source.clone(),
-            success: false,
-        });
+        let call = work.clone_owned(&expression.id, "call-commit identity clone")?;
+        work.push_observation(
+            &mut path,
+            SkeletonObservation::CallCommit {
+                call,
+                arguments: commits,
+            },
+            "call-commit observation",
+        )?;
+        let mut failure = work.clone_expr_path(&path, "call failure path clone")?;
+        let failure_source = work.clone_owned(&source, "call failure status-source clone")?;
+        work.push_observation(
+            &mut failure,
+            SkeletonObservation::Status {
+                source: failure_source,
+                success: false,
+            },
+            "call failure observation",
+        )?;
         failure.failed = true;
         failure.owned_source = None;
-        results.push(failure);
+        work.push_expr_path(&mut results, failure, "call failure path")?;
 
-        path.observations.push(SkeletonObservation::Status {
-            source: source.clone(),
-            success: true,
-        });
+        let success_source = work.clone_owned(&source, "call success status-source clone")?;
+        work.push_observation(
+            &mut path,
+            SkeletonObservation::Status {
+                source: success_source,
+                success: true,
+            },
+            "call success observation",
+        )?;
         if expression.ownership == OwnershipMode::Own
             && type_needs_drop(program, function, &expression.ty)?
         {
-            let destination = temporary_place(expression);
-            path.observations.push(SkeletonObservation::Initialize {
-                at: expression.id.clone(),
-                destination: destination.clone(),
-            });
+            let destination = temporary_place(expression, work)?;
+            let at = work.clone_owned(&expression.id, "call result expression clone")?;
+            let initialized = work.clone_owned(&destination, "call result destination clone")?;
+            work.push_observation(
+                &mut path,
+                SkeletonObservation::Initialize {
+                    at,
+                    destination: initialized,
+                },
+                "owned call result initialization",
+            )?;
             path.owned_source = Some(destination);
         } else {
             path.owned_source = None;
         }
-        results.push(path);
-    }
-    Ok(results)
-}
-
-fn lazy_skeleton(
-    program: &ResolvedProgram,
-    function: &ResolvedFunction,
-    expression: ResolvedExpr,
-    left: ResolvedExpr,
-    right: ResolvedExpr,
-) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
-    let ResolvedExprKind::Binary { op, .. } = expression.kind else {
-        return Err(replay_error(
-            function,
-            "lazy skeleton received non-binary HIR",
-        ));
-    };
-    let left_paths = expression_skeleton(program, function, &left)?;
-    let mut results = Vec::new();
-    for path in left_paths {
-        if path.failed || path.residual {
-            results.push(path);
-            continue;
-        }
-        for value in [true, false] {
-            let mut branch = path.clone();
-            branch.observations.push(SkeletonObservation::Boolean {
-                expression: left.id.clone(),
-                value,
-            });
-            let evaluates_right = match op {
-                BinaryOp::And => value,
-                BinaryOp::Or => !value,
-                _ => return Err(replay_error(function, "invalid lazy skeleton operation")),
-            };
-            if evaluates_right {
-                results.extend(sequence_expression(
-                    program,
-                    function,
-                    vec![branch],
-                    &right,
-                )?);
-            } else {
-                branch.owned_source = None;
-                results.push(branch);
-            }
-        }
-    }
-    Ok(results)
-}
-
-fn if_skeleton(
-    program: &ResolvedProgram,
-    function: &ResolvedFunction,
-    expression: &ResolvedExpr,
-    condition: &ResolvedExpr,
-    then_branch: &ResolvedExpr,
-    else_branch: &ResolvedExpr,
-) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
-    let condition_paths = expression_skeleton(program, function, condition)?;
-    let mut results = Vec::new();
-    for path in condition_paths {
-        if path.failed || path.residual {
-            results.push(path);
-            continue;
-        }
-        for (value, branch_expression) in [(true, then_branch), (false, else_branch)] {
-            let mut branch = path.clone();
-            branch.observations.push(SkeletonObservation::Boolean {
-                expression: condition.id.clone(),
-                value,
-            });
-            let branch_paths =
-                sequence_expression(program, function, vec![branch], branch_expression)?;
-            if expression.ownership == OwnershipMode::Own
-                && type_needs_drop(program, function, &expression.ty)?
-            {
-                results.extend(transfer_completed_paths(
-                    function,
-                    branch_paths,
-                    expression.id.clone(),
-                    temporary_place(expression),
-                    "owned conditional result",
-                )?);
-            } else {
-                results.extend(branch_paths);
-            }
-        }
+        work.push_expr_path(&mut results, path, "call success path")?;
     }
     Ok(results)
 }
@@ -2542,54 +4143,81 @@ fn if_skeleton(
 fn split_status_paths(
     paths: Vec<ExprSkeletonPath>,
     source: StatusSourceId,
-) -> Vec<ExprSkeletonPath> {
+    work: &mut SkeletonWork<'_, '_>,
+) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
     let mut results = Vec::new();
     for mut path in paths {
         if path.failed || path.residual {
-            results.push(path);
+            work.push_expr_path(&mut results, path, "short-circuited status path")?;
             continue;
         }
-        let mut failure = path.clone();
-        failure.observations.push(SkeletonObservation::Status {
-            source: source.clone(),
-            success: false,
-        });
+        let mut failure = work.clone_expr_path(&path, "status failure path clone")?;
+        let failure_source = work.clone_owned(&source, "failure status-source clone")?;
+        work.push_observation(
+            &mut failure,
+            SkeletonObservation::Status {
+                source: failure_source,
+                success: false,
+            },
+            "status failure observation",
+        )?;
         failure.failed = true;
         failure.owned_source = None;
-        results.push(failure);
-        path.observations.push(SkeletonObservation::Status {
-            source: source.clone(),
-            success: true,
-        });
+        work.push_expr_path(&mut results, failure, "status failure path")?;
+        let success_source = work.clone_owned(&source, "success status-source clone")?;
+        work.push_observation(
+            &mut path,
+            SkeletonObservation::Status {
+                source: success_source,
+                success: true,
+            },
+            "status success observation",
+        )?;
         path.owned_source = None;
-        results.push(path);
+        work.push_expr_path(&mut results, path, "status success path")?;
     }
-    results
+    Ok(results)
 }
 
-fn split_contract(paths: Vec<ExprSkeletonPath>, contract: &ResolvedExpr) -> Vec<ExprSkeletonPath> {
+fn split_contract(
+    paths: Vec<ExprSkeletonPath>,
+    contract: &ResolvedExpr,
+    work: &mut SkeletonWork<'_, '_>,
+) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
     let mut results = Vec::new();
     for mut path in paths {
         if path.failed || path.residual {
-            results.push(path);
+            work.push_expr_path(&mut results, path, "short-circuited contract path")?;
             continue;
         }
-        let mut failure = path.clone();
-        failure.observations.push(SkeletonObservation::Boolean {
-            expression: contract.id.clone(),
-            value: false,
-        });
+        let mut failure = work.clone_expr_path(&path, "contract failure path clone")?;
+        let failure_expression =
+            work.clone_owned(&contract.id, "contract failure expression clone")?;
+        work.push_observation(
+            &mut failure,
+            SkeletonObservation::Boolean {
+                expression: failure_expression,
+                value: false,
+            },
+            "contract failure observation",
+        )?;
         failure.failed = true;
         failure.owned_source = None;
-        results.push(failure);
-        path.observations.push(SkeletonObservation::Boolean {
-            expression: contract.id.clone(),
-            value: true,
-        });
+        work.push_expr_path(&mut results, failure, "contract failure path")?;
+        let success_expression =
+            work.clone_owned(&contract.id, "contract success expression clone")?;
+        work.push_observation(
+            &mut path,
+            SkeletonObservation::Boolean {
+                expression: success_expression,
+                value: true,
+            },
+            "contract success observation",
+        )?;
         path.owned_source = None;
-        results.push(path);
+        work.push_expr_path(&mut results, path, "contract success path")?;
     }
-    results
+    Ok(results)
 }
 
 fn transfer_completed_paths(
@@ -2598,6 +4226,7 @@ fn transfer_completed_paths(
     at: ExpressionId,
     destination: CleanupPlace,
     description: &str,
+    work: &mut SkeletonWork<'_, '_>,
 ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
     for path in &mut paths {
         if path.failed || path.residual {
@@ -2606,36 +4235,55 @@ fn transfer_completed_paths(
         let source = path.owned_source.take().ok_or_else(|| {
             replay_error(function, format!("{description} has no HIR cleanup source"))
         })?;
-        path.observations.push(SkeletonObservation::Transfer {
-            at: at.clone(),
-            source,
-            destination: destination.clone(),
-        });
-        path.owned_source = Some(destination.clone());
+        let transfer_at = work.clone_owned(&at, "completed transfer expression clone")?;
+        let transfer_destination =
+            work.clone_owned(&destination, "completed transfer destination clone")?;
+        work.push_observation(
+            path,
+            SkeletonObservation::Transfer {
+                at: transfer_at,
+                source,
+                destination: transfer_destination,
+            },
+            "completed-path transfer observation",
+        )?;
+        path.owned_source =
+            Some(work.clone_owned(&destination, "completed transfer result-place clone")?);
     }
     Ok(paths)
 }
 
-fn temporary_place(expression: &ResolvedExpr) -> CleanupPlace {
-    CleanupPlace {
-        storage: StorageId::Temporary(expression.id.clone()),
+fn temporary_place(
+    expression: &ResolvedExpr,
+    work: &mut SkeletonWork<'_, '_>,
+) -> Result<CleanupPlace, Diagnostic> {
+    Ok(CleanupPlace {
+        storage: StorageId::Temporary(
+            work.clone_owned(&expression.id, "temporary-place expression clone")?,
+        ),
         projections: Vec::new(),
-    }
+    })
 }
 
 fn cleanup_place_from_hir(
     function: &ResolvedFunction,
     place: &crate::hir::Place,
+    work: &mut SkeletonWork<'_, '_>,
 ) -> Result<CleanupPlace, Diagnostic> {
     let storage = if place.root == function.result_id {
         StorageId::ProvisionalResult
     } else {
-        StorageId::Value(place.root.clone())
+        StorageId::Value(work.clone_owned(&place.root, "place-root clone")?)
     };
     let mut projections = Vec::new();
     for projection in &place.projections {
         match projection {
-            PlaceProjection::Field(field) => projections.push(field.clone()),
+            PlaceProjection::Field(field) => {
+                let field = work.clone_owned(field, "place-projection clone")?;
+                work.charge(1, "place-projection push")?;
+                note_skeleton_materialization();
+                projections.push(field);
+            }
             PlaceProjection::VariantField { .. } => {
                 return Err(replay_error(
                     function,
@@ -2655,50 +4303,129 @@ fn plan_skeleton_paths(
     budget: &mut ReplayBudget,
 ) -> Result<Vec<SkeletonPath>, Diagnostic> {
     let plan = &function.cleanup_plan;
-    let mut queue = VecDeque::from([(plan.entry, Vec::<SkeletonObservation>::new())]);
+    let mut queue = VecDeque::new();
+    skeleton_queue_push(
+        budget,
+        function,
+        &mut queue,
+        (plan.entry, Vec::<SkeletonObservation>::new()),
+        "cleanup-plan root state push",
+    )?;
     let mut paths = Vec::new();
     while let Some((block, mut observations)) = queue.pop_front() {
-        budget.charge(
+        let block = &plan.blocks[block.0 as usize];
+        // Charge only work performed at this block. The previous charge used
+        // the entire accumulated observation length on every linear block,
+        // turning a depth-D skewed conditional into artificial O(D^3) work.
+        // Observation history is copied only at a real branch, charged below
+        // immediately before each clone.
+        budget.charge_skeleton(
             function,
-            observations.len().saturating_add(1),
+            block.transitions.len().saturating_add(1),
             "cleanup-plan skeleton expansion",
         )?;
-        let block = &plan.blocks[block.0 as usize];
         for transition in &block.transitions {
             match transition {
                 CleanupTransition::Initialize { at, destination } => {
-                    observations.push(SkeletonObservation::Initialize {
-                        at: at.clone(),
-                        destination: destination.clone(),
-                    });
+                    let at =
+                        skeleton_clone(budget, function, at, "plan initialize expression clone")?;
+                    let destination = skeleton_clone(
+                        budget,
+                        function,
+                        destination,
+                        "plan initialize destination clone",
+                    )?;
+                    skeleton_push(
+                        budget,
+                        function,
+                        &mut observations,
+                        SkeletonObservation::Initialize { at, destination },
+                        "plan initialize observation push",
+                    )?;
                 }
                 CleanupTransition::Transfer {
                     at,
                     source,
                     destination,
-                } => observations.push(SkeletonObservation::Transfer {
-                    at: at.clone(),
-                    source: source.clone(),
-                    destination: destination.clone(),
-                }),
+                } => {
+                    let at =
+                        skeleton_clone(budget, function, at, "plan transfer expression clone")?;
+                    let source =
+                        skeleton_clone(budget, function, source, "plan transfer source clone")?;
+                    let destination = skeleton_clone(
+                        budget,
+                        function,
+                        destination,
+                        "plan transfer destination clone",
+                    )?;
+                    skeleton_push(
+                        budget,
+                        function,
+                        &mut observations,
+                        SkeletonObservation::Transfer {
+                            at,
+                            source,
+                            destination,
+                        },
+                        "plan transfer observation push",
+                    )?;
+                }
                 CleanupTransition::CallCommit { call, arguments } => {
-                    observations.push(SkeletonObservation::CallCommit {
-                        call: call.clone(),
-                        arguments: arguments
-                            .iter()
-                            .map(|argument| (argument.parameter_index, argument.source.clone()))
-                            .collect(),
-                    });
+                    let call = skeleton_clone(budget, function, call, "plan call identity clone")?;
+                    let mut cloned_arguments = Vec::new();
+                    for argument in arguments {
+                        let source = skeleton_clone(
+                            budget,
+                            function,
+                            &argument.source,
+                            "plan call argument source clone",
+                        )?;
+                        skeleton_push(
+                            budget,
+                            function,
+                            &mut cloned_arguments,
+                            (argument.parameter_index, source),
+                            "plan call argument push",
+                        )?;
+                    }
+                    skeleton_push(
+                        budget,
+                        function,
+                        &mut observations,
+                        SkeletonObservation::CallCommit {
+                            call,
+                            arguments: cloned_arguments,
+                        },
+                        "plan call observation push",
+                    )?;
                 }
                 CleanupTransition::SelectFailure { .. } => {}
                 CleanupTransition::StageCopyResult { source } => {
-                    observations.push(SkeletonObservation::StageCopyResult(source.clone()))
+                    let source = skeleton_clone(
+                        budget,
+                        function,
+                        source,
+                        "plan staged-result source clone",
+                    )?;
+                    skeleton_push(
+                        budget,
+                        function,
+                        &mut observations,
+                        SkeletonObservation::StageCopyResult(source),
+                        "plan staged-result observation push",
+                    )?;
                 }
             }
         }
         match &block.terminator {
             CleanupTerminator::Goto(edge) => {
-                queue.push_back((plan.edges[edge.0 as usize].to, observations));
+                skeleton_queue_push(
+                    budget,
+                    function,
+                    &mut queue,
+                    (plan.edges[edge.0 as usize].to, observations),
+                    "plan goto state push",
+                )?;
             }
             CleanupTerminator::Branch(edges) => {
                 for edge in edges {
@@ -2706,7 +4433,12 @@ fn plan_skeleton_paths(
                     let observation = match &edge.condition {
                         EdgeCondition::BooleanResult(expression, value) => {
                             SkeletonObservation::Boolean {
-                                expression: expression.clone(),
+                                expression: skeleton_clone(
+                                    budget,
+                                    function,
+                                    expression,
+                                    "plan Boolean expression clone",
+                                )?,
                                 value: *value,
                             }
                         }
@@ -2715,16 +4447,36 @@ fn plan_skeleton_paths(
                             case,
                             matches,
                         } => SkeletonObservation::VariantCase {
-                            scrutinee: scrutinee.clone(),
-                            case: case.clone(),
+                            scrutinee: skeleton_clone(
+                                budget,
+                                function,
+                                scrutinee,
+                                "plan variant scrutinee clone",
+                            )?,
+                            case: skeleton_clone(
+                                budget,
+                                function,
+                                case,
+                                "plan variant case clone",
+                            )?,
                             matches: *matches,
                         },
                         EdgeCondition::StatusZero(source) => SkeletonObservation::Status {
-                            source: source.clone(),
+                            source: skeleton_clone(
+                                budget,
+                                function,
+                                source,
+                                "plan zero status-source clone",
+                            )?,
                             success: true,
                         },
                         EdgeCondition::StatusNonzero(source) => SkeletonObservation::Status {
-                            source: source.clone(),
+                            source: skeleton_clone(
+                                budget,
+                                function,
+                                source,
+                                "plan nonzero status-source clone",
+                            )?,
                             success: false,
                         },
                         EdgeCondition::Always => {
@@ -2734,27 +4486,62 @@ fn plan_skeleton_paths(
                             ));
                         }
                     };
-                    let mut branch = observations.clone();
-                    branch.push(observation);
-                    queue.push_back((edge.to, branch));
+                    let mut branch = skeleton_clone(
+                        budget,
+                        function,
+                        &observations,
+                        "cleanup-plan skeleton branch clone",
+                    )?;
+                    skeleton_push(
+                        budget,
+                        function,
+                        &mut branch,
+                        observation,
+                        "plan branch observation push",
+                    )?;
+                    skeleton_queue_push(
+                        budget,
+                        function,
+                        &mut queue,
+                        (edge.to, branch),
+                        "plan branch state push",
+                    )?;
                 }
             }
             CleanupTerminator::Exit(exit) => {
                 let exit = &plan.exits[exit.0 as usize];
                 match exit.continuation {
                     ExitContinuation::Continue(edge) => {
-                        queue.push_back((plan.edges[edge.0 as usize].to, observations));
+                        skeleton_queue_push(
+                            budget,
+                            function,
+                            &mut queue,
+                            (plan.edges[edge.0 as usize].to, observations),
+                            "plan continuation state push",
+                        )?;
                     }
                     ExitContinuation::CommitResult { .. } | ExitContinuation::ReturnUnit => {
-                        paths.push(SkeletonPath {
-                            observations,
-                            terminal: SkeletonTerminal::Success,
-                        });
+                        skeleton_push(
+                            budget,
+                            function,
+                            &mut paths,
+                            SkeletonPath {
+                                observations,
+                                terminal: SkeletonTerminal::Success,
+                            },
+                            "plan success path push",
+                        )?;
                     }
-                    ExitContinuation::ReturnFailure { .. } => paths.push(SkeletonPath {
-                        observations,
-                        terminal: SkeletonTerminal::Failure,
-                    }),
+                    ExitContinuation::ReturnFailure { .. } => skeleton_push(
+                        budget,
+                        function,
+                        &mut paths,
+                        SkeletonPath {
+                            observations,
+                            terminal: SkeletonTerminal::Failure,
+                        },
+                        "plan failure path push",
+                    )?,
                 }
             }
         }
@@ -3364,86 +5151,87 @@ fn validate_staged_target(
     Ok(())
 }
 
-fn expression_has_try(expression: &ResolvedExpr) -> bool {
+fn replay_expression_child(expression: &ResolvedExpr, index: usize) -> Option<&ResolvedExpr> {
     match &expression.kind {
-        ResolvedExprKind::Try { .. } | ResolvedExprKind::TryOption { .. } => true,
-        ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_try),
-        ResolvedExprKind::Unary { value, .. } | ResolvedExprKind::Project { base: value, .. } => {
-            expression_has_try(value)
-        }
+        ResolvedExprKind::Call { args, .. } => args.get(index),
+        ResolvedExprKind::NativeRustImportCall(call) => call.args.get(index),
+        ResolvedExprKind::Unary { value, .. }
+        | ResolvedExprKind::Try { operand: value, .. }
+        | ResolvedExprKind::TryOption { operand: value, .. }
+        | ResolvedExprKind::Project { base: value, .. } => (index == 0).then_some(value),
         ResolvedExprKind::Binary { left, right, .. } => {
-            expression_has_try(left) || expression_has_try(right)
+            [left.as_ref(), right.as_ref()].get(index).copied()
         }
-        ResolvedExprKind::Block { statements, tail } => {
-            statements.iter().any(|statement| {
+        ResolvedExprKind::Block { statements, tail } => statements
+            .get(index)
+            .map(|statement| {
                 let ResolvedStatement::Let { value, .. } = statement;
-                expression_has_try(value)
-            }) || expression_has_try(tail)
-        }
+                value
+            })
+            .or_else(|| (index == statements.len()).then_some(tail)),
         ResolvedExprKind::If {
             condition,
             then_branch,
             else_branch,
-        } => {
-            expression_has_try(condition)
-                || expression_has_try(then_branch)
-                || expression_has_try(else_branch)
-        }
+        } => [
+            condition.as_ref(),
+            then_branch.as_ref(),
+            else_branch.as_ref(),
+        ]
+        .get(index)
+        .copied(),
         ResolvedExprKind::ConstructRecord { fields, .. }
         | ResolvedExprKind::ConstructVariant { fields, .. } => {
-            fields.iter().any(|field| expression_has_try(&field.value))
+            fields.get(index).map(|field| &field.value)
         }
-        ResolvedExprKind::Match { scrutinee, arms } => {
-            expression_has_try(scrutinee) || arms.iter().any(|arm| expression_has_try(&arm.value))
-        }
-        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
-            expression_has_try(base) || fields.iter().any(|field| expression_has_try(&field.value))
-        }
-        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => false,
+        ResolvedExprKind::Match { scrutinee, arms } => (index == 0)
+            .then_some(scrutinee.as_ref())
+            .or_else(|| arms.get(index - 1).map(|arm| &arm.value)),
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => (index == 0)
+            .then_some(base.as_ref())
+            .or_else(|| fields.get(index - 1).map(|field| &field.value)),
+        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => None,
     }
 }
 
-fn expression_has_option_try(expression: &ResolvedExpr) -> bool {
-    match &expression.kind {
-        ResolvedExprKind::TryOption { .. } => true,
-        ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_option_try),
-        ResolvedExprKind::Unary { value, .. }
-        | ResolvedExprKind::Try { operand: value, .. }
-        | ResolvedExprKind::Project { base: value, .. } => expression_has_option_try(value),
-        ResolvedExprKind::Binary { left, right, .. } => {
-            expression_has_option_try(left) || expression_has_option_try(right)
+fn expression_has_kind(
+    expression: &ResolvedExpr,
+    predicate: impl Fn(&ResolvedExprKind) -> bool,
+) -> bool {
+    let mut stack = [None; 514];
+    stack[0] = Some((expression, 0usize));
+    let mut len = 1usize;
+    while len != 0 {
+        len -= 1;
+        let (expression, next) = stack[len].take().expect("expression frame retained");
+        if next == 0 && predicate(&expression.kind) {
+            return true;
         }
-        ResolvedExprKind::Block { statements, tail } => {
-            statements.iter().any(|statement| {
-                let ResolvedStatement::Let { value, .. } = statement;
-                expression_has_option_try(value)
-            }) || expression_has_option_try(tail)
+        if let Some(child) = replay_expression_child(expression, next) {
+            if len + 2 > stack.len() {
+                return false;
+            }
+            stack[len] = Some((expression, next + 1));
+            stack[len + 1] = Some((child, 0));
+            len += 2;
         }
-        ResolvedExprKind::If {
-            condition,
-            then_branch,
-            else_branch,
-        } => {
-            expression_has_option_try(condition)
-                || expression_has_option_try(then_branch)
-                || expression_has_option_try(else_branch)
-        }
-        ResolvedExprKind::ConstructRecord { fields, .. }
-        | ResolvedExprKind::ConstructVariant { fields, .. } => fields
-            .iter()
-            .any(|field| expression_has_option_try(&field.value)),
-        ResolvedExprKind::Match { scrutinee, arms } => {
-            expression_has_option_try(scrutinee)
-                || arms.iter().any(|arm| expression_has_option_try(&arm.value))
-        }
-        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
-            expression_has_option_try(base)
-                || fields
-                    .iter()
-                    .any(|field| expression_has_option_try(&field.value))
-        }
-        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => false,
     }
+    false
+}
+
+fn expression_has_try(expression: &ResolvedExpr) -> bool {
+    expression_has_kind(expression, |kind| {
+        matches!(
+            kind,
+            ResolvedExprKind::Try { .. } | ResolvedExprKind::TryOption { .. }
+        )
+    })
+}
+
+fn expression_has_option_try(expression: &ResolvedExpr) -> bool {
+    expression_has_kind(expression, |kind| {
+        matches!(kind, ResolvedExprKind::TryOption { .. })
+    })
 }
 
 fn validate_join_compatibility(
@@ -3769,80 +5557,48 @@ fn collect_expression_facts(
     expression: &ResolvedExpr,
     facts: &mut BTreeMap<ExpressionId, Option<CallFact>>,
 ) -> Result<(), Diagnostic> {
-    let fact = match &expression.kind {
-        ResolvedExprKind::Call {
-            callee,
-            instance,
-            args,
-            ..
-        } => Some(CallFact {
-            callee: callee.clone(),
-            instance: instance.clone(),
-            arguments: args.iter().map(|argument| argument.id.clone()).collect(),
-        }),
-        _ => None,
-    };
-    if facts.insert(expression.id.clone(), fact).is_some() {
-        return Err(replay_error(
-            function,
-            format!("HIR expression identity `{}` is repeated", expression.id),
-        ));
-    }
-    match &expression.kind {
-        ResolvedExprKind::Call { args, .. } => {
-            for argument in args {
-                collect_expression_facts(function, argument, facts)?;
+    // The private replay entry admits at most 512 semantic expression levels.
+    // Keep one indexed continuation per ancestor so wide calls, records, blocks,
+    // and matches never create a width-sized frontier and callback order stays
+    // identical to the former recursive pre-order walk.
+    let mut stack = [None; 514];
+    stack[0] = Some((expression, 0usize));
+    let mut len = 1usize;
+    while len != 0 {
+        len -= 1;
+        let (current, next_child) = stack[len].take().expect("expression-fact frame retained");
+        if next_child == 0 {
+            let fact = match &current.kind {
+                ResolvedExprKind::Call {
+                    callee,
+                    instance,
+                    args,
+                    ..
+                } => Some(CallFact {
+                    callee: callee.clone(),
+                    instance: instance.clone(),
+                    arguments: args.iter().map(|argument| argument.id.clone()).collect(),
+                }),
+                _ => None,
+            };
+            if facts.insert(current.id.clone(), fact).is_some() {
+                return Err(replay_error(
+                    function,
+                    format!("HIR expression identity `{}` is repeated", current.id),
+                ));
             }
         }
-        ResolvedExprKind::Unary { value, .. } | ResolvedExprKind::Project { base: value, .. } => {
-            collect_expression_facts(function, value, facts)?;
-        }
-        ResolvedExprKind::Binary { left, right, .. } => {
-            collect_expression_facts(function, left, facts)?;
-            collect_expression_facts(function, right, facts)?;
-        }
-        ResolvedExprKind::Block { statements, tail } => {
-            for statement in statements {
-                let crate::hir::ResolvedStatement::Let { value, .. } = statement;
-                collect_expression_facts(function, value, facts)?;
+        if let Some(child) = replay_expression_child(current, next_child) {
+            if len + 2 > stack.len() {
+                return Err(replay_error(
+                    function,
+                    "HIR expression fact traversal exceeds the admitted depth",
+                ));
             }
-            collect_expression_facts(function, tail, facts)?;
+            stack[len] = Some((current, next_child + 1));
+            stack[len + 1] = Some((child, 0));
+            len += 2;
         }
-        ResolvedExprKind::If {
-            condition,
-            then_branch,
-            else_branch,
-        } => {
-            collect_expression_facts(function, condition, facts)?;
-            collect_expression_facts(function, then_branch, facts)?;
-            collect_expression_facts(function, else_branch, facts)?;
-        }
-        ResolvedExprKind::ConstructRecord { fields, .. } => {
-            for field in fields {
-                collect_expression_facts(function, &field.value, facts)?;
-            }
-        }
-        ResolvedExprKind::ConstructVariant { fields, .. } => {
-            for field in fields {
-                collect_expression_facts(function, &field.value, facts)?;
-            }
-        }
-        ResolvedExprKind::Try { operand, .. } | ResolvedExprKind::TryOption { operand, .. } => {
-            collect_expression_facts(function, operand, facts)?;
-        }
-        ResolvedExprKind::Match { scrutinee, arms } => {
-            collect_expression_facts(function, scrutinee, facts)?;
-            for arm in arms {
-                collect_expression_facts(function, &arm.value, facts)?;
-            }
-        }
-        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
-            collect_expression_facts(function, base, facts)?;
-            for field in fields {
-                collect_expression_facts(function, &field.value, facts)?;
-            }
-        }
-        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
     }
     Ok(())
 }
@@ -4730,13 +6486,394 @@ fn main() -> i64 { 0 }
     }
 
     #[test]
+    fn replay_preflight_rejects_every_invalid_cfg_target_and_cycles_without_panicking() {
+        fn assert_unknown(program: &ResolvedProgram, function: &ResolvedFunction) {
+            let diagnostic = validate_structure(program, function).unwrap_err();
+            assert_eq!(diagnostic.code, "SPX-H006");
+            assert_eq!(
+                diagnostic.message,
+                format!(
+                    "cleanup plan for function `{}` failed independent replay: cleanup replay preflight references an unknown id",
+                    function.id
+                )
+            );
+        }
+
+        let program = program();
+        let original = function(&program, "flow.regions");
+
+        let mut invalid_entry = original.clone();
+        invalid_entry.cleanup_plan.entry = BlockId(u32::MAX);
+        assert_unknown(&program, &invalid_entry);
+
+        let mut invalid_terminator_edge = original.clone();
+        let edge = invalid_terminator_edge
+            .cleanup_plan
+            .blocks
+            .iter_mut()
+            .find_map(|block| match &mut block.terminator {
+                CleanupTerminator::Goto(edge) => Some(edge),
+                CleanupTerminator::Branch(edges) => edges.first_mut(),
+                CleanupTerminator::Exit(_) => None,
+            })
+            .expect("fixture must contain a branch or goto edge");
+        *edge = EdgeId(u32::MAX);
+        assert_unknown(&program, &invalid_terminator_edge);
+
+        let mut invalid_edge_target = original.clone();
+        invalid_edge_target
+            .cleanup_plan
+            .edges
+            .first_mut()
+            .expect("fixture must contain an edge")
+            .to = BlockId(u32::MAX);
+        assert_unknown(&program, &invalid_edge_target);
+
+        let mut invalid_exit = original.clone();
+        let exit = invalid_exit
+            .cleanup_plan
+            .blocks
+            .iter_mut()
+            .find_map(|block| match &mut block.terminator {
+                CleanupTerminator::Exit(exit) => Some(exit),
+                CleanupTerminator::Goto(_) | CleanupTerminator::Branch(_) => None,
+            })
+            .expect("fixture must contain an exit terminator");
+        *exit = crate::cleanup_plan::ExitTargetId(u32::MAX);
+        assert_unknown(&program, &invalid_exit);
+
+        let mut invalid_continue = original.clone();
+        let continuation = invalid_continue
+            .cleanup_plan
+            .exits
+            .iter_mut()
+            .find_map(|exit| match &mut exit.continuation {
+                ExitContinuation::Continue(edge) => Some(edge),
+                ExitContinuation::CommitResult { .. }
+                | ExitContinuation::ReturnFailure { .. }
+                | ExitContinuation::ReturnUnit => None,
+            })
+            .expect("fixture must contain a continuing exit");
+        *continuation = EdgeId(u32::MAX);
+        assert_unknown(&program, &invalid_continue);
+
+        let mut cycle = function(&program, "flow.bool");
+        let entry = cycle.cleanup_plan.entry;
+        let edge_id = match &cycle.cleanup_plan.blocks[entry.0 as usize].terminator {
+            CleanupTerminator::Goto(edge) => *edge,
+            CleanupTerminator::Branch(edges) => {
+                *edges.first().expect("entry branch must contain an edge")
+            }
+            CleanupTerminator::Exit(_) => panic!("fixture entry must have a successor"),
+        };
+        cycle.cleanup_plan.edges[edge_id.0 as usize].to = entry;
+        let diagnostic = validate_structure(&program, &cycle).unwrap_err();
+        assert_eq!(diagnostic.code, "SPX-H006");
+        assert_eq!(
+            diagnostic.message,
+            "cleanup plan for function `flow.bool` failed independent replay: cleanup replay path bound exceeds the global path budget"
+        );
+    }
+
+    #[test]
     fn replay_budget_exhaustion_is_a_deterministic_diagnostic() {
         let program = program();
         let function = function(&program, "app.main");
-        let mut budget = ReplayBudget { remaining: 1 };
+        let mut budget = ReplayBudget {
+            remaining: 1,
+            skeleton_remaining: 0,
+        };
         let diagnostic = budget.charge(&function, 2, "hostile test").unwrap_err();
         assert_eq!(diagnostic.code, "SPX-H006");
         assert!(diagnostic.message.contains("work budget exhausted"));
+    }
+
+    fn assert_program_skeleton_authority(program: &ResolvedProgram) -> usize {
+        let functions = || {
+            program.functions.iter().chain(
+                program
+                    .function_instances
+                    .iter()
+                    .map(|instance| &instance.function),
+            )
+        };
+        let independently_summed = functions()
+            .try_fold(0usize, |total, function| {
+                total
+                    .checked_add(skeleton_work_upper(program, function)?)
+                    .ok_or_else(|| skeleton_preflight_overflow(function))
+            })
+            .unwrap();
+        assert!(independently_summed > 0);
+
+        reset_skeleton_materializations();
+        let mut exact = ReplayBudget {
+            remaining: independently_summed,
+            skeleton_remaining: 0,
+        };
+        assert_eq!(
+            reserve_program_skeleton_work(program, functions(), &mut exact).unwrap(),
+            independently_summed
+        );
+        assert_eq!(exact.remaining, 0);
+        assert_eq!(exact.skeleton_remaining, independently_summed);
+        assert_eq!(skeleton_materializations(), 0);
+
+        reset_skeleton_materializations();
+        let mut one_less = ReplayBudget {
+            remaining: independently_summed - 1,
+            skeleton_remaining: 0,
+        };
+        let diagnostic =
+            reserve_program_skeleton_work(program, functions(), &mut one_less).unwrap_err();
+        assert_eq!(diagnostic.code, "SPX-H006");
+        assert!(diagnostic
+            .message
+            .contains("skeleton-work preflight exceeds"));
+        assert_eq!(skeleton_materializations(), 0);
+
+        reset_skeleton_materializations();
+        let mut actual = ReplayBudget::new();
+        let derived = reserve_program_skeleton_work(program, functions(), &mut actual).unwrap();
+        for function in functions() {
+            validate_structure_with_budget(program, function, &mut actual).unwrap();
+        }
+        let charged = derived - actual.skeleton_remaining;
+        assert!(charged <= derived);
+        assert!(skeleton_materializations() > 0);
+        assert!(skeleton_materializations() <= charged);
+        independently_summed
+    }
+
+    #[test]
+    fn program_wide_skeleton_preflight_sums_every_function_before_materialization() {
+        let program = program();
+        let derived = assert_program_skeleton_authority(&program);
+        let largest_function = program
+            .functions
+            .iter()
+            .chain(
+                program
+                    .function_instances
+                    .iter()
+                    .map(|instance| &instance.function),
+            )
+            .map(|function| skeleton_work_upper(&program, function))
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap()
+            .into_iter()
+            .max()
+            .unwrap();
+        assert!(derived > largest_function);
+    }
+
+    #[test]
+    fn many_functions_and_deep_lazy_paths_share_one_exact_skeleton_authority() {
+        let mut source = String::from("module replay.aggregate;\n");
+        for index in 0..48 {
+            source.push_str(&format!(
+                "@id(\"aggregate.f{index}\") fn f{index}(flag: bool) -> bool {{ flag && flag }}\n"
+            ));
+        }
+        let mut expression = String::from("flag");
+        // Keep parser construction deliberately shallow; the private replay
+        // depth-512 gate uses a prebuilt Program in the builder crate.
+        for _ in 0..32 {
+            expression = format!("flag && ({expression})");
+        }
+        source.push_str(&format!(
+            "@id(\"aggregate.deep\") fn deep(flag: bool) -> bool {{ {expression} }}\n"
+        ));
+        source.push_str("@id(\"app.main\") fn main() -> i64 { 0 }\n");
+        let parsed = parse(&source, Path::new("cleanup-replay-aggregate.spx")).unwrap();
+        let program = hir::resolve(&parsed).unwrap();
+        assert_eq!(program.functions.len(), 50);
+        assert_program_skeleton_authority(&program);
+    }
+
+    #[test]
+    fn wide_resource_update_untouched_fields_are_inside_charge_first_authority() {
+        let mut source = String::from(
+            "module replay.wide_update;\n\
+             @id(\"wide.token\") resource Token { @id(\"wide.token.drop\") drop trivial; }\n\
+             @id(\"wide.record\") record Wide {\n",
+        );
+        for index in 0..32 {
+            source.push_str(&format!(
+                "@id(\"wide.field.{index}\") field_{index}: Token,\n"
+            ));
+        }
+        source.push_str(
+            "}\n\
+             @id(\"wide.update\") fn update(value: own Wide, replacement: own Token) -> Wide {\n\
+                 value with { field_0: replacement }\n\
+             }\n\
+             @id(\"app.main\") fn main() -> i64 { 0 }\n",
+        );
+        let parsed = parse(&source, Path::new("cleanup-replay-wide-update.spx")).unwrap();
+        let program = hir::resolve(&parsed).unwrap();
+        assert_program_skeleton_authority(&program);
+
+        let function = program
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "wide.update")
+            .unwrap();
+        let ResolvedExprKind::Block { tail, .. } = &function.body.kind else {
+            panic!("wide update body remains a block")
+        };
+        let ResolvedExprKind::UpdateRecord { record, fields, .. } = &tail.kind else {
+            panic!("wide update tail remains an update")
+        };
+        assert_eq!(fields.len(), 1);
+        let untouched_droppable = program
+            .declarations
+            .record_fields(record)
+            .unwrap()
+            .iter()
+            .filter(|field| {
+                fields
+                    .iter()
+                    .all(|replacement| replacement.field != field.id)
+            })
+            .filter(|field| type_needs_drop(&program, function, &field.ty).unwrap())
+            .count();
+        assert_eq!(untouched_droppable, 31);
+        let active_paths = expression_path_counts(function, tail).unwrap().normal;
+        let untouched_work = untouched_droppable
+            .checked_mul(active_paths)
+            .and_then(|units| units.checked_mul(8))
+            .unwrap();
+        let derived = skeleton_work_upper(&program, function).unwrap();
+        assert!(derived >= untouched_work);
+
+        reset_skeleton_materializations();
+        let mut budget = ReplayBudget::with_skeleton_limit(derived);
+        validate_structure_with_budget(&program, function, &mut budget).unwrap();
+        let charged = derived - budget.skeleton_remaining;
+        assert!(charged <= derived);
+        assert!(skeleton_materializations() <= charged);
+    }
+
+    #[test]
+    fn terminated_prefix_skips_unreachable_invalid_lazy_if_and_match_children() {
+        fn unreachable_prefix(
+            program: &ResolvedProgram,
+            function: &ResolvedFunction,
+            expression: &ResolvedExpr,
+        ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
+            let mut budget = ReplayBudget::with_skeleton_limit(MAX_REPLAY_WORK_UNITS);
+            let mut work = SkeletonWork {
+                function,
+                budget: &mut budget,
+            };
+            let mut path = empty_expr_path();
+            path.failed = true;
+            let prefixes = work.singleton_path(path, "unreachable hostile prefix")?;
+            sequence_expression(program, function, prefixes, expression, &mut work)
+        }
+
+        fn poison(expression: &mut ResolvedExpr) {
+            expression.kind = ResolvedExprKind::Call {
+                callee: DeclarationId::new("hostile.unreachable.callee"),
+                type_arguments: Vec::new(),
+                instance: None,
+                args: Vec::new(),
+            };
+        }
+
+        let program = program();
+        let mut if_function = function(&program, "flow.bool");
+        let ResolvedExprKind::Block { tail, .. } = &mut if_function.body.kind else {
+            panic!("if fixture retains its body block")
+        };
+        let ResolvedExprKind::If { then_branch, .. } = &mut tail.kind else {
+            panic!("if fixture retains its conditional tail")
+        };
+        poison(then_branch);
+        let expression = (**tail).clone();
+        let paths = unreachable_prefix(&program, &if_function, &expression).unwrap();
+        assert_eq!(paths.len(), 1);
+        assert!(paths[0].failed);
+
+        let mut match_function = function(&program, "choice.select");
+        let ResolvedExprKind::Block { tail, .. } = &mut match_function.body.kind else {
+            panic!("match fixture retains its body block")
+        };
+        let ResolvedExprKind::Match { arms, .. } = &mut tail.kind else {
+            panic!("match fixture retains its match tail")
+        };
+        poison(&mut arms[0].value);
+        let expression = (**tail).clone();
+        let paths = unreachable_prefix(&program, &match_function, &expression).unwrap();
+        assert_eq!(paths.len(), 1);
+        assert!(paths[0].failed);
+
+        let parsed = parse(
+            "module replay.lazy_unreachable; @id(\"lazy\") fn lazy(left: bool, right: bool) -> bool { left && right } @id(\"app.main\") fn main() -> i64 { 0 }",
+            Path::new("cleanup-replay-lazy-unreachable.spx"),
+        )
+        .unwrap();
+        let lazy_program = hir::resolve(&parsed).unwrap();
+        let mut lazy_function = function(&lazy_program, "lazy");
+        let ResolvedExprKind::Block { tail, .. } = &mut lazy_function.body.kind else {
+            panic!("lazy fixture retains its body block")
+        };
+        let ResolvedExprKind::Binary { right, .. } = &mut tail.kind else {
+            panic!("lazy fixture retains its binary tail")
+        };
+        poison(right);
+        let expression = (**tail).clone();
+        let paths = unreachable_prefix(&lazy_program, &lazy_function, &expression).unwrap();
+        assert_eq!(paths.len(), 1);
+        assert!(paths[0].failed);
+    }
+
+    #[test]
+    fn wide_match_path_clones_and_pushes_are_charged_before_materialization() {
+        fn replay_with_limit(
+            program: &ResolvedProgram,
+            function: &ResolvedFunction,
+            expression: &ResolvedExpr,
+            limit: usize,
+        ) -> Result<(Vec<ExprSkeletonPath>, usize), Diagnostic> {
+            let mut budget = ReplayBudget::with_skeleton_limit(limit);
+            let paths = {
+                let mut work = SkeletonWork {
+                    function,
+                    budget: &mut budget,
+                };
+                expression_skeleton(program, function, expression, &mut work)?
+            };
+            Ok((paths, limit - budget.skeleton_remaining))
+        }
+
+        let program = program();
+        let function = function(&program, "choice.select");
+        let ResolvedExprKind::Block { tail, .. } = &function.body.kind else {
+            panic!("wide match fixture retains its body block")
+        };
+        let (paths, charged) =
+            replay_with_limit(&program, &function, tail, MAX_REPLAY_WORK_UNITS).unwrap();
+        let retained_units = paths.iter().fold(0usize, |total, path| {
+            total.saturating_add(path.observations.len().saturating_add(1))
+        });
+        assert!(
+            paths.len() >= 4,
+            "wide match produced {} paths",
+            paths.len()
+        );
+        assert!(
+            charged > retained_units,
+            "clone/push work must exceed retained paths"
+        );
+        replay_with_limit(&program, &function, tail, charged).unwrap();
+        let diagnostic = match replay_with_limit(&program, &function, tail, charged - 1) {
+            Err(diagnostic) => diagnostic,
+            Ok(_) => panic!("one-less path budget unexpectedly succeeded"),
+        };
+        assert_eq!(diagnostic.code, "SPX-H006");
+        assert!(diagnostic.message.contains("work budget exhausted during"));
     }
 
     #[test]

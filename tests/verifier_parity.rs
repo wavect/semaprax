@@ -70,3 +70,145 @@ fn main() -> i64 { 42 }
         r#"{"code":"SPX-S103","severity":"warning","message":"function `main` has an automatic identity that changes when renamed","path":"fixtures/verifier-warnings.spx","location":{"line":3,"column":4,"start":35,"end":39},"help":"add @id(\"your.namespace.symbol\") before the declaration"}"#
     );
 }
+
+fn ordered_errors(program: &semaprax::ast::Program) -> Vec<String> {
+    verify::verify(program)
+        .into_iter()
+        .filter(|diagnostic| diagnostic.severity.is_error())
+        .map(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))
+        .collect()
+}
+
+#[test]
+fn iterative_recovery_preserves_child_parent_and_fallback_order() {
+    let source = r#"
+module test.verifier_recovery;
+
+@id("test.zero")
+fn zero() -> i64 { 0 }
+
+@id("test.recover")
+fn recover() -> i64 {
+    let call = zero(missing_a, missing_b);
+    let unary = -missing_unary;
+    let projected = missing_base.field;
+    missing_tail
+}
+
+@id("test.fallback")
+fn fallback(value: Result<i64, bool>) -> i64 {
+    let unwrapped = value?;
+    missing_after_fallback
+}
+
+@id("test.branch")
+fn branch() -> i64 {
+    if 1 { missing_then } else { missing_else }
+}
+
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+    let program = parse(source, Path::new("fixtures/verifier-recovery.spx")).unwrap();
+    let expected = vec![
+        "SPX-T204: `zero` expects 0 arguments, received 2",
+        "SPX-T202: unknown value `missing_a` in `recover`",
+        "SPX-T202: unknown value `missing_b` in `recover`",
+        "SPX-T202: unknown value `missing_unary` in `recover`",
+        "SPX-T202: unknown value `missing_base` in `recover`",
+        "SPX-T202: unknown value `missing_tail` in `recover`",
+        "SPX-T218: function `fallback` must return the ordinary compiler-owned Result to propagate a Result with `?`",
+        "SPX-T202: unknown value `missing_after_fallback` in `fallback`",
+        "SPX-T210: `if` condition must be bool",
+        "SPX-T202: unknown value `missing_then` in `branch`",
+        "SPX-T202: unknown value `missing_else` in `branch`",
+    ];
+
+    assert_eq!(ordered_errors(&program), expected);
+    let analysis = hir::analyze(&program);
+    assert!(analysis.resolved.is_none());
+    assert_eq!(
+        analysis
+            .diagnostics
+            .iter()
+            .filter(|diagnostic| diagnostic.severity.is_error())
+            .map(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))
+            .collect::<Vec<_>>(),
+        expected
+    );
+}
+
+#[test]
+fn iterative_ownership_mutations_commit_only_at_the_frozen_scope_boundaries() {
+    let source = r#"
+module test.verifier_ownership_recovery;
+
+@id("buffer.type")
+resource Buffer {
+    @id("buffer.type.drop")
+    drop trivial;
+}
+
+@id("buffer.inspect")
+fn inspect(buffer: borrow Buffer) -> i64 { 1 }
+
+@id("buffer.consume")
+fn consume(buffer: own Buffer) -> i64 { 1 }
+
+@id("test.zero")
+fn zero() -> i64 { 0 }
+
+@id("test.commit_after_none")
+fn commit_after_none(buffer: own Buffer) -> i64 {
+    let consumed = consume(buffer) + missing_rhs;
+    inspect(buffer)
+}
+
+@id("test.unmatched_argument")
+fn unmatched_argument(buffer: own Buffer) -> i64 {
+    let ignored = zero(buffer);
+    inspect(buffer)
+}
+
+@id("test.rejected_shadow")
+fn rejected_shadow(buffer: own Buffer) -> i64 {
+    let buffer = buffer;
+    inspect(buffer)
+}
+
+@id("test.branch_join")
+fn branch_join(flag: bool, buffer: own Buffer) -> i64 {
+    let maybe = if flag { consume(buffer) } else { missing_else };
+    inspect(buffer)
+}
+
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+    let program = parse(
+        source,
+        Path::new("fixtures/verifier-ownership-recovery.spx"),
+    )
+    .unwrap();
+    let expected = vec![
+        "SPX-T202: unknown value `missing_rhs` in `commit_after_none`",
+        "SPX-O101: use of resource `buffer` after ownership was moved",
+        "SPX-T204: `zero` expects 0 arguments, received 1",
+        "SPX-T209: local binding `buffer` shadows an existing value",
+        "SPX-T202: unknown value `missing_else` in `branch_join`",
+        "SPX-O107: resource `buffer` may have been moved on another control-flow path",
+    ];
+
+    assert_eq!(ordered_errors(&program), expected);
+    let analysis = hir::analyze(&program);
+    assert!(analysis.resolved.is_none());
+    assert_eq!(
+        analysis
+            .diagnostics
+            .iter()
+            .filter(|diagnostic| diagnostic.severity.is_error())
+            .map(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))
+            .collect::<Vec<_>>(),
+        expected
+    );
+}

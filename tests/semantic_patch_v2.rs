@@ -39,6 +39,10 @@ fn first_call<'a>(expression: &'a ResolvedExpr, template: &str) -> Option<&'a Re
             args.iter()
                 .find_map(|argument| first_call(argument, template))
         }
+        ResolvedExprKind::NativeRustImportCall(call) => call
+            .args
+            .iter()
+            .find_map(|argument| first_call(argument, template)),
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Try { operand: value, .. }
         | ResolvedExprKind::TryOption { operand: value, .. } => first_call(value, template),

@@ -628,6 +628,11 @@ Exit criterion: implement a zero-copy parser and server without a tracing GC.
   Ubuntu/macOS/Windows evidence in both call directions before describing a
   shape as supported. Rust `unsafe` remains confined to reviewed boundary code
   and never becomes ambient SEMAPRAX authority.
+- The private scalar A+B precursor is locally green with direct-rustc
+  fixed-point authority, a pre-effect 12-use process arena, prepared
+  filesystem/publication authority, and fail-stop settlement. Exact-head
+  Ubuntu/macOS/Windows and Linux sanitizer evidence remain the promotion gate;
+  compiler sysroot/dynamic-library descendant provenance remains a nonclaim.
 - Capability-sandboxed reproducible package builds.
 - Provenance, SBOM, license, and unsafe-code metadata.
 - Capability-sandboxed agent-tool components, a non-exporting secret-store

@@ -289,6 +289,7 @@ pub fn build_trace_path_certificate(
                             },
                         )?);
                         let outcome = match function.return_type {
+                            ResolvedType::Unit => TracePathOutcome::ScalarSuccess,
                             ResolvedType::I64 | ResolvedType::Bool => {
                                 TracePathOutcome::ScalarSuccess
                             }

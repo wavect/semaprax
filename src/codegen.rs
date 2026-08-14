@@ -97,6 +97,16 @@ impl COutput for crate::bounded_output::CappedString {
 
 /// Resolve a parsed program fail-closed, then emit its checked native bootstrap IR.
 pub fn emit_c(program: &Program) -> Result<String, Diagnostic> {
+    if program
+        .interfaces
+        .iter()
+        .flat_map(|interface| &interface.imports)
+        .any(|import| import.native_rust)
+    {
+        return Err(backend_error(
+            "native Rust imports are unavailable for the ordinary native target",
+        ));
+    }
     let resolved = hir::resolve(program).map_err(first_backend_diagnostic)?;
     emit_resolved_c_with_source(program, &resolved)
 }
@@ -110,6 +120,7 @@ pub(crate) fn emit_resolved_c_with_source(
     source: &Program,
     resolved: &ResolvedProgram,
 ) -> Result<String, Diagnostic> {
+    reject_native_rust_for_native(resolved)?;
     let labels = contract_labels(source, resolved);
     emit_hir_c_with_labels(resolved, &labels)
 }
@@ -120,7 +131,22 @@ pub(crate) fn emit_resolved_c_with_source(
 /// that code generation consumes semantic identities and centralized type facts,
 /// rather than reconstructing either from source names.
 pub fn emit_hir_c(program: &ResolvedProgram) -> Result<String, Diagnostic> {
+    reject_native_rust_for_native(program)?;
     emit_hir_c_with_labels(program, &HashMap::new())
+}
+
+fn reject_native_rust_for_native(program: &ResolvedProgram) -> Result<(), Diagnostic> {
+    if program
+        .interfaces
+        .iter()
+        .flat_map(|interface| &interface.imports)
+        .any(|import| import.native_rust)
+    {
+        return Err(backend_error(
+            "native Rust imports are unavailable for the ordinary native target",
+        ));
+    }
+    Ok(())
 }
 
 /// Doc-hidden public descriptor/provider artifact for one already validated
@@ -286,6 +312,14 @@ fn emit_native_callable_admission_core(
     program: &ResolvedProgram,
     function_id: &DeclarationId,
 ) -> Result<NativeCallableAdmissionCore, Diagnostic> {
+    if program
+        .interfaces
+        .iter()
+        .flat_map(|interface| &interface.imports)
+        .any(|import| import.native_rust)
+    {
+        return Err(resource_lowering_gate());
+    }
     hir::validate(program)?;
     if !program.function_templates.is_empty() || !program.function_instances.is_empty() {
         return Err(backend_error(
@@ -1838,6 +1872,7 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
     match &expression.kind {
         ResolvedExprKind::Try { .. } | ResolvedExprKind::TryOption { .. } => true,
         ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_try),
+        ResolvedExprKind::NativeRustImportCall(call) => call.args.iter().any(expression_has_try),
         ResolvedExprKind::Unary { value, .. } | ResolvedExprKind::Project { base: value, .. } => {
             expression_has_try(value)
         }
@@ -2175,6 +2210,12 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     code: temporary,
                     ty: target.return_type,
                 }
+            }
+            ResolvedExprKind::NativeRustImportCall(call) => {
+                return Err(backend_error(format!(
+                    "native Rust import `{}` is unavailable in the ordinary native backend",
+                    call.import
+                )));
             }
             ResolvedExprKind::Unary { op, value } => {
                 let value = self.emit_expr(value)?;

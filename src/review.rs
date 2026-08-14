@@ -419,6 +419,8 @@ fn build_from_preflight_with_limits(
         let candidate_resolved = hir::resolve(preflight.candidate())?;
         hir::validate(&before_resolved).map_err(|error| vec![error])?;
         hir::validate(&candidate_resolved).map_err(|error| vec![error])?;
+        graph::reject_native_rust_imports(&before_resolved).map_err(|error| vec![error])?;
+        graph::reject_native_rust_imports(&candidate_resolved).map_err(|error| vec![error])?;
         Ok((before_resolved, candidate_resolved))
     };
     let (before_resolved, candidate_resolved) = if let Some(limit) = max_candidate_bytes {

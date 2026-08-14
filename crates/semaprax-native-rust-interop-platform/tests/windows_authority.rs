@@ -1,0 +1,472 @@
+#![cfg(windows)]
+
+use semaprax_native_rust_interop_platform::{
+    clang_version_bounded, create_directory_new, discard_owned_stage_prepared, execute_harness,
+    hold_directory, hold_executable, hold_regular_file, inventory_exact_prepared,
+    prepare_discard_inventory, prepare_inventory_exact, prepare_publish_directory,
+    prepare_stage_name, publish_directory_new_prepared, read_exact, recheck_directory,
+    same_directory_path, write_file_new, Error, HeldDirectory, HeldRegularFile,
+};
+use std::ffi::OsStr;
+use std::fs::{self, File};
+use std::io::Read as _;
+use std::ops::Deref;
+use std::os::windows::io::AsRawHandle as _;
+use std::path::{Path, PathBuf};
+use std::process::Command;
+use std::time::{Duration, Instant};
+
+fn discard_one(
+    parent: &HeldDirectory,
+    stage: &HeldDirectory,
+    stage_name: &'static str,
+    file_name: &'static str,
+    file: HeldRegularFile,
+) -> Result<(), Error> {
+    let stage_name = prepare_stage_name(OsStr::new(stage_name))?;
+    let mut inventory = prepare_discard_inventory([OsStr::new(file_name)])?;
+    inventory.attach(file_name, file)?;
+    discard_owned_stage_prepared(parent, stage, &stage_name, &inventory)
+}
+
+struct OwnedRoot {
+    path: PathBuf,
+    authority: Option<HeldDirectory>,
+}
+
+impl Deref for OwnedRoot {
+    type Target = Path;
+
+    fn deref(&self) -> &Self::Target {
+        &self.path
+    }
+}
+
+impl Drop for OwnedRoot {
+    fn drop(&mut self) {
+        let Some(authority) = self.authority.take() else {
+            return;
+        };
+        let identity_matches = recheck_directory(&authority).is_ok()
+            && same_directory_path(&authority, &self.path) == Ok(true);
+        drop(authority);
+        let Ok(metadata) = fs::symlink_metadata(&self.path) else {
+            return;
+        };
+        if metadata.is_dir() && !metadata.file_type().is_symlink() && identity_matches {
+            fs::remove_dir_all(&self.path).unwrap();
+        }
+    }
+}
+
+fn root(label: &str) -> OwnedRoot {
+    let parent = fs::canonicalize(std::env::temp_dir()).unwrap();
+    for _ in 0..32 {
+        let mut random = [0_u8; 16];
+        File::open("NUL")
+            .and_then(|mut file| file.read_exact(&mut random))
+            .unwrap_or_else(|_| {
+                random[..8].copy_from_slice(
+                    &std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap()
+                        .as_nanos()
+                        .to_le_bytes()[..8],
+                );
+            });
+        let nonce = random
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>();
+        let path = parent.join(format!(
+            "semaprax-native-rust-platform-{label}-{}-{nonce}",
+            std::process::id()
+        ));
+        match fs::create_dir(&path) {
+            Ok(()) => {
+                let authority = hold_directory(&path).unwrap();
+                return OwnedRoot {
+                    path,
+                    authority: Some(authority),
+                };
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
+            Err(error) => panic!("create owned Windows test root: {error}"),
+        }
+    }
+    panic!("could not allocate an owned Windows test root")
+}
+
+fn compile_c(root: &Path, name: &str, source: &str) -> PathBuf {
+    let source_path = root.join(format!("{name}.c"));
+    let executable = root.join(format!("{name}.exe"));
+    fs::write(&source_path, source).unwrap();
+    let compiler = std::env::var_os("CLANG").unwrap_or_else(|| "clang".into());
+    let output = Command::new(compiler)
+        .env("TMP", root)
+        .env("TEMP", root)
+        .args(["-std=c11", "-Wall", "-Wextra", "-Werror", "-O2"])
+        .arg(&source_path)
+        .arg("-o")
+        .arg(&executable)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    executable
+}
+
+#[test]
+fn windows_junctions_and_same_path_directory_substitution_are_rejected() {
+    let root = root("directory-authority");
+    let real = root.join("real");
+    fs::create_dir(&real).unwrap();
+    let junction = root.join("junction");
+    let linked = Command::new("cmd")
+        .args(["/d", "/c", "mklink", "/J"])
+        .arg(&junction)
+        .arg(&real)
+        .output()
+        .unwrap();
+    assert!(linked.status.success());
+    assert_eq!(hold_directory(&junction).err(), Some(Error::Changed));
+
+    let held = hold_directory(&real).unwrap();
+    let displaced = root.join("displaced");
+    fs::rename(&real, &displaced).unwrap();
+    fs::create_dir(&real).unwrap();
+    recheck_directory(&held).unwrap();
+    let parent = hold_directory(&root).unwrap();
+    let stage_name = prepare_stage_name(OsStr::new("real")).unwrap();
+    let mut publish = prepare_publish_directory(OsStr::new("output")).unwrap();
+    assert_eq!(
+        publish_directory_new_prepared(
+            &mut publish,
+            &parent,
+            &held,
+            &stage_name,
+            OsStr::new("output")
+        )
+        .err(),
+        Some(Error::Changed)
+    );
+    assert!(displaced.is_dir());
+    assert!(real.is_dir());
+}
+
+#[test]
+fn windows_create_inventory_publish_and_exact_discard_are_no_clobber() {
+    let root = root("publish-discard");
+    let parent = hold_directory(&root).unwrap();
+    let stage = create_directory_new(&parent, OsStr::new("stage"), 0o700).unwrap();
+    let file = write_file_new(&stage, OsStr::new("artifact"), b"authenticated", 0o600).unwrap();
+    assert_eq!(read_exact(&file, 13).unwrap(), b"authenticated");
+    assert_eq!(read_exact(&file, 12), Err(Error::OutputLimit));
+    let mut inventory = prepare_discard_inventory([OsStr::new("artifact")]).unwrap();
+    inventory
+        .attach(
+            "artifact",
+            hold_regular_file(&stage, OsStr::new("artifact")).unwrap(),
+        )
+        .unwrap();
+    let mut exact = prepare_inventory_exact(&inventory).unwrap();
+    inventory_exact_prepared(&mut exact, &stage, &inventory).unwrap();
+
+    let foreign = root.join("foreign");
+    fs::create_dir(&foreign).unwrap();
+    fs::write(foreign.join("sentinel"), b"foreign").unwrap();
+    let stage_name = prepare_stage_name(OsStr::new("stage")).unwrap();
+    let mut publish = prepare_publish_directory(OsStr::new("foreign")).unwrap();
+    assert_eq!(
+        publish_directory_new_prepared(
+            &mut publish,
+            &parent,
+            &stage,
+            &stage_name,
+            OsStr::new("foreign")
+        )
+        .err(),
+        Some(Error::Exists)
+    );
+    assert_eq!(fs::read(foreign.join("sentinel")).unwrap(), b"foreign");
+
+    discard_one(&parent, &stage, "stage", "artifact", file).unwrap();
+    assert!(!root.join("stage").exists());
+}
+
+#[test]
+fn windows_discard_stops_on_inventory_and_stage_identity_drift() {
+    let root = root("discard-hostile");
+    let parent = hold_directory(&root).unwrap();
+    let stage = create_directory_new(&parent, OsStr::new("stage"), 0o700).unwrap();
+    let file = write_file_new(&stage, OsStr::new("artifact"), b"authenticated", 0o600).unwrap();
+    fs::write(root.join("stage/foreign-sentinel"), b"foreign").unwrap();
+    let stage_name = prepare_stage_name(OsStr::new("stage")).unwrap();
+    let mut inventory = prepare_discard_inventory([OsStr::new("artifact")]).unwrap();
+    inventory.attach("artifact", file).unwrap();
+    assert_eq!(
+        discard_owned_stage_prepared(&parent, &stage, &stage_name, &inventory),
+        Err(Error::Changed)
+    );
+    assert_eq!(
+        fs::read(root.join("stage/foreign-sentinel")).unwrap(),
+        b"foreign"
+    );
+
+    fs::rename(root.join("stage"), root.join("displaced-stage")).unwrap();
+    fs::create_dir(root.join("stage")).unwrap();
+    fs::write(root.join("stage/foreign-sentinel"), b"substitute").unwrap();
+    assert_eq!(
+        discard_owned_stage_prepared(&parent, &stage, &stage_name, &inventory),
+        Err(Error::Changed)
+    );
+    assert_eq!(
+        fs::read(root.join("stage/foreign-sentinel")).unwrap(),
+        b"substitute"
+    );
+    assert_eq!(
+        fs::read(root.join("displaced-stage/artifact")).unwrap(),
+        b"authenticated"
+    );
+
+    let file_stage = create_directory_new(&parent, OsStr::new("file-stage"), 0o700).unwrap();
+    let held = write_file_new(
+        &file_stage,
+        OsStr::new("artifact"),
+        b"authenticated-file",
+        0o600,
+    )
+    .unwrap();
+    fs::rename(
+        root.join("file-stage/artifact"),
+        root.join("displaced-artifact"),
+    )
+    .unwrap();
+    fs::write(root.join("file-stage/artifact"), b"foreign-file").unwrap();
+    assert_eq!(
+        discard_one(&parent, &file_stage, "file-stage", "artifact", held),
+        Err(Error::Changed)
+    );
+    assert_eq!(
+        fs::read(root.join("file-stage/artifact")).unwrap(),
+        b"foreign-file"
+    );
+    assert_eq!(
+        fs::read(root.join("displaced-artifact")).unwrap(),
+        b"authenticated-file"
+    );
+}
+
+#[test]
+fn windows_held_executable_uses_held_identity_empty_environment_and_closed_handles() {
+    const HANDLE_FLAG_INHERIT: u32 = 1;
+    unsafe extern "system" {
+        fn SetHandleInformation(handle: *mut core::ffi::c_void, mask: u32, flags: u32) -> i32;
+    }
+
+    let root = root("held-executable");
+    let inherited = File::open("NUL").unwrap();
+    let raw = inherited.as_raw_handle();
+    assert_ne!(
+        unsafe { SetHandleInformation(raw.cast(), HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT) },
+        0
+    );
+    let good = compile_c(
+        &root,
+        "good",
+        &format!(
+            "#include <windows.h>\n#include <stdint.h>\n#include <stdlib.h>\nint main(void){{DWORD flags=0;if(getenv(\"PATH\")!=0)return 8;if(GetHandleInformation((HANDLE)(uintptr_t){},&flags))return 9;return 0;}}\n",
+            raw as usize
+        ),
+    );
+    let bad = compile_c(&root, "bad", "int main(void){return 77;}\n");
+    let probe = root.join("probe.exe");
+    fs::rename(&good, &probe).unwrap();
+    let directory = hold_directory(&root).unwrap();
+    let held = hold_executable(&directory, OsStr::new("probe.exe")).unwrap();
+    fs::rename(&probe, root.join("displaced-probe.exe")).unwrap();
+    fs::copy(&bad, &probe).unwrap();
+
+    execute_harness(&held, &directory).unwrap();
+    assert!(root.join("displaced-probe.exe").is_file());
+    assert!(probe.is_file());
+}
+
+#[test]
+fn windows_run_argv_handles_zero_and_small_stdout_at_normal_eof() {
+    let root = root("normal-eof");
+    let silent = compile_c(&root, "silent", "int main(void){return 0;}\n");
+    let small = compile_c(
+        &root,
+        "small",
+        "#include <stdio.h>\nint main(void){fputs(\"ok\",stdout);return 0;}\n",
+    );
+    let directory = hold_directory(&root).unwrap();
+    let silent = hold_executable(&directory, silent.file_name().unwrap()).unwrap();
+    let small = hold_executable(&directory, small.file_name().unwrap()).unwrap();
+    assert_eq!(
+        clang_version_bounded(&silent, &directory, 0)
+            .unwrap()
+            .bytes(),
+        b""
+    );
+    assert_eq!(
+        clang_version_bounded(&small, &directory, 2)
+            .unwrap()
+            .bytes(),
+        b"ok"
+    );
+    assert_eq!(
+        clang_version_bounded(&small, &directory, 1).err(),
+        Some(Error::OutputLimit)
+    );
+}
+
+#[test]
+fn windows_names_are_exact_ascii_non_dos_and_casefold_no_clobber() {
+    let root = root("names");
+    let parent = hold_directory(&root).unwrap();
+    let stage = create_directory_new(&parent, OsStr::new("s"), 0o700).unwrap();
+    let one = write_file_new(&stage, OsStr::new("a"), b"one", 0o600).unwrap();
+    assert_eq!(
+        write_file_new(&stage, OsStr::new("A"), b"foreign", 0o600).err(),
+        Some(Error::Exists)
+    );
+    assert_eq!(read_exact(&one, 3).unwrap(), b"one");
+    for reserved in [
+        "CON", "con.txt", "PRN", "AUX", "NUL", "CLOCK$", "COM1", "com9.log", "LPT1", "lpt9.bin",
+    ] {
+        assert_eq!(
+            write_file_new(&stage, OsStr::new(reserved), b"x", 0o600).err(),
+            Some(Error::Invalid),
+            "reserved Windows name {reserved} was accepted"
+        );
+    }
+    let mut inventory = prepare_discard_inventory([OsStr::new("a")]).unwrap();
+    inventory
+        .attach("a", hold_regular_file(&stage, OsStr::new("a")).unwrap())
+        .unwrap();
+    let mut exact = prepare_inventory_exact(&inventory).unwrap();
+    inventory_exact_prepared(&mut exact, &stage, &inventory).unwrap();
+    discard_one(&parent, &stage, "s", "a", one).unwrap();
+}
+
+#[test]
+fn windows_descendant_held_stdout_is_quiesced_without_output_overflow() {
+    let root = root("descendant-stdout");
+    compile_c(
+        &root,
+        "quiet_tree",
+        "#include <windows.h>\n#include <stdio.h>\n#include <string.h>\nint main(int argc,char **argv){if(argc==2&&strcmp(argv[1],\"child\")==0){Sleep(30000);return 0;}char path[MAX_PATH];if(!GetModuleFileNameA(NULL,path,MAX_PATH))return 4;char command[MAX_PATH+16];if(sprintf_s(command,sizeof(command),\"\\\"%s\\\" child\",path)<0)return 5;STARTUPINFOA startup={0};startup.cb=sizeof(startup);PROCESS_INFORMATION process={0};if(!CreateProcessA(NULL,command,NULL,NULL,TRUE,0,NULL,NULL,&startup,&process))return 6;FILE *file=fopen(\"descendant.pid\",\"w\");if(!file)return 7;fprintf(file,\"%lu\",(unsigned long)process.dwProcessId);fclose(file);CloseHandle(process.hThread);CloseHandle(process.hProcess);return 0;}\n",
+    );
+    let directory = hold_directory(&root).unwrap();
+    let held = hold_executable(&directory, OsStr::new("quiet_tree.exe")).unwrap();
+    let started = Instant::now();
+    execute_harness(&held, &directory).unwrap();
+    assert!(started.elapsed() < Duration::from_secs(10));
+    let descendant = fs::read_to_string(root.join("descendant.pid")).unwrap();
+    let listed = Command::new("tasklist")
+        .args(["/FI", &format!("PID eq {descendant}"), "/FO", "CSV", "/NH"])
+        .output()
+        .unwrap();
+    assert!(!String::from_utf8_lossy(&listed.stdout).contains(&format!("\"{descendant}\"")));
+}
+
+#[test]
+fn windows_silent_timeout_is_bounded_and_reaps_the_leader() {
+    let root = root("silent-timeout");
+    compile_c(
+        &root,
+        "silent_timeout",
+        "#include <windows.h>\n#include <stdio.h>\nint main(void){FILE *file=fopen(\"leader.pid\",\"w\");if(!file)return 3;fprintf(file,\"%lu\",(unsigned long)GetCurrentProcessId());fclose(file);Sleep(60000);return 0;}\n",
+    );
+    let directory = hold_directory(&root).unwrap();
+    let held = hold_executable(&directory, OsStr::new("silent_timeout.exe")).unwrap();
+    let started = Instant::now();
+    assert_eq!(execute_harness(&held, &directory), Err(Error::Spawn));
+    let elapsed = started.elapsed();
+    assert!(elapsed >= Duration::from_secs(30));
+    assert!(elapsed < Duration::from_secs(40));
+    let leader = fs::read_to_string(root.join("leader.pid")).unwrap();
+    let listed = Command::new("tasklist")
+        .args(["/FI", &format!("PID eq {leader}"), "/FO", "CSV", "/NH"])
+        .output()
+        .unwrap();
+    assert!(!String::from_utf8_lossy(&listed.stdout).contains(&format!("\"{leader}\"")));
+}
+
+#[test]
+fn windows_output_overflow_kills_and_reaps_the_process_tree_with_a_bounded_wait() {
+    let root = root("bounded-kill");
+    compile_c(
+        &root,
+        "noisy",
+        "#include <windows.h>\n#include <stdio.h>\n#include <string.h>\nint main(int argc,char **argv){if(argc==2&&strcmp(argv[1],\"child\")==0){FILE *file=fopen(\"descendant.pid\",\"w\");if(!file)return 3;fprintf(file,\"%lu\",(unsigned long)GetCurrentProcessId());fclose(file);Sleep(30000);return 0;}char path[MAX_PATH];if(!GetModuleFileNameA(NULL,path,MAX_PATH))return 4;char command[MAX_PATH+16];if(sprintf_s(command,sizeof(command),\"\\\"%s\\\" child\",path)<0)return 5;STARTUPINFOA startup={0};startup.cb=sizeof(startup);PROCESS_INFORMATION process={0};if(!CreateProcessA(NULL,command,NULL,NULL,FALSE,0,NULL,NULL,&startup,&process))return 6;CloseHandle(process.hThread);CloseHandle(process.hProcess);while(GetFileAttributesA(\"descendant.pid\")==INVALID_FILE_ATTRIBUTES)Sleep(1);fputs(\"x\",stdout);fflush(stdout);Sleep(30000);return 0;}\n",
+    );
+    let directory = hold_directory(&root).unwrap();
+    let held = hold_executable(&directory, OsStr::new("noisy.exe")).unwrap();
+    let started = Instant::now();
+    assert_eq!(execute_harness(&held, &directory), Err(Error::OutputLimit));
+    assert!(started.elapsed() < Duration::from_secs(10));
+
+    let descendant = fs::read_to_string(root.join("descendant.pid")).unwrap();
+    let deadline = Instant::now() + Duration::from_secs(2);
+    loop {
+        let listed = Command::new("tasklist")
+            .args(["/FI", &format!("PID eq {descendant}"), "/FO", "CSV", "/NH"])
+            .output()
+            .unwrap();
+        let output = String::from_utf8_lossy(&listed.stdout);
+        if !output.contains(&format!("\"{descendant}\"")) {
+            break;
+        }
+        if Instant::now() >= deadline {
+            let _ = Command::new("taskkill")
+                .args(["/PID", &descendant, "/F"])
+                .output();
+            panic!("owned Windows descendant remained observable after harness return");
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
+}
+
+#[test]
+fn windows_external_consumer_cannot_extract_handles_or_reach_sys_quarantine() {
+    let root = root("opacity");
+    fs::create_dir(root.join("src")).unwrap();
+    let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+    fs::write(
+        root.join("Cargo.toml"),
+        format!(
+            "[package]\nname='windows-opacity-probe'\nversion='0.0.0'\nedition='2021'\n[dependencies]\nsemaprax-native-rust-interop-platform={{path={manifest_dir:?}}}\n"
+        ),
+    )
+    .unwrap();
+    fs::write(
+        root.join("src/main.rs"),
+        r#"use semaprax_native_rust_interop_platform::{hold_directory,HeldDirectory};
+use std::os::windows::io::AsRawHandle;
+fn raw(directory:&HeldDirectory)->*mut core::ffi::c_void{directory.0.as_raw_handle()}
+fn require_clone<T:Clone>(){}
+fn clone_it(){require_clone::<HeldDirectory>();}
+fn debug_it(directory:&HeldDirectory){let _=format!("{directory:?}");}
+fn main(){let _=hold_directory(std::path::Path::new("C:\\"));let _=semaprax_native_rust_interop_platform_sys::Error::Invalid;}
+"#,
+    )
+    .unwrap();
+    let checked = Command::new(std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into()))
+        .env("CARGO_TARGET_DIR", root.join("target"))
+        .args(["check", "--offline", "--quiet"])
+        .current_dir(&root)
+        .output()
+        .unwrap();
+    assert!(!checked.status.success());
+    let stderr = String::from_utf8_lossy(&checked.stderr);
+    assert!(stderr.contains("field `0` of struct `HeldDirectory` is private"));
+    assert!(stderr.contains("Clone"));
+    assert!(stderr.contains("Debug"));
+    assert!(stderr.contains("semaprax_native_rust_interop_platform_sys"));
+}

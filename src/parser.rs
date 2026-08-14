@@ -2,10 +2,10 @@ use std::path::Path;
 
 use crate::ast::{
     BinaryOp, Expr, ExprKind, FieldDeclaration, FieldInitializer, Function, ImportDeclaration,
-    ImportFailure, InterfaceDeclaration, MatchArm, MatchPattern, MatchPatternField, ModuleUse,
-    ModuleUseKind, Param, ParamMode, Program, ResourceLifecycleDeclaration, ResourceLifecycleKind,
-    Span, Statement, Type, TypeDeclaration, TypeDeclarationKind, TypeParameterDeclaration, UnaryOp,
-    VariantCaseDeclaration,
+    ImportFailure, ImportResult, InterfaceDeclaration, MatchArm, MatchPattern, MatchPatternField,
+    ModuleUse, ModuleUseKind, Param, ParamMode, Program, ResourceLifecycleDeclaration,
+    ResourceLifecycleKind, Span, Statement, Type, TypeDeclaration, TypeDeclarationKind,
+    TypeParameterDeclaration, UnaryOp, VariantCaseDeclaration,
 };
 use crate::diagnostic::Diagnostic;
 use crate::lexer::{lex, Token, TokenKind};
@@ -248,6 +248,12 @@ impl Parser {
             }
             let import_id = self.stable_id_attribute()?;
             let import_start = self.keyword("import")?.span;
+            let native_rust = if self.at_keyword("rust") {
+                self.bump();
+                true
+            } else {
+                false
+            };
             self.keyword("fn")?;
             let (import_name, import_name_span) = self.ident("import name")?;
             self.expect(&TokenKind::LParen, "`(` after import name")?;
@@ -282,34 +288,55 @@ impl Parser {
             }
             self.expect(&TokenKind::RParen, "`)` after import parameters")?;
             self.expect(&TokenKind::Arrow, "`->` before import result")?;
-            self.keyword("unit")?;
+            let result = if self.at_keyword("unit") {
+                self.bump();
+                ImportResult::Unit
+            } else if native_rust && self.at_keyword("i64") {
+                self.bump();
+                ImportResult::I64
+            } else if native_rust && self.at_keyword("bool") {
+                self.bump();
+                ImportResult::Bool
+            } else {
+                return Err(self.error_here("SPX-P106", "expected admitted import result type"));
+            };
             self.keyword("effects")?;
             let effects = self.effect_set()?;
-            self.keyword("failure")?;
-            let failure = if self.at_keyword("infallible") {
-                self.bump();
-                ImportFailure::Infallible
-            } else if self.at_keyword("status") {
-                self.bump();
-                let domain_id = match self.bump().kind.clone() {
-                    TokenKind::String(value) => value,
-                    _ => {
-                        return Err(self.error_previous(
-                            "SPX-P106",
-                            "expected status-domain string after `failure status`",
-                        ));
-                    }
-                };
-                ImportFailure::Status { domain_id }
-            } else {
-                return Err(self.error_here(
-                    "SPX-P106",
-                    "expected `infallible` or `status` after `failure`",
-                ));
+            let failure = {
+                if native_rust && !self.at_keyword("failure") {
+                    return Err(self.error_here("SPX-P106", "expected keyword `failure`"));
+                }
+                self.keyword("failure")?;
+                if self.at_keyword("infallible") {
+                    self.bump();
+                    ImportFailure::Infallible
+                } else if self.at_keyword("status") {
+                    self.bump();
+                    let domain_id = match self.bump().kind.clone() {
+                        TokenKind::String(value) => value,
+                        _ => {
+                            return Err(self.error_previous(
+                                "SPX-P106",
+                                "expected status-domain string after `failure status`",
+                            ));
+                        }
+                    };
+                    ImportFailure::Status { domain_id }
+                } else {
+                    return Err(self.error_here(
+                        "SPX-P106",
+                        "expected `infallible` or `status` after `failure`",
+                    ));
+                }
             };
-            self.keyword("consumes")?;
-            let (consumes, consumes_span) = self.ident("consumed parameter name")?;
-            self.keyword("always")?;
+            let (consumes, consumes_span) = if native_rust {
+                (String::new(), import_start)
+            } else {
+                self.keyword("consumes")?;
+                let consumed = self.ident("consumed parameter name")?;
+                self.keyword("always")?;
+                consumed
+            };
             let end = self
                 .expect(&TokenKind::Semicolon, "`;` after import contract")?
                 .span;
@@ -321,7 +348,9 @@ impl Parser {
                 explicit_id: import_explicit_id,
                 name: import_name,
                 name_span: import_name_span,
+                native_rust,
                 params,
+                result,
                 effects,
                 failure,
                 consumes,

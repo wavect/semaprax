@@ -265,6 +265,11 @@ fn collect_variant_domains(
                     visit(program, argument, domains)?;
                 }
             }
+            hir::ResolvedExprKind::NativeRustImportCall(call) => {
+                for argument in &call.args {
+                    visit(program, argument, domains)?;
+                }
+            }
             hir::ResolvedExprKind::Unary { value, .. }
             | hir::ResolvedExprKind::Project { base: value, .. } => {
                 visit(program, value, domains)?;
@@ -602,6 +607,10 @@ fn find_expression_by<'a>(
     }
     match &expression.kind {
         hir::ResolvedExprKind::Call { args, .. } => args
+            .iter()
+            .find_map(|argument| find_expression_by(argument, predicate)),
+        hir::ResolvedExprKind::NativeRustImportCall(call) => call
+            .args
             .iter()
             .find_map(|argument| find_expression_by(argument, predicate)),
         hir::ResolvedExprKind::Unary { value, .. }
@@ -1216,6 +1225,7 @@ impl<'a> Executor<'a> {
         result: &TraceResult,
     ) -> Result<(), CleanupExecutionError> {
         let matches_type = match (&self.function.return_type, result) {
+            (ResolvedType::Unit, _) => false,
             (ResolvedType::I64, TraceResult::I64(_))
             | (ResolvedType::Bool, TraceResult::Bool(_)) => true,
             (ResolvedType::Nominal { declaration, .. }, TraceResult::Owned { type_id }) => {
@@ -1229,6 +1239,8 @@ impl<'a> Executor<'a> {
                 storage.storage == StorageId::ProvisionalResult && storage.projections.is_empty()
             }
             (CleanupResultSource::Scalar { .. }, ResolvedType::Nominal { .. })
+            | (CleanupResultSource::Scalar { .. }, ResolvedType::Unit)
+            | (CleanupResultSource::Owned { .. }, ResolvedType::Unit)
             | (CleanupResultSource::Owned { .. }, ResolvedType::I64 | ResolvedType::Bool)
             | (_, ResolvedType::TypeParameter { .. }) => false,
         };

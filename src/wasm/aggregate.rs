@@ -247,6 +247,11 @@ impl FunctionPlan {
                     self.collect_expr(program, variant_layouts, arg, parameter_count, frame)?;
                 }
             }
+            ResolvedExprKind::NativeRustImportCall(call) => {
+                for arg in &call.args {
+                    self.collect_expr(program, variant_layouts, arg, parameter_count, frame)?;
+                }
+            }
             ResolvedExprKind::Unary { value, .. } => {
                 self.collect_expr(program, variant_layouts, value, parameter_count, frame)?;
             }
@@ -464,6 +469,7 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
     match &expression.kind {
         ResolvedExprKind::Try { .. } | ResolvedExprKind::TryOption { .. } => true,
         ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_try),
+        ResolvedExprKind::NativeRustImportCall(call) => call.args.iter().any(expression_has_try),
         ResolvedExprKind::Unary { value, .. } | ResolvedExprKind::Project { base: value, .. } => {
             expression_has_try(value)
         }
@@ -1268,6 +1274,10 @@ impl Emitter<'_> {
                 args,
                 ..
             } => self.emit_call(expr, callee, instance.as_ref(), args),
+            ResolvedExprKind::NativeRustImportCall(_) => Err(Diagnostic::io(
+                "SPX-W114",
+                "Native Rust imports are unavailable for WebAssembly targets",
+            )),
             ResolvedExprKind::Unary { op, value } => self.emit_unary(expr, *op, value),
             ResolvedExprKind::Binary { op, left, right } => {
                 self.emit_binary(expr, *op, left, right)

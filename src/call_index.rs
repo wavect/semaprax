@@ -6,6 +6,23 @@ use crate::hir::{
     ResolvedExprKind, ResolvedProgram, ResolvedStatement, ResolvedType,
 };
 
+#[cfg(test)]
+thread_local! {
+    static CAPACITY_HIGH_WATER: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+#[cfg(test)]
+fn reset_capacity_high_water() {
+    CAPACITY_HIGH_WATER.with(|water| water.set(0));
+}
+#[cfg(test)]
+fn capacity_high_water() -> usize {
+    CAPACITY_HIGH_WATER.with(std::cell::Cell::get)
+}
+#[cfg(test)]
+fn note_capacity_high_water(bytes: usize) {
+    CAPACITY_HIGH_WATER.with(|water| water.set(water.get().max(bytes)));
+}
+
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub(crate) enum PersistentCallableKind {
     Function,
@@ -190,88 +207,128 @@ impl PersistentCallIndex {
         region: CallRegion,
         expression: &ResolvedExpr,
     ) -> Result<(), Diagnostic> {
-        if let ResolvedExprKind::Call {
-            callee,
-            type_arguments,
-            instance,
-            ..
-        } = &expression.kind
-        {
-            let site = PersistentCallSite {
-                expression: expression.id.clone(),
-                owner: owner.clone(),
-                owner_kind,
-                owner_origin,
-                region,
-                callee: callee.clone(),
-                type_arguments: type_arguments.clone(),
-                instance: instance.clone(),
-            };
-            if self
-                .sites_by_expression
-                .insert(expression.id.as_str().to_owned(), site)
-                .is_some()
-            {
-                return Err(call_index_error(format!(
-                    "call expression `{}` has multiple source owners",
-                    expression.id
-                )));
+        enum Frame<'a> {
+            Enter(&'a ResolvedExpr),
+            Children(&'a ResolvedExpr, usize),
+        }
+        const { assert!(std::mem::size_of::<Frame<'static>>() == 16) };
+        fn child(expression: &ResolvedExpr, index: usize) -> Option<&ResolvedExpr> {
+            match &expression.kind {
+                ResolvedExprKind::Call { args, .. } => args.get(index),
+                ResolvedExprKind::NativeRustImportCall(call) => call.args.get(index),
+                ResolvedExprKind::Unary { value, .. }
+                | ResolvedExprKind::Project { base: value, .. }
+                | ResolvedExprKind::Try { operand: value, .. }
+                | ResolvedExprKind::TryOption { operand: value, .. } => {
+                    (index == 0).then_some(value)
+                }
+                ResolvedExprKind::Binary { left, right, .. } => {
+                    [left.as_ref(), right.as_ref()].get(index).copied()
+                }
+                ResolvedExprKind::Block { statements, tail } => statements
+                    .get(index)
+                    .map(|statement| {
+                        let ResolvedStatement::Let { value, .. } = statement;
+                        value
+                    })
+                    .or_else(|| (index == statements.len()).then_some(tail)),
+                ResolvedExprKind::If {
+                    condition,
+                    then_branch,
+                    else_branch,
+                } => [
+                    condition.as_ref(),
+                    then_branch.as_ref(),
+                    else_branch.as_ref(),
+                ]
+                .get(index)
+                .copied(),
+                ResolvedExprKind::ConstructRecord { fields, .. }
+                | ResolvedExprKind::ConstructVariant { fields, .. } => {
+                    fields.get(index).map(|field| &field.value)
+                }
+                ResolvedExprKind::Match { scrutinee, arms } => {
+                    if index == 0 {
+                        Some(scrutinee)
+                    } else {
+                        arms.get(index - 1).map(|arm| &arm.value)
+                    }
+                }
+                ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+                    if index == 0 {
+                        Some(base)
+                    } else {
+                        fields.get(index - 1).map(|field| &field.value)
+                    }
+                }
+                ResolvedExprKind::Int(_)
+                | ResolvedExprKind::Bool(_)
+                | ResolvedExprKind::Place(_) => None,
             }
-            self.calls_by_owner
-                .get_mut(owner)
-                .expect("registered owner remains indexed")
-                .insert(callee.clone());
         }
 
-        match &expression.kind {
-            ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
-            ResolvedExprKind::Call { args, .. } => {
-                for argument in args {
-                    self.visit_expr(owner, owner_kind, owner_origin, region, argument)?;
+        let mut frames = vec![Frame::Enter(expression)];
+        while let Some(frame) = frames.pop() {
+            #[cfg(test)]
+            note_capacity_high_water(
+                frames.capacity() * std::mem::size_of::<Frame<'_>>()
+                    + self
+                        .sites_by_expression
+                        .iter()
+                        .map(|(key, site)| {
+                            std::mem::size_of::<(String, PersistentCallSite)>()
+                                + key.capacity()
+                                + site.type_arguments.capacity()
+                                    * std::mem::size_of::<ResolvedType>()
+                        })
+                        .sum::<usize>()
+                    + self
+                        .calls_by_owner
+                        .values()
+                        .map(|values| values.len() * std::mem::size_of::<DeclarationId>())
+                        .sum::<usize>(),
+            );
+            match frame {
+                Frame::Enter(expression) => {
+                    if let ResolvedExprKind::Call {
+                        callee,
+                        type_arguments,
+                        instance,
+                        ..
+                    } = &expression.kind
+                    {
+                        let site = PersistentCallSite {
+                            expression: expression.id.clone(),
+                            owner: owner.clone(),
+                            owner_kind,
+                            owner_origin,
+                            region,
+                            callee: callee.clone(),
+                            type_arguments: type_arguments.clone(),
+                            instance: instance.clone(),
+                        };
+                        if self
+                            .sites_by_expression
+                            .insert(expression.id.as_str().to_owned(), site)
+                            .is_some()
+                        {
+                            return Err(call_index_error(format!(
+                                "call expression `{}` has multiple source owners",
+                                expression.id
+                            )));
+                        }
+                        self.calls_by_owner
+                            .get_mut(owner)
+                            .expect("registered owner remains indexed")
+                            .insert(callee.clone());
+                    }
+                    frames.push(Frame::Children(expression, 0));
                 }
-            }
-            ResolvedExprKind::Unary { value, .. }
-            | ResolvedExprKind::Project { base: value, .. }
-            | ResolvedExprKind::Try { operand: value, .. }
-            | ResolvedExprKind::TryOption { operand: value, .. } => {
-                self.visit_expr(owner, owner_kind, owner_origin, region, value)?;
-            }
-            ResolvedExprKind::Binary { left, right, .. } => {
-                self.visit_expr(owner, owner_kind, owner_origin, region, left)?;
-                self.visit_expr(owner, owner_kind, owner_origin, region, right)?;
-            }
-            ResolvedExprKind::Block { statements, tail } => {
-                for statement in statements {
-                    let ResolvedStatement::Let { value, .. } = statement;
-                    self.visit_expr(owner, owner_kind, owner_origin, region, value)?;
-                }
-                self.visit_expr(owner, owner_kind, owner_origin, region, tail)?;
-            }
-            ResolvedExprKind::If {
-                condition,
-                then_branch,
-                else_branch,
-            } => {
-                self.visit_expr(owner, owner_kind, owner_origin, region, condition)?;
-                self.visit_expr(owner, owner_kind, owner_origin, region, then_branch)?;
-                self.visit_expr(owner, owner_kind, owner_origin, region, else_branch)?;
-            }
-            ResolvedExprKind::ConstructRecord { fields, .. }
-            | ResolvedExprKind::ConstructVariant { fields, .. } => {
-                for initializer in fields {
-                    self.visit_expr(owner, owner_kind, owner_origin, region, &initializer.value)?;
-                }
-            }
-            ResolvedExprKind::Match { scrutinee, arms } => {
-                self.visit_expr(owner, owner_kind, owner_origin, region, scrutinee)?;
-                for arm in arms {
-                    self.visit_expr(owner, owner_kind, owner_origin, region, &arm.value)?;
-                }
-            }
-            ResolvedExprKind::UpdateRecord { base, fields, .. } => {
-                self.visit_expr(owner, owner_kind, owner_origin, region, base)?;
-                for initializer in fields {
-                    self.visit_expr(owner, owner_kind, owner_origin, region, &initializer.value)?;
+                Frame::Children(expression, index) => {
+                    if let Some(next) = child(expression, index) {
+                        frames.push(Frame::Children(expression, index + 1));
+                        frames.push(Frame::Enter(next));
+                    }
                 }
             }
         }
@@ -295,7 +352,9 @@ mod tests {
 "#;
         let program = crate::parse(source, std::path::Path::new("call-index.spx")).unwrap();
         let resolved = hir::resolve(&program).unwrap();
+        reset_capacity_high_water();
         let index = PersistentCallIndex::build(&resolved).unwrap();
+        assert!(capacity_high_water() > 0);
         let expression = index.sites_by_expression.keys().next().unwrap().clone();
 
         assert_eq!(

@@ -41,11 +41,27 @@ fn standalone_runner_is_pinned_private_and_outside_the_root_workspace() {
 
     let root_manifest = read("Cargo.toml");
     assert!(root_manifest.contains("license = \"Apache-2.0\""));
+    let workspace = root_manifest
+        .split("[workspace]")
+        .nth(1)
+        .and_then(|source| source.split("[lib]").next())
+        .expect("root workspace section");
+    let members = workspace
+        .lines()
+        .filter_map(|line| {
+            let line = line.trim().trim_end_matches(',');
+            line.strip_prefix('"')?.strip_suffix('"')
+        })
+        .collect::<Vec<_>>();
     assert_eq!(
-        root_manifest
-            .lines()
-            .find(|line| line.starts_with("members = ")),
-        Some("members = [\"crates/semaprax-native-host\", \"crates/semaprax-native-loader\"]")
+        members,
+        [
+            "crates/semaprax-native-host",
+            "crates/semaprax-native-loader",
+            "crates/semaprax-native-rust-interop-platform",
+            "crates/semaprax-native-rust-interop-platform-sys",
+            "crates/semaprax-native-rust-interop-builder",
+        ]
     );
 
     let toolchain = read("platform-tests/component-runtime/rust-toolchain.toml");

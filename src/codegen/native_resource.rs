@@ -43,6 +43,9 @@ impl NativeResourceAbi {
         ty: &ResolvedType,
     ) -> Result<&'a str, Diagnostic> {
         match ty {
+            ResolvedType::Unit => Err(resource_error(
+                "unit has no ordinary native value representation",
+            )),
             ResolvedType::I64 => Ok("int64_t"),
             ResolvedType::Bool => Ok("bool"),
             ResolvedType::TypeParameter { .. } => Err(resource_error(format!(

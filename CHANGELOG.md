@@ -1,5 +1,19 @@
 # Changelog
 
+- Private Native Rust Interoperability v1 A+B design and local implementation
+  are green. The additive `import rust fn` scalar profile now resolves an
+  explicitly configured absolute Rust launcher only to discover one bounded
+  sysroot, independently holds the direct compiler at that sysroot, requires a
+  fixed-point sysroot check, and admits Rust artifacts only from that held
+  direct image. Phase B uses one pre-effect 12-use process arena, prepared
+  filesystem inventories/names, allocation-free final comparison/publication,
+  and fail-stop process/handle settlement. Local builder, platform-system,
+  platform, source-contract, strict-Clippy, formatting, and security gates are
+  green; Windows runtime, exact-head three-OS, and Linux sanitizer evidence
+  remain pending. Public C remains held; compiler sysroot/dynamic-library
+  descendant provenance, callable v2/v3, loader/host, `SPX-B104`, and existing
+  wires/KATs are unchanged.
+
 - Added Bounded Native Agent Runtime v1 A+B proof and the additive C1 injected-
   host Rust API:
   canonical Profile/Task/Action/Trace/Evidence, deterministic routing, injected

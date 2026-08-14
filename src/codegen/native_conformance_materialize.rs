@@ -303,6 +303,7 @@ fn materialize_result(
             })
         }
         (_, WireResult::Unit)
+        | (ResolvedType::Unit, _)
         | (ResolvedType::I64, _)
         | (ResolvedType::Bool, _)
         | (ResolvedType::TypeParameter { .. }, _)

@@ -256,6 +256,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "semaprax-native-rust-interop"
+version = "0.1.0"
+dependencies = [
+ "semaprax",
+ "semaprax-native-rust-interop-platform",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
+name = "semaprax-native-rust-interop-platform"
+version = "0.1.0"
+dependencies = [
+ "semaprax-native-rust-interop-platform-sys",
+]
+
+[[package]]
+name = "semaprax-native-rust-interop-platform-sys"
+version = "0.1.0"
+dependencies = [
+ "libc",
+ "sha2",
+ "windows-sys",
+]
+
+[[package]]
 name = "semver"
 version = "1.0.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"

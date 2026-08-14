@@ -174,6 +174,10 @@ does not satisfy a broader product gate.
 The bounded public Agent Runtime v1 gate is hosted green at
 Public Agent Runtime v1 is hosted GREEN at 8cf29aff8d1be3ccf74c36bc8c837f0c666ca067 (run 31591039261, 12/12 jobs, private and public deterministic fake-host gates on Ubuntu, macOS, and Windows).
 Private Economic Agent v1 A+B is exact-head hosted green at fe75c38d898b71e3ed5c57411fb46d0dbd4fc34b in run 31611748969, including both Economic gates on Ubuntu, macOS, and Windows. Public Economic Agent v1 C is exact-head hosted green at 03f1f2736de23d03b298f265f93409de89a6be95 in run 31616168124 (12/12 jobs), including the private, process-termination, and public Economic gates on Ubuntu, macOS, and Windows.
+
+Private Native Rust Interoperability v1 A+B local evidence is in progress under
+the frozen scalar/static-link profile; public C and exact-head hosted promotion
+remain held. See [Native Rust Interoperability v1](docs/NATIVE-RUST-INTEROP-V1.md).
 Neither changes the matrix totals.
 
 For precise evidence, boundaries, and non-claims, use these documents:

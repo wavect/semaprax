@@ -1,0 +1,217 @@
+module test.native_rust_hir_capacity;
+
+permit { host.echo }
+
+@id("token.type")
+resource Token {
+    @id("token.drop")
+    drop trivial;
+}
+
+@id("pair.type")
+record Pair {
+    @id("pair.first")
+    first: Token,
+    @id("pair.second")
+    second: Token,
+}
+
+@id("inner.type")
+record Inner {
+    @id("inner.left")
+    left: Token,
+    @id("inner.right")
+    right: Token,
+}
+
+@id("outer.type")
+record Outer {
+    @id("outer.inner")
+    inner: Inner,
+    @id("outer.tail")
+    tail: Token,
+}
+
+@id("choice.type")
+variant Choice {
+    @id("choice.a")
+    A { @id("choice.a.value") value: i64, },
+    @id("choice.b")
+    B { @id("choice.b.value") value: i64, },
+    @id("choice.empty")
+    Empty,
+}
+
+@id("host.echo.interface")
+interface HostEcho permits { host.echo } {
+    @id("host.echo")
+    import rust fn host_echo(value: i64) -> i64
+        effects { host.echo }
+        failure status "host.echo.v1";
+}
+
+@id("token.identity")
+fn identity(value: own Token) -> Token { value }
+
+@id("token.consume")
+fn consume(value: own Token) -> i64 { 1 }
+
+@id("token.take-two")
+fn take_two(first: own Token, second: own Token) -> i64 { 2 }
+
+@id("pair.construct")
+fn construct_pair(first: own Token, second: own Token) -> Pair {
+    Pair { second: second, first: identity(first) }
+}
+
+@id("pair.update")
+fn update_pair(pair: own Pair, first: own Token, second: own Token) -> Pair {
+    pair with { second: identity(second), first: first }
+}
+
+@id("outer.construct")
+fn construct_outer(left: own Token, right: own Token, tail: own Token) -> Outer {
+    Outer {
+        inner: Inner { right: right, left: left },
+        tail: identity(tail),
+    }
+}
+
+@id("token.call")
+fn call_owned(first: own Token, second: own Token) -> i64 {
+    take_two(identity(first), second)
+}
+
+@id("choice.choose")
+fn choose_choice(choice: Choice) -> i64 {
+    match choice {
+        Choice::A { value } => value,
+        Choice::B { value } => value + 1,
+        Choice::Empty {} => 0,
+    }
+}
+
+@id("choice.nested")
+fn nested_choice(
+    choice: Choice,
+    first: own Token,
+    second: own Token,
+    third: own Token,
+    fourth: own Token,
+    fifth: own Token,
+    sixth: own Token,
+    seventh: own Token,
+    eighth: own Token
+) -> i64 {
+    let value = match choice {
+        Choice::A { value: outer_a } => match choice {
+            Choice::A { value: middle_aa } => match choice {
+                Choice::A { value: leaf_aaa } => leaf_aaa,
+                Choice::B { value: leaf_aab } => leaf_aab + 1,
+                Choice::Empty {} => 0,
+            },
+            Choice::B { value: middle_ab } => match choice {
+                Choice::A { value: leaf_aba } => leaf_aba,
+                Choice::B { value: leaf_abb } => leaf_abb + 1,
+                Choice::Empty {} => 0,
+            },
+            Choice::Empty {} => outer_a,
+        },
+        Choice::B { value: outer_b } => match choice {
+            Choice::A { value: middle_ba } => match choice {
+                Choice::A { value: leaf_baa } => leaf_baa,
+                Choice::B { value: leaf_bab } => leaf_bab + 1,
+                Choice::Empty {} => 0,
+            },
+            Choice::B { value: middle_bb } => match choice {
+                Choice::A { value: leaf_bba } => leaf_bba,
+                Choice::B { value: leaf_bbb } => leaf_bbb + 1,
+                Choice::Empty {} => 0,
+            },
+            Choice::Empty {} => outer_b,
+        },
+        Choice::Empty {} => 0,
+    };
+    value
+}
+
+@id("scalar.wide")
+fn wide_scalar(a: i64, b: i64, c: i64, d: i64, e: i64, f: i64, g: i64, h: i64) -> i64 {
+    a + b + c + d + e + f + g + h
+}
+
+@id("scalar.nested-wide")
+fn nested_wide(value: i64) -> i64 {
+    wide_scalar(
+        wide_scalar(
+            wide_scalar(
+                wide_scalar(value, 2, 3, 4, 5, 6, 7, 8),
+                2, 3, 4, 5, 6, 7, 8
+            ),
+            2, 3, 4, 5, 6, 7, 8
+        ),
+        2, 3, 4, 5, 6, 7, 8
+    )
+}
+
+@id("generic.identity")
+fn generic_identity<T>(value: T) -> T { value }
+
+@id("generic.calls")
+fn generic_calls(value: i64, flag: bool) -> i64 {
+    let a = generic_identity<i64>(value);
+    let b = generic_identity<bool>(flag);
+    let c = generic_identity<i64>(a + 1);
+    let d = generic_identity<bool>(b && true);
+    let e = generic_identity<i64>(c + 1);
+    let f = generic_identity<bool>(d || false);
+    if f { e } else { 0 }
+}
+
+@id("flow.branch")
+fn branch_owned(condition: bool, first: own Token, second: own Token) -> i64 {
+    if condition { consume(first) } else { consume(second) }
+}
+
+@id("flow.many")
+fn many_bindings(
+    first: own Token,
+    second: own Token,
+    third: own Token,
+    fourth: own Token,
+    fifth: own Token,
+    sixth: own Token,
+    seventh: own Token,
+    eighth: own Token
+) -> i64 {
+    let a = identity(first);
+    let b = identity(second);
+    let c = identity(third);
+    let d = identity(fourth);
+    let e = identity(fifth);
+    let f = identity(sixth);
+    let g = identity(seventh);
+    let h = identity(eighth);
+    consume(a) + consume(b) + consume(c) + consume(d)
+        + consume(e) + consume(f) + consume(g) + consume(h)
+}
+
+@id("option.use")
+fn option_use(value: Option<i64>) -> Option<bool> {
+    let checked = value?;
+    Option<bool>::Some { value: checked > 0 }
+}
+
+@id("result.use")
+fn result_use(value: Result<i64, bool>) -> Result<bool, bool> {
+    let checked = value?;
+    Result<bool, bool>::Ok { value: checked > 0 }
+}
+
+@id("host.use")
+fn host_use(value: i64) -> i64 uses { host.echo } {
+    host_echo(value)
+}
+
+@id("app.main")
+fn main() -> i64 { 0 }

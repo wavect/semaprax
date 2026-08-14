@@ -402,8 +402,8 @@ fn private_builder_uses_held_platform_authority_for_every_physical_step() {
         ],
     );
     assert!(
-        windows_filesystem.matches("relative_file(").count() >= 5,
-        "Windows component open/create callers do not consistently use the Nt RootDirectory helper"
+        windows_filesystem.matches("relative_file(").count() == 4,
+        "Windows Nt RootDirectory helper definition/caller topology drifted"
     );
     assert!(
         windows_filesystem.matches("NtSetInformationFile(").count() == 1

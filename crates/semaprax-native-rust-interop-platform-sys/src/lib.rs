@@ -4494,10 +4494,6 @@ mod platform {
         open_absolute(path, DIRECTORY_READ_ACCESS, DIRECTORY_FLAGS)
     }
 
-    fn open_regular(path: &Path) -> Result<File, Error> {
-        open_absolute(path, REGULAR_READ_ACCESS, NORMAL_FILE_FLAGS)
-    }
-
     fn open_absolute(path: &Path, access: u32, flags: u32) -> Result<File, Error> {
         let path = wide_null(path.as_os_str())?;
         let handle = unsafe {
@@ -4601,26 +4597,6 @@ mod platform {
         Ok(unsafe { File::from_raw_handle(handle.cast()) })
     }
 
-    fn open_relative_directory(parent: &Directory, name: &OsStr) -> Result<File, Error> {
-        relative_file(
-            &parent.file,
-            name,
-            DIRECTORY_READ_ACCESS,
-            FILE_OPEN,
-            FILE_DIRECTORY_FILE,
-        )
-    }
-
-    fn open_relative_regular(parent: &Directory, name: &OsStr) -> Result<File, Error> {
-        relative_file(
-            &parent.file,
-            name,
-            REGULAR_OWNED_ACCESS,
-            FILE_OPEN,
-            FILE_NON_DIRECTORY_FILE,
-        )
-    }
-
     fn open_relative_regular_read(parent: &Directory, name: &OsStr) -> Result<File, Error> {
         relative_file(
             &parent.file,
@@ -4686,31 +4662,6 @@ mod platform {
 
     fn digest_bytes(bytes: &[u8]) -> [u8; 32] {
         Sha256::digest(bytes).into()
-    }
-
-    fn final_path(file: &File) -> Result<std::path::PathBuf, Error> {
-        let handle = file.as_raw_handle().cast::<core::ffi::c_void>() as HANDLE;
-        let needed = unsafe { GetFinalPathNameByHandleW(handle, std::ptr::null_mut(), 0, 0) };
-        if needed == 0 || needed > 32_768 {
-            return Err(Error::Changed);
-        }
-        let mut buffer = vec![0_u16; usize::try_from(needed).map_err(|_| Error::Changed)? + 1];
-        let written = unsafe {
-            GetFinalPathNameByHandleW(
-                handle,
-                buffer.as_mut_ptr(),
-                u32::try_from(buffer.len()).map_err(|_| Error::Changed)?,
-                0,
-            )
-        };
-        if written == 0 || written > needed {
-            return Err(Error::Changed);
-        }
-        buffer.truncate(usize::try_from(written).map_err(|_| Error::Changed)?);
-        let text = String::from_utf16(&buffer).map_err(|_| Error::Changed)?;
-        Ok(std::path::PathBuf::from(
-            text.strip_prefix(r"\\?\").unwrap_or(&text),
-        ))
     }
 
     fn final_path_prepared(file: &File, output: &mut Vec<u16>) -> Result<(), Error> {
@@ -5803,8 +5754,8 @@ mod platform {
         if seen[..attached].iter().any(|seen| !seen) {
             return Err(Error::Changed);
         }
-        for index in 0..attached {
-            let file = files[index].expect("attached prefix");
+        for (index, file) in files[..attached].iter().enumerate() {
+            let file = file.expect("attached prefix");
             recheck_held_regular(file)?;
             let name = names.names[index].as_ref().expect("validated");
             if hold_regular_file_name_prepared(stage, name)?.identity != file.identity {

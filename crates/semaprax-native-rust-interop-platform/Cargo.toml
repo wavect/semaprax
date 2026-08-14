@@ -8,7 +8,7 @@ description = "Safe held-handle facade for private SEMAPRAX Native Rust Interop 
 license = "Apache-2.0"
 
 [dependencies]
-semaprax-native-rust-interop-platform-sys = { path = "../semaprax-native-rust-interop-platform-sys" }
+semaprax-native-rust-interop-platform-sys = { version = "=0.1.0", path = "../semaprax-native-rust-interop-platform-sys" }
 
 [lints.rust]
 unsafe_code = "forbid"

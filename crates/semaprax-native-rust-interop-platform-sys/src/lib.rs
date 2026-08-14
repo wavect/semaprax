@@ -3342,7 +3342,7 @@ mod platform {
         if target.is_empty()
             || !target
                 .bytes()
-                .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-')
+                .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_'))
             || !matches!(optimization, 0 | 2)
             || (sanitizers && !cfg!(target_os = "linux"))
         {
@@ -3416,7 +3416,7 @@ mod platform {
         if target.is_empty()
             || !target
                 .bytes()
-                .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-')
+                .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_'))
         {
             return Err(Error::Invalid);
         }
@@ -3497,7 +3497,7 @@ mod platform {
         if target.is_empty()
             || !target
                 .bytes()
-                .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-')
+                .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_'))
             || (sanitizers && !cfg!(target_os = "linux"))
         {
             return Err(Error::Invalid);
@@ -3625,7 +3625,7 @@ mod platform {
         if target.is_empty()
             || !target
                 .bytes()
-                .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-')
+                .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_'))
             || !matches!(optimization, 0 | 2)
         {
             return Err(Error::Invalid);
@@ -3693,7 +3693,7 @@ mod platform {
         if target.is_empty()
             || !target
                 .bytes()
-                .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-')
+                .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_'))
             || hold_regular_file(cwd, output).is_ok()
         {
             return Err(Error::Invalid);
@@ -3758,8 +3758,8 @@ mod platform {
         FileIdInfo, FileRenameInfoEx, GetFileInformationByHandle, GetFileInformationByHandleEx,
         GetFinalPathNameByHandleW, ReadFile, SetFileInformationByHandle,
         BY_HANDLE_FILE_INFORMATION, DELETE, FILE_ADD_FILE, FILE_ADD_SUBDIRECTORY,
-        FILE_ATTRIBUTE_NORMAL, FILE_ATTRIBUTE_REPARSE_POINT, FILE_DELETE_CHILD,
-        FILE_DISPOSITION_FLAG_DELETE, FILE_DISPOSITION_FLAG_POSIX_SEMANTICS,
+        FILE_ATTRIBUTE_DIRECTORY, FILE_ATTRIBUTE_NORMAL, FILE_ATTRIBUTE_REPARSE_POINT,
+        FILE_DELETE_CHILD, FILE_DISPOSITION_FLAG_DELETE, FILE_DISPOSITION_FLAG_POSIX_SEMANTICS,
         FILE_DISPOSITION_INFO_EX, FILE_EXECUTE, FILE_FLAG_BACKUP_SEMANTICS,
         FILE_FLAG_OPEN_REPARSE_POINT, FILE_GENERIC_READ, FILE_GENERIC_WRITE, FILE_ID_BOTH_DIR_INFO,
         FILE_ID_EXTD_DIR_INFO, FILE_ID_INFO, FILE_LIST_DIRECTORY, FILE_READ_ATTRIBUTES,
@@ -3805,9 +3805,16 @@ mod platform {
         length: u64,
     }
 
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    struct DirectoryIdentity {
+        volume: u64,
+        file_id: [u8; 16],
+        stable_attributes: u32,
+    }
+
     pub struct Directory {
         file: File,
-        identity: Identity,
+        identity: DirectoryIdentity,
     }
 
     pub struct RegularFile {
@@ -4092,7 +4099,7 @@ mod platform {
         names: [Option<PreparedRelativeName>; N],
         bindings: [(usize, usize); N],
         storage: Box<[u64]>,
-        directory_identity: Option<Identity>,
+        directory_identity: Option<DirectoryIdentity>,
         remaining: u8,
     }
 
@@ -4653,6 +4660,27 @@ mod platform {
         })
     }
 
+    fn stable_directory_identity(identity: Identity) -> Result<DirectoryIdentity, Error> {
+        let stable_attributes =
+            identity.attributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT);
+        if stable_attributes != FILE_ATTRIBUTE_DIRECTORY {
+            return Err(Error::Changed);
+        }
+        Ok(DirectoryIdentity {
+            volume: identity.volume,
+            file_id: identity.file_id,
+            stable_attributes,
+        })
+    }
+
+    fn directory_information(file: &File) -> Result<DirectoryIdentity, Error> {
+        let identity = stable_directory_identity(information(file)?)?;
+        if !file.metadata().map_err(|_| Error::Changed)?.is_dir() {
+            return Err(Error::Changed);
+        }
+        Ok(identity)
+    }
+
     fn digest(file: &File, length: u64) -> Result<[u8; 32], Error> {
         let mut file = file.try_clone().map_err(|_| Error::Changed)?;
         file.seek(SeekFrom::Start(0)).map_err(|_| Error::Changed)?;
@@ -4724,18 +4752,12 @@ mod platform {
             return Err(Error::Changed);
         }
         let file = open_directory(path)?;
-        let identity = information(&file)?;
-        if identity.attributes & FILE_ATTRIBUTE_REPARSE_POINT != 0
-            || !file.metadata().map_err(|_| Error::Changed)?.is_dir()
-        {
-            return Err(Error::Changed);
-        }
+        let identity = directory_information(&file)?;
         Ok(Directory { file, identity })
     }
 
     pub fn recheck_directory(directory: &Directory) -> Result<(), Error> {
-        let held = information(&directory.file)?;
-        if held != directory.identity || held.attributes & FILE_ATTRIBUTE_REPARSE_POINT != 0 {
+        if directory_information(&directory.file)? != directory.identity {
             return Err(Error::Changed);
         }
         Ok(())
@@ -4746,7 +4768,7 @@ mod platform {
             return Err(Error::Invalid);
         }
         let rebound = open_directory(path)?;
-        Ok(information(&rebound)? == directory.identity)
+        Ok(directory_information(&rebound)? == directory.identity)
     }
 
     pub fn create_directory_new(
@@ -4763,12 +4785,7 @@ mod platform {
             FILE_CREATE,
             FILE_DIRECTORY_FILE,
         )?;
-        let identity = information(&file)?;
-        if identity.attributes & FILE_ATTRIBUTE_REPARSE_POINT != 0
-            || !file.metadata().map_err(|_| Error::Changed)?.is_dir()
-        {
-            return Err(Error::Changed);
-        }
+        let identity = directory_information(&file)?;
         Ok(Directory { file, identity })
     }
 
@@ -4785,12 +4802,7 @@ mod platform {
             FILE_CREATE,
             FILE_DIRECTORY_FILE,
         )?;
-        let identity = information(&file)?;
-        if identity.attributes & FILE_ATTRIBUTE_REPARSE_POINT != 0
-            || !file.metadata().map_err(|_| Error::Changed)?.is_dir()
-        {
-            return Err(Error::Changed);
-        }
+        let identity = directory_information(&file)?;
         Ok(Directory { file, identity })
     }
 
@@ -5141,12 +5153,7 @@ mod platform {
             return Err(Error::Changed);
         }
         let file = unsafe { File::from_raw_handle(handle.cast()) };
-        let identity = information(&file)?;
-        if identity.attributes & FILE_ATTRIBUTE_REPARSE_POINT != 0
-            || !file.metadata().map_err(|_| Error::Changed)?.is_dir()
-        {
-            return Err(Error::Changed);
-        }
+        let identity = directory_information(&file)?;
         let mut current = Directory { file, identity };
         let mut start = 3usize;
         while start < prepared.candidate.len() {
@@ -5168,12 +5175,7 @@ mod platform {
                 FILE_OPEN,
                 FILE_DIRECTORY_FILE,
             )?;
-            let identity = information(&file)?;
-            if identity.attributes & FILE_ATTRIBUTE_REPARSE_POINT != 0
-                || !file.metadata().map_err(|_| Error::Changed)?.is_dir()
-            {
-                return Err(Error::Changed);
-            }
+            let identity = directory_information(&file)?;
             current = Directory { file, identity };
             start = end.saturating_add(1);
         }
@@ -5575,7 +5577,7 @@ mod platform {
         stage_name: &PreparedRelativeNameArena,
         fail_information: bool,
         fail_close: bool,
-    ) -> Result<Identity, Error> {
+    ) -> Result<DirectoryIdentity, Error> {
         let file = relative_file_arena(
             &parent.file,
             stage_name,
@@ -5588,7 +5590,7 @@ mod platform {
         let observed = if fail_information {
             Err(Error::Changed)
         } else {
-            information(&file)
+            directory_information(&file)
         };
         let close_failed = unsafe { CloseHandle(handle.cast()) } == 0;
         if close_failed || fail_close {
@@ -5678,7 +5680,7 @@ mod platform {
             FILE_OPEN,
             FILE_DIRECTORY_FILE,
         )?;
-        if information(&rebound)? != stage.identity {
+        if directory_information(&rebound)? != stage.identity {
             return Err(Error::Changed);
         }
         let attached = files.iter().take_while(|file| file.is_some()).count();
@@ -6404,7 +6406,7 @@ mod platform {
             || target.is_empty()
             || !target
                 .bytes()
-                .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-')
+                .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_'))
         {
             return Err(Error::Invalid);
         }
@@ -6459,7 +6461,7 @@ mod platform {
         if target.is_empty()
             || !target
                 .bytes()
-                .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-')
+                .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_'))
         {
             return Err(Error::Invalid);
         }
@@ -6545,7 +6547,7 @@ mod platform {
             || target.is_empty()
             || !target
                 .bytes()
-                .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-')
+                .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_'))
         {
             return Err(Error::Invalid);
         }
@@ -7931,5 +7933,93 @@ mod tests {
                 "late Windows process allocation: {forbidden}"
             );
         }
+    }
+
+    #[test]
+    fn windows_directory_identity_source_excludes_mutable_length_and_binds_all_rechecks() {
+        let source = include_str!("lib.rs");
+        let start = source.find("struct DirectoryIdentity").unwrap();
+        let end = source[start..]
+            .find("pub struct Directory")
+            .map(|offset| start + offset)
+            .unwrap();
+        let identity = &source[start..end];
+        for required in ["volume: u64", "file_id: [u8; 16]", "stable_attributes: u32"] {
+            assert!(identity.contains(required));
+        }
+        assert!(!identity.contains("length:"));
+
+        let windows_start = source.find("#[cfg(windows)]\nmod platform").unwrap();
+        let windows = &source[windows_start..];
+        for required in [
+            "identity: DirectoryIdentity",
+            "directory_identity: Option<DirectoryIdentity>",
+            "FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT",
+            "stable_attributes != FILE_ATTRIBUTE_DIRECTORY",
+            "directory_information(&directory.file)? != directory.identity",
+            "directory_information(&rebound)? == directory.identity",
+            "directory_information(&rebound)? != stage.identity",
+            "Result<DirectoryIdentity, Error>",
+        ] {
+            assert!(
+                windows.contains(required),
+                "missing stable Windows directory identity contract: {required}",
+            );
+        }
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_directory_identity_survives_full_inventory_and_rejects_foreign_or_substituted_path()
+    {
+        use std::ffi::OsStr;
+
+        let root = std::env::temp_dir().join(format!(
+            "semaprax-windows-directory-identity-{}",
+            std::process::id(),
+        ));
+        let stage_path = root.join("stage");
+        let displaced_path = root.join("displaced");
+        let foreign_path = root.join("foreign");
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&stage_path).unwrap();
+        std::fs::create_dir(&foreign_path).unwrap();
+        let stage = super::platform::hold_directory(&stage_path).unwrap();
+        let names = super::platform::prepare_discard_names([
+            OsStr::new("a"),
+            OsStr::new("b"),
+            OsStr::new("c"),
+            OsStr::new("d"),
+            OsStr::new("e"),
+            OsStr::new("f"),
+            OsStr::new("g"),
+        ])
+        .unwrap();
+        let files = (0..7)
+            .map(|index| {
+                super::platform::write_file_new_prepared(
+                    &stage,
+                    &names,
+                    index,
+                    &[u8::try_from(index).unwrap()],
+                    0,
+                )
+                .unwrap()
+            })
+            .collect::<Vec<_>>();
+        super::platform::recheck_directory(&stage).unwrap();
+        let mut inventory = super::platform::prepare_inventory_exact(&names).unwrap();
+        let attached = std::array::from_fn(|index| Some(&files[index]));
+        super::platform::inventory_exact_prepared(&mut inventory, &stage, &names, attached)
+            .unwrap();
+        assert!(!super::platform::same_directory_path(&stage, &foreign_path).unwrap());
+
+        drop((inventory, files, names));
+        std::fs::rename(&stage_path, &displaced_path).unwrap();
+        std::fs::create_dir(&stage_path).unwrap();
+        super::platform::recheck_directory(&stage).unwrap();
+        assert!(!super::platform::same_directory_path(&stage, &stage_path).unwrap());
+        drop(stage);
+        std::fs::remove_dir_all(&root).unwrap();
     }
 }

@@ -6,10 +6,17 @@
   sysroot, independently holds the direct compiler at that sysroot, requires a
   fixed-point sysroot check, and admits Rust artifacts only from that held
   direct image. Phase B uses one pre-effect 12-use process arena, prepared
-  filesystem inventories/names, allocation-free final comparison/publication,
-  and fail-stop process/handle settlement. Local builder, platform-system,
-  platform, source-contract, strict-Clippy, formatting, and security gates are
-  green; Windows runtime, exact-head three-OS, and Linux sanitizer evidence
+  filesystem inventories/names, one fixed-capacity no-growth store for the four
+  authenticated `rustc -vV` fields, allocation-free final comparison/publication,
+  and fail-stop process/handle settlement. Private A now has named pre-HIR and
+  post-HIR retained/scratch envelopes, iterative renderer/replayer traversal,
+  exact persistent allocation transfers, and minimum-minus-one entry gates;
+  prepared Phase-B target arguments admit current-host underscore components
+  without opening other punctuation. Local builder 97/97, platform-system
+  21/21, platform 10/10, source-contract 6/6, strict-Clippy, formatting, and
+  security gates are green; Windows directory authority now excludes mutable
+  directory length while retaining full file identity and reparse rejection.
+  Windows runtime, exact-head three-OS, and Linux sanitizer evidence
   remain pending. Public C remains held; compiler sysroot/dynamic-library
   descendant provenance, callable v2/v3, loader/host, `SPX-B104`, and existing
   wires/KATs are unchanged.

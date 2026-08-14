@@ -58,7 +58,11 @@ Spec, Descriptor, generated sources, and Manifest; reject every-byte
 substitution, deletion, insertion, and truncation; freeze byte length and raw
 SHA-256 for Descriptor, Manifest, header, C, safe Rust, and private FFI plus the
 protocol-domain digests for Descriptor and Manifest; prove the cumulative builder
-cap and create-new inventory; compile and statically link generated C and Rust
+cap with named pre-HIR/post-HIR retained-versus-scratch high waters, iterative
+render/replay traversal, exact persistent transfers, no-growth final sinks, and
+minimum-minus-one zero-entry rejection; prove one fixed-capacity aggregate
+`rustc -vV` parse and every prepared invocation without geometric growth; prove
+the create-new inventory; compile and statically link generated C and Rust
 at both `-O0` and `-O2`; and execute
 Rust-to-SEMAPRAX, SEMAPRAX-to-Rust, and round-trip success/failure cases. Its
 hostile corpus covers ABI/version/size/alignment/bool/status/capability/result
@@ -84,7 +88,10 @@ out of the public `semaprax` package, reject dynamic loading/link lookup, and
 preserve existing Graph, Wasm, callable-v2/v3, Agent, Economic, Workspace,
 Patch, CLI, API, and KAT bytes. Exact-head hosted promotion requires the whole
 matrix; one host, a compile-only lane, or a platform-disabled test is not
-evidence for the other hosts. Public C remains held until that gate is green.
+evidence for the other hosts. Qualifying local runs set explicit absolute
+`RUSTC` and `CLANG`; an ambient launcher or proxy is deliberately rejected and
+is not a regression in the direct-image policy. Public C remains held until
+that gate is green.
 
 Quality gates are executable evidence, not a checklist substitute for reasoning. Every pull request must pass the baseline and the gates for each changed semantic layer.
 

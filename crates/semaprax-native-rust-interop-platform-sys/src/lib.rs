@@ -4045,7 +4045,7 @@ mod platform {
         prepared.remaining
     }
 
-    fn consume_process_arena(prepared: &mut PreparedProcessArena) -> Result<(), Error> {
+    pub(super) fn consume_process_arena(prepared: &mut PreparedProcessArena) -> Result<(), Error> {
         if prepared_process_arena_owned_capacity(prepared) != 1_245_190 {
             return Err(Error::OutputLimit);
         }

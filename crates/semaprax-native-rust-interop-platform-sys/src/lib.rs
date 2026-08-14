@@ -2942,11 +2942,13 @@ mod platform {
         }
         let null_fd = CheckedFd::new(null_fd);
         let mut argv = [std::ptr::null::<libc::c_char>(); 34];
-        argv[0] = c"semaprax-native-rust-interop-tool".as_ptr();
         for (index, argument) in arguments.iter().enumerate() {
             argv[index + 1] = argument.as_ptr();
         }
         let env = [std::ptr::null::<libc::c_char>()];
+        const EXECUTABLE_FD: libc::c_int = 1020;
+        const EXECUTABLE_FD_PATH: &CStr = c"/proc/self/fd/1020";
+        let mut argv0 = [0_u8; 32_770];
         let pid = unsafe { libc::fork() };
         if pid < 0 {
             return Err(Error::Spawn);
@@ -2959,7 +2961,6 @@ mod platform {
                 if libc::setpgid(0, 0) != 0 {
                     libc::_exit(126);
                 }
-                const EXECUTABLE_FD: libc::c_int = 1020;
                 let executable_fd = libc::fcntl(
                     executable.file.file.as_raw_fd(),
                     libc::F_DUPFD,
@@ -2986,6 +2987,20 @@ mod platform {
                 {
                     libc::_exit(126);
                 }
+                let argv0_length = libc::readlink(
+                    EXECUTABLE_FD_PATH.as_ptr(),
+                    argv0.as_mut_ptr().cast(),
+                    argv0.len() - 1,
+                );
+                if argv0_length <= 0 {
+                    libc::_exit(126);
+                }
+                let argv0_length = argv0_length as usize;
+                if argv0_length >= argv0.len() - 1 {
+                    libc::_exit(126);
+                }
+                argv0[argv0_length] = 0;
+                argv[0] = argv0.as_ptr().cast();
                 unsafe extern "C" {
                     fn fexecve(
                         fd: libc::c_int,
@@ -8181,6 +8196,39 @@ mod tests {
         let legacy_output = legacy.find("output.to_str()").unwrap();
         let legacy_tail = legacy.find("LINUX_RUST_STATICLIB_NATIVE_LIBS").unwrap();
         assert!(legacy_archive < legacy_output && legacy_output < legacy_tail);
+    }
+
+    #[test]
+    fn linux_runner_uses_the_held_executable_path_as_argv0_before_fexecve() {
+        let source = include_str!("lib.rs");
+        let start = source
+            .find("#[cfg(target_os = \"linux\")]\n    fn run_argv(")
+            .unwrap();
+        let end = source[start..]
+            .find("#[cfg(target_os = \"macos\")]\n    fn run_argv(")
+            .map(|offset| start + offset)
+            .unwrap();
+        let runner = &source[start..end];
+        assert!(!runner.contains("semaprax-native-rust-interop-tool"));
+        for required in [
+            "const EXECUTABLE_FD: libc::c_int = 1020",
+            "c\"/proc/self/fd/1020\"",
+            "libc::readlink(",
+            "argv[0] = argv0.as_ptr().cast()",
+            "fexecve(executable_fd, argv.as_ptr(), env.as_ptr())",
+        ] {
+            assert!(
+                runner.contains(required),
+                "missing Linux argv0 contract: {required}"
+            );
+        }
+        let duplicated = runner.find("libc::F_DUPFD").unwrap();
+        let readlink = runner.find("libc::readlink(").unwrap();
+        let argv0 = runner.find("argv[0] = argv0.as_ptr().cast()").unwrap();
+        let execute = runner
+            .find("fexecve(executable_fd, argv.as_ptr(), env.as_ptr())")
+            .unwrap();
+        assert!(duplicated < readlink && readlink < argv0 && argv0 < execute);
     }
 
     #[cfg(windows)]

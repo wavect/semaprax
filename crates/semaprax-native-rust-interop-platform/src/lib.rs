@@ -620,11 +620,11 @@ pub fn rustc_discovery_output_prepared(
 }
 
 pub fn hold_direct_rustc_prepared(
-    prepared: PreparedToolResolver,
+    discovery: HeldRustcDiscovery,
     sysroot_output: &[u8],
 ) -> Result<HeldDirectRustc, Error> {
     semaprax_native_rust_interop_platform_sys::hold_direct_rustc_prepared(
-        prepared.0,
+        discovery.0,
         sysroot_output,
     )
     .map(HeldDirectRustc)

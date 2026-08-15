@@ -102,10 +102,13 @@ fn root(label: &str) -> OwnedRoot {
     panic!("could not allocate an owned test directory")
 }
 
-#[cfg(target_os = "macos")]
-fn resolved_tool(name: &str) -> PathBuf {
+fn resolved_tool(name: &OsStr) -> PathBuf {
+    let path = PathBuf::from(name);
+    if path.is_absolute() {
+        return std::fs::canonicalize(path).expect("installed absolute test tool");
+    }
     std::env::split_paths(&std::env::var_os("PATH").expect("test PATH"))
-        .map(|directory| directory.join(name))
+        .map(|directory| directory.join(&path))
         .find_map(|candidate| std::fs::canonicalize(candidate).ok())
         .expect("installed test tool")
 }
@@ -118,9 +121,9 @@ fn darwin_installed_tools_are_suspended_vnode_attested_before_resume() {
     let rustc_path = std::env::var_os("RUSTC")
         .map(PathBuf::from)
         .map(|path| std::fs::canonicalize(path).expect("resolved RUSTC image"))
-        .unwrap_or_else(|| resolved_tool("rustc"));
+        .unwrap_or_else(|| resolved_tool(OsStr::new("rustc")));
     let rustc = hold_external_executable(&rustc_path).unwrap();
-    let clang = hold_external_executable(&resolved_tool("clang")).unwrap();
+    let clang = hold_external_executable(&resolved_tool(OsStr::new("clang"))).unwrap();
 
     let rustc_output = rustc_version(&rustc, &cwd).unwrap();
     assert!(rustc_output.bytes().starts_with(b"rustc "));
@@ -132,7 +135,8 @@ fn compile_c(root: &Path, name: &str, source: &str) -> PathBuf {
     let source_path = root.join(format!("{name}.c"));
     let executable = root.join(name);
     std::fs::write(&source_path, source).unwrap();
-    let compiler = std::env::var_os("CC").unwrap_or_else(|| "cc".into());
+    let compiler = std::env::var_os("CLANG").unwrap_or_else(|| "clang".into());
+    let compiler = resolved_tool(&compiler);
     let output = Command::new(compiler)
         .env_clear()
         .env("TMPDIR", root)

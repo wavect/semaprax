@@ -16101,7 +16101,6 @@ struct PreparedToolchainPlan {
     command_budget: TemporaryBudget,
     clang_resolver: platform::PreparedToolResolver,
     discovery_resolver: platform::PreparedToolResolver,
-    direct_resolver: platform::PreparedToolResolver,
     discovery_invocation: platform::PreparedSysrootInvocation,
     direct_sysroot_invocation: platform::PreparedSysrootInvocation,
     rustc_invocation: platform::PreparedRustcVersionInvocation,
@@ -16169,7 +16168,7 @@ fn prepare_toolchain_plan() -> Result<PreparedToolchainPlan, PhaseBLocalError> {
     let rustc_name = if cfg!(windows) { "rustc.exe" } else { "rustc" };
     let path_budget = reserve_phase_b(
         PHASE_B_TOOL_RESOLVER_CAPACITY
-            .checked_mul(3)
+            .checked_mul(2)
             .ok_or(PhaseBLocalError::BuilderBudget)?,
     )?;
     let discovery_output_budget = reserve_phase_b(PHASE_B_TOOL_VERSION_CAPACITY)?;
@@ -16186,17 +16185,10 @@ fn prepare_toolchain_plan() -> Result<PreparedToolchainPlan, PhaseBLocalError> {
     let discovery_resolver =
         platform::prepare_tool_resolver(rustc_name, PHASE_B_TOOL_PATH_CAPACITY)
             .map_err(|_| PhaseBLocalError::BuilderBudget)?;
-    let direct_resolver = platform::prepare_tool_resolver(rustc_name, PHASE_B_TOOL_PATH_CAPACITY)
-        .map_err(|_| PhaseBLocalError::BuilderBudget)?;
     let resolver_owned = platform::prepared_tool_resolver_owned_capacity(&clang_resolver)
         .checked_add(platform::prepared_tool_resolver_owned_capacity(
             &discovery_resolver,
         ))
-        .and_then(|total| {
-            total.checked_add(platform::prepared_tool_resolver_owned_capacity(
-                &direct_resolver,
-            ))
-        })
         .ok_or(PhaseBLocalError::BuilderBudget)?;
     if resolver_owned > path_budget.maximum() {
         return Err(PhaseBLocalError::BuilderBudget);
@@ -16254,7 +16246,6 @@ fn prepare_toolchain_plan() -> Result<PreparedToolchainPlan, PhaseBLocalError> {
         command_budget,
         clang_resolver,
         discovery_resolver,
-        direct_resolver,
         discovery_invocation,
         direct_sysroot_invocation,
         rustc_invocation,
@@ -16279,7 +16270,6 @@ fn authenticate_toolchain(
         command_budget,
         clang_resolver,
         discovery_resolver,
-        direct_resolver,
         discovery_invocation,
         direct_sysroot_invocation,
         rustc_invocation,
@@ -16331,12 +16321,10 @@ fn authenticate_toolchain(
     if discovery_sysroot.capacity() != PHASE_B_TOOL_VERSION_CAPACITY {
         return Err(PhaseBLocalError::BuilderBudget);
     }
-    let mut rustc =
-        platform::hold_direct_rustc_prepared(direct_resolver, discovery_sysroot.bytes())
-            .map_err(|_| PhaseBLocalError::Unsupported)?;
+    let mut rustc = platform::hold_direct_rustc_prepared(discovery, discovery_sysroot.bytes())
+        .map_err(|_| PhaseBLocalError::Unsupported)?;
     #[cfg(test)]
     PHASE_B_TOOL_HOLDS.with(|count| count.set(count.get().saturating_add(1)));
-    drop(discovery);
     drop(discovery_sysroot);
     drop(discovery_output_budget);
     #[cfg(test)]

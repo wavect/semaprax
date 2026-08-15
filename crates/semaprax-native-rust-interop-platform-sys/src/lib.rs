@@ -236,7 +236,10 @@ mod platform {
         slice_size: u64,
     }
 
-    pub struct RustcDiscovery(Executable);
+    pub struct RustcDiscovery {
+        executable: Executable,
+        resolver: PreparedToolResolver,
+    }
 
     pub struct DirectRustc {
         executable: Executable,
@@ -1808,14 +1811,18 @@ mod platform {
     }
 
     pub fn hold_rustc_discovery_prepared(
-        prepared: PreparedToolResolver,
+        mut prepared: PreparedToolResolver,
         configured: &OsStr,
     ) -> Result<RustcDiscovery, Error> {
         if !Path::new(configured).is_absolute() {
             return Err(Error::Invalid);
         }
-        let (executable, _) = resolve_and_hold_tool_prepared(prepared, Some(configured), None)?;
-        Ok(RustcDiscovery(executable))
+        set_tool_candidate(&mut prepared, None, Some(configured.as_bytes()))?;
+        let executable = hold_tool_candidate(&mut prepared)?.ok_or(Error::Changed)?;
+        Ok(RustcDiscovery {
+            executable,
+            resolver: prepared,
+        })
     }
 
     pub fn rustc_discovery_output_prepared(
@@ -1824,7 +1831,7 @@ mod platform {
         prepared: PreparedSysrootInvocation,
         process_arena: &mut PreparedProcessArena,
     ) -> Result<Vec<u8>, Error> {
-        version_prepared(&discovery.0, cwd, prepared.0, process_arena)
+        version_prepared(&discovery.executable, cwd, prepared.0, process_arena)
     }
 
     pub(super) fn one_sysroot_line(output: &[u8]) -> Result<&[u8], Error> {
@@ -1907,16 +1914,21 @@ mod platform {
     }
 
     pub fn hold_direct_rustc_prepared(
-        mut prepared: PreparedToolResolver,
+        discovery: RustcDiscovery,
         output: &[u8],
     ) -> Result<DirectRustc, Error> {
-        let sysroot = held_sysroot_from_output(&mut prepared, output)?;
+        let RustcDiscovery {
+            executable,
+            mut resolver,
+        } = discovery;
+        drop(executable);
+        let sysroot = held_sysroot_from_output(&mut resolver, output)?;
         let bin = open_directory_at(sysroot.file.as_raw_fd(), c"bin")?;
         let executable = hold_executable_cstr(&bin, c"rustc")?;
         Ok(DirectRustc {
             executable,
             sysroot,
-            recheck_resolver: Some(prepared),
+            recheck_resolver: Some(resolver),
         })
     }
 
@@ -3920,7 +3932,10 @@ mod platform {
         file: RegularFile,
     }
 
-    pub struct RustcDiscovery(Executable);
+    pub struct RustcDiscovery {
+        executable: Executable,
+        resolver: PreparedToolResolver,
+    }
 
     pub struct DirectRustc {
         executable: Executable,
@@ -5373,7 +5388,7 @@ mod platform {
         let line = windows_sysroot_line_actual(output)?;
         prepared.candidate.clear();
         for unit in line.encode_utf16() {
-            if prepared.candidate.len().saturating_add(1) >= prepared.maximum {
+            if prepared.candidate.len().saturating_add(1) > prepared.maximum {
                 return Err(Error::OutputLimit);
             }
             prepared.candidate.push(unit);
@@ -5436,14 +5451,27 @@ mod platform {
     }
 
     pub fn hold_rustc_discovery_prepared(
-        prepared: PreparedToolResolver,
+        mut prepared: PreparedToolResolver,
         configured: &OsStr,
     ) -> Result<RustcDiscovery, Error> {
         if !Path::new(configured).is_absolute() {
             return Err(Error::Invalid);
         }
-        let (executable, _) = resolve_and_hold_tool_prepared(prepared, Some(configured), None)?;
-        Ok(RustcDiscovery(executable))
+        prepared.candidate.clear();
+        for unit in configured.encode_wide() {
+            if prepared.candidate.len().saturating_add(1) >= prepared.maximum {
+                return Err(Error::OutputLimit);
+            }
+            prepared.candidate.push(unit);
+        }
+        if prepared.candidate.is_empty() {
+            return Err(Error::Invalid);
+        }
+        let executable = hold_tool_candidate(&mut prepared)?.ok_or(Error::Changed)?;
+        Ok(RustcDiscovery {
+            executable,
+            resolver: prepared,
+        })
     }
 
     pub fn rustc_discovery_output_prepared(
@@ -5452,14 +5480,19 @@ mod platform {
         prepared: PreparedSysrootInvocation,
         process_arena: &mut PreparedProcessArena,
     ) -> Result<Vec<u8>, Error> {
-        version_prepared(&discovery.0, cwd, prepared.0, process_arena)
+        version_prepared(&discovery.executable, cwd, prepared.0, process_arena)
     }
 
     pub fn hold_direct_rustc_prepared(
-        mut prepared: PreparedToolResolver,
+        discovery: RustcDiscovery,
         output: &[u8],
     ) -> Result<DirectRustc, Error> {
-        let sysroot = windows_sysroot_directory_actual(&mut prepared, output)?;
+        let RustcDiscovery {
+            executable,
+            mut resolver,
+        } = discovery;
+        drop(executable);
+        let sysroot = windows_sysroot_directory_actual(&mut resolver, output)?;
         let bin = relative_file_units(
             &sysroot.file,
             &[98, 105, 110],
@@ -5506,7 +5539,7 @@ mod platform {
         Ok(DirectRustc {
             executable: Executable { file: regular },
             sysroot,
-            recheck_resolver: Some(prepared),
+            recheck_resolver: Some(resolver),
         })
     }
 

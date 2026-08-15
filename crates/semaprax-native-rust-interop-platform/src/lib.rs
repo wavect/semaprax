@@ -661,13 +661,11 @@ pub fn direct_rustc_version_prepared(
 }
 
 pub fn direct_rustc_reproduces_sysroot(
-    direct: &HeldDirectRustc,
-    prepared: PreparedToolResolver,
+    direct: &mut HeldDirectRustc,
     sysroot_output: &[u8],
 ) -> Result<(), Error> {
     semaprax_native_rust_interop_platform_sys::direct_rustc_reproduces_sysroot(
-        &direct.0,
-        prepared.0,
+        &mut direct.0,
         sysroot_output,
     )
 }

@@ -15941,15 +15941,21 @@ fn configured_tool(variable: &str) -> Result<TestTool, Diagnostic> {
 
 #[cfg(test)]
 fn bind_test_tool_environment(command: &mut std::process::Command) {
-    #[cfg(target_os = "linux")]
-    command.args(["-C", "link-arg=-fuse-ld=/usr/bin/ld"]);
     #[cfg(windows)]
     for variable in ["INCLUDE", "LIB"] {
         if let Some(value) = std::env::var_os(variable) {
             command.env(variable, value);
         }
     }
-    #[cfg(not(any(target_os = "linux", windows)))]
+    #[cfg(not(windows))]
+    let _ = command;
+}
+
+#[cfg(test)]
+fn bind_test_rust_linker(command: &mut std::process::Command) {
+    #[cfg(target_os = "linux")]
+    command.args(["-C", "link-arg=-fuse-ld=/usr/bin/ld"]);
+    #[cfg(not(target_os = "linux"))]
     let _ = command;
 }
 
@@ -16096,7 +16102,6 @@ struct PreparedToolchainPlan {
     clang_resolver: platform::PreparedToolResolver,
     discovery_resolver: platform::PreparedToolResolver,
     direct_resolver: platform::PreparedToolResolver,
-    direct_recheck_resolver: platform::PreparedToolResolver,
     discovery_invocation: platform::PreparedSysrootInvocation,
     direct_sysroot_invocation: platform::PreparedSysrootInvocation,
     rustc_invocation: platform::PreparedRustcVersionInvocation,
@@ -16164,7 +16169,7 @@ fn prepare_toolchain_plan() -> Result<PreparedToolchainPlan, PhaseBLocalError> {
     let rustc_name = if cfg!(windows) { "rustc.exe" } else { "rustc" };
     let path_budget = reserve_phase_b(
         PHASE_B_TOOL_RESOLVER_CAPACITY
-            .checked_mul(4)
+            .checked_mul(3)
             .ok_or(PhaseBLocalError::BuilderBudget)?,
     )?;
     let discovery_output_budget = reserve_phase_b(PHASE_B_TOOL_VERSION_CAPACITY)?;
@@ -16183,9 +16188,6 @@ fn prepare_toolchain_plan() -> Result<PreparedToolchainPlan, PhaseBLocalError> {
             .map_err(|_| PhaseBLocalError::BuilderBudget)?;
     let direct_resolver = platform::prepare_tool_resolver(rustc_name, PHASE_B_TOOL_PATH_CAPACITY)
         .map_err(|_| PhaseBLocalError::BuilderBudget)?;
-    let direct_recheck_resolver =
-        platform::prepare_tool_resolver(rustc_name, PHASE_B_TOOL_PATH_CAPACITY)
-            .map_err(|_| PhaseBLocalError::BuilderBudget)?;
     let resolver_owned = platform::prepared_tool_resolver_owned_capacity(&clang_resolver)
         .checked_add(platform::prepared_tool_resolver_owned_capacity(
             &discovery_resolver,
@@ -16193,11 +16195,6 @@ fn prepare_toolchain_plan() -> Result<PreparedToolchainPlan, PhaseBLocalError> {
         .and_then(|total| {
             total.checked_add(platform::prepared_tool_resolver_owned_capacity(
                 &direct_resolver,
-            ))
-        })
-        .and_then(|total| {
-            total.checked_add(platform::prepared_tool_resolver_owned_capacity(
-                &direct_recheck_resolver,
             ))
         })
         .ok_or(PhaseBLocalError::BuilderBudget)?;
@@ -16258,7 +16255,6 @@ fn prepare_toolchain_plan() -> Result<PreparedToolchainPlan, PhaseBLocalError> {
         clang_resolver,
         discovery_resolver,
         direct_resolver,
-        direct_recheck_resolver,
         discovery_invocation,
         direct_sysroot_invocation,
         rustc_invocation,
@@ -16284,7 +16280,6 @@ fn authenticate_toolchain(
         clang_resolver,
         discovery_resolver,
         direct_resolver,
-        direct_recheck_resolver,
         discovery_invocation,
         direct_sysroot_invocation,
         rustc_invocation,
@@ -16336,8 +16331,9 @@ fn authenticate_toolchain(
     if discovery_sysroot.capacity() != PHASE_B_TOOL_VERSION_CAPACITY {
         return Err(PhaseBLocalError::BuilderBudget);
     }
-    let rustc = platform::hold_direct_rustc_prepared(direct_resolver, discovery_sysroot.bytes())
-        .map_err(|_| PhaseBLocalError::Unsupported)?;
+    let mut rustc =
+        platform::hold_direct_rustc_prepared(direct_resolver, discovery_sysroot.bytes())
+            .map_err(|_| PhaseBLocalError::Unsupported)?;
     #[cfg(test)]
     PHASE_B_TOOL_HOLDS.with(|count| count.set(count.get().saturating_add(1)));
     drop(discovery);
@@ -16355,12 +16351,8 @@ fn authenticate_toolchain(
     if direct_sysroot.capacity() != PHASE_B_TOOL_VERSION_CAPACITY {
         return Err(PhaseBLocalError::BuilderBudget);
     }
-    platform::direct_rustc_reproduces_sysroot(
-        &rustc,
-        direct_recheck_resolver,
-        direct_sysroot.bytes(),
-    )
-    .map_err(|_| PhaseBLocalError::Unsupported)?;
+    platform::direct_rustc_reproduces_sysroot(&mut rustc, direct_sysroot.bytes())
+        .map_err(|_| PhaseBLocalError::Unsupported)?;
     #[cfg(test)]
     if PHASE_B_DIRECT_SYSROOT_MISMATCH_INJECTION.with(std::cell::Cell::get) {
         return Err(PhaseBLocalError::Unsupported);
@@ -27439,6 +27431,7 @@ match bounded.{export_method}(1,2){{Err(NativeRustCallError::AdapterRejected)=>{
                 linked_executable,
             ]);
             bind_test_tool_environment(&mut roundtrip_compile);
+            bind_test_rust_linker(&mut roundtrip_compile);
             if sanitizers {
                 roundtrip_compile.args([
                     "-C",
@@ -27534,6 +27527,7 @@ let mut context_bytes=[0u8;128];let misaligned_context=context_bytes.as_mut_ptr(
                 linked_executable,
             ]);
             bind_test_tool_environment(&mut abi_compile);
+            bind_test_rust_linker(&mut abi_compile);
             if sanitizers {
                 abi_compile.args([
                     "-C",
@@ -27810,6 +27804,7 @@ fn main(){{unsafe{{let imports=Imports{{abi_version:1,size:core::mem::size_of::<
                     &executable,
                 ]);
                 bind_test_tool_environment(&mut compile);
+                bind_test_rust_linker(&mut compile);
                 if sanitizers {
                     compile.args([
                         "-C",

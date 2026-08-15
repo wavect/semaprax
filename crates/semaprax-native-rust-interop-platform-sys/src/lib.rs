@@ -241,6 +241,7 @@ mod platform {
     pub struct DirectRustc {
         executable: Executable,
         sysroot: Directory,
+        recheck_resolver: Option<PreparedToolResolver>,
     }
 
     pub struct PreparedRelativeName(CString);
@@ -1915,6 +1916,7 @@ mod platform {
         Ok(DirectRustc {
             executable,
             sysroot,
+            recheck_resolver: Some(prepared),
         })
     }
 
@@ -1938,10 +1940,10 @@ mod platform {
     }
 
     pub fn direct_rustc_reproduces_sysroot(
-        direct: &DirectRustc,
-        mut prepared: PreparedToolResolver,
+        direct: &mut DirectRustc,
         output: &[u8],
     ) -> Result<(), Error> {
+        let mut prepared = direct.recheck_resolver.take().ok_or(Error::Invalid)?;
         let rebound = held_sysroot_from_output(&mut prepared, output)?;
         if rebound.dev != direct.sysroot.dev
             || rebound.ino != direct.sysroot.ino
@@ -3923,6 +3925,7 @@ mod platform {
     pub struct DirectRustc {
         executable: Executable,
         sysroot: Directory,
+        recheck_resolver: Option<PreparedToolResolver>,
     }
 
     pub struct PreparedRelativeName(Vec<u16>);
@@ -5503,6 +5506,7 @@ mod platform {
         Ok(DirectRustc {
             executable: Executable { file: regular },
             sysroot,
+            recheck_resolver: Some(prepared),
         })
     }
 
@@ -5526,10 +5530,10 @@ mod platform {
     }
 
     pub fn direct_rustc_reproduces_sysroot(
-        direct: &DirectRustc,
-        mut prepared: PreparedToolResolver,
+        direct: &mut DirectRustc,
         output: &[u8],
     ) -> Result<(), Error> {
+        let mut prepared = direct.recheck_resolver.take().ok_or(Error::Invalid)?;
         let rebound = windows_sysroot_directory_actual(&mut prepared, output)?;
         if rebound.identity != direct.sysroot.identity {
             return Err(Error::Changed);

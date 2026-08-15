@@ -16100,7 +16100,6 @@ struct PreparedToolchainPlan {
     clang_output_budget: TemporaryBudget,
     command_budget: TemporaryBudget,
     clang_resolver: platform::PreparedToolResolver,
-    discovery_resolver: platform::PreparedToolResolver,
     discovery_invocation: platform::PreparedSysrootInvocation,
     direct_sysroot_invocation: platform::PreparedSysrootInvocation,
     rustc_invocation: platform::PreparedRustcVersionInvocation,
@@ -16165,12 +16164,7 @@ fn freeze_tool_environment() -> Result<FrozenToolEnvironment, PhaseBLocalError> 
 fn prepare_toolchain_plan() -> Result<PreparedToolchainPlan, PhaseBLocalError> {
     let environment = freeze_tool_environment()?;
     let clang_name = if cfg!(windows) { "clang.exe" } else { "clang" };
-    let rustc_name = if cfg!(windows) { "rustc.exe" } else { "rustc" };
-    let path_budget = reserve_phase_b(
-        PHASE_B_TOOL_RESOLVER_CAPACITY
-            .checked_mul(2)
-            .ok_or(PhaseBLocalError::BuilderBudget)?,
-    )?;
+    let path_budget = reserve_phase_b(PHASE_B_TOOL_RESOLVER_CAPACITY)?;
     let discovery_output_budget = reserve_phase_b(PHASE_B_TOOL_VERSION_CAPACITY)?;
     let direct_sysroot_output_budget = reserve_phase_b(PHASE_B_TOOL_VERSION_CAPACITY)?;
     let rustc_output_budget = reserve_phase_b(PHASE_B_TOOL_VERSION_CAPACITY)?;
@@ -16182,14 +16176,7 @@ fn prepare_toolchain_plan() -> Result<PreparedToolchainPlan, PhaseBLocalError> {
     )?;
     let clang_resolver = platform::prepare_tool_resolver(clang_name, PHASE_B_TOOL_PATH_CAPACITY)
         .map_err(|_| PhaseBLocalError::BuilderBudget)?;
-    let discovery_resolver =
-        platform::prepare_tool_resolver(rustc_name, PHASE_B_TOOL_PATH_CAPACITY)
-            .map_err(|_| PhaseBLocalError::BuilderBudget)?;
-    let resolver_owned = platform::prepared_tool_resolver_owned_capacity(&clang_resolver)
-        .checked_add(platform::prepared_tool_resolver_owned_capacity(
-            &discovery_resolver,
-        ))
-        .ok_or(PhaseBLocalError::BuilderBudget)?;
+    let resolver_owned = platform::prepared_tool_resolver_owned_capacity(&clang_resolver);
     if resolver_owned > path_budget.maximum() {
         return Err(PhaseBLocalError::BuilderBudget);
     }
@@ -16245,7 +16232,6 @@ fn prepare_toolchain_plan() -> Result<PreparedToolchainPlan, PhaseBLocalError> {
         clang_output_budget,
         command_budget,
         clang_resolver,
-        discovery_resolver,
         discovery_invocation,
         direct_sysroot_invocation,
         rustc_invocation,
@@ -16269,7 +16255,6 @@ fn authenticate_toolchain(
         clang_output_budget,
         command_budget,
         clang_resolver,
-        discovery_resolver,
         discovery_invocation,
         direct_sysroot_invocation,
         rustc_invocation,
@@ -16291,7 +16276,7 @@ fn authenticate_toolchain(
         Some(value) if value == "1" && cfg!(target_os = "linux") => {}
         Some(_) => return Err(PhaseBLocalError::Unsupported),
     }
-    let clang = platform::resolve_and_hold_tool_prepared(
+    let (clang, discovery_resolver) = platform::resolve_and_hold_tool_reusing_prepared(
         clang_resolver,
         configured_clang.as_deref(),
         path.as_deref(),

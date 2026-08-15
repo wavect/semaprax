@@ -596,6 +596,24 @@ pub fn resolve_and_hold_tool_prepared(
     })
 }
 
+pub fn resolve_and_hold_tool_reusing_prepared(
+    prepared: PreparedToolResolver,
+    configured: Option<&OsStr>,
+    paths: Option<&OsStr>,
+) -> Result<(HeldTool, PreparedToolResolver), Error> {
+    let (executable, path, prepared) =
+        semaprax_native_rust_interop_platform_sys::resolve_and_hold_tool_reusing_prepared(
+            prepared.0, configured, paths,
+        )?;
+    Ok((
+        HeldTool {
+            executable: HeldExecutable(executable),
+            path,
+        },
+        PreparedToolResolver(prepared),
+    ))
+}
+
 pub fn hold_rustc_discovery_prepared(
     prepared: PreparedToolResolver,
     configured: &OsStr,

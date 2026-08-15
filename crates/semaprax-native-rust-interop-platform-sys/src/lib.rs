@@ -1749,6 +1749,7 @@ mod platform {
 
     fn hold_tool_candidate(
         prepared: &mut PreparedToolResolver,
+        record_display: bool,
     ) -> Result<Option<Executable>, Error> {
         let candidate = prepared.candidate.as_ptr().cast();
         let fd = unsafe { libc::open(candidate, libc::O_RDONLY | libc::O_CLOEXEC) };
@@ -1763,12 +1764,14 @@ mod platform {
         if metadata.mode() & 0o111 == 0 {
             return Err(Error::Invalid);
         }
-        canonical_tool_path(&file, &mut prepared.canonical, prepared.maximum)?;
-        let canonical = std::str::from_utf8(&prepared.canonical).map_err(|_| Error::Invalid)?;
-        prepared.display.clear();
-        prepared.display.push_str(canonical);
-        if prepared.display.capacity() != prepared.maximum {
-            return Err(Error::OutputLimit);
+        if record_display {
+            canonical_tool_path(&file, &mut prepared.canonical, prepared.maximum)?;
+            let canonical = std::str::from_utf8(&prepared.canonical).map_err(|_| Error::Invalid)?;
+            prepared.display.clear();
+            prepared.display.push_str(canonical);
+            if prepared.display.capacity() != prepared.maximum {
+                return Err(Error::OutputLimit);
+            }
         }
         let (dev, ino) = identity(&metadata);
         let digest = digest_file(&file, metadata.len())?;
@@ -1791,20 +1794,32 @@ mod platform {
     }
 
     pub fn resolve_and_hold_tool_prepared(
-        mut prepared: PreparedToolResolver,
+        prepared: PreparedToolResolver,
         configured: Option<&OsStr>,
         paths: Option<&OsStr>,
     ) -> Result<(Executable, String), Error> {
+        let (executable, path, _) =
+            resolve_and_hold_tool_reusing_prepared(prepared, configured, paths)?;
+        Ok((executable, path))
+    }
+
+    pub fn resolve_and_hold_tool_reusing_prepared(
+        mut prepared: PreparedToolResolver,
+        configured: Option<&OsStr>,
+        paths: Option<&OsStr>,
+    ) -> Result<(Executable, String, PreparedToolResolver), Error> {
         if let Some(configured) = configured {
             set_tool_candidate(&mut prepared, None, Some(configured.as_bytes()))?;
-            let executable = hold_tool_candidate(&mut prepared)?.ok_or(Error::Changed)?;
-            return Ok((executable, prepared.display));
+            let executable = hold_tool_candidate(&mut prepared, true)?.ok_or(Error::Changed)?;
+            let path = std::mem::take(&mut prepared.display);
+            return Ok((executable, path, prepared));
         }
         let paths = paths.ok_or(Error::Invalid)?.as_bytes();
         for directory in paths.split(|byte| *byte == b':') {
             set_tool_candidate(&mut prepared, Some(directory), None)?;
-            if let Some(executable) = hold_tool_candidate(&mut prepared)? {
-                return Ok((executable, prepared.display));
+            if let Some(executable) = hold_tool_candidate(&mut prepared, true)? {
+                let path = std::mem::take(&mut prepared.display);
+                return Ok((executable, path, prepared));
             }
         }
         Err(Error::Changed)
@@ -1818,7 +1833,7 @@ mod platform {
             return Err(Error::Invalid);
         }
         set_tool_candidate(&mut prepared, None, Some(configured.as_bytes()))?;
-        let executable = hold_tool_candidate(&mut prepared)?.ok_or(Error::Changed)?;
+        let executable = hold_tool_candidate(&mut prepared, false)?.ok_or(Error::Changed)?;
         Ok(RustcDiscovery {
             executable,
             resolver: prepared,
@@ -5255,6 +5270,7 @@ mod platform {
 
     fn hold_tool_candidate(
         prepared: &mut PreparedToolResolver,
+        record_display: bool,
     ) -> Result<Option<Executable>, Error> {
         if prepared.candidate.len().saturating_add(1) > prepared.maximum {
             return Err(Error::OutputLimit);
@@ -5280,39 +5296,41 @@ mod platform {
         if !file.metadata().map_err(|_| Error::Changed)?.is_file() {
             return Ok(None);
         }
-        prepared.canonical.clear();
-        prepared.canonical.resize(prepared.maximum, 0);
-        let written = unsafe {
-            GetFinalPathNameByHandleW(
-                file.as_raw_handle().cast(),
-                prepared.canonical.as_mut_ptr(),
-                u32::try_from(prepared.canonical.len()).map_err(|_| Error::OutputLimit)?,
-                0,
-            )
-        };
-        let written = usize::try_from(written).map_err(|_| Error::Changed)?;
-        if written == 0 || written >= prepared.maximum {
-            return Err(Error::OutputLimit);
-        }
-        prepared.canonical.truncate(written);
-        let prefix = [
-            u16::from(b'\\'),
-            u16::from(b'\\'),
-            u16::from(b'?'),
-            u16::from(b'\\'),
-        ];
-        if prepared.canonical.starts_with(&prefix) {
-            prepared.canonical.copy_within(prefix.len().., 0);
-            prepared.canonical.truncate(written - prefix.len());
-        }
-        prepared.display.clear();
-        for character in char::decode_utf16(prepared.canonical.iter().copied()) {
-            prepared
-                .display
-                .push(character.map_err(|_| Error::Invalid)?);
-        }
-        if prepared.display.capacity() != prepared.maximum.saturating_mul(3) {
-            return Err(Error::OutputLimit);
+        if record_display {
+            prepared.canonical.clear();
+            prepared.canonical.resize(prepared.maximum, 0);
+            let written = unsafe {
+                GetFinalPathNameByHandleW(
+                    file.as_raw_handle().cast(),
+                    prepared.canonical.as_mut_ptr(),
+                    u32::try_from(prepared.canonical.len()).map_err(|_| Error::OutputLimit)?,
+                    0,
+                )
+            };
+            let written = usize::try_from(written).map_err(|_| Error::Changed)?;
+            if written == 0 || written >= prepared.maximum {
+                return Err(Error::OutputLimit);
+            }
+            prepared.canonical.truncate(written);
+            let prefix = [
+                u16::from(b'\\'),
+                u16::from(b'\\'),
+                u16::from(b'?'),
+                u16::from(b'\\'),
+            ];
+            if prepared.canonical.starts_with(&prefix) {
+                prepared.canonical.copy_within(prefix.len().., 0);
+                prepared.canonical.truncate(written - prefix.len());
+            }
+            prepared.display.clear();
+            for character in char::decode_utf16(prepared.canonical.iter().copied()) {
+                prepared
+                    .display
+                    .push(character.map_err(|_| Error::Invalid)?);
+            }
+            if prepared.display.capacity() != prepared.maximum.saturating_mul(3) {
+                return Err(Error::OutputLimit);
+            }
         }
         let digest = digest(&file, identity.length)?;
         let regular = RegularFile {
@@ -5335,14 +5353,24 @@ mod platform {
     }
 
     pub fn resolve_and_hold_tool_prepared(
-        mut prepared: PreparedToolResolver,
+        prepared: PreparedToolResolver,
         configured: Option<&OsStr>,
         paths: Option<&OsStr>,
     ) -> Result<(Executable, String), Error> {
+        let (executable, path, _) =
+            resolve_and_hold_tool_reusing_prepared(prepared, configured, paths)?;
+        Ok((executable, path))
+    }
+
+    pub fn resolve_and_hold_tool_reusing_prepared(
+        mut prepared: PreparedToolResolver,
+        configured: Option<&OsStr>,
+        paths: Option<&OsStr>,
+    ) -> Result<(Executable, String, PreparedToolResolver), Error> {
         if let Some(configured) = configured {
             prepared.candidate.clear();
             for unit in configured.encode_wide() {
-                if prepared.candidate.len().saturating_add(1) >= prepared.maximum {
+                if prepared.candidate.len().saturating_add(1) > prepared.maximum {
                     return Err(Error::OutputLimit);
                 }
                 prepared.candidate.push(unit);
@@ -5350,16 +5378,18 @@ mod platform {
             if prepared.candidate.is_empty() {
                 return Err(Error::Invalid);
             }
-            let executable = hold_tool_candidate(&mut prepared)?.ok_or(Error::Changed)?;
-            return Ok((executable, prepared.display));
+            let executable = hold_tool_candidate(&mut prepared, true)?.ok_or(Error::Changed)?;
+            let path = std::mem::take(&mut prepared.display);
+            return Ok((executable, path, prepared));
         }
         let paths = paths.ok_or(Error::Invalid)?;
         prepared.candidate.clear();
         for unit in paths.encode_wide().chain(std::iter::once(u16::from(b';'))) {
             if unit == u16::from(b';') {
                 append_tool_fallback(&mut prepared)?;
-                if let Some(executable) = hold_tool_candidate(&mut prepared)? {
-                    return Ok((executable, prepared.display));
+                if let Some(executable) = hold_tool_candidate(&mut prepared, true)? {
+                    let path = std::mem::take(&mut prepared.display);
+                    return Ok((executable, path, prepared));
                 }
                 prepared.candidate.clear();
             } else {
@@ -5467,7 +5497,7 @@ mod platform {
         if prepared.candidate.is_empty() {
             return Err(Error::Invalid);
         }
-        let executable = hold_tool_candidate(&mut prepared)?.ok_or(Error::Changed)?;
+        let executable = hold_tool_candidate(&mut prepared, false)?.ok_or(Error::Changed)?;
         Ok(RustcDiscovery {
             executable,
             resolver: prepared,

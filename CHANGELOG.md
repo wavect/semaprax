@@ -15,7 +15,7 @@
   prepared Phase-B target arguments admit current-host underscore components
   without opening other punctuation, and the Linux link plan freezes the
   target's native-static library tail. Local builder 99/99, platform-system
-  22/22, platform 10/10, source-contract 6/6, strict-Clippy, formatting, and
+  23/23, platform 10/10, source-contract 6/6, strict-Clippy, formatting, and
   security gates are green; Windows directory authority now excludes mutable
   directory length while retaining full file identity and reparse rejection.
   Windows runtime, exact-head three-OS, and Linux sanitizer evidence

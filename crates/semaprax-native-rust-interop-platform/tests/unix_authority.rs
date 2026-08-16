@@ -147,13 +147,33 @@ fn compile_c(root: &Path, name: &str, source: &str) -> PathBuf {
     path.push(PathBuf::from("/usr/bin"));
     path.push(PathBuf::from("/usr/local/bin"));
     path.push(PathBuf::from("/bin"));
+
+    let compiler_root_cc1 = compiler.with_file_name("cc1");
+    if compiler_root_cc1.is_file() {
+        if let Some(parent) = compiler_root_cc1.parent() {
+            path.push(parent.to_path_buf());
+        }
+    }
+
     if let Ok(cc1_output) = Command::new(&compiler).arg("-print-prog-name=cc1").output() {
         if cc1_output.status.success() {
             let cc1 = String::from_utf8_lossy(&cc1_output.stdout)
                 .trim()
                 .to_owned();
-            if cc1.contains('/') && Path::new(&cc1).is_file() {
-                if let Some(parent) = Path::new(&cc1).parent() {
+            let cc1 = if cc1.contains('/') && Path::new(&cc1).is_file() {
+                Some(PathBuf::from(cc1))
+            } else if !cc1.is_empty() {
+                let relative = compiler.with_file_name(&cc1);
+                if relative.is_file() {
+                    Some(relative)
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+            if let Some(cc1) = cc1 {
+                if let Some(parent) = cc1.parent() {
                     path.push(parent.to_path_buf());
                 }
             }

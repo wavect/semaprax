@@ -137,10 +137,41 @@ fn compile_c(root: &Path, name: &str, source: &str) -> PathBuf {
     std::fs::write(&source_path, source).unwrap();
     let compiler = std::env::var_os("CLANG").unwrap_or_else(|| "clang".into());
     let compiler = resolved_tool(&compiler);
+    let mut path = Vec::new();
+    if let Some(parent) = compiler.parent() {
+        path.push(parent.to_path_buf());
+    }
+    if let Some(existing_path) = std::env::var_os("PATH") {
+        path.extend(std::env::split_paths(&existing_path));
+    }
+    path.push(PathBuf::from("/usr/bin"));
+    path.push(PathBuf::from("/usr/local/bin"));
+    path.push(PathBuf::from("/bin"));
+    if let Ok(cc1_output) = Command::new(&compiler).arg("-print-prog-name=cc1").output() {
+        if cc1_output.status.success() {
+            let cc1 = String::from_utf8_lossy(&cc1_output.stdout)
+                .trim()
+                .to_owned();
+            if cc1.contains('/') && Path::new(&cc1).is_file() {
+                if let Some(parent) = Path::new(&cc1).parent() {
+                    path.push(parent.to_path_buf());
+                }
+            }
+        }
+    }
+
+    path = path.into_iter().fold(Vec::new(), |mut unique, candidate| {
+        if !unique.iter().any(|existing| existing == &candidate) {
+            unique.push(candidate);
+        }
+        unique
+    });
+    let path = std::env::join_paths(path).expect("joined PATH");
     let mut command = Command::new(compiler);
     command
         .env_clear()
         .env("TMPDIR", root)
+        .env("PATH", path)
         .args(["-std=c11", "-Wall", "-Wextra", "-Werror", "-O2"]);
     #[cfg(target_os = "linux")]
     command.arg(format!(

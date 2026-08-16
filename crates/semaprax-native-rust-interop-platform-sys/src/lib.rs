@@ -3000,8 +3000,6 @@ mod platform {
             argv[index + 1] = argument.as_ptr();
         }
         let env = [std::ptr::null::<libc::c_char>()];
-        const EXECUTABLE_FD: libc::c_int = 1020;
-        const EXECUTABLE_FD_PATH: &std::ffi::CStr = c"/proc/self/fd/1020";
         let mut argv0 = [0_u8; 32_770];
         let pid = unsafe { libc::fork() };
         if pid < 0 {
@@ -3015,12 +3013,11 @@ mod platform {
                 if libc::setpgid(0, 0) != 0 {
                     libc::_exit(126);
                 }
-                let executable_fd = libc::fcntl(
-                    executable.file.file.as_raw_fd(),
-                    libc::F_DUPFD,
-                    EXECUTABLE_FD,
-                );
-                if executable_fd != EXECUTABLE_FD {
+                let executable_fd = libc::fcntl(executable.file.file.as_raw_fd(), libc::F_DUPFD, 0);
+                if executable_fd < 0 {
+                    libc::_exit(126);
+                }
+                if executable_fd <= 2 {
                     libc::_exit(126);
                 }
                 if libc::fcntl(executable_fd, libc::F_SETFD, libc::FD_CLOEXEC) != 0 {
@@ -3036,13 +3033,46 @@ mod platform {
                 if libc::close(write_pipe.raw()) != 0 || libc::close(null_fd.raw()) != 0 {
                     libc::_exit(126);
                 }
-                if libc::syscall(libc::SYS_close_range, 3_u32, 1019_u32, 0_u32) != 0
-                    || libc::syscall(libc::SYS_close_range, 1021_u32, u32::MAX, 0_u32) != 0
-                {
+                if executable_fd > 2 {
+                    if executable_fd > 3
+                        && unsafe {
+                            libc::syscall(
+                                libc::SYS_close_range,
+                                3_u32,
+                                executable_fd.saturating_sub(1) as u32,
+                                0_u32,
+                            )
+                        } != 0
+                    {
+                        libc::_exit(126);
+                    }
+                    if executable_fd < i32::MAX as libc::c_int {
+                        if unsafe {
+                            libc::syscall(
+                                libc::SYS_close_range,
+                                (executable_fd + 1) as u32,
+                                u32::MAX,
+                                0_u32,
+                            )
+                        } != 0
+                        {
+                            libc::_exit(126);
+                        }
+                    }
+                }
+                let mut executable_fd_path = [0_u8; 64];
+                let executable_fd_format = b"/proc/self/fd/%d\0";
+                let formatted = libc::snprintf(
+                    executable_fd_path.as_mut_ptr().cast(),
+                    executable_fd_path.len(),
+                    executable_fd_format.as_ptr().cast(),
+                    executable_fd,
+                );
+                if formatted <= 0 || formatted as usize >= executable_fd_path.len() {
                     libc::_exit(126);
                 }
                 let argv0_length = libc::readlink(
-                    EXECUTABLE_FD_PATH.as_ptr(),
+                    executable_fd_path.as_ptr().cast(),
                     argv0.as_mut_ptr().cast(),
                     argv0.len() - 1,
                 );
@@ -8432,8 +8462,8 @@ mod tests {
         let runner = &source[start..end];
         assert!(!runner.contains("semaprax-native-rust-interop-tool"));
         for required in [
-            "const EXECUTABLE_FD: libc::c_int = 1020",
-            "c\"/proc/self/fd/1020\"",
+            "let executable_fd_format = b\"/proc/self/fd/%d\\0\"",
+            "libc::snprintf(",
             "libc::readlink(",
             "argv[0] = argv0.as_ptr().cast()",
             "fexecve(executable_fd, argv.as_ptr(), env.as_ptr())",

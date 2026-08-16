@@ -16100,6 +16100,7 @@ struct PreparedToolchainPlan {
     clang_output_budget: TemporaryBudget,
     command_budget: TemporaryBudget,
     clang_resolver: platform::PreparedToolResolver,
+    rustc_resolver: platform::PreparedToolResolver,
     discovery_invocation: platform::PreparedSysrootInvocation,
     direct_sysroot_invocation: platform::PreparedSysrootInvocation,
     rustc_invocation: platform::PreparedRustcVersionInvocation,
@@ -16180,6 +16181,13 @@ fn prepare_toolchain_plan() -> Result<PreparedToolchainPlan, PhaseBLocalError> {
     if resolver_owned > path_budget.maximum() {
         return Err(PhaseBLocalError::BuilderBudget);
     }
+    let rustc_name = if cfg!(windows) { "rustc.exe" } else { "rustc" };
+    let rustc_resolver = platform::prepare_tool_resolver(rustc_name, PHASE_B_TOOL_PATH_CAPACITY)
+        .map_err(|_| PhaseBLocalError::BuilderBudget)?;
+    let rustc_resolver_owned = platform::prepared_tool_resolver_owned_capacity(&rustc_resolver);
+    if rustc_resolver_owned > path_budget.maximum() {
+        return Err(PhaseBLocalError::BuilderBudget);
+    }
     let discovery_invocation = platform::prepare_sysroot_invocation(PHASE_B_TOOL_VERSION_CAPACITY)
         .map_err(|_| PhaseBLocalError::BuilderBudget)?;
     let direct_sysroot_invocation =
@@ -16232,6 +16240,7 @@ fn prepare_toolchain_plan() -> Result<PreparedToolchainPlan, PhaseBLocalError> {
         clang_output_budget,
         command_budget,
         clang_resolver,
+        rustc_resolver,
         discovery_invocation,
         direct_sysroot_invocation,
         rustc_invocation,
@@ -16255,12 +16264,14 @@ fn authenticate_toolchain(
         clang_output_budget,
         command_budget,
         clang_resolver,
+        rustc_resolver,
         discovery_invocation,
         direct_sysroot_invocation,
         rustc_invocation,
         clang_invocation,
         mut process_arena,
         mut rustc_version,
+        ..
     } = plan;
     let FrozenToolEnvironment {
         clang: configured_clang,
@@ -16276,7 +16287,7 @@ fn authenticate_toolchain(
         Some(value) if value == "1" && cfg!(target_os = "linux") => {}
         Some(_) => return Err(PhaseBLocalError::Unsupported),
     }
-    let (clang, discovery_resolver) = platform::resolve_and_hold_tool_reusing_prepared(
+    let (clang, _clang_resolver) = platform::resolve_and_hold_tool_reusing_prepared(
         clang_resolver,
         configured_clang.as_deref(),
         path.as_deref(),
@@ -16284,10 +16295,31 @@ fn authenticate_toolchain(
     .map_err(|_| PhaseBLocalError::Unsupported)?;
     #[cfg(test)]
     PHASE_B_TOOL_HOLDS.with(|count| count.set(count.get().saturating_add(1)));
-    let configured_rustc = configured_rustc.ok_or(PhaseBLocalError::Unsupported)?;
+    let (rustc, rustc_resolver) = if let Some(rustc) = configured_rustc.as_deref() {
+        if std::path::Path::new(rustc).is_absolute() {
+            platform::resolve_and_hold_tool_reusing_prepared(
+                rustc_resolver,
+                Some(rustc),
+                path.as_deref(),
+            )
+            .map_err(|_| PhaseBLocalError::Unsupported)?
+        } else {
+            platform::resolve_and_hold_tool_reusing_prepared(rustc_resolver, None, path.as_deref())
+                .map_err(|_| PhaseBLocalError::Unsupported)?
+        }
+    } else {
+        platform::resolve_and_hold_tool_reusing_prepared(rustc_resolver, None, path.as_deref())
+            .map_err(|_| PhaseBLocalError::Unsupported)?
+    };
+    #[cfg(test)]
+    PHASE_B_TOOL_HOLDS.with(|count| count.set(count.get().saturating_add(1)));
+    let configured_rustc = platform::tool_path(&rustc).to_owned();
     let discovery =
-        platform::hold_rustc_discovery_prepared(discovery_resolver, configured_rustc.as_os_str())
+        platform::hold_rustc_discovery_prepared(rustc_resolver, OsStr::new(&configured_rustc))
             .map_err(|_| PhaseBLocalError::Unsupported)?;
+    #[cfg(test)]
+    PHASE_B_TOOL_HOLDS.with(|count| count.set(count.get().saturating_add(1)));
+    drop(rustc);
     #[cfg(test)]
     PHASE_B_TOOL_HOLDS.with(|count| count.set(count.get().saturating_add(1)));
     drop(configured_clang);

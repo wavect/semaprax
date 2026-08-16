@@ -7277,10 +7277,11 @@ mod tests {
             "#include <stdio.h>\n#include <unistd.h>\nint main(void){FILE *f=fopen(\"leader.pid\",\"w\");if(!f)return 2;fprintf(f,\"%ld\",(long)getpid());fclose(f);fputs(\"x\",stdout);fflush(stdout);sleep(1);return 0;}\n",
         )
         .unwrap();
-        let compiler = std::env::var_os("CC").unwrap_or_else(|| "cc".into());
+        let compiler = std::env::var_os("CC").unwrap_or_else(|| "/usr/bin/cc".into());
         let built = Command::new(compiler)
             .env_clear()
             .env("TMPDIR", &root)
+            .env("PATH", "/usr/bin:/bin")
             .args(["-std=c11", "-Wall", "-Wextra", "-Werror", "-O2"])
             .arg(&source)
             .arg("-o")
@@ -7435,10 +7436,11 @@ mod tests {
         std::fs::create_dir(&root).unwrap();
         let source = root.join("quiet.c");
         std::fs::write(&source, "int main(void){return 0;}\n").unwrap();
-        let compiler = std::env::var_os("CC").unwrap_or_else(|| "cc".into());
+        let compiler = std::env::var_os("CC").unwrap_or_else(|| "/usr/bin/cc".into());
         let built = Command::new(compiler)
             .env_clear()
             .env("TMPDIR", &root)
+            .env("PATH", "/usr/bin:/bin")
             .args(["-std=c11", "-Wall", "-Wextra", "-Werror", "-O2"])
             .arg(&source)
             .arg("-o")

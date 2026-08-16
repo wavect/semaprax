@@ -3803,8 +3803,26 @@ mod platform {
     }
 
     pub fn execute_harness(executable: &Executable, cwd: &Directory) -> Result<(), Error> {
+        execute_harness_with_output_limit(executable, cwd, 0)
+    }
+
+    pub(crate) fn execute_harness_with_output_limit(
+        executable: &Executable,
+        cwd: &Directory,
+        stdout_limit: usize,
+    ) -> Result<(), Error> {
         let mut process_arena = prepare_process_arena(1)?;
-        if run_argv(executable, cwd, &[], 0, Vec::new(), &mut process_arena)?.is_empty() {
+        let output = Vec::with_capacity(stdout_limit);
+        if run_argv(
+            executable,
+            cwd,
+            &[],
+            stdout_limit,
+            output,
+            &mut process_arena,
+        )?
+        .is_empty()
+        {
             Ok(())
         } else {
             Err(Error::OutputLimit)
@@ -7145,7 +7163,8 @@ mod tests {
         let directory = super::platform::hold_directory(&root).unwrap();
         let executable =
             super::platform::hold_executable(&directory, std::ffi::OsStr::new("noisy")).unwrap();
-        let result = super::platform::execute_harness(&executable, &directory);
+        let result =
+            super::platform::execute_harness_with_output_limit(&executable, &directory, 65_536);
         if let Some(expected) = expected {
             assert_eq!(result, Err(expected));
         }

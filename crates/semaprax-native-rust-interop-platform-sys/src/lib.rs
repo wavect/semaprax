@@ -7296,7 +7296,7 @@ mod tests {
         let source = root.join("noisy.c");
         std::fs::write(
             &source,
-            "#include <stdio.h>\n#include <unistd.h>\nint main(void){FILE *f=fopen(\"leader.pid\",\"w\");if(!f)return 2;fprintf(f,\"%ld\",(long)getpid());fclose(f);write(1,\"x\",1);sleep(1);return 0;}\n",
+            "#include <stdio.h>\n#include <unistd.h>\nint main(void){FILE *f=fopen(\"leader.pid\",\"w\");if(!f)return 2;fprintf(f,\"%ld\",(long)getpid());fclose(f);if(write(1,\"x\",1)!=1)return 2;sleep(1);return 0;}\n",
         )
         .unwrap();
         let compiler = std::env::var_os("CC").unwrap_or_else(|| "/usr/bin/cc".into());

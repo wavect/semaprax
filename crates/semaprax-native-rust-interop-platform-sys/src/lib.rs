@@ -299,7 +299,7 @@ mod platform {
     pub struct PreparedRunInvocation(PreparedCommand);
 
     #[cfg(target_os = "linux")]
-    const LINUX_LINKER_ARGUMENT: &str = "-fuse-ld=/usr/bin/ld";
+    const LINUX_LINKER_ARGUMENT: &str = "--ld-path=/usr/bin/ld";
 
     #[cfg(target_os = "linux")]
     const LINUX_RUST_STATICLIB_NATIVE_LIBS: [&str; 7] = [

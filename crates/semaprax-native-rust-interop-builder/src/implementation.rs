@@ -15954,7 +15954,7 @@ fn bind_test_tool_environment(command: &mut std::process::Command) {
 #[cfg(test)]
 fn bind_test_rust_linker(command: &mut std::process::Command) {
     #[cfg(target_os = "linux")]
-    command.args(["-C", "link-arg=-fuse-ld=/usr/bin/ld"]);
+    command.args(["-C", "link-arg=--ld-path=/usr/bin/ld"]);
     #[cfg(not(target_os = "linux"))]
     let _ = command;
 }

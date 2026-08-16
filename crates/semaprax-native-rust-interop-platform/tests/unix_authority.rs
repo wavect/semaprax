@@ -195,7 +195,7 @@ fn compile_c(root: &Path, name: &str, source: &str) -> PathBuf {
         .args(["-std=c11", "-Wall", "-Wextra", "-Werror", "-O2"]);
     #[cfg(target_os = "linux")]
     command.arg(format!(
-        "-fuse-ld={}",
+        "--ld-path={}",
         resolved_tool(OsStr::new("ld")).display()
     ));
     let output = command

@@ -3035,29 +3035,24 @@ mod platform {
                 }
                 if executable_fd > 2 {
                     if executable_fd > 3
-                        && unsafe {
-                            libc::syscall(
-                                libc::SYS_close_range,
-                                3_u32,
-                                executable_fd.saturating_sub(1) as u32,
-                                0_u32,
-                            )
-                        } != 0
+                        && libc::syscall(
+                            libc::SYS_close_range,
+                            3_u32,
+                            executable_fd.saturating_sub(1) as u32,
+                            0_u32,
+                        ) != 0
                     {
                         libc::_exit(126);
                     }
-                    if executable_fd < i32::MAX as libc::c_int {
-                        if unsafe {
-                            libc::syscall(
-                                libc::SYS_close_range,
-                                (executable_fd + 1) as u32,
-                                u32::MAX,
-                                0_u32,
-                            )
-                        } != 0
-                        {
-                            libc::_exit(126);
-                        }
+                    if executable_fd < i32::MAX as libc::c_int
+                        && libc::syscall(
+                            libc::SYS_close_range,
+                            (executable_fd + 1) as u32,
+                            u32::MAX,
+                            0_u32,
+                        ) != 0
+                    {
+                        libc::_exit(126);
                     }
                 }
                 let mut executable_fd_path = [0_u8; 64];

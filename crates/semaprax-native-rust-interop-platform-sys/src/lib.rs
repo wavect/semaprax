@@ -1178,6 +1178,67 @@ mod platform {
         }
     }
 
+    #[cfg(target_os = "macos")]
+    fn quiesce_group_before_reap(pid: libc::pid_t) -> Result<(), Error> {
+        const MAX_GROUP_MEMBERS: usize = 4096;
+
+        #[link(name = "proc")]
+        unsafe extern "C" {
+            fn proc_listpgrppids(
+                pgrpid: libc::pid_t,
+                buffer: *mut libc::c_void,
+                buffersize: libc::c_int,
+            ) -> libc::c_int;
+        }
+
+        if unsafe { libc::kill(-pid, libc::SIGKILL) } != 0
+            && std::io::Error::last_os_error().raw_os_error() != Some(libc::ESRCH)
+        {
+            return Err(Error::Spawn);
+        }
+        let mut members = [0 as libc::pid_t; MAX_GROUP_MEMBERS];
+        let member_bytes =
+            libc::c_int::try_from(std::mem::size_of_val(&members)).map_err(|_| Error::Spawn)?;
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30);
+        loop {
+            unsafe {
+                *libc::__error() = 0;
+            }
+            let required = unsafe { proc_listpgrppids(pid, std::ptr::null_mut(), 0) };
+            let required_errno = unsafe { *libc::__error() };
+            // proc_listpgrppids returns a PID count, unlike proc_listpids,
+            // which returns a byte count. The wrapper reports kernel failure
+            // as zero, so errno must be bound independently.
+            if (required == 0 && required_errno != 0)
+                || required < 0
+                || usize::try_from(required).map_err(|_| Error::Spawn)? > MAX_GROUP_MEMBERS
+            {
+                return Err(Error::Spawn);
+            }
+            members.fill(0);
+            unsafe {
+                *libc::__error() = 0;
+            }
+            let returned =
+                unsafe { proc_listpgrppids(pid, members.as_mut_ptr().cast(), member_bytes) };
+            let returned_errno = unsafe { *libc::__error() };
+            if (returned == 0 && returned_errno != 0)
+                || returned < 0
+                || usize::try_from(returned).map_err(|_| Error::Spawn)? > MAX_GROUP_MEMBERS
+            {
+                return Err(Error::Spawn);
+            }
+            let count = usize::try_from(returned).map_err(|_| Error::Spawn)?;
+            if members[..count].iter().all(|member| *member == pid) {
+                return Ok(());
+            }
+            if std::time::Instant::now() >= deadline {
+                return Err(Error::Spawn);
+            }
+            std::thread::sleep(std::time::Duration::from_millis(1));
+        }
+    }
+
     fn quiesce_group(pid: libc::pid_t) -> Result<(), Error> {
         let _ = unsafe { libc::kill(-pid, libc::SIGKILL) };
         let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30);
@@ -1203,13 +1264,31 @@ mod platform {
         leader_reaped: bool,
     ) -> Result<(), Error> {
         let close_failed = pipe.close_injected(TestClosePoint::Settle).is_err();
+        #[cfg(target_os = "linux")]
         let mut leader = if leader_reaped {
             let _ = unsafe { libc::kill(-pid, libc::SIGKILL) };
             Ok(())
         } else {
             wait_child(pid, true).map(|_| ())
         };
+        #[cfg(target_os = "linux")]
         let mut group = quiesce_group(pid);
+        #[cfg(target_os = "macos")]
+        let mut group = if leader_reaped {
+            Ok(())
+        } else {
+            quiesce_group_before_reap(pid)
+        };
+        #[cfg(target_os = "macos")]
+        let mut leader = if leader_reaped || group.is_err() {
+            if leader_reaped {
+                Ok(())
+            } else {
+                Err(Error::Spawn)
+            }
+        } else {
+            wait_child(pid, false).map(|_| ())
+        };
         if injected_settlement_failure!(UnixWait) {
             leader = Err(Error::Spawn);
         }

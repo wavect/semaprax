@@ -17118,7 +17118,7 @@ fn prepare_invocation<T>(
     prepare: impl FnOnce() -> Result<T, platform::Error>,
     capacity: impl FnOnce(&T) -> usize,
 ) -> Result<(T, TemporaryBudget), PhaseBLocalError> {
-    let budget = reserve_phase_b(maximum)?;
+    let mut budget = reserve_phase_b(maximum)?;
     let invocation = prepare().map_err(|error| match error {
         platform::Error::OutputLimit => PhaseBLocalError::BuilderBudget,
         platform::Error::Invalid
@@ -17128,9 +17128,11 @@ fn prepare_invocation<T>(
         | platform::Error::Spawn
         | platform::Error::Exit => PhaseBLocalError::Unsupported,
     })?;
-    if capacity(&invocation) > budget.maximum() {
+    let owned = capacity(&invocation);
+    if owned > budget.maximum() {
         return Err(PhaseBLocalError::BuilderBudget);
     }
+    shrink_phase_b(&mut budget, owned)?;
     #[cfg(test)]
     PHASE_B_BUILD_INVOCATION_PLANS.with(|count| count.set(count.get().saturating_add(1)));
     Ok((invocation, budget))
@@ -17684,9 +17686,19 @@ fn debit_phase_b(bytes: usize) -> Result<(), PhaseBLocalError> {
     }
 }
 
+#[track_caller]
 fn reserve_phase_b(maximum: usize) -> Result<TemporaryBudget, PhaseBLocalError> {
     let remaining = crate::bounded_output::remaining_active().unwrap_or(MAX_BUILDER_BYTES);
     if maximum > remaining {
+        #[cfg(test)]
+        {
+            let caller = std::panic::Location::caller();
+            eprintln!(
+                "phase-b reservation failed at {}:{}: required={maximum} remaining={remaining}",
+                caller.file(),
+                caller.line()
+            );
+        }
         return Err(PhaseBLocalError::BuilderBudget);
     }
     debit_phase_b(maximum)?;
@@ -21401,27 +21413,38 @@ fn main() -> i64 { 0 }
         reset_phase_b_manifest_authority_observer();
         let plans = prepare_build_invocations(&prepared, false).unwrap();
         assert_eq!(PHASE_B_BUILD_INVOCATION_PLANS.with(std::cell::Cell::get), 8);
-        assert!(
-            platform::prepared_c_compile_owned_capacity(&plans.c_o0.0) <= plans.c_o0.1.maximum()
+        assert_eq!(
+            platform::prepared_c_compile_owned_capacity(&plans.c_o0.0),
+            plans.c_o0.1.maximum()
         );
-        assert!(
-            platform::prepared_c_compile_owned_capacity(&plans.c_o2.0) <= plans.c_o2.1.maximum()
+        assert_eq!(
+            platform::prepared_c_compile_owned_capacity(&plans.c_o2.0),
+            plans.c_o2.1.maximum()
         );
-        assert!(
-            platform::prepared_rust_compile_owned_capacity(&plans.rust.0) <= plans.rust.1.maximum()
+        assert_eq!(
+            platform::prepared_rust_compile_owned_capacity(&plans.rust.0),
+            plans.rust.1.maximum()
         );
-        assert!(
-            platform::prepared_c_compile_owned_capacity(&plans.c_main.0)
-                <= plans.c_main.1.maximum()
+        assert_eq!(
+            platform::prepared_c_compile_owned_capacity(&plans.c_main.0),
+            plans.c_main.1.maximum()
         );
-        assert!(
-            platform::prepared_link_owned_capacity(&plans.link_o0.0) <= plans.link_o0.1.maximum()
+        assert_eq!(
+            platform::prepared_link_owned_capacity(&plans.link_o0.0),
+            plans.link_o0.1.maximum()
         );
-        assert!(platform::prepared_run_owned_capacity(&plans.run_o0.0) <= plans.run_o0.1.maximum());
-        assert!(
-            platform::prepared_link_owned_capacity(&plans.link_o2.0) <= plans.link_o2.1.maximum()
+        assert_eq!(
+            platform::prepared_run_owned_capacity(&plans.run_o0.0),
+            plans.run_o0.1.maximum()
         );
-        assert!(platform::prepared_run_owned_capacity(&plans.run_o2.0) <= plans.run_o2.1.maximum());
+        assert_eq!(
+            platform::prepared_link_owned_capacity(&plans.link_o2.0),
+            plans.link_o2.1.maximum()
+        );
+        assert_eq!(
+            platform::prepared_run_owned_capacity(&plans.run_o2.0),
+            plans.run_o2.1.maximum()
+        );
         drop(plans);
 
         let publish = prepare_publish_discard_inventory().unwrap();

@@ -3013,14 +3013,9 @@ mod platform {
                 if libc::setpgid(0, 0) != 0 {
                     libc::_exit(126);
                 }
-                let executable_fd = libc::fcntl(executable.file.file.as_raw_fd(), libc::F_DUPFD, 0);
+                let executable_fd =
+                    libc::fcntl(executable.file.file.as_raw_fd(), libc::F_DUPFD_CLOEXEC, 3);
                 if executable_fd < 0 {
-                    libc::_exit(126);
-                }
-                if executable_fd <= 2 {
-                    libc::_exit(126);
-                }
-                if libc::fcntl(executable_fd, libc::F_SETFD, libc::FD_CLOEXEC) != 0 {
                     libc::_exit(126);
                 }
                 if libc::fchdir(cwd.file.as_raw_fd()) != 0
@@ -3030,10 +3025,15 @@ mod platform {
                 {
                     libc::_exit(126);
                 }
-                if libc::fcntl(libc::STDOUT_FILENO, libc::F_SETFD, 0) != 0 {
+                if libc::fcntl(libc::STDIN_FILENO, libc::F_SETFD, 0) != 0
+                    || libc::fcntl(libc::STDOUT_FILENO, libc::F_SETFD, 0) != 0
+                    || libc::fcntl(libc::STDERR_FILENO, libc::F_SETFD, 0) != 0
+                {
                     libc::_exit(126);
                 }
-                if libc::close(write_pipe.raw()) != 0 || libc::close(null_fd.raw()) != 0 {
+                if (write_pipe.raw() > libc::STDERR_FILENO && libc::close(write_pipe.raw()) != 0)
+                    || (null_fd.raw() > libc::STDERR_FILENO && libc::close(null_fd.raw()) != 0)
+                {
                     libc::_exit(126);
                 }
                 if executable_fd > 2 {
@@ -7299,11 +7299,9 @@ mod tests {
             "#include <stdio.h>\n#include <unistd.h>\nint main(void){FILE *f=fopen(\"leader.pid\",\"w\");if(!f)return 2;fprintf(f,\"%ld\",(long)getpid());fclose(f);if(write(1,\"x\",1)!=1)return 2;sleep(1);return 0;}\n",
         )
         .unwrap();
-        let compiler = std::env::var_os("CC").unwrap_or_else(|| "/usr/bin/cc".into());
+        let compiler = std::env::var_os("CC").unwrap_or_else(|| "cc".into());
         let built = Command::new(compiler)
-            .env_clear()
             .env("TMPDIR", &root)
-            .env("PATH", "/usr/bin:/bin")
             .args(["-std=c11", "-Wall", "-Wextra", "-Werror", "-O2"])
             .arg(&source)
             .arg("-o")

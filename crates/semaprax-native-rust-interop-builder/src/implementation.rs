@@ -16163,7 +16163,27 @@ fn freeze_tool_environment() -> Result<FrozenToolEnvironment, PhaseBLocalError> 
 }
 
 fn prepare_toolchain_plan() -> Result<PreparedToolchainPlan, PhaseBLocalError> {
-    let environment = freeze_tool_environment()?;
+    let mut environment = freeze_tool_environment()?;
+    let process_arena = prepare_process_arena_authorized(
+        environment.include.as_deref(),
+        environment.libraries.as_deref(),
+    )?;
+    let include = environment.include.take();
+    let libraries = environment.libraries.take();
+    drop(include);
+    drop(libraries);
+    let retained_environment = [
+        &environment.clang,
+        &environment.rustc,
+        &environment.path,
+        &environment.sanitizer,
+    ]
+    .into_iter()
+    .try_fold(0usize, |total, value| {
+        total.checked_add(value.as_ref().map_or(0, OsString::capacity))
+    })
+    .ok_or(PhaseBLocalError::BuilderBudget)?;
+    shrink_phase_b(&mut environment.budget, retained_environment)?;
     let clang_name = if cfg!(windows) { "clang.exe" } else { "clang" };
     let path_budget = reserve_phase_b(PHASE_B_TOOL_RESOLVER_CAPACITY)?;
     let discovery_output_budget = reserve_phase_b(PHASE_B_TOOL_VERSION_CAPACITY)?;
@@ -16227,10 +16247,6 @@ fn prepare_toolchain_plan() -> Result<PreparedToolchainPlan, PhaseBLocalError> {
         return Err(PhaseBLocalError::BuilderBudget);
     }
     retain_phase_b(persistent_budget, rustc_version.capacity())?;
-    let process_arena = prepare_process_arena_authorized(
-        environment.include.as_deref(),
-        environment.libraries.as_deref(),
-    )?;
     Ok(PreparedToolchainPlan {
         environment,
         path_budget,
@@ -21149,6 +21165,28 @@ fn main() -> i64 { 0 }
     #[test]
     fn phase_b_process_arena_reservation_precedes_materialization_source_contract() {
         let source = include_str!("implementation.rs");
+        let toolchain_start = source.find("fn prepare_toolchain_plan()").unwrap();
+        let toolchain_end = source[toolchain_start..]
+            .find("fn authenticate_toolchain(")
+            .map(|offset| toolchain_start + offset)
+            .unwrap();
+        let toolchain = &source[toolchain_start..toolchain_end];
+        let arena = toolchain.find("prepare_process_arena_authorized(").unwrap();
+        let include_drop = toolchain.find("drop(include)").unwrap();
+        let libraries_drop = toolchain.find("drop(libraries)").unwrap();
+        let environment_shrink = toolchain
+            .find("shrink_phase_b(&mut environment.budget")
+            .unwrap();
+        let resolver_reservation = toolchain
+            .find("reserve_phase_b(PHASE_B_TOOL_RESOLVER_CAPACITY)")
+            .unwrap();
+        assert!(
+            arena < include_drop
+                && include_drop < libraries_drop
+                && libraries_drop < environment_shrink
+                && environment_shrink < resolver_reservation
+        );
+
         let start = source.find("fn prepare_process_arena_authorized(").unwrap();
         let end = source[start..]
             .find("#[cfg(test)]\nfn reset_phase_b_error_materialization_observer")

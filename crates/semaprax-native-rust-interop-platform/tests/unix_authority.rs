@@ -478,7 +478,7 @@ fn output_overflow_quiesces_the_owned_process_group_before_return() {
     compile_c(
         &root,
         "forking-noisy",
-        "#define _DEFAULT_SOURCE\n#include <stdio.h>\n#include <sys/types.h>\n#include <unistd.h>\nint main(void){pid_t child=fork();if(child<0)return 2;if(child==0){FILE *file=fopen(\"descendant.pid\",\"w\");if(!file)_exit(3);fprintf(file,\"%ld\",(long)getpid());fclose(file);sleep(30);_exit(0);}while(access(\"descendant.pid\",F_OK)!=0)usleep(1000);(void)write(1,\"x\",1);sleep(30);return 0;}\n",
+        "#define _DEFAULT_SOURCE\n#include <stdio.h>\n#include <sys/types.h>\n#include <unistd.h>\nint main(void){pid_t child=fork();if(child<0)return 2;if(child==0){FILE *file=fopen(\"descendant.pid.tmp\",\"w\");if(!file)_exit(3);if(fprintf(file,\"%ld\",(long)getpid())<0){(void)fclose(file);_exit(3);}if(fclose(file)!=0)_exit(3);if(rename(\"descendant.pid.tmp\",\"descendant.pid\")!=0)_exit(3);sleep(30);_exit(0);}while(access(\"descendant.pid\",F_OK)!=0)usleep(1000);if(write(1,\"x\",1)!=1)return 2;sleep(30);return 0;}\n",
     );
     let directory = hold_directory(&root).unwrap();
     let held = hold_executable(&directory, OsStr::new("forking-noisy")).unwrap();

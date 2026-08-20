@@ -16034,6 +16034,74 @@ fn bind_test_rust_linker(command: &mut std::process::Command) {
     let _ = command;
 }
 
+#[cfg(all(test, windows))]
+fn report_bounded_windows_link_stderr(run_stage: &Path) {
+    use std::io::Read as _;
+
+    const STDERR_MAXIMUM: u64 = 65_536;
+    let clang = configured_tool("CLANG").expect("configured Windows clang");
+    let stderr_path = run_stage.join("__semaprax_link_diagnostic.stderr");
+    let output_name = "__semaprax_link_diagnostic.exe";
+    let output_path = run_stage.join(output_name);
+    let stderr = std::fs::OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .open(&stderr_path)
+        .expect("create bounded Windows link stderr");
+    let mut command = std::process::Command::new(&clang.path);
+    command
+        .current_dir(run_stage)
+        .env_clear()
+        .args([
+            "-target",
+            "x86_64-pc-windows-msvc",
+            "-Xlinker",
+            "/NODEFAULTLIB:libcmt",
+            "__semaprax_native_rust_main.o",
+            "module_O0.o",
+            "semaprax_bridge.lib",
+            "kernel32.lib",
+            "advapi32.lib",
+            "dbghelp.lib",
+            "ntdll.lib",
+            "userenv.lib",
+            "ws2_32.lib",
+            "msvcrt.lib",
+            "-o",
+            output_name,
+        ])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::from(stderr));
+    bind_test_tool_environment(&mut command);
+    let status = command.status().expect("run diagnostic Windows link");
+    let stderr_file = std::fs::File::open(&stderr_path).expect("open bounded Windows link stderr");
+    let stderr_length = stderr_file
+        .metadata()
+        .expect("stat bounded Windows link stderr")
+        .len();
+    assert!(
+        stderr_length <= STDERR_MAXIMUM,
+        "Windows link stderr exceeded its diagnostic bound"
+    );
+    let mut stderr_bytes = Vec::with_capacity(
+        usize::try_from(stderr_length).expect("bounded Windows link stderr length"),
+    );
+    stderr_file
+        .take(STDERR_MAXIMUM + 1)
+        .read_to_end(&mut stderr_bytes)
+        .expect("read bounded Windows link stderr");
+    assert_eq!(stderr_bytes.len() as u64, stderr_length);
+    eprintln!(
+        "direct Windows link status={status}; stderr={}",
+        String::from_utf8_lossy(&stderr_bytes)
+    );
+    drop(stderr_bytes);
+    if output_path.exists() {
+        std::fs::remove_file(&output_path).expect("remove diagnostic Windows link output");
+    }
+    std::fs::remove_file(stderr_path).expect("remove diagnostic Windows link stderr");
+}
+
 struct RustcVersion {
     storage: String,
     boundaries: [usize; 5],
@@ -21714,11 +21782,23 @@ fn main() -> i64 { 0 }
         PHASE_B_BUILD_INVOCATION_CONSUMPTIONS.with(|count| count.set(0));
         PHASE_B_LINK_COPY_PLANS.with(|count| count.set(0));
         PHASE_B_LINK_COPY_CONSUMPTIONS.with(|count| count.set(0));
+        #[cfg(windows)]
+        let mut diagnosed_link = false;
         build_native_rust_interop_bundle_with_hook(
             &program,
             spec.as_bytes(),
             &root.join("bundle"),
-            |_, _, _, _| {},
+            |boundary, _, run_stage, _| {
+                #[cfg(windows)]
+                if boundary == NativeRustBuildPoint::BeforeExecutableAuthentication
+                    && !diagnosed_link
+                {
+                    diagnosed_link = true;
+                    report_bounded_windows_link_stderr(run_stage);
+                }
+                #[cfg(not(windows))]
+                let _ = (boundary, run_stage);
+            },
         )
         .unwrap_or_else(|errors| {
             panic!(

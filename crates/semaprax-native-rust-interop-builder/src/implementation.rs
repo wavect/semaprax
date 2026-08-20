@@ -16027,11 +16027,28 @@ fn bind_test_tool_environment(command: &mut std::process::Command) {
 }
 
 #[cfg(test)]
-fn bind_test_rust_linker(command: &mut std::process::Command) {
+fn bind_test_rust_linker(command: &mut std::process::Command, _clang: &TestTool) {
+    #[cfg(windows)]
+    let linker = {
+        let configured =
+            std::env::var_os("SEMAPRAX_LINKER").expect("configured absolute Windows linker");
+        let configured = PathBuf::from(configured);
+        assert!(configured.is_absolute(), "Windows linker must be absolute");
+        let linker = std::fs::canonicalize(configured).expect("canonical Windows linker");
+        let metadata = std::fs::symlink_metadata(&linker).expect("stat canonical Windows linker");
+        assert!(
+            metadata.is_file() && !metadata.file_type().is_symlink(),
+            "Windows linker must be a regular non-symlink file"
+        );
+        linker
+    };
+    #[cfg(not(windows))]
+    let linker = _clang.path.clone();
+    command
+        .arg("-C")
+        .arg(format!("linker={}", linker.display()));
     #[cfg(target_os = "linux")]
     command.args(["-C", "link-arg=--ld-path=/usr/bin/ld"]);
-    #[cfg(not(target_os = "linux"))]
-    let _ = command;
 }
 
 struct RustcVersion {
@@ -20135,11 +20152,15 @@ fn main() -> i64
                     assert_eq!(stages.len(), 1, "mutated held bytes must leave one inert stage rather than deleting uncertain data");
                 }
                 NativeRustBuildPoint::BeforeObjectRead => {
-                    let expected = if cfg!(target_os = "linux") { 2 } else { 1 };
+                    let expected = if cfg!(any(target_os = "linux", windows)) {
+                        2
+                    } else {
+                        1
+                    };
                     assert_eq!(
                         stages.len(),
                         expected,
-                        "mutating the hard-linked Linux object must preserve both uncertain stages"
+                        "mutating a hard-linked object must preserve both uncertain stages"
                     );
                 }
                 NativeRustBuildPoint::BeforeBundlePublish => {
@@ -21719,6 +21740,33 @@ fn main() -> i64 { 0 }
                 .unwrap()
                 .contains("process_arena_budget")
         );
+    }
+
+    #[test]
+    fn windows_direct_rustc_tests_use_the_frozen_native_linker() {
+        let source = include_str!("implementation.rs");
+        let linker = source.find("fn bind_test_rust_linker(").unwrap();
+        let linker_end = source[linker..]
+            .find("\n}\n\nstruct RustcVersion")
+            .map(|offset| linker + offset)
+            .unwrap();
+        let helper = &source[linker..linker_end];
+        assert!(helper.contains("std::env::var_os(\"SEMAPRAX_LINKER\")"));
+        assert!(helper.contains("std::fs::canonicalize(configured)"));
+        let callsites = source
+            .match_indices(
+                "fn phase_b_process_arena_drops_bytes_before_authority_on_early_plan_failure(",
+            )
+            .nth(1)
+            .map(|(offset, _)| offset)
+            .unwrap();
+        assert_eq!(
+            source[callsites..]
+                .matches("bind_test_rust_linker(&mut ")
+                .count(),
+            5
+        );
+        assert!(!source.contains("format!(\"linker={}\", clang.path.display())"));
     }
 
     #[test]
@@ -28043,15 +28091,13 @@ match bounded.{export_method}(1,2){{Err(NativeRustCallError::AdapterRejected)=>{
                 "-C",
                 "panic=unwind",
                 "-C",
-                &format!("linker={}", clang.path.display()),
-                "-C",
                 &format!("link-arg={linked_object}"),
                 "roundtrip.rs",
                 "-o",
                 linked_executable,
             ]);
             bind_test_tool_environment(&mut roundtrip_compile);
-            bind_test_rust_linker(&mut roundtrip_compile);
+            bind_test_rust_linker(&mut roundtrip_compile, &clang);
             if sanitizers {
                 roundtrip_compile.args([
                     "-C",
@@ -28139,15 +28185,13 @@ let mut context_bytes=[0u8;128];let misaligned_context=context_bytes.as_mut_ptr(
                 "-C",
                 "panic=abort",
                 "-C",
-                &format!("linker={}", clang.path.display()),
-                "-C",
                 &format!("link-arg={linked_object}"),
                 "abi_hostile.rs",
                 "-o",
                 linked_executable,
             ]);
             bind_test_tool_environment(&mut abi_compile);
-            bind_test_rust_linker(&mut abi_compile);
+            bind_test_rust_linker(&mut abi_compile, &clang);
             if sanitizers {
                 abi_compile.args([
                     "-C",
@@ -28186,23 +28230,20 @@ fn main(){{let caps=NativeRustCapabilities::new(&["host.math"]).unwrap_or_else(|
         } else {
             "cross_thread"
         };
-        let compile = Command::new(&rustc.path)
-            .env_clear()
-            .current_dir(&output)
-            .args([
-                "--edition=2021",
-                "-C",
-                "panic=unwind",
-                "-C",
-                &format!("linker={}", clang.path.display()),
-                "-C",
-                &format!("link-arg={object}"),
-                "cross_thread.rs",
-                "-o",
-                cross_thread_executable,
-            ])
-            .output()
-            .unwrap();
+        let mut compile = Command::new(&rustc.path);
+        compile.env_clear().current_dir(&output).args([
+            "--edition=2021",
+            "-C",
+            "panic=unwind",
+            "-C",
+            &format!("link-arg={object}"),
+            "cross_thread.rs",
+            "-o",
+            cross_thread_executable,
+        ]);
+        bind_test_tool_environment(&mut compile);
+        bind_test_rust_linker(&mut compile, &clang);
+        let compile = compile.output().unwrap();
         assert!(!compile.status.success());
         assert!(!output.join(cross_thread_executable).exists());
         assert!(String::from_utf8_lossy(&compile.stderr)
@@ -28256,23 +28297,20 @@ fn main(){sibling::forge();}
         } else {
             "ffi_sibling"
         };
-        let compile = Command::new(&rustc.path)
-            .env_clear()
-            .current_dir(&output)
-            .args([
-                "--edition=2021",
-                "-C",
-                "panic=unwind",
-                "-C",
-                &format!("linker={}", clang.path.display()),
-                "-C",
-                &format!("link-arg={object}"),
-                "ffi_sibling.rs",
-                "-o",
-                ffi_executable,
-            ])
-            .output()
-            .unwrap();
+        let mut compile = Command::new(&rustc.path);
+        compile.env_clear().current_dir(&output).args([
+            "--edition=2021",
+            "-C",
+            "panic=unwind",
+            "-C",
+            &format!("link-arg={object}"),
+            "ffi_sibling.rs",
+            "-o",
+            ffi_executable,
+        ]);
+        bind_test_tool_environment(&mut compile);
+        bind_test_rust_linker(&mut compile, &clang);
+        let compile = compile.output().unwrap();
         assert!(!compile.status.success());
         assert!(!output.join(ffi_executable).exists());
         let stderr = String::from_utf8_lossy(&compile.stderr);
@@ -28416,15 +28454,13 @@ fn main(){{unsafe{{let imports=Imports{{abi_version:1,size:core::mem::size_of::<
                     "-C",
                     "panic=unwind",
                     "-C",
-                    &format!("linker={}", clang.path.display()),
-                    "-C",
                     &format!("link-arg={linked_object}"),
                     source,
                     "-o",
                     &executable,
                 ]);
                 bind_test_tool_environment(&mut compile);
-                bind_test_rust_linker(&mut compile);
+                bind_test_rust_linker(&mut compile, &clang);
                 if sanitizers {
                     compile.args([
                         "-C",

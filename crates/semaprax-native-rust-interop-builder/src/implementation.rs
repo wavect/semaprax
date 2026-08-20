@@ -19201,7 +19201,12 @@ fn build_stage_platform(
                 .ok_or(PhaseBLocalError::BuilderBudget)?
                 .arena_mut()?,
         )
-        .map_err(|_| PhaseBLocalError::Link)?;
+        .map_err(|error| {
+            #[cfg(test)]
+            eprintln!("link executable: {error:?}");
+            let _ = error;
+            PhaseBLocalError::Link
+        })?;
         drop(link_invocation_budget);
         let executable_file = platform::executable_regular_file(&executable)
             .map_err(|_| PhaseBLocalError::Publication)?;

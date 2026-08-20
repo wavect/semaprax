@@ -18599,6 +18599,12 @@ fn build_native_rust_interop_bundle_bounded(
         )
     })();
     let cleanup = discard_run_stage(&parent_authority, &run_stage, &run_files);
+    #[cfg(test)]
+    eprintln!(
+        "phase B build error={:?}; run cleanup error={:?}",
+        build.as_ref().err(),
+        cleanup.as_ref().err(),
+    );
     let mut facts = match (build, cleanup) {
         (Err(error), _) => {
             let _ = discard_run_stage(&parent_authority, &stage, &publish_files);
@@ -19270,7 +19276,12 @@ fn discard_run_stage<const N: usize>(
         stage_name,
         files,
     )
-    .map_err(|_| PhaseBLocalError::Publication)
+    .map_err(|error| {
+        #[cfg(test)]
+        eprintln!("prepared stage discard failed: {error:?}");
+        let _ = error;
+        PhaseBLocalError::Publication
+    })
 }
 
 fn track_run_file<const N: usize>(
@@ -22120,11 +22131,13 @@ fn main() -> i64 { 0 }
         PHASE_B_LINK_COPY_CONSUMPTIONS.with(|count| count.set(0));
         #[cfg(windows)]
         let mut diagnosed_link = false;
+        let mut observed_hooks = Vec::new();
         build_native_rust_interop_bundle_with_hook(
             &program,
             spec.as_bytes(),
             &root.join("bundle"),
             |boundary, _, run_stage, _| {
+                observed_hooks.push(boundary);
                 #[cfg(windows)]
                 if boundary == NativeRustBuildPoint::BeforeExecutableAuthentication
                     && !diagnosed_link
@@ -22138,7 +22151,7 @@ fn main() -> i64 { 0 }
         )
         .unwrap_or_else(|errors| {
             panic!(
-                "prepared build failed after {} invocation consumptions: {errors:?}",
+                "prepared build failed after {} invocation consumptions and hooks {observed_hooks:?}: {errors:?}",
                 PHASE_B_BUILD_INVOCATION_CONSUMPTIONS.with(std::cell::Cell::get),
             )
         });

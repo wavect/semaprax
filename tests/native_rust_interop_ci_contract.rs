@@ -234,7 +234,9 @@ fn private_builder_uses_held_platform_authority_for_every_physical_step() {
         "unconditional one-attempt run-stage settlement",
         &implementation,
         &[
-            "let mut run_files = prepare_run_discard_inventory()?;",
+            "run_files: RunDiscardInventory,",
+            "let run_files = prepare_run_discard_inventory()?;",
+            "mut run_files,",
             "let build = (|| {",
             "let cleanup = discard_run_stage(&parent_authority, &run_stage, &run_files);",
             "let mut facts = match (build, cleanup)",

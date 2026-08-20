@@ -19502,6 +19502,15 @@ fn build_stage_platform(
     )?;
     drop(harness_object);
     drop(c_main_invocation_budget);
+    #[cfg(windows)]
+    for name in ["__semaprax_native_rust_main.o", staticlib_name] {
+        platform::transition_regular_file_to_external_read_prepared(
+            run_stage.authority.held(),
+            run_files,
+            name,
+        )
+        .map_err(|_| PhaseBLocalError::Publication)?;
+    }
     for (optimization, link_invocation, run_invocation) in
         [(0_u8, link_o0, run_o0), (2_u8, link_o2, run_o2)]
     {
@@ -19521,6 +19530,13 @@ fn build_stage_platform(
         } else {
             "__semaprax_native_rust_link_O2"
         };
+        #[cfg(windows)]
+        platform::transition_regular_file_to_external_read_prepared(
+            run_stage.authority.held(),
+            run_files,
+            c_object,
+        )
+        .map_err(|_| PhaseBLocalError::Publication)?;
         hook(
             NativeRustBuildPoint::BeforeExecutableAuthentication,
             &stage.path,

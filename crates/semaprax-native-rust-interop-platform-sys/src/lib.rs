@@ -1719,6 +1719,15 @@ mod platform {
         Ok(rebound)
     }
 
+    pub fn transition_regular_file_to_external_read_prepared<const N: usize>(
+        directory: &Directory,
+        names: &PreparedDiscardNames<N>,
+        index: usize,
+        tracked: &RegularFile,
+    ) -> Result<RegularFile, Error> {
+        hold_regular_file_prepared(directory, names, index, tracked)
+    }
+
     pub fn hold_external_executable(path: &Path) -> Result<Executable, Error> {
         let parent = path.parent().ok_or(Error::Invalid)?;
         let name = path.file_name().ok_or(Error::Invalid)?;
@@ -5292,6 +5301,20 @@ mod platform {
         authenticate_regular_file(file)
     }
 
+    fn hold_regular_file_name_external_read_prepared(
+        directory: &Directory,
+        name: &PreparedRelativeName,
+    ) -> Result<RegularFile, Error> {
+        let file = relative_file_prepared(
+            &directory.file,
+            name,
+            REGULAR_READ_ACCESS,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE,
+        )?;
+        authenticate_regular_file(file)
+    }
+
     pub fn hold_regular_file(directory: &Directory, name: &OsStr) -> Result<RegularFile, Error> {
         recheck_directory(directory)?;
         let name = prepare_relative_name(name)?;
@@ -5336,6 +5359,22 @@ mod platform {
         let name = enter_prepared_file_syscalls(prepared_discard_name(names, index))?;
         recheck_directory(directory)?;
         let rebound = hold_regular_file_name_prepared(directory, name)?;
+        if rebound.identity != tracked.identity || rebound.digest != tracked.digest {
+            return Err(Error::Changed);
+        }
+        Ok(rebound)
+    }
+
+    pub fn transition_regular_file_to_external_read_prepared<const N: usize>(
+        directory: &Directory,
+        names: &PreparedDiscardNames<N>,
+        index: usize,
+        tracked: &RegularFile,
+    ) -> Result<RegularFile, Error> {
+        let name = enter_prepared_file_syscalls(prepared_discard_name(names, index))?;
+        recheck_directory(directory)?;
+        recheck_held_regular(tracked)?;
+        let rebound = hold_regular_file_name_external_read_prepared(directory, name)?;
         if rebound.identity != tracked.identity || rebound.digest != tracked.digest {
             return Err(Error::Changed);
         }
@@ -6238,15 +6277,18 @@ mod platform {
         if seen[..attached].iter().any(|seen| !seen) {
             return Err(Error::Changed);
         }
+        let mut deletion_handles: [Option<RegularFile>; N] = std::array::from_fn(|_| None);
         for (index, file) in files[..attached].iter().enumerate() {
             let file = file.expect("attached prefix");
             recheck_held_regular(file)?;
             let name = names.names[index].as_ref().expect("validated");
-            if hold_regular_file_name_prepared(stage, name)?.identity != file.identity {
+            let rebound = hold_regular_file_name_prepared(stage, name)?;
+            if rebound.identity != file.identity || rebound.digest != file.digest {
                 return Err(Error::Changed);
             }
+            deletion_handles[index] = Some(rebound);
         }
-        for (deleted, file) in files[..attached].iter().flatten().enumerate() {
+        for (deleted, file) in deletion_handles[..attached].iter().flatten().enumerate() {
             #[cfg(not(debug_assertions))]
             let _ = deleted;
             #[cfg(debug_assertions)]
@@ -7193,7 +7235,7 @@ mod platform {
         if !process_output.is_empty() {
             return Err(Error::OutputLimit);
         }
-        let file = hold_regular_file_name_prepared(cwd, &prepared.output_name)?;
+        let file = hold_regular_file_name_external_read_prepared(cwd, &prepared.output_name)?;
         let mut prefix = [0_u8; 2];
         let mut duplicate = file.file.try_clone().map_err(|_| Error::Changed)?;
         duplicate
@@ -8086,6 +8128,68 @@ mod tests {
         assert!(!source.contains(concat!("pub fn reset_prepared_file_", "syscall_entries")));
         assert!(!source.contains(concat!("pub fn prepared_file_", "syscall_entries")));
         assert!(!source.contains(concat!("static PREPARED_FILE_", "SYSCALL_ENTRIES")));
+    }
+
+    #[test]
+    fn windows_external_reader_handoff_and_discard_rebound_are_exact() {
+        let source = include_str!("lib.rs");
+        let transition_start = source
+            .match_indices("pub fn transition_regular_file_to_external_read_prepared")
+            .nth(1)
+            .map(|(offset, _)| offset)
+            .expect("Windows external-reader transition");
+        let transition_end = source[transition_start..]
+            .find("pub fn recheck_regular")
+            .map(|offset| transition_start + offset)
+            .expect("end Windows external-reader transition");
+        let transition = &source[transition_start..transition_end];
+        for required in [
+            "recheck_held_regular(tracked)?",
+            "hold_regular_file_name_external_read_prepared(directory, name)?",
+            "rebound.identity != tracked.identity",
+            "rebound.digest != tracked.digest",
+        ] {
+            assert!(
+                transition.contains(required),
+                "missing Windows external-reader contract: {required}"
+            );
+        }
+        let reader_start = source
+            .find("fn hold_regular_file_name_external_read_prepared")
+            .expect("Windows read-compatible holder");
+        let reader = &source[reader_start..transition_start];
+        assert!(reader.contains("REGULAR_READ_ACCESS"));
+        let production = &source[..source.find("pub use platform::*").expect("production end")];
+        assert_eq!(
+            production
+                .matches("hold_regular_file_name_external_read_prepared")
+                .count(),
+            3,
+            "Windows read-compatible holder must serve inventory handoff and linked execution"
+        );
+
+        let discard_start = source
+            .match_indices("pub fn discard_owned_stage_prepared")
+            .nth(1)
+            .map(|(offset, _)| offset)
+            .expect("Windows prepared discard");
+        let discard_end = source[discard_start..]
+            .find("fn disposition_delete")
+            .map(|offset| discard_start + offset)
+            .expect("end Windows prepared discard");
+        let discard = &source[discard_start..discard_end];
+        for required in [
+            "let mut deletion_handles: [Option<RegularFile>; N]",
+            "let rebound = hold_regular_file_name_prepared(stage, name)?",
+            "rebound.identity != file.identity || rebound.digest != file.digest",
+            "deletion_handles[index] = Some(rebound)",
+            "for (deleted, file) in deletion_handles[..attached]",
+        ] {
+            assert!(
+                discard.contains(required),
+                "missing Windows discard rebound contract: {required}"
+            );
+        }
     }
 
     #[cfg(unix)]

@@ -334,6 +334,23 @@ pub fn hold_regular_file_prepared<const N: usize>(
     .map(HeldRegularFile)
 }
 
+pub fn transition_regular_file_to_external_read_prepared<const N: usize>(
+    directory: &HeldDirectory,
+    inventory: &mut PreparedDiscardInventory<N>,
+    name: &str,
+) -> Result<(), Error> {
+    let index = inventory.validate_slot(name)?;
+    let tracked = inventory.files[index].as_ref().ok_or(Error::Invalid)?;
+    let rebound = semaprax_native_rust_interop_platform_sys::transition_regular_file_to_external_read_prepared(
+        &directory.0,
+        &inventory.native,
+        index,
+        &tracked.0,
+    )?;
+    inventory.files[index] = Some(HeldRegularFile(rebound));
+    Ok(())
+}
+
 pub struct ToolOutput {
     bytes: Vec<u8>,
 }

@@ -89,8 +89,11 @@ preserve existing Graph, Wasm, callable-v2/v3, Agent, Economic, Workspace,
 Patch, CLI, API, and KAT bytes. Exact-head hosted promotion requires the whole
 matrix; one host, a compile-only lane, or a platform-disabled test is not
 evidence for the other hosts. Qualifying local runs set explicit absolute
-`RUSTC` and `CLANG`; an ambient launcher or proxy is deliberately rejected and
-is not a regression in the direct-image policy. Public C remains held until
+`RUSTC` and `CLANG`; Windows additionally resolves and verifies an absolute
+`SEMAPRAX_LINKER`, freezes it into prepared `--ld-path` arguments, and must not
+export ambient `PATH` into the process arena. An ambient launcher or proxy is
+deliberately rejected and is not a regression in the direct-image policy.
+Public C remains held until
 that gate is green.
 
 Quality gates are executable evidence, not a checklist substitute for reasoning. Every pull request must pass the baseline and the gates for each changed semantic layer.

@@ -816,6 +816,7 @@ pub fn compile_rust_tool_prepared(
 #[allow(clippy::too_many_arguments)]
 pub fn prepare_link_invocation(
     target: &str,
+    linker: Option<&OsStr>,
     harness: &OsStr,
     c_object: &OsStr,
     rust_archive: &OsStr,
@@ -824,6 +825,7 @@ pub fn prepare_link_invocation(
 ) -> Result<PreparedLinkInvocation, Error> {
     semaprax_native_rust_interop_platform_sys::prepare_link_invocation(
         target,
+        linker,
         harness,
         c_object,
         rust_archive,
@@ -839,12 +841,14 @@ pub fn prepared_link_owned_capacity(prepared: &PreparedLinkInvocation) -> usize 
 
 pub fn link_tool_prepared(
     tool: &HeldTool,
+    linker: Option<&HeldTool>,
     cwd: &HeldDirectory,
     prepared: PreparedLinkInvocation,
     process_arena: &mut PreparedProcessArena,
 ) -> Result<HeldExecutable, Error> {
     semaprax_native_rust_interop_platform_sys::link_prepared(
         &tool.executable.0,
+        linker.map(|linker| (&linker.executable.0, linker.path.as_str())),
         &cwd.0,
         prepared.0,
         &mut process_arena.0,
@@ -880,6 +884,7 @@ pub fn execute_tool_prepared(
 )]
 pub fn link_tool_harness(
     tool: &HeldTool,
+    linker: Option<&HeldTool>,
     cwd: &HeldDirectory,
     target: &str,
     harness: &OsStr,
@@ -890,6 +895,7 @@ pub fn link_tool_harness(
 ) -> Result<HeldExecutable, Error> {
     link_harness(
         &tool.executable,
+        linker,
         cwd,
         target,
         harness,
@@ -950,6 +956,7 @@ pub fn execute_harness(executable: &HeldExecutable, cwd: &HeldDirectory) -> Resu
 )]
 pub fn link_harness(
     clang: &HeldExecutable,
+    linker: Option<&HeldTool>,
     cwd: &HeldDirectory,
     target: &str,
     harness: &OsStr,
@@ -960,6 +967,7 @@ pub fn link_harness(
 ) -> Result<HeldExecutable, Error> {
     semaprax_native_rust_interop_platform_sys::link_harness(
         &clang.0,
+        linker.map(|linker| (&linker.executable.0, linker.path.as_str())),
         &cwd.0,
         target,
         harness,

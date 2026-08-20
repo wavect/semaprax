@@ -120,7 +120,10 @@ admits Rust artifacts only through the distinct held-direct-rustc authority.
 Clang is independently held. One exact pre-effect process arena is consumed by
 the four discovery/version operations and eight build/link/run operations. On
 Windows its attribute-list size is queried once before effects, capped,
-aligned, reserved before allocation, and rechecked on every use. Private B
+aligned, reserved before allocation, and rechecked on every use. Windows also
+requires a verified absolute `SEMAPRAX_LINKER`, embeds that exact path as one
+prepared `--ld-path=<absolute>` argument, and holds and rechecks the linker
+around both Clang links without adding `PATH` to the child environment. Private B
 exactly replays Descriptor and Manifest bytes, and generates
 header/C/safe-Rust/private-FFI artifacts with independent ordered exact-byte
 consumers. Prepared invocations bind the admitted current-host target spelling,
@@ -141,9 +144,11 @@ surface.
 
 This direct-image policy closes ordinary rustup-launcher indirection. It does
 not claim provenance for the selected compiler sysroot, dynamically loaded
-libraries or backends, or arbitrary descendants; the explicitly configured
-discovery executable is trusted only to nominate the direct compiler that is
-then independently held and exercised.
+libraries or backends, or arbitrary descendants. The configured MSVC linker is
+path-bound and drift-checked, but the current share mode does not prove the
+exact descendant image under a same-path replacement race. The explicitly
+configured discovery executable is trusted only to nominate the direct
+compiler that is then independently held and exercised.
 
 Every owned build stage is continuously represented by the directory authority
 returned when it was created. Settlement uses only the opaque exact-inventory

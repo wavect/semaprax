@@ -631,7 +631,9 @@ Exit criterion: implement a zero-copy parser and server without a tracing GC.
 - The private scalar A+B precursor is locally green with direct-rustc
   fixed-point authority, named pre-HIR/post-HIR capacity envelopes and exact
   transfers, a pre-effect 12-use process arena, fixed-capacity tool-version
-  storage, prepared filesystem/publication authority, and fail-stop settlement.
+  storage, prepared filesystem/publication authority, fail-stop settlement, and
+  a Windows absolute-linker plan that uses prepared `--ld-path` without ambient
+  child `PATH`.
   Exact-head Ubuntu/macOS/Windows and Linux sanitizer evidence remain the
   promotion gate;
   compiler sysroot/dynamic-library descendant provenance remains a nonclaim.

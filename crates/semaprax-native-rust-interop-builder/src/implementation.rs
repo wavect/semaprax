@@ -16040,6 +16040,10 @@ fn report_bounded_windows_link_stderr(run_stage: &Path) {
 
     const STDERR_MAXIMUM: u64 = 65_536;
     let clang = configured_tool("CLANG").expect("configured Windows clang");
+    let linker = std::env::var_os("SEMAPRAX_LINKER")
+        .and_then(|value| value.into_string().ok())
+        .expect("configured absolute Windows linker");
+    let linker_argument = format!("--ld-path={linker}");
     let stderr_path = run_stage.join("__semaprax_link_diagnostic.stderr");
     let output_name = "__semaprax_link_diagnostic.exe";
     let output_path = run_stage.join(output_name);
@@ -16056,6 +16060,7 @@ fn report_bounded_windows_link_stderr(run_stage: &Path) {
             "-v",
             "-target",
             "x86_64-pc-windows-msvc",
+            linker_argument.as_str(),
             "-Xlinker",
             "/NODEFAULTLIB:libcmt",
             "__semaprax_native_rust_main.o",
@@ -16178,6 +16183,7 @@ impl RustcVersion {
 struct FrozenToolEnvironment {
     clang: Option<OsString>,
     rustc: Option<OsString>,
+    linker: Option<OsString>,
     path: Option<OsString>,
     sanitizer: Option<OsString>,
     include: Option<OsString>,
@@ -16238,6 +16244,8 @@ impl Drop for AuthorizedProcessArena {
 struct PreparedToolchainPlan {
     environment: FrozenToolEnvironment,
     path_budget: TemporaryBudget,
+    linker_resolver: Option<platform::PreparedToolResolver>,
+    linker_resolver_budget: Option<TemporaryBudget>,
     discovery_output_budget: TemporaryBudget,
     direct_sysroot_output_budget: TemporaryBudget,
     rustc_output_budget: TemporaryBudget,
@@ -16256,6 +16264,7 @@ struct PreparedToolchainPlan {
 struct ToolchainFacts {
     rustc: platform::HeldDirectRustc,
     clang: platform::HeldTool,
+    linker: Option<platform::HeldTool>,
     process_arena: Option<AuthorizedProcessArena>,
     rustc_version: RustcVersion,
     clang_version: String,
@@ -16276,6 +16285,11 @@ fn freeze_tool_environment() -> Result<FrozenToolEnvironment, PhaseBLocalError> 
     } else {
         std::env::var_os("RUSTC")
     };
+    let linker = if cfg!(windows) {
+        std::env::var_os("SEMAPRAX_LINKER")
+    } else {
+        None
+    };
     let path = std::env::var_os("PATH");
     let sanitizer = std::env::var_os("SEMAPRAX_REQUIRE_NATIVE_RUST_INTEROP_SANITIZERS");
     let include = if cfg!(windows) {
@@ -16288,16 +16302,19 @@ fn freeze_tool_environment() -> Result<FrozenToolEnvironment, PhaseBLocalError> 
     } else {
         None
     };
-    let capacity = [&clang, &rustc, &path, &sanitizer, &include, &libraries]
-        .into_iter()
-        .try_fold(0usize, |total, value| {
-            total.checked_add(value.as_ref().map_or(0, OsString::capacity))
-        })
-        .ok_or(PhaseBLocalError::BuilderBudget)?;
+    let capacity = [
+        &clang, &rustc, &linker, &path, &sanitizer, &include, &libraries,
+    ]
+    .into_iter()
+    .try_fold(0usize, |total, value| {
+        total.checked_add(value.as_ref().map_or(0, OsString::capacity))
+    })
+    .ok_or(PhaseBLocalError::BuilderBudget)?;
     let budget = reserve_phase_b(capacity)?;
     Ok(FrozenToolEnvironment {
         clang,
         rustc,
+        linker,
         path,
         sanitizer,
         include,
@@ -16319,6 +16336,7 @@ fn prepare_toolchain_plan() -> Result<PreparedToolchainPlan, PhaseBLocalError> {
     let retained_environment = [
         &environment.clang,
         &environment.rustc,
+        &environment.linker,
         &environment.path,
         &environment.sanitizer,
     ]
@@ -16352,6 +16370,17 @@ fn prepare_toolchain_plan() -> Result<PreparedToolchainPlan, PhaseBLocalError> {
     if rustc_resolver_owned > path_budget.maximum() {
         return Err(PhaseBLocalError::BuilderBudget);
     }
+    let (linker_resolver_budget, linker_resolver) = if cfg!(windows) {
+        let budget = reserve_phase_b(PHASE_B_TOOL_RESOLVER_CAPACITY)?;
+        let resolver = platform::prepare_tool_resolver("link.exe", PHASE_B_TOOL_PATH_CAPACITY)
+            .map_err(|_| PhaseBLocalError::BuilderBudget)?;
+        if platform::prepared_tool_resolver_owned_capacity(&resolver) > budget.maximum() {
+            return Err(PhaseBLocalError::BuilderBudget);
+        }
+        (Some(budget), Some(resolver))
+    } else {
+        (None, None)
+    };
     let discovery_invocation = platform::prepare_sysroot_invocation(PHASE_B_TOOL_VERSION_CAPACITY)
         .map_err(|_| PhaseBLocalError::BuilderBudget)?;
     let direct_sysroot_invocation =
@@ -16394,6 +16423,7 @@ fn prepare_toolchain_plan() -> Result<PreparedToolchainPlan, PhaseBLocalError> {
     Ok(PreparedToolchainPlan {
         environment,
         path_budget,
+        linker_resolver_budget,
         discovery_output_budget,
         direct_sysroot_output_budget,
         rustc_output_budget,
@@ -16401,6 +16431,7 @@ fn prepare_toolchain_plan() -> Result<PreparedToolchainPlan, PhaseBLocalError> {
         command_budget,
         clang_resolver,
         rustc_resolver,
+        linker_resolver,
         discovery_invocation,
         direct_sysroot_invocation,
         rustc_invocation,
@@ -16418,6 +16449,7 @@ fn authenticate_toolchain(
     let PreparedToolchainPlan {
         environment,
         path_budget,
+        linker_resolver_budget,
         discovery_output_budget,
         direct_sysroot_output_budget,
         rustc_output_budget,
@@ -16425,6 +16457,7 @@ fn authenticate_toolchain(
         command_budget,
         clang_resolver,
         rustc_resolver,
+        linker_resolver,
         discovery_invocation,
         direct_sysroot_invocation,
         rustc_invocation,
@@ -16436,6 +16469,7 @@ fn authenticate_toolchain(
     let FrozenToolEnvironment {
         clang: configured_clang,
         rustc: configured_rustc,
+        linker: configured_linker,
         path,
         sanitizer,
         include,
@@ -16455,6 +16489,30 @@ fn authenticate_toolchain(
     .map_err(|_| PhaseBLocalError::Unsupported)?;
     #[cfg(test)]
     PHASE_B_TOOL_HOLDS.with(|count| count.set(count.get().saturating_add(1)));
+    let linker = if cfg!(windows) {
+        let configured = configured_linker
+            .as_deref()
+            .filter(|path| std::path::Path::new(path).is_absolute())
+            .ok_or(PhaseBLocalError::Unsupported)?;
+        let resolver = linker_resolver.ok_or(PhaseBLocalError::BuilderBudget)?;
+        let (linker, _) =
+            platform::resolve_and_hold_tool_reusing_prepared(resolver, Some(configured), None)
+                .map_err(|_| PhaseBLocalError::Unsupported)?;
+        if std::path::Path::new(platform::tool_path(&linker)).as_os_str() != configured {
+            return Err(PhaseBLocalError::Unsupported);
+        }
+        #[cfg(test)]
+        PHASE_B_TOOL_HOLDS.with(|count| count.set(count.get().saturating_add(1)));
+        Some(linker)
+    } else {
+        if configured_linker.is_some()
+            || linker_resolver.is_some()
+            || linker_resolver_budget.is_some()
+        {
+            return Err(PhaseBLocalError::BuilderBudget);
+        }
+        None
+    };
     let (rustc, rustc_resolver) = if let Some(rustc) = configured_rustc.as_deref() {
         if std::path::Path::new(rustc).is_absolute() {
             platform::resolve_and_hold_tool_reusing_prepared(
@@ -16484,6 +16542,7 @@ fn authenticate_toolchain(
     PHASE_B_TOOL_HOLDS.with(|count| count.set(count.get().saturating_add(1)));
     drop(configured_clang);
     drop(configured_rustc);
+    drop(configured_linker);
     drop(include);
     drop(libraries);
     #[cfg(test)]
@@ -16527,6 +16586,12 @@ fn authenticate_toolchain(
     drop(path);
     drop(environment_budget);
     retain_phase_b(path_budget, platform::tool_path_capacity(&clang))?;
+    if let Some(linker) = linker.as_ref() {
+        retain_phase_b(
+            linker_resolver_budget.ok_or(PhaseBLocalError::BuilderBudget)?,
+            platform::tool_path_capacity(linker),
+        )?;
+    }
     #[cfg(test)]
     PHASE_B_TOOL_PROCESSES.with(|count| count.set(count.get().saturating_add(1)));
     let rustc_text = platform::direct_rustc_version_prepared(
@@ -16580,6 +16645,7 @@ fn authenticate_toolchain(
     Ok(ToolchainFacts {
         rustc,
         clang,
+        linker,
         process_arena: Some(process_arena),
         rustc_version,
         clang_version,
@@ -16589,6 +16655,19 @@ fn authenticate_toolchain(
 fn planned_sanitizers(plan: &PreparedToolchainPlan) -> bool {
     cfg!(target_os = "linux")
         && plan.environment.sanitizer.as_deref() == Some(std::ffi::OsStr::new("1"))
+}
+
+fn planned_linker(plan: &PreparedToolchainPlan) -> Option<&OsStr> {
+    if cfg!(windows) {
+        Some(
+            plan.environment
+                .linker
+                .as_deref()
+                .unwrap_or_else(|| OsStr::new(PHASE_B_MISSING_WINDOWS_LINKER)),
+        )
+    } else {
+        None
+    }
 }
 
 fn parse_rustc_version(source: &str, output: &mut RustcVersion) -> Result<(), PhaseBLocalError> {
@@ -17291,11 +17370,19 @@ fn consume_invocation<T>(plan: (T, TemporaryBudget)) -> (T, TemporaryBudget) {
 fn prepare_build_invocations(
     prepared: &PreparedNativeRustInterop,
     sanitizers: bool,
+    linker: Option<&OsStr>,
 ) -> Result<PreparedBuildInvocations, PhaseBLocalError> {
     let c_maximum = MAX_GENERATED_C_BYTES
         .checked_add(PHASE_B_INVOCATION_ARGUMENT_CAPACITY)
         .ok_or(PhaseBLocalError::BuilderBudget)?;
     let command_maximum = PHASE_B_INVOCATION_ARGUMENT_CAPACITY;
+    let link_command_maximum = if cfg!(windows) {
+        command_maximum
+            .checked_add(PHASE_B_TOOL_RESOLVER_CAPACITY)
+            .ok_or(PhaseBLocalError::BuilderBudget)?
+    } else {
+        command_maximum
+    };
     let staticlib_name = if cfg!(windows) {
         "semaprax_bridge.lib"
     } else {
@@ -17363,10 +17450,11 @@ fn prepare_build_invocations(
             platform::prepared_c_compile_owned_capacity,
         )?,
         link_o0: prepare_invocation(
-            command_maximum,
+            link_command_maximum,
             || {
                 platform::prepare_link_invocation(
                     &prepared.target.triple,
+                    linker,
                     "__semaprax_native_rust_main.o".as_ref(),
                     "module_O0.o".as_ref(),
                     staticlib_name.as_ref(),
@@ -17382,10 +17470,11 @@ fn prepare_build_invocations(
             platform::prepared_run_owned_capacity,
         )?,
         link_o2: prepare_invocation(
-            command_maximum,
+            link_command_maximum,
             || {
                 platform::prepare_link_invocation(
                     &prepared.target.triple,
+                    linker,
                     "__semaprax_native_rust_main.o".as_ref(),
                     "module_O2.o".as_ref(),
                     staticlib_name.as_ref(),
@@ -17416,6 +17505,7 @@ const PHASE_B_MANIFEST_BUDGET_MESSAGE: &str =
     "Native Rust Interop max_manifest_bytes exceeds 1048576";
 const PHASE_B_TOOL_VERSION_CAPACITY: usize = 65_536;
 const PHASE_B_TOOL_PATH_CAPACITY: usize = 32_768;
+const PHASE_B_MISSING_WINDOWS_LINKER: &str = r"C:\__semaprax_missing_linker__\link.exe";
 const PHASE_B_VERSION_COMMAND_CAPACITY: usize = 256;
 const PHASE_B_TOOL_RESOLVER_CAPACITY: usize = PHASE_B_TOOL_PATH_CAPACITY * 7 + 256;
 const PHASE_B_PROCESS_INVOCATIONS: usize = 12;
@@ -18254,11 +18344,14 @@ fn build_native_rust_interop_bundle_bounded(
         Ok(plan) => plan,
         Err(error) => return Err(carriers.error(error)),
     };
-    let build_invocations =
-        match prepare_build_invocations(&prepared, planned_sanitizers(&toolchain_plan)) {
-            Ok(plan) => plan,
-            Err(error) => return Err(carriers.error(error)),
-        };
+    let build_invocations = match prepare_build_invocations(
+        &prepared,
+        planned_sanitizers(&toolchain_plan),
+        planned_linker(&toolchain_plan),
+    ) {
+        Ok(plan) => plan,
+        Err(error) => return Err(carriers.error(error)),
+    };
     let manifest_plan = match PreparedManifestPlan::prepare(object_name) {
         Ok(plan) => plan,
         Err(error) => return Err(carriers.error(error)),
@@ -19262,6 +19355,7 @@ fn build_stage_platform(
         let (link_invocation, link_invocation_budget) = consume_invocation(link_invocation);
         let executable = platform::link_tool_prepared(
             &tools.clang,
+            tools.linker.as_ref(),
             run_stage.authority.held(),
             link_invocation,
             tools
@@ -21679,12 +21773,22 @@ fn main() -> i64 { 0 }
             },
         );
         PHASE_B_BUILD_INVOCATION_PLANS.with(|count| count.set(0));
-        let plans = prepare_build_invocations(&prepared, false).unwrap();
+        let linker = std::env::var_os("SEMAPRAX_LINKER");
+        let linker = if cfg!(windows) {
+            Some(
+                linker
+                    .as_deref()
+                    .unwrap_or_else(|| OsStr::new(PHASE_B_MISSING_WINDOWS_LINKER)),
+            )
+        } else {
+            None
+        };
+        let plans = prepare_build_invocations(&prepared, false, linker).unwrap();
         assert_eq!(PHASE_B_BUILD_INVOCATION_PLANS.with(std::cell::Cell::get), 8);
         drop(plans);
 
         prepared.target.triple = "x86_64-unknown/linux-gnu".to_owned();
-        let error = match prepare_build_invocations(&prepared, false) {
+        let error = match prepare_build_invocations(&prepared, false, linker) {
             Ok(_) => panic!("noncanonical target punctuation was admitted"),
             Err(error) => error,
         };
@@ -21705,7 +21809,17 @@ fn main() -> i64 { 0 }
         PHASE_B_PUBLISH_CONSUMPTIONS.with(|count| count.set(0));
         reset_phase_b_object_authority_observer();
         reset_phase_b_manifest_authority_observer();
-        let plans = prepare_build_invocations(&prepared, false).unwrap();
+        let linker = std::env::var_os("SEMAPRAX_LINKER");
+        let linker = if cfg!(windows) {
+            Some(
+                linker
+                    .as_deref()
+                    .unwrap_or_else(|| OsStr::new(PHASE_B_MISSING_WINDOWS_LINKER)),
+            )
+        } else {
+            None
+        };
+        let plans = prepare_build_invocations(&prepared, false, linker).unwrap();
         assert_eq!(PHASE_B_BUILD_INVOCATION_PLANS.with(std::cell::Cell::get), 8);
         assert_eq!(
             platform::prepared_c_compile_owned_capacity(&plans.c_o0.0),

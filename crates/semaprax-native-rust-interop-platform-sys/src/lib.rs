@@ -3692,6 +3692,7 @@ mod platform {
     #[allow(clippy::too_many_arguments)]
     pub fn prepare_link_invocation(
         target: &str,
+        linker: Option<&OsStr>,
         harness: &OsStr,
         c_object: &OsStr,
         rust_archive: &OsStr,
@@ -3701,7 +3702,8 @@ mod platform {
         for name in [harness, c_object, rust_archive, output] {
             let _ = c_name(name)?;
         }
-        if target.is_empty()
+        if linker.is_some()
+            || target.is_empty()
             || !target
                 .bytes()
                 .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_'))
@@ -3767,10 +3769,14 @@ mod platform {
 
     pub fn link_prepared(
         clang: &Executable,
+        linker: Option<(&Executable, &str)>,
         cwd: &Directory,
         prepared: PreparedLinkInvocation,
         process_arena: &mut PreparedProcessArena,
     ) -> Result<Executable, Error> {
+        if linker.is_some() {
+            return Err(Error::Invalid);
+        }
         if hold_regular_file_name_prepared(cwd, &prepared.output_name).is_ok() {
             return Err(Error::Exists);
         }
@@ -3914,6 +3920,7 @@ mod platform {
     #[allow(clippy::too_many_arguments)]
     pub fn link_harness(
         clang: &Executable,
+        linker: Option<(&Executable, &str)>,
         cwd: &Directory,
         target: &str,
         harness: &OsStr,
@@ -3925,7 +3932,8 @@ mod platform {
         for name in [harness, c_object, rust_archive, output] {
             let _ = c_name(name)?;
         }
-        if target.is_empty()
+        if linker.is_some()
+            || target.is_empty()
             || !target
                 .bytes()
                 .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_'))
@@ -4099,6 +4107,8 @@ mod platform {
     pub struct PreparedRustcVersionInvocation(PreparedVersionInvocation);
 
     const PROCESS_PATH_UNITS: usize = 32_769;
+    const MAX_TOOL_PATH_UNITS: usize = 32_768;
+    const MAX_COMMAND_LINE_UNITS: usize = 32_767;
     const MAX_PROCESS_ENVIRONMENT_UNITS: usize = 32_768;
     const MAX_PROCESS_ATTRIBUTE_BYTES: usize = 1_048_576;
 
@@ -6809,6 +6819,47 @@ mod platform {
         wide_null(OsStr::new(&line))
     }
 
+    fn preflight_windows_command_line(arguments: &[&[&str]]) -> Result<(), Error> {
+        let mut units = "semaprax-native-rust-interop-tool"
+            .encode_utf16()
+            .count()
+            .checked_add(1)
+            .ok_or(Error::OutputLimit)?;
+        for parts in arguments {
+            units = units.checked_add(3).ok_or(Error::OutputLimit)?;
+            let mut slashes = 0_usize;
+            for character in parts.iter().flat_map(|part| part.chars()) {
+                if matches!(character, '\0' | '\r' | '\n') {
+                    return Err(Error::Invalid);
+                }
+                if character == '\\' {
+                    slashes = slashes.checked_add(1).ok_or(Error::OutputLimit)?;
+                    continue;
+                }
+                let escaped_slashes = if character == '"' {
+                    slashes
+                        .checked_mul(2)
+                        .and_then(|count| count.checked_add(1))
+                        .ok_or(Error::OutputLimit)?
+                } else {
+                    slashes
+                };
+                units = units
+                    .checked_add(escaped_slashes)
+                    .and_then(|count| count.checked_add(character.len_utf16()))
+                    .ok_or(Error::OutputLimit)?;
+                slashes = 0;
+            }
+            units = units
+                .checked_add(slashes.checked_mul(2).ok_or(Error::OutputLimit)?)
+                .ok_or(Error::OutputLimit)?;
+        }
+        if units > MAX_COMMAND_LINE_UNITS {
+            return Err(Error::OutputLimit);
+        }
+        Ok(())
+    }
+
     pub fn rustc_version(
         executable: &Executable,
         cwd: &Directory,
@@ -6987,6 +7038,7 @@ mod platform {
     #[allow(clippy::too_many_arguments)]
     pub fn prepare_link_invocation(
         target: &str,
+        linker: Option<&OsStr>,
         harness: &OsStr,
         c_object: &OsStr,
         rust_archive: &OsStr,
@@ -6996,6 +7048,14 @@ mod platform {
         for name in [harness, c_object, rust_archive, output] {
             normal_name(name)?;
         }
+        let linker = linker
+            .filter(|path| std::path::Path::new(path).is_absolute())
+            .and_then(OsStr::to_str)
+            .ok_or(Error::Invalid)?;
+        let linker_units = linker.encode_utf16().count();
+        if linker_units == 0 || linker_units > MAX_TOOL_PATH_UNITS {
+            return Err(Error::OutputLimit);
+        }
         if sanitizers
             || target.is_empty()
             || !target
@@ -7004,34 +7064,54 @@ mod platform {
         {
             return Err(Error::Invalid);
         }
-        let mut values = [""; 16];
-        let mut count = 0usize;
-        for value in ["-target", target] {
-            values[count] = value;
-            count += 1;
+        let harness = harness.to_str().ok_or(Error::Invalid)?;
+        let c_object = c_object.to_str().ok_or(Error::Invalid)?;
+        let rust_archive = rust_archive.to_str().ok_or(Error::Invalid)?;
+        let output = output.to_str().ok_or(Error::Invalid)?;
+        let argument_parts: [&[&str]; 17] = [
+            &["-target"],
+            &[target],
+            &["--ld-path=", linker],
+            &[WINDOWS_DYNAMIC_CRT_LINK_ARGS[0]],
+            &[WINDOWS_DYNAMIC_CRT_LINK_ARGS[1]],
+            &[harness],
+            &[c_object],
+            &[rust_archive],
+            &[WINDOWS_RUST_STATICLIB_NATIVE_LIBS[0]],
+            &[WINDOWS_RUST_STATICLIB_NATIVE_LIBS[1]],
+            &[WINDOWS_RUST_STATICLIB_NATIVE_LIBS[2]],
+            &[WINDOWS_RUST_STATICLIB_NATIVE_LIBS[3]],
+            &[WINDOWS_RUST_STATICLIB_NATIVE_LIBS[4]],
+            &[WINDOWS_RUST_STATICLIB_NATIVE_LIBS[5]],
+            &[WINDOWS_RUST_STATICLIB_NATIVE_LIBS[6]],
+            &["-o"],
+            &[output],
+        ];
+        preflight_windows_command_line(&argument_parts)?;
+        let mut arguments = Vec::with_capacity(argument_parts.len());
+        for parts in argument_parts {
+            let capacity = parts.iter().try_fold(0_usize, |total, part| {
+                total.checked_add(part.len()).ok_or(Error::OutputLimit)
+            })?;
+            let mut argument = String::with_capacity(capacity);
+            for part in parts {
+                argument.push_str(part);
+            }
+            if argument.capacity() != capacity {
+                return Err(Error::OutputLimit);
+            }
+            arguments.push(argument);
         }
-        for value in WINDOWS_DYNAMIC_CRT_LINK_ARGS {
-            values[count] = value;
-            count += 1;
+        if arguments.len() != 17 || arguments.capacity() != 17 {
+            return Err(Error::OutputLimit);
         }
-        for value in [
-            harness.to_str().ok_or(Error::Invalid)?,
-            c_object.to_str().ok_or(Error::Invalid)?,
-            rust_archive.to_str().ok_or(Error::Invalid)?,
-        ] {
-            values[count] = value;
-            count += 1;
-        }
-        for value in WINDOWS_RUST_STATICLIB_NATIVE_LIBS {
-            values[count] = value;
-            count += 1;
-        }
-        for value in ["-o", output.to_str().ok_or(Error::Invalid)?] {
-            values[count] = value;
-            count += 1;
-        }
+        let command_line = windows_command_line(&arguments)?;
         Ok(PreparedLinkInvocation {
-            command: prepare_command(&values[..count], 0)?,
+            command: PreparedCommand {
+                arguments,
+                command_line,
+                output: Vec::new(),
+            },
             output_name: prepare_relative_name(output)?,
         })
     }
@@ -7058,14 +7138,26 @@ mod platform {
 
     pub fn link_prepared(
         clang: &Executable,
+        linker: Option<(&Executable, &str)>,
         cwd: &Directory,
         prepared: PreparedLinkInvocation,
         process_arena: &mut PreparedProcessArena,
     ) -> Result<Executable, Error> {
+        let (linker, linker_path) = linker.ok_or(Error::Invalid)?;
+        if prepared
+            .command
+            .arguments
+            .get(2)
+            .and_then(|argument| argument.strip_prefix("--ld-path="))
+            != Some(linker_path)
+        {
+            return Err(Error::Invalid);
+        }
         if hold_regular_file_name_prepared(cwd, &prepared.output_name).is_ok() {
             return Err(Error::Exists);
         }
-        if !run_argv(
+        recheck_held_regular(&linker.file)?;
+        let process_output = run_argv(
             clang,
             cwd,
             &prepared.command.arguments,
@@ -7073,9 +7165,11 @@ mod platform {
             Some(prepared.command.command_line),
             Some(prepared.command.output),
             process_arena,
-        )?
-        .is_empty()
-        {
+        );
+        let linker_recheck = recheck_held_regular(&linker.file);
+        let process_output = process_output?;
+        linker_recheck?;
+        if !process_output.is_empty() {
             return Err(Error::OutputLimit);
         }
         let file = hold_regular_file_name_prepared(cwd, &prepared.output_name)?;
@@ -7217,6 +7311,7 @@ mod platform {
     #[allow(clippy::too_many_arguments)]
     pub fn link_harness(
         clang: &Executable,
+        linker: Option<(&Executable, &str)>,
         cwd: &Directory,
         target: &str,
         harness: &OsStr,
@@ -7228,10 +7323,12 @@ mod platform {
         for name in [harness, c_object, rust_archive, output] {
             normal_name(name)?;
         }
-        if sanitizers {
+        let (linker, linker_path) = linker.ok_or(Error::Invalid)?;
+        if !std::path::Path::new(linker_path).is_absolute() || sanitizers {
             return Err(Error::Invalid);
         }
         let mut arguments = vec!["-target".to_owned(), target.to_owned()];
+        arguments.push(format!("--ld-path={linker_path}"));
         arguments.extend(WINDOWS_DYNAMIC_CRT_LINK_ARGS.into_iter().map(str::to_owned));
         arguments.extend([
             harness.to_string_lossy().into_owned(),
@@ -7246,7 +7343,8 @@ mod platform {
         arguments.extend(["-o".to_owned(), output.to_string_lossy().into_owned()]);
         let command_line = windows_command_line(&arguments)?;
         let mut process_arena = prepare_process_arena(1)?;
-        if !run_argv(
+        recheck_held_regular(&linker.file)?;
+        let process_output = run_argv(
             clang,
             cwd,
             &arguments,
@@ -7254,9 +7352,11 @@ mod platform {
             Some(command_line),
             Some(Vec::new()),
             &mut process_arena,
-        )?
-        .is_empty()
-        {
+        );
+        let linker_recheck = recheck_held_regular(&linker.file);
+        let process_output = process_output?;
+        linker_recheck?;
+        if !process_output.is_empty() {
             return Err(Error::OutputLimit);
         }
         hold_executable(cwd, output)
@@ -8604,7 +8704,7 @@ mod tests {
             .unwrap();
         let crt = &windows[crt_start..crt_end];
         assert!(crt.contains("\"-Xlinker\", \"/NODEFAULTLIB:libcmt\""));
-        assert_eq!(windows.matches("WINDOWS_DYNAMIC_CRT_LINK_ARGS").count(), 3);
+        assert_eq!(windows.matches("WINDOWS_DYNAMIC_CRT_LINK_ARGS").count(), 4);
         let native_start = windows
             .find("const WINDOWS_RUST_STATICLIB_NATIVE_LIBS: [&str; 7]")
             .unwrap();
@@ -8634,8 +8734,8 @@ mod tests {
             windows
                 .matches("WINDOWS_RUST_STATICLIB_NATIVE_LIBS")
                 .count(),
-            3,
-            "the frozen Windows native-static library tail must have one definition and exactly two link consumers",
+            9,
+            "the frozen Windows native-static library tail must have one definition, seven indexed prepared entries, and one legacy consumer",
         );
 
         let prepared_start = windows.find("pub fn prepare_link_invocation(").unwrap();
@@ -8644,18 +8744,30 @@ mod tests {
             .map(|offset| prepared_start + offset)
             .unwrap();
         let prepared = &windows[prepared_start..prepared_end];
-        let prepared_crt = prepared
-            .find("for value in WINDOWS_DYNAMIC_CRT_LINK_ARGS")
+        let arguments_start = prepared.find("let argument_parts:").unwrap();
+        let arguments_end = prepared[arguments_start..]
+            .find("preflight_windows_command_line(&argument_parts)?")
+            .map(|offset| arguments_start + offset)
             .unwrap();
-        let prepared_archive = prepared.find("rust_archive.to_str()").unwrap();
-        let prepared_tail = prepared
-            .find("for value in WINDOWS_RUST_STATICLIB_NATIVE_LIBS")
+        let arguments = &prepared[arguments_start..arguments_end];
+        let prepared_linker = arguments.find("&[\"--ld-path=\", linker]").unwrap();
+        let prepared_crt = arguments.find("WINDOWS_DYNAMIC_CRT_LINK_ARGS").unwrap();
+        let prepared_archive = arguments.find("&[rust_archive]").unwrap();
+        let prepared_tail = arguments
+            .find("WINDOWS_RUST_STATICLIB_NATIVE_LIBS")
             .unwrap();
-        let prepared_output = prepared.find("for value in [\"-o\"").unwrap();
+        let prepared_output = arguments.find("&[\"-o\"]").unwrap();
         assert!(
-            prepared_crt < prepared_archive
+            prepared_linker < prepared_crt
+                && prepared_crt < prepared_archive
                 && prepared_archive < prepared_tail
                 && prepared_tail < prepared_output
+        );
+        assert!(
+            prepared.find("linker_units > MAX_TOOL_PATH_UNITS").unwrap()
+                < prepared
+                    .find("Vec::with_capacity(argument_parts.len())")
+                    .unwrap()
         );
 
         let legacy_start = windows.find("pub fn link_harness(").unwrap();
@@ -8664,12 +8776,14 @@ mod tests {
             .map(|offset| legacy_start + offset)
             .unwrap();
         let legacy = &windows[legacy_start..legacy_end];
+        let legacy_linker = legacy.find("arguments.push(format!(\"--ld-path=").unwrap();
         let legacy_crt = legacy.find("WINDOWS_DYNAMIC_CRT_LINK_ARGS").unwrap();
         let legacy_archive = legacy.find("rust_archive.to_string_lossy()").unwrap();
         let legacy_tail = legacy.find("WINDOWS_RUST_STATICLIB_NATIVE_LIBS").unwrap();
         let legacy_output = legacy.find("arguments.extend([\"-o\"").unwrap();
         assert!(
-            legacy_crt < legacy_archive
+            legacy_linker < legacy_crt
+                && legacy_crt < legacy_archive
                 && legacy_archive < legacy_tail
                 && legacy_tail < legacy_output
         );
@@ -8678,8 +8792,24 @@ mod tests {
     #[cfg(windows)]
     #[test]
     fn windows_prepared_link_owns_the_exact_native_static_tail() {
+        for linker in [None, Some(std::ffi::OsStr::new("relative\\link.exe"))] {
+            assert!(matches!(
+                super::platform::prepare_link_invocation(
+                    "x86_64-pc-windows-msvc",
+                    linker,
+                    std::ffi::OsStr::new("main.obj"),
+                    std::ffi::OsStr::new("module.obj"),
+                    std::ffi::OsStr::new("bridge.lib"),
+                    std::ffi::OsStr::new("output.exe"),
+                    false,
+                ),
+                Err(Error::Invalid)
+            ));
+        }
+        let linker = r"C:\Program Files\Microsoft Visual Studio\Lïnk\bin\Hostx64\x64\link.exe";
         let prepared = super::platform::prepare_link_invocation(
             "x86_64-pc-windows-msvc",
+            Some(std::ffi::OsStr::new(linker)),
             std::ffi::OsStr::new("main.obj"),
             std::ffi::OsStr::new("module.obj"),
             std::ffi::OsStr::new("bridge.lib"),
@@ -8691,6 +8821,7 @@ mod tests {
         let expected = [
             "-target",
             "x86_64-pc-windows-msvc",
+            r"--ld-path=C:\Program Files\Microsoft Visual Studio\Lïnk\bin\Hostx64\x64\link.exe",
             "-Xlinker",
             "/NODEFAULTLIB:libcmt",
             "main.obj",

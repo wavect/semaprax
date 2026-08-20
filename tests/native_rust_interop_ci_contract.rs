@@ -511,6 +511,9 @@ fn hosted_workflow_names_all_private_interop_evidence_boundaries() {
         "Require private Native Rust Interop platform authority evidence",
         "cargo test --locked -p semaprax-native-rust-interop-platform --all-targets -- --nocapture",
         "Require private Native Rust Interop ASan + UBSan round trip (Linux)",
+        "where link.exe",
+        "SEMAPRAX_LINKER=%SEMAPRAX_LINKER%",
+        "if not exist \"%SEMAPRAX_LINKER%\" exit /b 1",
         "SEMAPRAX_REQUIRE_NATIVE_RUST_INTEROP_SANITIZERS: \"1\"",
         "implementation::tests::linked_bridge_round_trips_rust_to_semaprax_to_rust_and_closes_failures -- --exact --nocapture",
     ] {
@@ -521,6 +524,18 @@ fn hosted_workflow_names_all_private_interop_evidence_boundaries() {
             .matches("cargo test --locked -p semaprax-native-rust-interop -- --nocapture")
             .count(),
         1
+    );
+    let windows_environment = workflow
+        .split("- name: Resolve the authenticated Windows SDK and MSVC environment")
+        .nth(1)
+        .and_then(|tail| tail.split("      - ").next())
+        .expect("Windows SDK and linker environment step");
+    assert!(windows_environment.contains("echo INCLUDE="));
+    assert!(windows_environment.contains("echo LIB="));
+    assert!(windows_environment.contains("echo SEMAPRAX_LINKER="));
+    assert!(
+        !windows_environment.contains("echo PATH="),
+        "Windows linker setup must not restore ambient PATH to child processes"
     );
     let sanitizer_step = workflow
         .split("- name: Require private Native Rust Interop ASan + UBSan round trip (Linux)")

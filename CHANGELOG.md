@@ -14,8 +14,10 @@
   exact persistent allocation transfers, and minimum-minus-one entry gates;
   prepared Phase-B target arguments admit current-host underscore components
   without opening other punctuation, and the Linux link plan freezes the
-  target's native-static library tail. Local builder 99/99, platform-system
-  23/23, platform 10/10, source-contract 6/6, strict-Clippy, formatting, and
+  target's native-static library tail. Windows now freezes a verified absolute
+  MSVC linker into exact `--ld-path` arguments while keeping ambient `PATH` out
+  of the isolated child environment. Local builder 100/100, platform-system
+  24/24, platform 10/10, source-contract 6/6, strict-Clippy, formatting, and
   security gates are green; Windows directory authority now excludes mutable
   directory length while retaining full file identity and reparse rejection.
   Windows runtime, exact-head three-OS, and Linux sanitizer evidence

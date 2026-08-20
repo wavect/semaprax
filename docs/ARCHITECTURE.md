@@ -83,7 +83,11 @@ same held sysroot, validates its version, and restricts every Rust artifact
 operation to the distinct direct-compiler authority. Rust discovery/version,
 Clang version, and the eight build/link/run operations consume one exact
 pre-effect 12-use process arena. Windows queries and bounds the attribute-list
-size before reserving and materializing that arena. The four retained `rustc -vV` fields occupy one
+size before reserving and materializing that arena. Windows also freezes a
+verified absolute MSVC `link.exe`, prepares `--ld-path=<absolute>` before
+effects, holds and rechecks that linker around each Clang link, and does not
+restore ambient `PATH` to the isolated child environment. The four retained
+`rustc -vV` fields occupy one
 fixed-capacity no-growth store, and prepared target arguments admit the host's
 underscore-bearing components without widening the closed punctuation grammar.
 Prepared native names, inventories, artifact
@@ -97,12 +101,13 @@ stage is required to retain its create-returned directory authority until
 settlement and attempt one exact-inventory cleanup on success or failure.
 Cleanup must stop on identity, reparse/symlink, or inventory disagreement,
 preserve foreign sentinels, and expose no generic recursive-delete primitive.
-Local builder 99/99, platform-system 22/22, platform 10/10, source-contract
+Local builder 100/100, platform-system 24/24, platform 10/10, source-contract
 6/6, strict-Clippy, formatting, and security evidence are green. Exact-head
 hosted cleanup/process authority and sanitizer evidence on Ubuntu, macOS, and
 Windows remain held; Windows process-arena runtime and capacity-minus-one
 evidence remain hosted-only. Compiler sysroot/dynamic-library descendant
-provenance is not claimed. Graph
+provenance and exact descendant linker-image execution under a same-path
+replacement race are not claimed. Graph
 and Wasm
 reject programs containing the private declaration kind with `SPX-G218` and
 `SPX-W114`; callable v2/v3, the loader/host, and ordinary native/Wasm bytes are

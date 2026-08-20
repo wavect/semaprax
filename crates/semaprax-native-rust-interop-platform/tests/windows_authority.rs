@@ -5,12 +5,14 @@ use semaprax_native_rust_interop_platform::{
     hold_directory, hold_executable, hold_regular_file, inventory_exact_prepared,
     prepare_discard_inventory, prepare_inventory_exact, prepare_publish_directory,
     prepare_stage_name, publish_directory_new_prepared, read_exact, recheck_directory,
-    same_directory_path, write_file_new, Error, HeldDirectory, HeldRegularFile,
+    same_directory_path, transition_regular_file_to_external_read_prepared, write_file_new,
+    write_file_new_prepared, Error, HeldDirectory, HeldRegularFile,
 };
 use std::ffi::OsStr;
-use std::fs::{self, File};
+use std::fs::{self, File, OpenOptions};
 use std::io::Read as _;
 use std::ops::Deref;
+use std::os::windows::fs::OpenOptionsExt as _;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, Instant};
@@ -194,6 +196,63 @@ fn windows_create_inventory_publish_and_exact_discard_are_no_clobber() {
 
     discard_one(&parent, &stage, "stage", "artifact", file).unwrap();
     assert!(!root.join("stage").exists());
+}
+
+#[test]
+fn hard_link_aliases_release_owned_access_before_external_read() {
+    const FILE_SHARE_READ: u32 = 1;
+
+    let root = root("hard-link-external-read");
+    let parent = hold_directory(&root).unwrap();
+    let source_stage = create_directory_new(&parent, OsStr::new("source"), 0o700).unwrap();
+    let consumer_stage = create_directory_new(&parent, OsStr::new("consumer"), 0o700).unwrap();
+    let mut source = prepare_discard_inventory([OsStr::new("module.obj")]).unwrap();
+    write_file_new_prepared(
+        &source_stage,
+        &mut source,
+        "module.obj",
+        b"authenticated-object",
+        0o600,
+    )
+    .unwrap();
+    fs::hard_link(
+        root.join("source/module.obj"),
+        root.join("consumer/module_O2.o"),
+    )
+    .unwrap();
+    let mut consumer = prepare_discard_inventory([OsStr::new("module_O2.o")]).unwrap();
+    consumer
+        .attach(
+            "module_O2.o",
+            hold_regular_file(&consumer_stage, OsStr::new("module_O2.o")).unwrap(),
+        )
+        .unwrap();
+
+    transition_regular_file_to_external_read_prepared(
+        &consumer_stage,
+        &mut consumer,
+        "module_O2.o",
+    )
+    .unwrap();
+    assert!(OpenOptions::new()
+        .read(true)
+        .share_mode(FILE_SHARE_READ)
+        .open(root.join("consumer/module_O2.o"))
+        .is_err());
+
+    transition_regular_file_to_external_read_prepared(&source_stage, &mut source, "module.obj")
+        .unwrap();
+    let external_reader = OpenOptions::new()
+        .read(true)
+        .share_mode(FILE_SHARE_READ)
+        .open(root.join("consumer/module_O2.o"))
+        .unwrap();
+    drop(external_reader);
+
+    let consumer_name = prepare_stage_name(OsStr::new("consumer")).unwrap();
+    discard_owned_stage_prepared(&parent, &consumer_stage, &consumer_name, &consumer).unwrap();
+    let source_name = prepare_stage_name(OsStr::new("source")).unwrap();
+    discard_owned_stage_prepared(&parent, &source_stage, &source_name, &source).unwrap();
 }
 
 #[test]

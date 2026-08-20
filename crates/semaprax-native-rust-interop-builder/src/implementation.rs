@@ -19433,6 +19433,13 @@ fn build_stage_platform(
         run_files,
         object.as_slice(),
     )?;
+    #[cfg(windows)]
+    platform::transition_regular_file_to_external_read_prepared(
+        stage.authority.held(),
+        publish_files,
+        object_name,
+    )
+    .map_err(|_| PhaseBLocalError::Publication)?;
 
     let staticlib_name = if cfg!(windows) {
         "semaprax_bridge.lib"

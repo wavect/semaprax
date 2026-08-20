@@ -106,7 +106,14 @@ fn compile_c(root: &Path, name: &str, source: &str) -> PathBuf {
     let output = Command::new(compiler)
         .env("TMP", root)
         .env("TEMP", root)
-        .args(["-std=c11", "-Wall", "-Wextra", "-Werror", "-O2"])
+        .args([
+            "-std=c11",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-D_CRT_SECURE_NO_WARNINGS",
+            "-O2",
+        ])
         .arg(&source_path)
         .arg("-o")
         .arg(&executable)
@@ -324,6 +331,7 @@ fn windows_discard_stops_on_inventory_and_stage_identity_drift() {
         fs::read(root.join("stage/foreign-sentinel")).unwrap(),
         b"foreign"
     );
+    inventory.settle_for_publish().unwrap();
 
     fs::rename(root.join("stage"), root.join("displaced-stage")).unwrap();
     fs::create_dir(root.join("stage")).unwrap();

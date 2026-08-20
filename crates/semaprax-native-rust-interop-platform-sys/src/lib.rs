@@ -5829,7 +5829,9 @@ mod platform {
     }
 
     pub fn hold_executable(directory: &Directory, name: &OsStr) -> Result<Executable, Error> {
-        let file = hold_regular_file(directory, name)?;
+        recheck_directory(directory)?;
+        let name = prepare_relative_name(name)?;
+        let file = hold_regular_file_name_external_read_prepared(directory, &name)?;
         let mut prefix = [0_u8; 2];
         let mut duplicate = file.file.try_clone().map_err(|_| Error::Changed)?;
         duplicate
@@ -6363,7 +6365,19 @@ mod platform {
         if let Some(error) = disposition_error {
             return Err(error);
         }
-        disposition_delete(&stage.file)
+        let stage_deletion = relative_file_arena(
+            &parent.file,
+            stage_name,
+            DIRECTORY_OWNED_ACCESS,
+            FILE_OPEN,
+            FILE_DIRECTORY_FILE,
+        )?;
+        let observed = directory_information(&stage_deletion);
+        if observed != Ok(stage.identity) {
+            must_close_file(stage_deletion);
+            return Err(Error::Changed);
+        }
+        disposition_delete_and_close(stage_deletion)
     }
 
     #[repr(C)]
@@ -6390,6 +6404,19 @@ mod platform {
             return Err(Error::Changed);
         }
         Ok(())
+    }
+
+    fn disposition_delete_and_close(file: File) -> Result<(), Error> {
+        let result = disposition_delete(&file);
+        must_close_file(file);
+        result
+    }
+
+    fn must_close_file(file: File) {
+        let handle = file.into_raw_handle();
+        if unsafe { CloseHandle(handle.cast()) } == 0 {
+            std::process::abort();
+        }
     }
 
     fn must_close_deletion_handles(files: &mut [Option<RegularFile>]) {
@@ -8238,8 +8265,8 @@ mod tests {
             production
                 .matches("hold_regular_file_name_external_read_prepared")
                 .count(),
-            3,
-            "Windows read-compatible holder must serve inventory handoff and linked execution"
+            4,
+            "Windows read-compatible holder must serve inventory handoff and executable images"
         );
 
         let discard_start = source
@@ -8260,6 +8287,9 @@ mod tests {
             "deletion_handles[index] = Some(rebound)",
             "for (deleted, file) in deletion_handles[..attached]",
             "must_close_deletion_handles(&mut deletion_handles[..attached])",
+            "DIRECTORY_OWNED_ACCESS",
+            "directory_information(&stage_deletion)",
+            "disposition_delete_and_close(stage_deletion)",
         ] {
             assert!(
                 discard.contains(required),
@@ -8270,8 +8300,22 @@ mod tests {
             discard
                 .find("must_close_deletion_handles(&mut deletion_handles[..attached])")
                 .unwrap()
-                < discard.find("disposition_delete(&stage.file)").unwrap()
+                < discard
+                    .find("disposition_delete_and_close(stage_deletion)")
+                    .unwrap()
         );
+        let executable_start = source
+            .match_indices("pub fn hold_executable")
+            .nth(1)
+            .map(|(offset, _)| offset)
+            .expect("Windows held executable");
+        let executable_end = source[executable_start..]
+            .find("pub fn executable_regular_file")
+            .map(|offset| executable_start + offset)
+            .expect("end Windows held executable");
+        let executable = &source[executable_start..executable_end];
+        assert!(executable.contains("hold_regular_file_name_external_read_prepared"));
+        assert!(!executable.contains("hold_regular_file(directory, name)"));
         let close_start = source
             .find("fn must_close_deletion_handles")
             .expect("Windows deletion-handle settlement");

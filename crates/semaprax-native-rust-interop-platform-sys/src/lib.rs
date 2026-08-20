@@ -230,6 +230,12 @@ mod platform {
         generation: u32,
     }
 
+    pub struct SettledRegularFile(RegularFile);
+
+    pub fn settle_regular_file_for_publish(file: RegularFile) -> SettledRegularFile {
+        SettledRegularFile(file)
+    }
+
     pub struct Executable {
         file: RegularFile,
         slice_offset: u64,
@@ -2927,6 +2933,7 @@ mod platform {
         stage_name: &PreparedRelativeNameArena,
         names: &PreparedDiscardNames<N>,
         files: &[Option<&RegularFile>; N],
+        settled: &[Option<&SettledRegularFile>; N],
         #[cfg(debug_assertions)] failure_after_delete: Option<usize>,
     ) -> Result<(), Error> {
         recheck_directory(parent)?;
@@ -2936,8 +2943,16 @@ mod platform {
         if (rebound.dev, rebound.ino, rebound.mode) != (stage.dev, stage.ino, stage.mode) {
             return Err(Error::Changed);
         }
-        let attached = files.iter().take_while(|file| file.is_some()).count();
-        if files[attached..].iter().any(Option::is_some) {
+        let attached = files
+            .iter()
+            .zip(settled)
+            .take_while(|(file, settled)| file.is_some() ^ settled.is_some())
+            .count();
+        if files[attached..]
+            .iter()
+            .zip(&settled[attached..])
+            .any(|(file, settled)| file.is_some() || settled.is_some())
+        {
             return Err(Error::Invalid);
         }
 
@@ -2999,8 +3014,10 @@ mod platform {
         unsafe { libc::closedir(stream) };
         scan?;
 
-        for (file, name) in files[..attached].iter().zip(&names.names[..attached]) {
-            let file = file.expect("attached prefix");
+        for (index, name) in names.names[..attached].iter().enumerate() {
+            let file = files[index]
+                .or_else(|| settled[index].map(|file| &file.0))
+                .expect("attached prefix");
             recheck_regular(file)?;
             let name = name.as_ref().expect("validated");
             let rebound = hold_regular_file_name_prepared(stage, name)?;
@@ -4087,6 +4104,24 @@ mod platform {
         file: File,
         identity: Identity,
         digest: [u8; 32],
+    }
+
+    pub struct SettledRegularFile {
+        identity: Identity,
+        digest: [u8; 32],
+    }
+
+    pub fn settle_regular_file_for_publish(file: RegularFile) -> SettledRegularFile {
+        let RegularFile {
+            file,
+            identity,
+            digest,
+        } = file;
+        let handle = file.into_raw_handle();
+        if unsafe { CloseHandle(handle.cast()) } == 0 {
+            std::process::abort();
+        }
+        SettledRegularFile { identity, digest }
     }
 
     pub struct Executable {
@@ -6184,6 +6219,7 @@ mod platform {
         stage_name: &PreparedRelativeNameArena,
         names: &PreparedDiscardNames<N>,
         files: &[Option<&RegularFile>; N],
+        settled: &[Option<&SettledRegularFile>; N],
         #[cfg(debug_assertions)] failure_after_delete: Option<usize>,
     ) -> Result<(), Error> {
         #[cfg(debug_assertions)]
@@ -6200,8 +6236,16 @@ mod platform {
         if directory_information(&rebound)? != stage.identity {
             return Err(Error::Changed);
         }
-        let attached = files.iter().take_while(|file| file.is_some()).count();
-        if files[attached..].iter().any(Option::is_some) {
+        let attached = files
+            .iter()
+            .zip(settled)
+            .take_while(|(file, settled)| file.is_some() ^ settled.is_some())
+            .count();
+        if files[attached..]
+            .iter()
+            .zip(&settled[attached..])
+            .any(|(file, settled)| file.is_some() || settled.is_some())
+        {
             return Err(Error::Invalid);
         }
 
@@ -6290,20 +6334,25 @@ mod platform {
         #[cfg(debug_assertions)]
         eprintln!("Windows prepared discard: inventory complete, attached={attached}");
         let mut deletion_handles: [Option<RegularFile>; N] = std::array::from_fn(|_| None);
-        for (index, file) in files[..attached].iter().enumerate() {
-            let file = file.expect("attached prefix");
-            recheck_held_regular(file).map_err(|error| {
-                #[cfg(debug_assertions)]
-                eprintln!("Windows prepared discard: tracked recheck failed at index={index}");
-                error
-            })?;
+        for index in 0..attached {
+            let (identity, digest) = if let Some(file) = files[index] {
+                recheck_held_regular(file).map_err(|error| {
+                    #[cfg(debug_assertions)]
+                    eprintln!("Windows prepared discard: tracked recheck failed at index={index}");
+                    error
+                })?;
+                (file.identity, file.digest)
+            } else {
+                let file = settled[index].expect("attached settled prefix");
+                (file.identity, file.digest)
+            };
             let name = names.names[index].as_ref().expect("validated");
             let rebound = hold_regular_file_name_prepared(stage, name).map_err(|error| {
                 #[cfg(debug_assertions)]
                 eprintln!("Windows prepared discard: owned reopen failed at index={index}");
                 error
             })?;
-            if rebound.identity != file.identity || rebound.digest != file.digest {
+            if rebound.identity != identity || rebound.digest != digest {
                 #[cfg(debug_assertions)]
                 eprintln!("Windows prepared discard: rebound disagreement at index={index}");
                 return Err(Error::Changed);
@@ -8233,7 +8282,8 @@ mod tests {
         for required in [
             "let mut deletion_handles: [Option<RegularFile>; N]",
             "let rebound = hold_regular_file_name_prepared(stage, name)",
-            "rebound.identity != file.identity || rebound.digest != file.digest",
+            "let file = settled[index].expect(\"attached settled prefix\")",
+            "rebound.identity != identity || rebound.digest != digest",
             "deletion_handles[index] = Some(rebound)",
             "for (deleted, file) in deletion_handles[..attached]",
             "must_close_deletion_handles(&mut deletion_handles[..attached])",

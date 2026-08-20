@@ -173,6 +173,7 @@ fn windows_create_inventory_publish_and_exact_discard_are_no_clobber() {
             hold_regular_file(&stage, OsStr::new("artifact")).unwrap(),
         )
         .unwrap();
+    drop(file);
     let mut exact = prepare_inventory_exact(&inventory).unwrap();
     inventory_exact_prepared(&mut exact, &stage, &inventory).unwrap();
 
@@ -180,6 +181,7 @@ fn windows_create_inventory_publish_and_exact_discard_are_no_clobber() {
     fs::create_dir(&foreign).unwrap();
     fs::write(foreign.join("sentinel"), b"foreign").unwrap();
     let stage_name = prepare_stage_name(OsStr::new("stage")).unwrap();
+    inventory.settle_for_publish().unwrap();
     let mut publish = prepare_publish_directory(OsStr::new("foreign")).unwrap();
     assert_eq!(
         publish_directory_new_prepared(
@@ -194,7 +196,7 @@ fn windows_create_inventory_publish_and_exact_discard_are_no_clobber() {
     );
     assert_eq!(fs::read(foreign.join("sentinel")).unwrap(), b"foreign");
 
-    discard_one(&parent, &stage, "stage", "artifact", file).unwrap();
+    discard_owned_stage_prepared(&parent, &stage, &stage_name, &inventory).unwrap();
     assert!(!root.join("stage").exists());
 }
 
@@ -206,6 +208,8 @@ fn windows_prepared_publish_renames_the_authenticated_stage_without_clobber() {
     let mut inventory = prepare_discard_inventory([OsStr::new("artifact")]).unwrap();
     write_file_new_prepared(&stage, &mut inventory, "artifact", b"authenticated", 0o600).unwrap();
     let stage_name = prepare_stage_name(OsStr::new("stage")).unwrap();
+    inventory.settle_for_publish().unwrap();
+    assert_eq!(inventory.file("artifact").err(), Some(Error::Changed));
     let mut publish = prepare_publish_directory(OsStr::new("published")).unwrap();
     publish_directory_new_prepared(
         &mut publish,
@@ -223,6 +227,26 @@ fn windows_prepared_publish_renames_the_authenticated_stage_without_clobber() {
     let published_name = prepare_stage_name(OsStr::new("published")).unwrap();
     discard_owned_stage_prepared(&parent, &stage, &published_name, &inventory).unwrap();
     assert!(!root.join("published").exists());
+}
+
+#[test]
+fn settled_publish_inventory_rejects_foreign_name_substitution_before_cleanup() {
+    let root = root("settled-publish-substitution");
+    let parent = hold_directory(&root).unwrap();
+    let stage = create_directory_new(&parent, OsStr::new("stage"), 0o700).unwrap();
+    let mut inventory = prepare_discard_inventory([OsStr::new("artifact")]).unwrap();
+    write_file_new_prepared(&stage, &mut inventory, "artifact", b"authenticated", 0o600).unwrap();
+    inventory.settle_for_publish().unwrap();
+
+    fs::rename(root.join("stage/artifact"), root.join("displaced")).unwrap();
+    fs::write(root.join("stage/artifact"), b"foreign").unwrap();
+    let stage_name = prepare_stage_name(OsStr::new("stage")).unwrap();
+    assert_eq!(
+        discard_owned_stage_prepared(&parent, &stage, &stage_name, &inventory),
+        Err(Error::Changed)
+    );
+    assert_eq!(fs::read(root.join("stage/artifact")).unwrap(), b"foreign");
+    assert_eq!(fs::read(root.join("displaced")).unwrap(), b"authenticated");
 }
 
 #[test]

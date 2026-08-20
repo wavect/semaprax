@@ -18640,7 +18640,7 @@ fn build_native_rust_interop_bundle_bounded(
             output,
             &prepared,
             &mut facts,
-            &publish_files,
+            &mut publish_files,
             &mut final_publish.0,
         )?;
         Ok(bundle_facts)
@@ -19683,7 +19683,7 @@ fn publish_stage_platform(
     output: &Path,
     prepared: &PreparedNativeRustInterop,
     facts: &mut BuildStageFacts,
-    publish_files: &PublishDiscardInventory,
+    publish_files: &mut PublishDiscardInventory,
     final_publish: &mut platform::PreparedPublishDirectory,
 ) -> Result<(), PhaseBLocalError> {
     facts
@@ -19759,6 +19759,9 @@ fn publish_stage_platform(
         platform::inject_publish_directory_failure(final_publish, point)
             .map_err(|_| PhaseBLocalError::Publication)?;
     }
+    publish_files
+        .settle_for_publish()
+        .map_err(|_| PhaseBLocalError::Publication)?;
     let publication = platform::publish_directory_new_prepared(
         final_publish,
         parent.authority.held(),
@@ -23168,10 +23171,11 @@ fn main() -> i64 { 0 }
         let publish = &source[start..end];
         let comparison = publish.find("platform::compare_exact").unwrap();
         let scan = publish.find("scan_publish_inventory_exact").unwrap();
+        let settle = publish.find(".settle_for_publish()").unwrap();
         let rename = publish
             .find("platform::publish_directory_new_prepared")
             .unwrap();
-        assert!(comparison < scan && scan < rename);
+        assert!(comparison < scan && scan < settle && settle < rename);
         assert!(publish.contains("platform::FILE_COMPARE_SCRATCH_BYTES"));
         assert!(publish.contains(".discard_name"));
         assert!(!publish.contains("platform::read_exact"));

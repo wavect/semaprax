@@ -60,6 +60,7 @@ pub struct PreparedDiscardInventory<const N: usize> {
     names: [&'static OsStr; N],
     native: semaprax_native_rust_interop_platform_sys::PreparedDiscardNames<N>,
     files: [Option<HeldRegularFile>; N],
+    settled: [Option<semaprax_native_rust_interop_platform_sys::SettledRegularFile>; N],
     attached: usize,
     #[cfg(debug_assertions)]
     failure_after_delete: Option<usize>,
@@ -95,6 +96,7 @@ pub fn prepare_discard_inventory<const N: usize>(
         names,
         native,
         files: [const { None }; N],
+        settled: [const { None }; N],
         attached: 0,
         #[cfg(debug_assertions)]
         failure_after_delete: None,
@@ -130,7 +132,11 @@ impl<const N: usize> PreparedDiscardInventory<N> {
 
     pub fn validate_next(&self, name: &str) -> Result<usize, Error> {
         let index = self.attached;
-        if index >= N || self.names[index] != OsStr::new(name) || self.files[index].is_some() {
+        if index >= N
+            || self.names[index] != OsStr::new(name)
+            || self.files[index].is_some()
+            || self.settled[index].is_some()
+        {
             return Err(Error::Invalid);
         }
         Ok(index)
@@ -168,6 +174,25 @@ impl<const N: usize> PreparedDiscardInventory<N> {
 
     pub fn attached(&self) -> usize {
         self.attached
+    }
+
+    pub fn settle_for_publish(&mut self) -> Result<(), Error> {
+        if self.attached != N
+            || self.files.iter().any(Option::is_none)
+            || self.settled.iter().any(Option::is_some)
+        {
+            return Err(Error::Invalid);
+        }
+        for file in self.files.iter().flatten() {
+            recheck_regular_file(file)?;
+        }
+        for index in 0..N {
+            let file = self.files[index].take().expect("validated attached file");
+            self.settled[index] = Some(
+                semaprax_native_rust_interop_platform_sys::settle_regular_file_for_publish(file.0),
+            );
+        }
+        Ok(())
     }
 
     pub const fn capacity(&self) -> usize {
@@ -1056,12 +1081,14 @@ pub fn discard_owned_stage_prepared<const N: usize>(
     inventory: &PreparedDiscardInventory<N>,
 ) -> Result<(), Error> {
     let raw = std::array::from_fn(|index| inventory.files[index].as_ref().map(|file| &file.0));
+    let settled = std::array::from_fn(|index| inventory.settled[index].as_ref());
     semaprax_native_rust_interop_platform_sys::discard_owned_stage_prepared(
         &parent.0,
         &stage.0,
         &stage_name.0,
         &inventory.native,
         &raw,
+        &settled,
         #[cfg(debug_assertions)]
         inventory.failure_after_delete,
     )

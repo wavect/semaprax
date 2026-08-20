@@ -4021,7 +4021,7 @@ mod platform {
     use windows_sys::Win32::Storage::FileSystem::{
         CreateFileW, FileDispositionInfoEx, FileIdBothDirectoryInfo,
         FileIdBothDirectoryRestartInfo, FileIdExtdDirectoryInfo, FileIdExtdDirectoryRestartInfo,
-        FileIdInfo, FileRenameInfoEx, GetFileInformationByHandle, GetFileInformationByHandleEx,
+        FileIdInfo, FileRenameInfo, GetFileInformationByHandle, GetFileInformationByHandleEx,
         GetFinalPathNameByHandleW, ReadFile, SetFileInformationByHandle,
         BY_HANDLE_FILE_INFORMATION, DELETE, FILE_ADD_FILE, FILE_ADD_SUBDIRECTORY,
         FILE_ATTRIBUTE_DIRECTORY, FILE_ATTRIBUTE_NORMAL, FILE_ATTRIBUTE_REPARSE_POINT,
@@ -6161,7 +6161,7 @@ mod platform {
         if unsafe {
             SetFileInformationByHandle(
                 stage.file.as_raw_handle().cast(),
-                FileRenameInfoEx,
+                FileRenameInfo,
                 information.cast(),
                 total,
             )
@@ -8591,7 +8591,7 @@ mod tests {
             "relative_file_arena",
             "observe_publish_rebound",
             "SetFileInformationByHandle",
-            "FileRenameInfoEx",
+            "FileRenameInfo",
         ] {
             assert!(
                 windows.contains(required),
@@ -8603,6 +8603,7 @@ mod tests {
             "named_information(",
             "try_clone",
             "collect::<Vec",
+            "FileRenameInfoEx",
         ] {
             assert!(
                 !windows.contains(forbidden),

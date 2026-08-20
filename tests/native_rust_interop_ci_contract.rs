@@ -391,7 +391,7 @@ fn private_builder_uses_held_platform_authority_for_every_physical_step() {
             "FileIdBothDirectoryInfo",
             "SetFileInformationByHandle(",
             "FileLinkInformationEx",
-            "FileRenameInfoEx",
+            "FileRenameInfo",
             "FileDispositionInfoEx",
         ],
     );

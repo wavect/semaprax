@@ -199,6 +199,33 @@ fn windows_create_inventory_publish_and_exact_discard_are_no_clobber() {
 }
 
 #[test]
+fn windows_prepared_publish_renames_the_authenticated_stage_without_clobber() {
+    let root = root("publish-success");
+    let parent = hold_directory(&root).unwrap();
+    let stage = create_directory_new(&parent, OsStr::new("stage"), 0o700).unwrap();
+    let mut inventory = prepare_discard_inventory([OsStr::new("artifact")]).unwrap();
+    write_file_new_prepared(&stage, &mut inventory, "artifact", b"authenticated", 0o600).unwrap();
+    let stage_name = prepare_stage_name(OsStr::new("stage")).unwrap();
+    let mut publish = prepare_publish_directory(OsStr::new("published")).unwrap();
+    publish_directory_new_prepared(
+        &mut publish,
+        &parent,
+        &stage,
+        &stage_name,
+        OsStr::new("published"),
+    )
+    .unwrap();
+    assert!(!root.join("stage").exists());
+    assert_eq!(
+        fs::read(root.join("published/artifact")).unwrap(),
+        b"authenticated"
+    );
+    let published_name = prepare_stage_name(OsStr::new("published")).unwrap();
+    discard_owned_stage_prepared(&parent, &stage, &published_name, &inventory).unwrap();
+    assert!(!root.join("published").exists());
+}
+
+#[test]
 fn hard_link_aliases_release_owned_access_before_external_read() {
     const FILE_SHARE_READ: u32 = 1;
 

@@ -92,9 +92,9 @@ jobs:
       - name: Run workspace tests
         if: runner.os != 'Windows'
         run: cargo test --locked --workspace --all-targets --all-features
-      - name: Run workspace tests with bounded Windows process concurrency
+      - name: Run workspace tests without duplicate Windows native interop
         if: runner.os == 'Windows'
-        run: cargo test --locked --workspace --all-targets --all-features -- --test-threads=2
+        run: cargo test --locked --workspace --exclude semaprax-native-rust-interop --all-targets --all-features
       - name: Require semantic-workspace change pre/post-pivot process termination evidence
         run: cargo test --locked -p semaprax --lib semantic_workspace_change::tests::semantic_change_apply_killed_process_boundaries_preserve_exact_old_or_new -- --exact --nocapture
       - name: Require structural-change pre/post-pivot process termination evidence
@@ -120,7 +120,7 @@ jobs:
         run: cargo test --locked -p semaprax-native-rust-interop -- --nocapture
       - name: Require private Native Rust Interop A+B replay, static-link, runtime, and hostile evidence (Windows bounded)
         if: runner.os == 'Windows'
-        run: cargo test --locked -p semaprax-native-rust-interop -- --nocapture --test-threads=2
+        run: cargo test --locked -p semaprax-native-rust-interop --all-targets --all-features -- --nocapture --test-threads=2
       - name: Require private Native Rust Interop platform authority evidence
         run: cargo test --locked -p semaprax-native-rust-interop-platform --all-targets -- --nocapture
       - name: Require Windows callable-v2 and private callable-v3 physical evidence

@@ -131,6 +131,9 @@ thread_local! {
     static PHASE_B_MANIFEST_DROP_ORDER_LENGTH: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
 
+#[cfg(all(test, windows))]
+static PHASE_B_WINDOWS_BUILD_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 #[cfg(test)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum PrepareFailurePoint {
@@ -1504,6 +1507,23 @@ fn fill_exact_child_path(output: &mut PathBuf, parent: &Path, name: &OsStr) -> b
     true
 }
 
+fn exact_child_path_matches(output: &Path, parent: &Path, name: &OsStr) -> bool {
+    let mut components = Path::new(name).components();
+    if !matches!(components.next(), Some(std::path::Component::Normal(value)) if value == name)
+        || components.next().is_some()
+    {
+        return false;
+    }
+    let separator = usize::from(path_needs_separator(parent));
+    let output = output.as_os_str().as_encoded_bytes();
+    let parent = parent.as_os_str().as_encoded_bytes();
+    let name = name.as_encoded_bytes();
+    output.len() == parent.len() + separator + name.len()
+        && output.starts_with(parent)
+        && (separator == 0 || output.get(parent.len()) == Some(&(std::path::MAIN_SEPARATOR as u8)))
+        && &output[parent.len() + separator..] == name
+}
+
 fn exact_child_path(parent: &Path, name: &str, capacity: usize) -> Result<PathBuf, Diagnostic> {
     if exact_child_path_capacity(parent, name.len()) != Some(capacity) {
         return Err(b109("max_builder_bytes", MAX_BUILDER_BYTES));
@@ -1515,9 +1535,7 @@ fn exact_child_path(parent: &Path, name: &str, capacity: usize) -> Result<PathBu
     }
     storage.push(name);
     let output = PathBuf::from(storage);
-    if output.capacity() != capacity
-        || output.parent() != Some(parent)
-        || output.file_name() != Some(OsStr::new(name))
+    if output.capacity() != capacity || !exact_child_path_matches(&output, parent, OsStr::new(name))
     {
         return Err(b109("max_builder_bytes", MAX_BUILDER_BYTES));
     }
@@ -18141,6 +18159,10 @@ fn build_native_rust_interop_bundle_bounded(
     output: &Path,
     hook: &mut dyn FnMut(NativeRustBuildPoint, &Path, &Path, &Path),
 ) -> Result<BundleBuildSuccess, BundleBuildError> {
+    #[cfg(all(test, windows))]
+    let _windows_build_guard = PHASE_B_WINDOWS_BUILD_LOCK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     let prepared = prepare_native_rust_interop_bounded(program, spec_bytes)?;
     let object_name: &'static str = if cfg!(windows) {
         "module.obj"
@@ -18369,8 +18391,7 @@ impl StageSlot {
         }
         if !fill_exact_child_path(&mut self.path, parent, self.name.as_ref())
             || self.path.capacity() != self.path_capacity
-            || self.path.parent() != Some(parent)
-            || self.path.file_name() != Some(self.name.as_ref())
+            || !exact_child_path_matches(&self.path, parent, self.name.as_ref())
         {
             return Err(PhaseBLocalError::Publication);
         }
@@ -21033,7 +21054,11 @@ fn main() -> i64 { 0 }
         let synthetic =
             exact_child_path(synthetic_parent, "artifact.obj", synthetic_capacity).unwrap();
         assert_eq!(synthetic.capacity(), synthetic_capacity);
-        assert_eq!(synthetic.parent(), Some(synthetic_parent));
+        assert!(exact_child_path_matches(
+            &synthetic,
+            synthetic_parent,
+            OsStr::new("artifact.obj"),
+        ));
         for drive_relative in [Path::new(r"C:"), Path::new(r"\\?\C:")] {
             let capacity = exact_child_path_capacity(drive_relative, "artifact.obj".len()).unwrap();
             assert_eq!(
@@ -21042,7 +21067,10 @@ fn main() -> i64 { 0 }
             );
             let child = exact_child_path(drive_relative, "artifact.obj", capacity).unwrap();
             assert_eq!(child.capacity(), capacity);
-            assert_eq!(child.parent(), Some(drive_relative));
+            let child_bytes = child.as_os_str().as_encoded_bytes();
+            let parent_bytes = drive_relative.as_os_str().as_encoded_bytes();
+            assert_eq!(&child_bytes[..parent_bytes.len()], parent_bytes);
+            assert_eq!(&child_bytes[parent_bytes.len()..], b"artifact.obj");
         }
 
         let ((), synthetic_overflowed, _) =
@@ -21694,7 +21722,12 @@ fn main() -> i64 { 0 }
             &root.join("bundle"),
             |_, _, _, _| {},
         )
-        .unwrap();
+        .unwrap_or_else(|errors| {
+            panic!(
+                "prepared build failed after {} invocation consumptions: {errors:?}",
+                PHASE_B_BUILD_INVOCATION_CONSUMPTIONS.with(std::cell::Cell::get),
+            )
+        });
         assert_eq!(PHASE_B_BUILD_INVOCATION_PLANS.with(std::cell::Cell::get), 8);
         assert_eq!(
             PHASE_B_BUILD_INVOCATION_CONSUMPTIONS.with(std::cell::Cell::get),

@@ -20966,6 +20966,117 @@ fn main() -> i64 { 0 }
         assert_eq!(slot.path.capacity(), path_capacity);
     }
 
+    #[cfg(windows)]
+    #[test]
+    fn phase_b_windows_absolute_precarrier_topology_is_cumulatively_bounded() {
+        let root = std::fs::canonicalize(std::env::temp_dir())
+            .unwrap()
+            .join(format!(
+                "semaprax-native-rust-precarrier-{}",
+                std::process::id()
+            ));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir(&root).unwrap();
+        let output = root.join("bundle");
+        PHASE_B_PREPARED_CARRIER_IDENTITIES.with(|identities| identities.set([0; 7]));
+
+        let ((), overflowed, _) =
+            crate::bounded_output::with_limit_usage(MAX_BUILDER_BYTES, || {
+                let (program, canonical_spec) = fixture();
+                let prepared =
+                    prepare_native_rust_interop_bounded(&program, canonical_spec.as_bytes())
+                        .unwrap_or_else(|error| {
+                            panic!(
+                                "prepare_native failed with {} bytes remaining: {error:?}",
+                                crate::bounded_output::remaining_active().unwrap_or(0),
+                            )
+                        });
+                let parent = output.parent().unwrap();
+                let pending =
+                    PendingBundleFacts::new(&output, "module.obj").unwrap_or_else(|error| {
+                        panic!(
+                            "pending facts failed with {} bytes remaining: {error:?}",
+                            crate::bounded_output::remaining_active().unwrap_or(0),
+                        )
+                    });
+                let publish_slot = StageSlot::new(parent, &prepared.descriptor_digest, "publish")
+                    .unwrap_or_else(|error| {
+                        panic!(
+                            "publish slot failed with {} bytes remaining: {error:?}",
+                            crate::bounded_output::remaining_active().unwrap_or(0),
+                        )
+                    });
+                let run_slot = StageSlot::new(parent, &prepared.descriptor_digest, "run")
+                    .unwrap_or_else(|error| {
+                        panic!(
+                            "run slot failed with {} bytes remaining: {error:?}",
+                            crate::bounded_output::remaining_active().unwrap_or(0),
+                        )
+                    });
+                let publish_files = prepare_publish_discard_inventory().unwrap_or_else(|error| {
+                    panic!(
+                        "publish inventory failed with {} bytes remaining: {error:?}",
+                        crate::bounded_output::remaining_active().unwrap_or(0),
+                    )
+                });
+                let run_files = prepare_run_discard_inventory().unwrap_or_else(|error| {
+                    panic!(
+                        "run inventory failed with {} bytes remaining: {error:?}",
+                        crate::bounded_output::remaining_active().unwrap_or(0),
+                    )
+                });
+                let parent_capacity = parent.as_os_str().as_encoded_bytes().len();
+                let parent_budget =
+                    reserve_temporary_exact(parent_capacity).unwrap_or_else(|error| {
+                        panic!(
+                            "parent reservation failed with {} bytes remaining: {error:?}",
+                            crate::bounded_output::remaining_active().unwrap_or(0),
+                        )
+                    });
+                let parent_path =
+                    exact_path_copy(parent, parent_capacity).unwrap_or_else(|error| {
+                        panic!(
+                            "parent copy failed with {} bytes remaining: {error:?}",
+                            crate::bounded_output::remaining_active().unwrap_or(0),
+                        )
+                    });
+                parent_budget
+                    .retain(parent_capacity)
+                    .unwrap_or_else(|error| {
+                        panic!(
+                            "parent retain failed with {} bytes remaining: {error:?}",
+                            crate::bounded_output::remaining_active().unwrap_or(0),
+                        )
+                    });
+                let carriers = PhaseBErrorCarriers::prepare().unwrap_or_else(|error| {
+                    panic!(
+                        "carrier preparation failed with {} bytes remaining: {error:?}",
+                        crate::bounded_output::remaining_active().unwrap_or(0),
+                    )
+                });
+                let identities = PHASE_B_PREPARED_CARRIER_IDENTITIES.with(std::cell::Cell::get);
+                assert!(identities.into_iter().all(|identity| identity != 0));
+                for (index, carrier) in carriers.carriers.iter().enumerate() {
+                    assert_eq!(
+                        identities[index],
+                        carrier.errors.as_ref().unwrap()[0].message.as_ptr() as usize,
+                    );
+                }
+                drop((
+                    carriers,
+                    parent_path,
+                    run_files,
+                    publish_files,
+                    run_slot,
+                    publish_slot,
+                    pending,
+                    prepared,
+                ));
+            });
+        assert!(!overflowed);
+        std::fs::remove_dir_all(&root).unwrap();
+    }
+
     #[test]
     fn phase_b_rejects_non_component_output_before_build_hooks() {
         let (program, spec) = fixture();
@@ -25749,6 +25860,31 @@ module capacity.cleanup_shadow;
         assert_eq!(linux[2], apple[2]);
         assert_eq!(linux[3], apple[3]);
         assert_eq!(linux[4] - apple[4], 4);
+    }
+
+    #[test]
+    fn windows_target_phase_a_preparation_stays_inside_the_builder_ledger() {
+        with_test_target(
+            Target {
+                triple: "x86_64-pc-windows-msvc".to_owned(),
+                pointer_width: 64,
+                endian: "little".to_owned(),
+                panic_strategy: "unwind".to_owned(),
+                thread_policy: "same_thread".to_owned(),
+            },
+            || {
+                let (program, canonical_spec) = fixture();
+                let (result, overflowed, consumed) =
+                    crate::bounded_output::with_limit_usage(MAX_BUILDER_BYTES, || {
+                        prepare_native_rust_interop_bounded(&program, canonical_spec.as_bytes())
+                    });
+                assert!(
+                    !overflowed,
+                    "Windows-target phase A overflowed; consumed={consumed}",
+                );
+                result.unwrap();
+            },
+        );
     }
 
     #[test]

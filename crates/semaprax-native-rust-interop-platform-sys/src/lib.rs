@@ -4144,6 +4144,18 @@ mod platform {
     }
     pub struct PreparedRunInvocation(PreparedCommand);
 
+    const WINDOWS_DYNAMIC_CRT_LINK_ARGS: [&str; 2] = ["-Xlinker", "/NODEFAULTLIB:libcmt"];
+
+    const WINDOWS_RUST_STATICLIB_NATIVE_LIBS: [&str; 7] = [
+        "kernel32.lib",
+        "advapi32.lib",
+        "dbghelp.lib",
+        "ntdll.lib",
+        "userenv.lib",
+        "ws2_32.lib",
+        "msvcrt.lib",
+    ];
+
     fn prepare_command(values: &[&str], output_capacity: usize) -> Result<PreparedCommand, Error> {
         let mut arguments = Vec::with_capacity(values.len());
         if arguments.capacity() != values.len() {
@@ -6992,19 +7004,34 @@ mod platform {
         {
             return Err(Error::Invalid);
         }
+        let mut values = [""; 16];
+        let mut count = 0usize;
+        for value in ["-target", target] {
+            values[count] = value;
+            count += 1;
+        }
+        for value in WINDOWS_DYNAMIC_CRT_LINK_ARGS {
+            values[count] = value;
+            count += 1;
+        }
+        for value in [
+            harness.to_str().ok_or(Error::Invalid)?,
+            c_object.to_str().ok_or(Error::Invalid)?,
+            rust_archive.to_str().ok_or(Error::Invalid)?,
+        ] {
+            values[count] = value;
+            count += 1;
+        }
+        for value in WINDOWS_RUST_STATICLIB_NATIVE_LIBS {
+            values[count] = value;
+            count += 1;
+        }
+        for value in ["-o", output.to_str().ok_or(Error::Invalid)?] {
+            values[count] = value;
+            count += 1;
+        }
         Ok(PreparedLinkInvocation {
-            command: prepare_command(
-                &[
-                    "-target",
-                    target,
-                    harness.to_str().ok_or(Error::Invalid)?,
-                    c_object.to_str().ok_or(Error::Invalid)?,
-                    rust_archive.to_str().ok_or(Error::Invalid)?,
-                    "-o",
-                    output.to_str().ok_or(Error::Invalid)?,
-                ],
-                0,
-            )?,
+            command: prepare_command(&values[..count], 0)?,
             output_name: prepare_relative_name(output)?,
         })
     }
@@ -7194,15 +7221,19 @@ mod platform {
         if sanitizers {
             return Err(Error::Invalid);
         }
-        let arguments = vec![
-            "-target".to_owned(),
-            target.to_owned(),
+        let mut arguments = vec!["-target".to_owned(), target.to_owned()];
+        arguments.extend(WINDOWS_DYNAMIC_CRT_LINK_ARGS.into_iter().map(str::to_owned));
+        arguments.extend([
             harness.to_string_lossy().into_owned(),
             c_object.to_string_lossy().into_owned(),
             rust_archive.to_string_lossy().into_owned(),
-            "-o".to_owned(),
-            output.to_string_lossy().into_owned(),
-        ];
+        ]);
+        arguments.extend(
+            WINDOWS_RUST_STATICLIB_NATIVE_LIBS
+                .into_iter()
+                .map(str::to_owned),
+        );
+        arguments.extend(["-o".to_owned(), output.to_string_lossy().into_owned()]);
         let command_line = windows_command_line(&arguments)?;
         let mut process_arena = prepare_process_arena(1)?;
         if !run_argv(
@@ -8543,6 +8574,139 @@ mod tests {
         let legacy_output = legacy.find("output.to_str()").unwrap();
         let legacy_tail = legacy.find("LINUX_RUST_STATICLIB_NATIVE_LIBS").unwrap();
         assert!(legacy_archive < legacy_output && legacy_output < legacy_tail);
+    }
+
+    #[test]
+    fn windows_rust_staticlib_link_tail_is_frozen_after_the_archive() {
+        let source = include_str!("lib.rs");
+        let windows_start = source.find("#[cfg(windows)]\nmod platform").unwrap();
+        let windows_end = source[windows_start..]
+            .find("\npub use platform::*;")
+            .map(|offset| windows_start + offset)
+            .unwrap();
+        let windows = &source[windows_start..windows_end];
+        let crt_start = windows
+            .find("const WINDOWS_DYNAMIC_CRT_LINK_ARGS: [&str; 2]")
+            .unwrap();
+        let crt_end = windows[crt_start..]
+            .find("];")
+            .map(|offset| crt_start + offset + 2)
+            .unwrap();
+        let crt = &windows[crt_start..crt_end];
+        assert!(crt.contains("\"-Xlinker\", \"/NODEFAULTLIB:libcmt\""));
+        assert_eq!(windows.matches("WINDOWS_DYNAMIC_CRT_LINK_ARGS").count(), 3);
+        let native_start = windows
+            .find("const WINDOWS_RUST_STATICLIB_NATIVE_LIBS: [&str; 7]")
+            .unwrap();
+        let native_end = windows[native_start..]
+            .find("\n    ];")
+            .map(|offset| native_start + offset + "\n    ];".len())
+            .unwrap();
+        let native = &windows[native_start..native_end];
+        let mut previous = 0usize;
+        for required in [
+            "kernel32.lib",
+            "advapi32.lib",
+            "dbghelp.lib",
+            "ntdll.lib",
+            "userenv.lib",
+            "ws2_32.lib",
+            "msvcrt.lib",
+        ] {
+            let offset = native.find(required).unwrap();
+            assert!(
+                offset >= previous,
+                "Windows native-static library order changed"
+            );
+            previous = offset;
+        }
+        assert_eq!(
+            windows
+                .matches("WINDOWS_RUST_STATICLIB_NATIVE_LIBS")
+                .count(),
+            3,
+            "the frozen Windows native-static library tail must have one definition and exactly two link consumers",
+        );
+
+        let prepared_start = windows.find("pub fn prepare_link_invocation(").unwrap();
+        let prepared_end = windows[prepared_start..]
+            .find("pub fn prepared_link_owned_capacity(")
+            .map(|offset| prepared_start + offset)
+            .unwrap();
+        let prepared = &windows[prepared_start..prepared_end];
+        let prepared_crt = prepared
+            .find("for value in WINDOWS_DYNAMIC_CRT_LINK_ARGS")
+            .unwrap();
+        let prepared_archive = prepared.find("rust_archive.to_str()").unwrap();
+        let prepared_tail = prepared
+            .find("for value in WINDOWS_RUST_STATICLIB_NATIVE_LIBS")
+            .unwrap();
+        let prepared_output = prepared.find("for value in [\"-o\"").unwrap();
+        assert!(
+            prepared_crt < prepared_archive
+                && prepared_archive < prepared_tail
+                && prepared_tail < prepared_output
+        );
+
+        let legacy_start = windows.find("pub fn link_harness(").unwrap();
+        let legacy_end = windows[legacy_start..]
+            .find("let command_line = windows_command_line(&arguments)?")
+            .map(|offset| legacy_start + offset)
+            .unwrap();
+        let legacy = &windows[legacy_start..legacy_end];
+        let legacy_crt = legacy.find("WINDOWS_DYNAMIC_CRT_LINK_ARGS").unwrap();
+        let legacy_archive = legacy.find("rust_archive.to_string_lossy()").unwrap();
+        let legacy_tail = legacy.find("WINDOWS_RUST_STATICLIB_NATIVE_LIBS").unwrap();
+        let legacy_output = legacy.find("arguments.extend([\"-o\"").unwrap();
+        assert!(
+            legacy_crt < legacy_archive
+                && legacy_archive < legacy_tail
+                && legacy_tail < legacy_output
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_prepared_link_owns_the_exact_native_static_tail() {
+        let prepared = super::platform::prepare_link_invocation(
+            "x86_64-pc-windows-msvc",
+            std::ffi::OsStr::new("main.obj"),
+            std::ffi::OsStr::new("module.obj"),
+            std::ffi::OsStr::new("bridge.lib"),
+            std::ffi::OsStr::new("output.exe"),
+            false,
+        )
+        .unwrap();
+        let owned = super::platform::prepared_link_owned_capacity(&prepared);
+        let expected = [
+            "-target",
+            "x86_64-pc-windows-msvc",
+            "-Xlinker",
+            "/NODEFAULTLIB:libcmt",
+            "main.obj",
+            "module.obj",
+            "bridge.lib",
+            "kernel32.lib",
+            "advapi32.lib",
+            "dbghelp.lib",
+            "ntdll.lib",
+            "userenv.lib",
+            "ws2_32.lib",
+            "msvcrt.lib",
+            "-o",
+            "output.exe",
+        ];
+        assert!(prepared
+            .command
+            .arguments
+            .iter()
+            .map(String::as_str)
+            .eq(expected));
+        assert_eq!(prepared.command.arguments.capacity(), expected.len(),);
+        assert_eq!(
+            super::platform::prepared_link_owned_capacity(&prepared),
+            owned,
+        );
     }
 
     #[test]

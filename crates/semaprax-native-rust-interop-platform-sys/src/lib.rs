@@ -4007,9 +4007,9 @@ mod platform {
     use std::os::windows::io::{AsRawHandle as _, FromRawHandle as _, IntoRawHandle as _};
     use windows_sys::Wdk::Foundation::OBJECT_ATTRIBUTES;
     use windows_sys::Wdk::Storage::FileSystem::{
-        FileLinkInformationEx, NtCreateFile, NtSetInformationFile, FILE_CREATE,
-        FILE_DIRECTORY_FILE, FILE_NON_DIRECTORY_FILE, FILE_OPEN, FILE_OPEN_REPARSE_POINT,
-        FILE_SYNCHRONOUS_IO_NONALERT,
+        FileLinkInformationEx, FileRenameInformation, NtCreateFile, NtSetInformationFile,
+        FILE_CREATE, FILE_DIRECTORY_FILE, FILE_NON_DIRECTORY_FILE, FILE_OPEN,
+        FILE_OPEN_REPARSE_POINT, FILE_SYNCHRONOUS_IO_NONALERT,
     };
     use windows_sys::Win32::Foundation::{
         CloseHandle, GetLastError, SetHandleInformation, ERROR_BROKEN_PIPE,
@@ -4021,7 +4021,7 @@ mod platform {
     use windows_sys::Win32::Storage::FileSystem::{
         CreateFileW, FileDispositionInfoEx, FileIdBothDirectoryInfo,
         FileIdBothDirectoryRestartInfo, FileIdExtdDirectoryInfo, FileIdExtdDirectoryRestartInfo,
-        FileIdInfo, FileRenameInfo, GetFileInformationByHandle, GetFileInformationByHandleEx,
+        FileIdInfo, GetFileInformationByHandle, GetFileInformationByHandleEx,
         GetFinalPathNameByHandleW, ReadFile, SetFileInformationByHandle,
         BY_HANDLE_FILE_INFORMATION, DELETE, FILE_ADD_FILE, FILE_ADD_SUBDIRECTORY,
         FILE_ATTRIBUTE_DIRECTORY, FILE_ATTRIBUTE_NORMAL, FILE_ATTRIBUTE_REPARSE_POINT,
@@ -4645,11 +4645,9 @@ mod platform {
 
     fn publish_information_layout(name_units: usize) -> Result<(usize, usize), Error> {
         let name_bytes = name_units.checked_mul(2).ok_or(Error::OutputLimit)?;
-        let fixed = std::mem::offset_of!(NamedInformation, file_name);
-        let total = fixed
+        let total = std::mem::size_of::<NamedInformation>()
             .checked_add(name_bytes)
-            .ok_or(Error::OutputLimit)?
-            .max(std::mem::size_of::<NamedInformation>());
+            .ok_or(Error::OutputLimit)?;
         let words = total
             .checked_add(std::mem::size_of::<usize>() - 1)
             .ok_or(Error::OutputLimit)?
@@ -6158,21 +6156,24 @@ mod platform {
         unsafe {
             (*information).root_directory = parent.file.as_raw_handle().cast();
         }
-        if unsafe {
-            SetFileInformationByHandle(
+        let mut io = IO_STATUS_BLOCK::default();
+        let status = unsafe {
+            NtSetInformationFile(
                 stage.file.as_raw_handle().cast(),
-                FileRenameInfo,
+                &mut io,
                 information.cast(),
                 total,
+                FileRenameInformation,
             )
-        } == 0
-        {
+        };
+        if status < 0 {
             #[cfg(debug_assertions)]
-            {
-                let error = unsafe { GetLastError() };
-                eprintln!("Windows prepared publish: rename failed with Win32 error={error}");
-            }
-            return Err(Error::Exists);
+            eprintln!("Windows prepared publish: rename failed with NTSTATUS={status:#x}");
+            return Err(if status == STATUS_OBJECT_NAME_COLLISION {
+                Error::Exists
+            } else {
+                Error::Changed
+            });
         }
         Ok(())
     }
@@ -8590,8 +8591,8 @@ mod tests {
             "prepared.exact_capacity",
             "relative_file_arena",
             "observe_publish_rebound",
-            "SetFileInformationByHandle",
-            "FileRenameInfo",
+            "NtSetInformationFile",
+            "FileRenameInformation",
         ] {
             assert!(
                 windows.contains(required),
@@ -8603,6 +8604,7 @@ mod tests {
             "named_information(",
             "try_clone",
             "collect::<Vec",
+            "SetFileInformationByHandle(",
             "FileRenameInfoEx",
         ] {
             assert!(

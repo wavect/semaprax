@@ -391,7 +391,7 @@ fn private_builder_uses_held_platform_authority_for_every_physical_step() {
             "FileIdBothDirectoryInfo",
             "SetFileInformationByHandle(",
             "FileLinkInformationEx",
-            "FileRenameInfo",
+            "FileRenameInformation",
             "FileDispositionInfoEx",
         ],
     );
@@ -409,11 +409,11 @@ fn private_builder_uses_held_platform_authority_for_every_physical_step() {
         "Windows Nt RootDirectory helper definition/caller topology drifted"
     );
     assert!(
-        windows_filesystem.matches("NtSetInformationFile(").count() == 1
+        windows_filesystem.matches("NtSetInformationFile(").count() == 2
             && windows_filesystem
                 .matches("SetFileInformationByHandle(")
                 .count()
-                == 2
+                == 1
             && windows_filesystem.matches("disposition_delete(").count() >= 3,
         "Windows link, publish, and delete callers are not all held-handle operations"
     );

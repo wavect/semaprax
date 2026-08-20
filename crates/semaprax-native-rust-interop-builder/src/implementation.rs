@@ -131,9 +131,6 @@ thread_local! {
     static PHASE_B_MANIFEST_DROP_ORDER_LENGTH: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
 
-#[cfg(all(test, windows))]
-static PHASE_B_WINDOWS_BUILD_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
-
 #[cfg(test)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum PrepareFailurePoint {
@@ -18159,10 +18156,6 @@ fn build_native_rust_interop_bundle_bounded(
     output: &Path,
     hook: &mut dyn FnMut(NativeRustBuildPoint, &Path, &Path, &Path),
 ) -> Result<BundleBuildSuccess, BundleBuildError> {
-    #[cfg(all(test, windows))]
-    let _windows_build_guard = PHASE_B_WINDOWS_BUILD_LOCK
-        .lock()
-        .unwrap_or_else(std::sync::PoisonError::into_inner);
     let prepared = prepare_native_rust_interop_bounded(program, spec_bytes)?;
     let object_name: &'static str = if cfg!(windows) {
         "module.obj"

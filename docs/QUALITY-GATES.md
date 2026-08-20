@@ -89,9 +89,10 @@ preserve existing Graph, Wasm, callable-v2/v3, Agent, Economic, Workspace,
 Patch, CLI, API, and KAT bytes. Exact-head hosted promotion requires the whole
 matrix; one host, a compile-only lane, or a platform-disabled test is not
 evidence for the other hosts. Qualifying local runs set explicit absolute
-`RUSTC` and `CLANG`; Windows additionally resolves and verifies an absolute
-`SEMAPRAX_LINKER`, freezes it into prepared `-fuse-ld` arguments, and must not
-export ambient `PATH` into the process arena. An ambient launcher or proxy is
+`RUSTC` and `CLANG`; Windows additionally freezes an absolute Visual C++ tools
+root plus its exact `SEMAPRAX_LINKER`, prepares
+`-Xmicrosoft-visualc-tools-root <root> -fuse-ld=link`, and must not export
+ambient `PATH` into the process arena. An ambient launcher or proxy is
 deliberately rejected and is not a regression in the direct-image policy.
 Public C remains held until
 that gate is green.

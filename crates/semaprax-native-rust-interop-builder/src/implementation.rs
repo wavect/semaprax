@@ -16040,10 +16040,12 @@ fn report_bounded_windows_link_stderr(run_stage: &Path) {
 
     const STDERR_MAXIMUM: u64 = 65_536;
     let clang = configured_tool("CLANG").expect("configured Windows clang");
-    let linker = std::env::var_os("SEMAPRAX_LINKER")
+    let _linker = std::env::var_os("SEMAPRAX_LINKER")
         .and_then(|value| value.into_string().ok())
         .expect("configured absolute Windows linker");
-    let linker_argument = format!("-fuse-ld={linker}");
+    let vctools = std::env::var_os("SEMAPRAX_VCTOOLS")
+        .and_then(|value| value.into_string().ok())
+        .expect("configured absolute Windows Visual C++ tools root");
     let stderr_path = run_stage.join("__semaprax_link_diagnostic.stderr");
     let output_name = "__semaprax_link_diagnostic.exe";
     let output_path = run_stage.join(output_name);
@@ -16060,7 +16062,9 @@ fn report_bounded_windows_link_stderr(run_stage: &Path) {
             "-v",
             "-target",
             "x86_64-pc-windows-msvc",
-            linker_argument.as_str(),
+            "-Xmicrosoft-visualc-tools-root",
+            vctools.as_str(),
+            "-fuse-ld=link",
             "-Xlinker",
             "/NODEFAULTLIB:libcmt",
             "__semaprax_native_rust_main.o",
@@ -16184,6 +16188,7 @@ struct FrozenToolEnvironment {
     clang: Option<OsString>,
     rustc: Option<OsString>,
     linker: Option<OsString>,
+    vctools: Option<OsString>,
     path: Option<OsString>,
     sanitizer: Option<OsString>,
     include: Option<OsString>,
@@ -16290,6 +16295,11 @@ fn freeze_tool_environment() -> Result<FrozenToolEnvironment, PhaseBLocalError> 
     } else {
         None
     };
+    let vctools = if cfg!(windows) {
+        std::env::var_os("SEMAPRAX_VCTOOLS")
+    } else {
+        None
+    };
     let path = std::env::var_os("PATH");
     let sanitizer = std::env::var_os("SEMAPRAX_REQUIRE_NATIVE_RUST_INTEROP_SANITIZERS");
     let include = if cfg!(windows) {
@@ -16303,7 +16313,7 @@ fn freeze_tool_environment() -> Result<FrozenToolEnvironment, PhaseBLocalError> 
         None
     };
     let capacity = [
-        &clang, &rustc, &linker, &path, &sanitizer, &include, &libraries,
+        &clang, &rustc, &linker, &vctools, &path, &sanitizer, &include, &libraries,
     ]
     .into_iter()
     .try_fold(0usize, |total, value| {
@@ -16315,6 +16325,7 @@ fn freeze_tool_environment() -> Result<FrozenToolEnvironment, PhaseBLocalError> 
         clang,
         rustc,
         linker,
+        vctools,
         path,
         sanitizer,
         include,
@@ -16337,6 +16348,7 @@ fn prepare_toolchain_plan() -> Result<PreparedToolchainPlan, PhaseBLocalError> {
         &environment.clang,
         &environment.rustc,
         &environment.linker,
+        &environment.vctools,
         &environment.path,
         &environment.sanitizer,
     ]
@@ -16470,6 +16482,7 @@ fn authenticate_toolchain(
         clang: configured_clang,
         rustc: configured_rustc,
         linker: configured_linker,
+        vctools: configured_vctools,
         path,
         sanitizer,
         include,
@@ -16480,6 +16493,14 @@ fn authenticate_toolchain(
         None => {}
         Some(value) if value == "1" && cfg!(target_os = "linux") => {}
         Some(_) => return Err(PhaseBLocalError::Unsupported),
+    }
+    if cfg!(windows)
+        && !valid_windows_link_environment(
+            configured_linker.as_deref(),
+            configured_vctools.as_deref(),
+        )
+    {
+        return Err(PhaseBLocalError::Unsupported);
     }
     let (clang, _clang_resolver) = platform::resolve_and_hold_tool_reusing_prepared(
         clang_resolver,
@@ -16506,6 +16527,7 @@ fn authenticate_toolchain(
         Some(linker)
     } else {
         if configured_linker.is_some()
+            || configured_vctools.is_some()
             || linker_resolver.is_some()
             || linker_resolver_budget.is_some()
         {
@@ -16543,6 +16565,7 @@ fn authenticate_toolchain(
     drop(configured_clang);
     drop(configured_rustc);
     drop(configured_linker);
+    drop(configured_vctools);
     drop(include);
     drop(libraries);
     #[cfg(test)]
@@ -16659,15 +16682,45 @@ fn planned_sanitizers(plan: &PreparedToolchainPlan) -> bool {
 
 fn planned_linker(plan: &PreparedToolchainPlan) -> Option<&OsStr> {
     if cfg!(windows) {
-        Some(
-            plan.environment
-                .linker
-                .as_deref()
-                .unwrap_or_else(|| OsStr::new(PHASE_B_MISSING_WINDOWS_LINKER)),
-        )
+        if valid_windows_link_environment(
+            plan.environment.linker.as_deref(),
+            plan.environment.vctools.as_deref(),
+        ) {
+            plan.environment.linker.as_deref()
+        } else {
+            Some(OsStr::new(PHASE_B_MISSING_WINDOWS_LINKER))
+        }
     } else {
         None
     }
+}
+
+fn planned_vctools(plan: &PreparedToolchainPlan) -> Option<&OsStr> {
+    if cfg!(windows) {
+        if valid_windows_link_environment(
+            plan.environment.linker.as_deref(),
+            plan.environment.vctools.as_deref(),
+        ) {
+            plan.environment.vctools.as_deref()
+        } else {
+            Some(OsStr::new(PHASE_B_MISSING_WINDOWS_VCTOOLS))
+        }
+    } else {
+        None
+    }
+}
+
+fn valid_windows_link_environment(linker: Option<&OsStr>, vctools: Option<&OsStr>) -> bool {
+    let Some(linker) = linker.map(std::path::Path::new) else {
+        return false;
+    };
+    let Some(vctools) = vctools.map(std::path::Path::new) else {
+        return false;
+    };
+    linker.is_absolute()
+        && vctools.is_absolute()
+        && linker.strip_prefix(vctools).ok()
+            == Some(std::path::Path::new(r"bin\Hostx64\x64\link.exe"))
 }
 
 fn parse_rustc_version(source: &str, output: &mut RustcVersion) -> Result<(), PhaseBLocalError> {
@@ -17371,6 +17424,7 @@ fn prepare_build_invocations(
     prepared: &PreparedNativeRustInterop,
     sanitizers: bool,
     linker: Option<&OsStr>,
+    vctools: Option<&OsStr>,
 ) -> Result<PreparedBuildInvocations, PhaseBLocalError> {
     let c_maximum = MAX_GENERATED_C_BYTES
         .checked_add(PHASE_B_INVOCATION_ARGUMENT_CAPACITY)
@@ -17378,7 +17432,11 @@ fn prepare_build_invocations(
     let command_maximum = PHASE_B_INVOCATION_ARGUMENT_CAPACITY;
     let link_command_maximum = if cfg!(windows) {
         command_maximum
-            .checked_add(PHASE_B_TOOL_RESOLVER_CAPACITY)
+            .checked_add(
+                PHASE_B_TOOL_RESOLVER_CAPACITY
+                    .checked_mul(2)
+                    .ok_or(PhaseBLocalError::BuilderBudget)?,
+            )
             .ok_or(PhaseBLocalError::BuilderBudget)?
     } else {
         command_maximum
@@ -17455,6 +17513,7 @@ fn prepare_build_invocations(
                 platform::prepare_link_invocation(
                     &prepared.target.triple,
                     linker,
+                    vctools,
                     "__semaprax_native_rust_main.o".as_ref(),
                     "module_O0.o".as_ref(),
                     staticlib_name.as_ref(),
@@ -17475,6 +17534,7 @@ fn prepare_build_invocations(
                 platform::prepare_link_invocation(
                     &prepared.target.triple,
                     linker,
+                    vctools,
                     "__semaprax_native_rust_main.o".as_ref(),
                     "module_O2.o".as_ref(),
                     staticlib_name.as_ref(),
@@ -17505,7 +17565,9 @@ const PHASE_B_MANIFEST_BUDGET_MESSAGE: &str =
     "Native Rust Interop max_manifest_bytes exceeds 1048576";
 const PHASE_B_TOOL_VERSION_CAPACITY: usize = 65_536;
 const PHASE_B_TOOL_PATH_CAPACITY: usize = 32_768;
-const PHASE_B_MISSING_WINDOWS_LINKER: &str = r"C:\__semaprax_missing_linker__\link.exe";
+const PHASE_B_MISSING_WINDOWS_LINKER: &str =
+    r"C:\__semaprax_missing_vctools__\bin\Hostx64\x64\link.exe";
+const PHASE_B_MISSING_WINDOWS_VCTOOLS: &str = r"C:\__semaprax_missing_vctools__";
 const PHASE_B_VERSION_COMMAND_CAPACITY: usize = 256;
 const PHASE_B_TOOL_RESOLVER_CAPACITY: usize = PHASE_B_TOOL_PATH_CAPACITY * 7 + 256;
 const PHASE_B_PROCESS_INVOCATIONS: usize = 12;
@@ -18057,6 +18119,33 @@ fn build_native_rust_interop_bundle_with_test_limit(
 }
 
 #[cfg(test)]
+fn prepare_phase_b_with_test_limit(
+    program: &Program,
+    spec_bytes: &[u8],
+    output: &Path,
+    limit: usize,
+) -> Result<(), Vec<Diagnostic>> {
+    assert!(limit <= MAX_BUILDER_BYTES);
+    reset_phase_b_error_materialization_observer();
+    let (result, overflowed) =
+        crate::bounded_output::with_limit(limit, || prepare_phase_b(program, spec_bytes, output));
+    match result {
+        Ok(prepared) if overflowed => {
+            drop(prepared);
+            Err(diagnostic_vector(b109(
+                "max_builder_bytes",
+                MAX_BUILDER_BYTES,
+            )))
+        }
+        Ok(prepared) => {
+            drop(prepared);
+            Ok(())
+        }
+        Err(error) => Err(error.into_diagnostics(overflowed)),
+    }
+}
+
+#[cfg(test)]
 #[allow(clippy::enum_variant_names)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum NativeRustBuildPoint {
@@ -18309,12 +18398,29 @@ fn build_native_rust_interop_bundle_with_hook(
     finish_bounded_bundle(result, overflowed)
 }
 
-fn build_native_rust_interop_bundle_bounded(
+struct PreparedPhaseB {
+    prepared: PreparedNativeRustInterop,
+    pending_facts: PendingBundleFacts,
+    publish_slot: StageSlot,
+    run_slot: StageSlot,
+    publish_files: PublishDiscardInventory,
+    run_files: RunDiscardInventory,
+    parent_path: PathBuf,
+    carriers: PhaseBErrorCarriers,
+    toolchain_plan: PreparedToolchainPlan,
+    harness_plan: (String, TemporaryBudget),
+    build_invocations: PreparedBuildInvocations,
+    manifest_plan: PreparedManifestPlan,
+    link_copies: PreparedLinkCopies,
+    inventory_exact: (platform::PreparedInventoryExact<7>, TemporaryBudget),
+    final_publish: (platform::PreparedPublishDirectory, TemporaryBudget),
+}
+
+fn prepare_phase_b(
     program: &Program,
     spec_bytes: &[u8],
     output: &Path,
-    hook: &mut dyn FnMut(NativeRustBuildPoint, &Path, &Path, &Path),
-) -> Result<BundleBuildSuccess, BundleBuildError> {
+) -> Result<PreparedPhaseB, BundleBuildError> {
     let prepared = prepare_native_rust_interop_bounded(program, spec_bytes)?;
     let object_name: &'static str = if cfg!(windows) {
         "module.obj"
@@ -18322,15 +18428,19 @@ fn build_native_rust_interop_bundle_bounded(
         "module.o"
     };
     let parent = output.parent().ok_or_else(platform_publication_error)?;
-    let mut pending_facts = PendingBundleFacts::new(output, object_name)?;
+    let pending_facts = PendingBundleFacts::new(output, object_name)?;
     let publish_slot = StageSlot::new(parent, &prepared.descriptor_digest, "publish")?;
     let run_slot = StageSlot::new(parent, &prepared.descriptor_digest, "run")?;
-    let mut publish_files = prepare_publish_discard_inventory()?;
-    let mut run_files = prepare_run_discard_inventory()?;
+    let publish_files = prepare_publish_discard_inventory()?;
+    let run_files = prepare_run_discard_inventory()?;
     #[cfg(all(test, debug_assertions))]
-    run_files.inject_discard_failure_after_delete(
-        PHASE_B_DISCARD_FAILURE_AFTER_DELETE.with(std::cell::Cell::get),
-    );
+    let run_files = {
+        let mut run_files = run_files;
+        run_files.inject_discard_failure_after_delete(
+            PHASE_B_DISCARD_FAILURE_AFTER_DELETE.with(std::cell::Cell::get),
+        );
+        run_files
+    };
     let parent_capacity = parent.as_os_str().as_encoded_bytes().len();
     let parent_budget = reserve_temporary_exact(parent_capacity)?;
     let parent_path = exact_path_copy(parent, parent_capacity)?;
@@ -18348,6 +18458,7 @@ fn build_native_rust_interop_bundle_bounded(
         &prepared,
         planned_sanitizers(&toolchain_plan),
         planned_linker(&toolchain_plan),
+        planned_vctools(&toolchain_plan),
     ) {
         Ok(plan) => plan,
         Err(error) => return Err(carriers.error(error)),
@@ -18364,10 +18475,52 @@ fn build_native_rust_interop_bundle_bounded(
         Ok(plan) => plan,
         Err(error) => return Err(carriers.error(error)),
     };
-    let mut final_publish = match prepare_final_publish(output) {
+    let final_publish = match prepare_final_publish(output) {
         Ok(plan) => plan,
         Err(error) => return Err(carriers.error(error)),
     };
+    Ok(PreparedPhaseB {
+        prepared,
+        pending_facts,
+        publish_slot,
+        run_slot,
+        publish_files,
+        run_files,
+        parent_path,
+        carriers,
+        toolchain_plan,
+        harness_plan,
+        build_invocations,
+        manifest_plan,
+        link_copies,
+        inventory_exact,
+        final_publish,
+    })
+}
+
+fn build_native_rust_interop_bundle_bounded(
+    program: &Program,
+    spec_bytes: &[u8],
+    output: &Path,
+    hook: &mut dyn FnMut(NativeRustBuildPoint, &Path, &Path, &Path),
+) -> Result<BundleBuildSuccess, BundleBuildError> {
+    let PreparedPhaseB {
+        prepared,
+        mut pending_facts,
+        publish_slot,
+        run_slot,
+        mut publish_files,
+        mut run_files,
+        parent_path,
+        mut carriers,
+        toolchain_plan,
+        harness_plan,
+        build_invocations,
+        manifest_plan,
+        link_copies,
+        inventory_exact,
+        mut final_publish,
+    } = prepare_phase_b(program, spec_bytes, output)?;
 
     mark_phase_b_effect_started();
     #[cfg(test)]
@@ -21095,30 +21248,33 @@ fn main() -> i64 { 0 }
     #[test]
     fn full_bundle_builder_limit_is_cumulative_exact_and_cannot_be_widened() {
         let (program, spec) = fixture();
-        let probe = |limit: usize, nonce: usize| {
-            let root = std::fs::canonicalize(std::env::temp_dir())
-                .unwrap()
-                .join(format!(
-                    "semaprax-native-rust-builder-probe-{}-{nonce}",
-                    std::process::id()
-                ));
-            let _ = std::fs::remove_dir_all(&root);
+        let root = std::fs::canonicalize(std::env::temp_dir())
+            .unwrap()
+            .join(format!(
+                "semaprax-native-rust-builder-exact-{}",
+                std::process::id()
+            ));
+        let _ = std::fs::remove_dir_all(&root);
+        let output = root.join("bundle");
+        let prepare_probe = |limit: usize| {
+            prepare_phase_b_with_test_limit(&program, spec.as_bytes(), &output, limit)
+        };
+        let build_probe = |limit: usize| {
             std::fs::create_dir(&root).unwrap();
             let result = build_native_rust_interop_bundle_with_test_limit(
                 &program,
                 spec.as_bytes(),
-                &root.join("bundle"),
+                &output,
                 limit,
             );
             std::fs::remove_dir_all(&root).unwrap();
             result.map(|_| ())
         };
 
-        let (mut low, mut high, mut nonce) = (0_usize, MAX_BUILDER_BYTES, 0_usize);
+        let (mut low, mut high) = (0_usize, MAX_BUILDER_BYTES);
         while low < high {
             let middle = low + (high - low) / 2;
-            nonce += 1;
-            match probe(middle, nonce) {
+            match prepare_probe(middle) {
                 Ok(()) => high = middle,
                 Err(error) => {
                     assert_eq!(error.len(), 1);
@@ -21133,14 +21289,15 @@ fn main() -> i64 { 0 }
         }
         let minimum = low;
         assert!(minimum > 0 && minimum <= MAX_BUILDER_BYTES);
-        probe(minimum, nonce + 1).unwrap();
-        let error = probe(minimum - 1, nonce + 2).unwrap_err();
+        prepare_probe(minimum).unwrap();
+        let error = prepare_probe(minimum - 1).unwrap_err();
         assert_eq!(error.len(), 1);
         assert_eq!(error[0].code, "SPX-B109");
         assert_eq!(
             error[0].message,
             "Native Rust Interop max_builder_bytes exceeds 33554432"
         );
+        build_probe(minimum).unwrap();
 
         let root = std::fs::canonicalize(std::env::temp_dir())
             .unwrap()
@@ -21783,12 +21940,22 @@ fn main() -> i64 { 0 }
         } else {
             None
         };
-        let plans = prepare_build_invocations(&prepared, false, linker).unwrap();
+        let vctools = std::env::var_os("SEMAPRAX_VCTOOLS");
+        let vctools = if cfg!(windows) {
+            Some(
+                vctools
+                    .as_deref()
+                    .unwrap_or_else(|| OsStr::new(PHASE_B_MISSING_WINDOWS_VCTOOLS)),
+            )
+        } else {
+            None
+        };
+        let plans = prepare_build_invocations(&prepared, false, linker, vctools).unwrap();
         assert_eq!(PHASE_B_BUILD_INVOCATION_PLANS.with(std::cell::Cell::get), 8);
         drop(plans);
 
         prepared.target.triple = "x86_64-unknown/linux-gnu".to_owned();
-        let error = match prepare_build_invocations(&prepared, false, linker) {
+        let error = match prepare_build_invocations(&prepared, false, linker, vctools) {
             Ok(_) => panic!("noncanonical target punctuation was admitted"),
             Err(error) => error,
         };
@@ -21819,7 +21986,17 @@ fn main() -> i64 { 0 }
         } else {
             None
         };
-        let plans = prepare_build_invocations(&prepared, false, linker).unwrap();
+        let vctools = std::env::var_os("SEMAPRAX_VCTOOLS");
+        let vctools = if cfg!(windows) {
+            Some(
+                vctools
+                    .as_deref()
+                    .unwrap_or_else(|| OsStr::new(PHASE_B_MISSING_WINDOWS_VCTOOLS)),
+            )
+        } else {
+            None
+        };
+        let plans = prepare_build_invocations(&prepared, false, linker, vctools).unwrap();
         assert_eq!(PHASE_B_BUILD_INVOCATION_PLANS.with(std::cell::Cell::get), 8);
         assert_eq!(
             platform::prepared_c_compile_owned_capacity(&plans.c_o0.0),

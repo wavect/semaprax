@@ -817,6 +817,7 @@ pub fn compile_rust_tool_prepared(
 pub fn prepare_link_invocation(
     target: &str,
     linker: Option<&OsStr>,
+    vctools: Option<&OsStr>,
     harness: &OsStr,
     c_object: &OsStr,
     rust_archive: &OsStr,
@@ -826,6 +827,7 @@ pub fn prepare_link_invocation(
     semaprax_native_rust_interop_platform_sys::prepare_link_invocation(
         target,
         linker,
+        vctools,
         harness,
         c_object,
         rust_archive,
@@ -885,6 +887,7 @@ pub fn execute_tool_prepared(
 pub fn link_tool_harness(
     tool: &HeldTool,
     linker: Option<&HeldTool>,
+    vctools: Option<&OsStr>,
     cwd: &HeldDirectory,
     target: &str,
     harness: &OsStr,
@@ -896,6 +899,7 @@ pub fn link_tool_harness(
     link_harness(
         &tool.executable,
         linker,
+        vctools,
         cwd,
         target,
         harness,
@@ -957,6 +961,7 @@ pub fn execute_harness(executable: &HeldExecutable, cwd: &HeldDirectory) -> Resu
 pub fn link_harness(
     clang: &HeldExecutable,
     linker: Option<&HeldTool>,
+    vctools: Option<&OsStr>,
     cwd: &HeldDirectory,
     target: &str,
     harness: &OsStr,
@@ -968,6 +973,7 @@ pub fn link_harness(
     semaprax_native_rust_interop_platform_sys::link_harness(
         &clang.0,
         linker.map(|linker| (&linker.executable.0, linker.path.as_str())),
+        vctools,
         &cwd.0,
         target,
         harness,

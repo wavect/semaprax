@@ -3693,6 +3693,7 @@ mod platform {
     pub fn prepare_link_invocation(
         target: &str,
         linker: Option<&OsStr>,
+        vctools: Option<&OsStr>,
         harness: &OsStr,
         c_object: &OsStr,
         rust_archive: &OsStr,
@@ -3703,6 +3704,7 @@ mod platform {
             let _ = c_name(name)?;
         }
         if linker.is_some()
+            || vctools.is_some()
             || target.is_empty()
             || !target
                 .bytes()
@@ -3921,6 +3923,7 @@ mod platform {
     pub fn link_harness(
         clang: &Executable,
         linker: Option<(&Executable, &str)>,
+        vctools: Option<&OsStr>,
         cwd: &Directory,
         target: &str,
         harness: &OsStr,
@@ -3933,6 +3936,7 @@ mod platform {
             let _ = c_name(name)?;
         }
         if linker.is_some()
+            || vctools.is_some()
             || target.is_empty()
             || !target
                 .bytes()
@@ -7039,6 +7043,7 @@ mod platform {
     pub fn prepare_link_invocation(
         target: &str,
         linker: Option<&OsStr>,
+        vctools: Option<&OsStr>,
         harness: &OsStr,
         c_object: &OsStr,
         rust_archive: &OsStr,
@@ -7052,9 +7057,23 @@ mod platform {
             .filter(|path| std::path::Path::new(path).is_absolute())
             .and_then(OsStr::to_str)
             .ok_or(Error::Invalid)?;
+        let vctools = vctools
+            .filter(|path| std::path::Path::new(path).is_absolute())
+            .and_then(OsStr::to_str)
+            .ok_or(Error::Invalid)?;
         let linker_units = linker.encode_utf16().count();
-        if linker_units == 0 || linker_units > MAX_TOOL_PATH_UNITS {
+        let vctools_units = vctools.encode_utf16().count();
+        if linker_units == 0
+            || linker_units > MAX_TOOL_PATH_UNITS
+            || vctools_units == 0
+            || vctools_units > MAX_TOOL_PATH_UNITS
+        {
             return Err(Error::OutputLimit);
+        }
+        if std::path::Path::new(linker).strip_prefix(vctools).ok()
+            != Some(std::path::Path::new(r"bin\Hostx64\x64\link.exe"))
+        {
+            return Err(Error::Invalid);
         }
         if sanitizers
             || target.is_empty()
@@ -7068,10 +7087,12 @@ mod platform {
         let c_object = c_object.to_str().ok_or(Error::Invalid)?;
         let rust_archive = rust_archive.to_str().ok_or(Error::Invalid)?;
         let output_text = output.to_str().ok_or(Error::Invalid)?;
-        let argument_parts: [&[&str]; 17] = [
+        let argument_parts: [&[&str]; 19] = [
             &["-target"],
             &[target],
-            &["-fuse-ld=", linker],
+            &["-Xmicrosoft-visualc-tools-root"],
+            &[vctools],
+            &["-fuse-ld=link"],
             &[WINDOWS_DYNAMIC_CRT_LINK_ARGS[0]],
             &[WINDOWS_DYNAMIC_CRT_LINK_ARGS[1]],
             &[harness],
@@ -7102,7 +7123,7 @@ mod platform {
             }
             arguments.push(argument);
         }
-        if arguments.len() != 17 || arguments.capacity() != 17 {
+        if arguments.len() != 19 || arguments.capacity() != 19 {
             return Err(Error::OutputLimit);
         }
         let command_line = windows_command_line(&arguments)?;
@@ -7144,12 +7165,12 @@ mod platform {
         process_arena: &mut PreparedProcessArena,
     ) -> Result<Executable, Error> {
         let (linker, linker_path) = linker.ok_or(Error::Invalid)?;
-        if prepared
-            .command
-            .arguments
-            .get(2)
-            .and_then(|argument| argument.strip_prefix("-fuse-ld="))
-            != Some(linker_path)
+        let vctools = prepared.command.arguments.get(3).ok_or(Error::Invalid)?;
+        if prepared.command.arguments.get(2).map(String::as_str)
+            != Some("-Xmicrosoft-visualc-tools-root")
+            || prepared.command.arguments.get(4).map(String::as_str) != Some("-fuse-ld=link")
+            || std::path::Path::new(linker_path).strip_prefix(vctools).ok()
+                != Some(std::path::Path::new(r"bin\Hostx64\x64\link.exe"))
         {
             return Err(Error::Invalid);
         }
@@ -7312,6 +7333,7 @@ mod platform {
     pub fn link_harness(
         clang: &Executable,
         linker: Option<(&Executable, &str)>,
+        vctools: Option<&OsStr>,
         cwd: &Directory,
         target: &str,
         harness: &OsStr,
@@ -7324,11 +7346,23 @@ mod platform {
             normal_name(name)?;
         }
         let (linker, linker_path) = linker.ok_or(Error::Invalid)?;
-        if !std::path::Path::new(linker_path).is_absolute() || sanitizers {
+        let vctools = vctools
+            .filter(|path| std::path::Path::new(path).is_absolute())
+            .and_then(OsStr::to_str)
+            .ok_or(Error::Invalid)?;
+        if !std::path::Path::new(linker_path).is_absolute()
+            || std::path::Path::new(linker_path).strip_prefix(vctools).ok()
+                != Some(std::path::Path::new(r"bin\Hostx64\x64\link.exe"))
+            || sanitizers
+        {
             return Err(Error::Invalid);
         }
         let mut arguments = vec!["-target".to_owned(), target.to_owned()];
-        arguments.push(format!("-fuse-ld={linker_path}"));
+        arguments.extend([
+            "-Xmicrosoft-visualc-tools-root".to_owned(),
+            vctools.to_owned(),
+            "-fuse-ld=link".to_owned(),
+        ]);
         arguments.extend(WINDOWS_DYNAMIC_CRT_LINK_ARGS.into_iter().map(str::to_owned));
         arguments.extend([
             harness.to_string_lossy().into_owned(),
@@ -8750,7 +8784,10 @@ mod tests {
             .map(|offset| arguments_start + offset)
             .unwrap();
         let arguments = &prepared[arguments_start..arguments_end];
-        let prepared_linker = arguments.find("&[\"-fuse-ld=\", linker]").unwrap();
+        let prepared_linker = arguments.find("&[\"-fuse-ld=link\"]").unwrap();
+        let prepared_vctools = arguments
+            .find("&[\"-Xmicrosoft-visualc-tools-root\"]")
+            .unwrap();
         let prepared_crt = arguments.find("WINDOWS_DYNAMIC_CRT_LINK_ARGS").unwrap();
         let prepared_archive = arguments.find("&[rust_archive]").unwrap();
         let prepared_tail = arguments
@@ -8758,7 +8795,8 @@ mod tests {
             .unwrap();
         let prepared_output = arguments.find("&[\"-o\"]").unwrap();
         assert!(
-            prepared_linker < prepared_crt
+            prepared_vctools < prepared_linker
+                && prepared_linker < prepared_crt
                 && prepared_crt < prepared_archive
                 && prepared_archive < prepared_tail
                 && prepared_tail < prepared_output
@@ -8776,13 +8814,17 @@ mod tests {
             .map(|offset| legacy_start + offset)
             .unwrap();
         let legacy = &windows[legacy_start..legacy_end];
-        let legacy_linker = legacy.find("arguments.push(format!(\"-fuse-ld=").unwrap();
+        let legacy_linker = legacy.find("\"-fuse-ld=link\".to_owned()").unwrap();
+        let legacy_vctools = legacy
+            .find("\"-Xmicrosoft-visualc-tools-root\".to_owned()")
+            .unwrap();
         let legacy_crt = legacy.find("WINDOWS_DYNAMIC_CRT_LINK_ARGS").unwrap();
         let legacy_archive = legacy.find("rust_archive.to_string_lossy()").unwrap();
         let legacy_tail = legacy.find("WINDOWS_RUST_STATICLIB_NATIVE_LIBS").unwrap();
         let legacy_output = legacy.find("arguments.extend([\"-o\"").unwrap();
         assert!(
-            legacy_linker < legacy_crt
+            legacy_vctools < legacy_linker
+                && legacy_linker < legacy_crt
                 && legacy_crt < legacy_archive
                 && legacy_archive < legacy_tail
                 && legacy_tail < legacy_output
@@ -8797,6 +8839,9 @@ mod tests {
                 super::platform::prepare_link_invocation(
                     "x86_64-pc-windows-msvc",
                     linker,
+                    Some(std::ffi::OsStr::new(
+                        r"C:\Program Files\Microsoft Visual Studio\Lïnk",
+                    )),
                     std::ffi::OsStr::new("main.obj"),
                     std::ffi::OsStr::new("module.obj"),
                     std::ffi::OsStr::new("bridge.lib"),
@@ -8806,10 +8851,12 @@ mod tests {
                 Err(Error::Invalid)
             ));
         }
+        let vctools = r"C:\Program Files\Microsoft Visual Studio\Lïnk";
         let linker = r"C:\Program Files\Microsoft Visual Studio\Lïnk\bin\Hostx64\x64\link.exe";
         let prepared = super::platform::prepare_link_invocation(
             "x86_64-pc-windows-msvc",
             Some(std::ffi::OsStr::new(linker)),
+            Some(std::ffi::OsStr::new(vctools)),
             std::ffi::OsStr::new("main.obj"),
             std::ffi::OsStr::new("module.obj"),
             std::ffi::OsStr::new("bridge.lib"),
@@ -8821,7 +8868,9 @@ mod tests {
         let expected = [
             "-target",
             "x86_64-pc-windows-msvc",
-            r"-fuse-ld=C:\Program Files\Microsoft Visual Studio\Lïnk\bin\Hostx64\x64\link.exe",
+            "-Xmicrosoft-visualc-tools-root",
+            r"C:\Program Files\Microsoft Visual Studio\Lïnk",
+            "-fuse-ld=link",
             "-Xlinker",
             "/NODEFAULTLIB:libcmt",
             "main.obj",

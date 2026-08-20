@@ -511,8 +511,10 @@ fn hosted_workflow_names_all_private_interop_evidence_boundaries() {
         "Require private Native Rust Interop platform authority evidence",
         "cargo test --locked -p semaprax-native-rust-interop-platform --all-targets -- --nocapture",
         "Require private Native Rust Interop ASan + UBSan round trip (Linux)",
-        "where link.exe",
+        "VCToolsInstallDir",
+        "SEMAPRAX_VCTOOLS=%SEMAPRAX_VCTOOLS%",
         "SEMAPRAX_LINKER=%SEMAPRAX_LINKER%",
+        "if not exist \"%SEMAPRAX_VCTOOLS%\" exit /b 1",
         "if not exist \"%SEMAPRAX_LINKER%\" exit /b 1",
         "SEMAPRAX_REQUIRE_NATIVE_RUST_INTEROP_SANITIZERS: \"1\"",
         "implementation::tests::linked_bridge_round_trips_rust_to_semaprax_to_rust_and_closes_failures -- --exact --nocapture",
@@ -532,6 +534,7 @@ fn hosted_workflow_names_all_private_interop_evidence_boundaries() {
         .expect("Windows SDK and linker environment step");
     assert!(windows_environment.contains("echo INCLUDE="));
     assert!(windows_environment.contains("echo LIB="));
+    assert!(windows_environment.contains("echo SEMAPRAX_VCTOOLS="));
     assert!(windows_environment.contains("echo SEMAPRAX_LINKER="));
     assert!(
         !windows_environment.contains("echo PATH="),

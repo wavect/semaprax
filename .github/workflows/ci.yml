@@ -77,11 +77,15 @@ jobs:
           for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set "VSINSTALL=%%i"
           if not defined VSINSTALL exit /b 1
           call "%VSINSTALL%\Common7\Tools\VsDevCmd.bat" -no_logo -arch=x64 -host_arch=x64
-          for /f "delims=" %%i in ('where link.exe') do if not defined SEMAPRAX_LINKER set "SEMAPRAX_LINKER=%%~fi"
-          if not defined SEMAPRAX_LINKER exit /b 1
+          if not defined VCToolsInstallDir exit /b 1
+          set "SEMAPRAX_VCTOOLS=%VCToolsInstallDir%"
+          if "%SEMAPRAX_VCTOOLS:~-1%"=="\" set "SEMAPRAX_VCTOOLS=%SEMAPRAX_VCTOOLS:~0,-1%"
+          set "SEMAPRAX_LINKER=%SEMAPRAX_VCTOOLS%\bin\Hostx64\x64\link.exe"
+          if not exist "%SEMAPRAX_VCTOOLS%" exit /b 1
           if not exist "%SEMAPRAX_LINKER%" exit /b 1
           echo INCLUDE=%INCLUDE%>>"%GITHUB_ENV%"
           echo LIB=%LIB%>>"%GITHUB_ENV%"
+          echo SEMAPRAX_VCTOOLS=%SEMAPRAX_VCTOOLS%>>"%GITHUB_ENV%"
           echo SEMAPRAX_LINKER=%SEMAPRAX_LINKER%>>"%GITHUB_ENV%"
       - run: cargo fmt --all --check
       - run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings

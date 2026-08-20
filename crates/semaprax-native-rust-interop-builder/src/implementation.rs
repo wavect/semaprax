@@ -19686,9 +19686,20 @@ fn publish_stage_platform(
     publish_files: &PublishDiscardInventory,
     final_publish: &mut platform::PreparedPublishDirectory,
 ) -> Result<(), PhaseBLocalError> {
-    facts.observe_object_authority_for_publish()?;
-    parent.recheck_local()?;
-    stage.recheck_local()?;
+    facts
+        .observe_object_authority_for_publish()
+        .inspect_err(|_error| {
+            #[cfg(test)]
+            eprintln!("final publish: facts authority failed: {_error:?}");
+        })?;
+    parent.recheck_local().inspect_err(|_error| {
+        #[cfg(test)]
+        eprintln!("final publish: parent recheck failed: {_error:?}");
+    })?;
+    stage.recheck_local().inspect_err(|_error| {
+        #[cfg(test)]
+        eprintln!("final publish: stage recheck failed: {_error:?}");
+    })?;
     let mut comparison_scratch = [0_u8; platform::FILE_COMPARE_SCRATCH_BYTES];
     for (name, expected) in [
         ("descriptor.json", prepared.descriptor.as_bytes()),
@@ -19711,16 +19722,31 @@ fn publish_stage_platform(
         ),
         (facts.object_name, facts.object.as_slice()),
     ] {
-        let held = publish_files
-            .file(name)
-            .map_err(|_| PhaseBLocalError::Publication)?;
-        if !platform::compare_exact(held, expected, &mut comparison_scratch)
-            .map_err(|_| PhaseBLocalError::Publication)?
-        {
+        let held = publish_files.file(name).map_err(|error| {
+            #[cfg(test)]
+            eprintln!("final publish: missing tracked file {name}: {error:?}");
+            let _ = error;
+            PhaseBLocalError::Publication
+        })?;
+        let matches =
+            platform::compare_exact(held, expected, &mut comparison_scratch).map_err(|error| {
+                #[cfg(test)]
+                eprintln!("final publish: comparison failed for {name}: {error:?}");
+                let _ = error;
+                PhaseBLocalError::Publication
+            })?;
+        if !matches {
+            #[cfg(test)]
+            eprintln!("final publish: comparison disagreed for {name}");
             return Err(PhaseBLocalError::Publication);
         }
     }
-    scan_publish_inventory_exact(&mut facts.inventory_exact.0, stage, publish_files)?;
+    scan_publish_inventory_exact(&mut facts.inventory_exact.0, stage, publish_files).inspect_err(
+        |_error| {
+            #[cfg(test)]
+            eprintln!("final publish: second inventory scan failed: {_error:?}");
+        },
+    )?;
     let output_name = output.file_name().ok_or(PhaseBLocalError::Publication)?;
     let stage_name = stage
         .discard_name
@@ -19740,6 +19766,10 @@ fn publish_stage_platform(
         stage_name,
         output_name,
     );
+    #[cfg(test)]
+    if let Err(error) = &publication {
+        eprintln!("final publish: prepared directory rename failed: {error:?}");
+    }
     #[cfg(test)]
     if platform::prepared_publish_directory_remaining(final_publish) == 0 {
         PHASE_B_PUBLISH_CONSUMPTIONS.with(|count| count.set(count.get().saturating_add(1)));

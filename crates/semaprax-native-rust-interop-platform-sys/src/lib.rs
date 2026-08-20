@@ -6147,6 +6147,8 @@ mod platform {
         if observe_publish_rebound(parent, stage_name, fail_information, fail_close)?
             != stage.identity
         {
+            #[cfg(debug_assertions)]
+            eprintln!("Windows prepared publish: stage rebound disagreed");
             return Err(Error::Changed);
         }
         #[cfg(debug_assertions)]
@@ -6165,6 +6167,11 @@ mod platform {
             )
         } == 0
         {
+            #[cfg(debug_assertions)]
+            {
+                let error = unsafe { GetLastError() };
+                eprintln!("Windows prepared publish: rename failed with Win32 error={error}");
+            }
             return Err(Error::Exists);
         }
         Ok(())

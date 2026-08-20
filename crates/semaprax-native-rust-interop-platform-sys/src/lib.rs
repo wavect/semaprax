@@ -7067,7 +7067,7 @@ mod platform {
         let harness = harness.to_str().ok_or(Error::Invalid)?;
         let c_object = c_object.to_str().ok_or(Error::Invalid)?;
         let rust_archive = rust_archive.to_str().ok_or(Error::Invalid)?;
-        let output = output.to_str().ok_or(Error::Invalid)?;
+        let output_text = output.to_str().ok_or(Error::Invalid)?;
         let argument_parts: [&[&str]; 17] = [
             &["-target"],
             &[target],
@@ -7085,7 +7085,7 @@ mod platform {
             &[WINDOWS_RUST_STATICLIB_NATIVE_LIBS[5]],
             &[WINDOWS_RUST_STATICLIB_NATIVE_LIBS[6]],
             &["-o"],
-            &[output],
+            &[output_text],
         ];
         preflight_windows_command_line(&argument_parts)?;
         let mut arguments = Vec::with_capacity(argument_parts.len());

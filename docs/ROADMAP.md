@@ -632,7 +632,7 @@ Exit criterion: implement a zero-copy parser and server without a tracing GC.
   fixed-point authority, named pre-HIR/post-HIR capacity envelopes and exact
   transfers, a pre-effect 12-use process arena, fixed-capacity tool-version
   storage, prepared filesystem/publication authority, fail-stop settlement, and
-  a Windows absolute-linker plan that uses prepared `--ld-path` without ambient
+  a Windows absolute-linker plan that uses prepared `-fuse-ld` without ambient
   child `PATH`.
   Exact-head Ubuntu/macOS/Windows and Linux sanitizer evidence remain the
   promotion gate;

@@ -16043,7 +16043,7 @@ fn report_bounded_windows_link_stderr(run_stage: &Path) {
     let linker = std::env::var_os("SEMAPRAX_LINKER")
         .and_then(|value| value.into_string().ok())
         .expect("configured absolute Windows linker");
-    let linker_argument = format!("--ld-path={linker}");
+    let linker_argument = format!("-fuse-ld={linker}");
     let stderr_path = run_stage.join("__semaprax_link_diagnostic.stderr");
     let output_name = "__semaprax_link_diagnostic.exe";
     let output_path = run_stage.join(output_name);

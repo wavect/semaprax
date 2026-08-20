@@ -122,7 +122,7 @@ the four discovery/version operations and eight build/link/run operations. On
 Windows its attribute-list size is queried once before effects, capped,
 aligned, reserved before allocation, and rechecked on every use. Windows also
 requires a verified absolute `SEMAPRAX_LINKER`, embeds that exact path as one
-prepared `--ld-path=<absolute>` argument, and holds and rechecks the linker
+prepared `-fuse-ld=<absolute>` argument, and holds and rechecks the linker
 around both Clang links without adding `PATH` to the child environment. Private B
 exactly replays Descriptor and Manifest bytes, and generates
 header/C/safe-Rust/private-FFI artifacts with independent ordered exact-byte

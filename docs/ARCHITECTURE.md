@@ -84,7 +84,7 @@ operation to the distinct direct-compiler authority. Rust discovery/version,
 Clang version, and the eight build/link/run operations consume one exact
 pre-effect 12-use process arena. Windows queries and bounds the attribute-list
 size before reserving and materializing that arena. Windows also freezes a
-verified absolute MSVC `link.exe`, prepares `--ld-path=<absolute>` before
+verified absolute MSVC `link.exe`, prepares `-fuse-ld=<absolute>` before
 effects, holds and rechecks that linker around each Clang link, and does not
 restore ambient `PATH` to the isolated child environment. The four retained
 `rustc -vV` fields occupy one

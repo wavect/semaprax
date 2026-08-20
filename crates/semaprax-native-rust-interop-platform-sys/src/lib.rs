@@ -7071,7 +7071,7 @@ mod platform {
         let argument_parts: [&[&str]; 17] = [
             &["-target"],
             &[target],
-            &["--ld-path=", linker],
+            &["-fuse-ld=", linker],
             &[WINDOWS_DYNAMIC_CRT_LINK_ARGS[0]],
             &[WINDOWS_DYNAMIC_CRT_LINK_ARGS[1]],
             &[harness],
@@ -7148,7 +7148,7 @@ mod platform {
             .command
             .arguments
             .get(2)
-            .and_then(|argument| argument.strip_prefix("--ld-path="))
+            .and_then(|argument| argument.strip_prefix("-fuse-ld="))
             != Some(linker_path)
         {
             return Err(Error::Invalid);
@@ -7328,7 +7328,7 @@ mod platform {
             return Err(Error::Invalid);
         }
         let mut arguments = vec!["-target".to_owned(), target.to_owned()];
-        arguments.push(format!("--ld-path={linker_path}"));
+        arguments.push(format!("-fuse-ld={linker_path}"));
         arguments.extend(WINDOWS_DYNAMIC_CRT_LINK_ARGS.into_iter().map(str::to_owned));
         arguments.extend([
             harness.to_string_lossy().into_owned(),
@@ -8750,7 +8750,7 @@ mod tests {
             .map(|offset| arguments_start + offset)
             .unwrap();
         let arguments = &prepared[arguments_start..arguments_end];
-        let prepared_linker = arguments.find("&[\"--ld-path=\", linker]").unwrap();
+        let prepared_linker = arguments.find("&[\"-fuse-ld=\", linker]").unwrap();
         let prepared_crt = arguments.find("WINDOWS_DYNAMIC_CRT_LINK_ARGS").unwrap();
         let prepared_archive = arguments.find("&[rust_archive]").unwrap();
         let prepared_tail = arguments
@@ -8776,7 +8776,7 @@ mod tests {
             .map(|offset| legacy_start + offset)
             .unwrap();
         let legacy = &windows[legacy_start..legacy_end];
-        let legacy_linker = legacy.find("arguments.push(format!(\"--ld-path=").unwrap();
+        let legacy_linker = legacy.find("arguments.push(format!(\"-fuse-ld=").unwrap();
         let legacy_crt = legacy.find("WINDOWS_DYNAMIC_CRT_LINK_ARGS").unwrap();
         let legacy_archive = legacy.find("rust_archive.to_string_lossy()").unwrap();
         let legacy_tail = legacy.find("WINDOWS_RUST_STATICLIB_NATIVE_LIBS").unwrap();
@@ -8821,7 +8821,7 @@ mod tests {
         let expected = [
             "-target",
             "x86_64-pc-windows-msvc",
-            r"--ld-path=C:\Program Files\Microsoft Visual Studio\Lïnk\bin\Hostx64\x64\link.exe",
+            r"-fuse-ld=C:\Program Files\Microsoft Visual Studio\Lïnk\bin\Hostx64\x64\link.exe",
             "-Xlinker",
             "/NODEFAULTLIB:libcmt",
             "main.obj",

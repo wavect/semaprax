@@ -4147,13 +4147,13 @@ mod platform {
     const WINDOWS_DYNAMIC_CRT_LINK_ARGS: [&str; 2] = ["-Xlinker", "/NODEFAULTLIB:libcmt"];
 
     const WINDOWS_RUST_STATICLIB_NATIVE_LIBS: [&str; 7] = [
-        "kernel32.lib",
-        "advapi32.lib",
-        "dbghelp.lib",
-        "ntdll.lib",
-        "userenv.lib",
-        "ws2_32.lib",
-        "msvcrt.lib",
+        "-lkernel32",
+        "-ladvapi32",
+        "-ldbghelp",
+        "-lntdll",
+        "-luserenv",
+        "-lws2_32",
+        "-lmsvcrt",
     ];
 
     fn prepare_command(values: &[&str], output_capacity: usize) -> Result<PreparedCommand, Error> {
@@ -8615,13 +8615,13 @@ mod tests {
         let native = &windows[native_start..native_end];
         let mut previous = 0usize;
         for required in [
-            "kernel32.lib",
-            "advapi32.lib",
-            "dbghelp.lib",
-            "ntdll.lib",
-            "userenv.lib",
-            "ws2_32.lib",
-            "msvcrt.lib",
+            "-lkernel32",
+            "-ladvapi32",
+            "-ldbghelp",
+            "-lntdll",
+            "-luserenv",
+            "-lws2_32",
+            "-lmsvcrt",
         ] {
             let offset = native.find(required).unwrap();
             assert!(
@@ -8696,13 +8696,13 @@ mod tests {
             "main.obj",
             "module.obj",
             "bridge.lib",
-            "kernel32.lib",
-            "advapi32.lib",
-            "dbghelp.lib",
-            "ntdll.lib",
-            "userenv.lib",
-            "ws2_32.lib",
-            "msvcrt.lib",
+            "-lkernel32",
+            "-ladvapi32",
+            "-ldbghelp",
+            "-lntdll",
+            "-luserenv",
+            "-lws2_32",
+            "-lmsvcrt",
             "-o",
             "output.exe",
         ];

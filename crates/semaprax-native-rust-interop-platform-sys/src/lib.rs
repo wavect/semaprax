@@ -7046,6 +7046,16 @@ mod platform {
         )
     }
 
+    #[cfg(test)]
+    pub(super) fn test_prepared_link_arguments(
+        prepared: &PreparedLinkInvocation,
+    ) -> (&[String], usize) {
+        (
+            &prepared.command.arguments,
+            prepared.command.arguments.capacity(),
+        )
+    }
+
     pub fn link_prepared(
         clang: &Executable,
         cwd: &Directory,
@@ -8696,13 +8706,9 @@ mod tests {
             "-o",
             "output.exe",
         ];
-        assert!(prepared
-            .command
-            .arguments
-            .iter()
-            .map(String::as_str)
-            .eq(expected));
-        assert_eq!(prepared.command.arguments.capacity(), expected.len(),);
+        let (arguments, capacity) = super::platform::test_prepared_link_arguments(&prepared);
+        assert!(arguments.iter().map(String::as_str).eq(expected));
+        assert_eq!(capacity, expected.len());
         assert_eq!(
             super::platform::prepared_link_owned_capacity(&prepared),
             owned,

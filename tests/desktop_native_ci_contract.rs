@@ -107,7 +107,7 @@ fn private_desktop_packages_are_feature_gated_native_and_source_locked() {
         "desktop workflow",
         verify_job,
         &[
-            "timeout-minutes: 40",
+            "timeout-minutes: 60",
             "toolchain: 1.97.1",
             "platform-tests/desktop-native/package-macos.sh",
             "platform-tests/desktop-native/package-windows.ps1",

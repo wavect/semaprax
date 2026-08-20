@@ -1371,8 +1371,8 @@ impl PendingBundleFacts {
             return Err(platform_publication_error());
         }
 
-        let output_bytes = output.as_os_str().as_encoded_bytes().len();
-        let child_capacity = |name: &str| output_bytes.checked_add(1)?.checked_add(name.len());
+        let output_bytes = output.as_os_str().len();
+        let child_capacity = |name: &str| exact_child_path_capacity(output, name.len());
         let object_capacity = child_capacity(object_name)
             .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
         let descriptor_capacity = child_capacity("descriptor.json")
@@ -1446,19 +1446,79 @@ impl PendingBundleFacts {
 }
 
 fn exact_path_copy(path: &Path, capacity: usize) -> Result<PathBuf, Diagnostic> {
-    let mut output = PathBuf::with_capacity(capacity);
-    output.push(path);
+    if path.as_os_str().len() != capacity {
+        return Err(platform_publication_error());
+    }
+    let mut output = OsString::with_capacity(capacity);
+    output.push(path.as_os_str());
+    let output = PathBuf::from(output);
     if output != path || output.capacity() != capacity {
         return Err(platform_publication_error());
     }
     Ok(output)
 }
 
+fn exact_child_path_capacity(parent: &Path, child_bytes: usize) -> Option<usize> {
+    parent
+        .as_os_str()
+        .len()
+        .checked_add(usize::from(path_needs_separator(parent)))?
+        .checked_add(child_bytes)
+}
+
+fn path_needs_separator(path: &Path) -> bool {
+    #[cfg(windows)]
+    {
+        use std::path::{Component, Prefix};
+
+        let mut components = path.components();
+        if matches!(
+            components.next(),
+            Some(Component::Prefix(prefix))
+                if matches!(prefix.kind(), Prefix::Disk(_) | Prefix::VerbatimDisk(_))
+        ) && components.next().is_none()
+        {
+            return false;
+        }
+    }
+    let Some(last) = path.as_os_str().as_encoded_bytes().last().copied() else {
+        return false;
+    };
+    last != b'/' && (!cfg!(windows) || last != b'\\')
+}
+
+fn fill_exact_child_path(output: &mut PathBuf, parent: &Path, name: &OsStr) -> bool {
+    if exact_child_path_capacity(parent, name.len())
+        .is_none_or(|required| required > output.capacity())
+    {
+        return false;
+    }
+    let mut storage = std::mem::take(output).into_os_string();
+    storage.clear();
+    storage.push(parent.as_os_str());
+    if path_needs_separator(parent) {
+        storage.push(std::path::MAIN_SEPARATOR_STR);
+    }
+    storage.push(name);
+    *output = PathBuf::from(storage);
+    true
+}
+
 fn exact_child_path(parent: &Path, name: &str, capacity: usize) -> Result<PathBuf, Diagnostic> {
-    let mut output = PathBuf::with_capacity(capacity);
-    output.push(parent);
-    output.push(name);
-    if output.capacity() != capacity {
+    if exact_child_path_capacity(parent, name.len()) != Some(capacity) {
+        return Err(b109("max_builder_bytes", MAX_BUILDER_BYTES));
+    }
+    let mut storage = OsString::with_capacity(capacity);
+    storage.push(parent.as_os_str());
+    if path_needs_separator(parent) {
+        storage.push(std::path::MAIN_SEPARATOR_STR);
+    }
+    storage.push(name);
+    let output = PathBuf::from(storage);
+    if output.capacity() != capacity
+        || output.parent() != Some(parent)
+        || output.file_name() != Some(OsStr::new(name))
+    {
         return Err(b109("max_builder_bytes", MAX_BUILDER_BYTES));
     }
     Ok(output)
@@ -18259,10 +18319,7 @@ impl StageSlot {
             digest_prefix[index * 2] = HEX[usize::from(byte >> 4)];
             digest_prefix[index * 2 + 1] = HEX[usize::from(byte & 0x0f)];
         }
-        let parent_bytes = parent.as_os_str().as_encoded_bytes().len();
-        let path_capacity = parent_bytes
-            .checked_add(1)
-            .and_then(|bytes| bytes.checked_add(PHASE_B_STAGE_NAME_CAPACITY))
+        let path_capacity = exact_child_path_capacity(parent, PHASE_B_STAGE_NAME_CAPACITY)
             .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
         let retained = PHASE_B_STAGE_NAME_CAPACITY
             .checked_add(path_capacity)
@@ -18310,10 +18367,11 @@ impl StageSlot {
         if self.name.capacity() != PHASE_B_STAGE_NAME_CAPACITY {
             return Err(PhaseBLocalError::Publication);
         }
-        self.path.clear();
-        self.path.push(parent);
-        self.path.push(&self.name);
-        if self.path.capacity() != self.path_capacity {
+        if !fill_exact_child_path(&mut self.path, parent, self.name.as_ref())
+            || self.path.capacity() != self.path_capacity
+            || self.path.parent() != Some(parent)
+            || self.path.file_name() != Some(self.name.as_ref())
+        {
             return Err(PhaseBLocalError::Publication);
         }
         self.native_name
@@ -20969,6 +21027,41 @@ fn main() -> i64 { 0 }
     #[cfg(windows)]
     #[test]
     fn phase_b_windows_absolute_precarrier_topology_is_cumulatively_bounded() {
+        let synthetic_parent = Path::new(r"\\?\C:\semaprax-δ");
+        let synthetic_capacity =
+            exact_child_path_capacity(synthetic_parent, "artifact.obj".len()).unwrap();
+        let synthetic =
+            exact_child_path(synthetic_parent, "artifact.obj", synthetic_capacity).unwrap();
+        assert_eq!(synthetic.capacity(), synthetic_capacity);
+        assert_eq!(synthetic.parent(), Some(synthetic_parent));
+        for drive_relative in [Path::new(r"C:"), Path::new(r"\\?\C:")] {
+            let capacity = exact_child_path_capacity(drive_relative, "artifact.obj".len()).unwrap();
+            assert_eq!(
+                capacity,
+                drive_relative.as_os_str().len() + "artifact.obj".len(),
+            );
+            let child = exact_child_path(drive_relative, "artifact.obj", capacity).unwrap();
+            assert_eq!(child.capacity(), capacity);
+            assert_eq!(child.parent(), Some(drive_relative));
+        }
+
+        let ((), synthetic_overflowed, _) =
+            crate::bounded_output::with_limit_usage(MAX_BUILDER_BYTES, || {
+                let mut slot =
+                    StageSlot::new(synthetic_parent, "sha256:windows-verbatim-stage", "publish")
+                        .unwrap();
+                slot.prepare(synthetic_parent, 0).unwrap();
+                let allocation = slot.path.as_os_str().as_encoded_bytes().as_ptr();
+                let capacity = slot.path.capacity();
+                slot.prepare(synthetic_parent, 1023).unwrap();
+                assert_eq!(
+                    slot.path.as_os_str().as_encoded_bytes().as_ptr(),
+                    allocation,
+                );
+                assert_eq!(slot.path.capacity(), capacity);
+            });
+        assert!(!synthetic_overflowed);
+
         let root = std::fs::canonicalize(std::env::temp_dir())
             .unwrap()
             .join(format!(

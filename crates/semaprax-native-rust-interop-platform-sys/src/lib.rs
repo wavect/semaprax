@@ -8074,7 +8074,14 @@ mod tests {
             let built = Command::new(compiler)
                 .env("TMP", &root)
                 .env("TEMP", &root)
-                .args(["-std=c11", "-Wall", "-Wextra", "-Werror", "-O2"])
+                .args([
+                    "-std=c11",
+                    "-Wall",
+                    "-Wextra",
+                    "-Werror",
+                    "-D_CRT_SECURE_NO_WARNINGS",
+                    "-O2",
+                ])
                 .arg(&source_path)
                 .arg("-o")
                 .arg(root.join(format!("{name}.exe")))
@@ -9184,15 +9191,20 @@ mod tests {
     {
         use std::ffi::OsStr;
 
-        let root = std::env::temp_dir().join(format!(
-            "semaprax-windows-directory-identity-{}",
+        let parent = std::fs::canonicalize(std::env::temp_dir()).unwrap();
+        let root = parent.join(format!(
+            "semaprax-windows-directory-identity-{}-{}",
             std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos(),
         ));
         let stage_path = root.join("stage");
         let displaced_path = root.join("displaced");
         let foreign_path = root.join("foreign");
-        let _ = std::fs::remove_dir_all(&root);
-        std::fs::create_dir_all(&stage_path).unwrap();
+        std::fs::create_dir(&root).unwrap();
+        std::fs::create_dir(&stage_path).unwrap();
         std::fs::create_dir(&foreign_path).unwrap();
         let stage = super::platform::hold_directory(&stage_path).unwrap();
         let names = super::platform::prepare_discard_names([

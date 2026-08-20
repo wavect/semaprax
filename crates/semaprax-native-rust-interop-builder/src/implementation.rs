@@ -16038,7 +16038,7 @@ fn bind_test_rust_linker(command: &mut std::process::Command) {
 fn report_bounded_windows_link_stderr(run_stage: &Path) {
     use std::io::Read as _;
 
-    const STDERR_MAXIMUM: u64 = 65_536;
+    const OUTPUT_MAXIMUM: u64 = 65_536;
     let clang = configured_tool("CLANG").expect("configured Windows clang");
     let _linker = std::env::var_os("SEMAPRAX_LINKER")
         .and_then(|value| value.into_string().ok())
@@ -16046,6 +16046,7 @@ fn report_bounded_windows_link_stderr(run_stage: &Path) {
     let vctools = std::env::var_os("SEMAPRAX_VCTOOLS")
         .and_then(|value| value.into_string().ok())
         .expect("configured absolute Windows Visual C++ tools root");
+    let stdout_path = run_stage.join("__semaprax_link_diagnostic.stdout");
     let stderr_path = run_stage.join("__semaprax_link_diagnostic.stderr");
     let output_name = "__semaprax_link_diagnostic.exe";
     let output_path = run_stage.join(output_name);
@@ -16054,6 +16055,11 @@ fn report_bounded_windows_link_stderr(run_stage: &Path) {
         .write(true)
         .open(&stderr_path)
         .expect("create bounded Windows link stderr");
+    let stdout = std::fs::OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .open(&stdout_path)
+        .expect("create bounded Windows link stdout");
     let mut command = std::process::Command::new(&clang.path);
     command
         .current_dir(run_stage)
@@ -16080,35 +16086,55 @@ fn report_bounded_windows_link_stderr(run_stage: &Path) {
             "-o",
             output_name,
         ])
-        .stdout(std::process::Stdio::null())
+        .stdout(std::process::Stdio::from(stdout))
         .stderr(std::process::Stdio::from(stderr));
     bind_test_tool_environment(&mut command);
     let status = command.status().expect("run diagnostic Windows link");
+    let stdout_file = std::fs::File::open(&stdout_path).expect("open bounded Windows link stdout");
+    let stdout_length = stdout_file
+        .metadata()
+        .expect("stat bounded Windows link stdout")
+        .len();
+    assert!(
+        stdout_length <= OUTPUT_MAXIMUM,
+        "Windows link stdout exceeded its diagnostic bound"
+    );
+    let mut stdout_bytes = Vec::with_capacity(
+        usize::try_from(stdout_length).expect("bounded Windows link stdout length"),
+    );
+    stdout_file
+        .take(OUTPUT_MAXIMUM + 1)
+        .read_to_end(&mut stdout_bytes)
+        .expect("read bounded Windows link stdout");
+    assert_eq!(stdout_bytes.len() as u64, stdout_length);
     let stderr_file = std::fs::File::open(&stderr_path).expect("open bounded Windows link stderr");
     let stderr_length = stderr_file
         .metadata()
         .expect("stat bounded Windows link stderr")
         .len();
     assert!(
-        stderr_length <= STDERR_MAXIMUM,
+        stderr_length <= OUTPUT_MAXIMUM,
         "Windows link stderr exceeded its diagnostic bound"
     );
     let mut stderr_bytes = Vec::with_capacity(
         usize::try_from(stderr_length).expect("bounded Windows link stderr length"),
     );
     stderr_file
-        .take(STDERR_MAXIMUM + 1)
+        .take(OUTPUT_MAXIMUM + 1)
         .read_to_end(&mut stderr_bytes)
         .expect("read bounded Windows link stderr");
     assert_eq!(stderr_bytes.len() as u64, stderr_length);
     eprintln!(
-        "direct Windows link status={status}; stderr={}",
+        "direct Windows link status={status}; stdout={}; stderr={}",
+        String::from_utf8_lossy(&stdout_bytes),
         String::from_utf8_lossy(&stderr_bytes)
     );
+    drop(stdout_bytes);
     drop(stderr_bytes);
     if output_path.exists() {
         std::fs::remove_file(&output_path).expect("remove diagnostic Windows link output");
     }
+    std::fs::remove_file(stdout_path).expect("remove diagnostic Windows link stdout");
     std::fs::remove_file(stderr_path).expect("remove diagnostic Windows link stderr");
 }
 

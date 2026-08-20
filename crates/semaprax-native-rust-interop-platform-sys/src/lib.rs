@@ -6180,8 +6180,6 @@ mod platform {
         if observe_publish_rebound(parent, stage_name, fail_information, fail_close)?
             != stage.identity
         {
-            #[cfg(debug_assertions)]
-            eprintln!("Windows prepared publish: stage rebound disagreed");
             return Err(Error::Changed);
         }
         #[cfg(debug_assertions)]
@@ -6202,8 +6200,6 @@ mod platform {
             )
         };
         if status < 0 {
-            #[cfg(debug_assertions)]
-            eprintln!("Windows prepared publish: rename failed with NTSTATUS={status:#x}");
             return Err(if status == STATUS_OBJECT_NAME_COLLISION {
                 Error::Exists
             } else {
@@ -6222,8 +6218,6 @@ mod platform {
         settled: &[Option<&SettledRegularFile>; N],
         #[cfg(debug_assertions)] failure_after_delete: Option<usize>,
     ) -> Result<(), Error> {
-        #[cfg(debug_assertions)]
-        eprintln!("Windows prepared discard: begin");
         recheck_directory(parent)?;
         recheck_directory(stage)?;
         let rebound = relative_file_arena(
@@ -6331,30 +6325,18 @@ mod platform {
         if seen[..attached].iter().any(|seen| !seen) {
             return Err(Error::Changed);
         }
-        #[cfg(debug_assertions)]
-        eprintln!("Windows prepared discard: inventory complete, attached={attached}");
         let mut deletion_handles: [Option<RegularFile>; N] = std::array::from_fn(|_| None);
         for index in 0..attached {
             let (identity, digest) = if let Some(file) = files[index] {
-                recheck_held_regular(file).map_err(|error| {
-                    #[cfg(debug_assertions)]
-                    eprintln!("Windows prepared discard: tracked recheck failed at index={index}");
-                    error
-                })?;
+                recheck_held_regular(file)?;
                 (file.identity, file.digest)
             } else {
                 let file = settled[index].expect("attached settled prefix");
                 (file.identity, file.digest)
             };
             let name = names.names[index].as_ref().expect("validated");
-            let rebound = hold_regular_file_name_prepared(stage, name).map_err(|error| {
-                #[cfg(debug_assertions)]
-                eprintln!("Windows prepared discard: owned reopen failed at index={index}");
-                error
-            })?;
+            let rebound = hold_regular_file_name_prepared(stage, name)?;
             if rebound.identity != identity || rebound.digest != digest {
-                #[cfg(debug_assertions)]
-                eprintln!("Windows prepared discard: rebound disagreement at index={index}");
                 return Err(Error::Changed);
             }
             deletion_handles[index] = Some(rebound);
@@ -6368,8 +6350,6 @@ mod platform {
                 disposition_error = Some(Error::Changed);
                 break;
             }
-            #[cfg(debug_assertions)]
-            eprintln!("Windows prepared discard: attempt disposition index={deleted}");
             if let Err(error) = disposition_delete(&file.file) {
                 disposition_error = Some(error);
                 break;
@@ -6383,8 +6363,6 @@ mod platform {
         if let Some(error) = disposition_error {
             return Err(error);
         }
-        #[cfg(debug_assertions)]
-        eprintln!("Windows prepared discard: attempt stage disposition");
         disposition_delete(&stage.file)
     }
 
@@ -6409,11 +6387,6 @@ mod platform {
             )
         } == 0
         {
-            #[cfg(debug_assertions)]
-            {
-                let error = unsafe { GetLastError() };
-                eprintln!("Windows prepared discard: disposition failed with Win32 error={error}");
-            }
             return Err(Error::Changed);
         }
         Ok(())

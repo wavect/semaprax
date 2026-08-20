@@ -87,12 +87,6 @@ jobs:
           echo LIB=%LIB%>>"%GITHUB_ENV%"
           echo SEMAPRAX_VCTOOLS=%SEMAPRAX_VCTOOLS%>>"%GITHUB_ENV%"
           echo SEMAPRAX_LINKER=%SEMAPRAX_LINKER%>>"%GITHUB_ENV%"
-      - name: Validate the Windows hard-link handle transition first
-        if: runner.os == 'Windows'
-        run: cargo test --locked -p semaprax-native-rust-interop-platform --test windows_authority hard_link_aliases_release_owned_access_before_external_read -- --exact --nocapture
-      - name: Diagnose the exact prepared Windows native build first
-        if: runner.os == 'Windows'
-        run: cargo test --locked -p semaprax-native-rust-interop --lib implementation::tests::phase_b_all_eight_build_invocations_are_prepared_bounded_and_consumed_once -- --exact --nocapture
       - run: cargo fmt --all --check
       - run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
       - run: cargo test --locked --workspace --all-targets --all-features

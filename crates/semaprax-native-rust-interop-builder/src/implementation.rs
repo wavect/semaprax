@@ -16034,110 +16034,6 @@ fn bind_test_rust_linker(command: &mut std::process::Command) {
     let _ = command;
 }
 
-#[cfg(all(test, windows))]
-fn report_bounded_windows_link_stderr(run_stage: &Path) {
-    use std::io::Read as _;
-
-    const OUTPUT_MAXIMUM: u64 = 65_536;
-    let clang = configured_tool("CLANG").expect("configured Windows clang");
-    let _linker = std::env::var_os("SEMAPRAX_LINKER")
-        .and_then(|value| value.into_string().ok())
-        .expect("configured absolute Windows linker");
-    let vctools = std::env::var_os("SEMAPRAX_VCTOOLS")
-        .and_then(|value| value.into_string().ok())
-        .expect("configured absolute Windows Visual C++ tools root");
-    let stdout_path = run_stage.join("__semaprax_link_diagnostic.stdout");
-    let stderr_path = run_stage.join("__semaprax_link_diagnostic.stderr");
-    let output_name = "__semaprax_link_diagnostic.exe";
-    let output_path = run_stage.join(output_name);
-    let stderr = std::fs::OpenOptions::new()
-        .create_new(true)
-        .write(true)
-        .open(&stderr_path)
-        .expect("create bounded Windows link stderr");
-    let stdout = std::fs::OpenOptions::new()
-        .create_new(true)
-        .write(true)
-        .open(&stdout_path)
-        .expect("create bounded Windows link stdout");
-    let mut command = std::process::Command::new(&clang.path);
-    command
-        .current_dir(run_stage)
-        .env_clear()
-        .args([
-            "-v",
-            "-target",
-            "x86_64-pc-windows-msvc",
-            "-Xmicrosoft-visualc-tools-root",
-            vctools.as_str(),
-            "-fuse-ld=link",
-            "-Xlinker",
-            "/NODEFAULTLIB:libcmt",
-            "__semaprax_native_rust_main.o",
-            "module_O0.o",
-            "semaprax_bridge.lib",
-            "-lkernel32",
-            "-ladvapi32",
-            "-ldbghelp",
-            "-lntdll",
-            "-luserenv",
-            "-lws2_32",
-            "-lmsvcrt",
-            "-o",
-            output_name,
-        ])
-        .stdout(std::process::Stdio::from(stdout))
-        .stderr(std::process::Stdio::from(stderr));
-    bind_test_tool_environment(&mut command);
-    let status = command.status().expect("run diagnostic Windows link");
-    let stdout_file = std::fs::File::open(&stdout_path).expect("open bounded Windows link stdout");
-    let stdout_length = stdout_file
-        .metadata()
-        .expect("stat bounded Windows link stdout")
-        .len();
-    assert!(
-        stdout_length <= OUTPUT_MAXIMUM,
-        "Windows link stdout exceeded its diagnostic bound"
-    );
-    let mut stdout_bytes = Vec::with_capacity(
-        usize::try_from(stdout_length).expect("bounded Windows link stdout length"),
-    );
-    stdout_file
-        .take(OUTPUT_MAXIMUM + 1)
-        .read_to_end(&mut stdout_bytes)
-        .expect("read bounded Windows link stdout");
-    assert_eq!(stdout_bytes.len() as u64, stdout_length);
-    let stderr_file = std::fs::File::open(&stderr_path).expect("open bounded Windows link stderr");
-    let stderr_length = stderr_file
-        .metadata()
-        .expect("stat bounded Windows link stderr")
-        .len();
-    assert!(
-        stderr_length <= OUTPUT_MAXIMUM,
-        "Windows link stderr exceeded its diagnostic bound"
-    );
-    let mut stderr_bytes = Vec::with_capacity(
-        usize::try_from(stderr_length).expect("bounded Windows link stderr length"),
-    );
-    stderr_file
-        .take(OUTPUT_MAXIMUM + 1)
-        .read_to_end(&mut stderr_bytes)
-        .expect("read bounded Windows link stderr");
-    assert_eq!(stderr_bytes.len() as u64, stderr_length);
-    eprintln!(
-        "direct Windows link status={status}; stdout={}; stderr={}",
-        String::from_utf8_lossy(&stdout_bytes),
-        String::from_utf8_lossy(&stderr_bytes)
-    );
-    drop(stdout_bytes);
-    drop(stderr_bytes);
-    if output_path.exists() {
-        std::fs::remove_file(&output_path).expect("remove diagnostic Windows link output");
-    }
-    std::fs::remove_file(stdout_path).expect("remove diagnostic Windows link stdout");
-    std::fs::remove_file(stderr_path).expect("remove diagnostic Windows link stderr");
-}
-
 struct RustcVersion {
     storage: String,
     boundaries: [usize; 5],
@@ -18008,19 +17904,9 @@ fn debit_phase_b(bytes: usize) -> Result<(), PhaseBLocalError> {
     }
 }
 
-#[track_caller]
 fn reserve_phase_b(maximum: usize) -> Result<TemporaryBudget, PhaseBLocalError> {
     let remaining = crate::bounded_output::remaining_active().unwrap_or(MAX_BUILDER_BYTES);
     if maximum > remaining {
-        #[cfg(test)]
-        {
-            let caller = std::panic::Location::caller();
-            eprintln!(
-                "phase-b reservation failed at {}:{}: required={maximum} remaining={remaining}",
-                caller.file(),
-                caller.line()
-            );
-        }
         return Err(PhaseBLocalError::BuilderBudget);
     }
     debit_phase_b(maximum)?;
@@ -18599,12 +18485,6 @@ fn build_native_rust_interop_bundle_bounded(
         )
     })();
     let cleanup = discard_run_stage(&parent_authority, &run_stage, &run_files);
-    #[cfg(test)]
-    eprintln!(
-        "phase B build error={:?}; run cleanup error={:?}",
-        build.as_ref().err(),
-        cleanup.as_ref().err(),
-    );
     let mut facts = match (build, cleanup) {
         (Err(error), _) => {
             let _ = discard_run_stage(&parent_authority, &stage, &publish_files);
@@ -19276,12 +19156,7 @@ fn discard_run_stage<const N: usize>(
         stage_name,
         files,
     )
-    .map_err(|error| {
-        #[cfg(test)]
-        eprintln!("prepared stage discard failed: {error:?}");
-        let _ = error;
-        PhaseBLocalError::Publication
-    })
+    .map_err(|_| PhaseBLocalError::Publication)
 }
 
 fn track_run_file<const N: usize>(
@@ -19686,20 +19561,9 @@ fn publish_stage_platform(
     publish_files: &mut PublishDiscardInventory,
     final_publish: &mut platform::PreparedPublishDirectory,
 ) -> Result<(), PhaseBLocalError> {
-    facts
-        .observe_object_authority_for_publish()
-        .inspect_err(|_error| {
-            #[cfg(test)]
-            eprintln!("final publish: facts authority failed: {_error:?}");
-        })?;
-    parent.recheck_local().inspect_err(|_error| {
-        #[cfg(test)]
-        eprintln!("final publish: parent recheck failed: {_error:?}");
-    })?;
-    stage.recheck_local().inspect_err(|_error| {
-        #[cfg(test)]
-        eprintln!("final publish: stage recheck failed: {_error:?}");
-    })?;
+    facts.observe_object_authority_for_publish()?;
+    parent.recheck_local()?;
+    stage.recheck_local()?;
     let mut comparison_scratch = [0_u8; platform::FILE_COMPARE_SCRATCH_BYTES];
     for (name, expected) in [
         ("descriptor.json", prepared.descriptor.as_bytes()),
@@ -19722,31 +19586,16 @@ fn publish_stage_platform(
         ),
         (facts.object_name, facts.object.as_slice()),
     ] {
-        let held = publish_files.file(name).map_err(|error| {
-            #[cfg(test)]
-            eprintln!("final publish: missing tracked file {name}: {error:?}");
-            let _ = error;
-            PhaseBLocalError::Publication
-        })?;
-        let matches =
-            platform::compare_exact(held, expected, &mut comparison_scratch).map_err(|error| {
-                #[cfg(test)]
-                eprintln!("final publish: comparison failed for {name}: {error:?}");
-                let _ = error;
-                PhaseBLocalError::Publication
-            })?;
+        let held = publish_files
+            .file(name)
+            .map_err(|_| PhaseBLocalError::Publication)?;
+        let matches = platform::compare_exact(held, expected, &mut comparison_scratch)
+            .map_err(|_| PhaseBLocalError::Publication)?;
         if !matches {
-            #[cfg(test)]
-            eprintln!("final publish: comparison disagreed for {name}");
             return Err(PhaseBLocalError::Publication);
         }
     }
-    scan_publish_inventory_exact(&mut facts.inventory_exact.0, stage, publish_files).inspect_err(
-        |_error| {
-            #[cfg(test)]
-            eprintln!("final publish: second inventory scan failed: {_error:?}");
-        },
-    )?;
+    scan_publish_inventory_exact(&mut facts.inventory_exact.0, stage, publish_files)?;
     let output_name = output.file_name().ok_or(PhaseBLocalError::Publication)?;
     let stage_name = stage
         .discard_name
@@ -19769,10 +19618,6 @@ fn publish_stage_platform(
         stage_name,
         output_name,
     );
-    #[cfg(test)]
-    if let Err(error) = &publication {
-        eprintln!("final publish: prepared directory rename failed: {error:?}");
-    }
     #[cfg(test)]
     if platform::prepared_publish_directory_remaining(final_publish) == 0 {
         PHASE_B_PUBLISH_CONSUMPTIONS.with(|count| count.set(count.get().saturating_add(1)));
@@ -22162,29 +22007,15 @@ fn main() -> i64 { 0 }
         PHASE_B_BUILD_INVOCATION_CONSUMPTIONS.with(|count| count.set(0));
         PHASE_B_LINK_COPY_PLANS.with(|count| count.set(0));
         PHASE_B_LINK_COPY_CONSUMPTIONS.with(|count| count.set(0));
-        #[cfg(windows)]
-        let mut diagnosed_link = false;
-        let mut observed_hooks = Vec::new();
         build_native_rust_interop_bundle_with_hook(
             &program,
             spec.as_bytes(),
             &root.join("bundle"),
-            |boundary, _, run_stage, _| {
-                observed_hooks.push(boundary);
-                #[cfg(windows)]
-                if boundary == NativeRustBuildPoint::BeforeExecutableAuthentication
-                    && !diagnosed_link
-                {
-                    diagnosed_link = true;
-                    report_bounded_windows_link_stderr(run_stage);
-                }
-                #[cfg(not(windows))]
-                let _ = (boundary, run_stage);
-            },
+            |_, _, _, _| {},
         )
         .unwrap_or_else(|errors| {
             panic!(
-                "prepared build failed after {} invocation consumptions and hooks {observed_hooks:?}: {errors:?}",
+                "prepared build failed after {} invocation consumptions: {errors:?}",
                 PHASE_B_BUILD_INVOCATION_CONSUMPTIONS.with(std::cell::Cell::get),
             )
         });

@@ -6302,20 +6302,29 @@ mod platform {
             }
             deletion_handles[index] = Some(rebound);
         }
+        let mut disposition_error = None;
         for (deleted, file) in deletion_handles[..attached].iter().flatten().enumerate() {
             #[cfg(not(debug_assertions))]
             let _ = deleted;
             #[cfg(debug_assertions)]
             if failure_after_delete == Some(deleted) {
-                return Err(Error::Changed);
+                disposition_error = Some(Error::Changed);
+                break;
             }
             #[cfg(debug_assertions)]
             eprintln!("Windows prepared discard: attempt disposition index={deleted}");
-            disposition_delete(&file.file)?;
+            if let Err(error) = disposition_delete(&file.file) {
+                disposition_error = Some(error);
+                break;
+            }
         }
         #[cfg(debug_assertions)]
-        if failure_after_delete == Some(attached) {
-            return Err(Error::Changed);
+        if disposition_error.is_none() && failure_after_delete == Some(attached) {
+            disposition_error = Some(Error::Changed);
+        }
+        must_close_deletion_handles(&mut deletion_handles[..attached]);
+        if let Some(error) = disposition_error {
+            return Err(error);
         }
         #[cfg(debug_assertions)]
         eprintln!("Windows prepared discard: attempt stage disposition");
@@ -6351,6 +6360,18 @@ mod platform {
             return Err(Error::Changed);
         }
         Ok(())
+    }
+
+    fn must_close_deletion_handles(files: &mut [Option<RegularFile>]) {
+        let mut close_failed = false;
+        for file in files {
+            let RegularFile { file, .. } = file.take().expect("authenticated deletion handle");
+            let handle = file.into_raw_handle();
+            close_failed |= unsafe { CloseHandle(handle.cast()) } == 0;
+        }
+        if close_failed {
+            std::process::abort();
+        }
     }
 
     fn run_argv(
@@ -8207,10 +8228,35 @@ mod tests {
             "rebound.identity != file.identity || rebound.digest != file.digest",
             "deletion_handles[index] = Some(rebound)",
             "for (deleted, file) in deletion_handles[..attached]",
+            "must_close_deletion_handles(&mut deletion_handles[..attached])",
         ] {
             assert!(
                 discard.contains(required),
                 "missing Windows discard rebound contract: {required}"
+            );
+        }
+        assert!(
+            discard
+                .find("must_close_deletion_handles(&mut deletion_handles[..attached])")
+                .unwrap()
+                < discard.find("disposition_delete(&stage.file)").unwrap()
+        );
+        let close_start = source
+            .find("fn must_close_deletion_handles")
+            .expect("Windows deletion-handle settlement");
+        let close_end = source[close_start..]
+            .find("fn run_argv")
+            .map(|offset| close_start + offset)
+            .expect("end Windows deletion-handle settlement");
+        let close = &source[close_start..close_end];
+        for required in [
+            "file.into_raw_handle()",
+            "close_failed |= unsafe { CloseHandle(handle.cast()) } == 0",
+            "std::process::abort()",
+        ] {
+            assert!(
+                close.contains(required),
+                "missing Windows deletion-handle settlement: {required}"
             );
         }
     }

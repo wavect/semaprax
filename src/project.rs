@@ -692,13 +692,35 @@ fn declared_absolute_path(path: &Path, subject: &str) -> Result<PathBuf, Vec<Dia
 fn has_declared_alias_component(path: &Path) -> bool {
     use std::os::windows::ffi::OsStrExt;
 
+    let mut units = path.as_os_str().encode_wide();
+    let first = units.next();
+    let second = units.next();
+    let raw_alias = match (first, second) {
+        (Some(drive), Some(colon))
+            if ((u16::from(b'A')..=u16::from(b'Z')).contains(&drive)
+                || (u16::from(b'a')..=u16::from(b'z')).contains(&drive))
+                && colon == u16::from(b':') =>
+        {
+            windows_units_have_alias_component(units)
+        }
+        (first, second) => {
+            windows_units_have_alias_component(first.into_iter().chain(second).chain(units))
+        }
+    };
+    raw_alias
+        || path.components().any(|component| {
+            matches!(
+                component,
+                std::path::Component::CurDir | std::path::Component::ParentDir
+            )
+        })
+}
+
+#[cfg(windows)]
+fn windows_units_have_alias_component(units: impl Iterator<Item = u16>) -> bool {
     let mut segment_len = 0usize;
     let mut segment_is_dots = true;
-    for unit in path
-        .as_os_str()
-        .encode_wide()
-        .chain(std::iter::once(u16::from(b'/')))
-    {
+    for unit in units.chain(std::iter::once(u16::from(b'/'))) {
         if unit == u16::from(b'/') || unit == u16::from(b'\\') {
             if segment_is_dots && matches!(segment_len, 1 | 2) {
                 return true;
@@ -710,12 +732,7 @@ fn has_declared_alias_component(path: &Path) -> bool {
             segment_is_dots &= unit == u16::from(b'.');
         }
     }
-    path.components().any(|component| {
-        matches!(
-            component,
-            std::path::Component::CurDir | std::path::Component::ParentDir
-        )
-    })
+    false
 }
 
 #[cfg(not(windows))]
@@ -1067,9 +1084,17 @@ mod tests {
         assert!(DeclaredPathSelection::open(Path::new("Cargo.toml"), "test").is_ok());
 
         let root = fixture();
+        #[cfg(windows)]
+        let dotted = {
+            let mut spelling = root.as_os_str().to_os_string();
+            spelling.push(r"\z\..\semaprax.toml");
+            PathBuf::from(spelling)
+        };
+        #[cfg(not(windows))]
         let dotted = root.join("z").join("..").join(MANIFEST_FILE);
         let error = with_authenticated_project(&dotted, |_| Ok(())).unwrap_err();
         assert_eq!(error[0].code, "SPX-J100");
+        assert!(error[0].message.contains("must not contain `.` or `..`"));
         let _ = std::fs::remove_dir_all(root);
     }
 
@@ -1083,6 +1108,8 @@ mod tests {
             "./semaprax.toml",
             r"C:.\semaprax.toml",
             r"C:..\semaprax.toml",
+            r"c:.\semaprax.toml",
+            r"c:..\semaprax.toml",
             "C:./semaprax.toml",
             "C:../semaprax.toml",
         ] {
@@ -1099,6 +1126,9 @@ mod tests {
             "name..toml",
             "...",
             r"dir.with.dots\semaprax.toml",
+            r"C:.semaprax.toml",
+            r"C:name..toml",
+            r"C:\dir.with.dots\semaprax.toml",
         ] {
             assert!(
                 !has_declared_alias_component(Path::new(ordinary)),

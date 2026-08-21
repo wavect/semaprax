@@ -7447,18 +7447,17 @@ mod platform {
     }
 
     #[cfg(test)]
-    pub(super) fn execute_harness_with_argument(
+    pub(super) fn execute_harness_with_arguments(
         executable: &Executable,
         cwd: &Directory,
-        argument: &str,
+        arguments: &[String; 3],
     ) -> Result<(), Error> {
-        let arguments = [argument.to_owned()];
-        let command_line = windows_command_line(&arguments)?;
+        let command_line = windows_command_line(arguments)?;
         let mut process_arena = prepare_process_arena(1)?;
         if run_argv(
             executable,
             cwd,
-            &arguments,
+            arguments,
             0,
             Some(command_line),
             Some(Vec::new()),
@@ -8065,7 +8064,7 @@ mod tests {
             ),
             (
                 "handle_probe",
-                "#include <windows.h>\n#include <stdint.h>\n#include <stdlib.h>\nint main(int argc,char **argv){if(argc!=2)return 7;char *end=0;uintptr_t handle=(uintptr_t)_strtoui64(argv[1],&end,10);if(!end||*end)return 6;DWORD flags=0;if(getenv(\"PATH\")!=0)return 8;if(GetHandleInformation((HANDLE)handle,&flags))return 9;return 0;}\n",
+                "#include <windows.h>\n#include <stdint.h>\n#include <stdlib.h>\n#include <string.h>\nstatic int nibble(char c){if(c>='0'&&c<='9')return c-'0';if(c>='a'&&c<='f')return c-'a'+10;return -1;}\nint main(int argc,char **argv){if(argc!=4)return 7;char *end=0;uintptr_t handle=(uintptr_t)_strtoui64(argv[1],&end,10);if(!end||*end)return 6;end=0;uint64_t volume=(uint64_t)_strtoui64(argv[2],&end,10);if(!end||*end||strlen(argv[3])!=32)return 6;if(getenv(\"PATH\")!=0)return 8;FILE_ID_INFO info;if(!GetFileInformationByHandleEx((HANDLE)handle,FileIdInfo,&info,sizeof(info)))return 0;if(info.VolumeSerialNumber!=volume)return 0;for(size_t i=0;i<16;i++){int high=nibble(argv[3][i*2]);int low=nibble(argv[3][i*2+1]);if(high<0||low<0)return 6;if(info.FileId.Identifier[i]!=(unsigned char)((high<<4)|low))return 0;}return 9;}\n",
             ),
         ] {
             let source_path = root.join(format!("{name}.c"));
@@ -8093,8 +8092,11 @@ mod tests {
                 String::from_utf8_lossy(&built.stderr)
             );
         }
+        use std::fmt::Write as _;
         use std::os::windows::io::AsRawHandle as _;
-        let inherited = std::fs::File::open("NUL").unwrap();
+        let sentinel = root.join("unlisted-handle");
+        std::fs::write(&sentinel, b"must not be inherited").unwrap();
+        let inherited = std::fs::File::open(&sentinel).unwrap();
         let raw = inherited.as_raw_handle();
         assert_ne!(
             unsafe {
@@ -8106,16 +8108,37 @@ mod tests {
             },
             0
         );
+        let mut identity = windows_sys::Win32::Storage::FileSystem::FILE_ID_INFO::default();
+        assert_ne!(
+            unsafe {
+                windows_sys::Win32::Storage::FileSystem::GetFileInformationByHandleEx(
+                    raw.cast(),
+                    windows_sys::Win32::Storage::FileSystem::FileIdInfo,
+                    (&mut identity as *mut windows_sys::Win32::Storage::FileSystem::FILE_ID_INFO)
+                        .cast(),
+                    u32::try_from(std::mem::size_of::<
+                        windows_sys::Win32::Storage::FileSystem::FILE_ID_INFO,
+                    >())
+                    .unwrap(),
+                )
+            },
+            0
+        );
+        let mut file_id = String::with_capacity(32);
+        for byte in identity.FileId.Identifier {
+            write!(&mut file_id, "{byte:02x}").unwrap();
+        }
+        let arguments = [
+            (raw as usize).to_string(),
+            identity.VolumeSerialNumber.to_string(),
+            file_id,
+        ];
         let directory = super::platform::hold_directory(&root).unwrap();
         let executable =
             super::platform::hold_executable(&directory, std::ffi::OsStr::new("handle_probe.exe"))
                 .unwrap();
-        super::platform::execute_harness_with_argument(
-            &executable,
-            &directory,
-            &(raw as usize).to_string(),
-        )
-        .unwrap();
+        super::platform::execute_harness_with_arguments(&executable, &directory, &arguments)
+            .unwrap();
         drop(executable);
         drop(directory);
         drop(inherited);

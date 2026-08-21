@@ -351,7 +351,7 @@ fn private_builder_uses_held_platform_authority_for_every_physical_step() {
             "helper_linux_parent_write_close",
             "helper_linux_waitpid",
             "windows_runner_failures_use_only_explicit_test_state",
-            "execute_harness_with_argument",
+            "execute_harness_with_arguments",
             "helper_windows_query_job_fail_stop",
             "later action ran after fail-stop",
             "later action ran after destroy uncertainty",

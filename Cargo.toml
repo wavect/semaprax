@@ -27,7 +27,7 @@ name = "semaprax"
 path = "src/lib.rs"
 
 [dependencies]
-hmac = "=0.12.1"
+hmac = "=0.13.0"
 same-file = "=1.0.6"
 serde_json = "=1.0.151"
 sha2 = "=0.10.9"

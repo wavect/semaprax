@@ -4,9 +4,9 @@ import { pathToFileURL } from "node:url";
 
 const directory = resolve(process.argv[2] ?? "target/meaning-web");
 const expectation = process.argv[3] ?? "42";
-const { imports } = await import(pathToFileURL(resolve(directory, "semaprax.js")));
+const { imports, instantiateBytes } = await import(pathToFileURL(resolve(directory, "semaprax.js")));
 const bytes = await readFile(resolve(directory, "app.wasm"));
-const { instance } = await WebAssembly.instantiate(bytes, imports);
+const { instance } = await instantiateBytes(bytes);
 let result;
 let expectedTrap;
 try {

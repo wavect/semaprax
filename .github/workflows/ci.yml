@@ -45,6 +45,49 @@ jobs:
       - name: Fetch dependencies, then execute every v3/v4/v5/v6/v7/v8/v9/v10 Component gate offline
         run: scripts/component-runtime-v3.sh
 
+  wasm-scalar-exports-browser-v1:
+    name: Public Wasm Scalar Exports v1 Chromium
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          toolchain: "1.85"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+      - name: Build the scalar calculator package into an isolated loopback fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="$RUNNER_TEMP/semaprax-wasm-scalar-browser-v1"
+          mkdir -p "$fixture"
+          cp -a examples/calculator-web/. "$fixture/"
+          cargo run --locked -p semaprax -- build examples/calculator.spx --target web \
+            --export calculator.add \
+            --export calculator.subtract \
+            --export calculator.multiply \
+            --export calculator.divide \
+            --export calculator.is-negative \
+            --export calculator.not \
+            -o "$fixture/generated"
+          echo "SEMAPRAX_CALCULATOR_ROOT=$fixture" >> "$GITHUB_ENV"
+      - name: Install the locked Playwright fixture and Chromium
+        working-directory: platform-tests/wasm-scalar-browser-v1
+        run: |
+          npm ci --ignore-scripts
+          npx --no-install playwright install --with-deps chromium
+      - name: Type-check the real generated scalar declaration consumer
+        working-directory: platform-tests/wasm-scalar-browser-v1
+        run: >-
+          npx --no-install tsc --strict --noEmit --target ES2022
+          --module NodeNext --moduleResolution NodeNext
+          "$SEMAPRAX_CALCULATOR_ROOT/consumer.ts"
+      - name: Exercise the generated calculator in one real Chromium worker
+        working-directory: platform-tests/wasm-scalar-browser-v1
+        run: npm test -- --workers=1 --retries=0
+
   verify:
     name: Rust ${{ matrix.os }}
     timeout-minutes: 60
@@ -92,6 +135,11 @@ jobs:
       - name: Run workspace tests
         if: runner.os != 'Windows'
         run: cargo test --locked --workspace --all-targets --all-features
+      - name: Require native O0/O2 and Core-Wasm scalar status equivalence
+        if: runner.os == 'Linux'
+        env:
+          SEMAPRAX_REQUIRE_SCALAR_BACKEND_EQUIVALENCE: "1"
+        run: cargo test --locked -p semaprax --test scalar_status_backend_equivalence -- --nocapture
       - name: Run workspace tests without duplicate Windows native interop
         if: runner.os == 'Windows'
         run: cargo test --locked --workspace --exclude semaprax-native-rust-interop --all-targets --all-features

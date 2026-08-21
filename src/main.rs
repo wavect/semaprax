@@ -100,37 +100,43 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             Ok(())
         }
         "build" => {
-            let path = required_path(&args, 1)?;
-            let output = output_path(&args, &path);
-            let program = checked(&path)?;
-            match option_value(&args, "--target").unwrap_or("native") {
+            let options = parse_build_options(&args[1..])?;
+            let program = checked(&options.input)?;
+            match options.target.as_str() {
                 "native" => {
-                    codegen::build(&program, &output).map_err(|error| report(&[error], false))?;
-                    println!("built native executable {}", output.display());
+                    codegen::build(&program, &options.output)
+                        .map_err(|error| report(&[error], false))?;
+                    println!("built native executable {}", options.output.display());
                 }
                 "web" | "wasm" => {
-                    wasm::build_web(&program, &output).map_err(|error| report(&[error], false))?;
-                    println!("built web package {}", output.display());
+                    if options.exports.is_empty() {
+                        wasm::build_web(&program, &options.output)
+                            .map_err(|error| report(&[error], false))?;
+                    } else {
+                        wasm::build_web_with_scalar_exports(
+                            &program,
+                            &options.output,
+                            &options.exports,
+                        )
+                        .map_err(|error| report(&[error], false))?;
+                    }
+                    println!("built web package {}", options.output.display());
                 }
                 "native-callable" => {
-                    let function = option_value(&args, "--function").ok_or_else(|| {
-                        eprintln!("native-callable target requires --function <stable-id>");
-                        2
-                    })?;
-                    let bundle = codegen::build_native_callable_bundle(&program, function, &output)
-                        .map_err(|error| report(&[error], false))?;
+                    let function = options
+                        .function
+                        .as_deref()
+                        .expect("validated build options");
+                    let bundle =
+                        codegen::build_native_callable_bundle(&program, function, &options.output)
+                            .map_err(|error| report(&[error], false))?;
                     println!(
                         "built native-callable bundle {} (manifest sha256:{})",
                         bundle.output_directory().display(),
                         bundle.manifest_sha256()
                     );
                 }
-                target => {
-                    eprintln!(
-                        "unsupported target `{target}`; available: native, native-callable, web"
-                    );
-                    return Err(2);
-                }
+                _ => unreachable!("validated build target"),
             }
             Ok(())
         }
@@ -992,17 +998,106 @@ fn required_path(args: &[String], index: usize) -> Result<PathBuf, u8> {
     })
 }
 
-fn output_path(args: &[String], input: &Path) -> PathBuf {
-    args.windows(2)
-        .find(|pair| pair[0] == "-o" || pair[0] == "--output")
-        .map(|pair| PathBuf::from(&pair[1]))
-        .unwrap_or_else(|| input.with_extension("out"))
+struct BuildOptions {
+    input: PathBuf,
+    output: PathBuf,
+    target: String,
+    function: Option<String>,
+    exports: Vec<String>,
 }
 
-fn option_value<'a>(args: &'a [String], option: &str) -> Option<&'a str> {
-    args.windows(2)
-        .find(|pair| pair[0] == option)
-        .map(|pair| pair[1].as_str())
+fn parse_build_options(args: &[String]) -> Result<BuildOptions, u8> {
+    let mut input = None::<PathBuf>;
+    let mut output = None::<PathBuf>;
+    let mut target = None::<String>;
+    let mut function = None::<String>;
+    let mut exports = Vec::<String>::new();
+    let mut index = 0;
+    while index < args.len() {
+        let argument = &args[index];
+        if let Some(value) = argument.strip_prefix("--export=") {
+            if value.is_empty() {
+                eprintln!("build option `--export` requires a value");
+                return Err(2);
+            }
+            exports.push(value.to_owned());
+            index += 1;
+            continue;
+        }
+        if matches!(
+            argument.as_str(),
+            "--target" | "--function" | "--export" | "-o" | "--output"
+        ) {
+            let value = args
+                .get(index + 1)
+                .filter(|value| {
+                    argument == "--export"
+                        && !matches!(
+                            value.as_str(),
+                            "--target" | "--function" | "--export" | "-o" | "--output"
+                        )
+                        || !value.starts_with('-')
+                })
+                .ok_or_else(|| {
+                    eprintln!("build option `{argument}` requires a value");
+                    2
+                })?;
+            match argument.as_str() {
+                "--target" if target.is_none() => target = Some(value.clone()),
+                "--function" if function.is_none() => function = Some(value.clone()),
+                "--export" => exports.push(value.clone()),
+                "-o" | "--output" if output.is_none() => output = Some(PathBuf::from(value)),
+                _ => {
+                    eprintln!("build option `{argument}` may not be repeated");
+                    return Err(2);
+                }
+            }
+            index += 2;
+            continue;
+        }
+        if argument.starts_with('-') {
+            eprintln!("unknown build option `{argument}`");
+            return Err(2);
+        }
+        if input.replace(PathBuf::from(argument)).is_some() {
+            eprintln!("build requires exactly one input file");
+            return Err(2);
+        }
+        index += 1;
+    }
+    let input = input.ok_or_else(|| {
+        eprintln!("build requires one input file");
+        2
+    })?;
+    let target = target.unwrap_or_else(|| "native".to_owned());
+    if !matches!(
+        target.as_str(),
+        "native" | "native-callable" | "web" | "wasm"
+    ) {
+        eprintln!("unsupported target `{target}`; available: native, native-callable, web");
+        return Err(2);
+    }
+    if target == "native-callable" {
+        if function.is_none() {
+            eprintln!("native-callable target requires --function <stable-id>");
+            return Err(2);
+        }
+    } else if function.is_some() {
+        eprintln!("--function is only valid with --target native-callable");
+        return Err(2);
+    }
+    if !exports.is_empty() && !matches!(target.as_str(), "web" | "wasm") {
+        eprintln!("--export is only valid with --target web");
+        return Err(2);
+    }
+    let output = output.unwrap_or_else(|| input.with_extension("out"));
+    Ok(BuildOptions {
+        input,
+        output,
+        target,
+        function,
+        exports,
+    })
 }
 
 fn report(errors: &[Diagnostic], json: bool) -> u8 {
@@ -1029,7 +1124,7 @@ fn print_help() {
            semaprax context <file> <symbol|stable-id> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N] [--filters contracts,ownership,effects,types,targets,diagnostics,tests]\n\
            semaprax context-benchmark <manifest>\n\
            semaprax quality-plan <quick|changed|full> [exact-changed-path ...]\n\
-           semaprax build <file> [--target native|native-callable|web] [--function stable-id] [-o path]\n\
+           semaprax build <file> [--target native|native-callable|web] [--function stable-id] [--export stable-id ...] [-o path]\n\
            semaprax run <file>\n\
            semaprax fmt <file> [--check]\n\
            semaprax patch <file> <patch.spatch>\n\
@@ -1071,4 +1166,59 @@ fn print_help() {
            semaprax repair <file> <repair-id> --persistent-id <persistent-id>\n\
            semaprax version"
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn strings(values: &[&str]) -> Vec<String> {
+        values.iter().map(|value| (*value).to_owned()).collect()
+    }
+
+    #[test]
+    fn build_options_preserve_repeated_scalar_exports_in_caller_order() {
+        let options = parse_build_options(&strings(&[
+            "calculator.spx",
+            "--target",
+            "web",
+            "--export",
+            "calculator.subtract",
+            "--export",
+            "calculator.add",
+            "-o",
+            "site",
+        ]))
+        .unwrap();
+        assert_eq!(options.input, PathBuf::from("calculator.spx"));
+        assert_eq!(options.output, PathBuf::from("site"));
+        assert_eq!(
+            options.exports,
+            strings(&["calculator.subtract", "calculator.add"])
+        );
+
+        let hyphenated = parse_build_options(&strings(&[
+            "calculator.spx",
+            "--target",
+            "web",
+            "--export",
+            "-x",
+            "--export=--target",
+        ]))
+        .unwrap();
+        assert_eq!(hyphenated.exports, strings(&["-x", "--target"]));
+    }
+
+    #[test]
+    fn build_options_reject_unknown_repeated_and_cross_target_flags() {
+        assert!(parse_build_options(&strings(&["app.spx", "--unknown", "x"])).is_err());
+        assert!(parse_build_options(&strings(&[
+            "app.spx", "--target", "web", "--target", "wasm"
+        ]))
+        .is_err());
+        assert!(parse_build_options(&strings(&[
+            "app.spx", "--target", "native", "--export", "app.main"
+        ]))
+        .is_err());
+    }
 }

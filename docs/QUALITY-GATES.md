@@ -22,7 +22,7 @@ is held; it does not establish power-loss durability.
 The exact `dfc04278c6ba9a7dd247d4cc4add3af91f55b936` matrix is hosted green in
 [run 31570834457](https://github.com/wavect/semaprax/actions/runs/31570834457);
 all 12 jobs passed, including the Operations process-termination gate on
-Ubuntu, macOS, and Windows. Totals remain 38 Partial/18 Missing.
+Ubuntu, macOS, and Windows. Current totals remain 39 Partial/17 Missing.
 
 Bounded Native Agent Runtime v1 additionally requires
 `cargo test --locked -p semaprax --lib agent_runtime::tests` with deterministic
@@ -38,7 +38,7 @@ and an explicit Ubuntu/macOS/Windows public integration gate. See [Bounded Nativ
 Agent Runtime v1](AGENT-RUNTIME-V1.md). Public Agent Runtime v1 is hosted GREEN at 8cf29aff8d1be3ccf74c36bc8c837f0c666ca067 (run 31591039261, 12/12 jobs, private and public deterministic fake-host gates on Ubuntu, macOS, and Windows).
 Private Economic Agent v1 additionally configures `cargo test --locked -p semaprax --lib economic_agent::tests -- --nocapture` and `cargo test --locked -p semaprax --lib economic_agent::tests::economic_process_kill_markers_never_repeat_sign_or_broadcast -- --exact --nocapture` on Ubuntu, macOS, and Windows. Private Economic Agent v1 A+B is exact-head hosted green at fe75c38d898b71e3ed5c57411fb46d0dbd4fc34b in run 31611748969, including both Economic gates on Ubuntu, macOS, and Windows. Public Economic Agent v1 C is exact-head hosted green at 03f1f2736de23d03b298f265f93409de89a6be95 in run 31616168124 (12/12 jobs), including the private, process-termination, and public Economic gates on Ubuntu, macOS, and Windows.
 Public C additionally runs `cargo test --locked -p semaprax --test economic_agent_v1 -- --nocapture` on Ubuntu, macOS, and Windows.
-Totals remain 38 Partial/18 Missing.
+Current totals remain 39 Partial/17 Missing.
 
 Private Native Rust Interoperability v1 A+B additionally requires three named
 gates on Ubuntu, macOS, and Windows:
@@ -94,8 +94,44 @@ root plus its exact `SEMAPRAX_LINKER`, prepares
 `-Xmicrosoft-visualc-tools-root <root> -fuse-ld=link`, and must not export
 ambient `PATH` into the process arena. An ambient launcher or proxy is
 deliberately rejected and is not a regression in the direct-image policy.
-Public C remains held until
-that gate is green.
+The private A+B gate is exact-head hosted green at
+`50b96dccabe3b3dcbcdf38bab380f3eb8699184c` in [run
+32402944574](https://github.com/wavect/semaprax/actions/runs/32402944574),
+including Ubuntu, macOS, Windows, Rust 1.85, Linux sanitizer, and the hosted
+Windows process/capacity cases. Public C remains held because this gate does
+not make the crate-private unpublished builder a public API, CLI, or package.
+
+Public Wasm Scalar Exports v1 additionally requires focused admission,
+emission, package, CLI, and consumer gates. The profile must admit only 1–32
+distinct explicit stable IDs under the exact lowercase portable 128-byte
+grammar; at most eight by-value `i64`/`bool` parameters and an `i64`/`bool`
+result; and a completely monomorphic, effect-free program without permits,
+imports/interfaces, authored aggregates/resources/variants, generic templates
+or instances, callbacks, or async. Every excluded shape must reject with exact
+`SPX-W115`/`SPX-W116` evidence before output creation; there is no aggregate or
+legacy ABI fallback.
+
+The emitted module must contain only the selected stable-ID-derived scalar
+adapters, with no `semaprax_main`, memory, unselected function, or owned
+adapter export. Require canonical boolean input/output rejection; signed-range
+BigInt and Boolean conversion; exact eight-case arithmetic and two-case
+contract statuses; unknown traps remaining out of band; frozen null-prototype
+bindings; exact generated declarations; deterministic bytewise stable-ID
+ordering; stable symbols when another export is inserted or reordered; and an
+actual stable-ID semantic rename proving unchanged external API and behavior.
+
+The fresh destination must reject existing files, directories, and symlinks,
+and successful output must have the exact seven-file inventory in [the profile
+contract](WASM-SCALAR-EXPORTS-V1.md). Require canonical `semaprax.web.v4`
+manifest replay, exact artifact SHA-256 bindings, mutation rejection before
+Wasm instantiation, byte-identical double builds, legacy web-v3 byte
+preservation, strict repeated-`--export` CLI parsing, Node execution,
+native/Wasm scalar status equivalence, formatting, strict Clippy, Rust 1.85,
+package and source locks, and independent security review. A pinned
+`tsc --strict --noEmit` external consumer and a hosted real-browser calculator
+interaction remain mandatory before claiming independently validated
+TypeScript or general browser-SDK compatibility. The full exact-head hosted
+matrix remains mandatory for promotion.
 
 Quality gates are executable evidence, not a checklist substitute for reasoning. Every pull request must pass the baseline and the gates for each changed semantic layer.
 
@@ -262,7 +298,7 @@ with the runner's exact job at [93330959212](https://github.com/wavect/semaprax/
 | Public protocol or schema | Compatibility fixture, or explicit version bump with migration and changelog note |
 | Semantic patch | Successful atomic edit and returned-revision equality; syntax-position collision, stale SHA, legacy-token, and failed-edit no-change proof; canonical regular non-symlink source authentication; parent-alias lock convergence; create-new lock contention without foreign deletion; bounded create-new stage collision/exhaustion; exact source identity/bytes/revision recheck and exact stage path/handle identity/bytes recheck at both final commit boundaries; permission preservation and stage sync; concurrent edit, same-byte source replacement, staged-byte mutation, foreign stage-path replacement, injected rename failure, planted source/stage/lock symlink, nonregular source, owned-artifact cleanup, serial and parallel integration evidence. Unix device/inode identity is exact. Windows must hold same-file handles and compare volume plus the available 64-bit file index, while explicitly denying uniqueness on ReFS 128-bit or hostile non-unique-index environments. Keep predictable-name collision/stale-lock DoS, crash-left locks, non-cooperating mutation in the trusted final portable path window, parent-directory sync/power-loss durability, multi-file commits, and general typed repair/impact as nonclaims. Focused commands: `cargo test --locked -p semaprax --all-features --lib patch::tests::`, `cargo test --locked -p semaprax --all-features --test patch -- --test-threads=1`, and `cargo test --locked -p semaprax --all-features --test patch` |
 | Semantic workspace transaction v1 | Exact canonical path-set/root/manifest/workspace-patch/snapshot/preview schemas, complete top-level and nested key order, API-no-LF/CLI-one-LF equality, exact digest domains/framing and five frozen KATs; 2–16 sorted portable lowercase paths; existing per-file Patch v1/v2/sole-v3 preservation; aggregate source/operation/parsed-AST/render/inventory bounds before multiplied HIR work; authored module/declaration identity uniqueness excluding compiler-owned/prelude IDs; canonical original sources; authenticated root/control/LOCK/ACTIVE/generation/staging/manifest/files/nested directories; real regular/non-symlink/non-reparse/link-count-one objects; held path/handle equality, distinct identities, one volume, exact directory trie/inventory; real shared/shared and shared/exclusive/exclusive lock behavior plus process-death release; initialization generation-zero/ACTIVE ordering; immutable candidate publication no-replace; two final apply rechecks; permission preservation; old-or-new cooperating-reader snapshots across only the ACTIVE pivot; exact stale second apply; every pre-pivot hook/race/limit preserves old ACTIVE, owned residue remains authenticated/bounded, and foreign replacements are preserved and fail closed rather than deleted; post-pivot `SPX-I212` ambiguity; Unix device/inode and bounded Windows volume/64-bit-index nonclaim; no raw-source write/atomicity, cross-file semantics, repository analysis, create/delete/move/materialization, evidence/provenance/approval, automatic recovery/GC, network/NFS/overlay, power-loss, ACL/xattr/ADS, external compatibility, or new Patch/Graph/Cleanup/backend/runtime meaning. Focused commands: `cargo test --locked -p semaprax --all-features --test semantic_workspace_transaction_v1 -- --test-threads=1`, `cargo test --locked -p semaprax --all-features --test semantic_workspace_transaction_v1_hostile -- --test-threads=1`, and `cargo test --locked -p semaprax --all-features --lib workspace::tests` |
-| Semantic Workspace Patch Evidence v1 | Exact canonical capsule/receipt schemas and every top-level/file/nested/limits/budget/nonclaim key order; homogeneous v1/v2/v3 plus mixed capsule/receipt KATs; exact Workspace Patch, no-LF preview, per-file Graph/source/Patch/Review/seven assessments/supporting evidence/child Evidence-v1 bindings; sorted path correlation; existing digest-domain framing plus exact new preview/artifact domains; exact/one-over child and aggregate caps, fixed-point LF-inclusive artifact sizes, JSON depth, Graph v10–v14, schema/kind/receipt substitutions, and `SPX-G160`–`G163`/`I213`; shared-lock generation/verification, exclusive-lock-first apply precedence, one owned Patch/evidence read, immutable untrusted submitted bytes until exact replay, shared plan/preflight reuse, exact replay before candidate/staging creation, unchanged sealed Workspace two-final-check/`ACTIVE` pivot, stale/no-write/raw-source preservation, and ordinary Workspace parity. The Workspace aggregate source/AST caps bound HIR/index work before children; remaining Impact/Review/child output budgets govern closure/serialization only. Require all 21 ordered nonclaims, unchanged child Evidence-v1 `no_multi_file_transaction`, no Target/Evidence-v2 aggregation, no authority/provenance/approval/target-test/cross-file reasoning/raw-tree/durability claim, exact 38 Partial/18 Missing preservation, and a fresh exact-head hosted matrix before promotion. Focused commands: `cargo test --locked -p semaprax --all-features --test semantic_workspace_patch_evidence_v1 -- --test-threads=1`, `cargo test --locked -p semaprax --all-features --test semantic_workspace_patch_evidence_v1_apply`, `cargo test --locked -p semaprax --all-features --test semantic_workspace_patch_evidence_v1_hostile`, and `cargo test --locked -p semaprax --all-features --lib workspace_patch_evidence::tests` |
+| Semantic Workspace Patch Evidence v1 | Exact canonical capsule/receipt schemas and every top-level/file/nested/limits/budget/nonclaim key order; homogeneous v1/v2/v3 plus mixed capsule/receipt KATs; exact Workspace Patch, no-LF preview, per-file Graph/source/Patch/Review/seven assessments/supporting evidence/child Evidence-v1 bindings; sorted path correlation; existing digest-domain framing plus exact new preview/artifact domains; exact/one-over child and aggregate caps, fixed-point LF-inclusive artifact sizes, JSON depth, Graph v10–v14, schema/kind/receipt substitutions, and `SPX-G160`–`G163`/`I213`; shared-lock generation/verification, exclusive-lock-first apply precedence, one owned Patch/evidence read, immutable untrusted submitted bytes until exact replay, shared plan/preflight reuse, exact replay before candidate/staging creation, unchanged sealed Workspace two-final-check/`ACTIVE` pivot, stale/no-write/raw-source preservation, and ordinary Workspace parity. The Workspace aggregate source/AST caps bound HIR/index work before children; remaining Impact/Review/child output budgets govern closure/serialization only. Require all 21 ordered nonclaims, unchanged child Evidence-v1 `no_multi_file_transaction`, no Target/Evidence-v2 aggregation, no authority/provenance/approval/target-test/cross-file reasoning/raw-tree/durability claim, exact 39 Partial/17 Missing preservation, and a fresh exact-head hosted matrix before promotion. Focused commands: `cargo test --locked -p semaprax --all-features --test semantic_workspace_patch_evidence_v1 -- --test-threads=1`, `cargo test --locked -p semaprax --all-features --test semantic_workspace_patch_evidence_v1_apply`, `cargo test --locked -p semaprax --all-features --test semantic_workspace_patch_evidence_v1_hostile`, and `cargo test --locked -p semaprax --all-features --lib workspace_patch_evidence::tests` |
 | Semantic Workspace + Workspace Semantic Graph v1 | Exact semantic path-set/root/manifest and Workspace Graph schemas, key order, LF framing, source/workspace/artifact digest domains, literal KATs, graph public getter parity, full managed-set one-build work accounting, entry-provider projection, six independently replayed typed edge families, compiler prelude once, exact identities/depths/limits/nonclaims, shared-lock lifetime through render/final recheck/checked unlock, and ordinary Workspace mode rejection/preservation. Require no raw-source write, stage/apply authority, target/test execution, implicit imports, create/delete/move/materialization, recovery/GC, or durability claim. Focused commands: `cargo test --locked -p semaprax --all-features --lib semantic_workspace::tests`, `cargo test --locked -p semaprax --all-features --lib workspace_graph::tests`, and `cargo test --locked -p semaprax --all-features --test workspace_semantic_graph_v1` |
 | Workspace Analysis v1 | Exact Context/Impact/Review schemas, digest domains, key order, KATs, API-no-LF/CLI-one-LF parity, selector/option grammar, typed module/declaration/capability namespace separation, independently replayed adjacency, minimum-depth/tied-direction traversal, exact Workspace-edge order, maximal bounded prefixes and first-depth frontier, unique omitted/deferred counts, reserve-first output bounds, one cumulative analysis-builder budget, complete nontruncated Review children, seven exact findings/evidence references/nonclaims, and the same held semantic authority through render/final recheck/unlock. Keep patch delta, repair, target/test, approval, persistence, and write authority closed. Focused commands: `cargo test --locked -p semaprax --all-features --lib workspace_analysis::tests` and `cargo test --locked -p semaprax --all-features --test workspace_semantic_graph_v1` |
 | Semantic Workspace Change v1 C1/C2/C3 | Exact proposal, Preview/Context/Impact/Review/Evidence, verification receipt, and application receipt schemas; every nested key/order/domain/LF/limit/budget/nonclaim; seven whole-document KATs; 2–16 replacements-only unchanged-path-set admission; one base plus one candidate unified build; full managed-graph delta including disconnected changed modules; shared generate/verify and exclusive apply input precedence; proposal and Evidence each owned once; strict Evidence parse before proposal parse; exact typed and byte replay before writes; C2 receipt confusion rejection and no token authority; no-clobber immutable candidate create/reuse; both complete final-check matrices; sole `ACTIVE` pivot; `I211` before and `I212` only after successful rename; terminal structural held-object/permission/inventory authentication; state-relative residue/G187 and regenerated exact reuse without strategy claims; no raw-source changes; and public 10/10 plus private 11/11 local evidence. Hosted promotion additionally requires exact-head Ubuntu/macOS/Windows process-termination boundaries, Windows junction/reparse/hardlink/readonly/open-handle behavior, Unix no-clobber/symlink/hardlink behavior, cooperative readers, MSRV, Component, and dependency-policy jobs. Process termination must remain explicitly distinct from power-loss durability. Focused commands: `cargo test --locked -p semaprax --all-features --test semantic_workspace_change_v1` and `cargo test --locked -p semaprax --all-features --lib semantic_workspace_change::tests` |
@@ -380,7 +416,7 @@ preservation, and security are locally green. The exact
 93624123698](https://github.com/wavect/semaprax/actions/runs/31440359793/job/93624123698),
 and [MSRV job
 93624123711](https://github.com/wavect/semaprax/actions/runs/31440359793/job/93624123711);
-all 12 jobs passed. The dashboard remains exactly 38 Partial/18 Missing.
+all 12 jobs passed. The current dashboard remains exactly 39 Partial/17 Missing.
 
 Semantic Workspace Transaction v1 additionally requires the exact managed
 generation and `ACTIVE` publication gate above. Its frozen two-file initial
@@ -420,7 +456,7 @@ and [component job
 93719800635](https://github.com/wavect/semaprax/actions/runs/31472847068/job/93719800635);
 all 12 jobs passed. Earlier run 31471716036 on `4daa407` failed only Windows
 strict Clippy and is not green evidence; no earlier Phase A/B workflow is Phase
-C publication proof. Status remains exactly 38 Partial/18 Missing.
+C publication proof. Current status remains exactly 39 Partial/17 Missing.
 
 Semantic Workspace Patch Evidence v1 additionally requires all eight literal
 whole-artifact KATs, exact capsule/receipt and nested order, every canonical
@@ -467,8 +503,8 @@ was nonqualifying at 10/12: macOS exposed snapshot-lock handoff as
 lock-precedence fixture hit OS error 33 reopening the locked `LOCK` file. The
 corrective head makes the owned-snapshot lock release explicit and avoids the
 fixture-only reopen without changing the wire contract. No earlier Workspace
-or single-file Evidence run qualifies. Status remains exactly 38 Partial/18
-Missing.
+or single-file Evidence run qualifies. Current status remains exactly 39
+Partial/17 Missing.
 
 ## Evidence strength
 

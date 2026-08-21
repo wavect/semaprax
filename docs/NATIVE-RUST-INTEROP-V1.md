@@ -1,9 +1,13 @@
 # Native Rust Interoperability v1
 
-Status: private A+B design and implementation are locally green. Public C and
-hosted promotion remain held. The six output artifacts have frozen
+Status: private A+B design and implementation are exact-head hosted green at
+`50b96dccabe3b3dcbcdf38bab380f3eb8699184c` in [run
+32402944574](https://github.com/wavect/semaprax/actions/runs/32402944574).
+Public C remains held and the implementation remains unpublished. The six
+output artifacts have frozen
 whole-byte known-answer identities after independent exact replay and exhaustive
-byte-edit rejection; this wire freeze is not an A+B runtime or platform GO.
+byte-edit rejection. That wire freeze alone is not runtime or platform
+evidence; the hosted private A+B gate above supplies the promotion evidence.
 
 Native Rust Interoperability v1 is an additive, current-host, scalar bridge. It
 does not change callable v2/v3, the native loader or host, Graph schemas, Wasm,
@@ -195,8 +199,12 @@ dynamic dependency identity or filesystem-race isolation,
 stable Rust ABI, public CLI/registry/network, general interop readiness, and a
 completion-matrix promotion.
 
-Public C remains held until this private A+B surface is committed and its exact
-head is green on Ubuntu, macOS, and Windows, including the required Windows
-runtime/capacity settlement and Linux sanitizer lanes. Local runs qualify only
-when `RUSTC` and `CLANG` explicitly select the admitted absolute tools; ambient
-launcher or proxy discovery is intentionally not equivalent evidence.
+The private A+B promotion gate is satisfied at the exact commit and run cited
+above: Ubuntu, macOS, Windows, Rust 1.85, and the required Linux sanitizer lane
+are green together, including Windows runtime/capacity settlement. This proves
+only the frozen private scalar/static-link profile at that head. Public C
+remains held because the builder entry points and types are crate-private, the
+three implementation crates remain unpublished, and the root package exposes
+no Native Rust Interoperability API or CLI. Local runs qualify only when
+`RUSTC` and `CLANG` explicitly select the admitted absolute tools; an ambient
+launcher or proxy is intentionally not equivalent evidence.

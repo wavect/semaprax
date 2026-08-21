@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SEMAPRAX calculator</title>
+  </head>
+  <body>
+    <main>
+      <h1>SEMAPRAX calculator</h1>
+      <form id="calculator">
+        <label>Left <input id="left" inputmode="numeric" value="19"></label>
+        <label>
+          Operation
+          <select id="operation">
+            <option value="calculator.add">+</option>
+            <option value="calculator.subtract">−</option>
+            <option value="calculator.multiply">×</option>
+            <option value="calculator.divide">÷</option>
+          </select>
+        </label>
+        <label>Right <input id="right" inputmode="numeric" value="23"></label>
+        <button type="submit">Calculate</button>
+      </form>
+      <output id="result" aria-live="polite"></output>
+    </main>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

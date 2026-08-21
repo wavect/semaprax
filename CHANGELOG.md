@@ -1,7 +1,35 @@
 # Changelog
 
-- Private Native Rust Interoperability v1 A+B design and local implementation
-  are green. The additive `import rust fn` scalar profile now resolves an
+- Added [Public Wasm Scalar Exports v1](docs/WASM-SCALAR-EXPORTS-V1.md).
+  Repeated `--export <stable-id>` options select 1–32 explicit persistent
+  monomorphic `i64`/`bool` functions from a completely scalar, effect-free
+  program. Under a caller-exclusive parent/new-tree publication contract, the
+  path-based fresh no-clobber package rejects symlink/reparse parents and
+  children, uses create-new for every fixed artifact, rebinds parent/output
+  identities, and immediately replays its exact inventory/bytes before
+  success. Cleanup reauthenticates both identities and removes only exact-byte
+  expected files. It contains only stable-ID-derived Wasm
+  adapters, a canonical digest-bound `semaprax.web.v4` manifest, a
+  digest-authenticating runtime, frozen JavaScript bindings, TypeScript
+  declarations, and a calculator consumer. The facade performs exact
+  BigInt/Boolean conversion and returns the closed eight-case arithmetic and
+  pre/post-contract status results. Aggregate/resource/generic/import/effect
+  shapes reject without fallback, and ordinary no-export web-v3 output remains
+  the legacy lane. Local executable evidence covers bounded admission,
+  deterministic artifacts, Node consumption, mutation rejection, and stable-ID
+  rename preservation. A locked Chromium loopback calculator job is wired but
+  awaits exact-head hosted-green evidence; exact TypeScript 5.8.3 compilation
+  of the real generated declaration consumer is locally green and wired into
+  that job. Components, npm publication, imports/capabilities,
+  aggregates/resources, callbacks/async, multi-engine conformance, provenance,
+  and production readiness. The JavaScript and TypeScript completion row moves
+  from Missing to Partial; current totals are 39 Partial/17 Missing.
+
+- Private Native Rust Interoperability v1 A+B design and implementation are
+  exact-head hosted green at
+  `50b96dccabe3b3dcbcdf38bab380f3eb8699184c` in [run
+  32402944574](https://github.com/wavect/semaprax/actions/runs/32402944574).
+  The additive `import rust fn` scalar profile resolves an
   explicitly configured absolute Rust launcher only to discover one bounded
   sysroot, independently holds the direct compiler at that sysroot, requires a
   fixed-point sysroot check, and admits Rust artifacts only from that held
@@ -20,8 +48,11 @@
   24/24, platform 10/10, source-contract 6/6, strict-Clippy, formatting, and
   security gates are green; Windows directory authority now excludes mutable
   directory length while retaining full file identity and reparse rejection.
-  Windows runtime, exact-head three-OS, and Linux sanitizer evidence
-  remain pending. Public C remains held; compiler sysroot/dynamic-library
+  The run is green across Ubuntu, macOS, Windows, Rust 1.85, the Linux
+  sanitizer lane, and Windows runtime/capacity settlement. This promotes only
+  private A+B evidence. Public C remains held because the builder/types remain
+  crate-private, all three crates remain unpublished, and the root package has
+  no Native Rust Interoperability API or CLI. Compiler sysroot/dynamic-library
   descendant provenance, callable v2/v3, loader/host, `SPX-B104`, and existing
   wires/KATs are unchanged.
 

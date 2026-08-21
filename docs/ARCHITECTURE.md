@@ -103,10 +103,12 @@ settlement and attempt one exact-inventory cleanup on success or failure.
 Cleanup must stop on identity, reparse/symlink, or inventory disagreement,
 preserve foreign sentinels, and expose no generic recursive-delete primitive.
 Local builder 100/100, platform-system 24/24, platform 10/10, source-contract
-6/6, strict-Clippy, formatting, and security evidence are green. Exact-head
-hosted cleanup/process authority and sanitizer evidence on Ubuntu, macOS, and
-Windows remain held; Windows process-arena runtime and capacity-minus-one
-evidence remain hosted-only. Compiler sysroot/dynamic-library descendant
+6/6, strict-Clippy, formatting, and security evidence are green. The complete
+private A+B gate is exact-head hosted green at
+`50b96dccabe3b3dcbcdf38bab380f3eb8699184c` in [run
+32402944574](https://github.com/wavect/semaprax/actions/runs/32402944574),
+including Ubuntu, macOS, Windows, Rust 1.85, Linux sanitizer, and Windows
+process-arena/capacity settlement evidence. Compiler sysroot/dynamic-library descendant
 provenance and exact descendant linker-image execution under a same-path
 replacement race are not claimed. Graph
 and Wasm
@@ -118,8 +120,10 @@ status words; generated safe Rust contains panic, thread, reentry, and call
 budgets around the private unsafe quarantine. This lane grants no dynamic
 loading, allocator, resource, pointer, async, cross-thread, network, custody,
 public CLI/API, general Rust ABI, or production-readiness claim. See
-[`NATIVE-RUST-INTEROP-V1.md`](NATIVE-RUST-INTEROP-V1.md); public C remains held
-until exact-head Ubuntu/macOS/Windows and Linux sanitizer evidence is green.
+[`NATIVE-RUST-INTEROP-V1.md`](NATIVE-RUST-INTEROP-V1.md). Public C remains held:
+the builder and its types remain crate-private, all three crates are
+unpublished, and the root package exposes no Native Rust Interoperability API
+or CLI.
 
 This remains staged groundwork rather than the sole compiler IR: the current verifier still establishes meaning from parsed AST before HIR resolution. Explicit trivial/imported resource lifecycles, declaration-only interface/import contracts, record declarations/updates, bounded explicitly instantiated generic Copy records, bounded copy-variant templates/construction/exhaustive matching, typed ordinary-`Result` and ordinary-`Option` propagation, stable type/member/case identities, recursive resource/type facts, and by-value recursion rejection now reach validated HIR and the semantic graph. Generic parameters are owner/index-stable and the admitted concrete arguments are direct `i64`/`bool`; generic record fields are restricted to direct scalars or parameters owned by that record, and every construction/update/projection substitutes the exact ordered concrete instance. The compiler-owned `semaprax.prelude.v1` injects ordinary `Option<T>` and `Result<T, E>` variants before checking. The bounded postfix `?` form accepts only direct-scalar Copy instances: `Result<T, E>` requires an enclosing `Result<U, E>`, while `Option<T>` requires an enclosing `Option<U>`. It evaluates its operand once, reconstructs the exact outer `Err` or payload-free `None`, and routes both ordinary-body and propagated results through shared postconditions and publication. The source checker and HIR validator independently replay lifecycle compatibility, lifecycle-effect authority, prefix-aware partial-place availability, exact generic substitution, exact construction, copy-match exhaustiveness, and every compiler-owned carrier/member/source/target identity. `aggregate_layout` computes checked deterministic Native64 and Wasm32 record layouts keyed by the full record ID plus ordered arguments; its digest and native symbol bind the same exact instance even when two instances have identical physical fields. `variant_layout` computes independently reconstructable per-concrete-instance internal layouts with declaration-order `u32` tags, an aligned maximum-payload area, and one inert byte for an empty payload. Its v2 digest authenticates the full concrete instance and both template and substituted field types; physical tags and representation are unchanged from v1. `CleanupInventory` remains a structural discovery boundary. Every `ResolvedFunction` carries a cleanup plan: v2 remains canonical unless authenticated Option propagation is present, which requires v3. Both schemas include typed blocks, edges, lexical regions, entry liveness, storage/leaf flags, atomic call commits, sticky status sources, guarded finalizers, scalar/owned result publication, and exact body-versus-propagated Copy-result staging; v3 adds an authenticated payload-free Option-None source. Generic records add no cleanup action because the admitted instances are direct-scalar Copy values; canonical replay remains bound to exact HIR types. Immutable update consumes its base first, evaluates replacements in authored order, transfers untouched fields, and cleans displaced live fields exactly once in reverse order. Copy matches branch on an exact scrutinee expression and stable case IDs without inventing droppable payload leaves; distinct concrete instances therefore cannot share a cleanup decision. Propagation uses complementary predicates on the authenticated success case and cannot be confused with physical failure selection. The builder covers every current HIR expression and normal/checked-failure path; the validator reconstructs the plan from core HIR rather than trusting attached metadata.
 
@@ -1105,8 +1109,9 @@ including [Ubuntu job
 and [Windows job
 93719800611](https://github.com/wavect/semaprax/actions/runs/31472847068/job/93719800611);
 all 12 jobs passed. Earlier run 31471716036 on `4daa407` failed only Windows
-strict Clippy and is not green evidence. This adds no status transition: the
-matrix remains 38 Partial/18 Missing.
+strict Clippy and is not green evidence. That tranche added no status
+transition; after Public Wasm Scalar Exports v1, the current matrix is 39
+Partial/17 Missing.
 
 ### Workspace Patch Evidence v1
 
@@ -1143,7 +1148,8 @@ all 12 jobs passing, including [Ubuntu job
 93779117078](https://github.com/wavect/semaprax/actions/runs/31491573287/job/93779117078)
 and [Windows job
 93779117130](https://github.com/wavect/semaprax/actions/runs/31491573287/job/93779117130).
-No matrix status changes: totals remain 38 Partial/18 Missing.
+That tranche made no matrix status change; after Public Wasm Scalar Exports
+v1, current totals are 39 Partial/17 Missing.
 
 ## Semantic workspace graph, analysis, and evidence-gated changes
 
@@ -1224,7 +1230,8 @@ Neither Evidence nor either receipt is reusable authority. The contract is
 The exact `dfc04278c6ba9a7dd247d4cc4add3af91f55b936` matrix is hosted green in
 [run 31570834457](https://github.com/wavect/semaprax/actions/runs/31570834457);
 all 12 jobs passed, including the Operations process-termination gate on
-Ubuntu, macOS, and Windows. Totals remain 38 Partial/18 Missing.
+Ubuntu, macOS, and Windows. That tranche made no status change; after Public
+Wasm Scalar Exports v1, current totals are 39 Partial/17 Missing.
 
 ## Transactions
 
@@ -1294,6 +1301,35 @@ The direct Wasm encoder emits standard WebAssembly core modules without requirin
 
 The web package contains `app.wasm`, `semaprax.js`, `index.html`, `package.json`, and a `semaprax.web.v3` graph-revision/capability manifest. Version 3 adds a required `semaprax.wasm-owned.v1` function map; scalar-only packages carry an empty map and do not allocate owned-runtime identity. This is real browser-executable output; it is not yet the UI dialect, DOM renderer, SSR/hydration system, WASI target, or Component Model backend.
 
+The additive [Public Wasm Scalar Exports v1](WASM-SCALAR-EXPORTS-V1.md)
+profile selects 1–32 explicit stable-ID functions from a completely
+monomorphic, effect-free `i64`/`bool` program. It emits only collision-free
+stable-ID-derived adapters—never the legacy `semaprax_main`—plus a
+`semaprax.web.v4` digest manifest, a digest-authenticating ES runtime, frozen
+stable-ID JavaScript bindings, and TypeScript declarations. The fresh output
+directory has a seven-file exact inventory and refuses pre-existing
+destinations. The path-based publisher rejects symlink/reparse parents and
+children, retains parent/output identities, creates every fixed-name file with
+create-new, rebinds both identities, and replays the exact inventory and bytes
+again immediately before success. Cleanup reauthenticates both identities and
+removes only expected-name regular files whose bytes still match. The caller must
+exclusively control the parent and child namespace throughout publication;
+concurrent same-authority rename, replacement, insertion, deletion,
+symlink/reparse creation, or byte mutation remains outside v1; this is not a
+hostile-concurrent-writer claim. JavaScript
+converts signed-range `bigint` and canonical
+`boolean`, and normalizes only private branded arithmetic/contract failures to
+the closed status result. Legacy builds without `--export` retain web v3.
+Aggregate/resource programs, imports, capabilities, generics, callbacks,
+async, Components, package publication, provenance, general browser support,
+and production readiness remain outside this profile. Node evidence exists. A
+locked one-worker/no-retry Chromium loopback calculator job is wired separately
+from compiler semantics, but remains pending exact-head hosted-green evidence;
+exact TypeScript 5.8.3 compilation of the real generated consumer is locally
+green and wired into the same pending hosted job. That browser job proves only the
+generated calculator in one Ubuntu Chromium configuration, not general browser
+compatibility.
+
 ## Development integrity
 
 Semantic Patch v2 is an additive identity-scoped transaction layer over the
@@ -1339,7 +1375,8 @@ opaque run getters; the unsealed host is injected and trusted for its declared
 transport/tools. The module has no built-in transport, process/environment/home access, filesystem mutation, durable
 memory, wallet, payment, signing, language, Graph, cleanup, or backend surface.
 Public Agent Runtime v1 is hosted GREEN at 8cf29aff8d1be3ccf74c36bc8c837f0c666ca067 (run 31591039261, 12/12 jobs, private and public deterministic fake-host gates on Ubuntu, macOS, and Windows). Private Economic Agent v1 A+B is exact-head hosted green at fe75c38d898b71e3ed5c57411fb46d0dbd4fc34b in run 31611748969, including both Economic gates on Ubuntu, macOS, and Windows. Public Economic Agent v1 C is exact-head hosted green at 03f1f2736de23d03b298f265f93409de89a6be95 in run 31616168124 (12/12 jobs), including the private, process-termination, and public Economic gates on Ubuntu, macOS, and Windows.
-This additive injected-host surface changes none of the 38 Partial/18 Missing totals.
+That additive injected-host surface made no status transition; after Public
+Wasm Scalar Exports v1, current totals are 39 Partial/17 Missing.
 
 ## Trust boundaries
 

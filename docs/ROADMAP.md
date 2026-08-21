@@ -9,7 +9,31 @@ durable memory, language/backend integration, approval, target
 execution, wallets, payments, signing, and economic authority remain held. See
 [the private runtime contract](AGENT-RUNTIME-V1.md).
 Public Agent Runtime v1 is hosted GREEN at 8cf29aff8d1be3ccf74c36bc8c837f0c666ca067 (run 31591039261, 12/12 jobs, private and public deterministic fake-host gates on Ubuntu, macOS, and Windows). Private Economic Agent v1 A+B is exact-head hosted green at fe75c38d898b71e3ed5c57411fb46d0dbd4fc34b in run 31611748969, including both Economic gates on Ubuntu, macOS, and Windows. Public Economic Agent v1 C is exact-head hosted green at 03f1f2736de23d03b298f265f93409de89a6be95 in run 31616168124 (12/12 jobs), including the private, process-termination, and public Economic gates on Ubuntu, macOS, and Windows.
-Totals remain 38 Partial/18 Missing.
+The current dashboard is 39 Partial/17 Missing after the bounded public
+JavaScript/TypeScript scalar-export slice moved that row from Missing to
+Partial.
+
+## Immediate product slice — scalar SDK and calculator
+
+[Public Wasm Scalar Exports v1](WASM-SCALAR-EXPORTS-V1.md) is the first bounded
+bridge from verified internals to an ordinary consumer. Repeated `--export`
+selects explicit stable-ID monomorphic `i64`/`bool` functions from an
+effect-free scalar program and emits stable-ID-derived Wasm adapters, a
+digest-bound `semaprax.web.v4` manifest, generated JavaScript/TypeScript
+bindings, and a calculator reference consumer. Unsupported aggregate,
+resource, generic, import, and capability shapes fail closed instead of
+falling back to another ABI. A semantic source rename must preserve the
+external stable-ID API.
+
+This moves the JavaScript and TypeScript completion row from Missing to Partial
+once its executable package/consumer evidence is present, making the current
+dashboard 39 Partial/17 Missing. Node evidence is part of this tranche. Exact
+TypeScript 5.8.3 compiles the real generated declaration consumer locally and
+is wired into the separate locked Chromium loopback calculator job. That job
+has no exact-head hosted-green
+evidence yet; it will prove only that one Ubuntu browser configuration. No
+general browser, npm, Component, project-manifest, or production SDK claim
+follows from the first scalar profile.
 
 ## 0.1 — Executable semantic seed
 
@@ -103,8 +127,9 @@ Status: implemented in this repository.
   Ubuntu/macOS/Windows evidence remains pending. Create/delete/move, raw-tree
   materialization, recovery/GC, signing/provenance/approval, target/test
   evidence, broader import/package/ownership semantics, persistence,
-  compatibility, and power-loss durability remain open. Totals remain 38
-  Partial/18 Missing.
+  compatibility, and power-loss durability remain open. That tranche made no
+  status transition; after Public Wasm Scalar Exports v1, current totals are
+  39 Partial/17 Missing.
 - Semantic Workspace Operations v1 now provides a bounded stable-identity bridge from
   explicit stable-ID declaration and direct import-alias intent to one exact
   existing replacements-only Change-v1 proposal. One authenticated base
@@ -117,7 +142,8 @@ Status: implemented in this repository.
   all 12 jobs passed, including the Operations process-termination gate on
   Ubuntu, macOS, and Windows. Operations-native analysis,
   path-set changes, automatic identities, target/test execution, and provenance
-  remain open. Totals remain 38 Partial/18 Missing.
+  remain open. That tranche made no status transition; after Public Wasm
+  Scalar Exports v1, current totals are 39 Partial/17 Missing.
 - Offline context economics with exact goldens and conservative quality routing.
 - Effects, module permits, and contract guards.
 - Machine-readable diagnostics.
@@ -628,16 +654,21 @@ Exit criterion: implement a zero-copy parser and server without a tracing GC.
   Ubuntu/macOS/Windows evidence in both call directions before describing a
   shape as supported. Rust `unsafe` remains confined to reviewed boundary code
   and never becomes ambient SEMAPRAX authority.
-- The private scalar A+B precursor is locally green with direct-rustc
+- The private scalar A+B precursor is exact-head hosted green at
+  `50b96dccabe3b3dcbcdf38bab380f3eb8699184c` in [run
+  32402944574](https://github.com/wavect/semaprax/actions/runs/32402944574),
+  including Ubuntu, macOS, Windows, Rust 1.85, the Linux sanitizer lane, and
+  Windows process/capacity settlement. It retains direct-rustc
   fixed-point authority, named pre-HIR/post-HIR capacity envelopes and exact
   transfers, a pre-effect 12-use process arena, fixed-capacity tool-version
   storage, prepared filesystem/publication authority, fail-stop settlement, and
   a Windows Visual C++ tools-root plan that uses prepared
   `-Xmicrosoft-visualc-tools-root <root> -fuse-ld=link`, binds the exact held
   linker, and grants no ambient child `PATH`.
-  Exact-head Ubuntu/macOS/Windows and Linux sanitizer evidence remain the
-  promotion gate;
-  compiler sysroot/dynamic-library descendant provenance remains a nonclaim.
+  The evidence promotes only private A+B. Public C remains held because its
+  builder/types are crate-private, its crates are unpublished, and no public
+  root API or CLI exists. Compiler sysroot/dynamic-library descendant
+  provenance remains a nonclaim.
 - Capability-sandboxed reproducible package builds.
 - Provenance, SBOM, license, and unsafe-code metadata.
 - Capability-sandboxed agent-tool components, a non-exporting secret-store
@@ -769,7 +800,8 @@ The exact `fcdf3861d79faea27c526a8dc5105b92c6738213` matrix is hosted green in
 [run 31440359793](https://github.com/wavect/semaprax/actions/runs/31440359793),
 including [Ubuntu job
 93624123631](https://github.com/wavect/semaprax/actions/runs/31440359793/job/93624123631);
-all 12 jobs passed. The dashboard stays 38 Partial/18 Missing.
+all 12 jobs passed. That tranche made no status transition; after Public Wasm
+Scalar Exports v1, the current dashboard is 39 Partial/17 Missing.
 
 Semantic Workspace Transaction v1 now implements a bounded part of the
 strategic multi-file architecture without replacing the broader tranche. Its
@@ -788,8 +820,9 @@ all 12 jobs passed. Earlier run 31471716036 on `4daa407` failed only Windows
 strict Clippy and is not green evidence. The 0.2 exit criterion, modules/imports and a unified
 multi-file Graph, repository Impact/Review/Context/Target/test integration,
 general repairs/operations, raw-tree materialization, create/delete/move,
-automatic recovery/GC, and power-loss durability remain roadmap work. Totals
-stay 38 Partial/18 Missing.
+automatic recovery/GC, and power-loss durability remain roadmap work. That
+tranche made no status transition; after Public Wasm Scalar Exports v1,
+current totals are 39 Partial/17 Missing.
 
 Semantic Workspace Patch Evidence v1 is the additive proof-carrier tranche on
 top of that managed publication model. It binds an exact Workspace Patch and
@@ -814,7 +847,8 @@ candidate reuse without exposing strategy. Local gates are green, but
 exact-head hosted promotion is pending. General package/reexport,
 resource/interface/ownership composition, target/test integration, broader
 operations, raw-tree integration, recovery/GC, and power-loss durability
-remain future work. Totals remain 38 Partial/18 Missing.
+remain future work. That tranche made no status transition; after Public Wasm
+Scalar Exports v1, current totals are 39 Partial/17 Missing.
 
 - Versioned language, graph, package, and component specifications.
 - Reproducible native and component builds on supported targets.

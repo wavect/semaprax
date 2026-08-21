@@ -1,6 +1,9 @@
 use std::collections::HashMap;
+use std::fs::{self, OpenOptions};
+use std::io::Write;
 use std::path::Path;
 
+use same_file::Handle;
 use sha2::{Digest, Sha256};
 
 use crate::ast::{BinaryOp, Program, UnaryOp};
@@ -28,6 +31,7 @@ mod record_pattern_component_v8;
 mod result_component_v3;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod scalar_algebra_component_v5;
+mod scalar_exports;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod source_result_component_v4;
 
@@ -132,12 +136,46 @@ pub fn emit_module(program: &Program) -> Result<Vec<u8>, Diagnostic> {
     emit_resolved_module(&resolved)
 }
 
+/// Emit the bounded Public Scalar Export Profile v1 for the selected stable IDs.
+///
+/// Unlike the legacy web module, this profile exports only the selected scalar
+/// adapters and deliberately omits `semaprax_main`.
+pub fn emit_module_with_scalar_exports(
+    program: &Program,
+    export_ids: &[String],
+) -> Result<Vec<u8>, Diagnostic> {
+    reject_native_rust_imports(program)?;
+    let resolved = hir::resolve(program).map_err(|diagnostics| {
+        diagnostics
+            .into_iter()
+            .find(|item| item.severity.is_error())
+            .unwrap_or_else(|| Diagnostic::io("SPX-W100", "HIR resolution failed"))
+    })?;
+    emit_resolved_module_with_scalar_exports(&resolved, export_ids)
+}
+
 /// Emit a WebAssembly core module from verified, identity-resolved HIR.
 ///
 /// Most callers should use [`emit_module`], which resolves and verifies parsed
 /// source first. This entry point exists for semantic consumers that already
 /// hold HIR and keeps all backend lowering independent of source-level names.
 pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagnostic> {
+    emit_resolved_module_internal(program, &[])
+}
+
+/// Emit the bounded Public Scalar Export Profile v1 from resolved HIR.
+pub fn emit_resolved_module_with_scalar_exports(
+    program: &ResolvedProgram,
+    export_ids: &[String],
+) -> Result<Vec<u8>, Diagnostic> {
+    let plans = scalar_exports::prepare(program, export_ids)?;
+    emit_resolved_module_internal(program, &plans)
+}
+
+fn emit_resolved_module_internal(
+    program: &ResolvedProgram,
+    scalar_exports: &[scalar_exports::ScalarExportPlan],
+) -> Result<Vec<u8>, Diagnostic> {
     if program
         .interfaces
         .iter()
@@ -162,9 +200,21 @@ pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagno
             .is_some_and(|item| item.identity_origin == IdentityOrigin::CompilerOwned)
     });
     if has_authored_aggregate || !concrete_variants.is_empty() {
+        if !scalar_exports.is_empty() {
+            return Err(Diagnostic::io(
+                "SPX-W115",
+                "Public Scalar Export Profile v1 does not admit aggregate or variant lowering",
+            ));
+        }
         return aggregate::emit(program);
     }
     let owned_plans = owned::plan(program)?;
+    if !scalar_exports.is_empty() && !owned_plans.is_empty() {
+        return Err(Diagnostic::io(
+            "SPX-W115",
+            "Public Scalar Export Profile v1 does not admit owned-resource adapters",
+        ));
+    }
     let import_count = if owned_plans.is_empty() {
         SCALAR_IMPORT_COUNT
     } else {
@@ -190,7 +240,11 @@ pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagno
     );
     let contract_fail = intern_type(
         Signature {
-            params: vec![],
+            params: if scalar_exports.is_empty() {
+                vec![]
+            } else {
+                vec![I32]
+            },
             results: vec![],
         },
         &mut types,
@@ -320,6 +374,19 @@ pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagno
         };
         function_types.push(intern_type(signature, &mut types, &mut type_indexes));
     }
+    let scalar_export_types = scalar_exports
+        .iter()
+        .map(|plan| {
+            intern_type(
+                Signature {
+                    params: plan.params.iter().map(|ty| ty.wasm_type()).collect(),
+                    results: vec![plan.result.wasm_type()],
+                },
+                &mut types,
+                &mut type_indexes,
+            )
+        })
+        .collect::<Vec<_>>();
     let owned_function_types = owned_plans
         .iter()
         .map(|plan| {
@@ -361,12 +428,15 @@ pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagno
     let mut functions = crate::bounded_output::CappedVec::new();
     write_u32(
         &mut functions,
-        (function_types.len() + owned_function_types.len()) as u32,
+        (function_types.len() + owned_function_types.len() + scalar_export_types.len()) as u32,
     );
     for type_index in function_types {
         write_u32(&mut functions, type_index);
     }
     for type_index in owned_function_types {
+        write_u32(&mut functions, type_index);
+    }
+    for type_index in scalar_export_types {
         write_u32(&mut functions, type_index);
     }
     section(&mut module, 3, functions);
@@ -378,30 +448,37 @@ pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagno
         section(&mut module, 5, memories);
     }
 
-    let main_index = program
-        .functions
-        .iter()
-        .position(|function| function.id == program.entrypoint)
-        .ok_or_else(|| Diagnostic::io("SPX-W101", "web target requires a main function"))?;
-    let main = &program.functions[main_index];
-    if !main.params.is_empty() || main.return_type != ResolvedType::I64 {
-        return Err(Diagnostic::io(
-            "SPX-W101",
-            "resolved web entry point must have type `fn main() -> i64`",
-        ));
-    }
     let mut exports = crate::bounded_output::CappedVec::new();
+    let legacy_export_count = if scalar_exports.is_empty() {
+        1 + owned_plans.len() as u32 + u32::from(!owned_plans.is_empty())
+    } else {
+        0
+    };
     write_u32(
         &mut exports,
-        1 + owned_plans.len() as u32 + u32::from(!owned_plans.is_empty()),
+        legacy_export_count + scalar_exports.len() as u32,
     );
-    write_name(&mut exports, "semaprax_main");
-    exports.push(0x00);
-    write_u32(&mut exports, import_count + main_index as u32);
-    if !owned_plans.is_empty() {
-        write_name(&mut exports, "memory");
-        exports.push(0x02);
-        write_u32(&mut exports, 0);
+    if scalar_exports.is_empty() {
+        let main_index = program
+            .functions
+            .iter()
+            .position(|function| function.id == program.entrypoint)
+            .ok_or_else(|| Diagnostic::io("SPX-W101", "web target requires a main function"))?;
+        let main = &program.functions[main_index];
+        if !main.params.is_empty() || main.return_type != ResolvedType::I64 {
+            return Err(Diagnostic::io(
+                "SPX-W101",
+                "resolved web entry point must have type `fn main() -> i64`",
+            ));
+        }
+        write_name(&mut exports, "semaprax_main");
+        exports.push(0x00);
+        write_u32(&mut exports, import_count + main_index as u32);
+        if !owned_plans.is_empty() {
+            write_name(&mut exports, "memory");
+            exports.push(0x02);
+            write_u32(&mut exports, 0);
+        }
     }
     let adapter_base = import_count + executable_functions.len() as u32;
     for (ordinal, plan) in owned_plans.iter().enumerate() {
@@ -409,12 +486,18 @@ pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagno
         exports.push(0x00);
         write_u32(&mut exports, adapter_base + ordinal as u32);
     }
+    let scalar_export_base = adapter_base + owned_plans.len() as u32;
+    for (ordinal, plan) in scalar_exports.iter().enumerate() {
+        write_name(&mut exports, &plan.wasm_export);
+        exports.push(0x00);
+        write_u32(&mut exports, scalar_export_base + ordinal as u32);
+    }
     section(&mut module, 7, exports);
 
     let mut code = crate::bounded_output::CappedVec::new();
     write_u32(
         &mut code,
-        (executable_functions.len() + owned_plans.len()) as u32,
+        (executable_functions.len() + owned_plans.len() + scalar_exports.len()) as u32,
     );
     for (function, _) in &executable_functions {
         let mut body = crate::bounded_output::CappedVec::new();
@@ -452,7 +535,7 @@ pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagno
                 &layout,
                 None,
             )?;
-            emit_contract_guard(&mut body);
+            emit_contract_guard(&mut body, (!scalar_exports.is_empty()).then_some(1));
         }
         emit_expr(
             &mut body,
@@ -473,7 +556,7 @@ pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagno
                 &layout,
                 None,
             )?;
-            emit_contract_guard(&mut body);
+            emit_contract_guard(&mut body, (!scalar_exports.is_empty()).then_some(2));
         }
         body.push(0x20);
         write_u32(&mut body, result_local);
@@ -484,6 +567,12 @@ pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagno
     for plan in &owned_plans {
         let mut body = crate::bounded_output::CappedVec::new();
         plan.emit_body_into(&mut body);
+        write_u32(&mut code, body.len() as u32);
+        code.extend_from_slice(&body);
+    }
+    for plan in scalar_exports {
+        let mut body = crate::bounded_output::CappedVec::new();
+        plan.emit_wrapper_body(&mut body, &function_indexes)?;
         write_u32(&mut code, body.len() as u32);
         code.extend_from_slice(&body);
     }
@@ -559,6 +648,541 @@ pub fn build_web(program: &Program, output: &Path) -> Result<(), Diagnostic> {
         Diagnostic::io("SPX-I305", format!("cannot write web manifest: {error}"))
     })?;
     Ok(())
+}
+
+/// Build a fresh, exact-inventory Public Scalar Export Profile v1 package.
+///
+/// The destination must not exist. All profile admission and artifact
+/// rendering completes before the destination directory is created.
+pub fn build_web_with_scalar_exports(
+    program: &Program,
+    output: &Path,
+    export_ids: &[String],
+) -> Result<(), Diagnostic> {
+    reject_native_rust_imports(program)?;
+    let resolved = hir::resolve(program).map_err(|diagnostics| {
+        diagnostics
+            .into_iter()
+            .find(|item| item.severity.is_error())
+            .unwrap_or_else(|| Diagnostic::io("SPX-W100", "HIR resolution failed"))
+    })?;
+    let plans = scalar_exports::prepare(&resolved, export_ids)?;
+    let wasm_bytes = emit_resolved_module_internal(&resolved, &plans)?;
+    let wasm_sha256 = format!("{:x}", Sha256::digest(&wasm_bytes));
+    let runtime = scalar_profile_runtime(&wasm_sha256);
+    let bindings = scalar_bindings(&plans, &wasm_sha256);
+    let declarations = scalar_declarations(&plans);
+    let package = "{\"private\":true,\"type\":\"module\",\"exports\":\"./semaprax.bindings.js\",\"types\":\"./semaprax.bindings.d.ts\"}\n";
+    let index = scalar_browser_html();
+    let manifest_artifacts: [(&str, &[u8]); 5] = [
+        ("index.html", index.as_bytes()),
+        ("package.json", package.as_bytes()),
+        ("semaprax.bindings.d.ts", declarations.as_bytes()),
+        ("semaprax.bindings.js", bindings.as_bytes()),
+        ("semaprax.js", runtime.as_bytes()),
+    ];
+    let manifest = scalar_manifest(program, &plans, &wasm_sha256, &manifest_artifacts);
+
+    let artifacts: [(&str, &[u8]); 7] = [
+        ("app.wasm", &wasm_bytes),
+        ("semaprax.js", runtime.as_bytes()),
+        ("semaprax.bindings.js", bindings.as_bytes()),
+        ("semaprax.bindings.d.ts", declarations.as_bytes()),
+        ("semaprax.scalar-exports.json", manifest.as_bytes()),
+        ("package.json", package.as_bytes()),
+        ("index.html", index.as_bytes()),
+    ];
+    publish_scalar_package(output, &artifacts)
+}
+
+fn publish_scalar_package(output: &Path, artifacts: &[(&str, &[u8])]) -> Result<(), Diagnostic> {
+    output.file_name().ok_or_else(|| {
+        Diagnostic::io(
+            "SPX-I301",
+            "Public Scalar Export package output must name one directory",
+        )
+    })?;
+    let parent_path = output
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    let parent_metadata = fs::symlink_metadata(parent_path).map_err(|error| {
+        Diagnostic::io(
+            "SPX-I301",
+            format!(
+                "cannot inspect Public Scalar Export output parent {}: {error}",
+                parent_path.display()
+            ),
+        )
+    })?;
+    if !is_plain_directory(&parent_metadata) {
+        return Err(Diagnostic::io(
+            "SPX-I301",
+            "Public Scalar Export output parent must be a real non-reparse directory",
+        ));
+    }
+    let parent_identity = Handle::from_path(parent_path).map_err(|error| {
+        Diagnostic::io(
+            "SPX-I301",
+            format!("cannot identify Public Scalar Export output parent: {error}"),
+        )
+    })?;
+    match fs::symlink_metadata(output) {
+        Ok(_) => {
+            return Err(Diagnostic::io(
+                "SPX-I307",
+                format!(
+                    "Public Scalar Export package destination already exists: {}",
+                    output.display()
+                ),
+            ));
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => {
+            return Err(Diagnostic::io(
+                "SPX-I301",
+                format!(
+                    "cannot inspect Public Scalar Export destination {}: {error}",
+                    output.display()
+                ),
+            ));
+        }
+    }
+    fs::create_dir(output).map_err(|error| {
+        let code = if error.kind() == std::io::ErrorKind::AlreadyExists {
+            "SPX-I307"
+        } else {
+            "SPX-I301"
+        };
+        Diagnostic::io(
+            code,
+            format!(
+                "cannot create fresh Public Scalar Export destination {}: {error}",
+                output.display()
+            ),
+        )
+    })?;
+    let output_metadata = fs::symlink_metadata(output).map_err(|error| {
+        Diagnostic::io(
+            "SPX-I301",
+            format!("cannot inspect fresh Public Scalar Export destination: {error}"),
+        )
+    })?;
+    if !is_plain_directory(&output_metadata) {
+        return Err(Diagnostic::io(
+            "SPX-I301",
+            "fresh Public Scalar Export destination is not a real non-reparse directory",
+        ));
+    }
+    let output_identity = Handle::from_path(output).map_err(|error| {
+        Diagnostic::io(
+            "SPX-I301",
+            format!("cannot identify fresh Public Scalar Export destination: {error}"),
+        )
+    })?;
+    if let Err(error) = write_and_authenticate_scalar_artifacts(output, artifacts) {
+        cleanup_scalar_package(
+            parent_path,
+            &parent_identity,
+            output,
+            &output_identity,
+            artifacts,
+        );
+        return Err(error);
+    }
+    if let Err(error) =
+        authenticate_scalar_destination(parent_path, &parent_identity, output, &output_identity)
+    {
+        cleanup_scalar_package(
+            parent_path,
+            &parent_identity,
+            output,
+            &output_identity,
+            artifacts,
+        );
+        return Err(error);
+    }
+    if let Err(error) = authenticate_scalar_artifacts(output, artifacts) {
+        cleanup_scalar_package(
+            parent_path,
+            &parent_identity,
+            output,
+            &output_identity,
+            artifacts,
+        );
+        return Err(error);
+    }
+    Ok(())
+}
+
+fn is_plain_directory(metadata: &fs::Metadata) -> bool {
+    metadata.is_dir() && !metadata.file_type().is_symlink() && !metadata_is_reparse(metadata)
+}
+
+fn is_plain_regular_file(metadata: &fs::Metadata) -> bool {
+    metadata.is_file() && !metadata.file_type().is_symlink() && !metadata_is_reparse(metadata)
+}
+
+#[cfg(windows)]
+fn metadata_is_reparse(metadata: &fs::Metadata) -> bool {
+    use std::os::windows::fs::MetadataExt;
+
+    const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x400;
+    metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0
+}
+
+#[cfg(not(windows))]
+fn metadata_is_reparse(_metadata: &fs::Metadata) -> bool {
+    false
+}
+
+fn write_and_authenticate_scalar_artifacts(
+    directory: &Path,
+    artifacts: &[(&str, &[u8])],
+) -> Result<(), Diagnostic> {
+    for (name, bytes) in artifacts {
+        let mut options = OpenOptions::new();
+        options.write(true).create_new(true);
+        let mut file = options.open(directory.join(name)).map_err(|error| {
+            Diagnostic::io(
+                "SPX-I302",
+                format!("cannot create Public Scalar Export artifact `{name}`: {error}"),
+            )
+        })?;
+        file.write_all(bytes).map_err(|error| {
+            Diagnostic::io(
+                "SPX-I302",
+                format!("cannot write Public Scalar Export artifact `{name}`: {error}"),
+            )
+        })?;
+        file.sync_all().map_err(|error| {
+            Diagnostic::io(
+                "SPX-I302",
+                format!("cannot sync Public Scalar Export artifact `{name}`: {error}"),
+            )
+        })?;
+    }
+    authenticate_scalar_artifacts(directory, artifacts)
+}
+
+fn authenticate_scalar_artifacts(
+    directory: &Path,
+    artifacts: &[(&str, &[u8])],
+) -> Result<(), Diagnostic> {
+    let mut observed = fs::read_dir(directory)
+        .map_err(|error| {
+            Diagnostic::io(
+                "SPX-I302",
+                format!("cannot enumerate Public Scalar Export package: {error}"),
+            )
+        })?
+        .map(|entry| {
+            let entry = entry.map_err(|error| {
+                Diagnostic::io(
+                    "SPX-I302",
+                    format!("cannot inspect Public Scalar Export package entry: {error}"),
+                )
+            })?;
+            let metadata = fs::symlink_metadata(entry.path()).map_err(|error| {
+                Diagnostic::io(
+                    "SPX-I302",
+                    format!("cannot inspect Public Scalar Export package entry type: {error}"),
+                )
+            })?;
+            if !is_plain_regular_file(&metadata) {
+                return Err(Diagnostic::io(
+                    "SPX-I302",
+                    "Public Scalar Export package contains a non-regular entry",
+                ));
+            }
+            entry.file_name().into_string().map_err(|_| {
+                Diagnostic::io(
+                    "SPX-I302",
+                    "Public Scalar Export package contains a non-Unicode entry",
+                )
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    observed.sort();
+    let mut expected = artifacts
+        .iter()
+        .map(|(name, _)| (*name).to_owned())
+        .collect::<Vec<_>>();
+    expected.sort();
+    if observed != expected {
+        return Err(Diagnostic::io(
+            "SPX-I302",
+            "Public Scalar Export package inventory changed during publication",
+        ));
+    }
+    for (name, bytes) in artifacts {
+        let path = directory.join(name);
+        let metadata = fs::symlink_metadata(&path).map_err(|error| {
+            Diagnostic::io(
+                "SPX-I302",
+                format!("cannot authenticate Public Scalar Export artifact `{name}`: {error}"),
+            )
+        })?;
+        if !is_plain_regular_file(&metadata) {
+            return Err(Diagnostic::io(
+                "SPX-I302",
+                format!("Public Scalar Export artifact `{name}` is not a real regular file"),
+            ));
+        }
+        if fs::read(&path).map_err(|error| {
+            Diagnostic::io(
+                "SPX-I302",
+                format!("cannot authenticate Public Scalar Export artifact `{name}`: {error}"),
+            )
+        })? != *bytes
+        {
+            return Err(Diagnostic::io(
+                "SPX-I302",
+                format!("Public Scalar Export artifact `{name}` changed during publication"),
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn authenticate_scalar_destination(
+    parent_path: &Path,
+    parent_identity: &Handle,
+    output: &Path,
+    output_identity: &Handle,
+) -> Result<(), Diagnostic> {
+    let parent_metadata = fs::symlink_metadata(parent_path).map_err(|error| {
+        Diagnostic::io(
+            "SPX-I302",
+            format!("cannot recheck Public Scalar Export output parent: {error}"),
+        )
+    })?;
+    let output_metadata = fs::symlink_metadata(output).map_err(|error| {
+        Diagnostic::io(
+            "SPX-I302",
+            format!("cannot recheck Public Scalar Export destination: {error}"),
+        )
+    })?;
+    if !is_plain_directory(&parent_metadata) || !is_plain_directory(&output_metadata) {
+        return Err(Diagnostic::io(
+            "SPX-I302",
+            "Public Scalar Export parent or destination became a symlink/reparse object",
+        ));
+    }
+    if *parent_identity
+        != Handle::from_path(parent_path).map_err(|error| {
+            Diagnostic::io(
+                "SPX-I302",
+                format!("cannot identify rebound Public Scalar Export parent: {error}"),
+            )
+        })?
+        || *output_identity
+            != Handle::from_path(output).map_err(|error| {
+                Diagnostic::io(
+                    "SPX-I302",
+                    format!("cannot identify rebound Public Scalar Export destination: {error}"),
+                )
+            })?
+    {
+        return Err(Diagnostic::io(
+            "SPX-I302",
+            "Public Scalar Export destination identity changed during publication",
+        ));
+    }
+    Ok(())
+}
+
+fn cleanup_scalar_package(
+    parent_path: &Path,
+    parent_identity: &Handle,
+    output: &Path,
+    output_identity: &Handle,
+    artifacts: &[(&str, &[u8])],
+) {
+    let identities_match = Handle::from_path(parent_path)
+        .ok()
+        .is_some_and(|identity| identity == *parent_identity)
+        && Handle::from_path(output)
+            .ok()
+            .is_some_and(|identity| identity == *output_identity);
+    if !identities_match {
+        return;
+    }
+    for (name, expected) in artifacts {
+        let path = output.join(name);
+        let removable = fs::symlink_metadata(&path)
+            .ok()
+            .is_some_and(|metadata| is_plain_regular_file(&metadata))
+            && fs::read(&path)
+                .ok()
+                .is_some_and(|observed| observed == *expected);
+        if removable {
+            let _ = fs::remove_file(path);
+        }
+    }
+    let _ = fs::remove_dir(output);
+}
+
+fn scalar_profile_runtime(wasm_sha256: &str) -> String {
+    browser_runtime()
+        .replace("__SEMAPRAX_OWNED_EXPORTS__", "Object.freeze({})")
+        .replace("__SEMAPRAX_WASM_SHA256__", wasm_sha256)
+        .replace(
+            &format!("const SPX_WASM_SHA256 = \"{wasm_sha256}\";"),
+            &format!(
+                "export const wasmSha256 = \"{wasm_sha256}\";\nconst SPX_WASM_SHA256 = wasmSha256;"
+            ),
+        )
+        .replace("export const imports =", "const imports =")
+        .replace(
+            "const SPX_RUNTIME_TAG_ALLOCATOR_KEY =",
+            "class SpxSemanticFailure extends Error {\n  constructor(domainId, code) { super(\"SEMAPRAX semantic failure\"); this.domainId = domainId; this.code = code; }\n}\nexport function semanticStatus(error) {\n  return error instanceof SpxSemanticFailure\n    ? Object.freeze({ schema: \"semaprax.status.v1\", domain_id: error.domainId, code: error.code })\n    : null;\n}\nconst SPX_RUNTIME_TAG_ALLOCATOR_KEY =",
+        )
+        .replace(
+            "throw new RangeError(`SEMAPRAX checked arithmetic failure: ${operation}`);",
+            "throw new SpxSemanticFailure(\"semaprax.arithmetic.v1\", ({ \"addition overflow\": 1, \"subtraction overflow\": 2, \"multiplication overflow\": 3, \"negation overflow\": 8 })[operation]);",
+        )
+        .replace(
+            "if (b === 0n || (a === SPX_MIN && b === -1n)) throw new RangeError(\"SEMAPRAX checked arithmetic failure: invalid division\");",
+            "if (b === 0n) throw new SpxSemanticFailure(\"semaprax.arithmetic.v1\", 4);\n      if (a === SPX_MIN && b === -1n) throw new SpxSemanticFailure(\"semaprax.arithmetic.v1\", 5);",
+        )
+        .replace(
+            "if (b === 0n || (a === SPX_MIN && b === -1n)) throw new RangeError(\"SEMAPRAX checked arithmetic failure: invalid remainder\");",
+            "if (b === 0n) throw new SpxSemanticFailure(\"semaprax.arithmetic.v1\", 6);\n      if (a === SPX_MIN && b === -1n) throw new SpxSemanticFailure(\"semaprax.arithmetic.v1\", 7);",
+        )
+        .replace(
+            "spx_contract_fail: () => { throw new Error(\"SEMAPRAX contract failure\"); },",
+            "spx_contract_fail: code => { throw new SpxSemanticFailure(\"semaprax.contract.v1\", code); },",
+        )
+}
+
+fn scalar_bindings(plans: &[scalar_exports::ScalarExportPlan], wasm_sha256: &str) -> String {
+    let facts = plans
+        .iter()
+        .map(|plan| {
+            format!(
+                "[{},Object.freeze({{raw:{},params:Object.freeze([{}]),result:{}}})]",
+                quote_json(&plan.stable_id),
+                quote_json(&plan.wasm_export),
+                plan.params
+                    .iter()
+                    .map(|ty| quote_json(ty.text()))
+                    .collect::<Vec<_>>()
+                    .join(","),
+                quote_json(plan.result.text()),
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    format!(
+        r#"import {{ instantiateBytes as instantiateRuntimeBytes, semanticStatus, wasmSha256 as runtimeWasmSha256 }} from "./semaprax.js";
+const SPX_MIN = -(1n << 63n);
+const SPX_MAX = (1n << 63n) - 1n;
+const EXPECTED_WASM_SHA256 = "{wasm_sha256}";
+if (runtimeWasmSha256 !== EXPECTED_WASM_SHA256) throw new Error("SEMAPRAX scalar binding/runtime digest disagreement");
+const ENTRIES = Object.freeze([{facts}]);
+const EXPORT_IDS = Object.freeze(ENTRIES.map(([id]) => id));
+const FACTS = Object.create(null);
+for (const [id, fact] of ENTRIES) Object.defineProperty(FACTS, id, {{ value: fact, enumerable: true }});
+Object.freeze(FACTS);
+function argument(value, type, index) {{
+  if (type === "i64") {{
+    if (typeof value !== "bigint" || value < SPX_MIN || value > SPX_MAX) throw new TypeError(`argument ${{index}} must be a signed 64-bit bigint`);
+    return value;
+  }}
+  if (typeof value !== "boolean") throw new TypeError(`argument ${{index}} must be boolean`);
+  return value ? 1 : 0;
+}}
+function result(value, type) {{
+  if (type === "i64") {{
+    if (typeof value !== "bigint" || value < SPX_MIN || value > SPX_MAX) throw new TypeError("SEMAPRAX adapter returned invalid i64");
+    return value;
+  }}
+  if (value !== 0 && value !== 1) throw new TypeError("SEMAPRAX adapter returned non-canonical bool");
+  return value === 1;
+}}
+function invoke(instance, id, values) {{
+  const fact = FACTS[id];
+  if (fact === undefined) throw new RangeError(`unknown SEMAPRAX scalar export: ${{id}}`);
+  if (values.length !== fact.params.length) throw new TypeError(`SEMAPRAX scalar export ${{id}} expects ${{fact.params.length}} arguments`);
+  const raw = instance.exports[fact.raw];
+  if (typeof raw !== "function") throw new Error(`SEMAPRAX scalar adapter missing: ${{fact.raw}}`);
+  try {{ return Object.freeze({{ ok: true, value: result(raw(...values.map((value, index) => argument(value, fact.params[index], index))), fact.result) }}); }}
+  catch (error) {{
+    const status = semanticStatus(error);
+    if (status !== null) return Object.freeze({{ ok: false, status }});
+    throw error;
+  }}
+}}
+function facade(instance) {{
+  const functions = Object.create(null);
+  for (const id of EXPORT_IDS) Object.defineProperty(functions, id, {{ value: (...values) => invoke(instance, id, values), enumerable: true }});
+  return Object.freeze({{ functions: Object.freeze(functions), call: (id, ...values) => invoke(instance, id, values) }});
+}}
+export async function instantiateBytes(bytes) {{ const linked = await instantiateRuntimeBytes(bytes); return facade(linked.instance); }}
+export async function instantiate(url = new URL("./app.wasm", import.meta.url)) {{ const response = await fetch(url); return instantiateBytes(await response.arrayBuffer()); }}
+export const exportIds = EXPORT_IDS;
+"#
+    )
+}
+
+fn scalar_declarations(plans: &[scalar_exports::ScalarExportPlan]) -> String {
+    let properties = plans
+        .iter()
+        .map(|plan| {
+            let args = plan
+                .params
+                .iter()
+                .enumerate()
+                .map(|(index, ty)| format!("arg{index}: {}", ty.typescript_type()))
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!(
+                "  readonly {}: ({args}) => ScalarResult<{}>;",
+                quote_json(&plan.stable_id),
+                plan.result.typescript_type(),
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    format!(
+        "export type ScalarStatus = Readonly<{{ schema: \"semaprax.status.v1\"; domain_id: \"semaprax.arithmetic.v1\"; code: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 }}> | Readonly<{{ schema: \"semaprax.status.v1\"; domain_id: \"semaprax.contract.v1\"; code: 1 | 2 }}>;\nexport type ScalarResult<T> = Readonly<{{ ok: true; value: T }}> | Readonly<{{ ok: false; status: ScalarStatus }}>;\nexport interface ScalarFunctions {{\n{properties}\n}}\nexport interface ScalarRuntime {{ readonly functions: Readonly<ScalarFunctions>; call<I extends keyof ScalarFunctions>(id: I, ...args: Parameters<ScalarFunctions[I]>): ReturnType<ScalarFunctions[I]>; }}\nexport declare function instantiateBytes(bytes: ArrayBuffer | ArrayBufferView): Promise<ScalarRuntime>;\nexport declare function instantiate(url?: URL | string): Promise<ScalarRuntime>;\nexport declare const exportIds: readonly (keyof ScalarFunctions)[];\n"
+    )
+}
+
+fn scalar_manifest(
+    program: &Program,
+    plans: &[scalar_exports::ScalarExportPlan],
+    wasm_sha256: &str,
+    artifacts: &[(&str, &[u8])],
+) -> String {
+    let functions = plans
+        .iter()
+        .map(|plan| plan.manifest_json())
+        .collect::<Vec<_>>()
+        .join(",");
+    let mut artifact_rows = vec![format!(
+        "{{\"path\":\"app.wasm\",\"sha256\":\"{wasm_sha256}\"}}"
+    )];
+    artifact_rows.extend(artifacts.iter().map(|(path, bytes)| {
+        format!(
+            "{{\"path\":{},\"sha256\":\"{:x}\"}}",
+            quote_json(path),
+            Sha256::digest(bytes)
+        )
+    }));
+    format!(
+        "{{\"schema\":\"semaprax.web.v4\",\"module\":{},\"graph_revision\":{},\"capabilities\":[],\"artifacts\":[{}],\"scalar_abi\":{{\"schema\":\"semaprax.wasm-scalar.v1\",\"functions\":[{}]}}}}\n",
+        quote_json(&program.module),
+        quote_json(&graph::revision(program)),
+        artifact_rows.join(","),
+        functions,
+    )
+}
+
+fn scalar_browser_html() -> &'static str {
+    r#"<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SEMAPRAX scalar package</title></head><body><p>Import <code>./semaprax.bindings.js</code> to use this package.</p></body></html>
+"#
 }
 
 fn reject_native_rust_imports(program: &Program) -> Result<(), Diagnostic> {
@@ -921,9 +1545,14 @@ fn emit_short_circuit(
     Ok(())
 }
 
-fn emit_contract_guard(output: &mut impl ByteOutput) {
+fn emit_contract_guard(output: &mut impl ByteOutput, failure_code: Option<i64>) {
     output.push(0x45);
-    output.extend_bytes(&[0x04, 0x40, 0x10]);
+    output.extend_bytes(&[0x04, 0x40]);
+    if let Some(code) = failure_code {
+        output.push(0x41);
+        write_i64(output, code);
+    }
+    output.push(0x10);
     write_u32(output, 6);
     output.push(0x00);
     output.push(0x0b);

@@ -1199,6 +1199,38 @@ nested/resource/non-Copy carriers, imports/capabilities, callbacks/async,
 callable/FFI/public ABI, browser/multi-engine conformance, package negotiation,
 or `SPX-B104`/`SPX-W111` widening.
 
+## Web v3 to Public Wasm Scalar Exports v1 / web v4
+
+Ordinary `semaprax build <file> --target web` remains the legacy
+`semaprax.web.v3` package with `semaprax_main`. No migration is required for an
+existing consumer unless it opts into selected scalar exports.
+
+Adding one or more repeated `--export <stable-id>` options selects the separate
+[Public Wasm Scalar Exports v1](WASM-SCALAR-EXPORTS-V1.md) profile and emits
+`semaprax.web.v4`. The v4 module exports only stable-ID-derived scalar adapters;
+it does not export `semaprax_main`. Consumers migrate from:
+
+```js
+const { instance } = await instantiate();
+const value = instance.exports.semaprax_main();
+```
+
+to the generated stable-ID facade:
+
+```js
+import { instantiate } from "./semaprax.bindings.js";
+const runtime = await instantiate();
+const result = runtime.call("calculator.add", 19n, 23n);
+```
+
+The selected IDs must be explicit persistent declaration identities and satisfy
+the profile's bounded lowercase grammar. A display-name rename does not require
+consumer migration when the `@id` remains unchanged. Unsupported programs fail
+with `SPX-W115`/`SPX-W116`; the compiler never interprets them through the v3
+entry ABI or aggregate/resource ABI. V4 also adds exact artifact digests and
+generated `.d.ts` declarations. Its digest binding is integrity metadata, not
+signature or provenance evidence.
+
 ## Revision token FNV-1a64 to SHA-256
 
 Graph v3 and later, semantic patch bases, CLI output, and `semaprax.web.v2`/`semaprax.web.v3` manifests use one algorithm-tagged token:

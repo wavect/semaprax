@@ -152,8 +152,8 @@ same parser, resolver, verifier, and HIR validation path.
 **Current release line:** v0.2 · **Maturity:** pre-alpha research
 
 The [completion matrix](docs/COMPLETION-MATRIX.md) is the source of truth for
-project claims. At the current evidence milestone it records **38 Partial** and
-**18 Missing** full-goal requirements. A feature is not called implemented
+project claims. At the current evidence milestone it records **39 Partial** and
+**17 Missing** full-goal requirements. A feature is not called implemented
 unless its stated gate has executable evidence; a successful narrow prototype
 does not satisfy a broader product gate.
 
@@ -167,7 +167,7 @@ does not satisfy a broader product gate.
 | Agent interface | Deterministic Graph v10–v14, bounded context, impact preview, repair discovery, semantic review, and exact evidence replay. |
 | Semantic changes | Atomic single-file patches plus bounded managed multi-file workspace transactions and replacements-only semantic workspace operations. These do not provide general Git/editor-tree atomicity. |
 | Native target | C11/Clang scalar and bounded Copy-data execution. Public general resource/FFI/aggregate ABI admission remains closed. |
-| Web target | WebAssembly Core plus a generated browser package for the admitted language slice. General public Component Model output remains open. |
+| Web target | WebAssembly Core plus a generated package; selected stable-ID scalar functions have bounded JavaScript/TypeScript bindings. General browser-SDK and public Component Model output remain open. |
 | Applications | Private CI evidence exists for bounded desktop and mobile prototypes. Public SDKs, packaging, lifecycle breadth, and production distribution remain open. |
 | Agent runtime | A bounded injected-host Rust API has hosted deterministic fake-host evidence. It is not a live provider transport, CLI agent, durable-memory system, wallet, payment, signing, or ambient-authority surface. |
 
@@ -175,11 +175,12 @@ The bounded public Agent Runtime v1 gate is hosted green at
 Public Agent Runtime v1 is hosted GREEN at 8cf29aff8d1be3ccf74c36bc8c837f0c666ca067 (run 31591039261, 12/12 jobs, private and public deterministic fake-host gates on Ubuntu, macOS, and Windows).
 Private Economic Agent v1 A+B is exact-head hosted green at fe75c38d898b71e3ed5c57411fb46d0dbd4fc34b in run 31611748969, including both Economic gates on Ubuntu, macOS, and Windows. Public Economic Agent v1 C is exact-head hosted green at 03f1f2736de23d03b298f265f93409de89a6be95 in run 31616168124 (12/12 jobs), including the private, process-termination, and public Economic gates on Ubuntu, macOS, and Windows.
 
-Private Native Rust Interoperability v1 A+B is locally green under the frozen
-scalar/static-link profile; public C and exact-head Ubuntu/macOS/Windows plus
-Linux-sanitizer promotion remain held. See [Native Rust Interoperability
+Private Native Rust Interoperability v1 A+B is exact-head hosted green at
+`50b96dccabe3b3dcbcdf38bab380f3eb8699184c` in [run
+32402944574](https://github.com/wavect/semaprax/actions/runs/32402944574).
+Public C remains held: the builder is crate-private and unpublished, with no
+root API or CLI. See [Native Rust Interoperability
 v1](docs/NATIVE-RUST-INTEROP-V1.md).
-Neither changes the matrix totals.
 
 For precise evidence, boundaries, and non-claims, use these documents:
 
@@ -220,7 +221,7 @@ Start with [Agent Context v1](docs/AGENT-CONTEXT-V1.md),
 | `semaprax check <file> [--json]` | Parse, type-check, and verify a source file. |
 | `semaprax fmt <file> [--check]` | Apply or verify canonical formatting. |
 | `semaprax run <file>` | Build and run a host-native program. |
-| `semaprax build <file> [--target native\|native-callable\|web]` | Produce a native executable, bounded callable bundle, or browser/Wasm package. |
+| `semaprax build <file> [--target native\|native-callable\|web] [--export stable-id ...]` | Produce a native executable, bounded callable bundle, or browser/Wasm package with selected scalar exports. |
 | `semaprax graph <file>` | Emit the revisioned semantic graph. |
 | `semaprax context <file> <stable-id> [options]` | Emit a deterministic, bounded semantic context. |
 | `semaprax impact <file> <patch.spatch> [options]` | Preview supported source consumers and reverse-call impact without writing. |
@@ -229,6 +230,20 @@ Start with [Agent Context v1](docs/AGENT-CONTEXT-V1.md),
 
 Run `semaprax --help` for the complete workspace, evidence, repair, and target
 command surface.
+
+For a calculator-style web core, select persistent function identities directly:
+
+```sh
+semaprax build examples/calculator.spx --target web \
+  --export calculator.add --export calculator.divide \
+  -o calculator-web
+```
+
+Import `calculator-web/semaprax.bindings.js` and call
+`runtime.call("calculator.add", ...)`. The key survives a source-level
+function rename because it is the declaration's persistent identity. See
+[Public Wasm Scalar Exports v1](docs/WASM-SCALAR-EXPORTS-V1.md) for the exact
+scalar-only boundary and remaining browser/TypeScript gates.
 
 ## Roadmap
 

@@ -31,7 +31,7 @@ hmac = "=0.12.1"
 same-file = "=1.0.6"
 serde_json = "=1.0.151"
 sha2 = "=0.10.9"
-wasmparser = { version = "=0.255.0", default-features = false, features = ["component-model", "features", "validate"] }
+wasmparser = { version = "=0.256.0", default-features = false, features = ["component-model", "features", "validate"] }
 
 [dev-dependencies]
 

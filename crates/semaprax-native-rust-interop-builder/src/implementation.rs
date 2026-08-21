@@ -2082,11 +2082,17 @@ fn domain_digest(domain: &[u8], bytes: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(domain);
     hasher.update(bytes);
-    format!("sha256:{:x}", hasher.finalize())
+    format!(
+        "sha256:{:x}",
+        semaprax::digest_hex::LowerHex(hasher.finalize())
+    )
 }
 
 fn raw_digest(bytes: &[u8]) -> String {
-    format!("sha256:{:x}", Sha256::digest(bytes))
+    format!(
+        "sha256:{:x}",
+        semaprax::digest_hex::LowerHex(Sha256::digest(bytes))
+    )
 }
 
 fn identifier_gate(value: &str) -> Result<(), Diagnostic> {
@@ -2114,7 +2120,10 @@ fn identifier_audit(program: &Program, spec: &Spec) -> Result<(), Diagnostic> {
 }
 
 fn full_hash(value: &str) -> String {
-    format!("{:x}", Sha256::digest(value.as_bytes()))
+    format!(
+        "{:x}",
+        semaprax::digest_hex::LowerHex(Sha256::digest(value.as_bytes()))
+    )
 }
 
 fn frame(hasher: &mut Sha256, bytes: &[u8]) {
@@ -2128,7 +2137,10 @@ fn framed_digest<'a>(domain: &[u8], fields: impl IntoIterator<Item = &'a [u8]>) 
     for field in fields {
         frame(&mut hasher, field);
     }
-    format!("sha256:{:x}", hasher.finalize())
+    format!(
+        "sha256:{:x}",
+        semaprax::digest_hex::LowerHex(hasher.finalize())
+    )
 }
 
 fn sorted_unique(values: &[String]) -> bool {
@@ -2955,7 +2967,10 @@ fn call_digest(
         frame(&mut hasher, id.as_bytes());
         frame(&mut hasher, digest.as_bytes());
     }
-    let digest = format!("sha256:{:x}", hasher.finalize());
+    let digest = format!(
+        "sha256:{:x}",
+        semaprax::digest_hex::LowerHex(hasher.finalize())
+    );
     #[cfg(test)]
     {
         let scratch = checked_owned_string_vec(&parameter_values, parameter_values.capacity())
@@ -4265,7 +4280,10 @@ fn hir_fingerprint(
         );
         frame(&mut hasher, import.call_contract_digest.as_bytes());
     }
-    let digest = format!("sha256:{:x}", hasher.finalize());
+    let digest = format!(
+        "sha256:{:x}",
+        semaprax::digest_hex::LowerHex(hasher.finalize())
+    );
     #[cfg(test)]
     note_post_hir_facts_live(_capacity_baseline, digest.capacity());
     Ok(digest)
@@ -13872,7 +13890,10 @@ fn capability_digest(capabilities: &[String]) -> String {
     for capability in capabilities {
         frame(&mut hasher, capability.as_bytes());
     }
-    format!("sha256:{:x}", hasher.finalize())
+    format!(
+        "sha256:{:x}",
+        semaprax::digest_hex::LowerHex(hasher.finalize())
+    )
 }
 
 fn rust_parameters(parameters: &[ParameterFact]) -> String {
@@ -14611,7 +14632,10 @@ fn replay_capabilities_digest(capabilities: &[String]) -> String {
         );
         hasher.update(capability.as_bytes());
     }
-    let digest = format!("sha256:{:x}", hasher.finalize());
+    let digest = format!(
+        "sha256:{:x}",
+        semaprax::digest_hex::LowerHex(hasher.finalize())
+    );
     #[cfg(test)]
     note_post_hir_replay_capacity(digest.capacity());
     digest
@@ -20979,14 +21003,20 @@ fn main() -> i64 { 0 }
     #[test]
     fn six_output_artifact_known_answer_vectors_are_frozen() {
         fn independent_sha256(bytes: &[u8]) -> String {
-            format!("sha256:{:x}", Sha256::digest(bytes))
+            format!(
+                "sha256:{:x}",
+                semaprax::digest_hex::LowerHex(Sha256::digest(bytes))
+            )
         }
 
         fn independent_domain_sha256(domain: &[u8], bytes: &[u8]) -> String {
             let mut hasher = Sha256::new();
             hasher.update(domain);
             hasher.update(bytes);
-            format!("sha256:{:x}", hasher.finalize())
+            format!(
+                "sha256:{:x}",
+                semaprax::digest_hex::LowerHex(hasher.finalize())
+            )
         }
 
         fn assert_raw_kat(name: &str, bytes: &[u8], length: usize, digest: &str) {
@@ -26939,7 +26969,14 @@ module capacity.cleanup_shadow;
             }
             let mut hasher = Sha256::new();
             hash_expr(&mut hasher, &exact, 0).unwrap();
-            assert_eq!(format!("sha256:{:x}", hasher.finalize()).len(), 71);
+            assert_eq!(
+                format!(
+                    "sha256:{:x}",
+                    semaprax::digest_hex::LowerHex(hasher.finalize())
+                )
+                .len(),
+                71
+            );
 
             let over = wrap(exact, MAX_SEMANTIC_EXPRESSION_DEPTH);
             let mut hasher = Sha256::new();

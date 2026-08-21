@@ -154,7 +154,10 @@ fn rename_patch_v2(revision: &str, stable_id: &str, new_name: &str) -> String {
 }
 
 fn sha256(bytes: &[u8]) -> String {
-    format!("{:x}", Sha256::digest(bytes))
+    format!(
+        "{:x}",
+        semaprax::digest_hex::LowerHex(Sha256::digest(bytes))
+    )
 }
 
 fn first_code<T>(result: Result<T, Vec<semaprax::diagnostic::Diagnostic>>) -> String {

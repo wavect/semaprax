@@ -1,0 +1,26 @@
+module calculator.core;
+
+@id("calculator.add")
+fn add(left: i64, right: i64) -> i64
+{
+    left + right
+}
+
+@id("calculator.divide")
+fn divide(left: i64, right: i64) -> i64
+    requires right != 0
+{
+    left / right
+}
+
+@id("calculator.is-negative")
+fn is_negative(value: i64) -> bool
+{
+    value < 0
+}
+
+@id("calculator.not")
+fn not(value: bool) -> bool
+{
+    !value
+}

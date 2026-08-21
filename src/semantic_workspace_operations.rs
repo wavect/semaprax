@@ -2316,7 +2316,10 @@ fn digest_without_length(domain: &[u8], bytes: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(domain);
     hasher.update(bytes);
-    format!("sha256:{:x}", hasher.finalize())
+    format!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(hasher.finalize())
+    )
 }
 
 const DERIVATION_LIMITS: [(&str, usize); 21] = [
@@ -2466,7 +2469,7 @@ fn proposal_digest(s: &str) -> String {
     h.update(DIGEST_DOMAIN);
     h.update((s.len() as u64).to_le_bytes());
     h.update(s.as_bytes());
-    format!("sha256:{:x}", h.finalize())
+    format!("sha256:{:x}", crate::digest_hex::LowerHex(h.finalize()))
 }
 fn exact_keys(o: &serde_json::Map<String, Value>, keys: &[&str]) -> Result<(), Vec<Diagnostic>> {
     if o.len() != keys.len() || keys.iter().any(|k| !o.contains_key(*k)) {
@@ -3987,7 +3990,10 @@ permit { audit.one, audit.two }
     fn raw_sha256(bytes: &[u8]) -> String {
         let mut hasher = Sha256::new();
         hasher.update(bytes);
-        format!("sha256:{:x}", hasher.finalize())
+        format!(
+            "sha256:{:x}",
+            crate::digest_hex::LowerHex(hasher.finalize())
+        )
     }
 
     fn directory_names(path: &Path) -> Vec<String> {

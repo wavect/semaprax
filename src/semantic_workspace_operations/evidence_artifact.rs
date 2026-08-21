@@ -543,5 +543,8 @@ fn digest(domain: &[u8], bytes: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(domain);
     hasher.update(bytes);
-    format!("sha256:{:x}", hasher.finalize())
+    format!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(hasher.finalize())
+    )
 }

@@ -1944,7 +1944,10 @@ fn artifact_digest(domain: &[u8], payload: &[u8]) -> String {
     hasher.update(domain);
     hasher.update((payload.len() as u64).to_le_bytes());
     hasher.update(payload);
-    format!("sha256:{:x}", hasher.finalize())
+    format!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(hasher.finalize())
+    )
 }
 
 fn bind_artifact(
@@ -4213,7 +4216,10 @@ fn main() -> i64 uses { collision.same } {
     fn document_sha(document: &str) -> String {
         let mut hasher = Sha256::new();
         hasher.update(document.as_bytes());
-        format!("sha256:{:x}", hasher.finalize())
+        format!(
+            "sha256:{:x}",
+            crate::digest_hex::LowerHex(hasher.finalize())
+        )
     }
 
     fn assert_fragments_in_order(document: &str, fragments: &[&str]) {

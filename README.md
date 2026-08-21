@@ -166,6 +166,7 @@ does not satisfy a broader product gate.
 | Ownership | Move and partial-place checking, explicit lifecycle/ownership boundaries, and independently replayed target-neutral cleanup plans. General lifetime, aliasing, concurrency, and public resource execution remain open. |
 | Agent interface | Deterministic Graph v10–v14, bounded context, impact preview, repair discovery, semantic review, and exact evidence replay. |
 | Semantic changes | Atomic single-file patches plus bounded managed multi-file workspace transactions and replacements-only semantic workspace operations. These do not provide general Git/editor-tree atomicity. |
+| Project build | A bounded explicit pure-scalar `semaprax.toml` build input reuses one in-memory Workspace Phase-A pass and publishes a Web package. Explicit stable-ID `use function` provider edges are its only cross-file composition; native lowering is internal evidence only. This is not dependency management, a managed workspace, or production packaging. |
 | Native target | C11/Clang scalar and bounded Copy-data execution. Public general resource/FFI/aggregate ABI admission remains closed. |
 | Web target | WebAssembly Core plus a generated package; selected stable-ID scalar functions have bounded JavaScript/TypeScript bindings. General browser-SDK and public Component Model output remain open. |
 | Applications | Private CI evidence exists for bounded desktop and mobile prototypes. Public SDKs, packaging, lifecycle breadth, and production distribution remain open. |
@@ -222,6 +223,7 @@ Start with [Agent Context v1](docs/AGENT-CONTEXT-V1.md),
 | `semaprax fmt <file> [--check]` | Apply or verify canonical formatting. |
 | `semaprax run <file>` | Build and run a host-native program. |
 | `semaprax build <file> [--target native\|native-callable\|web] [--export stable-id ...]` | Produce a native executable, bounded callable bundle, or browser/Wasm package with selected scalar exports. |
+| `semaprax check [semaprax.toml]` / `semaprax build [semaprax.toml] [--target web]` | Check or publish the bounded Project Manifest v1 Web package; `--manifest-path` selects another manifest. |
 | `semaprax graph <file>` | Emit the revisioned semantic graph. |
 | `semaprax context <file> <stable-id> [options]` | Emit a deterministic, bounded semantic context. |
 | `semaprax impact <file> <patch.spatch> [options]` | Preview supported source consumers and reverse-call impact without writing. |
@@ -244,6 +246,17 @@ Import `calculator-web/semaprax.bindings.js` and call
 function rename because it is the declaration's persistent identity. See
 [Public Wasm Scalar Exports v1](docs/WASM-SCALAR-EXPORTS-V1.md) for the exact
 scalar-only boundary and remaining browser/TypeScript gates.
+
+For the bounded multi-file calculator, run `semaprax check
+examples/calculator-project/semaprax.toml` or `semaprax build
+examples/calculator-project/semaprax.toml --target web -o calculator-project-web`.
+The six-line manifest explicitly names all sources, entry/test modules, and Web
+exports; it has no dependency or capability syntax. See [Project Manifest
+v1](docs/PROJECT-MANIFEST-V1.md) for its scalar-only, Web-only publication
+boundary: interface/native imports and `use type` are excluded, while explicit
+stable-ID `use function` provider edges compose the named modules. A final
+post-publication input drift is `SPX-J103`; callers reconcile the retained
+digest-bound package and never delete it automatically.
 
 ## Roadmap
 

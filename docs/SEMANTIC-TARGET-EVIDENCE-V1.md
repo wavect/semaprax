@@ -75,7 +75,7 @@ The native values are `native_c11_source` and
 `semaprax.native-c11.bootstrap.v1`. These bytes are production compiler-emitted
 C11 source, not compiled objects, machine code, ABI evidence, or toolchain
 attestation. The Wasm values are `wasm_core_module`, `semaprax.wasm-core.v1`,
-`wasmparser_structural`, `0.255.0`, and `all`. Structural validation is not
+`wasmparser_structural`, `0.256.0`, and `all`. Structural validation is not
 runtime execution or multi-engine conformance.
 
 ## Graph and capability facts
@@ -141,9 +141,9 @@ wire prefix or terminal LF, are:
 
 | Patch schema | SHA-256 |
 | --- | --- |
-| v1 | `b00f9a0a6757e6da6f7cf32771172da02c93615e5fce697c71a24fbf28e5e011` |
-| v2 | `00c835772f189110c3cee85088ec34862c0f2cb0716ffe43b71675ec40fa22a2` |
-| v3 | `fdcd73f2e40123434243c89ab5e3839d77d349305f5f984aca865ffd671aa6e1` |
+| v1 | `900ee398b20f8cb59d5e48be3c6b824ce9ede339d86f86403368e0f5b574cc95` |
+| v2 | `ec432841ca9e4e6209b0b302ed6cfd1ab61810eeed903c7cf0e1e97d806c185f` |
+| v3 | `dded215d3f185978788d72e3dfbef3d167264c37ac36a88f753ec458a56494e1` |
 
 Target Evidence integration is 9/9 and its internal units are 4/4. The hosted
 integration gate compiles and runs the exact candidate C at O0 and O2 and runs

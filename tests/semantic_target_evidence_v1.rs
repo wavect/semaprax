@@ -78,7 +78,10 @@ impl Drop for Fixture {
 }
 
 fn sha256(value: &str) -> String {
-    format!("{:x}", Sha256::digest(value.as_bytes()))
+    format!(
+        "{:x}",
+        semaprax::digest_hex::LowerHex(Sha256::digest(value.as_bytes()))
+    )
 }
 
 fn domain_digest(domain: &[u8], bytes: &[u8]) -> String {
@@ -86,7 +89,10 @@ fn domain_digest(domain: &[u8], bytes: &[u8]) -> String {
     hasher.update(domain);
     hasher.update((bytes.len() as u64).to_le_bytes());
     hasher.update(bytes);
-    format!("sha256:{:x}", hasher.finalize())
+    format!(
+        "sha256:{:x}",
+        semaprax::digest_hex::LowerHex(hasher.finalize())
+    )
 }
 
 #[test]
@@ -107,7 +113,7 @@ fn report_is_exact_typed_and_read_only() {
     assert_eq!(value["capabilities"]["added"], serde_json::json!([]));
     assert_eq!(value["capabilities"]["removed"], serde_json::json!([]));
     assert_eq!(value["targets"][1]["validation"], "wasmparser_structural");
-    assert_eq!(value["targets"][1]["validator_version"], "0.255.0");
+    assert_eq!(value["targets"][1]["validator_version"], "0.256.0");
     assert_eq!(value["targets"][1]["validator_features"], "all");
     assert!(value["nonclaims"]
         .as_array()
@@ -360,9 +366,9 @@ fn whole_report_sha_kats_cover_patch_v1_v2_v3() {
     assert_eq!(
         reports.each_ref().map(|report| sha256(report)),
         [
-            "b00f9a0a6757e6da6f7cf32771172da02c93615e5fce697c71a24fbf28e5e011".to_owned(),
-            "00c835772f189110c3cee85088ec34862c0f2cb0716ffe43b71675ec40fa22a2".to_owned(),
-            "fdcd73f2e40123434243c89ab5e3839d77d349305f5f984aca865ffd671aa6e1".to_owned(),
+            "900ee398b20f8cb59d5e48be3c6b824ce9ede339d86f86403368e0f5b574cc95".to_owned(),
+            "ec432841ca9e4e6209b0b302ed6cfd1ab61810eeed903c7cf0e1e97d806c185f".to_owned(),
+            "dded215d3f185978788d72e3dfbef3d167264c37ac36a88f753ec458a56494e1".to_owned(),
         ]
     );
 }

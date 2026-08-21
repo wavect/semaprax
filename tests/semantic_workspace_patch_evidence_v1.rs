@@ -187,7 +187,10 @@ fn revision(source: &str, path: &str) -> String {
 }
 
 fn sha256(value: &str) -> String {
-    format!("{:x}", Sha256::digest(value.as_bytes()))
+    format!(
+        "{:x}",
+        semaprax::digest_hex::LowerHex(Sha256::digest(value.as_bytes()))
+    )
 }
 
 fn domain_digest(domain: &[u8], value: &str) -> String {
@@ -195,7 +198,10 @@ fn domain_digest(domain: &[u8], value: &str) -> String {
     digest.update(domain);
     digest.update((value.len() as u64).to_le_bytes());
     digest.update(value.as_bytes());
-    format!("sha256:{:x}", digest.finalize())
+    format!(
+        "sha256:{:x}",
+        semaprax::digest_hex::LowerHex(digest.finalize())
+    )
 }
 
 fn assert_exclusive_lock_available(root: &std::path::Path) {

@@ -341,7 +341,10 @@ impl AgentHost for ScriptHost {
 }
 
 fn raw_sha(source: &str) -> String {
-    format!("sha256:{:x}", Sha256::digest(source.as_bytes()))
+    format!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(Sha256::digest(source.as_bytes()))
+    )
 }
 
 fn diagnostic(error: Vec<Diagnostic>) -> (&'static str, String) {

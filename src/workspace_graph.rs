@@ -961,6 +961,227 @@ impl WorkspaceGraphBuild {
         self.hir.module_paths.contains_key(module)
     }
 
+    /// Consume one validated workspace build into the entry module's complete
+    /// provider closure and link its real scalar function bodies. This is a
+    /// private backend-preparation seam, not a new Workspace authority or a
+    /// general cross-file composition surface.
+    pub(crate) fn linked_scalar_program(
+        &self,
+        entry_module: &str,
+    ) -> Result<hir::ResolvedProgram, Vec<Diagnostic>> {
+        validate_entry_module(entry_module)?;
+        let Some(entry_path) = self.hir.module_paths.get(entry_module).cloned() else {
+            return Err(vec![graph_error(
+                "SPX-G172",
+                format!("Workspace Semantic Graph entry module `{entry_module}` is absent"),
+            )]);
+        };
+
+        let authenticated_paths = self
+            .hir
+            .module_paths
+            .values()
+            .cloned()
+            .collect::<BTreeSet<_>>();
+        let mut direct_providers = BTreeMap::<String, BTreeSet<String>>::new();
+        for edge in &self.edges {
+            if !matches!(edge.kind, "function_import" | "type_import") {
+                continue;
+            }
+            if !authenticated_paths.contains(edge.caller_path.as_str())
+                || !authenticated_paths.contains(edge.target_path.as_str())
+            {
+                return Err(vec![graph_error(
+                    "SPX-G173",
+                    "workspace import edge paths disagree with authenticated modules",
+                )]);
+            }
+            direct_providers
+                .entry(edge.caller_path.clone())
+                .or_default()
+                .insert(edge.target_path.clone());
+        }
+        let mut reachable_paths = BTreeSet::from([entry_path.clone()]);
+        let mut pending = BTreeSet::from([entry_path]);
+        while let Some(path) = pending.pop_first() {
+            if let Some(providers) = direct_providers.get(&path) {
+                for provider in providers {
+                    if reachable_paths.insert(provider.clone()) {
+                        pending.insert(provider.clone());
+                    }
+                }
+            }
+        }
+
+        if self.edges.iter().any(|edge| {
+            reachable_paths.contains(edge.caller_path.as_str()) && edge.kind == "type_import"
+        }) {
+            return Err(vec![graph_error(
+                "SPX-G172",
+                "workspace scalar linker does not admit `use type` imports",
+            )]);
+        }
+
+        let mut functions = Vec::new();
+        let mut entrypoints = Vec::new();
+        let mut retained_modules = 0usize;
+        for module in &self.hir.modules {
+            if !reachable_paths.contains(module.path.as_str()) {
+                continue;
+            }
+            retained_modules += 1;
+            if !module.permits.is_empty()
+                || !module.types.is_empty()
+                || !module.interfaces.is_empty()
+                || !module.function_templates.is_empty()
+                || !module.function_instances.is_empty()
+            {
+                return Err(vec![graph_error(
+                    "SPX-G172",
+                    format!(
+                        "workspace module `{}` is outside the pure scalar linker profile",
+                        module.module
+                    ),
+                )]);
+            }
+            for function in &module.functions {
+                if module.module != entry_module && function.name == "main" {
+                    return Err(vec![graph_error(
+                        "SPX-G172",
+                        "workspace scalar provider modules may not declare `main`",
+                    )]);
+                }
+                let Some(fact) = self.hir.declarations.get(function.id.as_str()) else {
+                    return Err(vec![graph_error(
+                        "SPX-G173",
+                        "workspace scalar function is absent from declaration facts",
+                    )]);
+                };
+                if fact.kind != hir::DeclarationKind::Function
+                    || fact.path.as_deref() != Some(module.path.as_str())
+                    || fact.module.as_deref() != Some(module.module.as_str())
+                {
+                    return Err(vec![graph_error(
+                        "SPX-G173",
+                        "workspace scalar function declaration facts disagree with retained body",
+                    )]);
+                }
+                if module.module == entry_module && function.name == "main" {
+                    entrypoints.push((function.id.clone(), fact.origin));
+                }
+                functions.push(hir::LinkedScalarFunction {
+                    function: function.clone(),
+                    origin: fact.origin,
+                });
+            }
+        }
+        if retained_modules != reachable_paths.len() {
+            return Err(vec![graph_error(
+                "SPX-G173",
+                "workspace scalar provider closure disagrees with retained modules",
+            )]);
+        }
+        if entrypoints.len() != 1 {
+            return Err(vec![graph_error(
+                "SPX-G172",
+                "workspace scalar entry module must declare exactly one authored `main` function",
+            )]);
+        }
+        let (entrypoint, origin) = entrypoints.pop().expect("length checked above");
+        if origin != hir::IdentityOrigin::Explicit {
+            return Err(vec![graph_error(
+                "SPX-G172",
+                "workspace scalar entry module `main` must have an explicit identity",
+            )]);
+        }
+        hir::link_scalar_workspace(entry_module.to_owned(), entrypoint, functions)
+            .map_err(|error| vec![error])
+    }
+
+    /// Consume one Phase-A graph build only after deriving both requested
+    /// closures. The returned programs retain independently validated HIR, but
+    /// their common provider bodies originate from this one graph build.
+    pub(crate) fn into_linked_scalar_programs(
+        self,
+        entry_module: &str,
+        test_module: &str,
+    ) -> Result<(hir::ResolvedProgram, hir::ResolvedProgram), Vec<Diagnostic>> {
+        self.validate_entire_scalar_workspace(entry_module, test_module)?;
+        let entry = self.linked_scalar_program(entry_module)?;
+        let test = self.linked_scalar_program(test_module)?;
+        Ok((entry, test))
+    }
+
+    fn validate_entire_scalar_workspace(
+        &self,
+        entry_module: &str,
+        test_module: &str,
+    ) -> Result<(), Vec<Diagnostic>> {
+        validate_entry_module(entry_module)?;
+        validate_entry_module(test_module)?;
+        let roots = BTreeSet::from([entry_module, test_module]);
+        for module in &self.hir.modules {
+            if !module.permits.is_empty()
+                || !module.types.is_empty()
+                || !module.interfaces.is_empty()
+                || !module.function_templates.is_empty()
+                || !module.function_instances.is_empty()
+            {
+                return Err(vec![graph_error(
+                    "SPX-G172",
+                    format!(
+                        "workspace module `{}` is outside the pure scalar linker profile",
+                        module.module
+                    ),
+                )]);
+            }
+            if !roots.contains(module.module.as_str())
+                && module
+                    .functions
+                    .iter()
+                    .any(|function| function.name == "main")
+            {
+                return Err(vec![graph_error(
+                    "SPX-G172",
+                    "workspace scalar provider modules may not declare `main`",
+                )]);
+            }
+            for function in &module.functions {
+                if !function.effects.is_empty()
+                    || function
+                        .params
+                        .iter()
+                        .any(|parameter| parameter.ownership != hir::OwnershipMode::Value)
+                    || !matches!(
+                        function.return_type,
+                        hir::ResolvedType::I64 | hir::ResolvedType::Bool
+                    )
+                    || function.params.iter().any(|parameter| {
+                        !matches!(
+                            parameter.ty,
+                            hir::ResolvedType::I64 | hir::ResolvedType::Bool
+                        )
+                    })
+                {
+                    return Err(vec![graph_error(
+                        "SPX-G172",
+                        format!(
+                            "workspace function `{}` is outside the pure scalar linker profile",
+                            function.id
+                        ),
+                    )]);
+                }
+            }
+        }
+        if self.edges.iter().any(|edge| edge.kind == "type_import") {
+            return Err(vec![graph_error(
+                "SPX-G172",
+                "workspace scalar linker does not admit `use type` imports",
+            )]);
+        }
+        Ok(())
+    }
+
     pub(crate) fn change_builder_bytes(&self) -> Option<usize> {
         self.change_fingerprints
             .as_ref()
@@ -2302,7 +2523,10 @@ fn artifact_digest(payload: &[u8]) -> String {
     hasher.update(ARTIFACT_DIGEST_DOMAIN);
     hasher.update((payload.len() as u64).to_le_bytes());
     hasher.update(payload);
-    format!("sha256:{:x}", hasher.finalize())
+    format!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(hasher.finalize())
+    )
 }
 
 fn build_owned_with_builder_limit(
@@ -3033,7 +3257,7 @@ fn operation_declaration_fingerprint(
     reserve_builder_structure(71)?;
     Ok(crate::bounded_output::budgeted_format(format_args!(
         "sha256:{:x}",
-        hasher.finalize()
+        crate::digest_hex::LowerHex(hasher.finalize())
     )))
 }
 
@@ -4266,8 +4490,10 @@ fn insert_declaration_fingerprint(
     hasher.update(bytes.as_bytes());
     reserve_builder_structure(std::mem::size_of::<(String, String)>())?;
     let id = crate::bounded_output::budgeted_clone(id);
-    let fingerprint =
-        crate::bounded_output::budgeted_format(format_args!("sha256:{:x}", hasher.finalize()));
+    let fingerprint = crate::bounded_output::budgeted_format(format_args!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(hasher.finalize())
+    ));
     if fingerprints.insert(id, fingerprint).is_some() {
         return Err(vec![graph_error(
             "SPX-G173",
@@ -8722,6 +8948,190 @@ mod tests {
         }
     }
 
+    #[test]
+    fn scalar_linker_uses_real_provider_bodies_for_two_closures() {
+        let provider = canonical_source(
+            "lib/math.spx",
+            r#"
+module lib.math;
+
+@id("lib.answer")
+fn answer() -> i64 { 41 }
+"#,
+        );
+        let app = canonical_source(
+            "app/main.spx",
+            r#"
+module app.main;
+use function @id("lib.answer") from lib.math as answer;
+
+@id("app.main")
+fn main() -> i64 { answer() + 1 }
+"#,
+        );
+        let test = canonical_source(
+            "test/main.spx",
+            r#"
+module test.main;
+use function @id("lib.answer") from lib.math as answer;
+
+@id("test.main")
+fn main() -> i64 { answer() + 2 }
+"#,
+        );
+
+        let (entry, test) = build_owned(vec![provider, app, test])
+            .unwrap()
+            .into_linked_scalar_programs("app.main", "test.main")
+            .unwrap();
+        let answer = hir::DeclarationId::new("lib.answer");
+        let entry_answer = entry
+            .functions
+            .iter()
+            .find(|function| function.id == answer)
+            .unwrap();
+        let test_answer = test
+            .functions
+            .iter()
+            .find(|function| function.id == answer)
+            .unwrap();
+        let hir::ResolvedExprKind::Block { tail, .. } = &entry_answer.body.kind else {
+            panic!("resolved provider body must retain its block");
+        };
+        assert!(matches!(tail.kind, hir::ResolvedExprKind::Int(41)));
+        assert_eq!(entry_answer.body, test_answer.body);
+        assert!(entry.functions.iter().all(|function| !function
+            .id
+            .as_str()
+            .starts_with("workspace.synthetic.main.")));
+        assert_eq!(entry.entrypoint.as_str(), "app.main");
+        assert_eq!(test.entrypoint.as_str(), "test.main");
+    }
+
+    #[test]
+    fn scalar_linker_is_identity_based_when_provider_display_names_match() {
+        let left = canonical_source(
+            "lib/left.spx",
+            r#"
+module lib.left;
+
+@id("lib.left.value")
+fn value() -> i64 { 20 }
+"#,
+        );
+        let right = canonical_source(
+            "lib/right.spx",
+            r#"
+module lib.right;
+
+@id("lib.right.value")
+fn value() -> i64 { 22 }
+"#,
+        );
+        let app = canonical_source(
+            "app/main.spx",
+            r#"
+module app.main;
+use function @id("lib.left.value") from lib.left as left_value;
+use function @id("lib.right.value") from lib.right as right_value;
+
+@id("app.main")
+fn main() -> i64 { left_value() + right_value() }
+"#,
+        );
+
+        let linked = build_owned(vec![left, right, app])
+            .unwrap()
+            .linked_scalar_program("app.main")
+            .unwrap();
+        let left = hir::DeclarationId::new("lib.left.value");
+        let right = hir::DeclarationId::new("lib.right.value");
+        assert_eq!(
+            linked.declarations.declaration(&left).unwrap().name,
+            "value"
+        );
+        assert_eq!(
+            linked.declarations.declaration(&right).unwrap().name,
+            "value"
+        );
+        assert_eq!(
+            linked
+                .functions
+                .iter()
+                .filter(|function| function.name == "value")
+                .count(),
+            2
+        );
+        hir::validate(&linked).unwrap();
+    }
+
+    #[test]
+    fn scalar_linker_rejects_disconnected_nonscalar_modules_and_provider_mains() {
+        let app = canonical_source(
+            "app/main.spx",
+            r#"
+module app.main;
+
+@id("app.main")
+fn main() -> i64 { 0 }
+"#,
+        );
+        let test = canonical_source(
+            "test/main.spx",
+            r#"
+module test.main;
+
+@id("test.main")
+fn main() -> i64 { 0 }
+"#,
+        );
+        let disconnected = canonical_source(
+            "other/record.spx",
+            r#"
+module other.record;
+
+@id("other.record")
+record Record { @id("other.record.value") value: i64, }
+
+@id("other.value")
+fn value() -> i64 { 0 }
+"#,
+        );
+        let error = build_owned(vec![app.clone(), test, disconnected])
+            .unwrap()
+            .into_linked_scalar_programs("app.main", "test.main")
+            .unwrap_err();
+        assert_eq!(error[0].code, "SPX-G172");
+
+        let provider = canonical_source(
+            "lib/provider.spx",
+            r#"
+module lib.provider;
+
+@id("lib.value")
+fn value() -> i64 { 1 }
+
+@id("lib.main")
+fn main() -> i64 { value() }
+"#,
+        );
+        let consumer = canonical_source(
+            "app/main.spx",
+            r#"
+module app.main;
+use function @id("lib.value") from lib.provider as value;
+
+@id("app.main")
+fn main() -> i64 { value() }
+"#,
+        );
+        let error = build_owned(vec![provider, consumer])
+            .unwrap()
+            .linked_scalar_program("app.main")
+            .unwrap_err();
+        assert_eq!(error[0].code, "SPX-G172");
+    }
+
     fn effect_edge_sources() -> Vec<WorkspaceSource> {
         let library = r#"
 module lib.core;
@@ -11196,7 +11606,10 @@ module graph.v14;
         fn rendered_document_has_literal_sha_exact_wire_order_and_digest_binding() {
             let graph = rendered_entry();
             let json = graph.to_json();
-            let document_sha = format!("sha256:{:x}", Sha256::digest(json.as_bytes()));
+            let document_sha = format!(
+                "sha256:{:x}",
+                crate::digest_hex::LowerHex(Sha256::digest(json.as_bytes()))
+            );
             assert_eq!(
                 document_sha,
                 "sha256:6639d985e25d4d33a72e37034c6e3f116940d3598bbf46162a6baaeb547da972"

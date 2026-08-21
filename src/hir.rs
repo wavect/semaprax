@@ -2394,6 +2394,13 @@ pub struct ResolvedProgram {
     pub function_instances: Vec<ResolvedFunctionInstance>,
 }
 
+/// One real, owned monomorphic function admitted to the private workspace
+/// scalar linker.
+pub(crate) struct LinkedScalarFunction {
+    pub(crate) function: ResolvedFunction,
+    pub(crate) origin: IdentityOrigin,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ResolvedNativeRustImportCall {
     pub expression: ExpressionId,
@@ -2820,6 +2827,126 @@ pub fn resolve(program: &Program) -> Result<ResolvedProgram, Vec<Diagnostic>> {
         resolved,
     } = analyze(program);
     resolved.ok_or(diagnostics)
+}
+
+/// Assemble one backend-ready scalar program from real resolved workspace
+/// functions. This is intentionally narrower than general cross-file linking:
+/// callers must have already resolved the complete provider closure, and only
+/// value `i64`/`bool` functions without effects are admitted.
+///
+pub(crate) fn link_scalar_workspace(
+    module: String,
+    entrypoint: DeclarationId,
+    mut linked_functions: Vec<LinkedScalarFunction>,
+) -> Result<ResolvedProgram, Diagnostic> {
+    if linked_functions.is_empty() {
+        return Err(link_error("workspace scalar closure has no functions"));
+    }
+    linked_functions.sort_by(|left, right| left.function.id.cmp(&right.function.id));
+
+    let mut seen = BTreeSet::new();
+    let mut entry_origin = None;
+    for linked in &linked_functions {
+        let function = &linked.function;
+        if !seen.insert(function.id.clone()) {
+            return Err(link_error(format!(
+                "workspace scalar closure duplicates function `{}`",
+                function.id
+            )));
+        }
+        if !function.effects.is_empty()
+            || function
+                .params
+                .iter()
+                .any(|parameter| parameter.ownership != OwnershipMode::Value)
+            || !scalar_type(&function.return_type)
+            || function
+                .params
+                .iter()
+                .any(|parameter| !scalar_type(&parameter.ty))
+        {
+            return Err(link_error(format!(
+                "workspace function `{}` is outside the pure scalar linker profile",
+                function.id
+            )));
+        }
+        if function.id == entrypoint {
+            entry_origin = Some(linked.origin);
+            if function.name != "main" {
+                return Err(link_error(
+                    "workspace scalar entry point is not an authored `main` function",
+                ));
+            }
+        }
+    }
+    if entry_origin != Some(IdentityOrigin::Explicit) {
+        return Err(link_error(
+            "workspace scalar entry point must have an explicit authored identity",
+        ));
+    }
+
+    let mut declarations = DeclarationIndex::default();
+    for linked in &linked_functions {
+        declarations.insert_top_level(
+            linked.function.name.clone(),
+            linked.function.id.clone(),
+            DeclarationKind::Function,
+            linked.origin,
+        );
+        declarations
+            .type_parameters
+            .insert(linked.function.id.clone(), Vec::new());
+    }
+    if !declarations.populate_type_facts() {
+        return Err(link_error(
+            "workspace scalar linker could not construct scalar type facts",
+        ));
+    }
+    let mut linked = ResolvedProgram {
+        module,
+        permits: Vec::new(),
+        entrypoint,
+        declarations,
+        types: Vec::new(),
+        interfaces: Vec::new(),
+        function_templates: Vec::new(),
+        functions: linked_functions
+            .drain(..)
+            .map(|linked| linked.function)
+            .collect(),
+        function_instances: Vec::new(),
+    };
+    rebuild_cleanup_metadata(&mut linked)?;
+    validate(&linked)?;
+    Ok(linked)
+}
+
+fn scalar_type(ty: &ResolvedType) -> bool {
+    matches!(ty, ResolvedType::I64 | ResolvedType::Bool)
+}
+
+fn link_error(message: impl Into<String>) -> Diagnostic {
+    Diagnostic::io("SPX-H006", message)
+}
+
+fn rebuild_cleanup_metadata(program: &mut ResolvedProgram) -> Result<(), Diagnostic> {
+    let inventories = program
+        .functions
+        .iter()
+        .map(|function| crate::cleanup::build_inventory(program, function))
+        .collect::<Result<Vec<_>, _>>()?;
+    for (function, inventory) in program.functions.iter_mut().zip(inventories) {
+        function.cleanup = inventory;
+    }
+    let cleanup_plans = program
+        .functions
+        .iter()
+        .map(|function| crate::cleanup_plan::build_plan(program, function))
+        .collect::<Result<Vec<_>, _>>()?;
+    for (function, cleanup_plan) in program.functions.iter_mut().zip(cleanup_plans) {
+        function.cleanup_plan = cleanup_plan;
+    }
+    Ok(())
 }
 
 /// The source diagnostics and optional resolved meaning from one analysis.
@@ -13906,7 +14033,10 @@ fn main() -> i64 { helper(1) }
             super::reset_iterative_phase_capacity_high_water();
             super::resolve(&parsed).unwrap();
             (
-                format!("sha256:{:x}", Sha256::digest(canonical.as_bytes())),
+                format!(
+                    "sha256:{:x}",
+                    crate::digest_hex::LowerHex(Sha256::digest(canonical.as_bytes()))
+                ),
                 super::iterative_phase_capacity_high_water()[2],
             )
         }

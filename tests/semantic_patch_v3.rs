@@ -83,7 +83,10 @@ fn repair_id(base_revision: &str, target: &str) -> String {
         hasher.update((value.len() as u64).to_le_bytes());
         hasher.update(value.as_bytes());
     }
-    format!("sha256:{:x}", hasher.finalize())
+    format!(
+        "sha256:{:x}",
+        semaprax::digest_hex::LowerHex(hasher.finalize())
+    )
 }
 
 fn assert_no_a0_artifacts(fixture: &Fixture) {

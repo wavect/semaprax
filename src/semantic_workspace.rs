@@ -734,7 +734,10 @@ pub(crate) fn semantic_workspace_revision(manifest: &str) -> String {
     hasher.update(WORKSPACE_REVISION_DOMAIN);
     hasher.update((manifest.len() as u64).to_le_bytes());
     hasher.update(manifest.as_bytes());
-    format!("sha256:{:x}", hasher.finalize())
+    format!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(hasher.finalize())
+    )
 }
 
 fn validate_preflight_replay(

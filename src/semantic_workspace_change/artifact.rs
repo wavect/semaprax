@@ -727,7 +727,10 @@ fn digest(domain: &[u8], bytes: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(domain);
     hasher.update(bytes);
-    format!("sha256:{:x}", hasher.finalize())
+    format!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(hasher.finalize())
+    )
 }
 
 fn render_preview(
@@ -1508,7 +1511,10 @@ mod tests {
     use crate::semantic_workspace_change::tests::Fixture;
 
     fn raw_sha(bytes: &str) -> String {
-        format!("sha256:{:x}", Sha256::digest(bytes.as_bytes()))
+        format!(
+            "sha256:{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(bytes.as_bytes()))
+        )
     }
 
     fn top_keys(source: &str) -> Vec<String> {

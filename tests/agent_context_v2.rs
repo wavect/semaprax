@@ -160,7 +160,13 @@ fn v1_bytes_remain_exact_and_v2_outputs_have_frozen_kats() {
         "4ec8a62a17551e87dc301d08f0a09c6159445757bca6dd9920a7db4e3790ce17",
     ];
     for (output, expected) in outputs.iter().zip(expected) {
-        assert_eq!(format!("{:x}", Sha256::digest(output.as_bytes())), expected);
+        assert_eq!(
+            format!(
+                "{:x}",
+                semaprax::digest_hex::LowerHex(Sha256::digest(output.as_bytes()))
+            ),
+            expected
+        );
         assert_eq!(
             output,
             &graph::agent_context_v2_json(

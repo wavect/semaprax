@@ -153,7 +153,10 @@ fn v1_review_is_complete_canonical_read_only_and_digest_bound() {
     assert_eq!(std::fs::read_to_string(&fixture.source).unwrap(), source);
     let report: serde_json::Value = serde_json::from_str(&output).unwrap();
     assert_eq!(
-        format!("{:x}", Sha256::digest(output.as_bytes())),
+        format!(
+            "{:x}",
+            semaprax::digest_hex::LowerHex(Sha256::digest(output.as_bytes()))
+        ),
         "054c12822e9984b3f9cab06056f311f35af3b06a438af7ade0b452a823443946"
     );
     let section_offsets = [
@@ -213,7 +216,10 @@ fn v1_review_is_complete_canonical_read_only_and_digest_bound() {
     source_hasher.update(source.as_bytes());
     assert_eq!(
         report["source"]["digest"],
-        format!("sha256:{:x}", source_hasher.finalize())
+        format!(
+            "sha256:{:x}",
+            semaprax::digest_hex::LowerHex(source_hasher.finalize())
+        )
     );
     let mut patch_hasher = Sha256::new();
     patch_hasher.update(b"semaprax.semantic-review.patch-digest.v1\0");
@@ -221,7 +227,10 @@ fn v1_review_is_complete_canonical_read_only_and_digest_bound() {
     patch_hasher.update(patch.as_bytes());
     assert_eq!(
         report["patch"]["digest"],
-        format!("sha256:{:x}", patch_hasher.finalize())
+        format!(
+            "sha256:{:x}",
+            semaprax::digest_hex::LowerHex(patch_hasher.finalize())
+        )
     );
     let impact_bytes = impact::preview(
         &fixture.source,
@@ -239,7 +248,10 @@ fn v1_review_is_complete_canonical_read_only_and_digest_bound() {
     impact_hasher.update(impact_bytes.as_bytes());
     assert_eq!(
         report["evidence"]["digest"],
-        format!("sha256:{:x}", impact_hasher.finalize())
+        format!(
+            "sha256:{:x}",
+            semaprax::digest_hex::LowerHex(impact_hasher.finalize())
+        )
     );
 }
 
@@ -276,7 +288,10 @@ fn v2_review_covers_grouped_behavioral_change_and_policy_in_every_section() {
         output
     );
     assert_eq!(
-        format!("{:x}", Sha256::digest(output.as_bytes())),
+        format!(
+            "{:x}",
+            semaprax::digest_hex::LowerHex(Sha256::digest(output.as_bytes()))
+        ),
         "37fe056f519366fcaf6c13586e3b78afd64d51483490a1120e3e0fdc1b04c421"
     );
     let report: serde_json::Value = serde_json::from_str(&output).unwrap();
@@ -371,7 +386,10 @@ fn helper(value:i64)->i64{value+1}
         output
     );
     assert_eq!(
-        format!("{:x}", Sha256::digest(output.as_bytes())),
+        format!(
+            "{:x}",
+            semaprax::digest_hex::LowerHex(Sha256::digest(output.as_bytes()))
+        ),
         "081bcb20aca2e74f724f5bc0cd2cf03770a499e11aa090d92b59650209165544"
     );
     let report: serde_json::Value = serde_json::from_str(&output).unwrap();
@@ -399,7 +417,10 @@ fn helper(value:i64)->i64{value+1}
     identity_hasher.update(identity_bytes.as_bytes());
     assert_eq!(
         report["evidence"]["digest"],
-        format!("sha256:{:x}", identity_hasher.finalize())
+        format!(
+            "sha256:{:x}",
+            semaprax::digest_hex::LowerHex(identity_hasher.finalize())
+        )
     );
     assert!(report["evidence"].get("report").is_none());
     assert_eq!(report["budget"]["used_impact_bytes"], 0);

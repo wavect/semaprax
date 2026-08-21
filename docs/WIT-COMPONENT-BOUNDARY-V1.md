@@ -78,7 +78,7 @@ are private metadata exposed only by read-only accessors. JavaScript derives
 its embedded expected digest from the artifact's exact private bytes rather
 than trusting metadata; a forged-metadata regression locks this boundary.
 
-The focused quality gate pins maintained upstream `wasmparser = 0.255.0` as a
+The focused quality gate pins maintained upstream `wasmparser = 0.256.0` as a
 development dependency and validates every emitted v2 artifact with its
 Component Model validator. Independently rehashed invalid runtime signatures,
 core bodies, section cardinalities, and canonical-lift cross-typing must all be

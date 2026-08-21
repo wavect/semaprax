@@ -1039,7 +1039,7 @@ mod tests {
             hasher.update(guard.as_bytes());
         }
         assert_eq!(
-            format!("{:x}", hasher.finalize()),
+            format!("{:x}", crate::digest_hex::LowerHex(hasher.finalize())),
             "84eb82f6f26f3026fe94ee6c712a4e7add346ea8041b177a7dbd4adebe96d9b4"
         );
     }
@@ -1077,7 +1077,7 @@ mod tests {
             hasher.update(guard.as_bytes());
         }
         assert_eq!(
-            format!("{:x}", hasher.finalize()),
+            format!("{:x}", crate::digest_hex::LowerHex(hasher.finalize())),
             "dddb21eec3f3d0fc048cd5c000c2e427a15102db3a8d96634c2651016b86926a"
         );
     }

@@ -71,7 +71,10 @@ fn graph_v10_authenticates_generic_templates_concrete_instances_and_prelude() {
         "sha256:6f2620dec3fa5b3c9f6eddc17ea8bae0bbd206ce393a343a1d8f3b2155c75936"
     );
     assert_eq!(
-        format!("{:x}", Sha256::digest(json.as_bytes())),
+        format!(
+            "{:x}",
+            semaprax::digest_hex::LowerHex(Sha256::digest(json.as_bytes()))
+        ),
         "3a61e0e6860355916ff4e303b27b59881d76a92490508c48ee141191b7759f3f"
     );
     assert_eq!(json, graph::to_json(&program).unwrap());
@@ -122,11 +125,17 @@ fn graph_v9_and_rehashed_hostile_documents_fail_the_exact_v10_contract() {
             && bytes.contains(
                 "\"id\":\"core.option.some\",\"kind\":\"variant_case\",\"name\":\"Some\",\"identity_origin\":\"compiler_owned\",\"persistent\":true,\"owner\":\"core.option\",\"index\":1",
             )
-            && format!("{:x}", Sha256::digest(bytes.as_bytes())) == expected_digest
+            && format!(
+                "{:x}",
+                semaprax::digest_hex::LowerHex(Sha256::digest(bytes.as_bytes()))
+            ) == expected_digest
     }
 
     let graph = graph::to_json(&program()).unwrap();
-    let digest = format!("{:x}", Sha256::digest(graph.as_bytes()));
+    let digest = format!(
+        "{:x}",
+        semaprax::digest_hex::LowerHex(Sha256::digest(graph.as_bytes()))
+    );
     assert!(accepts_v10(&graph, &digest));
     assert!(!accepts_v10(
         &graph.replacen("semaprax.graph.v10", "semaprax.graph.v9", 1),
@@ -141,7 +150,10 @@ fn graph_v9_and_rehashed_hostile_documents_fail_the_exact_v10_contract() {
         "\"owner\":\"core.option\",\"index\":0",
         1,
     );
-    let hostile_digest = format!("{:x}", Sha256::digest(rehashed_hostile.as_bytes()));
+    let hostile_digest = format!(
+        "{:x}",
+        semaprax::digest_hex::LowerHex(Sha256::digest(rehashed_hostile.as_bytes()))
+    );
     assert!(!accepts_v10(&rehashed_hostile, &digest));
     assert!(!accepts_v10(&rehashed_hostile, &hostile_digest));
 }

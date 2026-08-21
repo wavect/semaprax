@@ -15,6 +15,8 @@ pub mod cleanup_plan;
 pub mod codegen;
 pub mod conformance;
 pub mod diagnostic;
+#[doc(hidden)]
+pub mod digest_hex;
 pub mod economic_agent;
 pub mod format;
 pub mod graph;
@@ -32,6 +34,7 @@ pub mod patch;
 pub mod patch_evidence;
 #[allow(dead_code, reason = "path-included by the unpublished native builder")]
 mod private_capacity_contract;
+pub mod project;
 pub mod quality_route;
 pub mod repair;
 pub mod review;

@@ -3,10 +3,10 @@ use std::process::{Command, ExitCode};
 
 use semaprax::diagnostic::{Diagnostic, Severity};
 use semaprax::{
-    agent_economics, codegen, format, graph, impact, parse, patch, patch_evidence, quality_route,
-    repair, review, semantic_workspace, semantic_workspace_change, semantic_workspace_operations,
-    semantic_workspace_structural_change, target_evidence, verify, wasm, workspace,
-    workspace_analysis, workspace_graph, workspace_patch_evidence,
+    agent_economics, codegen, format, graph, impact, parse, patch, patch_evidence, project,
+    quality_route, repair, review, semantic_workspace, semantic_workspace_change,
+    semantic_workspace_operations, semantic_workspace_structural_change, target_evidence, verify,
+    wasm, workspace, workspace_analysis, workspace_graph, workspace_patch_evidence,
 };
 
 fn main() -> ExitCode {
@@ -23,6 +23,21 @@ fn run(args: Vec<String>) -> Result<(), u8> {
     };
     match command {
         "check" => {
+            if let Some((manifest_path, json)) = parse_project_check_options(&args[1..])? {
+                let (name, revision) =
+                    project::with_authenticated_project(&manifest_path, |snapshot| {
+                        snapshot.check()?;
+                        Ok((
+                            snapshot.manifest().name().to_owned(),
+                            snapshot.project_revision().to_owned(),
+                        ))
+                    })
+                    .map_err(|errors| report(&errors, json))?;
+                if !json {
+                    println!("verified project {name} ({revision})");
+                }
+                return Ok(());
+            }
             let path = required_path(&args, 1)?;
             let json = args.iter().any(|arg| arg == "--json");
             let program = load(&path).map_err(|errors| report(&errors, json))?;
@@ -101,42 +116,30 @@ fn run(args: Vec<String>) -> Result<(), u8> {
         }
         "build" => {
             let options = parse_build_options(&args[1..])?;
-            let program = checked(&options.input)?;
-            match options.target.as_str() {
-                "native" => {
-                    codegen::build(&program, &options.output)
-                        .map_err(|error| report(&[error], false))?;
-                    println!("built native executable {}", options.output.display());
+            match &options.input {
+                BuildInput::Source(input) => build_source(&options, input)?,
+                BuildInput::Project(manifest_path) => {
+                    let output = project::with_authenticated_project(manifest_path, |snapshot| {
+                        snapshot.check()?;
+                        let output = options.output.clone().unwrap_or_else(|| {
+                            let suffix = if matches!(options.target.as_str(), "web" | "wasm") {
+                                "web"
+                            } else {
+                                "out"
+                            };
+                            snapshot
+                                .root()
+                                .join(format!("{}-{suffix}", snapshot.manifest().name()))
+                        });
+                        match options.target.as_str() {
+                            "web" | "wasm" => snapshot.build_web(&output)?,
+                            _ => unreachable!("validated project target"),
+                        }
+                        Ok(output)
+                    })
+                    .map_err(|errors| report(&errors, false))?;
+                    println!("built project web package {}", output.display());
                 }
-                "web" | "wasm" => {
-                    if options.exports.is_empty() {
-                        wasm::build_web(&program, &options.output)
-                            .map_err(|error| report(&[error], false))?;
-                    } else {
-                        wasm::build_web_with_scalar_exports(
-                            &program,
-                            &options.output,
-                            &options.exports,
-                        )
-                        .map_err(|error| report(&[error], false))?;
-                    }
-                    println!("built web package {}", options.output.display());
-                }
-                "native-callable" => {
-                    let function = options
-                        .function
-                        .as_deref()
-                        .expect("validated build options");
-                    let bundle =
-                        codegen::build_native_callable_bundle(&program, function, &options.output)
-                            .map_err(|error| report(&[error], false))?;
-                    println!(
-                        "built native-callable bundle {} (manifest sha256:{})",
-                        bundle.output_directory().display(),
-                        bundle.manifest_sha256()
-                    );
-                }
-                _ => unreachable!("validated build target"),
             }
             Ok(())
         }
@@ -999,16 +1002,23 @@ fn required_path(args: &[String], index: usize) -> Result<PathBuf, u8> {
 }
 
 struct BuildOptions {
-    input: PathBuf,
-    output: PathBuf,
+    input: BuildInput,
+    output: Option<PathBuf>,
     target: String,
     function: Option<String>,
     exports: Vec<String>,
 }
 
+#[derive(Debug, Eq, PartialEq)]
+enum BuildInput {
+    Source(PathBuf),
+    Project(PathBuf),
+}
+
 fn parse_build_options(args: &[String]) -> Result<BuildOptions, u8> {
     let mut input = None::<PathBuf>;
     let mut output = None::<PathBuf>;
+    let mut manifest_path = None::<PathBuf>;
     let mut target = None::<String>;
     let mut function = None::<String>;
     let mut exports = Vec::<String>::new();
@@ -1026,7 +1036,7 @@ fn parse_build_options(args: &[String]) -> Result<BuildOptions, u8> {
         }
         if matches!(
             argument.as_str(),
-            "--target" | "--function" | "--export" | "-o" | "--output"
+            "--target" | "--function" | "--export" | "--manifest-path" | "-o" | "--output"
         ) {
             let value = args
                 .get(index + 1)
@@ -1034,7 +1044,12 @@ fn parse_build_options(args: &[String]) -> Result<BuildOptions, u8> {
                     argument == "--export"
                         && !matches!(
                             value.as_str(),
-                            "--target" | "--function" | "--export" | "-o" | "--output"
+                            "--target"
+                                | "--function"
+                                | "--export"
+                                | "--manifest-path"
+                                | "-o"
+                                | "--output"
                         )
                         || !value.starts_with('-')
                 })
@@ -1046,6 +1061,9 @@ fn parse_build_options(args: &[String]) -> Result<BuildOptions, u8> {
                 "--target" if target.is_none() => target = Some(value.clone()),
                 "--function" if function.is_none() => function = Some(value.clone()),
                 "--export" => exports.push(value.clone()),
+                "--manifest-path" if manifest_path.is_none() => {
+                    manifest_path = Some(PathBuf::from(value))
+                }
                 "-o" | "--output" if output.is_none() => output = Some(PathBuf::from(value)),
                 _ => {
                     eprintln!("build option `{argument}` may not be repeated");
@@ -1065,11 +1083,24 @@ fn parse_build_options(args: &[String]) -> Result<BuildOptions, u8> {
         }
         index += 1;
     }
-    let input = input.ok_or_else(|| {
-        eprintln!("build requires one input file");
-        2
-    })?;
-    let target = target.unwrap_or_else(|| "native".to_owned());
+    if input.is_some() && manifest_path.is_some() {
+        eprintln!("build cannot combine an input file with --manifest-path");
+        return Err(2);
+    }
+    let input = match (input, manifest_path) {
+        (Some(path), None) if is_project_manifest(&path) => BuildInput::Project(path),
+        (Some(path), None) => BuildInput::Source(path),
+        (None, Some(path)) => BuildInput::Project(path),
+        (None, None) => BuildInput::Project(PathBuf::from("semaprax.toml")),
+        (Some(_), Some(_)) => unreachable!("ambiguity rejected above"),
+    };
+    let target = target.unwrap_or_else(|| {
+        if matches!(&input, BuildInput::Project(_)) {
+            "web".to_owned()
+        } else {
+            "native".to_owned()
+        }
+    });
     if !matches!(
         target.as_str(),
         "native" | "native-callable" | "web" | "wasm"
@@ -1090,7 +1121,24 @@ fn parse_build_options(args: &[String]) -> Result<BuildOptions, u8> {
         eprintln!("--export is only valid with --target web");
         return Err(2);
     }
-    let output = output.unwrap_or_else(|| input.with_extension("out"));
+    if matches!(&input, BuildInput::Project(_)) {
+        if !matches!(target.as_str(), "web" | "wasm") {
+            eprintln!(
+                "Project v1 currently publishes only the web target; native executable publication remains held"
+            );
+            return Err(2);
+        }
+        if function.is_some() || !exports.is_empty() {
+            eprintln!(
+                "Project v1 takes its entry and web exports only from the authenticated manifest"
+            );
+            return Err(2);
+        }
+    }
+    let output = match &input {
+        BuildInput::Source(path) => Some(output.unwrap_or_else(|| path.with_extension("out"))),
+        BuildInput::Project(_) => output,
+    };
     Ok(BuildOptions {
         input,
         output,
@@ -1098,6 +1146,105 @@ fn parse_build_options(args: &[String]) -> Result<BuildOptions, u8> {
         function,
         exports,
     })
+}
+
+fn build_source(options: &BuildOptions, input: &Path) -> Result<(), u8> {
+    let program = checked(input)?;
+    let output = options
+        .output
+        .as_deref()
+        .expect("source build options always have an output");
+    match options.target.as_str() {
+        "native" => {
+            codegen::build(&program, output).map_err(|error| report(&[error], false))?;
+            println!("built native executable {}", output.display());
+        }
+        "web" | "wasm" => {
+            if options.exports.is_empty() {
+                wasm::build_web(&program, output).map_err(|error| report(&[error], false))?;
+            } else {
+                wasm::build_web_with_scalar_exports(&program, output, &options.exports)
+                    .map_err(|error| report(&[error], false))?;
+            }
+            println!("built web package {}", output.display());
+        }
+        "native-callable" => {
+            let function = options
+                .function
+                .as_deref()
+                .expect("validated build options");
+            let bundle = codegen::build_native_callable_bundle(&program, function, output)
+                .map_err(|error| report(&[error], false))?;
+            println!(
+                "built native-callable bundle {} (manifest sha256:{})",
+                bundle.output_directory().display(),
+                bundle.manifest_sha256()
+            );
+        }
+        _ => unreachable!("validated build target"),
+    }
+    Ok(())
+}
+
+fn parse_project_check_options(args: &[String]) -> Result<Option<(PathBuf, bool)>, u8> {
+    let mut positional = None::<PathBuf>;
+    let mut manifest = None::<PathBuf>;
+    let mut json = false;
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--json" if !json => {
+                json = true;
+                index += 1;
+            }
+            "--json" => {
+                eprintln!("check option `--json` may not be repeated");
+                return Err(2);
+            }
+            "--manifest-path" if manifest.is_none() => {
+                let value = args
+                    .get(index + 1)
+                    .filter(|value| !value.starts_with('-'))
+                    .ok_or_else(|| {
+                        eprintln!("check option `--manifest-path` requires a value");
+                        2
+                    })?;
+                manifest = Some(PathBuf::from(value));
+                index += 2;
+            }
+            "--manifest-path" => {
+                eprintln!("check option `--manifest-path` may not be repeated");
+                return Err(2);
+            }
+            option if option.starts_with('-') => {
+                eprintln!("unknown check option `{option}`");
+                return Err(2);
+            }
+            path if positional.is_none() => {
+                positional = Some(PathBuf::from(path));
+                index += 1;
+            }
+            _ => {
+                eprintln!("check accepts at most one input selector");
+                return Err(2);
+            }
+        }
+    }
+    if positional.is_some() && manifest.is_some() {
+        eprintln!("check cannot combine an input file with --manifest-path");
+        return Err(2);
+    }
+    match (positional, manifest) {
+        (None, None) => Ok(Some((PathBuf::from("semaprax.toml"), json))),
+        (None, Some(path)) => Ok(Some((path, json))),
+        (Some(path), None) if is_project_manifest(&path) => Ok(Some((path, json))),
+        (Some(_), None) => Ok(None),
+        (Some(_), Some(_)) => unreachable!("ambiguity rejected above"),
+    }
+}
+
+fn is_project_manifest(path: &Path) -> bool {
+    path.file_name().and_then(|name| name.to_str()) == Some("semaprax.toml")
 }
 
 fn report(errors: &[Diagnostic], json: bool) -> u8 {
@@ -1119,12 +1266,12 @@ fn print_help() {
     println!(
         "SEMAPRAX — Meaning in. Verified machine code out.\n\n\
          Usage:\n\
-           semaprax check <file> [--json]\n\
+           semaprax check [<file>|semaprax.toml|--manifest-path path] [--json]\n\
            semaprax graph <file>\n\
            semaprax context <file> <symbol|stable-id> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N] [--filters contracts,ownership,effects,types,targets,diagnostics,tests]\n\
            semaprax context-benchmark <manifest>\n\
            semaprax quality-plan <quick|changed|full> [exact-changed-path ...]\n\
-           semaprax build <file> [--target native|native-callable|web] [--function stable-id] [--export stable-id ...] [-o path]\n\
+           semaprax build [<file>|semaprax.toml|--manifest-path path] [--target native|native-callable|web] [--function stable-id] [--export stable-id ...] [-o path]\n\
            semaprax run <file>\n\
            semaprax fmt <file> [--check]\n\
            semaprax patch <file> <patch.spatch>\n\
@@ -1190,8 +1337,11 @@ mod tests {
             "site",
         ]))
         .unwrap();
-        assert_eq!(options.input, PathBuf::from("calculator.spx"));
-        assert_eq!(options.output, PathBuf::from("site"));
+        assert_eq!(
+            options.input,
+            BuildInput::Source(PathBuf::from("calculator.spx"))
+        );
+        assert_eq!(options.output, Some(PathBuf::from("site")));
         assert_eq!(
             options.exports,
             strings(&["calculator.subtract", "calculator.add"])
@@ -1220,5 +1370,82 @@ mod tests {
             "app.spx", "--target", "native", "--export", "app.main"
         ]))
         .is_err());
+    }
+
+    #[test]
+    fn project_options_are_explicit_and_do_not_confuse_legacy_sources() {
+        let implicit = parse_build_options(&[]).unwrap();
+        assert_eq!(
+            implicit.input,
+            BuildInput::Project(PathBuf::from("semaprax.toml"))
+        );
+        assert_eq!(implicit.target, "web");
+        assert_eq!(implicit.output, None);
+
+        let explicit = parse_build_options(&strings(&[
+            "--manifest-path",
+            "fixtures/semaprax.toml",
+            "--target",
+            "web",
+            "-o",
+            "site",
+        ]))
+        .unwrap();
+        assert_eq!(
+            explicit.input,
+            BuildInput::Project(PathBuf::from("fixtures/semaprax.toml"))
+        );
+        assert_eq!(explicit.output, Some(PathBuf::from("site")));
+        assert!(
+            parse_build_options(&strings(&["app.spx", "--manifest-path", "semaprax.toml"]))
+                .is_err()
+        );
+        assert!(parse_build_options(&strings(&[
+            "semaprax.toml",
+            "--target",
+            "web",
+            "--export",
+            "app.main"
+        ]))
+        .is_err());
+
+        assert_eq!(
+            parse_project_check_options(&[]).unwrap(),
+            Some((PathBuf::from("semaprax.toml"), false))
+        );
+        assert_eq!(
+            parse_project_check_options(&strings(&[
+                "--manifest-path",
+                "fixtures/semaprax.toml",
+                "--json"
+            ]))
+            .unwrap(),
+            Some((PathBuf::from("fixtures/semaprax.toml"), true))
+        );
+        assert_eq!(
+            parse_project_check_options(&strings(&[
+                "--json",
+                "--manifest-path",
+                "fixtures/semaprax.toml"
+            ]))
+            .unwrap(),
+            Some((PathBuf::from("fixtures/semaprax.toml"), true))
+        );
+        assert_eq!(
+            parse_project_check_options(&strings(&["--json"])).unwrap(),
+            Some((PathBuf::from("semaprax.toml"), true))
+        );
+        assert_eq!(
+            parse_project_check_options(&strings(&["legacy.spx", "--json"])).unwrap(),
+            None
+        );
+        assert!(parse_project_check_options(&strings(&[
+            "legacy.spx",
+            "--manifest-path",
+            "semaprax.toml"
+        ]))
+        .is_err());
+        assert!(parse_project_check_options(&strings(&["--json", "--json"])).is_err());
+        assert!(parse_project_check_options(&strings(&["legacy.spx", "--unknown"])).is_err());
     }
 }

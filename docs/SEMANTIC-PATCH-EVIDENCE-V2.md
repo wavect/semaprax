@@ -151,9 +151,9 @@ Raw whole-artifact SHA-256 KATs are:
 
 | Patch schema | Capsule SHA-256 | Receipt SHA-256 |
 | --- | --- | --- |
-| v1 | `0296298e22c2952168aeeaa9d3faf31f89bf61eaabc8b9db8efbb4122eedb331` | `5d6623372464a66628c0352a66568db67d21a9c45789fc7cff01c031d11a468e` |
-| v2 | `8581b4a9354e33b11e0bb884a905a127a834739e2fa09e29a91fa59d11016485` | `8bb9e438939d4eadaa9d71907b4004045a3b6e7ca7a23ed170618b22656a1bb5` |
-| v3 | `2a3056123864790fe74d5944e29d7bbc30dc40be65e6ac5f078ba8d8c7b7d1f6` | `24b1e3b63e388b2f6d15d227c4b1b14ee120fd5d8fc4168b4bea59b1829890fc` |
+| v1 | `f57ed8fe1f9b97c7626e15d2a3376381a27e6349a9b74ff4f74583aeecdcf2ad` | `6d8c78110542bfdaa4c07cd2e0f164bfab61d461c3e1b2ad916a9689adcde46b` |
+| v2 | `a8f9a3898c9caf777dffefc0ac615e8e9afd37eced90e456373c2e4cb668b667` | `2502b809859550c67570f44e6201924516568b8af8a18d2186de55f65ef86344` |
+| v3 | `a479473e5e2b973516f23c43b9d68cec1c77c32779eab2b1558a25a1bd6fbb78` | `0144d1dfc21e08b057c972d861b48aefa3e61e1a0c4d259a25cc010941739ddd` |
 
 Evidence v2 integration is 8/8. Target Evidence integration is 9/9 and its
 units are 4/4. Root library 439/439; full workspace/all-target/all-feature,

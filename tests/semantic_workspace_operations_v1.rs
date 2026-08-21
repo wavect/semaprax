@@ -121,7 +121,10 @@ fn raw_sha256(bytes: &[u8]) -> String {
     use sha2::{Digest, Sha256};
     let mut hasher = Sha256::new();
     hasher.update(bytes);
-    format!("sha256:{:x}", hasher.finalize())
+    format!(
+        "sha256:{:x}",
+        semaprax::digest_hex::LowerHex(hasher.finalize())
+    )
 }
 
 #[test]

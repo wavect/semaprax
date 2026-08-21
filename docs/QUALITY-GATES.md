@@ -133,6 +133,35 @@ interaction remain mandatory before claiming independently validated
 TypeScript or general browser-SDK compatibility. The full exact-head hosted
 matrix remains mandatory for promotion.
 
+Project Manifest v1 additionally requires exact six-assignment canonical TOML
+and bounds, explicit-source/root/ancestor held-identity authentication and
+final drift recheck, no created managed workspace/control directory/cache,
+complete-set scalar admission (including disconnected modules), exact
+entry/test provider closures with real bodies and no stubs/synthetic mains,
+stable-ID duplicate-display-name linkage, cleanup-plan rebuild plus final HIR
+validation, internal native O0/O2 linked-equivalence evidence, deterministic exact
+seven-file Web package and digest replay, Node execution, stable-ID display
+rename preservation, CLI manifest/default/flag rejection, and preservation of
+single-file and managed-Workspace behavior. Interface declarations plus
+interface/native imports and `use type` edges are excluded; explicit stable-ID
+`use function` provider edges are the sole cross-file composition mechanism.
+Focused local gates are:
+
+```sh
+cargo test --locked -p semaprax --all-features --lib project::tests::
+cargo test --locked -p semaprax --all-features --test project_cli_v1 -- --test-threads=1
+cargo test --locked -p semaprax --test project_manifest_v1
+cargo test --locked -p semaprax --test project_backend_equivalence_v1 -- --test-threads=1
+```
+
+Project CLI publication is Web-only; public native executable publication,
+project `run`, and a public project test command remain held. Exact-head hosted
+promotion is pending. A post-publication final-input drift is `SPX-J103`: the
+complete digest-bound fresh package remains for caller reconciliation and is
+never deleted automatically. Project v1 grants no general packages,
+dependencies, registries, capability grants, interface/native imports, `use
+type` edges, generics, resources, or test discovery claim.
+
 Quality gates are executable evidence, not a checklist substitute for reasoning. Every pull request must pass the baseline and the gates for each changed semantic layer.
 
 ## Baseline

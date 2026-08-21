@@ -111,7 +111,10 @@ impl Drop for Fixture {
 }
 
 fn sha256(value: &str) -> String {
-    format!("{:x}", Sha256::digest(value.as_bytes()))
+    format!(
+        "{:x}",
+        semaprax::digest_hex::LowerHex(Sha256::digest(value.as_bytes()))
+    )
 }
 
 fn domain_digest(domain: &[u8], bytes: &[u8]) -> String {
@@ -119,7 +122,10 @@ fn domain_digest(domain: &[u8], bytes: &[u8]) -> String {
     hasher.update(domain);
     hasher.update((bytes.len() as u64).to_le_bytes());
     hasher.update(bytes);
-    format!("sha256:{:x}", hasher.finalize())
+    format!(
+        "sha256:{:x}",
+        semaprax::digest_hex::LowerHex(hasher.finalize())
+    )
 }
 
 #[test]
@@ -497,17 +503,17 @@ fn capsule_and_receipt_sha_kats_cover_patch_v1_v2_v3() {
     assert_eq!(
         capsule_hashes,
         [
-            "0296298e22c2952168aeeaa9d3faf31f89bf61eaabc8b9db8efbb4122eedb331",
-            "8581b4a9354e33b11e0bb884a905a127a834739e2fa09e29a91fa59d11016485",
-            "2a3056123864790fe74d5944e29d7bbc30dc40be65e6ac5f078ba8d8c7b7d1f6",
+            "f57ed8fe1f9b97c7626e15d2a3376381a27e6349a9b74ff4f74583aeecdcf2ad",
+            "a8f9a3898c9caf777dffefc0ac615e8e9afd37eced90e456373c2e4cb668b667",
+            "a479473e5e2b973516f23c43b9d68cec1c77c32779eab2b1558a25a1bd6fbb78",
         ]
     );
     assert_eq!(
         receipt_hashes,
         [
-            "5d6623372464a66628c0352a66568db67d21a9c45789fc7cff01c031d11a468e",
-            "8bb9e438939d4eadaa9d71907b4004045a3b6e7ca7a23ed170618b22656a1bb5",
-            "24b1e3b63e388b2f6d15d227c4b1b14ee120fd5d8fc4168b4bea59b1829890fc",
+            "6d8c78110542bfdaa4c07cd2e0f164bfab61d461c3e1b2ad916a9689adcde46b",
+            "2502b809859550c67570f44e6201924516568b8af8a18d2186de55f65ef86344",
+            "0144d1dfc21e08b057c972d861b48aefa3e61e1a0c4d259a25cc010941739ddd",
         ]
     );
 }

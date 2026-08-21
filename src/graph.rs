@@ -80,7 +80,10 @@ pub(crate) fn revision_from_canonical_source(source: &str) -> String {
     hasher.update(prelude::SCHEMA_V1.as_bytes());
     hasher.update((prelude_contract.len() as u64).to_le_bytes());
     hasher.update(&prelude_contract);
-    format!("sha256:{:x}", hasher.finalize())
+    format!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(hasher.finalize())
+    )
 }
 
 /// Resolve and serialize a parsed program as `semaprax.graph.v10`, as v11 when

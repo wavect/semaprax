@@ -26,7 +26,7 @@ fn standalone_runner_is_pinned_private_and_outside_the_root_workspace() {
         "[workspace]",
         "resolver = \"2\"",
         "semaprax = { version = \"=0.2.0\", path = \"../..\", default-features = false, features = [\"unstable-wit-component-harness\"] }",
-        "sha2 = { version = \"=0.10.9\", default-features = false }",
+        "sha2 = { version = \"=0.11.0\", default-features = false }",
         "wasmtime = { version = \"=47.0.3\", default-features = false, features = [\"component-model\", \"cranelift\", \"runtime\", \"std\"] }",
         "unsafe_code = \"forbid\"",
     ] {

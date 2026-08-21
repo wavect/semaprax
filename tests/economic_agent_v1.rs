@@ -24,7 +24,10 @@ fn digest(domain: &[u8], bytes: &[u8]) -> String {
     let mut digest = Sha256::new();
     digest.update(domain);
     digest.update(bytes);
-    format!("sha256:{:x}", digest.finalize())
+    format!(
+        "sha256:{:x}",
+        semaprax::digest_hex::LowerHex(digest.finalize())
+    )
 }
 
 fn nonclaims() -> &'static str {

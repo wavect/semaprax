@@ -70,7 +70,10 @@ fn independently_derived_repair_id(base_revision: &str, target: &str) -> String 
         hasher.update((value.len() as u64).to_le_bytes());
         hasher.update(value.as_bytes());
     }
-    format!("sha256:{:x}", hasher.finalize())
+    format!(
+        "sha256:{:x}",
+        semaprax::digest_hex::LowerHex(hasher.finalize())
+    )
 }
 
 fn domain_digest(domain: &[u8], bytes: &[u8]) -> String {
@@ -78,7 +81,10 @@ fn domain_digest(domain: &[u8], bytes: &[u8]) -> String {
     hasher.update(domain);
     hasher.update((bytes.len() as u64).to_le_bytes());
     hasher.update(bytes);
-    format!("sha256:{:x}", hasher.finalize())
+    format!(
+        "sha256:{:x}",
+        semaprax::digest_hex::LowerHex(hasher.finalize())
+    )
 }
 
 #[test]
@@ -479,11 +485,17 @@ fn checked_in_report_and_preview_are_literal_sha_kats() {
     )
     .unwrap();
     assert_eq!(
-        format!("{:x}", Sha256::digest(report.as_bytes())),
+        format!(
+            "{:x}",
+            semaprax::digest_hex::LowerHex(Sha256::digest(report.as_bytes()))
+        ),
         "ef689fed2c742dea6cedb0b8ec3d449e5facd8748dd00cb8a8f2e6115be82075"
     );
     assert_eq!(
-        format!("{:x}", Sha256::digest(preview.as_bytes())),
+        format!(
+            "{:x}",
+            semaprax::digest_hex::LowerHex(Sha256::digest(preview.as_bytes()))
+        ),
         "ae779749b252e5d9661172dfebcd3317211b97310eed57a0a6b7a692be1053e4"
     );
 }
@@ -507,7 +519,10 @@ fn independent_candidate_graph_and_backends_preserve_behavior() {
         independent_graph
     );
     assert_eq!(
-        format!("{:x}", Sha256::digest(independent_graph.as_bytes())),
+        format!(
+            "{:x}",
+            semaprax::digest_hex::LowerHex(Sha256::digest(independent_graph.as_bytes()))
+        ),
         "d255c0e88ff497436ca0737ffd139cf47c2c142cf1b4f2da071514c0515ad2b3"
     );
     assert_eq!(

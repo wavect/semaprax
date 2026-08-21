@@ -52,7 +52,10 @@ fn accepts_v10(bytes: &str, expected_digest: &str) -> bool {
             .matches("\"epilogue\":\"shared_postconditions\"")
             .count()
             == 1
-        && format!("{:x}", Sha256::digest(bytes.as_bytes())) == expected_digest
+        && format!(
+            "{:x}",
+            semaprax::digest_hex::LowerHex(Sha256::digest(bytes.as_bytes()))
+        ) == expected_digest
 }
 
 #[test]
@@ -63,7 +66,10 @@ fn graph_v10_exposes_exact_typed_result_propagation_meaning() {
         "sha256:4cebcdf01741fc87f92acd7eb37026ccd06a7eadfec0a1007bb767bcc2e58e87"
     );
     let graph = graph::to_json(&program).unwrap();
-    let digest = format!("{:x}", Sha256::digest(graph.as_bytes()));
+    let digest = format!(
+        "{:x}",
+        semaprax::digest_hex::LowerHex(Sha256::digest(graph.as_bytes()))
+    );
     assert_eq!(
         digest,
         "9419dc034c1035cd703ab7f37a7eaf91fa20f0505c2270fcf05f2946c91525b2"
@@ -101,7 +107,10 @@ fn bounded_context_carries_propagation_and_only_its_referenced_prelude() {
 #[test]
 fn graph_v9_and_rehashed_try_confusion_fail_the_exact_v10_contract() {
     let graph = graph::to_json(&program()).unwrap();
-    let digest = format!("{:x}", Sha256::digest(graph.as_bytes()));
+    let digest = format!(
+        "{:x}",
+        semaprax::digest_hex::LowerHex(Sha256::digest(graph.as_bytes()))
+    );
     assert!(accepts_v10(&graph, &digest));
 
     let version_hostile = graph.replacen("semaprax.graph.v10", "semaprax.graph.v9", 1);
@@ -126,7 +135,10 @@ fn graph_v9_and_rehashed_try_confusion_fail_the_exact_v10_contract() {
         ),
     ] {
         let hostile = graph.replacen(from, to, 1);
-        let hostile_digest = format!("{:x}", Sha256::digest(hostile.as_bytes()));
+        let hostile_digest = format!(
+            "{:x}",
+            semaprax::digest_hex::LowerHex(Sha256::digest(hostile.as_bytes()))
+        );
         assert!(!accepts_v10(&hostile, &digest));
         assert!(
             !accepts_v10(&hostile, &hostile_digest),

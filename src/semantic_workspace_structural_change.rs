@@ -1700,7 +1700,10 @@ pub(super) mod tests {
     }
 
     fn raw_sha(source: &str) -> String {
-        format!("sha256:{:x}", Sha256::digest(source.as_bytes()))
+        format!(
+            "sha256:{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(source.as_bytes()))
+        )
     }
 
     fn diagnostic(result: Result<impl Sized, Vec<Diagnostic>>) -> Diagnostic {
@@ -2226,7 +2229,10 @@ fn main() -> i64 uses { created.capability } { helper() }
                 SemanticWorkspaceStructuralOperation::Replace { .. }
             ] if path == "b/created.spx"
         ));
-        let digest = format!("sha256:{:x}", Sha256::digest(proposal_source.as_bytes()));
+        let digest = format!(
+            "sha256:{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(proposal_source.as_bytes()))
+        );
         assert_eq!(
             digest,
             "sha256:b13dcbf801bdb0fe1cd05a5cff26b58085bc32a576d9a5b8fc7264755c5548f8"

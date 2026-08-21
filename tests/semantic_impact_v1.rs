@@ -125,7 +125,10 @@ fn rename_preview_is_canonical_read_only_and_digest_bound_to_exact_patch_bytes()
 
     let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
     assert_eq!(
-        format!("{:x}", Sha256::digest(output.as_bytes())),
+        format!(
+            "{:x}",
+            semaprax::digest_hex::LowerHex(Sha256::digest(output.as_bytes()))
+        ),
         "94bbe5dcfe02f4b80b12ba5c8faf0889ddf11a96598072e539490c71a09518e9"
     );
     assert_eq!(parsed["schema"], "semaprax.semantic-impact.v1");
@@ -152,7 +155,10 @@ fn rename_preview_is_canonical_read_only_and_digest_bound_to_exact_patch_bytes()
     hasher.update(patch_source.as_bytes());
     assert_eq!(
         parsed["patch"]["digest"],
-        format!("sha256:{:x}", hasher.finalize())
+        format!(
+            "sha256:{:x}",
+            semaprax::digest_hex::LowerHex(hasher.finalize())
+        )
     );
 
     let first_digest = parsed["patch"]["digest"].clone();

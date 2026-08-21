@@ -157,7 +157,10 @@ fn package_files(directory: &Path) -> BTreeMap<String, Vec<u8>> {
 }
 
 fn sha256(bytes: &[u8]) -> String {
-    format!("{:x}", Sha256::digest(bytes))
+    format!(
+        "{:x}",
+        semaprax::digest_hex::LowerHex(Sha256::digest(bytes))
+    )
 }
 
 fn expected_function_manifest() -> String {
@@ -283,7 +286,10 @@ fn scalar_profile_package_is_deterministic_exact_and_node_executable() {
         let path = artifact["path"].as_str().unwrap();
         assert_eq!(
             artifact["sha256"].as_str().unwrap(),
-            format!("{:x}", Sha256::digest(&first_files[path])),
+            format!(
+                "{:x}",
+                semaprax::digest_hex::LowerHex(Sha256::digest(&first_files[path]))
+            ),
             "manifest digest mismatch for {path}"
         );
     }

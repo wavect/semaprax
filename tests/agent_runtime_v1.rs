@@ -20,11 +20,17 @@ fn digest(domain: &[u8], bytes: &[u8]) -> String {
     let mut digest = Sha256::new();
     digest.update(domain);
     digest.update(bytes);
-    format!("sha256:{:x}", digest.finalize())
+    format!(
+        "sha256:{:x}",
+        semaprax::digest_hex::LowerHex(digest.finalize())
+    )
 }
 
 fn raw_sha(source: &str) -> String {
-    format!("sha256:{:x}", Sha256::digest(source.as_bytes()))
+    format!(
+        "sha256:{:x}",
+        semaprax::digest_hex::LowerHex(Sha256::digest(source.as_bytes()))
+    )
 }
 
 fn nonclaims() -> &'static str {

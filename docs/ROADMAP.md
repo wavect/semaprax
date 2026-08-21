@@ -35,6 +35,32 @@ evidence yet; it will prove only that one Ubuntu browser configuration. No
 general browser, npm, Component, project-manifest, or production SDK claim
 follows from the first scalar profile.
 
+## Bounded project input — Project Manifest v1
+
+[Project Manifest v1](PROJECT-MANIFEST-V1.md) adds a narrow multi-file build
+input, not a package manager or another workspace protocol. A canonical
+six-assignment `semaprax.toml` names 2–16 exact source files, one entry module,
+one test module, and 1–32 scalar Web exports. One invocation authenticates and
+holds those inputs, reuses Semantic Workspace Phase-A once in memory, links
+real provider bodies by stable ID into separate entry/test closures, and
+rechecks inputs before return. It creates no managed workspace, dependency
+graph, registry request, cache, source mutation, or publication pivot.
+
+The initial project profile rejects every permit, type, interface declaration
+plus interface/native import, generic/template/instance, `use type`, effect,
+and non-`i64`/`bool` boundary; providers cannot define `main`. Explicit
+stable-ID `use function` provider edges are its sole cross-file composition
+mechanism. The linked entry HIR feeds internal native C lowering/equivalence
+evidence and Web lowering, while Project CLI publication is Web-only. Web emits
+`semaprax.web-project.v1`; public native executable publication, project run,
+and a public project test command remain held. A final post-publication input
+drift is `SPX-J103`: the complete digest-bound package remains for caller
+reconciliation and is never deleted automatically. Focused local manifest,
+closure, native/Web/Node, and rename evidence exists; the exact-head hosted
+promotion remains pending. This does not move a completion row or the current
+39 Partial/17 Missing totals, and it is not general multi-file compilation,
+dependency management, capabilities, test discovery, or production packaging.
+
 ## 0.1 — Executable semantic seed
 
 Status: implemented in this repository.
@@ -790,9 +816,9 @@ claims/capability/target verification remain roadmap work.
 Target Evidence v1 and Semantic Patch Evidence v2 are an additive bounded
 projection/evidence tranche, not the multi-file architecture tranche and not a
 0.2 exit-criterion claim. Their target report KATs are
-`b00f9a0a6757e6da6f7cf32771172da02c93615e5fce697c71a24fbf28e5e011`,
-`00c835772f189110c3cee85088ec34862c0f2cb0716ffe43b71675ec40fa22a2`, and
-`fdcd73f2e40123434243c89ab5e3839d77d349305f5f984aca865ffd671aa6e1`;
+`900ee398b20f8cb59d5e48be3c6b824ce9ede339d86f86403368e0f5b574cc95`,
+`ec432841ca9e4e6209b0b302ed6cfd1ab61810eeed903c7cf0e1e97d806c185f`, and
+`dded215d3f185978788d72e3dfbef3d167264c37ac36a88f753ec458a56494e1`;
 Evidence-v2 KATs are frozen in
 [`SEMANTIC-PATCH-EVIDENCE-V2.md`](SEMANTIC-PATCH-EVIDENCE-V2.md). Local
 evidence is Target 9/9, target units 4/4, Evidence-v2 8/8, and library 439/439.

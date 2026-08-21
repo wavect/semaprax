@@ -614,7 +614,10 @@ pub fn build_web(program: &Program, output: &Path) -> Result<(), Diagnostic> {
         )
         .replace(
             "__SEMAPRAX_WASM_SHA256__",
-            &format!("{:x}", Sha256::digest(&wasm_bytes)),
+            &format!(
+                "{:x}",
+                crate::digest_hex::LowerHex(Sha256::digest(&wasm_bytes))
+            ),
         );
     std::fs::write(output.join("semaprax.js"), runtime).map_err(|error| {
         Diagnostic::io("SPX-I303", format!("cannot write browser runtime: {error}"))
@@ -668,7 +671,10 @@ pub fn build_web_with_scalar_exports(
     })?;
     let plans = scalar_exports::prepare(&resolved, export_ids)?;
     let wasm_bytes = emit_resolved_module_internal(&resolved, &plans)?;
-    let wasm_sha256 = format!("{:x}", Sha256::digest(&wasm_bytes));
+    let wasm_sha256 = format!(
+        "{:x}",
+        crate::digest_hex::LowerHex(Sha256::digest(&wasm_bytes))
+    );
     let runtime = scalar_profile_runtime(&wasm_sha256);
     let bindings = scalar_bindings(&plans, &wasm_sha256);
     let declarations = scalar_declarations(&plans);
@@ -693,6 +699,81 @@ pub fn build_web_with_scalar_exports(
         ("index.html", index.as_bytes()),
     ];
     publish_scalar_package(output, &artifacts)
+}
+
+/// Build a Project-v1 scalar Web package from one already linked HIR closure.
+///
+/// This is deliberately a separate package schema from the frozen single-file
+/// `semaprax.web.v4` contract. Both native and Web project targets borrow the
+/// same linked program used by native-lowering equivalence evidence; this
+/// function performs no parsing or HIR resolution.
+pub(crate) struct PreparedProjectWeb {
+    wasm_bytes: Vec<u8>,
+    runtime: String,
+    bindings: String,
+    declarations: String,
+    manifest: String,
+}
+
+impl PreparedProjectWeb {
+    pub(crate) fn publish(self, output: &Path) -> Result<(), Diagnostic> {
+        let package = "{\"private\":true,\"type\":\"module\",\"exports\":\"./semaprax.bindings.js\",\"types\":\"./semaprax.bindings.d.ts\"}\n";
+        let index = scalar_browser_html();
+        let artifacts: [(&str, &[u8]); 7] = [
+            ("app.wasm", &self.wasm_bytes),
+            ("semaprax.js", self.runtime.as_bytes()),
+            ("semaprax.bindings.js", self.bindings.as_bytes()),
+            ("semaprax.bindings.d.ts", self.declarations.as_bytes()),
+            ("semaprax.scalar-exports.json", self.manifest.as_bytes()),
+            ("package.json", package.as_bytes()),
+            ("index.html", index.as_bytes()),
+        ];
+        publish_scalar_package(output, &artifacts)
+    }
+}
+
+pub(crate) fn prepare_project_web_with_scalar_exports(
+    program: &ResolvedProgram,
+    project_name: &str,
+    project_revision: &str,
+    workspace_revision: &str,
+    entry_module: &str,
+    export_ids: &[String],
+) -> Result<PreparedProjectWeb, Diagnostic> {
+    let plans = scalar_exports::prepare(program, export_ids)?;
+    let wasm_bytes = emit_resolved_module_internal(program, &plans)?;
+    let wasm_sha256 = format!(
+        "{:x}",
+        crate::digest_hex::LowerHex(Sha256::digest(&wasm_bytes))
+    );
+    let runtime = scalar_profile_runtime(&wasm_sha256);
+    let bindings = scalar_bindings(&plans, &wasm_sha256);
+    let declarations = scalar_declarations(&plans);
+    let package = "{\"private\":true,\"type\":\"module\",\"exports\":\"./semaprax.bindings.js\",\"types\":\"./semaprax.bindings.d.ts\"}\n";
+    let index = scalar_browser_html();
+    let manifest_artifacts: [(&str, &[u8]); 5] = [
+        ("index.html", index.as_bytes()),
+        ("package.json", package.as_bytes()),
+        ("semaprax.bindings.d.ts", declarations.as_bytes()),
+        ("semaprax.bindings.js", bindings.as_bytes()),
+        ("semaprax.js", runtime.as_bytes()),
+    ];
+    let manifest = scalar_project_manifest(
+        project_name,
+        project_revision,
+        workspace_revision,
+        entry_module,
+        &plans,
+        &wasm_sha256,
+        &manifest_artifacts,
+    );
+    Ok(PreparedProjectWeb {
+        wasm_bytes,
+        runtime,
+        bindings,
+        declarations,
+        manifest,
+    })
 }
 
 fn publish_scalar_package(output: &Path, artifacts: &[(&str, &[u8])]) -> Result<(), Diagnostic> {
@@ -1168,13 +1249,48 @@ fn scalar_manifest(
         format!(
             "{{\"path\":{},\"sha256\":\"{:x}\"}}",
             quote_json(path),
-            Sha256::digest(bytes)
+            crate::digest_hex::LowerHex(Sha256::digest(bytes))
         )
     }));
     format!(
         "{{\"schema\":\"semaprax.web.v4\",\"module\":{},\"graph_revision\":{},\"capabilities\":[],\"artifacts\":[{}],\"scalar_abi\":{{\"schema\":\"semaprax.wasm-scalar.v1\",\"functions\":[{}]}}}}\n",
         quote_json(&program.module),
         quote_json(&graph::revision(program)),
+        artifact_rows.join(","),
+        functions,
+    )
+}
+
+fn scalar_project_manifest(
+    project_name: &str,
+    project_revision: &str,
+    workspace_revision: &str,
+    entry_module: &str,
+    plans: &[scalar_exports::ScalarExportPlan],
+    wasm_sha256: &str,
+    artifacts: &[(&str, &[u8])],
+) -> String {
+    let functions = plans
+        .iter()
+        .map(|plan| plan.manifest_json())
+        .collect::<Vec<_>>()
+        .join(",");
+    let mut artifact_rows = vec![format!(
+        "{{\"path\":\"app.wasm\",\"sha256\":\"{wasm_sha256}\"}}"
+    )];
+    artifact_rows.extend(artifacts.iter().map(|(path, bytes)| {
+        format!(
+            "{{\"path\":{},\"sha256\":\"{:x}\"}}",
+            quote_json(path),
+            crate::digest_hex::LowerHex(Sha256::digest(bytes))
+        )
+    }));
+    format!(
+        "{{\"schema\":\"semaprax.web-project.v1\",\"project_schema\":\"semaprax.project.v1\",\"project\":{},\"project_revision\":{},\"workspace_revision\":{},\"entry_module\":{},\"capabilities\":[],\"artifacts\":[{}],\"scalar_abi\":{{\"schema\":\"semaprax.wasm-scalar.v1\",\"functions\":[{}]}}}}\n",
+        quote_json(project_name),
+        quote_json(project_revision),
+        quote_json(workspace_revision),
+        quote_json(entry_module),
         artifact_rows.join(","),
         functions,
     )

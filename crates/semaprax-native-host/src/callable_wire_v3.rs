@@ -11,7 +11,7 @@
 
 use std::num::NonZeroU64;
 
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit, Mac};
 use sha2::{Digest, Sha256};
 
 use crate::descriptor_v3::{

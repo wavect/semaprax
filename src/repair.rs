@@ -1393,7 +1393,10 @@ fn domain_digest(domain: &[u8], bytes: &[u8]) -> String {
     hasher.update(domain);
     hasher.update((bytes.len() as u64).to_le_bytes());
     hasher.update(bytes);
-    format!("sha256:{:x}", hasher.finalize())
+    format!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(hasher.finalize())
+    )
 }
 
 fn derived_rebase_digest(entries: &[RebaseEntry]) -> String {
@@ -1404,7 +1407,10 @@ fn derived_rebase_digest(entries: &[RebaseEntry]) -> String {
         hash_text(&mut hasher, &entry.before);
         hash_text(&mut hasher, &entry.after);
     }
-    format!("sha256:{:x}", hasher.finalize())
+    format!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(hasher.finalize())
+    )
 }
 
 fn repair_id(base_revision: &str, target: &str) -> String {
@@ -1414,7 +1420,10 @@ fn repair_id(base_revision: &str, target: &str) -> String {
     hash_text(&mut hasher, "SPX-S103");
     hash_text(&mut hasher, "function");
     hash_text(&mut hasher, target);
-    format!("sha256:{:x}", hasher.finalize())
+    format!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(hasher.finalize())
+    )
 }
 
 fn hash_text(hasher: &mut Sha256, value: &str) {

@@ -786,7 +786,7 @@ fn digest(domain: &[u8], bytes: &[u8]) -> String {
     let mut hash = Sha256::new();
     hash.update(domain);
     hash.update(bytes);
-    format!("sha256:{:x}", hash.finalize())
+    format!("sha256:{:x}", crate::digest_hex::LowerHex(hash.finalize()))
 }
 
 fn run_id(profile_digest: &str, task_digest: &str, nonce: &str) -> Result<String, Diagnostic> {
@@ -796,7 +796,10 @@ fn run_id(profile_digest: &str, task_digest: &str, nonce: &str) -> Result<String
     hash.update(profile_digest.as_bytes());
     hash.update(task_digest.as_bytes());
     hash.update(nonce);
-    Ok(format!("sha256:{:x}", hash.finalize()))
+    Ok(format!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(hash.finalize())
+    ))
 }
 
 fn call_id(run_id: &str, turn: u64, tool_id: &str, arguments: &str) -> String {
@@ -806,7 +809,7 @@ fn call_id(run_id: &str, turn: u64, tool_id: &str, arguments: &str) -> String {
     hash.update(turn.to_be_bytes());
     hash.update(tool_id.as_bytes());
     hash.update(arguments.as_bytes());
-    format!("sha256:{:x}", hash.finalize())
+    format!("sha256:{:x}", crate::digest_hex::LowerHex(hash.finalize()))
 }
 
 fn decode_hex_32(value: &str) -> Option<[u8; 32]> {

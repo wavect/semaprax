@@ -92,7 +92,10 @@ fn canonical(source: &str, path: &str) -> String {
 }
 
 fn sha256(bytes: &[u8]) -> String {
-    format!("{:x}", Sha256::digest(bytes))
+    format!(
+        "{:x}",
+        semaprax::digest_hex::LowerHex(Sha256::digest(bytes))
+    )
 }
 
 fn fixture(label: &str) -> (TempRoot, PathBuf, String, String) {

@@ -164,7 +164,10 @@ fn inventory(root: &Path) -> Vec<(String, &'static str, Vec<u8>)> {
 }
 
 fn document_digest(bytes: &[u8]) -> String {
-    format!("sha256:{:x}", Sha256::digest(bytes))
+    format!(
+        "sha256:{:x}",
+        semaprax::digest_hex::LowerHex(Sha256::digest(bytes))
+    )
 }
 
 #[allow(dead_code)]

@@ -686,7 +686,7 @@ fn write_new(path: &Path, bytes: &[u8]) -> Result<(), Diagnostic> {
 }
 
 fn digest_hex(bytes: &[u8]) -> String {
-    format!("{:x}", Sha256::digest(bytes))
+    format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)))
 }
 
 fn hex(bytes: &[u8]) -> String {

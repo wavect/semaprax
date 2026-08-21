@@ -10,7 +10,7 @@
     allow(dead_code, reason = "callable native adapter authority remains gated")
 )]
 
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit, Mac};
 use sha2::Sha256;
 
 const TOKEN_MAGIC: &[u8; 4] = b"SPXC";

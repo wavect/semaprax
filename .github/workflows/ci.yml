@@ -88,6 +88,24 @@ jobs:
         working-directory: platform-tests/wasm-scalar-browser-v1
         run: npm test -- --workers=1 --retries=0
 
+  project-v1:
+    name: Project Manifest v1 (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2025]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          toolchain: "1.85"
+      - name: Require project CLI manifest selection and rejection before publication
+        run: cargo test --locked -p semaprax --all-features --test project_cli_v1 -- --test-threads=1
+      - name: Require canonical project manifest and linked-HIR closure admission
+        run: cargo test --locked -p semaprax --all-features --test project_manifest_v1 -- --test-threads=1
+
   verify:
     name: Rust ${{ matrix.os }}
     timeout-minutes: 60

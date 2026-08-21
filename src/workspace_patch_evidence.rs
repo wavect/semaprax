@@ -1460,7 +1460,10 @@ fn domain_digest(domain: &[u8], bytes: &[u8]) -> String {
     hasher.update(domain);
     hasher.update((bytes.len() as u64).to_le_bytes());
     hasher.update(bytes);
-    format!("sha256:{:x}", hasher.finalize())
+    format!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(hasher.finalize())
+    )
 }
 
 fn map_review_child_diagnostics(

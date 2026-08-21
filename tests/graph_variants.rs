@@ -59,7 +59,10 @@ fn graph_v10_exposes_variant_case_field_construction_and_match_meaning() {
     assert!(json.contains("\"kind\":\"variant_case\",\"scrutinee\":"));
     assert!(json.contains("\"case\":\"test.choice.number\",\"matches\":true"));
 
-    let digest = format!("{:x}", Sha256::digest(json.as_bytes()));
+    let digest = format!(
+        "{:x}",
+        semaprax::digest_hex::LowerHex(Sha256::digest(json.as_bytes()))
+    );
     assert_eq!(digest.len(), 64);
     assert_eq!(
         digest,

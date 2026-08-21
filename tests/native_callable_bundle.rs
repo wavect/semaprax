@@ -58,7 +58,10 @@ fn require_error<T>(result: Result<T, Diagnostic>, context: &str) -> Diagnostic 
 }
 
 fn sha256(bytes: &[u8]) -> String {
-    format!("{:x}", Sha256::digest(bytes))
+    format!(
+        "{:x}",
+        semaprax::digest_hex::LowerHex(Sha256::digest(bytes))
+    )
 }
 
 fn bundle_files(directory: &Path) -> Vec<(String, Vec<u8>)> {

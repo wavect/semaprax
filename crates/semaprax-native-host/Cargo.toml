@@ -18,8 +18,8 @@ unstable-ios-simulator-harness = []
 
 [dependencies]
 semaprax = { path = "../..", version = "0.2.0", features = ["unstable-native-host-internal"] }
-hmac = "=0.12.1"
-sha2 = "=0.10.9"
+hmac = "=0.13.0"
+sha2 = "=0.11.0"
 
 [target.'cfg(any(target_os = "linux", target_os = "android", target_os = "macos", target_os = "windows", target_os = "ios"))'.dependencies]
 getrandom = "=0.4.3"

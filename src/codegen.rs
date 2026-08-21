@@ -3390,7 +3390,10 @@ fn main() -> i64 { increment(41) }
         )
         .unwrap();
         let generated = emit_c(&parsed).unwrap();
-        let digest = format!("{:x}", Sha256::digest(generated.as_bytes()));
+        let digest = format!(
+            "{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(generated.as_bytes()))
+        );
         assert_eq!(
             digest,
             "ded095e7c610a44f58ee1b99e3d08906d289e7b20fa465c0d712ca813e0118c9"
@@ -3820,7 +3823,9 @@ fn main() -> i64 { increment(41) }
         assert_eq!(
             format!(
                 "{:x}",
-                Sha256::digest(requires.normalized_execution_projection().as_bytes())
+                crate::digest_hex::LowerHex(Sha256::digest(
+                    requires.normalized_execution_projection().as_bytes()
+                ))
             ),
             "e5802548830ebc278bfd727a91fecebd763c81d5729374d85a4bded1e0dbf83c"
         );

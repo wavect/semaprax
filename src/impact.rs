@@ -977,7 +977,10 @@ fn patch_digest(source: &str) -> String {
     hasher.update(b"semaprax.semantic-impact.patch-digest.v1\0");
     hasher.update((source.len() as u64).to_le_bytes());
     hasher.update(source.as_bytes());
-    bformat!("sha256:{:x}", hasher.finalize())
+    bformat!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(hasher.finalize())
+    )
 }
 
 fn type_array(types: &[ResolvedType]) -> String {

@@ -62,7 +62,10 @@ fn revision(source: &str) -> String {
 }
 
 fn sha256(value: &str) -> String {
-    format!("{:x}", Sha256::digest(value.as_bytes()))
+    format!(
+        "{:x}",
+        semaprax::digest_hex::LowerHex(Sha256::digest(value.as_bytes()))
+    )
 }
 
 fn artifact_digest(value: &str) -> String {
@@ -70,7 +73,10 @@ fn artifact_digest(value: &str) -> String {
     hasher.update(b"semaprax.semantic-patch-evidence.artifact-digest.v1\0");
     hasher.update((value.len() as u64).to_le_bytes());
     hasher.update(value.as_bytes());
-    format!("sha256:{:x}", hasher.finalize())
+    format!(
+        "sha256:{:x}",
+        semaprax::digest_hex::LowerHex(hasher.finalize())
+    )
 }
 
 fn replace_and_reaccount(capsule: &str, needle: &str, replacement: &str) -> String {
@@ -365,7 +371,10 @@ fn exact_key_order_assessments_and_digest_layers_are_frozen() {
     hasher.update(review.as_bytes());
     assert_eq!(
         value["review"]["digest"],
-        format!("sha256:{:x}", hasher.finalize())
+        format!(
+            "sha256:{:x}",
+            semaprax::digest_hex::LowerHex(hasher.finalize())
+        )
     );
 }
 

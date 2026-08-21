@@ -3330,7 +3330,7 @@ fn digest(domain: &[u8], bytes: &[u8]) -> String {
     let mut hash = Sha256::new();
     hash.update(domain);
     hash.update(bytes);
-    format!("sha256:{:x}", hash.finalize())
+    format!("sha256:{:x}", crate::digest_hex::LowerHex(hash.finalize()))
 }
 
 fn admitted_now_from(intent: &Intent, observed: u64, elapsed: u64) -> Result<u64, Diagnostic> {
@@ -7231,7 +7231,13 @@ impl DigestSink {
         Self { hash, bytes: 0 }
     }
     fn finish(self) -> (String, usize) {
-        (format!("sha256:{:x}", self.hash.finalize()), self.bytes)
+        (
+            format!(
+                "sha256:{:x}",
+                crate::digest_hex::LowerHex(self.hash.finalize())
+            ),
+            self.bytes,
+        )
     }
 }
 impl fmt::Write for DigestSink {
@@ -7608,7 +7614,7 @@ fn run_id(
     hash.update(policy_digest.as_bytes());
     hash.update(intent_digest.as_bytes());
     hash.update(idempotency.as_bytes());
-    format!("sha256:{:x}", hash.finalize())
+    format!("sha256:{:x}", crate::digest_hex::LowerHex(hash.finalize()))
 }
 fn cumulative_usage(events: &[Event]) -> Result<Usage, Diagnostic> {
     let mut total = Usage::default();

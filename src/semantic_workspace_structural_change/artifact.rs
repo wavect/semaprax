@@ -781,7 +781,10 @@ fn digest(domain: &[u8], bytes: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(domain);
     hasher.update(bytes);
-    format!("sha256:{:x}", hasher.finalize())
+    format!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(hasher.finalize())
+    )
 }
 
 fn replay_paths(
@@ -1826,7 +1829,10 @@ mod tests {
     }
 
     fn raw_sha(source: &str) -> String {
-        format!("sha256:{:x}", Sha256::digest(source.as_bytes()))
+        format!(
+            "sha256:{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(source.as_bytes()))
+        )
     }
 
     fn artifact_error(

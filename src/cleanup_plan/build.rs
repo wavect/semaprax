@@ -4738,7 +4738,10 @@ interface HostEcho permits { host.echo } {
         let parsed = parse(source, Path::new("native-rust-hir-capacity.spx")).unwrap();
         let canonical = crate::format::canonical(&parsed);
         assert_eq!(
-            format!("sha256:{:x}", Sha256::digest(canonical.as_bytes())),
+            format!(
+                "sha256:{:x}",
+                crate::digest_hex::LowerHex(Sha256::digest(canonical.as_bytes()))
+            ),
             "sha256:2a012464bb1bdb624a79972d558fe837f6d55a9cd9f40d2ead16bfbba615f316",
             "shared canonical hostile identity drifted"
         );
@@ -4885,7 +4888,10 @@ interface HostEcho permits { host.echo } {
 
         let parsed = parse(&source, Path::new("cleanup-long-ids.spx")).unwrap();
         let canonical = crate::format::canonical(&parsed);
-        let canonical_digest = format!("sha256:{:x}", Sha256::digest(canonical.as_bytes()));
+        let canonical_digest = format!(
+            "sha256:{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(canonical.as_bytes()))
+        );
         assert!(canonical.len() < 1_048_576);
         crate::cleanup::reset_capacity_high_water();
         super::reset_lower_capacity_high_water();

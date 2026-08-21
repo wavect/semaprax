@@ -1,5 +1,31 @@
 # Changelog
 
+- Upgraded the pinned cryptographic and Wasm validation stack to `hmac 0.13.0`,
+  `sha2 0.11.0`, and `wasmparser 0.256.0` across the root workspace and isolated
+  Component runner. SHA-256 rendering remains byte-exact and allocation-bounded;
+  Target Evidence now reports the actual validator version, with regenerated
+  v1/v2/v3 Target Evidence and Patch Evidence v2 known answers. No completion
+  status changes.
+
+- Added [Project Manifest v1](docs/PROJECT-MANIFEST-V1.md), a locally
+  evidenced bounded multi-file pure-scalar build input. Its exact canonical
+  `semaprax.toml` names 2–16 source files, one entry, one test module, and
+  1–32 stable Web exports. One invocation holds the exact manifest/source
+  inputs, reuses Semantic Workspace Phase-A once in memory without creating a
+  managed workspace, and links real stable-ID provider bodies into entry/test
+  HIR closures consumed by internal native equivalence evidence and Web
+  lowering. The public Project CLI publishes only the Web package, with the
+  separate digest-bound `semaprax.web-project.v1` manifest. Types,
+  interface declarations plus interface/native imports, `use type` edges,
+  permits/effects, generics, dependencies, registries, discovery, and
+  capabilities are excluded; explicit stable-ID `use function` provider edges
+  remain the sole cross-file composition mechanism. Public native executable
+  publication and project run/test commands are held. A post-publication final
+  input drift reports `SPX-J103`: its complete digest-bound package remains for
+  caller reconciliation and is never deleted automatically. Exact-head hosted
+  promotion is pending. This makes no completion-matrix status change: totals
+  remain 39 Partial/17 Missing.
+
 - Reconciled Windows desktop packaging with serviced hosted-runner images by
   pinning the canonical Visual Studio 18 product line while retaining exact
   `vswhere`, MSVC, linker, SDK, and import-library identity checks, including

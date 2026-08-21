@@ -1037,7 +1037,7 @@ and platform-identity nonclaims remain.
 `semaprax.semantic-target-evidence.v1` projection. It reuses bounded Review
 preflight, then renders exact base/candidate Graph JSON, a canonical typed
 capability manifest whose delta must be zero, production C11 source, and
-production Wasm core bytes structurally validated by pinned wasmparser 0.255.0.
+production Wasm core bytes structurally validated by pinned wasmparser 0.256.0.
 The public `target_evidence::preview` returns one canonical JSON line without
 LF; the fixed-arity CLI adds one LF. No target or project test is executed and
 the route never enters A0.
@@ -1150,6 +1150,34 @@ and [Windows job
 93779117130](https://github.com/wavect/semaprax/actions/runs/31491573287/job/93779117130).
 That tranche made no matrix status change; after Public Wasm Scalar Exports
 v1, current totals are 39 Partial/17 Missing.
+
+## Project Manifest v1
+
+`src/project.rs` is a separate invocation-local build-input authority for a
+fixed `semaprax.toml` project. It authenticates the manifest, every explicitly
+listed canonical source, and their held directory/file identities; sends the
+exact bytes through the existing Semantic Workspace Phase-A preflight once in
+memory; and rechecks those held inputs after the caller operation. It neither
+initializes nor reads a managed `.semaprax-workspace`, so it creates no third
+workspace, generation, `ACTIVE` pivot, cache, lock, source rewrite, dependency
+lookup, or publication authority.
+
+The initial profile is deliberately pure scalar over the complete listed set:
+2–16 sorted explicit sources, one entry module, one test module, 1–32 selected
+web stable IDs, no permits, types, interface declarations or interface/native
+imports, `use type`, generics, or effects, and only by-value `i64`/`bool`
+functions. Explicit stable-ID `use function` provider edges are the sole
+cross-file composition mechanism. The linker retains real provider bodies and
+stable-ID calls for independently validated entry/test closures, excludes
+reverse consumers, rebuilds cleanup metadata, and lets duplicate display names
+coexist because declaration identity rather than name selects a function.
+Internal native C lowering/equivalence evidence and Web lowering consume the
+same linked entry HIR, but the public Project CLI only publishes the Web
+package. That package binds project and Phase-A revisions in
+`semaprax.web-project.v1`; no public native output, project run, or project test
+command is admitted. A final post-publication input drift is `SPX-J103`: the
+complete digest-bound package remains for caller reconciliation and is never
+deleted automatically. See [Project Manifest v1](PROJECT-MANIFEST-V1.md).
 
 ## Semantic workspace graph, analysis, and evidence-gated changes
 

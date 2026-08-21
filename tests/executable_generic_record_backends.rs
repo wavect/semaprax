@@ -106,7 +106,7 @@ fn record_symbol(declaration: &str, argument: &str) -> String {
     format!(
         "spx_record_{}_inst_{:x}",
         hex_identity(declaration),
-        digest.finalize()
+        semaprax::digest_hex::LowerHex(digest.finalize())
     )
 }
 

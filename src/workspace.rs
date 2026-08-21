@@ -5596,7 +5596,7 @@ fn domain_digest(domain: &str, bytes: &[u8]) -> String {
     h.update(domain.as_bytes());
     h.update((bytes.len() as u64).to_le_bytes());
     h.update(bytes);
-    format!("sha256:{:x}", h.finalize())
+    format!("sha256:{:x}", crate::digest_hex::LowerHex(h.finalize()))
 }
 fn revision_hex(revision: &str) -> Result<&str, Vec<Diagnostic>> {
     revision

@@ -43,7 +43,10 @@ fn error_codes(source: &str) -> Vec<&'static str> {
 }
 
 fn sha256_text(value: &str) -> String {
-    format!("{:x}", Sha256::digest(value.as_bytes()))
+    format!(
+        "{:x}",
+        semaprax::digest_hex::LowerHex(Sha256::digest(value.as_bytes()))
+    )
 }
 
 #[test]

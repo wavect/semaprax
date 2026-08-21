@@ -1,5 +1,9 @@
 # Changelog
 
+- Reconciled Windows desktop packaging with serviced hosted-runner images by
+  pinning the canonical Visual Studio 18 product line while retaining exact
+  `vswhere`, MSVC, linker, SDK, and import-library identity checks.
+
 - Added [Public Wasm Scalar Exports v1](docs/WASM-SCALAR-EXPORTS-V1.md).
   Repeated `--export <stable-id>` options select 1–32 explicit persistent
   monomorphic `i64`/`bool` functions from a completely scalar, effect-free

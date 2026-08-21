@@ -75,7 +75,11 @@ if ($vswhereVersion -ne (Lock 'windows.vswhere.version')) {
 }
 $visualStudioRoot = ((& $vswherePath -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath) -join '').Trim()
 $visualStudioVersion = ((& $vswherePath -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationVersion) -join '').Trim()
-if ($LASTEXITCODE -ne 0 -or $visualStudioRoot.Length -eq 0 -or $visualStudioVersion -ne (Lock 'windows.visual-studio.version')) {
+$visualStudioMajor = Lock 'windows.visual-studio.major'
+if ($visualStudioMajor -notmatch '^(0|[1-9][0-9]*)$') { throw 'invalid pinned Visual Studio major contract' }
+if ($LASTEXITCODE -ne 0 -or $visualStudioRoot.Length -eq 0 -or
+    $visualStudioVersion -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' -or
+    $Matches[1] -ne $visualStudioMajor) {
   throw "Windows UI Visual Studio pin mismatch: root='$visualStudioRoot' version='$visualStudioVersion'"
 }
 $visualStudioRoot = Resolve-CanonicalNonReparsePath $visualStudioRoot 'Visual Studio root'

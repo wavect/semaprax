@@ -37,10 +37,10 @@ The macOS dylib carries the stable package-relative
 `@rpath/SemapraxPrivateProvider.dylib` install identity rather than a build
 path. Its emitted build-version command is checked against the pinned Apple ld,
 SDK build, and deployment target. On Windows, import-library identity means the
-pinned Visual Studio/MSVC/SDK versions, canonical versioned roots with every
-path component proven non-reparse, exact archive names, and COFF archive
-signatures; ambient `LIB` is replaced and the provider links only explicit
-absolute archives under `/nodefaultlib`.
+canonical Visual Studio 18 product line plus exact MSVC/linker/SDK versions,
+canonical versioned roots with every path component proven non-reparse, exact
+archive names, and COFF archive signatures; ambient `LIB` is replaced and the
+provider links only explicit absolute archives under `/nodefaultlib`.
 The macOS Rust link disables path-dependent linker signing, canonicalizes the
 single `LC_UUID`, assembles two complete application bundles, then applies a
 timestamp-free ad-hoc signature with the fixed identifier

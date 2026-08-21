@@ -29,10 +29,11 @@ only after the complete native lifecycle reaches termination.
 ## Package and evidence contract
 
 The native UI packagers consume a separately completed v1 engine package. They
-use the same exact platform Clang, linker, SDK, deployment, Visual Studio/MSVC,
-and import-library identities. Each UI executable is linked twice under the
-same basename in independent directories and must be byte-identical. Cargo and
-the engine packagers remain offline.
+use the same exact platform Clang, linker, SDK, deployment, MSVC, and
+import-library identities plus the canonical Visual Studio 18 installation.
+Each UI executable is linked twice under the same basename in independent
+directories and must be byte-identical. Cargo and the engine packagers remain
+offline.
 
 The macOS result is a foreground `APPL` bundle with no `LSBackgroundOnly` key,
 an exact AppKit framework allowlist, `LC_UUID`, exact build-version metadata,

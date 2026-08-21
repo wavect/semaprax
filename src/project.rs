@@ -674,12 +674,7 @@ impl DeclaredPathSelection {
 }
 
 fn declared_absolute_path(path: &Path, subject: &str) -> Result<PathBuf, Vec<Diagnostic>> {
-    if path.components().any(|component| {
-        matches!(
-            component,
-            std::path::Component::CurDir | std::path::Component::ParentDir
-        )
-    }) {
+    if has_declared_alias_component(path) {
         return Err(grammar(format!(
             "Project v1 {subject} path must not contain `.` or `..` components"
         )));
@@ -690,6 +685,46 @@ fn declared_absolute_path(path: &Path, subject: &str) -> Result<PathBuf, Vec<Dia
         std::env::current_dir()
             .map_err(|error| authentication(format!("cannot inspect current directory: {error}")))?
             .join(path)
+    })
+}
+
+#[cfg(windows)]
+fn has_declared_alias_component(path: &Path) -> bool {
+    use std::os::windows::ffi::OsStrExt;
+
+    let mut segment_len = 0usize;
+    let mut segment_is_dots = true;
+    for unit in path
+        .as_os_str()
+        .encode_wide()
+        .chain(std::iter::once(u16::from(b'/')))
+    {
+        if unit == u16::from(b'/') || unit == u16::from(b'\\') {
+            if segment_is_dots && matches!(segment_len, 1 | 2) {
+                return true;
+            }
+            segment_len = 0;
+            segment_is_dots = true;
+        } else {
+            segment_len += 1;
+            segment_is_dots &= unit == u16::from(b'.');
+        }
+    }
+    path.components().any(|component| {
+        matches!(
+            component,
+            std::path::Component::CurDir | std::path::Component::ParentDir
+        )
+    })
+}
+
+#[cfg(not(windows))]
+fn has_declared_alias_component(path: &Path) -> bool {
+    path.components().any(|component| {
+        matches!(
+            component,
+            std::path::Component::CurDir | std::path::Component::ParentDir
+        )
     })
 }
 
@@ -1000,6 +1035,12 @@ mod tests {
         assert_eq!(parsed.test_module(), "calculator.tests");
         assert_eq!(parsed.to_canonical_toml(), manifest());
 
+        let crlf = manifest().replace('\n', "\r\n");
+        assert_eq!(
+            ProjectManifest::parse(&crlf).unwrap_err()[0].code,
+            "SPX-J100"
+        );
+
         for malformed in [
             manifest().replace("schema =", "unknown ="),
             manifest().replace(
@@ -1030,6 +1071,40 @@ mod tests {
         let error = with_authenticated_project(&dotted, |_| Ok(())).unwrap_err();
         assert_eq!(error[0].code, "SPX-J100");
         let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_declared_alias_scan_preserves_raw_dot_components_only() {
+        for hostile in [
+            r"z\..\semaprax.toml",
+            "z/../semaprax.toml",
+            r".\semaprax.toml",
+            "./semaprax.toml",
+            r"C:.\semaprax.toml",
+            r"C:..\semaprax.toml",
+            "C:./semaprax.toml",
+            "C:../semaprax.toml",
+        ] {
+            assert!(
+                has_declared_alias_component(Path::new(hostile)),
+                "missed raw alias component in {hostile}"
+            );
+            let error = declared_absolute_path(Path::new(hostile), "test").unwrap_err();
+            assert_eq!(error[0].code, "SPX-J100");
+            assert!(error[0].message.contains("must not contain `.` or `..`"));
+        }
+        for ordinary in [
+            ".semaprax.toml",
+            "name..toml",
+            "...",
+            r"dir.with.dots\semaprax.toml",
+        ] {
+            assert!(
+                !has_declared_alias_component(Path::new(ordinary)),
+                "rejected ordinary dotted name {ordinary}"
+            );
+        }
     }
 
     #[test]

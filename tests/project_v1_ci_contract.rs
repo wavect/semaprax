@@ -6,6 +6,10 @@ fn workflow() -> String {
         .unwrap()
 }
 
+fn attributes() -> String {
+    fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(".gitattributes")).unwrap()
+}
+
 fn project_job(workflow: &str) -> &str {
     let (_, after_job) = workflow
         .split_once("  project-v1:\n")
@@ -17,6 +21,12 @@ fn project_job(workflow: &str) -> &str {
 
 #[test]
 fn project_v1_cross_platform_gate_is_web_only_and_source_locked() {
+    assert!(
+        attributes()
+            .lines()
+            .any(|line| line == "*.toml text eol=lf"),
+        "Project v1 canonical TOML must remain LF on every checkout"
+    );
     let workflow = workflow();
     let job = project_job(&workflow);
     for required in [

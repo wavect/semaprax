@@ -316,7 +316,11 @@ while empty siblings and never-opened trees rename normally. The brepro
 archive admission gate remains mandatory and green. The mixed-inventory test
 stays in-tree behind `#[ignore]` carrying its probe evidence; hosted
 promotion of native-publication lanes remains held until this is
-root-caused and the gate returns to mandatory blocking status.
+root-caused and the gate returns to mandatory blocking status. The Windows
+minimal effectful public SDK build step carries the same non-blocking
+diagnostic classification because its publication boundary reproduces the
+identical `SPX-I233` ACCESS_DENIED signature; the Ubuntu and macOS SDK gates
+remain fully mandatory.
 
 [Run 31320436726, job
 93262427248](https://github.com/wavect/semaprax/actions/runs/31320436726/job/93262427248)

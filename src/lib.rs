@@ -6,6 +6,7 @@
 
 pub mod agent_economics;
 pub mod agent_runtime;
+pub mod agent_transport;
 pub(crate) mod aggregate_layout;
 pub mod ast;
 pub(crate) mod bounded_output;

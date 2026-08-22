@@ -20,6 +20,74 @@ lexer -> parser -> parsed AST
                   native executable  web package
 ```
 
+## Repository module map
+
+Single source of truth for which source area implements what. `AGENTS.md`
+links here instead of duplicating it.
+
+- `src/ast.rs`, `lexer.rs`, `parser.rs`, `format.rs`: human source projection.
+- `src/verify.rs`, `src/hir.rs`: checked semantics and the stable-ID resolved representation.
+- `src/cleanup.rs`: structural cleanup storage/leaf inventory.
+- `src/cleanup_plan.rs`, `src/cleanup_plan/`: target-neutral cleanup CFG schema, canonical builder, and independent replay gate.
+- `src/aggregate_layout.rs`, `src/variant_layout.rs`: checked deterministic Native64/Wasm32 internal layouts for the admitted record and copy-variant field kinds.
+- `src/trace_path_certificate.rs`: canonical compiler-owned cleanup trace trie-DFA and outcome certificate.
+- `src/native_settlement.rs`: hidden target-neutral callable-v3 settlement model; no loader, host, provider, or public backend wiring.
+- `src/graph_cleanup.rs`: deterministic tagged cleanup projection inside the
+  program-level Graph v10/v11/v12/v13/v14 lattice; bounded generic function
+  declarations select v14 above authenticated explicit Copy-record patterns at
+  v13, while CleanupPlan v2 remains canonical unless authenticated Option
+  propagation requires v3.
+- `src/graph.rs`, `patch.rs`: agent representation and atomic single-file
+  transactions.
+- `src/workspace.rs`: bounded managed immutable-generation workspace
+  transactions; atomic visibility is through the authenticated `ACTIVE` pivot
+  for cooperating readers, not through raw source paths.
+- `src/workspace_patch_evidence.rs`: canonical multi-file Workspace Patch
+  Evidence v1 generation, exact replay receipts, and replay-before-candidate
+  application through the existing Workspace authority.
+- `src/semantic_workspace.rs`, `src/workspace_graph.rs`: additive semantic
+  workspace initialization and the bounded authenticated unified cross-file
+  graph over one managed generation.
+- `src/workspace_analysis.rs`: read-only workspace Context, Impact, and Review
+  over the six admitted cross-file edge families.
+- `src/semantic_workspace_change.rs`, `src/semantic_workspace_change/`:
+  replacements-only proposal analysis, canonical Evidence and receipts, exact
+  replay, and the invocation-local evidence-gated `ACTIVE` publication route.
+- `src/semantic_workspace_operations.rs`: bounded stable-ID derivation,
+  additive Operations-intent Evidence and exact replay, and exclusive
+  replay-before-publication through the existing immutable workspace core;
+  declaration/import-alias operations compile under one shared authority into
+  an exact existing Change-v1 replacements proposal and derivation wrapper.
+- `src/call_index.rs`, `impact.rs`: shared validated-HIR call index and bounded,
+  read-only single-file Semantic Impact v1 preview.
+- `src/agent_transport.rs`: bounded deterministic JSON-RPC 2.0 loop
+  (`semaprax serve`) over one checked program; closed method set, no ambient
+  authority, no persistent index.
+- `src/agent_runtime.rs`, `src/agent_runtime/`: bounded injected-host Agent
+  profile, runtime-owned streaming sinks, cancellation, Trace, and Evidence;
+  no built-in transport, write tool, durable memory, or economic authority.
+- `src/economic_agent.rs`: public injected-host test-network/native-asset Economic Agent
+  policy, intent, chain-plan, approval, custody, journal, reconciliation,
+  Trace, and Evidence core; no built-in transport, key, or
+  mainnet authority.
+- `src/repair.rs`: bounded read-only Diagnostic Repair v1 discovery and
+  instantiation plus the independently replayed Patch-v3 identity-rebase gate.
+- `src/properties.rs`, `tests/property_tests_v1.rs`: read-only deterministic
+  Property-Test Generation v1 over verified single-file sources; no symbolic
+  execution, shrinking, test running, or target execution.
+- `src/review.rs`: bounded read-only Semantic Review v1 over complete Impact-v1
+  or shared identity-rebase evidence.
+- `src/target_evidence.rs`: bounded read-only Graph, capability, native-C11,
+  and structurally validated Wasm-core projection evidence.
+- `src/patch_evidence.rs`: canonical Semantic Patch Evidence v1/v2 generation,
+  independent verification receipts, and evidence-gated A0 application.
+- `src/codegen.rs`, `src/codegen/native_callable_*`, `wasm.rs`: native C11/Clang, private callable-v2, and browser/Wasm lanes.
+- `src/wit_component.rs`: default-off deterministic WIT/schema/JavaScript boundary evidence; not a Component Model runtime.
+- `crates/semaprax-native-loader`, `crates/semaprax-native-host`: unpublished unsafe loader quarantine and connected callable authority/ledger host.
+- `platform-tests/`: private installed-app/native-process packaging and runtime gates; claims count only after their hosted jobs are green.
+- `tests/`: executable language, graph, transaction, ownership, and backend evidence.
+- `examples/`: canonical programs exercised directly in CI.
+
 ## Source projection
 
 `lexer` and `parser` accept a deliberately small grammar. `format::canonical` is the single source projection. Graph revisions hash this canonical form rather than incidental whitespace, so formatting-only edits do not invalidate an agent transaction. The cross-protocol revision token is `sha256:<64 lowercase hex digits>` over `b"semaprax.graph-revision.v1\0" || canonical_source_utf8`. It is collision-resistant content addressing and stale-base detection, not a signature or MAC.

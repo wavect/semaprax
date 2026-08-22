@@ -172,19 +172,14 @@ does not satisfy a broader product gate.
 | Applications | Private CI evidence exists for bounded desktop and mobile prototypes. Public SDKs, packaging, lifecycle breadth, and production distribution remain open. |
 | Agent runtime | A bounded injected-host Rust API has hosted deterministic fake-host evidence. It is not a live provider transport, CLI agent, durable-memory system, wallet, payment, signing, or ambient-authority surface. |
 
-The bounded public Agent Runtime v1 gate is hosted green at
-Public Agent Runtime v1 is hosted GREEN at 8cf29aff8d1be3ccf74c36bc8c837f0c666ca067 (run 31591039261, 12/12 jobs, private and public deterministic fake-host gates on Ubuntu, macOS, and Windows).
-Private Economic Agent v1 A+B is exact-head hosted green at fe75c38d898b71e3ed5c57411fb46d0dbd4fc34b in run 31611748969, including both Economic gates on Ubuntu, macOS, and Windows. Public Economic Agent v1 C is exact-head hosted green at 03f1f2736de23d03b298f265f93409de89a6be95 in run 31616168124 (12/12 jobs), including the private, process-termination, and public Economic gates on Ubuntu, macOS, and Windows.
-
-Private Native Rust Interoperability v1 A+B is exact-head hosted green at
-`50b96dccabe3b3dcbcdf38bab380f3eb8699184c` in [run
-32402944574](https://github.com/wavect/semaprax/actions/runs/32402944574).
-Public Native Rust SDK v1 Phase C now adds a narrow API in the still-unpublished
-builder and generates a dependency-free local Cargo package with stable-ID
-scalar methods; its exact-head three-host promotion remains pending, and there
-is still no root CLI or registry package. See [Native Rust Interoperability
-v1](docs/NATIVE-RUST-INTEROP-V1.md) and the
-[Rust calculator consumer](examples/calculator-rust/README.md).
+Recently hosted-green gates include public Agent Runtime v1, private and
+public Economic Agent v1, and Native Rust Interoperability v1. Exact commits,
+run IDs, and boundaries live only in the status headers of
+[Agent Runtime v1](docs/AGENT-RUNTIME-V1.md),
+[Economic Agent v1](docs/ECONOMIC-AGENT-V1.md), and
+[Native Rust Interoperability v1](docs/NATIVE-RUST-INTEROP-V1.md) (with the
+[Rust calculator consumer](examples/calculator-rust/README.md)); the
+[completion matrix](docs/COMPLETION-MATRIX.md) rolls them up.
 
 For precise evidence, boundaries, and non-claims, use these documents:
 
@@ -276,6 +271,10 @@ This table is orientation, not a claim of completion. See the
 contract](docs/COMPLETION-MATRIX.md#final-validation-product).
 
 ## Documentation
+
+Every document lives under `docs/`; [`docs/index.md`](docs/index.md) maps them
+all and [`docs/SUMMARY.md`](docs/SUMMARY.md) orders them into the published
+book (built with mdBook; see `.github/workflows/docs.yml`).
 
 | Document | Read it for |
 | --- | --- |

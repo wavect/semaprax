@@ -1,0 +1,21 @@
+[book]
+title = "SEMAPRAX"
+authors = ["Wavect GmbH"]
+description = "Agent-native systems programming language: meaning in, verified machine code out."
+src = "docs"
+language = "en"
+
+[build]
+build-dir = "target/docs-book"
+create-missing = false
+
+[output.html]
+site-url = "/semaprax/"
+git-repository-url = "https://github.com/wavect/semaprax"
+edit-url-template = "https://github.com/wavect/semaprax/edit/main/{path}"
+
+[output.html.search]
+heading-split-level = 1
+
+[output.html.fold]
+enable = true

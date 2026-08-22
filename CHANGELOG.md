@@ -1,5 +1,24 @@
 # Changelog
 
+- Reorganized the documentation around a published book without moving any
+  document path. Added `book.toml` and `docs/SUMMARY.md` (pinned mdBook
+  0.5.4), so the existing flat `docs/*.md` files render as one searchable
+  site grouped into Foundations; Status and process; Agent interface;
+  Semantic workspace; Targets and backends; and Platform adapters, with a new
+  `docs/index.md` portal mapping every document to a one-line purpose plus
+  role-based entry points. De-duplicated prose rather than deleting content:
+  the repository module map now lives only in `docs/ARCHITECTURE.md`
+  ("Repository module map") with `AGENTS.md` linking to it and its
+  conditional reads compressed into one topic table, and the README status
+  section now points at the spec status headers that own the hosted-green
+  evidence, which also fixes the garbled duplicated Agent Runtime sentence
+  there. Added `.github/workflows/docs.yml`: it builds the book on every
+  push and pull request with pinned mdBook and SHA-pinned official Pages
+  actions, and deploys the HTML to GitHub Pages on main. This changes no
+  language, protocol, backend, or completion-matrix claim;
+  `tests/documentation.rs` continues to require every local markdown link to
+  resolve.
+
 - Re-pinned the two hosted `ReactiveCircus/android-emulator-runner` inputs to
   the current `v2.37.0` tag commit
   `e89f39f1abbbd05b1113a29cf4db69e7540cae5a` per the Dependabot GitHub

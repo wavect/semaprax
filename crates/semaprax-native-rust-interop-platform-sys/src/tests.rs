@@ -951,6 +951,7 @@ fn windows_mixed_root_inventory_replays_before_and_after_exact_directory_rename(
         drop(held_leaf);
         drop(held_file_directory);
         let held_dir_parent = root.join("probe_held_dir");
+        std::fs::create_dir(&held_dir_parent).ok();
         std::fs::create_dir(held_dir_parent.join("child")).ok();
         let held_child = super::platform::hold_directory(&held_dir_parent.join("child"))
             .expect("hold child directory");

@@ -955,7 +955,7 @@ carries a canonical base, exact path/invariant/test records, and the profile's
 exact ordered gates, which the executor validates before dispatch. Broad graph/CLI,
 unknown, wide, or router changes fail closed to the full workspace baseline.
 
-The public parsed-AST graph functions resolve and validate HIR and return diagnostics on failure. Direct HIR rendering remains internal so a caller cannot attach a forged canonical-source revision to transformed HIR. The graph currently rebuilds per command; a later daemon will persist indexed revisions.
+The public parsed-AST graph functions resolve and validate HIR and return diagnostics on failure. Direct HIR rendering remains internal so a caller cannot attach a forged canonical-source revision to transformed HIR. The graph still rebuilds per query; the additive [`semaprax.agent-transport.v1`](AGENT-TRANSPORT-V1.md) loop (`semaprax serve <file>`) now keeps one checked program warm across many JSON-RPC requests in one process, while persistent indexed revisions remain open.
 
 ## Bounded diagnostic repair and Patch v3
 

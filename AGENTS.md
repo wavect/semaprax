@@ -77,6 +77,9 @@ proof scaffolding, not a wired native-runtime claim.
   an exact existing Change-v1 replacements proposal and derivation wrapper.
 - `src/call_index.rs`, `impact.rs`: shared validated-HIR call index and bounded,
   read-only single-file Semantic Impact v1 preview.
+- `src/agent_transport.rs`: bounded deterministic JSON-RPC 2.0 loop
+  (`semaprax serve`) over one checked program; closed method set, no ambient
+  authority, no persistent index.
 - `src/agent_runtime.rs`, `src/agent_runtime/`: bounded injected-host Agent
   profile, runtime-owned streaming sinks, cancellation, Trace, and Evidence;
   no built-in transport, write tool, durable memory, or economic authority.

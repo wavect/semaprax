@@ -3,8 +3,8 @@ use std::process::{Command, ExitCode};
 
 use semaprax::diagnostic::{Diagnostic, Severity};
 use semaprax::{
-    agent_economics, codegen, format, graph, impact, parse, patch, patch_evidence, project,
-    quality_route, repair, review, semantic_workspace, semantic_workspace_change,
+    agent_economics, agent_transport, codegen, format, graph, impact, parse, patch, patch_evidence,
+    project, quality_route, repair, review, semantic_workspace, semantic_workspace_change,
     semantic_workspace_operations, semantic_workspace_structural_change, target_evidence, verify,
     wasm, workspace, workspace_analysis, workspace_graph, workspace_patch_evidence,
 };
@@ -88,6 +88,21 @@ fn run(args: Vec<String>) -> Result<(), u8> {
                 1
             })?;
             println!("{context}");
+            Ok(())
+        }
+        "serve" => {
+            let path = required_path(&args, 1)?;
+            let limits = serve_options(&args)?;
+            let outcome = agent_transport::serve(
+                &mut std::io::stdin().lock(),
+                &mut std::io::stdout().lock(),
+                &path,
+                limits,
+            )
+            .map_err(|errors| report(&errors, false))?;
+            if outcome.stopped_by_shutdown {
+                println!("agent transport session stopped by shutdown");
+            }
             Ok(())
         }
         "context-benchmark" => {
@@ -702,6 +717,34 @@ fn run(args: Vec<String>) -> Result<(), u8> {
     }
 }
 
+fn serve_options(args: &[String]) -> Result<agent_transport::TransportLimits, u8> {
+    let mut max_request_bytes = agent_transport::DEFAULT_MAX_REQUEST_BYTES;
+    let mut seen = std::collections::BTreeSet::new();
+    let mut index = 2usize;
+    while index < args.len() {
+        let option = args[index].as_str();
+        if !matches!(option, "--max-request-bytes") {
+            eprintln!("unknown serve option `{option}`");
+            return Err(2);
+        }
+        if !seen.insert(option.to_owned()) {
+            eprintln!("duplicate serve option `{option}`");
+            return Err(2);
+        }
+        let Some(value) = args.get(index + 1) else {
+            eprintln!("serve option `{option}` requires a value");
+            return Err(2);
+        };
+        let parsed = context_number(option, value)?;
+        max_request_bytes = parsed;
+        index += 2;
+    }
+    agent_transport::TransportLimits::new(max_request_bytes).map_err(|error| {
+        eprintln!("{error}");
+        2
+    })
+}
+
 fn workspace_analysis_target_kind(
     command: &str,
     value: &str,
@@ -1273,8 +1316,9 @@ fn print_help() {
            semaprax check [<file>|semaprax.toml|--manifest-path path] [--json]\n\
            semaprax graph <file>\n\
            semaprax context <file> <symbol|stable-id> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N] [--filters contracts,ownership,effects,types,targets,diagnostics,tests]\n\
-           semaprax context-benchmark <manifest>\n\
-           semaprax quality-plan <quick|changed|full> [exact-changed-path ...]\n\
+            semaprax context-benchmark <manifest>\n\
+            semaprax serve <file> [--max-request-bytes N]\n\
+            semaprax quality-plan <quick|changed|full> [exact-changed-path ...]\n\
            semaprax build [<file>|semaprax.toml|--manifest-path path] [--target native|native-callable|web] [--function stable-id] [--export stable-id ...] [-o path]\n\
            semaprax run <file>\n\
            semaprax fmt <file> [--check]\n\

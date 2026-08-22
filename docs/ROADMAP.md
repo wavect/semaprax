@@ -251,7 +251,15 @@ gates below are not.
   `assign-function-id` tranche: typed holes, other diagnostics/declaration
   kinds, ranking, composition, automatic application, and multi-file repair.
 - Property tests generated from types and contracts.
-- A persistent graph daemon and JSON-RPC agent transport.
+- Bounded [Graph Agent Transport v1](AGENT-TRANSPORT-V1.md): a deterministic
+  newline-delimited JSON-RPC 2.0 loop (`semaprax serve <file>`) that binds one
+  checked program per session and answers a closed `graph`/`context`/
+  `context_v2`/`protocol`/`ping`/`shutdown` method set with byte-exact
+  payload preservation, closed framing/params grammar, notification silence,
+  and fail-closed oversized-frame termination. Persistent indexed revisions,
+  incremental resolution, multi-source sessions, and network transports remain
+  open.
+- A persistent graph daemon with indexed revisions across processes.
 - Complete ownership/lifetime/region analysis across control flow.
 
 Exit criterion: build a non-trivial CLI and edit it entirely through semantic transactions.

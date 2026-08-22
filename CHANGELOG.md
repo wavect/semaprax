@@ -1,5 +1,21 @@
 # Changelog
 
+- Added the locally evidenced Graph Agent Transport v1: `semaprax serve
+  <file>` now runs a deterministic newline-delimited JSON-RPC 2.0 loop that
+  binds exactly one checked program per session and answers a closed
+  `protocol`/`graph`/`context`/`context_v2`/`ping`/`shutdown` method set.
+  Responses are canonical hand-rolled JSON; `graph`, `context`, and
+  `context_v2` embed byte-identical payloads from the unchanged Graph and
+  Agent Context serializers. The request grammar is closed (exact member set,
+  unsigned-integer-or-bounded-string ids, object params only, batch arrays
+  rejected), notifications never respond, oversized frames fail closed and
+  stop the session, and the session gains no ambient read/write/process/network
+  authority beyond its one host-named source. This is the first bounded slice
+  of the roadmap "persistent graph daemon and JSON-RPC agent transport" item:
+  persistent indexed revisions, incremental resolution, multi-source sessions,
+  and network transports remain open, and no completion-matrix row changes;
+  totals remain 39 Partial/17 Missing.
+
 - Added the locally evidenced Public Project Native Publication v1 tranche.
   `semaprax build --target native` over a `semaprax.toml` project now publishes
   the linked entry closure as one create-new executable through the unchanged

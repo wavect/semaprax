@@ -1014,12 +1014,12 @@ pub unsafe fn open_admitted_settlement_exact(
 
     // SAFETY: The complete caller contract fixes all three symbol ABIs. Each
     // pointer is copied while the sole Library pin remains live below.
-    let getter: DescriptorGetter =
-        *unsafe { library.get(&projection.getter_symbol) }.map_err(OpenError::GetterLookup)?;
-    let execute: ExecuteEntry =
-        *unsafe { library.get(&projection.execute_symbol) }.map_err(OpenError::ExecuteLookup)?;
-    let settle: SettleEntry =
-        *unsafe { library.get(&projection.settle_symbol) }.map_err(OpenError::SettleLookup)?;
+    let getter: DescriptorGetter = *unsafe { library.get(projection.getter_symbol.as_slice()) }
+        .map_err(OpenError::GetterLookup)?;
+    let execute: ExecuteEntry = *unsafe { library.get(projection.execute_symbol.as_slice()) }
+        .map_err(OpenError::ExecuteLookup)?;
+    let settle: SettleEntry = *unsafe { library.get(projection.settle_symbol.as_slice()) }
+        .map_err(OpenError::SettleLookup)?;
 
     let getter_address = getter as *const () as *const c_void;
     let execute_address = execute as *const () as *const c_void;

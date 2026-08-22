@@ -1,5 +1,24 @@
 # Changelog
 
+- Bumped the exact-pinned private `semaprax-native-loader` dependency from
+  `libloading 0.8.9` to `=0.9.0`. The three dynamic settlement symbol lookups
+  now pass `&[u8]` slices because libloading 0.9 replaced its `AsRef<[u8]>`
+  lookup bound with `AsSymbolName`; all other loader/host call sites compile
+  unchanged, and the loader crate's manifest MSRV rises to 1.88 to match
+  libloading 0.9's MSRV (workspace-wide CI gates already run newer
+  toolchains; the pinned 1.85 jobs do not build the unpublished loader or
+  host crates). The exact-pin supply-chain contract was moved with it:
+  `scripts/android-emulator-v3.sh`, the callable-v3 physical CI contract,
+  and the quality-gate/loader documentation now require `libloading v0.9.0`,
+  and the two hosted `ReactiveCircus/android-emulator-runner` pins were
+  re-pinned to the current `v2.37.0` tag commit
+  `e89f39f1abbbd05b1113a29cf4db69e7540cae5a` per the Dependabot GitHub
+  Actions bump. Local macOS evidence covers `cargo test/clippy/fmt` for the
+  loader and host plus both CI-contract tests; the hosted Android Emulator,
+  JNI/APK, iOS Simulator, and sanitizer jobs must re-green on this commit
+  before any new physical-runtime claim is counted, and this adds no
+  completion transition.
+
 - Added the locally evidenced Unicode scalar `char` tranche: `char` is now a
   first-class Copy value type end-to-end. The change spans the lexer (single
   scalar char literals with `\n`, `\r`, `\t`, `\0`, `\\`, `\'`, and

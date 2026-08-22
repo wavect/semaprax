@@ -305,6 +305,19 @@ healthy host state, and zero measured Rust allocation across the irreversible
 interval. JNI/Kotlin, APK/AAR, lifecycle/UI, device, broader corpus, and public
 admission remain separate gates.
 
+The Windows mixed-inventory directory-publication gate is an explicitly
+non-blocking diagnostic while one defect stays open: on current GitHub
+Windows runners, renaming a staged directory returns `STATUS_ACCESS_DENIED`
+through `NtSetInformationFile(FileRenameInformationEx)` with POSIX semantics,
+through the legacy fallback, and through plain `MoveFileExW` whenever any
+descendant was opened through the held-handle authority — even after every
+handle closes and even when the descendant is reopened through the CRT —
+while empty siblings and never-opened trees rename normally. The brepro
+archive admission gate remains mandatory and green. The mixed-inventory test
+stays in-tree behind `#[ignore]` carrying its probe evidence; hosted
+promotion of native-publication lanes remains held until this is
+root-caused and the gate returns to mandatory blocking status.
+
 [Run 31320436726, job
 93262427248](https://github.com/wavect/semaprax/actions/runs/31320436726/job/93262427248)
 is the first green Android execution of that exact contract.

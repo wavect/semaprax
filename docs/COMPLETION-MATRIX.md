@@ -13,6 +13,10 @@ durable-memory, wallet, payment, signing, or economic-authority claim.
 Public Agent Runtime v1 is hosted GREEN at 8cf29aff8d1be3ccf74c36bc8c837f0c666ca067 (run 31591039261, 12/12 jobs, private and public deterministic fake-host gates on Ubuntu, macOS, and Windows). Private Economic Agent v1 A+B is exact-head hosted green at fe75c38d898b71e3ed5c57411fb46d0dbd4fc34b in run 31611748969, including both Economic gates on Ubuntu, macOS, and Windows. Public Economic Agent v1 C is exact-head hosted green at 03f1f2736de23d03b298f265f93409de89a6be95 in run 31616168124 (12/12 jobs), including the private, process-termination, and public Economic gates on Ubuntu, macOS, and Windows.
 Public Wasm Scalar Exports v1 moves only the JavaScript and TypeScript row from
 Missing to Partial. Current totals are 39 Partial/17 Missing.
+[Typed Hygienic Generation v1](HYGIENIC-GEN-V1.md) is locally evidenced
+(`cargo test --locked -p semaprax --test hygienic_gen_v1` plus unit tests) and
+moves only the Typed hygienic generation row from Missing to Partial; it makes
+no hosted-execution claim. Current totals are 40 Partial/16 Missing.
 
 Status values:
 
@@ -546,7 +550,7 @@ exactly 39 Partial and 17 Missing.
 | Effects and capabilities | Partial | Declared function effects, module permits, and call-edge propagation | Inference, parameterized capabilities, no ambient authority, handlers, dependency summaries, and platform manifests verified |
 | Contracts and progressive verification | Partial | Contract type checking and runtime guards. The additive read-only Property-Test Generation v1 tranche (`semaprax.properties`) now generates deterministic boundary-lattice plus seeded candidates from admitted scalar signatures, filters them through `requires`, evaluates bodies and interprocedural callees with checked semantics under one step budget, and reports exact `ensures` counterexamples in canonical digest-bound `semaprax.property-tests.v1` JSON; it performs no symbolic execution, static discharge, shrinking, or target execution and changes no status | Static discharge, bounded symbolic/SMT checks, counterexamples, invariants/state machines, property tests, and proof obligations verified |
 | Structured concurrency | Missing | — | Scoped tasks, cancellation, cleanup, `Sendable`/`Shareable`, deterministic scheduler, actors/reducers, and synchronization verified |
-| Typed hygienic generation | Missing | — | Deterministic sandboxed generation is graph-visible and cannot perform unrestricted textual rewriting |
+| Typed hygienic generation | Partial | The locally evidenced Typed Hygienic Generation v1 tranche (`semaprax hygienic-gen`, `semaprax.hygienic-gen.v1`): deterministic typed AST-to-AST synthesis of default constructors and scalar field accessors from admitted non-generic scalar records, real-verifier admission of the combined program, Graph-visible resolved identities for every generated declaration, stable-ID-derived `__gen_` names that survive rename-with-same-id and code movement, fail-closed hygiene (`SPX-Y102`/`SPX-Y103`) and envelope budgeting (`SPX-Y105`), digest-bound canonical JSON with fixed nonclaims; no textual rewriting, macros, cross-file scope, persistence, or target execution | Sandboxed generation with richer template families (variants, resources, generic records), cross-file generation through workspace transactions, generated-code provenance in patches/evidence, and platform-hosted execution evidence |
 
 ## Compiler and output targets
 

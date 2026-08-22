@@ -92,6 +92,11 @@ proof scaffolding, not a wired native-runtime claim.
 - `src/properties.rs`, `tests/property_tests_v1.rs`: read-only deterministic
   Property-Test Generation v1 over verified single-file sources; no symbolic
   execution, shrinking, test running, or target execution.
+- `src/hygienic.rs`, `tests/hygienic_gen_v1.rs`: read-only deterministic Typed
+  Hygienic Generation v1 over verified single-file sources; typed AST-to-AST
+  synthesis admitted by the real verifier and projected through the real
+  Graph module; no textual rewriting, macros, cross-file scope, persistence,
+  or target execution.
 - `src/review.rs`: bounded read-only Semantic Review v1 over complete Impact-v1
   or shared identity-rebase evidence.
 - `src/target_evidence.rs`: bounded read-only Graph, capability, native-C11,

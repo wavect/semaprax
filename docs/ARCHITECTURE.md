@@ -48,6 +48,8 @@ The initial contract lane is progressive: contracts are type-checked at compile 
 
 The read-only `semaprax properties` command adds the first bounded property-test generation tranche over verified sources: deterministic boundary-lattice and seeded candidates from admitted scalar signatures, `requires` domain filtering, checked-semantics body/callee evaluation under one step budget, and exact `ensures` counterexample reporting in canonical digest-bound JSON (`semaprax.property-tests.v1`). It performs no symbolic execution, shrinking, or target execution; see `docs/PROPERTY-TESTS-V1.md`.
 
+The read-only `semaprax hygienic-gen` command adds the first bounded typed-generation tranche over verified sources: default constructors and scalar field accessors synthesized as typed AST nodes for admitted non-generic scalar records, admitted by the ordinary verifier on the combined program, and projected through the real Graph module so every generated declaration resolves to a graph identity. Derived `__gen_` names are pure functions of the record's persistent stable ID; hygiene collisions and envelope exhaustion fail closed. It performs no textual rewriting, macro expansion, cross-file scope, persistence, or target execution; see `docs/HYGIENIC-GEN-V1.md`.
+
 Generated arithmetic is checked for overflow, zero division, and the signed division edge case. Failures have stable process exit codes and explicit diagnostics rather than C undefined behavior.
 
 The locally evidenced floating-point tranche adds IEEE-754 `f32`/`f64` Copy
@@ -1180,7 +1182,9 @@ and [Windows job
 all 12 jobs passed. Earlier run 31471716036 on `4daa407` failed only Windows
 strict Clippy and is not green evidence. That tranche added no status
 transition; after Public Wasm Scalar Exports v1, the current matrix is 39
-Partial/17 Missing.
+Partial/17 Missing. The locally evidenced Typed Hygienic Generation v1
+tranche then moved the Typed hygienic generation row to Partial; the current
+matrix is 40 Partial/16 Missing.
 
 ### Workspace Patch Evidence v1
 
@@ -1338,7 +1342,7 @@ The exact `dfc04278c6ba9a7dd247d4cc4add3af91f55b936` matrix is hosted green in
 [run 31570834457](https://github.com/wavect/semaprax/actions/runs/31570834457);
 all 12 jobs passed, including the Operations process-termination gate on
 Ubuntu, macOS, and Windows. That tranche made no status change; after Public
-Wasm Scalar Exports v1, current totals are 39 Partial/17 Missing.
+Wasm Scalar Exports v1, current totals were 39 Partial/17 Missing; the locally evidenced Typed Hygienic Generation v1 tranche moved the Typed hygienic generation row to Partial, and current totals are 40 Partial/16 Missing.
 
 ## Transactions
 
@@ -1485,7 +1489,7 @@ transport/tools. The module has no built-in transport, process/environment/home 
 memory, wallet, payment, signing, language, Graph, cleanup, or backend surface.
 Public Agent Runtime v1 is hosted GREEN at 8cf29aff8d1be3ccf74c36bc8c837f0c666ca067 (run 31591039261, 12/12 jobs, private and public deterministic fake-host gates on Ubuntu, macOS, and Windows). Private Economic Agent v1 A+B is exact-head hosted green at fe75c38d898b71e3ed5c57411fb46d0dbd4fc34b in run 31611748969, including both Economic gates on Ubuntu, macOS, and Windows. Public Economic Agent v1 C is exact-head hosted green at 03f1f2736de23d03b298f265f93409de89a6be95 in run 31616168124 (12/12 jobs), including the private, process-termination, and public Economic gates on Ubuntu, macOS, and Windows.
 That additive injected-host surface made no status transition; after Public
-Wasm Scalar Exports v1, current totals are 39 Partial/17 Missing.
+Wasm Scalar Exports v1, current totals were 39 Partial/17 Missing; the locally evidenced Typed Hygienic Generation v1 tranche moved the Typed hygienic generation row to Partial, and current totals are 40 Partial/16 Missing.
 
 ## Trust boundaries
 

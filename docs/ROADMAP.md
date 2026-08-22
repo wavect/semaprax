@@ -9,9 +9,10 @@ durable memory, language/backend integration, approval, target
 execution, wallets, payments, signing, and economic authority remain held. See
 [the private runtime contract](AGENT-RUNTIME-V1.md).
 Public Agent Runtime v1 is hosted GREEN at 8cf29aff8d1be3ccf74c36bc8c837f0c666ca067 (run 31591039261, 12/12 jobs, private and public deterministic fake-host gates on Ubuntu, macOS, and Windows). Private Economic Agent v1 A+B is exact-head hosted green at fe75c38d898b71e3ed5c57411fb46d0dbd4fc34b in run 31611748969, including both Economic gates on Ubuntu, macOS, and Windows. Public Economic Agent v1 C is exact-head hosted green at 03f1f2736de23d03b298f265f93409de89a6be95 in run 31616168124 (12/12 jobs), including the private, process-termination, and public Economic gates on Ubuntu, macOS, and Windows.
-The current dashboard is 39 Partial/17 Missing after the bounded public
-JavaScript/TypeScript scalar-export slice moved that row from Missing to
-Partial.
+The current dashboard is 40 Partial/16 Missing after the locally evidenced
+Typed Hygienic Generation v1 tranche moved that row from Missing to
+Partial (the earlier bounded public JavaScript/TypeScript scalar-export slice
+had moved its row from Missing to Partial).
 
 ## Immediate product slice — scalar SDK and calculator
 
@@ -265,6 +266,15 @@ gates below are not.
   and fail-closed oversized-frame termination. Persistent indexed revisions,
   incremental resolution, multi-source sessions, and network transports remain
   open.
+- Typed hygienic generation: the bounded read-only
+  [Typed Hygienic Generation v1](HYGIENIC-GEN-V1.md) tranche now synthesizes
+  default constructors and scalar field accessors from admitted non-generic
+  scalar records as typed AST nodes, admits them through the real verifier,
+  resolves every generated identity in the Graph projection, and derives
+  stable-ID-bound `__gen_` names that survive rename-with-same-id
+  (`semaprax hygienic-gen`). Richer template families, cross-file generation,
+  patch/evidence provenance for generated code, and hosted execution evidence
+  remain open.
 - A persistent graph daemon with indexed revisions across processes.
 - Complete ownership/lifetime/region analysis across control flow.
 

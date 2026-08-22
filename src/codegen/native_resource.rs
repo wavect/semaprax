@@ -47,6 +47,7 @@ impl NativeResourceAbi {
                 "unit has no ordinary native value representation",
             )),
             ResolvedType::I64 => Ok("int64_t"),
+            ResolvedType::I32 => Ok("int32_t"),
             ResolvedType::Char => Ok("uint32_t"),
             ResolvedType::F32 => Ok("float"),
             ResolvedType::F64 => Ok("double"),

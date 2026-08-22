@@ -31,7 +31,7 @@ Every other function is reported as `deferred` with one closed reason:
 `generic_function`, `declared_effects`, `unsupported_parameter_mode`,
 `unsupported_parameter_type`, `unsupported_result_type`, or the first
 unsupported construct found by the pre-case scan (`float_literal`,
-`char_literal`, `record_construction`, `variant_construction`,
+`int32_literal`, `char_literal`, `record_construction`, `variant_construction`,
 `record_update`,
 `record_projection`, `match_expression`, `try_expression`, `generic_call`,
 `unresolved_call`, `unresolved_variable`, `unsupported_callee`,

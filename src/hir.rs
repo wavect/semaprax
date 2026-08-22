@@ -296,6 +296,7 @@ fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize {
     match ty {
         ResolvedType::Unit
         | ResolvedType::I64
+        | ResolvedType::I32
         | ResolvedType::Char
         | ResolvedType::F32
         | ResolvedType::F64
@@ -468,6 +469,7 @@ fn resolved_expr_owned_capacity(expression: &ResolvedExpr) -> usize {
                 .sum::<usize>();
         }
         ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
@@ -1115,6 +1117,7 @@ impl DeclarationIndex {
                             Some((true, false, false, "native-rust-import-result:unit"))
                         }
                         ResolvedType::I64 => Some((true, false, false, "scalar:i64")),
+                        ResolvedType::I32 => Some((true, false, false, "scalar:i32")),
                         ResolvedType::Char => Some((true, false, false, "scalar:char")),
                         ResolvedType::F32 => Some((true, false, false, "scalar:f32")),
                         ResolvedType::F64 => Some((true, false, false, "scalar:f64")),
@@ -1802,6 +1805,7 @@ impl DeclarationIndex {
             match frame {
                 Frame::Enter(ty) => match ty {
                     Type::I64 => resolved.push(ResolvedType::I64),
+                    Type::I32 => resolved.push(ResolvedType::I32),
                     Type::Char => resolved.push(ResolvedType::Char),
                     Type::F32 => resolved.push(ResolvedType::F32),
                     Type::F64 => resolved.push(ResolvedType::F64),
@@ -1844,6 +1848,8 @@ impl DeclarationIndex {
 pub enum ResolvedType {
     Unit,
     I64,
+    /// A checked signed 32-bit integer.
+    I32,
     /// One Unicode scalar value.
     Char,
     /// IEEE-754 single precision.
@@ -1867,6 +1873,7 @@ impl ResolvedType {
             Self::Nominal { declaration, .. } => Some(declaration),
             Self::Unit
             | Self::I64
+            | Self::I32
             | Self::Char
             | Self::F32
             | Self::F64
@@ -1888,6 +1895,7 @@ impl ResolvedType {
                 Frame::Enter(ty) => match ty {
                     Self::Unit => keys.push("unit".to_owned()),
                     Self::I64 => keys.push("i64".to_owned()),
+                    Self::I32 => keys.push("i32".to_owned()),
                     Self::Char => keys.push("char".to_owned()),
                     Self::F32 => keys.push("f32".to_owned()),
                     Self::F64 => keys.push("f64".to_owned()),
@@ -1966,6 +1974,7 @@ pub(crate) fn substitute_type(
             Frame::Enter(template) => match template {
                 ResolvedType::Unit => resolved.push(ResolvedType::Unit),
                 ResolvedType::I64 => resolved.push(ResolvedType::I64),
+                ResolvedType::I32 => resolved.push(ResolvedType::I32),
                 ResolvedType::Char => resolved.push(ResolvedType::Char),
                 ResolvedType::F32 => resolved.push(ResolvedType::F32),
                 ResolvedType::F64 => resolved.push(ResolvedType::F64),
@@ -2036,6 +2045,7 @@ fn substitute_source_function_type(
         match frame {
             Frame::Enter(template) => match template {
                 Type::I64 => resolved.push(Type::I64),
+                Type::I32 => resolved.push(Type::I32),
                 Type::Char => resolved.push(Type::Char),
                 Type::F32 => resolved.push(Type::F32),
                 Type::F64 => resolved.push(Type::F64),
@@ -2206,6 +2216,7 @@ fn materialize_template_expr(
 ) -> Result<ResolvedExpr, Diagnostic> {
     let kind = match &expression.kind {
         ResolvedExprKind::Int(value) => ResolvedExprKind::Int(*value),
+        ResolvedExprKind::Int32(value) => ResolvedExprKind::Int32(*value),
         ResolvedExprKind::Char(value) => ResolvedExprKind::Char(*value),
         ResolvedExprKind::Float32(bits) => ResolvedExprKind::Float32(*bits),
         ResolvedExprKind::Float64(bits) => ResolvedExprKind::Float64(*bits),
@@ -2662,6 +2673,8 @@ pub struct ResolvedExpr {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ResolvedExprKind {
     Int(i64),
+    /// An `i32` literal held as its exact value.
+    Int32(i32),
     /// A `char` literal held as its exact Unicode scalar value.
     Char(u32),
     /// An `f32` literal held as its exact IEEE-754 bit pattern.
@@ -3206,6 +3219,7 @@ fn audit_resolved_type(root: &ResolvedType) -> Result<(), Diagnostic> {
         match ty {
             ResolvedType::Unit
             | ResolvedType::I64
+            | ResolvedType::I32
             | ResolvedType::Char
             | ResolvedType::F32
             | ResolvedType::F64
@@ -3257,6 +3271,7 @@ fn audit_resolved_expression(root: &ResolvedExpr) -> Result<(), Diagnostic> {
         audit_resolved_type(&expression.ty)?;
         match &expression.kind {
             ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
@@ -3841,6 +3856,7 @@ fn visit_resolved_calls(
             }
         }
         ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
@@ -3945,6 +3961,7 @@ pub(crate) fn workspace_call_sites(
                 }
             }
             ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
@@ -4548,6 +4565,7 @@ impl Resolver<'_> {
         while let Some(frame) = frames.pop() {
             match frame {
                 Frame::Enter(Type::I64) => result = Some(ResolvedType::I64),
+                Frame::Enter(Type::I32) => result = Some(ResolvedType::I32),
                 Frame::Enter(Type::Char) => result = Some(ResolvedType::Char),
                 Frame::Enter(Type::F32) => result = Some(ResolvedType::F32),
                 Frame::Enter(Type::F64) => result = Some(ResolvedType::F64),
@@ -5200,7 +5218,12 @@ impl Resolver<'_> {
                             .map(resolved_type_owned_capacity)
                             .sum::<usize>()
                         + match return_source_type {
-                            Type::I64 | Type::Char | Type::F32 | Type::F64 | Type::Bool => 0,
+                            Type::I64
+                            | Type::I32
+                            | Type::Char
+                            | Type::F32
+                            | Type::F64
+                            | Type::Bool => 0,
                             Type::Named { name, arguments } => {
                                 name.capacity() + arguments.capacity() * std::mem::size_of::<Type>()
                             }
@@ -5317,6 +5340,13 @@ impl Resolver<'_> {
                         ty: ResolvedType::I64,
                         ownership: OwnershipMode::Value,
                         kind: ResolvedExprKind::Int(*value),
+                        span: expr.span,
+                    }),
+                    ExprKind::Int32(value) => results.push(ResolvedExpr {
+                        id: ExpressionId::new(function, &path),
+                        ty: ResolvedType::I32,
+                        ownership: OwnershipMode::Value,
+                        kind: ResolvedExprKind::Int32(*value),
                         span: expr.span,
                     }),
                     ExprKind::Char(value) => results.push(ResolvedExpr {
@@ -5818,6 +5848,7 @@ impl Resolver<'_> {
                     let ty = match (&op, &value.ty) {
                         (UnaryOp::Neg, ResolvedType::F32) => ResolvedType::F32,
                         (UnaryOp::Neg, ResolvedType::F64) => ResolvedType::F64,
+                        (UnaryOp::Neg, ResolvedType::I32) => ResolvedType::I32,
                         (UnaryOp::Neg, _) => ResolvedType::I64,
                         (UnaryOp::Not, _) => ResolvedType::Bool,
                     };
@@ -5839,6 +5870,10 @@ impl Resolver<'_> {
                     // Arithmetic keeps the numeric operand type; the validator
                     // and backends reject mixed or float-remainder shapes.
                     let ty = match (&op, &left.ty) {
+                        (
+                            BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div,
+                            ResolvedType::I32,
+                        ) => ResolvedType::I32,
                         (
                             BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div,
                             ResolvedType::F32,
@@ -6788,6 +6823,11 @@ impl Resolver<'_> {
                 ResolvedType::I64,
                 OwnershipMode::Value,
             ),
+            ExprKind::Int32(value) => (
+                ResolvedExprKind::Int32(*value),
+                ResolvedType::I32,
+                OwnershipMode::Value,
+            ),
             ExprKind::Char(value) => (
                 ResolvedExprKind::Char(*value),
                 ResolvedType::Char,
@@ -6995,6 +7035,7 @@ impl Resolver<'_> {
                     let ty = match (&op, &resolved.ty) {
                         (UnaryOp::Neg, ResolvedType::F32) => ResolvedType::F32,
                         (UnaryOp::Neg, ResolvedType::F64) => ResolvedType::F64,
+                        (UnaryOp::Neg, ResolvedType::I32) => ResolvedType::I32,
                         (UnaryOp::Neg, _) => ResolvedType::I64,
                         (UnaryOp::Not, _) => ResolvedType::Bool,
                     };

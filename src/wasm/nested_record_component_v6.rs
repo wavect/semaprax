@@ -193,6 +193,7 @@ fn validate_profile(program: &ResolvedProgram) -> Result<(), Diagnostic> {
 fn validate_expr(expression: &ResolvedExpr) -> Result<(), Diagnostic> {
     match &expression.kind {
         ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Bool(_)
         | ResolvedExprKind::Place(_)
         | ResolvedExprKind::Unary { .. }

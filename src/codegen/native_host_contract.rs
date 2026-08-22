@@ -344,7 +344,7 @@ pub(super) fn derive_from_admitted(
                     kind: NativeHostScalarKind::Bool,
                 });
             }
-            ResolvedType::Char | ResolvedType::F32 | ResolvedType::F64 => {
+            ResolvedType::I32 | ResolvedType::Char | ResolvedType::F32 | ResolvedType::F64 => {
                 return Err(host_error(format!(
                     "non-i64 scalar parameter {} is outside the native host slice",
                     parameter_index

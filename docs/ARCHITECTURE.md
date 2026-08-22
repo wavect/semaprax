@@ -74,8 +74,22 @@ opcodes. Ordered comparison is scalar ordering; char arithmetic and negation
 are stable verifier diagnostics (`SPX-T208`/`SPX-T206`); equality requires
 same types (`SPX-T207`). Chars stay outside generic arguments, template
 signature slots, Public Scalar Export Profile v1, and the native host/callable
-corpus; string or other heap-backed types remain unimplemented because no
-allocation model exists yet.
+corpus. The locally evidenced checked-integer tranche adds `i32` as a Copy
+value type on the same spine: explicit suffixed literals (`SPX-P003` for out-
+of-range values and glued identifiers; unsuffixed literals stay `i64`),
+canonical `{value}i32` projection, checked `+`/`-`/`*`/`/` that keep the
+declared width (`%` stays `i64`-only via `SPX-T208`), negation with
+`INT32_MIN` rejection, 4-byte/4-byte layouts, Graph JSON `"kind":"int32"`
+nodes, native C11 `int32_t` computing in `int64_t` before a range-checked
+store that reuses the exact `i64` failure-status codes, and Wasm `i32` with
+signed ordering opcodes plus inline branchless overflow detection (the
+aggregate lane selects its `STATUS_*` codes; the core lane has no status
+plumbing and traps on detected overflow). Mixed-width operands are rejected
+by the verifier and re-checked fail-closed in HIR validation and both
+backends. i32 stays outside generic arguments, template signature slots,
+Public Scalar Export Profile v1, the native host/callable corpus, and the
+Native Rust interop boundary; string or other heap-backed types remain
+unimplemented because no allocation model exists yet.
 
 ## Resolved HIR groundwork
 

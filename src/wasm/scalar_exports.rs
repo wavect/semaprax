@@ -315,6 +315,7 @@ fn validate_expression_profile(
         }
         match &expression.kind {
             ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
@@ -393,6 +394,7 @@ fn scalar_type(ty: &ResolvedType) -> Option<ScalarType> {
         ResolvedType::I64 => Some(ScalarType::I64),
         ResolvedType::Bool => Some(ScalarType::Bool),
         ResolvedType::Unit
+        | ResolvedType::I32
         | ResolvedType::Char
         | ResolvedType::F32
         | ResolvedType::F64

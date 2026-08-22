@@ -58,6 +58,7 @@ fn resolved_type_owned_capacity(ty: &crate::hir::ResolvedType) -> Option<usize> 
     match ty {
         crate::hir::ResolvedType::Unit
         | crate::hir::ResolvedType::I64
+        | crate::hir::ResolvedType::I32
         | crate::hir::ResolvedType::Char
         | crate::hir::ResolvedType::F32
         | crate::hir::ResolvedType::F64

@@ -503,17 +503,17 @@ fn capsule_and_receipt_sha_kats_cover_patch_v1_v2_v3() {
     assert_eq!(
         capsule_hashes,
         [
-            "f57ed8fe1f9b97c7626e15d2a3376381a27e6349a9b74ff4f74583aeecdcf2ad",
-            "a8f9a3898c9caf777dffefc0ac615e8e9afd37eced90e456373c2e4cb668b667",
-            "a479473e5e2b973516f23c43b9d68cec1c77c32779eab2b1558a25a1bd6fbb78",
+            "769501582d82e2782d6a060be9c6183cadead0e0236ad519ce71c34bbe584627",
+            "c3cfe9edc66d125144452b78f84cc0aeb90f89a311bb65e61ddbb69027ea32ec",
+            "ac9bf355551e71f42c3de206ef6a51889475eb6767d74cbd5475a4c7a69748b9",
         ]
     );
     assert_eq!(
         receipt_hashes,
         [
-            "6d8c78110542bfdaa4c07cd2e0f164bfab61d461c3e1b2ad916a9689adcde46b",
-            "2502b809859550c67570f44e6201924516568b8af8a18d2186de55f65ef86344",
-            "0144d1dfc21e08b057c972d861b48aefa3e61e1a0c4d259a25cc010941739ddd",
+            "0df67f898f2d19c81be8a4efb33e2e825a4e9c5fb9cc419dbb894e8562f8b927",
+            "df594be661284e09bea727a0d42a89d55d44d79f6146ea0f33b6e4ce6a01ef5f",
+            "47a70560acd751c8630f7f0d5ec9d0df9c1d5ba73d4af7ba67b04681fc939afb",
         ]
     );
 }

@@ -1184,6 +1184,7 @@ fn collect_result_propagations<'a>(
             }
         }
         ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
@@ -1345,6 +1346,7 @@ fn expression_has_record_pattern(expression: &ResolvedExpr) -> bool {
                     .any(|field| expression_has_record_pattern(&field.value))
         }
         ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
@@ -1400,6 +1402,7 @@ fn agent_reference_index_json(
 fn collect_agent_contract_values(expression: &ResolvedExpr, values: &mut BTreeSet<ValueId>) {
     match &expression.kind {
         ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
@@ -1483,6 +1486,9 @@ fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnos
             "{{\"kind\":\"int\",\"value\":{}}}",
             quote_json(&value.to_string())
         ),
+        ResolvedExprKind::Int32(value) => {
+            format!("{{\"kind\":\"int32\",\"value\":{value}}}")
+        }
         ResolvedExprKind::Char(value) => format!(
             "{{\"kind\":\"char\",\"value\":{value},\"display\":{}}}",
             quote_json(&crate::format::canonical_char(*value))
@@ -3114,6 +3120,7 @@ fn visit_expr_call_instances(
     }
     match &expression.kind {
         ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
@@ -3179,6 +3186,7 @@ fn visit_expr_call_instances(
 fn visit_expr_calls(expression: &ResolvedExpr, visit: &mut impl FnMut(&DeclarationId)) {
     match &expression.kind {
         ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
@@ -3269,6 +3277,7 @@ fn collect_expr_type_declarations(
     collect_nominal_declarations(&expression.ty, declarations);
     match &expression.kind {
         ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
@@ -3471,6 +3480,9 @@ fn expr_json(program: &ResolvedProgram, expression: &ResolvedExpr) -> Result<Str
                 "{{{header},\"kind\":\"int\",\"value\":{}}}",
                 quote_json(&value.to_string())
             )
+        }
+        ResolvedExprKind::Int32(value) => {
+            format!("{{{header},\"kind\":\"int32\",\"value\":{value}}}")
         }
         ResolvedExprKind::Char(value) => format!(
             "{{{header},\"kind\":\"char\",\"value\":{value},\"display\":{}}}",
@@ -3797,6 +3809,7 @@ fn collect_expr_types(expression: &ResolvedExpr, types: &mut BTreeMap<String, Re
     collect_type(&expression.ty, types);
     match &expression.kind {
         ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
@@ -3916,6 +3929,7 @@ fn type_json(ty: &ResolvedType) -> String {
     match ty {
         ResolvedType::Unit => unreachable!("native Rust Unit is excluded before Graph projection"),
         ResolvedType::I64 => "{\"kind\":\"primitive\",\"name\":\"i64\"}".to_owned(),
+        ResolvedType::I32 => "{\"kind\":\"primitive\",\"name\":\"i32\"}".to_owned(),
         ResolvedType::Char => "{\"kind\":\"primitive\",\"name\":\"char\"}".to_owned(),
         ResolvedType::F32 => "{\"kind\":\"primitive\",\"name\":\"f32\"}".to_owned(),
         ResolvedType::F64 => "{\"kind\":\"primitive\",\"name\":\"f64\"}".to_owned(),

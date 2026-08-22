@@ -291,6 +291,7 @@ pub fn build_trace_path_certificate(
                         let outcome = match function.return_type {
                             ResolvedType::Unit => TracePathOutcome::ScalarSuccess,
                             ResolvedType::I64
+                            | ResolvedType::I32
                             | ResolvedType::Char
                             | ResolvedType::F32
                             | ResolvedType::F64
@@ -786,6 +787,7 @@ mod tests {
         match outcome {
             TraceOutcome::Success { result } => match result {
                 crate::conformance::TraceResult::I64(_)
+                | crate::conformance::TraceResult::Int32(_)
                 | crate::conformance::TraceResult::Char(_)
                 | crate::conformance::TraceResult::F32(_)
                 | crate::conformance::TraceResult::F64(_)

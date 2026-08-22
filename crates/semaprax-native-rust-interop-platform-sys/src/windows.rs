@@ -2497,7 +2497,8 @@ pub fn publish_directory_new_prepared(
     #[cfg(test)]
     let mut attempted_statuses = [0_i32; 5];
     const RENAME_BACKOFF_MILLIS: [u64; 4] = [1, 2, 4, 8];
-    for attempt in 0..RENAME_BACKOFF_MILLIS.len() {
+    #[allow(unused_variables)]
+    for (attempt, backoff_millis) in RENAME_BACKOFF_MILLIS.into_iter().enumerate() {
         unsafe {
             (*information).flags =
                 windows_sys::Win32::System::WindowsProgramming::FILE_RENAME_FLAG_POSIX_SEMANTICS;
@@ -2527,9 +2528,7 @@ pub fn publish_directory_new_prepared(
         ) {
             break;
         }
-        std::thread::sleep(std::time::Duration::from_millis(
-            RENAME_BACKOFF_MILLIS[attempt],
-        ));
+        std::thread::sleep(std::time::Duration::from_millis(backoff_millis));
     }
     let status = unsafe {
         NtSetInformationFile(

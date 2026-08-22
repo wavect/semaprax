@@ -928,10 +928,16 @@ fn windows_mixed_root_inventory_replays_before_and_after_exact_directory_rename(
     )
     .unwrap_or_else(|error| {
         let statuses = super::platform::test_last_publish_statuses();
-        let std_probe =
-            std::fs::rename(root.join("stage"), root.join("published_std_probe"));
+        let std_probe = std::fs::rename(root.join("stage"), root.join("published_std_probe"));
+        std::fs::create_dir(root.join("probe_empty")).ok();
+        let empty_sibling =
+            std::fs::rename(root.join("probe_empty"), root.join("probe_empty_moved"));
+        std::fs::create_dir(root.join("stage2")).ok();
+        std::fs::write(root.join("stage2").join("leaf.txt"), b"leaf").ok();
+        let unheld_child =
+            std::fs::rename(root.join("stage2"), root.join("stage2_moved"));
         panic!(
-            "directory publication failed: {error:?} ({identity_probe}) statuses={statuses:?} std_rename={std_probe:?}"
+            "directory publication failed: {error:?} ({identity_probe}) statuses={statuses:?} std_rename={std_probe:?} empty_sibling={empty_sibling:?} unheld_child={unheld_child:?}"
         )
     });
     assert!(!root.join("stage").exists());

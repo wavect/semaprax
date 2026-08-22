@@ -248,7 +248,9 @@ fn project_build_rejections_happen_before_any_output_clobber() {
     let fixture = fixture("rejections");
     let source = fixture.root.join("src/app.spx");
     let manifest = fixture.root.join("semaprax.toml");
-    let blocked_output = fixture.root.join("blocked-output");
+    let blocked_output = fixture
+        .root
+        .join(format!("blocked-output{}", std::env::consts::EXE_SUFFIX));
     let sentinel = b"foreign output must survive";
     std::fs::write(&blocked_output, sentinel).unwrap();
 

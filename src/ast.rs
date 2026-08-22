@@ -22,7 +22,9 @@ impl Span {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Type {
     I64,
+    I32,
     Char,
+    U8,
     F32,
     F64,
     Bool,
@@ -39,7 +41,9 @@ impl fmt::Display for Type {
         while let Some(frame) = frames.pop() {
             match frame {
                 Frame::Type(Type::I64) => f.write_str("i64")?,
+                Frame::Type(Type::I32) => f.write_str("i32")?,
                 Frame::Type(Type::Char) => f.write_str("char")?,
+                Frame::Type(Type::U8) => f.write_str("u8")?,
                 Frame::Type(Type::F32) => f.write_str("f32")?,
                 Frame::Type(Type::F64) => f.write_str("f64")?,
                 Frame::Type(Type::Bool) => f.write_str("bool")?,
@@ -274,8 +278,12 @@ pub struct Expr {
 #[derive(Clone, Debug)]
 pub enum ExprKind {
     Int(i64),
+    /// An `i32` literal stored as its exact value.
+    Int32(i32),
     /// A `char` literal stored as its exact Unicode scalar value.
     Char(u32),
+    /// A `u8` literal stored as its exact value.
+    Uint8(u8),
     /// An `f32` literal stored as its exact IEEE-754 bit pattern.
     Float32(u32),
     /// An `f64` literal stored as its exact IEEE-754 bit pattern.
@@ -566,7 +574,9 @@ impl Expr {
                 .then_some(base.as_ref())
                 .or_else(|| fields.get(index - 1).map(|field| &field.value)),
             ExprKind::Int(_)
+            | ExprKind::Int32(_)
             | ExprKind::Char(_)
+            | ExprKind::Uint8(_)
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
             | ExprKind::Bool(_)

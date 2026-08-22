@@ -1,5 +1,19 @@
 # Changelog
 
+- Moved the workspace minimum supported Rust from 1.85 to 1.88 so private
+  crates can track current dependencies, and bumped the exact-pinned private
+  `semaprax-native-loader` dependency from `libloading 0.8.9` to `=0.9.0`.
+  The three dynamic settlement symbol lookups pass `&[u8]` slices because
+  libloading 0.9 replaced its lookup bound with `AsSymbolName`. The manifest
+  MSRV fields, the README badge and install floor, the mandatory CI minimum-
+  version job (`Rust 1.88 minimum`), and the corresponding quality-gate text
+  moved together. The two hosted `ReactiveCircus/android-emulator-runner`
+  pins were also re-pinned to the current `v2.37.0` tag commit
+  `e89f39f1abbbd05b1113a29cf4db69e7540cae5a` per the Dependabot GitHub
+  Actions bump. The hosted Android Emulator, JNI/APK, iOS Simulator, and
+  sanitizer jobs must re-green on this commit before any new physical-runtime
+  claim is counted, and this adds no completion transition.
+
 - Added the locally evidenced C Header Emission v1 tranche, the first
   executable slice of the completion-matrix row "C and Objective-C". The new
   read-only `semaprax c-header <file> --function ...` command and
@@ -62,16 +76,63 @@
   `tests/documentation.rs` continues to require every local markdown link to
   resolve.
 
-- Re-pinned the two hosted `ReactiveCircus/android-emulator-runner` inputs to
-  the current `v2.37.0` tag commit
-  `e89f39f1abbbd05b1113a29cf4db69e7540cae5a` per the Dependabot GitHub
-  Actions bump. A companion `libloading 0.9.0` bump was reverted: libloading
-  0.9 requires rustc 1.88, breaking the mandatory Rust 1.85 minimum job, and
-  the exact-pin supply-chain contract still requires `libloading 0.8.9` for
-  the private Android JNI gate. The loader's three dynamic settlement symbol
-  lookups therefore keep the 0.8 lookup form, and this adds no completion
-  transition.
-
+- Added the locally evidenced checked `i32` scalar tranche: `i32` is now a
+  Copy value type end-to-end. The change spans the lexer (explicit `42i32`
+  suffix literals with stable `SPX-P003` range/suffix diagnostics; unsuffixed
+  literals stay `i64` with no cross-width inference), parser, canonical
+  formatter (the explicit suffix keeps the declared width round-trip stable),
+  source verifier (`+`, `-`, `*`, `/` stay `i32` and are checked like `i64`;
+  `%` stays restricted to `i64` via the existing `SPX-T208`), resolved HIR,
+  Native64/Wasm32 aggregate and variant layouts (4/4 bytes), cleanup plans,
+  Graph JSON (`"kind":"int32"` nodes carrying the exact value and
+  `"kind":"primitive","name":"i32"` types), the strict native C11 backend
+  (`int32_t` representation; arithmetic computes in `int64_t` and selects the
+  same `SPX_STATUS_ARITHMETIC_*` codes as `i64`, including `INT32_MIN`
+  negation and division overflow), and both Wasm core backends (`i32`
+  valtype with signed ordering opcodes). The aggregate Wasm lane detects add/
+  sub/mul overflow branchlessly via sign bits or i64 widening and selects the
+  aggregate `STATUS_*` failure codes through `fail_if`; the core lane lowers
+  checked i32 arithmetic inline on widened operands without new host imports
+  and traps on detected overflow because that lane has no status plumbing.
+  Ordered comparison is signed scalar ordering; equality follows the existing
+  same-type rule; mixed-width operands are rejected by the verifier
+  (`SPX-T208`, `SPX-T207`). i32-bearing records, record update, projection,
+  params, returns, locals, calls, branches, cleanup plans, conformance traces
+  (`{"kind":"int32","value":N}`), and contracts execute identically through
+  native C11 at `-O0`/`-O2` and Node/Wasm (`tests/i32_scalars.rs`,
+  `examples/integers_i32.spx`; an overflow probe asserts a non-success
+  status natively and a trap under Node rather than silent wrapping).
+  Deliberately out of scope for this tranche: generic instantiation arguments
+  and generic template signature slots remain direct `i64`/`bool` only,
+  Public Scalar Export Profile v1 remains i64/bool-only, the native host
+  callable corpus remains i64/bool/resource-only, the Native Rust interop
+  boundary rejects i32 scalars, integer remainder stays `i64`-only, and no
+  completion-matrix row status changes.
+- Added the locally evidenced unsigned-byte `u8` tranche: `u8` is now a
+  checked-arithmetic Copy scalar end-to-end. The change spans the lexer
+  (integer literals with an exact `u8` suffix; unsuffixed digit runs stay
+  `i64`, and out-of-range or malformed suffixes select stable `SPX-P003`),
+  parser, canonical formatter (the explicit suffix keeps the declared width
+  stable across round trips), source verifier, resolved HIR, Native64/Wasm32
+  layouts (`u8` occupies one byte at Native64 and four bytes at Wasm32), cleanup
+  plans, Graph JSON (`"kind":"uint8"` nodes with the exact value plus
+  `"layout_key":"scalar:u8"`), conformance trace results
+  (`{"kind":"uint8","value":N}`), the native C11 backend (`uint8_t`
+  representation; checked arithmetic computes in `int64_t` and range-checks
+  0..=255 into the matching `SPX_STATUS_ARITHMETIC_*` statuses), and both Wasm
+  core backends (`i32` valtype with unsigned ordering opcodes; checked u8
+  arithmetic uses inline unsigned range checks without new host imports —
+  aggregate-lane failures select the same status codes as i64 while legacy-lane
+  failures trap). `%` stays i64-only and unary negation stays rejected for u8
+  (`SPX-T208`, `SPX-T206`). U8-bearing records, record update, projection,
+  params, returns, locals, calls, branches, and contracts execute identically
+  through native C11 at `-O0`/`-O2` and Node/Wasm over 4,096 re-entries
+  (`tests/u8_scalars.rs`, `examples/bytes_u8.spx`). Deliberately out of scope:
+  generic instantiation arguments and template signature slots remain direct
+  `i64`/`bool` only, Public Scalar Export Profile v1 remains i64/bool-only,
+  the native host callable corpus and the Rust-interop boundary reject u8
+  fail-closed, string/heap types remain unimplemented, and no completion-matrix
+  row status changes.
 - Added the locally evidenced Unicode scalar `char` tranche: `char` is now a
   first-class Copy value type end-to-end. The change spans the lexer (single
   scalar char literals with `\n`, `\r`, `\t`, `\0`, `\\`, `\'`, and

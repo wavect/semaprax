@@ -615,7 +615,9 @@ fn precheck_program(program: &Program) -> Result<AstUsage, Vec<Diagnostic>> {
     while let Some(expression) = stack.pop() {
         match &expression.kind {
             ExprKind::Int(_)
+            | ExprKind::Int32(_)
             | ExprKind::Char(_)
+            | ExprKind::Uint8(_)
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
             | ExprKind::Bool(_)

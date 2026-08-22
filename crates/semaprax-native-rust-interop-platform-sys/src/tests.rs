@@ -957,8 +957,21 @@ fn windows_mixed_root_inventory_replays_before_and_after_exact_directory_rename(
             .expect("hold child directory");
         let held_dir_result = std::fs::rename(&held_dir_parent, root.join("probe_held_dir_moved"));
         drop(held_child);
+        let retry_probe_start = std::time::Instant::now();
+        let mut retry_probe = Err(std::io::Error::other("not attempted"));
+        let mut retry_attempts = 0_usize;
+        while retry_probe_start.elapsed() < std::time::Duration::from_secs(2) {
+            retry_attempts += 1;
+            retry_probe =
+                std::fs::rename(root.join("stage"), root.join("published_retry_probe"));
+            if retry_probe.is_ok() {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(25));
+        }
         panic!(
-            "directory publication failed: {error:?} ({identity_probe}) statuses={statuses:?} std_rename={std_probe:?} empty_sibling={empty_sibling:?} unheld_child={unheld_child:?} held_file={held_file_result:?} held_child_dir={held_dir_result:?}"
+            "directory publication failed: {error:?} ({identity_probe}) statuses={statuses:?} std_rename={std_probe:?} empty_sibling={empty_sibling:?} unheld_child={unheld_child:?} held_file={held_file_result:?} std_reopen={std_reopen_result:?} held_child_dir={held_dir_result:?} retry_after={}ms attempts={retry_attempts} last={retry_probe:?}",
+            retry_probe_start.elapsed().as_millis()
         )
     });
     assert!(!root.join("stage").exists());

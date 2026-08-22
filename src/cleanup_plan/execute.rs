@@ -258,7 +258,9 @@ fn collect_variant_domains(
     ) -> Result<(), CleanupExecutionError> {
         match &expression.kind {
             hir::ResolvedExprKind::Int(_)
+            | hir::ResolvedExprKind::Int32(_)
             | hir::ResolvedExprKind::Char(_)
+            | hir::ResolvedExprKind::Uint8(_)
             | hir::ResolvedExprKind::Float32(_)
             | hir::ResolvedExprKind::Float64(_)
             | hir::ResolvedExprKind::Bool(_)
@@ -657,7 +659,9 @@ fn find_expression_by<'a>(
             })
         }
         hir::ResolvedExprKind::Int(_)
+        | hir::ResolvedExprKind::Int32(_)
         | hir::ResolvedExprKind::Char(_)
+        | hir::ResolvedExprKind::Uint8(_)
         | hir::ResolvedExprKind::Float32(_)
         | hir::ResolvedExprKind::Float64(_)
         | hir::ResolvedExprKind::Bool(_)
@@ -1233,8 +1237,10 @@ impl<'a> Executor<'a> {
         let matches_type = match (&self.function.return_type, result) {
             (ResolvedType::Unit, _) => false,
             (ResolvedType::I64, TraceResult::I64(_))
+            | (ResolvedType::I32, TraceResult::Int32(_))
             | (ResolvedType::Bool, TraceResult::Bool(_))
             | (ResolvedType::Char, TraceResult::Char(_))
+            | (ResolvedType::U8, TraceResult::Uint8(_))
             | (ResolvedType::F32, TraceResult::F32(_))
             | (ResolvedType::F64, TraceResult::F64(_)) => true,
             (ResolvedType::Nominal { declaration, .. }, TraceResult::Owned { type_id }) => {
@@ -1246,7 +1252,9 @@ impl<'a> Executor<'a> {
             (
                 CleanupResultSource::Scalar { .. },
                 ResolvedType::I64
+                | ResolvedType::I32
                 | ResolvedType::Char
+                | ResolvedType::U8
                 | ResolvedType::F32
                 | ResolvedType::F64
                 | ResolvedType::Bool,
@@ -1260,7 +1268,9 @@ impl<'a> Executor<'a> {
             | (
                 CleanupResultSource::Owned { .. },
                 ResolvedType::I64
+                | ResolvedType::I32
                 | ResolvedType::Char
+                | ResolvedType::U8
                 | ResolvedType::F32
                 | ResolvedType::F64
                 | ResolvedType::Bool,

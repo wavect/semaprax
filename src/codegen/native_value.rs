@@ -175,7 +175,11 @@ pub(crate) fn plan(
                 "unit result is outside the ordinary native value corpus",
             ));
         }
-        ResolvedType::Char | ResolvedType::F32 | ResolvedType::F64 => {
+        ResolvedType::I32
+        | ResolvedType::Char
+        | ResolvedType::U8
+        | ResolvedType::F32
+        | ResolvedType::F64 => {
             return Err(value_error(
                 "non-i64 scalar result is outside the staged single-frame value corpus",
             ));
@@ -964,7 +968,11 @@ fn validate_signature(
             ResolvedType::Unit => {
                 return Err(value_error("unit is not an ordinary native parameter"));
             }
-            ResolvedType::Char | ResolvedType::F32 | ResolvedType::F64 => {
+            ResolvedType::I32
+            | ResolvedType::Char
+            | ResolvedType::U8
+            | ResolvedType::F32
+            | ResolvedType::F64 => {
                 return Err(value_error(
                     "non-i64 scalar parameter is outside the staged single-frame value corpus",
                 ));
@@ -1004,7 +1012,9 @@ fn validate_signature(
             Ok(())
         }
         ResolvedType::Unit
+        | ResolvedType::I32
         | ResolvedType::Char
+        | ResolvedType::U8
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool

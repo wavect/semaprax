@@ -1837,7 +1837,9 @@ fn drain_disposal_frames(
             disposal_push(frames, ResolvedDisposeFrame::Type(expression.ty));
             match expression.kind {
                 ResolvedExprKind::Int(_)
+                | ResolvedExprKind::Int32(_)
                 | ResolvedExprKind::Char(_)
+                | ResolvedExprKind::Uint8(_)
                 | ResolvedExprKind::Float32(_)
                 | ResolvedExprKind::Float64(_)
                 | ResolvedExprKind::Bool(_)
@@ -2890,7 +2892,7 @@ fn source_scalar_type(ty: &Type) -> Option<ScalarType> {
     match ty {
         Type::I64 => Some(ScalarType::I64),
         Type::Bool => Some(ScalarType::Bool),
-        Type::Char | Type::F32 | Type::F64 | Type::Named { .. } => None,
+        Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64 | Type::Named { .. } => None,
     }
 }
 
@@ -3099,7 +3101,9 @@ fn resolved_call_child(expression: &ResolvedExpr, index: usize) -> Option<&Resol
             }
         }
         ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
+        | ResolvedExprKind::Uint8(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -3732,7 +3736,9 @@ fn type_identity_metrics(
                 let metric = match ty {
                     ResolvedType::Unit => Some(leaf("unit".len())),
                     ResolvedType::I64 => Some(leaf("i64".len())),
+                    ResolvedType::I32 => Some(leaf("i32".len())),
                     ResolvedType::Char => Some(leaf("char".len())),
+                    ResolvedType::U8 => Some(leaf("u8".len())),
                     ResolvedType::F32 => Some(leaf("f32".len())),
                     ResolvedType::F64 => Some(leaf("f64".len())),
                     ResolvedType::Bool => Some(leaf("bool".len())),
@@ -3864,14 +3870,18 @@ fn fingerprint_type_identity(
             TypeIdentityFrame::Enter(ty) => match ty {
                 ResolvedType::Unit
                 | ResolvedType::I64
+                | ResolvedType::I32
                 | ResolvedType::Char
+                | ResolvedType::U8
                 | ResolvedType::F32
                 | ResolvedType::F64
                 | ResolvedType::Bool => {
                     let text = match ty {
                         ResolvedType::Unit => "unit",
                         ResolvedType::I64 => "i64",
+                        ResolvedType::I32 => "i32",
                         ResolvedType::Char => "char",
+                        ResolvedType::U8 => "u8",
                         ResolvedType::F32 => "f32",
                         ResolvedType::F64 => "f64",
                         ResolvedType::Bool => "bool",
@@ -4070,7 +4080,9 @@ fn fingerprint_expression_types_scratch(
                 maximum = maximum.max(type_identity_scratch_upper(&expression.ty)?);
                 match &expression.kind {
                     ResolvedExprKind::Int(_)
+                    | ResolvedExprKind::Int32(_)
                     | ResolvedExprKind::Char(_)
+                    | ResolvedExprKind::Uint8(_)
                     | ResolvedExprKind::Float32(_)
                     | ResolvedExprKind::Float64(_)
                     | ResolvedExprKind::Bool(_)
@@ -4591,7 +4603,9 @@ fn hash_expr(
                 frame(hasher, identity.as_bytes());
                 frame(hasher, ownership(expression.ownership));
                 match &expression.kind {
-                    ResolvedExprKind::Char(_)
+                    ResolvedExprKind::Int32(_)
+                    | ResolvedExprKind::Char(_)
+                    | ResolvedExprKind::Uint8(_)
                     | ResolvedExprKind::Float32(_)
                     | ResolvedExprKind::Float64(_) => {
                         // Non-i64 scalar signatures are outside the scalar
@@ -5803,7 +5817,9 @@ fn validate_selected_scalar_closure(functions: &[&ResolvedFunction]) -> Result<(
         }
         match &expression.kind {
             ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
+            | ResolvedExprKind::Uint8(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_) => {}

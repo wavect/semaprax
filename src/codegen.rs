@@ -977,7 +977,7 @@ fn emit_hir_c_with_labels(
     let functions = function_index(program)?;
     debug_assert!(resource_abi.resources.is_empty());
     let mut output = crate::bounded_output::CappedString::new();
-    emit_native_prelude(&mut output, &resource_abi);
+    emit_native_prelude(&mut output, &resource_abi, program);
     emit_aggregate_declarations(
         &mut output,
         program,
@@ -1051,11 +1051,103 @@ fn emit_hir_c_with_labels(
 fn emit_native_prelude(
     output: &mut impl COutput,
     resource_abi: &native_resource::NativeResourceAbi,
+    program: &ResolvedProgram,
 ) {
     native_runtime::emit_status_runtime(output);
     output.push_str(&resource_abi.declarations);
     output.push_str("#include <stdio.h>\n\n");
     output.push_str(NATIVE_SCALAR_RUNTIME_C);
+    if program_uses_u8_arithmetic(program) {
+        // Checked u8 helpers stay out of programs that cannot reach them, so
+        // existing projections keep their exact committed bytes.
+        output.push_str(NATIVE_U8_RUNTIME_C);
+    }
+}
+
+/// Whether any resolved function body or contract contains checked u8
+/// arithmetic that lowers through the u8 runtime helpers.
+fn program_uses_u8_arithmetic(program: &ResolvedProgram) -> bool {
+    let mut pending: Vec<&ResolvedExpr> = Vec::new();
+    for function in &program.functions {
+        pending.push(&function.body);
+        for contract in function.requires.iter().chain(&function.ensures) {
+            pending.push(contract);
+        }
+    }
+    while let Some(expression) = pending.pop() {
+        if let ResolvedExprKind::Binary { op, left, right } = &expression.kind {
+            if matches!(left.ty, ResolvedType::U8)
+                && matches!(
+                    op,
+                    BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
+                )
+            {
+                return true;
+            }
+            pending.push(left);
+            pending.push(right);
+            continue;
+        }
+        pending.extend(resolved_expr_children(expression));
+    }
+    false
+}
+
+/// Every direct resolved child of an expression.
+fn resolved_expr_children<'a>(
+    expression: &'a ResolvedExpr,
+) -> Box<dyn Iterator<Item = &'a ResolvedExpr> + 'a> {
+    match &expression.kind {
+        ResolvedExprKind::Binary { left, right, .. } => {
+            Box::new([left.as_ref(), right.as_ref()].into_iter())
+        }
+        ResolvedExprKind::Unary { value, .. }
+        | ResolvedExprKind::Try { operand: value, .. }
+        | ResolvedExprKind::TryOption { operand: value, .. }
+        | ResolvedExprKind::Project { base: value, .. } => {
+            Box::new(std::iter::once(value.as_ref()))
+        }
+        ResolvedExprKind::Block { statements, tail } => Box::new(
+            statements
+                .iter()
+                .map(|statement| match statement {
+                    ResolvedStatement::Let { value, .. } => value,
+                })
+                .chain(std::iter::once(tail.as_ref())),
+        ),
+        ResolvedExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => Box::new(
+            [
+                condition.as_ref(),
+                then_branch.as_ref(),
+                else_branch.as_ref(),
+            ]
+            .into_iter(),
+        ),
+        ResolvedExprKind::Call { args, .. } => Box::new(args.iter()),
+        ResolvedExprKind::NativeRustImportCall(call) => Box::new(call.args.iter()),
+        ResolvedExprKind::ConstructRecord { fields, .. }
+        | ResolvedExprKind::ConstructVariant { fields, .. } => {
+            Box::new(fields.iter().map(|field| &field.value))
+        }
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            Box::new(std::iter::once(scrutinee.as_ref()).chain(arms.iter().map(|arm| &arm.value)))
+        }
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            Box::new(std::iter::once(base.as_ref()).chain(fields.iter().map(|field| &field.value)))
+        }
+        ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Int32(_)
+        | ResolvedExprKind::Char(_)
+        | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Float32(_)
+        | ResolvedExprKind::Float64(_)
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::Place(_) => Box::new(std::iter::empty()),
+    }
 }
 
 fn emit_aggregate_declarations(
@@ -1533,7 +1625,7 @@ fn preflight_resource_lowering(
     // composes those inside strict C functions. No resource artifact may escape
     // until a public host ownership boundary is defined and proven.
     let mut staged_output = crate::bounded_output::CappedString::new();
-    emit_native_prelude(&mut staged_output, resource_abi);
+    emit_native_prelude(&mut staged_output, resource_abi, program);
     if let Err(diagnostic) =
         emit_function_prototypes(&mut staged_output, program, functions, resource_abi)
     {
@@ -1668,6 +1760,91 @@ static __attribute__((unused)) spx_status_token spx_rt_rem(
     return SPX_STATUS_SUCCESS;
 }
 
+static __attribute__((unused)) spx_status_token spx_rt_add_i32(
+    struct spx_context *spx_ctx, int32_t a, int32_t b, int32_t *result_out
+) {
+    int64_t wide = (int64_t)a + (int64_t)b;
+    if (wide > INT32_MAX || wide < INT32_MIN) {
+        return spx_rt_arithmetic_failure(
+            spx_ctx, SPX_STATUS_ARITHMETIC_ADD_OVERFLOW, "addition overflow"
+        );
+    }
+    *result_out = (int32_t)wide;
+    return SPX_STATUS_SUCCESS;
+}
+
+static __attribute__((unused)) spx_status_token spx_rt_sub_i32(
+    struct spx_context *spx_ctx, int32_t a, int32_t b, int32_t *result_out
+) {
+    int64_t wide = (int64_t)a - (int64_t)b;
+    if (wide > INT32_MAX || wide < INT32_MIN) {
+        return spx_rt_arithmetic_failure(
+            spx_ctx, SPX_STATUS_ARITHMETIC_SUB_OVERFLOW, "subtraction overflow"
+        );
+    }
+    *result_out = (int32_t)wide;
+    return SPX_STATUS_SUCCESS;
+}
+
+static __attribute__((unused)) spx_status_token spx_rt_mul_i32(
+    struct spx_context *spx_ctx, int32_t a, int32_t b, int32_t *result_out
+) {
+    int64_t wide = (int64_t)a * (int64_t)b;
+    if (wide > INT32_MAX || wide < INT32_MIN) {
+        return spx_rt_arithmetic_failure(
+            spx_ctx, SPX_STATUS_ARITHMETIC_MUL_OVERFLOW, "multiplication overflow"
+        );
+    }
+    *result_out = (int32_t)wide;
+    return SPX_STATUS_SUCCESS;
+}
+
+static __attribute__((unused)) spx_status_token spx_rt_div_i32(
+    struct spx_context *spx_ctx, int32_t a, int32_t b, int32_t *result_out
+) {
+    if (b == 0) {
+        return spx_rt_arithmetic_failure(
+            spx_ctx, SPX_STATUS_ARITHMETIC_DIVISION_BY_ZERO, "invalid division"
+        );
+    }
+    if (a == INT32_MIN && b == -1) {
+        return spx_rt_arithmetic_failure(
+            spx_ctx, SPX_STATUS_ARITHMETIC_DIVISION_OVERFLOW, "invalid division"
+        );
+    }
+    *result_out = a / b;
+    return SPX_STATUS_SUCCESS;
+}
+
+static __attribute__((unused)) spx_status_token spx_rt_rem_i32(
+    struct spx_context *spx_ctx, int32_t a, int32_t b, int32_t *result_out
+) {
+    if (b == 0) {
+        return spx_rt_arithmetic_failure(
+            spx_ctx, SPX_STATUS_ARITHMETIC_REMAINDER_BY_ZERO, "invalid remainder"
+        );
+    }
+    if (a == INT32_MIN && b == -1) {
+        return spx_rt_arithmetic_failure(
+            spx_ctx, SPX_STATUS_ARITHMETIC_REMAINDER_OVERFLOW, "invalid remainder"
+        );
+    }
+    *result_out = a % b;
+    return SPX_STATUS_SUCCESS;
+}
+
+static __attribute__((unused)) spx_status_token spx_rt_neg_i32(
+    struct spx_context *spx_ctx, int32_t value, int32_t *result_out
+) {
+    if (value == INT32_MIN) {
+        return spx_rt_arithmetic_failure(
+            spx_ctx, SPX_STATUS_ARITHMETIC_NEGATION_OVERFLOW, "negation overflow"
+        );
+    }
+    *result_out = -value;
+    return SPX_STATUS_SUCCESS;
+}
+
 static __attribute__((unused)) spx_status_token spx_rt_neg(
     struct spx_context *spx_ctx, int64_t value, int64_t *result_out
 ) {
@@ -1726,6 +1903,58 @@ static __attribute__((unused)) int spx_public_failure(
     return 73;
 }
 
+"#;
+
+const NATIVE_U8_RUNTIME_C: &str = r#"static __attribute__((unused)) spx_status_token spx_rt_u8_add(
+    struct spx_context *spx_ctx, uint8_t a, uint8_t b, uint8_t *result_out
+) {
+    int64_t result = (int64_t)a + (int64_t)b;
+    if (result < 0 || result > UINT8_MAX) {
+        return spx_rt_arithmetic_failure(
+            spx_ctx, SPX_STATUS_ARITHMETIC_ADD_OVERFLOW, "addition overflow"
+        );
+    }
+    *result_out = (uint8_t)result;
+    return SPX_STATUS_SUCCESS;
+}
+
+static __attribute__((unused)) spx_status_token spx_rt_u8_sub(
+    struct spx_context *spx_ctx, uint8_t a, uint8_t b, uint8_t *result_out
+) {
+    int64_t result = (int64_t)a - (int64_t)b;
+    if (result < 0 || result > UINT8_MAX) {
+        return spx_rt_arithmetic_failure(
+            spx_ctx, SPX_STATUS_ARITHMETIC_SUB_OVERFLOW, "subtraction overflow"
+        );
+    }
+    *result_out = (uint8_t)result;
+    return SPX_STATUS_SUCCESS;
+}
+
+static __attribute__((unused)) spx_status_token spx_rt_u8_mul(
+    struct spx_context *spx_ctx, uint8_t a, uint8_t b, uint8_t *result_out
+) {
+    int64_t result = (int64_t)a * (int64_t)b;
+    if (result < 0 || result > UINT8_MAX) {
+        return spx_rt_arithmetic_failure(
+            spx_ctx, SPX_STATUS_ARITHMETIC_MUL_OVERFLOW, "multiplication overflow"
+        );
+    }
+    *result_out = (uint8_t)result;
+    return SPX_STATUS_SUCCESS;
+}
+
+static __attribute__((unused)) spx_status_token spx_rt_u8_div(
+    struct spx_context *spx_ctx, uint8_t a, uint8_t b, uint8_t *result_out
+) {
+    if (b == 0) {
+        return spx_rt_arithmetic_failure(
+            spx_ctx, SPX_STATUS_ARITHMETIC_DIVISION_BY_ZERO, "invalid division"
+        );
+    }
+    *result_out = (uint8_t)((int64_t)a / (int64_t)b);
+    return SPX_STATUS_SUCCESS;
+}
 "#;
 
 struct NativeEmissionContext<'a> {
@@ -1905,7 +2134,9 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
             expression_has_try(base) || fields.iter().any(|field| expression_has_try(&field.value))
         }
         ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
+        | ResolvedExprKind::Uint8(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -2173,11 +2404,25 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     ty: ResolvedType::I64,
                 }
             }
+            ResolvedExprKind::Int32(value) => {
+                self.require_type(&expr.ty, &ResolvedType::I32, "i32 literal")?;
+                CValue {
+                    code: format!("INT32_C({value})"),
+                    ty: ResolvedType::I32,
+                }
+            }
             ResolvedExprKind::Char(value) => {
                 self.require_type(&expr.ty, &ResolvedType::Char, "char literal")?;
                 CValue {
                     code: format!("UINT32_C(0x{value:x})"),
                     ty: ResolvedType::Char,
+                }
+            }
+            ResolvedExprKind::Uint8(value) => {
+                self.require_type(&expr.ty, &ResolvedType::U8, "u8 literal")?;
+                CValue {
+                    code: format!("UINT8_C({value})"),
+                    ty: ResolvedType::U8,
                 }
             }
             ResolvedExprKind::Float32(bits) => {
@@ -2263,6 +2508,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     UnaryOp::Neg => match &value.ty {
                         ResolvedType::F32 => (ResolvedType::F32, ResolvedType::F32),
                         ResolvedType::F64 => (ResolvedType::F64, ResolvedType::F64),
+                        ResolvedType::I32 => (ResolvedType::I32, ResolvedType::I32),
                         _ => (ResolvedType::I64, ResolvedType::I64),
                     },
                     UnaryOp::Not => (ResolvedType::Bool, ResolvedType::Bool),
@@ -2273,6 +2519,13 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 match op {
                     UnaryOp::Neg if matches!(ty, ResolvedType::F32 | ResolvedType::F64) => {
                         self.line(&format!("{temporary} = (-({}));", value.code));
+                    }
+                    UnaryOp::Neg if ty == ResolvedType::I32 => {
+                        self.line(&format!(
+                            "spx_status = spx_rt_neg_i32(spx_ctx, {}, &{temporary});",
+                            value.code
+                        ));
+                        self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
                     }
                     UnaryOp::Neg => {
                         self.line(&format!(
@@ -2937,18 +3190,27 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         // Chars compare by Unicode scalar value; C unsigned comparison on
         // uint32_t matches the verified ordering exactly.
         let char_operand = matches!(left.ty, ResolvedType::Char);
+        let int32_operand = matches!(left.ty, ResolvedType::I32);
+        let narrow_operand = matches!(left.ty, ResolvedType::U8);
         let operand_type = match op {
             BinaryOp::And | BinaryOp::Or => ResolvedType::Bool,
             BinaryOp::Eq | BinaryOp::Ne => left.ty.clone(),
-            _ if float_operand || char_operand => left.ty.clone(),
+            _ if float_operand || char_operand || int32_operand || narrow_operand => {
+                left.ty.clone()
+            }
             _ => ResolvedType::I64,
         };
         self.require_type(&left.ty, &operand_type, "binary left operand")?;
         let expected_result = match op {
             BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
-                if float_operand =>
+                if float_operand || int32_operand =>
             {
                 left.ty.clone()
+            }
+            BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
+                if narrow_operand =>
+            {
+                ResolvedType::U8
             }
             BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem => {
                 ResolvedType::I64
@@ -2959,6 +3221,11 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         if float_operand && op == BinaryOp::Rem {
             return Err(backend_error(
                 "floating-point remainder has no admitted native lowering",
+            ));
+        }
+        if narrow_operand && op == BinaryOp::Rem {
+            return Err(backend_error(
+                "u8 remainder has no admitted native lowering",
             ));
         }
         if char_operand
@@ -3019,11 +3286,36 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 op.text(),
                 right.code
             ));
+        } else if narrow_operand
+            && matches!(
+                op,
+                BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div
+            )
+        {
+            // Checked u8 arithmetic computes in int64_t and range-checks the
+            // 0..=255 result before narrowing to the uint8_t temporary.
+            let helper = match op {
+                BinaryOp::Add => "spx_rt_u8_add",
+                BinaryOp::Sub => "spx_rt_u8_sub",
+                BinaryOp::Mul => "spx_rt_u8_mul",
+                BinaryOp::Div => "spx_rt_u8_div",
+                _ => unreachable!("u8 arithmetic operation was matched above"),
+            };
+            self.line(&format!(
+                "spx_status = {helper}(spx_ctx, {}, {}, &{temporary});",
+                left.code, right.code
+            ));
+            self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
         } else if matches!(
             op,
             BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
         ) {
             let helper = match op {
+                BinaryOp::Add if int32_operand => "spx_rt_add_i32",
+                BinaryOp::Sub if int32_operand => "spx_rt_sub_i32",
+                BinaryOp::Mul if int32_operand => "spx_rt_mul_i32",
+                BinaryOp::Div if int32_operand => "spx_rt_div_i32",
+                BinaryOp::Rem if int32_operand => "spx_rt_rem_i32",
                 BinaryOp::Add => "spx_rt_add",
                 BinaryOp::Sub => "spx_rt_sub",
                 BinaryOp::Mul => "spx_rt_mul",
@@ -3483,7 +3775,7 @@ fn main() -> i64 { increment(41) }
         );
         assert_eq!(
             digest,
-            "ded095e7c610a44f58ee1b99e3d08906d289e7b20fa465c0d712ca813e0118c9"
+            "45c15e9cafe21bb7bb2a94036ba7eff70f406ff1ef65426c5fe295cb2c0d366d"
         );
     }
 
@@ -3494,7 +3786,7 @@ fn main() -> i64 { increment(41) }
         let functions = function_index(&program).unwrap();
         let wrapper = &resource_abi.resources[0].c_type;
         let mut output = String::new();
-        emit_native_prelude(&mut output, &resource_abi);
+        emit_native_prelude(&mut output, &resource_abi, &program);
         emit_function_prototypes(&mut output, &program, &functions, &resource_abi).unwrap();
 
         let identity_symbol = c_function_symbol(&DeclarationId::new("token.identity"));
@@ -3514,7 +3806,7 @@ fn main() -> i64 { increment(41) }
         );
 
         let mut second = String::new();
-        emit_native_prelude(&mut second, &resource_abi);
+        emit_native_prelude(&mut second, &resource_abi, &program);
         emit_function_prototypes(&mut second, &program, &functions, &resource_abi).unwrap();
         assert_eq!(output, second);
     }

@@ -101,17 +101,17 @@ fn test_remember_captured_stdout(output: &[u8]) {
 
 #[cfg(test)]
 thread_local! {
-    static LAST_PUBLISH_STATUSES: std::cell::RefCell<[i32; 5]> =
-        const { std::cell::RefCell::new([0; 5]) };
+    static LAST_PUBLISH_STATUSES: std::cell::RefCell<[i32; 11]> =
+        const { std::cell::RefCell::new([0; 11]) };
 }
 
 #[cfg(test)]
-fn test_remember_publish_statuses(statuses: &[i32; 5]) {
+fn test_remember_publish_statuses(statuses: &[i32; 11]) {
     LAST_PUBLISH_STATUSES.with(|slot| *slot.borrow_mut() = *statuses);
 }
 
 #[cfg(test)]
-pub fn test_last_publish_statuses() -> [i32; 5] {
+pub fn test_last_publish_statuses() -> [i32; 11] {
     LAST_PUBLISH_STATUSES.with(std::cell::RefCell::take)
 }
 
@@ -2490,31 +2490,102 @@ pub fn publish_directory_new_prepared(
     if prepared.fail_rename {
         return Err(Error::Changed);
     }
+    let byte_length = stage_name
+        .units
+        .len()
+        .checked_mul(2)
+        .ok_or(Error::Invalid)?;
+    let length = u16::try_from(byte_length).map_err(|_| Error::Invalid)?;
+    let unicode = UNICODE_STRING {
+        Length: length,
+        MaximumLength: length,
+        Buffer: stage_name.units.as_ptr().cast_mut(),
+    };
+    let attributes = OBJECT_ATTRIBUTES {
+        Length: u32::try_from(std::mem::size_of::<OBJECT_ATTRIBUTES>())
+            .map_err(|_| Error::Changed)?,
+        RootDirectory: parent.file.as_raw_handle().cast(),
+        ObjectName: &unicode,
+        Attributes: OBJ_CASE_INSENSITIVE,
+        SecurityDescriptor: std::ptr::null(),
+        SecurityQualityOfService: std::ptr::null(),
+    };
+    let rename_handle = {
+        let mut handle = std::ptr::null_mut();
+        let mut open_io = IO_STATUS_BLOCK::default();
+        let status = unsafe {
+            NtCreateFile(
+                &mut handle,
+                DELETE,
+                &attributes,
+                &mut open_io,
+                std::ptr::null(),
+                FILE_ATTRIBUTE_NORMAL,
+                HELD_SHARE,
+                FILE_OPEN,
+                FILE_DIRECTORY_FILE,
+                std::ptr::null(),
+                0,
+            )
+        };
+        if status < 0 || handle.is_null() || handle == INVALID_HANDLE_VALUE {
+            return Err(Error::Changed);
+        }
+        std::mem::ManuallyDrop::new(unsafe { File::from_raw_handle(handle.cast()) })
+    };
     unsafe {
         (*information).root_directory = parent.file.as_raw_handle().cast();
     }
     let mut io = IO_STATUS_BLOCK::default();
     #[cfg(test)]
-    let mut attempted_statuses = [0_i32; 5];
-    const RENAME_BACKOFF_MILLIS: [u64; 4] = [1, 2, 4, 8];
-    #[allow(unused_variables)]
-    for (attempt, backoff_millis) in RENAME_BACKOFF_MILLIS.into_iter().enumerate() {
-        unsafe {
-            (*information).flags =
-                windows_sys::Win32::System::WindowsProgramming::FILE_RENAME_FLAG_POSIX_SEMANTICS;
+    let mut attempted_statuses = [0_i32; 11];
+    const RENAME_BACKOFF_MILLIS: [u64; 10] = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512];
+    let outcome = (|| {
+        #[allow(unused_variables)]
+        for (attempt, backoff_millis) in RENAME_BACKOFF_MILLIS.into_iter().enumerate() {
+            unsafe {
+                (*information).flags =
+                    windows_sys::Win32::System::WindowsProgramming::FILE_RENAME_FLAG_POSIX_SEMANTICS;
+            }
+            let status = unsafe {
+                NtSetInformationFile(
+                    rename_handle.as_raw_handle().cast(),
+                    &mut io,
+                    information.cast(),
+                    total,
+                    FileRenameInformationEx,
+                )
+            };
+            #[cfg(test)]
+            {
+                attempted_statuses[attempt] = status;
+            }
+            if status == STATUS_OBJECT_NAME_COLLISION {
+                return Err(Error::Exists);
+            }
+            if status >= 0 {
+                return Ok(());
+            }
+            if !matches!(
+                status,
+                STATUS_SHARING_VIOLATION | STATUS_ACCESS_DENIED | STATUS_DELETE_PENDING
+            ) {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(backoff_millis));
         }
         let status = unsafe {
             NtSetInformationFile(
-                stage.file.as_raw_handle().cast(),
+                rename_handle.as_raw_handle().cast(),
                 &mut io,
                 information.cast(),
                 total,
-                FileRenameInformationEx,
+                FileRenameInformation,
             )
         };
         #[cfg(test)]
         {
-            attempted_statuses[attempt] = status;
+            attempted_statuses[10] = status;
         }
         if status == STATUS_OBJECT_NAME_COLLISION {
             return Err(Error::Exists);
@@ -2522,37 +2593,15 @@ pub fn publish_directory_new_prepared(
         if status >= 0 {
             return Ok(());
         }
-        if !matches!(
-            status,
-            STATUS_SHARING_VIOLATION | STATUS_ACCESS_DENIED | STATUS_DELETE_PENDING
-        ) {
-            break;
-        }
-        std::thread::sleep(std::time::Duration::from_millis(backoff_millis));
+        Err(Error::Changed)
+    })();
+    if unsafe { CloseHandle(rename_handle.as_raw_handle().cast()) } == 0 {
+        std::process::abort();
     }
-    let status = unsafe {
-        NtSetInformationFile(
-            stage.file.as_raw_handle().cast(),
-            &mut io,
-            information.cast(),
-            total,
-            FileRenameInformation,
-        )
-    };
-    #[cfg(test)]
-    {
-        attempted_statuses[4] = status;
-    }
+    std::mem::forget(rename_handle);
     #[cfg(test)]
     test_remember_publish_statuses(&attempted_statuses);
-    if status < 0 {
-        return Err(if status == STATUS_OBJECT_NAME_COLLISION {
-            Error::Exists
-        } else {
-            Error::Changed
-        });
-    }
-    Ok(())
+    outcome
 }
 
 pub fn discard_owned_stage_prepared<const N: usize>(

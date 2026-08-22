@@ -218,7 +218,17 @@ execution (`examples/floats.spx`,
 `tests/floating_point_scalars.rs`), Unicode scalar `char` values with exact
 canonical escapes, scalar ordering, 4-byte layouts, graph nodes, native C11,
 and Wasm execution (`examples/chars.spx`,
-`tests/character_scalars.rs`), feature-minimal Graph v14/v13/v12/v11/v10 lattice for
+`tests/character_scalars.rs`), checked signed 32-bit `i32` scalars with
+explicit suffixed literals, width-preserving checked arithmetic that selects
+the same normalized failure statuses as `i64`, 4-byte layouts, graph nodes,
+native C11 O0/O2 (including an overflow status probe), and Node/Wasm
+execution (`examples/integers_i32.spx`,
+`tests/i32_scalars.rs`), feature-minimal Graph v14/v13/v12/v11/v10 lattice for
+`tests/character_scalars.rs`), unsigned checked-arithmetic `u8` values with
+exact suffixed literals, range-checked arithmetic that selects the normalized
+arithmetic failure statuses, one-byte Native64 layouts, graph nodes, native
+C11, and Wasm execution (`examples/bytes_u8.spx`,
+`tests/u8_scalars.rs`), feature-minimal Graph v14/v13/v12/v11/v10 lattice for
 generic functions/explicit record patterns/generic records/Option propagation/legacy, validated
 stable-ID HIR/type facts, mandatory replay-validated CleanupPlan v2/v3 plans, versioned normalized-status
 and semantic-event-dictionary types, native scalar status/out execution, a
@@ -236,9 +246,15 @@ gates below are not.
 - String and other heap-backed types: still unimplemented because the language
   has no allocation model yet; floats deliberately cover only the by-value
   scalar slice.
+- Fixed-width integer types beyond `i64` and `i32` (narrower or unsigned
+  widths), wrapping or saturating arithmetic modes, integer remainder outside
+  `i64`, and float-remainder or math-library intrinsics.
+- Float, char, or i32 admission into generic instantiation arguments,
+  generic template signature slots, Public Scalar Export Profile v1, the
+  native host/callable corpus, and the Native Rust interop boundary.
 - Fixed-width integer types beyond `i64`, saturating/wrapping arithmetic, and
   float-remainder or math-library intrinsics.
-- Float or char admission into generic instantiation arguments, generic
+- Float, char, or u8 admission into generic instantiation arguments, generic
   template signature slots, Public Scalar Export Profile v1, the native
   host/callable corpus, and the Native Rust interop boundary.
 - Complete record breadth plus nested/resource-bearing generic records and

@@ -216,7 +216,9 @@ fn layout_type(
     match ty {
         ResolvedType::Unit => Err(layout_error("unit has no aggregate value layout")),
         ResolvedType::I64
+        | ResolvedType::I32
         | ResolvedType::Char
+        | ResolvedType::U8
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool => {
@@ -239,7 +241,12 @@ pub(crate) fn scalar_size_align(
 ) -> Result<(u32, u32), Diagnostic> {
     match ty {
         ResolvedType::I64 => Ok((8, 8)),
+        ResolvedType::I32 => Ok((4, 4)),
         ResolvedType::Char => Ok((4, 4)),
+        ResolvedType::U8 => match target {
+            AggregateTarget::Native64 => Ok((1, 1)),
+            AggregateTarget::Wasm32 => Ok((4, 4)),
+        },
         ResolvedType::F32 => Ok((4, 4)),
         ResolvedType::F64 => Ok((8, 8)),
         ResolvedType::Bool => match target {
@@ -515,7 +522,9 @@ fn collect_expr_record_types(
             }
         }
         ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
+        | ResolvedExprKind::Uint8(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)

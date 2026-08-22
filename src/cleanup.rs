@@ -38,7 +38,9 @@ fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize {
     match ty {
         ResolvedType::Unit
         | ResolvedType::I64
+        | ResolvedType::I32
         | ResolvedType::Char
+        | ResolvedType::U8
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool => 0,
@@ -608,7 +610,9 @@ impl InventoryBuilder<'_> {
                             }
                         }
                         ResolvedExprKind::Int(_)
+                        | ResolvedExprKind::Int32(_)
                         | ResolvedExprKind::Char(_)
+                        | ResolvedExprKind::Uint8(_)
                         | ResolvedExprKind::Float32(_)
                         | ResolvedExprKind::Float64(_)
                         | ResolvedExprKind::Bool(_)

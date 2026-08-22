@@ -100,6 +100,11 @@ pub(super) struct Signature {
 struct LocalLayout {
     declarations: Vec<ResolvedType>,
     lets: HashMap<ValueId, u32>,
+    /// Two reserved i64 scratch slots used by inline checked i32 arithmetic.
+    wide_scratch: [u32; 2],
+    /// Checked u8 arithmetic stages operands and results in two trailing
+    /// scratch locals so the failure trap never taints live stack values.
+    u8_scratch: Option<(u32, u32)>,
 }
 
 trait ByteOutput: std::ops::Deref<Target = [u8]> {
@@ -513,6 +518,8 @@ fn emit_resolved_module_internal(
         let mut layout = LocalLayout {
             declarations: vec![function.return_type.clone()],
             lets: HashMap::new(),
+            wide_scratch: [0; 2],
+            u8_scratch: None,
         };
         for contract in &function.requires {
             collect_locals(contract, function.params.len() as u32, &mut layout)?;
@@ -520,6 +527,32 @@ fn emit_resolved_module_internal(
         collect_locals(&function.body, function.params.len() as u32, &mut layout)?;
         for contract in &function.ensures {
             collect_locals(contract, function.params.len() as u32, &mut layout)?;
+        }
+        if function
+            .requires
+            .iter()
+            .chain(std::iter::once(&function.body))
+            .chain(&function.ensures)
+            .any(needs_i32_wide_scratch)
+        {
+            layout.wide_scratch = [
+                layout.declarations.len() as u32,
+                layout.declarations.len() as u32 + 1,
+            ];
+            layout.declarations.push(ResolvedType::I64);
+            layout.declarations.push(ResolvedType::I64);
+        }
+        if contains_u8_arithmetic(&function.body)
+            || function
+                .requires
+                .iter()
+                .chain(&function.ensures)
+                .any(contains_u8_arithmetic)
+        {
+            let left_index = layout.declarations.len() as u32;
+            layout.declarations.push(ResolvedType::U8);
+            layout.declarations.push(ResolvedType::U8);
+            layout.u8_scratch = Some((left_index, left_index + 1));
         }
         value_indexes.extend(layout.lets.iter().map(|(id, index)| (id.clone(), *index)));
         value_indexes.insert(function.result_id.clone(), result_local);
@@ -1398,7 +1431,9 @@ fn collect_locals(
             }
         }
         ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
+        | ResolvedExprKind::Uint8(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -1420,9 +1455,18 @@ fn emit_expr(
             output.push(0x42);
             write_i64(output, *value);
         }
+        ResolvedExprKind::Int32(value) => {
+            output.push(0x41);
+            write_i64(output, i64::from(*value));
+        }
         ResolvedExprKind::Char(value) => {
             // Chars ride the i32 valtype; scalar values are below 2^31 so the
             // signed LEB128 encoding is exact.
+            output.push(0x41);
+            write_i64(output, i64::from(*value));
+        }
+        ResolvedExprKind::Uint8(value) => {
+            // u8 values ride the i32 valtype with the same exact encoding.
             output.push(0x41);
             write_i64(output, i64::from(*value));
         }
@@ -1488,6 +1532,31 @@ fn emit_expr(
         }
         ResolvedExprKind::Unary { op, value } => match op {
             UnaryOp::Neg => {
+                if value.ty == ResolvedType::I32 {
+                    emit_expr(
+                        output,
+                        value,
+                        value_indexes,
+                        function_indexes,
+                        layout,
+                        result,
+                    )?;
+                    let [wide, _] = layout.wide_scratch;
+                    output.push(0xac);
+                    local_set(output, wide);
+                    local_get(output, wide);
+                    output.push(0xa7);
+                    output.push(0x41);
+                    write_i64(output, i32::MIN as i64);
+                    output.push(0x46);
+                    emit_unreachable_trap(output);
+                    output.push(0x42);
+                    write_i64(output, 0);
+                    local_get(output, wide);
+                    output.push(0x7d);
+                    output.push(0xa7);
+                    return Ok(());
+                }
                 emit_expr(
                     output,
                     value,
@@ -1520,6 +1589,23 @@ fn emit_expr(
             }
         },
         ResolvedExprKind::Binary { op, left, right } => {
+            if matches!(
+                op,
+                BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
+            ) && left.ty == ResolvedType::I32
+            {
+                emit_i32_checked_binary(
+                    output,
+                    *op,
+                    left,
+                    right,
+                    value_indexes,
+                    function_indexes,
+                    layout,
+                    result,
+                )?;
+                return Ok(());
+            }
             emit_expr(
                 output,
                 left,
@@ -1584,6 +1670,62 @@ fn emit_expr(
                 });
                 return Ok(());
             }
+            if matches!(left.ty, ResolvedType::U8)
+                && matches!(
+                    op,
+                    BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
+                )
+            {
+                // Checked u8 arithmetic without new host imports: bounded
+                // operands make the unsigned i32 opcodes exact, and one
+                // unsigned range check traps on any out-of-range result. The
+                // scratch locals keep live values off the stack while the
+                // polymorphic trap block executes.
+                let Some((left_scratch, right_scratch)) = layout.u8_scratch else {
+                    return Err(Diagnostic::io(
+                        "SPX-W108",
+                        "missing WebAssembly local layout for checked u8 arithmetic",
+                    ));
+                };
+                // The stack holds [left, right]; pop them in reverse so each
+                // scratch local keeps its operand.
+                output.push(0x21);
+                write_u32(output, right_scratch);
+                output.push(0x21);
+                write_u32(output, left_scratch);
+                if matches!(op, BinaryOp::Div | BinaryOp::Rem) {
+                    output.push(0x20);
+                    write_u32(output, right_scratch);
+                    output.push(0x45);
+                    emit_failure_trap(output);
+                    output.push(0x20);
+                    write_u32(output, left_scratch);
+                    output.push(0x20);
+                    write_u32(output, right_scratch);
+                    output.push(if *op == BinaryOp::Div { 0x6e } else { 0x70 });
+                    return Ok(());
+                }
+                output.push(0x20);
+                write_u32(output, left_scratch);
+                output.push(0x20);
+                write_u32(output, right_scratch);
+                output.push(match op {
+                    BinaryOp::Add => 0x6a,
+                    BinaryOp::Sub => 0x6b,
+                    _ => 0x6c,
+                });
+                output.push(0x21);
+                write_u32(output, left_scratch);
+                output.push(0x20);
+                write_u32(output, left_scratch);
+                output.push(0x41);
+                write_i64(output, 255);
+                output.push(0x4b);
+                emit_failure_trap(output);
+                output.push(0x20);
+                write_u32(output, left_scratch);
+                return Ok(());
+            }
             match op {
                 BinaryOp::Add => call_import(output, 0),
                 BinaryOp::Sub => call_import(output, 1),
@@ -1603,10 +1745,18 @@ fn emit_expr(
                     // Ordered comparison compares scalar values; chars ride
                     // the unsigned i32 opcodes while i64 keeps its lane.
                     output.push(match (&left.ty, op) {
+                        (ResolvedType::I32, BinaryOp::Lt) => 0x48,
+                        (ResolvedType::I32, BinaryOp::Gt) => 0x4a,
+                        (ResolvedType::I32, BinaryOp::Le) => 0x4c,
+                        (ResolvedType::I32, BinaryOp::Ge) => 0x4e,
                         (ResolvedType::Char, BinaryOp::Lt) => 0x49,
                         (ResolvedType::Char, BinaryOp::Gt) => 0x4b,
                         (ResolvedType::Char, BinaryOp::Le) => 0x4d,
                         (ResolvedType::Char, BinaryOp::Ge) => 0x4f,
+                        (ResolvedType::U8, BinaryOp::Lt) => 0x49,
+                        (ResolvedType::U8, BinaryOp::Gt) => 0x4b,
+                        (ResolvedType::U8, BinaryOp::Le) => 0x4d,
+                        (ResolvedType::U8, BinaryOp::Ge) => 0x4f,
                         (_, BinaryOp::Lt) => 0x53,
                         (_, BinaryOp::Gt) => 0x55,
                         (_, BinaryOp::Le) => 0x57,
@@ -1755,6 +1905,253 @@ fn call_import(output: &mut impl ByteOutput, index: u32) {
     write_u32(output, index);
 }
 
+fn local_get(output: &mut impl ByteOutput, index: u32) {
+    output.push(0x20);
+    write_u32(output, index);
+}
+
+fn local_set(output: &mut impl ByteOutput, index: u32) {
+    output.push(0x21);
+    write_u32(output, index);
+}
+
+/// An `if (condition) unreachable` block: the core-module failure channel for
+/// detected i32 arithmetic overflow, which has no status local in this lane.
+fn emit_unreachable_trap(output: &mut impl ByteOutput) {
+    output.extend_bytes(&[0x04, 0x40, 0x00, 0x0b]);
+}
+
+/// Inline checked i32 arithmetic without new host imports. Operands widen to
+/// i64 so add/sub/mul compute exactly; the wrapped result must re-extend to
+/// the same wide value. Division guards divisor zero and INT32_MIN / -1.
+#[allow(clippy::too_many_arguments)]
+fn emit_i32_checked_binary(
+    output: &mut impl ByteOutput,
+    op: BinaryOp,
+    left: &ResolvedExpr,
+    right: &ResolvedExpr,
+    value_indexes: &HashMap<ValueId, u32>,
+    function_indexes: &HashMap<FunctionExecutionId, u32>,
+    layout: &LocalLayout,
+    result: Option<(u32, &str)>,
+) -> Result<(), Diagnostic> {
+    let [wide, other] = layout.wide_scratch;
+    emit_expr(
+        output,
+        left,
+        value_indexes,
+        function_indexes,
+        layout,
+        result,
+    )?;
+    output.push(0xac);
+    local_set(output, wide);
+    emit_expr(
+        output,
+        right,
+        value_indexes,
+        function_indexes,
+        layout,
+        result,
+    )?;
+    output.push(0xac);
+    local_set(output, other);
+    match op {
+        BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul => {
+            local_get(output, wide);
+            local_get(output, other);
+            output.push(match op {
+                BinaryOp::Add => 0x7c,
+                BinaryOp::Sub => 0x7d,
+                _ => 0x7e,
+            });
+            local_set(output, wide);
+        }
+        BinaryOp::Div | BinaryOp::Rem => {
+            local_get(output, other);
+            output.push(0x50);
+            emit_unreachable_trap(output);
+            if op == BinaryOp::Div {
+                local_get(output, wide);
+                output.push(0xa7);
+                output.push(0x41);
+                write_i64(output, i64::from(i32::MIN));
+                output.push(0x46);
+                local_get(output, other);
+                output.push(0xa7);
+                output.push(0x41);
+                write_i64(output, -1);
+                output.push(0x46);
+                output.push(0x71);
+                emit_unreachable_trap(output);
+            }
+            local_get(output, wide);
+            local_get(output, other);
+            output.push(if op == BinaryOp::Div { 0x7f } else { 0x81 });
+            local_set(output, wide);
+        }
+        _ => return Err(Diagnostic::io("SPX-W102", "unsupported i32 arithmetic")),
+    }
+    if matches!(op, BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul) {
+        local_get(output, wide);
+        output.push(0xa7);
+        output.push(0xac);
+        local_get(output, wide);
+        output.push(0x51);
+        output.push(0x45);
+        emit_unreachable_trap(output);
+    }
+    local_get(output, wide);
+    output.push(0xa7);
+    Ok(())
+}
+
+/// Whether a function body or contract contains i32 arithmetic that needs the
+/// reserved i64 scratch pair.
+pub(crate) fn needs_i32_wide_scratch(expression: &ResolvedExpr) -> bool {
+    let mut pending = vec![expression];
+    while let Some(expression) = pending.pop() {
+        match &expression.kind {
+            ResolvedExprKind::Unary { op, value } => {
+                if *op == UnaryOp::Neg && value.ty == ResolvedType::I32 {
+                    return true;
+                }
+                pending.push(value);
+            }
+            ResolvedExprKind::Binary { op, left, right } => {
+                if matches!(
+                    op,
+                    BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
+                ) && left.ty == ResolvedType::I32
+                {
+                    return true;
+                }
+                pending.push(left);
+                pending.push(right);
+            }
+            ResolvedExprKind::Call { args, .. } => pending.extend(args.iter()),
+            ResolvedExprKind::NativeRustImportCall(call) => pending.extend(call.args.iter()),
+            ResolvedExprKind::Block { statements, tail } => {
+                for statement in statements {
+                    match statement {
+                        ResolvedStatement::Let { value, .. } => pending.push(value),
+                    }
+                }
+                pending.push(tail);
+            }
+            ResolvedExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                pending.push(condition);
+                pending.push(then_branch);
+                pending.push(else_branch);
+            }
+            ResolvedExprKind::ConstructRecord { fields, .. }
+            | ResolvedExprKind::ConstructVariant { fields, .. }
+            | ResolvedExprKind::UpdateRecord { fields, .. } => {
+                for field in fields {
+                    pending.push(&field.value);
+                }
+            }
+            ResolvedExprKind::Match { scrutinee, arms } => {
+                pending.push(scrutinee);
+                for arm in arms {
+                    pending.push(&arm.value);
+                }
+            }
+            ResolvedExprKind::Try { operand, .. } | ResolvedExprKind::TryOption { operand, .. } => {
+                pending.push(operand);
+            }
+            ResolvedExprKind::Project { base, .. } => pending.push(base),
+            ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Int32(_)
+            | ResolvedExprKind::Char(_)
+            | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Float32(_)
+            | ResolvedExprKind::Float64(_)
+            | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::Place(_) => {}
+        }
+    }
+    false
+}
+
+/// One deterministic checked-arithmetic failure trap: an empty void `if`
+/// block whose body is `unreachable`. Callers keep live values in scratch
+/// locals because the polymorphic block taints the operand stack.
+fn emit_failure_trap(output: &mut impl ByteOutput) {
+    output.push(0x04);
+    output.push(0x40);
+    output.push(0x00);
+    output.push(0x0b);
+}
+
+/// Whether an expression contains checked u8 arithmetic that needs the
+/// function-level scratch locals.
+fn contains_u8_arithmetic(expression: &ResolvedExpr) -> bool {
+    match &expression.kind {
+        ResolvedExprKind::Binary { op, left, right: _ }
+            if matches!(left.ty, ResolvedType::U8)
+                && matches!(
+                    *op,
+                    BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
+                ) =>
+        {
+            true
+        }
+        ResolvedExprKind::Binary { left, right, .. } => {
+            contains_u8_arithmetic(left) || contains_u8_arithmetic(right)
+        }
+        ResolvedExprKind::Unary { value, .. }
+        | ResolvedExprKind::Try { operand: value, .. }
+        | ResolvedExprKind::TryOption { operand: value, .. }
+        | ResolvedExprKind::Project { base: value, .. } => contains_u8_arithmetic(value),
+        ResolvedExprKind::Call { args, .. } => args.iter().any(contains_u8_arithmetic),
+        ResolvedExprKind::NativeRustImportCall(call) => {
+            call.args.iter().any(contains_u8_arithmetic)
+        }
+        ResolvedExprKind::Block { statements, tail } => {
+            contains_u8_arithmetic(tail)
+                || statements.iter().any(|statement| match statement {
+                    ResolvedStatement::Let { value, .. } => contains_u8_arithmetic(value),
+                })
+        }
+        ResolvedExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            contains_u8_arithmetic(condition)
+                || contains_u8_arithmetic(then_branch)
+                || contains_u8_arithmetic(else_branch)
+        }
+        ResolvedExprKind::ConstructRecord { fields, .. }
+        | ResolvedExprKind::ConstructVariant { fields, .. } => fields
+            .iter()
+            .any(|field| contains_u8_arithmetic(&field.value)),
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            contains_u8_arithmetic(scrutinee)
+                || arms.iter().any(|arm| contains_u8_arithmetic(&arm.value))
+        }
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            contains_u8_arithmetic(base)
+                || fields
+                    .iter()
+                    .any(|field| contains_u8_arithmetic(&field.value))
+        }
+        ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Int32(_)
+        | ResolvedExprKind::Char(_)
+        | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Float32(_)
+        | ResolvedExprKind::Float64(_)
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::Place(_) => false,
+    }
+}
+
 fn wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
     match ty {
         ResolvedType::Unit => Err(Diagnostic::io(
@@ -1762,7 +2159,9 @@ fn wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
             "unit is not a WebAssembly value type",
         )),
         ResolvedType::I64 => Ok(I64),
+        ResolvedType::I32 => Ok(I32),
         ResolvedType::Char => Ok(I32),
+        ResolvedType::U8 => Ok(I32),
         ResolvedType::F32 => Ok(F32),
         ResolvedType::F64 => Ok(F64),
         ResolvedType::Bool | ResolvedType::Nominal { .. } => Ok(I32),

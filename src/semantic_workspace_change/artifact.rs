@@ -1505,7 +1505,6 @@ mod tests {
     use std::io::Write as _;
 
     use serde_json::Value;
-    use sha2::Sha256;
 
     use super::*;
     use crate::semantic_workspace_change::tests::Fixture;

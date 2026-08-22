@@ -456,7 +456,9 @@ pub(crate) fn precheck_program(program: &Program) -> Result<(), Vec<Diagnostic>>
     while let Some(expression) = expressions.pop() {
         match &expression.kind {
             ExprKind::Int(_)
+            | ExprKind::Int32(_)
             | ExprKind::Char(_)
+            | ExprKind::Uint8(_)
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
             | ExprKind::Bool(_)
@@ -586,7 +588,9 @@ fn scalar_type(ty: &Type) -> bool {
 fn scalar_expr(expression: &Expr) -> bool {
     match &expression.kind {
         ExprKind::Int(_)
+        | ExprKind::Int32(_)
         | ExprKind::Char(_)
+        | ExprKind::Uint8(_)
         | ExprKind::Float32(_)
         | ExprKind::Float64(_)
         | ExprKind::Bool(_)
@@ -685,7 +689,9 @@ fn collect_calls(
 ) {
     match &expression.kind {
         ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
+        | ResolvedExprKind::Uint8(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)

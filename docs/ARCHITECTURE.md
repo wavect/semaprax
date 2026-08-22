@@ -146,8 +146,39 @@ opcodes. Ordered comparison is scalar ordering; char arithmetic and negation
 are stable verifier diagnostics (`SPX-T208`/`SPX-T206`); equality requires
 same types (`SPX-T207`). Chars stay outside generic arguments, template
 signature slots, Public Scalar Export Profile v1, and the native host/callable
+corpus. The locally evidenced checked-integer tranche adds `i32` as a Copy
+value type on the same spine: explicit suffixed literals (`SPX-P003` for out-
+of-range values and glued identifiers; unsuffixed literals stay `i64`),
+canonical `{value}i32` projection, checked `+`/`-`/`*`/`/` that keep the
+declared width (`%` stays `i64`-only via `SPX-T208`), negation with
+`INT32_MIN` rejection, 4-byte/4-byte layouts, Graph JSON `"kind":"int32"`
+nodes, native C11 `int32_t` computing in `int64_t` before a range-checked
+store that reuses the exact `i64` failure-status codes, and Wasm `i32` with
+signed ordering opcodes plus inline branchless overflow detection (the
+aggregate lane selects its `STATUS_*` codes; the core lane has no status
+plumbing and traps on detected overflow). Mixed-width operands are rejected
+by the verifier and re-checked fail-closed in HIR validation and both
+backends. i32 stays outside generic arguments, template signature slots,
+Public Scalar Export Profile v1, the native host/callable corpus, and the
+Native Rust interop boundary; string or other heap-backed types remain
+unimplemented because no allocation model exists yet.
 corpus; string or other heap-backed types remain unimplemented because no
 allocation model exists yet.
+The locally evidenced unsigned-byte tranche adds `u8` as a checked-arithmetic
+Copy scalar on the same spine: integer literals carry an exact `u8` suffix
+(unsuffixed digit runs stay `i64`; out-of-range or malformed suffixes select
+stable `SPX-P003`), the canonical projection re-prints the suffix so declared
+widths round-trip exactly, and `+`, `-`, `*`, `/` stay checked — underflow
+below 0 and overflow above 255 select the same normalized
+`SPX_STATUS_ARITHMETIC_*` statuses as i64 in native C11 (`uint8_t`
+temporaries computed in `int64_t`) while aggregate-lane Wasm mirrors those
+status codes with inline unsigned range checks and legacy-lane Wasm traps
+without new host imports. `%` remains i64-only and negation is rejected for
+u8 (`SPX-T208`/`SPX-T206`). Native64 gives u8 one byte (records pad like any
+other aligned field); Wasm32 gives it four. Graph JSON exposes
+`"kind":"uint8"` nodes plus `"layout_key":"scalar:u8"`. U8 stays outside
+generic arguments, template signature slots, Public Scalar Export Profile v1,
+the native host callable corpus, and the Rust-interop boundary.
 
 ## Resolved HIR groundwork
 

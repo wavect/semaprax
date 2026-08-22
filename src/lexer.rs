@@ -22,9 +22,13 @@ impl PartialEq for FloatLiteral {
 pub enum TokenKind {
     Ident(String),
     Int(i64),
+    /// One integer literal with an explicit `i32` suffix and its exact value.
+    Int32(i32),
     Float(FloatLiteral),
     /// One `char` literal held as its exact Unicode scalar value.
     Char(u32),
+    /// One `u8` literal held as its exact value.
+    Uint8(u8),
     String(String),
     At,
     LParen,
@@ -163,6 +167,19 @@ impl Lexer<'_> {
                 {
                     return self.float_token(start, line, column);
                 }
+                if self.starts_with("i32") {
+                    return self.int32_token(start, line, column);
+                }
+                if self.starts_with("u8") {
+                    return self.uint8_token(start, line, column);
+                }
+                if self.peek().is_some_and(|next| next == 'i' || next == 'u') {
+                    return Err(self.error(
+                        "SPX-P003",
+                        "integer literals accept only an `i32` or `u8` suffix",
+                        self.span_from(start, line, column),
+                    ));
+                }
                 let text = &self.source[start..self.offset];
                 let number = text.parse::<i64>().map_err(|_| {
                     self.error(
@@ -196,6 +213,73 @@ impl Lexer<'_> {
         };
         Ok(Token {
             kind,
+            span: self.span_from(start, line, column),
+        })
+    }
+
+    fn int32_token(
+        &mut self,
+        start: usize,
+        line: usize,
+        column: usize,
+    ) -> Result<Token, Diagnostic> {
+        for _ in 0..3 {
+            self.bump();
+        }
+        if self.peek().is_some_and(is_ident_continue) {
+            return Err(self.error(
+                "SPX-P003",
+                "integer literals accept only an `i32` suffix",
+                self.span_from(start, line, column),
+            ));
+        }
+        let text = &self.source[start..self.offset - 3];
+        let value = text.parse::<i32>().map_err(|_| {
+            self.error(
+                "SPX-P003",
+                "integer literal is outside the i32 range",
+                self.span_from(start, line, column),
+            )
+        })?;
+        Ok(Token {
+            kind: TokenKind::Int32(value),
+            span: self.span_from(start, line, column),
+        })
+    }
+
+    fn uint8_token(
+        &mut self,
+        start: usize,
+        line: usize,
+        column: usize,
+    ) -> Result<Token, Diagnostic> {
+        for _ in 0..2 {
+            self.bump();
+        }
+        if self.peek().is_some_and(is_ident_continue) {
+            return Err(self.error(
+                "SPX-P003",
+                "integer literals accept only a `u8` suffix",
+                self.span_from(start, line, column),
+            ));
+        }
+        let text = &self.source[start..self.offset - 2];
+        let number = text.parse::<i64>().map_err(|_| {
+            self.error(
+                "SPX-P003",
+                "u8 literal is outside the u8 range",
+                self.span_from(start, line, column),
+            )
+        })?;
+        let value = u8::try_from(number).map_err(|_| {
+            self.error(
+                "SPX-P003",
+                "u8 literal is outside the u8 range",
+                self.span_from(start, line, column),
+            )
+        })?;
+        Ok(Token {
+            kind: TokenKind::Uint8(value),
             span: self.span_from(start, line, column),
         })
     }

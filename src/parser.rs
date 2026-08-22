@@ -613,8 +613,16 @@ impl Parser {
                 kind: ExprKind::Int(value),
                 span: token.span,
             },
+            TokenKind::Int32(value) => Expr {
+                kind: ExprKind::Int32(value),
+                span: token.span,
+            },
             TokenKind::Char(value) => Expr {
                 kind: ExprKind::Char(value),
+                span: token.span,
+            },
+            TokenKind::Uint8(value) => Expr {
+                kind: ExprKind::Uint8(value),
                 span: token.span,
             },
             TokenKind::Float(literal) => Expr {
@@ -1080,6 +1088,8 @@ impl Parser {
         let (name, _) = self.qualified_ident("type")?;
         match name.as_str() {
             "i64" if !self.at(&TokenKind::Lt) => Ok(Type::I64),
+            "i32" if !self.at(&TokenKind::Lt) => Ok(Type::I32),
+            "u8" if !self.at(&TokenKind::Lt) => Ok(Type::U8),
             "char" if !self.at(&TokenKind::Lt) => Ok(Type::Char),
             "f32" if !self.at(&TokenKind::Lt) => Ok(Type::F32),
             "f64" if !self.at(&TokenKind::Lt) => Ok(Type::F64),

@@ -1,0 +1,36 @@
+module examples.integers_i32;
+
+@id("sum.pair")
+fn sum_pair(left: i32, right: i32) -> i32
+{
+    let doubled = left * 2i32;
+    doubled + right
+}
+
+@id("sum.checked")
+fn checked() -> i32
+{
+    let first = 7i32;
+    let second = 11i32;
+    let combined = first + second * 3i32 - 5i32;
+    let halved = combined / 2i32;
+    let negated = -halved;
+    negated
+}
+
+@id("compare.pair")
+fn compare(left: i32, right: i32) -> i64
+{
+    if left < right { -1 } else { if left > right { 1 } else { 0 } }
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    let summed = sum_pair(10i32, 5i32);
+    let checked_sum = checked();
+    let near_min = 0i32 - 2147483647i32 - 1i32;
+    let ordered = compare(near_min, summed);
+    let negated = -checked_sum;
+    if summed == 25i32 && checked_sum == -17i32 && ordered == -1 && negated == 17i32 && near_min < summed { 7 } else { 9 }
+}

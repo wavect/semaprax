@@ -657,7 +657,9 @@ fn expression_skeleton_work_upper(
         if *next == 0 {
             let local = match &expression.kind {
                 ResolvedExprKind::Int(_)
+                | ResolvedExprKind::Int32(_)
                 | ResolvedExprKind::Char(_)
+                | ResolvedExprKind::Uint8(_)
                 | ResolvedExprKind::Float32(_)
                 | ResolvedExprKind::Float64(_)
                 | ResolvedExprKind::Bool(_) => 2,
@@ -1397,7 +1399,9 @@ fn collect_expression_statuses(
             | ResolvedExprKind::UpdateRecord { .. }
             | ResolvedExprKind::Project { .. }
             | ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
+            | ResolvedExprKind::Uint8(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
@@ -2537,7 +2541,9 @@ fn expression_skeleton(
                 debug_assert!(produced.is_none());
                 match &expression.kind {
                     ResolvedExprKind::Int(_)
+                    | ResolvedExprKind::Int32(_)
                     | ResolvedExprKind::Char(_)
+                    | ResolvedExprKind::Uint8(_)
                     | ResolvedExprKind::Float32(_)
                     | ResolvedExprKind::Float64(_)
                     | ResolvedExprKind::Bool(_) => {
@@ -3606,7 +3612,9 @@ fn validate_match_skeleton_shape(
             .is_some_and(|item| item.kind == DeclarationKind::Record),
         ResolvedType::Unit
         | ResolvedType::I64
+        | ResolvedType::I32
         | ResolvedType::Char
+        | ResolvedType::U8
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool
@@ -5205,7 +5213,9 @@ fn replay_expression_child(expression: &ResolvedExpr, index: usize) -> Option<&R
             .then_some(base.as_ref())
             .or_else(|| fields.get(index - 1).map(|field| &field.value)),
         ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
+        | ResolvedExprKind::Uint8(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)

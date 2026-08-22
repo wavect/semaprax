@@ -397,7 +397,9 @@ impl FunctionPlan {
                 }
             }
             ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
+            | ResolvedExprKind::Uint8(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
@@ -507,7 +509,9 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
             expression_has_try(base) || fields.iter().any(|field| expression_has_try(&field.value))
         }
         ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
+        | ResolvedExprKind::Uint8(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -623,7 +627,9 @@ fn aggregate_size_align(
 fn scalar_wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
     match ty {
         ResolvedType::I64 => Ok(I64),
+        ResolvedType::I32 => Ok(I32),
         ResolvedType::Char => Ok(I32),
+        ResolvedType::U8 => Ok(I32),
         ResolvedType::F32 => Ok(F32),
         ResolvedType::F64 => Ok(F64),
         ResolvedType::Bool => Ok(I32),
@@ -637,7 +643,9 @@ fn scalar_wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
 fn scalar_size_align(ty: &ResolvedType) -> Result<(u32, u32), Diagnostic> {
     match ty {
         ResolvedType::I64 => Ok((8, 8)),
+        ResolvedType::I32 => Ok((4, 4)),
         ResolvedType::Char => Ok((4, 4)),
+        ResolvedType::U8 => Ok((4, 4)),
         ResolvedType::F32 => Ok((4, 4)),
         ResolvedType::F64 => Ok((8, 8)),
         ResolvedType::Bool => Ok((4, 4)),
@@ -1269,6 +1277,17 @@ impl Emitter<'_> {
                     ty: ResolvedType::I64,
                 })
             }
+            ResolvedExprKind::Int32(value) => {
+                let destination = self.plan.expr_scalar(expr)?;
+                self.output.push(0x41);
+                write_i64(self.output, i64::from(*value));
+                self.output.push(0x21);
+                write_u32(self.output, destination);
+                Ok(Value::Scalar {
+                    local: destination,
+                    ty: ResolvedType::I32,
+                })
+            }
             ResolvedExprKind::Char(value) => {
                 let destination = self.plan.expr_scalar(expr)?;
                 self.output.push(0x41);
@@ -1278,6 +1297,17 @@ impl Emitter<'_> {
                 Ok(Value::Scalar {
                     local: destination,
                     ty: ResolvedType::Char,
+                })
+            }
+            ResolvedExprKind::Uint8(value) => {
+                let destination = self.plan.expr_scalar(expr)?;
+                self.output.push(0x41);
+                write_i64(self.output, i64::from(*value));
+                self.output.push(0x21);
+                write_u32(self.output, destination);
+                Ok(Value::Scalar {
+                    local: destination,
+                    ty: ResolvedType::U8,
                 })
             }
             ResolvedExprKind::Float32(bits) => {
@@ -2161,6 +2191,18 @@ impl Emitter<'_> {
                         self.output.push(0x21);
                         write_u32(self.output, destination);
                     }
+                    ResolvedType::I32 => {
+                        self.get_scalar(&operand);
+                        self.output.push(0x41);
+                        write_i64(self.output, i32::MIN as i64);
+                        self.output.push(0x46);
+                        self.fail_if(STATUS_NEG_OVERFLOW);
+                        self.output.extend([0x41, 0x00]);
+                        self.get_scalar(&operand);
+                        self.output.push(0x6b);
+                        self.output.push(0x21);
+                        write_u32(self.output, destination);
+                    }
                     _ => {
                         if operand_ty != &ResolvedType::I64 {
                             return Err(error("numeric negation requires an i64 or float operand"));
@@ -2236,7 +2278,31 @@ impl Emitter<'_> {
         {
             return self.emit_float_binary(expr, op, &left, &right, destination);
         }
+        let int32_operands = matches!(value_type(&left), ResolvedType::I32);
+        if matches!(value_type(&left), ResolvedType::U8)
+            && matches!(
+                op,
+                BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
+            )
+        {
+            return self.emit_u8_binary(expr, op, &left, &right, destination);
+        }
         match op {
+            BinaryOp::Add if int32_operands => {
+                self.emit_checked_i32_add(&left, &right, destination)?
+            }
+            BinaryOp::Sub if int32_operands => {
+                self.emit_checked_i32_sub(&left, &right, destination)?
+            }
+            BinaryOp::Mul if int32_operands => {
+                self.emit_checked_i32_mul(&left, &right, destination)?
+            }
+            BinaryOp::Div if int32_operands => {
+                self.emit_checked_i32_div_rem(&left, &right, destination, false)?
+            }
+            BinaryOp::Rem if int32_operands => {
+                self.emit_checked_i32_div_rem(&left, &right, destination, true)?
+            }
             BinaryOp::Add => self.emit_checked_add(&left, &right, destination)?,
             BinaryOp::Sub => self.emit_checked_sub(&left, &right, destination)?,
             BinaryOp::Mul => self.emit_checked_mul(&left, &right, destination)?,
@@ -2267,7 +2333,12 @@ impl Emitter<'_> {
                 let operand_ty = value_type(&left);
                 if !matches!(
                     operand_ty,
-                    ResolvedType::I64 | ResolvedType::Char | ResolvedType::F32 | ResolvedType::F64
+                    ResolvedType::I64
+                        | ResolvedType::I32
+                        | ResolvedType::Char
+                        | ResolvedType::U8
+                        | ResolvedType::F32
+                        | ResolvedType::F64
                 ) {
                     return Err(error(format!(
                         "ordered comparison requires a scalar operand, found `{}`",
@@ -2286,6 +2357,10 @@ impl Emitter<'_> {
                     (ResolvedType::Char, BinaryOp::Gt) => 0x4b,
                     (ResolvedType::Char, BinaryOp::Le) => 0x4d,
                     (ResolvedType::Char, BinaryOp::Ge) => 0x4f,
+                    (ResolvedType::U8, BinaryOp::Lt) => 0x49,
+                    (ResolvedType::U8, BinaryOp::Gt) => 0x4b,
+                    (ResolvedType::U8, BinaryOp::Le) => 0x4d,
+                    (ResolvedType::U8, BinaryOp::Ge) => 0x4f,
                     (ResolvedType::F32, BinaryOp::Lt) => 0x5d,
                     (ResolvedType::F32, BinaryOp::Gt) => 0x5e,
                     (ResolvedType::F32, BinaryOp::Le) => 0x5f,
@@ -2299,6 +2374,10 @@ impl Emitter<'_> {
                     {
                         unreachable!("float remainder/lazy operation was matched above")
                     }
+                    (ResolvedType::I32, BinaryOp::Lt) => 0x48,
+                    (ResolvedType::I32, BinaryOp::Gt) => 0x4a,
+                    (ResolvedType::I32, BinaryOp::Le) => 0x4c,
+                    (ResolvedType::I32, BinaryOp::Ge) => 0x4e,
                     (_, BinaryOp::Lt) => 0x53,
                     (_, BinaryOp::Gt) => 0x55,
                     (_, BinaryOp::Le) => 0x57,
@@ -2540,6 +2619,139 @@ impl Emitter<'_> {
         Ok(())
     }
 
+    fn emit_checked_i32_add(
+        &mut self,
+        left: &Value,
+        right: &Value,
+        destination: u32,
+    ) -> Result<(), Diagnostic> {
+        self.require_i32_pair(left, right, "addition")?;
+        self.get_scalar(left);
+        self.get_scalar(right);
+        self.output.push(0x6a);
+        self.output.push(0x21);
+        write_u32(self.output, destination);
+        self.get_scalar(left);
+        self.output.push(0x20);
+        write_u32(self.output, destination);
+        self.output.push(0x73);
+        self.get_scalar(right);
+        self.output.push(0x20);
+        write_u32(self.output, destination);
+        self.output.push(0x73);
+        self.output.push(0x71);
+        self.output.push(0x41);
+        write_i64(self.output, 0);
+        self.output.push(0x48);
+        self.fail_if(STATUS_ADD_OVERFLOW);
+        Ok(())
+    }
+
+    fn emit_checked_i32_sub(
+        &mut self,
+        left: &Value,
+        right: &Value,
+        destination: u32,
+    ) -> Result<(), Diagnostic> {
+        self.require_i32_pair(left, right, "subtraction")?;
+        self.get_scalar(left);
+        self.get_scalar(right);
+        self.output.push(0x6b);
+        self.output.push(0x21);
+        write_u32(self.output, destination);
+        self.get_scalar(left);
+        self.get_scalar(right);
+        self.output.push(0x73);
+        self.get_scalar(left);
+        self.output.push(0x20);
+        write_u32(self.output, destination);
+        self.output.push(0x73);
+        self.output.push(0x71);
+        self.output.push(0x41);
+        write_i64(self.output, 0);
+        self.output.push(0x48);
+        self.fail_if(STATUS_SUB_OVERFLOW);
+        Ok(())
+    }
+
+    fn emit_checked_i32_mul(
+        &mut self,
+        left: &Value,
+        right: &Value,
+        destination: u32,
+    ) -> Result<(), Diagnostic> {
+        self.require_i32_pair(left, right, "multiplication")?;
+        self.get_scalar(left);
+        self.output.push(0xac);
+        self.get_scalar(right);
+        self.output.push(0xac);
+        self.output.push(0x7e);
+        self.output.push(0xa7);
+        self.output.push(0x21);
+        write_u32(self.output, destination);
+        self.get_scalar(left);
+        self.output.push(0xac);
+        self.get_scalar(right);
+        self.output.push(0xac);
+        self.output.push(0x7e);
+        self.output.push(0x20);
+        write_u32(self.output, destination);
+        self.output.push(0xac);
+        self.output.push(0x51);
+        self.output.push(0x45);
+        self.fail_if(STATUS_MUL_OVERFLOW);
+        Ok(())
+    }
+
+    fn emit_checked_i32_div_rem(
+        &mut self,
+        left: &Value,
+        right: &Value,
+        destination: u32,
+        remainder: bool,
+    ) -> Result<(), Diagnostic> {
+        self.require_i32_pair(
+            left,
+            right,
+            if remainder { "remainder" } else { "division" },
+        )?;
+        self.get_scalar(right);
+        self.output.push(0x45);
+        self.fail_if(if remainder {
+            STATUS_REM_ZERO
+        } else {
+            STATUS_DIV_ZERO
+        });
+        if !remainder {
+            self.get_scalar(right);
+            self.output.push(0x41);
+            write_i64(self.output, -1);
+            self.output.push(0x46);
+            self.get_scalar(left);
+            self.output.push(0x41);
+            write_i64(self.output, i32::MIN as i64);
+            self.output.push(0x46);
+            self.output.push(0x71);
+            self.fail_if(STATUS_DIV_OVERFLOW);
+        }
+        self.get_scalar(left);
+        self.get_scalar(right);
+        self.output.push(if remainder { 0x6f } else { 0x6d });
+        self.output.push(0x21);
+        write_u32(self.output, destination);
+        Ok(())
+    }
+
+    fn require_i32_pair(
+        &self,
+        left: &Value,
+        right: &Value,
+        context: &str,
+    ) -> Result<(), Diagnostic> {
+        self.require_scalar(left, &ResolvedType::I32, context)?;
+        self.require_scalar(right, &ResolvedType::I32, context)
+    }
+
     fn require_i64_pair(
         &self,
         left: &Value,
@@ -2548,6 +2760,72 @@ impl Emitter<'_> {
     ) -> Result<(), Diagnostic> {
         self.require_scalar(left, &ResolvedType::I64, context)?;
         self.require_scalar(right, &ResolvedType::I64, context)
+    }
+
+    /// Checked u8 arithmetic mirrors the i64 status contract on the i32
+    /// valtype: bounded operands make the unsigned opcodes exact and one
+    /// unsigned range check selects the matching arithmetic status.
+    fn emit_u8_binary(
+        &mut self,
+        expr: &ResolvedExpr,
+        op: BinaryOp,
+        left: &Value,
+        right: &Value,
+        destination: u32,
+    ) -> Result<Value, Diagnostic> {
+        let context = match op {
+            BinaryOp::Add => "addition",
+            BinaryOp::Sub => "subtraction",
+            BinaryOp::Mul => "multiplication",
+            BinaryOp::Div => "division",
+            BinaryOp::Rem => "remainder",
+            _ => return Err(error("u8 binary operation is not arithmetic")),
+        };
+        self.require_scalar(left, &ResolvedType::U8, context)?;
+        self.require_scalar(right, &ResolvedType::U8, context)?;
+        match op {
+            BinaryOp::Div | BinaryOp::Rem => {
+                self.get_scalar(right);
+                self.output.push(0x45);
+                self.fail_if(if op == BinaryOp::Div {
+                    STATUS_DIV_ZERO
+                } else {
+                    STATUS_REM_ZERO
+                });
+                self.get_scalar(left);
+                self.get_scalar(right);
+                self.output
+                    .push(if op == BinaryOp::Div { 0x6e } else { 0x70 });
+                self.output.push(0x21);
+                write_u32(self.output, destination);
+            }
+            BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul => {
+                self.get_scalar(left);
+                self.get_scalar(right);
+                self.output.push(match op {
+                    BinaryOp::Add => 0x6a,
+                    BinaryOp::Sub => 0x6b,
+                    _ => 0x6c,
+                });
+                self.output.push(0x21);
+                write_u32(self.output, destination);
+                self.output.push(0x20);
+                write_u32(self.output, destination);
+                self.output.push(0x41);
+                write_i64(self.output, 255);
+                self.output.push(0x4b);
+                self.fail_if(match op {
+                    BinaryOp::Add => STATUS_ADD_OVERFLOW,
+                    BinaryOp::Sub => STATUS_SUB_OVERFLOW,
+                    _ => STATUS_MUL_OVERFLOW,
+                });
+            }
+            _ => unreachable!("u8 operation was matched above"),
+        }
+        Ok(Value::Scalar {
+            local: destination,
+            ty: expr.ty.clone(),
+        })
     }
 
     fn place_value(&self, place: &crate::hir::Place) -> Result<Value, Diagnostic> {
@@ -2671,7 +2949,9 @@ impl Emitter<'_> {
             ResolvedType::I64 => self.output.extend([0x29, 0x03, 0x00]),
             ResolvedType::F64 => self.output.extend([0x2b, 0x03, 0x00]),
             ResolvedType::F32 => self.output.extend([0x2a, 0x02, 0x00]),
-            ResolvedType::Bool | ResolvedType::Char => self.output.extend([0x28, 0x02, 0x00]),
+            ResolvedType::Bool | ResolvedType::Char | ResolvedType::I32 | ResolvedType::U8 => {
+                self.output.extend([0x28, 0x02, 0x00])
+            }
             _ => unreachable!("validated scalar load"),
         }
     }
@@ -2681,7 +2961,9 @@ impl Emitter<'_> {
             ResolvedType::I64 => self.output.extend([0x37, 0x03, 0x00]),
             ResolvedType::F64 => self.output.extend([0x39, 0x03, 0x00]),
             ResolvedType::F32 => self.output.extend([0x38, 0x02, 0x00]),
-            ResolvedType::Bool | ResolvedType::Char => self.output.extend([0x36, 0x02, 0x00]),
+            ResolvedType::Bool | ResolvedType::Char | ResolvedType::I32 | ResolvedType::U8 => {
+                self.output.extend([0x36, 0x02, 0x00])
+            }
             _ => unreachable!("validated scalar store"),
         }
     }

@@ -16,6 +16,7 @@ pub mod cleanup;
 pub mod cleanup_plan;
 pub mod codegen;
 pub mod conformance;
+pub mod cxx_shim;
 pub mod diagnostic;
 #[doc(hidden)]
 pub mod digest_hex;

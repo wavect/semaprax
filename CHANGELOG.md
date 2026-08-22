@@ -1,5 +1,39 @@
 # Changelog
 
+- Added the locally evidenced C++ Shim Projection v1 tranche, the first
+  executable slice of the completion-matrix row "C++". The new read-only
+  `semaprax cxx-shim <file> --function ...` command and `cxx_shim` library
+  API project explicitly selected explicit-ID monomorphic by-value
+  `i64`/`bool` functions of one verified module into a deterministic
+  C++17-compatible header fragment: an `extern "C"` block whose declaration
+  lines are extracted verbatim from the production native C11 projection, so
+  shim declarations always match the emitted ABI and cannot be silently name-
+  mangled; generated comments carry only typed stable-ID, canonical contract,
+  effect, status-contract, and by-value ownership facts under a fail-closed
+  hygiene guard (`SPX-X104`); include guards derive only from sorted admitted
+  stable identities and stay byte-stable across formatting-only edits and
+  display-name-only renames while changing on identity renames. Canonical
+  compact `semaprax.cxx-shim.v1` envelopes bind source snapshot digest, graph
+  revision, selection/admission accounting, per-declaration digests, and the
+  embedded fragment behind domain-separated SHA-256 digests with an
+  independent `verify_envelope` replay that separately rejects tampering of
+  every digest field, including forged-but-re-signed envelopes only the inner
+  fragment replay catches. The admission profile is exactly C Header Emission
+  v1's closed exclusion-reason set; output-budget overflow fails closed
+  without truncation (`SPX-X103`), unknown or duplicate selections are hard
+  errors (`SPX-X102`), all-excluded selections still yield a valid empty
+  `extern "C"` block, and at least one admitted function requires the native
+  lane to succeed. Pinned golden envelope/fragment KATs, native
+  cross-consistency, byte-identical double runs, guard stability rules, and
+  CLI exit codes are green locally in `tests/cxx_shim_projection_v1.rs`; no
+  C++ compiler runs, no hosted promotion exists, and no header import or
+  parsing, C++ compilation or conformance claim, exception/lifetime policy
+  beyond the bounded slice, string/buffer/aggregate/resource mapping, adapter
+  generation, or execution claim is made. The C++ interoperability row moves
+  from Missing to Partial (current totals 43 Partial/13 Missing). This
+  tranche also completes the `hygienic.rs` expression scanner for the merged
+  `i32`/`u8` literal kinds with closed `int32_literal`/`uint8_literal`
+  exclusion reasons, unblocking the library test build.
 - Moved the workspace minimum supported Rust from 1.85 to 1.88 so private
   crates can track current dependencies, and bumped the exact-pinned private
   `semaprax-native-loader` dependency from `libloading 0.8.9` to `=0.9.0`.

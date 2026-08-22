@@ -4,7 +4,7 @@ use std::process::{Command, ExitCode};
 use semaprax::diagnostic::{Diagnostic, Severity};
 use semaprax::{
     agent_economics, codegen, format, graph, impact, parse, patch, patch_evidence, project,
-    quality_route, repair, review, semantic_workspace, semantic_workspace_change,
+    properties, quality_route, repair, review, semantic_workspace, semantic_workspace_change,
     semantic_workspace_operations, semantic_workspace_structural_change, target_evidence, verify,
     wasm, workspace, workspace_analysis, workspace_graph, workspace_patch_evidence,
 };
@@ -558,6 +558,14 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             println!("{report}");
             Ok(())
         }
+        "properties" => {
+            let path = required_path(&args, 1)?;
+            let options = property_options(&args)?;
+            let report =
+                properties::generate(&path, &options).map_err(|errors| report(&errors, false))?;
+            println!("{report}");
+            Ok(())
+        }
         "target-evidence" => {
             if args.len() != 3 {
                 eprintln!("target-evidence requires exactly <file> <patch.spatch>");
@@ -868,6 +876,80 @@ fn impact_number(option: &str, value: &str) -> Result<usize, u8> {
     }
     value.parse::<usize>().map_err(|_| {
         eprintln!("impact option `{option}` requires a canonical nonnegative integer");
+        2
+    })
+}
+
+fn property_options(args: &[String]) -> Result<properties::PropertyTestOptions, u8> {
+    let mut max_cases = properties::PropertyTestOptions::default().max_cases;
+    let mut max_functions = properties::PropertyTestOptions::default().max_functions;
+    let mut max_bytes = properties::PropertyTestOptions::default().max_bytes;
+    let mut seed = properties::PropertyTestOptions::default().seed;
+    let mut seen = std::collections::BTreeSet::new();
+    let mut index = 2usize;
+    while index < args.len() {
+        let option = args[index].as_str();
+        if !matches!(
+            option,
+            "--max-cases" | "--max-functions" | "--max-bytes" | "--seed"
+        ) {
+            eprintln!("unknown properties option `{option}`");
+            return Err(2);
+        }
+        if !seen.insert(option.to_owned()) {
+            eprintln!("duplicate properties option `{option}`");
+            return Err(2);
+        }
+        let value = args.get(index + 1).ok_or_else(|| {
+            eprintln!("properties option `{option}` requires a value");
+            2
+        })?;
+        match option {
+            "--seed" => seed = property_seed(option, value)?,
+            _ => {
+                let number = property_number(option, value)?;
+                match option {
+                    "--max-cases" => max_cases = number,
+                    "--max-functions" => max_functions = number,
+                    "--max-bytes" => max_bytes = number,
+                    _ => unreachable!("closed properties option table"),
+                }
+            }
+        }
+        index += 2;
+    }
+    properties::PropertyTestOptions::new(max_cases, max_functions, max_bytes, seed).map_err(
+        |error| {
+            eprintln!("{error}");
+            2
+        },
+    )
+}
+
+fn property_number(option: &str, value: &str) -> Result<usize, u8> {
+    if value.is_empty()
+        || !value.bytes().all(|byte| byte.is_ascii_digit())
+        || (value.len() > 1 && value.starts_with('0'))
+    {
+        eprintln!("properties option `{option}` requires a canonical nonnegative integer");
+        return Err(2);
+    }
+    value.parse::<usize>().map_err(|_| {
+        eprintln!("properties option `{option}` requires a canonical nonnegative integer");
+        2
+    })
+}
+
+fn property_seed(option: &str, value: &str) -> Result<u64, u8> {
+    if value.is_empty()
+        || !value.bytes().all(|byte| byte.is_ascii_digit())
+        || (value.len() > 1 && value.starts_with('0'))
+    {
+        eprintln!("properties option `{option}` requires a canonical nonnegative integer");
+        return Err(2);
+    }
+    value.parse::<u64>().map_err(|_| {
+        eprintln!("properties option `{option}` requires a canonical nonnegative integer");
         2
     })
 }
@@ -1305,6 +1387,7 @@ fn print_help() {
            semaprax verify-workspace-patch-evidence <root> <patch.wspatch> <evidence.json>\n\
            semaprax workspace-apply-with-evidence <root> <patch.wspatch> <evidence.json>\n\
            semaprax impact <file> <patch.spatch> [--depth N] [--max-bytes N] [--max-nodes N]\n\
+           semaprax properties <file> [--max-cases N] [--max-functions N] [--max-bytes N] [--seed N]\n\
            semaprax review <file> <patch.spatch>\n\
            semaprax target-evidence <file> <patch.spatch>\n\
            semaprax patch-evidence <file> <patch.spatch>\n\

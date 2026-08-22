@@ -1,5 +1,19 @@
 # Changelog
 
+- Added the locally evidenced Property-Test Generation v1 tranche. The new
+  read-only `semaprax properties <file>` command and `properties` library API
+  generate deterministic boundary-lattice plus seeded candidates from admitted
+  monomorphic scalar signatures, filter them through authored `requires`
+  clauses, evaluate bodies and interprocedural admitted callees with checked
+  arithmetic, lazy booleans, lexical bindings, and call-depth/step budgets,
+  and report the first exact `ensures` counterexample (clause index, canonical
+  text, full argument tuple, observed result) in canonical compact
+  `semaprax.property-tests.v1` JSON with fixed key order, domain-separated
+  source digest binding, closed deferral/runtime/truncation reason sets,
+  byte-budget prefix truncation, and fixed nonclaims. Unsupported shapes defer
+  fail-closed with stable reasons instead of approximating. No target is
+  executed, no symbolic or SMT discharge is claimed, and completion totals
+  remain 39 Partial/17 Missing.
 - Added the locally evidenced Public Project Native Publication v1 tranche.
   `semaprax build --target native` over a `semaprax.toml` project now publishes
   the linked entry closure as one create-new executable through the unchanged

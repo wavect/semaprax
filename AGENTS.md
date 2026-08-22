@@ -86,6 +86,9 @@ proof scaffolding, not a wired native-runtime claim.
   mainnet authority.
 - `src/repair.rs`: bounded read-only Diagnostic Repair v1 discovery and
   instantiation plus the independently replayed Patch-v3 identity-rebase gate.
+- `src/properties.rs`, `tests/property_tests_v1.rs`: read-only deterministic
+  Property-Test Generation v1 over verified single-file sources; no symbolic
+  execution, shrinking, test running, or target execution.
 - `src/review.rs`: bounded read-only Semantic Review v1 over complete Impact-v1
   or shared identity-rebase evidence.
 - `src/target_evidence.rs`: bounded read-only Graph, capability, native-C11,

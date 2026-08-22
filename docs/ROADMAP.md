@@ -250,7 +250,13 @@ gates below are not.
 - Diagnostic repairs beyond the implemented bounded `SPX-S103`
   `assign-function-id` tranche: typed holes, other diagnostics/declaration
   kinds, ranking, composition, automatic application, and multi-file repair.
-- Property tests generated from types and contracts.
+- Property tests generated from types and contracts: the bounded read-only
+  [Property-Test Generation v1](PROPERTY-TESTS-V1.md) tranche now generates
+  deterministic lattice-plus-seeded candidates from admitted scalar
+  signatures, filters them through `requires`, evaluates bodies and interprocedural
+  callees with checked semantics, and reports exact `ensures` counterexamples
+  (`semaprax properties`). General type-directed generation, shrinking,
+  statistical coverage, and test-runner integration remain open.
 - A persistent graph daemon and JSON-RPC agent transport.
 - Complete ownership/lifetime/region analysis across control flow.
 

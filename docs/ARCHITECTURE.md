@@ -46,6 +46,8 @@ The public verifier compatibility facade and HIR analysis boundary share one sou
 
 The initial contract lane is progressive: contracts are type-checked at compile time, required to be effect-free, and guarded in generated native and Wasm code. Static proof is a later lane, and its absence is reported honestly in the project status.
 
+The read-only `semaprax properties` command adds the first bounded property-test generation tranche over verified sources: deterministic boundary-lattice and seeded candidates from admitted scalar signatures, `requires` domain filtering, checked-semantics body/callee evaluation under one step budget, and exact `ensures` counterexample reporting in canonical digest-bound JSON (`semaprax.property-tests.v1`). It performs no symbolic execution, shrinking, or target execution; see `docs/PROPERTY-TESTS-V1.md`.
+
 Generated arithmetic is checked for overflow, zero division, and the signed division edge case. Failures have stable process exit codes and explicit diagnostics rather than C undefined behavior.
 
 The locally evidenced floating-point tranche adds IEEE-754 `f32`/`f64` Copy

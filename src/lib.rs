@@ -13,6 +13,7 @@ pub mod ast;
 pub(crate) mod bounded_output;
 pub mod c_header;
 pub(crate) mod call_index;
+pub mod capability_manifest;
 pub mod cleanup;
 pub mod cleanup_plan;
 pub mod codegen;

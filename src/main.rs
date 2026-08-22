@@ -3,9 +3,10 @@ use std::process::{Command, ExitCode};
 
 use semaprax::diagnostic::{Diagnostic, Severity};
 use semaprax::{
-    abi_report, agent_economics, agent_transport, c_header, codegen, format, graph, hygienic,
-    impact, openapi, parse, patch, patch_evidence, project, properties, quality_route, repair,
-    review, semantic_workspace, semantic_workspace_change, semantic_workspace_operations,
+    abi_report, agent_economics, agent_transport, c_header, capability_manifest, codegen, format,
+    graph, hygienic, impact, openapi, parse, patch, patch_evidence, project, properties,
+    quality_route, repair, review, semantic_workspace, semantic_workspace_change,
+    semantic_workspace_operations,
     semantic_workspace_structural_change, target_evidence, verify, wasm, workspace,
     workspace_analysis, workspace_graph, workspace_patch_evidence,
 };
@@ -636,6 +637,14 @@ fn run(args: Vec<String>) -> Result<(), u8> {
                     c_header::generate(&path, &options).map_err(|errors| report(&errors, false))?;
                 println!("{envelope}");
             }
+            Ok(())
+        }
+        "capability-manifest" => {
+            let path = required_path(&args, 1)?;
+            let options = capability_manifest_options(&args)?;
+            let envelope = capability_manifest::generate(&path, &options)
+                .map_err(|errors| report(&errors, false))?;
+            println!("{envelope}");
             Ok(())
         }
         "target-evidence" => {
@@ -1281,6 +1290,35 @@ fn c_header_options(args: &[String]) -> Result<(c_header::CHeaderOptions, bool),
     Ok((options, emit_header))
 }
 
+fn capability_manifest_options(
+    args: &[String],
+) -> Result<capability_manifest::CapabilityManifestOptions, u8> {
+    let mut max_bytes = capability_manifest::CapabilityManifestOptions::default().max_bytes;
+    let mut seen = std::collections::BTreeSet::new();
+    let mut index = 2usize;
+    while index < args.len() {
+        let option = args[index].as_str();
+        if !matches!(option, "--max-bytes") {
+            eprintln!("unknown capability-manifest option `{option}`");
+            return Err(2);
+        }
+        if !seen.insert(option.to_owned()) {
+            eprintln!("duplicate capability-manifest option `{option}`");
+            return Err(2);
+        }
+        let value = args.get(index + 1).ok_or_else(|| {
+            eprintln!("capability-manifest option `{option}` requires a value");
+            2
+        })?;
+        max_bytes = property_number(option, value)?;
+        index += 2;
+    }
+    capability_manifest::CapabilityManifestOptions::new(max_bytes).map_err(|error| {
+        eprintln!("{error}");
+        2
+    })
+}
+
 fn property_number(option: &str, value: &str) -> Result<usize, u8> {
     if value.is_empty()
         || !value.bytes().all(|byte| byte.is_ascii_digit())
@@ -1749,6 +1787,7 @@ fn print_help() {
            semaprax openapi-compat <base.json> <candidate.json> [--max-bytes N]\n\
             semaprax c-header <file> --function name|stable-id[,...] [--function ...] [--max-bytes N] [--emit-header]\n\
             semaprax abi-report <file> --function name|stable-id[,...] [--function ...] [--max-bytes N]\n\
+            semaprax capability-manifest <file> [--max-bytes N]\n\
            semaprax review <file> <patch.spatch>\n\
            semaprax target-evidence <file> <patch.spatch>\n\
            semaprax patch-evidence <file> <patch.spatch>\n\

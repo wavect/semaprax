@@ -616,6 +616,7 @@ fn precheck_program(program: &Program) -> Result<AstUsage, Vec<Diagnostic>> {
         match &expression.kind {
             ExprKind::Int(_)
             | ExprKind::Char(_)
+            | ExprKind::Uint8(_)
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
             | ExprKind::Bool(_)

@@ -48,6 +48,7 @@ impl NativeResourceAbi {
             )),
             ResolvedType::I64 => Ok("int64_t"),
             ResolvedType::Char => Ok("uint32_t"),
+            ResolvedType::U8 => Ok("uint8_t"),
             ResolvedType::F32 => Ok("float"),
             ResolvedType::F64 => Ok("double"),
             ResolvedType::Bool => Ok("bool"),

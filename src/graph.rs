@@ -1185,6 +1185,7 @@ fn collect_result_propagations<'a>(
         }
         ResolvedExprKind::Int(_)
         | ResolvedExprKind::Char(_)
+        | ResolvedExprKind::Uint8(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -1346,6 +1347,7 @@ fn expression_has_record_pattern(expression: &ResolvedExpr) -> bool {
         }
         ResolvedExprKind::Int(_)
         | ResolvedExprKind::Char(_)
+        | ResolvedExprKind::Uint8(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -1401,6 +1403,7 @@ fn collect_agent_contract_values(expression: &ResolvedExpr, values: &mut BTreeSe
     match &expression.kind {
         ResolvedExprKind::Int(_)
         | ResolvedExprKind::Char(_)
+        | ResolvedExprKind::Uint8(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_) => {}
@@ -1487,6 +1490,9 @@ fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnos
             "{{\"kind\":\"char\",\"value\":{value},\"display\":{}}}",
             quote_json(&crate::format::canonical_char(*value))
         ),
+        ResolvedExprKind::Uint8(value) => {
+            format!("{{\"kind\":\"uint8\",\"value\":{value}}}")
+        }
         ResolvedExprKind::Float32(bits) => format!(
             "{{\"kind\":\"float32\",\"bits\":\"{bits:08x}\",\"value\":{}}}",
             quote_json(&crate::format::canonical_f32_bits(*bits))
@@ -3115,6 +3121,7 @@ fn visit_expr_call_instances(
     match &expression.kind {
         ResolvedExprKind::Int(_)
         | ResolvedExprKind::Char(_)
+        | ResolvedExprKind::Uint8(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -3180,6 +3187,7 @@ fn visit_expr_calls(expression: &ResolvedExpr, visit: &mut impl FnMut(&Declarati
     match &expression.kind {
         ResolvedExprKind::Int(_)
         | ResolvedExprKind::Char(_)
+        | ResolvedExprKind::Uint8(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -3270,6 +3278,7 @@ fn collect_expr_type_declarations(
     match &expression.kind {
         ResolvedExprKind::Int(_)
         | ResolvedExprKind::Char(_)
+        | ResolvedExprKind::Uint8(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -3476,6 +3485,9 @@ fn expr_json(program: &ResolvedProgram, expression: &ResolvedExpr) -> Result<Str
             "{{{header},\"kind\":\"char\",\"value\":{value},\"display\":{}}}",
             quote_json(&crate::format::canonical_char(*value))
         ),
+        ResolvedExprKind::Uint8(value) => {
+            format!("{{{header},\"kind\":\"uint8\",\"value\":{value}}}")
+        }
         ResolvedExprKind::Float32(bits) => format!(
             "{{{header},\"kind\":\"float32\",\"bits\":\"{bits:08x}\",\"value\":{}}}",
             quote_json(&crate::format::canonical_f32_bits(*bits))
@@ -3798,6 +3810,7 @@ fn collect_expr_types(expression: &ResolvedExpr, types: &mut BTreeMap<String, Re
     match &expression.kind {
         ResolvedExprKind::Int(_)
         | ResolvedExprKind::Char(_)
+        | ResolvedExprKind::Uint8(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -3917,6 +3930,7 @@ fn type_json(ty: &ResolvedType) -> String {
         ResolvedType::Unit => unreachable!("native Rust Unit is excluded before Graph projection"),
         ResolvedType::I64 => "{\"kind\":\"primitive\",\"name\":\"i64\"}".to_owned(),
         ResolvedType::Char => "{\"kind\":\"primitive\",\"name\":\"char\"}".to_owned(),
+        ResolvedType::U8 => "{\"kind\":\"primitive\",\"name\":\"u8\"}".to_owned(),
         ResolvedType::F32 => "{\"kind\":\"primitive\",\"name\":\"f32\"}".to_owned(),
         ResolvedType::F64 => "{\"kind\":\"primitive\",\"name\":\"f64\"}".to_owned(),
         ResolvedType::Bool => "{\"kind\":\"primitive\",\"name\":\"bool\"}".to_owned(),

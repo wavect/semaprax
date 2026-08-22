@@ -174,6 +174,7 @@ fn children(expression: &hir::ResolvedExpr) -> Vec<&hir::ResolvedExpr> {
         }
         hir::ResolvedExprKind::Int(_)
         | hir::ResolvedExprKind::Char(_)
+        | hir::ResolvedExprKind::Uint8(_)
         | hir::ResolvedExprKind::Float32(_)
         | hir::ResolvedExprKind::Float64(_)
         | hir::ResolvedExprKind::Bool(_)

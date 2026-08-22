@@ -39,6 +39,7 @@ fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize {
         ResolvedType::Unit
         | ResolvedType::I64
         | ResolvedType::Char
+        | ResolvedType::U8
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool => 0,
@@ -609,6 +610,7 @@ impl InventoryBuilder<'_> {
                         }
                         ResolvedExprKind::Int(_)
                         | ResolvedExprKind::Char(_)
+                        | ResolvedExprKind::Uint8(_)
                         | ResolvedExprKind::Float32(_)
                         | ResolvedExprKind::Float64(_)
                         | ResolvedExprKind::Bool(_)

@@ -507,7 +507,10 @@ impl<'a> HirValidator<'a> {
                     } else {
                         match &field.ty {
                             ResolvedType::I64 | ResolvedType::Bool => {}
-                            ResolvedType::Char | ResolvedType::F32 | ResolvedType::F64 => {
+                            ResolvedType::Char
+                            | ResolvedType::U8
+                            | ResolvedType::F32
+                            | ResolvedType::F64 => {
                                 return Err(hir_error(format!(
                                     "field `{}` has an invalid generic copy record template",
                                     field.id
@@ -652,7 +655,10 @@ impl<'a> HirValidator<'a> {
                         }
                         match &field.ty {
                             ResolvedType::I64 | ResolvedType::Bool => {}
-                            ResolvedType::Char | ResolvedType::F32 | ResolvedType::F64 => {
+                            ResolvedType::Char
+                            | ResolvedType::U8
+                            | ResolvedType::F32
+                            | ResolvedType::F64 => {
                                 return Err(hir_error(format!(
                                     "field `{}` has an invalid generic copy payload template",
                                     field.id
@@ -859,10 +865,12 @@ impl<'a> HirValidator<'a> {
     ) -> Result<(), Diagnostic> {
         match ty {
             ResolvedType::I64 | ResolvedType::Bool => Ok(()),
-            ResolvedType::Char | ResolvedType::F32 | ResolvedType::F64 => Err(hir_error(format!(
-                "generic template `{}` has an invalid direct-scalar signature slot",
-                template.id
-            ))),
+            ResolvedType::Char | ResolvedType::U8 | ResolvedType::F32 | ResolvedType::F64 => {
+                Err(hir_error(format!(
+                    "generic template `{}` has an invalid direct-scalar signature slot",
+                    template.id
+                )))
+            }
             ResolvedType::TypeParameter { owner, index }
                 if owner == &template.id
                     && usize::try_from(*index)
@@ -937,6 +945,7 @@ impl<'a> HirValidator<'a> {
         match &expression.kind {
             ResolvedExprKind::Int(_)
             | ResolvedExprKind::Char(_)
+            | ResolvedExprKind::Uint8(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_) => {}
@@ -2070,6 +2079,10 @@ impl<'a> HirValidator<'a> {
                             )?;
                             scopes.push(scope);
                         }
+                        ResolvedExprKind::Uint8(_) => {
+                            self.finish_expr(expression, &ResolvedType::U8, OwnershipMode::Value)?;
+                            scopes.push(scope);
+                        }
                         ResolvedExprKind::Float32(bits) => {
                             self.validate_finite_f32(*bits)?;
                             self.finish_expr(expression, &ResolvedType::F32, OwnershipMode::Value)?;
@@ -2683,12 +2696,15 @@ impl<'a> HirValidator<'a> {
                         | BinaryOp::Mul
                         | BinaryOp::Div
                         | BinaryOp::Rem => {
-                            // Arithmetic keeps the numeric operand type:
-                            // i64 arithmetic is checked, IEEE-754 float
+                            // Arithmetic keeps the operand type: i64 and u8
+                            // arithmetic is checked, IEEE-754 float
                             // arithmetic is total and never selects a status.
                             if !matches!(
                                 &left.ty,
-                                ResolvedType::I64 | ResolvedType::F32 | ResolvedType::F64
+                                ResolvedType::I64
+                                    | ResolvedType::U8
+                                    | ResolvedType::F32
+                                    | ResolvedType::F64
                             ) || (matches!(op, BinaryOp::Rem) && left.ty != ResolvedType::I64)
                             {
                                 return Err(hir_error(
@@ -2705,6 +2721,7 @@ impl<'a> HirValidator<'a> {
                                 &left.ty,
                                 ResolvedType::I64
                                     | ResolvedType::Char
+                                    | ResolvedType::U8
                                     | ResolvedType::F32
                                     | ResolvedType::F64
                             ) {
@@ -3947,6 +3964,7 @@ impl<'a> HirValidator<'a> {
                 }
                 (ResolvedType::Char, OwnershipMode::Value)
             }
+            ResolvedExprKind::Uint8(_) => (ResolvedType::U8, OwnershipMode::Value),
             ResolvedExprKind::Float32(bits) => {
                 self.validate_finite_f32(*bits)?;
                 (ResolvedType::F32, OwnershipMode::Value)
@@ -5238,6 +5256,7 @@ impl<'a> HirValidator<'a> {
                     }
                     ResolvedExprKind::Int(_)
                     | ResolvedExprKind::Char(_)
+                    | ResolvedExprKind::Uint8(_)
                     | ResolvedExprKind::Float32(_)
                     | ResolvedExprKind::Float64(_)
                     | ResolvedExprKind::Bool(_)
@@ -5460,6 +5479,7 @@ impl<'a> HirValidator<'a> {
                     ResolvedType::Unit
                     | ResolvedType::I64
                     | ResolvedType::Char
+                    | ResolvedType::U8
                     | ResolvedType::F32
                     | ResolvedType::F64
                     | ResolvedType::Bool,

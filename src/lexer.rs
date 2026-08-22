@@ -25,6 +25,8 @@ pub enum TokenKind {
     Float(FloatLiteral),
     /// One `char` literal held as its exact Unicode scalar value.
     Char(u32),
+    /// One `u8` literal held as its exact value.
+    Uint8(u8),
     String(String),
     At,
     LParen,
@@ -163,15 +165,50 @@ impl Lexer<'_> {
                 {
                     return self.float_token(start, line, column);
                 }
-                let text = &self.source[start..self.offset];
-                let number = text.parse::<i64>().map_err(|_| {
-                    self.error(
-                        "SPX-P003",
-                        "integer literal is outside the i64 range",
-                        self.span_from(start, line, column),
-                    )
-                })?;
-                TokenKind::Int(number)
+                if self.peek() == Some('u') {
+                    let suffix_start = self.offset;
+                    self.bump();
+                    if self.peek() != Some('8')
+                        || self
+                            .source
+                            .as_bytes()
+                            .get(self.offset + 1)
+                            .is_some_and(|next| is_ident_continue(*next as char))
+                    {
+                        return Err(self.error(
+                            "SPX-P003",
+                            "integer suffix must be `u8`",
+                            self.span_from(start, line, column),
+                        ));
+                    }
+                    self.bump();
+                    let digits = &self.source[start..suffix_start];
+                    let number = digits.parse::<i64>().map_err(|_| {
+                        self.error(
+                            "SPX-P003",
+                            "u8 literal is outside the u8 range",
+                            self.span_from(start, line, column),
+                        )
+                    })?;
+                    let value = u8::try_from(number).map_err(|_| {
+                        self.error(
+                            "SPX-P003",
+                            "u8 literal is outside the u8 range",
+                            self.span_from(start, line, column),
+                        )
+                    })?;
+                    TokenKind::Uint8(value)
+                } else {
+                    let text = &self.source[start..self.offset];
+                    let number = text.parse::<i64>().map_err(|_| {
+                        self.error(
+                            "SPX-P003",
+                            "integer literal is outside the i64 range",
+                            self.span_from(start, line, column),
+                        )
+                    })?;
+                    TokenKind::Int(number)
+                }
             }
             value if is_ident_start(value) => {
                 while matches!(self.peek(), Some(next) if is_ident_continue(next)) {

@@ -100,6 +100,9 @@ pub(super) struct Signature {
 struct LocalLayout {
     declarations: Vec<ResolvedType>,
     lets: HashMap<ValueId, u32>,
+    /// Checked u8 arithmetic stages operands and results in two trailing
+    /// scratch locals so the failure trap never taints live stack values.
+    u8_scratch: Option<(u32, u32)>,
 }
 
 trait ByteOutput: std::ops::Deref<Target = [u8]> {
@@ -513,6 +516,7 @@ fn emit_resolved_module_internal(
         let mut layout = LocalLayout {
             declarations: vec![function.return_type.clone()],
             lets: HashMap::new(),
+            u8_scratch: None,
         };
         for contract in &function.requires {
             collect_locals(contract, function.params.len() as u32, &mut layout)?;
@@ -520,6 +524,18 @@ fn emit_resolved_module_internal(
         collect_locals(&function.body, function.params.len() as u32, &mut layout)?;
         for contract in &function.ensures {
             collect_locals(contract, function.params.len() as u32, &mut layout)?;
+        }
+        if contains_u8_arithmetic(&function.body)
+            || function
+                .requires
+                .iter()
+                .chain(&function.ensures)
+                .any(contains_u8_arithmetic)
+        {
+            let left_index = layout.declarations.len() as u32;
+            layout.declarations.push(ResolvedType::U8);
+            layout.declarations.push(ResolvedType::U8);
+            layout.u8_scratch = Some((left_index, left_index + 1));
         }
         value_indexes.extend(layout.lets.iter().map(|(id, index)| (id.clone(), *index)));
         value_indexes.insert(function.result_id.clone(), result_local);
@@ -1399,6 +1415,7 @@ fn collect_locals(
         }
         ResolvedExprKind::Int(_)
         | ResolvedExprKind::Char(_)
+        | ResolvedExprKind::Uint8(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -1423,6 +1440,11 @@ fn emit_expr(
         ResolvedExprKind::Char(value) => {
             // Chars ride the i32 valtype; scalar values are below 2^31 so the
             // signed LEB128 encoding is exact.
+            output.push(0x41);
+            write_i64(output, i64::from(*value));
+        }
+        ResolvedExprKind::Uint8(value) => {
+            // u8 values ride the i32 valtype with the same exact encoding.
             output.push(0x41);
             write_i64(output, i64::from(*value));
         }
@@ -1584,6 +1606,62 @@ fn emit_expr(
                 });
                 return Ok(());
             }
+            if matches!(left.ty, ResolvedType::U8)
+                && matches!(
+                    op,
+                    BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
+                )
+            {
+                // Checked u8 arithmetic without new host imports: bounded
+                // operands make the unsigned i32 opcodes exact, and one
+                // unsigned range check traps on any out-of-range result. The
+                // scratch locals keep live values off the stack while the
+                // polymorphic trap block executes.
+                let Some((left_scratch, right_scratch)) = layout.u8_scratch else {
+                    return Err(Diagnostic::io(
+                        "SPX-W108",
+                        "missing WebAssembly local layout for checked u8 arithmetic",
+                    ));
+                };
+                // The stack holds [left, right]; pop them in reverse so each
+                // scratch local keeps its operand.
+                output.push(0x21);
+                write_u32(output, right_scratch);
+                output.push(0x21);
+                write_u32(output, left_scratch);
+                if matches!(op, BinaryOp::Div | BinaryOp::Rem) {
+                    output.push(0x20);
+                    write_u32(output, right_scratch);
+                    output.push(0x45);
+                    emit_failure_trap(output);
+                    output.push(0x20);
+                    write_u32(output, left_scratch);
+                    output.push(0x20);
+                    write_u32(output, right_scratch);
+                    output.push(if *op == BinaryOp::Div { 0x6e } else { 0x70 });
+                    return Ok(());
+                }
+                output.push(0x20);
+                write_u32(output, left_scratch);
+                output.push(0x20);
+                write_u32(output, right_scratch);
+                output.push(match op {
+                    BinaryOp::Add => 0x6a,
+                    BinaryOp::Sub => 0x6b,
+                    _ => 0x6c,
+                });
+                output.push(0x21);
+                write_u32(output, left_scratch);
+                output.push(0x20);
+                write_u32(output, left_scratch);
+                output.push(0x41);
+                write_i64(output, 255);
+                output.push(0x4b);
+                emit_failure_trap(output);
+                output.push(0x20);
+                write_u32(output, left_scratch);
+                return Ok(());
+            }
             match op {
                 BinaryOp::Add => call_import(output, 0),
                 BinaryOp::Sub => call_import(output, 1),
@@ -1607,6 +1685,10 @@ fn emit_expr(
                         (ResolvedType::Char, BinaryOp::Gt) => 0x4b,
                         (ResolvedType::Char, BinaryOp::Le) => 0x4d,
                         (ResolvedType::Char, BinaryOp::Ge) => 0x4f,
+                        (ResolvedType::U8, BinaryOp::Lt) => 0x49,
+                        (ResolvedType::U8, BinaryOp::Gt) => 0x4b,
+                        (ResolvedType::U8, BinaryOp::Le) => 0x4d,
+                        (ResolvedType::U8, BinaryOp::Ge) => 0x4f,
                         (_, BinaryOp::Lt) => 0x53,
                         (_, BinaryOp::Gt) => 0x55,
                         (_, BinaryOp::Le) => 0x57,
@@ -1755,6 +1837,79 @@ fn call_import(output: &mut impl ByteOutput, index: u32) {
     write_u32(output, index);
 }
 
+/// One deterministic checked-arithmetic failure trap: an empty void `if`
+/// block whose body is `unreachable`. Callers keep live values in scratch
+/// locals because the polymorphic block taints the operand stack.
+fn emit_failure_trap(output: &mut impl ByteOutput) {
+    output.push(0x04);
+    output.push(0x40);
+    output.push(0x00);
+    output.push(0x0b);
+}
+
+/// Whether an expression contains checked u8 arithmetic that needs the
+/// function-level scratch locals.
+fn contains_u8_arithmetic(expression: &ResolvedExpr) -> bool {
+    match &expression.kind {
+        ResolvedExprKind::Binary { op, left, right: _ }
+            if matches!(left.ty, ResolvedType::U8)
+                && matches!(
+                    *op,
+                    BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
+                ) =>
+        {
+            true
+        }
+        ResolvedExprKind::Binary { left, right, .. } => {
+            contains_u8_arithmetic(left) || contains_u8_arithmetic(right)
+        }
+        ResolvedExprKind::Unary { value, .. }
+        | ResolvedExprKind::Try { operand: value, .. }
+        | ResolvedExprKind::TryOption { operand: value, .. }
+        | ResolvedExprKind::Project { base: value, .. } => contains_u8_arithmetic(value),
+        ResolvedExprKind::Call { args, .. } => args.iter().any(contains_u8_arithmetic),
+        ResolvedExprKind::NativeRustImportCall(call) => {
+            call.args.iter().any(contains_u8_arithmetic)
+        }
+        ResolvedExprKind::Block { statements, tail } => {
+            contains_u8_arithmetic(tail)
+                || statements.iter().any(|statement| match statement {
+                    ResolvedStatement::Let { value, .. } => contains_u8_arithmetic(value),
+                })
+        }
+        ResolvedExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            contains_u8_arithmetic(condition)
+                || contains_u8_arithmetic(then_branch)
+                || contains_u8_arithmetic(else_branch)
+        }
+        ResolvedExprKind::ConstructRecord { fields, .. }
+        | ResolvedExprKind::ConstructVariant { fields, .. } => fields
+            .iter()
+            .any(|field| contains_u8_arithmetic(&field.value)),
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            contains_u8_arithmetic(scrutinee)
+                || arms.iter().any(|arm| contains_u8_arithmetic(&arm.value))
+        }
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            contains_u8_arithmetic(base)
+                || fields
+                    .iter()
+                    .any(|field| contains_u8_arithmetic(&field.value))
+        }
+        ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Char(_)
+        | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Float32(_)
+        | ResolvedExprKind::Float64(_)
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::Place(_) => false,
+    }
+}
+
 fn wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
     match ty {
         ResolvedType::Unit => Err(Diagnostic::io(
@@ -1763,6 +1918,7 @@ fn wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
         )),
         ResolvedType::I64 => Ok(I64),
         ResolvedType::Char => Ok(I32),
+        ResolvedType::U8 => Ok(I32),
         ResolvedType::F32 => Ok(F32),
         ResolvedType::F64 => Ok(F64),
         ResolvedType::Bool | ResolvedType::Nominal { .. } => Ok(I32),

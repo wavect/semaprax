@@ -85,6 +85,7 @@ fn observed_type_bytes(ty: &ResolvedType) -> usize {
         ResolvedType::Unit
         | ResolvedType::I64
         | ResolvedType::Char
+        | ResolvedType::U8
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool => 0,
@@ -7781,6 +7782,7 @@ fn every_expression_shape_resolves_at_exact_depth_512_and_rejects_513() {
             }
             ExprKind::Int(_)
             | ExprKind::Char(_)
+            | ExprKind::Uint8(_)
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
             | ExprKind::Bool(_) => false,

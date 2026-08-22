@@ -549,6 +549,7 @@ fn validate_supported_type(
         )),
         ResolvedType::I64
         | ResolvedType::Char
+        | ResolvedType::U8
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool => Ok(()),
@@ -686,6 +687,7 @@ fn validate_expression(
     match &expression.kind {
         ResolvedExprKind::Int(_)
         | ResolvedExprKind::Char(_)
+        | ResolvedExprKind::Uint8(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_) => {}

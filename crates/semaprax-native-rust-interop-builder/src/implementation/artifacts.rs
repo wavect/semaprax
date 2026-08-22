@@ -1149,6 +1149,7 @@ fn c_expression_linear(
         match frame {
             CExpressionFrame::Enter(expression) => match &expression.kind {
                 ResolvedExprKind::Char(_)
+                | ResolvedExprKind::Uint8(_)
                 | ResolvedExprKind::Float32(_)
                 | ResolvedExprKind::Float64(_) => {
                     // Non-i64 scalar signatures are outside the scalar

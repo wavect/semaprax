@@ -292,6 +292,7 @@ pub fn build_trace_path_certificate(
                             ResolvedType::Unit => TracePathOutcome::ScalarSuccess,
                             ResolvedType::I64
                             | ResolvedType::Char
+                            | ResolvedType::U8
                             | ResolvedType::F32
                             | ResolvedType::F64
                             | ResolvedType::Bool => TracePathOutcome::ScalarSuccess,
@@ -787,6 +788,7 @@ mod tests {
             TraceOutcome::Success { result } => match result {
                 crate::conformance::TraceResult::I64(_)
                 | crate::conformance::TraceResult::Char(_)
+                | crate::conformance::TraceResult::Uint8(_)
                 | crate::conformance::TraceResult::F32(_)
                 | crate::conformance::TraceResult::F64(_)
                 | crate::conformance::TraceResult::Bool(_) => TracePathOutcome::ScalarSuccess,

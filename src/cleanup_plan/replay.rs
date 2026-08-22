@@ -658,6 +658,7 @@ fn expression_skeleton_work_upper(
             let local = match &expression.kind {
                 ResolvedExprKind::Int(_)
                 | ResolvedExprKind::Char(_)
+                | ResolvedExprKind::Uint8(_)
                 | ResolvedExprKind::Float32(_)
                 | ResolvedExprKind::Float64(_)
                 | ResolvedExprKind::Bool(_) => 2,
@@ -1398,6 +1399,7 @@ fn collect_expression_statuses(
             | ResolvedExprKind::Project { .. }
             | ResolvedExprKind::Int(_)
             | ResolvedExprKind::Char(_)
+            | ResolvedExprKind::Uint8(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
@@ -2538,6 +2540,7 @@ fn expression_skeleton(
                 match &expression.kind {
                     ResolvedExprKind::Int(_)
                     | ResolvedExprKind::Char(_)
+                    | ResolvedExprKind::Uint8(_)
                     | ResolvedExprKind::Float32(_)
                     | ResolvedExprKind::Float64(_)
                     | ResolvedExprKind::Bool(_) => {
@@ -3607,6 +3610,7 @@ fn validate_match_skeleton_shape(
         ResolvedType::Unit
         | ResolvedType::I64
         | ResolvedType::Char
+        | ResolvedType::U8
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool
@@ -5206,6 +5210,7 @@ fn replay_expression_child(expression: &ResolvedExpr, index: usize) -> Option<&R
             .or_else(|| fields.get(index - 1).map(|field| &field.value)),
         ResolvedExprKind::Int(_)
         | ResolvedExprKind::Char(_)
+        | ResolvedExprKind::Uint8(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)

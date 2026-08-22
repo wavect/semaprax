@@ -285,6 +285,13 @@ gates below are not.
   (`semaprax hygienic-gen`). Richer template families, cross-file generation,
   patch/evidence provenance for generated code, and hosted execution evidence
   remain open.
+
+- C interoperability: the bounded read-only [C Header Emission
+  v1](C-HEADER-V1.md) tranche now emits deterministic digest-authenticated
+  C11 headers for selected explicit-ID monomorphic by-value scalar functions
+  with verbatim native-projection declarations (`semaprax c-header`). Header
+  import, raw bindings, ownership-aware signatures, safe wrappers, and
+  compiled conformance remain open.
 - A persistent graph daemon with indexed revisions across processes.
 - Complete ownership/lifetime/region analysis across control flow.
 

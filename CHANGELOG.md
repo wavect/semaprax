@@ -1,5 +1,32 @@
 # Changelog
 
+- Added the locally evidenced C Header Emission v1 tranche, the first
+  executable slice of the completion-matrix row "C and Objective-C". The new
+  read-only `semaprax c-header <file> --function ...` command and
+  `c_header` library API derive one deterministic C11 header for explicitly
+  selected explicit-ID monomorphic by-value `i64`/`bool` functions. Emitted
+  declaration lines are extracted verbatim from the production native C11
+  projection, so header declarations always match the emitted ABI; generated
+  comments carry only typed stable-ID, canonical contract, effect,
+  status-contract, and by-value ownership facts under a fail-closed hygiene
+  guard (`SPX-D104`); include guards derive only from sorted admitted stable
+  identities and stay byte-stable across formatting-only edits and
+  display-name-only renames while changing on identity renames. Canonical
+  compact `semaprax.c-header.v1` envelopes bind source snapshot digest,
+  graph revision, selection/admission accounting, per-declaration digests,
+  and the embedded header behind domain-separated SHA-256 digests with an
+  independent `verify_envelope` replay; output-budget overflow fails closed
+  without truncation (`SPX-D103`), unknown or duplicate selections are hard
+  errors (`SPX-D102`), all-excluded selections still yield a valid empty
+  header, and at least one admitted function requires the native lane to
+  succeed. Pinned golden envelope/header KATs, native cross-consistency,
+  every exclusion reason, guard stability rules, tamper rejection, and CLI
+  exit codes are green locally in `tests/c_header_emission_v1.rs`; no C
+  compiler runs, no hosted promotion exists yet, and no header import, raw
+  binding import, safe wrapper, Objective-C mapping, string/buffer mapping,
+   or execution claim is made. The C and Objective-C interoperability row
+   moves from Missing to Partial; the shared completion-matrix dashboard
+   totals lines stay untouched pending hosted promotion.
 - Added the locally evidenced Typed Hygienic Generation v1 tranche. The new
   read-only `semaprax hygienic-gen <file>` command and `hygienic` library API
   synthesize default constructors and scalar field accessors for admitted

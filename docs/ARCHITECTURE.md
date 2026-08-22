@@ -119,11 +119,26 @@ capability-digest-bound context, a typed callback table, and closed canonical
 status words; generated safe Rust contains panic, thread, reentry, and call
 budgets around the private unsafe quarantine. This lane grants no dynamic
 loading, allocator, resource, pointer, async, cross-thread, network, custody,
-public CLI/API, general Rust ABI, or production-readiness claim. See
-[`NATIVE-RUST-INTEROP-V1.md`](NATIVE-RUST-INTEROP-V1.md). Public C remains held:
-the builder and its types remain crate-private, all three crates are
-unpublished, and the root package exposes no Native Rust Interoperability API
-or CLI.
+public root CLI/API, general Rust ABI, or production-readiness claim. See
+[`NATIVE-RUST-INTEROP-V1.md`](NATIVE-RUST-INTEROP-V1.md). The additive Public
+Native Rust SDK v1 Phase C API is now exposed from the still-unpublished builder
+crate and generates a dependency-free local Cargo package; exact-head hosted
+promotion remains pending. The root package still exposes no Native Rust
+Interoperability API or CLI, and registry publication remains held.
+
+Phase C prepares every filesystem/process authority before invoking private B,
+then authenticates B's exact seven-entry output through held handles. It builds
+one capped deterministic archive in a separate held nonce stage, settles both
+scratch stages, writes the generated Cargo facade into a third exact-inventory
+stage, independently replays `semaprax.native-rust-sdk.v1`, and performs the
+sole create-new directory pivot. Post-pivot verification is read-only and a
+failure retains the complete digest-bound package for reconciliation. The
+outer root inventory is checked handle-relatively across its three files and
+two child directories; raw path scans are not publication authority. Phase C
+inherits private B's exact Descriptor/Manifest replay rather than duplicating
+that grammar. Its new per-carrier caps do not extend private A+B's cumulative
+memory proof, and platform linker-index payload semantics remain opaque,
+bounded, archive-digest-bound, and real-link exercised.
 
 This remains staged groundwork rather than the sole compiler IR: the current verifier still establishes meaning from parsed AST before HIR resolution. Explicit trivial/imported resource lifecycles, declaration-only interface/import contracts, record declarations/updates, bounded explicitly instantiated generic Copy records, bounded copy-variant templates/construction/exhaustive matching, typed ordinary-`Result` and ordinary-`Option` propagation, stable type/member/case identities, recursive resource/type facts, and by-value recursion rejection now reach validated HIR and the semantic graph. Generic parameters are owner/index-stable and the admitted concrete arguments are direct `i64`/`bool`; generic record fields are restricted to direct scalars or parameters owned by that record, and every construction/update/projection substitutes the exact ordered concrete instance. The compiler-owned `semaprax.prelude.v1` injects ordinary `Option<T>` and `Result<T, E>` variants before checking. The bounded postfix `?` form accepts only direct-scalar Copy instances: `Result<T, E>` requires an enclosing `Result<U, E>`, while `Option<T>` requires an enclosing `Option<U>`. It evaluates its operand once, reconstructs the exact outer `Err` or payload-free `None`, and routes both ordinary-body and propagated results through shared postconditions and publication. The source checker and HIR validator independently replay lifecycle compatibility, lifecycle-effect authority, prefix-aware partial-place availability, exact generic substitution, exact construction, copy-match exhaustiveness, and every compiler-owned carrier/member/source/target identity. `aggregate_layout` computes checked deterministic Native64 and Wasm32 record layouts keyed by the full record ID plus ordered arguments; its digest and native symbol bind the same exact instance even when two instances have identical physical fields. `variant_layout` computes independently reconstructable per-concrete-instance internal layouts with declaration-order `u32` tags, an aligned maximum-payload area, and one inert byte for an empty payload. Its v2 digest authenticates the full concrete instance and both template and substituted field types; physical tags and representation are unchanged from v1. `CleanupInventory` remains a structural discovery boundary. Every `ResolvedFunction` carries a cleanup plan: v2 remains canonical unless authenticated Option propagation is present, which requires v3. Both schemas include typed blocks, edges, lexical regions, entry liveness, storage/leaf flags, atomic call commits, sticky status sources, guarded finalizers, scalar/owned result publication, and exact body-versus-propagated Copy-result staging; v3 adds an authenticated payload-free Option-None source. Generic records add no cleanup action because the admitted instances are direct-scalar Copy values; canonical replay remains bound to exact HIR types. Immutable update consumes its base first, evaluates replacements in authored order, transfers untouched fields, and cleans displaced live fields exactly once in reverse order. Copy matches branch on an exact scrutinee expression and stable case IDs without inventing droppable payload leaves; distinct concrete instances therefore cannot share a cleanup decision. Propagation uses complementary predicates on the authenticated success case and cannot be confused with physical failure selection. The builder covers every current HIR expression and normal/checked-failure path; the validator reconstructs the plan from core HIR rather than trusting attached metadata.
 
@@ -1352,9 +1367,11 @@ Aggregate/resource programs, imports, capabilities, generics, callbacks,
 async, Components, package publication, provenance, general browser support,
 and production readiness remain outside this profile. Node evidence exists. A
 locked one-worker/no-retry Chromium loopback calculator job is wired separately
-from compiler semantics, but remains pending exact-head hosted-green evidence;
-exact TypeScript 5.8.3 compilation of the real generated consumer is locally
-green and wired into the same pending hosted job. That browser job proves only the
+from compiler semantics and is exact-head hosted green at
+`d883ace579bfd86f723cdc6819224fde51f0677d` in [run 32523952912, job
+96901973072](https://github.com/wavect/semaprax/actions/runs/32523952912/job/96901973072);
+exact TypeScript 5.8.3 compilation of the real generated consumer is part of
+that same hosted gate. That browser job proves only the
 generated calculator in one Ubuntu Chromium configuration, not general browser
 compatibility.
 

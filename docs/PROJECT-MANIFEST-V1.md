@@ -122,7 +122,12 @@ cargo test --locked -p semaprax --test project_manifest_v1
 cargo test --locked -p semaprax --test project_backend_equivalence_v1 -- --test-threads=1
 ```
 
-Exact-head hosted promotion remains pending. Project v1 does not claim general
+The exact `d883ace579bfd86f723cdc6819224fde51f0677d` Project v1 matrix is
+hosted green in [run 32523952912](https://github.com/wavect/semaprax/actions/runs/32523952912),
+including [Ubuntu](https://github.com/wavect/semaprax/actions/runs/32523952912/job/96901973139),
+[macOS](https://github.com/wavect/semaprax/actions/runs/32523952912/job/96901973190),
+and [Windows](https://github.com/wavect/semaprax/actions/runs/32523952912/job/96901973112).
+Project v1 does not claim general
 packages/dependencies, registry or network access, capabilities, aggregate or
 resource composition, generics, interface/native imports or `use type` edges,
 effects, general multi-file compilation, native output confinement, test

@@ -6,6 +6,8 @@ use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
 pub use semaprax_native_rust_interop_platform_sys::Error;
+pub const SDK_ARCHIVE_MAX_BYTES: u64 =
+    semaprax_native_rust_interop_platform_sys::SDK_ARCHIVE_MAX_BYTES;
 
 pub struct HeldDirectory(semaprax_native_rust_interop_platform_sys::Directory);
 pub struct HeldRegularFile(semaprax_native_rust_interop_platform_sys::RegularFile);
@@ -18,6 +20,7 @@ pub struct HeldRustcDiscovery(semaprax_native_rust_interop_platform_sys::RustcDi
 pub struct HeldDirectRustc(semaprax_native_rust_interop_platform_sys::DirectRustc);
 
 pub struct PreparedStageName(semaprax_native_rust_interop_platform_sys::PreparedRelativeNameArena);
+pub struct PreparedChildName(semaprax_native_rust_interop_platform_sys::PreparedRelativeName);
 pub struct PreparedVersionInvocation(
     semaprax_native_rust_interop_platform_sys::PreparedVersionInvocation,
 );
@@ -41,6 +44,9 @@ pub struct PreparedRustCompileInvocation(
 pub struct PreparedLinkInvocation(
     semaprax_native_rust_interop_platform_sys::PreparedLinkInvocation,
 );
+pub struct PreparedArchiveInvocation(
+    semaprax_native_rust_interop_platform_sys::PreparedArchiveInvocation,
+);
 pub struct PreparedRunInvocation(semaprax_native_rust_interop_platform_sys::PreparedRunInvocation);
 pub struct PreparedLinkOrCopy {
     native: semaprax_native_rust_interop_platform_sys::PreparedLinkOrCopy,
@@ -51,6 +57,9 @@ pub struct PreparedLinkOrCopy {
 }
 pub struct PreparedInventoryExact<const N: usize>(
     semaprax_native_rust_interop_platform_sys::PreparedInventoryExact<N>,
+);
+pub struct PreparedInventoryEntriesExact<const N: usize>(
+    semaprax_native_rust_interop_platform_sys::PreparedInventoryEntriesExact<N>,
 );
 pub struct PreparedPublishDirectory(
     semaprax_native_rust_interop_platform_sys::PreparedPublishDirectory,
@@ -71,6 +80,17 @@ pub fn prepare_stage_name(name: &OsStr) -> Result<PreparedStageName, Error> {
     let mut arena = prepare_stage_name_arena(maximum)?;
     arena.set(name)?;
     Ok(arena)
+}
+
+pub fn prepare_child_name(name: &OsStr) -> Result<PreparedChildName, Error> {
+    semaprax_native_rust_interop_platform_sys::prepare_relative_name(name).map(PreparedChildName)
+}
+
+pub fn child_absent_prepared(
+    directory: &HeldDirectory,
+    name: &PreparedChildName,
+) -> Result<bool, Error> {
+    semaprax_native_rust_interop_platform_sys::child_absent_prepared(&directory.0, &name.0)
 }
 
 pub fn prepare_stage_name_arena(maximum: usize) -> Result<PreparedStageName, Error> {
@@ -320,6 +340,40 @@ pub fn inventory_exact_prepared<const N: usize>(
         &directory.0,
         &inventory.native,
         files,
+    )
+}
+
+/// Prepares a one-use exact mixed inventory. Names are ordered with all
+/// regular files first and all child directories second.
+pub fn prepare_inventory_entries_exact<const N: usize>(
+    names: [&OsStr; N],
+    file_count: usize,
+) -> Result<PreparedInventoryEntriesExact<N>, Error> {
+    semaprax_native_rust_interop_platform_sys::prepare_inventory_entries_exact(names, file_count)
+        .map(PreparedInventoryEntriesExact)
+}
+
+pub fn prepared_inventory_entries_exact_owned_capacity<const N: usize>(
+    prepared: &PreparedInventoryEntriesExact<N>,
+) -> usize {
+    semaprax_native_rust_interop_platform_sys::prepared_inventory_entries_exact_owned_capacity(
+        &prepared.0,
+    )
+}
+
+pub fn inventory_entries_exact_prepared<const N: usize, const F: usize, const D: usize>(
+    prepared: &mut PreparedInventoryEntriesExact<N>,
+    directory: &HeldDirectory,
+    files: [&HeldRegularFile; F],
+    directories: [&HeldDirectory; D],
+) -> Result<(), Error> {
+    let files = files.map(|file| &file.0);
+    let directories = directories.map(|child| &child.0);
+    semaprax_native_rust_interop_platform_sys::inventory_entries_exact_prepared(
+        &mut prepared.0,
+        &directory.0,
+        files,
+        directories,
     )
 }
 
@@ -623,6 +677,56 @@ pub fn hold_prepared_tool(path: PathBuf) -> Result<HeldTool, Error> {
     Ok(HeldTool { executable, path })
 }
 
+/// Holds the one configured archiver admitted by the current-host SDK profile.
+///
+/// The child is still launched by held executable authority with no ambient
+/// environment. Darwin receives only a fixed `TMPDIR` naming an exact
+/// caller-stage scratch directory whose inventory is authenticated and
+/// discarded before this operation returns. This function deliberately does
+/// not provide tool discovery or a generic process surface.
+pub fn hold_configured_archiver(
+    configured: PathBuf,
+    vctools: Option<&Path>,
+) -> Result<HeldTool, Error> {
+    if !configured.is_absolute() {
+        return Err(Error::Invalid);
+    }
+    #[cfg(target_os = "linux")]
+    {
+        // Linux distributions commonly expose `ar` through a symlink to a
+        // version-suffixed real image. Authenticate the explicit held image,
+        // not a cosmetic basename; the frozen rcsD invocation and exact
+        // archive replay are the admitted behavior.
+        if vctools.is_some() {
+            return Err(Error::Invalid);
+        }
+    }
+    #[cfg(target_os = "macos")]
+    {
+        if vctools.is_some() || configured != Path::new("/usr/bin/libtool") {
+            return Err(Error::Invalid);
+        }
+    }
+    #[cfg(all(target_os = "windows", not(target_arch = "x86_64")))]
+    {
+        let _ = vctools;
+        return Err(Error::Unsupported);
+    }
+    #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+    {
+        let vctools = vctools
+            .filter(|root| root.is_absolute())
+            .ok_or(Error::Invalid)?;
+        if configured.strip_prefix(vctools).ok() != Some(Path::new(r"bin\Hostx64\x64\lib.exe")) {
+            return Err(Error::Invalid);
+        }
+    }
+    #[cfg(not(all(target_os = "windows", not(target_arch = "x86_64"))))]
+    {
+        hold_prepared_tool(configured)
+    }
+}
+
 pub fn resolve_and_hold_tool_prepared(
     prepared: PreparedToolResolver,
     configured: Option<&OsStr>,
@@ -881,6 +985,43 @@ pub fn prepare_link_invocation(
 
 pub fn prepared_link_owned_capacity(prepared: &PreparedLinkInvocation) -> usize {
     semaprax_native_rust_interop_platform_sys::prepared_link_owned_capacity(&prepared.0)
+}
+
+pub fn prepare_archive_invocation(
+    input: &OsStr,
+    output: &OsStr,
+) -> Result<PreparedArchiveInvocation, Error> {
+    semaprax_native_rust_interop_platform_sys::prepare_archive_invocation(input, output)
+        .map(PreparedArchiveInvocation)
+}
+
+pub fn prepared_archive_owned_capacity(prepared: &PreparedArchiveInvocation) -> usize {
+    semaprax_native_rust_interop_platform_sys::prepared_archive_owned_capacity(&prepared.0)
+}
+
+/// Produces one bounded deterministic archive containing exactly the held
+/// object. Platform linker-index members have closed names, order, headers,
+/// and total size and are bound by the returned archive digest, but their
+/// opaque payload semantics are not independently reconstructed here.
+pub fn archive_tool_prepared(
+    archiver: &HeldTool,
+    cwd: &HeldDirectory,
+    input: &HeldRegularFile,
+    prepared: PreparedArchiveInvocation,
+    process_arena: &mut PreparedProcessArena,
+) -> Result<HeldRegularFile, Error> {
+    // `cwd` is intentionally the caller-owned private nonce run stage. The
+    // accepted archive is copied from there into the publication inventory by
+    // the existing create-new held-file authority; this operation is not an
+    // in-place publication primitive for a shared directory.
+    semaprax_native_rust_interop_platform_sys::archive_prepared(
+        &archiver.executable.0,
+        &cwd.0,
+        &input.0,
+        prepared.0,
+        &mut process_arena.0,
+    )
+    .map(HeldRegularFile)
 }
 
 pub fn link_tool_prepared(

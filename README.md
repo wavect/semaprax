@@ -167,7 +167,7 @@ does not satisfy a broader product gate.
 | Agent interface | Deterministic Graph v10–v14, bounded context, impact preview, repair discovery, semantic review, and exact evidence replay. |
 | Semantic changes | Atomic single-file patches plus bounded managed multi-file workspace transactions and replacements-only semantic workspace operations. These do not provide general Git/editor-tree atomicity. |
 | Project build | A bounded explicit pure-scalar `semaprax.toml` build input reuses one in-memory Workspace Phase-A pass and publishes a Web package. Explicit stable-ID `use function` provider edges are its only cross-file composition; native lowering is internal evidence only. This is not dependency management, a managed workspace, or production packaging. |
-| Native target | C11/Clang scalar and bounded Copy-data execution. Public general resource/FFI/aggregate ABI admission remains closed. |
+| Native target | C11/Clang scalar and bounded Copy-data execution plus a locally evidenced generated scalar Native Rust SDK package. Exact-head SDK promotion and public general resource/string/FFI/aggregate ABI admission remain open. |
 | Web target | WebAssembly Core plus a generated package; selected stable-ID scalar functions have bounded JavaScript/TypeScript bindings. General browser-SDK and public Component Model output remain open. |
 | Applications | Private CI evidence exists for bounded desktop and mobile prototypes. Public SDKs, packaging, lifecycle breadth, and production distribution remain open. |
 | Agent runtime | A bounded injected-host Rust API has hosted deterministic fake-host evidence. It is not a live provider transport, CLI agent, durable-memory system, wallet, payment, signing, or ambient-authority surface. |
@@ -179,9 +179,12 @@ Private Economic Agent v1 A+B is exact-head hosted green at fe75c38d898b71e3ed5c
 Private Native Rust Interoperability v1 A+B is exact-head hosted green at
 `50b96dccabe3b3dcbcdf38bab380f3eb8699184c` in [run
 32402944574](https://github.com/wavect/semaprax/actions/runs/32402944574).
-Public C remains held: the builder is crate-private and unpublished, with no
-root API or CLI. See [Native Rust Interoperability
-v1](docs/NATIVE-RUST-INTEROP-V1.md).
+Public Native Rust SDK v1 Phase C now adds a narrow API in the still-unpublished
+builder and generates a dependency-free local Cargo package with stable-ID
+scalar methods; its exact-head three-host promotion remains pending, and there
+is still no root CLI or registry package. See [Native Rust Interoperability
+v1](docs/NATIVE-RUST-INTEROP-V1.md) and the
+[Rust calculator consumer](examples/calculator-rust/README.md).
 
 For precise evidence, boundaries, and non-claims, use these documents:
 

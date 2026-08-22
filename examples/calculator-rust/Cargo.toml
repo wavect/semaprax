@@ -1,0 +1,14 @@
+[package]
+name = "semaprax-calculator-rust-setup"
+version = "0.0.0"
+edition = "2021"
+rust-version = "1.85"
+publish = false
+
+[workspace]
+
+[dependencies]
+semaprax-native-rust-interop = { path = "../../crates/semaprax-native-rust-interop-builder" }
+
+[lints.rust]
+unsafe_code = "forbid"

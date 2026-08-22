@@ -3,7 +3,9 @@
 Status: private A+B design and implementation are exact-head hosted green at
 `50b96dccabe3b3dcbcdf38bab380f3eb8699184c` in [run
 32402944574](https://github.com/wavect/semaprax/actions/runs/32402944574).
-Public C remains held and the implementation remains unpublished. The six
+The additive Public Native Rust SDK v1 Phase C implementation is locally
+evidenced and awaits its exact-head Ubuntu/macOS/Windows promotion matrix; its
+builder tooling remains unpublished and it grants no registry or CLI claim. The six
 output artifacts have frozen
 whole-byte known-answer identities after independent exact replay and exhaustive
 byte-edit rejection. That wire freeze alone is not runtime or platform
@@ -180,6 +182,70 @@ The six manifest file rows are `descriptor.json`, `module.c`,
 directory additionally contains `semaprax.native-rust-interop.json`. The
 manifest never hashes itself.
 
+## Public Native Rust SDK v1 Phase C
+
+The unpublished builder crate exposes the narrow Rust API
+`build_native_rust_sdk(source, source_path, NativeRustSdkOptions, output)`.
+It constructs the existing canonical private Spec internally, invokes unchanged
+private A+B exactly once, and publishes a fresh local generated Cargo package.
+The generated package is named `semaprax-generated-native-rust-sdk`, has no
+Rust dependencies, is not registry-publishable, and fixes this nine-file
+inventory:
+
+- `Cargo.toml`
+- `build.rs`
+- `src/lib.rs`
+- `src/semaprax_native_rust_interop.rs`
+- `src/semaprax_native_rust_interop_ffi.rs`
+- `native/libsemaprax_native_rust_sdk.a` on Unix or
+  `native/semaprax_native_rust_sdk.lib` on Windows
+- `native/descriptor.json`
+- `native/semaprax.native-rust-interop.json`
+- `semaprax.native-rust-sdk.json`
+
+The outer manifest schema is `semaprax.native-rust-sdk.v1`. It binds the exact
+source revision and current target, private Descriptor and Bundle digests,
+every non-manifest file length and raw SHA-256, ordered export/import signatures,
+stable public method mappings, selected capabilities, limits, and nonclaims.
+An independent byte cursor replays the complete outer grammar before staging
+and again from held published bytes. Phase C relies on private B's already
+independent exact replay of its own Descriptor/Manifest grammar; it
+reauthenticates B's returned digest and all six inner payload rows rather than
+claiming a second implementation of the private grammar.
+
+Public method names are injective and order-independent: lowercase letters and
+digits pass through after `spx_`; `_`, `.`, and `-` become `_underscore_`,
+`_dot_`, and `_hyphen_`. The generated safe facade exposes
+`NativeRustSdkImports`, `NativeRustSdk`, and closed admission/import/status/call
+types. The public module forbids unsafe Rust; only the unchanged private sibling
+FFI module contains reviewed unsafe code. The bridge remains opaque,
+same-thread, non-reentrant, and `!Send`/`!Sync`, with the private depth, call,
+panic, capability, and success-only result-publication rules unchanged.
+
+`SEMAPRAX_ARCHIVER` must select one explicit absolute held image. Linux uses
+the frozen deterministic `rcsD` invocation; macOS admits only
+`/usr/bin/libtool -static -D`; x86-64 Windows admits only the exact
+`Hostx64\\x64\\lib.exe` below `SEMAPRAX_VCTOOLS` with `/NOLOGO /BREPRO`.
+The archive is built in a private held nonce stage, admits one exact
+byte-identical object member plus the closed platform metadata-member grammar,
+and is copied create-new into the outer inventory only after settlement. The
+bounded linker-index payloads are archive-digest-bound and exercised by the
+real external link, but their platform-specific symbol-table semantics are not
+independently reconstructed in Phase C.
+AArch64 Windows remains rejected because no matching ARM64 Visual C++ tool plan
+is frozen.
+
+Phase C caps source, Spec, Descriptor, inner manifest, generated Rust, outer
+manifest, object, and archive carriers; the archive cap is 8,388,608 bytes and
+the outer-manifest cap is 1,048,576 bytes. It does not extend private A+B's
+33,554,432-byte pre-reserved cumulative-builder proof: Phase-C cumulative
+high-water, allocation-failure recovery, and OOM recovery remain explicit
+nonclaims. The external calculator and callback consumers depend only on the
+generated package, compile locked and offline, and exercise stable-ID exports,
+the Rust-import callback, status mapping, deterministic double builds, display
+rename preservation, and one same-source Rust/native-C/Core-Wasm result.
+Exact-head hosted promotion remains pending.
+
 ## Diagnostics and nonclaims
 
 The exact owned diagnostics are B106 noncanonical spec; B107 closed declaration
@@ -202,9 +268,9 @@ completion-matrix promotion.
 The private A+B promotion gate is satisfied at the exact commit and run cited
 above: Ubuntu, macOS, Windows, Rust 1.85, and the required Linux sanitizer lane
 are green together, including Windows runtime/capacity settlement. This proves
-only the frozen private scalar/static-link profile at that head. Public C
-remains held because the builder entry points and types are crate-private, the
-three implementation crates remain unpublished, and the root package exposes
-no Native Rust Interoperability API or CLI. Local runs qualify only when
+only the frozen private scalar/static-link profile at that head. Phase C keeps
+the three implementation crates and root package unpublished but adds the
+narrow builder API and generated local package described above; that additive
+promotion remains pending its exact-head three-host gate. Local runs qualify only when
 `RUSTC` and `CLANG` explicitly select the admitted absolute tools; an ambient
 launcher or proxy is intentionally not equivalent evidence.

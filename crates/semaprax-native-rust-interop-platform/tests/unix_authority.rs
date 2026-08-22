@@ -1,15 +1,18 @@
 #![cfg(unix)]
 
+use semaprax_native_rust_interop_platform::{
+    archive_tool_prepared, create_directory_new, discard_owned_stage_prepared,
+    hold_configured_archiver, hold_directory, hold_regular_file, inventory_entries_exact_prepared,
+    inventory_exact_prepared, materialize_process_arena, prepare_archive_invocation,
+    prepare_discard_inventory, prepare_inventory_entries_exact, prepare_inventory_exact,
+    prepare_process_arena_plan, prepare_publish_directory, prepare_stage_name,
+    prepared_publish_directory_remaining, publish_directory_new_prepared, read_exact,
+    recheck_directory, write_file_new, write_file_new_prepared, Error, HeldDirectory,
+    HeldRegularFile,
+};
 #[cfg(target_os = "macos")]
 use semaprax_native_rust_interop_platform::{
     clang_version, hold_external_executable, rustc_version,
-};
-use semaprax_native_rust_interop_platform::{
-    create_directory_new, discard_owned_stage_prepared, hold_directory, inventory_exact_prepared,
-    prepare_discard_inventory, prepare_inventory_exact, prepare_publish_directory,
-    prepare_stage_name, prepared_publish_directory_remaining, publish_directory_new_prepared,
-    read_exact, recheck_directory, write_file_new, write_file_new_prepared, Error, HeldDirectory,
-    HeldRegularFile,
 };
 use semaprax_native_rust_interop_platform::{execute_harness, hold_executable};
 use std::ffi::OsStr;
@@ -17,7 +20,7 @@ use std::fmt::Write as _;
 use std::fs::File;
 use std::io::Read as _;
 use std::ops::Deref;
-use std::os::unix::fs::MetadataExt as _;
+use std::os::unix::fs::{MetadataExt as _, PermissionsExt as _};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, Instant};
@@ -210,6 +213,87 @@ fn compile_c(root: &Path, name: &str, source: &str) -> PathBuf {
         String::from_utf8_lossy(&output.stderr)
     );
     executable
+}
+
+fn compile_c_object(root: &Path) {
+    let source = root.join("module.c");
+    std::fs::write(&source, "int semaprax_archive_probe(void){return 7;}\n").unwrap();
+    let compiler = resolved_tool(&std::env::var_os("CLANG").unwrap_or_else(|| "clang".into()));
+    let output = Command::new(compiler)
+        .env_clear()
+        .env("TMPDIR", root)
+        .args([
+            "-std=c11", "-Wall", "-Wextra", "-Werror", "-O2", "-c", "module.c", "-o", "module.o",
+        ])
+        .current_dir(root)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr),
+    );
+    std::fs::set_permissions(
+        root.join("module.o"),
+        std::fs::Permissions::from_mode(0o600),
+    )
+    .unwrap();
+}
+
+fn build_static_archive(label: &str) -> Vec<u8> {
+    let root = root(label);
+    compile_c_object(&root);
+    let cwd = hold_directory(root.as_ref()).unwrap();
+    let input = hold_regular_file(&cwd, OsStr::new("module.o")).unwrap();
+    #[cfg(target_os = "linux")]
+    let archiver_path = resolved_tool(OsStr::new("ar"));
+    #[cfg(target_os = "macos")]
+    let archiver_path = PathBuf::from("/usr/bin/libtool");
+    let archiver = hold_configured_archiver(archiver_path, None).unwrap();
+    let prepared = prepare_archive_invocation(
+        OsStr::new("module.o"),
+        OsStr::new("libsemaprax_native_rust_sdk.a"),
+    )
+    .unwrap();
+    let plan = prepare_process_arena_plan(1).unwrap();
+    let mut process = materialize_process_arena(plan).unwrap();
+    let archive = archive_tool_prepared(&archiver, &cwd, &input, prepared, &mut process).unwrap();
+    let bytes = std::fs::read(root.join("libsemaprax_native_rust_sdk.a")).unwrap();
+    drop((archive, input, archiver, process, cwd));
+    bytes
+}
+
+#[test]
+fn configured_archiver_is_deterministic_and_contains_only_the_exact_object() {
+    assert_eq!(
+        build_static_archive("archive-first"),
+        build_static_archive("archive-second"),
+    );
+}
+
+#[test]
+fn mixed_inventory_is_handle_relative_exact_and_one_use() {
+    let root = root("mixed-inventory");
+    let held_root = hold_directory(root.as_ref()).unwrap();
+    let file = write_file_new(&held_root, OsStr::new("Cargo.toml"), b"[package]\n", 0o600).unwrap();
+    let src = create_directory_new(&held_root, OsStr::new("src"), 0o700).unwrap();
+    let native = create_directory_new(&held_root, OsStr::new("native"), 0o700).unwrap();
+    let mut prepared = prepare_inventory_entries_exact(
+        [
+            OsStr::new("Cargo.toml"),
+            OsStr::new("src"),
+            OsStr::new("native"),
+        ],
+        1,
+    )
+    .unwrap();
+    inventory_entries_exact_prepared(&mut prepared, &held_root, [&file], [&src, &native]).unwrap();
+    assert_eq!(
+        inventory_entries_exact_prepared(&mut prepared, &held_root, [&file], [&src, &native],),
+        Err(Error::Invalid),
+    );
+    drop((file, src, native, held_root));
+    std::fs::remove_dir_all(root).unwrap();
 }
 
 #[test]

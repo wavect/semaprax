@@ -34,6 +34,135 @@ pub enum Error {
     OutputLimit,
 }
 
+pub const SDK_ARCHIVE_MAX_BYTES: u64 = 8_388_608;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ArchiveMemberKind {
+    GnuLinkerIndex,
+    BsdSortedLinkerIndex,
+    LongNames,
+    Input,
+    Extended(usize),
+}
+
+fn archive_member_size(field: &[u8]) -> Result<u64, Error> {
+    let digits = field
+        .iter()
+        .position(|byte| *byte == b' ')
+        .unwrap_or(field.len());
+    if digits == 0
+        || field[digits..].iter().any(|byte| *byte != b' ')
+        || !field[..digits].iter().all(u8::is_ascii_digit)
+        || digits > 1 && field[0] == b'0'
+    {
+        return Err(Error::Invalid);
+    }
+    field[..digits].iter().try_fold(0_u64, |value, digit| {
+        value
+            .checked_mul(10)
+            .and_then(|value| value.checked_add(u64::from(*digit - b'0')))
+            .ok_or(Error::OutputLimit)
+    })
+}
+
+fn archive_member_kind(field: &[u8], input: &[u8]) -> Result<ArchiveMemberKind, Error> {
+    let mut name = field;
+    while name.last() == Some(&b' ') {
+        name = &name[..name.len() - 1];
+    }
+    if let Some(length) = name.strip_prefix(b"#1/") {
+        let length =
+            usize::try_from(archive_member_size(length)?).map_err(|_| Error::OutputLimit)?;
+        if length == 0 || length > 255 {
+            return Err(Error::Invalid);
+        }
+        return Ok(ArchiveMemberKind::Extended(length));
+    }
+    if name == b"/" {
+        return Ok(ArchiveMemberKind::GnuLinkerIndex);
+    }
+    if name == b"//" {
+        return Ok(ArchiveMemberKind::LongNames);
+    }
+    if name == b"__.SYMDEF SORTED" {
+        return Ok(ArchiveMemberKind::BsdSortedLinkerIndex);
+    }
+    if name.strip_suffix(b"/").unwrap_or(name) == input {
+        return Ok(ArchiveMemberKind::Input);
+    }
+    Err(Error::Invalid)
+}
+
+fn archive_extended_name(field: &[u8]) -> Result<&[u8], Error> {
+    let nul = field
+        .iter()
+        .position(|byte| *byte == 0)
+        .ok_or(Error::Invalid)?;
+    let padding = field.len().checked_sub(nul).ok_or(Error::Invalid)?;
+    if !(1..=4).contains(&padding)
+        || field.len() % 4 != 0
+        || field[nul..].iter().any(|byte| *byte != 0)
+    {
+        return Err(Error::Invalid);
+    }
+    Ok(&field[..nul])
+}
+
+fn exact_archive_member_metadata(
+    header: &[u8; 60],
+    kind: ArchiveMemberKind,
+    input_mode: u32,
+) -> Result<(), Error> {
+    if header[16..28] != *b"0           " {
+        return Err(Error::Invalid);
+    }
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    if header[28..34] != *b"0     " || header[34..40] != *b"0     " {
+        return Err(Error::Invalid);
+    }
+    #[cfg(target_family = "windows")]
+    if header[28..34] != *b"      " || header[34..40] != *b"      " {
+        return Err(Error::Invalid);
+    }
+    #[cfg(target_os = "linux")]
+    let mode = match kind {
+        ArchiveMemberKind::GnuLinkerIndex => 0,
+        ArchiveMemberKind::Input => input_mode & 0o777,
+        _ => return Err(Error::Invalid),
+    };
+    #[cfg(target_os = "macos")]
+    let mode = match kind {
+        ArchiveMemberKind::Extended(20) => 0o100644,
+        ArchiveMemberKind::Extended(12) => input_mode & 0o777,
+        _ => return Err(Error::Invalid),
+    };
+    #[cfg(target_family = "windows")]
+    let mode = match kind {
+        ArchiveMemberKind::GnuLinkerIndex => 0,
+        ArchiveMemberKind::Input => 0o100666,
+        _ => return Err(Error::Invalid),
+    };
+    let mut encoded = [b' '; 8];
+    let mut value = mode;
+    let mut digits = [0_u8; 8];
+    let mut count = 0usize;
+    loop {
+        digits[count] = b'0' + u8::try_from(value & 7).map_err(|_| Error::Invalid)?;
+        count += 1;
+        value >>= 3;
+        if value == 0 {
+            break;
+        }
+    }
+    for index in 0..count {
+        encoded[index] = digits[count - index - 1];
+    }
+    if header[40..48] != encoded {
+        return Err(Error::Invalid);
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 #[allow(clippy::enum_variant_names)]
 #[repr(u8)]
@@ -240,6 +369,11 @@ mod platform {
         file: RegularFile,
         slice_offset: u64,
         slice_size: u64,
+        // Darwin's installed developer tools are hard-linked multicall images.
+        // F_GETPATH identifies the vnode, but does not preserve which admitted
+        // name selected the tool's behavior (for example libtool vs clang).
+        #[cfg(target_os = "macos")]
+        launch_path: Option<CString>,
     }
 
     pub struct RustcDiscovery {
@@ -301,6 +435,19 @@ mod platform {
     pub struct PreparedLinkInvocation {
         command: PreparedCommand,
         output_name: PreparedRelativeName,
+    }
+    pub struct PreparedArchiveInvocation {
+        command: PreparedCommand,
+        input_name: PreparedRelativeName,
+        output_name: PreparedRelativeName,
+        #[cfg(target_os = "macos")]
+        scratch_name: PreparedRelativeNameArena,
+        #[cfg(target_os = "macos")]
+        scratch_file: PreparedRelativeName,
+        #[cfg(target_os = "macos")]
+        scratch_inventory: PreparedDiscardNames<1>,
+        #[cfg(target_os = "macos")]
+        empty_scratch_inventory: PreparedDiscardNames<0>,
     }
     pub struct PreparedRunInvocation(PreparedCommand);
 
@@ -528,6 +675,13 @@ mod platform {
         fail_rebound_close: bool,
     }
 
+    pub struct PreparedInventoryEntriesExact<const N: usize> {
+        names: PreparedDiscardNames<N>,
+        file_count: usize,
+        storage: Box<[u64]>,
+        remaining: u8,
+    }
+
     pub struct PreparedPublishDirectory {
         destination: CString,
         exact_capacity: usize,
@@ -640,6 +794,32 @@ mod platform {
         prepared: &PreparedInventoryExact<N>,
     ) -> u8 {
         prepared.remaining
+    }
+
+    pub fn prepare_inventory_entries_exact<const N: usize>(
+        names: [&OsStr; N],
+        file_count: usize,
+    ) -> Result<PreparedInventoryEntriesExact<N>, Error> {
+        if N == 0 || file_count > N {
+            return Err(Error::Invalid);
+        }
+        Ok(PreparedInventoryEntriesExact {
+            names: prepare_discard_names(names)?,
+            file_count,
+            storage: vec![0_u64; INVENTORY_EXACT_ARENA_WORDS].into_boxed_slice(),
+            remaining: 1,
+        })
+    }
+
+    pub fn prepared_inventory_entries_exact_owned_capacity<const N: usize>(
+        prepared: &PreparedInventoryEntriesExact<N>,
+    ) -> usize {
+        prepared_discard_names_owned_capacity(&prepared.names).saturating_add(
+            prepared
+                .storage
+                .len()
+                .saturating_mul(std::mem::size_of::<u64>()),
+        )
     }
 
     pub fn publish_directory_required_capacity(name: &OsStr) -> Result<usize, Error> {
@@ -1627,9 +1807,16 @@ mod platform {
     }
 
     fn authenticate_regular_file(file: File) -> Result<RegularFile, Error> {
+        authenticate_regular_file_bounded(file, u64::MAX)
+    }
+
+    fn authenticate_regular_file_bounded(file: File, maximum: u64) -> Result<RegularFile, Error> {
         let metadata = file.metadata().map_err(|_| Error::Changed)?;
         if !metadata.is_file() {
             return Err(Error::Changed);
+        }
+        if metadata.len() > maximum {
+            return Err(Error::OutputLimit);
         }
         let (dev, ino) = identity(&metadata);
         let digest = digest_file(&file, metadata.len())?;
@@ -1662,6 +1849,34 @@ mod platform {
         authenticate_regular_file(unsafe { File::from_raw_fd(fd) })
     }
 
+    fn hold_regular_file_name_bounded_prepared(
+        directory: &Directory,
+        name: &PreparedRelativeName,
+        maximum: u64,
+    ) -> Result<RegularFile, Error> {
+        let fd = unsafe {
+            libc::openat(
+                directory.file.as_raw_fd(),
+                name.0.as_ptr(),
+                libc::O_RDONLY | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+            )
+        };
+        if fd < 0 {
+            return Err(Error::Changed);
+        }
+        authenticate_regular_file_bounded(unsafe { File::from_raw_fd(fd) }, maximum)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn test_hold_regular_file_name_bounded(
+        directory: &Directory,
+        name: &OsStr,
+        maximum: u64,
+    ) -> Result<RegularFile, Error> {
+        let name = prepare_relative_name(name)?;
+        hold_regular_file_name_bounded_prepared(directory, &name, maximum)
+    }
+
     fn hold_regular_file_cstr(
         directory: &Directory,
         name: &std::ffi::CStr,
@@ -1692,6 +1907,8 @@ mod platform {
             file,
             slice_offset,
             slice_size,
+            #[cfg(target_os = "macos")]
+            launch_path: None,
         })
     }
 
@@ -1738,7 +1955,17 @@ mod platform {
         let parent = path.parent().ok_or(Error::Invalid)?;
         let name = path.file_name().ok_or(Error::Invalid)?;
         let directory = hold_directory(parent)?;
-        hold_executable(&directory, name)
+        let executable = hold_executable(&directory, name)?;
+        #[cfg(target_os = "macos")]
+        let executable = {
+            let mut executable = executable;
+            if path.is_absolute() {
+                executable.launch_path =
+                    Some(CString::new(path.as_os_str().as_bytes()).map_err(|_| Error::Invalid)?);
+            }
+            executable
+        };
+        Ok(executable)
     }
 
     fn set_tool_candidate(
@@ -1884,6 +2111,12 @@ mod platform {
             file: regular,
             slice_offset,
             slice_size,
+            #[cfg(target_os = "macos")]
+            launch_path: if prepared.candidate.first() == Some(&b'/') {
+                Some(unsafe { std::ffi::CStr::from_ptr(candidate) }.to_owned())
+            } else {
+                None
+            },
         }))
     }
 
@@ -2096,6 +2329,8 @@ mod platform {
             file,
             slice_offset,
             slice_size,
+            #[cfg(target_os = "macos")]
+            launch_path: None,
         })
     }
 
@@ -2120,6 +2355,33 @@ mod platform {
     fn recheck_executable(executable: &Executable) -> Result<(), Error> {
         recheck_regular(&executable.file)?;
         if executable_slice(&executable.file)? != (executable.slice_offset, executable.slice_size) {
+            return Err(Error::Changed);
+        }
+        Ok(())
+    }
+
+    #[cfg(target_os = "macos")]
+    fn recheck_executable_launch_path(executable: &Executable) -> Result<(), Error> {
+        let Some(path) = executable.launch_path.as_deref() else {
+            return Ok(());
+        };
+        let fd = unsafe {
+            libc::open(
+                path.as_ptr(),
+                libc::O_RDONLY | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+            )
+        };
+        if fd < 0 {
+            return Err(Error::Changed);
+        }
+        let rebound = authenticate_regular_file(unsafe { File::from_raw_fd(fd) })?;
+        if rebound.dev != executable.file.dev
+            || rebound.ino != executable.file.ino
+            || rebound.mode != executable.file.mode
+            || rebound.len != executable.file.len
+            || rebound.digest != executable.file.digest
+            || rebound.generation != executable.file.generation
+        {
             return Err(Error::Changed);
         }
         Ok(())
@@ -2742,6 +3004,230 @@ mod platform {
         Ok(())
     }
 
+    fn admit_inventory_typed_entry<const N: usize, const F: usize, const D: usize>(
+        prepared: &PreparedInventoryEntriesExact<N>,
+        files: &[&RegularFile; F],
+        directories: &[&Directory; D],
+        seen: &mut [bool; N],
+        count: &mut usize,
+        actual: &[u8],
+        inode: u64,
+    ) -> Result<(), Error> {
+        if actual == b"." || actual == b".." {
+            return Ok(());
+        }
+        let Some(index) =
+            prepared.names.names.iter().position(|expected| {
+                expected.as_ref().expect("prepared name").0.as_bytes() == actual
+            })
+        else {
+            return Err(Error::Changed);
+        };
+        let expected_inode = if index < F {
+            files[index].ino
+        } else {
+            directories[index.checked_sub(F).ok_or(Error::Changed)?].ino
+        };
+        if seen[index] || inode != expected_inode {
+            return Err(Error::Changed);
+        }
+        seen[index] = true;
+        *count = count.checked_add(1).ok_or(Error::OutputLimit)?;
+        if *count > N {
+            return Err(Error::Changed);
+        }
+        Ok(())
+    }
+
+    #[cfg(target_os = "linux")]
+    fn scan_prepared_entries_directory<const N: usize, const F: usize, const D: usize>(
+        prepared: &mut PreparedInventoryEntriesExact<N>,
+        directory: &Directory,
+        files: &[&RegularFile; F],
+        directories: &[&Directory; D],
+    ) -> Result<(), Error> {
+        let mut seen = [false; N];
+        let mut count = 0usize;
+        let mut raw_records = 0usize;
+        let mut queries = 0usize;
+        let maximum_records = N.checked_add(2).ok_or(Error::OutputLimit)?;
+        let maximum_queries = N.checked_add(3).ok_or(Error::OutputLimit)?;
+        let capacity = prepared
+            .storage
+            .len()
+            .checked_mul(std::mem::size_of::<u64>())
+            .ok_or(Error::OutputLimit)?;
+        let bytes_limit = libc::c_uint::try_from(capacity).map_err(|_| Error::OutputLimit)?;
+        loop {
+            queries = queries.checked_add(1).ok_or(Error::OutputLimit)?;
+            if queries > maximum_queries {
+                return Err(Error::Changed);
+            }
+            prepared.storage.fill(u64::MAX);
+            let read = unsafe {
+                libc::syscall(
+                    libc::SYS_getdents64,
+                    directory.file.as_raw_fd(),
+                    prepared.storage.as_mut_ptr().cast::<u8>(),
+                    bytes_limit,
+                )
+            };
+            if read < 0 {
+                return Err(Error::Changed);
+            }
+            let used = usize::try_from(libc::c_uint::try_from(read).map_err(|_| Error::Changed)?)
+                .map_err(|_| Error::Changed)?;
+            if used == 0 {
+                break;
+            }
+            if used > capacity {
+                return Err(Error::Changed);
+            }
+            let bytes =
+                unsafe { std::slice::from_raw_parts(prepared.storage.as_ptr().cast::<u8>(), used) };
+            parse_linux_inventory_records(bytes, |name, inode| {
+                raw_records = raw_records.checked_add(1).ok_or(Error::OutputLimit)?;
+                if raw_records > maximum_records {
+                    return Err(Error::Changed);
+                }
+                admit_inventory_typed_entry(
+                    prepared,
+                    files,
+                    directories,
+                    &mut seen,
+                    &mut count,
+                    name,
+                    inode,
+                )
+            })?;
+        }
+        if count != N || seen.iter().any(|seen| !seen) {
+            return Err(Error::Changed);
+        }
+        Ok(())
+    }
+
+    #[cfg(target_os = "macos")]
+    fn scan_prepared_entries_directory<const N: usize, const F: usize, const D: usize>(
+        prepared: &mut PreparedInventoryEntriesExact<N>,
+        directory: &Directory,
+        files: &[&RegularFile; F],
+        directories: &[&Directory; D],
+    ) -> Result<(), Error> {
+        const SYS_GETDIRENTRIES64: libc::c_int = 344;
+        let mut seen = [false; N];
+        let mut count = 0usize;
+        let mut raw_records = 0usize;
+        let mut queries = 0usize;
+        let maximum_records = N.checked_add(2).ok_or(Error::OutputLimit)?;
+        let maximum_queries = N.checked_add(3).ok_or(Error::OutputLimit)?;
+        let capacity = prepared
+            .storage
+            .len()
+            .checked_mul(std::mem::size_of::<u64>())
+            .ok_or(Error::OutputLimit)?;
+        let mut base: libc::off_t = 0;
+        loop {
+            queries = queries.checked_add(1).ok_or(Error::OutputLimit)?;
+            if queries > maximum_queries {
+                return Err(Error::Changed);
+            }
+            prepared.storage.fill(u64::MAX);
+            let read = unsafe {
+                libc::syscall(
+                    SYS_GETDIRENTRIES64,
+                    directory.file.as_raw_fd(),
+                    prepared.storage.as_mut_ptr().cast::<libc::c_char>(),
+                    capacity,
+                    &mut base,
+                )
+            };
+            if read < 0 {
+                return Err(Error::Changed);
+            }
+            let used = usize::try_from(read).map_err(|_| Error::Changed)?;
+            if used == 0 {
+                break;
+            }
+            if used > capacity {
+                return Err(Error::Changed);
+            }
+            let bytes =
+                unsafe { std::slice::from_raw_parts(prepared.storage.as_ptr().cast::<u8>(), used) };
+            parse_darwin_inventory_records(bytes, |name, inode| {
+                raw_records = raw_records.checked_add(1).ok_or(Error::OutputLimit)?;
+                if raw_records > maximum_records {
+                    return Err(Error::Changed);
+                }
+                admit_inventory_typed_entry(
+                    prepared,
+                    files,
+                    directories,
+                    &mut seen,
+                    &mut count,
+                    name,
+                    inode,
+                )
+            })?;
+        }
+        if count != N || seen.iter().any(|seen| !seen) {
+            return Err(Error::Changed);
+        }
+        Ok(())
+    }
+
+    pub fn inventory_entries_exact_prepared<const N: usize, const F: usize, const D: usize>(
+        prepared: &mut PreparedInventoryEntriesExact<N>,
+        directory: &Directory,
+        files: [&RegularFile; F],
+        directories: [&Directory; D],
+    ) -> Result<(), Error> {
+        if prepared.remaining != 1 || prepared.file_count != F || F.checked_add(D) != Some(N) {
+            return Err(Error::Invalid);
+        }
+        prepared.remaining = 0;
+        recheck_directory(directory)?;
+        for file in files {
+            recheck_regular(file)?;
+        }
+        for child in directories {
+            recheck_directory(child)?;
+        }
+        if unsafe { libc::lseek(directory.file.as_raw_fd(), 0, libc::SEEK_SET) } < 0 {
+            return Err(Error::Changed);
+        }
+        let scan = scan_prepared_entries_directory(prepared, directory, &files, &directories);
+        let reset = unsafe { libc::lseek(directory.file.as_raw_fd(), 0, libc::SEEK_SET) };
+        if scan.is_err() || reset < 0 {
+            return Err(Error::Changed);
+        }
+        for (index, file) in files.iter().enumerate() {
+            recheck_named_regular(
+                directory,
+                prepared_discard_name(&prepared.names, index)?,
+                file,
+            )?;
+        }
+        for (index, child) in directories.iter().enumerate() {
+            let name = prepared_discard_name(
+                &prepared.names,
+                F.checked_add(index).ok_or(Error::OutputLimit)?,
+            )?;
+            let rebound = open_directory_at(directory.file.as_raw_fd(), &name.0)?;
+            if prepared_directory_identity(&rebound) != prepared_directory_identity(child) {
+                return Err(Error::Changed);
+            }
+        }
+        recheck_directory(directory)?;
+        for file in files {
+            recheck_regular(file)?;
+        }
+        for child in directories {
+            recheck_directory(child)?;
+        }
+        Ok(())
+    }
+
     pub fn inventory_exact_prepared<const N: usize>(
         prepared: &mut PreparedInventoryExact<N>,
         directory: &Directory,
@@ -3218,6 +3704,13 @@ mod platform {
     }
 
     #[cfg(target_os = "macos")]
+    #[derive(Clone, Copy)]
+    enum DarwinSpawnProfile {
+        SuspendedHeld,
+        InstalledArchive,
+    }
+
+    #[cfg(target_os = "macos")]
     fn run_argv(
         executable: &Executable,
         cwd: &Directory,
@@ -3225,6 +3718,66 @@ mod platform {
         stdout_limit: usize,
         output: Vec<u8>,
         process_arena: &mut PreparedProcessArena,
+    ) -> Result<Vec<u8>, Error> {
+        run_argv_mode(
+            executable,
+            cwd,
+            arguments,
+            stdout_limit,
+            output,
+            process_arena,
+            DarwinSpawnProfile::SuspendedHeld,
+        )
+    }
+
+    #[cfg(target_os = "macos")]
+    fn run_archive_argv(
+        executable: &Executable,
+        cwd: &Directory,
+        arguments: &[CString],
+        stdout_limit: usize,
+        output: Vec<u8>,
+        process_arena: &mut PreparedProcessArena,
+    ) -> Result<Vec<u8>, Error> {
+        run_argv_mode(
+            executable,
+            cwd,
+            arguments,
+            stdout_limit,
+            output,
+            process_arena,
+            DarwinSpawnProfile::InstalledArchive,
+        )
+    }
+
+    #[cfg(target_os = "linux")]
+    fn run_archive_argv(
+        executable: &Executable,
+        cwd: &Directory,
+        arguments: &[CString],
+        stdout_limit: usize,
+        output: Vec<u8>,
+        process_arena: &mut PreparedProcessArena,
+    ) -> Result<Vec<u8>, Error> {
+        run_argv(
+            executable,
+            cwd,
+            arguments,
+            stdout_limit,
+            output,
+            process_arena,
+        )
+    }
+
+    #[cfg(target_os = "macos")]
+    fn run_argv_mode(
+        executable: &Executable,
+        cwd: &Directory,
+        arguments: &[CString],
+        stdout_limit: usize,
+        output: Vec<u8>,
+        process_arena: &mut PreparedProcessArena,
+        profile: DarwinSpawnProfile,
     ) -> Result<Vec<u8>, Error> {
         if arguments.len() > 32 || output.capacity() != stdout_limit || !output.is_empty() {
             return Err(Error::Invalid);
@@ -3320,13 +3873,18 @@ mod platform {
             ) -> libc::c_int;
         }
         recheck_executable(executable)?;
+        recheck_executable_launch_path(executable)?;
         recheck_directory(cwd)?;
         let mut path = [0_u8; 1024];
-        if unsafe { libc::fcntl(executable.file.file.as_raw_fd(), 50, path.as_mut_ptr()) } != 0 {
-            return Err(Error::Changed);
-        }
-        let executable_path =
-            unsafe { std::ffi::CStr::from_ptr(path.as_ptr().cast::<libc::c_char>()) };
+        let executable_path = if let Some(launch_path) = executable.launch_path.as_deref() {
+            launch_path
+        } else {
+            if unsafe { libc::fcntl(executable.file.file.as_raw_fd(), 50, path.as_mut_ptr()) } != 0
+            {
+                return Err(Error::Changed);
+            }
+            unsafe { std::ffi::CStr::from_ptr(path.as_ptr().cast::<libc::c_char>()) }
+        };
         let mut pipe = [0; 2];
         if unsafe { libc::pipe(pipe.as_mut_ptr()) } != 0 {
             return Err(Error::Spawn);
@@ -3355,17 +3913,26 @@ mod platform {
         let mut attributes = std::ptr::null_mut();
         let mut pid = 0;
         let mut argv = [std::ptr::null_mut::<libc::c_char>(); 34];
-        argv[0] = c"semaprax-native-rust-interop-tool".as_ptr().cast_mut();
+        // Some admitted installed tools (notably Apple libtool) dispatch or
+        // locate companion behavior from argv[0]. Bind it to the exact held
+        // image path already vnode-attested for this suspended child.
+        argv[0] = executable_path.as_ptr().cast_mut();
         for (index, argument) in arguments.iter().enumerate() {
             argv[index + 1] = argument.as_ptr().cast_mut();
         }
-        let env = [std::ptr::null_mut::<libc::c_char>()];
-        let flags = libc::c_short::try_from(
-            libc::POSIX_SPAWN_START_SUSPENDED
-                | libc::POSIX_SPAWN_CLOEXEC_DEFAULT
-                | libc::POSIX_SPAWN_SETPGROUP,
-        )
-        .map_err(|_| Error::Unsupported)?;
+        let env = [
+            match profile {
+                DarwinSpawnProfile::SuspendedHeld => std::ptr::null(),
+                DarwinSpawnProfile::InstalledArchive => c"TMPDIR=archive-tmp".as_ptr(),
+            }
+            .cast_mut(),
+            std::ptr::null_mut::<libc::c_char>(),
+        ];
+        let flags = libc::POSIX_SPAWN_CLOEXEC_DEFAULT
+            | libc::POSIX_SPAWN_SETPGROUP
+            | libc::POSIX_SPAWN_START_SUSPENDED;
+        let flags = libc::c_short::try_from(flags).map_err(|_| Error::Unsupported)?;
+        recheck_executable_launch_path(executable)?;
         let spawn = unsafe {
             let init = libc::posix_spawn_file_actions_init(&mut actions);
             let attr_init = libc::posix_spawnattr_init(&mut attributes);
@@ -3494,6 +4061,7 @@ mod platform {
                 return Err(Error::Changed);
             }
             recheck_executable(executable)?;
+            recheck_executable_launch_path(executable)?;
             recheck_directory(cwd)?;
             Ok(())
         })();
@@ -3509,16 +4077,11 @@ mod platform {
             return Err(selected);
         }
         let (output, status) = drain_and_wait(pid, read_pipe, stdout_limit, output)?;
-        #[cfg(test)]
         if !libc::WIFEXITED(status) || libc::WEXITSTATUS(status) != 0 {
-            eprintln!("platform child status={status} args={arguments:?}");
-        }
-        if !libc::WIFEXITED(status) || libc::WEXITSTATUS(status) != 0 {
-            #[cfg(test)]
-            eprintln!("darwin platform child status={status} args={arguments:?}");
             return Err(Error::Exit);
         }
         recheck_executable(executable)?;
+        recheck_executable_launch_path(executable)?;
         recheck_directory(cwd)?;
         Ok(output)
     }
@@ -3830,7 +4393,351 @@ mod platform {
             file,
             slice_offset,
             slice_size,
+            #[cfg(target_os = "macos")]
+            launch_path: None,
         })
+    }
+
+    pub fn prepare_archive_invocation(
+        input: &OsStr,
+        output: &OsStr,
+    ) -> Result<PreparedArchiveInvocation, Error> {
+        let _ = c_name(input)?;
+        let input_name = prepare_relative_name(input)?;
+        let output_name = prepare_relative_name(output)?;
+        if input != OsStr::new("module.o") || output != OsStr::new("libsemaprax_native_rust_sdk.a")
+        {
+            return Err(Error::Invalid);
+        }
+        let input = input.to_str().ok_or(Error::Invalid)?;
+        let output = output.to_str().ok_or(Error::Invalid)?;
+        #[cfg(target_os = "linux")]
+        let values = ["rcsD", output, input];
+        #[cfg(target_os = "macos")]
+        let values = ["-static", "-D", "-o", output, input];
+        let output_capacity = 0;
+        #[cfg(target_os = "macos")]
+        let mut scratch_name = prepare_relative_name_arena("archive-tmp".len())?;
+        #[cfg(target_os = "macos")]
+        set_relative_name_arena(&mut scratch_name, OsStr::new("archive-tmp"))?;
+        Ok(PreparedArchiveInvocation {
+            command: prepare_command(&values, output_capacity)?,
+            input_name,
+            output_name,
+            #[cfg(target_os = "macos")]
+            scratch_name,
+            #[cfg(target_os = "macos")]
+            scratch_file: prepare_relative_name(OsStr::new("xcrun_db"))?,
+            #[cfg(target_os = "macos")]
+            scratch_inventory: prepare_discard_names([OsStr::new("xcrun_db")])?,
+            #[cfg(target_os = "macos")]
+            empty_scratch_inventory: prepare_discard_names([])?,
+        })
+    }
+
+    pub fn prepared_archive_owned_capacity(prepared: &PreparedArchiveInvocation) -> usize {
+        let capacity = prepared_command_owned_capacity(&prepared.command)
+            .saturating_add(prepared.input_name.0.as_bytes_with_nul().len())
+            .saturating_add(prepared.output_name.0.as_bytes_with_nul().len());
+        #[cfg(target_os = "macos")]
+        let capacity = capacity
+            .saturating_add(relative_name_arena_capacity(&prepared.scratch_name))
+            .saturating_add(prepared.scratch_file.0.as_bytes_with_nul().len())
+            .saturating_add(prepared_discard_names_owned_capacity(
+                &prepared.scratch_inventory,
+            ));
+        capacity
+    }
+
+    #[cfg(test)]
+    pub(super) fn test_prepared_archive_arguments(
+        prepared: &PreparedArchiveInvocation,
+    ) -> Vec<&[u8]> {
+        prepared
+            .command
+            .arguments
+            .iter()
+            .map(|argument| argument.as_bytes())
+            .collect()
+    }
+
+    fn recheck_named_regular(
+        cwd: &Directory,
+        name: &PreparedRelativeName,
+        input: &RegularFile,
+    ) -> Result<(), Error> {
+        recheck_regular(input)?;
+        let rebound = hold_regular_file_name_prepared(cwd, name)?;
+        if rebound.dev != input.dev
+            || rebound.ino != input.ino
+            || rebound.mode != input.mode
+            || rebound.len != input.len
+            || rebound.digest != input.digest
+            || cfg!(target_os = "macos") && {
+                #[cfg(target_os = "macos")]
+                {
+                    rebound.generation != input.generation
+                }
+                #[cfg(not(target_os = "macos"))]
+                {
+                    false
+                }
+            }
+        {
+            return Err(Error::Changed);
+        }
+        Ok(())
+    }
+
+    fn child_absent_impl(
+        directory: &Directory,
+        name: &PreparedRelativeName,
+    ) -> Result<bool, Error> {
+        let mut information = std::mem::MaybeUninit::<libc::stat>::uninit();
+        if unsafe {
+            libc::fstatat(
+                directory.file.as_raw_fd(),
+                name.0.as_ptr(),
+                information.as_mut_ptr(),
+                libc::AT_SYMLINK_NOFOLLOW,
+            )
+        } == 0
+        {
+            return Ok(false);
+        }
+        if std::io::Error::last_os_error().raw_os_error() == Some(libc::ENOENT) {
+            Ok(true)
+        } else {
+            Err(Error::Changed)
+        }
+    }
+
+    pub fn child_absent_prepared(
+        directory: &Directory,
+        name: &PreparedRelativeName,
+    ) -> Result<bool, Error> {
+        child_absent_impl(directory, name)
+    }
+
+    fn exact_archive_member(archive: &RegularFile, input: &RegularFile) -> Result<(), Error> {
+        if archive.len < 68 || input.len == 0 {
+            return Err(Error::Invalid);
+        }
+        let mut magic = [0_u8; 8];
+        archive
+            .file
+            .read_exact_at(&mut magic, 0)
+            .map_err(|_| Error::Changed)?;
+        if magic != *b"!<arch>\n" {
+            return Err(Error::Invalid);
+        }
+        let mut offset = 8_u64;
+        let mut input_members = 0_u8;
+        let mut members = 0_u8;
+        while offset < archive.len {
+            let mut header = [0_u8; 60];
+            archive
+                .file
+                .read_exact_at(&mut header, offset)
+                .map_err(|_| Error::Invalid)?;
+            if header[58..] != *b"`\n" {
+                return Err(Error::Invalid);
+            }
+            let size = archive_member_size(&header[48..58])?;
+            let data = offset.checked_add(60).ok_or(Error::OutputLimit)?;
+            let end = data.checked_add(size).ok_or(Error::OutputLimit)?;
+            if end > archive.len {
+                return Err(Error::Invalid);
+            }
+            let header_kind = archive_member_kind(&header[..16], b"module.o")?;
+            exact_archive_member_metadata(&header, header_kind, input.mode)?;
+            let (kind, member_data, member_size) = match header_kind {
+                ArchiveMemberKind::Extended(length) => {
+                    let length = u64::try_from(length).map_err(|_| Error::OutputLimit)?;
+                    if length > size {
+                        return Err(Error::Invalid);
+                    }
+                    let mut name = [0_u8; 255];
+                    let name_length = usize::try_from(length).map_err(|_| Error::OutputLimit)?;
+                    archive
+                        .file
+                        .read_exact_at(&mut name[..name_length], data)
+                        .map_err(|_| Error::Changed)?;
+                    let name = archive_extended_name(&name[..name_length])?;
+                    let kind = archive_member_kind(name, b"module.o")?;
+                    if matches!(kind, ArchiveMemberKind::Extended(_)) {
+                        return Err(Error::Invalid);
+                    }
+                    (
+                        kind,
+                        data.checked_add(length).ok_or(Error::OutputLimit)?,
+                        size - length,
+                    )
+                }
+                kind => (kind, data, size),
+            };
+            #[cfg(target_os = "linux")]
+            let admitted = matches!(
+                (members, header_kind, kind),
+                (
+                    0,
+                    ArchiveMemberKind::GnuLinkerIndex,
+                    ArchiveMemberKind::GnuLinkerIndex
+                ) | (1, ArchiveMemberKind::Input, ArchiveMemberKind::Input)
+            );
+            #[cfg(target_os = "macos")]
+            let admitted = matches!(
+                (members, header_kind, kind),
+                (
+                    0,
+                    ArchiveMemberKind::Extended(20),
+                    ArchiveMemberKind::BsdSortedLinkerIndex,
+                ) | (1, ArchiveMemberKind::Extended(12), ArchiveMemberKind::Input,)
+            );
+            if !admitted {
+                return Err(Error::Invalid);
+            }
+            match kind {
+                ArchiveMemberKind::GnuLinkerIndex
+                | ArchiveMemberKind::BsdSortedLinkerIndex
+                | ArchiveMemberKind::LongNames => {}
+                ArchiveMemberKind::Input => {
+                    input_members = input_members.checked_add(1).ok_or(Error::Invalid)?;
+                    if member_size != input.len {
+                        return Err(Error::Invalid);
+                    }
+                    let mut compared = 0_u64;
+                    let mut archive_bytes = [0_u8; 8192];
+                    let mut input_bytes = [0_u8; 8192];
+                    while compared < member_size {
+                        let count = usize::try_from((member_size - compared).min(8192))
+                            .map_err(|_| Error::OutputLimit)?;
+                        archive
+                            .file
+                            .read_exact_at(&mut archive_bytes[..count], member_data + compared)
+                            .map_err(|_| Error::Changed)?;
+                        input
+                            .file
+                            .read_exact_at(&mut input_bytes[..count], compared)
+                            .map_err(|_| Error::Changed)?;
+                        if archive_bytes[..count] != input_bytes[..count] {
+                            return Err(Error::Invalid);
+                        }
+                        compared = compared
+                            .checked_add(u64::try_from(count).map_err(|_| Error::OutputLimit)?)
+                            .ok_or(Error::OutputLimit)?;
+                    }
+                }
+                ArchiveMemberKind::Extended(_) => return Err(Error::Invalid),
+            }
+            if size & 1 != 0 {
+                let mut padding = [0_u8; 1];
+                archive
+                    .file
+                    .read_exact_at(&mut padding, end)
+                    .map_err(|_| Error::Invalid)?;
+                if padding != [b'\n'] {
+                    return Err(Error::Invalid);
+                }
+            }
+            offset = end.checked_add(size & 1).ok_or(Error::OutputLimit)?;
+            members = members.checked_add(1).ok_or(Error::Invalid)?;
+        }
+        if offset != archive.len || input_members != 1 || members != 2 {
+            return Err(Error::Invalid);
+        }
+        Ok(())
+    }
+
+    #[cfg(target_os = "macos")]
+    fn discard_archive_scratch(
+        cwd: &Directory,
+        scratch: &Directory,
+        prepared: &PreparedArchiveInvocation,
+    ) -> Result<(), Error> {
+        if child_absent_impl(scratch, &prepared.scratch_file)? {
+            return discard_owned_stage_prepared(
+                cwd,
+                scratch,
+                &prepared.scratch_name,
+                &prepared.empty_scratch_inventory,
+                &[],
+                &[],
+                #[cfg(debug_assertions)]
+                None,
+            );
+        }
+        let file = hold_regular_file_name_bounded_prepared(
+            scratch,
+            &prepared.scratch_file,
+            SDK_ARCHIVE_MAX_BYTES,
+        )?;
+        discard_owned_stage_prepared(
+            cwd,
+            scratch,
+            &prepared.scratch_name,
+            &prepared.scratch_inventory,
+            &[Some(&file)],
+            &[None],
+            #[cfg(debug_assertions)]
+            None,
+        )
+    }
+
+    pub fn archive_prepared(
+        archiver: &Executable,
+        cwd: &Directory,
+        input: &RegularFile,
+        mut prepared: PreparedArchiveInvocation,
+        process_arena: &mut PreparedProcessArena,
+    ) -> Result<RegularFile, Error> {
+        if !child_absent_impl(cwd, &prepared.output_name)? {
+            return Err(Error::Exists);
+        }
+        recheck_named_regular(cwd, &prepared.input_name, input)?;
+        recheck_executable(archiver)?;
+        #[cfg(target_os = "macos")]
+        recheck_executable_launch_path(archiver)?;
+        recheck_directory(cwd)?;
+        #[cfg(target_os = "macos")]
+        let scratch = create_directory_new_prepared(cwd, &prepared.scratch_name, 0o700)?;
+        let output_limit = prepared.command.output.capacity();
+        let process_output = std::mem::take(&mut prepared.command.output);
+        let process = run_archive_argv(
+            archiver,
+            cwd,
+            &prepared.command.arguments,
+            output_limit,
+            process_output,
+            process_arena,
+        );
+        let archiver_recheck = recheck_executable(archiver);
+        let cwd_recheck = recheck_directory(cwd);
+        let input_recheck = recheck_named_regular(cwd, &prepared.input_name, input);
+        #[cfg(target_os = "macos")]
+        let scratch_cleanup = discard_archive_scratch(cwd, &scratch, &prepared);
+        let output = process?;
+        #[cfg(target_os = "macos")]
+        scratch_cleanup?;
+        archiver_recheck?;
+        cwd_recheck?;
+        input_recheck?;
+        if !output.is_empty() {
+            return Err(Error::OutputLimit);
+        }
+        let archive = hold_regular_file_name_bounded_prepared(
+            cwd,
+            &prepared.output_name,
+            SDK_ARCHIVE_MAX_BYTES,
+        )?;
+        exact_archive_member(&archive, input)?;
+        recheck_executable(archiver)?;
+        #[cfg(target_os = "macos")]
+        recheck_executable_launch_path(archiver)?;
+        recheck_directory(cwd)?;
+        recheck_named_regular(cwd, &prepared.input_name, input)?;
+        recheck_named_regular(cwd, &prepared.output_name, &archive)?;
+        Ok(archive)
     }
 
     pub fn prepare_run_invocation() -> Result<PreparedRunInvocation, Error> {
@@ -4031,8 +4938,8 @@ mod platform {
     use windows_sys::Win32::Foundation::{
         CloseHandle, GetLastError, SetHandleInformation, ERROR_BROKEN_PIPE,
         ERROR_INSUFFICIENT_BUFFER, ERROR_NO_MORE_FILES, ERROR_PIPE_NOT_CONNECTED, HANDLE,
-        HANDLE_FLAG_INHERIT, INVALID_HANDLE_VALUE, STATUS_OBJECT_NAME_COLLISION, UNICODE_STRING,
-        WAIT_FAILED, WAIT_OBJECT_0, WAIT_TIMEOUT,
+        HANDLE_FLAG_INHERIT, INVALID_HANDLE_VALUE, STATUS_OBJECT_NAME_COLLISION,
+        STATUS_OBJECT_NAME_NOT_FOUND, UNICODE_STRING, WAIT_FAILED, WAIT_OBJECT_0, WAIT_TIMEOUT,
     };
     use windows_sys::Win32::Security::SECURITY_ATTRIBUTES;
     use windows_sys::Win32::Storage::FileSystem::{
@@ -4198,6 +5105,11 @@ mod platform {
     }
     pub struct PreparedLinkInvocation {
         command: PreparedCommand,
+        output_name: PreparedRelativeName,
+    }
+    pub struct PreparedArchiveInvocation {
+        command: PreparedCommand,
+        input_name: PreparedRelativeName,
         output_name: PreparedRelativeName,
     }
     pub struct PreparedRunInvocation(PreparedCommand);
@@ -4581,6 +5493,13 @@ mod platform {
         remaining: u8,
     }
 
+    pub struct PreparedInventoryEntriesExact<const N: usize> {
+        names: PreparedDiscardNames<N>,
+        file_count: usize,
+        storage: Box<[u64]>,
+        remaining: u8,
+    }
+
     pub struct PreparedPublishDirectory {
         storage: Box<[usize]>,
         total: usize,
@@ -4676,6 +5595,32 @@ mod platform {
         prepared: &PreparedInventoryExact<N>,
     ) -> u8 {
         prepared.remaining
+    }
+
+    pub fn prepare_inventory_entries_exact<const N: usize>(
+        names: [&OsStr; N],
+        file_count: usize,
+    ) -> Result<PreparedInventoryEntriesExact<N>, Error> {
+        if N == 0 || file_count > N {
+            return Err(Error::Invalid);
+        }
+        Ok(PreparedInventoryEntriesExact {
+            names: prepare_discard_names(names)?,
+            file_count,
+            storage: vec![0_u64; INVENTORY_EXACT_ARENA_WORDS].into_boxed_slice(),
+            remaining: 1,
+        })
+    }
+
+    pub fn prepared_inventory_entries_exact_owned_capacity<const N: usize>(
+        prepared: &PreparedInventoryEntriesExact<N>,
+    ) -> usize {
+        prepared_discard_names_owned_capacity(&prepared.names).saturating_add(
+            prepared
+                .storage
+                .len()
+                .saturating_mul(std::mem::size_of::<u64>()),
+        )
     }
 
     fn publish_information_layout(name_units: usize) -> Result<(usize, usize), Error> {
@@ -5348,6 +6293,31 @@ mod platform {
         authenticate_regular_file(file)
     }
 
+    fn hold_regular_file_name_external_read_bounded_prepared(
+        directory: &Directory,
+        name: &PreparedRelativeName,
+        maximum: u64,
+    ) -> Result<RegularFile, Error> {
+        let file = relative_file_prepared(
+            &directory.file,
+            name,
+            REGULAR_READ_ACCESS,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE,
+        )?;
+        authenticate_regular_file_bounded(file, maximum)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn test_hold_regular_file_name_bounded(
+        directory: &Directory,
+        name: &OsStr,
+        maximum: u64,
+    ) -> Result<RegularFile, Error> {
+        let name = prepare_relative_name(name)?;
+        hold_regular_file_name_external_read_bounded_prepared(directory, &name, maximum)
+    }
+
     pub fn hold_regular_file(directory: &Directory, name: &OsStr) -> Result<RegularFile, Error> {
         recheck_directory(directory)?;
         let name = prepare_relative_name(name)?;
@@ -5355,11 +6325,18 @@ mod platform {
     }
 
     fn authenticate_regular_file(file: File) -> Result<RegularFile, Error> {
+        authenticate_regular_file_bounded(file, u64::MAX)
+    }
+
+    fn authenticate_regular_file_bounded(file: File, maximum: u64) -> Result<RegularFile, Error> {
         let identity = information(&file)?;
         if identity.attributes & FILE_ATTRIBUTE_REPARSE_POINT != 0
             || !file.metadata().map_err(|_| Error::Changed)?.is_file()
         {
             return Err(Error::Changed);
+        }
+        if identity.length > maximum {
+            return Err(Error::OutputLimit);
         }
         let digest = digest(&file, identity.length)?;
         Ok(RegularFile {
@@ -5956,6 +6933,176 @@ mod platform {
             return Err(Error::Changed);
         }
         Ok(destination)
+    }
+
+    pub fn inventory_entries_exact_prepared<const N: usize, const F: usize, const D: usize>(
+        prepared: &mut PreparedInventoryEntriesExact<N>,
+        directory: &Directory,
+        files: [&RegularFile; F],
+        directories: [&Directory; D],
+    ) -> Result<(), Error> {
+        if prepared.remaining != 1 || prepared.file_count != F || F.checked_add(D) != Some(N) {
+            return Err(Error::Invalid);
+        }
+        prepared.remaining = 0;
+        recheck_directory(directory)?;
+        files
+            .iter()
+            .try_for_each(|file| recheck_held_regular(file))?;
+        directories
+            .iter()
+            .try_for_each(|child| recheck_directory(child))?;
+        let mut seen = [false; N];
+        let mut count = 0usize;
+        let mut records = 0usize;
+        let mut queries = 0usize;
+        let mut restart = true;
+        loop {
+            queries = queries.checked_add(1).ok_or(Error::OutputLimit)?;
+            if queries > N.checked_add(3).ok_or(Error::OutputLimit)? {
+                return Err(Error::Changed);
+            }
+            prepared.storage.fill(u64::MAX);
+            let class = if restart {
+                FileIdExtdDirectoryRestartInfo
+            } else {
+                FileIdExtdDirectoryInfo
+            };
+            restart = false;
+            let ok = unsafe {
+                GetFileInformationByHandleEx(
+                    directory.file.as_raw_handle().cast(),
+                    class,
+                    prepared.storage.as_mut_ptr().cast(),
+                    u32::try_from(prepared.storage.len() * std::mem::size_of::<u64>())
+                        .map_err(|_| Error::Changed)?,
+                )
+            };
+            if ok == 0 {
+                if unsafe { GetLastError() } == ERROR_NO_MORE_FILES {
+                    break;
+                }
+                return Err(Error::Changed);
+            }
+            let byte_length = prepared.storage.len() * std::mem::size_of::<u64>();
+            let mut offset = 0usize;
+            loop {
+                let header_end = offset
+                    .checked_add(std::mem::offset_of!(FILE_ID_EXTD_DIR_INFO, FileName))
+                    .ok_or(Error::Changed)?;
+                if offset
+                    .checked_add(std::mem::size_of::<FILE_ID_EXTD_DIR_INFO>())
+                    .ok_or(Error::Changed)?
+                    > byte_length
+                    || header_end > byte_length
+                {
+                    return Err(Error::Changed);
+                }
+                let entry = unsafe {
+                    &*prepared
+                        .storage
+                        .as_ptr()
+                        .cast::<u8>()
+                        .add(offset)
+                        .cast::<FILE_ID_EXTD_DIR_INFO>()
+                };
+                let name_bytes =
+                    usize::try_from(entry.FileNameLength).map_err(|_| Error::Changed)?;
+                if name_bytes % 2 != 0 {
+                    return Err(Error::Changed);
+                }
+                let name_end = header_end.checked_add(name_bytes).ok_or(Error::Changed)?;
+                if name_end > byte_length {
+                    return Err(Error::Changed);
+                }
+                let name = unsafe {
+                    std::slice::from_raw_parts(
+                        prepared
+                            .storage
+                            .as_ptr()
+                            .cast::<u8>()
+                            .add(header_end)
+                            .cast::<u16>(),
+                        name_bytes / 2,
+                    )
+                };
+                let dot = name == [u16::from(b'.')];
+                let dot_dot = name == [u16::from(b'.'), u16::from(b'.')];
+                records = records.checked_add(1).ok_or(Error::OutputLimit)?;
+                if records > N.checked_add(2).ok_or(Error::OutputLimit)? {
+                    return Err(Error::Changed);
+                }
+                if !dot && !dot_dot {
+                    let index = prepared
+                        .names
+                        .names
+                        .iter()
+                        .position(|expected| {
+                            prepared_matches_slice(expected.as_ref().expect("prepared name"), name)
+                        })
+                        .ok_or(Error::Changed)?;
+                    let expected = if index < F {
+                        files[index].identity.file_id
+                    } else {
+                        directories[index.checked_sub(F).ok_or(Error::Changed)?]
+                            .identity
+                            .file_id
+                    };
+                    if seen[index] || entry.FileId.Identifier != expected {
+                        return Err(Error::Changed);
+                    }
+                    seen[index] = true;
+                    count = count.checked_add(1).ok_or(Error::OutputLimit)?;
+                }
+                if entry.NextEntryOffset == 0 {
+                    break;
+                }
+                let next = usize::try_from(entry.NextEntryOffset).map_err(|_| Error::Changed)?;
+                let minimum = name_end.checked_sub(offset).ok_or(Error::Changed)?;
+                let next_end = offset.checked_add(next).ok_or(Error::Changed)?;
+                if next < minimum
+                    || next % std::mem::align_of::<FILE_ID_EXTD_DIR_INFO>() != 0
+                    || next_end > byte_length
+                {
+                    return Err(Error::Changed);
+                }
+                offset = next_end;
+            }
+        }
+        if count != N || seen.iter().any(|seen| !seen) {
+            return Err(Error::Changed);
+        }
+        for (index, file) in files.iter().enumerate() {
+            recheck_named_regular(
+                directory,
+                prepared_discard_name(&prepared.names, index)?,
+                file,
+            )?;
+        }
+        for (index, child) in directories.iter().enumerate() {
+            let name = prepared_discard_name(
+                &prepared.names,
+                F.checked_add(index).ok_or(Error::OutputLimit)?,
+            )?;
+            let rebound = relative_file_prepared(
+                &directory.file,
+                name,
+                DIRECTORY_READ_ACCESS,
+                FILE_OPEN,
+                FILE_DIRECTORY_FILE,
+            )?;
+            if directory_information(&rebound)? != child.identity {
+                return Err(Error::Changed);
+            }
+        }
+        recheck_directory(directory)?;
+        files
+            .iter()
+            .try_for_each(|file| recheck_held_regular(file))?;
+        directories
+            .iter()
+            .try_for_each(|child| recheck_directory(child))?;
+        Ok(())
     }
 
     pub fn inventory_exact_prepared<const N: usize>(
@@ -7351,6 +8498,295 @@ mod platform {
         Ok(Executable { file })
     }
 
+    pub fn prepare_archive_invocation(
+        input: &OsStr,
+        output: &OsStr,
+    ) -> Result<PreparedArchiveInvocation, Error> {
+        normal_name(input)?;
+        normal_name(output)?;
+        if input != OsStr::new("module.obj") || output != OsStr::new("semaprax_native_rust_sdk.lib")
+        {
+            return Err(Error::Invalid);
+        }
+        let input_text = input.to_str().ok_or(Error::Invalid)?;
+        let output_text = output.to_str().ok_or(Error::Invalid)?;
+        let mut output_argument = String::with_capacity(5 + output_text.len());
+        output_argument.push_str("/OUT:");
+        output_argument.push_str(output_text);
+        if output_argument.capacity() != 5 + output_text.len() {
+            return Err(Error::OutputLimit);
+        }
+        Ok(PreparedArchiveInvocation {
+            command: prepare_command(
+                &["/NOLOGO", "/BREPRO", output_argument.as_str(), input_text],
+                0,
+            )?,
+            input_name: prepare_relative_name(input)?,
+            output_name: prepare_relative_name(output)?,
+        })
+    }
+
+    pub fn prepared_archive_owned_capacity(prepared: &PreparedArchiveInvocation) -> usize {
+        prepared_command_owned_capacity(&prepared.command)
+            .saturating_add(
+                prepared
+                    .input_name
+                    .0
+                    .capacity()
+                    .saturating_mul(std::mem::size_of::<u16>()),
+            )
+            .saturating_add(
+                prepared
+                    .output_name
+                    .0
+                    .capacity()
+                    .saturating_mul(std::mem::size_of::<u16>()),
+            )
+    }
+
+    #[cfg(test)]
+    pub(super) fn test_prepared_archive_arguments(
+        prepared: &PreparedArchiveInvocation,
+    ) -> &[String] {
+        &prepared.command.arguments
+    }
+
+    fn recheck_named_regular(
+        cwd: &Directory,
+        name: &PreparedRelativeName,
+        input: &RegularFile,
+    ) -> Result<(), Error> {
+        recheck_held_regular(input)?;
+        let rebound = hold_regular_file_name_external_read_prepared(cwd, name)?;
+        if rebound.identity != input.identity || rebound.digest != input.digest {
+            return Err(Error::Changed);
+        }
+        Ok(())
+    }
+
+    fn child_absent_impl(
+        directory: &Directory,
+        name: &PreparedRelativeName,
+    ) -> Result<bool, Error> {
+        let byte_length = name.0.len().checked_mul(2).ok_or(Error::Invalid)?;
+        let length = u16::try_from(byte_length).map_err(|_| Error::Invalid)?;
+        let unicode = UNICODE_STRING {
+            Length: length,
+            MaximumLength: length,
+            Buffer: name.0.as_ptr().cast_mut(),
+        };
+        let attributes = OBJECT_ATTRIBUTES {
+            Length: u32::try_from(std::mem::size_of::<OBJECT_ATTRIBUTES>())
+                .map_err(|_| Error::Changed)?,
+            RootDirectory: directory.file.as_raw_handle().cast(),
+            ObjectName: &unicode,
+            Attributes: OBJ_CASE_INSENSITIVE,
+            SecurityDescriptor: std::ptr::null(),
+            SecurityQualityOfService: std::ptr::null(),
+        };
+        let mut io = IO_STATUS_BLOCK::default();
+        let mut handle = std::ptr::null_mut();
+        let status = unsafe {
+            NtCreateFile(
+                &mut handle,
+                FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+                &attributes,
+                &mut io,
+                std::ptr::null(),
+                FILE_ATTRIBUTE_NORMAL,
+                HELD_SHARE,
+                FILE_OPEN,
+                FILE_OPEN_REPARSE_POINT | FILE_SYNCHRONOUS_IO_NONALERT,
+                std::ptr::null(),
+                0,
+            )
+        };
+        if status == STATUS_OBJECT_NAME_NOT_FOUND {
+            return Ok(true);
+        }
+        if status < 0 || handle.is_null() || handle == INVALID_HANDLE_VALUE {
+            return Err(Error::Changed);
+        }
+        if unsafe { CloseHandle(handle) } == 0 {
+            return Err(Error::Changed);
+        }
+        Ok(false)
+    }
+
+    pub fn child_absent_prepared(
+        directory: &Directory,
+        name: &PreparedRelativeName,
+    ) -> Result<bool, Error> {
+        child_absent_impl(directory, name)
+    }
+
+    fn read_exact_offset(file: &File, mut bytes: &mut [u8], mut offset: u64) -> Result<(), Error> {
+        while !bytes.is_empty() {
+            let read = file.seek_read(bytes, offset).map_err(|_| Error::Changed)?;
+            if read == 0 {
+                return Err(Error::Invalid);
+            }
+            let (_, remaining) = bytes.split_at_mut(read);
+            bytes = remaining;
+            offset = offset
+                .checked_add(u64::try_from(read).map_err(|_| Error::OutputLimit)?)
+                .ok_or(Error::OutputLimit)?;
+        }
+        Ok(())
+    }
+
+    fn exact_archive_member(archive: &RegularFile, input: &RegularFile) -> Result<(), Error> {
+        let archive_len = archive.identity.length;
+        let input_len = input.identity.length;
+        if archive_len < 68 || input_len == 0 {
+            return Err(Error::Invalid);
+        }
+        let mut magic = [0_u8; 8];
+        read_exact_offset(&archive.file, &mut magic, 0)?;
+        if magic != *b"!<arch>\n" {
+            return Err(Error::Invalid);
+        }
+        let mut offset = 8_u64;
+        let mut input_members = 0_u8;
+        let mut members = 0_u8;
+        while offset < archive_len {
+            let mut header = [0_u8; 60];
+            read_exact_offset(&archive.file, &mut header, offset)?;
+            if header[58..] != *b"`\n" {
+                return Err(Error::Invalid);
+            }
+            let size = archive_member_size(&header[48..58])?;
+            let data = offset.checked_add(60).ok_or(Error::OutputLimit)?;
+            let end = data.checked_add(size).ok_or(Error::OutputLimit)?;
+            if end > archive_len {
+                return Err(Error::Invalid);
+            }
+            let header_kind = archive_member_kind(&header[..16], b"module.obj")?;
+            exact_archive_member_metadata(&header, header_kind, 0)?;
+            let (kind, member_data, member_size) = match header_kind {
+                ArchiveMemberKind::Extended(length) => {
+                    let length = u64::try_from(length).map_err(|_| Error::OutputLimit)?;
+                    if length > size {
+                        return Err(Error::Invalid);
+                    }
+                    let mut name = [0_u8; 255];
+                    let name_length = usize::try_from(length).map_err(|_| Error::OutputLimit)?;
+                    read_exact_offset(&archive.file, &mut name[..name_length], data)?;
+                    let name = archive_extended_name(&name[..name_length])?;
+                    let kind = archive_member_kind(name, b"module.obj")?;
+                    if matches!(kind, ArchiveMemberKind::Extended(_)) {
+                        return Err(Error::Invalid);
+                    }
+                    (
+                        kind,
+                        data.checked_add(length).ok_or(Error::OutputLimit)?,
+                        size - length,
+                    )
+                }
+                kind => (kind, data, size),
+            };
+            if !matches!(
+                (members, header_kind, kind),
+                (
+                    0 | 1,
+                    ArchiveMemberKind::GnuLinkerIndex,
+                    ArchiveMemberKind::GnuLinkerIndex
+                ) | (2, ArchiveMemberKind::Input, ArchiveMemberKind::Input)
+            ) {
+                return Err(Error::Invalid);
+            }
+            match kind {
+                ArchiveMemberKind::GnuLinkerIndex
+                | ArchiveMemberKind::BsdSortedLinkerIndex
+                | ArchiveMemberKind::LongNames => {}
+                ArchiveMemberKind::Input => {
+                    input_members = input_members.checked_add(1).ok_or(Error::Invalid)?;
+                    if member_size != input_len {
+                        return Err(Error::Invalid);
+                    }
+                    let mut compared = 0_u64;
+                    let mut archive_bytes = [0_u8; 8192];
+                    let mut input_bytes = [0_u8; 8192];
+                    while compared < member_size {
+                        let count = usize::try_from((member_size - compared).min(8192))
+                            .map_err(|_| Error::OutputLimit)?;
+                        read_exact_offset(
+                            &archive.file,
+                            &mut archive_bytes[..count],
+                            member_data + compared,
+                        )?;
+                        read_exact_offset(&input.file, &mut input_bytes[..count], compared)?;
+                        if archive_bytes[..count] != input_bytes[..count] {
+                            return Err(Error::Invalid);
+                        }
+                        compared = compared
+                            .checked_add(u64::try_from(count).map_err(|_| Error::OutputLimit)?)
+                            .ok_or(Error::OutputLimit)?;
+                    }
+                }
+                ArchiveMemberKind::Extended(_) => return Err(Error::Invalid),
+            }
+            if size & 1 != 0 {
+                let mut padding = [0_u8; 1];
+                read_exact_offset(&archive.file, &mut padding, end)?;
+                if padding != [b'\n'] {
+                    return Err(Error::Invalid);
+                }
+            }
+            offset = end.checked_add(size & 1).ok_or(Error::OutputLimit)?;
+            members = members.checked_add(1).ok_or(Error::Invalid)?;
+        }
+        if offset != archive_len || input_members != 1 || members != 3 {
+            return Err(Error::Invalid);
+        }
+        Ok(())
+    }
+
+    pub fn archive_prepared(
+        archiver: &Executable,
+        cwd: &Directory,
+        input: &RegularFile,
+        prepared: PreparedArchiveInvocation,
+        process_arena: &mut PreparedProcessArena,
+    ) -> Result<RegularFile, Error> {
+        if !child_absent_impl(cwd, &prepared.output_name)? {
+            return Err(Error::Exists);
+        }
+        recheck_named_regular(cwd, &prepared.input_name, input)?;
+        recheck_held_regular(&archiver.file)?;
+        recheck_directory(cwd)?;
+        let process = run_argv(
+            archiver,
+            cwd,
+            &prepared.command.arguments,
+            0,
+            Some(prepared.command.command_line),
+            Some(prepared.command.output),
+            process_arena,
+        );
+        let archiver_recheck = recheck_held_regular(&archiver.file);
+        let cwd_recheck = recheck_directory(cwd);
+        let input_recheck = recheck_named_regular(cwd, &prepared.input_name, input);
+        let output = process?;
+        archiver_recheck?;
+        cwd_recheck?;
+        input_recheck?;
+        if !output.is_empty() {
+            return Err(Error::OutputLimit);
+        }
+        let archive = hold_regular_file_name_external_read_bounded_prepared(
+            cwd,
+            &prepared.output_name,
+            SDK_ARCHIVE_MAX_BYTES,
+        )?;
+        exact_archive_member(&archive, input)?;
+        recheck_held_regular(&archiver.file)?;
+        recheck_directory(cwd)?;
+        recheck_named_regular(cwd, &prepared.input_name, input)?;
+        recheck_named_regular(cwd, &prepared.output_name, &archive)?;
+        Ok(archive)
+    }
+
     pub fn prepare_run_invocation() -> Result<PreparedRunInvocation, Error> {
         Ok(PreparedRunInvocation(prepare_command(&[], 0)?))
     }
@@ -7547,6 +8983,319 @@ mod tests {
     #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
     use super::{set_test_settlement_failures, TestSettlementFailure};
     use std::sync::atomic::Ordering;
+
+    #[test]
+    fn archive_header_parser_rejects_noncanonical_sizes_and_unknown_members() {
+        use super::{
+            archive_extended_name, archive_member_kind, archive_member_size,
+            exact_archive_member_metadata, ArchiveMemberKind,
+        };
+
+        assert_eq!(archive_member_size(b"123       "), Ok(123));
+        for invalid in [
+            b"          ".as_slice(),
+            b"+1        ".as_slice(),
+            b"01x       ".as_slice(),
+        ] {
+            assert_eq!(archive_member_size(invalid), Err(Error::Invalid));
+        }
+        assert_eq!(
+            archive_member_kind(b"module.o/       ", b"module.o"),
+            Ok(ArchiveMemberKind::Input),
+        );
+        assert_eq!(
+            archive_member_kind(b"/               ", b"module.o"),
+            Ok(ArchiveMemberKind::GnuLinkerIndex),
+        );
+        assert_eq!(
+            archive_member_kind(b"__.SYMDEF SORTED", b"module.o"),
+            Ok(ArchiveMemberKind::BsdSortedLinkerIndex),
+        );
+        assert_eq!(
+            archive_member_kind(b"foreign.o/      ", b"module.o"),
+            Err(Error::Invalid),
+        );
+        assert_eq!(
+            archive_member_kind(b"__.SYMDEF_EVIL  ", b"module.o"),
+            Err(Error::Invalid),
+        );
+        assert_eq!(
+            archive_member_kind(b"#1/8            ", b"module.o"),
+            Ok(ArchiveMemberKind::Extended(8)),
+        );
+        assert_eq!(
+            archive_extended_name(b"module.o\0\0\0\0"),
+            Ok(b"module.o".as_slice()),
+        );
+        for invalid in [
+            b"module.o".as_slice(),
+            b"module.o\0\0\0".as_slice(),
+            b"module.o\0x\0\0".as_slice(),
+            b"module.o\0\0\0\0\0".as_slice(),
+        ] {
+            assert_eq!(archive_extended_name(invalid), Err(Error::Invalid));
+        }
+
+        #[cfg(target_os = "linux")]
+        let metadata = [
+            (ArchiveMemberKind::GnuLinkerIndex, b"0       ".as_slice()),
+            (ArchiveMemberKind::Input, b"644     ".as_slice()),
+        ];
+        #[cfg(target_os = "macos")]
+        let metadata = [
+            (ArchiveMemberKind::Extended(20), b"100644  ".as_slice()),
+            (ArchiveMemberKind::Extended(12), b"644     ".as_slice()),
+        ];
+        #[cfg(windows)]
+        let metadata = [
+            (ArchiveMemberKind::GnuLinkerIndex, b"0       ".as_slice()),
+            (ArchiveMemberKind::Input, b"100666  ".as_slice()),
+        ];
+        for (kind, mode) in metadata {
+            let mut header = [b' '; 60];
+            header[16..28].copy_from_slice(b"0           ");
+            #[cfg(any(target_os = "linux", target_os = "macos"))]
+            {
+                header[28..34].copy_from_slice(b"0     ");
+                header[34..40].copy_from_slice(b"0     ");
+            }
+            header[40..48].copy_from_slice(mode);
+            assert_eq!(exact_archive_member_metadata(&header, kind, 0o644), Ok(()));
+            for offset in [16, 28, 34, 40] {
+                let mut hostile = header;
+                hostile[offset] = b'9';
+                assert_eq!(
+                    exact_archive_member_metadata(&hostile, kind, 0o644),
+                    Err(Error::Invalid),
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn sparse_oversize_archive_is_rejected_before_digest_io() {
+        use std::ffi::OsStr;
+
+        let root = std::env::temp_dir().join(format!(
+            "semaprax-archive-oversize-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos(),
+        ));
+        std::fs::create_dir(&root).unwrap();
+        let root = std::fs::canonicalize(root).unwrap();
+        let name = OsStr::new("oversize.a");
+        let file = std::fs::File::create(root.join(name)).unwrap();
+        file.set_len(super::SDK_ARCHIVE_MAX_BYTES + 1).unwrap();
+        drop(file);
+        let directory = super::platform::hold_directory(&root).unwrap();
+        let start = std::time::Instant::now();
+        assert!(matches!(
+            super::platform::test_hold_regular_file_name_bounded(
+                &directory,
+                name,
+                super::SDK_ARCHIVE_MAX_BYTES,
+            ),
+            Err(Error::OutputLimit),
+        ));
+        assert!(start.elapsed() < std::time::Duration::from_secs(1));
+        drop(directory);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(any(target_os = "linux", target_os = "macos", windows))]
+    #[test]
+    fn archive_output_insertion_is_rejected_before_process_consumption_and_preserved() {
+        use std::ffi::OsStr;
+
+        let root = std::env::temp_dir().join(format!(
+            "semaprax-archive-insertion-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos(),
+        ));
+        std::fs::create_dir(&root).unwrap();
+        let root = std::fs::canonicalize(root).unwrap();
+        let cwd = super::platform::hold_directory(&root).unwrap();
+        #[cfg(unix)]
+        let (input_name, output_name) = (
+            OsStr::new("module.o"),
+            OsStr::new("libsemaprax_native_rust_sdk.a"),
+        );
+        #[cfg(windows)]
+        let (input_name, output_name) = (
+            OsStr::new("module.obj"),
+            OsStr::new("semaprax_native_rust_sdk.lib"),
+        );
+        let input =
+            super::platform::write_file_new(&cwd, input_name, b"owned-object", 0o600).unwrap();
+        let foreign =
+            super::platform::write_file_new(&cwd, output_name, b"foreign-must-survive", 0o600)
+                .unwrap();
+        let executable_path = std::env::current_exe().unwrap();
+        let executable = super::platform::hold_external_executable(&executable_path).unwrap();
+        let prepared =
+            super::platform::prepare_archive_invocation(input_name, output_name).unwrap();
+        let mut process = super::platform::prepare_process_arena(1).unwrap();
+        assert!(matches!(
+            super::platform::archive_prepared(&executable, &cwd, &input, prepared, &mut process,),
+            Err(Error::Exists)
+        ));
+        assert_eq!(
+            super::platform::prepared_process_arena_remaining(&process),
+            1
+        );
+        assert_eq!(
+            super::platform::read_exact(&foreign, 64).unwrap(),
+            b"foreign-must-survive",
+        );
+        drop((foreign, input, executable, cwd, process));
+        std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn archive_nonregular_output_insertions_are_exactly_present_and_never_followed() {
+        use std::ffi::OsStr;
+        use std::os::unix::fs::symlink;
+
+        let root = std::env::temp_dir().join(format!(
+            "semaprax-archive-nonregular-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos(),
+        ));
+        std::fs::create_dir(&root).unwrap();
+        let root = std::fs::canonicalize(root).unwrap();
+        let cwd = super::platform::hold_directory(&root).unwrap();
+        let input =
+            super::platform::write_file_new(&cwd, OsStr::new("module.o"), b"owned-object", 0o600)
+                .unwrap();
+        let executable =
+            super::platform::hold_external_executable(&std::env::current_exe().unwrap()).unwrap();
+        let output = root.join("libsemaprax_native_rust_sdk.a");
+        let foreign = root.join("foreign-target");
+        std::fs::write(&foreign, b"foreign-must-survive").unwrap();
+        symlink(&foreign, &output).unwrap();
+        let prepared = super::platform::prepare_archive_invocation(
+            OsStr::new("module.o"),
+            OsStr::new("libsemaprax_native_rust_sdk.a"),
+        )
+        .unwrap();
+        let mut process = super::platform::prepare_process_arena(1).unwrap();
+        assert_eq!(
+            super::platform::archive_prepared(&executable, &cwd, &input, prepared, &mut process,)
+                .err(),
+            Some(Error::Exists),
+        );
+        assert_eq!(
+            super::platform::prepared_process_arena_remaining(&process),
+            1
+        );
+        assert_eq!(std::fs::read(&foreign).unwrap(), b"foreign-must-survive");
+        std::fs::remove_file(&output).unwrap();
+        std::fs::create_dir(&output).unwrap();
+        let prepared = super::platform::prepare_archive_invocation(
+            OsStr::new("module.o"),
+            OsStr::new("libsemaprax_native_rust_sdk.a"),
+        )
+        .unwrap();
+        assert_eq!(
+            super::platform::archive_prepared(&executable, &cwd, &input, prepared, &mut process,)
+                .err(),
+            Some(Error::Exists),
+        );
+        assert_eq!(
+            super::platform::prepared_process_arena_remaining(&process),
+            1
+        );
+        drop((input, executable, cwd, process));
+        std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    #[test]
+    fn unix_archive_preparation_is_fixed_to_one_sdk_object() {
+        use std::ffi::OsStr;
+
+        for (input, output) in [
+            ("../module.o", "libsemaprax_native_rust_sdk.a"),
+            ("module.o", "../libsemaprax_native_rust_sdk.a"),
+            ("foreign.o", "libsemaprax_native_rust_sdk.a"),
+            ("module.o", "foreign.a"),
+        ] {
+            assert!(matches!(
+                super::platform::prepare_archive_invocation(OsStr::new(input), OsStr::new(output),),
+                Err(Error::Invalid)
+            ));
+        }
+        let prepared = super::platform::prepare_archive_invocation(
+            OsStr::new("module.o"),
+            OsStr::new("libsemaprax_native_rust_sdk.a"),
+        )
+        .unwrap();
+        assert!(super::platform::prepared_archive_owned_capacity(&prepared) > 0);
+        let arguments = super::platform::test_prepared_archive_arguments(&prepared);
+        #[cfg(target_os = "linux")]
+        assert_eq!(
+            arguments,
+            [
+                b"rcsD".as_slice(),
+                b"libsemaprax_native_rust_sdk.a",
+                b"module.o"
+            ]
+        );
+        #[cfg(target_os = "macos")]
+        assert_eq!(
+            arguments,
+            [
+                b"-static".as_slice(),
+                b"-D",
+                b"-o",
+                b"libsemaprax_native_rust_sdk.a",
+                b"module.o",
+            ],
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_archive_preparation_is_fixed_to_one_sdk_object() {
+        use std::ffi::OsStr;
+
+        for (input, output) in [
+            (r"..\module.obj", "semaprax_native_rust_sdk.lib"),
+            ("module.obj", r"..\semaprax_native_rust_sdk.lib"),
+            ("foreign.obj", "semaprax_native_rust_sdk.lib"),
+            ("module.obj", "foreign.lib"),
+        ] {
+            assert!(matches!(
+                super::platform::prepare_archive_invocation(OsStr::new(input), OsStr::new(output),),
+                Err(Error::Invalid)
+            ));
+        }
+        let prepared = super::platform::prepare_archive_invocation(
+            OsStr::new("module.obj"),
+            OsStr::new("semaprax_native_rust_sdk.lib"),
+        )
+        .unwrap();
+        assert!(super::platform::prepared_archive_owned_capacity(&prepared) > 0);
+        assert_eq!(
+            super::platform::test_prepared_archive_arguments(&prepared),
+            [
+                "/NOLOGO",
+                "/BREPRO",
+                "/OUT:semaprax_native_rust_sdk.lib",
+                "module.obj",
+            ],
+        );
+    }
 
     #[cfg(target_os = "linux")]
     fn linux_runner_failure_helper(
@@ -8295,8 +10044,8 @@ mod tests {
             production
                 .matches("hold_regular_file_name_external_read_prepared")
                 .count(),
-            4,
-            "Windows read-compatible holder must serve inventory handoff and executable images"
+            5,
+            "Windows read-compatible holder must serve inventory handoff, executable images, and exact archive admission"
         );
 
         let discard_start = source

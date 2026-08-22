@@ -14,7 +14,7 @@ fn assert_contains_all(label: &str, source: &str, required: &[&str]) {
 }
 
 #[test]
-fn private_native_rust_interop_crates_are_unpublished_and_quarantined() {
+fn native_rust_interop_implementation_crates_are_unpublished_and_quarantined() {
     let root_manifest = read("Cargo.toml");
     assert_contains_all(
         "workspace membership",
@@ -249,7 +249,7 @@ fn private_builder_uses_held_platform_authority_for_every_physical_step() {
     assert!(sys.contains("\"-O0\""));
     assert!(sys.contains("\"-O2\""));
     let windows = sys
-        .split("#[cfg(windows)]")
+        .split("#[cfg(windows)]\nmod platform")
         .nth(1)
         .expect("Windows quarantine implementation");
     assert!(

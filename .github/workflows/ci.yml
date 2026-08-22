@@ -106,6 +106,72 @@ jobs:
       - name: Require canonical project manifest and linked-HIR closure admission
         run: cargo test --locked -p semaprax --all-features --test project_manifest_v1 -- --test-threads=1
 
+  native-rust-sdk-v1:
+    name: Public Native Rust SDK v1 (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          toolchain: "1.85"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+      - name: Resolve exact held native tools (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "RUSTC=$(rustup which rustc)" >> "$GITHUB_ENV"
+          clang_path="$(command -v clang)"
+          test -x "$clang_path"
+          echo "CLANG=$clang_path" >> "$GITHUB_ENV"
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            archiver_path=/usr/bin/libtool
+          else
+            archiver_path="$(readlink -f /usr/bin/ar)"
+          fi
+          test -x "$archiver_path"
+          echo "SEMAPRAX_ARCHIVER=$archiver_path" >> "$GITHUB_ENV"
+      - name: Resolve exact held native tools and MSVC environment (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set "VSINSTALL=%%i"
+          if not defined VSINSTALL exit /b 1
+          call "%VSINSTALL%\Common7\Tools\VsDevCmd.bat" -no_logo -arch=x64 -host_arch=x64
+          if not defined VCToolsInstallDir exit /b 1
+          set "SEMAPRAX_VCTOOLS=%VCToolsInstallDir%"
+          if "%SEMAPRAX_VCTOOLS:~-1%"=="\" set "SEMAPRAX_VCTOOLS=%SEMAPRAX_VCTOOLS:~0,-1%"
+          set "SEMAPRAX_LINKER=%SEMAPRAX_VCTOOLS%\bin\Hostx64\x64\link.exe"
+          set "SEMAPRAX_ARCHIVER=%SEMAPRAX_VCTOOLS%\bin\Hostx64\x64\lib.exe"
+          if not exist "%SEMAPRAX_LINKER%" exit /b 1
+          if not exist "%SEMAPRAX_ARCHIVER%" exit /b 1
+          for /f "tokens=*" %%i in ('rustup which rustc') do set "RUSTC=%%i"
+          for /f "tokens=*" %%i in ('where clang.exe') do if not defined CLANG set "CLANG=%%i"
+          if not defined RUSTC exit /b 1
+          if not defined CLANG exit /b 1
+          echo INCLUDE=%INCLUDE%>>"%GITHUB_ENV%"
+          echo LIB=%LIB%>>"%GITHUB_ENV%"
+          echo RUSTC=%RUSTC%>>"%GITHUB_ENV%"
+          echo CLANG=%CLANG%>>"%GITHUB_ENV%"
+          echo SEMAPRAX_VCTOOLS=%SEMAPRAX_VCTOOLS%>>"%GITHUB_ENV%"
+          echo SEMAPRAX_LINKER=%SEMAPRAX_LINKER%>>"%GITHUB_ENV%"
+          echo SEMAPRAX_ARCHIVER=%SEMAPRAX_ARCHIVER%>>"%GITHUB_ENV%"
+      - name: Require package, consumer, callback, and backend-equivalence evidence
+        env:
+          SEMAPRAX_REQUIRE_PUBLIC_NATIVE_RUST_SDK: "1"
+        run: |
+          cargo fetch --locked --manifest-path examples/calculator-rust/Cargo.toml
+          cargo check --locked --offline --manifest-path examples/calculator-rust/Cargo.toml
+          cargo test --locked -p semaprax --test public_native_rust_sdk_ci_contract -- --nocapture
+          cargo test --locked -p semaprax --test public_native_rust_sdk_v1 -- --test-threads=1 --nocapture
+
   verify:
     name: Rust ${{ matrix.os }}
     timeout-minutes: 60
@@ -126,6 +192,21 @@ jobs:
       - name: Resolve the real held rustc image (Unix)
         if: runner.os != 'Windows'
         run: echo "RUSTC=$(rustup which rustc)" >> "$GITHUB_ENV"
+      - name: Resolve the held Clang and deterministic archiver images (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          clang_path="$(command -v clang)"
+          test -x "$clang_path"
+          echo "CLANG=$clang_path" >> "$GITHUB_ENV"
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            archiver_path=/usr/bin/libtool
+          else
+            archiver_path="$(readlink -f /usr/bin/ar)"
+          fi
+          test -x "$archiver_path"
+          echo "SEMAPRAX_ARCHIVER=$archiver_path" >> "$GITHUB_ENV"
       - name: Resolve the real held rustc image (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
@@ -142,12 +223,22 @@ jobs:
           set "SEMAPRAX_VCTOOLS=%VCToolsInstallDir%"
           if "%SEMAPRAX_VCTOOLS:~-1%"=="\" set "SEMAPRAX_VCTOOLS=%SEMAPRAX_VCTOOLS:~0,-1%"
           set "SEMAPRAX_LINKER=%SEMAPRAX_VCTOOLS%\bin\Hostx64\x64\link.exe"
+          set "SEMAPRAX_ARCHIVER=%SEMAPRAX_VCTOOLS%\bin\Hostx64\x64\lib.exe"
           if not exist "%SEMAPRAX_VCTOOLS%" exit /b 1
           if not exist "%SEMAPRAX_LINKER%" exit /b 1
+          if not exist "%SEMAPRAX_ARCHIVER%" exit /b 1
           echo INCLUDE=%INCLUDE%>>"%GITHUB_ENV%"
           echo LIB=%LIB%>>"%GITHUB_ENV%"
           echo SEMAPRAX_VCTOOLS=%SEMAPRAX_VCTOOLS%>>"%GITHUB_ENV%"
           echo SEMAPRAX_LINKER=%SEMAPRAX_LINKER%>>"%GITHUB_ENV%"
+          echo SEMAPRAX_ARCHIVER=%SEMAPRAX_ARCHIVER%>>"%GITHUB_ENV%"
+      - name: Resolve the held Clang image (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $clang = (Get-Command clang.exe -ErrorAction Stop).Source
+          if (-not [System.IO.Path]::IsPathFullyQualified($clang)) { throw "clang path is not absolute" }
+          "CLANG=$clang" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - run: cargo fmt --all --check
       - run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
       - name: Run workspace tests

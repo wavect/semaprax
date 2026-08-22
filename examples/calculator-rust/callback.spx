@@ -1,0 +1,23 @@
+module examples.calculator_rust_callback;
+
+@id("calculator.callback.host")
+interface CalculatorHost
+    permits {  }
+{
+    @id("calculator.callback.adjust")
+    import rust fn adjust(value: i64) -> i64
+        effects {  }
+        failure status "calculator.callback.v1";
+}
+
+@id("calculator.callback.apply")
+fn apply(left: i64, right: i64) -> i64
+{
+    adjust(left + right)
+}
+
+@id("calculator.callback.main")
+fn main() -> i64
+{
+    apply(19, 23)
+}

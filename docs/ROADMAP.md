@@ -28,12 +28,24 @@ external stable-ID API.
 This moves the JavaScript and TypeScript completion row from Missing to Partial
 once its executable package/consumer evidence is present, making the current
 dashboard 39 Partial/17 Missing. Node evidence is part of this tranche. Exact
-TypeScript 5.8.3 compiles the real generated declaration consumer locally and
-is wired into the separate locked Chromium loopback calculator job. That job
-has no exact-head hosted-green
-evidence yet; it will prove only that one Ubuntu browser configuration. No
+TypeScript 5.8.3 compiles the real generated declaration consumer, and the
+separate locked Chromium loopback calculator job is exact-head hosted green at
+`d883ace579bfd86f723cdc6819224fde51f0677d` in [run 32523952912, job
+96901973072](https://github.com/wavect/semaprax/actions/runs/32523952912/job/96901973072).
+That job proves only one Ubuntu browser configuration. No
 general browser, npm, Component, project-manifest, or production SDK claim
 follows from the first scalar profile.
+
+[Public Native Rust SDK v1 Phase C](NATIVE-RUST-INTEROP-V1.md) is the matching
+native calculator slice. A narrow API in the unpublished builder invokes the
+unchanged private A+B bridge and emits a dependency-free local Cargo package
+whose safe facade exposes stable-ID scalar methods and explicit Rust-import
+callbacks. The calculator and callback consumers are compiler-free after
+generation and run locked/offline. Exact-head Ubuntu/macOS/Windows promotion is
+still pending, so this does not yet widen the hosted private A+B claim or move a
+completion row. Registry publication, a root CLI, aggregates, resources,
+strings, pointers, async, cross-thread use, and general Rust interop remain
+future work.
 
 ## Bounded project input — Project Manifest v1
 
@@ -55,9 +67,11 @@ evidence and Web lowering, while Project CLI publication is Web-only. Web emits
 `semaprax.web-project.v1`; public native executable publication, project run,
 and a public project test command remain held. A final post-publication input
 drift is `SPX-J103`: the complete digest-bound package remains for caller
-reconciliation and is never deleted automatically. Focused local manifest,
-closure, native/Web/Node, and rename evidence exists; the exact-head hosted
-promotion remains pending. This does not move a completion row or the current
+reconciliation and is never deleted automatically. Focused manifest, closure,
+native/Web/Node, and rename evidence is exact-head hosted green at
+`d883ace579bfd86f723cdc6819224fde51f0677d` in [run
+32523952912](https://github.com/wavect/semaprax/actions/runs/32523952912),
+including Ubuntu, macOS, and Windows. This does not move a completion row or the current
 39 Partial/17 Missing totals, and it is not general multi-file compilation,
 dependency management, capabilities, test discovery, or production packaging.
 
@@ -691,10 +705,11 @@ Exit criterion: implement a zero-copy parser and server without a tracing GC.
   a Windows Visual C++ tools-root plan that uses prepared
   `-Xmicrosoft-visualc-tools-root <root> -fuse-ld=link`, binds the exact held
   linker, and grants no ambient child `PATH`.
-  The evidence promotes only private A+B. Public C remains held because its
-  builder/types are crate-private, its crates are unpublished, and no public
-  root API or CLI exists. Compiler sysroot/dynamic-library descendant
-  provenance remains a nonclaim.
+  That evidence promotes only private A+B. The additive Public Native Rust SDK
+  v1 Phase C API is now exposed from the still-unpublished builder and emits a
+  dependency-free local generated Cargo package; its exact-head three-host
+  promotion remains pending. No public root CLI or registry package exists.
+  Compiler sysroot/dynamic-library descendant provenance remains a nonclaim.
 - Capability-sandboxed reproducible package builds.
 - Provenance, SBOM, license, and unsafe-code metadata.
 - Capability-sandboxed agent-tool components, a non-exporting secret-store

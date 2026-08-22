@@ -98,8 +98,35 @@ The private A+B gate is exact-head hosted green at
 `50b96dccabe3b3dcbcdf38bab380f3eb8699184c` in [run
 32402944574](https://github.com/wavect/semaprax/actions/runs/32402944574),
 including Ubuntu, macOS, Windows, Rust 1.85, Linux sanitizer, and the hosted
-Windows process/capacity cases. Public C remains held because this gate does
-not make the crate-private unpublished builder a public API, CLI, or package.
+Windows process/capacity cases. That private gate alone did not promote Public
+C; the additive Phase C builder API and generated local package require the
+separate gates below.
+
+Public Native Rust SDK v1 Phase C additionally requires these named gates on
+Ubuntu, macOS, and Windows:
+
+```sh
+cargo check --locked --offline --manifest-path examples/calculator-rust/Cargo.toml
+cargo test --locked -p semaprax --test public_native_rust_sdk_ci_contract -- --nocapture
+SEMAPRAX_REQUIRE_PUBLIC_NATIVE_RUST_SDK=1 cargo test --locked -p semaprax --test public_native_rust_sdk_v1 -- --test-threads=1 --nocapture
+```
+
+The effectful gate must use explicit held `RUSTC`, `CLANG`, and
+`SEMAPRAX_ARCHIVER` images. Windows additionally binds the same exact
+`SEMAPRAX_VCTOOLS` root and `SEMAPRAX_LINKER` used by private B. Phase C must
+preserve every private A+B byte while publishing exactly one fresh local
+dependency-free generated Cargo package with the nine-file inventory frozen in
+[Native Rust Interoperability v1](NATIVE-RUST-INTEROP-V1.md). The gate requires
+independent outer-manifest replay, byte-identical double builds, exact archive
+member replay, a compiler-free calculator consumer, the Rust-import callback
+round trip, stable-ID facade spelling and display-rename preservation, and one
+same-source Rust/native-C/Core-Wasm result. It also retains the private hostile,
+sanitizer, platform settlement, and Windows process gates above. The package is
+current-host scalar evidence only: registry publication, cross-target reuse,
+aggregate/resource/string/pointer ABI, async, cross-thread use, dynamic loading,
+and a Phase-C pre-reserved cumulative-memory or allocation-failure-recovery
+proof remain held. Hosted promotion requires the exact-head three-OS SDK job;
+local success alone is not promotion evidence.
 
 Public Wasm Scalar Exports v1 additionally requires focused admission,
 emission, package, CLI, and consumer gates. The profile must admit only 1–32

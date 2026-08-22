@@ -13713,7 +13713,9 @@ fn generate_c_into(
         "#include \"semaprax_native_rust_interop.h\"\n#include <stdint.h>\n#include <stddef.h>\n#include <string.h>\n#include <limits.h>\nstatic const uint8_t spxnr_capabilities[32] = {{{bytes}}};\nstatic spxnr_status_v1 spxnr_adapter(uint32_t code){{return (((uint64_t)65535)<<48)|(((uint64_t)4)<<32)|code;}}\nstatic spxnr_status_v1 spxnr_validate(const spxnr_context_v1 *ctx){{if(!ctx||((uintptr_t)ctx%_Alignof(spxnr_context_v1))!=0)return spxnr_adapter(1);if(ctx->abi_version!=1||ctx->size!=sizeof(*ctx)||ctx->reserved!=0)return spxnr_adapter(1);if(!ctx->imports||((uintptr_t)ctx->imports%_Alignof(spxnr_imports_v1))!=0)return spxnr_adapter(2);if(ctx->imports->abi_version!=1||ctx->imports->size!=sizeof(*ctx->imports))return spxnr_adapter(2);if(memcmp(ctx->capabilities_digest,spxnr_capabilities,32)!=0)return spxnr_adapter(3);if(ctx->call_depth>=32)return spxnr_adapter(7);return 0;}}\n"
     )
     .unwrap();
-    output.write_str("static int spxnr_status_canonical(spxnr_status_v1 status){if(status==0)return 1;uint32_t code=(uint32_t)status;uint8_t class_=(uint8_t)(status>>32);uint8_t retry=(uint8_t)((status>>40)&1);uint8_t reserved=(uint8_t)((status>>41)&0x7f);uint16_t domain=(uint16_t)(status>>48);if(code==0||reserved!=0||domain==0)return 0;if(domain==65533)return retry==0&&((class_==1&&code>=1&&code<=6)||(class_==2&&code>=1&&code<=2));").unwrap();
+    if !imports.is_empty() {
+        output.write_str("static int spxnr_status_canonical(spxnr_status_v1 status){if(status==0)return 1;uint32_t code=(uint32_t)status;uint8_t class_=(uint8_t)(status>>32);uint8_t retry=(uint8_t)((status>>40)&1);uint8_t reserved=(uint8_t)((status>>41)&0x7f);uint16_t domain=(uint16_t)(status>>48);if(code==0||reserved!=0||domain==0)return 0;if(domain==65533)return retry==0&&((class_==1&&code>=1&&code<=6)||(class_==2&&code>=1&&code<=2));").unwrap();
+    }
     let domains = imports
         .iter()
         .filter_map(|import| import.failure.as_ref())
@@ -13721,7 +13723,9 @@ fn generate_c_into(
     for (index, _) in domains.iter().enumerate() {
         write!(output, "if(domain=={})return class_==3;", index + 1).unwrap();
     }
-    output.write_str("if(domain==65534)return class_==4&&retry==0&&code>=1&&code<=2;if(domain==65535)return class_==4&&retry==0&&code>=1&&code<=8;return 0;}\n").unwrap();
+    if !imports.is_empty() {
+        output.write_str("if(domain==65534)return class_==4&&retry==0&&code>=1&&code<=2;if(domain==65535)return class_==4&&retry==0&&code>=1&&code<=8;return 0;}\n").unwrap();
+    }
     let domain_ordinals = domains
         .iter()
         .enumerate()
@@ -13916,7 +13920,11 @@ fn generate_safe_rust_into(
     exports: &[ExportFact],
     imports: &[ImportFact],
 ) -> Result<(), Diagnostic> {
-    output.write_str("mod api{#![forbid(unsafe_code)]\nuse core::num::NonZeroU32;\n#[repr(u8)] #[derive(Clone,Copy,Debug,Eq,PartialEq)] pub enum NativeRustStatusClass{Semantic=1,Contract=2,Import=3,Adapter=4}\npub enum NativeRustImportResult<T>{Success(T),Status{code:NonZeroU32,class:NativeRustStatusClass,retryable:bool},HostFailure}\npub enum NativeRustCallError{Semantic{domain_id:&'static str,code:NonZeroU32,class:NativeRustStatusClass,retryable:bool},HostFailed,HostPanicked,AdapterRejected}\npub struct NativeRustAdmissionError;\n").unwrap();
+    output.write_str("mod api{#![forbid(unsafe_code)]\nuse core::num::NonZeroU32;\n#[repr(u8)] #[derive(Clone,Copy,Debug,Eq,PartialEq)] pub enum NativeRustStatusClass{Semantic=1,Contract=2,Import=3,Adapter=4}\n").unwrap();
+    if !imports.is_empty() {
+        output.write_str("pub enum NativeRustImportResult<T>{Success(T),Status{code:NonZeroU32,class:NativeRustStatusClass,retryable:bool},HostFailure}\n").unwrap();
+    }
+    output.write_str("pub enum NativeRustCallError{Semantic{domain_id:&'static str,code:NonZeroU32,class:NativeRustStatusClass,retryable:bool},HostFailed,HostPanicked,AdapterRejected}\npub struct NativeRustAdmissionError;\n").unwrap();
     output.write_str("pub trait NativeRustImports{").unwrap();
     for import in imports {
         write!(
@@ -14036,7 +14044,17 @@ fn generate_private_ffi_into(
             .saturating_add(string_slice_owned_capacity(&import_table_values))
             .saturating_add(import_table.capacity()),
     );
-    write!(output, "#![allow(unsafe_code)]\nuse super::api::*;\nuse core::ffi::c_void;\n#[repr(C)]struct Imports{{abi_version:u32,size:u32,{import_table} }}\n#[repr(C)]struct Context{{abi_version:u32,size:u32,userdata:*mut c_void,imports:*const Imports,capabilities_digest:[u8;32],call_depth:u32,reserved:u32}}\nstruct Frame<H>{{host:*mut H,calls:*mut u32}}\npub(super) fn capabilities_digest()->[u8;32]{{[{bytes}]}}\n").unwrap();
+    write!(output, "#![allow(unsafe_code)]\nuse super::api::*;\nuse core::ffi::c_void;\n#[repr(C)]struct Imports{{abi_version:u32,size:u32,{import_table} }}\n#[repr(C)]struct Context{{abi_version:u32,size:u32,userdata:*mut c_void,imports:*const Imports,capabilities_digest:[u8;32],call_depth:u32,reserved:u32}}\n").unwrap();
+    if !imports.is_empty() {
+        output
+            .write_str("struct Frame<H>{host:*mut H,calls:*mut u32}\n")
+            .unwrap();
+    }
+    write!(
+        output,
+        "pub(super) fn capabilities_digest()->[u8;32]{{[{bytes}]}}\n"
+    )
+    .unwrap();
     #[cfg(test)]
     let ffi_prefix_scratch = digest
         .capacity()
@@ -14044,7 +14062,9 @@ fn generate_private_ffi_into(
         .saturating_add(bytes.capacity())
         .saturating_add(string_slice_owned_capacity(&import_table_values))
         .saturating_add(import_table.capacity());
-    output.write_str("fn adapter(code:u32)->u64{((65535u64)<<48)|((NativeRustStatusClass::Adapter as u64)<<32)|u64::from(code)}\n").unwrap();
+    if !imports.is_empty() {
+        output.write_str("fn adapter(code:u32)->u64{((65535u64)<<48)|((NativeRustStatusClass::Adapter as u64)<<32)|u64::from(code)}\n").unwrap();
+    }
     output.write_str("fn decode_status(status:u64)->NativeRustCallError{let code=(status&0xffff_ffff)as u32;let class=((status>>32)&0xff)as u8;let retryable=((status>>40)&1)!=0;let reserved=(status>>41)&0x7f;let domain=(status>>48)as u16;let Some(code)=core::num::NonZeroU32::new(code)else{return NativeRustCallError::AdapterRejected};let class=match class{1=>NativeRustStatusClass::Semantic,2=>NativeRustStatusClass::Contract,3=>NativeRustStatusClass::Import,4=>NativeRustStatusClass::Adapter,_=>return NativeRustCallError::AdapterRejected};if reserved!=0||domain==0{return NativeRustCallError::AdapterRejected}match domain{65533=>{let valid=!retryable&&match class{NativeRustStatusClass::Semantic=>(1..=6).contains(&code.get()),NativeRustStatusClass::Contract=>(1..=2).contains(&code.get()),_=>false};if !valid{return NativeRustCallError::AdapterRejected}NativeRustCallError::Semantic{domain_id:\"semaprax.native-rust-semantics.v1\",code,class,retryable}},").unwrap();
     let domains = imports
         .iter()
@@ -14235,7 +14255,12 @@ fn generate_private_ffi_into(
                         .saturating_add(result_argument.capacity()),
                 ),
         );
-        write!(output,"pub(super) fn {}<H:NativeRustImports>(host:&mut H,calls:&mut u32,digest:[u8;32]{}{})->Result<{},NativeRustCallError>{{unsafe{{if *calls>=4096{{return Err(NativeRustCallError::AdapterRejected)}}*calls+=1;let table=Imports{{abi_version:1,size:core::mem::size_of::<Imports>() as u32,{}}};let mut frame=Frame{{host:host as *mut H,calls:calls as *mut u32}};let ctx=Context{{abi_version:1,size:core::mem::size_of::<Context>() as u32,userdata:&mut frame as *mut Frame<H> as *mut c_void,imports:&table,capabilities_digest:digest,call_depth:0,reserved:0}};{}let status={}(&ctx{}{}{});if status!=0{{return Err(decode_status(status))}}{} }}}}\n",export.rust_method,if export.parameters.is_empty(){""}else{", "},parameters,rust_type(export.result),callbacks,result_slot,export.c_symbol,if export.parameters.is_empty(){""}else{", "},arguments,result_argument,publish).unwrap();
+        let frame = if imports.is_empty() {
+            "let _=host;let ctx=Context{abi_version:1,size:core::mem::size_of::<Context>() as u32,userdata:core::ptr::null_mut(),imports:&table,capabilities_digest:digest,call_depth:0,reserved:0};"
+        } else {
+            "let mut frame=Frame{host:host as *mut H,calls:calls as *mut u32};let ctx=Context{abi_version:1,size:core::mem::size_of::<Context>() as u32,userdata:&mut frame as *mut Frame<H> as *mut c_void,imports:&table,capabilities_digest:digest,call_depth:0,reserved:0};"
+        };
+        write!(output,"pub(super) fn {}<H:NativeRustImports>(host:&mut H,calls:&mut u32,digest:[u8;32]{}{})->Result<{},NativeRustCallError>{{unsafe{{if *calls>=4096{{return Err(NativeRustCallError::AdapterRejected)}}*calls+=1;let table=Imports{{abi_version:1,size:core::mem::size_of::<Imports>() as u32,{}}};{}{}let status={}(&ctx{}{}{});if status!=0{{return Err(decode_status(status))}}{} }}}}\n",export.rust_method,if export.parameters.is_empty(){""}else{", "},parameters,rust_type(export.result),callbacks,frame,result_slot,export.c_symbol,if export.parameters.is_empty(){""}else{", "},arguments,result_argument,publish).unwrap();
     }
     Ok(())
 }
@@ -14363,7 +14388,11 @@ fn replay_safe_rust_exact(
     imports: &[ImportFact],
 ) -> bool {
     let mut replay = ExactReplay::new(source);
-    replay.text("mod api{#![forbid(unsafe_code)]\nuse core::num::NonZeroU32;\n#[repr(u8)] #[derive(Clone,Copy,Debug,Eq,PartialEq)] pub enum NativeRustStatusClass{Semantic=1,Contract=2,Import=3,Adapter=4}\npub enum NativeRustImportResult<T>{Success(T),Status{code:NonZeroU32,class:NativeRustStatusClass,retryable:bool},HostFailure}\npub enum NativeRustCallError{Semantic{domain_id:&'static str,code:NonZeroU32,class:NativeRustStatusClass,retryable:bool},HostFailed,HostPanicked,AdapterRejected}\npub struct NativeRustAdmissionError;\n");
+    replay.text("mod api{#![forbid(unsafe_code)]\nuse core::num::NonZeroU32;\n#[repr(u8)] #[derive(Clone,Copy,Debug,Eq,PartialEq)] pub enum NativeRustStatusClass{Semantic=1,Contract=2,Import=3,Adapter=4}\n");
+    if !imports.is_empty() {
+        replay.text("pub enum NativeRustImportResult<T>{Success(T),Status{code:NonZeroU32,class:NativeRustStatusClass,retryable:bool},HostFailure}\n");
+    }
+    replay.text("pub enum NativeRustCallError{Semantic{domain_id:&'static str,code:NonZeroU32,class:NativeRustStatusClass,retryable:bool},HostFailed,HostPanicked,AdapterRejected}\npub struct NativeRustAdmissionError;\n");
     replay.text("pub trait NativeRustImports{");
     for import in imports {
         replay.text("fn ");
@@ -14439,7 +14468,11 @@ fn replay_private_ffi_exact(
         }
         replay.text(")->u64,");
     }
-    replay.text(" }\n#[repr(C)]struct Context{abi_version:u32,size:u32,userdata:*mut c_void,imports:*const Imports,capabilities_digest:[u8;32],call_depth:u32,reserved:u32}\nstruct Frame<H>{host:*mut H,calls:*mut u32}\npub(super) fn capabilities_digest()->[u8;32]{[");
+    replay.text(" }\n#[repr(C)]struct Context{abi_version:u32,size:u32,userdata:*mut c_void,imports:*const Imports,capabilities_digest:[u8;32],call_depth:u32,reserved:u32}\n");
+    if !imports.is_empty() {
+        replay.text("struct Frame<H>{host:*mut H,calls:*mut u32}\n");
+    }
+    replay.text("pub(super) fn capabilities_digest()->[u8;32]{[");
     let digest = replay_capabilities_digest(&spec.capabilities);
     let Some(hex) = digest.strip_prefix("sha256:") else {
         return false;
@@ -14454,7 +14487,10 @@ fn replay_private_ffi_exact(
         replay.text("0x");
         replay.text(&hex[index..index + 2]);
     }
-    replay.text("]}\nfn adapter(code:u32)->u64{((65535u64)<<48)|((NativeRustStatusClass::Adapter as u64)<<32)|u64::from(code)}\n");
+    replay.text("]}\n");
+    if !imports.is_empty() {
+        replay.text("fn adapter(code:u32)->u64{((65535u64)<<48)|((NativeRustStatusClass::Adapter as u64)<<32)|u64::from(code)}\n");
+    }
     replay.text("fn decode_status(status:u64)->NativeRustCallError{let code=(status&0xffff_ffff)as u32;let class=((status>>32)&0xff)as u8;let retryable=((status>>40)&1)!=0;let reserved=(status>>41)&0x7f;let domain=(status>>48)as u16;let Some(code)=core::num::NonZeroU32::new(code)else{return NativeRustCallError::AdapterRejected};let class=match class{1=>NativeRustStatusClass::Semantic,2=>NativeRustStatusClass::Contract,3=>NativeRustStatusClass::Import,4=>NativeRustStatusClass::Adapter,_=>return NativeRustCallError::AdapterRejected};if reserved!=0||domain==0{return NativeRustCallError::AdapterRejected}match domain{65533=>{let valid=!retryable&&match class{NativeRustStatusClass::Semantic=>(1..=6).contains(&code.get()),NativeRustStatusClass::Contract=>(1..=2).contains(&code.get()),_=>false};if !valid{return NativeRustCallError::AdapterRejected}NativeRustCallError::Semantic{domain_id:\"semaprax.native-rust-semantics.v1\",code,class,retryable}},");
     let domains = imports
         .iter()
@@ -14564,7 +14600,12 @@ fn replay_private_ffi_exact(
             replay.text(&import.rust_method);
             replay.text("::<H>,");
         }
-        replay.text("};let mut frame=Frame{host:host as *mut H,calls:calls as *mut u32};let ctx=Context{abi_version:1,size:core::mem::size_of::<Context>() as u32,userdata:&mut frame as *mut Frame<H> as *mut c_void,imports:&table,capabilities_digest:digest,call_depth:0,reserved:0};");
+        replay.text("};");
+        if imports.is_empty() {
+            replay.text("let _=host;let ctx=Context{abi_version:1,size:core::mem::size_of::<Context>() as u32,userdata:core::ptr::null_mut(),imports:&table,capabilities_digest:digest,call_depth:0,reserved:0};");
+        } else {
+            replay.text("let mut frame=Frame{host:host as *mut H,calls:calls as *mut u32};let ctx=Context{abi_version:1,size:core::mem::size_of::<Context>() as u32,userdata:&mut frame as *mut Frame<H> as *mut c_void,imports:&table,capabilities_digest:digest,call_depth:0,reserved:0};");
+        }
         match export.result {
             ScalarType::Unit => {}
             ScalarType::I64 => {
@@ -15791,7 +15832,9 @@ fn replay_c_exact(
         replay.text(&hex[index..index + 2]);
     }
     replay.text("};\nstatic spxnr_status_v1 spxnr_adapter(uint32_t code){return (((uint64_t)65535)<<48)|(((uint64_t)4)<<32)|code;}\nstatic spxnr_status_v1 spxnr_validate(const spxnr_context_v1 *ctx){if(!ctx||((uintptr_t)ctx%_Alignof(spxnr_context_v1))!=0)return spxnr_adapter(1);if(ctx->abi_version!=1||ctx->size!=sizeof(*ctx)||ctx->reserved!=0)return spxnr_adapter(1);if(!ctx->imports||((uintptr_t)ctx->imports%_Alignof(spxnr_imports_v1))!=0)return spxnr_adapter(2);if(ctx->imports->abi_version!=1||ctx->imports->size!=sizeof(*ctx->imports))return spxnr_adapter(2);if(memcmp(ctx->capabilities_digest,spxnr_capabilities,32)!=0)return spxnr_adapter(3);if(ctx->call_depth>=32)return spxnr_adapter(7);return 0;}\n");
-    replay.text("static int spxnr_status_canonical(spxnr_status_v1 status){if(status==0)return 1;uint32_t code=(uint32_t)status;uint8_t class_=(uint8_t)(status>>32);uint8_t retry=(uint8_t)((status>>40)&1);uint8_t reserved=(uint8_t)((status>>41)&0x7f);uint16_t domain=(uint16_t)(status>>48);if(code==0||reserved!=0||domain==0)return 0;if(domain==65533)return retry==0&&((class_==1&&code>=1&&code<=6)||(class_==2&&code>=1&&code<=2));");
+    if !imports.is_empty() {
+        replay.text("static int spxnr_status_canonical(spxnr_status_v1 status){if(status==0)return 1;uint32_t code=(uint32_t)status;uint8_t class_=(uint8_t)(status>>32);uint8_t retry=(uint8_t)((status>>40)&1);uint8_t reserved=(uint8_t)((status>>41)&0x7f);uint16_t domain=(uint16_t)(status>>48);if(code==0||reserved!=0||domain==0)return 0;if(domain==65533)return retry==0&&((class_==1&&code>=1&&code<=6)||(class_==2&&code>=1&&code<=2));");
+    }
     let domains = imports
         .iter()
         .filter_map(|import| import.failure.as_ref())
@@ -15801,7 +15844,9 @@ fn replay_c_exact(
         replay.number(index + 1);
         replay.text(")return class_==3;");
     }
-    replay.text("if(domain==65534)return class_==4&&retry==0&&code>=1&&code<=2;if(domain==65535)return class_==4&&retry==0&&code>=1&&code<=8;return 0;}\n");
+    if !imports.is_empty() {
+        replay.text("if(domain==65534)return class_==4&&retry==0&&code>=1&&code<=2;if(domain==65535)return class_==4&&retry==0&&code>=1&&code<=8;return 0;}\n");
+    }
     let ordinals = domains
         .iter()
         .enumerate()
@@ -17260,7 +17305,11 @@ fn render_rust_harness(
             }
         )?;
     }
-    output.write_str("}\n#[no_mangle]pub extern \"C\" fn spxnr1_rust_harness_run()->i32{let code=core::num::NonZeroU32::new(1).unwrap();let _=NativeRustImportResult::<()>::Status{code,class:NativeRustStatusClass::Import,retryable:false};let _=NativeRustImportResult::<()>::HostFailure;let probe=NativeRustCallError::Semantic{domain_id:\"semaprax.native-rust-semantics.v1\",code,class:NativeRustStatusClass::Semantic,retryable:false};if let NativeRustCallError::Semantic{domain_id,code,class,retryable}=probe{let _=(domain_id,code,class,retryable);}let caps=match NativeRustCapabilities::new(&[")?;
+    output.write_str("}\n#[no_mangle]pub extern \"C\" fn spxnr1_rust_harness_run()->i32{let code=core::num::NonZeroU32::new(1).unwrap();")?;
+    if !prepared.imports.is_empty() {
+        output.write_str("let _=NativeRustImportResult::<()>::Status{code,class:NativeRustStatusClass::Import,retryable:false};let _=NativeRustImportResult::<()>::HostFailure;")?;
+    }
+    output.write_str("let probe=NativeRustCallError::Semantic{domain_id:\"semaprax.native-rust-semantics.v1\",code,class:NativeRustStatusClass::Semantic,retryable:false};if let NativeRustCallError::Semantic{domain_id,code,class,retryable}=probe{let _=(domain_id,code,class,retryable);}let caps=match NativeRustCapabilities::new(&[")?;
     let mut previous = None;
     let mut first = true;
     loop {
@@ -19400,12 +19449,7 @@ fn build_stage_platform(
             .ok_or(PhaseBLocalError::BuilderBudget)?
             .arena_mut()?,
     )
-    .map_err(|error| {
-        #[cfg(test)]
-        eprintln!("compile staticlib: {error:?}");
-        let _ = error;
-        PhaseBLocalError::Link
-    })?;
+    .map_err(|_| PhaseBLocalError::Link)?;
     drop(rust_invocation_budget);
     track_run_file(run_files, staticlib_name, staticlib)?;
 

@@ -1,5 +1,21 @@
 # Changelog
 
+- Added the locally evidenced Public Native Rust SDK v1 Phase C. The
+  still-unpublished builder now exposes a bounded API that invokes unchanged
+  private A+B and publishes an exact dependency-free nine-file Cargo package
+  with stable-ID-derived scalar export/import methods, a safe public facade,
+  the existing private unsafe FFI quarantine, a canonical
+  `semaprax.native-rust-sdk.v1` manifest, and deterministic current-host static
+  archive metadata. Archive creation uses one explicit held absolute tool,
+  an 8 MiB pre-digest cap, a private nonce stage, closed platform member/header
+  grammar, one byte-identical object, and create-new outer publication. The
+  calculator and callback consumers compile and run locked/offline without a
+  compiler dependency after generation. Aggregate/resource/string/pointer ABI,
+  async/cross-thread use, registry/CLI publication, independent linker-index
+  semantic reconstruction, Phase-C cumulative allocation proof, and exact-head
+  hosted promotion remain held. Existing private A+B bytes and claims are
+  unchanged; completion totals remain 39 Partial/17 Missing.
+
 - Upgraded the pinned cryptographic and Wasm validation stack to `hmac 0.13.0`,
   `sha2 0.11.0`, and `wasmparser 0.256.0` across the root workspace and isolated
   Component runner. SHA-256 rendering remains byte-exact and allocation-bounded;
@@ -22,8 +38,11 @@
   remain the sole cross-file composition mechanism. Public native executable
   publication and project run/test commands are held. A post-publication final
   input drift reports `SPX-J103`: its complete digest-bound package remains for
-  caller reconciliation and is never deleted automatically. Exact-head hosted
-  promotion is pending. This makes no completion-matrix status change: totals
+  caller reconciliation and is never deleted automatically. Its exact-head
+  Ubuntu/macOS/Windows and Chromium/TypeScript matrix is green at
+  `d883ace579bfd86f723cdc6819224fde51f0677d` in [run
+  32523952912](https://github.com/wavect/semaprax/actions/runs/32523952912).
+  This makes no completion-matrix status change: totals
   remain 39 Partial/17 Missing.
 
 - Reconciled Windows desktop packaging with serviced hosted-runner images by

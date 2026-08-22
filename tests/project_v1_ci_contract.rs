@@ -14,9 +14,20 @@ fn project_job(workflow: &str) -> &str {
     let (_, after_job) = workflow
         .split_once("  project-v1:\n")
         .expect("project-v1 job");
-    after_job
-        .split_once("\n  verify:")
-        .map_or(after_job, |(job, _)| job)
+    let end = after_job
+        .match_indices('\n')
+        .map(|(index, _)| index + 1)
+        .find(|start| {
+            let line = &after_job[*start..];
+            line.starts_with("  ")
+                && line.as_bytes().get(2).is_some_and(|byte| *byte != b' ')
+                && line
+                    .split_once('\n')
+                    .map_or(line, |(line, _)| line)
+                    .ends_with(':')
+        })
+        .unwrap_or(after_job.len());
+    &after_job[..end]
 }
 
 #[test]

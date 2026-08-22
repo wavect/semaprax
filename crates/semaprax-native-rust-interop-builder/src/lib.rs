@@ -20,6 +20,10 @@ pub(crate) mod private_format;
 use semaprax_native_rust_interop_platform as platform;
 use std::path::Path;
 
+mod public_sdk;
+
+pub use public_sdk::{build_native_rust_sdk, NativeRustSdkBundle, NativeRustSdkOptions};
+
 pub(crate) mod workspace {
     use super::*;
 

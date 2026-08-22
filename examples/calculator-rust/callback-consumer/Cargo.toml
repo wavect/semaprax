@@ -1,0 +1,14 @@
+[package]
+name = "semaprax-calculator-rust-callback-consumer"
+version = "0.0.0"
+edition = "2021"
+rust-version = "1.85"
+publish = false
+
+[workspace]
+
+[dependencies]
+semaprax-generated-native-rust-sdk = { path = "../callback-sdk" }
+
+[lints.rust]
+unsafe_code = "forbid"

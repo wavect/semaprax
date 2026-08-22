@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 rust-version = "1.85"
 publish = false
-description = "Private bounded Native Rust Interop builder for SEMAPRAX"
+description = "Bounded Native Rust SDK builder for SEMAPRAX"
 license = "Apache-2.0"
 
 [dependencies]

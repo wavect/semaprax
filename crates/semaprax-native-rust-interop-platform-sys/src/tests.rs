@@ -557,39 +557,60 @@ fn windows_real_brepro_archive_round_trips_through_exact_admission() {
         super::platform::archive_prepared(&archiver, &directory, &input, prepared, &mut process);
     let elapsed = start.elapsed();
     let archive = archive.unwrap_or_else(|error| {
-        let captured =
-            String::from_utf8_lossy(&super::platform::test_last_captured_stdout()).into_owned();
+        let captured = String::from_utf8_lossy(&super::platform::test_last_captured_stdout())
+            .into_owned();
         let plain_args = [
             "/NOLOGO",
             "/BREPRO",
             "/OUT:semaprax_plain_probe.lib",
             "module.obj",
         ];
-        let attempt = |stripped: bool| {
-            let mut command = std::process::Command::new(&archiver_image);
-            command.current_dir(&root).args(plain_args);
-            if stripped {
-                command.env_clear();
-            }
-            command.output()
-        };
-        let rendered = |attempt: &Option<std::process::Output>| {
+        let verbatim = root.as_os_str().to_string_lossy().into_owned();
+        let plain_root = verbatim
+            .strip_prefix(r"\\?\")
+            .map(std::borrow::ToOwned::to_owned)
+            .unwrap_or_else(|| verbatim.clone());
+        let absolute_input = format!("{plain_root}\\module.obj");
+        let rendered = |name: &str, attempt: &std::io::Result<std::process::Output>| {
             attempt
                 .as_ref()
                 .map(|output| {
                     format!(
-                        "exit={} stdout={:?} stderr={:?}",
+                        "{name}:exit={} stdout={:?} stderr={:?}",
                         output.status.code().unwrap_or(-1),
                         String::from_utf8_lossy(&output.stdout),
                         String::from_utf8_lossy(&output.stderr),
                     )
                 })
-                .unwrap_or_else(|| "spawn-failed".to_owned())
+                .unwrap_or_else(|error| format!("{name}:spawn-failed:{error:?}"))
         };
+        let mut cwd_listing = std::process::Command::new("cmd.exe");
+        cwd_listing
+            .current_dir(&root)
+            .args(["/c", "cd", "&", "dir", "/b", "module.obj"]);
+        let metadata = std::fs::metadata(root.join("module.obj"));
         let plain_probe = format!(
-            "captured_strict_stdout={captured:?} inherited_env{{{}}} stripped_env{{{}}}",
-            rendered(&attempt(false).ok()),
-            rendered(&attempt(true).ok()),
+            "captured_strict_stdout={captured:?} root_verbatim={verbatim:?} obj_metadata={metadata:?} {} {} {}",
+            rendered(
+                "plain_cwd",
+                &std::process::Command::new(&archiver_image)
+                    .current_dir(std::path::Path::new(&plain_root))
+                    .args(plain_args)
+                    .output(),
+            ),
+            rendered(
+                "absolute_input",
+                &std::process::Command::new(&archiver_image)
+                    .current_dir(&root)
+                    .args([
+                        "/NOLOGO",
+                        "/BREPRO",
+                        "/OUT:semaprax_plain_probe.lib",
+                        absolute_input.as_str(),
+                    ])
+                    .output(),
+            ),
+            rendered("cwd_listing", &cwd_listing.output()),
         );
         panic!(
             "{}",

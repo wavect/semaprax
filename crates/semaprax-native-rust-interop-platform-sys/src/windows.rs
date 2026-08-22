@@ -69,6 +69,24 @@ thread_local! {
 }
 
 #[cfg(test)]
+fn test_remember_overflowing_stdout(read_pipe: HANDLE, count: usize) {
+    let mut buffer = vec![0_u8; count.min(4096)];
+    let mut read = 0_u32;
+    let ok = unsafe {
+        ReadFile(
+            read_pipe,
+            buffer.as_mut_ptr().cast(),
+            u32::try_from(buffer.len()).unwrap_or(1),
+            &mut read,
+            std::ptr::null_mut(),
+        )
+    };
+    if ok != 0 && read != 0 {
+        test_remember_captured_stdout(&buffer[..read as usize]);
+    }
+}
+
+#[cfg(test)]
 fn test_remember_captured_stdout(output: &[u8]) {
     LAST_CAPTURED_STDOUT.with(|capture| {
         let mut capture = capture.borrow_mut();
@@ -3003,7 +3021,8 @@ fn run_argv(
         while available != 0 {
             let count = usize::try_from(available).unwrap_or(usize::MAX).min(8192);
             if count > stdout_limit.saturating_sub(output.len()) {
-                test_remember_captured_stdout(&output);
+                #[cfg(test)]
+                test_remember_overflowing_stdout(read_pipe.raw(), count);
                 selected_error = Some(Error::OutputLimit);
                 break;
             }
@@ -3099,7 +3118,8 @@ fn run_argv(
             }
             let count = usize::try_from(available).unwrap_or(usize::MAX).min(8192);
             if count > stdout_limit.saturating_sub(output.len()) {
-                test_remember_captured_stdout(&output);
+                #[cfg(test)]
+                test_remember_overflowing_stdout(read_pipe.raw(), count);
                 return Err(Error::OutputLimit);
             }
             let mut buffer = [0_u8; 8192];

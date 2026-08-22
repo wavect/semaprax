@@ -120,6 +120,8 @@ The read-only `semaprax hygienic-gen` command adds the first bounded typed-gener
 
 The read-only `semaprax openapi` and `semaprax openapi-compat` commands add a bounded schema-projection tranche over the same admitted scalar profile: a deterministic canonical OpenAPI 3.1 document under a digest-bound `semaprax.openapi.v1` envelope, and exact-authenticated compatibility classification between two such envelopes (`semaprax.openapi-compat.v1`) with closed breaking/non-breaking/informational finding families. They import no schemas, run no conformance fixtures, host nothing, execute no target, and fail closed rather than emitting truncated or unauthenticated bytes; see `docs/OPENAPI-V1.md`.
 
+The read-only `semaprax cxx-shim` command adds the C++ interoperability projection over the same admitted scalar profile as `c-header`: an `extern "C"` header fragment whose declaration lines are extracted verbatim from the production native C11 projection and annotated with typed stable-ID, contract, effect, status-contract, and ownership facts, wrapped in a digest-authenticated `semaprax.cxx-shim.v1` envelope that `verify_envelope` independently replays through the closed fail-closed `SPX-X1xx` family. It imports no headers or C++, compiles nothing, adds no exception or ownership policy beyond the bounded slice, and executes nothing; see `docs/CXX-SHIM-V1.md`.
+
 Generated arithmetic is checked for overflow, zero division, and the signed division edge case. Failures have stable process exit codes and explicit diagnostics rather than C undefined behavior.
 
 The locally evidenced floating-point tranche adds IEEE-754 `f32`/`f64` Copy

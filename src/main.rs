@@ -3,8 +3,8 @@ use std::process::{Command, ExitCode};
 
 use semaprax::diagnostic::{Diagnostic, Severity};
 use semaprax::{
-    abi_report, agent_economics, agent_transport, c_header, capability_manifest, codegen, format,
-    graph, hygienic, impact, openapi, parse, patch, patch_evidence, project, properties,
+    abi_report, agent_economics, agent_transport, c_header, capability_manifest, codegen, cxx_shim,
+    format, graph, hygienic, impact, openapi, parse, patch, patch_evidence, project, properties,
     quality_route, repair, review, semantic_workspace, semantic_workspace_change,
     semantic_workspace_operations,
     semantic_workspace_structural_change, target_evidence, verify, wasm, workspace,
@@ -645,6 +645,20 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             let envelope = capability_manifest::generate(&path, &options)
                 .map_err(|errors| report(&errors, false))?;
             println!("{envelope}");
+            Ok(())
+        }
+        "cxx-shim" => {
+            let path = required_path(&args, 1)?;
+            let (options, emit_fragment) = cxx_shim_options(&args)?;
+            if emit_fragment {
+                let fragment = cxx_shim::fragment_text(&path, &options)
+                    .map_err(|errors| report(&errors, false))?;
+                print!("{fragment}");
+            } else {
+                let envelope =
+                    cxx_shim::generate(&path, &options).map_err(|errors| report(&errors, false))?;
+                println!("{envelope}");
+            }
             Ok(())
         }
         "target-evidence" => {
@@ -1319,6 +1333,62 @@ fn capability_manifest_options(
     })
 }
 
+fn cxx_shim_options(args: &[String]) -> Result<(cxx_shim::CxxShimOptions, bool), u8> {
+    let mut functions: Vec<String> = Vec::new();
+    let mut max_bytes = cxx_shim::CxxShimOptions::default().max_bytes;
+    let mut emit_fragment = false;
+    let mut seen = std::collections::BTreeSet::new();
+    let mut index = 2usize;
+    while index < args.len() {
+        let option = args[index].as_str();
+        match option {
+            "--function" => {
+                let value = args.get(index + 1).ok_or_else(|| {
+                    eprintln!("cxx-shim option `{option}` requires a value");
+                    2
+                })?;
+                for token in value.split(',') {
+                    if token.is_empty() {
+                        eprintln!("cxx-shim option `{option}` requires nonempty selections");
+                        return Err(2);
+                    }
+                    functions.push(token.to_owned());
+                }
+                index += 2;
+            }
+            "--max-bytes" => {
+                if !seen.insert(option.to_owned()) {
+                    eprintln!("duplicate cxx-shim option `{option}`");
+                    return Err(2);
+                }
+                let value = args.get(index + 1).ok_or_else(|| {
+                    eprintln!("cxx-shim option `{option}` requires a value");
+                    2
+                })?;
+                max_bytes = property_number(option, value)?;
+                index += 2;
+            }
+            "--emit-fragment" => {
+                if !seen.insert(option.to_owned()) {
+                    eprintln!("duplicate cxx-shim option `{option}`");
+                    return Err(2);
+                }
+                emit_fragment = true;
+                index += 1;
+            }
+            other => {
+                eprintln!("unknown cxx-shim option `{other}`");
+                return Err(2);
+            }
+        }
+    }
+    let options = cxx_shim::CxxShimOptions::new(functions, max_bytes).map_err(|error| {
+        eprintln!("{error}");
+        2
+    })?;
+    Ok((options, emit_fragment))
+}
+
 fn property_number(option: &str, value: &str) -> Result<usize, u8> {
     if value.is_empty()
         || !value.bytes().all(|byte| byte.is_ascii_digit())
@@ -1788,6 +1858,7 @@ fn print_help() {
             semaprax c-header <file> --function name|stable-id[,...] [--function ...] [--max-bytes N] [--emit-header]\n\
             semaprax abi-report <file> --function name|stable-id[,...] [--function ...] [--max-bytes N]\n\
             semaprax capability-manifest <file> [--max-bytes N]\n\
+            semaprax cxx-shim <file> --function name|stable-id[,...] [--function ...] [--max-bytes N] [--emit-fragment]\n\
            semaprax review <file> <patch.spatch>\n\
            semaprax target-evidence <file> <patch.spatch>\n\
            semaprax patch-evidence <file> <patch.spatch>\n\

@@ -51,6 +51,88 @@ fn boundary_options() -> NativeRustSdkOptions {
     }
 }
 
+fn required_env_is_one(name: &str) -> bool {
+    std::env::var_os(name).as_deref() == Some(OsStr::new("1"))
+}
+
+fn required_windows_public_sdk_build() -> bool {
+    required_env_is_one("SEMAPRAX_REQUIRE_WINDOWS_REAL_ARCHIVE")
+}
+
+fn required_public_sdk_build() -> bool {
+    required_windows_public_sdk_build() || required_env_is_one("SEMAPRAX_REQUIRE_PUBLIC_SDK_BUILD")
+}
+
+fn missing_public_sdk_tools() -> Vec<&'static str> {
+    let windows_required = cfg!(windows) && required_public_sdk_build();
+    let required_tools: &[&str] = if windows_required {
+        &[
+            "RUSTC",
+            "CLANG",
+            "SEMAPRAX_ARCHIVER",
+            "SEMAPRAX_VCTOOLS",
+            "SEMAPRAX_LINKER",
+        ]
+    } else {
+        &["RUSTC", "CLANG", "SEMAPRAX_ARCHIVER"]
+    };
+    required_tools
+        .iter()
+        .copied()
+        .filter(|name| std::env::var_os(name).is_none())
+        .collect()
+}
+
+fn bounded_remaining_sdk_names(root: &Path) -> Vec<String> {
+    const MAX_NAMES: usize = 16;
+    const MAX_NAME_BYTES: usize = 160;
+    const OWNED_PREFIXES: [&[u8]; 2] = [
+        b".semaprax-native-rust-sdk-",
+        b".semaprax-native-rust-interop-",
+    ];
+
+    let Ok(entries) = std::fs::read_dir(root) else {
+        return vec!["<read-dir-error>".to_owned()];
+    };
+    let mut names = Vec::new();
+    let mut truncated = false;
+    for entry in entries {
+        let Ok(entry) = entry else {
+            continue;
+        };
+        let name = entry.file_name();
+        let bytes = name.as_encoded_bytes();
+        if bytes != b"generated"
+            && !OWNED_PREFIXES
+                .iter()
+                .any(|prefix| bytes.starts_with(prefix))
+        {
+            continue;
+        }
+        if names.len() == MAX_NAMES {
+            truncated = true;
+            break;
+        }
+        let mut bounded = String::with_capacity(bytes.len().min(MAX_NAME_BYTES));
+        for byte in bytes.iter().copied().take(MAX_NAME_BYTES) {
+            bounded.push(if byte.is_ascii_graphic() {
+                char::from(byte)
+            } else {
+                '?'
+            });
+        }
+        if bytes.len() > MAX_NAME_BYTES {
+            bounded.push_str("...");
+        }
+        names.push(bounded);
+    }
+    names.sort();
+    if truncated {
+        names[MAX_NAMES - 1] = "<truncated>".to_owned();
+    }
+    names
+}
+
 #[test]
 fn stable_id_method_encoding_is_injective_for_the_public_grammar() {
     assert_eq!(
@@ -153,8 +235,7 @@ fn effect_boundaries_fail_stop_and_preserve_sticky_status() {
         TEST_BUILD_STATE.with(|state| {
             state.set(TestBuildState {
                 point: Some(point),
-                archive_attempts: 0,
-                publish_calls: 0,
+                ..TestBuildState::default()
             });
         });
         let output = root.join(name);
@@ -172,6 +253,7 @@ fn effect_boundaries_fail_stop_and_preserve_sticky_status() {
         diagnostics[0].message
     );
     assert_eq!((state.archive_attempts, state.publish_calls), (0, 0));
+    assert_eq!(state.last_stage, TestBuildLastStage::ArchiveStageCreated);
     assert!(!output.exists());
 
     let entries_before = std::fs::read_dir(&root).unwrap().count();
@@ -183,6 +265,7 @@ fn effect_boundaries_fail_stop_and_preserve_sticky_status() {
     assert_eq!(diagnostics[0].code, "SPX-B112");
     assert_eq!(diagnostics[1].code, "SPX-I233");
     assert_eq!((state.archive_attempts, state.publish_calls), (0, 0));
+    assert_eq!(state.last_stage, TestBuildLastStage::InnerPayloadVerified);
     assert!(!output.exists());
     assert!(std::fs::read_dir(&root).unwrap().count() >= entries_before + 2);
 
@@ -190,6 +273,7 @@ fn effect_boundaries_fail_stop_and_preserve_sticky_status() {
     let diagnostics = error.err().unwrap().into_diagnostics();
     assert_eq!(diagnostics[0].code, "SPX-I233");
     assert_eq!((state.archive_attempts, state.publish_calls), (1, 0));
+    assert_eq!(state.last_stage, TestBuildLastStage::ArchiveStageCreated);
     assert!(!output.exists());
     assert!(std::fs::read_dir(&root).unwrap().any(|entry| {
         entry.ok().is_some_and(|entry| {
@@ -207,12 +291,17 @@ fn effect_boundaries_fail_stop_and_preserve_sticky_status() {
     let diagnostics = error.err().unwrap().into_diagnostics();
     assert_eq!(diagnostics[0].code, "SPX-B112");
     assert_eq!((state.archive_attempts, state.publish_calls), (1, 0));
+    assert_eq!(state.last_stage, TestBuildLastStage::OuterStageCreated);
     assert!(!output.exists());
 
     let (output, error, state) = run(TestBuildPoint::BeforePublish, "before-publish");
     let diagnostics = error.err().unwrap().into_diagnostics();
     assert_eq!(diagnostics[0].code, "SPX-I233");
     assert_eq!((state.archive_attempts, state.publish_calls), (1, 1));
+    assert_eq!(
+        state.last_stage,
+        TestBuildLastStage::PrePublishAuthenticated
+    );
     assert!(!output.exists());
 
     let (output, error, state) = run(
@@ -222,6 +311,10 @@ fn effect_boundaries_fail_stop_and_preserve_sticky_status() {
     let diagnostics = error.err().unwrap().into_diagnostics();
     assert_eq!(diagnostics[0].code, "SPX-I233");
     assert_eq!((state.archive_attempts, state.publish_calls), (1, 0));
+    assert_eq!(
+        state.last_stage,
+        TestBuildLastStage::OuterInventoryAuthenticated
+    );
     assert!(!output.exists());
     assert!(std::fs::read_dir(&root).unwrap().any(|entry| {
         entry
@@ -236,6 +329,7 @@ fn effect_boundaries_fail_stop_and_preserve_sticky_status() {
     let diagnostics = error.err().unwrap().into_diagnostics();
     assert_eq!(diagnostics[0].code, "SPX-I233");
     assert_eq!((state.archive_attempts, state.publish_calls), (1, 1));
+    assert_eq!(state.last_stage, TestBuildLastStage::PublishReturned);
     assert!(output.is_dir());
 
     std::fs::remove_dir_all(root).unwrap();
@@ -243,10 +337,13 @@ fn effect_boundaries_fail_stop_and_preserve_sticky_status() {
 
 #[test]
 fn effectful_no_import_sdk_builds_the_exact_public_inventory() {
-    if std::env::var_os("RUSTC").is_none()
-        || std::env::var_os("CLANG").is_none()
-        || std::env::var_os("SEMAPRAX_ARCHIVER").is_none()
-    {
+    let missing_tools = missing_public_sdk_tools();
+    if !missing_tools.is_empty() {
+        if required_public_sdk_build() {
+            panic!(
+                "required minimal public SDK build is missing configured tools: {missing_tools:?}"
+            );
+        }
         return;
     }
     let root = std::fs::canonicalize(std::env::temp_dir())
@@ -258,13 +355,32 @@ fn effectful_no_import_sdk_builds_the_exact_public_inventory() {
         ));
     std::fs::create_dir(&root).unwrap();
     let output = root.join("generated");
-    let bundle = build_native_rust_sdk(
+    TEST_BUILD_STATE.with(|state| state.set(TestBuildState::default()));
+    let result = build_native_rust_sdk(
         MINIMAL_SOURCE,
         Path::new("no-import-fixture.spx"),
         minimal_options(),
         &output,
-    )
-    .unwrap();
+    );
+    let snapshot = test_build_snapshot();
+    let bundle = match result {
+        Ok(bundle) => bundle,
+        Err(diagnostics) => {
+            let remaining_owned_names = bounded_remaining_sdk_names(&root);
+            panic!(
+                "minimal public SDK build failed: diagnostics={diagnostics:?}; last_stage={:?}; archive_attempts={}; publish_calls={}; remaining_owned_names={remaining_owned_names:?}",
+                snapshot.last_stage, snapshot.archive_attempts, snapshot.publish_calls
+            );
+        }
+    };
+    assert_eq!(
+        snapshot,
+        TestBuildSnapshot {
+            last_stage: TestBuildLastStage::PublishedAuthenticated,
+            archive_attempts: 1,
+            publish_calls: 1,
+        }
+    );
     assert_eq!(bundle.output_directory(), output);
     let root_entries = std::fs::read_dir(&output).unwrap().count();
     let src_entries = std::fs::read_dir(output.join("src")).unwrap().count();

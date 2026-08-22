@@ -229,9 +229,41 @@ enum TestBuildPoint {
 }
 
 #[cfg(test)]
+#[derive(Clone, Copy, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
+enum TestBuildLastStage {
+    #[default]
+    Start,
+    InnerAuthenticated,
+    InnerPayloadVerified,
+    ArchiveStageCreated,
+    ArchiveToolReturned,
+    ArchiveAttached,
+    ArchiveInventoryAuthenticated,
+    ArchiveRead,
+    OuterStageCreated,
+    OuterStageWritten,
+    OuterInventoryAuthenticated,
+    ArchiveScratchDiscarded,
+    InnerScratchDiscarded,
+    PrePublishAuthenticated,
+    PublishReturned,
+    PublishedPackageAuthenticated,
+    PublishedAuthenticated,
+}
+
+#[cfg(test)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+struct TestBuildSnapshot {
+    last_stage: TestBuildLastStage,
+    archive_attempts: usize,
+    publish_calls: usize,
+}
+
+#[cfg(test)]
 #[derive(Clone, Copy, Default)]
 struct TestBuildState {
     point: Option<TestBuildPoint>,
+    last_stage: TestBuildLastStage,
     archive_attempts: usize,
     publish_calls: usize,
 }
@@ -239,7 +271,12 @@ struct TestBuildState {
 #[cfg(test)]
 thread_local! {
     static TEST_BUILD_STATE: std::cell::Cell<TestBuildState> = const {
-        std::cell::Cell::new(TestBuildState { point: None, archive_attempts: 0, publish_calls: 0 })
+        std::cell::Cell::new(TestBuildState {
+            point: None,
+            last_stage: TestBuildLastStage::Start,
+            archive_attempts: 0,
+            publish_calls: 0,
+        })
     };
 }
 
@@ -269,6 +306,28 @@ fn record_publish_call() {
         value.publish_calls += 1;
         state.set(value);
     });
+}
+
+#[cfg(test)]
+fn record_test_build_stage(last_stage: TestBuildLastStage) {
+    TEST_BUILD_STATE.with(|state| {
+        let mut value = state.get();
+        assert!(last_stage > value.last_stage);
+        value.last_stage = last_stage;
+        state.set(value);
+    });
+}
+
+#[cfg(test)]
+fn test_build_snapshot() -> TestBuildSnapshot {
+    TEST_BUILD_STATE.with(|state| {
+        let state = state.get();
+        TestBuildSnapshot {
+            last_stage: state.last_stage,
+            archive_attempts: state.archive_attempts,
+            publish_calls: state.publish_calls,
+        }
+    })
 }
 
 fn sdk_error(message: &'static str) -> Diagnostic {

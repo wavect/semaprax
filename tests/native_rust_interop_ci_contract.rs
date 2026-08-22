@@ -386,6 +386,83 @@ fn private_builder_uses_held_platform_authority_for_every_physical_step() {
         .expect("bounded Windows real archive test");
     assert!(real_archive.contains("start.elapsed() < std::time::Duration::from_secs(5)"));
     assert_contains_all(
+        "required Windows real archive evidence",
+        real_archive,
+        &[
+            "SEMAPRAX_REQUIRE_WINDOWS_REAL_ARCHIVE",
+            "requires SEMAPRAX_ARCHIVER",
+            "requires SEMAPRAX_VCTOOLS",
+            "requires CLANG",
+            "windows_real_archive_failure_evidence(",
+            "panic!(",
+        ],
+    );
+    let archive_failure_evidence = sys_tests
+        .split("fn windows_real_archive_failure_evidence(")
+        .nth(1)
+        .and_then(|tail| tail.split("\n#[cfg(").next())
+        .expect("bounded Windows real archive failure evidence");
+    assert_contains_all(
+        "bounded Windows archive failure evidence",
+        archive_failure_evidence,
+        &[
+            "const MEMBER_CAP: usize = 8;",
+            "const PREVIEW_CAP: usize = 64;",
+            "const HASH_BYTE_CAP: u64 = super::SDK_ARCHIVE_MAX_BYTES;",
+            "const DIAGNOSTIC_BYTE_CAP: usize = 16_384;",
+            "error={error:?} elapsed_ms={}",
+            "output_exists={exists} output_length={length}",
+            "exact_replay={exact_replay}",
+            "super::platform::hold_regular_file(directory, output_name)",
+            "super::platform::test_exact_archive_member(&output, input)",
+            "\"absent\".to_owned()",
+            "\"replay_ok\".to_owned()",
+            "output_replay_err:{replay:?}",
+            "for index in 0..MEMBER_CAP",
+            "header_hex={}",
+            "name_hex={}",
+            "name_escaped={}",
+            "parsed_size={parsed_size:?}",
+            "if parsed_size.is_err()",
+            "preview_hex={}",
+            "preview_escaped={}",
+            "sha256={}",
+            "evidence.truncate(DIAGNOSTIC_BYTE_CAP);",
+        ],
+    );
+    let mixed_inventory = sys_tests
+        .split("fn windows_mixed_root_inventory_replays_before_and_after_exact_directory_rename()")
+        .nth(1)
+        .and_then(|tail| tail.split("\n#[cfg(").next())
+        .expect("bounded Windows mixed inventory runtime test");
+    assert_contains_all(
+        "Windows mixed inventory runtime evidence",
+        mixed_inventory,
+        &[
+            "let root_files = [",
+            "let source_files = [",
+            "let native_files = [",
+            "prepare_inventory_entries_exact(",
+            "inventory_entries_exact_prepared(",
+            "[&source, &native]",
+            "publish_directory_new_prepared(",
+            "same_directory_path(&stage, &root.join(\"published\"))",
+            "recheck_directory(&stage)",
+            "recheck_regular(file)",
+            "authenticate();",
+            "discard_owned_stage_prepared(",
+            "assert!(!root.join(\"published\").exists())",
+        ],
+    );
+    assert_eq!(mixed_inventory.matches("authenticate();").count(), 2);
+    assert_eq!(
+        mixed_inventory
+            .matches("inventory_entries_exact_prepared(")
+            .count(),
+        3,
+        "one exact root and two exact nested inventories must be replayed per authentication"
+    );
+    assert_contains_all(
         "Windows archive hostile evidence",
         archive_hostiles,
         &["b\"/<HYBRIDMAP>/\"", "b\"foreign.obj/\""],
@@ -588,6 +665,138 @@ fn private_builder_uses_held_platform_authority_for_every_physical_step() {
             "windows_silent_timeout_is_bounded_and_reaps_the_leader",
             "windows_output_overflow_kills_and_reaps_the_process_tree_with_a_bounded_wait",
             "windows_external_consumer_cannot_extract_handles_or_reach_sys_quarantine",
+        ],
+    );
+}
+
+#[test]
+fn public_sdk_windows_runs_exact_early_archive_and_minimal_effectful_diagnostics() {
+    let workflow = read(".github/workflows/ci.yml");
+    let public_job = workflow
+        .split("\n  native-rust-sdk-v1:\n")
+        .nth(1)
+        .and_then(|tail| tail.split("\n  verify:\n").next())
+        .expect("Public Native Rust SDK workflow job");
+    let archive_command = "run: cargo test --locked -p semaprax-native-rust-interop-platform-sys --lib tests::windows_real_brepro_archive_round_trips_through_exact_admission -- --exact --nocapture --test-threads=1";
+    let inventory_command = "run: cargo test --locked -p semaprax-native-rust-interop-platform-sys --lib tests::windows_mixed_root_inventory_replays_before_and_after_exact_directory_rename -- --exact --nocapture --test-threads=1";
+    let minimal_command = "run: cargo test --locked -p semaprax-native-rust-interop --lib public_sdk::tests::effectful_no_import_sdk_builds_the_exact_public_inventory -- --exact --nocapture --test-threads=1";
+    let long_command = "cargo test --locked -p semaprax --test public_native_rust_sdk_v1 -- --test-threads=1 --nocapture";
+    assert_eq!(public_job.matches(archive_command).count(), 1);
+    assert_eq!(public_job.matches(inventory_command).count(), 1);
+    assert_eq!(public_job.matches(minimal_command).count(), 1);
+    assert_eq!(
+        public_job
+            .matches("SEMAPRAX_REQUIRE_WINDOWS_REAL_ARCHIVE: \"1\"")
+            .count(),
+        1
+    );
+    assert_eq!(
+        public_job
+            .matches("SEMAPRAX_REQUIRE_PUBLIC_SDK_BUILD: \"1\"")
+            .count(),
+        1
+    );
+    let archive = public_job.find(archive_command).unwrap();
+    let inventory = public_job.find(inventory_command).unwrap();
+    let minimal = public_job.find(minimal_command).unwrap();
+    let long = public_job.find(long_command).unwrap();
+    assert!(archive < inventory && inventory < minimal && minimal < long);
+    let early_steps = &public_job[..long];
+    assert_eq!(
+        early_steps.matches("if: runner.os == 'Windows'").count(),
+        4,
+        "tool resolution and all three early diagnostics must be Windows-only"
+    );
+}
+
+#[test]
+fn public_sdk_minimal_failure_diagnostic_locks_exact_monotonic_phase_c_boundaries() {
+    let module = read("crates/semaprax-native-rust-interop-builder/src/public_sdk/mod.rs");
+    let authority = read("crates/semaprax-native-rust-interop-builder/src/public_sdk/authority.rs");
+    let tests = read("crates/semaprax-native-rust-interop-builder/src/public_sdk/tests.rs");
+
+    let stage_enum = module
+        .split("enum TestBuildLastStage {")
+        .nth(1)
+        .and_then(|tail| tail.split("\n}").next())
+        .expect("bounded test-only Phase C last-stage enum");
+    let stages = stage_enum
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty() && !line.starts_with("#["))
+        .map(|line| line.strip_suffix(',').expect("one canonical enum variant"))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        stages,
+        [
+            "Start",
+            "InnerAuthenticated",
+            "InnerPayloadVerified",
+            "ArchiveStageCreated",
+            "ArchiveToolReturned",
+            "ArchiveAttached",
+            "ArchiveInventoryAuthenticated",
+            "ArchiveRead",
+            "OuterStageCreated",
+            "OuterStageWritten",
+            "OuterInventoryAuthenticated",
+            "ArchiveScratchDiscarded",
+            "InnerScratchDiscarded",
+            "PrePublishAuthenticated",
+            "PublishReturned",
+            "PublishedPackageAuthenticated",
+            "PublishedAuthenticated",
+        ]
+    );
+    assert!(module.contains("assert!(last_stage > value.last_stage);"));
+
+    let build = authority
+        .split("pub(super) fn build_native_rust_sdk_inner(")
+        .nth(1)
+        .expect("public SDK Phase C build authority");
+    let ordered_stages = &stages[1..];
+    let mut previous = 0usize;
+    for stage in ordered_stages {
+        let call = format!("record_test_build_stage(TestBuildLastStage::{stage});");
+        assert_eq!(build.matches(&call).count(), 1, "exact call for {stage}");
+        let position = build.find(&call).unwrap();
+        assert!(position >= previous, "out-of-order call for {stage}");
+        let prefix = &build[previous..position];
+        assert!(
+            prefix
+                .rsplit('\n')
+                .take(3)
+                .any(|line| line.contains("#[cfg(test)]")),
+            "{stage} recording is not test-only"
+        );
+        previous = position + call.len();
+    }
+    assert_eq!(
+        build.matches("crate::platform::read_exact(").count(),
+        1,
+        "archive bytes must use one unconditional source operation"
+    );
+    assert_eq!(
+        build
+            .matches("crate::platform::publish_directory_new_prepared(")
+            .count(),
+        1,
+        "publication must use one unconditional source operation"
+    );
+    assert!(!build.contains("#[cfg(not(test))]"));
+
+    assert_contains_all(
+        "bounded public SDK failure snapshot",
+        &tests,
+        &[
+            "const MAX_NAMES: usize = 16;",
+            "const MAX_NAME_BYTES: usize = 160;",
+            "diagnostics={diagnostics:?}; last_stage={:?}; archive_attempts={}; publish_calls={}; remaining_owned_names={remaining_owned_names:?}",
+            "snapshot.last_stage, snapshot.archive_attempts, snapshot.publish_calls",
+            "std::env::var_os(name).as_deref() == Some(OsStr::new(\"1\"))",
+            "cfg!(windows) && required_public_sdk_build()",
+            "\"SEMAPRAX_VCTOOLS\"",
+            "\"SEMAPRAX_LINKER\"",
         ],
     );
 }

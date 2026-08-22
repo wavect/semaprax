@@ -669,6 +669,8 @@ pub(super) fn build_native_rust_sdk_inner(
         inner_inventory,
         inner_scan,
     )?;
+    #[cfg(test)]
+    record_test_build_stage(TestBuildLastStage::InnerAuthenticated);
     let inner_prepared = (|| -> Result<_, Diagnostic> {
         if inner_facts.output_directory() != inner_path.as_path()
             || inner_facts.descriptor_path() != inner_path.join("descriptor.json")
@@ -735,6 +737,8 @@ pub(super) fn build_native_rust_sdk_inner(
             Ok(prepared) => prepared,
             Err(error) => return Err(fail_after_inner(&parent, &inner, error)),
         };
+    #[cfg(test)]
+    record_test_build_stage(TestBuildLastStage::InnerPayloadVerified);
 
     // The archiver sees a private held run stage and one exact held object.
     let mut archive_stage = match create_archive_stage(
@@ -749,6 +753,8 @@ pub(super) fn build_native_rust_sdk_inner(
         Err(error) if error.settlement_uncertain => return Err(error.stop()),
         Err(error) => return Err(fail_after_inner(&parent, &inner, error.primary)),
     };
+    #[cfg(test)]
+    record_test_build_stage(TestBuildLastStage::ArchiveStageCreated);
     let archive_result = (|| -> Result<Vec<u8>, Diagnostic> {
         #[cfg(test)]
         if test_hook(TestBuildPoint::BeforeArchive) {
@@ -772,23 +778,32 @@ pub(super) fn build_native_rust_sdk_inner(
             &mut process_arena,
         )
         .map_err(|_| publication_error())?;
+        #[cfg(test)]
+        record_test_build_stage(TestBuildLastStage::ArchiveToolReturned);
         archive_stage
             .inventory
             .attach(archive_name, archive_file)
             .map_err(|_| publication_error())?;
+        #[cfg(test)]
+        record_test_build_stage(TestBuildLastStage::ArchiveAttached);
         authenticate_inventory(
             &mut archive_scan,
             &archive_stage.directory,
             &archive_stage.inventory,
         )?;
-        crate::platform::read_exact(
+        #[cfg(test)]
+        record_test_build_stage(TestBuildLastStage::ArchiveInventoryAuthenticated);
+        let archive = crate::platform::read_exact(
             archive_stage
                 .inventory
                 .file(archive_name)
                 .map_err(|_| publication_error())?,
             MAX_ARCHIVE_BYTES,
         )
-        .map_err(|_| publication_error())
+        .map_err(|_| publication_error())?;
+        #[cfg(test)]
+        record_test_build_stage(TestBuildLastStage::ArchiveRead);
+        Ok(archive)
     })();
     let archive = match archive_result {
         Ok(archive) => archive,
@@ -820,6 +835,8 @@ pub(super) fn build_native_rust_sdk_inner(
             ));
         }
     };
+    #[cfg(test)]
+    record_test_build_stage(TestBuildLastStage::OuterStageCreated);
     let outer_result = (|| -> Result<String, Diagnostic> {
         let manifest = render_sdk_manifest(
             &descriptor_facts,
@@ -853,11 +870,15 @@ pub(super) fn build_native_rust_sdk_inner(
             &manifest,
             archive_name,
         )?;
+        #[cfg(test)]
+        record_test_build_stage(TestBuildLastStage::OuterStageWritten);
         outer.recheck_all(
             &mut root_stage_scan,
             &mut src_stage_scan,
             &mut native_stage_scan,
         )?;
+        #[cfg(test)]
+        record_test_build_stage(TestBuildLastStage::OuterInventoryAuthenticated);
         Ok(manifest)
     })();
     let manifest = match outer_result {
@@ -883,9 +904,13 @@ pub(super) fn build_native_rust_sdk_inner(
     if discard_archive_stage(&parent, &archive_stage).is_err() {
         return Err(publication_error().into());
     }
+    #[cfg(test)]
+    record_test_build_stage(TestBuildLastStage::ArchiveScratchDiscarded);
     if discard_inner_bundle(&parent, &inner).is_err() {
         return Err(publication_error().into());
     }
+    #[cfg(test)]
+    record_test_build_stage(TestBuildLastStage::InnerScratchDiscarded);
     let publication = (|| -> Result<(), Diagnostic> {
         #[cfg(test)]
         #[cfg(debug_assertions)]
@@ -900,6 +925,8 @@ pub(super) fn build_native_rust_sdk_inner(
             &mut native_publish_scan,
         )?;
         #[cfg(test)]
+        record_test_build_stage(TestBuildLastStage::PrePublishAuthenticated);
+        #[cfg(test)]
         record_publish_call();
         crate::platform::publish_directory_new_prepared(
             &mut final_publish,
@@ -908,7 +935,10 @@ pub(super) fn build_native_rust_sdk_inner(
             &outer.name,
             output_name,
         )
-        .map_err(|_| publication_error())
+        .map_err(|_| publication_error())?;
+        #[cfg(test)]
+        record_test_build_stage(TestBuildLastStage::PublishReturned);
+        Ok(())
     })();
     if let Err(error) = publication {
         let cleanup = discard_outer_stage(&parent, &outer);
@@ -938,6 +968,8 @@ pub(super) fn build_native_rust_sdk_inner(
             archive: &archive,
         },
     )?;
+    #[cfg(test)]
+    record_test_build_stage(TestBuildLastStage::PublishedPackageAuthenticated);
     verify_sdk_manifest(
         &published_manifest,
         &descriptor_facts,
@@ -949,6 +981,8 @@ pub(super) fn build_native_rust_sdk_inner(
         &ffi_inner,
         &archive,
     )?;
+    #[cfg(test)]
+    record_test_build_stage(TestBuildLastStage::PublishedAuthenticated);
     let manifest_digest = domain_digest(SDK_MANIFEST_DOMAIN, manifest.as_bytes());
     Ok(NativeRustSdkBundle {
         output_directory: output.to_path_buf(),

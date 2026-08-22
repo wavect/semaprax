@@ -480,11 +480,26 @@ fn windows_real_brepro_archive_round_trips_through_exact_admission() {
     use std::ffi::OsStr;
     use std::path::Path;
 
-    let (Some(archiver), Some(vctools), Some(clang)) = (
-        std::env::var_os("SEMAPRAX_ARCHIVER"),
-        std::env::var_os("SEMAPRAX_VCTOOLS"),
-        std::env::var_os("CLANG"),
-    ) else {
+    let required = std::env::var_os("SEMAPRAX_REQUIRE_WINDOWS_REAL_ARCHIVE").as_deref()
+        == Some(OsStr::new("1"));
+    let archiver = std::env::var_os("SEMAPRAX_ARCHIVER");
+    let vctools = std::env::var_os("SEMAPRAX_VCTOOLS");
+    let clang = std::env::var_os("CLANG");
+    if required {
+        assert!(
+            archiver.is_some(),
+            "SEMAPRAX_REQUIRE_WINDOWS_REAL_ARCHIVE=1 requires SEMAPRAX_ARCHIVER"
+        );
+        assert!(
+            vctools.is_some(),
+            "SEMAPRAX_REQUIRE_WINDOWS_REAL_ARCHIVE=1 requires SEMAPRAX_VCTOOLS"
+        );
+        assert!(
+            clang.is_some(),
+            "SEMAPRAX_REQUIRE_WINDOWS_REAL_ARCHIVE=1 requires CLANG"
+        );
+    }
+    let (Some(archiver), Some(vctools), Some(clang)) = (archiver, vctools, clang) else {
         return;
     };
     let archiver = std::path::PathBuf::from(archiver);
@@ -538,13 +553,389 @@ fn windows_real_brepro_archive_round_trips_through_exact_admission() {
     let mut process = super::platform::prepare_process_arena(1).unwrap();
     let start = std::time::Instant::now();
     let archive =
-        super::platform::archive_prepared(&archiver, &directory, &input, prepared, &mut process)
-            .unwrap();
+        super::platform::archive_prepared(&archiver, &directory, &input, prepared, &mut process);
+    let elapsed = start.elapsed();
+    let archive = archive.unwrap_or_else(|error| {
+        panic!(
+            "{}",
+            windows_real_archive_failure_evidence(
+                &directory,
+                &input,
+                OsStr::new("semaprax_native_rust_sdk.lib"),
+                &root.join("semaprax_native_rust_sdk.lib"),
+                error,
+                elapsed,
+            )
+        )
+    });
     assert!(start.elapsed() < std::time::Duration::from_secs(5));
     super::platform::test_exact_archive_member(&archive, &input).unwrap();
 
     drop((archive, archiver, input, directory, process));
     std::fs::remove_dir_all(root).unwrap();
+}
+
+#[cfg(windows)]
+fn windows_real_archive_failure_evidence(
+    directory: &super::platform::Directory,
+    input: &super::platform::RegularFile,
+    output_name: &std::ffi::OsStr,
+    archive: &std::path::Path,
+    error: Error,
+    elapsed: std::time::Duration,
+) -> String {
+    use sha2::{Digest as _, Sha256};
+    use std::fmt::Write as _;
+    use std::io::{Read as _, Seek as _, SeekFrom};
+
+    const MEMBER_CAP: usize = 8;
+    const PREVIEW_CAP: usize = 64;
+    const HASH_BYTE_CAP: u64 = super::SDK_ARCHIVE_MAX_BYTES;
+    const DIAGNOSTIC_BYTE_CAP: usize = 16_384;
+
+    fn hex(bytes: &[u8]) -> String {
+        use std::fmt::Write as _;
+
+        let mut rendered = String::with_capacity(bytes.len() * 2);
+        for byte in bytes {
+            write!(rendered, "{byte:02x}").unwrap();
+        }
+        rendered
+    }
+
+    fn escaped(bytes: &[u8]) -> String {
+        use std::fmt::Write as _;
+
+        let mut rendered = String::with_capacity(bytes.len() * 4);
+        for byte in bytes {
+            match byte {
+                b' '..=b'~' if *byte != b'\\' => rendered.push(char::from(*byte)),
+                b'\\' => rendered.push_str("\\\\"),
+                _ => write!(rendered, "\\x{byte:02x}").unwrap(),
+            }
+        }
+        rendered
+    }
+
+    let metadata = std::fs::metadata(archive).ok();
+    let exists = metadata.is_some();
+    let length = metadata.as_ref().map_or(0, std::fs::Metadata::len);
+    let exact_replay = if !exists {
+        "absent".to_owned()
+    } else {
+        match super::platform::hold_regular_file(directory, output_name) {
+            Ok(output) => match super::platform::test_exact_archive_member(&output, input) {
+                Ok(()) => "replay_ok".to_owned(),
+                Err(replay) => format!("output_replay_err:{replay:?}"),
+            },
+            Err(replay) => format!("output_replay_err:hold:{replay:?}"),
+        }
+    };
+    let mut evidence = format!(
+        "Windows real archive admission failed: error={error:?} elapsed_ms={} output_exists={exists} output_length={length} exact_replay={exact_replay}",
+        elapsed.as_millis(),
+    );
+    let Ok(mut file) = std::fs::File::open(archive) else {
+        return evidence;
+    };
+
+    let hashed_bytes = length.min(HASH_BYTE_CAP);
+    let mut hasher = Sha256::new();
+    let mut remaining = hashed_bytes;
+    let mut buffer = [0_u8; 4096];
+    while remaining != 0 {
+        let requested = usize::try_from(remaining.min(buffer.len() as u64)).unwrap();
+        let read = file.read(&mut buffer[..requested]).unwrap_or(0);
+        if read == 0 {
+            break;
+        }
+        hasher.update(&buffer[..read]);
+        remaining -= read as u64;
+    }
+    let digest = hasher.finalize();
+    write!(
+        evidence,
+        " hash_bytes={} sha256={}",
+        hashed_bytes - remaining,
+        hex(&digest)
+    )
+    .unwrap();
+
+    if file.seek(SeekFrom::Start(0)).is_ok() {
+        let mut magic = [0_u8; 8];
+        if file.read_exact(&mut magic).is_ok() {
+            write!(
+                evidence,
+                " magic_hex={} magic_escaped={}",
+                hex(&magic),
+                escaped(&magic)
+            )
+            .unwrap();
+            let mut offset = 8_u64;
+            for index in 0..MEMBER_CAP {
+                let mut header = [0_u8; 60];
+                if file.seek(SeekFrom::Start(offset)).is_err()
+                    || file.read_exact(&mut header).is_err()
+                {
+                    break;
+                }
+                let parsed_size = super::archive_member_size(&header[48..58]);
+                let payload_size = parsed_size.as_ref().copied().unwrap_or(0);
+                let preview_length = usize::try_from(payload_size.min(PREVIEW_CAP as u64)).unwrap();
+                let mut preview = [0_u8; PREVIEW_CAP];
+                let preview_read = file.read(&mut preview[..preview_length]).unwrap_or(0);
+                write!(
+                    evidence,
+                    "\nmember[{index}] offset={offset} header_hex={} name_hex={} name_escaped={} timestamp_hex={} timestamp_escaped={} owner_hex={} owner_escaped={} group_hex={} group_escaped={} mode_hex={} mode_escaped={} size_hex={} size_escaped={} end_hex={} end_escaped={} parsed_size={parsed_size:?} preview_len={preview_read} preview_hex={} preview_escaped={}",
+                    hex(&header),
+                    hex(&header[0..16]),
+                    escaped(&header[0..16]),
+                    hex(&header[16..28]),
+                    escaped(&header[16..28]),
+                    hex(&header[28..34]),
+                    escaped(&header[28..34]),
+                    hex(&header[34..40]),
+                    escaped(&header[34..40]),
+                    hex(&header[40..48]),
+                    escaped(&header[40..48]),
+                    hex(&header[48..58]),
+                    escaped(&header[48..58]),
+                    hex(&header[58..60]),
+                    escaped(&header[58..60]),
+                    hex(&preview[..preview_read]),
+                    escaped(&preview[..preview_read]),
+                )
+                .unwrap();
+                if parsed_size.is_err() {
+                    break;
+                }
+                let Some(next) = offset
+                    .checked_add(60)
+                    .and_then(|value| value.checked_add(payload_size))
+                    .and_then(|value| value.checked_add(payload_size & 1))
+                else {
+                    break;
+                };
+                if next <= offset || next > length {
+                    break;
+                }
+                offset = next;
+            }
+        }
+    }
+    evidence.truncate(DIAGNOSTIC_BYTE_CAP);
+    evidence
+}
+
+#[cfg(windows)]
+#[test]
+fn windows_mixed_root_inventory_replays_before_and_after_exact_directory_rename() {
+    use std::ffi::OsStr;
+
+    let root = std::env::temp_dir().join(format!(
+        "semaprax-windows-mixed-inventory-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos(),
+    ));
+    std::fs::create_dir(&root).unwrap();
+    let root = std::fs::canonicalize(root).unwrap();
+    let parent = super::platform::hold_directory(&root).unwrap();
+    let stage = super::platform::create_directory_new(&parent, OsStr::new("stage"), 0o700).unwrap();
+    let source =
+        super::platform::create_directory_new(&stage, OsStr::new("source"), 0o700).unwrap();
+    let native =
+        super::platform::create_directory_new(&stage, OsStr::new("native"), 0o700).unwrap();
+
+    let root_files = [
+        super::platform::write_file_new(&stage, OsStr::new("Cargo.toml"), b"cargo", 0o600).unwrap(),
+        super::platform::write_file_new(&stage, OsStr::new("build.rs"), b"build", 0o600).unwrap(),
+        super::platform::write_file_new(&stage, OsStr::new("sdk.json"), b"sdk", 0o600).unwrap(),
+    ];
+    let source_files = [
+        super::platform::write_file_new(&source, OsStr::new("lib.rs"), b"lib", 0o600).unwrap(),
+        super::platform::write_file_new(&source, OsStr::new("ffi.rs"), b"ffi", 0o600).unwrap(),
+        super::platform::write_file_new(&source, OsStr::new("api.rs"), b"api", 0o600).unwrap(),
+    ];
+    let native_files = [
+        super::platform::write_file_new(&native, OsStr::new("sdk.lib"), b"archive", 0o600).unwrap(),
+        super::platform::write_file_new(
+            &native,
+            OsStr::new("descriptor.json"),
+            b"descriptor",
+            0o600,
+        )
+        .unwrap(),
+        super::platform::write_file_new(&native, OsStr::new("manifest.json"), b"manifest", 0o600)
+            .unwrap(),
+    ];
+
+    let authenticate = || {
+        let mut root_inventory = super::platform::prepare_inventory_entries_exact(
+            [
+                OsStr::new("Cargo.toml"),
+                OsStr::new("build.rs"),
+                OsStr::new("sdk.json"),
+                OsStr::new("source"),
+                OsStr::new("native"),
+            ],
+            3,
+        )
+        .unwrap();
+        super::platform::inventory_entries_exact_prepared(
+            &mut root_inventory,
+            &stage,
+            [&root_files[0], &root_files[1], &root_files[2]],
+            [&source, &native],
+        )
+        .unwrap();
+        let mut source_inventory = super::platform::prepare_inventory_entries_exact(
+            [
+                OsStr::new("lib.rs"),
+                OsStr::new("ffi.rs"),
+                OsStr::new("api.rs"),
+            ],
+            3,
+        )
+        .unwrap();
+        super::platform::inventory_entries_exact_prepared(
+            &mut source_inventory,
+            &source,
+            [&source_files[0], &source_files[1], &source_files[2]],
+            [],
+        )
+        .unwrap();
+        let mut native_inventory = super::platform::prepare_inventory_entries_exact(
+            [
+                OsStr::new("sdk.lib"),
+                OsStr::new("descriptor.json"),
+                OsStr::new("manifest.json"),
+            ],
+            3,
+        )
+        .unwrap();
+        super::platform::inventory_entries_exact_prepared(
+            &mut native_inventory,
+            &native,
+            [&native_files[0], &native_files[1], &native_files[2]],
+            [],
+        )
+        .unwrap();
+    };
+    authenticate();
+
+    let mut stage_name = super::platform::prepare_relative_name_arena(9).unwrap();
+    super::platform::set_relative_name_arena(&mut stage_name, OsStr::new("stage")).unwrap();
+    let mut publish = super::platform::prepare_publish_directory(OsStr::new("published")).unwrap();
+    super::platform::publish_directory_new_prepared(
+        &mut publish,
+        &parent,
+        &stage,
+        &stage_name,
+        OsStr::new("published"),
+    )
+    .unwrap();
+    assert!(!root.join("stage").exists());
+    assert!(super::platform::same_directory_path(&stage, &root.join("published")).unwrap());
+    super::platform::recheck_directory(&parent).unwrap();
+    super::platform::recheck_directory(&stage).unwrap();
+    super::platform::recheck_directory(&source).unwrap();
+    super::platform::recheck_directory(&native).unwrap();
+    for file in root_files.iter().chain(&source_files).chain(&native_files) {
+        super::platform::recheck_regular(file).unwrap();
+    }
+    authenticate();
+
+    let source_names = super::platform::prepare_discard_names([
+        OsStr::new("lib.rs"),
+        OsStr::new("ffi.rs"),
+        OsStr::new("api.rs"),
+    ])
+    .unwrap();
+    let mut source_name = super::platform::prepare_relative_name_arena(6).unwrap();
+    super::platform::set_relative_name_arena(&mut source_name, OsStr::new("source")).unwrap();
+    super::platform::discard_owned_stage_prepared(
+        &stage,
+        &source,
+        &source_name,
+        &source_names,
+        &[
+            Some(&source_files[0]),
+            Some(&source_files[1]),
+            Some(&source_files[2]),
+        ],
+        &[None, None, None],
+        #[cfg(debug_assertions)]
+        None,
+    )
+    .unwrap();
+    let native_names = super::platform::prepare_discard_names([
+        OsStr::new("sdk.lib"),
+        OsStr::new("descriptor.json"),
+        OsStr::new("manifest.json"),
+    ])
+    .unwrap();
+    let mut native_name = super::platform::prepare_relative_name_arena(6).unwrap();
+    super::platform::set_relative_name_arena(&mut native_name, OsStr::new("native")).unwrap();
+    super::platform::discard_owned_stage_prepared(
+        &stage,
+        &native,
+        &native_name,
+        &native_names,
+        &[
+            Some(&native_files[0]),
+            Some(&native_files[1]),
+            Some(&native_files[2]),
+        ],
+        &[None, None, None],
+        #[cfg(debug_assertions)]
+        None,
+    )
+    .unwrap();
+
+    let root_names = super::platform::prepare_discard_names([
+        OsStr::new("Cargo.toml"),
+        OsStr::new("build.rs"),
+        OsStr::new("sdk.json"),
+    ])
+    .unwrap();
+    super::platform::set_relative_name_arena(&mut stage_name, OsStr::new("published")).unwrap();
+    super::platform::discard_owned_stage_prepared(
+        &parent,
+        &stage,
+        &stage_name,
+        &root_names,
+        &[
+            Some(&root_files[0]),
+            Some(&root_files[1]),
+            Some(&root_files[2]),
+        ],
+        &[None, None, None],
+        #[cfg(debug_assertions)]
+        None,
+    )
+    .unwrap();
+    assert!(!root.join("published").exists());
+
+    drop((
+        root_names,
+        native_name,
+        native_names,
+        source_name,
+        source_names,
+        publish,
+        stage_name,
+        native_files,
+        source_files,
+        root_files,
+        native,
+        source,
+        stage,
+        parent,
+    ));
+    std::fs::remove_dir(&root).unwrap();
 }
 
 #[cfg(target_os = "linux")]

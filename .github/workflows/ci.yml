@@ -163,6 +163,19 @@ jobs:
           echo SEMAPRAX_VCTOOLS=%SEMAPRAX_VCTOOLS%>>"%GITHUB_ENV%"
           echo SEMAPRAX_LINKER=%SEMAPRAX_LINKER%>>"%GITHUB_ENV%"
           echo SEMAPRAX_ARCHIVER=%SEMAPRAX_ARCHIVER%>>"%GITHUB_ENV%"
+      - name: Require exact Windows real archive admission before public SDK work
+        if: runner.os == 'Windows'
+        env:
+          SEMAPRAX_REQUIRE_WINDOWS_REAL_ARCHIVE: "1"
+        run: cargo test --locked -p semaprax-native-rust-interop-platform-sys --lib tests::windows_real_brepro_archive_round_trips_through_exact_admission -- --exact --nocapture --test-threads=1
+      - name: Require exact Windows mixed inventory across directory publication
+        if: runner.os == 'Windows'
+        run: cargo test --locked -p semaprax-native-rust-interop-platform-sys --lib tests::windows_mixed_root_inventory_replays_before_and_after_exact_directory_rename -- --exact --nocapture --test-threads=1
+      - name: Require minimal effectful public SDK build before the long public gate
+        if: runner.os == 'Windows'
+        env:
+          SEMAPRAX_REQUIRE_PUBLIC_SDK_BUILD: "1"
+        run: cargo test --locked -p semaprax-native-rust-interop --lib public_sdk::tests::effectful_no_import_sdk_builds_the_exact_public_inventory -- --exact --nocapture --test-threads=1
       - name: Require package, consumer, callback, and backend-equivalence evidence
         env:
           SEMAPRAX_REQUIRE_PUBLIC_NATIVE_RUST_SDK: "1"

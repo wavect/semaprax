@@ -830,7 +830,7 @@ fn windows_mixed_root_inventory_replays_before_and_after_exact_directory_rename(
     ));
     std::fs::create_dir(&root).unwrap();
     let root = std::fs::canonicalize(root).unwrap();
-    let parent = super::platform::hold_directory(&root).unwrap();
+    let parent = super::platform::test_hold_directory_owned(&root).unwrap();
     let stage = super::platform::create_directory_new(&parent, OsStr::new("stage"), 0o700).unwrap();
     let source =
         super::platform::create_directory_new(&stage, OsStr::new("source"), 0o700).unwrap();

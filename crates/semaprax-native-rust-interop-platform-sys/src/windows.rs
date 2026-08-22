@@ -99,6 +99,20 @@ fn test_remember_captured_stdout(output: &[u8]) {
 }
 
 #[cfg(test)]
+pub fn test_hold_directory_owned(path: &Path) -> Result<Directory, Error> {
+    if !path.is_absolute() {
+        return Err(Error::Invalid);
+    }
+    let canonical = path.canonicalize().map_err(|_| Error::Changed)?;
+    if canonical != path {
+        return Err(Error::Changed);
+    }
+    let file = open_absolute(&canonical, DIRECTORY_OWNED_ACCESS, DIRECTORY_FLAGS)?;
+    let identity = directory_information(&file)?;
+    Ok(Directory { file, identity })
+}
+
+#[cfg(test)]
 pub fn test_last_captured_stdout() -> Vec<u8> {
     LAST_CAPTURED_STDOUT.with(std::cell::RefCell::take)
 }

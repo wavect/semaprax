@@ -936,8 +936,28 @@ fn windows_mixed_root_inventory_replays_before_and_after_exact_directory_rename(
         std::fs::write(root.join("stage2").join("leaf.txt"), b"leaf").ok();
         let unheld_child =
             std::fs::rename(root.join("stage2"), root.join("stage2_moved"));
+        let held_file_dir = root.join("probe_held_file");
+        std::fs::create_dir(&held_file_dir).ok();
+        let held_file_directory = super::platform::hold_directory(&held_file_dir).unwrap();
+        let held_leaf = super::platform::write_file_new(
+            &held_file_directory,
+            OsStr::new("leaf.bin"),
+            b"leaf",
+            0o600,
+        )
+        .unwrap();
+        let held_file_result =
+            std::fs::rename(&held_file_dir, root.join("probe_held_file_moved"));
+        drop(held_leaf);
+        drop(held_file_directory);
+        let held_dir_parent = root.join("probe_held_dir");
+        std::fs::create_dir(held_dir_parent.join("child")).ok();
+        let held_child = super::platform::hold_directory(&held_dir_parent.join("child"))
+            .expect("hold child directory");
+        let held_dir_result = std::fs::rename(&held_dir_parent, root.join("probe_held_dir_moved"));
+        drop(held_child);
         panic!(
-            "directory publication failed: {error:?} ({identity_probe}) statuses={statuses:?} std_rename={std_probe:?} empty_sibling={empty_sibling:?} unheld_child={unheld_child:?}"
+            "directory publication failed: {error:?} ({identity_probe}) statuses={statuses:?} std_rename={std_probe:?} empty_sibling={empty_sibling:?} unheld_child={unheld_child:?} held_file={held_file_result:?} held_child_dir={held_dir_result:?}"
         )
     });
     assert!(!root.join("stage").exists());

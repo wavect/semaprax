@@ -627,7 +627,15 @@ fn private_builder_uses_held_platform_authority_for_every_physical_step() {
         "Windows Nt RootDirectory helper definition/caller topology drifted"
     );
     assert!(
-        windows_filesystem.matches("NtSetInformationFile(").count() == 2
+        windows_filesystem.matches("NtSetInformationFile(").count() == 3
+            && windows_filesystem
+                .matches("FILE_RENAME_FLAG_POSIX_SEMANTICS")
+                .count()
+                >= 1
+            && windows_filesystem
+                .matches("FileRenameInformationEx")
+                .count()
+                >= 1
             && windows_filesystem
                 .matches("SetFileInformationByHandle(")
                 .count()

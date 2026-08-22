@@ -543,7 +543,12 @@ fn windows_real_brepro_archive_round_trips_through_exact_admission() {
     );
 
     let directory = super::platform::hold_directory(&root).unwrap();
-    let input = super::platform::hold_regular_file(&directory, OsStr::new("module.obj")).unwrap();
+    let input = super::platform::test_hold_regular_file_name_bounded(
+        &directory,
+        OsStr::new("module.obj"),
+        super::SDK_ARCHIVE_MAX_BYTES,
+    )
+    .unwrap();
     let archiver_image = archiver;
     let archiver = super::platform::hold_external_executable(&archiver_image).unwrap();
     let prepared = super::platform::prepare_archive_invocation(

@@ -137,7 +137,7 @@ fn run(args: Vec<String>) -> Result<(), u8> {
                 BuildInput::Project(manifest_path) => {
                     let output = project::with_authenticated_project(manifest_path, |snapshot| {
                         snapshot.check()?;
-                        let output = options.output.clone().unwrap_or_else(|| {
+                        let mut output = options.output.clone().unwrap_or_else(|| {
                             let suffix = match options.target.as_str() {
                                 "web" | "wasm" => "web".to_owned(),
                                 _ => format!("out{}", std::env::consts::EXE_SUFFIX),
@@ -146,6 +146,9 @@ fn run(args: Vec<String>) -> Result<(), u8> {
                                 .root()
                                 .join(format!("{}-{suffix}", snapshot.manifest().name()))
                         });
+                        if options.target == "native" {
+                            output = with_native_executable_suffix(output);
+                        }
                         match options.target.as_str() {
                             "web" | "wasm" => snapshot.build_web(&output)?,
                             "native" => snapshot.build_native(&output)?,
@@ -752,6 +755,14 @@ fn serve_options(args: &[String]) -> Result<agent_transport::TransportLimits, u8
         eprintln!("{error}");
         2
     })
+}
+
+fn with_native_executable_suffix(path: PathBuf) -> PathBuf {
+    let suffix = std::env::consts::EXE_SUFFIX;
+    if suffix.is_empty() || path.extension().is_some() {
+        return path;
+    }
+    path.with_extension(suffix)
 }
 
 fn workspace_analysis_target_kind(

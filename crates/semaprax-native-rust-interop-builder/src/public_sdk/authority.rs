@@ -767,6 +767,13 @@ pub(super) fn build_native_rust_sdk_inner(
         }
         #[cfg(test)]
         record_archive_attempt();
+        #[cfg(windows)]
+        crate::platform::transition_regular_file_to_external_read_prepared(
+            &archive_stage.directory,
+            &mut archive_stage.inventory,
+            object_name,
+        )
+        .map_err(|_| publication_error())?;
         let archive_file = crate::platform::archive_tool_prepared(
             &archiver,
             &archive_stage.directory,

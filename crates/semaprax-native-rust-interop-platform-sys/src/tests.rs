@@ -928,7 +928,11 @@ fn windows_mixed_root_inventory_replays_before_and_after_exact_directory_rename(
     )
     .unwrap_or_else(|error| {
         let statuses = super::platform::test_last_publish_statuses();
-        panic!("directory publication failed: {error:?} ({identity_probe}) statuses={statuses:?}")
+        let std_probe =
+            std::fs::rename(root.join("stage"), root.join("published_std_probe"));
+        panic!(
+            "directory publication failed: {error:?} ({identity_probe}) statuses={statuses:?} std_rename={std_probe:?}"
+        )
     });
     assert!(!root.join("stage").exists());
     assert!(super::platform::same_directory_path(&stage, &root.join("published")).unwrap());

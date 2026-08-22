@@ -14,8 +14,9 @@ use windows_sys::Wdk::Storage::FileSystem::{
 use windows_sys::Win32::Foundation::{
     CloseHandle, GetLastError, SetHandleInformation, ERROR_BROKEN_PIPE, ERROR_INSUFFICIENT_BUFFER,
     ERROR_NO_MORE_FILES, ERROR_PIPE_NOT_CONNECTED, HANDLE, HANDLE_FLAG_INHERIT,
-    INVALID_HANDLE_VALUE, STATUS_INVALID_PARAMETER, STATUS_OBJECT_NAME_COLLISION,
-    STATUS_OBJECT_NAME_NOT_FOUND, UNICODE_STRING, WAIT_FAILED, WAIT_OBJECT_0, WAIT_TIMEOUT,
+    INVALID_HANDLE_VALUE, STATUS_ACCESS_DENIED, STATUS_DELETE_PENDING,
+    STATUS_OBJECT_NAME_COLLISION, STATUS_OBJECT_NAME_NOT_FOUND, STATUS_SHARING_VIOLATION,
+    UNICODE_STRING, WAIT_FAILED, WAIT_OBJECT_0, WAIT_TIMEOUT,
 };
 use windows_sys::Win32::Security::SECURITY_ATTRIBUTES;
 use windows_sys::Win32::Storage::FileSystem::{
@@ -100,17 +101,17 @@ fn test_remember_captured_stdout(output: &[u8]) {
 
 #[cfg(test)]
 thread_local! {
-    static LAST_PUBLISH_STATUSES: std::cell::RefCell<[i32; 2]> =
-        const { std::cell::RefCell::new([0; 2]) };
+    static LAST_PUBLISH_STATUSES: std::cell::RefCell<[i32; 5]> =
+        const { std::cell::RefCell::new([0; 5]) };
 }
 
 #[cfg(test)]
-fn test_remember_publish_statuses(statuses: &[i32; 2]) {
+fn test_remember_publish_statuses(statuses: &[i32; 5]) {
     LAST_PUBLISH_STATUSES.with(|slot| *slot.borrow_mut() = *statuses);
 }
 
 #[cfg(test)]
-pub fn test_last_publish_statuses() -> [i32; 2] {
+pub fn test_last_publish_statuses() -> [i32; 5] {
     LAST_PUBLISH_STATUSES.with(std::cell::RefCell::take)
 }
 
@@ -2494,41 +2495,54 @@ pub fn publish_directory_new_prepared(
     }
     let mut io = IO_STATUS_BLOCK::default();
     #[cfg(test)]
-    let mut attempted_statuses = [0_i32; 2];
-    unsafe {
-        (*information).flags =
-            windows_sys::Win32::System::WindowsProgramming::FILE_RENAME_FLAG_POSIX_SEMANTICS;
-    }
-    let mut status = unsafe {
-        NtSetInformationFile(
-            stage.file.as_raw_handle().cast(),
-            &mut io,
-            information.cast(),
-            total,
-            FileRenameInformationEx,
-        )
-    };
-    #[cfg(test)]
-    {
-        attempted_statuses[0] = status;
-    }
-    if status == STATUS_INVALID_PARAMETER {
+    let mut attempted_statuses = [0_i32; 5];
+    const RENAME_BACKOFF_MILLIS: [u64; 4] = [1, 2, 4, 8];
+    for attempt in 0..RENAME_BACKOFF_MILLIS.len() {
         unsafe {
-            (*information).flags = 0;
+            (*information).flags =
+                windows_sys::Win32::System::WindowsProgramming::FILE_RENAME_FLAG_POSIX_SEMANTICS;
         }
-        status = unsafe {
+        let status = unsafe {
             NtSetInformationFile(
                 stage.file.as_raw_handle().cast(),
                 &mut io,
                 information.cast(),
                 total,
-                FileRenameInformation,
+                FileRenameInformationEx,
             )
         };
         #[cfg(test)]
         {
-            attempted_statuses[1] = status;
+            attempted_statuses[attempt] = status;
         }
+        if status == STATUS_OBJECT_NAME_COLLISION {
+            return Err(Error::Exists);
+        }
+        if status >= 0 {
+            return Ok(());
+        }
+        if !matches!(
+            status,
+            STATUS_SHARING_VIOLATION | STATUS_ACCESS_DENIED | STATUS_DELETE_PENDING
+        ) {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(
+            RENAME_BACKOFF_MILLIS[attempt],
+        ));
+    }
+    let status = unsafe {
+        NtSetInformationFile(
+            stage.file.as_raw_handle().cast(),
+            &mut io,
+            information.cast(),
+            total,
+            FileRenameInformation,
+        )
+    };
+    #[cfg(test)]
+    {
+        attempted_statuses[4] = status;
     }
     #[cfg(test)]
     test_remember_publish_statuses(&attempted_statuses);

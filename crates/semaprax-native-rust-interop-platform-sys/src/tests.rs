@@ -970,7 +970,7 @@ fn windows_mixed_root_inventory_replays_before_and_after_exact_directory_rename(
             std::thread::sleep(std::time::Duration::from_millis(25));
         }
         panic!(
-            "directory publication failed: {error:?} ({identity_probe}) statuses={statuses:?} std_rename={std_probe:?} empty_sibling={empty_sibling:?} unheld_child={unheld_child:?} held_file={held_file_result:?} held_child_dir={held_dir_result:?} retry_after={}ms attempts={retry_attempts} last={retry_probe:?}",
+            "directory publication failed: {error:?} ({identity_probe}) statuses={statuses:?} std_rename={std_probe:?} empty_sibling={empty_sibling:?} unheld_child={unheld_child:?} held_file={held_file_result:?} std_reopen={std_reopen_result:?} held_child_dir={held_dir_result:?} retry_after={}ms attempts={retry_attempts} last={retry_probe:?}",
             retry_probe_start.elapsed().as_millis()
         )
     });

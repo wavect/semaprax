@@ -1,5 +1,34 @@
 # Changelog
 
+- Added the locally evidenced Build Capability Manifest v1 tranche, the first
+  executable slice of the completion-matrix row "Sandboxed builds and
+  dependencies". The new read-only `semaprax capability-manifest <file>`
+  command and `capability_manifest` library API project one verified module
+  into a deterministic canonical `semaprax.capability-manifest.v1` envelope
+  declaring its exact build capabilities: the sorted module permit inventory,
+  every declared per-function effect set, every declared interface-import
+  effect set, and an explicit empty-by-default ambient authority assertion
+  over the closed five-domain vocabulary filesystem, home, network, process,
+  and secrets. Every capability token anywhere in the module must sit inside
+  that vocabulary or the command fails closed with the dedicated `SPX-K202`;
+  interface permits no import consumes are checked but do not by themselves
+  mark a domain as declared. Envelopes bind source snapshot digest, graph
+  revision, module accounting, and the ambient section behind domain-separated
+  SHA-256 digests; `verify_envelope` independently replays shape, byte count,
+  digest, vocabulary, and ambient derivation, and
+  `verify_envelope_against_source` fails closed on source drift. Output-budget
+  overflow (`SPX-K203`) and malformed options (`SPX-K201`) also fail closed
+  without truncation. Pinned golden envelope KATs over the effect-free example
+  (all five domains `"none"`), exact declared-effect inventories, determinism,
+  undeclared-capability injection rejected through both digest authentication
+  and a consistent re-mint replay, out-of-vocabulary forgery rejection, tamper
+  rejection, drift detection, budget exhaustion, and CLI exit codes are green
+  locally in `tests/capability_manifest_v1.rs`. No sandbox is enforced at
+  build time, no dependency resolution, lockfile, package registry, or
+  network/home/secrets/filesystem/process enforcement machinery exists, and no
+  target execution is claimed; enforcement against a declared manifest remains
+  future work. The Sandboxed builds and dependencies row moves from Missing to
+  Partial; current totals are 43 Partial/13 Missing.
 - Moved the workspace minimum supported Rust from 1.85 to 1.88 so private
   crates can track current dependencies, and bumped the exact-pinned private
   `semaprax-native-loader` dependency from `libloading 0.8.9` to `=0.9.0`.

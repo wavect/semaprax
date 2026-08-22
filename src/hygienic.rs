@@ -88,6 +88,8 @@ const REASON_UNSUPPORTED_RESULT_TYPE: &str = "unsupported_result_type";
 const REASON_SCAN_STEP_BUDGET_EXHAUSTED: &str = "scan_step_budget_exhausted";
 const REASON_FLOAT_LITERAL: &str = "float_literal";
 const REASON_CHAR_LITERAL: &str = "char_literal";
+const REASON_INT32_LITERAL: &str = "int32_literal";
+const REASON_UINT8_LITERAL: &str = "uint8_literal";
 const REASON_RECORD_CONSTRUCTION: &str = "record_construction";
 const REASON_VARIANT_CONSTRUCTION: &str = "variant_construction";
 const REASON_RECORD_UPDATE: &str = "record_update";
@@ -392,8 +394,10 @@ impl ScanState<'_> {
         }
         match &expression.kind {
             ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Var(_) => None,
+            ExprKind::Int32(_) => Some(REASON_INT32_LITERAL),
             ExprKind::Float32(_) | ExprKind::Float64(_) => Some(REASON_FLOAT_LITERAL),
             ExprKind::Char(_) => Some(REASON_CHAR_LITERAL),
+            ExprKind::Uint8(_) => Some(REASON_UINT8_LITERAL),
             ExprKind::Call {
                 name,
                 type_arguments,

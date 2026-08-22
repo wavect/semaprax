@@ -117,7 +117,14 @@ fn exact_archive_member_metadata(
     // input filesystem mode is intentionally relevant only to Darwin below.
     #[cfg(any(target_os = "linux", target_family = "windows"))]
     let _ = input_mode;
+    #[cfg(not(target_family = "windows"))]
     if header[16..28] != *b"0           " {
+        return Err(Error::Invalid);
+    }
+    // Microsoft lib.exe serializes its /BREPRO time_t sentinel verbatim.
+    // This is deliberately not a general signed-date admission.
+    #[cfg(target_family = "windows")]
+    if header[16..28] != *b"-1          " {
         return Err(Error::Invalid);
     }
     #[cfg(any(target_os = "linux", target_os = "macos"))]
@@ -142,7 +149,7 @@ fn exact_archive_member_metadata(
     };
     #[cfg(target_family = "windows")]
     let mode = match kind {
-        ArchiveMemberKind::GnuLinkerIndex => 0,
+        ArchiveMemberKind::GnuLinkerIndex | ArchiveMemberKind::LongNames => 0,
         ArchiveMemberKind::Input => 0o100666,
         _ => return Err(Error::Invalid),
     };

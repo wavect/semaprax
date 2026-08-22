@@ -1244,6 +1244,11 @@ authenticates explicit cross-file function/type imports and emits the six
 closed call, type, import, effect, and capability edge families. The public
 graph excludes reverse consumers and disconnected modules from its selected
 entry closure, while its work budget still covers the complete managed set.
+`src/workspace_graph/expected_projection.rs` isolates the pure authored-tree
+cost prebinding, deterministic dependency-depth reconstruction, and independent
+expected-edge reconstruction. Builder
+reservation, edge append, and AST call walking remain in the root module, so
+the projection gains no separate ledger, ordering, or workspace authority.
 `src/workspace_analysis.rs` consumes that same sealed authority to produce
 typed, namespace-safe Context, reverse structural Impact, and fixed-section
 Review. These are current-state read-only projections; they are not patch

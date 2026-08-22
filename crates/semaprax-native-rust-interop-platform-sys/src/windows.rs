@@ -3707,6 +3707,7 @@ fn exact_archive_member(archive: &RegularFile, input: &RegularFile) -> Result<()
     let mut offset = 8_u64;
     let mut input_members = 0_u8;
     let mut members = 0_u8;
+    let mut empty_longnames = false;
     while offset < archive_len {
         let mut header = [0_u8; 60];
         read_exact_offset(&archive.file, &mut header, offset)?;
@@ -3743,15 +3744,27 @@ fn exact_archive_member(archive: &RegularFile, input: &RegularFile) -> Result<()
             }
             kind => (kind, data, size),
         };
-        if !matches!(
+        let ordered = matches!(
             (members, header_kind, kind),
             (
                 0 | 1,
                 ArchiveMemberKind::GnuLinkerIndex,
                 ArchiveMemberKind::GnuLinkerIndex
+            ) | (
+                2,
+                ArchiveMemberKind::LongNames,
+                ArchiveMemberKind::LongNames
             ) | (2, ArchiveMemberKind::Input, ArchiveMemberKind::Input)
-        ) {
+                | (3, ArchiveMemberKind::Input, ArchiveMemberKind::Input)
+        );
+        if !ordered
+            || matches!(kind, ArchiveMemberKind::LongNames) && (size != 0 || members != 2)
+            || members == 3 && !empty_longnames
+        {
             return Err(Error::Invalid);
+        }
+        if matches!(kind, ArchiveMemberKind::LongNames) {
+            empty_longnames = true;
         }
         match kind {
             ArchiveMemberKind::GnuLinkerIndex
@@ -3794,10 +3807,19 @@ fn exact_archive_member(archive: &RegularFile, input: &RegularFile) -> Result<()
         offset = end.checked_add(size & 1).ok_or(Error::OutputLimit)?;
         members = members.checked_add(1).ok_or(Error::Invalid)?;
     }
-    if offset != archive_len || input_members != 1 || members != 3 {
+    let expected_members = if empty_longnames { 4 } else { 3 };
+    if offset != archive_len || input_members != 1 || members != expected_members {
         return Err(Error::Invalid);
     }
     Ok(())
+}
+
+#[cfg(test)]
+pub(super) fn test_exact_archive_member(
+    archive: &RegularFile,
+    input: &RegularFile,
+) -> Result<(), Error> {
+    exact_archive_member(archive, input)
 }
 
 pub fn archive_prepared(

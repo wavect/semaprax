@@ -339,6 +339,109 @@ fn assert_public_getters_match_wire(graph: &WorkspaceSemanticGraph) {
 }
 
 #[test]
+fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root() {
+    let root = include_str!("../src/workspace_graph.rs");
+    let projection = include_str!("../src/workspace_graph/expected_projection.rs");
+
+    assert!(root.contains("mod expected_projection;"));
+    assert!(!projection.contains("use super::*;"));
+    let exact_facade = [
+        "pub(super) struct SyntheticBuilderCosts {",
+        "pub(super) raw_clone_and_hir: usize,",
+        "pub(super) runtime: usize,",
+        "pub(super) fn synthetic_builder_bytes(",
+        "pub(super) fn validate_dependency_dag(",
+        "pub(super) fn dependency_depths<'a>(",
+        "pub(super) fn synthetic_program(",
+        "pub(super) fn collect_expected_edges(",
+        "pub(super) fn verify_resolved_call_edges(",
+    ];
+    assert_eq!(
+        projection
+            .lines()
+            .filter_map(|line| {
+                let trimmed = line.trim();
+                trimmed.contains("pub(super)").then_some(trimmed)
+            })
+            .collect::<Vec<_>>(),
+        exact_facade,
+    );
+
+    for helper in [
+        "fn reserve_builder_structure(",
+        "fn push_edge(",
+        "fn budgeted_edge_clone(",
+        "fn visit_ast_call_sites(",
+    ] {
+        assert!(root.contains(helper), "root lost shared helper `{helper}`");
+        assert!(
+            !projection.contains(helper),
+            "projection duplicated shared helper `{helper}`"
+        );
+    }
+    for moved in [
+        "struct SyntheticBuilderCosts",
+        "fn synthetic_builder_bytes(",
+        "fn validate_dependency_dag(",
+        "fn dependency_depths<'a>(",
+        "fn synthetic_program(",
+        "fn collect_expected_edges(",
+        "fn verify_resolved_call_edges(",
+    ] {
+        assert_eq!(
+            root.matches(moved).count() + projection.matches(moved).count(),
+            1,
+            "expected one definition of `{moved}`"
+        );
+    }
+
+    for forbidden in [
+        "workspace::",
+        "std::fs",
+        "std::process",
+        "snapshot(",
+        "build_authenticated",
+        "render_graph_json",
+        "write_file",
+        "create_dir",
+        "remove_file",
+        "ACTIVE",
+    ] {
+        assert!(
+            !projection.contains(forbidden),
+            "pure expected projection admitted authority or effects through `{forbidden}`"
+        );
+    }
+
+    let costs = projection.find("struct SyntheticBuilderCosts").unwrap();
+    let bytes = projection.find("fn synthetic_builder_bytes(").unwrap();
+    let dependency = projection.find("fn validate_dependency_dag(").unwrap();
+    let synthetic = projection.find("fn synthetic_program(").unwrap();
+    let collect = projection.find("fn collect_expected_edges(").unwrap();
+    let verify = projection.find("fn verify_resolved_call_edges(").unwrap();
+    assert!(costs < bytes && bytes < dependency && dependency < synthetic);
+    assert!(synthetic < collect && collect < verify);
+
+    let collect_source = &projection[collect..verify];
+    assert_eq!(collect_source.matches("edges.sort();").count(), 1);
+    assert!(!collect_source.contains("workspace_call_sites"));
+    let verify_source = &projection[verify..];
+    assert!(verify_source.contains("expected.sort();"));
+    assert!(verify_source.contains("actual.sort();"));
+    assert!(!verify_source.contains("collect_expected_edges("));
+
+    let push = root.find("fn push_edge(").unwrap();
+    let clone = root.find("fn budgeted_edge_clone(").unwrap();
+    let push_source = &root[push..clone];
+    let limit = push_source
+        .find("if edges.len() == MAX_CROSS_FILE_EDGES")
+        .unwrap();
+    let reserve = push_source.find("reserve_builder_structure(").unwrap();
+    let append = push_source.find("edges.push(edge)").unwrap();
+    assert!(limit < reserve && reserve < append);
+}
+
+#[test]
 fn public_api_cli_bytes_getters_and_read_only_locking_are_exact() {
     let fixture = ManagedFixture::new("public-success");
     let before = inventory(&fixture.root);

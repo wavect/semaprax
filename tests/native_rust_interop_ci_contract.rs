@@ -322,9 +322,74 @@ fn private_builder_uses_held_platform_authority_for_every_physical_step() {
 
     let (_, _, windows_source, sys_tests, sys) = read_platform_sys_sources();
     let sys_evidence = [sys.as_str(), sys_tests.as_str()].concat();
+    let platform_source = read("crates/semaprax-native-rust-interop-platform/src/lib.rs");
     assert!(sys.contains("\"-O0\""));
     assert!(sys.contains("\"-O2\""));
     let windows = windows_source.as_str();
+    assert_contains_all(
+        "exact Microsoft /BREPRO archive profile",
+        &platform_source,
+        &[r#"Path::new(r"bin\Hostx64\x64\lib.exe")"#],
+    );
+    assert_contains_all(
+        "closed Windows archive authentication",
+        &sys,
+        &[
+            "if header[16..28] != *b\"-1          \"",
+            "ArchiveMemberKind::GnuLinkerIndex | ArchiveMemberKind::LongNames => 0",
+        ],
+    );
+    assert_contains_all(
+        "fixed Windows librarian invocation and exact layouts",
+        windows,
+        &[
+            "\"/BREPRO\"",
+            "matches!(kind, ArchiveMemberKind::LongNames) && (size != 0 || members != 2)",
+            "let expected_members = if empty_longnames { 4 } else { 3 };",
+            "input_members != 1",
+            "archive_bytes[..count] != input_bytes[..count]",
+        ],
+    );
+    let archive_hostiles = sys_tests
+        .split("fn windows_archive_admission_is_closed_over_the_two_brepro_layouts()")
+        .nth(1)
+        .and_then(|tail| {
+            tail.split("fn windows_real_brepro_archive_round_trips_through_exact_admission()")
+                .next()
+        })
+        .expect("bounded Windows synthetic archive test");
+    let nonempty_longnames = archive_hostiles
+        .split("let mut nonempty_longnames")
+        .nth(1)
+        .and_then(|tail| tail.split("hostile.push(nonempty_longnames)").next())
+        .expect("nonempty longnames hostile");
+    assert_contains_all(
+        "nonempty longnames is the sole hostile dimension",
+        nonempty_longnames,
+        &["b\"module.obj\\0\"", "b\"module.obj/\""],
+    );
+    assert!(!nonempty_longnames.contains("b\"/0\""));
+    let indirect_name = archive_hostiles
+        .split("let mut indirect_name")
+        .nth(1)
+        .and_then(|tail| tail.split("hostile.push(indirect_name)").next())
+        .expect("indirect longname hostile");
+    assert_contains_all(
+        "indirect name is the sole hostile dimension",
+        indirect_name,
+        &["b\"//\", b\"0       \", b\"\"", "b\"/0\""],
+    );
+    let real_archive = sys_tests
+        .split("fn windows_real_brepro_archive_round_trips_through_exact_admission()")
+        .nth(1)
+        .and_then(|tail| tail.split("\n#[cfg(").next())
+        .expect("bounded Windows real archive test");
+    assert!(real_archive.contains("start.elapsed() < std::time::Duration::from_secs(5)"));
+    assert_contains_all(
+        "Windows archive hostile evidence",
+        archive_hostiles,
+        &["b\"/<HYBRIDMAP>/\"", "b\"foreign.obj/\""],
+    );
     assert!(
         !windows.contains("unsupported!("),
         "Windows physical authority is still an unsupported stub"

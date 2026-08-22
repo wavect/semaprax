@@ -81,7 +81,10 @@ fn archive_header_parser_rejects_noncanonical_sizes_and_unknown_members() {
     ];
     for (kind, mode) in metadata {
         let mut header = [b' '; 60];
+        #[cfg(not(windows))]
         header[16..28].copy_from_slice(b"0           ");
+        #[cfg(windows)]
+        header[16..28].copy_from_slice(b"-1          ");
         #[cfg(any(target_os = "linux", target_os = "macos"))]
         {
             header[28..34].copy_from_slice(b"0     ");
@@ -104,6 +107,20 @@ fn archive_header_parser_rejects_noncanonical_sizes_and_unknown_members() {
                 Err(Error::Invalid),
             );
         }
+    }
+    #[cfg(windows)]
+    {
+        let mut old_synthetic_date = [b' '; 60];
+        old_synthetic_date[16..28].copy_from_slice(b"0           ");
+        old_synthetic_date[40..48].copy_from_slice(b"0       ");
+        assert_eq!(
+            exact_archive_member_metadata(
+                &old_synthetic_date,
+                ArchiveMemberKind::GnuLinkerIndex,
+                0,
+            ),
+            Err(Error::Invalid),
+        );
     }
     #[cfg(target_os = "linux")]
     {
@@ -337,6 +354,197 @@ fn windows_archive_preparation_is_fixed_to_one_sdk_object() {
             "module.obj",
         ],
     );
+}
+
+#[cfg(windows)]
+fn append_windows_archive_member(archive: &mut Vec<u8>, name: &[u8], mode: &[u8; 8], data: &[u8]) {
+    assert!(name.len() <= 16);
+    let mut header = [b' '; 60];
+    header[..name.len()].copy_from_slice(name);
+    header[16..28].copy_from_slice(b"-1          ");
+    header[40..48].copy_from_slice(mode);
+    let encoded_size = data.len().to_string();
+    header[48..48 + encoded_size.len()].copy_from_slice(encoded_size.as_bytes());
+    header[58..].copy_from_slice(b"`\n");
+    archive.extend_from_slice(&header);
+    archive.extend_from_slice(data);
+    if data.len() & 1 != 0 {
+        archive.push(b'\n');
+    }
+}
+
+#[cfg(windows)]
+fn synthetic_windows_archive(input: &[u8], empty_longnames: bool) -> Vec<u8> {
+    let mut archive = b"!<arch>\n".to_vec();
+    append_windows_archive_member(&mut archive, b"/", b"0       ", b"");
+    append_windows_archive_member(&mut archive, b"/", b"0       ", b"");
+    if empty_longnames {
+        append_windows_archive_member(&mut archive, b"//", b"0       ", b"");
+    }
+    append_windows_archive_member(&mut archive, b"module.obj/", b"100666  ", input);
+    archive
+}
+
+#[cfg(windows)]
+#[test]
+fn windows_archive_admission_is_closed_over_the_two_brepro_layouts() {
+    use std::ffi::OsStr;
+
+    let root = std::env::temp_dir().join(format!(
+        "semaprax-windows-archive-fixture-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos(),
+    ));
+    std::fs::create_dir(&root).unwrap();
+    let root = std::fs::canonicalize(root).unwrap();
+    let input_bytes = b"exact-coff-object";
+    std::fs::write(root.join("module.obj"), input_bytes).unwrap();
+    let directory = super::platform::hold_directory(&root).unwrap();
+    let input = super::platform::hold_regular_file(&directory, OsStr::new("module.obj")).unwrap();
+
+    for (index, bytes) in [
+        synthetic_windows_archive(input_bytes, false),
+        synthetic_windows_archive(input_bytes, true),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let name = format!("accepted-{index}.lib");
+        std::fs::write(root.join(&name), bytes).unwrap();
+        let archive = super::platform::hold_regular_file(&directory, OsStr::new(&name)).unwrap();
+        super::platform::test_exact_archive_member(&archive, &input).unwrap();
+    }
+
+    let mut hostile = Vec::new();
+
+    let mut nonempty_longnames = b"!<arch>\n".to_vec();
+    append_windows_archive_member(&mut nonempty_longnames, b"/", b"0       ", b"");
+    append_windows_archive_member(&mut nonempty_longnames, b"/", b"0       ", b"");
+    append_windows_archive_member(&mut nonempty_longnames, b"//", b"0       ", b"module.obj\0");
+    append_windows_archive_member(
+        &mut nonempty_longnames,
+        b"module.obj/",
+        b"100666  ",
+        input_bytes,
+    );
+    hostile.push(nonempty_longnames);
+
+    let mut indirect_name = b"!<arch>\n".to_vec();
+    append_windows_archive_member(&mut indirect_name, b"/", b"0       ", b"");
+    append_windows_archive_member(&mut indirect_name, b"/", b"0       ", b"");
+    append_windows_archive_member(&mut indirect_name, b"//", b"0       ", b"");
+    append_windows_archive_member(&mut indirect_name, b"/0", b"100666  ", input_bytes);
+    hostile.push(indirect_name);
+
+    let mut hybrid = b"!<arch>\n".to_vec();
+    append_windows_archive_member(&mut hybrid, b"/", b"0       ", b"");
+    append_windows_archive_member(&mut hybrid, b"/", b"0       ", b"");
+    append_windows_archive_member(&mut hybrid, b"/<HYBRIDMAP>/", b"0       ", b"");
+    append_windows_archive_member(&mut hybrid, b"module.obj/", b"100666  ", input_bytes);
+    hostile.push(hybrid);
+
+    let mut duplicate = synthetic_windows_archive(input_bytes, false);
+    append_windows_archive_member(&mut duplicate, b"module.obj/", b"100666  ", input_bytes);
+    hostile.push(duplicate);
+
+    let mut foreign = synthetic_windows_archive(input_bytes, false);
+    append_windows_archive_member(&mut foreign, b"foreign.obj/", b"100666  ", input_bytes);
+    hostile.push(foreign);
+
+    let mut reordered = b"!<arch>\n".to_vec();
+    append_windows_archive_member(&mut reordered, b"module.obj/", b"100666  ", input_bytes);
+    append_windows_archive_member(&mut reordered, b"/", b"0       ", b"");
+    append_windows_archive_member(&mut reordered, b"/", b"0       ", b"");
+    hostile.push(reordered);
+
+    for (index, bytes) in hostile.into_iter().enumerate() {
+        let name = format!("rejected-{index}.lib");
+        std::fs::write(root.join(&name), bytes).unwrap();
+        let archive = super::platform::hold_regular_file(&directory, OsStr::new(&name)).unwrap();
+        assert_eq!(
+            super::platform::test_exact_archive_member(&archive, &input),
+            Err(Error::Invalid),
+        );
+    }
+
+    drop((input, directory));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[cfg(windows)]
+#[test]
+fn windows_real_brepro_archive_round_trips_through_exact_admission() {
+    use std::ffi::OsStr;
+    use std::path::Path;
+
+    let (Some(archiver), Some(vctools), Some(clang)) = (
+        std::env::var_os("SEMAPRAX_ARCHIVER"),
+        std::env::var_os("SEMAPRAX_VCTOOLS"),
+        std::env::var_os("CLANG"),
+    ) else {
+        return;
+    };
+    let archiver = std::path::PathBuf::from(archiver);
+    let vctools = std::path::PathBuf::from(vctools);
+    assert_eq!(
+        archiver.strip_prefix(&vctools).unwrap(),
+        Path::new(r"bin\Hostx64\x64\lib.exe"),
+    );
+
+    let root = std::env::temp_dir().join(format!(
+        "semaprax-windows-real-archive-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos(),
+    ));
+    std::fs::create_dir(&root).unwrap();
+    let root = std::fs::canonicalize(root).unwrap();
+    std::fs::write(
+        root.join("module.c"),
+        b"int semaprax_archive_probe(void){return 7;}\n",
+    )
+    .unwrap();
+    let compile = std::process::Command::new(clang)
+        .current_dir(&root)
+        .args([
+            "-target",
+            "x86_64-pc-windows-msvc",
+            "-c",
+            "module.c",
+            "-o",
+            "module.obj",
+        ])
+        .output()
+        .unwrap();
+    assert!(
+        compile.status.success(),
+        "{}",
+        String::from_utf8_lossy(&compile.stderr),
+    );
+
+    let directory = super::platform::hold_directory(&root).unwrap();
+    let input = super::platform::hold_regular_file(&directory, OsStr::new("module.obj")).unwrap();
+    let archiver = super::platform::hold_external_executable(&archiver).unwrap();
+    let prepared = super::platform::prepare_archive_invocation(
+        OsStr::new("module.obj"),
+        OsStr::new("semaprax_native_rust_sdk.lib"),
+    )
+    .unwrap();
+    let mut process = super::platform::prepare_process_arena(1).unwrap();
+    let start = std::time::Instant::now();
+    let archive =
+        super::platform::archive_prepared(&archiver, &directory, &input, prepared, &mut process)
+            .unwrap();
+    assert!(start.elapsed() < std::time::Duration::from_secs(5));
+    super::platform::test_exact_archive_member(&archive, &input).unwrap();
+
+    drop((archive, archiver, input, directory, process));
+    std::fs::remove_dir_all(root).unwrap();
 }
 
 #[cfg(target_os = "linux")]

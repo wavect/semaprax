@@ -1275,7 +1275,6 @@ fn cleanup_error(message: impl Into<String>) -> Diagnostic {
 
 #[cfg(test)]
 mod tests {
-    use std::fmt::Write as _;
     use std::io::Write;
     use std::path::Path;
     use std::process::{Command, Stdio};

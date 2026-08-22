@@ -16,7 +16,14 @@ Missing to Partial. Current totals are 39 Partial/17 Missing.
 [Typed Hygienic Generation v1](HYGIENIC-GEN-V1.md) is locally evidenced
 (`cargo test --locked -p semaprax --test hygienic_gen_v1` plus unit tests) and
 moves only the Typed hygienic generation row from Missing to Partial; it makes
-no hosted-execution claim. Current totals are 40 Partial/16 Missing.
+ no hosted-execution claim. Current totals are 40 Partial/16 Missing.
+[OpenAPI Schema Generation v1](OPENAPI-V1.md) and [C Header Emission
+v1](C-HEADER-V1.md) are locally evidenced read-only projection tranches that
+move the OpenAPI, Protobuf/gRPC, GraphQL, and SQL row and the C and
+Objective-C row from Missing to Partial; neither claims schema import, live
+conformance fixtures, compiled header evidence, or hosted promotion. Together
+with Typed Hygienic Generation v1 this batch moves three rows Missing to
+Partial. Current totals are 42 Partial/14 Missing.
 
 Status values:
 

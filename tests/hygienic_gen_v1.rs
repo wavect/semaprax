@@ -33,7 +33,7 @@ fn verify_outer_digest(report_text: &str) {
     let cut = report_text.len() - SUFFIX_BYTES;
     let mut hasher = Sha256::new();
     hasher.update(b"semaprax.hygienic-gen.v1:outer-digest.v1\0");
-    hasher.update(report_text[..cut].as_bytes());
+    hasher.update(&report_text.as_bytes()[..cut]);
     hasher.update(b"}");
     let expected = format!("sha256:{:x}", LowerHex(hasher.finalize()));
     let embedded = &report_text[cut + 17..report_text.len() - 2];

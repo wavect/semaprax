@@ -30,6 +30,31 @@ pub(crate) fn canonical_f32_bits(bits: u32) -> String {
     }
 }
 
+/// Canonical `char` literal text for one Unicode scalar value. Printable
+/// ASCII (except quote and backslash) and the named escapes project directly;
+/// every other scalar projects as lowercase `\u{...}` so the round trip is
+/// exact.
+pub(crate) fn canonical_char(value: u32) -> String {
+    const ESCAPES: &[(u32, &str)] = &[
+        (0x00, "\\0"),
+        (0x09, "\\t"),
+        (0x0A, "\\n"),
+        (0x0D, "\\r"),
+        (0x27, "\\'"),
+        (0x5C, "\\\\"),
+    ];
+    let mut text = String::from("'");
+    if let Some((_, escape)) = ESCAPES.iter().find(|(scalar, _)| *scalar == value) {
+        text.push_str(escape);
+    } else if (0x20..=0x7E).contains(&value) {
+        text.push(char::from_u32(value).expect("printable ASCII is a scalar value"));
+    } else {
+        text.push_str(&format!("\\u{{{:x}}}", value));
+    }
+    text.push('\'');
+    text
+}
+
 enum ExprFormatFrame<'a> {
     Expr(&'a Expr, u8),
     CallArgs(&'a [Expr], usize),
@@ -605,7 +630,11 @@ fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> usize {
     while let Some((value, parent_precedence)) = stack.pop() {
         let rendered = rendered_expr_len(value, parent_precedence);
         match &value.kind {
-            ExprKind::Int(_) | ExprKind::Float32(_) | ExprKind::Float64(_) | ExprKind::Bool(_) => {}
+            ExprKind::Int(_)
+            | ExprKind::Char(_)
+            | ExprKind::Float32(_)
+            | ExprKind::Float64(_)
+            | ExprKind::Bool(_) => {}
             ExprKind::Var(name) => total = total.saturating_add(name.len()),
             ExprKind::Call {
                 type_arguments,
@@ -914,6 +943,9 @@ fn write_expr(output: &mut impl std::fmt::Write, value: &Expr, parent_precedence
         match frame {
             Frame::Expr(value, parent_precedence) => match &value.kind {
                 ExprKind::Int(number) => write!(output, "{number}").unwrap(),
+                ExprKind::Char(value) => {
+                    output.write_str(&canonical_char(*value)).unwrap();
+                }
                 ExprKind::Float32(bits) => {
                     // The explicit suffix keeps the declared precision stable
                     // across canonical round trips.
@@ -1203,6 +1235,7 @@ fn write_type(output: &mut impl std::fmt::Write, ty: &crate::ast::Type) {
     while let Some(frame) = frames.pop() {
         match frame {
             Frame::Type(crate::ast::Type::I64) => output.write_str("i64").unwrap(),
+            Frame::Type(crate::ast::Type::Char) => output.write_str("char").unwrap(),
             Frame::Type(crate::ast::Type::F32) => output.write_str("f32").unwrap(),
             Frame::Type(crate::ast::Type::F64) => output.write_str("f64").unwrap(),
             Frame::Type(crate::ast::Type::Bool) => output.write_str("bool").unwrap(),
@@ -1359,6 +1392,7 @@ fn contains_record_construction(value: &Expr) -> bool {
             ExprKind::ConstructRecord { .. }
             | ExprKind::ConstructVariant { .. }
             | ExprKind::Int(_)
+            | ExprKind::Char(_)
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
             | ExprKind::Bool(_)

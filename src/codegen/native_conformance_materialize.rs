@@ -281,6 +281,9 @@ fn materialize_result(
 ) -> Result<TraceResult, MaterializeError> {
     match (&function.return_type, wire) {
         (ResolvedType::I64, WireResult::I64(value)) => Ok(TraceResult::I64(value)),
+        (ResolvedType::Char, WireResult::I64(value)) => u32::try_from(value)
+            .map(TraceResult::Char)
+            .map_err(|_| MaterializeError::ResultTypeMismatch),
         (ResolvedType::Bool, WireResult::Bool(value)) => Ok(TraceResult::Bool(value)),
         (
             ResolvedType::Nominal {
@@ -305,6 +308,8 @@ fn materialize_result(
         (_, WireResult::Unit)
         | (ResolvedType::Unit, _)
         | (ResolvedType::I64, _)
+        | (ResolvedType::Char, WireResult::Bool(_))
+        | (ResolvedType::Char, WireResult::Owned { .. })
         | (ResolvedType::F32, _)
         | (ResolvedType::F64, _)
         | (ResolvedType::Bool, _)

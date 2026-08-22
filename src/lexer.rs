@@ -23,6 +23,8 @@ pub enum TokenKind {
     Ident(String),
     Int(i64),
     Float(FloatLiteral),
+    /// One `char` literal held as its exact Unicode scalar value.
+    Char(u32),
     String(String),
     At,
     LParen,
@@ -147,6 +149,7 @@ impl Lexer<'_> {
             '&' if self.take('&') => TokenKind::AndAnd,
             '|' if self.take('|') => TokenKind::OrOr,
             '"' => return self.string_token(start, line, column),
+            '\'' => return self.char_token(start, line, column),
             value if value.is_ascii_digit() => {
                 while matches!(self.peek(), Some(next) if next.is_ascii_digit()) {
                     self.bump();
@@ -336,6 +339,118 @@ impl Lexer<'_> {
             kind: TokenKind::String(value),
             span: self.span_from(start, line, column),
         })
+    }
+
+    /// Lex one `char` literal: exactly one Unicode scalar value between
+    /// single quotes. The canonical escapes are `\n`, `\r`, `\t`, `\0`,
+    /// `\\`, `\'`, and `\u{...}` with one to six hexadecimal digits.
+    fn char_token(
+        &mut self,
+        start: usize,
+        line: usize,
+        column: usize,
+    ) -> Result<Token, Diagnostic> {
+        let value = match self.bump() {
+            Some('\'') => {
+                return Err(self.error(
+                    "SPX-P008",
+                    "char literal requires exactly one Unicode scalar value",
+                    self.span_from(start, line, column),
+                ));
+            }
+            Some('\\') => self.char_escape(start, line, column)?,
+            Some(character) => character,
+            None => {
+                return Err(self.error(
+                    "SPX-P006",
+                    "unterminated char literal",
+                    self.span_from(start, line, column),
+                ));
+            }
+        };
+        match self.peek() {
+            Some('\'') => {
+                self.bump();
+            }
+            Some(_) => {
+                return Err(self.error(
+                    "SPX-P008",
+                    "char literal requires exactly one Unicode scalar value",
+                    self.span_from(start, line, column),
+                ));
+            }
+            None => {
+                return Err(self.error(
+                    "SPX-P006",
+                    "unterminated char literal",
+                    self.span_from(start, line, column),
+                ));
+            }
+        }
+        if self.peek().is_some_and(is_ident_continue) {
+            return Err(self.error(
+                "SPX-P008",
+                "char literal requires exactly one Unicode scalar value",
+                self.span_from(start, line, column),
+            ));
+        }
+        Ok(Token {
+            kind: TokenKind::Char(value as u32),
+            span: self.span_from(start, line, column),
+        })
+    }
+
+    fn char_escape(
+        &mut self,
+        start: usize,
+        line: usize,
+        column: usize,
+    ) -> Result<char, Diagnostic> {
+        match self.bump() {
+            Some('n') => Ok('\n'),
+            Some('r') => Ok('\r'),
+            Some('t') => Ok('\t'),
+            Some('0') => Ok('\0'),
+            Some('\'') => Ok('\''),
+            Some('\\') => Ok('\\'),
+            Some('u') if self.take('{') => {
+                let mut digits = String::new();
+                while matches!(self.peek(), Some(next) if next.is_ascii_hexdigit()) {
+                    digits.push(self.bump().expect("hex digit peeked"));
+                }
+                if !self.take('}') || digits.is_empty() || digits.len() > 6 {
+                    return Err(self.error(
+                        "SPX-P007",
+                        "unicode escape requires one to six hexadecimal digits in braces",
+                        self.span_from(start, line, column),
+                    ));
+                }
+                let scalar = u32::from_str_radix(&digits, 16).map_err(|_| {
+                    self.error(
+                        "SPX-P007",
+                        "unicode escape is outside the Unicode range",
+                        self.span_from(start, line, column),
+                    )
+                })?;
+                char::from_u32(scalar).ok_or_else(|| {
+                    self.error(
+                        "SPX-P007",
+                        "unicode escape is not a Unicode scalar value",
+                        self.span_from(start, line, column),
+                    )
+                })
+            }
+            Some(other) => Err(self.error(
+                "SPX-P007",
+                format!("unsupported char escape `\\{other}`"),
+                self.span_from(start, line, column),
+            )),
+            None => Err(self.error(
+                "SPX-P006",
+                "unterminated char literal",
+                self.span_from(start, line, column),
+            )),
+        }
     }
 
     fn peek(&self) -> Option<char> {

@@ -1,5 +1,30 @@
 # Changelog
 
+- Added the locally evidenced Unicode scalar `char` tranche: `char` is now a
+  first-class Copy value type end-to-end. The change spans the lexer (single
+  scalar char literals with `\n`, `\r`, `\t`, `\0`, `\\`, `\'`, and
+  `\u{...}` escapes plus stable `SPX-P006`/`SPX-P007`/`SPX-P008` diagnostics),
+  parser, canonical formatter (printable ASCII projects directly, named
+  escapes are preserved, every other scalar projects as a lowercase
+  `\u{...}` escape so revisions round-trip exactly), source verifier,
+  resolved HIR (`SPX-H006` fail-closed rejection of non-scalar literal
+  payloads), Native64/Wasm32 aggregate and variant layouts (4/4 bytes),
+  cleanup plans, Graph JSON (`"kind":"char"` nodes carrying the exact scalar
+  value plus the canonical display form), the strict native C11 backend
+  (`uint32_t` representation with unsigned comparison semantics), and both
+  Wasm core backends (`i32` valtype with unsigned ordering opcodes).
+  Ordered comparison (`<`, `<=`, `>`, `>=`) compares Unicode scalar values;
+  equality follows the existing same-type rule; char arithmetic and negation
+  remain rejected by the verifier (`SPX-T208`, `SPX-T206`). Char-bearing
+  records, record update, projection, params, returns, locals, calls,
+  branches, and contracts execute identically through native C11 at `-O0`/
+  `-O2` and Node/Wasm over 4,096 re-entries (`tests/character_scalars.rs`,
+  `examples/chars.spx`). Deliberately out of scope for this tranche: generic
+  instantiation arguments and generic template signature slots remain direct
+  `i64`/`bool` only, Public Scalar Export Profile v1 remains i64/bool-only,
+  the native host callable corpus remains i64/bool/resource-only, string/
+  heap types remain unimplemented (no allocation model exists yet), and no
+  completion-matrix row changes; totals remain 39 Partial/17 Missing.
 - Added the locally evidenced Property-Test Generation v1 tranche. The new
   read-only `semaprax properties <file>` command and `properties` library API
   generate deterministic boundary-lattice plus seeded candidates from admitted

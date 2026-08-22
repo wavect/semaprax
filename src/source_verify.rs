@@ -67,7 +67,7 @@ fn binding_owned_capacity(binding: &Binding) -> usize {
 #[cfg(test)]
 fn ast_type_owned_capacity(ty: &Type) -> usize {
     match ty {
-        Type::I64 | Type::F32 | Type::F64 | Type::Bool => 0,
+        Type::I64 | Type::Char | Type::F32 | Type::F64 | Type::Bool => 0,
         Type::Named { name, arguments } => name
             .capacity()
             .saturating_add(arguments.capacity() * std::mem::size_of::<Type>())
@@ -227,6 +227,7 @@ impl<'a> TypeTable<'a> {
             match frame {
                 Frame::Enter(template) => match template {
                     Type::I64 => resolved.push(Type::I64),
+                    Type::Char => resolved.push(Type::Char),
                     Type::F32 => resolved.push(Type::F32),
                     Type::F64 => resolved.push(Type::F64),
                     Type::Bool => resolved.push(Type::Bool),
@@ -1908,7 +1909,7 @@ fn direct_function_type_argument(ty: &Type) -> bool {
 fn generic_function_signature_slot(ty: &Type, parameters: &HashSet<&str>) -> bool {
     match ty {
         Type::I64 | Type::Bool => true,
-        Type::F32 | Type::F64 => false,
+        Type::Char | Type::F32 | Type::F64 => false,
         Type::Named { name, arguments } => {
             arguments.is_empty() && parameters.contains(name.as_str())
         }
@@ -1930,6 +1931,7 @@ fn substitute_function_type(
         match frame {
             Frame::Enter(template) => match template {
                 Type::I64 => resolved.push(Type::I64),
+                Type::Char => resolved.push(Type::Char),
                 Type::F32 => resolved.push(Type::F32),
                 Type::F64 => resolved.push(Type::F64),
                 Type::Bool => resolved.push(Type::Bool),
@@ -1986,6 +1988,7 @@ fn generic_function_expression_is_direct_scalar(expression: &Expr) -> bool {
     while let Some(expression) = pending.pop() {
         match &expression.kind {
             ExprKind::Int(_)
+            | ExprKind::Char(_)
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
             | ExprKind::Bool(_)
@@ -2788,6 +2791,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             match frame {
                 VerifierFrame::Enter { expression, scope } => match &expression.kind {
                     ExprKind::Int(_) => self.values.push(Some(CheckedValue::value(Type::I64))),
+                    ExprKind::Char(_) => self.values.push(Some(CheckedValue::value(Type::Char))),
                     ExprKind::Float32(_) => self.values.push(Some(CheckedValue::value(Type::F32))),
                     ExprKind::Float64(_) => self.values.push(Some(CheckedValue::value(Type::F64))),
                     ExprKind::Bool(_) => self.values.push(Some(CheckedValue::value(Type::Bool))),
@@ -3376,6 +3380,10 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     }
                     let native_unit = left_value.as_ref().is_some_and(|value| value.native_unit)
                         || right_value.as_ref().is_some_and(|value| value.native_unit);
+                    let left_ordered = left_value
+                        .as_ref()
+                        .map(|value| value.ty.clone())
+                        .filter(|ty| matches!(ty, Type::I64 | Type::Char | Type::F32 | Type::F64));
                     let left_numeric = left_value
                         .as_ref()
                         .map(|value| value.ty.clone())
@@ -3398,7 +3406,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             (expected.clone(), expected)
                         }
                         BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge => {
-                            let expected = left_numeric.unwrap_or(Type::I64);
+                            let expected = left_ordered.unwrap_or(Type::I64);
                             (expected, Type::Bool)
                         }
                         BinaryOp::And | BinaryOp::Or => (Type::Bool, Type::Bool),
@@ -4525,9 +4533,12 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             {
                                 Some((name.clone(), arguments.clone()))
                             }
-                            Type::I64 | Type::F32 | Type::F64 | Type::Bool | Type::Named { .. } => {
-                                None
-                            }
+                            Type::I64
+                            | Type::Char
+                            | Type::F32
+                            | Type::F64
+                            | Type::Bool
+                            | Type::Named { .. } => None,
                         });
                     let variant_name = variant_instance.as_ref().map(|(name, _)| name.clone());
                     let declared_cases = scrutinee_value
@@ -4901,6 +4912,7 @@ fn check_expr(
 ) -> Option<CheckedValue> {
     match &expr.kind {
         ExprKind::Int(_) => Some(CheckedValue::value(Type::I64)),
+        ExprKind::Char(_) => Some(CheckedValue::value(Type::Char)),
         ExprKind::Float32(_) => Some(CheckedValue::value(Type::F32)),
         ExprKind::Float64(_) => Some(CheckedValue::value(Type::F64)),
         ExprKind::Bool(_) => Some(CheckedValue::value(Type::Bool)),
@@ -5276,6 +5288,10 @@ fn check_expr(
             }
             let native_unit_operand = left_ty.as_ref().is_some_and(|value| value.native_unit)
                 || right_ty.as_ref().is_some_and(|value| value.native_unit);
+            let left_ordered = left_ty
+                .as_ref()
+                .map(|value| value.ty.clone())
+                .filter(|ty| matches!(ty, Type::I64 | Type::Char | Type::F32 | Type::F64));
             let left_numeric = left_ty
                 .as_ref()
                 .map(|value| value.ty.clone())
@@ -5294,7 +5310,7 @@ fn check_expr(
                     (expected.clone(), expected)
                 }
                 BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge => {
-                    let expected = left_numeric.unwrap_or(Type::I64);
+                    let expected = left_ordered.unwrap_or(Type::I64);
                     (expected, Type::Bool)
                 }
                 BinaryOp::And | BinaryOp::Or => (Type::Bool, Type::Bool),
@@ -5667,7 +5683,12 @@ fn check_expr(
                 Type::Named { name, arguments } if types.variant_cases(&value.ty).is_some() => {
                     Some((name.clone(), arguments.clone()))
                 }
-                Type::I64 | Type::F32 | Type::F64 | Type::Bool | Type::Named { .. } => None,
+                Type::I64
+                | Type::Char
+                | Type::F32
+                | Type::F64
+                | Type::Bool
+                | Type::Named { .. } => None,
             });
             let variant_name = variant_instance.as_ref().map(|(name, _)| name.clone());
             let declared_cases = scrutinee_value

@@ -262,6 +262,7 @@ impl PersistentCallIndex {
                     }
                 }
                 ResolvedExprKind::Int(_)
+                | ResolvedExprKind::Char(_)
                 | ResolvedExprKind::Float32(_)
                 | ResolvedExprKind::Float64(_)
                 | ResolvedExprKind::Bool(_)

@@ -279,6 +279,8 @@ pub struct TraceEvent {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TraceResult {
     I64(i64),
+    /// Exact Unicode scalar value payload.
+    Char(u32),
     /// Exact IEEE-754 single-precision payload bits.
     F32(u32),
     /// Exact IEEE-754 double-precision payload bits.
@@ -537,6 +539,9 @@ fn trace_result_json(result: &TraceResult) -> String {
             "{{\"kind\":\"i64\",\"value\":{}}}",
             quote_json(&value.to_string())
         ),
+        TraceResult::Char(value) => {
+            format!("{{\"kind\":\"char\",\"value\":{value}}}")
+        }
         TraceResult::F32(bits) => format!("{{\"kind\":\"f32\",\"bits\":\"{bits:08x}\"}}",),
         TraceResult::F64(bits) => format!("{{\"kind\":\"f64\",\"bits\":\"{bits:016x}\"}}",),
         TraceResult::Bool(value) => format!("{{\"kind\":\"bool\",\"value\":{value}}}"),

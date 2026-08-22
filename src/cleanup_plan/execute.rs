@@ -258,6 +258,7 @@ fn collect_variant_domains(
     ) -> Result<(), CleanupExecutionError> {
         match &expression.kind {
             hir::ResolvedExprKind::Int(_)
+            | hir::ResolvedExprKind::Char(_)
             | hir::ResolvedExprKind::Float32(_)
             | hir::ResolvedExprKind::Float64(_)
             | hir::ResolvedExprKind::Bool(_)
@@ -656,6 +657,7 @@ fn find_expression_by<'a>(
             })
         }
         hir::ResolvedExprKind::Int(_)
+        | hir::ResolvedExprKind::Char(_)
         | hir::ResolvedExprKind::Float32(_)
         | hir::ResolvedExprKind::Float64(_)
         | hir::ResolvedExprKind::Bool(_)
@@ -1232,6 +1234,7 @@ impl<'a> Executor<'a> {
             (ResolvedType::Unit, _) => false,
             (ResolvedType::I64, TraceResult::I64(_))
             | (ResolvedType::Bool, TraceResult::Bool(_))
+            | (ResolvedType::Char, TraceResult::Char(_))
             | (ResolvedType::F32, TraceResult::F32(_))
             | (ResolvedType::F64, TraceResult::F64(_)) => true,
             (ResolvedType::Nominal { declaration, .. }, TraceResult::Owned { type_id }) => {
@@ -1242,7 +1245,11 @@ impl<'a> Executor<'a> {
         let source_matches = match (source, &self.function.return_type) {
             (
                 CleanupResultSource::Scalar { .. },
-                ResolvedType::I64 | ResolvedType::F32 | ResolvedType::F64 | ResolvedType::Bool,
+                ResolvedType::I64
+                | ResolvedType::Char
+                | ResolvedType::F32
+                | ResolvedType::F64
+                | ResolvedType::Bool,
             ) => true,
             (CleanupResultSource::Owned { storage }, ResolvedType::Nominal { .. }) => {
                 storage.storage == StorageId::ProvisionalResult && storage.projections.is_empty()
@@ -1252,7 +1259,11 @@ impl<'a> Executor<'a> {
             | (CleanupResultSource::Owned { .. }, ResolvedType::Unit)
             | (
                 CleanupResultSource::Owned { .. },
-                ResolvedType::I64 | ResolvedType::F32 | ResolvedType::F64 | ResolvedType::Bool,
+                ResolvedType::I64
+                | ResolvedType::Char
+                | ResolvedType::F32
+                | ResolvedType::F64
+                | ResolvedType::Bool,
             )
             | (_, ResolvedType::TypeParameter { .. }) => false,
         };

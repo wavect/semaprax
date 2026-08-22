@@ -336,6 +336,7 @@ fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize {
     match ty {
         ResolvedType::Unit
         | ResolvedType::I64
+        | ResolvedType::Char
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool => 0,
@@ -1922,6 +1923,7 @@ impl<'a> PlanBuilder<'a> {
                     state,
                 } => match &expression.kind {
                     ResolvedExprKind::Int(_)
+                    | ResolvedExprKind::Char(_)
                     | ResolvedExprKind::Float32(_)
                     | ResolvedExprKind::Float64(_)
                     | ResolvedExprKind::Bool(_) => results.push(EvalResult {
@@ -2891,6 +2893,7 @@ impl<'a> PlanBuilder<'a> {
                             .is_some_and(|item| item.kind == DeclarationKind::Record),
                         ResolvedType::Unit
                         | ResolvedType::I64
+                        | ResolvedType::Char
                         | ResolvedType::F32
                         | ResolvedType::F64
                         | ResolvedType::Bool
@@ -3262,6 +3265,7 @@ impl<'a> PlanBuilder<'a> {
         }
         match &expression.kind {
             ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Char(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_) => Ok(EvalResult {
@@ -4389,6 +4393,7 @@ impl<'a> PlanBuilder<'a> {
                 .is_some_and(|item| item.kind == DeclarationKind::Record),
             ResolvedType::Unit
             | ResolvedType::I64
+            | ResolvedType::Char
             | ResolvedType::F32
             | ResolvedType::F64
             | ResolvedType::Bool

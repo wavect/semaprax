@@ -397,6 +397,7 @@ impl FunctionPlan {
                 }
             }
             ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Char(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
@@ -506,6 +507,7 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
             expression_has_try(base) || fields.iter().any(|field| expression_has_try(&field.value))
         }
         ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -621,6 +623,7 @@ fn aggregate_size_align(
 fn scalar_wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
     match ty {
         ResolvedType::I64 => Ok(I64),
+        ResolvedType::Char => Ok(I32),
         ResolvedType::F32 => Ok(F32),
         ResolvedType::F64 => Ok(F64),
         ResolvedType::Bool => Ok(I32),
@@ -634,6 +637,7 @@ fn scalar_wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
 fn scalar_size_align(ty: &ResolvedType) -> Result<(u32, u32), Diagnostic> {
     match ty {
         ResolvedType::I64 => Ok((8, 8)),
+        ResolvedType::Char => Ok((4, 4)),
         ResolvedType::F32 => Ok((4, 4)),
         ResolvedType::F64 => Ok((8, 8)),
         ResolvedType::Bool => Ok((4, 4)),
@@ -1263,6 +1267,17 @@ impl Emitter<'_> {
                 Ok(Value::Scalar {
                     local: destination,
                     ty: ResolvedType::I64,
+                })
+            }
+            ResolvedExprKind::Char(value) => {
+                let destination = self.plan.expr_scalar(expr)?;
+                self.output.push(0x41);
+                write_i64(self.output, i64::from(*value));
+                self.output.push(0x21);
+                write_u32(self.output, destination);
+                Ok(Value::Scalar {
+                    local: destination,
+                    ty: ResolvedType::Char,
                 })
             }
             ResolvedExprKind::Float32(bits) => {
@@ -2252,10 +2267,10 @@ impl Emitter<'_> {
                 let operand_ty = value_type(&left);
                 if !matches!(
                     operand_ty,
-                    ResolvedType::I64 | ResolvedType::F32 | ResolvedType::F64
+                    ResolvedType::I64 | ResolvedType::Char | ResolvedType::F32 | ResolvedType::F64
                 ) {
                     return Err(error(format!(
-                        "ordered comparison requires a numeric operand, found `{}`",
+                        "ordered comparison requires a scalar operand, found `{}`",
                         operand_ty.identity_key()
                     )));
                 }
@@ -2267,6 +2282,10 @@ impl Emitter<'_> {
                 self.get_scalar(&left);
                 self.get_scalar(&right);
                 self.output.push(match (&operand_ty, op) {
+                    (ResolvedType::Char, BinaryOp::Lt) => 0x49,
+                    (ResolvedType::Char, BinaryOp::Gt) => 0x4b,
+                    (ResolvedType::Char, BinaryOp::Le) => 0x4d,
+                    (ResolvedType::Char, BinaryOp::Ge) => 0x4f,
                     (ResolvedType::F32, BinaryOp::Lt) => 0x5d,
                     (ResolvedType::F32, BinaryOp::Gt) => 0x5e,
                     (ResolvedType::F32, BinaryOp::Le) => 0x5f,
@@ -2652,7 +2671,7 @@ impl Emitter<'_> {
             ResolvedType::I64 => self.output.extend([0x29, 0x03, 0x00]),
             ResolvedType::F64 => self.output.extend([0x2b, 0x03, 0x00]),
             ResolvedType::F32 => self.output.extend([0x2a, 0x02, 0x00]),
-            ResolvedType::Bool => self.output.extend([0x28, 0x02, 0x00]),
+            ResolvedType::Bool | ResolvedType::Char => self.output.extend([0x28, 0x02, 0x00]),
             _ => unreachable!("validated scalar load"),
         }
     }
@@ -2662,7 +2681,7 @@ impl Emitter<'_> {
             ResolvedType::I64 => self.output.extend([0x37, 0x03, 0x00]),
             ResolvedType::F64 => self.output.extend([0x39, 0x03, 0x00]),
             ResolvedType::F32 => self.output.extend([0x38, 0x02, 0x00]),
-            ResolvedType::Bool => self.output.extend([0x36, 0x02, 0x00]),
+            ResolvedType::Bool | ResolvedType::Char => self.output.extend([0x36, 0x02, 0x00]),
             _ => unreachable!("validated scalar store"),
         }
     }

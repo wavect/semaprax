@@ -84,6 +84,7 @@ fn observed_type_bytes(ty: &ResolvedType) -> usize {
     match ty {
         ResolvedType::Unit
         | ResolvedType::I64
+        | ResolvedType::Char
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool => 0,
@@ -7778,9 +7779,11 @@ fn every_expression_shape_resolves_at_exact_depth_512_and_rejects_513() {
             ExprKind::Binary { left, right, .. } => {
                 replace_payload(left, replacement) || replace_payload(right, replacement)
             }
-            ExprKind::Int(_) | ExprKind::Float32(_) | ExprKind::Float64(_) | ExprKind::Bool(_) => {
-                false
-            }
+            ExprKind::Int(_)
+            | ExprKind::Char(_)
+            | ExprKind::Float32(_)
+            | ExprKind::Float64(_)
+            | ExprKind::Bool(_) => false,
             ExprKind::Block { statements, tail } => {
                 statements.iter_mut().any(|statement| {
                     let crate::ast::Statement::Let { value, .. } = statement;

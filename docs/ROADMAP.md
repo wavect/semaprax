@@ -214,7 +214,10 @@ Copy-record destructuring, bounded explicitly instantiated direct-scalar Copy
 generic functions, IEEE-754 `f32`/`f64` scalar value types with total float
 arithmetic, exact literals, layouts, graph nodes, native C11, and Wasm
 execution (`examples/floats.spx`,
-`tests/floating_point_scalars.rs`), feature-minimal Graph v14/v13/v12/v11/v10 lattice for
+`tests/floating_point_scalars.rs`), Unicode scalar `char` values with exact
+canonical escapes, scalar ordering, 4-byte layouts, graph nodes, native C11,
+and Wasm execution (`examples/chars.spx`,
+`tests/character_scalars.rs`), feature-minimal Graph v14/v13/v12/v11/v10 lattice for
 generic functions/explicit record patterns/generic records/Option propagation/legacy, validated
 stable-ID HIR/type facts, mandatory replay-validated CleanupPlan v2/v3 plans, versioned normalized-status
 and semantic-event-dictionary types, native scalar status/out execution, a
@@ -234,9 +237,9 @@ gates below are not.
   scalar slice.
 - Fixed-width integer types beyond `i64`, saturating/wrapping arithmetic, and
   float-remainder or math-library intrinsics.
-- Float admission into generic instantiation arguments, generic template
-  signature slots, Public Scalar Export Profile v1, the native host/callable
-  corpus, and the Native Rust interop boundary.
+- Float or char admission into generic instantiation arguments, generic
+  template signature slots, Public Scalar Export Profile v1, the native
+  host/callable corpus, and the Native Rust interop boundary.
 - Complete record breadth plus nested/resource-bearing generic records and
   variants and
   non-copy `Option`/`Result` instantiations.

@@ -496,6 +496,7 @@ fn ast_expr_identity_slots(expression: &Expr) -> Result<usize, Vec<Diagnostic>> 
             slots = checked_builder_sum(slots, ast_expr_identity_slots(base)?)?;
         }
         ExprKind::Int(_)
+        | ExprKind::Char(_)
         | ExprKind::Float32(_)
         | ExprKind::Float64(_)
         | ExprKind::Bool(_)
@@ -727,7 +728,11 @@ fn ast_expr_cost(expression: &Expr, cost: &mut StructuralCost) -> Result<(), Vec
             ast_expr_cost(base, cost)?;
             cost.string(field)?;
         }
-        ExprKind::Int(_) | ExprKind::Float32(_) | ExprKind::Float64(_) | ExprKind::Bool(_) => {}
+        ExprKind::Int(_)
+        | ExprKind::Char(_)
+        | ExprKind::Float32(_)
+        | ExprKind::Float64(_)
+        | ExprKind::Bool(_) => {}
     }
     Ok(())
 }
@@ -798,7 +803,7 @@ fn default_expr_expanded_cost(
     visiting: &mut BTreeSet<String>,
 ) -> Result<ExpandedDefaultCost, Vec<Diagnostic>> {
     match ty {
-        Type::I64 | Type::F32 | Type::F64 | Type::Bool => Ok(ExpandedDefaultCost {
+        Type::I64 | Type::Char | Type::F32 | Type::F64 | Type::Bool => Ok(ExpandedDefaultCost {
             bytes: std::mem::size_of::<Expr>(),
             identity_slots: 0,
         }),
@@ -1163,6 +1168,7 @@ fn default_expr(
     let span = Span::default();
     let kind = match ty {
         Type::I64 => ExprKind::Int(0),
+        Type::Char => ExprKind::Char(0),
         Type::F32 => ExprKind::Float32(0),
         Type::F64 => ExprKind::Float64(0),
         Type::Bool => ExprKind::Bool(false),
@@ -1845,6 +1851,7 @@ fn collect_expression_type_edges(
             edges,
         )?,
         ExprKind::Int(_)
+        | ExprKind::Char(_)
         | ExprKind::Float32(_)
         | ExprKind::Float64(_)
         | ExprKind::Bool(_)

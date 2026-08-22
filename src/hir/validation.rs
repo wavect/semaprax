@@ -507,7 +507,7 @@ impl<'a> HirValidator<'a> {
                     } else {
                         match &field.ty {
                             ResolvedType::I64 | ResolvedType::Bool => {}
-                            ResolvedType::F32 | ResolvedType::F64 => {
+                            ResolvedType::Char | ResolvedType::F32 | ResolvedType::F64 => {
                                 return Err(hir_error(format!(
                                     "field `{}` has an invalid generic copy record template",
                                     field.id
@@ -652,7 +652,7 @@ impl<'a> HirValidator<'a> {
                         }
                         match &field.ty {
                             ResolvedType::I64 | ResolvedType::Bool => {}
-                            ResolvedType::F32 | ResolvedType::F64 => {
+                            ResolvedType::Char | ResolvedType::F32 | ResolvedType::F64 => {
                                 return Err(hir_error(format!(
                                     "field `{}` has an invalid generic copy payload template",
                                     field.id
@@ -859,7 +859,7 @@ impl<'a> HirValidator<'a> {
     ) -> Result<(), Diagnostic> {
         match ty {
             ResolvedType::I64 | ResolvedType::Bool => Ok(()),
-            ResolvedType::F32 | ResolvedType::F64 => Err(hir_error(format!(
+            ResolvedType::Char | ResolvedType::F32 | ResolvedType::F64 => Err(hir_error(format!(
                 "generic template `{}` has an invalid direct-scalar signature slot",
                 template.id
             ))),
@@ -936,6 +936,7 @@ impl<'a> HirValidator<'a> {
         self.validate_function_template_type(template, &expression.ty)?;
         match &expression.kind {
             ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Char(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_) => {}
@@ -2056,6 +2057,19 @@ impl<'a> HirValidator<'a> {
                             self.finish_expr(expression, &ResolvedType::I64, OwnershipMode::Value)?;
                             scopes.push(scope);
                         }
+                        ResolvedExprKind::Char(value) => {
+                            if char::from_u32(*value).is_none() {
+                                return Err(hir_error(
+                                    "char literal bits are not a Unicode scalar value",
+                                ));
+                            }
+                            self.finish_expr(
+                                expression,
+                                &ResolvedType::Char,
+                                OwnershipMode::Value,
+                            )?;
+                            scopes.push(scope);
+                        }
                         ResolvedExprKind::Float32(bits) => {
                             self.validate_finite_f32(*bits)?;
                             self.finish_expr(expression, &ResolvedType::F32, OwnershipMode::Value)?;
@@ -2685,9 +2699,14 @@ impl<'a> HirValidator<'a> {
                             left.ty.clone()
                         }
                         BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge => {
+                            // Ordered comparison compares scalar values: i64,
+                            // IEEE-754 numerics, and Unicode scalar chars.
                             if !matches!(
                                 &left.ty,
-                                ResolvedType::I64 | ResolvedType::F32 | ResolvedType::F64
+                                ResolvedType::I64
+                                    | ResolvedType::Char
+                                    | ResolvedType::F32
+                                    | ResolvedType::F64
                             ) {
                                 return Err(hir_error(
                                     "comparison operand has inconsistent resolved types",
@@ -3920,6 +3939,14 @@ impl<'a> HirValidator<'a> {
 
         let (ty, ownership) = match &expression.kind {
             ResolvedExprKind::Int(_) => (ResolvedType::I64, OwnershipMode::Value),
+            ResolvedExprKind::Char(value) => {
+                if char::from_u32(*value).is_none() {
+                    return Err(hir_error(
+                        "char literal bits are not a Unicode scalar value",
+                    ));
+                }
+                (ResolvedType::Char, OwnershipMode::Value)
+            }
             ResolvedExprKind::Float32(bits) => {
                 self.validate_finite_f32(*bits)?;
                 (ResolvedType::F32, OwnershipMode::Value)
@@ -5210,6 +5237,7 @@ impl<'a> HirValidator<'a> {
                         frames.push(Frame::Enter(base, scope_index));
                     }
                     ResolvedExprKind::Int(_)
+                    | ResolvedExprKind::Char(_)
                     | ResolvedExprKind::Float32(_)
                     | ResolvedExprKind::Float64(_)
                     | ResolvedExprKind::Bool(_)
@@ -5431,6 +5459,7 @@ impl<'a> HirValidator<'a> {
                 Frame::Enter(
                     ResolvedType::Unit
                     | ResolvedType::I64
+                    | ResolvedType::Char
                     | ResolvedType::F32
                     | ResolvedType::F64
                     | ResolvedType::Bool,

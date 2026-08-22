@@ -1,0 +1,36 @@
+module examples.chars;
+
+@id("glyph.type")
+record Glyph {
+    @id("glyph.symbol")
+    symbol: char,
+    @id("glyph.weight")
+    weight: i64,
+}
+
+@id("glyph.initial")
+fn initial() -> char
+{
+    'S'
+}
+
+@id("glyph.make")
+fn make(symbol: char) -> Glyph
+{
+    Glyph { symbol: symbol, weight: 1 }
+}
+
+@id("glyph.order")
+fn order(left: char, right: char) -> i64
+{
+    if left < right { -1 } else { if left == right { 0 } else { 1 } }
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    let glyph = make(initial());
+    let moved = glyph with { symbol: 'T' };
+    let newline = '\n';
+    if order(moved.symbol, 'U') == -1 && moved.weight == 1 && newline == '\n' && initial() == 'S' { 7 } else { 9 }
+}

@@ -61,10 +61,20 @@ JSON nodes, native C11, and Wasm. Float `+`, `-`, `*`, `/`, negation, and
 comparisons are total IEEE-754 operations that never select a failure status;
 `%` on floats is `SPX-T208`; mixed-width operands are rejected by the
 verifier and re-checked fail-closed in HIR validation and both backends.
-Generic instantiation arguments and template signature slots remain direct
-`i64`/`bool`, Public Scalar Export Profile v1 remains i64/bool-only
-(`SPX-W115`), and the native host/callable corpus remains i64/bool/resource-
-only; string or other heap-backed types remain unimplemented because no
+The locally evidenced Unicode-scalar tranche adds `char` as a Copy value
+type end-to-end on exactly the same spine: single-scalar literals with named
+and `\u{...}` escapes (stable `SPX-P006`/`SPX-P007`/`SPX-P008` lexer
+diagnostics), a canonical projection that keeps revisions round-trip exact
+(printable ASCII direct, lowercase `\u{...}` otherwise), HIR literal
+validation (`SPX-H006` for non-scalar payloads), Native64/Wasm32 4-byte/4-byte
+layouts in records and variants, cleanup plans, Graph JSON `"kind":"char"`
+nodes with the exact scalar value plus display text, native C11 `uint32_t`
+with unsigned comparison semantics, and Wasm `i32` with unsigned ordering
+opcodes. Ordered comparison is scalar ordering; char arithmetic and negation
+are stable verifier diagnostics (`SPX-T208`/`SPX-T206`); equality requires
+same types (`SPX-T207`). Chars stay outside generic arguments, template
+signature slots, Public Scalar Export Profile v1, and the native host/callable
+corpus; string or other heap-backed types remain unimplemented because no
 allocation model exists yet.
 
 ## Resolved HIR groundwork

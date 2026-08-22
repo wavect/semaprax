@@ -1905,6 +1905,7 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
             expression_has_try(base) || fields.iter().any(|field| expression_has_try(&field.value))
         }
         ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -2170,6 +2171,13 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 CValue {
                     code: c_i64(*value),
                     ty: ResolvedType::I64,
+                }
+            }
+            ResolvedExprKind::Char(value) => {
+                self.require_type(&expr.ty, &ResolvedType::Char, "char literal")?;
+                CValue {
+                    code: format!("UINT32_C(0x{value:x})"),
+                    ty: ResolvedType::Char,
                 }
             }
             ResolvedExprKind::Float32(bits) => {
@@ -2926,10 +2934,13 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             ));
         }
         let float_operand = matches!(left.ty, ResolvedType::F32 | ResolvedType::F64);
+        // Chars compare by Unicode scalar value; C unsigned comparison on
+        // uint32_t matches the verified ordering exactly.
+        let char_operand = matches!(left.ty, ResolvedType::Char);
         let operand_type = match op {
             BinaryOp::And | BinaryOp::Or => ResolvedType::Bool,
             BinaryOp::Eq | BinaryOp::Ne => left.ty.clone(),
-            _ if float_operand => left.ty.clone(),
+            _ if float_operand || char_operand => left.ty.clone(),
             _ => ResolvedType::I64,
         };
         self.require_type(&left.ty, &operand_type, "binary left operand")?;
@@ -2948,6 +2959,16 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         if float_operand && op == BinaryOp::Rem {
             return Err(backend_error(
                 "floating-point remainder has no admitted native lowering",
+            ));
+        }
+        if char_operand
+            && matches!(
+                op,
+                BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
+            )
+        {
+            return Err(backend_error(
+                "char arithmetic has no admitted native lowering",
             ));
         }
         if matches!(op, BinaryOp::And | BinaryOp::Or) {

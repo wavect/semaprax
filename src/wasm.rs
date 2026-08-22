@@ -1398,6 +1398,7 @@ fn collect_locals(
             }
         }
         ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -1418,6 +1419,12 @@ fn emit_expr(
         ResolvedExprKind::Int(value) => {
             output.push(0x42);
             write_i64(output, *value);
+        }
+        ResolvedExprKind::Char(value) => {
+            // Chars ride the i32 valtype; scalar values are below 2^31 so the
+            // signed LEB128 encoding is exact.
+            output.push(0x41);
+            write_i64(output, i64::from(*value));
         }
         ResolvedExprKind::Float32(bits) => {
             output.push(0x43);
@@ -1592,10 +1599,21 @@ fn emit_expr(
                         _ => unreachable!(),
                     });
                 }
-                BinaryOp::Lt => output.push(0x53),
-                BinaryOp::Gt => output.push(0x55),
-                BinaryOp::Le => output.push(0x57),
-                BinaryOp::Ge => output.push(0x59),
+                BinaryOp::Lt | BinaryOp::Gt | BinaryOp::Le | BinaryOp::Ge => {
+                    // Ordered comparison compares scalar values; chars ride
+                    // the unsigned i32 opcodes while i64 keeps its lane.
+                    output.push(match (&left.ty, op) {
+                        (ResolvedType::Char, BinaryOp::Lt) => 0x49,
+                        (ResolvedType::Char, BinaryOp::Gt) => 0x4b,
+                        (ResolvedType::Char, BinaryOp::Le) => 0x4d,
+                        (ResolvedType::Char, BinaryOp::Ge) => 0x4f,
+                        (_, BinaryOp::Lt) => 0x53,
+                        (_, BinaryOp::Gt) => 0x55,
+                        (_, BinaryOp::Le) => 0x57,
+                        (_, BinaryOp::Ge) => 0x59,
+                        _ => unreachable!("ordered comparison was matched above"),
+                    });
+                }
                 BinaryOp::And | BinaryOp::Or => unreachable!(),
             }
         }
@@ -1744,6 +1762,7 @@ fn wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
             "unit is not a WebAssembly value type",
         )),
         ResolvedType::I64 => Ok(I64),
+        ResolvedType::Char => Ok(I32),
         ResolvedType::F32 => Ok(F32),
         ResolvedType::F64 => Ok(F64),
         ResolvedType::Bool | ResolvedType::Nominal { .. } => Ok(I32),

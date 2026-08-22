@@ -547,7 +547,11 @@ fn validate_supported_type(
             function,
             format!("does not support a unit {context} value"),
         )),
-        ResolvedType::I64 | ResolvedType::F32 | ResolvedType::F64 | ResolvedType::Bool => Ok(()),
+        ResolvedType::I64
+        | ResolvedType::Char
+        | ResolvedType::F32
+        | ResolvedType::F64
+        | ResolvedType::Bool => Ok(()),
         ResolvedType::TypeParameter { .. } => Err(unsupported(
             function,
             format!(
@@ -681,6 +685,7 @@ fn validate_expression(
     validate_supported_type(program, function, &expression.ty, "expression")?;
     match &expression.kind {
         ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_) => {}

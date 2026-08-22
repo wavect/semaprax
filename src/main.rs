@@ -6,8 +6,9 @@ use semaprax::{
     abi_report, agent_economics, agent_transport, c_header, capability_manifest, codegen, cxx_shim,
     format, graph, hygienic, impact, openapi, parse, patch, patch_evidence, project, properties,
     quality_route, repair, review, semantic_workspace, semantic_workspace_change,
-    semantic_workspace_operations, semantic_workspace_structural_change, target_evidence, verify,
-    wasm, workspace, workspace_analysis, workspace_graph, workspace_patch_evidence,
+    semantic_workspace_operations, semantic_workspace_structural_change, target_evidence,
+    ui_schema, verify, wasm, workspace, workspace_analysis, workspace_graph,
+    workspace_patch_evidence,
 };
 
 fn main() -> ExitCode {
@@ -643,6 +644,14 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             let options = capability_manifest_options(&args)?;
             let envelope = capability_manifest::generate(&path, &options)
                 .map_err(|errors| report(&errors, false))?;
+            println!("{envelope}");
+            Ok(())
+        }
+        "ui-schema" => {
+            let path = required_path(&args, 1)?;
+            let options = ui_schema_options(&args)?;
+            let envelope =
+                ui_schema::generate(&path, &options).map_err(|errors| report(&errors, false))?;
             println!("{envelope}");
             Ok(())
         }
@@ -1332,6 +1341,33 @@ fn capability_manifest_options(
     })
 }
 
+fn ui_schema_options(args: &[String]) -> Result<ui_schema::UiSchemaOptions, u8> {
+    let mut max_bytes = ui_schema::UiSchemaOptions::default().max_bytes;
+    let mut seen = std::collections::BTreeSet::new();
+    let mut index = 2usize;
+    while index < args.len() {
+        let option = args[index].as_str();
+        if !matches!(option, "--max-bytes") {
+            eprintln!("unknown ui-schema option `{option}`");
+            return Err(2);
+        }
+        if !seen.insert(option.to_owned()) {
+            eprintln!("duplicate ui-schema option `{option}`");
+            return Err(2);
+        }
+        let value = args.get(index + 1).ok_or_else(|| {
+            eprintln!("ui-schema option `{option}` requires a value");
+            2
+        })?;
+        max_bytes = property_number(option, value)?;
+        index += 2;
+    }
+    ui_schema::UiSchemaOptions::new(max_bytes).map_err(|error| {
+        eprintln!("{error}");
+        2
+    })
+}
+
 fn cxx_shim_options(args: &[String]) -> Result<(cxx_shim::CxxShimOptions, bool), u8> {
     let mut functions: Vec<String> = Vec::new();
     let mut max_bytes = cxx_shim::CxxShimOptions::default().max_bytes;
@@ -1856,7 +1892,8 @@ fn print_help() {
            semaprax openapi-compat <base.json> <candidate.json> [--max-bytes N]\n\
             semaprax c-header <file> --function name|stable-id[,...] [--function ...] [--max-bytes N] [--emit-header]\n\
             semaprax abi-report <file> --function name|stable-id[,...] [--function ...] [--max-bytes N]\n\
-            semaprax capability-manifest <file> [--max-bytes N]\n\
+             semaprax capability-manifest <file> [--max-bytes N]\n\
+             semaprax ui-schema <file> [--max-bytes N]\n\
             semaprax cxx-shim <file> --function name|stable-id[,...] [--function ...] [--max-bytes N] [--emit-fragment]\n\
            semaprax review <file> <patch.spatch>\n\
            semaprax target-evidence <file> <patch.spatch>\n\

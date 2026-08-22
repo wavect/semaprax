@@ -6,9 +6,8 @@ use semaprax::{
     abi_report, agent_economics, agent_transport, c_header, capability_manifest, codegen, cxx_shim,
     format, graph, hygienic, impact, openapi, parse, patch, patch_evidence, project, properties,
     quality_route, repair, review, semantic_workspace, semantic_workspace_change,
-    semantic_workspace_operations,
-    semantic_workspace_structural_change, target_evidence, verify, wasm, workspace,
-    workspace_analysis, workspace_graph, workspace_patch_evidence,
+    semantic_workspace_operations, semantic_workspace_structural_change, target_evidence, verify,
+    wasm, workspace, workspace_analysis, workspace_graph, workspace_patch_evidence,
 };
 
 fn main() -> ExitCode {

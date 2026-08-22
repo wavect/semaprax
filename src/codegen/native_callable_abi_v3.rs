@@ -1157,7 +1157,6 @@ fn v3_error(message: impl Into<String>) -> Diagnostic {
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeSet;
-    use std::fmt::Write as _;
 
     use crate::owned_resource_corpus::build_owned_resource_corpus_v1;
 

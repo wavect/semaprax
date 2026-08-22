@@ -633,6 +633,7 @@ fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> usize {
             ExprKind::Int(_)
             | ExprKind::Int32(_)
             | ExprKind::Char(_)
+            | ExprKind::Uint8(_)
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
             | ExprKind::Bool(_) => {}
@@ -949,6 +950,11 @@ fn write_expr(output: &mut impl std::fmt::Write, value: &Expr, parent_precedence
                     // across canonical round trips.
                     output.write_str(&format!("{value}i32")).unwrap();
                 }
+                ExprKind::Uint8(value) => {
+                    // The explicit suffix keeps the declared width stable
+                    // across canonical round trips.
+                    write!(output, "{value}u8").unwrap();
+                }
                 ExprKind::Char(value) => {
                     output.write_str(&canonical_char(*value)).unwrap();
                 }
@@ -1243,6 +1249,7 @@ fn write_type(output: &mut impl std::fmt::Write, ty: &crate::ast::Type) {
             Frame::Type(crate::ast::Type::I64) => output.write_str("i64").unwrap(),
             Frame::Type(crate::ast::Type::I32) => output.write_str("i32").unwrap(),
             Frame::Type(crate::ast::Type::Char) => output.write_str("char").unwrap(),
+            Frame::Type(crate::ast::Type::U8) => output.write_str("u8").unwrap(),
             Frame::Type(crate::ast::Type::F32) => output.write_str("f32").unwrap(),
             Frame::Type(crate::ast::Type::F64) => output.write_str("f64").unwrap(),
             Frame::Type(crate::ast::Type::Bool) => output.write_str("bool").unwrap(),
@@ -1401,6 +1408,7 @@ fn contains_record_construction(value: &Expr) -> bool {
             | ExprKind::Int(_)
             | ExprKind::Int32(_)
             | ExprKind::Char(_)
+            | ExprKind::Uint8(_)
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
             | ExprKind::Bool(_)

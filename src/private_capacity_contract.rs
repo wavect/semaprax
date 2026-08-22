@@ -60,6 +60,7 @@ fn resolved_type_owned_capacity(ty: &crate::hir::ResolvedType) -> Option<usize> 
         | crate::hir::ResolvedType::I64
         | crate::hir::ResolvedType::I32
         | crate::hir::ResolvedType::Char
+        | crate::hir::ResolvedType::U8
         | crate::hir::ResolvedType::F32
         | crate::hir::ResolvedType::F64
         | crate::hir::ResolvedType::Bool => Some(0),

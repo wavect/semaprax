@@ -506,6 +506,7 @@ fn resolved_type_owned_capacity(ty: &ResolvedType) -> Option<usize> {
         | ResolvedType::I64
         | ResolvedType::I32
         | ResolvedType::Char
+        | ResolvedType::U8
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool => Some(0),

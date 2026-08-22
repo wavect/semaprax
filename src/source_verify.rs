@@ -67,7 +67,7 @@ fn binding_owned_capacity(binding: &Binding) -> usize {
 #[cfg(test)]
 fn ast_type_owned_capacity(ty: &Type) -> usize {
     match ty {
-        Type::I64 | Type::I32 | Type::Char | Type::F32 | Type::F64 | Type::Bool => 0,
+        Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64 | Type::Bool => 0,
         Type::Named { name, arguments } => name
             .capacity()
             .saturating_add(arguments.capacity() * std::mem::size_of::<Type>())
@@ -229,6 +229,7 @@ impl<'a> TypeTable<'a> {
                     Type::I64 => resolved.push(Type::I64),
                     Type::I32 => resolved.push(Type::I32),
                     Type::Char => resolved.push(Type::Char),
+                    Type::U8 => resolved.push(Type::U8),
                     Type::F32 => resolved.push(Type::F32),
                     Type::F64 => resolved.push(Type::F64),
                     Type::Bool => resolved.push(Type::Bool),
@@ -1910,7 +1911,7 @@ fn direct_function_type_argument(ty: &Type) -> bool {
 fn generic_function_signature_slot(ty: &Type, parameters: &HashSet<&str>) -> bool {
     match ty {
         Type::I64 | Type::Bool => true,
-        Type::I32 | Type::Char | Type::F32 | Type::F64 => false,
+        Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64 => false,
         Type::Named { name, arguments } => {
             arguments.is_empty() && parameters.contains(name.as_str())
         }
@@ -1934,6 +1935,7 @@ fn substitute_function_type(
                 Type::I64 => resolved.push(Type::I64),
                 Type::I32 => resolved.push(Type::I32),
                 Type::Char => resolved.push(Type::Char),
+                Type::U8 => resolved.push(Type::U8),
                 Type::F32 => resolved.push(Type::F32),
                 Type::F64 => resolved.push(Type::F64),
                 Type::Bool => resolved.push(Type::Bool),
@@ -1992,6 +1994,7 @@ fn generic_function_expression_is_direct_scalar(expression: &Expr) -> bool {
             ExprKind::Int(_)
             | ExprKind::Int32(_)
             | ExprKind::Char(_)
+            | ExprKind::Uint8(_)
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
             | ExprKind::Bool(_)
@@ -2796,6 +2799,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     ExprKind::Int(_) => self.values.push(Some(CheckedValue::value(Type::I64))),
                     ExprKind::Int32(_) => self.values.push(Some(CheckedValue::value(Type::I32))),
                     ExprKind::Char(_) => self.values.push(Some(CheckedValue::value(Type::Char))),
+                    ExprKind::Uint8(_) => self.values.push(Some(CheckedValue::value(Type::U8))),
                     ExprKind::Float32(_) => self.values.push(Some(CheckedValue::value(Type::F32))),
                     ExprKind::Float64(_) => self.values.push(Some(CheckedValue::value(Type::F64))),
                     ExprKind::Bool(_) => self.values.push(Some(CheckedValue::value(Type::Bool))),
@@ -3391,9 +3395,18 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             .filter(|ty| {
                                 matches!(
                                     ty,
-                                    Type::I64 | Type::I32 | Type::Char | Type::F32 | Type::F64
+                                    Type::I64
+                                        | Type::I32
+                                        | Type::Char
+                                        | Type::U8
+                                        | Type::F32
+                                        | Type::F64
                                 )
                             });
+                    let left_narrow = left_value
+                        .as_ref()
+                        .map(|value| value.ty.clone())
+                        .filter(|ty| matches!(ty, Type::U8));
                     let left_numeric = left_value
                         .as_ref()
                         .map(|value| value.ty.clone())
@@ -3404,7 +3417,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         .filter(|ty| matches!(ty, Type::I32));
                     if !native_unit
                         && matches!(op, BinaryOp::Rem)
-                        && (left_numeric.is_some() || left_integer.is_some())
+                        && (left_numeric.is_some()
+                            || left_integer.is_some()
+                            || left_narrow.is_some())
                     {
                         self.diagnostics.push(error(
                             self.program,
@@ -3419,8 +3434,11 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         | BinaryOp::Mul
                         | BinaryOp::Div
                         | BinaryOp::Rem => {
-                            let expected =
-                                left_numeric.clone().or(left_integer).unwrap_or(Type::I64);
+                            let expected = left_numeric
+                                .clone()
+                                .or(left_integer)
+                                .or(left_narrow)
+                                .unwrap_or(Type::I64);
                             (expected.clone(), expected)
                         }
                         BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge => {
@@ -4554,6 +4572,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             Type::I64
                             | Type::I32
                             | Type::Char
+                            | Type::U8
                             | Type::F32
                             | Type::F64
                             | Type::Bool
@@ -4933,6 +4952,7 @@ fn check_expr(
         ExprKind::Int(_) => Some(CheckedValue::value(Type::I64)),
         ExprKind::Int32(_) => Some(CheckedValue::value(Type::I32)),
         ExprKind::Char(_) => Some(CheckedValue::value(Type::Char)),
+        ExprKind::Uint8(_) => Some(CheckedValue::value(Type::U8)),
         ExprKind::Float32(_) => Some(CheckedValue::value(Type::F32)),
         ExprKind::Float64(_) => Some(CheckedValue::value(Type::F64)),
         ExprKind::Bool(_) => Some(CheckedValue::value(Type::Bool)),
@@ -5314,9 +5334,13 @@ fn check_expr(
                 .filter(|ty| {
                     matches!(
                         ty,
-                        Type::I64 | Type::I32 | Type::Char | Type::F32 | Type::F64
+                        Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64
                     )
                 });
+            let left_narrow = left_ty
+                .as_ref()
+                .map(|value| value.ty.clone())
+                .filter(|ty| matches!(ty, Type::U8));
             let left_numeric = left_ty
                 .as_ref()
                 .map(|value| value.ty.clone())
@@ -5325,7 +5349,12 @@ fn check_expr(
                 .as_ref()
                 .map(|value| value.ty.clone())
                 .filter(|ty| matches!(ty, Type::I32));
-            if !native_unit_operand && matches!(op, BinaryOp::Rem) && (left_numeric.is_some() || left_integer.is_some()) {
+            if !native_unit_operand
+                && matches!(op, BinaryOp::Rem)
+                && (left_numeric.is_some()
+                    || left_integer.is_some()
+                    || left_narrow.is_some())
+            {
                 diagnostics.push(error(
                     program,
                     "SPX-T208",
@@ -5335,7 +5364,11 @@ fn check_expr(
             }
             let (expected, output) = match op {
                 BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem => {
-                    let expected = left_numeric.clone().or(left_integer).unwrap_or(Type::I64);
+                    let expected = left_numeric
+                        .clone()
+                        .or(left_integer)
+                        .or(left_narrow)
+                        .unwrap_or(Type::I64);
                     (expected.clone(), expected)
                 }
                 BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge => {
@@ -5715,6 +5748,7 @@ fn check_expr(
                 Type::I64
                 | Type::I32
                 | Type::Char
+                | Type::U8
                 | Type::F32
                 | Type::F64
                 | Type::Bool

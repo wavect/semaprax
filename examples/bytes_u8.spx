@@ -1,0 +1,37 @@
+module examples.bytes_u8;
+
+@id("byte.type")
+record Sample {
+    @id("byte.tag")
+    tag: u8,
+    @id("byte.weight")
+    weight: i64,
+}
+
+@id("byte.limit")
+fn limit() -> u8
+{
+    255u8
+}
+
+@id("byte.make")
+fn make(tag: u8) -> Sample
+{
+    Sample { tag: tag, weight: 3 }
+}
+
+@id("byte.saturating_add")
+fn saturating_add(left: u8, right: u8) -> u8
+    requires right <= limit()
+{
+    let sum = left + right;
+    if sum > limit() { limit() } else { sum }
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    let sample = make(250u8);
+    let moved = sample with { tag: 200u8 };
+    if moved.tag == 200u8 && moved.weight == 3 && limit() == 255u8 { let wrapped = saturating_add(100u8, 155u8); if wrapped == 255u8 && 4u8 / 2u8 == 2u8 && 9u8 - 1u8 == 8u8 { 7 } else { 8 } } else { 9 }
+}

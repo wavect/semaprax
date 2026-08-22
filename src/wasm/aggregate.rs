@@ -399,6 +399,7 @@ impl FunctionPlan {
             ResolvedExprKind::Int(_)
             | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
+            | ResolvedExprKind::Uint8(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
@@ -510,6 +511,7 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
         ResolvedExprKind::Int(_)
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
+        | ResolvedExprKind::Uint8(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
@@ -627,6 +629,7 @@ fn scalar_wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
         ResolvedType::I64 => Ok(I64),
         ResolvedType::I32 => Ok(I32),
         ResolvedType::Char => Ok(I32),
+        ResolvedType::U8 => Ok(I32),
         ResolvedType::F32 => Ok(F32),
         ResolvedType::F64 => Ok(F64),
         ResolvedType::Bool => Ok(I32),
@@ -642,6 +645,7 @@ fn scalar_size_align(ty: &ResolvedType) -> Result<(u32, u32), Diagnostic> {
         ResolvedType::I64 => Ok((8, 8)),
         ResolvedType::I32 => Ok((4, 4)),
         ResolvedType::Char => Ok((4, 4)),
+        ResolvedType::U8 => Ok((4, 4)),
         ResolvedType::F32 => Ok((4, 4)),
         ResolvedType::F64 => Ok((8, 8)),
         ResolvedType::Bool => Ok((4, 4)),
@@ -1293,6 +1297,17 @@ impl Emitter<'_> {
                 Ok(Value::Scalar {
                     local: destination,
                     ty: ResolvedType::Char,
+                })
+            }
+            ResolvedExprKind::Uint8(value) => {
+                let destination = self.plan.expr_scalar(expr)?;
+                self.output.push(0x41);
+                write_i64(self.output, i64::from(*value));
+                self.output.push(0x21);
+                write_u32(self.output, destination);
+                Ok(Value::Scalar {
+                    local: destination,
+                    ty: ResolvedType::U8,
                 })
             }
             ResolvedExprKind::Float32(bits) => {
@@ -2264,6 +2279,14 @@ impl Emitter<'_> {
             return self.emit_float_binary(expr, op, &left, &right, destination);
         }
         let int32_operands = matches!(value_type(&left), ResolvedType::I32);
+        if matches!(value_type(&left), ResolvedType::U8)
+            && matches!(
+                op,
+                BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
+            )
+        {
+            return self.emit_u8_binary(expr, op, &left, &right, destination);
+        }
         match op {
             BinaryOp::Add if int32_operands => {
                 self.emit_checked_i32_add(&left, &right, destination)?
@@ -2313,6 +2336,7 @@ impl Emitter<'_> {
                     ResolvedType::I64
                         | ResolvedType::I32
                         | ResolvedType::Char
+                        | ResolvedType::U8
                         | ResolvedType::F32
                         | ResolvedType::F64
                 ) {
@@ -2333,6 +2357,10 @@ impl Emitter<'_> {
                     (ResolvedType::Char, BinaryOp::Gt) => 0x4b,
                     (ResolvedType::Char, BinaryOp::Le) => 0x4d,
                     (ResolvedType::Char, BinaryOp::Ge) => 0x4f,
+                    (ResolvedType::U8, BinaryOp::Lt) => 0x49,
+                    (ResolvedType::U8, BinaryOp::Gt) => 0x4b,
+                    (ResolvedType::U8, BinaryOp::Le) => 0x4d,
+                    (ResolvedType::U8, BinaryOp::Ge) => 0x4f,
                     (ResolvedType::F32, BinaryOp::Lt) => 0x5d,
                     (ResolvedType::F32, BinaryOp::Gt) => 0x5e,
                     (ResolvedType::F32, BinaryOp::Le) => 0x5f,
@@ -2734,6 +2762,72 @@ impl Emitter<'_> {
         self.require_scalar(right, &ResolvedType::I64, context)
     }
 
+    /// Checked u8 arithmetic mirrors the i64 status contract on the i32
+    /// valtype: bounded operands make the unsigned opcodes exact and one
+    /// unsigned range check selects the matching arithmetic status.
+    fn emit_u8_binary(
+        &mut self,
+        expr: &ResolvedExpr,
+        op: BinaryOp,
+        left: &Value,
+        right: &Value,
+        destination: u32,
+    ) -> Result<Value, Diagnostic> {
+        let context = match op {
+            BinaryOp::Add => "addition",
+            BinaryOp::Sub => "subtraction",
+            BinaryOp::Mul => "multiplication",
+            BinaryOp::Div => "division",
+            BinaryOp::Rem => "remainder",
+            _ => return Err(error("u8 binary operation is not arithmetic")),
+        };
+        self.require_scalar(left, &ResolvedType::U8, context)?;
+        self.require_scalar(right, &ResolvedType::U8, context)?;
+        match op {
+            BinaryOp::Div | BinaryOp::Rem => {
+                self.get_scalar(right);
+                self.output.push(0x45);
+                self.fail_if(if op == BinaryOp::Div {
+                    STATUS_DIV_ZERO
+                } else {
+                    STATUS_REM_ZERO
+                });
+                self.get_scalar(left);
+                self.get_scalar(right);
+                self.output
+                    .push(if op == BinaryOp::Div { 0x6e } else { 0x70 });
+                self.output.push(0x21);
+                write_u32(self.output, destination);
+            }
+            BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul => {
+                self.get_scalar(left);
+                self.get_scalar(right);
+                self.output.push(match op {
+                    BinaryOp::Add => 0x6a,
+                    BinaryOp::Sub => 0x6b,
+                    _ => 0x6c,
+                });
+                self.output.push(0x21);
+                write_u32(self.output, destination);
+                self.output.push(0x20);
+                write_u32(self.output, destination);
+                self.output.push(0x41);
+                write_i64(self.output, 255);
+                self.output.push(0x4b);
+                self.fail_if(match op {
+                    BinaryOp::Add => STATUS_ADD_OVERFLOW,
+                    BinaryOp::Sub => STATUS_SUB_OVERFLOW,
+                    _ => STATUS_MUL_OVERFLOW,
+                });
+            }
+            _ => unreachable!("u8 operation was matched above"),
+        }
+        Ok(Value::Scalar {
+            local: destination,
+            ty: expr.ty.clone(),
+        })
+    }
+
     fn place_value(&self, place: &crate::hir::Place) -> Result<Value, Diagnostic> {
         let mut value =
             self.bindings.get(&place.root).cloned().ok_or_else(|| {
@@ -2855,7 +2949,7 @@ impl Emitter<'_> {
             ResolvedType::I64 => self.output.extend([0x29, 0x03, 0x00]),
             ResolvedType::F64 => self.output.extend([0x2b, 0x03, 0x00]),
             ResolvedType::F32 => self.output.extend([0x2a, 0x02, 0x00]),
-            ResolvedType::Bool | ResolvedType::Char | ResolvedType::I32 => {
+            ResolvedType::Bool | ResolvedType::Char | ResolvedType::I32 | ResolvedType::U8 => {
                 self.output.extend([0x28, 0x02, 0x00])
             }
             _ => unreachable!("validated scalar load"),
@@ -2867,7 +2961,7 @@ impl Emitter<'_> {
             ResolvedType::I64 => self.output.extend([0x37, 0x03, 0x00]),
             ResolvedType::F64 => self.output.extend([0x39, 0x03, 0x00]),
             ResolvedType::F32 => self.output.extend([0x38, 0x02, 0x00]),
-            ResolvedType::Bool | ResolvedType::Char | ResolvedType::I32 => {
+            ResolvedType::Bool | ResolvedType::Char | ResolvedType::I32 | ResolvedType::U8 => {
                 self.output.extend([0x36, 0x02, 0x00])
             }
             _ => unreachable!("validated scalar store"),

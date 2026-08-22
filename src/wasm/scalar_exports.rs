@@ -317,6 +317,7 @@ fn validate_expression_profile(
             ResolvedExprKind::Int(_)
             | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
+            | ResolvedExprKind::Uint8(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_) => {}
@@ -396,6 +397,7 @@ fn scalar_type(ty: &ResolvedType) -> Option<ScalarType> {
         ResolvedType::Unit
         | ResolvedType::I32
         | ResolvedType::Char
+        | ResolvedType::U8
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::TypeParameter { .. }

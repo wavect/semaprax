@@ -101,17 +101,17 @@ fn test_remember_captured_stdout(output: &[u8]) {
 
 #[cfg(test)]
 thread_local! {
-    static LAST_PUBLISH_STATUSES: std::cell::RefCell<[i32; 5]> =
-        const { std::cell::RefCell::new([0; 5]) };
+    static LAST_PUBLISH_STATUSES: std::cell::RefCell<[i32; 11]> =
+        const { std::cell::RefCell::new([0; 11]) };
 }
 
 #[cfg(test)]
-fn test_remember_publish_statuses(statuses: &[i32; 5]) {
+fn test_remember_publish_statuses(statuses: &[i32; 11]) {
     LAST_PUBLISH_STATUSES.with(|slot| *slot.borrow_mut() = *statuses);
 }
 
 #[cfg(test)]
-pub fn test_last_publish_statuses() -> [i32; 5] {
+pub fn test_last_publish_statuses() -> [i32; 11] {
     LAST_PUBLISH_STATUSES.with(std::cell::RefCell::take)
 }
 
@@ -2495,8 +2495,8 @@ pub fn publish_directory_new_prepared(
     }
     let mut io = IO_STATUS_BLOCK::default();
     #[cfg(test)]
-    let mut attempted_statuses = [0_i32; 5];
-    const RENAME_BACKOFF_MILLIS: [u64; 4] = [1, 2, 4, 8];
+    let mut attempted_statuses = [0_i32; 11];
+    const RENAME_BACKOFF_MILLIS: [u64; 10] = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512];
     #[allow(unused_variables)]
     for (attempt, backoff_millis) in RENAME_BACKOFF_MILLIS.into_iter().enumerate() {
         unsafe {
@@ -2541,7 +2541,7 @@ pub fn publish_directory_new_prepared(
     };
     #[cfg(test)]
     {
-        attempted_statuses[4] = status;
+        attempted_statuses[10] = status;
     }
     #[cfg(test)]
     test_remember_publish_statuses(&attempted_statuses);

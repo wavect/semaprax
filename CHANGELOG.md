@@ -1,5 +1,19 @@
 # Changelog
 
+- Moved the workspace minimum supported Rust from 1.85 to 1.88 so private
+  crates can track current dependencies, and bumped the exact-pinned private
+  `semaprax-native-loader` dependency from `libloading 0.8.9` to `=0.9.0`.
+  The three dynamic settlement symbol lookups pass `&[u8]` slices because
+  libloading 0.9 replaced its lookup bound with `AsSymbolName`. The manifest
+  MSRV fields, the README badge and install floor, the mandatory CI minimum-
+  version job (`Rust 1.88 minimum`), and the corresponding quality-gate text
+  moved together. The two hosted `ReactiveCircus/android-emulator-runner`
+  pins were also re-pinned to the current `v2.37.0` tag commit
+  `e89f39f1abbbd05b1113a29cf4db69e7540cae5a` per the Dependabot GitHub
+  Actions bump. The hosted Android Emulator, JNI/APK, iOS Simulator, and
+  sanitizer jobs must re-green on this commit before any new physical-runtime
+  claim is counted, and this adds no completion transition.
+
 - Reorganized the documentation around a published book without moving any
   document path. Added `book.toml` and `docs/SUMMARY.md` (pinned mdBook
   0.5.4), so the existing flat `docs/*.md` files render as one searchable
@@ -18,16 +32,6 @@
   language, protocol, backend, or completion-matrix claim;
   `tests/documentation.rs` continues to require every local markdown link to
   resolve.
-
-- Re-pinned the two hosted `ReactiveCircus/android-emulator-runner` inputs to
-  the current `v2.37.0` tag commit
-  `e89f39f1abbbd05b1113a29cf4db69e7540cae5a` per the Dependabot GitHub
-  Actions bump. A companion `libloading 0.9.0` bump was reverted: libloading
-  0.9 requires rustc 1.88, breaking the mandatory Rust 1.85 minimum job, and
-  the exact-pin supply-chain contract still requires `libloading 0.8.9` for
-  the private Android JNI gate. The loader's three dynamic settlement symbol
-  lookups therefore keep the 0.8 lookup form, and this adds no completion
-  transition.
 
 - Added the locally evidenced Unicode scalar `char` tranche: `char` is now a
   first-class Copy value type end-to-end. The change spans the lexer (single

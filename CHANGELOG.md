@@ -1,5 +1,39 @@
 # Changelog
 
+- Added the locally evidenced Interface Package Report v1 tranche, the first
+  executable slice of the completion-matrix row "Interface-first packages and
+  target matrices". The new read-only `semaprax package-report <file>
+  [--max-bytes N]` command and `package_report` library API project one
+  verified module into one deterministic canonical
+  `semaprax.package-report.v1` envelope: an interface-first package
+  descriptor whose sorted admitted export inventory lists every explicit-ID
+  monomorphic effect-free by-value `i64`/`bool` function with its interface
+  parameter/result types, canonically rendered requires/ensures clauses,
+  declared effects, persistent stable ID, and the exact Native64 prototype
+  line extracted verbatim from the production native C11 projection under a
+  per-export domain-separated digest; every other function is recorded under
+  one of six closed exclusion reasons mirroring Canonical ABI Report v1. A
+  fixed target availability matrix marks exactly `native64` and `wasm32`
+  available for this profile, and an explicit closed ten-entry
+  unavailable-capability inventory plus fixed nonclaims state that the report
+  provides no resolver, lockfile, dependency model, package registry,
+  version-compatibility engine, conformance tests, provenance, signatures,
+  licenses, or SBOM. Domain-separated SHA-256 digests authenticate the
+  payload and source snapshot; `verify_envelope` independently replays the
+  exact bytes, package counts, both closed sections, exclusion vocabulary,
+  strict stable-id ordering, and every export-signature digest, so
+  forged-but-re-signed mutations still fail closed. Admission-profile,
+  options (`SPX-P301`), budget (`SPX-P302`), and consistency (`SPX-P303`)
+  diagnostics come from the previously unused `SPX-P3xx` family.
+  `tests/package_report_v1.rs` pins golden envelope KATs over two examples,
+  determinism, every exclusion reason, independent digest recomputation,
+  per-field tamper rejection including re-signed forgeries, budget
+  exhaustion, source-drift fail-closed behavior, CLI exit codes, and
+  cross-consistency proving the listed exports equal what `semaprax
+  abi-report` admits (with byte-equal native prototypes) and what `semaprax
+  openapi` publishes for the same program. The Interface-first packages and
+  target matrices row moves from Missing to Partial.
+
 - Added the locally evidenced Canonical ABI Report v1 tranche, the first
   executable slice of the completion-matrix row "Portable canonical ABI and
   native fast ABI". The new read-only `semaprax abi-report <file> --function

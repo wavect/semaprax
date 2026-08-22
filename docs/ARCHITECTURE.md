@@ -140,6 +140,31 @@ that grammar. Its new per-carrier caps do not extend private A+B's cumulative
 memory proof, and platform linker-index payload semantics remain opaque,
 bounded, archive-digest-bound, and real-link exercised.
 
+The Native Rust implementation is partitioned along trust and review
+boundaries so agents do not need to load one monolithic source file. The
+private A+B production path remains intact in `implementation.rs`; its
+proof-only corpus lives in `implementation/tests.rs`. Public Phase C uses
+`public_sdk/descriptor.rs` for semantic admission and descriptor facts,
+`public_sdk/package.rs` for deterministic package and manifest projection,
+`public_sdk/authority.rs` for held staging, settlement, and publication, and
+`public_sdk/build.rs` for the narrow orchestration entry point. The platform
+quarantine keeps shared archive grammar and errors in its crate root, with the
+complete Unix and Windows authorities isolated in `unix.rs` and `windows.rs`;
+their source-lock tests live in `tests.rs`. Those file moves are review
+boundaries only: they do not widen visibility, reorder effects, or split the
+settlement state machine.
+
+The same change separately corrects Linux archive execution authority. The
+zero-output archive runner stops treating EOF from an unrelated escaped pipe
+holder as completion evidence after the leader has been reaped and the owned
+process group quiesced. Before spawn it creates and holds one exact
+`O_EXCL` archive seed; GNU `ar` must update that inode. Success still requires
+the complete archive parser and final identity rechecks. Every process,
+authentication, or parser failure removes only that exact held inode;
+substitution and settlement uncertainty remain fail-stop. This correction
+changes no public capability or completion claim and requires its Linux
+executable regression plus exact-head hosted promotion.
+
 This remains staged groundwork rather than the sole compiler IR: the current verifier still establishes meaning from parsed AST before HIR resolution. Explicit trivial/imported resource lifecycles, declaration-only interface/import contracts, record declarations/updates, bounded explicitly instantiated generic Copy records, bounded copy-variant templates/construction/exhaustive matching, typed ordinary-`Result` and ordinary-`Option` propagation, stable type/member/case identities, recursive resource/type facts, and by-value recursion rejection now reach validated HIR and the semantic graph. Generic parameters are owner/index-stable and the admitted concrete arguments are direct `i64`/`bool`; generic record fields are restricted to direct scalars or parameters owned by that record, and every construction/update/projection substitutes the exact ordered concrete instance. The compiler-owned `semaprax.prelude.v1` injects ordinary `Option<T>` and `Result<T, E>` variants before checking. The bounded postfix `?` form accepts only direct-scalar Copy instances: `Result<T, E>` requires an enclosing `Result<U, E>`, while `Option<T>` requires an enclosing `Option<U>`. It evaluates its operand once, reconstructs the exact outer `Err` or payload-free `None`, and routes both ordinary-body and propagated results through shared postconditions and publication. The source checker and HIR validator independently replay lifecycle compatibility, lifecycle-effect authority, prefix-aware partial-place availability, exact generic substitution, exact construction, copy-match exhaustiveness, and every compiler-owned carrier/member/source/target identity. `aggregate_layout` computes checked deterministic Native64 and Wasm32 record layouts keyed by the full record ID plus ordered arguments; its digest and native symbol bind the same exact instance even when two instances have identical physical fields. `variant_layout` computes independently reconstructable per-concrete-instance internal layouts with declaration-order `u32` tags, an aligned maximum-payload area, and one inert byte for an empty payload. Its v2 digest authenticates the full concrete instance and both template and substituted field types; physical tags and representation are unchanged from v1. `CleanupInventory` remains a structural discovery boundary. Every `ResolvedFunction` carries a cleanup plan: v2 remains canonical unless authenticated Option propagation is present, which requires v3. Both schemas include typed blocks, edges, lexical regions, entry liveness, storage/leaf flags, atomic call commits, sticky status sources, guarded finalizers, scalar/owned result publication, and exact body-versus-propagated Copy-result staging; v3 adds an authenticated payload-free Option-None source. Generic records add no cleanup action because the admitted instances are direct-scalar Copy values; canonical replay remains bound to exact HIR types. Immutable update consumes its base first, evaluates replacements in authored order, transfers untouched fields, and cleans displaced live fields exactly once in reverse order. Copy matches branch on an exact scrutinee expression and stable case IDs without inventing droppable payload leaves; distinct concrete instances therefore cannot share a cleanup decision. Propagation uses complementary predicates on the authenticated success case and cannot be confused with physical failure selection. The builder covers every current HIR expression and normal/checked-failure path; the validator reconstructs the plan from core HIR rather than trusting attached metadata.
 
 The bounded record-pattern tranche is irrefutable and Copy-only. One explicit

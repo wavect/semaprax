@@ -7,6 +7,15 @@ fn read(relative: &str) -> String {
         .unwrap_or_else(|error| panic!("read {relative}: {error}"))
 }
 
+fn read_platform_sys_sources() -> (String, String, String, String, String) {
+    let common = read("crates/semaprax-native-rust-interop-platform-sys/src/lib.rs");
+    let unix = read("crates/semaprax-native-rust-interop-platform-sys/src/unix.rs");
+    let windows = read("crates/semaprax-native-rust-interop-platform-sys/src/windows.rs");
+    let tests = read("crates/semaprax-native-rust-interop-platform-sys/src/tests.rs");
+    let production = [common.as_str(), unix.as_str(), windows.as_str()].concat();
+    (common, unix, windows, tests, production)
+}
+
 fn assert_contains_all(label: &str, source: &str, required: &[&str]) {
     for value in required {
         assert!(source.contains(value), "{label} is missing `{value}`");
@@ -52,10 +61,10 @@ fn native_rust_interop_implementation_crates_are_unpublished_and_quarantined() {
 
     let builder = read("crates/semaprax-native-rust-interop-builder/src/lib.rs");
     let platform = read("crates/semaprax-native-rust-interop-platform/src/lib.rs");
-    let sys = read("crates/semaprax-native-rust-interop-platform-sys/src/lib.rs");
+    let (sys_common, _, _, _, sys) = read_platform_sys_sources();
     assert!(builder.contains("#![forbid(unsafe_code)]"));
     assert!(platform.contains("#![forbid(unsafe_code)]"));
-    assert!(sys.contains("#![deny(unsafe_op_in_unsafe_fn)]"));
+    assert!(sys_common.contains("#![deny(unsafe_op_in_unsafe_fn)]"));
     for forbidden in [
         "LoadLibraryA(",
         "LoadLibraryW(",
@@ -155,9 +164,11 @@ fn public_semaprax_package_excludes_private_interop_crate_sources() {
 #[test]
 fn private_builder_uses_held_platform_authority_for_every_physical_step() {
     let implementation = read("crates/semaprax-native-rust-interop-builder/src/implementation.rs");
+    let implementation_tests =
+        read("crates/semaprax-native-rust-interop-builder/src/implementation/tests.rs");
     assert_contains_all(
         "named private replay and hostile evidence",
-        &implementation,
+        &implementation_tests,
         &[
             "fn private_a_is_canonical_and_pure()",
             "fn source_descriptor_and_generated_views_reconstruct_from_authenticated_facts()",
@@ -175,10 +186,7 @@ fn private_builder_uses_held_platform_authority_for_every_physical_step() {
         .split("fn platform_publication_error")
         .nth(1)
         .expect("physical production implementation");
-    let physical = physical_tail
-        .split("#[cfg(test)]\nmod tests")
-        .next()
-        .expect("active production implementation prefix");
+    let physical = physical_tail;
 
     assert_contains_all(
         "held platform authority",
@@ -245,13 +253,11 @@ fn private_builder_uses_held_platform_authority_for_every_physical_step() {
         ],
     );
 
-    let sys = read("crates/semaprax-native-rust-interop-platform-sys/src/lib.rs");
+    let (_, _, windows_source, sys_tests, sys) = read_platform_sys_sources();
+    let sys_evidence = [sys.as_str(), sys_tests.as_str()].concat();
     assert!(sys.contains("\"-O0\""));
     assert!(sys.contains("\"-O2\""));
-    let windows = sys
-        .split("#[cfg(windows)]\nmod platform")
-        .nth(1)
-        .expect("Windows quarantine implementation");
+    let windows = windows_source.as_str();
     assert!(
         !windows.contains("unsupported!("),
         "Windows physical authority is still an unsupported stub"
@@ -316,7 +322,7 @@ fn private_builder_uses_held_platform_authority_for_every_physical_step() {
     );
     assert_contains_all(
         "fail-stop process settlement",
-        &sys,
+        &sys_evidence,
         &[
             "fn must_settle_failed_group(",
             "if settle_failed_group(pid, pipe, leader_reaped).is_err()",
@@ -344,10 +350,13 @@ fn private_builder_uses_held_platform_authority_for_every_physical_step() {
     );
     assert_contains_all(
         "cfg(test)-local process settlement evidence",
-        &sys,
+        &sys_evidence,
         &[
             "#[cfg(test)]\nstatic TEST_SETTLEMENT_FAILURES",
             "linux_runner_boundaries_settle_or_fail_stop_without_later_action",
+            "linux_archive_seed_is_exactly_initialized_held_and_removed",
+            "linux_real_archive_succeeds_without_waiting_for_foreign_pipe_holder",
+            "linux_archive_cleanup_preserves_replaced_foreign_inode_and_fails_closed",
             "helper_linux_parent_write_close",
             "helper_linux_waitpid",
             "windows_runner_failures_use_only_explicit_test_state",
@@ -454,7 +463,7 @@ fn private_builder_uses_held_platform_authority_for_every_physical_step() {
 #[test]
 fn private_platform_cleanup_surface_is_exact_inventory_only() {
     let facade = read("crates/semaprax-native-rust-interop-platform/src/lib.rs");
-    let sys = read("crates/semaprax-native-rust-interop-platform-sys/src/lib.rs");
+    let (_, _, _, _, sys) = read_platform_sys_sources();
     assert_contains_all(
         "safe exact-inventory cleanup facade",
         &facade,
@@ -478,10 +487,7 @@ fn private_platform_cleanup_surface_is_exact_inventory_only() {
             "files: &[Option<&RegularFile>; N]",
         ],
     );
-    let production_sys = sys
-        .split("#[cfg(test)]\nmod tests")
-        .next()
-        .expect("production sys prefix");
+    let production_sys = sys.as_str();
     for (label, source) in [
         ("safe facade", facade.as_str()),
         ("system quarantine", production_sys),

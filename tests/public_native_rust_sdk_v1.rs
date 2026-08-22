@@ -297,11 +297,16 @@ fn external_example_has_a_closed_two_phase_dependency_topology() {
 #[test]
 fn public_builder_contract_names_the_fixed_package_and_inventory() {
     let facade = read("crates/semaprax-native-rust-interop-builder/src/lib.rs");
-    let implementation = format!(
-        "{}\n{}",
-        read("crates/semaprax-native-rust-interop-builder/src/implementation.rs"),
-        read("crates/semaprax-native-rust-interop-builder/src/public_sdk.rs")
-    );
+    let implementation = [
+        "crates/semaprax-native-rust-interop-builder/src/implementation.rs",
+        "crates/semaprax-native-rust-interop-builder/src/public_sdk/mod.rs",
+        "crates/semaprax-native-rust-interop-builder/src/public_sdk/descriptor.rs",
+        "crates/semaprax-native-rust-interop-builder/src/public_sdk/package.rs",
+        "crates/semaprax-native-rust-interop-builder/src/public_sdk/authority.rs",
+        "crates/semaprax-native-rust-interop-builder/src/public_sdk/build.rs",
+    ]
+    .map(read)
+    .join("\n");
     for required in [
         "pub struct NativeRustSdkOptions",
         "pub struct NativeRustSdkBundle",

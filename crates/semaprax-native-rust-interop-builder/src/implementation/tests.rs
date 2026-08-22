@@ -2020,6 +2020,82 @@ fn phase_b_fixed_rustc_version_parser_is_no_growth_at_representative_and_maximum
 }
 
 #[test]
+fn capacity_module_has_no_physical_or_platform_authority() {
+    let source = include_str!("capacity.rs");
+    for forbidden in [
+        "platform::",
+        "std::fs",
+        "std::process",
+        "create_directory_new_prepared",
+        "write_file_new_prepared",
+        "discard_owned_stage_prepared",
+        "compile_c_prepared",
+        "compile_rust_prepared",
+        "link_or_copy_prepared",
+        "run_prepared",
+        "archive_tool_prepared",
+        "publish_directory_new_prepared",
+    ] {
+        assert!(
+            !source.contains(forbidden),
+            "capacity-only implementation admitted `{forbidden}`"
+        );
+    }
+}
+
+#[test]
+fn artifact_projection_module_has_no_physical_authority_or_replay_generator_shortcut() {
+    let artifacts = include_str!("artifacts.rs");
+    let cursor = include_str!("exact_replay.rs");
+    for forbidden in [
+        "platform::",
+        "std::fs",
+        "std::process",
+        "create_directory_new_prepared",
+        "write_file_new_prepared",
+        "archive_tool_prepared",
+        "archive_prepared",
+        "compile_c_tool_prepared",
+        "compile_rust_tool_prepared",
+        "link_tool_prepared",
+        "execute_tool_prepared",
+        "publish_directory_new_prepared",
+        "discard_owned_stage_prepared",
+        "settle_for_publish",
+        "settle_regular_file_for_publish",
+    ] {
+        assert!(
+            !artifacts.contains(forbidden) && !cursor.contains(forbidden),
+            "pure artifact boundary admitted `{forbidden}`"
+        );
+    }
+    let start = artifacts
+        .find("fn replay_c_expression_linear_independent(")
+        .unwrap();
+    let end = artifacts[start..]
+        .find("\nfn replay_c_expression(")
+        .map(|offset| start + offset)
+        .unwrap();
+    let independent = &artifacts[start..end];
+    for generator in [
+        "c_expression_linear(",
+        "c_expr_iterative(",
+        "generate_c_into(",
+        "c_expression_hash(",
+        "c_expression_scalar(",
+        "c_expression_resolved_scalar(",
+    ] {
+        assert!(
+            !independent.contains(generator),
+            "independent C replay called generator helper `{generator}`"
+        );
+    }
+    assert!(artifacts.contains("enum CExpressionFrame<'a>"));
+    assert!(artifacts.contains("enum ReplayCExpressionFrame<'a>"));
+    assert!(cursor.contains("pub(super) struct ExactReplay<'a>"));
+}
+
+#[test]
 fn phase_b_process_arena_reservation_precedes_materialization_source_contract() {
     let source = include_str!("../implementation.rs");
     let toolchain_start = source.find("fn prepare_toolchain_plan()").unwrap();
@@ -6438,14 +6514,15 @@ fn inventory_and_cleanup_hostile_envelopes_bind_the_shared_fixture() {
 
 #[test]
 fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
-    let hir = include_str!("../../../../src/hir.rs");
+    let hir_resolver = include_str!("../../../../src/hir.rs");
+    let hir_validator = include_str!("../../../../src/hir/validation.rs");
     let verifier = include_str!("../../../../src/source_verify.rs");
     let cleanup = include_str!("../../../../src/cleanup.rs");
     let lower = include_str!("../../../../src/cleanup_plan/build.rs");
     let calls = include_str!("../../../../src/call_index.rs");
     for (source, expected) in [
-        (hir, "size_of::<Frame<'static>>() == 552"),
-        (hir, "size_of::<Frame<'static>>() == 288"),
+        (hir_resolver, "size_of::<Frame<'static>>() == 552"),
+        (hir_validator, "size_of::<Frame<'static>>() == 288"),
         (verifier, "size_of::<VerifierFrame<'static>>() == 320"),
         (verifier, "size_of::<VariantMatchState<'static>>() == 312"),
         (cleanup, "size_of::<Frame<'static>>() == 40"),

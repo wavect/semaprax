@@ -68,6 +68,10 @@ Rust-to-SEMAPRAX, SEMAPRAX-to-Rust, and round-trip success/failure cases. Its
 hostile corpus covers ABI/version/size/alignment/bool/status/capability/result
 publication, panic containment, same-thread/non-reentrant use, depth and call
 budgets, tool and artifact substitution, race hooks, and safe-facade opacity.
+The source-contract gate must read the exact `implementation/artifacts.rs` and
+`implementation/exact_replay.rs` paths, reject filesystem/process/platform and
+publication authority in both, retain separate generator and replay frame
+families, and prove the independent C replay never calls generator traversal.
 The platform gate must prove held directory/file/executable identity,
 no-clobber publication, reparse/symlink rejection, empty child environment,
 ambient FD/handle closure, bounded output kill-and-reap, and the corresponding

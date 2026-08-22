@@ -164,6 +164,10 @@ fn public_semaprax_package_excludes_private_interop_crate_sources() {
 #[test]
 fn private_builder_uses_held_platform_authority_for_every_physical_step() {
     let implementation = read("crates/semaprax-native-rust-interop-builder/src/implementation.rs");
+    let artifacts =
+        read("crates/semaprax-native-rust-interop-builder/src/implementation/artifacts.rs");
+    let exact_replay =
+        read("crates/semaprax-native-rust-interop-builder/src/implementation/exact_replay.rs");
     let implementation_tests =
         read("crates/semaprax-native-rust-interop-builder/src/implementation/tests.rs");
     assert_contains_all(
@@ -180,8 +184,71 @@ fn private_builder_uses_held_platform_authority_for_every_physical_step() {
             "fn build_race_hooks_reject_each_pre_effect_mutation_and_preserve_foreign_bytes()",
             "fn linked_bridge_round_trips_rust_to_semaprax_to_rust_and_closes_failures()",
             "fn bool_and_infallible_import_abi_is_exact_at_o0_and_o2()",
+            "fn artifact_projection_module_has_no_physical_authority_or_replay_generator_shortcut()",
         ],
     );
+    assert_contains_all(
+        "private artifact module map",
+        &implementation,
+        &["mod artifacts;", "mod exact_replay;"],
+    );
+    assert_contains_all(
+        "pure generated artifact and replay authority",
+        &artifacts,
+        &[
+            "pub(super) fn render_descriptor(",
+            "pub(super) fn generate_c(",
+            "pub(super) fn generate_rust_artifacts(",
+            "pub(super) fn replay_generated_exact(",
+            "enum CExpressionFrame<'a>",
+            "enum ReplayCExpressionFrame<'a>",
+            "fn replay_c_expression_linear_independent(",
+        ],
+    );
+    assert!(exact_replay.contains("pub(super) struct ExactReplay<'a>"));
+    for forbidden in [
+        "platform::",
+        "std::fs",
+        "std::process",
+        "create_directory_new_prepared",
+        "write_file_new_prepared",
+        "archive_tool_prepared",
+        "archive_prepared",
+        "compile_c_tool_prepared",
+        "compile_rust_tool_prepared",
+        "link_tool_prepared",
+        "execute_tool_prepared",
+        "publish_directory_new_prepared",
+        "discard_owned_stage_prepared",
+        "settle_for_publish",
+        "settle_regular_file_for_publish",
+    ] {
+        assert!(
+            !artifacts.contains(forbidden) && !exact_replay.contains(forbidden),
+            "pure artifact source admitted `{forbidden}`"
+        );
+    }
+    let replay_start = artifacts
+        .find("fn replay_c_expression_linear_independent(")
+        .unwrap();
+    let replay_end = artifacts[replay_start..]
+        .find("\nfn replay_c_expression(")
+        .map(|offset| replay_start + offset)
+        .unwrap();
+    let independent_replay = &artifacts[replay_start..replay_end];
+    for generator in [
+        "c_expression_linear(",
+        "c_expr_iterative(",
+        "generate_c_into(",
+        "c_expression_hash(",
+        "c_expression_scalar(",
+        "c_expression_resolved_scalar(",
+    ] {
+        assert!(
+            !independent_replay.contains(generator),
+            "independent replay called generator helper `{generator}`"
+        );
+    }
     let physical_tail = implementation
         .split("fn platform_publication_error")
         .nth(1)

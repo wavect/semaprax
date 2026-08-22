@@ -54,7 +54,7 @@ Generated arithmetic is checked for overflow, zero division, and the signed divi
 
 The declaration index is the single current source of target-independent type facts: whether a type is copyable, contains resources, is sized, needs destruction, and its name-independent layout key. Generic parameter identities include their owner declaration plus index, and nominal identities include the complete resolved argument tree.
 
-The native and Wasm emitters now consume only validated HIR for semantic lowering; their parsed-AST entry points are compatibility wrappers that resolve first. A centralized HIR validator rejects duplicate/non-canonical identities, invalid declarations and nominal types, lexical-scope violations, inconsistent expression/call types, definite or conditional resource reuse, contract transfers, undeclared or unpermitted effects, effectful contracts, invalid result bindings, and an invalid entrypoint before either backend emits an artifact. Only after those checks pass, `cleanup` independently rebuilds the structural storage inventory; `cleanup_plan` then rebuilds and exact-compares the complete target-neutral plan. A hostile direct-HIR transform therefore cannot remove, retarget, reorder, or forge cleanup meaning before reaching Graph or a backend.
+The native and Wasm emitters now consume only validated HIR for semantic lowering; their parsed-AST entry points are compatibility wrappers that resolve first. `hir.rs` owns the public resolved model, stable-ID construction, source resolver, and attached-metadata validation, while the leaf `hir/validation.rs` owns the core hostile-HIR validator without source-resolution, cleanup-building, or physical authority. That validator rejects duplicate/non-canonical identities, invalid declarations and nominal types, lexical-scope violations, inconsistent expression/call types, definite or conditional resource reuse, contract transfers, undeclared or unpermitted effects, effectful contracts, invalid result bindings, and an invalid entrypoint before either backend emits an artifact. Only after those checks pass, `cleanup` independently rebuilds the structural storage inventory; `cleanup_plan` then rebuilds and exact-compares the complete target-neutral plan. A hostile direct-HIR transform therefore cannot remove, retarget, reorder, or forge cleanup meaning before reaching Graph or a backend.
 
 The private Native Rust Interoperability v1 A+B lane is a separate unpublished
 current-host bridge, not another public backend. Its additive `import rust fn`
@@ -142,10 +142,20 @@ bounded, archive-digest-bound, and real-link exercised.
 
 The Native Rust implementation is partitioned along trust and review
 boundaries so agents do not need to load one monolithic source file. The
-private A+B production path remains intact in `implementation.rs`; its
-proof-only corpus lives in `implementation/tests.rs`. Public Phase C uses
+private A+B orchestration and physical authority remain in `implementation.rs`;
+its pure bounded source/HIR census and capacity proofs live in
+`implementation/capacity.rs`; deterministic Descriptor/header/C/Rust
+projection and structurally independent byte replay live in
+`implementation/artifacts.rs`; the shared fail-closed byte cursor used by both
+artifact and Manifest replay lives in `implementation/exact_replay.rs`; and the
+proof-only corpus lives in `implementation/tests.rs`. The artifact and cursor
+modules have no filesystem, process, platform, settlement, or publication
+authority, and the independent C replay cannot call generator traversal.
+Public Phase C uses
 `public_sdk/descriptor.rs` for semantic admission and descriptor facts,
 `public_sdk/package.rs` for deterministic package and manifest projection,
+`public_sdk/authentication.rs` for read-only staged-input and post-publication
+replay,
 `public_sdk/authority.rs` for held staging, settlement, and publication, and
 `public_sdk/build.rs` for the narrow orchestration entry point. The platform
 quarantine keeps shared archive grammar and errors in its crate root, with the

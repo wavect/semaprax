@@ -113,9 +113,9 @@ fn exact_archive_member_metadata(
     kind: ArchiveMemberKind,
     input_mode: u32,
 ) -> Result<(), Error> {
-    // COFF archives have one canonical member mode; the input filesystem mode
-    // is intentionally relevant only to the Unix archive formats below.
-    #[cfg(target_family = "windows")]
+    // GNU deterministic and COFF archives have canonical member modes; the
+    // input filesystem mode is intentionally relevant only to Darwin below.
+    #[cfg(any(target_os = "linux", target_family = "windows"))]
     let _ = input_mode;
     if header[16..28] != *b"0           " {
         return Err(Error::Invalid);
@@ -131,7 +131,7 @@ fn exact_archive_member_metadata(
     #[cfg(target_os = "linux")]
     let mode = match kind {
         ArchiveMemberKind::GnuLinkerIndex => 0,
-        ArchiveMemberKind::Input => input_mode & 0o777,
+        ArchiveMemberKind::Input => 0o644,
         _ => return Err(Error::Invalid),
     };
     #[cfg(target_os = "macos")]

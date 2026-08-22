@@ -302,6 +302,7 @@ fn public_builder_contract_names_the_fixed_package_and_inventory() {
         "crates/semaprax-native-rust-interop-builder/src/public_sdk/mod.rs",
         "crates/semaprax-native-rust-interop-builder/src/public_sdk/descriptor.rs",
         "crates/semaprax-native-rust-interop-builder/src/public_sdk/package.rs",
+        "crates/semaprax-native-rust-interop-builder/src/public_sdk/authentication.rs",
         "crates/semaprax-native-rust-interop-builder/src/public_sdk/authority.rs",
         "crates/semaprax-native-rust-interop-builder/src/public_sdk/build.rs",
     ]
@@ -341,6 +342,24 @@ fn public_builder_contract_names_the_fixed_package_and_inventory() {
         implementation.contains("native/semaprax_native_rust_sdk.lib")
             || implementation.contains("semaprax_native_rust_sdk.lib")
     );
+}
+
+#[test]
+fn public_sdk_authentication_module_has_no_mutation_or_publication_authority() {
+    let authentication =
+        read("crates/semaprax-native-rust-interop-builder/src/public_sdk/authentication.rs");
+    for forbidden in [
+        "create_directory_new_prepared",
+        "write_file_new_prepared",
+        "discard_owned_stage_prepared",
+        "archive_tool_prepared",
+        "publish_directory_new_prepared",
+    ] {
+        assert!(
+            !authentication.contains(forbidden),
+            "read-only SDK authentication admitted `{forbidden}`"
+        );
+    }
 }
 
 #[test]

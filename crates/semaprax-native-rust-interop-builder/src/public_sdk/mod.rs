@@ -421,6 +421,7 @@ fn full_hash(value: &str) -> String {
     )
 }
 
+mod authentication;
 mod authority;
 mod build;
 mod descriptor;

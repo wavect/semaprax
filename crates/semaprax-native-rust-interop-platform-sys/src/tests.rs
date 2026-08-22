@@ -88,15 +88,34 @@ fn archive_header_parser_rejects_noncanonical_sizes_and_unknown_members() {
             header[34..40].copy_from_slice(b"0     ");
         }
         header[40..48].copy_from_slice(mode);
-        assert_eq!(exact_archive_member_metadata(&header, kind, 0o644), Ok(()));
+        #[cfg(target_os = "linux")]
+        let input_mode = 0o600;
+        #[cfg(not(target_os = "linux"))]
+        let input_mode = 0o644;
+        assert_eq!(
+            exact_archive_member_metadata(&header, kind, input_mode),
+            Ok(())
+        );
         for offset in [16, 28, 34, 40] {
             let mut hostile = header;
             hostile[offset] = b'9';
             assert_eq!(
-                exact_archive_member_metadata(&hostile, kind, 0o644),
+                exact_archive_member_metadata(&hostile, kind, input_mode),
                 Err(Error::Invalid),
             );
         }
+    }
+    #[cfg(target_os = "linux")]
+    {
+        let mut nondeterministic = [b' '; 60];
+        nondeterministic[16..28].copy_from_slice(b"0           ");
+        nondeterministic[28..34].copy_from_slice(b"0     ");
+        nondeterministic[34..40].copy_from_slice(b"0     ");
+        nondeterministic[40..48].copy_from_slice(b"600     ");
+        assert_eq!(
+            exact_archive_member_metadata(&nondeterministic, ArchiveMemberKind::Input, 0o600),
+            Err(Error::Invalid),
+        );
     }
 }
 
@@ -706,6 +725,7 @@ fn linux_archive_seed_is_exactly_initialized_held_and_removed() {
 #[test]
 fn linux_real_archive_succeeds_without_waiting_for_foreign_pipe_holder() {
     use std::ffi::OsStr;
+    use std::os::unix::fs::PermissionsExt as _;
     use std::process::Command;
 
     let root = linux_archive_test_root("archive-success-pipe");
@@ -727,6 +747,11 @@ fn linux_real_archive_succeeds_without_waiting_for_foreign_pipe_holder() {
         "{}",
         String::from_utf8_lossy(&object.stderr)
     );
+    std::fs::set_permissions(
+        root.join("module.o"),
+        std::fs::Permissions::from_mode(0o600),
+    )
+    .unwrap();
     let real_archiver = std::env::var("SEMAPRAX_ARCHIVER")
         .unwrap_or_else(|_| "/usr/bin/x86_64-linux-gnu-ar".to_owned());
     assert!(std::path::Path::new(&real_archiver).is_absolute());
@@ -736,13 +761,15 @@ fn linux_real_archive_succeeds_without_waiting_for_foreign_pipe_holder() {
         &root,
         "archive-wrapper",
         &format!(
-            "#define _GNU_SOURCE\n#include <stdio.h>\n#include <stdlib.h>\n#include <unistd.h>\nint main(int n,char **v){{if(n!=4)return 2;int ready[2];if(pipe(ready))return 3;pid_t p=fork();if(p<0)return 4;if(!p){{if(close(ready[0])||setsid()<0)_exit(5);FILE *f=fopen(\"holder.pid\",\"w\");if(!f)_exit(6);if(fprintf(f,\"%ld\",(long)getpid())<=0||fclose(f))_exit(7);if(write(ready[1],\"x\",1)!=1||close(ready[1]))_exit(8);for(;;)pause();}}if(close(ready[1]))return 9;char byte=0;if(read(ready[0],&byte,1)!=1||byte!='x'||close(ready[0]))return 10;v[0]=\"{c_archiver}\";execv(\"{c_archiver}\",v);return 11;}}\n"
+            "#define _GNU_SOURCE\n#include <stdio.h>\n#include <stdlib.h>\n#include <sys/stat.h>\n#include <unistd.h>\nint main(int n,char **v){{if(n!=4)return 2;struct stat s;if(stat(v[2],&s))return 3;FILE *seed=fopen(\"seed.ino\",\"w\");if(!seed)return 4;if(fprintf(seed,\"%llu\",(unsigned long long)s.st_ino)<=0||fclose(seed))return 5;int ready[2];if(pipe(ready))return 6;pid_t p=fork();if(p<0)return 7;if(!p){{if(close(ready[0])||setsid()<0)_exit(8);FILE *f=fopen(\"holder.pid\",\"w\");if(!f)_exit(9);if(fprintf(f,\"%ld\",(long)getpid())<=0||fclose(f))_exit(10);if(write(ready[1],\"x\",1)!=1||close(ready[1]))_exit(11);for(;;)pause();}}if(close(ready[1]))return 12;char byte=0;if(read(ready[0],&byte,1)!=1||byte!='x'||close(ready[0]))return 13;v[0]=\"{c_archiver}\";execv(\"{c_archiver}\",v);return 14;}}\n"
         ),
     );
 
     let root = std::fs::canonicalize(root).unwrap();
     let directory = super::platform::hold_directory(&root).unwrap();
     let input = super::platform::hold_regular_file(&directory, OsStr::new("module.o")).unwrap();
+    let (input_mode, _, _) = super::platform::test_regular_file_facts(&input);
+    assert_eq!(input_mode & 0o777, 0o600);
     let archiver =
         super::platform::hold_executable(&directory, OsStr::new("archive-wrapper")).unwrap();
     let prepared = super::platform::prepare_archive_invocation(
@@ -759,6 +786,13 @@ fn linux_real_archive_succeeds_without_waiting_for_foreign_pipe_holder() {
     let mut holder = LinuxForeignHolderGuard::new(holder);
     holder.assert_alive();
     let archive = archive.unwrap();
+    let seed_ino = std::fs::read_to_string(root.join("seed.ino"))
+        .unwrap()
+        .parse::<u64>()
+        .unwrap();
+    let (_, _, archive_ino) = super::platform::test_regular_file_facts(&archive);
+    assert_eq!(archive_ino, seed_ino);
+    super::platform::test_exact_archive_member(&archive, &input).unwrap();
     assert!(start.elapsed() < std::time::Duration::from_secs(5));
     assert!(root.join("libsemaprax_native_rust_sdk.a").is_file());
     holder.settle();

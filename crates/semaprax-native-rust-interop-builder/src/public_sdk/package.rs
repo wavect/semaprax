@@ -142,7 +142,7 @@ pub(super) fn render_sdk_manifest(
     } else {
         "native/libsemaprax_native_rust_sdk.a"
     };
-    let mut files = vec![
+    let mut files = [
         ("Cargo.toml", sources.cargo_toml.as_bytes()),
         ("build.rs", sources.build_rs.as_bytes()),
         ("native/descriptor.json", descriptor),
@@ -332,7 +332,7 @@ pub(super) fn verify_sdk_manifest(
     } else {
         "native/libsemaprax_native_rust_sdk.a"
     };
-    let mut files = vec![
+    let mut files = [
         ("Cargo.toml", sources.cargo_toml.as_bytes()),
         ("build.rs", sources.build_rs.as_bytes()),
         ("native/descriptor.json", descriptor),

@@ -10,6 +10,7 @@ pub mod agent_transport;
 pub(crate) mod aggregate_layout;
 pub mod ast;
 pub(crate) mod bounded_output;
+pub mod c_header;
 pub(crate) mod call_index;
 pub mod cleanup;
 pub mod cleanup_plan;

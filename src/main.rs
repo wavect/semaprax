@@ -3,8 +3,8 @@ use std::process::{Command, ExitCode};
 
 use semaprax::diagnostic::{Diagnostic, Severity};
 use semaprax::{
-    agent_economics, agent_transport, codegen, format, graph, impact, parse, patch, patch_evidence,
-    project, properties, quality_route, repair, review, semantic_workspace,
+    agent_economics, agent_transport, c_header, codegen, format, graph, impact, parse, patch,
+    patch_evidence, project, properties, quality_route, repair, review, semantic_workspace,
     semantic_workspace_change, semantic_workspace_operations, semantic_workspace_structural_change,
     target_evidence, verify, wasm, workspace, workspace_analysis, workspace_graph,
     workspace_patch_evidence,
@@ -582,6 +582,20 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             println!("{report}");
             Ok(())
         }
+        "c-header" => {
+            let path = required_path(&args, 1)?;
+            let (options, emit_header) = c_header_options(&args)?;
+            if emit_header {
+                let header = c_header::header_text(&path, &options)
+                    .map_err(|errors| report(&errors, false))?;
+                print!("{header}");
+            } else {
+                let envelope =
+                    c_header::generate(&path, &options).map_err(|errors| report(&errors, false))?;
+                println!("{envelope}");
+            }
+            Ok(())
+        }
         "target-evidence" => {
             if args.len() != 3 {
                 eprintln!("target-evidence requires exactly <file> <patch.spatch>");
@@ -968,6 +982,62 @@ fn property_options(args: &[String]) -> Result<properties::PropertyTestOptions, 
             2
         },
     )
+}
+
+fn c_header_options(args: &[String]) -> Result<(c_header::CHeaderOptions, bool), u8> {
+    let mut functions: Vec<String> = Vec::new();
+    let mut max_bytes = c_header::CHeaderOptions::default().max_bytes;
+    let mut emit_header = false;
+    let mut seen = std::collections::BTreeSet::new();
+    let mut index = 2usize;
+    while index < args.len() {
+        let option = args[index].as_str();
+        match option {
+            "--function" => {
+                let value = args.get(index + 1).ok_or_else(|| {
+                    eprintln!("c-header option `{option}` requires a value");
+                    2
+                })?;
+                for token in value.split(',') {
+                    if token.is_empty() {
+                        eprintln!("c-header option `{option}` requires nonempty selections");
+                        return Err(2);
+                    }
+                    functions.push(token.to_owned());
+                }
+                index += 2;
+            }
+            "--max-bytes" => {
+                if !seen.insert(option.to_owned()) {
+                    eprintln!("duplicate c-header option `{option}`");
+                    return Err(2);
+                }
+                let value = args.get(index + 1).ok_or_else(|| {
+                    eprintln!("c-header option `{option}` requires a value");
+                    2
+                })?;
+                max_bytes = property_number(option, value)?;
+                index += 2;
+            }
+            "--emit-header" => {
+                if !seen.insert(option.to_owned()) {
+                    eprintln!("duplicate c-header option `{option}`");
+                    return Err(2);
+                }
+                emit_header = true;
+                index += 1;
+            }
+            other => {
+                eprintln!("unknown c-header option `{other}`");
+                return Err(2);
+            }
+        }
+    }
+    let options = c_header::CHeaderOptions::new(functions, max_bytes).map_err(|error| {
+        eprintln!("{error}");
+        2
+    })?;
+    Ok((options, emit_header))
 }
 
 fn property_number(option: &str, value: &str) -> Result<usize, u8> {
@@ -1433,6 +1503,7 @@ fn print_help() {
            semaprax workspace-apply-with-evidence <root> <patch.wspatch> <evidence.json>\n\
            semaprax impact <file> <patch.spatch> [--depth N] [--max-bytes N] [--max-nodes N]\n\
            semaprax properties <file> [--max-cases N] [--max-functions N] [--max-bytes N] [--seed N]\n\
+           semaprax c-header <file> --function name|stable-id[,...] [--function ...] [--max-bytes N] [--emit-header]\n\
            semaprax review <file> <patch.spatch>\n\
            semaprax target-evidence <file> <patch.spatch>\n\
            semaprax patch-evidence <file> <patch.spatch>\n\

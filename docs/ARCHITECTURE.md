@@ -1396,6 +1396,22 @@ The C emitter materializes subexpressions in source order before calls and opera
 
 The planned development backend is Cranelift. The planned optimizing pipeline uses multi-level IR with LLVM, while portable components lower through the WebAssembly Component Model. Backend changes must preserve the graph and verification contracts.
 
+## C header emission
+
+`src/c_header.rs` owns the deterministic, read-only `semaprax.c-header.v1`
+projection (`semaprax c-header <file> --function ...`). It selects explicit-ID
+monomorphic by-value `i64`/`bool` functions, extracts each declaration line
+verbatim from the production native C11 projection so headers can never
+disagree with the emitted ABI, annotates them with typed stable-ID,
+canonical-contract, effect, status-contract, and by-value ownership facts
+under a fail-closed comment-hygiene guard, derives include guards from
+sorted admitted stable identities alone, and wraps everything in a
+domain-separated digest-authenticated envelope that `verify_envelope`
+independently replays. Budget overflow, selection errors, hygiene
+violations, and native-projection mismatches all fail closed through the
+closed `SPX-D1xx` family; nothing is imported, wrapped, compiled, or
+executed. See [C-HEADER-V1.md](C-HEADER-V1.md).
+
 ## Ownership seed
 
 Resource declarations and records containing resources introduce non-copy semantic values. Function parameters state whether they receive ownership, borrow for the duration of a call, or participate in explicit shared ownership. `let` and record construction transfer owned values left-to-right while preserving borrowed/shared modes. Moving an owned record field invalidates that place and its parents while leaving disjoint siblings available. The verifier joins field state across `if` and lazy boolean control flow, distinguishes definite from conditional partial moves, replays the same rules at the public HIR boundary, and prevents borrowed/shared fields from crossing owned boundaries.

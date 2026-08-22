@@ -209,7 +209,7 @@ pub struct ProjectSnapshot {
     held_manifest: HeldFile,
     held_sources: Vec<HeldFile>,
     held_directories: Vec<HeldDirectory>,
-    published: bool,
+    published_subject: Option<&'static str>,
 }
 
 impl ProjectSnapshot {
@@ -264,8 +264,59 @@ impl ProjectSnapshot {
         .map_err(|error| vec![error])?;
         self.recheck()?;
         prepared.publish(output).map_err(|error| vec![error])?;
-        self.published = true;
-        self.recheck().map_err(publication_uncertainty)
+        self.published_subject = Some(WEB_PUBLICATION_SUBJECT);
+        self.recheck()
+            .map_err(|drift| self.publication_uncertainty(drift))
+    }
+
+    /// Build the authenticated project entry closure as one native executable.
+    ///
+    /// The executable is compiled from exactly the linked entry HIR that Web
+    /// publication and internal lowering-equivalence evidence consume. The
+    /// destination must not exist, so publication never clobbers a file the
+    /// caller did not create for this exact operation.
+    pub fn build_native(&mut self, output: &Path) -> Result<(), Vec<Diagnostic>> {
+        match std::fs::symlink_metadata(output) {
+            Ok(_) => {
+                return Err(vec![Diagnostic::io(
+                    "SPX-I307",
+                    format!(
+                        "Project v1 native executable destination already exists: {}",
+                        output.display()
+                    ),
+                )]);
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => {
+                return Err(vec![Diagnostic::io(
+                    "SPX-I301",
+                    format!(
+                        "cannot inspect Project v1 native destination {}: {error}",
+                        output.display()
+                    ),
+                )]);
+            }
+        }
+        let prepared =
+            crate::codegen::emit_hir_c(&self.entry_program).map_err(|error| vec![error])?;
+        self.recheck()?;
+        crate::codegen::compile_native_executable(&prepared, output)
+            .map_err(|error| vec![error])?;
+        self.published_subject = Some(NATIVE_PUBLICATION_SUBJECT);
+        self.recheck()
+            .map_err(|drift| self.publication_uncertainty(drift))
+    }
+
+    fn publication_uncertainty(&self, mut drift: Vec<Diagnostic>) -> Vec<Diagnostic> {
+        let Some(subject) = self.published_subject else {
+            return drift;
+        };
+        let mut diagnostics = vec![Diagnostic::io(
+            "SPX-J103",
+            format!("Project v1 inputs drifted after one complete {subject} was published"),
+        )];
+        diagnostics.append(&mut drift);
+        diagnostics
     }
 
     /// Emit the sole authenticated test-module closure as legacy core Wasm
@@ -297,14 +348,9 @@ pub fn with_authenticated_project<T>(
 ) -> Result<T, Vec<Diagnostic>> {
     let mut snapshot = load_snapshot(manifest_path)?;
     let result = operation(&mut snapshot);
-    let published = snapshot.published;
-    let recheck = snapshot.recheck().map_err(|drift| {
-        if published {
-            publication_uncertainty(drift)
-        } else {
-            drift
-        }
-    });
+    let recheck = snapshot
+        .recheck()
+        .map_err(|drift| snapshot.publication_uncertainty(drift));
     match (result, recheck) {
         (Ok(value), Ok(())) => Ok(value),
         (Ok(_), Err(drift)) => Err(drift),
@@ -436,7 +482,7 @@ fn load_snapshot(manifest_path: &Path) -> Result<ProjectSnapshot, Vec<Diagnostic
         held_manifest,
         held_sources,
         held_directories,
-        published: false,
+        published_subject: None,
     };
     snapshot.recheck()?;
     Ok(snapshot)
@@ -973,14 +1019,8 @@ fn authentication(message: impl Into<String>) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-J102", message)]
 }
 
-fn publication_uncertainty(mut drift: Vec<Diagnostic>) -> Vec<Diagnostic> {
-    let mut diagnostics = vec![Diagnostic::io(
-        "SPX-J103",
-        "Project v1 inputs drifted after a complete digest-bound Web package was published",
-    )];
-    diagnostics.append(&mut drift);
-    diagnostics
-}
+const WEB_PUBLICATION_SUBJECT: &str = "digest-bound Web package";
+const NATIVE_PUBLICATION_SUBJECT: &str = "native executable";
 
 #[cfg(test)]
 mod tests {
@@ -1177,6 +1217,45 @@ mod tests {
         assert_eq!(error[0].code, "SPX-J102");
         assert!(!output.exists());
         let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn native_destination_checks_reject_existing_outputs_before_emission() {
+        let root = fixture();
+        let output = root.with_extension("native-output");
+        std::fs::write(&output, b"sentinel").unwrap();
+        let error = with_authenticated_project(&root.join(MANIFEST_FILE), |snapshot| {
+            snapshot.build_native(&output)
+        })
+        .unwrap_err();
+        assert_eq!(error[0].code, "SPX-I307");
+        assert!(error[0].message.contains("already exists"));
+        assert_eq!(std::fs::read(&output).unwrap(), b"sentinel");
+
+        let drift_output = root.with_extension("native-drift-output");
+        let error = with_authenticated_project(&root.join(MANIFEST_FILE), |snapshot| {
+            snapshot.check()?;
+            std::fs::write(root.join("z/app.spx"), "changed").unwrap();
+            snapshot.build_native(&drift_output)
+        })
+        .unwrap_err();
+        assert_eq!(error[0].code, "SPX-J102");
+        assert!(!drift_output.exists());
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn native_entry_c_projections_are_deterministic() {
+        let first = with_authenticated_project(&fixture().join(MANIFEST_FILE), |snapshot| {
+            Ok(crate::codegen::emit_hir_c(snapshot.entry_program()).unwrap())
+        })
+        .unwrap();
+        let second = with_authenticated_project(&fixture().join(MANIFEST_FILE), |snapshot| {
+            Ok(crate::codegen::emit_hir_c(snapshot.entry_program()).unwrap())
+        })
+        .unwrap();
+        assert_eq!(first, second);
+        assert!(first.contains("int main("));
     }
 
     #[test]

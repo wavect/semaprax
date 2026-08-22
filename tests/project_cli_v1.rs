@@ -282,18 +282,6 @@ fn project_build_rejections_happen_before_any_output_clobber() {
             "Project v1 takes its entry and web exports only from the authenticated manifest",
         ),
         (
-            "held-native-target",
-            vec![
-                "build",
-                "semaprax.toml",
-                "--target",
-                "native",
-                "-o",
-                blocked_output.to_str().unwrap(),
-            ],
-            "Project v1 currently publishes only the web target; native executable publication remains held",
-        ),
-        (
             "native-callable-target",
             vec![
                 "build",
@@ -305,7 +293,7 @@ fn project_build_rejections_happen_before_any_output_clobber() {
                 "-o",
                 blocked_output.to_str().unwrap(),
             ],
-            "Project v1 currently publishes only the web target; native executable publication remains held",
+            "Project v1 publishes only explicit web and native targets; native-callable publication remains held",
         ),
     ] {
         let output = cli(&fixture.root, &arguments);
@@ -313,6 +301,26 @@ fn project_build_rejections_happen_before_any_output_clobber() {
         assert!(stderr(&output).contains(expected), "{label}: {}", stderr(&output));
         assert_eq!(std::fs::read(&blocked_output).unwrap(), sentinel, "{label}");
     }
+
+    let existing_native = cli(
+        &fixture.root,
+        &[
+            "build",
+            "semaprax.toml",
+            "--target",
+            "native",
+            "-o",
+            blocked_output.to_str().unwrap(),
+        ],
+    );
+    assert_eq!(existing_native.status.code(), Some(1));
+    assert!(
+        stderr(&existing_native).contains("SPX-I307"),
+        "{}",
+        stderr(&existing_native)
+    );
+    assert!(stderr(&existing_native).contains("already exists"));
+    assert_eq!(std::fs::read(&blocked_output).unwrap(), sentinel);
 
     let missing_build = cli(&fixture.root, &["build", "--manifest-path"]);
     assert_eq!(missing_build.status.code(), Some(2));

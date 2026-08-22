@@ -122,10 +122,9 @@ fn run(args: Vec<String>) -> Result<(), u8> {
                     let output = project::with_authenticated_project(manifest_path, |snapshot| {
                         snapshot.check()?;
                         let output = options.output.clone().unwrap_or_else(|| {
-                            let suffix = if matches!(options.target.as_str(), "web" | "wasm") {
-                                "web"
-                            } else {
-                                "out"
+                            let suffix = match options.target.as_str() {
+                                "web" | "wasm" => "web".to_owned(),
+                                _ => format!("out{}", std::env::consts::EXE_SUFFIX),
                             };
                             snapshot
                                 .root()
@@ -133,12 +132,17 @@ fn run(args: Vec<String>) -> Result<(), u8> {
                         });
                         match options.target.as_str() {
                             "web" | "wasm" => snapshot.build_web(&output)?,
+                            "native" => snapshot.build_native(&output)?,
                             _ => unreachable!("validated project target"),
                         }
                         Ok(output)
                     })
                     .map_err(|errors| report(&errors, false))?;
-                    println!("built project web package {}", output.display());
+                    if matches!(options.target.as_str(), "native") {
+                        println!("built project native executable {}", output.display());
+                    } else {
+                        println!("built project web package {}", output.display());
+                    }
                 }
             }
             Ok(())
@@ -1122,9 +1126,9 @@ fn parse_build_options(args: &[String]) -> Result<BuildOptions, u8> {
         return Err(2);
     }
     if matches!(&input, BuildInput::Project(_)) {
-        if !matches!(target.as_str(), "web" | "wasm") {
+        if !matches!(target.as_str(), "web" | "wasm" | "native") {
             eprintln!(
-                "Project v1 currently publishes only the web target; native executable publication remains held"
+                "Project v1 publishes only explicit web and native targets; native-callable publication remains held"
             );
             return Err(2);
         }

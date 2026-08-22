@@ -63,13 +63,17 @@ plus interface/native import, generic/template/instance, `use type`, effect,
 and non-`i64`/`bool` boundary; providers cannot define `main`. Explicit
 stable-ID `use function` provider edges are its sole cross-file composition
 mechanism. The linked entry HIR feeds internal native C lowering/equivalence
-evidence and Web lowering, while Project CLI publication is Web-only. Web emits
-`semaprax.web-project.v1`; public native executable publication, project run,
-and a public project test command remain held. A final post-publication input
-drift is `SPX-J103`: the complete digest-bound package remains for caller
-reconciliation and is never deleted automatically. Focused manifest, closure,
-native/Web/Node, and rename evidence is exact-head hosted green at
-`d883ace579bfd86f723cdc6819224fde51f0677d` in [run
+evidence and Web lowering. Web emits
+`semaprax.web-project.v1`; Public Project Native Publication v1 now also
+admits explicit create-new `--target native` publication of the same linked
+entry closure as one executable through the unchanged shared Clang C11 lane,
+with pre/post-publication held-input rechecks, existing-destination rejection,
+and `SPX-J103` post-publication drift uncertainty. Project `run`, a public
+project test command, hostile-window no-clobber publication, and cross-build
+executable byte determinism remain held. Focused manifest, closure,
+native/Web/Node, rename, and native-publication evidence is locally green; the
+prior manifest/closure/native/Web/Node/rename matrix is exact-head hosted green
+at `d883ace579bfd86f723cdc6819224fde51f0677d` in [run
 32523952912](https://github.com/wavect/semaprax/actions/runs/32523952912),
 including Ubuntu, macOS, and Windows. This does not move a completion row or the current
 39 Partial/17 Missing totals, and it is not general multi-file compilation,

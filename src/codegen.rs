@@ -1913,13 +1913,27 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
 }
 
 pub fn build(program: &Program, output: &Path) -> Result<(), Diagnostic> {
+    write_and_compile_c(&emit_c(program)?, output)
+}
+
+/// Compile one already-emitted C11 projection into a native executable.
+///
+/// Project v1 publishes its linked entry closure through this boundary so the
+/// public native lane consumes exactly the authenticated linked HIR that Web
+/// publication and the internal lowering-equivalence evidence consume. This
+/// performs no parsing, HIR resolution, or source projection.
+pub fn compile_native_executable(c_source: &str, output: &Path) -> Result<(), Diagnostic> {
+    write_and_compile_c(c_source, output)
+}
+
+fn write_and_compile_c(c_source: &str, output: &Path) -> Result<(), Diagnostic> {
     static BUILD_ID: AtomicU64 = AtomicU64::new(0);
     let build_id = BUILD_ID.fetch_add(1, Ordering::Relaxed);
     let c_path = std::env::temp_dir().join(format!(
         "semaprax-codegen-{}-{build_id}.c",
         std::process::id()
     ));
-    std::fs::write(&c_path, emit_c(program)?).map_err(|error| {
+    std::fs::write(&c_path, c_source).map_err(|error| {
         Diagnostic::io(
             "SPX-I101",
             format!(
@@ -1933,14 +1947,14 @@ pub fn build(program: &Program, output: &Path) -> Result<(), Diagnostic> {
         .arg(&c_path)
         .arg("-o")
         .arg(output)
-        .output()
-        .map_err(|error| {
-            Diagnostic::io(
-                "SPX-B101",
-                format!("failed to start clang; install a C11 toolchain: {error}"),
-            )
-        })?;
+        .output();
     let _ = std::fs::remove_file(&c_path);
+    let result = result.map_err(|error| {
+        Diagnostic::io(
+            "SPX-B101",
+            format!("failed to start clang; install a C11 toolchain: {error}"),
+        )
+    })?;
     if !result.status.success() {
         return Err(Diagnostic::io(
             "SPX-B102",

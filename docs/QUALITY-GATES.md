@@ -176,22 +176,34 @@ rename preservation, CLI manifest/default/flag rejection, and preservation of
 single-file and managed-Workspace behavior. Interface declarations plus
 interface/native imports and `use type` edges are excluded; explicit stable-ID
 `use function` provider edges are the sole cross-file composition mechanism.
-Focused local gates are:
+Public Project Native Publication v1 additionally requires explicit
+create-new `--target native` admission, compilation of exactly the linked entry
+HIR through the shared Clang C11 boundary, linked-entry execution and replay,
+pre-publication drift rejection before any output exists, post-publication
+`SPX-J103` uncertainty that preserves the executable, existing-destination
+`SPX-I307` rejection without clobber, deterministic entry C projections,
+stable-ID display rename preservation of published native behavior, unchanged
+Web-package bytes, and unchanged single-file/Workspace/Patch evidence. Focused
+local gates are:
 
 ```sh
 cargo test --locked -p semaprax --all-features --lib project::tests::
 cargo test --locked -p semaprax --all-features --test project_cli_v1 -- --test-threads=1
+cargo test --locked -p semaprax --all-features --test project_native_publication_v1 -- --test-threads=1
 cargo test --locked -p semaprax --test project_manifest_v1
 cargo test --locked -p semaprax --test project_backend_equivalence_v1 -- --test-threads=1
 ```
 
-Project CLI publication is Web-only; public native executable publication,
-project `run`, and a public project test command remain held. Exact-head hosted
-promotion is pending. A post-publication final-input drift is `SPX-J103`: the
-complete digest-bound fresh package remains for caller reconciliation and is
-never deleted automatically. Project v1 grants no general packages,
+Project CLI publication is Web (default) or explicit native; public project
+`run` and a public project test command remain held. The dedicated hosted
+`project-v1` job remains manifest/CLI-protocol-level; native publication
+evidence runs in the workspace verify matrix that resolves Clang on every host.
+Exact-head hosted promotion is pending. A post-publication final-input drift is
+`SPX-J103`: the complete retained output remains for caller reconciliation and
+is never deleted automatically. Project v1 grants no general packages,
 dependencies, registries, capability grants, interface/native imports, `use
-type` edges, generics, resources, or test discovery claim.
+type` edges, generics, resources, test discovery, hostile-window no-clobber
+native publication, or cross-build executable byte-determinism claim.
 
 Quality gates are executable evidence, not a checklist substitute for reasoning. Every pull request must pass the baseline and the gates for each changed semantic layer.
 

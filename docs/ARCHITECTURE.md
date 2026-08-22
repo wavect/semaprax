@@ -1239,12 +1239,17 @@ stable-ID calls for independently validated entry/test closures, excludes
 reverse consumers, rebuilds cleanup metadata, and lets duplicate display names
 coexist because declaration identity rather than name selects a function.
 Internal native C lowering/equivalence evidence and Web lowering consume the
-same linked entry HIR, but the public Project CLI only publishes the Web
-package. That package binds project and Phase-A revisions in
-`semaprax.web-project.v1`; no public native output, project run, or project test
-command is admitted. A final post-publication input drift is `SPX-J103`: the
-complete digest-bound package remains for caller reconciliation and is never
-deleted automatically. See [Project Manifest v1](PROJECT-MANIFEST-V1.md).
+same linked entry HIR. The public Project CLI publishes that closure as the
+digest-bound Web package (default) or, through Public Project Native
+Publication v1, as one explicit create-new native executable compiled by the
+unchanged shared Clang C11 lane from exactly the same linked entry HIR. Native
+publication rechecks every held input before and after the boundary, rejects an
+existing destination with `SPX-I307`, and never clobbers a caller file. That
+package binds project and Phase-A revisions in `semaprax.web-project.v1`; no
+project run or project test command is admitted. A final post-publication input
+drift is `SPX-J103`: the complete retained output remains for caller
+reconciliation and is never deleted automatically.
+See [Project Manifest v1](PROJECT-MANIFEST-V1.md).
 
 ## Semantic workspace graph, analysis, and evidence-gated changes
 

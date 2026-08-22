@@ -79,27 +79,37 @@ before any backend is invoked.
 `check --manifest-path <semaprax.toml>` select an explicit manifest. Likewise,
 `build` without an input selects `./semaprax.toml`, while `build
 semaprax.toml` and `build --manifest-path <semaprax.toml>` select an explicit
-manifest. Project builds publish only the `web` package target; native
-executable publication, `run`, and a public project test command are held. The
-entry and web exports come exclusively from the authenticated manifest, so
-`--function` and `--export` are rejected for this route.
+manifest. Project builds publish two explicit targets:
 
-The linked entry HIR also feeds internal native C lowering/equivalence evidence,
-but the public Project CLI emits only the Web scalar package. That package has
-the separate `semaprax.web-project.v1` manifest binding project revision,
-Workspace Phase-A revision, entry module, selected exports, and exact artifact
-digests. The test closure is retained for project verification evidence; it is
-not a general test framework, public test runner, or `semaprax run` target.
+- `--target web` (the default) publishes the digest-bound scalar Web package;
+- `--target native` publishes one linked entry-closure executable compiled by
+  the same held Clang C11 pipeline as the single-file native lane.
+
+Public project `run` and a public project test command remain held. The entry
+and web exports come exclusively from the authenticated manifest, so
+`--function` and `--export` are rejected for this route, as is the
+`native-callable` target.
+
+Native publication compiles exactly the linked entry HIR that Web publication
+and internal native lowering-equivalence evidence consume; it performs no
+parsing or re-resolution. The destination must not exist (`SPX-I307`), so a
+native build never clobbers an existing file; the immediate pre-check window is
+trusted and is not a hostile-window publication contract.
+
+The linked entry HIR also feeds internal native C lowering/equivalence evidence.
+The Web package has the separate `semaprax.web-project.v1` manifest binding
+project revision, Workspace Phase-A revision, entry module, selected exports,
+and exact artifact digests. The test closure is retained for project
+verification evidence; it is not a general test framework, public test runner,
+or `semaprax run` target.
 
 Web publication inherits the scalar package's documented fresh-output,
-caller-exclusive parent/new-tree contract. Project v1 makes no public native
-output or hostile-directory native-publication claim.
+caller-exclusive parent/new-tree contract.
 
-A final held-input recheck follows publication. If it detects drift after a
-complete digest-bound fresh package was published, the operation reports
-`SPX-J103`. The package may remain at its output path; callers must reconcile
-the output manifest/artifact digests with the current inputs and must never
-delete that package automatically.
+A final held-input recheck follows publication. If it detects drift after one
+complete package or executable was published, the operation reports `SPX-J103`.
+The output may remain at its output path; callers must reconcile the retained
+output with the current inputs and must never delete it automatically.
 
 | Diagnostic | Meaning |
 | --- | --- |
@@ -113,11 +123,18 @@ delete that package automatically.
 Focused local evidence covers canonical/hostile manifest input, exact held
 source rechecks, closure selection, duplicate display names, linked native and
 Wasm behavior, deterministic Web artifacts, Node consumption, and stable-ID
-display rename preservation. The required focused commands are:
+display rename preservation. Public Project Native Publication v1 adds
+explicit create-new native publication evidence: CLI admission and exact output
+naming, linked-entry execution, replay behavior, pre-publication drift
+rejection before any output exists, post-publication `SPX-J103` uncertainty
+that preserves the executable, existing-destination rejection, deterministic
+entry C projections, and stable-ID display rename preservation. The required
+focused commands are:
 
 ```sh
 cargo test --locked -p semaprax --all-features --lib project::tests::
 cargo test --locked -p semaprax --all-features --test project_cli_v1 -- --test-threads=1
+cargo test --locked -p semaprax --all-features --test project_native_publication_v1 -- --test-threads=1
 cargo test --locked -p semaprax --test project_manifest_v1
 cargo test --locked -p semaprax --test project_backend_equivalence_v1 -- --test-threads=1
 ```
@@ -127,10 +144,12 @@ hosted green in [run 32523952912](https://github.com/wavect/semaprax/actions/run
 including [Ubuntu](https://github.com/wavect/semaprax/actions/runs/32523952912/job/96901973139),
 [macOS](https://github.com/wavect/semaprax/actions/runs/32523952912/job/96901973190),
 and [Windows](https://github.com/wavect/semaprax/actions/runs/32523952912/job/96901973112).
-Project v1 does not claim general
-packages/dependencies, registry or network access, capabilities, aggregate or
-resource composition, generics, interface/native imports or `use type` edges,
-effects, general multi-file compilation, native output confinement, test
-discovery, component output, public native executable publication, public
-project run/test commands, repository analysis, provenance, approval, or
-production readiness.
+That run predates native publication; the new lane additionally requires an
+exact-head hosted Ubuntu/macOS/Windows matrix that includes
+`project_native_publication_v1` before any hosted claim. Project v1 does not
+claim general packages/dependencies, registry or network access, capabilities,
+aggregate or resource composition, generics, interface/native imports or
+`use type` edges, effects, general multi-file compilation, native output
+confinement or hostile-window no-clobber publication, cross-build executable
+byte determinism, test discovery, component output, public project run/test
+commands, repository analysis, provenance, approval, or production readiness.

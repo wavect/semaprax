@@ -1,5 +1,18 @@
 # Changelog
 
+- Added the locally evidenced Public Project Native Publication v1 tranche.
+  `semaprax build --target native` over a `semaprax.toml` project now publishes
+  the linked entry closure as one create-new executable through the unchanged
+  shared Clang C11 lane and exactly the linked entry HIR that Web publication
+  and internal lowering-equivalence evidence consume. Publication rechecks
+  every held manifest/source input before and after the boundary, rejects an
+  existing destination with `SPX-I307`, reports post-publication drift as
+  `SPX-J103` while preserving the retained executable, keeps Web-package bytes
+  and all single-file/Workspace/Patch evidence unchanged, and preserves
+  published behavior across stable-ID display renames. Project `run`, a public
+  project test command, hostile-window no-clobber native publication,
+  cross-build executable byte determinism, and exact-head hosted promotion of
+  the new lane remain held; completion totals remain 39 Partial/17 Missing.
 - Added the locally evidenced IEEE-754 floating-point scalar tranche: `f32`
   and `f64` are now first-class Copy value types end-to-end. The change spans
   the lexer (decimal float literals with an optional `f32` suffix and

@@ -290,9 +290,10 @@ pub fn build_trace_path_certificate(
                         )?);
                         let outcome = match function.return_type {
                             ResolvedType::Unit => TracePathOutcome::ScalarSuccess,
-                            ResolvedType::I64 | ResolvedType::Bool => {
-                                TracePathOutcome::ScalarSuccess
-                            }
+                            ResolvedType::I64
+                            | ResolvedType::F32
+                            | ResolvedType::F64
+                            | ResolvedType::Bool => TracePathOutcome::ScalarSuccess,
                             ResolvedType::Nominal { .. } => TracePathOutcome::OwnedSuccess,
                             ResolvedType::TypeParameter { .. } => {
                                 return Err(certificate_error(
@@ -784,6 +785,8 @@ mod tests {
         match outcome {
             TraceOutcome::Success { result } => match result {
                 crate::conformance::TraceResult::I64(_)
+                | crate::conformance::TraceResult::F32(_)
+                | crate::conformance::TraceResult::F64(_)
                 | crate::conformance::TraceResult::Bool(_) => TracePathOutcome::ScalarSuccess,
                 crate::conformance::TraceResult::Owned { .. } => TracePathOutcome::OwnedSuccess,
                 crate::conformance::TraceResult::Unit => panic!("unit is outside callable v2"),

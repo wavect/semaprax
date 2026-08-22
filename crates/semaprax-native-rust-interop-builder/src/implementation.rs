@@ -1837,6 +1837,8 @@ fn drain_disposal_frames(
             disposal_push(frames, ResolvedDisposeFrame::Type(expression.ty));
             match expression.kind {
                 ResolvedExprKind::Int(_)
+                | ResolvedExprKind::Float32(_)
+                | ResolvedExprKind::Float64(_)
                 | ResolvedExprKind::Bool(_)
                 | ResolvedExprKind::Place(_) => {}
                 ResolvedExprKind::Call {
@@ -2887,7 +2889,7 @@ fn source_scalar_type(ty: &Type) -> Option<ScalarType> {
     match ty {
         Type::I64 => Some(ScalarType::I64),
         Type::Bool => Some(ScalarType::Bool),
-        Type::Named { .. } => None,
+        Type::F32 | Type::F64 | Type::Named { .. } => None,
     }
 }
 
@@ -3095,7 +3097,11 @@ fn resolved_call_child(expression: &ResolvedExpr, index: usize) -> Option<&Resol
                 fields.get(index - 1).map(|field| &field.value)
             }
         }
-        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => None,
+        ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Float32(_)
+        | ResolvedExprKind::Float64(_)
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::Place(_) => None,
     }
 }
 
@@ -3724,6 +3730,8 @@ fn type_identity_metrics(
                 let metric = match ty {
                     ResolvedType::Unit => Some(leaf("unit".len())),
                     ResolvedType::I64 => Some(leaf("i64".len())),
+                    ResolvedType::F32 => Some(leaf("f32".len())),
+                    ResolvedType::F64 => Some(leaf("f64".len())),
                     ResolvedType::Bool => Some(leaf("bool".len())),
                     ResolvedType::TypeParameter { owner, index } => {
                         let owner_bytes = owner.as_str().len();
@@ -3851,10 +3859,16 @@ fn fingerprint_type_identity(
     while let Some(frame) = frames.pop() {
         match frame {
             TypeIdentityFrame::Enter(ty) => match ty {
-                ResolvedType::Unit | ResolvedType::I64 | ResolvedType::Bool => {
+                ResolvedType::Unit
+                | ResolvedType::I64
+                | ResolvedType::F32
+                | ResolvedType::F64
+                | ResolvedType::Bool => {
                     let text = match ty {
                         ResolvedType::Unit => "unit",
                         ResolvedType::I64 => "i64",
+                        ResolvedType::F32 => "f32",
+                        ResolvedType::F64 => "f64",
                         ResolvedType::Bool => "bool",
                         _ => unreachable!(),
                     };
@@ -4051,6 +4065,8 @@ fn fingerprint_expression_types_scratch(
                 maximum = maximum.max(type_identity_scratch_upper(&expression.ty)?);
                 match &expression.kind {
                     ResolvedExprKind::Int(_)
+                    | ResolvedExprKind::Float32(_)
+                    | ResolvedExprKind::Float64(_)
                     | ResolvedExprKind::Bool(_)
                     | ResolvedExprKind::Place(_) => {}
                     ResolvedExprKind::Call {
@@ -4569,6 +4585,11 @@ fn hash_expr(
                 frame(hasher, identity.as_bytes());
                 frame(hasher, ownership(expression.ownership));
                 match &expression.kind {
+                    ResolvedExprKind::Float32(_) | ResolvedExprKind::Float64(_) => {
+                        // Float signatures are outside the scalar native
+                        // boundary; admission rejects them before this point.
+                        return Err(b107("scalar value signature required"));
+                    }
                     ResolvedExprKind::Int(value) => {
                         frame(hasher, b"int");
                         frame(hasher, &value.to_be_bytes());
@@ -5773,7 +5794,10 @@ fn validate_selected_scalar_closure(functions: &[&ResolvedFunction]) -> Result<(
             return Err(b107("scalar value signature required"));
         }
         match &expression.kind {
-            ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) => {}
+            ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Float32(_)
+            | ResolvedExprKind::Float64(_)
+            | ResolvedExprKind::Bool(_) => {}
             ResolvedExprKind::Place(place)
                 if place.projections.is_empty()
                     && expression.ownership == hir::OwnershipMode::Value => {}

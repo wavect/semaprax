@@ -22,6 +22,8 @@ impl Span {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Type {
     I64,
+    F32,
+    F64,
     Bool,
     Named { name: String, arguments: Vec<Type> },
 }
@@ -36,6 +38,8 @@ impl fmt::Display for Type {
         while let Some(frame) = frames.pop() {
             match frame {
                 Frame::Type(Type::I64) => f.write_str("i64")?,
+                Frame::Type(Type::F32) => f.write_str("f32")?,
+                Frame::Type(Type::F64) => f.write_str("f64")?,
                 Frame::Type(Type::Bool) => f.write_str("bool")?,
                 Frame::Type(Type::Named { name, arguments }) => {
                     f.write_str(name)?;
@@ -268,6 +272,10 @@ pub struct Expr {
 #[derive(Clone, Debug)]
 pub enum ExprKind {
     Int(i64),
+    /// An `f32` literal stored as its exact IEEE-754 bit pattern.
+    Float32(u32),
+    /// An `f64` literal stored as its exact IEEE-754 bit pattern.
+    Float64(u64),
     Bool(bool),
     Var(String),
     Call {
@@ -553,7 +561,11 @@ impl Expr {
             ExprKind::UpdateRecord { base, fields } => (index == 0)
                 .then_some(base.as_ref())
                 .or_else(|| fields.get(index - 1).map(|field| &field.value)),
-            ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Var(_) => None,
+            ExprKind::Int(_)
+            | ExprKind::Float32(_)
+            | ExprKind::Float64(_)
+            | ExprKind::Bool(_)
+            | ExprKind::Var(_) => None,
         }
     }
 

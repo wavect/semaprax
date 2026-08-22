@@ -455,7 +455,11 @@ pub(crate) fn precheck_program(program: &Program) -> Result<(), Vec<Diagnostic>>
     let mut call_sites = 0usize;
     while let Some(expression) = expressions.pop() {
         match &expression.kind {
-            ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Var(_) => {}
+            ExprKind::Int(_)
+            | ExprKind::Float32(_)
+            | ExprKind::Float64(_)
+            | ExprKind::Bool(_)
+            | ExprKind::Var(_) => {}
             ExprKind::Call { args, .. } => {
                 call_sites = call_sites.saturating_add(1);
                 if call_sites > MAX_CALL_SITES {
@@ -580,7 +584,11 @@ fn scalar_type(ty: &Type) -> bool {
 
 fn scalar_expr(expression: &Expr) -> bool {
     match &expression.kind {
-        ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Var(_) => true,
+        ExprKind::Int(_)
+        | ExprKind::Float32(_)
+        | ExprKind::Float64(_)
+        | ExprKind::Bool(_)
+        | ExprKind::Var(_) => true,
         ExprKind::Call {
             type_arguments,
             args,
@@ -674,7 +682,11 @@ fn collect_calls(
     call_sites: &mut usize,
 ) {
     match &expression.kind {
-        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
+        ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Float32(_)
+        | ResolvedExprKind::Float64(_)
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::Place(_) => {}
         ResolvedExprKind::Call { callee, args, .. } => {
             *call_sites = call_sites.saturating_add(1);
             if known.contains(callee) {

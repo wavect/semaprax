@@ -1148,6 +1148,11 @@ fn c_expression_linear(
         note_c_expression_scratch(mode, &frame, &frames, &values, &arguments, lines)?;
         match frame {
             CExpressionFrame::Enter(expression) => match &expression.kind {
+                ResolvedExprKind::Float32(_) | ResolvedExprKind::Float64(_) => {
+                    // Float signatures are outside the scalar native
+                    // boundary; admission rejects them before this point.
+                    return Err(b107("scalar value signature required"));
+                }
                 ResolvedExprKind::Int(value) => values.push(if *value == i64::MIN {
                     "INT64_MIN".to_owned()
                 } else {

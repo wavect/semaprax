@@ -36,7 +36,11 @@ fn note_capacity_high_water(bytes: usize) {
 #[cfg(test)]
 fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize {
     match ty {
-        ResolvedType::Unit | ResolvedType::I64 | ResolvedType::Bool => 0,
+        ResolvedType::Unit
+        | ResolvedType::I64
+        | ResolvedType::F32
+        | ResolvedType::F64
+        | ResolvedType::Bool => 0,
         ResolvedType::TypeParameter { owner, .. } => owner.as_str().len(),
         ResolvedType::Nominal {
             declaration,
@@ -603,6 +607,8 @@ impl InventoryBuilder<'_> {
                             }
                         }
                         ResolvedExprKind::Int(_)
+                        | ResolvedExprKind::Float32(_)
+                        | ResolvedExprKind::Float64(_)
                         | ResolvedExprKind::Bool(_)
                         | ResolvedExprKind::Place(_) => {}
                     }

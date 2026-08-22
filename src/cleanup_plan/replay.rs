@@ -656,7 +656,10 @@ fn expression_skeleton_work_upper(
             .expect("skeleton census frame retained");
         if *next == 0 {
             let local = match &expression.kind {
-                ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) => 2,
+                ResolvedExprKind::Int(_)
+                | ResolvedExprKind::Float32(_)
+                | ResolvedExprKind::Float64(_)
+                | ResolvedExprKind::Bool(_) => 2,
                 ResolvedExprKind::Place(place) => place.projections.len().saturating_mul(2) + 8,
                 ResolvedExprKind::Unary { .. } => 8,
                 ResolvedExprKind::Binary { .. } => 12,
@@ -1393,6 +1396,8 @@ fn collect_expression_statuses(
             | ResolvedExprKind::UpdateRecord { .. }
             | ResolvedExprKind::Project { .. }
             | ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Float32(_)
+            | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
             | ResolvedExprKind::Place(_) => {}
         }
@@ -2529,7 +2534,10 @@ fn expression_skeleton(
             Frame::Eval(expression) => {
                 debug_assert!(produced.is_none());
                 match &expression.kind {
-                    ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) => {
+                    ResolvedExprKind::Int(_)
+                    | ResolvedExprKind::Float32(_)
+                    | ResolvedExprKind::Float64(_)
+                    | ResolvedExprKind::Bool(_) => {
                         produced =
                             Some(work.singleton_path(empty_expr_path(), "literal skeleton path")?);
                     }
@@ -3595,6 +3603,8 @@ fn validate_match_skeleton_shape(
             .is_some_and(|item| item.kind == DeclarationKind::Record),
         ResolvedType::Unit
         | ResolvedType::I64
+        | ResolvedType::F32
+        | ResolvedType::F64
         | ResolvedType::Bool
         | ResolvedType::TypeParameter { .. } => false,
     };
@@ -5190,7 +5200,11 @@ fn replay_expression_child(expression: &ResolvedExpr, index: usize) -> Option<&R
         ResolvedExprKind::UpdateRecord { base, fields, .. } => (index == 0)
             .then_some(base.as_ref())
             .or_else(|| fields.get(index - 1).map(|field| &field.value)),
-        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => None,
+        ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Float32(_)
+        | ResolvedExprKind::Float64(_)
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::Place(_) => None,
     }
 }
 

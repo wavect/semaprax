@@ -258,6 +258,8 @@ fn collect_variant_domains(
     ) -> Result<(), CleanupExecutionError> {
         match &expression.kind {
             hir::ResolvedExprKind::Int(_)
+            | hir::ResolvedExprKind::Float32(_)
+            | hir::ResolvedExprKind::Float64(_)
             | hir::ResolvedExprKind::Bool(_)
             | hir::ResolvedExprKind::Place(_) => {}
             hir::ResolvedExprKind::Call { args, .. } => {
@@ -654,6 +656,8 @@ fn find_expression_by<'a>(
             })
         }
         hir::ResolvedExprKind::Int(_)
+        | hir::ResolvedExprKind::Float32(_)
+        | hir::ResolvedExprKind::Float64(_)
         | hir::ResolvedExprKind::Bool(_)
         | hir::ResolvedExprKind::Place(_) => None,
     }
@@ -1227,21 +1231,29 @@ impl<'a> Executor<'a> {
         let matches_type = match (&self.function.return_type, result) {
             (ResolvedType::Unit, _) => false,
             (ResolvedType::I64, TraceResult::I64(_))
-            | (ResolvedType::Bool, TraceResult::Bool(_)) => true,
+            | (ResolvedType::Bool, TraceResult::Bool(_))
+            | (ResolvedType::F32, TraceResult::F32(_))
+            | (ResolvedType::F64, TraceResult::F64(_)) => true,
             (ResolvedType::Nominal { declaration, .. }, TraceResult::Owned { type_id }) => {
                 declaration == type_id
             }
             (ResolvedType::TypeParameter { .. }, _) | (_, _) => false,
         };
         let source_matches = match (source, &self.function.return_type) {
-            (CleanupResultSource::Scalar { .. }, ResolvedType::I64 | ResolvedType::Bool) => true,
+            (
+                CleanupResultSource::Scalar { .. },
+                ResolvedType::I64 | ResolvedType::F32 | ResolvedType::F64 | ResolvedType::Bool,
+            ) => true,
             (CleanupResultSource::Owned { storage }, ResolvedType::Nominal { .. }) => {
                 storage.storage == StorageId::ProvisionalResult && storage.projections.is_empty()
             }
             (CleanupResultSource::Scalar { .. }, ResolvedType::Nominal { .. })
             | (CleanupResultSource::Scalar { .. }, ResolvedType::Unit)
             | (CleanupResultSource::Owned { .. }, ResolvedType::Unit)
-            | (CleanupResultSource::Owned { .. }, ResolvedType::I64 | ResolvedType::Bool)
+            | (
+                CleanupResultSource::Owned { .. },
+                ResolvedType::I64 | ResolvedType::F32 | ResolvedType::F64 | ResolvedType::Bool,
+            )
             | (_, ResolvedType::TypeParameter { .. }) => false,
         };
         if !matches_type || !source_matches {

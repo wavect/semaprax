@@ -17,7 +17,7 @@ use crate::variant_layout::{VariantLayout, VariantLayoutCache, VariantTarget};
 
 use super::{
     function_import, intern_type, section, write_bytes, write_i64, write_name, write_u32,
-    Signature, I32, I64, SCALAR_IMPORT_COUNT,
+    Signature, F32, F64, I32, I64, SCALAR_IMPORT_COUNT,
 };
 
 pub(super) const SHADOW_STACK_TOP: u32 = 65_536;
@@ -396,7 +396,11 @@ impl FunctionPlan {
                     )?;
                 }
             }
-            ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
+            ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Float32(_)
+            | ResolvedExprKind::Float64(_)
+            | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::Place(_) => {}
         }
         Ok(())
     }
@@ -501,7 +505,11 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
         ResolvedExprKind::UpdateRecord { base, fields, .. } => {
             expression_has_try(base) || fields.iter().any(|field| expression_has_try(&field.value))
         }
-        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => false,
+        ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Float32(_)
+        | ResolvedExprKind::Float64(_)
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::Place(_) => false,
     }
 }
 
@@ -613,6 +621,8 @@ fn aggregate_size_align(
 fn scalar_wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
     match ty {
         ResolvedType::I64 => Ok(I64),
+        ResolvedType::F32 => Ok(F32),
+        ResolvedType::F64 => Ok(F64),
         ResolvedType::Bool => Ok(I32),
         _ => Err(error(format!(
             "non-scalar type `{}` reached scalar aggregate lowering",
@@ -624,6 +634,8 @@ fn scalar_wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
 fn scalar_size_align(ty: &ResolvedType) -> Result<(u32, u32), Diagnostic> {
     match ty {
         ResolvedType::I64 => Ok((8, 8)),
+        ResolvedType::F32 => Ok((4, 4)),
+        ResolvedType::F64 => Ok((8, 8)),
         ResolvedType::Bool => Ok((4, 4)),
         _ => Err(error(format!(
             "non-scalar type `{}` has no Wasm32 scalar layout",
@@ -1251,6 +1263,28 @@ impl Emitter<'_> {
                 Ok(Value::Scalar {
                     local: destination,
                     ty: ResolvedType::I64,
+                })
+            }
+            ResolvedExprKind::Float32(bits) => {
+                let destination = self.plan.expr_scalar(expr)?;
+                self.output.push(0x43);
+                self.output.extend_from_slice(&bits.to_le_bytes());
+                self.output.push(0x21);
+                write_u32(self.output, destination);
+                Ok(Value::Scalar {
+                    local: destination,
+                    ty: ResolvedType::F32,
+                })
+            }
+            ResolvedExprKind::Float64(bits) => {
+                let destination = self.plan.expr_scalar(expr)?;
+                self.output.push(0x44);
+                self.output.extend_from_slice(&bits.to_le_bytes());
+                self.output.push(0x21);
+                write_u32(self.output, destination);
+                Ok(Value::Scalar {
+                    local: destination,
+                    ty: ResolvedType::F64,
                 })
             }
             ResolvedExprKind::Bool(value) => {
@@ -2101,18 +2135,34 @@ impl Emitter<'_> {
                 write_u32(self.output, destination);
             }
             UnaryOp::Neg => {
-                self.require_scalar(&operand, &ResolvedType::I64, "numeric negation")?;
-                self.get_scalar(&operand);
-                self.output.push(0x42);
-                write_i64(self.output, i64::MIN);
-                self.output.push(0x51);
-                self.fail_if(STATUS_NEG_OVERFLOW);
-                self.output.push(0x42);
-                write_i64(self.output, 0);
-                self.get_scalar(&operand);
-                self.output.push(0x7d);
-                self.output.push(0x21);
-                write_u32(self.output, destination);
+                let operand_ty = value_type(&operand);
+                match operand_ty {
+                    ResolvedType::F32 | ResolvedType::F64 => {
+                        self.get_scalar(&operand);
+                        self.output.push(match operand_ty {
+                            ResolvedType::F32 => 0x8c,
+                            _ => 0x9a,
+                        });
+                        self.output.push(0x21);
+                        write_u32(self.output, destination);
+                    }
+                    _ => {
+                        if operand_ty != &ResolvedType::I64 {
+                            return Err(error("numeric negation requires an i64 or float operand"));
+                        }
+                        self.get_scalar(&operand);
+                        self.output.push(0x42);
+                        write_i64(self.output, i64::MIN);
+                        self.output.push(0x51);
+                        self.fail_if(STATUS_NEG_OVERFLOW);
+                        self.output.push(0x42);
+                        write_i64(self.output, 0);
+                        self.get_scalar(&operand);
+                        self.output.push(0x7d);
+                        self.output.push(0x21);
+                        write_u32(self.output, destination);
+                    }
+                }
             }
         }
         Ok(Value::Scalar {
@@ -2163,6 +2213,14 @@ impl Emitter<'_> {
         }
 
         let right = self.emit_expr(right)?;
+        if matches!(value_type(&left), ResolvedType::F32 | ResolvedType::F64)
+            && !matches!(
+                op,
+                BinaryOp::Eq | BinaryOp::Ne | BinaryOp::And | BinaryOp::Or
+            )
+        {
+            return self.emit_float_binary(expr, op, &left, &right, destination);
+        }
         match op {
             BinaryOp::Add => self.emit_checked_add(&left, &right, destination)?,
             BinaryOp::Sub => self.emit_checked_sub(&left, &right, destination)?,
@@ -2179,6 +2237,10 @@ impl Emitter<'_> {
                 self.output.push(match (value_type(&left), op) {
                     (ResolvedType::I64, BinaryOp::Eq) => 0x51,
                     (ResolvedType::I64, BinaryOp::Ne) => 0x52,
+                    (ResolvedType::F32, BinaryOp::Eq) => 0x5b,
+                    (ResolvedType::F32, BinaryOp::Ne) => 0x5c,
+                    (ResolvedType::F64, BinaryOp::Eq) => 0x61,
+                    (ResolvedType::F64, BinaryOp::Ne) => 0x62,
                     (_, BinaryOp::Eq) => 0x46,
                     (_, BinaryOp::Ne) => 0x47,
                     _ => unreachable!(),
@@ -2187,22 +2249,93 @@ impl Emitter<'_> {
                 write_u32(self.output, destination);
             }
             BinaryOp::Lt | BinaryOp::Gt | BinaryOp::Le | BinaryOp::Ge => {
-                self.require_scalar(&left, &ResolvedType::I64, "ordered left operand")?;
-                self.require_scalar(&right, &ResolvedType::I64, "ordered right operand")?;
+                let operand_ty = value_type(&left);
+                if !matches!(
+                    operand_ty,
+                    ResolvedType::I64 | ResolvedType::F32 | ResolvedType::F64
+                ) {
+                    return Err(error(format!(
+                        "ordered comparison requires a numeric operand, found `{}`",
+                        operand_ty.identity_key()
+                    )));
+                }
+                require_type(
+                    value_type(&right),
+                    &operand_ty.clone(),
+                    "ordered right operand",
+                )?;
                 self.get_scalar(&left);
                 self.get_scalar(&right);
-                self.output.push(match op {
-                    BinaryOp::Lt => 0x53,
-                    BinaryOp::Gt => 0x55,
-                    BinaryOp::Le => 0x57,
-                    BinaryOp::Ge => 0x59,
-                    _ => unreachable!(),
+                self.output.push(match (&operand_ty, op) {
+                    (ResolvedType::F32, BinaryOp::Lt) => 0x5d,
+                    (ResolvedType::F32, BinaryOp::Gt) => 0x5e,
+                    (ResolvedType::F32, BinaryOp::Le) => 0x5f,
+                    (ResolvedType::F32, BinaryOp::Ge) => 0x60,
+                    (ResolvedType::F64, BinaryOp::Lt) => 0x63,
+                    (ResolvedType::F64, BinaryOp::Gt) => 0x64,
+                    (ResolvedType::F64, BinaryOp::Le) => 0x65,
+                    (ResolvedType::F64, BinaryOp::Ge) => 0x66,
+                    (ResolvedType::F32 | ResolvedType::F64, _)
+                        if matches!(op, BinaryOp::Rem | BinaryOp::And | BinaryOp::Or) =>
+                    {
+                        unreachable!("float remainder/lazy operation was matched above")
+                    }
+                    (_, BinaryOp::Lt) => 0x53,
+                    (_, BinaryOp::Gt) => 0x55,
+                    (_, BinaryOp::Le) => 0x57,
+                    (_, BinaryOp::Ge) => 0x59,
+                    _ => unreachable!("ordered operation was matched above"),
                 });
                 self.output.push(0x21);
                 write_u32(self.output, destination);
             }
-            BinaryOp::And | BinaryOp::Or => unreachable!(),
+            BinaryOp::And | BinaryOp::Or => {
+                unreachable!("lazy boolean operations were short-circuited above")
+            }
         }
+        Ok(Value::Scalar {
+            local: destination,
+            ty: expr.ty.clone(),
+        })
+    }
+
+    /// Lowers total IEEE-754 arithmetic with native Wasm opcodes; no checked
+    /// failure status exists for float operations.
+    fn emit_float_binary(
+        &mut self,
+        expr: &ResolvedExpr,
+        op: BinaryOp,
+        left: &Value,
+        right: &Value,
+        destination: u32,
+    ) -> Result<Value, Diagnostic> {
+        let operand_ty = value_type(left);
+        require_type(
+            value_type(right),
+            &operand_ty.clone(),
+            "float right operand",
+        )?;
+        self.get_scalar(left);
+        self.get_scalar(right);
+        let wide = matches!(operand_ty, ResolvedType::F64);
+        self.output.push(match (op, wide) {
+            (BinaryOp::Add, true) => 0xa0,
+            (BinaryOp::Sub, true) => 0xa1,
+            (BinaryOp::Mul, true) => 0xa2,
+            (BinaryOp::Div, true) => 0xa3,
+            (BinaryOp::Add, false) => 0x92,
+            (BinaryOp::Sub, false) => 0x93,
+            (BinaryOp::Mul, false) => 0x94,
+            (BinaryOp::Div, false) => 0x95,
+            (BinaryOp::Rem, _) => {
+                return Err(error(
+                    "floating-point remainder has no admitted Wasm lowering",
+                ));
+            }
+            _ => unreachable!("float binary operation was matched above"),
+        });
+        self.output.push(0x21);
+        write_u32(self.output, destination);
         Ok(Value::Scalar {
             local: destination,
             ty: expr.ty.clone(),
@@ -2517,6 +2650,8 @@ impl Emitter<'_> {
     fn load_scalar(&mut self, ty: &ResolvedType) {
         match ty {
             ResolvedType::I64 => self.output.extend([0x29, 0x03, 0x00]),
+            ResolvedType::F64 => self.output.extend([0x2b, 0x03, 0x00]),
+            ResolvedType::F32 => self.output.extend([0x2a, 0x02, 0x00]),
             ResolvedType::Bool => self.output.extend([0x28, 0x02, 0x00]),
             _ => unreachable!("validated scalar load"),
         }
@@ -2525,6 +2660,8 @@ impl Emitter<'_> {
     fn store_scalar(&mut self, ty: &ResolvedType) {
         match ty {
             ResolvedType::I64 => self.output.extend([0x37, 0x03, 0x00]),
+            ResolvedType::F64 => self.output.extend([0x39, 0x03, 0x00]),
+            ResolvedType::F32 => self.output.extend([0x38, 0x02, 0x00]),
             ResolvedType::Bool => self.output.extend([0x36, 0x02, 0x00]),
             _ => unreachable!("validated scalar store"),
         }

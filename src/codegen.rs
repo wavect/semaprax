@@ -1904,7 +1904,11 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
         ResolvedExprKind::UpdateRecord { base, fields, .. } => {
             expression_has_try(base) || fields.iter().any(|field| expression_has_try(&field.value))
         }
-        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => false,
+        ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Float32(_)
+        | ResolvedExprKind::Float64(_)
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::Place(_) => false,
     }
 }
 
@@ -2154,6 +2158,20 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     ty: ResolvedType::I64,
                 }
             }
+            ResolvedExprKind::Float32(bits) => {
+                self.require_type(&expr.ty, &ResolvedType::F32, "float literal")?;
+                CValue {
+                    code: format!("{}f", crate::format::canonical_f32_bits(*bits)),
+                    ty: ResolvedType::F32,
+                }
+            }
+            ResolvedExprKind::Float64(bits) => {
+                self.require_type(&expr.ty, &ResolvedType::F64, "float literal")?;
+                CValue {
+                    code: crate::format::canonical_f64_bits(*bits),
+                    ty: ResolvedType::F64,
+                }
+            }
             ResolvedExprKind::Bool(value) => {
                 self.require_type(&expr.ty, &ResolvedType::Bool, "boolean literal")?;
                 CValue {
@@ -2220,13 +2238,20 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             ResolvedExprKind::Unary { op, value } => {
                 let value = self.emit_expr(value)?;
                 let (ty, operand_type) = match op {
-                    UnaryOp::Neg => (ResolvedType::I64, ResolvedType::I64),
+                    UnaryOp::Neg => match &value.ty {
+                        ResolvedType::F32 => (ResolvedType::F32, ResolvedType::F32),
+                        ResolvedType::F64 => (ResolvedType::F64, ResolvedType::F64),
+                        _ => (ResolvedType::I64, ResolvedType::I64),
+                    },
                     UnaryOp::Not => (ResolvedType::Bool, ResolvedType::Bool),
                 };
                 self.require_type(&value.ty, &operand_type, "unary operand")?;
                 self.require_type(&expr.ty, &ty, "unary result")?;
                 let temporary = self.temporary(&ty)?;
                 match op {
+                    UnaryOp::Neg if matches!(ty, ResolvedType::F32 | ResolvedType::F64) => {
+                        self.line(&format!("{temporary} = (-({}));", value.code));
+                    }
                     UnaryOp::Neg => {
                         self.line(&format!(
                             "spx_status = spx_rt_neg(spx_ctx, {}, &{temporary});",
@@ -2886,19 +2911,31 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 "aggregate equality is outside executable copy variants v1",
             ));
         }
+        let float_operand = matches!(left.ty, ResolvedType::F32 | ResolvedType::F64);
         let operand_type = match op {
             BinaryOp::And | BinaryOp::Or => ResolvedType::Bool,
             BinaryOp::Eq | BinaryOp::Ne => left.ty.clone(),
+            _ if float_operand => left.ty.clone(),
             _ => ResolvedType::I64,
         };
         self.require_type(&left.ty, &operand_type, "binary left operand")?;
         let expected_result = match op {
+            BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
+                if float_operand =>
+            {
+                left.ty.clone()
+            }
             BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem => {
                 ResolvedType::I64
             }
             _ => ResolvedType::Bool,
         };
         self.require_type(result_type, &expected_result, "binary result")?;
+        if float_operand && op == BinaryOp::Rem {
+            return Err(backend_error(
+                "floating-point remainder has no admitted native lowering",
+            ));
+        }
         if matches!(op, BinaryOp::And | BinaryOp::Or) {
             let temporary = self.temporary(&ResolvedType::Bool)?;
             if op == BinaryOp::And {
@@ -2932,7 +2969,22 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         let right = self.emit_expr(right)?;
         self.require_type(&right.ty, &operand_type, "binary right operand")?;
         let temporary = self.temporary(&expected_result)?;
-        if matches!(
+        if float_operand
+            && matches!(
+                op,
+                BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div
+            )
+        {
+            // IEEE-754 semantics are total: overflow, signed zero, and
+            // division by zero follow the hardware rules and never select a
+            // failure status.
+            self.line(&format!(
+                "{temporary} = ({} {} {});",
+                left.code,
+                op.text(),
+                right.code
+            ));
+        } else if matches!(
             op,
             BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
         ) {

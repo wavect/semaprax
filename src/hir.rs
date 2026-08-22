@@ -294,7 +294,11 @@ fn place_projection_owned_capacity(projection: &PlaceProjection) -> usize {
 #[cfg(test)]
 fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize {
     match ty {
-        ResolvedType::Unit | ResolvedType::I64 | ResolvedType::Bool => 0,
+        ResolvedType::Unit
+        | ResolvedType::I64
+        | ResolvedType::F32
+        | ResolvedType::F64
+        | ResolvedType::Bool => 0,
         ResolvedType::TypeParameter { owner, .. } => owner.as_str().len(),
         ResolvedType::Nominal {
             declaration,
@@ -462,7 +466,10 @@ fn resolved_expr_owned_capacity(expression: &ResolvedExpr) -> usize {
                 })
                 .sum::<usize>();
         }
-        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) => {}
+        ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Float32(_)
+        | ResolvedExprKind::Float64(_)
+        | ResolvedExprKind::Bool(_) => {}
     }
     bytes
 }
@@ -1106,6 +1113,8 @@ impl DeclarationIndex {
                             Some((true, false, false, "native-rust-import-result:unit"))
                         }
                         ResolvedType::I64 => Some((true, false, false, "scalar:i64")),
+                        ResolvedType::F32 => Some((true, false, false, "scalar:f32")),
+                        ResolvedType::F64 => Some((true, false, false, "scalar:f64")),
                         ResolvedType::Bool => Some((true, false, false, "scalar:bool")),
                         ResolvedType::TypeParameter { .. } | ResolvedType::Nominal { .. } => None,
                     };
@@ -1790,6 +1799,8 @@ impl DeclarationIndex {
             match frame {
                 Frame::Enter(ty) => match ty {
                     Type::I64 => resolved.push(ResolvedType::I64),
+                    Type::F32 => resolved.push(ResolvedType::F32),
+                    Type::F64 => resolved.push(ResolvedType::F64),
                     Type::Bool => resolved.push(ResolvedType::Bool),
                     Type::Named { name, arguments } => {
                         if arguments.is_empty() {
@@ -1829,6 +1840,10 @@ impl DeclarationIndex {
 pub enum ResolvedType {
     Unit,
     I64,
+    /// IEEE-754 single precision.
+    F32,
+    /// IEEE-754 double precision.
+    F64,
     Bool,
     TypeParameter {
         owner: DeclarationId,
@@ -1844,7 +1859,12 @@ impl ResolvedType {
     pub fn nominal_id(&self) -> Option<&DeclarationId> {
         match self {
             Self::Nominal { declaration, .. } => Some(declaration),
-            Self::Unit | Self::I64 | Self::Bool | Self::TypeParameter { .. } => None,
+            Self::Unit
+            | Self::I64
+            | Self::F32
+            | Self::F64
+            | Self::Bool
+            | Self::TypeParameter { .. } => None,
         }
     }
 
@@ -1861,6 +1881,8 @@ impl ResolvedType {
                 Frame::Enter(ty) => match ty {
                     Self::Unit => keys.push("unit".to_owned()),
                     Self::I64 => keys.push("i64".to_owned()),
+                    Self::F32 => keys.push("f32".to_owned()),
+                    Self::F64 => keys.push("f64".to_owned()),
                     Self::Bool => keys.push("bool".to_owned()),
                     Self::TypeParameter { owner, index } => keys.push(format!(
                         "parameter:{}:{}:{index}",
@@ -1936,6 +1958,8 @@ pub(crate) fn substitute_type(
             Frame::Enter(template) => match template {
                 ResolvedType::Unit => resolved.push(ResolvedType::Unit),
                 ResolvedType::I64 => resolved.push(ResolvedType::I64),
+                ResolvedType::F32 => resolved.push(ResolvedType::F32),
+                ResolvedType::F64 => resolved.push(ResolvedType::F64),
                 ResolvedType::Bool => resolved.push(ResolvedType::Bool),
                 ResolvedType::TypeParameter {
                     owner: parameter_owner,
@@ -2003,6 +2027,8 @@ fn substitute_source_function_type(
         match frame {
             Frame::Enter(template) => match template {
                 Type::I64 => resolved.push(Type::I64),
+                Type::F32 => resolved.push(Type::F32),
+                Type::F64 => resolved.push(Type::F64),
                 Type::Bool => resolved.push(Type::Bool),
                 Type::Named {
                     name,
@@ -2170,6 +2196,8 @@ fn materialize_template_expr(
 ) -> Result<ResolvedExpr, Diagnostic> {
     let kind = match &expression.kind {
         ResolvedExprKind::Int(value) => ResolvedExprKind::Int(*value),
+        ResolvedExprKind::Float32(bits) => ResolvedExprKind::Float32(*bits),
+        ResolvedExprKind::Float64(bits) => ResolvedExprKind::Float64(*bits),
         ResolvedExprKind::Bool(value) => ResolvedExprKind::Bool(*value),
         ResolvedExprKind::Place(place) => ResolvedExprKind::Place(Place {
             root: values
@@ -2623,6 +2651,10 @@ pub struct ResolvedExpr {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ResolvedExprKind {
     Int(i64),
+    /// An `f32` literal held as its exact IEEE-754 bit pattern.
+    Float32(u32),
+    /// An `f64` literal held as its exact IEEE-754 bit pattern.
+    Float64(u64),
     Bool(bool),
     Place(Place),
     Call {
@@ -3159,7 +3191,11 @@ fn audit_resolved_type(root: &ResolvedType) -> Result<(), Diagnostic> {
     let mut pending = vec![root];
     while let Some(ty) = pending.pop() {
         match ty {
-            ResolvedType::Unit | ResolvedType::I64 | ResolvedType::Bool => {}
+            ResolvedType::Unit
+            | ResolvedType::I64
+            | ResolvedType::F32
+            | ResolvedType::F64
+            | ResolvedType::Bool => {}
             ResolvedType::TypeParameter { owner, .. } => {
                 reject_nul_identity("resolved type-parameter owner", owner.as_str())?;
             }
@@ -3206,7 +3242,10 @@ fn audit_resolved_expression(root: &ResolvedExpr) -> Result<(), Diagnostic> {
         reject_nul_identity("resolved expression", expression.id.as_str())?;
         audit_resolved_type(&expression.ty)?;
         match &expression.kind {
-            ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) => {}
+            ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Float32(_)
+            | ResolvedExprKind::Float64(_)
+            | ResolvedExprKind::Bool(_) => {}
             ResolvedExprKind::Place(place) => audit_hir_place(place)?,
             ResolvedExprKind::Call { callee, args, .. } => {
                 reject_nul_identity("resolved call target", callee.as_str())?;
@@ -3786,7 +3825,11 @@ fn visit_resolved_calls(
                 visit_resolved_calls(&field.value, visit);
             }
         }
-        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
+        ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Float32(_)
+        | ResolvedExprKind::Float64(_)
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::Place(_) => {}
     }
 }
 
@@ -3885,7 +3928,11 @@ pub(crate) fn workspace_call_sites(
                     walk(owner, &field.value, sites);
                 }
             }
-            ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
+            ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Float32(_)
+            | ResolvedExprKind::Float64(_)
+            | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::Place(_) => {}
         }
     }
 
@@ -4484,6 +4531,8 @@ impl Resolver<'_> {
         while let Some(frame) = frames.pop() {
             match frame {
                 Frame::Enter(Type::I64) => result = Some(ResolvedType::I64),
+                Frame::Enter(Type::F32) => result = Some(ResolvedType::F32),
+                Frame::Enter(Type::F64) => result = Some(ResolvedType::F64),
                 Frame::Enter(Type::Bool) => result = Some(ResolvedType::Bool),
                 Frame::Enter(Type::Named { name, arguments }) => {
                     let declaration =
@@ -5133,7 +5182,7 @@ impl Resolver<'_> {
                             .map(resolved_type_owned_capacity)
                             .sum::<usize>()
                         + match return_source_type {
-                            Type::I64 | Type::Bool => 0,
+                            Type::I64 | Type::F32 | Type::F64 | Type::Bool => 0,
                             Type::Named { name, arguments } => {
                                 name.capacity() + arguments.capacity() * std::mem::size_of::<Type>()
                             }
@@ -5250,6 +5299,20 @@ impl Resolver<'_> {
                         ty: ResolvedType::I64,
                         ownership: OwnershipMode::Value,
                         kind: ResolvedExprKind::Int(*value),
+                        span: expr.span,
+                    }),
+                    ExprKind::Float32(bits) => results.push(ResolvedExpr {
+                        id: ExpressionId::new(function, &path),
+                        ty: ResolvedType::F32,
+                        ownership: OwnershipMode::Value,
+                        kind: ResolvedExprKind::Float32(*bits),
+                        span: expr.span,
+                    }),
+                    ExprKind::Float64(bits) => results.push(ResolvedExpr {
+                        id: ExpressionId::new(function, &path),
+                        ty: ResolvedType::F64,
+                        ownership: OwnershipMode::Value,
+                        kind: ResolvedExprKind::Float64(*bits),
                         span: expr.span,
                     }),
                     ExprKind::Bool(value) => results.push(ResolvedExpr {
@@ -5725,9 +5788,13 @@ impl Resolver<'_> {
                 }
                 Frame::FinishUnary { span, path, op } => {
                     let value = results.pop().expect("unary child result retained");
-                    let ty = match op {
-                        UnaryOp::Neg => ResolvedType::I64,
-                        UnaryOp::Not => ResolvedType::Bool,
+                    // Negation keeps the numeric operand type; the validator
+                    // and backends fail closed on any other shape.
+                    let ty = match (&op, &value.ty) {
+                        (UnaryOp::Neg, ResolvedType::F32) => ResolvedType::F32,
+                        (UnaryOp::Neg, ResolvedType::F64) => ResolvedType::F64,
+                        (UnaryOp::Neg, _) => ResolvedType::I64,
+                        (UnaryOp::Not, _) => ResolvedType::Bool,
                     };
                     results.push(ResolvedExpr {
                         id: ExpressionId::new(function, &path),
@@ -5744,20 +5811,36 @@ impl Resolver<'_> {
                     let mut children = take_results(&mut results, 2).into_iter();
                     let left = children.next().expect("binary left result retained");
                     let right = children.next().expect("binary right result retained");
-                    let ty = match op {
-                        BinaryOp::Add
-                        | BinaryOp::Sub
-                        | BinaryOp::Mul
-                        | BinaryOp::Div
-                        | BinaryOp::Rem => ResolvedType::I64,
-                        BinaryOp::Eq
-                        | BinaryOp::Ne
-                        | BinaryOp::Lt
-                        | BinaryOp::Le
-                        | BinaryOp::Gt
-                        | BinaryOp::Ge
-                        | BinaryOp::And
-                        | BinaryOp::Or => ResolvedType::Bool,
+                    // Arithmetic keeps the numeric operand type; the validator
+                    // and backends reject mixed or float-remainder shapes.
+                    let ty = match (&op, &left.ty) {
+                        (
+                            BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div,
+                            ResolvedType::F32,
+                        ) => ResolvedType::F32,
+                        (
+                            BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div,
+                            ResolvedType::F64,
+                        ) => ResolvedType::F64,
+                        (
+                            BinaryOp::Add
+                            | BinaryOp::Sub
+                            | BinaryOp::Mul
+                            | BinaryOp::Div
+                            | BinaryOp::Rem,
+                            _,
+                        ) => ResolvedType::I64,
+                        (
+                            BinaryOp::Eq
+                            | BinaryOp::Ne
+                            | BinaryOp::Lt
+                            | BinaryOp::Le
+                            | BinaryOp::Gt
+                            | BinaryOp::Ge
+                            | BinaryOp::And
+                            | BinaryOp::Or,
+                            _,
+                        ) => ResolvedType::Bool,
                     };
                     results.push(ResolvedExpr {
                         id: ExpressionId::new(function, &path),
@@ -6680,6 +6763,16 @@ impl Resolver<'_> {
                 ResolvedType::I64,
                 OwnershipMode::Value,
             ),
+            ExprKind::Float32(bits) => (
+                ResolvedExprKind::Float32(*bits),
+                ResolvedType::F32,
+                OwnershipMode::Value,
+            ),
+            ExprKind::Float64(bits) => (
+                ResolvedExprKind::Float64(*bits),
+                ResolvedType::F64,
+                OwnershipMode::Value,
+            ),
             ExprKind::Bool(value) => (
                 ResolvedExprKind::Bool(*value),
                 ResolvedType::Bool,
@@ -6869,9 +6962,11 @@ impl Resolver<'_> {
                 let mut resolved =
                     self.resolve_expr_recursive_reference(function, leaf, bindings, &leaf_path)?;
                 for (op, span, unary_path) in unary.into_iter().rev() {
-                    let ty = match op {
-                        UnaryOp::Neg => ResolvedType::I64,
-                        UnaryOp::Not => ResolvedType::Bool,
+                    let ty = match (&op, &resolved.ty) {
+                        (UnaryOp::Neg, ResolvedType::F32) => ResolvedType::F32,
+                        (UnaryOp::Neg, ResolvedType::F64) => ResolvedType::F64,
+                        (UnaryOp::Neg, _) => ResolvedType::I64,
+                        (UnaryOp::Not, _) => ResolvedType::Bool,
                     };
                     resolved = ResolvedExpr {
                         id: ExpressionId::new(function, &unary_path),

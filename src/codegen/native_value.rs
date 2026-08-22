@@ -175,6 +175,11 @@ pub(crate) fn plan(
                 "unit result is outside the ordinary native value corpus",
             ));
         }
+        ResolvedType::F32 | ResolvedType::F64 => {
+            return Err(value_error(
+                "float result is outside the staged single-frame value corpus",
+            ));
+        }
         ResolvedType::I64 => {
             let result = planner.new_scalar(&function.body.id, "int64_t")?;
             planner.push(NativeValueStep::Copy {
@@ -959,6 +964,11 @@ fn validate_signature(
             ResolvedType::Unit => {
                 return Err(value_error("unit is not an ordinary native parameter"));
             }
+            ResolvedType::F32 | ResolvedType::F64 => {
+                return Err(value_error(
+                    "float parameter is outside the staged single-frame value corpus",
+                ));
+            }
             ResolvedType::I64 | ResolvedType::Bool => {
                 if parameter.ownership != OwnershipMode::Value {
                     return Err(value_error("scalar parameter is not passed by value"));
@@ -994,6 +1004,8 @@ fn validate_signature(
             Ok(())
         }
         ResolvedType::Unit
+        | ResolvedType::F32
+        | ResolvedType::F64
         | ResolvedType::Bool
         | ResolvedType::TypeParameter { .. }
         | ResolvedType::Nominal { .. } => {

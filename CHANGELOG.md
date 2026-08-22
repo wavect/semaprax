@@ -1,5 +1,30 @@
 # Changelog
 
+- Added the locally evidenced IEEE-754 floating-point scalar tranche: `f32`
+  and `f64` are now first-class Copy value types end-to-end. The change spans
+  the lexer (decimal float literals with an optional `f32` suffix and
+  deterministic `SPX-P003` diagnostics), parser, canonical formatter
+  (shortest round-trip decimals; whole values keep `.0`; f32 keeps its
+  explicit suffix so revisions are stable), source verifier, resolved HIR
+  (exact bit-pattern literals, finite-value validation, `SPX-H006` fail-closed
+  rejection of NaN/infinity before any backend), Native64/Wasm32 aggregate and
+  variant layouts, cleanup plans, Graph JSON (`"kind":"float32"/"float64"`
+  nodes with bit-exact hex payloads), the strict native C11 backend, and the
+  Wasm core backends. Float arithmetic (`+`, `-`, `*`, `/`) is total IEEE-754:
+  overflow, signed zero, and division by zero never select a failure status,
+  unlike checked i64 arithmetic. Comparisons and equality produce `bool`;
+  unary negation is total; `%` on floats is a stable `SPX-T208` diagnostic.
+  Float-bearing records, nested records, record update, projection, params,
+  returns, locals, calls, branches, and contracts execute identically through
+  native C11 at `-O0`/`-O2` and Node/Wasm over 4,096 re-entries
+  (`tests/floating_point_scalars.rs`, `examples/floats.spx`). Deliberately out
+  of scope for this tranche: generic instantiation arguments and generic
+  template signature slots remain direct `i64`/`bool` only, Public Scalar
+  Export Profile v1 remains i64/bool-only (`SPX-W115`), the native host
+  callable corpus remains i64/bool/resource-only, string/heap types remain
+  unimplemented (no allocation model exists yet), and no completion-matrix row
+  changes; totals remain 39 Partial/17 Missing.
+
 - Added the locally evidenced Public Native Rust SDK v1 Phase C. The
   still-unpublished builder now exposes a bounded API that invokes unchanged
   private A+B and publishes an exact dependency-free nine-file Cargo package

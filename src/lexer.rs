@@ -1,10 +1,28 @@
 use crate::ast::Span;
 use crate::diagnostic::Diagnostic;
 
+/// One deterministic floating-point literal.
+///
+/// `wide` selects the declared type: `true` is `f64` and `false` is an
+/// explicit `f32` suffix. The value always round-trips through the canonical
+/// formatter, so revisions hash stable bytes.
+#[derive(Clone, Copy, Debug)]
+pub struct FloatLiteral {
+    pub value: f64,
+    pub wide: bool,
+}
+
+impl PartialEq for FloatLiteral {
+    fn eq(&self, other: &Self) -> bool {
+        self.wide == other.wide && self.value.to_bits() == other.value.to_bits()
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum TokenKind {
     Ident(String),
     Int(i64),
+    Float(FloatLiteral),
     String(String),
     At,
     LParen,
@@ -133,6 +151,15 @@ impl Lexer<'_> {
                 while matches!(self.peek(), Some(next) if next.is_ascii_digit()) {
                     self.bump();
                 }
+                if self.peek() == Some('.')
+                    && self
+                        .source
+                        .as_bytes()
+                        .get(self.offset + 1)
+                        .is_some_and(|next| next.is_ascii_digit())
+                {
+                    return self.float_token(start, line, column);
+                }
                 let text = &self.source[start..self.offset];
                 let number = text.parse::<i64>().map_err(|_| {
                     self.error(
@@ -166,6 +193,100 @@ impl Lexer<'_> {
         };
         Ok(Token {
             kind,
+            span: self.span_from(start, line, column),
+        })
+    }
+
+    fn float_token(
+        &mut self,
+        start: usize,
+        line: usize,
+        column: usize,
+    ) -> Result<Token, Diagnostic> {
+        // Fraction digits (the caller consumed the leading integer digits and
+        // validated that a fraction follows).
+        self.bump();
+        while matches!(self.peek(), Some(next) if next.is_ascii_digit()) {
+            self.bump();
+        }
+        if matches!(self.peek(), Some('e') | Some('E')) {
+            let mut cursor = self.offset + 1;
+            let mut exponent_digits = 0usize;
+            if matches!(self.source.as_bytes().get(cursor), Some(b'+') | Some(b'-')) {
+                cursor += 1;
+            }
+            while self
+                .source
+                .as_bytes()
+                .get(cursor)
+                .is_some_and(|next| next.is_ascii_digit())
+            {
+                cursor += 1;
+                exponent_digits += 1;
+            }
+            if exponent_digits == 0 {
+                return Err(self.error(
+                    "SPX-P003",
+                    "floating-point exponent requires at least one digit",
+                    self.span_from(start, line, column),
+                ));
+            }
+            while self.offset < cursor {
+                self.bump();
+            }
+        }
+        let mut wide = true;
+        if self.starts_with("f32") || self.starts_with("f64") {
+            wide = self.starts_with("f64");
+            for _ in 0..3 {
+                self.bump();
+            }
+        } else if self.peek().is_some_and(is_ident_start) {
+            return Err(self.error(
+                "SPX-P003",
+                "floating-point literals accept only an `f32` or `f64` suffix",
+                self.span_from(start, line, column),
+            ));
+        }
+        if self.peek().is_some_and(is_ident_continue) {
+            return Err(self.error(
+                "SPX-P003",
+                "floating-point literals accept only an `f32` or `f64` suffix",
+                self.span_from(start, line, column),
+            ));
+        }
+        let text = &self.source[start..self.offset];
+        let value = if wide {
+            text.parse::<f64>().map_err(|_| {
+                self.error(
+                    "SPX-P003",
+                    "floating-point literal is outside the f64 range",
+                    self.span_from(start, line, column),
+                )
+            })?
+        } else {
+            // Parse the unsuffixed text directly in the declared precision so
+            // an f32 literal rounds once from decimal digits.
+            text[..text.len() - 3]
+                .parse::<f32>()
+                .map(f64::from)
+                .map_err(|_| {
+                    self.error(
+                        "SPX-P003",
+                        "floating-point literal is outside the f32 range",
+                        self.span_from(start, line, column),
+                    )
+                })?
+        };
+        if !value.is_finite() {
+            return Err(self.error(
+                "SPX-P003",
+                "floating-point literal is outside the f64 range",
+                self.span_from(start, line, column),
+            ));
+        }
+        Ok(Token {
+            kind: TokenKind::Float(FloatLiteral { value, wide }),
             span: self.span_from(start, line, column),
         })
     }

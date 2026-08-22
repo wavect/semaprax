@@ -507,6 +507,12 @@ impl<'a> HirValidator<'a> {
                     } else {
                         match &field.ty {
                             ResolvedType::I64 | ResolvedType::Bool => {}
+                            ResolvedType::F32 | ResolvedType::F64 => {
+                                return Err(hir_error(format!(
+                                    "field `{}` has an invalid generic copy record template",
+                                    field.id
+                                )));
+                            }
                             ResolvedType::TypeParameter { owner, index }
                                 if owner == &declaration.id
                                     && declaration
@@ -646,6 +652,12 @@ impl<'a> HirValidator<'a> {
                         }
                         match &field.ty {
                             ResolvedType::I64 | ResolvedType::Bool => {}
+                            ResolvedType::F32 | ResolvedType::F64 => {
+                                return Err(hir_error(format!(
+                                    "field `{}` has an invalid generic copy payload template",
+                                    field.id
+                                )));
+                            }
                             ResolvedType::TypeParameter { owner, index }
                                 if owner == &declaration.id
                                     && declaration
@@ -847,6 +859,10 @@ impl<'a> HirValidator<'a> {
     ) -> Result<(), Diagnostic> {
         match ty {
             ResolvedType::I64 | ResolvedType::Bool => Ok(()),
+            ResolvedType::F32 | ResolvedType::F64 => Err(hir_error(format!(
+                "generic template `{}` has an invalid direct-scalar signature slot",
+                template.id
+            ))),
             ResolvedType::TypeParameter { owner, index }
                 if owner == &template.id
                     && usize::try_from(*index)
@@ -919,7 +935,10 @@ impl<'a> HirValidator<'a> {
         }
         self.validate_function_template_type(template, &expression.ty)?;
         match &expression.kind {
-            ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) => {}
+            ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Float32(_)
+            | ResolvedExprKind::Float64(_)
+            | ResolvedExprKind::Bool(_) => {}
             ResolvedExprKind::Place(place) => {
                 if !place.projections.is_empty() || values.get(&place.root) != Some(&expression.ty)
                 {
@@ -2037,6 +2056,16 @@ impl<'a> HirValidator<'a> {
                             self.finish_expr(expression, &ResolvedType::I64, OwnershipMode::Value)?;
                             scopes.push(scope);
                         }
+                        ResolvedExprKind::Float32(bits) => {
+                            self.validate_finite_f32(*bits)?;
+                            self.finish_expr(expression, &ResolvedType::F32, OwnershipMode::Value)?;
+                            scopes.push(scope);
+                        }
+                        ResolvedExprKind::Float64(bits) => {
+                            self.validate_finite_f64(*bits)?;
+                            self.finish_expr(expression, &ResolvedType::F64, OwnershipMode::Value)?;
+                            scopes.push(scope);
+                        }
                         ResolvedExprKind::Bool(_) => {
                             self.finish_expr(
                                 expression,
@@ -2441,8 +2470,18 @@ impl<'a> HirValidator<'a> {
                     let ResolvedExprKind::Unary { value, .. } = &expression.kind else {
                         unreachable!()
                     };
+                    // Negation keeps a numeric operand type; i64 negation is
+                    // checked while IEEE-754 negation is total.
+                    if matches!(op, UnaryOp::Neg)
+                        && !matches!(
+                            &value.ty,
+                            ResolvedType::I64 | ResolvedType::F32 | ResolvedType::F64
+                        )
+                    {
+                        return Err(hir_error("unary operand has inconsistent resolved types"));
+                    }
                     let expected = match op {
-                        UnaryOp::Neg => ResolvedType::I64,
+                        UnaryOp::Neg => value.ty.clone(),
                         UnaryOp::Not => ResolvedType::Bool,
                     };
                     self.require_type(&value.ty, &expected, "unary operand")?;
@@ -2630,13 +2669,31 @@ impl<'a> HirValidator<'a> {
                         | BinaryOp::Mul
                         | BinaryOp::Div
                         | BinaryOp::Rem => {
-                            self.require_type(&left.ty, &ResolvedType::I64, "binary operand")?;
-                            self.require_type(&right.ty, &ResolvedType::I64, "binary operand")?;
-                            ResolvedType::I64
+                            // Arithmetic keeps the numeric operand type:
+                            // i64 arithmetic is checked, IEEE-754 float
+                            // arithmetic is total and never selects a status.
+                            if !matches!(
+                                &left.ty,
+                                ResolvedType::I64 | ResolvedType::F32 | ResolvedType::F64
+                            ) || (matches!(op, BinaryOp::Rem) && left.ty != ResolvedType::I64)
+                            {
+                                return Err(hir_error(
+                                    "binary operand has inconsistent resolved types",
+                                ));
+                            }
+                            self.require_type(&left.ty, &right.ty, "binary operand")?;
+                            left.ty.clone()
                         }
                         BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge => {
-                            self.require_type(&left.ty, &ResolvedType::I64, "comparison operand")?;
-                            self.require_type(&right.ty, &ResolvedType::I64, "comparison operand")?;
+                            if !matches!(
+                                &left.ty,
+                                ResolvedType::I64 | ResolvedType::F32 | ResolvedType::F64
+                            ) {
+                                return Err(hir_error(
+                                    "comparison operand has inconsistent resolved types",
+                                ));
+                            }
+                            self.require_type(&left.ty, &right.ty, "comparison operand")?;
                             ResolvedType::Bool
                         }
                         BinaryOp::And | BinaryOp::Or => {
@@ -3571,6 +3628,29 @@ impl<'a> HirValidator<'a> {
         Ok(())
     }
 
+    /// Float literals must stay finite so canonical source projection and
+    /// every backend agree on the exact value; infinities and NaNs cannot be
+    /// written as literals and hostile HIR is rejected here.
+    fn validate_finite_f32(&self, bits: u32) -> Result<(), Diagnostic> {
+        if f32::from_bits(bits).is_finite() {
+            Ok(())
+        } else {
+            Err(hir_error(
+                "f32 literal bits are not a finite IEEE-754 value",
+            ))
+        }
+    }
+
+    fn validate_finite_f64(&self, bits: u64) -> Result<(), Diagnostic> {
+        if f64::from_bits(bits).is_finite() {
+            Ok(())
+        } else {
+            Err(hir_error(
+                "f64 literal bits are not a finite IEEE-754 value",
+            ))
+        }
+    }
+
     fn finish_try_expr(
         &self,
         function: &FunctionExecutionId,
@@ -3799,8 +3879,16 @@ impl<'a> HirValidator<'a> {
             )?;
             let mut operand = current;
             for (expression, op) in unary.into_iter().rev() {
+                if matches!(op, UnaryOp::Neg)
+                    && !matches!(
+                        &operand.ty,
+                        ResolvedType::I64 | ResolvedType::F32 | ResolvedType::F64
+                    )
+                {
+                    return Err(hir_error("unary operand has inconsistent resolved types"));
+                }
                 let expected = match op {
-                    UnaryOp::Neg => ResolvedType::I64,
+                    UnaryOp::Neg => operand.ty.clone(),
                     UnaryOp::Not => ResolvedType::Bool,
                 };
                 self.require_type(&operand.ty, &expected, "unary operand")?;
@@ -3832,6 +3920,14 @@ impl<'a> HirValidator<'a> {
 
         let (ty, ownership) = match &expression.kind {
             ResolvedExprKind::Int(_) => (ResolvedType::I64, OwnershipMode::Value),
+            ResolvedExprKind::Float32(bits) => {
+                self.validate_finite_f32(*bits)?;
+                (ResolvedType::F32, OwnershipMode::Value)
+            }
+            ResolvedExprKind::Float64(bits) => {
+                self.validate_finite_f64(*bits)?;
+                (ResolvedType::F64, OwnershipMode::Value)
+            }
             ResolvedExprKind::Bool(_) => (ResolvedType::Bool, OwnershipMode::Value),
             ResolvedExprKind::Place(place) => {
                 let binding = scope.get(&place.root).ok_or_else(|| {
@@ -5114,6 +5210,8 @@ impl<'a> HirValidator<'a> {
                         frames.push(Frame::Enter(base, scope_index));
                     }
                     ResolvedExprKind::Int(_)
+                    | ResolvedExprKind::Float32(_)
+                    | ResolvedExprKind::Float64(_)
                     | ResolvedExprKind::Bool(_)
                     | ResolvedExprKind::Call { .. }
                     | ResolvedExprKind::NativeRustImportCall(_)
@@ -5330,7 +5428,13 @@ impl<'a> HirValidator<'a> {
         let mut frames = vec![Frame::Enter(ty)];
         while let Some(frame) = frames.pop() {
             match frame {
-                Frame::Enter(ResolvedType::Unit | ResolvedType::I64 | ResolvedType::Bool) => {}
+                Frame::Enter(
+                    ResolvedType::Unit
+                    | ResolvedType::I64
+                    | ResolvedType::F32
+                    | ResolvedType::F64
+                    | ResolvedType::Bool,
+                ) => {}
                 Frame::Enter(ResolvedType::TypeParameter { .. }) => {
                     return Err(hir_error(
                         "uninstantiated type parameters are not valid in executable HIR",

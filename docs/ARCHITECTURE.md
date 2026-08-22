@@ -48,6 +48,23 @@ The initial contract lane is progressive: contracts are type-checked at compile 
 
 Generated arithmetic is checked for overflow, zero division, and the signed division edge case. Failures have stable process exit codes and explicit diagnostics rather than C undefined behavior.
 
+The locally evidenced floating-point tranche adds IEEE-754 `f32`/`f64` Copy
+value types end-to-end: decimal literals with an optional `f32` suffix and a
+canonical shortest round-trip projection (whole values keep `.0`, f32 keeps
+its suffix, so graph revisions are stable), exact bit-pattern HIR literals
+validated finite (`SPX-H006` otherwise) before any backend, Native64/Wasm32
+scalar layouts (4/4 and 8/8 bytes), float-bearing record fields, variant
+payloads, params, returns, locals, branches, contracts, cleanup plans, Graph
+JSON nodes, native C11, and Wasm. Float `+`, `-`, `*`, `/`, negation, and
+comparisons are total IEEE-754 operations that never select a failure status;
+`%` on floats is `SPX-T208`; mixed-width operands are rejected by the
+verifier and re-checked fail-closed in HIR validation and both backends.
+Generic instantiation arguments and template signature slots remain direct
+`i64`/`bool`, Public Scalar Export Profile v1 remains i64/bool-only
+(`SPX-W115`), and the native host/callable corpus remains i64/bool/resource-
+only; string or other heap-backed types remain unimplemented because no
+allocation model exists yet.
+
 ## Resolved HIR groundwork
 
 `hir` is the fail-closed boundary between verified human syntax and future semantic consumers. It resolves nominal types, resource lifecycles, interfaces, logical imports, record fields, projections, and calls through persistent declaration IDs, assigns deterministic structural identities to parameters, locals, expressions, and result values, and represents rooted field references as places. Spans and display names remain diagnostic metadata rather than semantic identity.

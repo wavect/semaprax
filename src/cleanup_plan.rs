@@ -502,7 +502,11 @@ impl CleanupPlan {
 #[allow(dead_code)]
 fn resolved_type_owned_capacity(ty: &ResolvedType) -> Option<usize> {
     match ty {
-        ResolvedType::Unit | ResolvedType::I64 | ResolvedType::Bool => Some(0),
+        ResolvedType::Unit
+        | ResolvedType::I64
+        | ResolvedType::F32
+        | ResolvedType::F64
+        | ResolvedType::Bool => Some(0),
         ResolvedType::TypeParameter { owner, .. } => Some(owner.as_str().len()),
         ResolvedType::Nominal {
             declaration,

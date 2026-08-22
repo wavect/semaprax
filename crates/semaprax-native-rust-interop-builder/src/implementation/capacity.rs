@@ -122,6 +122,8 @@ pub(super) fn ast_child(expression: &crate::ast::Expr, index: usize) -> Option<&
             }
         }
         crate::ast::ExprKind::Int(_)
+        | crate::ast::ExprKind::Float32(_)
+        | crate::ast::ExprKind::Float64(_)
         | crate::ast::ExprKind::Bool(_)
         | crate::ast::ExprKind::Var(_) => None,
     }
@@ -180,6 +182,8 @@ fn ast_child_identity_path_increment(
         crate::ast::ExprKind::Try { .. } => ".operand".len(),
         crate::ast::ExprKind::Project { .. } => ".base".len(),
         crate::ast::ExprKind::Int(_)
+        | crate::ast::ExprKind::Float32(_)
+        | crate::ast::ExprKind::Float64(_)
         | crate::ast::ExprKind::Bool(_)
         | crate::ast::ExprKind::Var(_) => 0,
     }
@@ -212,6 +216,14 @@ fn ast_type_identity_key_len(program: &Program, root: &crate::ast::Type) -> Opti
         match frames[frame_len].take()? {
             Frame::Enter(crate::ast::Type::I64) => {
                 results[result_len] = "i64".len();
+                result_len = result_len.checked_add(1)?;
+            }
+            Frame::Enter(crate::ast::Type::F32) => {
+                results[result_len] = "f32".len();
+                result_len = result_len.checked_add(1)?;
+            }
+            Frame::Enter(crate::ast::Type::F64) => {
+                results[result_len] = "f64".len();
                 result_len = result_len.checked_add(1)?;
             }
             Frame::Enter(crate::ast::Type::Bool) => {
@@ -453,6 +465,8 @@ pub(super) fn scan_ast_capacity<'a>(
                     | crate::ast::ExprKind::Try { .. }
                     | crate::ast::ExprKind::Project { .. } => 1,
                     crate::ast::ExprKind::Int(_)
+                    | crate::ast::ExprKind::Float32(_)
+                    | crate::ast::ExprKind::Float64(_)
                     | crate::ast::ExprKind::Bool(_)
                     | crate::ast::ExprKind::Var(_) => 0,
                 };
@@ -720,7 +734,13 @@ fn ast_resource_leaf_count(
             .take()
             .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?
         {
-            Frame::Enter(crate::ast::Type::I64 | crate::ast::Type::Bool, _) => {
+            Frame::Enter(
+                crate::ast::Type::I64
+                | crate::ast::Type::F32
+                | crate::ast::Type::F64
+                | crate::ast::Type::Bool,
+                _,
+            ) => {
                 values[value_len] = 0;
                 value_len += 1;
             }
@@ -1724,6 +1744,8 @@ fn cleanup_plan_variable_identity_bytes(
             crate::ast::ExprKind::Try { .. } => ".operand".len(),
             crate::ast::ExprKind::Project { .. } => ".base".len(),
             crate::ast::ExprKind::Int(_)
+            | crate::ast::ExprKind::Float32(_)
+            | crate::ast::ExprKind::Float64(_)
             | crate::ast::ExprKind::Bool(_)
             | crate::ast::ExprKind::Var(_) => 0,
         }
@@ -2027,6 +2049,8 @@ fn cleanup_binding_flow<'a>(
                 | crate::ast::ExprKind::Unary { .. }
                 | crate::ast::ExprKind::Binary { .. } => false,
                 crate::ast::ExprKind::Int(_)
+                | crate::ast::ExprKind::Float32(_)
+                | crate::ast::ExprKind::Float64(_)
                 | crate::ast::ExprKind::Bool(_)
                 | crate::ast::ExprKind::Var(_) => false,
             };
@@ -2258,7 +2282,10 @@ fn cleanup_retained_stats(
 ) -> Result<CleanupRetainedStats, Diagnostic> {
     fn key_for_type(program: &Program, ty: &crate::ast::Type) -> CleanupTypeKey {
         match ty {
-            crate::ast::Type::I64 | crate::ast::Type::Bool => CleanupTypeKey::Scalar,
+            crate::ast::Type::I64
+            | crate::ast::Type::F32
+            | crate::ast::Type::F64
+            | crate::ast::Type::Bool => CleanupTypeKey::Scalar,
             crate::ast::Type::Named { name, .. } => {
                 if let Some(index) = program
                     .types
@@ -3199,9 +3226,10 @@ fn cleanup_retained_stats(
 
                 let children = &results[result_start..];
                 let key = match &expression.kind {
-                    crate::ast::ExprKind::Int(_) | crate::ast::ExprKind::Bool(_) => {
-                        CleanupTypeKey::Scalar
-                    }
+                    crate::ast::ExprKind::Int(_)
+                    | crate::ast::ExprKind::Float32(_)
+                    | crate::ast::ExprKind::Float64(_)
+                    | crate::ast::ExprKind::Bool(_) => CleanupTypeKey::Scalar,
                     crate::ast::ExprKind::Var(name) => {
                         variable_key(program, function, name, &traversal, stack_len, &results)?
                     }
@@ -5034,7 +5062,11 @@ pub(super) fn hir_pre_resolve_capacity<'a>(
 
 fn hir_type_owned_capacity(ty: &ResolvedType) -> Option<usize> {
     match ty {
-        ResolvedType::Unit | ResolvedType::I64 | ResolvedType::Bool => Some(0),
+        ResolvedType::Unit
+        | ResolvedType::I64
+        | ResolvedType::F32
+        | ResolvedType::F64
+        | ResolvedType::Bool => Some(0),
         ResolvedType::TypeParameter { owner, .. } => Some(owner.as_str().len()),
         ResolvedType::Nominal {
             declaration,
@@ -5374,7 +5406,10 @@ fn hir_expr_owned_capacity(expression: &ResolvedExpr) -> Result<usize, Diagnosti
                         .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
                 }
             }
-            ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) => {}
+            ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Float32(_)
+            | ResolvedExprKind::Float64(_)
+            | ResolvedExprKind::Bool(_) => {}
         }
     }
     Ok(total)
@@ -5801,7 +5836,11 @@ pub(super) fn validate_native_rust_expression_budget_for_closure(
                 pending.push((base, child_depth));
                 pending.extend(fields.iter().map(|field| (&field.value, child_depth)));
             }
-            ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
+            ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Float32(_)
+            | ResolvedExprKind::Float64(_)
+            | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::Place(_) => {}
         }
     }
     Ok(())

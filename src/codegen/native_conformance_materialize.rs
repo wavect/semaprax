@@ -305,6 +305,8 @@ fn materialize_result(
         (_, WireResult::Unit)
         | (ResolvedType::Unit, _)
         | (ResolvedType::I64, _)
+        | (ResolvedType::F32, _)
+        | (ResolvedType::F64, _)
         | (ResolvedType::Bool, _)
         | (ResolvedType::TypeParameter { .. }, _)
         | (ResolvedType::Nominal { .. }, _) => Err(MaterializeError::ResultTypeMismatch),

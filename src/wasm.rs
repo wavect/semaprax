@@ -86,6 +86,8 @@ pub(crate) use source_result_component_v4::{
 
 const I32: u8 = 0x7f;
 const I64: u8 = 0x7e;
+const F32: u8 = 0x7d;
+const F64: u8 = 0x7c;
 const SCALAR_IMPORT_COUNT: u32 = 7;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -1395,7 +1397,11 @@ fn collect_locals(
                 collect_locals(&field.value, parameter_count, layout)?;
             }
         }
-        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
+        ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Float32(_)
+        | ResolvedExprKind::Float64(_)
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::Place(_) => {}
     }
     Ok(())
 }
@@ -1412,6 +1418,14 @@ fn emit_expr(
         ResolvedExprKind::Int(value) => {
             output.push(0x42);
             write_i64(output, *value);
+        }
+        ResolvedExprKind::Float32(bits) => {
+            output.push(0x43);
+            output.extend_bytes(&bits.to_le_bytes());
+        }
+        ResolvedExprKind::Float64(bits) => {
+            output.push(0x44);
+            output.extend_bytes(&bits.to_le_bytes());
         }
         ResolvedExprKind::Bool(value) => {
             output.push(0x41);
@@ -1475,8 +1489,16 @@ fn emit_expr(
                     layout,
                     result,
                 )?;
-                output.push(0x10);
-                write_u32(output, 5);
+                if matches!(value.ty, ResolvedType::F32 | ResolvedType::F64) {
+                    // IEEE-754 negation is total; no failure import is used.
+                    output.push(match value.ty {
+                        ResolvedType::F32 => 0x8c,
+                        _ => 0x9a,
+                    });
+                } else {
+                    output.push(0x10);
+                    write_u32(output, 5);
+                }
             }
             UnaryOp::Not => {
                 emit_expr(
@@ -1519,6 +1541,42 @@ fn emit_expr(
                 layout,
                 result,
             )?;
+            if matches!(left.ty, ResolvedType::F32 | ResolvedType::F64) {
+                // IEEE-754 arithmetic is total and never selects a failure
+                // status, so floats use native opcodes instead of the checked
+                // scalar imports.
+                let wide = matches!(left.ty, ResolvedType::F64);
+                output.push(match (op, wide) {
+                    (BinaryOp::Add, true) => 0xa0,
+                    (BinaryOp::Sub, true) => 0xa1,
+                    (BinaryOp::Mul, true) => 0xa2,
+                    (BinaryOp::Div, true) => 0xa3,
+                    (BinaryOp::Add, false) => 0x92,
+                    (BinaryOp::Sub, false) => 0x93,
+                    (BinaryOp::Mul, false) => 0x94,
+                    (BinaryOp::Div, false) => 0x95,
+                    (BinaryOp::Eq, true) => 0x61,
+                    (BinaryOp::Ne, true) => 0x62,
+                    (BinaryOp::Lt, true) => 0x63,
+                    (BinaryOp::Gt, true) => 0x64,
+                    (BinaryOp::Le, true) => 0x65,
+                    (BinaryOp::Ge, true) => 0x66,
+                    (BinaryOp::Eq, false) => 0x5b,
+                    (BinaryOp::Ne, false) => 0x5c,
+                    (BinaryOp::Lt, false) => 0x5d,
+                    (BinaryOp::Gt, false) => 0x5e,
+                    (BinaryOp::Le, false) => 0x5f,
+                    (BinaryOp::Ge, false) => 0x60,
+                    (BinaryOp::Rem, _) => {
+                        return Err(Diagnostic::io(
+                            "SPX-W102",
+                            "floating-point remainder has no admitted Wasm lowering",
+                        ));
+                    }
+                    _ => unreachable!("float arithmetic operation was matched above"),
+                });
+                return Ok(());
+            }
             match op {
                 BinaryOp::Add => call_import(output, 0),
                 BinaryOp::Sub => call_import(output, 1),
@@ -1686,6 +1744,8 @@ fn wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
             "unit is not a WebAssembly value type",
         )),
         ResolvedType::I64 => Ok(I64),
+        ResolvedType::F32 => Ok(F32),
+        ResolvedType::F64 => Ok(F64),
         ResolvedType::Bool | ResolvedType::Nominal { .. } => Ok(I32),
         ResolvedType::TypeParameter { .. } => Err(Diagnostic::io(
             "SPX-W109",

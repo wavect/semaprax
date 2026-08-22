@@ -1,0 +1,40 @@
+module examples.floats;
+
+@id("geometry.vector")
+record Vector {
+    @id("geometry.vector.x")
+    x: f64,
+    @id("geometry.vector.y")
+    y: f64,
+}
+
+@id("geometry.length_squared")
+fn length_squared(vector: Vector) -> f64
+{
+    vector.x * vector.x + vector.y * vector.y
+}
+
+@id("geometry.inverse_length_squared")
+fn inverse_length_squared(vector: Vector) -> f64
+{
+    let length = length_squared(vector);
+    let inverse = 1.0 / length;
+    inverse
+}
+
+@id("geometry.half")
+fn half(value: f32) -> f32
+{
+    value * 0.5f32
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    let vector = Vector { x: 3.0, y: 4.0 };
+    let squared = length_squared(vector);
+    let inverse = inverse_length_squared(vector);
+    let narrowed = half(2.0f32);
+    let inverted = -inverse;
+    if squared == 25.0 && inverse == 0.04 && narrowed == 1.0f32 && inverted < 0.0 { 7 } else { 9 }
+}

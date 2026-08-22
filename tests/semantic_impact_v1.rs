@@ -57,7 +57,11 @@ fn first_call<'a>(expression: &'a ResolvedExpr, template: &str) -> Option<&'a Re
         return Some(expression);
     }
     match &expression.kind {
-        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => None,
+        ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Float32(_)
+        | ResolvedExprKind::Float64(_)
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::Place(_) => None,
         ResolvedExprKind::Call { args, .. } => args
             .iter()
             .find_map(|argument| first_call(argument, template)),

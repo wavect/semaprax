@@ -215,7 +215,7 @@ fn layout_type(
 ) -> Result<ValueLayout, Diagnostic> {
     match ty {
         ResolvedType::Unit => Err(layout_error("unit has no aggregate value layout")),
-        ResolvedType::I64 | ResolvedType::Bool => {
+        ResolvedType::I64 | ResolvedType::F32 | ResolvedType::F64 | ResolvedType::Bool => {
             let (size, align) = scalar_size_align(target, ty)?;
             scalar_layout(target, ty, size, align)
         }
@@ -235,6 +235,8 @@ pub(crate) fn scalar_size_align(
 ) -> Result<(u32, u32), Diagnostic> {
     match ty {
         ResolvedType::I64 => Ok((8, 8)),
+        ResolvedType::F32 => Ok((4, 4)),
+        ResolvedType::F64 => Ok((8, 8)),
         ResolvedType::Bool => match target {
             AggregateTarget::Native64 => Ok((1, 1)),
             AggregateTarget::Wasm32 => Ok((4, 4)),
@@ -507,7 +509,11 @@ fn collect_expr_record_types(
                 collect_expr_record_types(program, &field.value, instances)?;
             }
         }
-        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
+        ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Float32(_)
+        | ResolvedExprKind::Float64(_)
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::Place(_) => {}
     }
     Ok(())
 }

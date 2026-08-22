@@ -614,7 +614,11 @@ fn precheck_program(program: &Program) -> Result<AstUsage, Vec<Diagnostic>> {
     let mut call_sites = 0usize;
     while let Some(expression) = stack.pop() {
         match &expression.kind {
-            ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Var(_) => {}
+            ExprKind::Int(_)
+            | ExprKind::Float32(_)
+            | ExprKind::Float64(_)
+            | ExprKind::Bool(_)
+            | ExprKind::Var(_) => {}
             ExprKind::Call { args, .. } => {
                 call_sites += 1;
                 if call_sites > MAX_CALL_SITES {

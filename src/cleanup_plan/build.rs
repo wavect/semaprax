@@ -334,7 +334,11 @@ fn eval_result_owned_capacity(result: &EvalResult) -> usize {
 #[cfg(test)]
 fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize {
     match ty {
-        ResolvedType::Unit | ResolvedType::I64 | ResolvedType::Bool => 0,
+        ResolvedType::Unit
+        | ResolvedType::I64
+        | ResolvedType::F32
+        | ResolvedType::F64
+        | ResolvedType::Bool => 0,
         ResolvedType::TypeParameter { owner, .. } => owner.as_str().len(),
         ResolvedType::Nominal {
             declaration,
@@ -1917,13 +1921,14 @@ impl<'a> PlanBuilder<'a> {
                     block,
                     state,
                 } => match &expression.kind {
-                    ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) => {
-                        results.push(EvalResult {
-                            block,
-                            state,
-                            owned_source: None,
-                        })
-                    }
+                    ResolvedExprKind::Int(_)
+                    | ResolvedExprKind::Float32(_)
+                    | ResolvedExprKind::Float64(_)
+                    | ResolvedExprKind::Bool(_) => results.push(EvalResult {
+                        block,
+                        state,
+                        owned_source: None,
+                    }),
                     ResolvedExprKind::Place(place) => {
                         let owned_source = if expression.ownership == OwnershipMode::Own
                             && self.needs_drop(&expression.ty)?
@@ -2886,6 +2891,8 @@ impl<'a> PlanBuilder<'a> {
                             .is_some_and(|item| item.kind == DeclarationKind::Record),
                         ResolvedType::Unit
                         | ResolvedType::I64
+                        | ResolvedType::F32
+                        | ResolvedType::F64
                         | ResolvedType::Bool
                         | ResolvedType::TypeParameter { .. } => false,
                     };
@@ -3254,7 +3261,10 @@ impl<'a> PlanBuilder<'a> {
             return Ok(evaluated);
         }
         match &expression.kind {
-            ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) => Ok(EvalResult {
+            ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Float32(_)
+            | ResolvedExprKind::Float64(_)
+            | ResolvedExprKind::Bool(_) => Ok(EvalResult {
                 block,
                 state,
                 owned_source: None,
@@ -4379,6 +4389,8 @@ impl<'a> PlanBuilder<'a> {
                 .is_some_and(|item| item.kind == DeclarationKind::Record),
             ResolvedType::Unit
             | ResolvedType::I64
+            | ResolvedType::F32
+            | ResolvedType::F64
             | ResolvedType::Bool
             | ResolvedType::TypeParameter { .. } => false,
         };

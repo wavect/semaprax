@@ -67,7 +67,7 @@ fn binding_owned_capacity(binding: &Binding) -> usize {
 #[cfg(test)]
 fn ast_type_owned_capacity(ty: &Type) -> usize {
     match ty {
-        Type::I64 | Type::Bool => 0,
+        Type::I64 | Type::F32 | Type::F64 | Type::Bool => 0,
         Type::Named { name, arguments } => name
             .capacity()
             .saturating_add(arguments.capacity() * std::mem::size_of::<Type>())
@@ -227,6 +227,8 @@ impl<'a> TypeTable<'a> {
             match frame {
                 Frame::Enter(template) => match template {
                     Type::I64 => resolved.push(Type::I64),
+                    Type::F32 => resolved.push(Type::F32),
+                    Type::F64 => resolved.push(Type::F64),
                     Type::Bool => resolved.push(Type::Bool),
                     Type::Named {
                         name,
@@ -1906,6 +1908,7 @@ fn direct_function_type_argument(ty: &Type) -> bool {
 fn generic_function_signature_slot(ty: &Type, parameters: &HashSet<&str>) -> bool {
     match ty {
         Type::I64 | Type::Bool => true,
+        Type::F32 | Type::F64 => false,
         Type::Named { name, arguments } => {
             arguments.is_empty() && parameters.contains(name.as_str())
         }
@@ -1927,6 +1930,8 @@ fn substitute_function_type(
         match frame {
             Frame::Enter(template) => match template {
                 Type::I64 => resolved.push(Type::I64),
+                Type::F32 => resolved.push(Type::F32),
+                Type::F64 => resolved.push(Type::F64),
                 Type::Bool => resolved.push(Type::Bool),
                 Type::Named {
                     name,
@@ -1980,7 +1985,11 @@ fn generic_function_expression_is_direct_scalar(expression: &Expr) -> bool {
     let mut pending = vec![expression];
     while let Some(expression) = pending.pop() {
         match &expression.kind {
-            ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Var(_) => {}
+            ExprKind::Int(_)
+            | ExprKind::Float32(_)
+            | ExprKind::Float64(_)
+            | ExprKind::Bool(_)
+            | ExprKind::Var(_) => {}
             ExprKind::Call { args, .. } => pending.extend(args.iter().rev()),
             ExprKind::Unary { value, .. } => pending.push(value),
             ExprKind::Binary { left, right, .. } => {
@@ -2779,6 +2788,8 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             match frame {
                 VerifierFrame::Enter { expression, scope } => match &expression.kind {
                     ExprKind::Int(_) => self.values.push(Some(CheckedValue::value(Type::I64))),
+                    ExprKind::Float32(_) => self.values.push(Some(CheckedValue::value(Type::F32))),
+                    ExprKind::Float64(_) => self.values.push(Some(CheckedValue::value(Type::F64))),
                     ExprKind::Bool(_) => self.values.push(Some(CheckedValue::value(Type::Bool))),
                     ExprKind::Var(name) if name == "result" => {
                         let value = self.result_type.map(|ty| {
@@ -3267,9 +3278,13 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         self.values.push(None);
                         continue;
                     };
-                    let expected = match op {
-                        UnaryOp::Neg => Type::I64,
-                        UnaryOp::Not => Type::Bool,
+                    let numeric = Some(actual.ty.clone())
+                        .filter(|_| matches!(op, UnaryOp::Neg))
+                        .filter(|ty| matches!(ty, Type::I64 | Type::F32 | Type::F64));
+                    let expected = match (&op, &numeric) {
+                        (UnaryOp::Neg, Some(ty)) => ty.clone(),
+                        (UnaryOp::Neg, None) => Type::I64,
+                        (UnaryOp::Not, _) => Type::Bool,
                     };
                     if !actual.native_unit && actual.ty != expected {
                         self.diagnostics.push(error(
@@ -3361,14 +3376,30 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     }
                     let native_unit = left_value.as_ref().is_some_and(|value| value.native_unit)
                         || right_value.as_ref().is_some_and(|value| value.native_unit);
+                    let left_numeric = left_value
+                        .as_ref()
+                        .map(|value| value.ty.clone())
+                        .filter(|ty| matches!(ty, Type::F32 | Type::F64));
+                    if !native_unit && matches!(op, BinaryOp::Rem) && left_numeric.is_some() {
+                        self.diagnostics.push(error(
+                            self.program,
+                            "SPX-T208",
+                            format!("operator `{}` expects i64 operands", op.text()),
+                            expression.span,
+                        ));
+                    }
                     let (expected, output) = match op {
                         BinaryOp::Add
                         | BinaryOp::Sub
                         | BinaryOp::Mul
                         | BinaryOp::Div
-                        | BinaryOp::Rem => (Type::I64, Type::I64),
+                        | BinaryOp::Rem => {
+                            let expected = left_numeric.clone().unwrap_or(Type::I64);
+                            (expected.clone(), expected)
+                        }
                         BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge => {
-                            (Type::I64, Type::Bool)
+                            let expected = left_numeric.unwrap_or(Type::I64);
+                            (expected, Type::Bool)
                         }
                         BinaryOp::And | BinaryOp::Or => (Type::Bool, Type::Bool),
                         BinaryOp::Eq | BinaryOp::Ne => {
@@ -4494,7 +4525,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             {
                                 Some((name.clone(), arguments.clone()))
                             }
-                            Type::I64 | Type::Bool | Type::Named { .. } => None,
+                            Type::I64 | Type::F32 | Type::F64 | Type::Bool | Type::Named { .. } => {
+                                None
+                            }
                         });
                     let variant_name = variant_instance.as_ref().map(|(name, _)| name.clone());
                     let declared_cases = scrutinee_value
@@ -4868,6 +4901,8 @@ fn check_expr(
 ) -> Option<CheckedValue> {
     match &expr.kind {
         ExprKind::Int(_) => Some(CheckedValue::value(Type::I64)),
+        ExprKind::Float32(_) => Some(CheckedValue::value(Type::F32)),
+        ExprKind::Float64(_) => Some(CheckedValue::value(Type::F64)),
         ExprKind::Bool(_) => Some(CheckedValue::value(Type::Bool)),
         ExprKind::Var(name) if name == "result" => result_type
             .map(|ty| CheckedValue::returned(ty.clone(), types.contains_resource(ty)))
@@ -5171,9 +5206,13 @@ fn check_expr(
                 diagnostics,
             )?;
             for (op, operand, span) in unary.into_iter().rev() {
-                let expected = match op {
-                    UnaryOp::Neg => Type::I64,
-                    UnaryOp::Not => Type::Bool,
+                let numeric = Some(actual.ty.clone())
+                    .filter(|_| matches!(op, UnaryOp::Neg))
+                    .filter(|ty| matches!(ty, Type::I64 | Type::F32 | Type::F64));
+                let expected = match (&op, &numeric) {
+                    (UnaryOp::Neg, Some(ty)) => ty.clone(),
+                    (UnaryOp::Neg, None) => Type::I64,
+                    (UnaryOp::Not, _) => Type::Bool,
                 };
                 if !actual.native_unit && actual.ty != expected {
                     diagnostics.push(error(
@@ -5237,12 +5276,26 @@ fn check_expr(
             }
             let native_unit_operand = left_ty.as_ref().is_some_and(|value| value.native_unit)
                 || right_ty.as_ref().is_some_and(|value| value.native_unit);
+            let left_numeric = left_ty
+                .as_ref()
+                .map(|value| value.ty.clone())
+                .filter(|ty| matches!(ty, Type::F32 | Type::F64));
+            if !native_unit_operand && matches!(op, BinaryOp::Rem) && left_numeric.is_some() {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T208",
+                    format!("operator `{}` expects i64 operands", op.text()),
+                    expr.span,
+                ));
+            }
             let (expected, output) = match op {
                 BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem => {
-                    (Type::I64, Type::I64)
+                    let expected = left_numeric.clone().unwrap_or(Type::I64);
+                    (expected.clone(), expected)
                 }
                 BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge => {
-                    (Type::I64, Type::Bool)
+                    let expected = left_numeric.unwrap_or(Type::I64);
+                    (expected, Type::Bool)
                 }
                 BinaryOp::And | BinaryOp::Or => (Type::Bool, Type::Bool),
                 BinaryOp::Eq | BinaryOp::Ne => {
@@ -5614,7 +5667,7 @@ fn check_expr(
                 Type::Named { name, arguments } if types.variant_cases(&value.ty).is_some() => {
                     Some((name.clone(), arguments.clone()))
                 }
-                Type::I64 | Type::Bool | Type::Named { .. } => None,
+                Type::I64 | Type::F32 | Type::F64 | Type::Bool | Type::Named { .. } => None,
             });
             let variant_name = variant_instance.as_ref().map(|(name, _)| name.clone());
             let declared_cases = scrutinee_value

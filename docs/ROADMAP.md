@@ -207,7 +207,10 @@ explicitly instantiated generic Copy records, generic copy variants/exhaustive
 matching, ordinary prelude `Option`/`Result`,
 bounded direct-scalar `Result` and `Option` propagation, bounded irrefutable
 Copy-record destructuring, bounded explicitly instantiated direct-scalar Copy
-generic functions, feature-minimal Graph v14/v13/v12/v11/v10 lattice for
+generic functions, IEEE-754 `f32`/`f64` scalar value types with total float
+arithmetic, exact literals, layouts, graph nodes, native C11, and Wasm
+execution (`examples/floats.spx`,
+`tests/floating_point_scalars.rs`), feature-minimal Graph v14/v13/v12/v11/v10 lattice for
 generic functions/explicit record patterns/generic records/Option propagation/legacy, validated
 stable-ID HIR/type facts, mandatory replay-validated CleanupPlan v2/v3 plans, versioned normalized-status
 and semantic-event-dictionary types, native scalar status/out execution, a
@@ -222,6 +225,14 @@ match the reference outcome, complete trace, publication, and final logical
 liveness for all 14 cases at native O0/O2; the remaining public and language
 gates below are not.
 
+- String and other heap-backed types: still unimplemented because the language
+  has no allocation model yet; floats deliberately cover only the by-value
+  scalar slice.
+- Fixed-width integer types beyond `i64`, saturating/wrapping arithmetic, and
+  float-remainder or math-library intrinsics.
+- Float admission into generic instantiation arguments, generic template
+  signature slots, Public Scalar Export Profile v1, the native host/callable
+  corpus, and the Native Rust interop boundary.
 - Complete record breadth plus nested/resource-bearing generic records and
   variants and
   non-copy `Option`/`Result` instantiations.

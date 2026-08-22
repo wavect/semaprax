@@ -486,7 +486,11 @@ fn collect_expr_variant_types(
                 collect_expr_variant_types(program, &field.value, instances)?;
             }
         }
-        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
+        ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Float32(_)
+        | ResolvedExprKind::Float64(_)
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::Place(_) => {}
     }
     Ok(())
 }

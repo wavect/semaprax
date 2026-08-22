@@ -1183,7 +1183,11 @@ fn collect_result_propagations<'a>(
                 collect_result_propagations(&initializer.value, propagations);
             }
         }
-        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
+        ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Float32(_)
+        | ResolvedExprKind::Float64(_)
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::Place(_) => {}
     }
 }
 
@@ -1339,7 +1343,11 @@ fn expression_has_record_pattern(expression: &ResolvedExpr) -> bool {
                     .iter()
                     .any(|field| expression_has_record_pattern(&field.value))
         }
-        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => false,
+        ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Float32(_)
+        | ResolvedExprKind::Float64(_)
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::Place(_) => false,
     }
 }
 
@@ -1389,7 +1397,10 @@ fn agent_reference_index_json(
 
 fn collect_agent_contract_values(expression: &ResolvedExpr, values: &mut BTreeSet<ValueId>) {
     match &expression.kind {
-        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) => {}
+        ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Float32(_)
+        | ResolvedExprKind::Float64(_)
+        | ResolvedExprKind::Bool(_) => {}
         ResolvedExprKind::Place(place) => {
             values.insert(place.root.clone());
         }
@@ -1468,6 +1479,14 @@ fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnos
         ResolvedExprKind::Int(value) => format!(
             "{{\"kind\":\"int\",\"value\":{}}}",
             quote_json(&value.to_string())
+        ),
+        ResolvedExprKind::Float32(bits) => format!(
+            "{{\"kind\":\"float32\",\"bits\":\"{bits:08x}\",\"value\":{}}}",
+            quote_json(&crate::format::canonical_f32_bits(*bits))
+        ),
+        ResolvedExprKind::Float64(bits) => format!(
+            "{{\"kind\":\"float64\",\"bits\":\"{bits:016x}\",\"value\":{}}}",
+            quote_json(&crate::format::canonical_f64_bits(*bits))
         ),
         ResolvedExprKind::Bool(value) => format!("{{\"kind\":\"bool\",\"value\":{value}}}"),
         ResolvedExprKind::Place(place) => {
@@ -3087,7 +3106,11 @@ fn visit_expr_call_instances(
         visit(expression, callee, type_arguments, instance);
     }
     match &expression.kind {
-        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
+        ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Float32(_)
+        | ResolvedExprKind::Float64(_)
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::Place(_) => {}
         ResolvedExprKind::Call { args, .. } => {
             for argument in args {
                 visit_expr_call_instances(argument, visit);
@@ -3147,7 +3170,11 @@ fn visit_expr_call_instances(
 
 fn visit_expr_calls(expression: &ResolvedExpr, visit: &mut impl FnMut(&DeclarationId)) {
     match &expression.kind {
-        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
+        ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Float32(_)
+        | ResolvedExprKind::Float64(_)
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::Place(_) => {}
         ResolvedExprKind::Call { callee, args, .. } => {
             visit(callee);
             for argument in args {
@@ -3232,7 +3259,11 @@ fn collect_expr_type_declarations(
 ) {
     collect_nominal_declarations(&expression.ty, declarations);
     match &expression.kind {
-        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
+        ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Float32(_)
+        | ResolvedExprKind::Float64(_)
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::Place(_) => {}
         ResolvedExprKind::Call { args, .. } => {
             for argument in args {
                 collect_expr_type_declarations(argument, declarations);
@@ -3431,6 +3462,14 @@ fn expr_json(program: &ResolvedProgram, expression: &ResolvedExpr) -> Result<Str
                 quote_json(&value.to_string())
             )
         }
+        ResolvedExprKind::Float32(bits) => format!(
+            "{{{header},\"kind\":\"float32\",\"bits\":\"{bits:08x}\",\"value\":{}}}",
+            quote_json(&crate::format::canonical_f32_bits(*bits))
+        ),
+        ResolvedExprKind::Float64(bits) => format!(
+            "{{{header},\"kind\":\"float64\",\"bits\":\"{bits:016x}\",\"value\":{}}}",
+            quote_json(&crate::format::canonical_f64_bits(*bits))
+        ),
         ResolvedExprKind::Bool(value) => {
             format!("{{{header},\"kind\":\"bool\",\"value\":{value}}}")
         }
@@ -3743,7 +3782,11 @@ fn type_facts_array(
 fn collect_expr_types(expression: &ResolvedExpr, types: &mut BTreeMap<String, ResolvedType>) {
     collect_type(&expression.ty, types);
     match &expression.kind {
-        ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) | ResolvedExprKind::Place(_) => {}
+        ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Float32(_)
+        | ResolvedExprKind::Float64(_)
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::Place(_) => {}
         ResolvedExprKind::Call { args, .. } => {
             for argument in args {
                 collect_expr_types(argument, types);
@@ -3858,6 +3901,8 @@ fn type_json(ty: &ResolvedType) -> String {
     match ty {
         ResolvedType::Unit => unreachable!("native Rust Unit is excluded before Graph projection"),
         ResolvedType::I64 => "{\"kind\":\"primitive\",\"name\":\"i64\"}".to_owned(),
+        ResolvedType::F32 => "{\"kind\":\"primitive\",\"name\":\"f32\"}".to_owned(),
+        ResolvedType::F64 => "{\"kind\":\"primitive\",\"name\":\"f64\"}".to_owned(),
         ResolvedType::Bool => "{\"kind\":\"primitive\",\"name\":\"bool\"}".to_owned(),
         ResolvedType::TypeParameter { owner, index } => format!(
             "{{\"kind\":\"type_parameter\",\"owner\":{},\"index\":{index}}}",

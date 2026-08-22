@@ -47,6 +47,8 @@ impl NativeResourceAbi {
                 "unit has no ordinary native value representation",
             )),
             ResolvedType::I64 => Ok("int64_t"),
+            ResolvedType::F32 => Ok("float"),
+            ResolvedType::F64 => Ok("double"),
             ResolvedType::Bool => Ok("bool"),
             ResolvedType::TypeParameter { .. } => Err(resource_error(format!(
                 "native representation is unavailable for generic type `{}`",

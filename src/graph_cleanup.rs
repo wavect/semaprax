@@ -398,6 +398,8 @@ fn type_json(ty: &ResolvedType) -> String {
     match ty {
         ResolvedType::Unit => "{\"kind\":\"primitive\",\"name\":\"unit\"}".to_owned(),
         ResolvedType::I64 => "{\"kind\":\"primitive\",\"name\":\"i64\"}".to_owned(),
+        ResolvedType::F32 => "{\"kind\":\"primitive\",\"name\":\"f32\"}".to_owned(),
+        ResolvedType::F64 => "{\"kind\":\"primitive\",\"name\":\"f64\"}".to_owned(),
         ResolvedType::Bool => "{\"kind\":\"primitive\",\"name\":\"bool\"}".to_owned(),
         ResolvedType::TypeParameter { owner, index } => format!(
             "{{\"kind\":\"type_parameter\",\"owner\":{},\"index\":{}}}",

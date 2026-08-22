@@ -314,7 +314,10 @@ fn validate_expression_profile(
             )));
         }
         match &expression.kind {
-            ResolvedExprKind::Int(_) | ResolvedExprKind::Bool(_) => {}
+            ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Float32(_)
+            | ResolvedExprKind::Float64(_)
+            | ResolvedExprKind::Bool(_) => {}
             ResolvedExprKind::Place(place) => {
                 if !place.projections.is_empty() {
                     return Err(admission(format!(
@@ -388,9 +391,11 @@ fn scalar_type(ty: &ResolvedType) -> Option<ScalarType> {
     match ty {
         ResolvedType::I64 => Some(ScalarType::I64),
         ResolvedType::Bool => Some(ScalarType::Bool),
-        ResolvedType::Unit | ResolvedType::TypeParameter { .. } | ResolvedType::Nominal { .. } => {
-            None
-        }
+        ResolvedType::Unit
+        | ResolvedType::F32
+        | ResolvedType::F64
+        | ResolvedType::TypeParameter { .. }
+        | ResolvedType::Nominal { .. } => None,
     }
 }
 

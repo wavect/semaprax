@@ -37,6 +37,7 @@ const REASON_UNSUPPORTED_PARAMETER_TYPE: &str = "unsupported_parameter_type";
 const REASON_UNSUPPORTED_RESULT_TYPE: &str = "unsupported_result_type";
 const REASON_EVALUATION_STEP_BUDGET_EXHAUSTED: &str = "evaluation_step_budget_exhausted";
 const REASON_FLOAT_LITERAL: &str = "float_literal";
+const REASON_INT32_LITERAL: &str = "int32_literal";
 const REASON_CHAR_LITERAL: &str = "char_literal";
 const REASON_RECORD_CONSTRUCTION: &str = "record_construction";
 const REASON_VARIANT_CONSTRUCTION: &str = "variant_construction";
@@ -494,6 +495,7 @@ impl<'a> Analyzer<'a> {
         }
         match &expression.kind {
             ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Var(_) => None,
+            ExprKind::Int32(_) => Some(REASON_INT32_LITERAL),
             ExprKind::Float32(_) | ExprKind::Float64(_) => Some(REASON_FLOAT_LITERAL),
             ExprKind::Char(_) => Some(REASON_CHAR_LITERAL),
             ExprKind::Call {
@@ -558,6 +560,7 @@ impl<'a> Analyzer<'a> {
         }
         match &expression.kind {
             ExprKind::Int(value) => Outcome::Value(Value::Int(*value)),
+            ExprKind::Int32(_) => Outcome::Unsupported(REASON_INT32_LITERAL),
             ExprKind::Float32(_) | ExprKind::Float64(_) => {
                 Outcome::Unsupported(REASON_FLOAT_LITERAL)
             }

@@ -105,12 +105,12 @@ while IFS="$tab" read -r kind gate _rest; do
         build-release) cargo build --locked --workspace --release ;;
         package) cargo package --locked --allow-dirty -p semaprax ;;
         example-checks)
-            for source in meaning ownership lifecycle control_flow records native_callable chars; do
+            for source in meaning ownership lifecycle control_flow records native_callable chars integers_i32; do
                 cargo run --locked -p semaprax -- check "examples/$source.spx"
             done
             ;;
         example-fmt)
-            for source in meaning effects ownership lifecycle control_flow records native_callable chars; do
+            for source in meaning effects ownership lifecycle control_flow records native_callable chars integers_i32; do
                 cargo run --locked -p semaprax -- fmt "examples/$source.spx" --check
             done
             ;;

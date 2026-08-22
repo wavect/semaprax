@@ -396,6 +396,7 @@ fn validate_expr(program: &ResolvedProgram, expr: &ResolvedExpr) -> Result<(), D
     validate_type(program, &expr.ty)?;
     match &expr.kind {
         ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Bool(_)
         | ResolvedExprKind::Place(_)
         | ResolvedExprKind::Unary { .. }

@@ -19,6 +19,38 @@
   before any new physical-runtime claim is counted, and this adds no
   completion transition.
 
+- Added the locally evidenced checked `i32` scalar tranche: `i32` is now a
+  Copy value type end-to-end. The change spans the lexer (explicit `42i32`
+  suffix literals with stable `SPX-P003` range/suffix diagnostics; unsuffixed
+  literals stay `i64` with no cross-width inference), parser, canonical
+  formatter (the explicit suffix keeps the declared width round-trip stable),
+  source verifier (`+`, `-`, `*`, `/` stay `i32` and are checked like `i64`;
+  `%` stays restricted to `i64` via the existing `SPX-T208`), resolved HIR,
+  Native64/Wasm32 aggregate and variant layouts (4/4 bytes), cleanup plans,
+  Graph JSON (`"kind":"int32"` nodes carrying the exact value and
+  `"kind":"primitive","name":"i32"` types), the strict native C11 backend
+  (`int32_t` representation; arithmetic computes in `int64_t` and selects the
+  same `SPX_STATUS_ARITHMETIC_*` codes as `i64`, including `INT32_MIN`
+  negation and division overflow), and both Wasm core backends (`i32`
+  valtype with signed ordering opcodes). The aggregate Wasm lane detects add/
+  sub/mul overflow branchlessly via sign bits or i64 widening and selects the
+  aggregate `STATUS_*` failure codes through `fail_if`; the core lane lowers
+  checked i32 arithmetic inline on widened operands without new host imports
+  and traps on detected overflow because that lane has no status plumbing.
+  Ordered comparison is signed scalar ordering; equality follows the existing
+  same-type rule; mixed-width operands are rejected by the verifier
+  (`SPX-T208`, `SPX-T207`). i32-bearing records, record update, projection,
+  params, returns, locals, calls, branches, cleanup plans, conformance traces
+  (`{"kind":"int32","value":N}`), and contracts execute identically through
+  native C11 at `-O0`/`-O2` and Node/Wasm (`tests/i32_scalars.rs`,
+  `examples/integers_i32.spx`; an overflow probe asserts a non-success
+  status natively and a trap under Node rather than silent wrapping).
+  Deliberately out of scope for this tranche: generic instantiation arguments
+  and generic template signature slots remain direct `i64`/`bool` only,
+  Public Scalar Export Profile v1 remains i64/bool-only, the native host
+  callable corpus remains i64/bool/resource-only, the Native Rust interop
+  boundary rejects i32 scalars, integer remainder stays `i64`-only, and no
+  completion-matrix row status changes.
 - Added the locally evidenced Unicode scalar `char` tranche: `char` is now a
   first-class Copy value type end-to-end. The change spans the lexer (single
   scalar char literals with `\n`, `\r`, `\t`, `\0`, `\\`, `\'`, and

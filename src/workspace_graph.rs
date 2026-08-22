@@ -4911,6 +4911,7 @@ fn visit_resolved_calls(
         }
         hir::ResolvedExprKind::Project { base, .. } => visit_resolved_calls(base, visit),
         hir::ResolvedExprKind::Int(_)
+        | hir::ResolvedExprKind::Int32(_)
         | hir::ResolvedExprKind::Char(_)
         | hir::ResolvedExprKind::Float32(_)
         | hir::ResolvedExprKind::Float64(_)
@@ -5431,6 +5432,7 @@ fn collect_resolved_expression_type_sites(
             out,
         )?,
         hir::ResolvedExprKind::Int(_)
+        | hir::ResolvedExprKind::Int32(_)
         | hir::ResolvedExprKind::Char(_)
         | hir::ResolvedExprKind::Float32(_)
         | hir::ResolvedExprKind::Float64(_)
@@ -5852,7 +5854,7 @@ fn validate_uses(
 
 fn type_contains_name_from(ty: &Type, names: &BTreeSet<&str>) -> bool {
     match ty {
-        Type::I64 | Type::Char | Type::F32 | Type::F64 | Type::Bool => false,
+        Type::I64 | Type::I32 | Type::Char | Type::F32 | Type::F64 | Type::Bool => false,
         Type::Named { name, arguments } => {
             names.contains(name.as_str())
                 || arguments
@@ -5915,7 +5917,7 @@ fn signature_type_is_admitted(
     visiting: &mut BTreeSet<String>,
 ) -> bool {
     match ty {
-        Type::I64 | Type::Char | Type::F32 | Type::F64 | Type::Bool => true,
+        Type::I64 | Type::I32 | Type::Char | Type::F32 | Type::F64 | Type::Bool => true,
         Type::Named { name, arguments } if arguments.is_empty() => {
             let Some(target_id) = resolve_type_id(module, name, programs) else {
                 return false;
@@ -6024,7 +6026,7 @@ fn exposed_type_reference_is_directly_imported(
     visiting: &mut BTreeSet<String>,
 ) -> bool {
     match ty {
-        Type::I64 | Type::Char | Type::F32 | Type::F64 | Type::Bool => true,
+        Type::I64 | Type::I32 | Type::Char | Type::F32 | Type::F64 | Type::Bool => true,
         Type::Named { name, arguments } if arguments.is_empty() => {
             let Some(target_id) = resolve_type_id(module, name, programs) else {
                 return false;
@@ -6088,7 +6090,7 @@ fn type_reference_is_admitted(
     visiting: &mut BTreeSet<String>,
 ) -> bool {
     match ty {
-        Type::I64 | Type::Char | Type::F32 | Type::F64 | Type::Bool => true,
+        Type::I64 | Type::I32 | Type::Char | Type::F32 | Type::F64 | Type::Bool => true,
         Type::Named { name, arguments } if arguments.is_empty() => {
             let Some(program) = programs.iter().find(|item| item.module == module) else {
                 return false;
@@ -6287,6 +6289,7 @@ fn visit_ast_call_sites(
             )?;
         }
         ExprKind::Int(_)
+        | ExprKind::Int32(_)
         | ExprKind::Char(_)
         | ExprKind::Float32(_)
         | ExprKind::Float64(_)

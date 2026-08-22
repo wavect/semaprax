@@ -22,6 +22,8 @@ impl PartialEq for FloatLiteral {
 pub enum TokenKind {
     Ident(String),
     Int(i64),
+    /// One integer literal with an explicit `i32` suffix and its exact value.
+    Int32(i32),
     Float(FloatLiteral),
     /// One `char` literal held as its exact Unicode scalar value.
     Char(u32),
@@ -163,6 +165,9 @@ impl Lexer<'_> {
                 {
                     return self.float_token(start, line, column);
                 }
+                if self.starts_with("i32") {
+                    return self.int32_token(start, line, column);
+                }
                 let text = &self.source[start..self.offset];
                 let number = text.parse::<i64>().map_err(|_| {
                     self.error(
@@ -196,6 +201,36 @@ impl Lexer<'_> {
         };
         Ok(Token {
             kind,
+            span: self.span_from(start, line, column),
+        })
+    }
+
+    fn int32_token(
+        &mut self,
+        start: usize,
+        line: usize,
+        column: usize,
+    ) -> Result<Token, Diagnostic> {
+        for _ in 0..3 {
+            self.bump();
+        }
+        if self.peek().is_some_and(is_ident_continue) {
+            return Err(self.error(
+                "SPX-P003",
+                "integer literals accept only an `i32` suffix",
+                self.span_from(start, line, column),
+            ));
+        }
+        let text = &self.source[start..self.offset - 3];
+        let value = text.parse::<i32>().map_err(|_| {
+            self.error(
+                "SPX-P003",
+                "integer literal is outside the i32 range",
+                self.span_from(start, line, column),
+            )
+        })?;
+        Ok(Token {
+            kind: TokenKind::Int32(value),
             span: self.span_from(start, line, column),
         })
     }

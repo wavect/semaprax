@@ -122,6 +122,7 @@ pub(super) fn ast_child(expression: &crate::ast::Expr, index: usize) -> Option<&
             }
         }
         crate::ast::ExprKind::Int(_)
+        | crate::ast::ExprKind::Int32(_)
         | crate::ast::ExprKind::Char(_)
         | crate::ast::ExprKind::Float32(_)
         | crate::ast::ExprKind::Float64(_)
@@ -183,6 +184,7 @@ fn ast_child_identity_path_increment(
         crate::ast::ExprKind::Try { .. } => ".operand".len(),
         crate::ast::ExprKind::Project { .. } => ".base".len(),
         crate::ast::ExprKind::Int(_)
+        | crate::ast::ExprKind::Int32(_)
         | crate::ast::ExprKind::Char(_)
         | crate::ast::ExprKind::Float32(_)
         | crate::ast::ExprKind::Float64(_)
@@ -218,6 +220,10 @@ fn ast_type_identity_key_len(program: &Program, root: &crate::ast::Type) -> Opti
         match frames[frame_len].take()? {
             Frame::Enter(crate::ast::Type::I64) => {
                 results[result_len] = "i64".len();
+                result_len = result_len.checked_add(1)?;
+            }
+            Frame::Enter(crate::ast::Type::I32) => {
+                results[result_len] = "i32".len();
                 result_len = result_len.checked_add(1)?;
             }
             Frame::Enter(crate::ast::Type::Char) => {
@@ -471,6 +477,7 @@ pub(super) fn scan_ast_capacity<'a>(
                     | crate::ast::ExprKind::Try { .. }
                     | crate::ast::ExprKind::Project { .. } => 1,
                     crate::ast::ExprKind::Int(_)
+                    | crate::ast::ExprKind::Int32(_)
                     | crate::ast::ExprKind::Char(_)
                     | crate::ast::ExprKind::Float32(_)
                     | crate::ast::ExprKind::Float64(_)
@@ -743,6 +750,7 @@ fn ast_resource_leaf_count(
         {
             Frame::Enter(
                 crate::ast::Type::I64
+                | crate::ast::Type::I32
                 | crate::ast::Type::Char
                 | crate::ast::Type::F32
                 | crate::ast::Type::F64
@@ -1752,6 +1760,7 @@ fn cleanup_plan_variable_identity_bytes(
             crate::ast::ExprKind::Try { .. } => ".operand".len(),
             crate::ast::ExprKind::Project { .. } => ".base".len(),
             crate::ast::ExprKind::Int(_)
+            | crate::ast::ExprKind::Int32(_)
             | crate::ast::ExprKind::Char(_)
             | crate::ast::ExprKind::Float32(_)
             | crate::ast::ExprKind::Float64(_)
@@ -2058,6 +2067,7 @@ fn cleanup_binding_flow<'a>(
                 | crate::ast::ExprKind::Unary { .. }
                 | crate::ast::ExprKind::Binary { .. } => false,
                 crate::ast::ExprKind::Int(_)
+                | crate::ast::ExprKind::Int32(_)
                 | crate::ast::ExprKind::Char(_)
                 | crate::ast::ExprKind::Float32(_)
                 | crate::ast::ExprKind::Float64(_)
@@ -2293,6 +2303,7 @@ fn cleanup_retained_stats(
     fn key_for_type(program: &Program, ty: &crate::ast::Type) -> CleanupTypeKey {
         match ty {
             crate::ast::Type::I64
+            | crate::ast::Type::I32
             | crate::ast::Type::Char
             | crate::ast::Type::F32
             | crate::ast::Type::F64
@@ -3238,6 +3249,7 @@ fn cleanup_retained_stats(
                 let children = &results[result_start..];
                 let key = match &expression.kind {
                     crate::ast::ExprKind::Int(_)
+                    | crate::ast::ExprKind::Int32(_)
                     | crate::ast::ExprKind::Char(_)
                     | crate::ast::ExprKind::Float32(_)
                     | crate::ast::ExprKind::Float64(_)
@@ -5076,6 +5088,7 @@ fn hir_type_owned_capacity(ty: &ResolvedType) -> Option<usize> {
     match ty {
         ResolvedType::Unit
         | ResolvedType::I64
+        | ResolvedType::I32
         | ResolvedType::Char
         | ResolvedType::F32
         | ResolvedType::F64
@@ -5420,6 +5433,7 @@ fn hir_expr_owned_capacity(expression: &ResolvedExpr) -> Result<usize, Diagnosti
                 }
             }
             ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
@@ -5851,6 +5865,7 @@ pub(super) fn validate_native_rust_expression_budget_for_closure(
                 pending.extend(fields.iter().map(|field| (&field.value, child_depth)));
             }
             ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)

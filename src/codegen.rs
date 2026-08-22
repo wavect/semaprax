@@ -1668,6 +1668,91 @@ static __attribute__((unused)) spx_status_token spx_rt_rem(
     return SPX_STATUS_SUCCESS;
 }
 
+static __attribute__((unused)) spx_status_token spx_rt_add_i32(
+    struct spx_context *spx_ctx, int32_t a, int32_t b, int32_t *result_out
+) {
+    int64_t wide = (int64_t)a + (int64_t)b;
+    if (wide > INT32_MAX || wide < INT32_MIN) {
+        return spx_rt_arithmetic_failure(
+            spx_ctx, SPX_STATUS_ARITHMETIC_ADD_OVERFLOW, "addition overflow"
+        );
+    }
+    *result_out = (int32_t)wide;
+    return SPX_STATUS_SUCCESS;
+}
+
+static __attribute__((unused)) spx_status_token spx_rt_sub_i32(
+    struct spx_context *spx_ctx, int32_t a, int32_t b, int32_t *result_out
+) {
+    int64_t wide = (int64_t)a - (int64_t)b;
+    if (wide > INT32_MAX || wide < INT32_MIN) {
+        return spx_rt_arithmetic_failure(
+            spx_ctx, SPX_STATUS_ARITHMETIC_SUB_OVERFLOW, "subtraction overflow"
+        );
+    }
+    *result_out = (int32_t)wide;
+    return SPX_STATUS_SUCCESS;
+}
+
+static __attribute__((unused)) spx_status_token spx_rt_mul_i32(
+    struct spx_context *spx_ctx, int32_t a, int32_t b, int32_t *result_out
+) {
+    int64_t wide = (int64_t)a * (int64_t)b;
+    if (wide > INT32_MAX || wide < INT32_MIN) {
+        return spx_rt_arithmetic_failure(
+            spx_ctx, SPX_STATUS_ARITHMETIC_MUL_OVERFLOW, "multiplication overflow"
+        );
+    }
+    *result_out = (int32_t)wide;
+    return SPX_STATUS_SUCCESS;
+}
+
+static __attribute__((unused)) spx_status_token spx_rt_div_i32(
+    struct spx_context *spx_ctx, int32_t a, int32_t b, int32_t *result_out
+) {
+    if (b == 0) {
+        return spx_rt_arithmetic_failure(
+            spx_ctx, SPX_STATUS_ARITHMETIC_DIVISION_BY_ZERO, "invalid division"
+        );
+    }
+    if (a == INT32_MIN && b == -1) {
+        return spx_rt_arithmetic_failure(
+            spx_ctx, SPX_STATUS_ARITHMETIC_DIVISION_OVERFLOW, "invalid division"
+        );
+    }
+    *result_out = a / b;
+    return SPX_STATUS_SUCCESS;
+}
+
+static __attribute__((unused)) spx_status_token spx_rt_rem_i32(
+    struct spx_context *spx_ctx, int32_t a, int32_t b, int32_t *result_out
+) {
+    if (b == 0) {
+        return spx_rt_arithmetic_failure(
+            spx_ctx, SPX_STATUS_ARITHMETIC_REMAINDER_BY_ZERO, "invalid remainder"
+        );
+    }
+    if (a == INT32_MIN && b == -1) {
+        return spx_rt_arithmetic_failure(
+            spx_ctx, SPX_STATUS_ARITHMETIC_REMAINDER_OVERFLOW, "invalid remainder"
+        );
+    }
+    *result_out = a % b;
+    return SPX_STATUS_SUCCESS;
+}
+
+static __attribute__((unused)) spx_status_token spx_rt_neg_i32(
+    struct spx_context *spx_ctx, int32_t value, int32_t *result_out
+) {
+    if (value == INT32_MIN) {
+        return spx_rt_arithmetic_failure(
+            spx_ctx, SPX_STATUS_ARITHMETIC_NEGATION_OVERFLOW, "negation overflow"
+        );
+    }
+    *result_out = -value;
+    return SPX_STATUS_SUCCESS;
+}
+
 static __attribute__((unused)) spx_status_token spx_rt_neg(
     struct spx_context *spx_ctx, int64_t value, int64_t *result_out
 ) {
@@ -1905,6 +1990,7 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
             expression_has_try(base) || fields.iter().any(|field| expression_has_try(&field.value))
         }
         ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
@@ -2173,6 +2259,13 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     ty: ResolvedType::I64,
                 }
             }
+            ResolvedExprKind::Int32(value) => {
+                self.require_type(&expr.ty, &ResolvedType::I32, "i32 literal")?;
+                CValue {
+                    code: format!("INT32_C({value})"),
+                    ty: ResolvedType::I32,
+                }
+            }
             ResolvedExprKind::Char(value) => {
                 self.require_type(&expr.ty, &ResolvedType::Char, "char literal")?;
                 CValue {
@@ -2263,6 +2356,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     UnaryOp::Neg => match &value.ty {
                         ResolvedType::F32 => (ResolvedType::F32, ResolvedType::F32),
                         ResolvedType::F64 => (ResolvedType::F64, ResolvedType::F64),
+                        ResolvedType::I32 => (ResolvedType::I32, ResolvedType::I32),
                         _ => (ResolvedType::I64, ResolvedType::I64),
                     },
                     UnaryOp::Not => (ResolvedType::Bool, ResolvedType::Bool),
@@ -2273,6 +2367,13 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 match op {
                     UnaryOp::Neg if matches!(ty, ResolvedType::F32 | ResolvedType::F64) => {
                         self.line(&format!("{temporary} = (-({}));", value.code));
+                    }
+                    UnaryOp::Neg if ty == ResolvedType::I32 => {
+                        self.line(&format!(
+                            "spx_status = spx_rt_neg_i32(spx_ctx, {}, &{temporary});",
+                            value.code
+                        ));
+                        self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
                     }
                     UnaryOp::Neg => {
                         self.line(&format!(
@@ -2937,16 +3038,17 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         // Chars compare by Unicode scalar value; C unsigned comparison on
         // uint32_t matches the verified ordering exactly.
         let char_operand = matches!(left.ty, ResolvedType::Char);
+        let int32_operand = matches!(left.ty, ResolvedType::I32);
         let operand_type = match op {
             BinaryOp::And | BinaryOp::Or => ResolvedType::Bool,
             BinaryOp::Eq | BinaryOp::Ne => left.ty.clone(),
-            _ if float_operand || char_operand => left.ty.clone(),
+            _ if float_operand || char_operand || int32_operand => left.ty.clone(),
             _ => ResolvedType::I64,
         };
         self.require_type(&left.ty, &operand_type, "binary left operand")?;
         let expected_result = match op {
             BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
-                if float_operand =>
+                if float_operand || int32_operand =>
             {
                 left.ty.clone()
             }
@@ -3024,6 +3126,11 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
         ) {
             let helper = match op {
+                BinaryOp::Add if int32_operand => "spx_rt_add_i32",
+                BinaryOp::Sub if int32_operand => "spx_rt_sub_i32",
+                BinaryOp::Mul if int32_operand => "spx_rt_mul_i32",
+                BinaryOp::Div if int32_operand => "spx_rt_div_i32",
+                BinaryOp::Rem if int32_operand => "spx_rt_rem_i32",
                 BinaryOp::Add => "spx_rt_add",
                 BinaryOp::Sub => "spx_rt_sub",
                 BinaryOp::Mul => "spx_rt_mul",
@@ -3483,7 +3590,7 @@ fn main() -> i64 { increment(41) }
         );
         assert_eq!(
             digest,
-            "ded095e7c610a44f58ee1b99e3d08906d289e7b20fa465c0d712ca813e0118c9"
+            "45c15e9cafe21bb7bb2a94036ba7eff70f406ff1ef65426c5fe295cb2c0d366d"
         );
     }
 

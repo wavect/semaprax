@@ -3,8 +3,8 @@ use std::process::{Command, ExitCode};
 
 use semaprax::diagnostic::{Diagnostic, Severity};
 use semaprax::{
-    agent_economics, agent_transport, codegen, format, graph, hygienic, impact, parse, patch,
-    patch_evidence, project, properties, quality_route, repair, review, semantic_workspace,
+    agent_economics, agent_transport, codegen, format, graph, hygienic, impact, openapi, parse,
+    patch, patch_evidence, project, properties, quality_route, repair, review, semantic_workspace,
     semantic_workspace_change, semantic_workspace_operations, semantic_workspace_structural_change,
     target_evidence, verify, wasm, workspace, workspace_analysis, workspace_graph,
     workspace_patch_evidence,
@@ -593,6 +593,29 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             println!("{report}");
             Ok(())
         }
+        "openapi" => {
+            let path = required_path(&args, 1)?;
+            let (functions, options) = openapi_options(&args)?;
+            let report = openapi::generate(&path, &functions, &options)
+                .map_err(|errors| report(&errors, false))?;
+            println!("{report}");
+            Ok(())
+        }
+        "openapi-compat" => {
+            if args.len() < 3 {
+                eprintln!(
+                    "openapi-compat requires exactly <base.json> <candidate.json> [--max-bytes N]"
+                );
+                return Err(2);
+            }
+            let base = required_path(&args, 1)?;
+            let candidate = required_path(&args, 2)?;
+            let options = openapi_compat_options(&args)?;
+            let report = openapi::compatibility(&base, &candidate, &options)
+                .map_err(|errors| report(&errors, false))?;
+            println!("{report}");
+            Ok(())
+        }
         "target-evidence" => {
             if args.len() != 3 {
                 eprintln!("target-evidence requires exactly <file> <patch.spatch>");
@@ -939,6 +962,95 @@ fn impact_number(option: &str, value: &str) -> Result<usize, u8> {
     }
     value.parse::<usize>().map_err(|_| {
         eprintln!("impact option `{option}` requires a canonical nonnegative integer");
+        2
+    })
+}
+
+fn openapi_options(args: &[String]) -> Result<(Vec<String>, openapi::OpenApiOptions), u8> {
+    let mut functions = Vec::new();
+    let mut max_bytes = None;
+    let mut seen = std::collections::BTreeSet::new();
+    let mut index = 2usize;
+    while index < args.len() {
+        let option = args[index].as_str();
+        if !matches!(option, "--function" | "--max-bytes") {
+            eprintln!("unknown openapi option `{option}`");
+            return Err(2);
+        }
+        if option == "--max-bytes" && !seen.insert(option.to_owned()) {
+            eprintln!("duplicate openapi option `{option}`");
+            return Err(2);
+        }
+        let value = args.get(index + 1).ok_or_else(|| {
+            eprintln!("openapi option `{option}` requires a value");
+            2
+        })?;
+        match option {
+            "--function" => {
+                if value.is_empty() {
+                    eprintln!("openapi option `--function` requires a function name or stable id");
+                    return Err(2);
+                }
+                functions.push(value.clone());
+            }
+            _ => max_bytes = Some(openapi_number(option, value)?),
+        }
+        index += 2;
+    }
+    if functions.is_empty() {
+        eprintln!("openapi requires at least one --function <name|stable-id> selection");
+        return Err(2);
+    }
+    let options = openapi::OpenApiOptions::new(
+        max_bytes.unwrap_or_else(|| openapi::OpenApiOptions::default().max_bytes),
+    )
+    .map_err(|error| {
+        eprintln!("{error}");
+        2
+    })?;
+    Ok((functions, options))
+}
+
+fn openapi_compat_options(args: &[String]) -> Result<openapi::OpenApiOptions, u8> {
+    let mut max_bytes = None;
+    let mut seen = std::collections::BTreeSet::new();
+    let mut index = 3usize;
+    while index < args.len() {
+        let option = args[index].as_str();
+        if !matches!(option, "--max-bytes") {
+            eprintln!("unknown openapi-compat option `{option}`");
+            return Err(2);
+        }
+        if !seen.insert(option.to_owned()) {
+            eprintln!("duplicate openapi-compat option `{option}`");
+            return Err(2);
+        }
+        let value = args.get(index + 1).ok_or_else(|| {
+            eprintln!("openapi-compat option `{option}` requires a value");
+            2
+        })?;
+        max_bytes = Some(openapi_number(option, value)?);
+        index += 2;
+    }
+    openapi::OpenApiOptions::new(
+        max_bytes.unwrap_or_else(|| openapi::OpenApiOptions::default().max_bytes),
+    )
+    .map_err(|error| {
+        eprintln!("{error}");
+        2
+    })
+}
+
+fn openapi_number(option: &str, value: &str) -> Result<usize, u8> {
+    if value.is_empty()
+        || !value.bytes().all(|byte| byte.is_ascii_digit())
+        || (value.len() > 1 && value.starts_with('0'))
+    {
+        eprintln!("openapi option `{option}` requires a canonical nonnegative integer");
+        return Err(2);
+    }
+    value.parse::<usize>().map_err(|_| {
+        eprintln!("openapi option `{option}` requires a canonical nonnegative integer");
         2
     })
 }
@@ -1507,8 +1619,10 @@ fn print_help() {
            semaprax verify-workspace-patch-evidence <root> <patch.wspatch> <evidence.json>\n\
            semaprax workspace-apply-with-evidence <root> <patch.wspatch> <evidence.json>\n\
            semaprax impact <file> <patch.spatch> [--depth N] [--max-bytes N] [--max-nodes N]\n\
-            semaprax properties <file> [--max-cases N] [--max-functions N] [--max-bytes N] [--seed N]\n\
-            semaprax hygienic-gen <file> [--templates default-constructor,field-accessors] [--max-bytes N]\n\
+           semaprax properties <file> [--max-cases N] [--max-functions N] [--max-bytes N] [--seed N]\n\
+           semaprax hygienic-gen <file> [--templates default-constructor,field-accessors] [--max-bytes N]\n\
+           semaprax openapi <file> --function <name|stable-id> ... [--max-bytes N]\n\
+           semaprax openapi-compat <base.json> <candidate.json> [--max-bytes N]\n\
            semaprax review <file> <patch.spatch>\n\
            semaprax target-evidence <file> <patch.spatch>\n\
            semaprax patch-evidence <file> <patch.spatch>\n\

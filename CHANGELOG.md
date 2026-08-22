@@ -70,6 +70,24 @@
   the native host callable corpus remains i64/bool/resource-only, string/
   heap types remain unimplemented (no allocation model exists yet), and no
   completion-matrix row changes; totals remain 39 Partial/17 Missing.
+- Added the locally evidenced OpenAPI Schema Generation v1 tranche. The new
+  read-only `semaprax openapi <file> --function ...` command and `openapi`
+  library API project admitted monomorphic scalar signatures of one verified
+  module into a canonical OpenAPI 3.1 document wrapped in a
+  `semaprax.openapi.v1` envelope with domain-separated source, document, and
+  input-binding digests; per-operation request/result schemas preserve
+  authored parameter order and the shared status component is emitted only
+  when a signature can surface compiler-owned arithmetic or contract failure.
+  The companion `semaprax openapi-compat <base.json> <candidate.json>` command
+  authenticates both envelopes exactly (schema, structure, payload digest,
+  outer digest) before classifying their difference into closed breaking,
+  non-breaking, and informational finding families with a deterministic
+  verdict and migration note. Overflow of either output budget fails closed
+  with no truncated bytes. New stable diagnostics: SPX-OA101 through
+  SPX-OA105. See `docs/OPENAPI-V1.md` for the admission model, document
+  shape, compatibility semantics, and explicit non-claims (no Protobuf/gRPC,
+  GraphQL, or SQL projections, no schema import parsing, no live conformance
+  fixtures, no registry/server hosting, no target execution).
 - Added the locally evidenced Property-Test Generation v1 tranche. The new
   read-only `semaprax properties <file>` command and `properties` library API
   generate deterministic boundary-lattice plus seeded candidates from admitted

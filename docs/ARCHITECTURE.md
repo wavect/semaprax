@@ -118,6 +118,8 @@ The read-only `semaprax properties` command adds the first bounded property-test
 
 The read-only `semaprax hygienic-gen` command adds the first bounded typed-generation tranche over verified sources: default constructors and scalar field accessors synthesized as typed AST nodes for admitted non-generic scalar records, admitted by the ordinary verifier on the combined program, and projected through the real Graph module so every generated declaration resolves to a graph identity. Derived `__gen_` names are pure functions of the record's persistent stable ID; hygiene collisions and envelope exhaustion fail closed. It performs no textual rewriting, macro expansion, cross-file scope, persistence, or target execution; see `docs/HYGIENIC-GEN-V1.md`.
 
+The read-only `semaprax openapi` and `semaprax openapi-compat` commands add a bounded schema-projection tranche over the same admitted scalar profile: a deterministic canonical OpenAPI 3.1 document under a digest-bound `semaprax.openapi.v1` envelope, and exact-authenticated compatibility classification between two such envelopes (`semaprax.openapi-compat.v1`) with closed breaking/non-breaking/informational finding families. They import no schemas, run no conformance fixtures, host nothing, execute no target, and fail closed rather than emitting truncated or unauthenticated bytes; see `docs/OPENAPI-V1.md`.
+
 Generated arithmetic is checked for overflow, zero division, and the signed division edge case. Failures have stable process exit codes and explicit diagnostics rather than C undefined behavior.
 
 The locally evidenced floating-point tranche adds IEEE-754 `f32`/`f64` Copy

@@ -1,5 +1,21 @@
 # Changelog
 
+- Added the locally evidenced Typed Hygienic Generation v1 tranche. The new
+  read-only `semaprax hygienic-gen <file>` command and `hygienic` library API
+  synthesize default constructors and scalar field accessors for admitted
+  non-generic scalar records as typed AST nodes whose tails are real
+  `ConstructRecord`/`Project` expressions, verify the combined program with
+  the ordinary verifier, and project it through the real Graph module so every
+  generated declaration has a resolved graph identity. Derived `__gen_` names
+  are pure functions of the record's persistent stable ID (rename-with-same-id
+  keeps them; movement changes nothing); collisions with existing symbols,
+  prefix preemption (`SPX-Y102`/`SPX-Y103`), combined-program rejection
+  (`SPX-Y104`), envelope floor exhaustion (`SPX-Y105`), and unresolved
+  identities (`SPX-Y106`) all fail closed. Reports are canonical compact
+  `semaprax.hygienic-gen.v1` JSON with an authenticated outer digest, closed
+  exclusion reasons, byte-budget prefix truncation with stable order, and
+  fixed nonclaims. No textual rewriting, macro system, cross-file scope,
+  persistence, or target execution is claimed.
 - Reorganized the documentation around a published book without moving any
   document path. Added `book.toml` and `docs/SUMMARY.md` (pinned mdBook
   0.5.4), so the existing flat `docs/*.md` files render as one searchable

@@ -3,8 +3,8 @@ use std::process::{Command, ExitCode};
 
 use semaprax::diagnostic::{Diagnostic, Severity};
 use semaprax::{
-    agent_economics, agent_transport, codegen, format, graph, impact, parse, patch, patch_evidence,
-    project, properties, quality_route, repair, review, semantic_workspace,
+    agent_economics, agent_transport, codegen, format, graph, hygienic, impact, parse, patch,
+    patch_evidence, project, properties, quality_route, repair, review, semantic_workspace,
     semantic_workspace_change, semantic_workspace_operations, semantic_workspace_structural_change,
     target_evidence, verify, wasm, workspace, workspace_analysis, workspace_graph,
     workspace_patch_evidence,
@@ -585,6 +585,14 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             println!("{report}");
             Ok(())
         }
+        "hygienic-gen" => {
+            let path = required_path(&args, 1)?;
+            let options = hygienic_options(&args)?;
+            let report =
+                hygienic::generate(&path, &options).map_err(|errors| report(&errors, false))?;
+            println!("{report}");
+            Ok(())
+        }
         "target-evidence" => {
             if args.len() != 3 {
                 eprintln!("target-evidence requires exactly <file> <patch.spatch>");
@@ -979,6 +987,62 @@ fn property_options(args: &[String]) -> Result<properties::PropertyTestOptions, 
             2
         },
     )
+}
+
+fn hygienic_options(args: &[String]) -> Result<hygienic::HygienicGenOptions, u8> {
+    let mut templates: Vec<hygienic::Template> = Vec::new();
+    let mut max_bytes = hygienic::HygienicGenOptions::default().max_bytes();
+    let mut seen = std::collections::BTreeSet::new();
+    let mut index = 2usize;
+    while index < args.len() {
+        let option = args[index].as_str();
+        if !matches!(option, "--templates" | "--max-bytes") {
+            eprintln!("unknown hygienic-gen option `{option}`");
+            return Err(2);
+        }
+        if !seen.insert(option.to_owned()) {
+            eprintln!("duplicate hygienic-gen option `{option}`");
+            return Err(2);
+        }
+        let value = args.get(index + 1).ok_or_else(|| {
+            eprintln!("hygienic-gen option `{option}` requires a value");
+            2
+        })?;
+        match option {
+            "--templates" => templates = hygienic_templates(option, value)?,
+            "--max-bytes" => max_bytes = property_number(option, value)?,
+            _ => unreachable!("closed hygienic-gen option table"),
+        }
+        index += 2;
+    }
+    let selection = if templates.is_empty() {
+        hygienic::Template::REGISTRY.to_vec()
+    } else {
+        templates
+    };
+    hygienic::HygienicGenOptions::new(&selection, max_bytes).map_err(|error| {
+        eprintln!("{error}");
+        2
+    })
+}
+
+fn hygienic_templates(option: &str, value: &str) -> Result<Vec<hygienic::Template>, u8> {
+    let mut templates = Vec::new();
+    for token in value.split(',') {
+        let Some(template) = hygienic::Template::from_id(token) else {
+            eprintln!(
+                "hygienic-gen option `{option}` only accepts registry template ids; \
+                 unknown `{token}`"
+            );
+            return Err(2);
+        };
+        if templates.contains(&template) {
+            eprintln!("hygienic-gen option `{option}` repeats template `{token}`");
+            return Err(2);
+        }
+        templates.push(template);
+    }
+    Ok(templates)
 }
 
 fn property_number(option: &str, value: &str) -> Result<usize, u8> {
@@ -1443,7 +1507,8 @@ fn print_help() {
            semaprax verify-workspace-patch-evidence <root> <patch.wspatch> <evidence.json>\n\
            semaprax workspace-apply-with-evidence <root> <patch.wspatch> <evidence.json>\n\
            semaprax impact <file> <patch.spatch> [--depth N] [--max-bytes N] [--max-nodes N]\n\
-           semaprax properties <file> [--max-cases N] [--max-functions N] [--max-bytes N] [--seed N]\n\
+            semaprax properties <file> [--max-cases N] [--max-functions N] [--max-bytes N] [--seed N]\n\
+            semaprax hygienic-gen <file> [--templates default-constructor,field-accessors] [--max-bytes N]\n\
            semaprax review <file> <patch.spatch>\n\
            semaprax target-evidence <file> <patch.spatch>\n\
            semaprax patch-evidence <file> <patch.spatch>\n\

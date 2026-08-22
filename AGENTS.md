@@ -2,34 +2,113 @@
 
 SEMAPRAX is the agent-native systems programming language: **meaning in, verified machine code out**. Human-readable `.spx` source is the canonical Git projection; the versioned semantic graph is the preferred agent interface.
 
-`docs/index.md` maps every document; `docs/SUMMARY.md` orders the same files into the published book.
-
 ## Read order
 
 Before changing semantics, read:
 
 1. `docs/RFC-0001.md` — language, compiler, interoperability, application, and target contract.
 2. `docs/COMPLETION-MATRIX.md` — the joint full-goal audit and evidence-gated status; this prevents partial work from being described as complete.
-3. `docs/ARCHITECTURE.md` — current implementation, trust boundaries, and the repository module map.
+3. `docs/ARCHITECTURE.md` — current implementation and trust boundaries.
 4. `docs/QUALITY-GATES.md` — required checks and change-specific evidence.
 5. `docs/ROADMAP.md` — sequencing, not a reduction of the full objective.
 
-Then read by topic before touching that topic; each document is the single source of truth for its area:
+For records, variants, generics, matching, `Option`, or `Result`, also read `docs/RFC-0002-ALGEBRAIC-DATA.md` before editing.
+For semantic-impact preview, patch provenance, source-consumer facts, or
+reverse-call closure, also read `docs/SEMANTIC-IMPACT-V1.md`.
+For diagnostic repair discovery/instantiation, `SPX-S103` identity assignment,
+or Semantic Patch v3, also read `docs/DIAGNOSTIC-REPAIR-V1.md`.
+For the fixed-section read-only Patch v1/v2/v3 review report, also read
+`docs/SEMANTIC-REVIEW-V1.md`.
+For independently replayable Patch v1/v2/v3 evidence or the evidence-gated A0
+route, also read `docs/SEMANTIC-PATCH-EVIDENCE-V1.md`.
+For deterministic compiler target projections or their additive Evidence v2
+binding, also read `docs/SEMANTIC-TARGET-EVIDENCE-V1.md` and
+`docs/SEMANTIC-PATCH-EVIDENCE-V2.md`.
+For multi-file managed publication or its exact per-file Evidence-v1 proof
+carrier and evidence-gated apply route, also read
+`docs/SEMANTIC-WORKSPACE-TRANSACTION-V1.md` and
+`docs/SEMANTIC-WORKSPACE-PATCH-EVIDENCE-V1.md`.
+For the additive cross-file semantic workspace, unified graph, bounded
+workspace Context/Impact/Review, or replacements-only evidence-gated change
+route, also read `docs/SEMANTIC-WORKSPACE-V1.md`,
+`docs/WORKSPACE-SEMANTIC-GRAPH-V1.md`, `docs/WORKSPACE-ANALYSIS-V1.md`, and
+`docs/SEMANTIC-WORKSPACE-CHANGE-V1.md`.
+For bounded stable-ID multi-file rename/alias derivation into an existing
+Change-v1 replacements proposal, also read
+`docs/SEMANTIC-WORKSPACE-OPERATIONS-V1.md`.
+For native owned-call recovery, physical failure, settlement, or quiescence,
+also read `docs/RFC-0004-NATIVE-CALL-SETTLEMENT.md`; its hidden Rust model is
+proof scaffolding, not a wired native-runtime claim.
 
-| Topic | Read first |
-| --- | --- |
-| Records, variants, generics, matching, `Option`, `Result` | `docs/RFC-0002-ALGEBRAIC-DATA.md` |
-| Impact preview, patch provenance, reverse-call closure | `docs/SEMANTIC-IMPACT-V1.md` |
-| Repair discovery/instantiation, `SPX-S103`, Patch v3 | `docs/DIAGNOSTIC-REPAIR-V1.md` |
-| Read-only fixed-section review report | `docs/SEMANTIC-REVIEW-V1.md` |
-| Replayable patch evidence, evidence-gated A0 route | `docs/SEMANTIC-PATCH-EVIDENCE-V1.md` |
-| Compiler target projections, Evidence v2 binding | `docs/SEMANTIC-TARGET-EVIDENCE-V1.md`, `docs/SEMANTIC-PATCH-EVIDENCE-V2.md` |
-| Multi-file managed publication, per-file proof carrier, evidence-gated apply | `docs/SEMANTIC-WORKSPACE-TRANSACTION-V1.md`, `docs/SEMANTIC-WORKSPACE-PATCH-EVIDENCE-V1.md` |
-| Cross-file workspace graph, analysis, change route | `docs/SEMANTIC-WORKSPACE-V1.md`, `docs/WORKSPACE-SEMANTIC-GRAPH-V1.md`, `docs/WORKSPACE-ANALYSIS-V1.md`, `docs/SEMANTIC-WORKSPACE-CHANGE-V1.md` |
-| Stable-ID multi-file rename/alias derivation | `docs/SEMANTIC-WORKSPACE-OPERATIONS-V1.md` |
-| Owned-call recovery, physical failure, settlement, quiescence | `docs/RFC-0004-NATIVE-CALL-SETTLEMENT.md` (proof scaffolding, not a wired native-runtime claim) |
+## Repository map
 
-The `src/` module map lives only in `docs/ARCHITECTURE.md` ("Repository module map").
+- `src/ast.rs`, `lexer.rs`, `parser.rs`, `format.rs`: human source projection.
+- `src/verify.rs`, `src/hir.rs`: checked semantics and the stable-ID resolved representation.
+- `src/cleanup.rs`: structural cleanup storage/leaf inventory.
+- `src/cleanup_plan.rs`, `src/cleanup_plan/`: target-neutral cleanup CFG schema, canonical builder, and independent replay gate.
+- `src/aggregate_layout.rs`, `src/variant_layout.rs`: checked deterministic Native64/Wasm32 internal layouts for the admitted record and copy-variant field kinds.
+- `src/trace_path_certificate.rs`: canonical compiler-owned cleanup trace trie-DFA and outcome certificate.
+- `src/native_settlement.rs`: hidden target-neutral callable-v3 settlement model; no loader, host, provider, or public backend wiring.
+- `src/graph_cleanup.rs`: deterministic tagged cleanup projection inside the
+  program-level Graph v10/v11/v12/v13/v14 lattice; bounded generic function
+  declarations select v14 above authenticated explicit Copy-record patterns at
+  v13, while CleanupPlan v2 remains canonical unless authenticated Option
+  propagation requires v3.
+- `src/graph.rs`, `patch.rs`: agent representation and atomic single-file
+  transactions.
+- `src/workspace.rs`: bounded managed immutable-generation workspace
+  transactions; atomic visibility is through the authenticated `ACTIVE` pivot
+  for cooperating readers, not through raw source paths.
+- `src/workspace_patch_evidence.rs`: canonical multi-file Workspace Patch
+  Evidence v1 generation, exact replay receipts, and replay-before-candidate
+  application through the existing Workspace authority.
+- `src/semantic_workspace.rs`, `src/workspace_graph.rs`: additive semantic
+  workspace initialization and the bounded authenticated unified cross-file
+  graph over one managed generation.
+- `src/workspace_analysis.rs`: read-only workspace Context, Impact, and Review
+  over the six admitted cross-file edge families.
+- `src/semantic_workspace_change.rs`, `src/semantic_workspace_change/`:
+  replacements-only proposal analysis, canonical Evidence and receipts, exact
+  replay, and the invocation-local evidence-gated `ACTIVE` publication route.
+- `src/semantic_workspace_operations.rs`: bounded stable-ID derivation,
+  additive Operations-intent Evidence and exact replay, and exclusive
+  replay-before-publication through the existing immutable workspace core.
+  declaration/import-alias operations compiled under one shared authority into
+  an exact existing Change-v1 replacements proposal and derivation wrapper.
+- `src/call_index.rs`, `impact.rs`: shared validated-HIR call index and bounded,
+  read-only single-file Semantic Impact v1 preview.
+- `src/agent_transport.rs`: bounded deterministic JSON-RPC 2.0 loop
+  (`semaprax serve`) over one checked program; closed method set, no ambient
+  authority, no persistent index.
+- `src/agent_runtime.rs`, `src/agent_runtime/`: bounded injected-host Agent
+  profile, runtime-owned streaming sinks, cancellation, Trace, and Evidence;
+  no built-in transport, write tool, durable memory, or economic authority.
+- `src/economic_agent.rs`: public injected-host test-network/native-asset Economic Agent
+  policy, intent, chain-plan, approval, custody, journal, reconciliation,
+  Trace, and Evidence core; no built-in transport, key, or
+  mainnet authority.
+- `src/repair.rs`: bounded read-only Diagnostic Repair v1 discovery and
+  instantiation plus the independently replayed Patch-v3 identity-rebase gate.
+- `src/properties.rs`, `tests/property_tests_v1.rs`: read-only deterministic
+  Property-Test Generation v1 over verified single-file sources; no symbolic
+  execution, shrinking, test running, or target execution.
+- `src/hygienic.rs`, `tests/hygienic_gen_v1.rs`: read-only deterministic Typed
+  Hygienic Generation v1 over verified single-file sources; typed AST-to-AST
+  synthesis admitted by the real verifier and projected through the real
+  Graph module; no textual rewriting, macros, cross-file scope, persistence,
+  or target execution.
+- `src/review.rs`: bounded read-only Semantic Review v1 over complete Impact-v1
+  or shared identity-rebase evidence.
+- `src/target_evidence.rs`: bounded read-only Graph, capability, native-C11,
+  and structurally validated Wasm-core projection evidence.
+- `src/patch_evidence.rs`: canonical Semantic Patch Evidence v1/v2 generation,
+  independent verification receipts, and evidence-gated A0 application.
+- `src/codegen.rs`, `src/codegen/native_callable_*`, `wasm.rs`: native C11/Clang, private callable-v2, and browser/Wasm lanes.
+- `src/wit_component.rs`: default-off deterministic WIT/schema/JavaScript boundary evidence; not a Component Model runtime.
+- `crates/semaprax-native-loader`, `crates/semaprax-native-host`: unpublished unsafe loader quarantine and connected callable authority/ledger host.
+- `platform-tests/`: private installed-app/native-process packaging and runtime gates; claims count only after their hosted jobs are green.
+- `tests/`: executable language, graph, transaction, ownership, and backend evidence.
+- `examples/`: canonical programs exercised directly in CI.
 
 ## Non-negotiable invariants
 

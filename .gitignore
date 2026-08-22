@@ -9,3 +9,5 @@
 platform-tests/wasm-scalar-browser-v1/node_modules/
 platform-tests/wasm-scalar-browser-v1/playwright-report/
 platform-tests/wasm-scalar-browser-v1/test-results/
+
+.agent-worktrees/

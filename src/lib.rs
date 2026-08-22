@@ -22,6 +22,7 @@ pub mod economic_agent;
 pub mod format;
 pub mod graph;
 pub mod hir;
+pub mod hygienic;
 pub mod impact;
 pub mod lexer;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]

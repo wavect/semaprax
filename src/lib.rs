@@ -4,6 +4,7 @@
 //!
 //! The source projection is for humans. The semantic graph is the agent API.
 
+pub mod abi_report;
 pub mod agent_economics;
 pub mod agent_runtime;
 pub mod agent_transport;

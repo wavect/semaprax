@@ -3216,6 +3216,14 @@ fn windows_command_line(arguments: &[String]) -> Result<Vec<u16>, Error> {
             return Err(Error::Invalid);
         }
         line.push(' ');
+        let needs_quotes = argument.is_empty()
+            || argument
+                .chars()
+                .any(|character| matches!(character, ' ' | '\t' | '"'));
+        if !needs_quotes {
+            line.push_str(argument);
+            continue;
+        }
         line.push('"');
         let mut slashes = 0_usize;
         for character in argument.chars() {

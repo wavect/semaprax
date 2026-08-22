@@ -2510,12 +2510,12 @@ pub fn publish_directory_new_prepared(
         SecurityDescriptor: std::ptr::null(),
         SecurityQualityOfService: std::ptr::null(),
     };
-    let rename_handle = {
-        let mut handle = std::ptr::null_mut();
+    let mut rename_handle: HANDLE = std::ptr::null_mut();
+    {
         let mut open_io = IO_STATUS_BLOCK::default();
         let status = unsafe {
             NtCreateFile(
-                &mut handle,
+                &mut rename_handle,
                 DELETE,
                 &attributes,
                 &mut open_io,
@@ -2528,11 +2528,10 @@ pub fn publish_directory_new_prepared(
                 0,
             )
         };
-        if status < 0 || handle.is_null() || handle == INVALID_HANDLE_VALUE {
+        if status < 0 || rename_handle.is_null() || rename_handle == INVALID_HANDLE_VALUE {
             return Err(Error::Changed);
         }
-        std::mem::ManuallyDrop::new(unsafe { File::from_raw_handle(handle.cast()) })
-    };
+    }
     unsafe {
         (*information).root_directory = parent.file.as_raw_handle().cast();
     }
@@ -2549,7 +2548,7 @@ pub fn publish_directory_new_prepared(
             }
             let status = unsafe {
                 NtSetInformationFile(
-                    rename_handle.as_raw_handle().cast(),
+                    rename_handle,
                     &mut io,
                     information.cast(),
                     total,
@@ -2576,7 +2575,7 @@ pub fn publish_directory_new_prepared(
         }
         let status = unsafe {
             NtSetInformationFile(
-                rename_handle.as_raw_handle().cast(),
+                rename_handle.cast(),
                 &mut io,
                 information.cast(),
                 total,
@@ -2595,10 +2594,9 @@ pub fn publish_directory_new_prepared(
         }
         Err(Error::Changed)
     })();
-    if unsafe { CloseHandle(rename_handle.as_raw_handle().cast()) } == 0 {
+    if unsafe { CloseHandle(rename_handle) } == 0 {
         std::process::abort();
     }
-    std::mem::forget(rename_handle);
     #[cfg(test)]
     test_remember_publish_statuses(&attempted_statuses);
     outcome

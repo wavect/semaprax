@@ -949,6 +949,14 @@ fn windows_mixed_root_inventory_replays_before_and_after_exact_directory_rename(
         let held_file_result =
             std::fs::rename(&held_file_dir, root.join("probe_held_file_moved"));
         drop(held_leaf);
+        let mut std_reopen_result: Result<(), std::io::Error> = Ok(());
+        let mut std_reopened_leaf = None;
+        if held_file_result.is_err() {
+            std_reopened_leaf = std::fs::File::open(held_file_dir.join("leaf.bin")).ok();
+            std_reopen_result =
+                std::fs::rename(&held_file_dir, root.join("probe_held_std_moved"));
+        }
+        drop(std_reopened_leaf);
         drop(held_file_directory);
         let held_dir_parent = root.join("probe_held_dir");
         std::fs::create_dir(&held_dir_parent).ok();

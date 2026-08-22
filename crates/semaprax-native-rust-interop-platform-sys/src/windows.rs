@@ -7,15 +7,15 @@ use std::os::windows::fs::FileExt as _;
 use std::os::windows::io::{AsRawHandle as _, FromRawHandle as _, IntoRawHandle as _};
 use windows_sys::Wdk::Foundation::OBJECT_ATTRIBUTES;
 use windows_sys::Wdk::Storage::FileSystem::{
-    FileLinkInformationEx, FileRenameInformation, NtCreateFile, NtSetInformationFile, FILE_CREATE,
-    FILE_DIRECTORY_FILE, FILE_NON_DIRECTORY_FILE, FILE_OPEN, FILE_OPEN_REPARSE_POINT,
-    FILE_SYNCHRONOUS_IO_NONALERT,
+    FileLinkInformationEx, FileRenameInformation, FileRenameInformationEx, NtCreateFile,
+    NtSetInformationFile, FILE_CREATE, FILE_DIRECTORY_FILE, FILE_NON_DIRECTORY_FILE, FILE_OPEN,
+    FILE_OPEN_REPARSE_POINT, FILE_SYNCHRONOUS_IO_NONALERT,
 };
 use windows_sys::Win32::Foundation::{
     CloseHandle, GetLastError, SetHandleInformation, ERROR_BROKEN_PIPE, ERROR_INSUFFICIENT_BUFFER,
     ERROR_NO_MORE_FILES, ERROR_PIPE_NOT_CONNECTED, HANDLE, HANDLE_FLAG_INHERIT,
-    INVALID_HANDLE_VALUE, STATUS_OBJECT_NAME_COLLISION, STATUS_OBJECT_NAME_NOT_FOUND,
-    UNICODE_STRING, WAIT_FAILED, WAIT_OBJECT_0, WAIT_TIMEOUT,
+    INVALID_HANDLE_VALUE, STATUS_INVALID_PARAMETER, STATUS_OBJECT_NAME_COLLISION,
+    STATUS_OBJECT_NAME_NOT_FOUND, UNICODE_STRING, WAIT_FAILED, WAIT_OBJECT_0, WAIT_TIMEOUT,
 };
 use windows_sys::Win32::Security::SECURITY_ATTRIBUTES;
 use windows_sys::Win32::Storage::FileSystem::{
@@ -96,6 +96,22 @@ fn test_remember_captured_stdout(output: &[u8]) {
             capture.extend_from_slice(&output[..take]);
         }
     });
+}
+
+#[cfg(test)]
+thread_local! {
+    static LAST_PUBLISH_STATUSES: std::cell::RefCell<[i32; 2]> =
+        const { std::cell::RefCell::new([0; 2]) };
+}
+
+#[cfg(test)]
+fn test_remember_publish_statuses(statuses: &[i32; 2]) {
+    LAST_PUBLISH_STATUSES.with(|slot| *slot.borrow_mut() = *statuses);
+}
+
+#[cfg(test)]
+pub fn test_last_publish_statuses() -> [i32; 2] {
+    LAST_PUBLISH_STATUSES.with(std::cell::RefCell::take)
 }
 
 #[cfg(test)]
@@ -2477,15 +2493,45 @@ pub fn publish_directory_new_prepared(
         (*information).root_directory = parent.file.as_raw_handle().cast();
     }
     let mut io = IO_STATUS_BLOCK::default();
-    let status = unsafe {
+    #[cfg(test)]
+    let mut attempted_statuses = [0_i32; 2];
+    unsafe {
+        (*information).flags =
+            windows_sys::Win32::System::WindowsProgramming::FILE_RENAME_FLAG_POSIX_SEMANTICS;
+    }
+    let mut status = unsafe {
         NtSetInformationFile(
             stage.file.as_raw_handle().cast(),
             &mut io,
             information.cast(),
             total,
-            FileRenameInformation,
+            FileRenameInformationEx,
         )
     };
+    #[cfg(test)]
+    {
+        attempted_statuses[0] = status;
+    }
+    if status == STATUS_INVALID_PARAMETER {
+        unsafe {
+            (*information).flags = 0;
+        }
+        status = unsafe {
+            NtSetInformationFile(
+                stage.file.as_raw_handle().cast(),
+                &mut io,
+                information.cast(),
+                total,
+                FileRenameInformation,
+            )
+        };
+        #[cfg(test)]
+        {
+            attempted_statuses[1] = status;
+        }
+    }
+    #[cfg(test)]
+    test_remember_publish_statuses(&attempted_statuses);
     if status < 0 {
         return Err(if status == STATUS_OBJECT_NAME_COLLISION {
             Error::Exists

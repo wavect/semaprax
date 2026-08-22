@@ -24,6 +24,17 @@ Objective-C row from Missing to Partial; neither claims schema import, live
 conformance fixtures, compiled header evidence, or hosted promotion. Together
 with Typed Hygienic Generation v1 this batch moves three rows Missing to
 Partial. Current totals are 42 Partial/14 Missing.
+[Canonical ABI Report v1](ABI-REPORT-V1.md) is a locally evidenced read-only
+report/descriptor tranche that moves only the Portable canonical ABI and
+native fast ABI row from Missing to Partial: `semaprax abi-report` emits one
+deterministic digest-authenticated envelope describing both the Native64 fast
+ABI (verbatim production prototypes, checked sizes/alignments, by-value copy,
+status/out contract) and the portable Core-Wasm scalar mapping (`i64`/`i32`,
+canonical bool boundary, copy-only) for selected monomorphic by-value
+`i64`/`bool` functions, cross-consistent with both real backend projections.
+It claims no interface semantics beyond the selected scalar exports, no
+borrowing, no cross-language conformance suites, no target execution, and no
+hosted promotion. Current totals are 43 Partial/13 Missing.
 
 Status values:
 
@@ -586,7 +597,7 @@ exactly 39 Partial and 17 Missing.
 | Requirement | Status | Current evidence | Completion gate |
 | --- | --- | --- | --- |
 | Interface-first packages and target matrices | Missing | —; Project Manifest v1 deliberately has no resolver, lockfile, dependency model, package registry, or capability sandbox | Resolver, lockfile, compatibility, implementations, capabilities, conformance tests, provenance, signatures, licenses, SBOM, and reproducibility verified |
-| Portable canonical ABI and native fast ABI | Missing | — | Equivalent interface semantics with documented copy/borrow behavior and cross-language conformance verified |
+| Portable canonical ABI and native fast ABI | Partial | [Canonical ABI Report v1](ABI-REPORT-V1.md) adds the read-only `semaprax abi-report <file> --function ...` projection: one deterministic canonical `semaprax.abi-report.v1` envelope that reports, per explicitly selected explicit-ID monomorphic by-value `i64`/`bool` function, both the Native64 fast ABI (verbatim production C11 prototype, checked compiler sizes/alignments with `i64` 8/8 and `bool` 1/1, by-value copy semantics, and the status/out contract) and the portable canonical mapping (Core-Wasm `i64`/`i32` signatures, raw export symbols, canonical bool boundary normalization exactly as the web-v4 scalar-export adapters emit it, and fixed copy behavior), under domain-separated digests with independent replay verification, closed `SPX-A201`-`SPX-A204` fail-closed diagnostics, pinned envelope KATs, byte-level cross-consistency against both real backend projections, every exclusion reason, tamper rejection per digest field, and CLI exit codes green locally in `tests/abi_report_v1.rs`; no interface semantics beyond selected scalar exports, no borrowing (copy-only slice), no cross-language conformance suites, no target execution, and hosted promotion are claimed | Equivalent interface semantics with documented copy/borrow behavior and cross-language conformance verified |
 | C and Objective-C | Partial | [C Header Emission v1](C-HEADER-V1.md) adds the read-only `semaprax c-header <file> --function ...` projection: deterministic C11 headers for explicitly selected explicit-ID monomorphic by-value `i64`/`bool` functions whose declaration lines are extracted verbatim from the production native C11 projection, with typed stable-ID/contract/effect/status-contract/ownership annotations under a fail-closed hygiene guard, identity-derived include guards that are stable under formatting-only drift, digest-authenticated canonical envelopes with independent replay verification, closed `SPX-D101`-`SPX-D105` fail-closed diagnostics, pinned golden envelope/header KATs, native cross-consistency, every exclusion reason exercised, guard stability rules, tamper rejection, and CLI exit-code evidence green locally in `tests/c_header_emission_v1.rs`; hosted promotion remains pending. Header import, raw bindings, safe wrappers, error/string/buffer mappings, Objective-C anything, and compiled conformance remain unclaimed | Header import, raw bindings, ownership annotations, safe wrappers, error/string/buffer mappings, and tests verified |
 | C++ | Missing | — | Stable shim workflow, exception/ownership policy, maintained adapters, and unsafe classification verified |
 | Java and Kotlin | Partial | Private generated JNI shim plus minSdk-28 Kotlin ownership wrapper: closed `RegisterNatives`, HandlerThread confinement, generation-tagged handles, fixed status/exception normalization, deterministic identical Cleaner action, explicit `consume()` ownership transfer, and green API-35 x86_64 APK/Instrumentation evidence in [run 31338834586, job 93309086206](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086206) | JVM metadata import, public JNI generation, general Android lifecycle/ownership integration, bidirectional calls, and representative hosted conformance verified |

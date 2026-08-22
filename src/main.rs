@@ -3,9 +3,9 @@ use std::process::{Command, ExitCode};
 
 use semaprax::diagnostic::{Diagnostic, Severity};
 use semaprax::{
-    agent_economics, agent_transport, c_header, codegen, format, graph, hygienic, impact, openapi,
-    parse, patch, patch_evidence, project, properties, quality_route, repair, review,
-    semantic_workspace, semantic_workspace_change, semantic_workspace_operations,
+    abi_report, agent_economics, agent_transport, c_header, codegen, format, graph, hygienic,
+    impact, openapi, parse, patch, patch_evidence, project, properties, quality_route, repair,
+    review, semantic_workspace, semantic_workspace_change, semantic_workspace_operations,
     semantic_workspace_structural_change, target_evidence, verify, wasm, workspace,
     workspace_analysis, workspace_graph, workspace_patch_evidence,
 };
@@ -616,6 +616,14 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             println!("{report}");
             Ok(())
         }
+        "abi-report" => {
+            let path = required_path(&args, 1)?;
+            let options = abi_report_options(&args)?;
+            let report =
+                abi_report::generate(&path, &options).map_err(|errors| report(&errors, false))?;
+            println!("{report}");
+            Ok(())
+        }
         "c-header" => {
             let path = required_path(&args, 1)?;
             let (options, emit_header) = c_header_options(&args)?;
@@ -1171,6 +1179,52 @@ fn hygienic_templates(option: &str, value: &str) -> Result<Vec<hygienic::Templat
     Ok(templates)
 }
 
+fn abi_report_options(args: &[String]) -> Result<abi_report::AbiReportOptions, u8> {
+    let mut functions: Vec<String> = Vec::new();
+    let mut max_bytes = abi_report::AbiReportOptions::default().max_bytes;
+    let mut seen = std::collections::BTreeSet::new();
+    let mut index = 2usize;
+    while index < args.len() {
+        let option = args[index].as_str();
+        match option {
+            "--function" => {
+                let value = args.get(index + 1).ok_or_else(|| {
+                    eprintln!("abi-report option `{option}` requires a value");
+                    2
+                })?;
+                for token in value.split(',') {
+                    if token.is_empty() {
+                        eprintln!("abi-report option `{option}` requires nonempty selections");
+                        return Err(2);
+                    }
+                    functions.push(token.to_owned());
+                }
+                index += 2;
+            }
+            "--max-bytes" => {
+                if !seen.insert(option.to_owned()) {
+                    eprintln!("duplicate abi-report option `{option}`");
+                    return Err(2);
+                }
+                let value = args.get(index + 1).ok_or_else(|| {
+                    eprintln!("abi-report option `{option}` requires a value");
+                    2
+                })?;
+                max_bytes = property_number(option, value)?;
+                index += 2;
+            }
+            other => {
+                eprintln!("unknown abi-report option `{other}`");
+                return Err(2);
+            }
+        }
+    }
+    abi_report::AbiReportOptions::new(functions, max_bytes).map_err(|error| {
+        eprintln!("{error}");
+        2
+    })
+}
+
 fn c_header_options(args: &[String]) -> Result<(c_header::CHeaderOptions, bool), u8> {
     let mut functions: Vec<String> = Vec::new();
     let mut max_bytes = c_header::CHeaderOptions::default().max_bytes;
@@ -1693,7 +1747,8 @@ fn print_help() {
            semaprax hygienic-gen <file> [--templates default-constructor,field-accessors] [--max-bytes N]\n\
            semaprax openapi <file> --function <name|stable-id> ... [--max-bytes N]\n\
            semaprax openapi-compat <base.json> <candidate.json> [--max-bytes N]\n\
-           semaprax c-header <file> --function name|stable-id[,...] [--function ...] [--max-bytes N] [--emit-header]\n\
+            semaprax c-header <file> --function name|stable-id[,...] [--function ...] [--max-bytes N] [--emit-header]\n\
+            semaprax abi-report <file> --function name|stable-id[,...] [--function ...] [--max-bytes N]\n\
            semaprax review <file> <patch.spatch>\n\
            semaprax target-evidence <file> <patch.spatch>\n\
            semaprax patch-evidence <file> <patch.spatch>\n\

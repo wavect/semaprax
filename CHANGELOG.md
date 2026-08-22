@@ -1,5 +1,36 @@
 # Changelog
 
+- Added the locally evidenced Canonical ABI Report v1 tranche, the first
+  executable slice of the completion-matrix row "Portable canonical ABI and
+  native fast ABI". The new read-only `semaprax abi-report <file> --function
+  ...` command and `abi_report` library API emit one deterministic canonical
+  `semaprax.abi-report.v1` envelope describing, per explicitly selected
+  explicit-ID monomorphic by-value `i64`/`bool` function, both the Native64
+  fast ABI — the exact prototype line extracted verbatim from the production
+  native C11 projection, sizes and alignments taken from the checked compiler
+  layouts (`i64` 8/8, `bool` 1/1), by-value copy semantics, and the
+  status/out-parameter contract — and the portable canonical mapping used by
+  the Public Scalar Export Profile v1 Core-Wasm lane (Core-Wasm `i64`/`i32`
+  signatures, injective raw export symbols, canonical bool boundary
+  normalization identical to the emitted web-v4 adapters, and fixed copy-only
+  behavior). Domain-separated SHA-256 digests authenticate the payload,
+  source snapshot, every native prototype, and every rebuilt canonical
+  object; `verify_envelope` replays all of them independently. Admission
+  mirrors C Header Emission v1 with the same six closed exclusion reasons;
+  overflow (`SPX-A203`), selection (`SPX-A202`), option (`SPX-A201`), and
+  envelope/backend consistency (`SPX-A204`) diagnostics fail closed from the
+  previously unused `SPX-A2xx` family. Pinned golden envelope KATs over two
+  examples, byte-level cross-consistency against both real backend
+  projections (native prototypes and wasmparser-decoded scalar-export module
+  signatures), checked-layout agreement including the Native64/Wasm32 bool
+  divergence, every exclusion reason, CLI exit codes, budget exhaustion, and
+  per-digest-field tamper rejection are green locally in
+  `tests/abi_report_v1.rs`. The report claims no interface semantics beyond
+  selected scalar exports, no borrowing (copy-only slice), no cross-language
+  conformance suites, no target execution, and no hosted promotion. The
+  Portable canonical ABI and native fast ABI row moves from Missing to
+  Partial.
+
 - Moved the workspace minimum supported Rust from 1.85 to 1.88 so private
   crates can track current dependencies, and bumped the exact-pinned private
   `semaprax-native-loader` dependency from `libloading 0.8.9` to `=0.9.0`.

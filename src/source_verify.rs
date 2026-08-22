@@ -3278,8 +3278,8 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         self.values.push(None);
                         continue;
                     };
-                    let numeric = Some(actual.ty.clone())
-                        .filter(|_| matches!(op, UnaryOp::Neg))
+                    let numeric = matches!(op, UnaryOp::Neg)
+                        .then(|| actual.ty.clone())
                         .filter(|ty| matches!(ty, Type::I64 | Type::F32 | Type::F64));
                     let expected = match (&op, &numeric) {
                         (UnaryOp::Neg, Some(ty)) => ty.clone(),
@@ -5206,8 +5206,8 @@ fn check_expr(
                 diagnostics,
             )?;
             for (op, operand, span) in unary.into_iter().rev() {
-                let numeric = Some(actual.ty.clone())
-                    .filter(|_| matches!(op, UnaryOp::Neg))
+                let numeric = matches!(op, UnaryOp::Neg)
+                    .then(|| actual.ty.clone())
                     .filter(|ty| matches!(ty, Type::I64 | Type::F32 | Type::F64));
                 let expected = match (&op, &numeric) {
                     (UnaryOp::Neg, Some(ty)) => ty.clone(),

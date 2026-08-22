@@ -544,7 +544,8 @@ fn windows_real_brepro_archive_round_trips_through_exact_admission() {
 
     let directory = super::platform::hold_directory(&root).unwrap();
     let input = super::platform::hold_regular_file(&directory, OsStr::new("module.obj")).unwrap();
-    let archiver = super::platform::hold_external_executable(&archiver).unwrap();
+    let archiver_image = archiver;
+    let archiver = super::platform::hold_external_executable(&archiver_image).unwrap();
     let prepared = super::platform::prepare_archive_invocation(
         OsStr::new("module.obj"),
         OsStr::new("semaprax_native_rust_sdk.lib"),
@@ -556,6 +557,40 @@ fn windows_real_brepro_archive_round_trips_through_exact_admission() {
         super::platform::archive_prepared(&archiver, &directory, &input, prepared, &mut process);
     let elapsed = start.elapsed();
     let archive = archive.unwrap_or_else(|error| {
+        let captured =
+            String::from_utf8_lossy(&super::platform::test_last_captured_stdout()).into_owned();
+        let plain_args = [
+            "/NOLOGO",
+            "/BREPRO",
+            "/OUT:semaprax_plain_probe.lib",
+            "module.obj",
+        ];
+        let attempt = |stripped: bool| {
+            let mut command = std::process::Command::new(&archiver_image);
+            command.current_dir(&root).args(plain_args);
+            if stripped {
+                command.env_clear();
+            }
+            command.output()
+        };
+        let rendered = |attempt: &Option<std::process::Output>| {
+            attempt
+                .as_ref()
+                .map(|output| {
+                    format!(
+                        "exit={} stdout={:?} stderr={:?}",
+                        output.status.code().unwrap_or(-1),
+                        String::from_utf8_lossy(&output.stdout),
+                        String::from_utf8_lossy(&output.stderr),
+                    )
+                })
+                .unwrap_or_else(|| "spawn-failed".to_owned())
+        };
+        let plain_probe = format!(
+            "captured_strict_stdout={captured:?} inherited_env{{{}}} stripped_env{{{}}}",
+            rendered(&attempt(false).ok()),
+            rendered(&attempt(true).ok()),
+        );
         panic!(
             "{}",
             windows_real_archive_failure_evidence(
@@ -565,6 +600,7 @@ fn windows_real_brepro_archive_round_trips_through_exact_admission() {
                 &root.join("semaprax_native_rust_sdk.lib"),
                 error,
                 elapsed,
+                &plain_probe,
             )
         )
     });
@@ -583,6 +619,7 @@ fn windows_real_archive_failure_evidence(
     archive: &std::path::Path,
     error: Error,
     elapsed: std::time::Duration,
+    plain_probe: &str,
 ) -> String {
     use sha2::{Digest as _, Sha256};
     use std::fmt::Write as _;
@@ -635,6 +672,8 @@ fn windows_real_archive_failure_evidence(
         "Windows real archive admission failed: error={error:?} elapsed_ms={} output_exists={exists} output_length={length} exact_replay={exact_replay}",
         elapsed.as_millis(),
     );
+    evidence.push_str(" | ");
+    evidence.push_str(plain_probe);
     let Ok(mut file) = std::fs::File::open(archive) else {
         return evidence;
     };
@@ -828,6 +867,8 @@ fn windows_mixed_root_inventory_replays_before_and_after_exact_directory_rename(
 
     let mut stage_name = super::platform::prepare_relative_name_arena(9).unwrap();
     super::platform::set_relative_name_arena(&mut stage_name, OsStr::new("stage")).unwrap();
+    let identity_probe =
+        super::platform::test_publish_stage_identity_probe(&parent, &stage, &stage_name);
     let mut publish = super::platform::prepare_publish_directory(OsStr::new("published")).unwrap();
     super::platform::publish_directory_new_prepared(
         &mut publish,
@@ -836,7 +877,7 @@ fn windows_mixed_root_inventory_replays_before_and_after_exact_directory_rename(
         &stage_name,
         OsStr::new("published"),
     )
-    .unwrap();
+    .unwrap_or_else(|error| panic!("directory publication failed: {error:?} ({identity_probe})"));
     assert!(!root.join("stage").exists());
     assert!(super::platform::same_directory_path(&stage, &root.join("published")).unwrap());
     super::platform::recheck_directory(&parent).unwrap();

@@ -62,6 +62,44 @@ const REGULAR_OWNED_ACCESS: u32 = FILE_GENERIC_READ | FILE_GENERIC_WRITE | DELET
 const HELD_SHARE: u32 = FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE;
 const OBJ_CASE_INSENSITIVE: u32 = 0x40;
 
+#[cfg(test)]
+thread_local! {
+    static LAST_CAPTURED_STDOUT: std::cell::RefCell<Vec<u8>> =
+        const { std::cell::RefCell::new(Vec::new()) };
+}
+
+#[cfg(test)]
+fn test_remember_captured_stdout(output: &[u8]) {
+    LAST_CAPTURED_STDOUT.with(|capture| {
+        let mut capture = capture.borrow_mut();
+        if capture.len() < 4096 {
+            let remaining = 4096 - capture.len();
+            let take = remaining.min(output.len());
+            capture.extend_from_slice(&output[..take]);
+        }
+    });
+}
+
+#[cfg(test)]
+pub fn test_last_captured_stdout() -> Vec<u8> {
+    LAST_CAPTURED_STDOUT.with(std::cell::RefCell::take)
+}
+
+#[cfg(test)]
+pub fn test_publish_stage_identity_probe(
+    parent: &Directory,
+    stage: &Directory,
+    stage_name: &PreparedRelativeNameArena,
+) -> String {
+    match observe_publish_rebound(parent, stage_name, false, false) {
+        Ok(observed) => format!(
+            "fresh-open stage identity matches held handle: {}",
+            observed == stage.identity
+        ),
+        Err(error) => format!("fresh-open stage identity probe failed: {error:?}"),
+    }
+}
+
 #[derive(Clone, Copy, Eq, PartialEq)]
 struct Identity {
     volume: u64,
@@ -2965,6 +3003,7 @@ fn run_argv(
         while available != 0 {
             let count = usize::try_from(available).unwrap_or(usize::MAX).min(8192);
             if count > stdout_limit.saturating_sub(output.len()) {
+                test_remember_captured_stdout(&output);
                 selected_error = Some(Error::OutputLimit);
                 break;
             }
@@ -3060,6 +3099,7 @@ fn run_argv(
             }
             let count = usize::try_from(available).unwrap_or(usize::MAX).min(8192);
             if count > stdout_limit.saturating_sub(output.len()) {
+                test_remember_captured_stdout(&output);
                 return Err(Error::OutputLimit);
             }
             let mut buffer = [0_u8; 8192];

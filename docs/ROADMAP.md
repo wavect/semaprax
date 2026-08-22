@@ -257,6 +257,13 @@ gates below are not.
   callees with checked semantics, and reports exact `ensures` counterexamples
   (`semaprax properties`). General type-directed generation, shrinking,
   statistical coverage, and test-runner integration remain open.
+- Schema interoperability: the bounded read-only
+  [OpenAPI Schema Generation v1](OPENAPI-V1.md) tranche now projects admitted
+  scalar signatures into a deterministic canonical OpenAPI 3.1 document
+  (`semaprax openapi`) and classifies exact-authenticated envelope differences
+  into closed finding families (`semaprax openapi-compat`). Protobuf/gRPC,
+  GraphQL, and SQL projections, schema import parsing, richer type profiles,
+  and live conformance fixtures remain open.
 - Bounded [Graph Agent Transport v1](AGENT-TRANSPORT-V1.md): a deterministic
   newline-delimited JSON-RPC 2.0 loop (`semaprax serve <file>`) that binds one
   checked program per session and answers a closed `graph`/`context`/

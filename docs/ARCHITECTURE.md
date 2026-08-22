@@ -48,6 +48,8 @@ The initial contract lane is progressive: contracts are type-checked at compile 
 
 The read-only `semaprax properties` command adds the first bounded property-test generation tranche over verified sources: deterministic boundary-lattice and seeded candidates from admitted scalar signatures, `requires` domain filtering, checked-semantics body/callee evaluation under one step budget, and exact `ensures` counterexample reporting in canonical digest-bound JSON (`semaprax.property-tests.v1`). It performs no symbolic execution, shrinking, or target execution; see `docs/PROPERTY-TESTS-V1.md`.
 
+The read-only `semaprax openapi` and `semaprax openapi-compat` commands add a bounded schema-projection tranche over the same admitted scalar profile: a deterministic canonical OpenAPI 3.1 document under a digest-bound `semaprax.openapi.v1` envelope, and exact-authenticated compatibility classification between two such envelopes (`semaprax.openapi-compat.v1`) with closed breaking/non-breaking/informational finding families. They import no schemas, run no conformance fixtures, host nothing, execute no target, and fail closed rather than emitting truncated or unauthenticated bytes; see `docs/OPENAPI-V1.md`.
+
 Generated arithmetic is checked for overflow, zero division, and the signed division edge case. Failures have stable process exit codes and explicit diagnostics rather than C undefined behavior.
 
 The locally evidenced floating-point tranche adds IEEE-754 `f32`/`f64` Copy

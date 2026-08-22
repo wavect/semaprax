@@ -27,6 +27,7 @@ pub mod lexer;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
 #[doc(hidden)]
 pub(crate) mod native_settlement;
+pub mod openapi;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
 #[doc(hidden)]
 pub mod owned_resource_corpus;

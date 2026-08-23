@@ -9624,7 +9624,7 @@ module graph.v14;
             );
             assert_eq!(
                 document_sha,
-                "sha256:6639d985e25d4d33a72e37034c6e3f116940d3598bbf46162a6baaeb547da972"
+                "sha256:b2e79130cf6eeef51251cbe83dd9c2918cad9b13a5d17514242b624ebe69814b"
             );
             assert!(json.starts_with(
                 "{\"schema\":\"semaprax.workspace-semantic-graph.v1\",\"workspace_manifest_schema\":\"semaprax.workspace-semantic-manifest.v1\",\"workspace_revision\":\"sha256:workspace\",\"graph_digest\":\"sha256:"

@@ -48,6 +48,7 @@ pub mod plugin_manifest;
 mod private_capacity_contract;
 pub mod project;
 pub mod properties;
+pub mod protocol_check;
 pub mod quality_route;
 pub mod region_report;
 pub mod repair;

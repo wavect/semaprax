@@ -114,6 +114,10 @@ pub struct Program {
     pub permits: Vec<String>,
     pub types: Vec<TypeDeclaration>,
     pub interfaces: Vec<InterfaceDeclaration>,
+    /// Protocol Projection v1: method-set declarations over the eventual
+    /// class receiver. Read-only in this tranche; records stand in as the
+    /// future conformance carriers and no backend consumes protocols yet.
+    pub protocols: Vec<ProtocolDeclaration>,
     pub functions: Vec<Function>,
 }
 
@@ -193,6 +197,33 @@ pub struct InterfaceDeclaration {
     pub name_span: Span,
     pub permits: Vec<String>,
     pub imports: Vec<ImportDeclaration>,
+    pub span: Span,
+}
+
+/// Protocol Projection v1: one `protocol` declaration — a named method set
+/// whose signatures are checked to resolve. Distinct from the host-import
+/// `interface` concept; protocols carry no imports, effects, or permits.
+#[derive(Clone, Debug)]
+pub struct ProtocolDeclaration {
+    pub stable_id: String,
+    pub explicit_id: bool,
+    pub name: String,
+    pub name_span: Span,
+    pub methods: Vec<ProtocolMethod>,
+    pub span: Span,
+}
+
+/// One body-less method signature inside a protocol. The first parameter is
+/// the receiver and must be typed `Self` or the protocol's own name; the
+/// canonical projection keeps it verbatim.
+#[derive(Clone, Debug)]
+pub struct ProtocolMethod {
+    pub stable_id: String,
+    pub explicit_id: bool,
+    pub name: String,
+    pub name_span: Span,
+    pub params: Vec<Param>,
+    pub return_type: Type,
     pub span: Span,
 }
 

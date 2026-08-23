@@ -67,13 +67,7 @@ fn binding_owned_capacity(binding: &Binding) -> usize {
 #[cfg(test)]
 fn ast_type_owned_capacity(ty: &Type) -> usize {
     match ty {
-        Type::I64
-        | Type::I32
-        | Type::Char
-        | Type::U8
-        | Type::F32
-        | Type::F64
-        | Type::Bool => 0,
+        Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64 | Type::Bool => 0,
         Type::String => 0,
         Type::Named { name, arguments } => name
             .capacity()
@@ -198,7 +192,9 @@ impl<'a> TypeTable<'a> {
             return None;
         };
         match &self.declaration(name)?.kind {
-            TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } => Some(fields),
+            TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } => {
+                Some(fields)
+            }
             TypeDeclarationKind::Resource { .. } | TypeDeclarationKind::Variant { .. } => None,
         }
     }
@@ -217,7 +213,9 @@ impl<'a> TypeTable<'a> {
         };
         match &self.declaration(name)?.kind {
             TypeDeclarationKind::Variant { cases } => Some(cases),
-            TypeDeclarationKind::Resource { .. } | TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. } => None,
+            TypeDeclarationKind::Resource { .. }
+            | TypeDeclarationKind::Record { .. }
+            | TypeDeclarationKind::Class { .. } => None,
         }
     }
 
@@ -315,7 +313,8 @@ impl<'a> TypeTable<'a> {
                     frames.push(Frame::Exit(instance));
                     let fields: Box<dyn DoubleEndedIterator<Item = &FieldDeclaration>> =
                         match &declaration.kind {
-                            TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } => Box::new(fields.iter()),
+                            TypeDeclarationKind::Record { fields }
+                            | TypeDeclarationKind::Class { fields, .. } => Box::new(fields.iter()),
                             TypeDeclarationKind::Variant { cases } => {
                                 Box::new(cases.iter().flat_map(|case| &case.fields))
                             }
@@ -386,7 +385,8 @@ impl<'a> TypeTable<'a> {
                                 }
                             }
                         }
-                        TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } => {
+                        TypeDeclarationKind::Record { fields }
+                        | TypeDeclarationKind::Class { fields, .. } => {
                             for field in fields.iter().rev() {
                                 if let Some(field_ty) =
                                     Self::substitute_variant_type(declaration, arguments, &field.ty)
@@ -517,7 +517,9 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
         if !declaration.explicit_id {
             let (subject, help) = match declaration.kind {
                 TypeDeclarationKind::Resource { .. } => ("resource", "your.namespace.resource"),
-                TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. } => ("record", "your.namespace.record"),
+                TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. } => {
+                    ("record", "your.namespace.record")
+                }
                 TypeDeclarationKind::Variant { .. } => ("variant", "your.namespace.variant"),
             };
             diagnostics.push(
@@ -607,7 +609,9 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                 }
             }
         }
-        if let TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } = &declaration.kind {
+        if let TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } =
+            &declaration.kind
+        {
             let mut field_names = HashSet::new();
             let mut field_ids = HashSet::new();
             for field in fields {
@@ -1114,7 +1118,9 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
         }
     }
     for declaration in &program.types {
-        if let TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } = &declaration.kind {
+        if let TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } =
+            &declaration.kind
+        {
             let parameters = declaration
                 .type_parameters
                 .iter()
@@ -1223,14 +1229,15 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
     }
     let mut checked_layouts = HashSet::new();
     for declaration in &program.types {
-        if matches!(declaration.kind, TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. })
-            && record_layout_is_recursive(
-                declaration.name.as_str(),
-                &types,
-                &mut HashSet::new(),
-                &mut checked_layouts,
-            )
-        {
+        if matches!(
+            declaration.kind,
+            TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. }
+        ) && record_layout_is_recursive(
+            declaration.name.as_str(),
+            &types,
+            &mut HashSet::new(),
+            &mut checked_layouts,
+        ) {
             diagnostics.push(error(
                 program,
                 "SPX-T217",
@@ -1870,7 +1877,9 @@ fn record_layout_is_recursive(
                     results.push(false);
                     continue;
                 };
-                let (TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. }) = &declaration.kind else {
+                let (TypeDeclarationKind::Record { fields }
+                | TypeDeclarationKind::Class { fields, .. }) = &declaration.kind
+                else {
                     visiting.remove(name);
                     checked.insert(name.to_owned());
                     results.push(false);
@@ -1914,7 +1923,9 @@ fn record_layout_is_recursive(
                     }
                     if matches!(
                         types.declaration(field_type).map(|item| &item.kind),
-                        Some(TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. })
+                        Some(
+                            TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. }
+                        )
                     ) {
                         child = Some(field_type.as_str());
                         break;
@@ -1993,7 +2004,9 @@ fn check_declared_type(
         if !arguments.is_empty()
             && (!matches!(
                 declaration.kind,
-                TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. } | TypeDeclarationKind::Variant { .. }
+                TypeDeclarationKind::Record { .. }
+                    | TypeDeclarationKind::Class { .. }
+                    | TypeDeclarationKind::Variant { .. }
             ) || arguments
                 .iter()
                 .any(|argument| !matches!(argument, Type::I64 | Type::Bool)))
@@ -2103,7 +2116,8 @@ fn generic_function_expression_is_direct_scalar(expression: &Expr) -> bool {
             | ExprKind::Uint8(_)
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
-            | ExprKind::Bool(_) | ExprKind::String(_)
+            | ExprKind::Bool(_)
+            | ExprKind::String(_)
             | ExprKind::Var(_) => {}
             ExprKind::Call { args, .. } => pending.extend(args.iter().rev()),
             ExprKind::Unary { value, .. } => pending.push(value),
@@ -3209,11 +3223,11 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                         self.types.contains_resource(target.return_type()),
                                     )
                                 }
-                            VerifierCallTarget::Ordinary(None) => {
-                                self.values.push(None);
-                                continue;
-                            }
-                        }));
+                                VerifierCallTarget::Ordinary(None) => {
+                                    self.values.push(None);
+                                    continue;
+                                }
+                            }));
                         }
                     }
                     ExprKind::MethodCall {
@@ -3370,7 +3384,10 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         );
                         let declared_fields =
                             declaration.and_then(|declaration| match &declaration.kind {
-                                TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } => Some(fields.as_slice()),
+                                TypeDeclarationKind::Record { fields }
+                                | TypeDeclarationKind::Class { fields, .. } => {
+                                    Some(fields.as_slice())
+                                }
                                 TypeDeclarationKind::Resource { .. }
                                 | TypeDeclarationKind::Variant { .. } => None,
                             });
@@ -3430,7 +3447,8 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         let cases = declaration.and_then(|declaration| match &declaration.kind {
                             TypeDeclarationKind::Variant { cases } => Some(cases.as_slice()),
                             TypeDeclarationKind::Resource { .. }
-                            | TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. } => None,
+                            | TypeDeclarationKind::Record { .. }
+                            | TypeDeclarationKind::Class { .. } => None,
                         });
                         let case = cases
                             .and_then(|cases| cases.iter().find(|case| case.name == *case_name));
@@ -3635,7 +3653,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     }
                     if !native_unit
                         && !matches!(op, BinaryOp::Eq | BinaryOp::Ne)
-                        && (left_value.as_ref().is_some_and(|value| value.ty == Type::String)
+                        && (left_value
+                            .as_ref()
+                            .is_some_and(|value| value.ty == Type::String)
                             || right_value
                                 .as_ref()
                                 .is_some_and(|value| value.ty == Type::String))
@@ -4230,9 +4250,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     }
                     let declaration = self.types.declaration(class_name);
                     let method_fn = declaration.and_then(|declaration| match &declaration.kind {
-                        TypeDeclarationKind::Class { methods, .. } => methods
-                            .iter()
-                            .find(|candidate| candidate.name == *method),
+                        TypeDeclarationKind::Class { methods, .. } => {
+                            methods.iter().find(|candidate| candidate.name == *method)
+                        }
                         TypeDeclarationKind::Resource { .. }
                         | TypeDeclarationKind::Record { .. }
                         | TypeDeclarationKind::Variant { .. } => None,
@@ -4339,9 +4359,10 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 self.diagnostics,
                             );
                         }
-                        if actual.as_ref().is_some_and(|actual| {
-                            !actual.native_unit && actual.ty != param.ty
-                        }) {
+                        if actual
+                            .as_ref()
+                            .is_some_and(|actual| !actual.native_unit && actual.ty != param.ty)
+                        {
                             self.diagnostics.push(error(
                                 self.program,
                                 "SPX-T205",
@@ -5074,7 +5095,8 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             | Type::U8
                             | Type::F32
                             | Type::F64
-                            | Type::Bool | Type::String
+                            | Type::Bool
+                            | Type::String
                             | Type::Named { .. } => None,
                         });
                     let variant_name = variant_instance.as_ref().map(|(name, _)| name.clone());

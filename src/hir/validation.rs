@@ -483,7 +483,9 @@ impl<'a> HirValidator<'a> {
                     }
                 }
             }
-            if let ResolvedTypeDeclarationKind::Record { fields } | ResolvedTypeDeclarationKind::Class { fields, .. } = &declaration.kind {
+            if let ResolvedTypeDeclarationKind::Record { fields }
+            | ResolvedTypeDeclarationKind::Class { fields, .. } = &declaration.kind
+            {
                 let indexed = self
                     .program
                     .declarations
@@ -5455,7 +5457,9 @@ impl<'a> HirValidator<'a> {
             .program
             .declarations
             .declaration(declaration)
-            .is_none_or(|item| !matches!(item.kind, DeclarationKind::Record | DeclarationKind::Class))
+            .is_none_or(|item| {
+                !matches!(item.kind, DeclarationKind::Record | DeclarationKind::Class)
+            })
         {
             return Err(hir_error(format!(
                 "field `{field}` projects from a non-record nominal type"

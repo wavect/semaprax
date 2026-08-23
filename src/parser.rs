@@ -505,10 +505,7 @@ impl Parser {
             self.expect(&TokenKind::Arrow, "`->` before return type")?;
             let return_type = self.ty()?;
             let end = self
-                .expect(
-                    &TokenKind::Semicolon,
-                    "`;` after protocol method signature",
-                )?
+                .expect(&TokenKind::Semicolon, "`;` after protocol method signature")?
                 .span;
             let method_explicit_id = method_id.is_some();
             let method_stable_id =
@@ -1482,10 +1479,10 @@ impl Parser {
 
     fn ty(&mut self) -> Result<Type, Diagnostic> {
         let (name, _) = self.qualified_ident("type")?;
-    let is_primitive = matches!(
-        name.as_str(),
-        "i64" | "i32" | "u8" | "char" | "f32" | "f64" | "bool" | "string"
-    );
+        let is_primitive = matches!(
+            name.as_str(),
+            "i64" | "i32" | "u8" | "char" | "f32" | "f64" | "bool" | "string"
+        );
         if is_primitive && self.at(&TokenKind::Lt) {
             return Err(self.error_here(
                 "SPX-P106",

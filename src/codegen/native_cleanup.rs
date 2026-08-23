@@ -493,7 +493,8 @@ fn validate_program_types(
 ) -> Result<(), Diagnostic> {
     for declaration in &program.types {
         match &declaration.kind {
-            ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. } => {
+            ResolvedTypeDeclarationKind::Record { .. }
+            | ResolvedTypeDeclarationKind::Class { .. } => {
                 return Err(unsupported(
                     function,
                     format!("does not support record declaration `{}`", declaration.id),
@@ -587,7 +588,8 @@ fn validate_supported_type(
                 ResolvedTypeDeclarationKind::Resource { drop } => {
                     validate_trivial_drop(function, &drop.id, &drop.kind)
                 }
-                ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. } => Err(unsupported(
+                ResolvedTypeDeclarationKind::Record { .. }
+                | ResolvedTypeDeclarationKind::Class { .. } => Err(unsupported(
                     function,
                     format!("uses record type `{declaration}`"),
                 )),
@@ -630,10 +632,12 @@ fn direct_resource_lifecycle<'a>(
         .ok_or_else(|| unsupported(function, format!("references unknown type `{declaration}`")))?;
     match &item.kind {
         ResolvedTypeDeclarationKind::Resource { drop } => Ok(&drop.id),
-        ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. } => Err(unsupported(
-            function,
-            format!("{context} `{declaration}` is not an opaque resource"),
-        )),
+        ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. } => {
+            Err(unsupported(
+                function,
+                format!("{context} `{declaration}` is not an opaque resource"),
+            ))
+        }
         ResolvedTypeDeclarationKind::Variant { .. } => Err(unsupported(
             function,
             format!("{context} `{declaration}` is not an opaque resource"),

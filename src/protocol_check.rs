@@ -140,9 +140,7 @@ fn signature_error(protocol: &str, method: &str, message: String) -> Diagnostic 
 fn collision_error(stable_id: &str) -> Diagnostic {
     Diagnostic::io(
         "SPX-Q105",
-        format!(
-            "protocol identity `{stable_id}` collides with another declaration identity"
-        ),
+        format!("protocol identity `{stable_id}` collides with another declaration identity"),
     )
 }
 
@@ -563,7 +561,9 @@ pub fn verify_envelope(envelope: &str) -> Result<VerifiedProtocols, Diagnostic> 
         )));
     }
     if object["schema"].as_str() != Some(SCHEMA) {
-        return Err(consistency_error(format!("envelope schema must be {SCHEMA}")));
+        return Err(consistency_error(format!(
+            "envelope schema must be {SCHEMA}"
+        )));
     }
     let Some(envelope_digest) = object["digest"].as_str() else {
         return Err(consistency_error(
@@ -605,7 +605,9 @@ pub fn verify_envelope(envelope: &str) -> Result<VerifiedProtocols, Diagnostic> 
     let payload_value: serde_json::Value = serde_json::from_str(payload)
         .map_err(|error| consistency_error(format!("payload is not valid JSON: {error}")))?;
     if payload_value["schema"].as_str() != Some(SCHEMA) {
-        return Err(consistency_error(format!("payload schema must be {SCHEMA}")));
+        return Err(consistency_error(format!(
+            "payload schema must be {SCHEMA}"
+        )));
     }
     const PAYLOAD_KEYS: [&str; 12] = [
         "conformance",
@@ -737,7 +739,9 @@ pub fn verify_envelope(envelope: &str) -> Result<VerifiedProtocols, Diagnostic> 
         }
         previous_protocol = Some(stable_id);
         let Some(name) = protocol["name"].as_str() else {
-            return Err(consistency_error("protocol name must be a string".to_owned()));
+            return Err(consistency_error(
+                "protocol name must be a string".to_owned(),
+            ));
         };
         check_identity(protocol, stable_id)?;
         let methods = protocol["methods"]
@@ -797,13 +801,15 @@ pub fn verify_envelope(envelope: &str) -> Result<VerifiedProtocols, Diagnostic> 
             methods: verified_methods,
         });
     }
-    Ok(VerifiedProtocols { protocols: verified })
+    Ok(VerifiedProtocols {
+        protocols: verified,
+    })
 }
 
 fn check_identity(entry: &serde_json::Value, stable_id: &str) -> Result<(), Diagnostic> {
-    let origin = entry["identity_origin"].as_str().ok_or_else(|| {
-        consistency_error(format!("identity of `{stable_id}` must be a string"))
-    })?;
+    let origin = entry["identity_origin"]
+        .as_str()
+        .ok_or_else(|| consistency_error(format!("identity of `{stable_id}` must be a string")))?;
     let persistent = entry["persistent"].as_bool().ok_or_else(|| {
         consistency_error(format!("persistence of `{stable_id}` must be a boolean"))
     })?;

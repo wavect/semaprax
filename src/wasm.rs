@@ -426,11 +426,7 @@ fn emit_resolved_module_internal(
         SCALAR_IMPORT_COUNT
     } else {
         SCALAR_IMPORT_COUNT + owned::IMPORT_NAMES.len() as u32
-    } + if uses_strings {
-        STRING_IMPORT_COUNT
-    } else {
-        0
-    };
+    } + if uses_strings { STRING_IMPORT_COUNT } else { 0 };
     let mut types = Vec::<Signature>::new();
     let mut type_indexes = HashMap::<Signature, u32>::new();
     let binary_checked = intern_type(
@@ -706,8 +702,7 @@ fn emit_resolved_module_internal(
 
     let mut exports = crate::bounded_output::CappedVec::new();
     let legacy_export_count = if scalar_exports.is_empty() {
-        1 + owned_plans.len() as u32
-            + u32::from(!owned_plans.is_empty() || uses_strings)
+        1 + owned_plans.len() as u32 + u32::from(!owned_plans.is_empty() || uses_strings)
     } else {
         0
     };
@@ -1898,8 +1893,22 @@ fn emit_expr(
                         "string operands only support equality comparison",
                     ));
                 }
-                emit_expr(output, left, value_indexes, function_indexes, layout, result)?;
-                emit_expr(output, right, value_indexes, function_indexes, layout, result)?;
+                emit_expr(
+                    output,
+                    left,
+                    value_indexes,
+                    function_indexes,
+                    layout,
+                    result,
+                )?;
+                emit_expr(
+                    output,
+                    right,
+                    value_indexes,
+                    function_indexes,
+                    layout,
+                    result,
+                )?;
                 call_import(output, STRING_IMPORT_BASE_EQ);
                 if *op == BinaryOp::Ne {
                     output.push(0x45); // i32.eqz keeps bool results exact

@@ -457,7 +457,12 @@ fn ast_expr_identity_slots(expression: &Expr) -> Result<usize, Vec<Diagnostic>> 
                 slots = checked_builder_sum(slots, ast_expr_identity_slots(argument)?)?;
             }
         }
-        ExprKind::MethodCall { receiver, type_arguments, args, .. } => {
+        ExprKind::MethodCall {
+            receiver,
+            type_arguments,
+            args,
+            ..
+        } => {
             for ty in type_arguments {
                 slots = checked_builder_sum(slots, ast_type_identity_slots(ty)?)?;
             }
@@ -538,7 +543,8 @@ fn ast_expr_identity_slots(expression: &Expr) -> Result<usize, Vec<Diagnostic>> 
         | ExprKind::Uint8(_)
         | ExprKind::Float32(_)
         | ExprKind::Float64(_)
-        | ExprKind::Bool(_) | ExprKind::String(_)
+        | ExprKind::Bool(_)
+        | ExprKind::String(_)
         | ExprKind::Var(_) => {}
     }
     Ok(slots)
@@ -801,7 +807,8 @@ fn ast_expr_cost(expression: &Expr, cost: &mut StructuralCost) -> Result<(), Vec
         | ExprKind::Uint8(_)
         | ExprKind::Float32(_)
         | ExprKind::Float64(_)
-        | ExprKind::Bool(_) | ExprKind::String(_) => {}
+        | ExprKind::Bool(_)
+        | ExprKind::String(_) => {}
     }
     Ok(())
 }
@@ -872,12 +879,17 @@ fn default_expr_expanded_cost(
     visiting: &mut BTreeSet<String>,
 ) -> Result<ExpandedDefaultCost, Vec<Diagnostic>> {
     match ty {
-        Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64 | Type::Bool | Type::String => {
-            Ok(ExpandedDefaultCost {
-                bytes: std::mem::size_of::<Expr>(),
-                identity_slots: 0,
-            })
-        }
+        Type::I64
+        | Type::I32
+        | Type::Char
+        | Type::U8
+        | Type::F32
+        | Type::F64
+        | Type::Bool
+        | Type::String => Ok(ExpandedDefaultCost {
+            bytes: std::mem::size_of::<Expr>(),
+            identity_slots: 0,
+        }),
         Type::Named { name, arguments } if arguments.is_empty() => {
             let target_id = resolve_type_id(module, name, programs).ok_or_else(|| {
                 vec![graph_error(
@@ -2057,7 +2069,8 @@ fn collect_expression_type_edges(
         | ExprKind::Uint8(_)
         | ExprKind::Float32(_)
         | ExprKind::Float64(_)
-        | ExprKind::Bool(_) | ExprKind::String(_)
+        | ExprKind::Bool(_)
+        | ExprKind::String(_)
         | ExprKind::Var(_) => {}
     }
     Ok(())

@@ -630,7 +630,8 @@ fn precheck_program(program: &Program) -> Result<AstUsage, Vec<Diagnostic>> {
             | ExprKind::Uint8(_)
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
-            | ExprKind::Bool(_) | ExprKind::String(_)
+            | ExprKind::Bool(_)
+            | ExprKind::String(_)
             | ExprKind::Var(_) => {}
             ExprKind::Call { args, .. } => {
                 call_sites += 1;

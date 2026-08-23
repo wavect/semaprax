@@ -113,12 +113,11 @@ fn remint_digest(tampered_envelope: &str) -> String {
 #[test]
 fn golden_fixture_envelope_digest_is_pinned() {
     let options = ProtocolCheckOptions::default();
-    let envelope =
-        protocol_check::generate(Path::new(FIXTURE_PATH), &options).expect("envelope");
+    let envelope = protocol_check::generate(Path::new(FIXTURE_PATH), &options).expect("envelope");
     assert!(envelope.contains("\"schema\":\"semaprax.protocol.v1\""));
-    assert!(envelope.contains(
-        "\"module\":\"demo.proto\",\"protocols_total\":1,\"methods_total\":2"
-    ));
+    assert!(
+        envelope.contains("\"module\":\"demo.proto\",\"protocols_total\":1,\"methods_total\":2")
+    );
     assert!(envelope.contains(
         "\"conformance\":{\"admitted\":0,\"candidates_considered\":1,\
 \"closed_reason\":\"no_impl_declarations_in_v1\"},\"conformances\":[]"
@@ -139,8 +138,7 @@ fn generation_is_deterministic_and_replayable() {
     cleanup(&path);
 
     // The relative-path fixture replays to identical structure.
-    let fixture_envelope =
-        protocol_check::generate(Path::new(FIXTURE_PATH), &options).unwrap();
+    let fixture_envelope = protocol_check::generate(Path::new(FIXTURE_PATH), &options).unwrap();
     let verified = protocol_check::verify_envelope(&fixture_envelope).expect("replays");
     assert_eq!(verified.protocols.len(), 1);
     let shape = &verified.protocols[0];
@@ -170,7 +168,10 @@ fn canonical_formatting_round_trips_protocols() {
     let (status, _, stderr) = cli(&["fmt", path.to_str().unwrap()]);
     assert_eq!(status, 0, "fmt failed: {stderr}");
     let (status, _, stderr) = cli(&["fmt", path.to_str().unwrap(), "--check"]);
-    assert_eq!(status, 0, "canonical protocols must pass fmt --check: {stderr}");
+    assert_eq!(
+        status, 0,
+        "canonical protocols must pass fmt --check: {stderr}"
+    );
 
     // The canonical form re-parses to an identical projection envelope.
     let options = ProtocolCheckOptions::default();
@@ -188,8 +189,7 @@ fn digest_tampering_fails_closed() {
     let envelope = protocol_check::generate(&path, &ProtocolCheckOptions::default()).unwrap();
 
     // Flip one digest character in place (no unsafe).
-    let position = envelope.find("\"digest\":\"sha256:").unwrap()
-        + "\"digest\":\"sha256:".len();
+    let position = envelope.find("\"digest\":\"sha256:").unwrap() + "\"digest\":\"sha256:".len();
     let flipped = if envelope.as_bytes()[position] == b'0' {
         '1'
     } else {

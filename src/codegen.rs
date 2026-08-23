@@ -1073,7 +1073,10 @@ fn program_uses_strings(program: &ResolvedProgram) -> bool {
     let mut pending: Vec<&ResolvedExpr> = Vec::new();
     for function in &program.functions {
         if matches!(function.return_type, ResolvedType::String)
-            || function.params.iter().any(|param| matches!(param.ty, ResolvedType::String))
+            || function
+                .params
+                .iter()
+                .any(|param| matches!(param.ty, ResolvedType::String))
         {
             return true;
         }

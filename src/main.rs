@@ -6,10 +6,10 @@ use semaprax::{
     abi_report, agent_economics, agent_transport, c_header, capability_manifest, codegen, cxx_shim,
     format, freestanding_object, graph, hygienic, impact, interpreter, openapi, package_report,
     parse, patch, patch_evidence, plugin_manifest, project, properties, protocol_check,
-    quality_route, region_report, repair, review, semantic_workspace,
-    semantic_workspace_change, semantic_workspace_operations,
-    semantic_workspace_structural_change, simd_report, target_evidence, ui_schema, verify, wasm,
-    workspace, workspace_analysis, workspace_graph, workspace_patch_evidence,
+    quality_route, region_report, repair, review, semantic_workspace, semantic_workspace_change,
+    semantic_workspace_operations, semantic_workspace_structural_change, simd_report,
+    target_evidence, ui_schema, verify, wasm, workspace, workspace_analysis, workspace_graph,
+    workspace_patch_evidence,
 };
 
 fn main() -> ExitCode {

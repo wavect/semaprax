@@ -238,7 +238,8 @@ fn validate_public_result_type(
             Ok(())
         }
         Some(
-            ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. }
+            ResolvedTypeDeclarationKind::Record { .. }
+            | ResolvedTypeDeclarationKind::Class { .. }
             | ResolvedTypeDeclarationKind::Variant { .. },
         )
         | None => Err(CleanupExecutionError::UnsupportedResultType(
@@ -327,7 +328,8 @@ fn collect_variant_domains(
                     .and_then(|item| match &item.kind {
                         ResolvedTypeDeclarationKind::Variant { cases } => Some(cases),
                         ResolvedTypeDeclarationKind::Resource { .. }
-                        | ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. } => None,
+                        | ResolvedTypeDeclarationKind::Record { .. }
+                        | ResolvedTypeDeclarationKind::Class { .. } => None,
                     })
                     .ok_or_else(|| {
                         invariant(format!(
@@ -376,7 +378,8 @@ fn collect_variant_domains(
                     .and_then(|item| match &item.kind {
                         ResolvedTypeDeclarationKind::Variant { cases } => Some(cases),
                         ResolvedTypeDeclarationKind::Resource { .. }
-                        | ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. } => None,
+                        | ResolvedTypeDeclarationKind::Record { .. }
+                        | ResolvedTypeDeclarationKind::Class { .. } => None,
                     })
                     .ok_or_else(|| {
                         invariant(format!(
@@ -1264,7 +1267,7 @@ impl<'a> Executor<'a> {
             | (CleanupResultSource::Scalar { .. }, ResolvedType::Unit)
             | (CleanupResultSource::Scalar { .. }, ResolvedType::String)
             | (CleanupResultSource::Owned { .. }, ResolvedType::Unit)
-            |             (
+            | (
                 CleanupResultSource::Owned { .. },
                 ResolvedType::I64
                 | ResolvedType::I32

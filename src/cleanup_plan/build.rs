@@ -751,7 +751,9 @@ impl<'a> PlanBuilder<'a> {
             .declarations
             .type_facts(ty)
             .map(|facts| facts.needs_drop)
-            .ok_or_else(|| plan_error(format!("type `{}` has no cleanup facts", ty.identity_key())))?
+            .ok_or_else(|| {
+                plan_error(format!("type `{}` has no cleanup facts", ty.identity_key()))
+            })?
             && !matches!(ty, ResolvedType::String))
     }
 
@@ -846,7 +848,8 @@ impl<'a> PlanBuilder<'a> {
                     lifecycle: drop.id.clone(),
                 })
             }
-            ResolvedTypeDeclarationKind::Record { fields } | ResolvedTypeDeclarationKind::Class { fields, .. } => {
+            ResolvedTypeDeclarationKind::Record { fields }
+            | ResolvedTypeDeclarationKind::Class { fields, .. } => {
                 let mut shapes = Vec::with_capacity(fields.len());
                 for field in fields {
                     projections.push(field.id.clone());

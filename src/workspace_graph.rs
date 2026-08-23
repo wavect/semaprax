@@ -4396,7 +4396,8 @@ fn authenticated_declaration_fingerprints(
                         )?;
                     }
                 }
-                TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } => {
+                TypeDeclarationKind::Record { fields }
+                | TypeDeclarationKind::Class { fields, .. } => {
                     for field in fields {
                         insert_declaration_fingerprint(
                             &mut fingerprints,
@@ -5641,7 +5642,8 @@ fn index_authored(
                         }
                     }
                 }
-                TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } => {
+                TypeDeclarationKind::Record { fields }
+                | TypeDeclarationKind::Class { fields, .. } => {
                     for field in fields {
                         insert_other(&mut declarations, &field.stable_id, program)?;
                     }
@@ -6603,7 +6605,8 @@ fn expected_declaration_facts(
                         Some(&declaration.stable_id),
                     )?;
                 }
-                TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } => {
+                TypeDeclarationKind::Record { fields }
+                | TypeDeclarationKind::Class { fields, .. } => {
                     for field in fields {
                         insert_expected_declaration(
                             &mut facts,

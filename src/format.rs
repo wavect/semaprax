@@ -741,13 +741,10 @@ fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> usize {
             | ExprKind::Uint8(_)
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
-            | ExprKind::Bool(_) | ExprKind::String(_) => {}
+            | ExprKind::Bool(_)
+            | ExprKind::String(_) => {}
             ExprKind::Var(name) => total = total.saturating_add(name.len()),
-            ExprKind::MethodCall {
-                receiver,
-                args,
-                ..
-            } => {
+            ExprKind::MethodCall { receiver, args, .. } => {
                 let joined = joined_len(
                     args.iter().map(|argument| rendered_expr_len(argument, 0)),
                     args.len(),
@@ -1257,7 +1254,12 @@ fn write_expr(output: &mut impl std::fmt::Write, value: &Expr, parent_precedence
                     if delimited {
                         output.write_char('(').unwrap();
                     }
-                    frames.push(Frame::MethodCallSuffix(method, type_arguments, args, delimited));
+                    frames.push(Frame::MethodCallSuffix(
+                        method,
+                        type_arguments,
+                        args,
+                        delimited,
+                    ));
                     frames.push(Frame::Expr(receiver, if delimited { 0 } else { 8 }));
                 }
             },
@@ -1615,7 +1617,8 @@ fn contains_record_construction(value: &Expr) -> bool {
             | ExprKind::Uint8(_)
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
-            | ExprKind::Bool(_) | ExprKind::String(_)
+            | ExprKind::Bool(_)
+            | ExprKind::String(_)
             | ExprKind::Var(_) => None,
         }
     }

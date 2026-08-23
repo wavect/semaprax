@@ -1573,7 +1573,9 @@ impl DeclarationIndex {
             .at_path(&program.path));
         }
         for declaration in program.types.iter().chain(crate::prelude::declarations()) {
-            let (TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. }) = &declaration.kind else {
+            let (TypeDeclarationKind::Record { fields }
+            | TypeDeclarationKind::Class { fields, .. }) = &declaration.kind
+            else {
                 continue;
             };
             let owner = DeclarationId::new(declaration.stable_id.clone());
@@ -1685,7 +1687,10 @@ impl DeclarationIndex {
                 if !method.type_parameters.is_empty() {
                     return Err(Diagnostic::error(
                         "SPX-T224",
-                        format!("class method `{}` cannot declare generic parameters in this slice", method.name),
+                        format!(
+                            "class method `{}` cannot declare generic parameters in this slice",
+                            method.name
+                        ),
                         method.span,
                     )
                     .at_path(&program.path));
@@ -3364,7 +3369,8 @@ fn validate_nul_free_identities(program: &ResolvedProgram) -> Result<(), Diagnos
     for declaration in &program.types {
         let subject = match declaration.kind {
             ResolvedTypeDeclarationKind::Resource { .. } => "resolved resource",
-            ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. } => "resolved record",
+            ResolvedTypeDeclarationKind::Record { .. }
+            | ResolvedTypeDeclarationKind::Class { .. } => "resolved record",
             ResolvedTypeDeclarationKind::Variant { .. } => "resolved variant",
         };
         reject_nul_identity(subject, declaration.id.as_str())?;
@@ -3376,7 +3382,8 @@ fn validate_nul_free_identities(program: &ResolvedProgram) -> Result<(), Diagnos
                     reject_nul_identity("resolved lifecycle logical import key", import_key)?;
                 }
             }
-            ResolvedTypeDeclarationKind::Record { fields } | ResolvedTypeDeclarationKind::Class { fields, .. } => {
+            ResolvedTypeDeclarationKind::Record { fields }
+            | ResolvedTypeDeclarationKind::Class { fields, .. } => {
                 for field in fields {
                     reject_nul_identity("resolved field", field.id.as_str())?;
                     audit_resolved_type(&field.ty)?;
@@ -3999,7 +4006,8 @@ fn resolved_lifecycle_effects(
                     effects.extend(resolved.effects.iter().cloned());
                 }
             }
-            ResolvedTypeDeclarationKind::Record { fields } | ResolvedTypeDeclarationKind::Class { fields, .. } => {
+            ResolvedTypeDeclarationKind::Record { fields }
+            | ResolvedTypeDeclarationKind::Class { fields, .. } => {
                 for field in fields {
                     collect(program, &field.ty, visiting, effects)?;
                 }
@@ -4521,7 +4529,10 @@ impl Resolver<'_> {
 
     fn validate_record_layouts(&self) -> Result<(), Diagnostic> {
         for declaration in &self.program.types {
-            if !matches!(&declaration.kind, TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. }) {
+            if !matches!(
+                &declaration.kind,
+                TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. }
+            ) {
                 continue;
             }
             if !declaration.type_parameters.is_empty() {
@@ -5971,7 +5982,9 @@ impl Resolver<'_> {
                         }) {
                             return Err(self.error(
                                 "SPX-H001",
-                                format!("constructor target `{type_name}` is not a record or class"),
+                                format!(
+                                    "constructor target `{type_name}` is not a record or class"
+                                ),
                                 expr.span,
                             ));
                         }
@@ -7412,7 +7425,9 @@ impl Resolver<'_> {
                     if class_decl.kind != DeclarationKind::Class {
                         return Err(self.error(
                             "SPX-H001",
-                            format!("method `{method}` requires a class receiver, found `{class_id}`"),
+                            format!(
+                                "method `{method}` requires a class receiver, found `{class_id}`"
+                            ),
                             span,
                         ));
                     }
@@ -7441,12 +7456,14 @@ impl Resolver<'_> {
                             self.error("SPX-H006", format!("class `{class_id}` has no AST"), span)
                         })?;
                     let TypeDeclarationKind::Class { methods, .. } = &class_ast.kind else {
-                        return Err(self.error("SPX-H006", format!("`{class_id}` is not a class"), span));
+                        return Err(self.error(
+                            "SPX-H006",
+                            format!("`{class_id}` is not a class"),
+                            span,
+                        ));
                     };
-                    let method_ast = methods
-                        .iter()
-                        .find(|m| m.name == *method)
-                        .ok_or_else(|| {
+                    let method_ast =
+                        methods.iter().find(|m| m.name == *method).ok_or_else(|| {
                             self.error(
                                 "SPX-H001",
                                 format!("unresolved method `{method}` on class `{class_id}`"),
@@ -7796,9 +7813,7 @@ impl Resolver<'_> {
                 if class_decl.kind != DeclarationKind::Class {
                     return Err(self.error(
                         "SPX-H001",
-                        format!(
-                            "method `{method}` requires a class receiver, found `{class_id}`"
-                        ),
+                        format!("method `{method}` requires a class receiver, found `{class_id}`"),
                         expr.span,
                     ));
                 }
@@ -7824,12 +7839,18 @@ impl Resolver<'_> {
                     .iter()
                     .find(|t| t.stable_id == class_id.as_str())
                     .ok_or_else(|| {
-                        self.error("SPX-H006", format!("class `{class_id}` has no AST"), expr.span)
+                        self.error(
+                            "SPX-H006",
+                            format!("class `{class_id}` has no AST"),
+                            expr.span,
+                        )
                     })?;
                 let TypeDeclarationKind::Class { methods, .. } = &class_ast.kind else {
-                    return Err(
-                        self.error("SPX-H006", format!("`{class_id}` is not a class"), expr.span)
-                    );
+                    return Err(self.error(
+                        "SPX-H006",
+                        format!("`{class_id}` is not a class"),
+                        expr.span,
+                    ));
                 };
                 let method_ast = methods.iter().find(|m| m.name == *method).ok_or_else(|| {
                     self.error(
@@ -7914,7 +7935,8 @@ impl Resolver<'_> {
                 // The general expression-frame conversion handles the other
                 // recursive families separately; this fast path preserves the
                 // exact canonical `.value` identity chain.
-                let mut unary = Vec::new();                unary.push((*op, expr.span, path.to_owned()));
+                let mut unary = Vec::new();
+                unary.push((*op, expr.span, path.to_owned()));
                 let mut leaf = value.as_ref();
                 let mut leaf_path = format!("{path}.value");
                 while let ExprKind::Unary { op, value } = &leaf.kind {
@@ -8159,11 +8181,9 @@ impl Resolver<'_> {
                             expr.span,
                         )
                     })?;
-                if self
-                    .declarations
-                    .declaration(&record)
-                    .is_none_or(|item| !matches!(item.kind, DeclarationKind::Record | DeclarationKind::Class))
-                {
+                if self.declarations.declaration(&record).is_none_or(|item| {
+                    !matches!(item.kind, DeclarationKind::Record | DeclarationKind::Class)
+                }) {
                     return Err(self.error(
                         "SPX-H001",
                         format!("constructor target `{type_name}` is not a record or class"),

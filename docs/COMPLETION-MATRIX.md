@@ -207,7 +207,6 @@ envelopes, budget fail-closed behavior, and CLI exit codes are green locally in
 `tests/region_report_v1.rs`. It implements no region inference, adds no region
 annotation syntax, introduces no arena runtime behavior, changes no destructor
 behavior, executes nothing, and changes no source. Current totals are 53
-=======
 [Deterministic Scoped Task Model v1](SCOPED-TASKS-V1.md) is a locally evidenced
 hidden proof-model tranche (`src/scoped_tasks.rs`,
 `tests/scoped_tasks_model_v1.rs`) in the exact `native_settlement` style: a
@@ -243,8 +242,29 @@ hostile rejections (foreign-zone release, double release, unbalanced exit),
 inventory-permutation determinism, and byte-pinned domain-separated canonical
 JSON are pinned in `tests/arc_zones_model_v1.rs`. It performs no runtime RC
 integration, adds no language syntax or compiler/backend change, executes no
-target, and claims no real allocation behavior. Current totals are 53 Partial/3
-Missing.
+target, and claims no real allocation behavior. Current totals are 55
+Partial/1 Missing.
+[Portable SIMD Eligibility Report v1](SIMD-REPORT-V1.md) is a locally
+evidenced read-only analysis tranche (`semaprax simd-report <file>
+[--max-bytes N]`, `semaprax.simd-report.v1`) that moves only the SIMD and GPU
+row from Missing to Partial: per admitted explicit-ID monomorphic effect-free
+scalar function of one verified module it reports every maximal pure
+straight-line arithmetic sub-expression over `i64`/`i32`/`u8`/`f32`/`f64`
+derived from the real resolved HIR nodes with its proposed portable lane
+width (2/4/8 under a fixed 128-bit lane model with a documented deterministic
+largest-feasible-first rule), the closed portable lane-operation mapping
+table, effect-freedom justification facts, and an explicit closed
+ineligibility reason for every non-covered expression (calls, contracts,
+division/remainder, bool mixing, char ops, mutation targets, computed
+operands, control flow, aggregate operations, scalar leaves); independent
+digest replay re-derives counts, vocabularies, ordering, per-region digests,
+and width feasibility, so forged-but-re-signed envelopes fail closed
+(`SPX-V101`-`SPX-V103`). Pinned KATs, determinism, budget fail-closed
+behavior, CLI exit codes, and cross-consistency against real HIR nodes are
+green locally in `tests/simd_report_v1.rs`. It emits no SIMD codegen or
+intrinsics, no SPIR-V/WebGPU/GPU kernels, makes no autovectorization claim,
+executes no target, and changes no source. Current totals are 56
+Partial/0 Missing.
 
 Status values:
 
@@ -800,7 +820,7 @@ exactly 39 Partial and 17 Missing.
 | Optimizing native lane | Partial | Validated stable-ID HIR lowers to sequenced C11/Clang AOT, including bounded explicitly instantiated generic Copy functions with exact template-plus-ordered-argument symbols, public nested scalar records, exact-instance generic Copy records, bounded irrefutable Copy-record patterns, and bounded copy variants/matches. Local generic-function O0/O2 execution proves exact instance separation, contracts, failure order, and poison; the hosted matrix is green in [run 31385406865, Ubuntu job 93445428338](https://github.com/wavect/semaprax/actions/runs/31385406865/job/93445428338). Existing callable/resource hosted evidence remains separately bounded | Public resource execution/admission, stable public aggregate ABI, generic inference/constraints/richer signatures, refutable/non-Copy matching, general fallback cleanup/quiescence, Android/iOS profiles, LLVM/MLIR lowering, LTO/PGO, cross-compilation, CPU specialization, debug/release parity, and reproducibility verified |
 | WebAssembly core/components | Partial | Validated stable-ID HIR lowers to direct Wasm core with bounded explicit generic Copy functions, public nested scalar and exact-instance generic Copy records, bounded record patterns, generic/prelude variants, and typed propagation. Generic functions have deterministic exact indices, failure-order/poison evidence, and 4,096-call local Node re-entry; the hosted matrix is green in [run 31385406865, Ubuntu job 93445428338](https://github.com/wavect/semaprax/actions/runs/31385406865/job/93445428338). Public Wasm Scalar Exports v1 adds a separate fail-closed `semaprax.web.v4` profile: selected explicit-ID monomorphic `i64`/`bool` adapters only, stable collision-free symbols, canonical bool boundaries, digest-authenticated Wasm, deterministic JS/TS artifacts, Node execution, pinned-TypeScript/Chromium execution, closed arithmetic/contract status normalization, and stable-ID rename preservation; its Chromium/TypeScript job is hosted green at `d883ace579bfd86f723cdc6819224fde51f0677d` in [run 32523952912, job 96901973072](https://github.com/wavect/semaprax/actions/runs/32523952912/job/96901973072). Legacy web-v3 output remains the default without `--export`. Existing owned-Wasm and private Component v3-v10 evidence remains separately bounded and unchanged | WASI, aggregate/resource/generic public exports, imports, async/capabilities, additional browser-engine conformance, general source-language algebraic Component mapping, general canonical resource ABI, stable public aggregate ABI, callable/FFI aggregate signatures, sandboxing, cross-realm/worker identity, public Component API/ABI, and production native-host/Wasm conformance verified |
 | Embedded and real-time | Partial | [Freestanding Object Profile v1](FREESTANDING-V1.md) adds the read-only `semaprax freestanding-object <file>` projection: one verified effect-free scalar module per invocation, one deterministic canonical `semaprax.freestanding.v1` envelope whose translation-unit bytes derive from the production native C11 projection with the host entry wrapper, stdio/stdlib includes, and public-failure reporter excluded and with recorded invariant-failstop and external-linkage substitutions; explicit no-runtime/no-allocation/no-blocking/no-libc-dependency assertions are recomputed from textual checks and replayed during independent digest verification; closed `SPX-A101`-`SPX-A104` fail-closed diagnostics; pinned envelope/unit KATs, determinism, per-field tamper rejection including forged-but-re-signed payloads, admission rejections, CLI exit codes, and a real toolchain gate compiling the emitted bytes into `-ffreestanding -nostdlib` relocatable objects with `nm`-verified symbol surface bounded by the declared allowed set (`memcpy`, `strcmp`) green locally in `tests/freestanding_object_v1.rs`. No MMIO/volatile/atomics support, linker-script control, hardware/emulator execution, interrupt/RTOS model, or board targets are claimed | Bare-metal artifacts beyond one relocatable-object scalar profile, MMIO/volatile/atomics, linker control, and hardware/emulator tests verified |
-| SIMD and GPU | Missing | — | Portable SIMD plus SPIR-V/WebGPU/platform kernels and memory/effect rules verified |
+| SIMD and GPU | Partial | [Portable SIMD Eligibility Report v1](SIMD-REPORT-V1.md) adds the read-only `semaprax simd-report <file> [--max-bytes N]` analysis: per admitted explicit-ID monomorphic effect-free scalar function of one verified module, one deterministic canonical `semaprax.simd-report.v1` envelope lists every maximal pure straight-line arithmetic sub-expression over `i64`/`i32`/`u8`/`f32`/`f64` (derived from the real resolved HIR nodes, with element type, operator/leaf counts, closed portable operation sequence in post-order evaluation order, and a proposed portable lane width of 2/4/8 selected by the documented deterministic largest-feasible-first rule under the fixed 128-bit lane model ceilings `i64`/`f64`→2, `i32`/`f32`→4, `u8`→8), effect-freedom justification facts with exact call/assignment counts, an explicit closed ineligibility reason for every non-covered expression (`call`, `contract`, `division_remainder`, `bool_mixing`, `char_operation`, `mutation_target`, `computed_operand`, `control_flow`, `aggregate_operation`, `scalar_leaf`), five closed function-admission exclusion reasons, domain-separated SHA-256 digests over payload/source/every region root with independent replay verification, pinned KATs, determinism, budget fail-closed behavior, tamper rejection including forged-but-re-signed envelopes, CLI exit codes, and cross-consistency against real HIR nodes green locally in `tests/simd_report_v1.rs`. No SIMD codegen or intrinsics are emitted, no SPIR-V/WebGPU/GPU kernels exist, no autovectorization is claimed, no target is executed, and hosted promotion is not claimed | Portable SIMD lowering plus SPIR-V/WebGPU/platform kernels and memory/effect rules verified |
 
 ## Ecosystem interoperability
 

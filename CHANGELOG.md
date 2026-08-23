@@ -101,6 +101,49 @@
   cover the remaining state machine and error surface.
 
 >>>>>>> feat/arc-zones-v1
+- Added the locally evidenced Portable SIMD Eligibility Report v1 tranche,
+  the first executable slice of the completion-matrix row "SIMD and GPU".
+  The new read-only `semaprax simd-report <file.spx> [--max-bytes N]` command
+  and `simd_report` library API emit one deterministic canonical
+  digest-authenticated JSON envelope (`semaprax.simd-report.v1`) per verified
+  module: a static vectorization-eligibility analysis per admitted
+  explicit-ID monomorphic effect-free scalar function, derived exclusively
+  from the real resolved HIR nodes. Per function the report lists every
+  maximal pure straight-line arithmetic sub-expression over
+  `i64`/`i32`/`u8`/`f32`/`f64` (subtrees of `+`/`-`/`*`/unary `-` whose
+  leaves are plain numeric literals or projection-free numeric places) with
+  element type, operator and leaf counts, the closed portable lane-operation
+  sequence in post-order evaluation order, a domain-separated per-region
+  SHA-256 over the exact rendered root text, and the proposed portable lane
+  width (2/4/8) selected by a documented deterministic largest-feasible-first
+  rule under the fixed 128-bit lane model ceilings `i64`/`f64`→2,
+  `i32`/`f32`→4, `u8`→8; plus effect-freedom justification facts with exact
+  call/assignment counts; plus an explicit closed ineligibility reason for
+  EVERY non-covered expression — `call`, `contract`,
+  `division_remainder`, `bool_mixing`, `char_operation`, `mutation_target`
+  (assignment stores are recorded once and never descended),
+  `computed_operand`, `control_flow`, `aggregate_operation`, `scalar_leaf` —
+  and five closed function-admission exclusion reasons
+  (`automatic_identity`, `generic_function`, `declared_effects`,
+  `unsupported_parameter_mode`, `non_scalar_signature`; scalar signatures
+  deliberately admit `i32`/`u8`/`f32`/`f64`/`bool`/`char` so their bodies are
+  analyzed honestly). `verify_envelope` independently replays bytes, shapes,
+  module counts, both closed vocabularies, the fixed lane model and portable
+  operation table, strict stable-ID ordering, index continuity, per-region
+  digests, lane-width feasibility, operator-count agreement, effect-freedom
+  consistency, and fixed nonclaims. Diagnostics use the previously unused
+  `SPX-V1xx` family (options `SPX-V101`, fail-closed budget exhaustion
+  `SPX-V102`, envelope/HIR consistency `SPX-V103`). `tests/simd_report_v1.rs`
+  proves pinned golden KATs over `examples/calculator.spx` and
+  `examples/meaning.spx`, byte-identical determinism, every function and
+  expression reason exercised, lane-ceiling/tie-break coverage, tamper
+  rejection per digest field including forged-but-re-signed envelopes caught
+  by replay, source-drift binding, budget exhaustion, CLI exit codes, and
+  cross-consistency proving reported region operators equal the real
+  Add/Sub/Mul/Neg HIR nodes of the same program while division entries equal
+  its real Div/Rem nodes. No SIMD codegen or intrinsics are emitted, no
+  SPIR-V/WebGPU/GPU kernels exist, no autovectorization is claimed about any
+  backend, no target is executed, and no source is changed.
 - Added the locally evidenced Reference Interpreter v1 tranche, the first
   executable slice of the completion-matrix row "Fast development lane". The
   new `semaprax interpret <file> --function <name|stable-id> [--arg

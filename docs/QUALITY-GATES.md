@@ -317,10 +317,11 @@ archive admission gate remains mandatory and green. The mixed-inventory test
 stays in-tree behind `#[ignore]` carrying its probe evidence; hosted
 promotion of native-publication lanes remains held until this is
 root-caused and the gate returns to mandatory blocking status. The Windows
-minimal effectful public SDK build step carries the same non-blocking
-diagnostic classification because its publication boundary reproduces the
-identical `SPX-I233` ACCESS_DENIED signature; the Ubuntu and macOS SDK gates
-remain fully mandatory.
+minimal effectful public SDK build step, the Windows half of the final
+package/consumer/callback/backend-equivalence step, and the Windows-bounded
+A+B replay step carry the same non-blocking diagnostic classification because
+their publication boundaries reproduce the identical `SPX-I233` ACCESS_DENIED
+signature; the Ubuntu and macOS SDK gates remain fully mandatory.
 
 [Run 31320436726, job
 93262427248](https://github.com/wavect/semaprax/actions/runs/31320436726/job/93262427248)

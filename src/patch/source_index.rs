@@ -97,7 +97,7 @@ impl SemanticSourceIndex {
 
     fn member(&mut self, owner: &str, field: &str, span: Span, shorthand_binding: Option<String>) {
         match self.member_owners.entry(field.to_owned()) {
-            Entry::Occupied(mut occupied) => {
+            Entry::Occupied(occupied) => {
                 if occupied.get() != owner {
                     self.ambiguous_member_fields.insert(field.to_owned());
                 }

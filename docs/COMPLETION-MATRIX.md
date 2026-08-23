@@ -207,6 +207,24 @@ envelopes, budget fail-closed behavior, and CLI exit codes are green locally in
 `tests/region_report_v1.rs`. It implements no region inference, adds no region
 annotation syntax, introduces no arena runtime behavior, changes no destructor
 behavior, executes nothing, and changes no source. Current totals are 53
+=======
+[Deterministic Scoped Task Model v1](SCOPED-TASKS-V1.md) is a locally evidenced
+hidden proof-model tranche (`src/scoped_tasks.rs`,
+`tests/scoped_tasks_model_v1.rs`) in the exact `native_settlement` style: a
+deterministic target-neutral model of structured scoped concurrency whose
+bounded task DAG inside one strict scope tree, canonical stable-id sequential
+scheduling, sticky cancellation propagation (descendants cancel before any
+sibling starts new work while started work drains), children-before-parents
+cleanup in reverse completion order, first-failure stickiness with sibling
+draining, closed per-task `Sendable`/`Shareable` annotations, fail-closed
+structural hostility (escaping dependencies, double/orphan/missing joins,
+cycles, bounds, work budget), input-permutation determinism, and
+domain-separated canonical JSON trace digests are pinned by four KAT digests
+plus hostile, determinism, and serialization evidence. It adds no language
+syntax, no runtime threads or scheduler, no compiler/backend change, no real
+concurrency execution, and no `Sendable` checking of real programs; actors,
+reducers, synchronization, and verified schedulers remain open. It moves only
+the Structured concurrency row from Missing to Partial. Current totals are 53
 Partial/3 Missing.
 
 Status values:
@@ -752,7 +770,7 @@ exactly 39 Partial and 17 Missing.
 | Checked/wrapping/saturating arithmetic | Partial | Checked `i64` arithmetic in the C/Clang lane returns exact `semaprax.arithmetic.v1` statuses without internal process termination | Full numeric family, explicit alternative modes, SIMD behavior, and backend equivalence verified |
 | Effects and capabilities | Partial | Declared function effects, module permits, and call-edge propagation | Inference, parameterized capabilities, no ambient authority, handlers, dependency summaries, and platform manifests verified |
 | Contracts and progressive verification | Partial | Contract type checking and runtime guards. The additive read-only Property-Test Generation v1 tranche (`semaprax.properties`) now generates deterministic boundary-lattice plus seeded candidates from admitted scalar signatures, filters them through `requires`, evaluates bodies and interprocedural callees with checked semantics under one step budget, and reports exact `ensures` counterexamples in canonical digest-bound `semaprax.property-tests.v1` JSON; it performs no symbolic execution, static discharge, shrinking, or target execution and changes no status | Static discharge, bounded symbolic/SMT checks, counterexamples, invariants/state machines, property tests, and proof obligations verified |
-| Structured concurrency | Missing | — | Scoped tasks, cancellation, cleanup, `Sendable`/`Shareable`, deterministic scheduler, actors/reducers, and synchronization verified |
+| Structured concurrency | Partial | [Deterministic Scoped Task Model v1](SCOPED-TASKS-V1.md): locally evidenced hidden target-neutral proof model (`src/scoped_tasks.rs`, seven module units plus `tests/scoped_tasks_model_v1.rs`) with a bounded task DAG inside one strict scope tree, exactly-one-parent-join structural containment rejecting escape/double/orphan joins at construction, deterministic sequential scheduling in canonical stable-id order, sticky cancellation propagation before any sibling starts new work with running work draining, children-finalize-before-parents scope exit in reverse completion order, sticky first-failure selection with sibling draining and abandoned dependents, closed per-task `Sendable`/`Shareable` annotations, four pinned KAT trace digests (`c2c1ac40…`, `98a5bf2f…`, `b51cf73d…`, `051da660…`), permutation determinism, byte-pinned canonical JSON traces under domain-separated SHA-256 digests, and 4,096/65,536-count plus 1,000,000-work-unit fail-closed bounds; no runtime threads, scheduler, syntax, backend change, execution, or real-program `Sendable` checking is claimed | Scoped tasks, cancellation, cleanup, `Sendable`/`Shareable`, deterministic scheduler, actors/reducers, and synchronization verified |
 | Typed hygienic generation | Partial | The locally evidenced Typed Hygienic Generation v1 tranche (`semaprax hygienic-gen`, `semaprax.hygienic-gen.v1`): deterministic typed AST-to-AST synthesis of default constructors and scalar field accessors from admitted non-generic scalar records, real-verifier admission of the combined program, Graph-visible resolved identities for every generated declaration, stable-ID-derived `__gen_` names that survive rename-with-same-id and code movement, fail-closed hygiene (`SPX-Y102`/`SPX-Y103`) and envelope budgeting (`SPX-Y105`), digest-bound canonical JSON with fixed nonclaims; no textual rewriting, macros, cross-file scope, persistence, or target execution | Sandboxed generation with richer template families (variants, resources, generic records), cross-file generation through workspace transactions, generated-code provenance in patches/evidence, and platform-hosted execution evidence |
 
 ## Compiler and output targets

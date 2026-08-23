@@ -1,6 +1,5 @@
 # Changelog
 
-<<<<<<< HEAD
 - Added the locally evidenced Reference Interpreter v1 tranche, the first
   executable slice of the completion-matrix row "Fast development lane". The
   new `semaprax interpret <file> --function <name|stable-id> [--arg
@@ -84,7 +83,7 @@
   section reuses the Build Capability Manifest v1 derivation and helpers
   over the same closed five-domain vocabulary (module permits plus declared
   function and interface-import effects; unconsumed interface permits stay
-  checked-but-not-declared), failing closed with `SPX-N102` on any
+  checked-but-not-declared), failing closed with `SPX-Q102` on any
   out-of-vocabulary token. An explicit empty-by-default canonical
   resource-limits section, a closed five-entry unavailable-sections
   inventory, and fixed nonclaims state that the projection provides no
@@ -96,9 +95,10 @@
   counts, all closed sections, exclusion vocabulary, strict stable-id
   ordering, capability vocabulary, identity/version consistency, and every
   signature digest, so forged-but-re-signed mutations still fail closed.
-  Options (`SPX-N101`), out-of-vocabulary (`SPX-N102`), budget
-  (`SPX-N103`), and consistency (`SPX-N104`) diagnostics come from the
-  previously unused `SPX-N1xx` family. `tests/plugin_manifest_v1.rs` pins
+  Options (`SPX-Q101`), out-of-vocabulary (`SPX-Q102`), budget
+  (`SPX-Q103`), and consistency (`SPX-Q104`) diagnostics come from the
+  previously unused `SPX-Q1xx` family (renamed from a transient `SPX-N1xx`
+  choice that Unsafe Boundary Mechanics v1 already claimed). `tests/plugin_manifest_v1.rs` pins
   golden envelope KATs over two examples, determinism, every exclusion
   reason, independent digest recomputation, per-field tamper rejection
   including re-signed forgeries, budget exhaustion, source-drift fail-closed

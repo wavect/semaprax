@@ -304,7 +304,7 @@ fn out_of_vocabulary_capabilities_fail_generation_closed() {
     let outcome = plugin_manifest::generate(&path, &PluginManifestOptions::default());
     let errors = outcome.expect_err("out-of-vocabulary capabilities must fail closed");
     assert!(
-        errors.iter().any(|item| item.code == "SPX-N102"),
+        errors.iter().any(|item| item.code == "SPX-Q102"),
         "expected the closed-vocabulary diagnostic"
     );
     cleanup(&path);
@@ -370,7 +370,7 @@ resource Buffer {
     assert_ne!(foreign_reason, envelope);
     let error = plugin_manifest::verify_envelope(&remint_digest(&foreign_reason))
         .expect_err("foreign reason must fail replay");
-    assert_eq!(error.code, "SPX-N104");
+    assert_eq!(error.code, "SPX-Q104");
     cleanup(&path);
 }
 
@@ -390,7 +390,7 @@ fn verify_envelope_rejects_every_digest_field_tamper() {
     let resigned = remint_digest(&tampered_signature);
     let error = plugin_manifest::verify_envelope(&resigned)
         .expect_err("re-signed signature mutation must fail replay");
-    assert_eq!(error.code, "SPX-N104");
+    assert_eq!(error.code, "SPX-Q104");
 
     // Outer payload-digest field.
     const DIGEST_MARKER: &str = "\"digest\":\"sha256:";
@@ -417,7 +417,7 @@ fn verify_envelope_rejects_every_digest_field_tamper() {
     // identity/version consistency replay.
     let error = plugin_manifest::verify_envelope(&remint_digest(&forged_version))
         .expect_err("re-signed version forgery must fail replay");
-    assert_eq!(error.code, "SPX-N104");
+    assert_eq!(error.code, "SPX-Q104");
 
     // Contract text mutation breaks the exact payload bytes.
     let tampered_contract = envelope.replace("left >= 0", "left >= 1");
@@ -458,7 +458,7 @@ fn re_signed_closed_section_forgeries_fail_replay() {
     assert_ne!(forged_capability, envelope);
     let error = plugin_manifest::verify_envelope(&remint_digest(&forged_capability))
         .expect_err("undeclared capability flip must fail replay");
-    assert_eq!(error.code, "SPX-N104");
+    assert_eq!(error.code, "SPX-Q104");
 
     // An out-of-vocabulary token cannot be smuggled into the closed
     // inventory either.
@@ -559,7 +559,7 @@ fn source_drift_between_generation_and_validation_fails_closed() {
     // the new bytes.
     let error = plugin_manifest::verify_envelope_against_source(&first, &path)
         .expect_err("drift must fail the source binding");
-    assert_eq!(error.code, "SPX-N104");
+    assert_eq!(error.code, "SPX-Q104");
     cleanup(&path);
 }
 
@@ -572,7 +572,7 @@ fn budget_exhaustion_fails_closed_without_truncation() {
     let outcome = plugin_manifest::generate(&path, &tiny);
     let errors = outcome.expect_err("tiny budgets must fail closed");
     assert!(
-        errors.iter().any(|item| item.code == "SPX-N103"),
+        errors.iter().any(|item| item.code == "SPX-Q103"),
         "expected the byte-budget diagnostic"
     );
     cleanup(&path);
@@ -625,7 +625,7 @@ fn cli_rejects_bad_invocations() {
     // Out-of-bounds value.
     let (code, _, err) = cli(&["plugin-manifest", CALCULATOR_PATH, "--max-bytes", "512"]);
     assert_eq!(code, 2);
-    assert!(err.contains("SPX-N101"));
+    assert!(err.contains("SPX-Q101"));
     // Missing option value.
     let (code, _, _) = cli(&["plugin-manifest", CALCULATOR_PATH, "--max-bytes"]);
     assert_eq!(code, 2);
@@ -640,7 +640,7 @@ fn cli_rejects_bad_invocations() {
         "1024",
     ]);
     assert_eq!(code, 1);
-    assert!(err.contains("SPX-N103"), "stderr was: {err}");
+    assert!(err.contains("SPX-Q103"), "stderr was: {err}");
     cleanup(&big);
     // Unverifiable sources fail closed with exit code 1.
     let bad = write_temp("module test.probe;\nfn broken( { 0 }\n");

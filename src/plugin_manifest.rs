@@ -36,11 +36,11 @@
 //! [`verify_envelope_against_source`] additionally rebinds the current
 //! source bytes to both embedded source digests and fails closed on drift.
 //!
-//! Diagnostics use the previously unused `SPX-N1xx` family:
-//! - `SPX-N101`: invalid options (bounds, malformed values).
-//! - `SPX-N102`: a capability token outside the admitted closed vocabulary.
-//! - `SPX-N103`: output byte-budget exhaustion (fail-closed, no truncation).
-//! - `SPX-N104`: envelope consistency or replay failure.
+//! Diagnostics use the previously unused `SPX-Q1xx` family:
+//! - `SPX-Q101`: invalid options (bounds, malformed values).
+//! - `SPX-Q102`: a capability token outside the admitted closed vocabulary.
+//! - `SPX-Q103`: output byte-budget exhaustion (fail-closed, no truncation).
+//! - `SPX-Q104`: envelope consistency or replay failure.
 //!
 //! This tranche performs no Component Model runtime or packaging, no host
 //! loading or lifecycle management, no versioning negotiation, no
@@ -148,12 +148,12 @@ impl Default for PluginManifestOptions {
 }
 
 fn option_error(message: String) -> Diagnostic {
-    Diagnostic::io("SPX-N101", message)
+    Diagnostic::io("SPX-Q101", message)
 }
 
 fn vocabulary_error(token: &str) -> Diagnostic {
     Diagnostic::io(
-        "SPX-N102",
+        "SPX-Q102",
         format!(
             "capability `{token}` is outside the admitted bounded vocabulary {}; refusing to emit a plugin manifest",
             capability_manifest::AMBIENT_DOMAINS.join(", ")
@@ -163,13 +163,13 @@ fn vocabulary_error(token: &str) -> Diagnostic {
 
 fn budget_error() -> Diagnostic {
     Diagnostic::io(
-        "SPX-N103",
+        "SPX-Q103",
         "plugin-manifest output exceeds the max-bytes budget; refusing to truncate".to_owned(),
     )
 }
 
 fn consistency_error(message: String) -> Diagnostic {
-    Diagnostic::io("SPX-N104", message)
+    Diagnostic::io("SPX-Q104", message)
 }
 
 struct ExportEntry {

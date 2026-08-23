@@ -20,7 +20,7 @@ semaprax plugin-manifest <file> [--max-bytes N]
 - There is no selection flag: the manifest always describes the whole
   module, so two runs over the same bytes are byte-identical.
 - `--max-bytes` (default 64 KiB, bounds follow the Agent Context byte
-  limits) bounds the whole envelope. Overflow fails closed with `SPX-N103`;
+  limits) bounds the whole envelope. Overflow fails closed with `SPX-Q103`;
   output is never truncated or repaired.
 - The output is one canonical compact JSON envelope plus one trailing
   newline.
@@ -67,7 +67,7 @@ interface-import effect form the required token inventory (an interface
 permit that no import consumes is still fail-closed-checked but never marks
 a domain declared). Every capability token anywhere in the module must sit
 inside the closed five-domain vocabulary (`filesystem`, `home`, `network`,
-`process`, `secrets`) or the whole command fails closed with `SPX-N102`
+`process`, `secrets`) or the whole command fails closed with `SPX-Q102`
 before any bytes are emitted. The section asserts `none` or `declared` per
 domain over that fixed vocabulary; the listed `capability_tokens` inventory
 lets independent replay re-derive the section and reject any forgery even
@@ -100,7 +100,7 @@ order:
 
 Each embedded `native64.signature` is extracted verbatim from the actual
 production native C11 projection — exactly one prototype line must exist
-per admitted symbol or the command fails with `SPX-N104` — so every reported
+per admitted symbol or the command fails with `SPX-Q104` — so every reported
 signature matches the ABI the backend really emits.
 
 `unavailable_sections` is the closed bytewise-sorted inventory of descriptor
@@ -130,8 +130,8 @@ fail replay even when the outer digest was re-minted around the forgery.
 
 Source bytes are snapshotted before parsing and re-checked after rendering;
 drift fails the whole command closed. All diagnostics use the previously
-unused `SPX-N1xx` family: `SPX-N101` options, `SPX-N102` out-of-vocabulary
-capability, `SPX-N103` budget exhaustion, `SPX-N104` envelope/backend
+unused `SPX-Q1xx` family: `SPX-Q101` options, `SPX-Q102` out-of-vocabulary
+capability, `SPX-Q103` budget exhaustion, `SPX-Q104` envelope/backend
 consistency.
 
 ## Evidence

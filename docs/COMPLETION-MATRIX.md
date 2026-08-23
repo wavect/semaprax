@@ -80,6 +80,23 @@ forged-but-re-signed envelopes, CLI exit codes, and cross-consistency with
 model, registry, compatibility engine, conformance tests, provenance,
 signatures, licenses, or SBOM; Project Manifest v1 boundaries remain.
 Current totals are 46 Partial/10 Missing.
+[UI Dialect Schema Projection v1](UI-SCHEMA-V1.md) is a locally evidenced
+read-only projection tranche (`semaprax ui-schema`,
+`semaprax.ui-dialect-schema.v1`) that moves only the First-class
+application/state/UI dialect row from Missing to Partial: one verified module
+is projected into one deterministic digest-authenticated envelope whose
+state-shape descriptors carry checked Native64 record layouts (field names,
+`i64`/`bool` types, offsets/sizes/alignments from `aggregate_layout`) for
+public non-generic scalar records, whose action descriptors mirror the
+Canonical ABI Report v1 admission profile with parameter/result types, and
+whose controls/accessibility/navigation section is explicitly empty by
+default. Pinned KATs, every exclusion reason, per-field tamper rejection,
+and cross-consistency against checked layouts and abi-report signatures are
+green locally in `tests/ui_schema_v1.rs`. It claims no typed update/view
+language constructs, no semantic controls, accessibility, navigation,
+localization, assets, platform blocks, or custom rendering, no rendering,
+runtime, or DOM, and no target execution. Current totals are 47 Partial/9
+Missing.
 
 Status values:
 
@@ -655,7 +672,7 @@ exactly 39 Partial and 17 Missing.
 
 | Requirement | Status | Current evidence | Completion gate |
 | --- | --- | --- | --- |
-| First-class application/state/UI dialect | Missing | — | Typed state/actions/update/view, semantic controls, accessibility, navigation, localization, assets, platform blocks, and custom rendering verified |
+| First-class application/state/UI dialect | Partial | [UI Dialect Schema Projection v1](UI-SCHEMA-V1.md) adds the read-only `semaprax ui-schema <file> [--max-bytes N]` projection: one deterministic canonical `semaprax.ui-dialect-schema.v1` envelope that describes one verified module's typed application schema — every public non-generic scalar-field record as a state-shape descriptor with field names, `i64`/`bool` types, and offsets/sizes/alignments taken exclusively from the checked Native64 compiler layouts, every explicit-ID monomorphic by-value effect-free scalar function as a typed action descriptor mirroring the abi-report admission profile, dedicated closed exclusion reasons for automatic-identity/generic/resource/variant/mixed records and the six shared function reasons, and an explicit empty-by-default controls/accessibility/navigation nonclaim section — under domain-separated digests with independent replay verification, pinned envelope KATs over three examples, layout cross-consistency against `aggregate_layout`, action cross-consistency against Canonical ABI Report v1 signatures, determinism, budget fail-closed behavior, per-field tamper rejection including re-minted forgeries, and CLI exit codes green locally in `tests/ui_schema_v1.rs`. No typed update/view language constructs, no semantic controls, accessibility, navigation, localization, assets, platform blocks, custom rendering, rendering/runtime/DOM, or target execution are claimed; hosted promotion remains pending | Typed state/actions/update/view, semantic controls, accessibility, navigation, localization, assets, platform blocks, and custom rendering verified |
 | Web | Partial | Deployable HTML/ES module/Wasm output now includes the bounded Public Wasm Scalar Exports v1 package: multiple stable-ID scalar functions, deterministic JS/TS bindings, a digest manifest, and a calculator consumer with Node and Chromium execution. Bounded Project Manifest v1 additionally turns one explicit 2–16-source pure-scalar set into the same digest-bound Web package after one in-memory Phase-A pass and stable-ID `use function` provider closure linking. Public Project Native Publication v1 additionally publishes that closure as one explicit create-new native executable through the unchanged shared Clang C11 lane, with pre/post-publication held-input rechecks, existing-destination rejection, deterministic entry C projections, and stable-ID display rename preservation of published behavior; public Project run/test commands remain held, and the native-publication lane awaits exact-head hosted promotion. The exact-head Project matrix and real Chromium job are hosted green at `d883ace579bfd86f723cdc6819224fde51f0677d` in [run 32523952912](https://github.com/wavect/semaprax/actions/runs/32523952912). The legacy accessible scalar entry and narrow owned-resource adapter remain separate lanes | DOM/CSS output, accessible application UI, SSR, hydration, general Wasm resource/Component support, browser capabilities, additional browser-engine conformance, Canvas/WebGPU escape hatch, and deployable sample verified |
 | iOS | Partial | Existing private static callable runtime plus a Swift 6 same-thread host, device/universal-Simulator XCFramework construction, and two installed arm64-Simulator app paths are green in [run 31338834586, job 93309086228](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086228) | Public native/Swift host, distributable framework/app project, UIKit/SwiftUI adapter, lifecycle, accessibility, signing metadata, and physical-device plus representative simulator samples verified |
 | Android | Partial | Private same-package no-UI Instrumentation APK executes on an API-35 x86_64 Emulator with offline plugin-free packaging, exact JNI/O0/O2 inventory and ownership assertions in [run 31338834586, job 93309086206](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086206); arm64 remains compile/ELF inspection only | Public native code and Kotlin/JNI host, AAR/app project, Compose/View adapter, lifecycle, accessibility, manifests/packaging, and representative emulator plus device samples verified |

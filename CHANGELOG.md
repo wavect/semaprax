@@ -33,6 +33,37 @@
   abi-report` admits (with byte-equal native prototypes) and what `semaprax
   openapi` publishes for the same program. The Interface-first packages and
   target matrices row moves from Missing to Partial.
+=======
+- Added the locally evidenced UI Dialect Schema Projection v1 tranche, the
+  first executable slice of the completion-matrix row "First-class
+  application/state/UI dialect". The new read-only `semaprax ui-schema <file>
+  [--max-bytes N]` command and `ui_schema` library API project one verified
+  module into a deterministic canonical `semaprax.ui-dialect-schema.v1`
+  envelope describing its typed application schema: every public non-generic
+  scalar-field record becomes one state-shape descriptor whose field names,
+  `i64`/`bool` types, and offsets/sizes/alignments come exclusively from the
+  checked Native64 compiler layouts, and every explicit-ID monomorphic
+  by-value effect-free scalar function becomes one typed action descriptor
+  with its parameter/result types under the exact Canonical ABI Report v1
+  admission profile. Records outside the profile are excluded with the closed
+  reasons `automatic_identity`, `generic_type`, `resource_type`,
+  `variant_type`, or `mixed_field_types`, and functions reuse the six shared
+  abi-report reasons; an explicit empty-by-default controls/accessibility/
+  navigation section is always present as a reserved nonclaim field.
+  Domain-separated SHA-256 digests authenticate the payload, source snapshot,
+  every state-shape layout, and every action signature;
+  `verify_envelope` replays all of them independently by rebuilding the
+  canonical bytes from parsed values, so even consistently re-minted forgeries
+  fail closed (`SPX-U101`-`SPX-U103`). Pinned golden envelope KATs over three
+  examples, checked-layout cross-consistency including the Point record's
+  exact offsets and padded 24/8 shape, action cross-consistency against
+  abi-report signatures for the same program, determinism double runs, every
+  exclusion reason, budget exhaustion, per-digest-field tamper rejection, and
+  CLI exit codes are green locally in `tests/ui_schema_v1.rs`. The projection
+  claims no rendering, runtime, DOM, typed update/view language constructs,
+  semantic controls, accessibility, navigation, localization, assets, platform
+  blocks, custom rendering, or target execution. The First-class
+  application/state/UI dialect row moves from Missing to Partial.
 
 - Added the locally evidenced Canonical ABI Report v1 tranche, the first
   executable slice of the completion-matrix row "Portable canonical ABI and

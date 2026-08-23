@@ -309,7 +309,7 @@ fn layout_nominal(
                 kind: ValueLayoutKind::Resource,
             })
         }
-        ResolvedTypeDeclarationKind::Record { fields } => {
+        ResolvedTypeDeclarationKind::Record { fields } | ResolvedTypeDeclarationKind::Class { fields, .. } => {
             if arguments.len() != item.type_parameters.len()
                 || arguments
                     .iter()

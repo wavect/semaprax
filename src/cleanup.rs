@@ -406,7 +406,7 @@ impl InventoryBuilder<'_> {
                                 lifecycle: drop.id.clone(),
                             });
                         }
-                        ResolvedTypeDeclarationKind::Record { fields } => {
+                        ResolvedTypeDeclarationKind::Record { fields } | ResolvedTypeDeclarationKind::Class { fields, .. } => {
                             frames.try_reserve(2).map_err(|_| {
                                 cleanup_error("cleanup shape capacity exceeds address space")
                             })?;

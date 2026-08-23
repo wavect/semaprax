@@ -77,7 +77,7 @@ impl NativeResourceAbi {
                         ))
                     })?;
                 match &resolved.kind {
-                    ResolvedTypeDeclarationKind::Record { .. } => Err(resource_error(format!(
+                    ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. } => Err(resource_error(format!(
                         "native aggregate representation is unavailable for record `{declaration}`"
                     ))),
                     ResolvedTypeDeclarationKind::Variant { .. } => Err(resource_error(format!(

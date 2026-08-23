@@ -160,6 +160,10 @@ pub enum TypeDeclarationKind {
     Variant {
         cases: Vec<VariantCaseDeclaration>,
     },
+    Class {
+        fields: Vec<FieldDeclaration>,
+        methods: Vec<Function>,
+    },
 }
 
 #[derive(Clone, Debug)]
@@ -292,6 +296,14 @@ pub enum ExprKind {
     Var(String),
     Call {
         name: String,
+        type_arguments: Vec<Type>,
+        args: Vec<Expr>,
+    },
+    /// Method call `receiver.method(args)` lowered to static call of class method.
+    MethodCall {
+        receiver: Box<Expr>,
+        method: String,
+        method_span: Span,
         type_arguments: Vec<Type>,
         args: Vec<Expr>,
     },
@@ -601,6 +613,9 @@ impl Expr {
     fn child(&self, index: usize) -> Option<&Expr> {
         match &self.kind {
             ExprKind::Call { args, .. } => args.get(index),
+            ExprKind::MethodCall { receiver, args, .. } => (index == 0)
+                .then_some(receiver.as_ref())
+                .or_else(|| args.get(index - 1)),
             ExprKind::Unary { value, .. }
             | ExprKind::Try { operand: value }
             | ExprKind::Project { base: value, .. } => (index == 0).then_some(value),

@@ -386,7 +386,7 @@ impl<'a> HirValidator<'a> {
         for declaration in &self.program.types {
             let expected_kind = match &declaration.kind {
                 ResolvedTypeDeclarationKind::Resource { .. } => DeclarationKind::Resource,
-                ResolvedTypeDeclarationKind::Record { .. } => DeclarationKind::Record,
+                ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. } => DeclarationKind::Record,
                 ResolvedTypeDeclarationKind::Variant { .. } => DeclarationKind::Variant,
             };
             match self.program.declarations.declaration(&declaration.id) {
@@ -481,7 +481,7 @@ impl<'a> HirValidator<'a> {
                     }
                 }
             }
-            if let ResolvedTypeDeclarationKind::Record { fields } = &declaration.kind {
+            if let (ResolvedTypeDeclarationKind::Record { fields } | ResolvedTypeDeclarationKind::Class { fields, .. }) = &declaration.kind {
                 let indexed = self
                     .program
                     .declarations

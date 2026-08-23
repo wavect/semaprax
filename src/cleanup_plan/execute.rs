@@ -238,7 +238,7 @@ fn validate_public_result_type(
             Ok(())
         }
         Some(
-            ResolvedTypeDeclarationKind::Record { .. }
+            ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. }
             | ResolvedTypeDeclarationKind::Variant { .. },
         )
         | None => Err(CleanupExecutionError::UnsupportedResultType(
@@ -326,7 +326,7 @@ fn collect_variant_domains(
                     .and_then(|item| match &item.kind {
                         ResolvedTypeDeclarationKind::Variant { cases } => Some(cases),
                         ResolvedTypeDeclarationKind::Resource { .. }
-                        | ResolvedTypeDeclarationKind::Record { .. } => None,
+                        | ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. } => None,
                     })
                     .ok_or_else(|| {
                         invariant(format!(
@@ -375,7 +375,7 @@ fn collect_variant_domains(
                     .and_then(|item| match &item.kind {
                         ResolvedTypeDeclarationKind::Variant { cases } => Some(cases),
                         ResolvedTypeDeclarationKind::Resource { .. }
-                        | ResolvedTypeDeclarationKind::Record { .. } => None,
+                        | ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. } => None,
                     })
                     .ok_or_else(|| {
                         invariant(format!(

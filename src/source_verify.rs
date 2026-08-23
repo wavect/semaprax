@@ -191,7 +191,7 @@ impl<'a> TypeTable<'a> {
             return None;
         };
         match &self.declaration(name)?.kind {
-            TypeDeclarationKind::Record { fields } => Some(fields),
+            TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } => Some(fields),
             TypeDeclarationKind::Resource { .. } | TypeDeclarationKind::Variant { .. } => None,
         }
     }
@@ -210,7 +210,7 @@ impl<'a> TypeTable<'a> {
         };
         match &self.declaration(name)?.kind {
             TypeDeclarationKind::Variant { cases } => Some(cases),
-            TypeDeclarationKind::Resource { .. } | TypeDeclarationKind::Record { .. } => None,
+            TypeDeclarationKind::Resource { .. } | TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. } => None,
         }
     }
 
@@ -307,7 +307,7 @@ impl<'a> TypeTable<'a> {
                     frames.push(Frame::Exit(instance));
                     let fields: Box<dyn DoubleEndedIterator<Item = &FieldDeclaration>> =
                         match &declaration.kind {
-                            TypeDeclarationKind::Record { fields } => Box::new(fields.iter()),
+                            TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } => Box::new(fields.iter()),
                             TypeDeclarationKind::Variant { cases } => {
                                 Box::new(cases.iter().flat_map(|case| &case.fields))
                             }
@@ -378,7 +378,7 @@ impl<'a> TypeTable<'a> {
                                 }
                             }
                         }
-                        TypeDeclarationKind::Record { fields } => {
+                        TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } => {
                             for field in fields.iter().rev() {
                                 if let Some(field_ty) =
                                     Self::substitute_variant_type(declaration, arguments, &field.ty)
@@ -463,7 +463,7 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
         if !source_identifier(&declaration.name) {
             let kind = match declaration.kind {
                 TypeDeclarationKind::Resource { .. } => "resource",
-                TypeDeclarationKind::Record { .. } => "record",
+                TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. } => "record",
                 TypeDeclarationKind::Variant { .. } => "variant",
             };
             diagnostics.push(error(
@@ -476,7 +476,7 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
         if !type_names.insert(declaration.name.as_str()) {
             let duplicate = match declaration.kind {
                 TypeDeclarationKind::Resource { .. } => "resource",
-                TypeDeclarationKind::Record { .. } => "type",
+                TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. } => "type",
                 TypeDeclarationKind::Variant { .. } => "type",
             };
             diagnostics.push(error(
@@ -489,7 +489,7 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
         if declaration.stable_id.contains('\0') {
             let kind = match declaration.kind {
                 TypeDeclarationKind::Resource { .. } => "resource",
-                TypeDeclarationKind::Record { .. } => "record",
+                TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. } => "record",
                 TypeDeclarationKind::Variant { .. } => "variant",
             };
             diagnostics.push(invalid_stable_id(
@@ -509,7 +509,7 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
         if !declaration.explicit_id {
             let (subject, help) = match declaration.kind {
                 TypeDeclarationKind::Resource { .. } => ("resource", "your.namespace.resource"),
-                TypeDeclarationKind::Record { .. } => ("record", "your.namespace.record"),
+                TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. } => ("record", "your.namespace.record"),
                 TypeDeclarationKind::Variant { .. } => ("variant", "your.namespace.variant"),
             };
             diagnostics.push(
@@ -599,7 +599,7 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                 }
             }
         }
-        if let TypeDeclarationKind::Record { fields } = &declaration.kind {
+        if let TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } = &declaration.kind {
             let mut field_names = HashSet::new();
             let mut field_ids = HashSet::new();
             for field in fields {
@@ -1106,7 +1106,7 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
         }
     }
     for declaration in &program.types {
-        if let TypeDeclarationKind::Record { fields } = &declaration.kind {
+        if let TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } = &declaration.kind {
             let parameters = declaration
                 .type_parameters
                 .iter()
@@ -1152,7 +1152,7 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                         if !arguments.is_empty()
                             && matches!(
                                 types.declaration(name).map(|item| &item.kind),
-                                Some(TypeDeclarationKind::Record { .. })
+                                Some(TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. })
                             )
                 ) {
                     diagnostics.push(error(
@@ -1215,7 +1215,7 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
     }
     let mut checked_layouts = HashSet::new();
     for declaration in &program.types {
-        if matches!(declaration.kind, TypeDeclarationKind::Record { .. })
+        if matches!(declaration.kind, TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. })
             && record_layout_is_recursive(
                 declaration.name.as_str(),
                 &types,
@@ -1768,7 +1768,7 @@ fn record_layout_is_recursive(
                     results.push(false);
                     continue;
                 };
-                let TypeDeclarationKind::Record { fields } = &declaration.kind else {
+                let (TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. }) = &declaration.kind else {
                     visiting.remove(name);
                     checked.insert(name.to_owned());
                     results.push(false);
@@ -1812,7 +1812,7 @@ fn record_layout_is_recursive(
                     }
                     if matches!(
                         types.declaration(field_type).map(|item| &item.kind),
-                        Some(TypeDeclarationKind::Record { .. })
+                        Some(TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. })
                     ) {
                         child = Some(field_type.as_str());
                         break;
@@ -1891,7 +1891,7 @@ fn check_declared_type(
         if !arguments.is_empty()
             && (!matches!(
                 declaration.kind,
-                TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Variant { .. }
+                TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. } | TypeDeclarationKind::Variant { .. }
             ) || arguments
                 .iter()
                 .any(|argument| !matches!(argument, Type::I64 | Type::Bool)))
@@ -3222,7 +3222,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         );
                         let declared_fields =
                             declaration.and_then(|declaration| match &declaration.kind {
-                                TypeDeclarationKind::Record { fields } => Some(fields.as_slice()),
+                                TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } => Some(fields.as_slice()),
                                 TypeDeclarationKind::Resource { .. }
                                 | TypeDeclarationKind::Variant { .. } => None,
                             });
@@ -3282,7 +3282,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         let cases = declaration.and_then(|declaration| match &declaration.kind {
                             TypeDeclarationKind::Variant { cases } => Some(cases.as_slice()),
                             TypeDeclarationKind::Resource { .. }
-                            | TypeDeclarationKind::Record { .. } => None,
+                            | TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. } => None,
                         });
                         let case = cases
                             .and_then(|cases| cases.iter().find(|case| case.name == *case_name));
@@ -5563,7 +5563,7 @@ fn check_expr(
                 diagnostics,
             );
             let declared_fields = declaration.and_then(|declaration| match &declaration.kind {
-                TypeDeclarationKind::Record { fields } => Some(fields.as_slice()),
+                TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } => Some(fields.as_slice()),
                 TypeDeclarationKind::Resource { .. } | TypeDeclarationKind::Variant { .. } => None,
             });
             if declared_fields.is_none() {
@@ -5691,7 +5691,7 @@ fn check_expr(
             );
             let cases = declaration.and_then(|declaration| match &declaration.kind {
                 TypeDeclarationKind::Variant { cases } => Some(cases.as_slice()),
-                TypeDeclarationKind::Resource { .. } | TypeDeclarationKind::Record { .. } => None,
+                TypeDeclarationKind::Resource { .. } | TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. } => None,
             });
             let case = cases.and_then(|cases| cases.iter().find(|case| case.name == *case_name));
             if cases.is_none() || case.is_none() {

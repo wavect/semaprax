@@ -1043,7 +1043,7 @@ fn require_trivial_resource(
         ResolvedTypeDeclarationKind::Resource { .. } => {
             Err(value_error("imported resource lifecycle is not staged"))
         }
-        ResolvedTypeDeclarationKind::Record { .. } => {
+        ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. } => {
             Err(value_error("record type is outside the staged corpus"))
         }
         ResolvedTypeDeclarationKind::Variant { .. } => {

@@ -1218,7 +1218,7 @@ fn expected_shape_for_type(
                 lifecycle: drop.id.clone(),
             })
         }
-        ResolvedTypeDeclarationKind::Record { fields } => {
+        ResolvedTypeDeclarationKind::Record { fields } | ResolvedTypeDeclarationKind::Class { fields, .. } => {
             let mut expected_fields = Vec::with_capacity(fields.len());
             for field in fields {
                 expected_fields.push(FieldLiveness {

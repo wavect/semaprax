@@ -1270,7 +1270,7 @@ pub(crate) fn graph_schema_from_parts(
         return "semaprax.graph.v13";
     }
     if types.iter().any(|declaration| {
-        matches!(declaration.kind, ResolvedTypeDeclarationKind::Record { .. })
+        matches!(declaration.kind, ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. })
             && !declaration.type_parameters.is_empty()
     }) {
         return "semaprax.graph.v12";
@@ -1899,7 +1899,7 @@ fn agent_type_declarations_json(
                     ResolvedResourceDropKind::Imported { .. } => "imported",
                 })
             )),
-            ResolvedTypeDeclarationKind::Record { fields } => {
+            ResolvedTypeDeclarationKind::Record { fields } | ResolvedTypeDeclarationKind::Class { fields, .. } => {
                 let parameters = if declaration.type_parameters.is_empty() {
                     String::new()
                 } else {
@@ -2551,7 +2551,7 @@ fn graph_json(
                     ResolvedResourceDropKind::Imported { import, .. } => Some(import.clone()),
                     ResolvedResourceDropKind::Trivial => None,
                 },
-                ResolvedTypeDeclarationKind::Record { .. } => None,
+                ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. } => None,
                 ResolvedTypeDeclarationKind::Variant { .. } => None,
             })
             .collect::<BTreeSet<_>>();
@@ -2649,7 +2649,7 @@ fn graph_json(
                 }
                 .expect("writing to a string cannot fail");
             }
-            ResolvedTypeDeclarationKind::Record { fields } => {
+            ResolvedTypeDeclarationKind::Record { fields } | ResolvedTypeDeclarationKind::Class { fields, .. } => {
                 let (parameters, type_id) = if declaration.type_parameters.is_empty() {
                     (String::new(), quote_json(&ty.identity_key()))
                 } else {
@@ -3466,7 +3466,7 @@ fn close_type_declarations(
             .copied()
             .ok_or_else(|| graph_reference_error("type declaration", &id))?;
         let fields = match &declaration.kind {
-            ResolvedTypeDeclarationKind::Record { fields } => fields.iter().collect::<Vec<_>>(),
+            ResolvedTypeDeclarationKind::Record { fields } | ResolvedTypeDeclarationKind::Class { fields, .. } => fields.iter().collect::<Vec<_>>(),
             ResolvedTypeDeclarationKind::Variant { cases } => cases
                 .iter()
                 .flat_map(|case| &case.fields)
@@ -3805,7 +3805,7 @@ fn type_facts_array(
             );
         }
         if declaration.type_parameters.is_empty() {
-            if let ResolvedTypeDeclarationKind::Record { fields } = &declaration.kind {
+            if let (ResolvedTypeDeclarationKind::Record { fields } | ResolvedTypeDeclarationKind::Class { fields, .. }) = &declaration.kind {
                 for field in fields {
                     collect_type(&field.ty, &mut types);
                 }

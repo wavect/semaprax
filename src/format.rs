@@ -68,6 +68,7 @@ enum ExprFormatFrame<'a> {
     TryEnd(bool),
     PostfixFields(&'a [crate::ast::FieldInitializer]),
     ProjectField(&'a str),
+    MethodCallSuffix(&'a str, &'a [crate::ast::Type], &'a [Expr], bool),
     Close(char),
 }
 
@@ -561,7 +562,7 @@ fn legacy_canonical_temporary_bytes(program: &Program) -> usize {
                     }
                 }
             }
-            TypeDeclarationKind::Record { fields } => {
+            TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } => {
                 for field in fields {
                     if field.explicit_id {
                         total = total.saturating_add(escaped_len(&field.stable_id));
@@ -636,7 +637,8 @@ fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> usize {
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
             | ExprKind::Bool(_) => {}
-            ExprKind::Var(name) => total = total.saturating_add(name.len()),
+                        ExprKind::MethodCall { .. } => {},
+ExprKind::Var(name) => total = total.saturating_add(name.len()),
             ExprKind::Call {
                 type_arguments,
                 args,
@@ -1118,6 +1120,23 @@ fn write_expr(output: &mut impl std::fmt::Write, value: &Expr, parent_precedence
                     }
                     frames.push(Frame::Expr(base, if delimited { 0 } else { 8 }));
                 }
+                ExprKind::MethodCall {
+                    receiver,
+                    method,
+                    type_arguments,
+                    args,
+                    ..
+                } => {
+                    let delimited = matches!(
+                        receiver.kind,
+                        ExprKind::Binary { .. } | ExprKind::If { .. } | ExprKind::Block { .. }
+                    );
+                    if delimited {
+                        output.write_char('(').unwrap();
+                    }
+                    frames.push(Frame::MethodCallSuffix(method, type_arguments, args, delimited));
+                    frames.push(Frame::Expr(receiver, if delimited { 0 } else { 8 }));
+                }
             },
             Frame::CallArgs(args, index) => {
                 if let Some(argument) = args.get(index) {
@@ -1445,7 +1464,8 @@ fn contains_record_construction(value: &Expr) -> bool {
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
             | ExprKind::Bool(_)
-            | ExprKind::Var(_) => None,
+            |             ExprKind::MethodCall { .. } => false,
+ExprKind::Var(_) => None,
         }
     }
     let mut frames = FormatFrameStack::new(Frame::Enter(value), ScratchStackKind::ContainsRecord);

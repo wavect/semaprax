@@ -841,7 +841,7 @@ impl<'a> PlanBuilder<'a> {
                     lifecycle: drop.id.clone(),
                 })
             }
-            ResolvedTypeDeclarationKind::Record { fields } => {
+            ResolvedTypeDeclarationKind::Record { fields } | ResolvedTypeDeclarationKind::Class { fields, .. } => {
                 let mut shapes = Vec::with_capacity(fields.len());
                 for field in fields {
                     projections.push(field.id.clone());

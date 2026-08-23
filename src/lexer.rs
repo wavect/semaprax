@@ -392,7 +392,6 @@ impl Lexer<'_> {
                     Some('n') => value.push('\n'),
                     Some('r') => value.push('\r'),
                     Some('t') => value.push('\t'),
-                    Some('0') => value.push('\0'),
                     Some('"') => value.push('"'),
                     Some('\'') => value.push('\''),
                     Some('\\') => value.push('\\'),

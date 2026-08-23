@@ -481,6 +481,14 @@ pub struct FieldInitializer {
     pub span: Span,
 }
 
+/// Field Mutation v1: the single-level field of a `<binding>.<field> = ...`
+/// assignment target. Nested place chains (`a.b.c = ...`) never parse.
+#[derive(Clone, Debug)]
+pub struct FieldTarget {
+    pub name: String,
+    pub span: Span,
+}
+
 #[derive(Clone, Debug)]
 pub enum Statement {
     Let {
@@ -493,9 +501,12 @@ pub enum Statement {
     },
     /// Explicit Mutation v1: `<binding> = <expr>;` over a simple local
     /// binding. Statement-only; there is no assignment expression.
+    /// Field Mutation v1 extends the target with one direct scalar field:
+    /// `<binding>.<field> = <expr>;`.
     Assign {
         name: String,
         name_span: Span,
+        field: Option<FieldTarget>,
         value: Expr,
         span: Span,
     },

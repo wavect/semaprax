@@ -1,0 +1,50 @@
+module examples.field_mutation;
+
+@id("geometry.point")
+record Point {
+    @id("geometry.point.x")
+    x: i64,
+    @id("geometry.point.y")
+    y: i64,
+    @id("geometry.point.enabled")
+    enabled: bool,
+}
+
+@id("example.counter")
+class Counter {
+    @id("example.counter.value")
+    value: i64,
+
+    @id("example.counter.get")
+    fn get(self: Counter) -> i64
+{
+        self.value
+    }
+}
+
+@id("fm.shift_x")
+fn shift_x(point: Point, step: i64) -> Point
+{
+    point with { x: point.x + step }
+}
+
+@id("fm.track")
+fn track(flag: bool) -> i64
+{
+    let mut origin = Point { x: 20, y: 2, enabled: false };
+    origin.x = origin.x + 20;
+    origin.y = origin.y + origin.x;
+    let mut branch = Point { x: 0, y: 0, enabled: false };
+    let delta = if flag { branch.x = 5; branch.x } else { branch.y = 6; 0 - branch.y };
+    let mut counter = Counter { value: 3 };
+    counter.value = counter.value * counter.value;
+    origin.x + origin.y + delta + counter.get()
+}
+
+@id("main")
+fn main() -> i64
+{
+    let moved = shift_x(Point { x: 100, y: 0, enabled: true }, 1);
+    let total = track(moved.enabled);
+    if total > 0 { total } else { 0 - total }
+}

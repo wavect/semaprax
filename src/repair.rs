@@ -1183,20 +1183,28 @@ impl StructuralRebase<'_> {
                                 value: right_value,
                                 ..
                             },
-                        )
-                        | (
+                        ) => {
+                            self.compare_binding(left_binding, right_binding)?;
+                            self.compare_expr(left_value, right_value)?;
+                        }
+                        (
                             ResolvedStatement::Assign {
                                 binding: left_binding,
+                                field: left_field,
                                 value: left_value,
                                 ..
                             },
                             ResolvedStatement::Assign {
                                 binding: right_binding,
+                                field: right_field,
                                 value: right_value,
                                 ..
                             },
                         ) => {
                             self.compare_binding(left_binding, right_binding)?;
+                            if left_field != right_field {
+                                return Err(rebase_mismatch());
+                            }
                             self.compare_expr(left_value, right_value)?;
                         }
                         (

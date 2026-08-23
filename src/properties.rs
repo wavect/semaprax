@@ -522,7 +522,12 @@ impl<'a> Analyzer<'a> {
             ExprKind::Binary { left, right, .. } => self.scan(left).or_else(|| self.scan(right)),
             ExprKind::Block { statements, tail } => statements
                 .iter()
-                .find_map(|statement| self.scan(statement.value()))
+                .find_map(|statement| match statement {
+                    // Field Mutation v1 targets stay outside the scalar
+                    // property slice.
+                    Statement::Assign { field: Some(_), .. } => Some(REASON_RECORD_PROJECTION),
+                    _ => self.scan(statement.value()),
+                })
                 .or_else(|| self.scan(tail)),
             ExprKind::If {
                 condition,
@@ -672,7 +677,15 @@ impl<'a> Analyzer<'a> {
                                 }
                             }
                         }
-                        Statement::Assign { name, value, .. } => {
+                        Statement::Assign {
+                            name, field, value, ..
+                        } => {
+                            // Field Mutation v1 targets stay outside the
+                            // scalar property slice.
+                            if field.is_some() {
+                                interrupted = Some(Outcome::Unsupported(REASON_RECORD_PROJECTION));
+                                break;
+                            }
                             match self.evaluate(value, environment, depth) {
                                 Outcome::Value(value) => {
                                     // Update the nearest binding of the name;

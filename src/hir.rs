@@ -2981,8 +2981,11 @@ pub enum ResolvedStatement {
     },
     /// Explicit Mutation v1: `<binding> = <expr>;`. The target reuses the
     /// original binding's [`ValueId`]; no new value identity is created.
+    /// Field Mutation v1: `field` names the one direct scalar field of a
+    /// `<binding>.<field>` target; the store replaces that whole field.
     Assign {
         binding: ResolvedBinding,
+        field: Option<DeclarationId>,
         value: ResolvedExpr,
         span: Span,
     },
@@ -5222,18 +5225,24 @@ impl Resolver<'_> {
     /// Resolve one assignment target against the enclosing scope. The target
     /// must name an existing `let mut` local; parameters, contracts bindings,
     /// and immutable locals are rejected before the assigned value resolves.
+    /// Resolve one assignment target against the enclosing scope. The target
+    /// must name an existing `let mut` local; parameters, contracts bindings,
+    /// and immutable locals are rejected before the assigned value resolves.
+    /// Simple assignments report `SPX-U101`; Field Mutation v1 targets report
+    /// `SPX-U107`.
     fn resolve_assign_target(
         &self,
         name: &str,
         name_span: Span,
         bindings: &BTreeMap<String, Binding>,
+        immutable_code: &'static str,
     ) -> Result<ResolvedBinding, Diagnostic> {
         let binding = bindings.get(name).ok_or_else(|| {
             self.error("SPX-H002", format!("unresolved value `{name}`"), name_span)
         })?;
         if !binding.mutable {
             return Err(self.error(
-                "SPX-U101",
+                immutable_code,
                 format!("cannot assign to immutable binding `{name}`; declare it with `let mut`"),
                 name_span,
             ));
@@ -5245,6 +5254,75 @@ impl Resolver<'_> {
             ty: binding.ty.clone(),
             span: name_span,
         })
+    }
+
+    /// Field Mutation v1: resolve the one direct `<binding>.<field>` level.
+    /// The base must be a record/class-typed mutable local and the field must
+    /// be a checked Copy scalar; everything else fails closed before the
+    /// assigned value resolves.
+    fn resolve_assign_field_target(
+        &self,
+        binding: &ResolvedBinding,
+        field: &crate::ast::FieldTarget,
+    ) -> Result<(DeclarationId, ResolvedType), Diagnostic> {
+        let ResolvedType::Nominal {
+            declaration: owner,
+            arguments,
+        } = &binding.ty
+        else {
+            return Err(self.error(
+                "SPX-U112",
+                format!(
+                    "cannot mutate a field of non-record value `{}`",
+                    binding.ty.identity_key()
+                ),
+                field.span,
+            ));
+        };
+        if self.declarations.declaration(owner).is_none_or(|item| {
+            !matches!(item.kind, DeclarationKind::Record | DeclarationKind::Class)
+        }) {
+            return Err(self.error(
+                "SPX-U112",
+                format!(
+                    "cannot mutate a field of non-record value `{}`",
+                    binding.ty.identity_key()
+                ),
+                field.span,
+            ));
+        }
+        let field_id = self
+            .declarations
+            .field_id(owner, &field.name)
+            .cloned()
+            .ok_or_else(|| {
+                self.error(
+                    "SPX-U108",
+                    format!("record `{owner}` has no field `{}`", field.name),
+                    field.span,
+                )
+            })?;
+        let declared = self
+            .declarations
+            .record_fields(owner)
+            .and_then(|fields| fields.iter().find(|item| item.id == field_id))
+            .map(|item| item.ty.clone())
+            .ok_or_else(|| {
+                self.error(
+                    "SPX-H001",
+                    format!("field `{field_id}` has no resolved type"),
+                    field.span,
+                )
+            })?;
+        let field_ty = substitute_type(&declared, owner, arguments)?;
+        if !is_scalar_resolved_type(&field_ty) {
+            return Err(self.error(
+                "SPX-U109",
+                "field mutation v1 supports only direct scalar Copy record fields",
+                field.span,
+            ));
+        }
+        Ok((field_id, field_ty))
     }
 
     fn resolve_expr_iterative(
@@ -5333,6 +5411,9 @@ impl Resolver<'_> {
                 scope: Rc<BTreeMap<String, Binding>>,
                 resolved: Vec<ResolvedStatement>,
                 target: ResolvedBinding,
+                /// Field Mutation v1: the resolved direct field and its
+                /// substituted type when the target is `<binding>.<field>`.
+                target_field: Option<(DeclarationId, ResolvedType)>,
             },
             BlockAfterUnsafe {
                 span: Span,
@@ -6423,11 +6504,27 @@ impl Resolver<'_> {
                             Statement::Assign {
                                 name,
                                 name_span,
+                                field,
                                 value,
                                 ..
                             } => {
-                                let target =
-                                    self.resolve_assign_target(name, *name_span, &scope)?;
+                                let immutable_code = if field.is_some() {
+                                    "SPX-U107"
+                                } else {
+                                    "SPX-U101"
+                                };
+                                let target = self.resolve_assign_target(
+                                    name,
+                                    *name_span,
+                                    &scope,
+                                    immutable_code,
+                                )?;
+                                let target_field = match field {
+                                    Some(field) => {
+                                        Some(self.resolve_assign_field_target(&target, field)?)
+                                    }
+                                    None => None,
+                                };
                                 frames.push(Frame::BlockAfterAssign {
                                     span,
                                     path: path.clone(),
@@ -6437,6 +6534,7 @@ impl Resolver<'_> {
                                     scope: scope.clone(),
                                     resolved,
                                     target,
+                                    target_field,
                                 });
                                 frames.push(Frame::Enter {
                                     expr: value,
@@ -6529,30 +6627,48 @@ impl Resolver<'_> {
                     scope,
                     mut resolved,
                     target,
+                    target_field,
                 } => {
                     // The assigned value is fully evaluated before the store;
                     // exact-type and scalar-Copy admission are checked here so
                     // failure statuses propagate exactly like initializers.
                     let value = results.pop().expect("assign value result retained");
-                    if value.ty != target.ty {
-                        return Err(self.error(
-                            "SPX-U102",
-                            format!(
-                                "assigned value type `{}` does not exactly match binding type `{}`",
-                                value.ty.identity_key(),
-                                target.ty.identity_key()
-                            ),
-                            value.span,
-                        ));
-                    }
-                    if value.ownership != OwnershipMode::Value
-                        || !is_scalar_resolved_type(&value.ty)
-                    {
-                        return Err(self.error(
-                            "SPX-U105",
-                            "explicit mutation v1 supports only scalar Copy values",
-                            value.span,
-                        ));
+                    match &target_field {
+                        Some((_, field_ty)) => {
+                            if value.ty != *field_ty {
+                                return Err(self.error(
+                                    "SPX-U110",
+                                    format!(
+                                        "assigned value type `{}` does not exactly match field type `{}`",
+                                        value.ty.identity_key(),
+                                        field_ty.identity_key()
+                                    ),
+                                    value.span,
+                                ));
+                            }
+                        }
+                        None => {
+                            if value.ty != target.ty {
+                                return Err(self.error(
+                                    "SPX-U102",
+                                    format!(
+                                        "assigned value type `{}` does not exactly match binding type `{}`",
+                                        value.ty.identity_key(),
+                                        target.ty.identity_key()
+                                    ),
+                                    value.span,
+                                ));
+                            }
+                            if value.ownership != OwnershipMode::Value
+                                || !is_scalar_resolved_type(&value.ty)
+                            {
+                                return Err(self.error(
+                                    "SPX-U105",
+                                    "explicit mutation v1 supports only scalar Copy values",
+                                    value.span,
+                                ));
+                            }
+                        }
                     }
                     let Statement::Assign {
                         span: statement_span,
@@ -6563,6 +6679,7 @@ impl Resolver<'_> {
                     };
                     resolved.push(ResolvedStatement::Assign {
                         binding: target,
+                        field: target_field.map(|(field_id, _)| field_id),
                         value,
                         span: *statement_span,
                     });
@@ -8050,38 +8167,73 @@ impl Resolver<'_> {
                         Statement::Assign {
                             name,
                             name_span,
+                            field,
                             value,
                             span,
                         } => {
-                            let target = self.resolve_assign_target(name, *name_span, &scope)?;
+                            let immutable_code = if field.is_some() {
+                                "SPX-U107"
+                            } else {
+                                "SPX-U101"
+                            };
+                            let target = self.resolve_assign_target(
+                                name,
+                                *name_span,
+                                &scope,
+                                immutable_code,
+                            )?;
+                            let target_field = match field {
+                                Some(field) => {
+                                    Some(self.resolve_assign_field_target(&target, field)?)
+                                }
+                                None => None,
+                            };
                             let value = self.resolve_expr_recursive_reference(
                                 function,
                                 value,
                                 &scope,
                                 &format!("{statement_path}.value"),
                             )?;
-                            if value.ty != target.ty {
-                                return Err(self.error(
-                                    "SPX-U102",
-                                    format!(
-                                        "assigned value type `{}` does not exactly match binding type `{}`",
-                                        value.ty.identity_key(),
-                                        target.ty.identity_key()
-                                    ),
-                                    value.span,
-                                ));
-                            }
-                            if value.ownership != OwnershipMode::Value
-                                || !is_scalar_resolved_type(&value.ty)
-                            {
-                                return Err(self.error(
-                                    "SPX-U105",
-                                    "explicit mutation v1 supports only scalar Copy values",
-                                    value.span,
-                                ));
+                            match &target_field {
+                                Some((_, field_ty)) => {
+                                    if value.ty != *field_ty {
+                                        return Err(self.error(
+                                            "SPX-U110",
+                                            format!(
+                                                "assigned value type `{}` does not exactly match field type `{}`",
+                                                value.ty.identity_key(),
+                                                field_ty.identity_key()
+                                            ),
+                                            value.span,
+                                        ));
+                                    }
+                                }
+                                None => {
+                                    if value.ty != target.ty {
+                                        return Err(self.error(
+                                            "SPX-U102",
+                                            format!(
+                                                "assigned value type `{}` does not exactly match binding type `{}`",
+                                                value.ty.identity_key(),
+                                                target.ty.identity_key()
+                                            ),
+                                            value.span,
+                                        ));
+                                    }
+                                    if value.ownership != OwnershipMode::Value
+                                        || !is_scalar_resolved_type(&value.ty)
+                                    {
+                                        return Err(self.error(
+                                            "SPX-U105",
+                                            "explicit mutation v1 supports only scalar Copy values",
+                                            value.span,
+                                        ));
+                                    }
+                                }
                             }
                             resolved_statements.push(ResolvedStatement::Assign {
                                 binding: target,
+                                field: target_field.map(|(field_id, _)| field_id),
                                 value,
                                 span: *span,
                             });

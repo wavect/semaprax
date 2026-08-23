@@ -646,8 +646,17 @@ fn render_expr(
                         output.push_str(&render_child(walker, value, 0));
                         output.push_str("; ");
                     }
-                    ResolvedStatement::Assign { binding, value, .. } => {
+                    ResolvedStatement::Assign {
+                        binding,
+                        field,
+                        value,
+                        ..
+                    } => {
                         output.push_str(&binding.name);
+                        if let Some(field) = field {
+                            output.push('.');
+                            output.push_str(&walker.declaration_name(field));
+                        }
                         output.push_str(" = ");
                         output.push_str(&render_child(walker, value, 0));
                         output.push_str("; ");

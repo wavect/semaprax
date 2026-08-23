@@ -1471,6 +1471,20 @@ impl<'a> PlanBuilder<'a> {
         let mut current = block;
         let mut current_state = state;
         for statement in statements {
+            // Field Mutation v1 stores replace one scalar Copy field; they
+            // lower their RHS like an initializer and add no cleanup
+            // structure and never transfer into a binding slot.
+            if let ResolvedStatement::Assign {
+                field: Some(_),
+                value,
+                ..
+            } = statement
+            {
+                let evaluated = self.lower_expr(value, current, current_state, root)?;
+                current = evaluated.block;
+                current_state = evaluated.state;
+                continue;
+            }
             let (binding, value) = match statement {
                 ResolvedStatement::Let { binding, value, .. }
                 | ResolvedStatement::Assign { binding, value, .. } => (binding, value),
@@ -2683,25 +2697,34 @@ impl<'a> PlanBuilder<'a> {
                 } => {
                     let evaluated = results.pop().expect("block statement result retained");
                     let mut state = evaluated.state;
-                    if let ResolvedStatement::Let { binding, .. }
-                    | ResolvedStatement::Assign { binding, .. } = &statements[index]
-                    {
-                        if let Some(binding_place) = self.binding_slot(binding, child_region)? {
-                            let value = &statements[index].value();
-                            let source = evaluated.owned_source.ok_or_else(|| {
-                                plan_error(format!(
-                                    "owned binding `{}` has no cleanup source",
-                                    binding.id
-                                ))
-                            })?;
-                            self.transfer(
-                                evaluated.block,
-                                value.id.clone(),
-                                source,
-                                binding_place,
-                                &mut state,
-                                true,
-                            )?;
+                    // Field Mutation v1 stores bind nothing: only plain lets
+                    // and whole-binding assignments transfer into slots.
+                    let binds_whole_value = matches!(
+                        &statements[index],
+                        ResolvedStatement::Let { .. }
+                            | ResolvedStatement::Assign { field: None, .. }
+                    );
+                    if binds_whole_value {
+                        if let ResolvedStatement::Let { binding, .. }
+                        | ResolvedStatement::Assign { binding, .. } = &statements[index]
+                        {
+                            if let Some(binding_place) = self.binding_slot(binding, child_region)? {
+                                let value = &statements[index].value();
+                                let source = evaluated.owned_source.ok_or_else(|| {
+                                    plan_error(format!(
+                                        "owned binding `{}` has no cleanup source",
+                                        binding.id
+                                    ))
+                                })?;
+                                self.transfer(
+                                    evaluated.block,
+                                    value.id.clone(),
+                                    source,
+                                    binding_place,
+                                    &mut state,
+                                    true,
+                                )?;
+                            }
                         }
                     }
                     frames.push(Frame::BlockNext {
@@ -3665,6 +3688,20 @@ impl<'a> PlanBuilder<'a> {
         let mut current = entry;
         let mut current_state = state;
         for statement in statements {
+            // Field Mutation v1 stores lower their RHS like an initializer
+            // and never transfer into a binding slot.
+            if let ResolvedStatement::Assign {
+                field: Some(_),
+                value,
+                ..
+            } = statement
+            {
+                let evaluated =
+                    self.lower_expr_recursive_reference(value, current, current_state, region)?;
+                current = evaluated.block;
+                current_state = evaluated.state;
+                continue;
+            }
             let (binding, value) = match statement {
                 ResolvedStatement::Let { binding, value, .. }
                 | ResolvedStatement::Assign { binding, value, .. } => (binding, value),

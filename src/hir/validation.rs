@@ -3168,6 +3168,7 @@ impl<'a> HirValidator<'a> {
                     scopes.pop().expect("block assign scope retained");
                     let ResolvedStatement::Assign {
                         binding,
+                        field,
                         value: assigned,
                         ..
                     } = &statements[index]
@@ -3181,13 +3182,25 @@ impl<'a> HirValidator<'a> {
                             binding.id
                         )));
                     };
-                    self.require_type(&target.ty, &assigned.ty, "assignment")?;
-                    if target.ownership != OwnershipMode::Value
-                        || !crate::hir::is_scalar_resolved_type(&target.ty)
-                    {
-                        return Err(hir_error(
-                            "explicit mutation v1 supports only scalar Copy values",
-                        ));
+                    match field {
+                        Some(field) => {
+                            if target.ownership != OwnershipMode::Value {
+                                return Err(hir_error(
+                                    "field assignment base is not a value-owned aggregate",
+                                ));
+                            }
+                            self.validate_assign_field(&target.ty, field, assigned)?;
+                        }
+                        None => {
+                            self.require_type(&target.ty, &assigned.ty, "assignment")?;
+                            if target.ownership != OwnershipMode::Value
+                                || !crate::hir::is_scalar_resolved_type(&target.ty)
+                            {
+                                return Err(hir_error(
+                                    "explicit mutation v1 supports only scalar Copy values",
+                                ));
+                            }
+                        }
                     }
                     if target.availability != Availability::Available {
                         return Err(hir_error(format!(
@@ -4575,6 +4588,7 @@ impl<'a> HirValidator<'a> {
                         }
                         ResolvedStatement::Assign {
                             binding,
+                            field,
                             value: assigned,
                             ..
                         } => {
@@ -4594,13 +4608,25 @@ impl<'a> HirValidator<'a> {
                                     binding.id
                                 )));
                             };
-                            self.require_type(&target.ty, &assigned.ty, "assignment")?;
-                            if target.ownership != OwnershipMode::Value
-                                || !crate::hir::is_scalar_resolved_type(&target.ty)
-                            {
-                                return Err(hir_error(
-                                    "explicit mutation v1 supports only scalar Copy values",
-                                ));
+                            match field {
+                                Some(field) => {
+                                    if target.ownership != OwnershipMode::Value {
+                                        return Err(hir_error(
+                                            "field assignment base is not a value-owned aggregate",
+                                        ));
+                                    }
+                                    self.validate_assign_field(&target.ty, field, assigned)?;
+                                }
+                                None => {
+                                    self.require_type(&target.ty, &assigned.ty, "assignment")?;
+                                    if target.ownership != OwnershipMode::Value
+                                        || !crate::hir::is_scalar_resolved_type(&target.ty)
+                                    {
+                                        return Err(hir_error(
+                                            "explicit mutation v1 supports only scalar Copy values",
+                                        ));
+                                    }
+                                }
                             }
                             if target.availability != Availability::Available {
                                 return Err(hir_error(format!(
@@ -6007,6 +6033,58 @@ impl<'a> HirValidator<'a> {
                 "{context} has inconsistent resolved types"
             )))
         }
+    }
+
+    /// Field Mutation v1 oracle check: the targeted field must exist on a
+    /// record/class base, stay a direct scalar Copy field, and match the
+    /// assigned value's type exactly.
+    fn validate_assign_field(
+        &self,
+        target_ty: &ResolvedType,
+        field: &DeclarationId,
+        assigned: &ResolvedExpr,
+    ) -> Result<(), Diagnostic> {
+        let ResolvedType::Nominal {
+            declaration: owner,
+            arguments,
+        } = target_ty
+        else {
+            return Err(hir_error("field assignment base is not a record"));
+        };
+        if self
+            .program
+            .declarations
+            .declaration(owner)
+            .is_none_or(|item| {
+                !matches!(item.kind, DeclarationKind::Record | DeclarationKind::Class)
+            })
+        {
+            return Err(hir_error("field assignment base is not a record"));
+        }
+        let declared = self
+            .program
+            .declarations
+            .record_fields(owner)
+            .and_then(|fields| fields.iter().find(|item| &item.id == field))
+            .map(|item| item.ty.clone())
+            .ok_or_else(|| {
+                hir_error(format!(
+                    "record `{owner}` has no assignment field `{field}`"
+                ))
+            })?;
+        let field_ty =
+            crate::hir::substitute_type(&declared, owner, arguments).map_err(|diagnostic| {
+                hir_error(format!(
+                    "assignment field type substitution failed: {diagnostic}"
+                ))
+            })?;
+        self.require_type(&field_ty, &assigned.ty, "field assignment")?;
+        if !crate::hir::is_scalar_resolved_type(&field_ty) {
+            return Err(hir_error(
+                "field mutation v1 supports only direct scalar Copy record fields",
+            ));
+        }
+        Ok(())
     }
 
     fn insert_value(&mut self, id: &ValueId) -> Result<(), Diagnostic> {

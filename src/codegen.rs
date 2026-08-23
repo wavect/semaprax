@@ -1110,9 +1110,7 @@ fn resolved_expr_children<'a>(
         ResolvedExprKind::Block { statements, tail } => Box::new(
             statements
                 .iter()
-                .map(|statement| match statement {
-                    ResolvedStatement::Let { value, .. } => value,
-                })
+                .map(|statement| statement.value())
                 .chain(std::iter::once(tail.as_ref())),
         ),
         ResolvedExprKind::If {
@@ -2109,10 +2107,10 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
             expression_has_try(left) || expression_has_try(right)
         }
         ResolvedExprKind::Block { statements, tail } => {
-            statements.iter().any(|statement| {
-                let ResolvedStatement::Let { value, .. } = statement;
-                expression_has_try(value)
-            }) || expression_has_try(tail)
+            statements
+                .iter()
+                .any(|statement| expression_has_try(statement.value()))
+                || expression_has_try(tail)
         }
         ResolvedExprKind::If {
             condition,
@@ -2574,6 +2572,23 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                     binding.id
                                 )));
                             }
+                        }
+                        ResolvedStatement::Assign {
+                            binding,
+                            value: assigned,
+                            ..
+                        } => {
+                            // The assigned value is emitted fully first; the
+                            // store is a plain C11 assignment into the local.
+                            let value = self.emit_expr(assigned)?;
+                            self.require_type(&value.ty, &binding.ty, "assignment")?;
+                            let target = self.variables.get(&binding.id).ok_or_else(|| {
+                                backend_error(format!(
+                                    "assignment target `{}` has no native local",
+                                    binding.id
+                                ))
+                            })?;
+                            self.line(&format!("{} = {};", target.name, value.code));
                         }
                     }
                 }

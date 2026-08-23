@@ -7,7 +7,7 @@ use std::path::Path;
 
 use sha2::{Digest, Sha256};
 
-use crate::ast::{Expr, ExprKind, Program, Statement, TypeDeclarationKind};
+use crate::ast::{Expr, ExprKind, Program, TypeDeclarationKind};
 use crate::bounded_output::BudgetedJoin as _;
 use crate::diagnostic::{quote_json, Diagnostic};
 use crate::patch::{self, PatchPreflight, PreflightChange, PreflightOperation};
@@ -641,8 +641,7 @@ fn precheck_program(program: &Program) -> Result<AstUsage, Vec<Diagnostic>> {
             ExprKind::Block { statements, tail } => {
                 stack.push(tail);
                 for statement in statements.iter().rev() {
-                    let Statement::Let { value, .. } = statement;
-                    stack.push(value);
+                    stack.push(statement.value());
                 }
             }
             ExprKind::If {

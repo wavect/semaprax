@@ -505,7 +505,9 @@ fn hir_rejects_template_instance_and_reachability_confusion() {
     else {
         panic!("main must be a block");
     };
-    let semaprax::hir::ResolvedStatement::Let { value, .. } = &mut statements[0];
+    let semaprax::hir::ResolvedStatement::Let { value, .. } = &mut statements[0] else {
+        panic!("first statement must be a let")
+    };
     let ResolvedExprKind::Call { instance, .. } = &mut value.kind else {
         panic!("first statement must be a generic call");
     };
@@ -543,7 +545,9 @@ module test.same_signature_instances;
     else {
         panic!("main must be a block");
     };
-    let semaprax::hir::ResolvedStatement::Let { value, .. } = &mut statements[0];
+    let semaprax::hir::ResolvedStatement::Let { value, .. } = &mut statements[0] else {
+        panic!("first statement must be a let")
+    };
     let ResolvedExprKind::Call { instance, .. } = &mut value.kind else {
         panic!("first statement must call preserve<i64>");
     };

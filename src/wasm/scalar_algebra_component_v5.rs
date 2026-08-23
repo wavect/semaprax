@@ -7,7 +7,7 @@ use crate::diagnostic::Diagnostic;
 use crate::graph;
 use crate::hir::{
     self, DeclarationId, IdentityOrigin, ResolvedExpr, ResolvedExprKind, ResolvedProgram,
-    ResolvedStatement, ResolvedType,
+    ResolvedType,
 };
 use crate::prelude;
 use crate::variant_layout::{VariantLayout, VariantLayoutCache, VariantTarget};
@@ -453,8 +453,7 @@ fn walk_children(expr: &ResolvedExpr, mut visit: impl FnMut(&ResolvedExpr)) {
         }
         ResolvedExprKind::Block { statements, tail } => {
             for statement in statements {
-                let ResolvedStatement::Let { value, .. } = statement;
-                visit(value);
+                visit(statement.value());
             }
             visit(tail);
         }

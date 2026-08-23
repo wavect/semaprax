@@ -206,7 +206,9 @@ fn local_references_resolve_to_their_place_identity() {
     let ResolvedExprKind::Block { statements, tail } = &answer.body.kind else {
         panic!("answer body must be a block");
     };
-    let ResolvedStatement::Let { binding, .. } = &statements[0];
+    let ResolvedStatement::Let { binding, .. } = &statements[0] else {
+        panic!("statement must be a let");
+    };
     assert_eq!(
         binding.id.as_str(),
         "declaration:11:math.answer:value:local:7:body.s0"
@@ -239,7 +241,9 @@ fn postconditions_use_the_explicit_stable_result_identity() {
     let ResolvedExprKind::Block { statements, .. } = &answer.body.kind else {
         panic!("answer body must be a block");
     };
-    let ResolvedStatement::Let { binding, .. } = &statements[0];
+    let ResolvedStatement::Let { binding, .. } = &statements[0] else {
+        panic!("statement must be a let");
+    };
 
     assert_eq!(result.root, answer.result_id);
     assert_ne!(answer.result_id, answer.params[0].id);
@@ -312,11 +316,15 @@ fn main() -> i64 { choose(true) }
     let ResolvedStatement::Let {
         binding: then_binding,
         ..
-    } = &then_statements[0];
+    } = &then_statements[0] else {
+        panic!("statement must be a let");
+    };
     let ResolvedStatement::Let {
         binding: else_binding,
         ..
-    } = &else_statements[0];
+    } = &else_statements[0] else {
+        panic!("statement must be a let");
+    };
     let ResolvedExprKind::Place(then_place) = &then_tail.kind else {
         panic!("then tail must be a place");
     };

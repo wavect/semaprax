@@ -51,9 +51,7 @@ fn first_call<'a>(expression: &'a ResolvedExpr, template: &str) -> Option<&'a Re
         }
         ResolvedExprKind::Block { statements, tail } => statements
             .iter()
-            .find_map(|statement| match statement {
-                hir::ResolvedStatement::Let { value, .. } => first_call(value, template),
-            })
+            .find_map(|statement| first_call(statement.value(), template))
             .or_else(|| first_call(tail, template)),
         ResolvedExprKind::If {
             condition,

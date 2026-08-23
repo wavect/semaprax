@@ -571,7 +571,10 @@ fn conditional_owned_call_temporaries_have_exact_guarded_cleanup_paths() {
             binding,
             value: identity_call,
             ..
-        } = &statements[0];
+        } = &statements[0]
+        else {
+            panic!("owned branch first statement must be a let")
+        };
         assert!(matches!(identity_call.kind, ResolvedExprKind::Call { .. }));
         let consume_call = tail.as_ref();
         assert!(matches!(consume_call.kind, ResolvedExprKind::Call { .. }));
@@ -849,7 +852,9 @@ fn record_plans_cover_partial_construction_normalization_and_projection() {
     let ResolvedExprKind::Block { statements, .. } = &discard.body.kind else {
         panic!("discard body must be a block")
     };
-    let semaprax::hir::ResolvedStatement::Let { binding, .. } = &statements[0];
+    let semaprax::hir::ResolvedStatement::Let { binding, .. } = &statements[0] else {
+        panic!("first statement must be a let")
+    };
     let discard_finalizers = &success_exit(&discard.cleanup_plan).finalize_in_order;
     assert_eq!(discard_finalizers.len(), 2);
     assert!(discard_finalizers
@@ -868,7 +873,9 @@ fn record_plans_cover_partial_construction_normalization_and_projection() {
     let ResolvedExprKind::Block { statements, .. } = &take_first.body.kind else {
         panic!("take_first body must be a block")
     };
-    let semaprax::hir::ResolvedStatement::Let { binding, .. } = &statements[0];
+    let semaprax::hir::ResolvedStatement::Let { binding, .. } = &statements[0] else {
+        panic!("first statement must be a let")
+    };
     let projected = take_first
         .cleanup_plan
         .blocks
@@ -1097,7 +1104,9 @@ fn nested_records_preserve_recursive_partial_and_reverse_cleanup_order() {
     let ResolvedExprKind::Block { statements, .. } = &discard.body.kind else {
         panic!("nested_discard body must be a block")
     };
-    let semaprax::hir::ResolvedStatement::Let { binding, .. } = &statements[0];
+    let semaprax::hir::ResolvedStatement::Let { binding, .. } = &statements[0] else {
+        panic!("first statement must be a let")
+    };
     let binding_storage = StorageId::Value(binding.id.clone());
     let finalizers = &success_exit(&discard.cleanup_plan).finalize_in_order;
     assert_eq!(finalizers.len(), 3);
@@ -1124,7 +1133,9 @@ fn nested_records_preserve_recursive_partial_and_reverse_cleanup_order() {
     let ResolvedExprKind::Block { statements, .. } = &take_left.body.kind else {
         panic!("nested_take_left body must be a block")
     };
-    let semaprax::hir::ResolvedStatement::Let { binding, .. } = &statements[0];
+    let semaprax::hir::ResolvedStatement::Let { binding, .. } = &statements[0] else {
+        panic!("first statement must be a let")
+    };
     let binding_storage = StorageId::Value(binding.id.clone());
     let moved_nested_projection = take_left
         .cleanup_plan

@@ -412,7 +412,8 @@ fn resolved_expr_owned_capacity(expression: &ResolvedExpr) -> usize {
         ResolvedExprKind::Block { statements, tail } => {
             bytes += statements.capacity() * std::mem::size_of::<ResolvedStatement>();
             for statement in statements {
-                let ResolvedStatement::Let { binding, value, .. } = statement;
+                let binding = statement.binding();
+                let value = statement.value();
                 bytes += binding.id.as_str().len()
                     + binding.name.capacity()
                     + resolved_type_owned_capacity(&binding.ty)
@@ -546,8 +547,22 @@ fn resolved_match_pattern_owned_capacity(pattern: &ResolvedMatchPattern) -> usiz
 
 #[cfg(test)]
 fn resolved_statement_owned_capacity(statement: &ResolvedStatement) -> usize {
-    let ResolvedStatement::Let { binding, value, .. } = statement;
-    resolved_binding_owned_capacity(binding) + resolved_expr_owned_capacity(value)
+    resolved_binding_owned_capacity(statement.binding())
+        + resolved_expr_owned_capacity(statement.value())
+}
+
+/// Explicit Mutation v1 admits exactly the checked Copy scalar value types.
+pub(crate) fn is_scalar_resolved_type(ty: &ResolvedType) -> bool {
+    matches!(
+        ty,
+        ResolvedType::I64
+            | ResolvedType::I32
+            | ResolvedType::U8
+            | ResolvedType::Char
+            | ResolvedType::F32
+            | ResolvedType::F64
+            | ResolvedType::Bool
+    )
 }
 
 #[cfg(test)]
@@ -2330,6 +2345,7 @@ fn materialize_template_expr(
                 match statement {
                     ResolvedStatement::Let {
                         binding,
+                        mutable,
                         value,
                         span,
                     } => {
@@ -2351,9 +2367,15 @@ fn materialize_template_expr(
                                 ty: substitute_type(&binding.ty, &template.id, arguments)?,
                                 span: binding.span,
                             },
+                            mutable: *mutable,
                             value,
                             span: *span,
                         });
+                    }
+                    ResolvedStatement::Assign { .. } => {
+                        return Err(hir_error(
+                            "generic template statements cannot assign to local bindings",
+                        ));
                     }
                 }
             }
@@ -2817,9 +2839,46 @@ pub struct ResolvedFieldInitializer {
 pub enum ResolvedStatement {
     Let {
         binding: ResolvedBinding,
+        /// Explicit Mutation v1: `true` when the source declared `let mut`.
+        mutable: bool,
         value: ResolvedExpr,
         span: Span,
     },
+    /// Explicit Mutation v1: `<binding> = <expr>;`. The target reuses the
+    /// original binding's [`ValueId`]; no new value identity is created.
+    Assign {
+        binding: ResolvedBinding,
+        value: ResolvedExpr,
+        span: Span,
+    },
+}
+
+impl ResolvedStatement {
+    /// The statement's evaluated expression.
+    pub fn value(&self) -> &ResolvedExpr {
+        match self {
+            Self::Let { value, .. } | Self::Assign { value, .. } => value,
+        }
+    }
+
+    /// Mutable access to the statement's evaluated expression.
+    pub fn value_mut(&mut self) -> &mut ResolvedExpr {
+        match self {
+            Self::Let { value, .. } | Self::Assign { value, .. } => value,
+        }
+    }
+
+    /// The statement's target or declared binding.
+    pub fn binding(&self) -> &ResolvedBinding {
+        match self {
+            Self::Let { binding, .. } | Self::Assign { binding, .. } => binding,
+        }
+    }
+
+    /// `true` for assignment statements.
+    pub fn is_assign(&self) -> bool {
+        matches!(self, Self::Assign { .. })
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -2842,6 +2901,8 @@ struct Binding {
     id: ValueId,
     ty: ResolvedType,
     ownership: OwnershipMode,
+    /// Explicit Mutation v1: only local `let mut` bindings are mutable.
+    mutable: bool,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -3313,10 +3374,10 @@ fn audit_resolved_expression(root: &ResolvedExpr) -> Result<(), Diagnostic> {
             ResolvedExprKind::Block { statements, tail } => {
                 pending.push(tail);
                 for statement in statements.iter().rev() {
-                    let ResolvedStatement::Let { binding, value, .. } = statement;
+                    let binding = statement.binding();
                     reject_nul_identity("resolved value", binding.id.as_str())?;
                     audit_resolved_type(&binding.ty)?;
-                    pending.push(value);
+                    pending.push(statement.value());
                 }
             }
             ResolvedExprKind::If {
@@ -3833,9 +3894,7 @@ fn visit_resolved_calls(
         }
         ResolvedExprKind::Block { statements, tail } => {
             for statement in statements {
-                match statement {
-                    ResolvedStatement::Let { value, .. } => visit_resolved_calls(value, visit),
-                }
+                visit_resolved_calls(statement.value(), visit);
             }
             visit_resolved_calls(tail, visit);
         }
@@ -3943,9 +4002,7 @@ pub(crate) fn workspace_call_sites(
             }
             ResolvedExprKind::Block { statements, tail } => {
                 for statement in statements {
-                    match statement {
-                        ResolvedStatement::Let { value, .. } => walk(owner, value, sites),
-                    }
+                    walk(owner, statement.value(), sites);
                 }
                 walk(owner, tail, sites);
             }
@@ -4348,6 +4405,7 @@ impl Resolver<'_> {
                         id: id.clone(),
                         ty: ty.clone(),
                         ownership: OwnershipMode::Value,
+                        mutable: false,
                     },
                 );
                 Ok(ResolvedParam {
@@ -4383,6 +4441,7 @@ impl Resolver<'_> {
                 id: result_id.clone(),
                 ty: return_type.clone(),
                 ownership: OwnershipMode::Value,
+                mutable: false,
             },
         );
         let ensures = function
@@ -4495,6 +4554,7 @@ impl Resolver<'_> {
                         id: id.clone(),
                         ty: ty.clone(),
                         ownership,
+                        mutable: false,
                     },
                 );
                 Ok(ResolvedParam {
@@ -4535,6 +4595,7 @@ impl Resolver<'_> {
                     OwnershipMode::Own,
                     function.span,
                 )?,
+                mutable: false,
             },
         );
         let ensures = function
@@ -4839,6 +4900,7 @@ impl Resolver<'_> {
                                     id: binding.id.clone(),
                                     ty: field_ty,
                                     ownership: OwnershipMode::Value,
+                                    mutable: false,
                                 },
                             );
                             resolved.push(ResolvedRecordMatchPatternField {
@@ -4952,6 +5014,34 @@ impl Resolver<'_> {
         self.resolve_expr_iterative(function, expr, bindings, path)
     }
 
+    /// Resolve one assignment target against the enclosing scope. The target
+    /// must name an existing `let mut` local; parameters, contracts bindings,
+    /// and immutable locals are rejected before the assigned value resolves.
+    fn resolve_assign_target(
+        &self,
+        name: &str,
+        name_span: Span,
+        bindings: &BTreeMap<String, Binding>,
+    ) -> Result<ResolvedBinding, Diagnostic> {
+        let binding = bindings.get(name).ok_or_else(|| {
+            self.error("SPX-H002", format!("unresolved value `{name}`"), name_span)
+        })?;
+        if !binding.mutable {
+            return Err(self.error(
+                "SPX-U101",
+                format!("cannot assign to immutable binding `{name}`; declare it with `let mut`"),
+                name_span,
+            ));
+        }
+        Ok(ResolvedBinding {
+            id: binding.id.clone(),
+            name: name.to_owned(),
+            ownership: binding.ownership,
+            ty: binding.ty.clone(),
+            span: name_span,
+        })
+    }
+
     fn resolve_expr_iterative(
         &self,
         function: &FunctionExecutionId,
@@ -5022,6 +5112,16 @@ impl Resolver<'_> {
                 index: usize,
                 scope: Rc<BTreeMap<String, Binding>>,
                 resolved: Vec<ResolvedStatement>,
+            },
+            BlockAfterAssign {
+                span: Span,
+                path: String,
+                statements: &'expr [Statement],
+                tail: &'expr Expr,
+                index: usize,
+                scope: Rc<BTreeMap<String, Binding>>,
+                resolved: Vec<ResolvedStatement>,
+                target: ResolvedBinding,
             },
             FinishBlock {
                 span: Span,
@@ -5184,6 +5284,7 @@ impl Resolver<'_> {
                 | Frame::AfterBinaryLeft { path, .. }
                 | Frame::BlockNext { path, .. }
                 | Frame::BlockAfterLet { path, .. }
+                | Frame::BlockAfterAssign { path, .. }
                 | Frame::FinishBlock { path, .. }
                 | Frame::FinishIf { path, .. }
                 | Frame::AfterIfCondition { path, .. }
@@ -5219,9 +5320,9 @@ impl Resolver<'_> {
                 | Frame::UpdateAfterField { bindings, .. } => {
                     resolver_scope_owned_capacity(bindings)
                 }
-                Frame::BlockNext { scope, .. } | Frame::BlockAfterLet { scope, .. } => {
-                    resolver_scope_owned_capacity(scope)
-                }
+                Frame::BlockNext { scope, .. }
+                | Frame::BlockAfterLet { scope, .. }
+                | Frame::BlockAfterAssign { scope, .. } => resolver_scope_owned_capacity(scope),
                 _ => 0,
             };
             let retained = match frame {
@@ -5250,6 +5351,7 @@ impl Resolver<'_> {
                 }
                 Frame::BlockNext { resolved, .. }
                 | Frame::BlockAfterLet { resolved, .. }
+                | Frame::BlockAfterAssign { resolved, .. }
                 | Frame::FinishBlock {
                     statements: resolved,
                     ..
@@ -5983,21 +6085,48 @@ impl Resolver<'_> {
                             path: format!("{path}.tail"),
                         });
                     } else {
-                        let Statement::Let { value, .. } = &statements[index];
-                        frames.push(Frame::BlockAfterLet {
-                            span,
-                            path: path.clone(),
-                            statements,
-                            tail,
-                            index,
-                            scope: scope.clone(),
-                            resolved,
-                        });
-                        frames.push(Frame::Enter {
-                            expr: value,
-                            bindings: scope,
-                            path: format!("{path}.s{index}.value"),
-                        });
+                        match &statements[index] {
+                            Statement::Let { value, .. } => {
+                                frames.push(Frame::BlockAfterLet {
+                                    span,
+                                    path: path.clone(),
+                                    statements,
+                                    tail,
+                                    index,
+                                    scope: scope.clone(),
+                                    resolved,
+                                });
+                                frames.push(Frame::Enter {
+                                    expr: value,
+                                    bindings: scope,
+                                    path: format!("{path}.s{index}.value"),
+                                });
+                            }
+                            Statement::Assign {
+                                name,
+                                name_span,
+                                value,
+                                ..
+                            } => {
+                                let target =
+                                    self.resolve_assign_target(name, *name_span, &scope)?;
+                                frames.push(Frame::BlockAfterAssign {
+                                    span,
+                                    path: path.clone(),
+                                    statements,
+                                    tail,
+                                    index,
+                                    scope: scope.clone(),
+                                    resolved,
+                                    target,
+                                });
+                                frames.push(Frame::Enter {
+                                    expr: value,
+                                    bindings: scope,
+                                    path: format!("{path}.s{index}.value"),
+                                });
+                            }
+                        }
                     }
                 }
                 Frame::BlockAfterLet {
@@ -6013,9 +6142,13 @@ impl Resolver<'_> {
                     let Statement::Let {
                         name,
                         name_span,
+                        mutable,
                         span: statement_span,
                         ..
-                    } = &statements[index];
+                    } = &statements[index]
+                    else {
+                        unreachable!("let frame resumes at a let statement")
+                    };
                     let statement_path = format!("{path}.s{index}");
                     let binding = ResolvedBinding {
                         id: ValueId::local(function, &statement_path),
@@ -6030,10 +6163,68 @@ impl Resolver<'_> {
                             id: binding.id.clone(),
                             ty: binding.ty.clone(),
                             ownership: binding.ownership,
+                            mutable: *mutable,
                         },
                     );
                     resolved.push(ResolvedStatement::Let {
                         binding,
+                        mutable: *mutable,
+                        value,
+                        span: *statement_span,
+                    });
+                    frames.push(Frame::BlockNext {
+                        span,
+                        path,
+                        statements,
+                        tail,
+                        index: index + 1,
+                        scope,
+                        resolved,
+                    });
+                }
+                Frame::BlockAfterAssign {
+                    span,
+                    path,
+                    statements,
+                    tail,
+                    index,
+                    scope,
+                    mut resolved,
+                    target,
+                } => {
+                    // The assigned value is fully evaluated before the store;
+                    // exact-type and scalar-Copy admission are checked here so
+                    // failure statuses propagate exactly like initializers.
+                    let value = results.pop().expect("assign value result retained");
+                    if value.ty != target.ty {
+                        return Err(self.error(
+                            "SPX-U102",
+                            format!(
+                                "assigned value type `{}` does not exactly match binding type `{}`",
+                                value.ty.identity_key(),
+                                target.ty.identity_key()
+                            ),
+                            value.span,
+                        ));
+                    }
+                    if value.ownership != OwnershipMode::Value
+                        || !is_scalar_resolved_type(&value.ty)
+                    {
+                        return Err(self.error(
+                            "SPX-U105",
+                            "explicit mutation v1 supports only scalar Copy values",
+                            value.span,
+                        ));
+                    }
+                    let Statement::Assign {
+                        span: statement_span,
+                        ..
+                    } = &statements[index]
+                    else {
+                        unreachable!("assign frame resumes at an assignment statement")
+                    };
+                    resolved.push(ResolvedStatement::Assign {
+                        binding: target,
                         value,
                         span: *statement_span,
                     });
@@ -6461,6 +6652,7 @@ impl Resolver<'_> {
                                             id: binding.id.clone(),
                                             ty: field_ty,
                                             ownership: OwnershipMode::Value,
+                                            mutable: false,
                                         },
                                     );
                                     resolved_fields.push(ResolvedMatchPatternField {
@@ -7134,6 +7326,7 @@ impl Resolver<'_> {
                         Statement::Let {
                             name,
                             name_span,
+                            mutable,
                             value,
                             span,
                         } => {
@@ -7156,10 +7349,51 @@ impl Resolver<'_> {
                                     id: binding.id.clone(),
                                     ty: binding.ty.clone(),
                                     ownership: binding.ownership,
+                                    mutable: *mutable,
                                 },
                             );
                             resolved_statements.push(ResolvedStatement::Let {
                                 binding,
+                                mutable: *mutable,
+                                value,
+                                span: *span,
+                            });
+                        }
+                        Statement::Assign {
+                            name,
+                            name_span,
+                            value,
+                            span,
+                        } => {
+                            let target = self.resolve_assign_target(name, *name_span, &scope)?;
+                            let value = self.resolve_expr_recursive_reference(
+                                function,
+                                value,
+                                &scope,
+                                &format!("{statement_path}.value"),
+                            )?;
+                            if value.ty != target.ty {
+                                return Err(self.error(
+                                    "SPX-U102",
+                                    format!(
+                                        "assigned value type `{}` does not exactly match binding type `{}`",
+                                        value.ty.identity_key(),
+                                        target.ty.identity_key()
+                                    ),
+                                    value.span,
+                                ));
+                            }
+                            if value.ownership != OwnershipMode::Value
+                                || !is_scalar_resolved_type(&value.ty)
+                            {
+                                return Err(self.error(
+                                    "SPX-U105",
+                                    "explicit mutation v1 supports only scalar Copy values",
+                                    value.span,
+                                ));
+                            }
+                            resolved_statements.push(ResolvedStatement::Assign {
+                                binding: target,
                                 value,
                                 span: *span,
                             });
@@ -7493,6 +7727,7 @@ impl Resolver<'_> {
                                         id: binding.id.clone(),
                                         ty: field_ty,
                                         ownership: OwnershipMode::Value,
+                                        mutable: false,
                                     },
                                 );
                                 resolved_fields.push(ResolvedMatchPatternField {
@@ -7884,6 +8119,7 @@ interface HostEcho permits { host.echo } {
                             id: resolved.id.clone(),
                             ty: resolved.ty.clone(),
                             ownership: resolved.ownership,
+                            mutable: false,
                         },
                     )
                 })
@@ -8155,7 +8391,9 @@ fn main() -> i64 { 0 }
                     let ResolvedExprKind::Block { statements, .. } = &mut body.kind else {
                         unreachable!()
                     };
-                    let ResolvedStatement::Let { binding, .. } = &mut statements[0];
+                    let ResolvedStatement::Let { binding, .. } = &mut statements[0] else {
+                        unreachable!("fixture statement is a let")
+                    };
                     binding.ty = ResolvedType::Bool;
                 }
                 "hostile.block_tail" => {

@@ -99,6 +99,8 @@ struct Binding {
     moved_places: HashMap<Vec<String>, Availability>,
     definitely_partial: HashSet<Vec<String>>,
     native_unit_discard: bool,
+    /// Explicit Mutation v1: only local `let mut` bindings are mutable.
+    mutable: bool,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -1518,6 +1520,7 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                             moved_places: HashMap::new(),
                             definitely_partial: HashSet::new(),
                             native_unit_discard: false,
+                            mutable: false,
                         },
                     )
                     .is_some()
@@ -2007,9 +2010,7 @@ fn generic_function_expression_is_direct_scalar(expression: &Expr) -> bool {
             }
             ExprKind::Block { statements, tail } => {
                 pending.push(tail);
-                pending.extend(statements.iter().rev().map(|statement| match statement {
-                    crate::ast::Statement::Let { value, .. } => value,
-                }));
+                pending.extend(statements.iter().rev().map(|statement| statement.value()));
             }
             ExprKind::If {
                 condition,
@@ -2303,6 +2304,7 @@ fn check_record_pattern(
                                     moved_places: HashMap::new(),
                                     definitely_partial: HashSet::new(),
                                     native_unit_discard: false,
+                                    mutable: false,
                                 },
                             );
                         }
@@ -2738,6 +2740,60 @@ struct IterativeVerifier<'a, 'p> {
 }
 
 impl<'a, 'p> IterativeVerifier<'a, 'p> {
+    /// Queue the next block statement (any kind) or fall through to the
+    /// block tail after one statement completes.
+    #[allow(clippy::too_many_arguments)]
+    fn advance_block_statement(
+        &mut self,
+        expression: &'p Expr,
+        statements: &'p [Statement],
+        tail: &'p Expr,
+        parent_scope: usize,
+        block_scope: usize,
+        index: usize,
+        outer_names: Vec<String>,
+    ) {
+        let next = index + 1;
+        let Some(next_statement) = statements.get(next) else {
+            self.frames.push(VerifierFrame::ResumeBlockTail {
+                parent_scope,
+                block_scope,
+                outer_names,
+            });
+            self.frames.push(VerifierFrame::Enter {
+                expression: tail,
+                scope: block_scope,
+            });
+            return;
+        };
+        if let Statement::Let {
+            name, name_span, ..
+        } = next_statement
+        {
+            if !source_identifier(name) {
+                self.diagnostics.push(error(
+                    self.program,
+                    "SPX-S109",
+                    format!("`{name}` is reserved and cannot name a local binding"),
+                    *name_span,
+                ));
+            }
+        }
+        self.frames.push(VerifierFrame::ResumeBlockStatement {
+            expression,
+            statements,
+            tail,
+            parent_scope,
+            block_scope,
+            index: next,
+            outer_names,
+        });
+        self.frames.push(VerifierFrame::Enter {
+            expression: next_statement.value(),
+            scope: block_scope,
+        });
+    }
+
     #[allow(clippy::too_many_arguments)]
     fn new(
         program: &'p Program,
@@ -3065,20 +3121,21 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         self.scopes.push(VerifierScope {
                             bindings: self.scopes[scope].bindings.clone(),
                         });
-                        if let Some(Statement::Let {
-                            name,
-                            name_span,
-                            value,
-                            ..
-                        }) = statements.first()
-                        {
-                            if !source_identifier(name) {
-                                self.diagnostics.push(error(
-                                    self.program,
-                                    "SPX-S109",
-                                    format!("`{name}` is reserved and cannot name a local binding"),
-                                    *name_span,
-                                ));
+                        if let Some(first_statement) = statements.first() {
+                            if let Statement::Let {
+                                name, name_span, ..
+                            } = first_statement
+                            {
+                                if !source_identifier(name) {
+                                    self.diagnostics.push(error(
+                                        self.program,
+                                        "SPX-S109",
+                                        format!(
+                                            "`{name}` is reserved and cannot name a local binding"
+                                        ),
+                                        *name_span,
+                                    ));
+                                }
                             }
                             self.frames.push(VerifierFrame::ResumeBlockStatement {
                                 expression,
@@ -3090,7 +3147,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 outer_names,
                             });
                             self.frames.push(VerifierFrame::Enter {
-                                expression: value,
+                                expression: first_statement.value(),
                                 scope: block_scope,
                             });
                         } else {
@@ -3665,89 +3722,119 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     outer_names,
                 } => {
                     let actual = self.values.pop().unwrap_or(None);
-                    let Statement::Let {
-                        name,
-                        name_span,
-                        value,
-                        ..
-                    } = &statements[index];
-                    if self.scopes[block_scope].bindings.contains_key(name) {
-                        self.diagnostics.push(error(
-                            self.program,
-                            "SPX-T209",
-                            format!("local binding `{name}` shadows an existing value"),
-                            *name_span,
-                        ));
-                    } else if let Some(actual) = actual {
-                        if self.types.contains_resource(&actual.ty) && actual.mode == ParamMode::Own
-                        {
-                            if self.allow_moves {
-                                mark_value_sources_moved(
-                                    value,
-                                    &mut self.scopes[block_scope].bindings,
-                                    self.types,
-                                );
-                            } else {
+                    match &statements[index] {
+                        Statement::Let {
+                            name,
+                            name_span,
+                            mutable,
+                            value,
+                            ..
+                        } => {
+                            if self.scopes[block_scope].bindings.contains_key(name) {
                                 self.diagnostics.push(error(
                                     self.program,
-                                    "SPX-O105",
-                                    "contract expression cannot transfer an owned resource into a local binding",
-                                    value.span,
+                                    "SPX-T209",
+                                    format!("local binding `{name}` shadows an existing value"),
+                                    *name_span,
                                 ));
+                            } else if let Some(actual) = actual {
+                                if self.types.contains_resource(&actual.ty)
+                                    && actual.mode == ParamMode::Own
+                                {
+                                    if self.allow_moves {
+                                        mark_value_sources_moved(
+                                            value,
+                                            &mut self.scopes[block_scope].bindings,
+                                            self.types,
+                                        );
+                                    } else {
+                                        self.diagnostics.push(error(
+                                            self.program,
+                                            "SPX-O105",
+                                            "contract expression cannot transfer an owned resource into a local binding",
+                                            value.span,
+                                        ));
+                                    }
+                                }
+                                self.scopes[block_scope].bindings.insert(
+                                    name.clone(),
+                                    Binding {
+                                        ty: actual.ty,
+                                        mode: actual.mode,
+                                        availability: Availability::Available,
+                                        moved_places: HashMap::new(),
+                                        definitely_partial: HashSet::new(),
+                                        native_unit_discard: actual.native_unit,
+                                        mutable: *mutable,
+                                    },
+                                );
                             }
                         }
-                        self.scopes[block_scope].bindings.insert(
-                            name.clone(),
-                            Binding {
-                                ty: actual.ty,
-                                mode: actual.mode,
-                                availability: Availability::Available,
-                                moved_places: HashMap::new(),
-                                definitely_partial: HashSet::new(),
-                                native_unit_discard: actual.native_unit,
-                            },
-                        );
-                    }
-                    let next = index + 1;
-                    if let Some(Statement::Let {
-                        name,
-                        name_span,
-                        value,
-                        ..
-                    }) = statements.get(next)
-                    {
-                        if !source_identifier(name) {
-                            self.diagnostics.push(error(
-                                self.program,
-                                "SPX-S109",
-                                format!("`{name}` is reserved and cannot name a local binding"),
-                                *name_span,
-                            ));
+                        Statement::Assign {
+                            name,
+                            name_span,
+                            value,
+                            ..
+                        } => {
+                            let target = self.scopes[block_scope]
+                                .bindings
+                                .get(name.as_str())
+                                .map(|binding| (binding.mutable, binding.ty.clone()));
+                            if target.is_none() {
+                                self.diagnostics.push(error(
+                                    self.program,
+                                    "SPX-T202",
+                                    format!("unknown value `{name}` in `{}`", self.current.name),
+                                    *name_span,
+                                ));
+                            }
+                            if let Some((mutable, binding_ty)) = target {
+                                if !mutable {
+                                    self.diagnostics.push(error(
+                                        self.program,
+                                        "SPX-U101",
+                                        format!(
+                                            "cannot assign to immutable binding `{name}`; declare it with `let mut`"
+                                        ),
+                                        *name_span,
+                                    ));
+                                }
+                                if let Some(actual) = &actual {
+                                    if mutable && actual.ty != binding_ty {
+                                        self.diagnostics.push(error(
+                                            self.program,
+                                            "SPX-U102",
+                                            format!(
+                                                "assigned value type `{}` does not exactly match binding type `{}`",
+                                                actual.ty, binding_ty
+                                            ),
+                                            value.span,
+                                        ));
+                                    }
+                                    if mutable
+                                        && (actual.mode != ParamMode::Value
+                                            || !is_scalar_source_type(&actual.ty))
+                                    {
+                                        self.diagnostics.push(error(
+                                            self.program,
+                                            "SPX-U105",
+                                            "explicit mutation v1 supports only scalar Copy values",
+                                            value.span,
+                                        ));
+                                    }
+                                }
+                            }
                         }
-                        self.frames.push(VerifierFrame::ResumeBlockStatement {
-                            expression,
-                            statements,
-                            tail,
-                            parent_scope,
-                            block_scope,
-                            index: next,
-                            outer_names,
-                        });
-                        self.frames.push(VerifierFrame::Enter {
-                            expression: value,
-                            scope: block_scope,
-                        });
-                    } else {
-                        self.frames.push(VerifierFrame::ResumeBlockTail {
-                            parent_scope,
-                            block_scope,
-                            outer_names,
-                        });
-                        self.frames.push(VerifierFrame::Enter {
-                            expression: tail,
-                            scope: block_scope,
-                        });
                     }
+                    self.advance_block_statement(
+                        expression,
+                        statements,
+                        tail,
+                        parent_scope,
+                        block_scope,
+                        index,
+                        outer_names,
+                    );
                 }
                 VerifierFrame::ResumeBlockTail {
                     parent_scope,
@@ -4816,6 +4903,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                             moved_places: HashMap::new(),
                                             definitely_partial: HashSet::new(),
                                             native_unit_discard: false,
+                                            mutable: false,
                                         },
                                     );
                                 }
@@ -5875,6 +5963,7 @@ fn check_expr(
                                         moved_places: HashMap::new(),
                                         definitely_partial: HashSet::new(),
                                         native_unit_discard: false,
+                                        mutable: false,
                                     },
                                 );
                             }
@@ -6261,8 +6350,7 @@ fn check_expr(
                         name_span,
                         value,
                         ..
-                    } => {
-                        if !source_identifier(name) {
+                    } => {                        if !source_identifier(name) {
                             diagnostics.push(error(
                                 program,
                                 "SPX-S109",
@@ -6313,9 +6401,29 @@ fn check_expr(
                                     moved_places: HashMap::new(),
                                     definitely_partial: HashSet::new(),
                                     native_unit_discard: actual.native_unit,
+                                    mutable: false,
                                 },
                             );
                         }
+                    }
+                    Statement::Assign { value, span, .. } => {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-U106",
+                            "assignment statements are not allowed in contract expressions",
+                            *span,
+                        ));
+                        check_expr(
+                            program,
+                            current,
+                            value,
+                            &mut scope,
+                            functions,
+                            types,
+                            result_type,
+                            allow_moves,
+                            diagnostics,
+                        );
                     }
                 }
             }
@@ -6969,6 +7077,14 @@ fn source_identifier(value: &str) -> bool {
         )
 }
 
+/// Explicit Mutation v1 admits exactly the checked Copy scalar value types.
+fn is_scalar_source_type(ty: &Type) -> bool {
+    matches!(
+        ty,
+        Type::I64 | Type::I32 | Type::U8 | Type::Char | Type::F32 | Type::F64 | Type::Bool
+    )
+}
+
 #[cfg(test)]
 mod iterative_verifier_tests {
     use super::*;
@@ -7028,6 +7144,7 @@ mod iterative_verifier_tests {
                     moved_places: HashMap::new(),
                     definitely_partial: HashSet::new(),
                     native_unit_discard: false,
+                    mutable: false,
                 },
             );
         }

@@ -9,7 +9,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use crate::diagnostic::{quote_json, Diagnostic};
 use crate::hir::{
     self, DeclarationId, FunctionExecutionId, IdentityOrigin, OwnershipMode, ResolvedExpr,
-    ResolvedExprKind, ResolvedFunction, ResolvedProgram, ResolvedStatement, ResolvedType,
+    ResolvedExprKind, ResolvedFunction, ResolvedProgram, ResolvedType,
 };
 
 use super::{write_u32, ByteOutput, I32, I64};
@@ -353,7 +353,7 @@ fn validate_expression_profile(
             }
             ResolvedExprKind::Block { statements, tail } => {
                 for statement in statements {
-                    let ResolvedStatement::Let { binding, value, .. } = statement;
+                    let binding = statement.binding();
                     if binding.ownership != OwnershipMode::Value
                         || scalar_type(&binding.ty).is_none()
                     {
@@ -361,7 +361,7 @@ fn validate_expression_profile(
                             "Public Scalar Export Profile v1 function `{function_id}` binds a non-value scalar"
                         )));
                     }
-                    pending.push(value);
+                    pending.push(statement.value());
                 }
                 pending.push(tail);
             }

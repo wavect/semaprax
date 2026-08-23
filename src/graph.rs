@@ -1151,8 +1151,7 @@ fn collect_result_propagations<'a>(
         }
         ResolvedExprKind::Block { statements, tail } => {
             for statement in statements {
-                let ResolvedStatement::Let { value, .. } = statement;
-                collect_result_propagations(value, propagations);
+                collect_result_propagations(statement.value(), propagations);
             }
             collect_result_propagations(tail, propagations);
         }
@@ -1311,10 +1310,10 @@ fn expression_has_record_pattern(expression: &ResolvedExpr) -> bool {
             expression_has_record_pattern(left) || expression_has_record_pattern(right)
         }
         ResolvedExprKind::Block { statements, tail } => {
-            statements.iter().any(|statement| {
-                let ResolvedStatement::Let { value, .. } = statement;
-                expression_has_record_pattern(value)
-            }) || expression_has_record_pattern(tail)
+            statements
+                .iter()
+                .any(|statement| expression_has_record_pattern(statement.value()))
+                || expression_has_record_pattern(tail)
         }
         ResolvedExprKind::If {
             condition,
@@ -1430,9 +1429,8 @@ fn collect_agent_contract_values(expression: &ResolvedExpr, values: &mut BTreeSe
         }
         ResolvedExprKind::Block { statements, tail } => {
             for statement in statements {
-                let ResolvedStatement::Let { binding, value, .. } = statement;
-                values.insert(binding.id.clone());
-                collect_agent_contract_values(value, values);
+                values.insert(statement.binding().id.clone());
+                collect_agent_contract_values(statement.value(), values);
             }
             collect_agent_contract_values(tail, values);
         }
@@ -1560,12 +1558,18 @@ fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnos
             statements
                 .iter()
                 .map(|statement| {
-                    let ResolvedStatement::Let { binding, value, .. } = statement;
-                    Ok(format!(
-                        "{{\"kind\":\"let\",\"binding\":{},\"value\":{}}}",
-                        quote_json(binding.id.as_str()),
-                        agent_contract_expr_json(value)?
-                    ))
+                    Ok(match statement {
+                        ResolvedStatement::Let { binding, value, .. } => format!(
+                            "{{\"kind\":\"let\",\"binding\":{},\"value\":{}}}",
+                            quote_json(binding.id.as_str()),
+                            agent_contract_expr_json(value)?
+                        ),
+                        ResolvedStatement::Assign { binding, value, .. } => format!(
+                            "{{\"kind\":\"assign\",\"target\":{},\"value\":{}}}",
+                            quote_json(binding.id.as_str()),
+                            agent_contract_expr_json(value)?
+                        ),
+                    })
                 })
                 .collect::<Result<Vec<_>, Diagnostic>>()?
                 .budgeted_join(","),
@@ -3152,8 +3156,7 @@ fn visit_expr_call_instances(
         }
         ResolvedExprKind::Block { statements, tail } => {
             for statement in statements {
-                let ResolvedStatement::Let { value, .. } = statement;
-                visit_expr_call_instances(value, visit);
+                visit_expr_call_instances(statement.value(), visit);
             }
             visit_expr_call_instances(tail, visit);
         }
@@ -3218,8 +3221,7 @@ fn visit_expr_calls(expression: &ResolvedExpr, visit: &mut impl FnMut(&Declarati
         }
         ResolvedExprKind::Block { statements, tail } => {
             for statement in statements {
-                let ResolvedStatement::Let { value, .. } = statement;
-                visit_expr_calls(value, visit);
+                visit_expr_calls(statement.value(), visit);
             }
             visit_expr_calls(tail, visit);
         }
@@ -3311,9 +3313,8 @@ fn collect_expr_type_declarations(
         }
         ResolvedExprKind::Block { statements, tail } => {
             for statement in statements {
-                let ResolvedStatement::Let { binding, value, .. } = statement;
-                collect_nominal_declarations(&binding.ty, declarations);
-                collect_expr_type_declarations(value, declarations);
+                collect_nominal_declarations(&statement.binding().ty, declarations);
+                collect_expr_type_declarations(statement.value(), declarations);
             }
             collect_expr_type_declarations(tail, declarations);
         }
@@ -3713,8 +3714,27 @@ fn statement_json(
     statement: &ResolvedStatement,
 ) -> Result<String, Diagnostic> {
     match statement {
-        ResolvedStatement::Let { binding, value, .. } => Ok(format!(
-            "{{\"kind\":\"let\",\"binding\":{{\"id\":{},\"name\":{},\"type_id\":{},\"ownership_mode\":{}}},\"value\":{}}}",
+        ResolvedStatement::Let {
+            binding,
+            mutable,
+            value,
+            ..
+        } => {
+            // The mutable flag is additive and emitted only for `let mut`
+            // bindings so pre-mutation graphs stay byte-identical.
+            let mutable_field = if *mutable { ",\"mutable\":true" } else { "" };
+            Ok(format!(
+                "{{\"kind\":\"let\",\"binding\":{{\"id\":{},\"name\":{},\"type_id\":{},\"ownership_mode\":{}}}{},\"value\":{}}}",
+                quote_json(binding.id.as_str()),
+                quote_json(&binding.name),
+                quote_json(&binding.ty.identity_key()),
+                quote_json(ownership_text(binding.ownership)),
+                mutable_field,
+                expr_json(program, value)?
+            ))
+        }
+        ResolvedStatement::Assign { binding, value, .. } => Ok(format!(
+            "{{\"kind\":\"assign\",\"target\":{{\"id\":{},\"name\":{},\"type_id\":{},\"ownership_mode\":{}}},\"value\":{}}}",
             quote_json(binding.id.as_str()),
             quote_json(&binding.name),
             quote_json(&binding.ty.identity_key()),
@@ -3845,9 +3865,8 @@ fn collect_expr_types(expression: &ResolvedExpr, types: &mut BTreeMap<String, Re
         }
         ResolvedExprKind::Block { statements, tail } => {
             for statement in statements {
-                let ResolvedStatement::Let { binding, value, .. } = statement;
-                collect_type(&binding.ty, types);
-                collect_expr_types(value, types);
+                collect_type(&statement.binding().ty, types);
+                collect_expr_types(statement.value(), types);
             }
             collect_expr_types(tail, types);
         }

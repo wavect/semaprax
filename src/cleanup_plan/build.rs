@@ -1463,7 +1463,7 @@ impl<'a> PlanBuilder<'a> {
         let mut current = block;
         let mut current_state = state;
         for statement in statements {
-            let ResolvedStatement::Let { binding, value, .. } = statement;
+            let (binding, value) = (statement.binding(), statement.value());
             let evaluated = self.lower_expr(value, current, current_state, root)?;
             current = evaluated.block;
             current_state = evaluated.state;
@@ -2617,7 +2617,6 @@ impl<'a> PlanBuilder<'a> {
                     destination,
                 } => {
                     if index < statements.len() {
-                        let ResolvedStatement::Let { value, .. } = &statements[index];
                         frames.push(Frame::BlockAfterStatement {
                             expression,
                             statements,
@@ -2631,7 +2630,7 @@ impl<'a> PlanBuilder<'a> {
                             active_region = child_region;
                         }
                         frames.push(Frame::Enter {
-                            expression: value,
+                            expression: statements[index].value(),
                             block: flow.block,
                             state: flow.state,
                         });
@@ -2660,7 +2659,7 @@ impl<'a> PlanBuilder<'a> {
                     child_region,
                     destination,
                 } => {
-                    let ResolvedStatement::Let { binding, value, .. } = &statements[index];
+                    let (binding, value) = (statements[index].binding(), statements[index].value());
                     let evaluated = results.pop().expect("block statement result retained");
                     let mut state = evaluated.state;
                     if let Some(binding_place) = self.binding_slot(binding, child_region)? {
@@ -3638,7 +3637,7 @@ impl<'a> PlanBuilder<'a> {
         let mut current = entry;
         let mut current_state = state;
         for statement in statements {
-            let ResolvedStatement::Let { binding, value, .. } = statement;
+            let (binding, value) = (statement.binding(), statement.value());
             let evaluated =
                 self.lower_expr_recursive_reference(value, current, current_state, region)?;
             current = evaluated.block;

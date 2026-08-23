@@ -341,7 +341,11 @@ fn validate_materialize(function: &crate::hir::ResolvedFunction) -> Result<(), D
         .zip(expected_markers)
         .enumerate()
     {
-        let ResolvedStatement::Let { binding, value, .. } = statement;
+        let ResolvedStatement::Let { binding, value, .. } = statement else {
+            return Err(profile_error(
+                "generic-function v9 materialize expects let statements",
+            ));
+        };
         let ResolvedExprKind::Call {
             callee,
             type_arguments,
@@ -883,7 +887,9 @@ mod tests {
         let ResolvedExprKind::Block { statements, .. } = &mut hostile.functions[0].body.kind else {
             panic!("materialize shape drifted");
         };
-        let ResolvedStatement::Let { value, .. } = &mut statements[0];
+        let ResolvedStatement::Let { value, .. } = &mut statements[0] else {
+            panic!("materialize shape drifted");
+        };
         let ResolvedExprKind::Call { instance, .. } = &mut value.kind else {
             panic!("materialize call shape drifted");
         };

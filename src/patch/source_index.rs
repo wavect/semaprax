@@ -195,7 +195,15 @@ impl SemanticSourceIndex {
                                 value: resolved_value,
                                 ..
                             },
+                        )
+                        | (
+                            Statement::Assign { value, .. },
+                            ResolvedStatement::Assign {
+                                value: resolved_value,
+                                ..
+                            },
                         ) => self.expr(value, resolved_value, tokens)?,
+                        _ => return None,
                     }
                 }
                 self.expr(tail, resolved_tail, tokens)?;

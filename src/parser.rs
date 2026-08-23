@@ -261,6 +261,7 @@ impl Parser {
             if !self.at(&TokenKind::RParen) {
                 loop {
                     let (param_name, span) = self.ident("import parameter name")?;
+                    self.reject_mut_parameter(&param_name, span)?;
                     self.expect(&TokenKind::Colon, "`:` after import parameter name")?;
                     let mode = if self.at_keyword("own") {
                         self.bump();
@@ -509,6 +510,7 @@ impl Parser {
         if !self.at(&TokenKind::RParen) {
             loop {
                 let (param_name, span) = self.ident("parameter name")?;
+                self.reject_mut_parameter(&param_name, span)?;
                 self.expect(&TokenKind::Colon, "`:` after parameter name")?;
                 let mode = if self.at_keyword("own") {
                     self.bump();
@@ -867,20 +869,14 @@ impl Parser {
 
     fn block_after_open(&mut self, start: Span) -> Result<Expr, Diagnostic> {
         let mut statements = Vec::new();
-        while self.at_keyword("let") {
-            let statement_start = self.bump().span;
-            let (name, name_span) = self.ident("local binding name")?;
-            self.expect(&TokenKind::Eq, "`=` in local binding")?;
-            let value = self.expression(0)?;
-            let end = self
-                .expect(&TokenKind::Semicolon, "`;` after local binding")?
-                .span;
-            statements.push(Statement::Let {
-                name,
-                name_span,
-                value,
-                span: statement_start.merge(end),
-            });
+        loop {
+            if self.at_keyword("let") {
+                statements.push(self.let_statement()?);
+            } else if self.at_assign_statement() {
+                statements.push(self.assign_statement()?);
+            } else {
+                break;
+            }
         }
         if self.at(&TokenKind::RBrace) {
             return Err(self.error_here("SPX-P203", "block requires a final value expression"));
@@ -894,6 +890,68 @@ impl Parser {
                 tail: Box::new(tail),
             },
             span: start.merge(end),
+        })
+    }
+
+    fn let_statement(&mut self) -> Result<Statement, Diagnostic> {
+        let statement_start = self.bump().span;
+        let mut mutable = false;
+        if self.at_keyword("mut") {
+            self.bump();
+            mutable = true;
+            if self.at_keyword("mut") {
+                return Err(self.error_here(
+                    "SPX-U104",
+                    "duplicate `mut` modifier; write `let mut` exactly once",
+                ));
+            }
+        }
+        let (name, name_span) = self.ident("local binding name")?;
+        self.expect(&TokenKind::Eq, "`=` in local binding")?;
+        let value = self.expression(0)?;
+        let end = self
+            .expect(&TokenKind::Semicolon, "`;` after local binding")?
+            .span;
+        Ok(Statement::Let {
+            name,
+            name_span,
+            mutable,
+            value,
+            span: statement_start.merge(end),
+        })
+    }
+
+    fn at_assign_statement(&self) -> bool {
+        matches!(&self.current().kind, TokenKind::Ident(_))
+            && self.tokens.get(self.cursor + 1).map(|token| &token.kind) == Some(&TokenKind::Eq)
+    }
+
+    /// Explicit Mutation v1 admits no mutable parameters: parameters are
+    /// immutable, so a leading `mut` in a parameter position is rejected.
+    fn reject_mut_parameter(&mut self, name: &str, span: Span) -> Result<(), Diagnostic> {
+        if name == "mut" {
+            return Err(Diagnostic::error(
+                "SPX-U103",
+                "`mut` is only allowed on local `let` bindings; parameters are immutable",
+                span,
+            )
+            .at_path(&self.path));
+        }
+        Ok(())
+    }
+
+    fn assign_statement(&mut self) -> Result<Statement, Diagnostic> {
+        let (name, name_span) = self.ident("assignable binding name")?;
+        self.expect(&TokenKind::Eq, "`=` in assignment")?;
+        let value = self.expression(0)?;
+        let end = self
+            .expect(&TokenKind::Semicolon, "`;` after assignment")?
+            .span;
+        Ok(Statement::Assign {
+            name,
+            name_span,
+            value,
+            span: name_span.merge(end),
         })
     }
 

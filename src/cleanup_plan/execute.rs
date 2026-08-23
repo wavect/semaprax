@@ -285,8 +285,7 @@ fn collect_variant_domains(
             }
             hir::ResolvedExprKind::Block { statements, tail } => {
                 for statement in statements {
-                    let hir::ResolvedStatement::Let { value, .. } = statement;
-                    visit(program, value, domains)?;
+                    visit(program, statement.value(), domains)?;
                 }
                 visit(program, tail, domains)?;
             }
@@ -629,10 +628,7 @@ fn find_expression_by<'a>(
         }
         hir::ResolvedExprKind::Block { statements, tail } => statements
             .iter()
-            .find_map(|statement| {
-                let hir::ResolvedStatement::Let { value, .. } = statement;
-                find_expression_by(value, predicate)
-            })
+            .find_map(|statement| find_expression_by(statement.value(), predicate))
             .or_else(|| find_expression_by(tail, predicate)),
         hir::ResolvedExprKind::If {
             condition,
@@ -1783,7 +1779,9 @@ fn main() -> i64 { 0 }
         let hir::ResolvedExprKind::Block { statements, tail } = &function.body.kind else {
             panic!("generic fixture must have a block body")
         };
-        let hir::ResolvedStatement::Let { value: first, .. } = &statements[0];
+        let hir::ResolvedStatement::Let { value: first, .. } = &statements[0] else {
+            panic!("generic fixture first statement must be a let")
+        };
         let hir::ResolvedExprKind::Match {
             scrutinee: first_scrutinee,
             ..

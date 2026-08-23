@@ -52,7 +52,9 @@ fn try_expr(program: &mut semaprax::hir::ResolvedProgram) -> &mut semaprax::hir:
     let ResolvedExprKind::Block { statements, .. } = &mut function.body.kind else {
         panic!("lift body must remain a block");
     };
-    let semaprax::hir::ResolvedStatement::Let { value, .. } = &mut statements[0];
+    let semaprax::hir::ResolvedStatement::Let { value, .. } = &mut statements[0] else {
+        panic!("first statement must be a let")
+    };
     value
 }
 

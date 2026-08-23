@@ -3746,13 +3746,11 @@ fn collect_operation_expr_occurrences(
                 return Err(operation_sidecar_disagreement());
             }
             for (statement, resolved_statement) in statements.iter().zip(resolved_statements) {
-                let (
-                    crate::ast::Statement::Let { value, .. },
-                    hir::ResolvedStatement::Let {
-                        value: resolved_value,
-                        ..
-                    },
-                ) = (statement, resolved_statement);
+                if statement.is_assign() != resolved_statement.is_assign() {
+                    return Err(operation_sidecar_disagreement());
+                }
+                let value = statement.value();
+                let resolved_value = resolved_statement.value();
                 collect_operation_expr_occurrences(
                     program,
                     value,
@@ -4873,8 +4871,7 @@ fn visit_resolved_calls(
         }
         hir::ResolvedExprKind::Block { statements, tail } => {
             for statement in statements {
-                let hir::ResolvedStatement::Let { value, .. } = statement;
-                visit_resolved_calls(value, visit);
+                visit_resolved_calls(statement.value(), visit);
             }
             visit_resolved_calls(tail, visit);
         }
@@ -5307,10 +5304,9 @@ fn collect_resolved_expression_type_sites(
         }
         hir::ResolvedExprKind::Block { statements, tail } => {
             for (index, statement) in statements.iter().enumerate() {
-                let hir::ResolvedStatement::Let { value, .. } = statement;
                 collect_resolved_expression_type_sites(
                     owner,
-                    value,
+                    statement.value(),
                     &crate::bounded_output::budgeted_format(format_args!("{path}.s{index}.value")),
                     imported,
                     out,
@@ -6196,15 +6192,11 @@ fn visit_ast_call_sites(
         }
         ExprKind::Block { statements, tail } => {
             for (index, statement) in statements.iter().enumerate() {
-                match statement {
-                    crate::ast::Statement::Let { value, .. } => visit_ast_call_sites(
-                        value,
-                        &crate::bounded_output::budgeted_format(format_args!(
-                            "{path}.s{index}.value"
-                        )),
-                        visit,
-                    )?,
-                }
+                visit_ast_call_sites(
+                    statement.value(),
+                    &crate::bounded_output::budgeted_format(format_args!("{path}.s{index}.value")),
+                    visit,
+                )?;
             }
             visit_ast_call_sites(
                 tail,

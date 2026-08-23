@@ -56,7 +56,9 @@ fn try_option(program: &mut hir::ResolvedProgram) -> &mut hir::ResolvedExpr {
     let ResolvedExprKind::Block { statements, .. } = &mut function.body.kind else {
         panic!("propagate must remain a block");
     };
-    let hir::ResolvedStatement::Let { value, .. } = &mut statements[0];
+    let hir::ResolvedStatement::Let { value, .. } = &mut statements[0] else {
+        panic!("first statement must be a let")
+    };
     value
 }
 

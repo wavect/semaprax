@@ -87,10 +87,7 @@ pub(super) fn ast_child(expression: &crate::ast::Expr, index: usize) -> Option<&
         }
         crate::ast::ExprKind::Block { statements, tail } => statements
             .get(index)
-            .map(|statement| {
-                let crate::ast::Statement::Let { value, .. } = statement;
-                value
-            })
+            .map(|statement| statement.value())
             .or_else(|| (index == statements.len()).then_some(tail)),
         crate::ast::ExprKind::If {
             condition,
@@ -503,8 +500,7 @@ pub(super) fn scan_ast_capacity<'a>(
                     stats.binding_name_bytes = statements
                         .iter()
                         .try_fold(stats.binding_name_bytes, |bytes, statement| {
-                            let crate::ast::Statement::Let { name, .. } = statement;
-                            bytes.checked_add(name.len())
+                            bytes.checked_add(statement.name().len())
                         })
                         .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
                     stats.binding_depth_sum = stats
@@ -2847,7 +2843,10 @@ fn cleanup_retained_stats(
                     let active_child = next_child.saturating_sub(1);
                     let completed_statements = active_child.min(statements.len());
                     for index in (0..completed_statements).rev() {
-                        let crate::ast::Statement::Let { name: binding, .. } = &statements[index];
+                        let crate::ast::Statement::Let { name: binding, .. } = &statements[index]
+                        else {
+                            continue;
+                        };
                         if binding == name {
                             return Ok(results
                                 .get(result_start + index)
@@ -3048,7 +3047,10 @@ fn cleanup_retained_stats(
                     if let crate::ast::ExprKind::Block { statements, .. } = &expression.kind {
                         let previous = next_child - 1;
                         if previous < statements.len() {
-                            let crate::ast::Statement::Let { name, .. } = &statements[previous];
+                            let crate::ast::Statement::Let { name, .. } = &statements[previous]
+                            else {
+                                continue;
+                            };
                             let key = results
                                 .last()
                                 .copied()
@@ -5331,13 +5333,13 @@ fn hir_expr_owned_capacity(expression: &ResolvedExpr) -> Result<usize, Diagnosti
                     std::mem::size_of::<ResolvedStatement>(),
                 )?;
                 for statement in statements {
-                    let ResolvedStatement::Let { binding, value, .. } = statement;
+                    let binding = statement.binding();
                     total = total
                         .checked_add(binding.id.as_str().len())
                         .and_then(|bytes| bytes.checked_add(binding.name.capacity()))
                         .and_then(|bytes| bytes.checked_add(hir_type_owned_capacity(&binding.ty)?))
                         .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
-                    pending.push(value);
+                    pending.push(statement.value());
                 }
                 pending.push(tail);
             }
@@ -5852,8 +5854,7 @@ pub(super) fn validate_native_rust_expression_budget_for_closure(
             }
             ResolvedExprKind::Block { statements, tail } => {
                 for statement in statements {
-                    let ResolvedStatement::Let { value, .. } = statement;
-                    pending.push((value, child_depth));
+                    pending.push((statement.value(), child_depth));
                 }
                 pending.push((tail, child_depth));
             }

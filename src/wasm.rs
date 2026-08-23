@@ -1392,6 +1392,11 @@ fn collect_locals(
                             ));
                         }
                     }
+                    // An assignment target reuses its `let` local; only the
+                    // assigned value contributes to the local walk.
+                    ResolvedStatement::Assign { value, .. } => {
+                        collect_locals(value, parameter_count, layout)?;
+                    }
                 }
             }
             collect_locals(tail, parameter_count, layout)?;
@@ -1788,6 +1793,33 @@ fn emit_expr(
                         output.push(0x21);
                         write_u32(output, *index);
                     }
+                    // The assigned value is emitted fully, then stored into
+                    // the target's local with `local.set`.
+                    ResolvedStatement::Assign {
+                        binding,
+                        value: assigned,
+                        ..
+                    } => {
+                        emit_expr(
+                            output,
+                            assigned,
+                            value_indexes,
+                            function_indexes,
+                            layout,
+                            result,
+                        )?;
+                        let index = layout.lets.get(&binding.id).ok_or_else(|| {
+                            Diagnostic::io(
+                                "SPX-W108",
+                                format!(
+                                    "missing WebAssembly local layout for assignment target `{}`",
+                                    binding.id
+                                ),
+                            )
+                        })?;
+                        output.push(0x21);
+                        write_u32(output, *index);
+                    }
                 }
             }
             emit_expr(
@@ -2033,9 +2065,7 @@ pub(crate) fn needs_i32_wide_scratch(expression: &ResolvedExpr) -> bool {
             ResolvedExprKind::NativeRustImportCall(call) => pending.extend(call.args.iter()),
             ResolvedExprKind::Block { statements, tail } => {
                 for statement in statements {
-                    match statement {
-                        ResolvedStatement::Let { value, .. } => pending.push(value),
-                    }
+                    pending.push(statement.value());
                 }
                 pending.push(tail);
             }
@@ -2114,9 +2144,9 @@ fn contains_u8_arithmetic(expression: &ResolvedExpr) -> bool {
         }
         ResolvedExprKind::Block { statements, tail } => {
             contains_u8_arithmetic(tail)
-                || statements.iter().any(|statement| match statement {
-                    ResolvedStatement::Let { value, .. } => contains_u8_arithmetic(value),
-                })
+                || statements
+                    .iter()
+                    .any(|statement| contains_u8_arithmetic(statement.value()))
         }
         ResolvedExprKind::If {
             condition,

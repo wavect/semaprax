@@ -441,9 +441,12 @@ fn ast_expr_identity_slots(expression: &Expr) -> Result<usize, Vec<Diagnostic>> 
         }
         ExprKind::Block { statements, tail } => {
             for statement in statements {
-                let crate::ast::Statement::Let { value, .. } = statement;
-                slots = checked_builder_sum(slots, 1)?;
-                slots = checked_builder_sum(slots, ast_expr_identity_slots(value)?)?;
+                // A `let` creates one new value identity (its binding); an
+                // assignment reuses its target's existing identity.
+                if matches!(statement, crate::ast::Statement::Let { .. }) {
+                    slots = checked_builder_sum(slots, 1)?;
+                }
+                slots = checked_builder_sum(slots, ast_expr_identity_slots(statement.value())?)?;
             }
             slots = checked_builder_sum(slots, ast_expr_identity_slots(tail)?)?;
         }
@@ -669,9 +672,8 @@ fn ast_expr_cost(expression: &Expr, cost: &mut StructuralCost) -> Result<(), Vec
         ExprKind::Block { statements, tail } => {
             for statement in statements {
                 cost.value(statement)?;
-                let crate::ast::Statement::Let { name, value, .. } = statement;
-                cost.string(name)?;
-                ast_expr_cost(value, cost)?;
+                cost.string(statement.name())?;
+                ast_expr_cost(statement.value(), cost)?;
             }
             ast_expr_cost(tail, cost)?;
         }
@@ -1688,11 +1690,10 @@ fn collect_expression_type_edges(
         }
         ExprKind::Block { statements, tail } => {
             for (index, statement) in statements.iter().enumerate() {
-                let crate::ast::Statement::Let { value, .. } = statement;
                 collect_expression_type_edges(
                     program,
                     owner,
-                    value,
+                    statement.value(),
                     &crate::bounded_output::budgeted_format(format_args!("{path}.s{index}.value")),
                     type_uses,
                     module_paths,

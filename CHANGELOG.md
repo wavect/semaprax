@@ -66,6 +66,41 @@
   concurrent execution (task bodies are closed scripted outcomes), no
   `Sendable` checking of real programs, and no actors/reducers/synchronization
   claim.
+- Added the locally evidenced Deterministic ARC Zone Model v1, a hidden
+  target-neutral proof model that moves the completion-matrix row "Shared
+  immutable ARC and opt-in managed zones" from Missing to Partial by fixing
+  bounded proof data only — no runtime RC integration, no language syntax, no
+  compiler or backend change, and no real allocation behavior. The new
+  `arc_zones` library module models shared-immutable reference counting inside
+  explicit opt-in managed zones: a strict zone containment tree with balanced,
+  parent-first enter/exit; accounted retain/release over base-reference,
+  explicit-handle, and live-payload-link strong counts with fail-closed double
+  releases that keep link-anchored objects alive; exact deterministic
+  finalization order — reverse construction at zone exit, cascading through
+  outgoing payload links in canonical target order depth-first; closed
+  cycle-participation deferral under which retained cycles (strongly connected
+  components plus self-loops) reject the zone exit with one canonical
+  smallest-member witness diagnostic instead of leaking silently; escape
+  demotion as a deterministic rewrite rule turning a proven zone-local shared
+  handle (sole unreleased base reference, zero incoming links) into unique
+  ownership whose later shared use fails closed; and closed concurrency
+  annotations under which every zone declares its single executing thread and
+  cross-zone or cross-thread sharing requires an explicit `Shareable` mark on
+  the shared object. Zones, objects, scripts, events, and traces are bounded
+  (`semaprax.arc-zones-model.v1`, `semaprax.arc-zones-trace.v1`) with
+  canonically ordered inventories, domain-separated SHA-256 model fingerprints
+  and trace digests, byte-pinned canonical JSON, and sticky run rejection.
+  `tests/arc_zones_model_v1.rs` pins four canonical known-answer trace digests
+  (shared fan-out release with canonical cascade order, cycle rejection with
+  smallest-member witness, escape demotion, nested-zone children-before-parents
+  drains), hostile rejections (foreign-zone handle release, unbalanced zone
+  exit, double release beyond outstanding references, sharing without
+  `Shareable`, demoted-object shared reuse), structural construction hostility,
+  determinism under inventory permutation and repeated execution, and
+  JSON-validity plus domain-separation projections; seven focused module units
+  cover the remaining state machine and error surface.
+
+>>>>>>> feat/arc-zones-v1
 - Added the locally evidenced Reference Interpreter v1 tranche, the first
   executable slice of the completion-matrix row "Fast development lane". The
   new `semaprax interpret <file> --function <name|stable-id> [--arg

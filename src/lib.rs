@@ -9,6 +9,7 @@ pub mod agent_economics;
 pub mod agent_runtime;
 pub mod agent_transport;
 pub(crate) mod aggregate_layout;
+pub mod arc_zones;
 pub mod ast;
 pub(crate) mod bounded_output;
 pub mod c_header;

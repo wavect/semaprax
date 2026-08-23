@@ -224,8 +224,27 @@ plus hostile, determinism, and serialization evidence. It adds no language
 syntax, no runtime threads or scheduler, no compiler/backend change, no real
 concurrency execution, and no `Sendable` checking of real programs; actors,
 reducers, synchronization, and verified schedulers remain open. It moves only
-the Structured concurrency row from Missing to Partial. Current totals are 53
-Partial/3 Missing.
+the Structured concurrency row from Missing to Partial. Current totals are 54
+Partial/2 Missing.
+[Deterministic ARC Zone Model v1](ARC-ZONES-V1.md) is a locally evidenced
+hidden proof model (`src/arc_zones.rs`, `cargo test -p semaprax --test
+arc_zones_model_v1` plus seven module units) that moves only the Shared
+immutable ARC and opt-in managed zones row from Missing to Partial: one
+deterministic target-neutral model of retain/release reference counting inside
+explicit opt-in managed zones fixes bounded per-zone object graphs, exact
+reverse-construction finalization order with canonical-order payload-link
+cascades, closed cycle-participation deferral whose zone exits reject retained
+cycles fail-closed with one smallest-member witness diagnostic instead of
+leaking silently, escape demotion as a deterministic rewrite rule for proven
+zone-local shared handles, and closed concurrency annotations under which zones
+are single-threaded by declaration and cross-zone/cross-thread sharing requires
+an explicit `Shareable` mark; four canonical known-answer trace digests,
+hostile rejections (foreign-zone release, double release, unbalanced exit),
+inventory-permutation determinism, and byte-pinned domain-separated canonical
+JSON are pinned in `tests/arc_zones_model_v1.rs`. It performs no runtime RC
+integration, adds no language syntax or compiler/backend change, executes no
+target, and claims no real allocation behavior. Current totals are 53 Partial/3
+Missing.
 
 Status values:
 
@@ -765,7 +784,7 @@ exactly 39 Partial and 17 Missing.
 | Unique ownership and move safety | Partial | Explicit trivial/imported lifecycles; move/partial-place analysis; replay-validated cleanup plans; hostile-HIR parity; a private exact-instance native callable host integrating OS-seeded authority, non-mutating ledger plans, atomic owner commit, generation rotation, strict codecs, and a compiler-authenticated trace-path DFA; one narrow Node-executed Wasm slice; exact reference/native-host-O0/O2/Wasm outcomes, traces, publication, and final logical liveness for all 14 cases; a green Linux dynamically loaded generated-provider ASan+UBSan corpus; and a green fail-closed pinned-nightly Rust-host ASan job inside the current hosted-CI matrix | Open the public native gate only after general physical/malformed-response fallback cleanup and quiescence and mobile evidence, then extend exactly-once/double-free proof through loops, closures, concurrency, and FFI ownership |
 | Borrowed views and lifetime safety | Partial | Non-consuming `borrow` boundaries and move-after-borrow behavior | Mutable/shared aliasing, escaping borrows, reborrows, slices, and zero-copy FFI pass positive and compile-fail suites |
 | Regions/arenas | Partial | [Region Structure Report v1](REGION-REPORT-V1.md): read-only `semaprax region-report <file> [--max-bytes N]` emits one digest-authenticated canonical `semaprax.region-report.v1` envelope per verified module reporting, per admitted explicit-ID monomorphic effect-free scalar function, the binding lifetime partition from existing borrow/move facts (real resolved-HIR binding ids, kinds, ownership modes, type keys, definition offsets, effective live-range ends, use counts), canonical region clusters where overlapping live ranges can never share a region, escape facts naming enforcing check `SPX-O104` for today's provably non-escaping borrows, resolved-call-graph own-consumption move facts, and maximal bulk-release grouping candidates of co-dying bindings; independent replay re-derives every derived section exactly (`SPX-L101`-`SPX-L103`; evidence in `tests/region_report_v1.rs`) | Region inference and annotations prevent escape; bulk release and destructor behavior are verified |
-| Shared immutable ARC and opt-in managed zones | Missing | — | Retain/release correctness, cycle policy, escape optimization, and concurrency constraints verified |
+| Shared immutable ARC and opt-in managed zones | Partial | [Deterministic ARC Zone Model v1](ARC-ZONES-V1.md): locally evidenced hidden proof data (`src/arc_zones.rs`) fixing bounded per-zone object graphs, accounted retain/release over base-reference plus explicit-handle plus live-payload-link strong counts, exact reverse-construction zone-exit drain order with canonical-order depth-first payload cascades, cycle-participation deferral whose zone exits reject retained cycles (SCCs plus self-loops) fail-closed with one canonical smallest-member witness instead of leaking silently, escape demotion as a deterministic shared-to-unique rewrite rule for sole-held zone-local objects, and closed `Shareable` annotations enforcing single-threaded-by-declaration zones with fail-closed cross-zone/cross-thread sharing; four KAT digests (`b4d9a893…`, `c25ca301…`, `a9da55d2…`, `f04b2180…`), hostile foreign-zone/double-release/unbalanced-exit rejection, permutation determinism, and domain-separated byte-pinned canonical JSON are green locally in `tests/arc_zones_model_v1.rs`. No runtime RC integration, language syntax, compiler/backend change, real allocation behavior, weak references, cycle collection, or cross-backend evidence exists | Retain/release correctness, cycle policy, escape optimization, and concurrency constraints verified for a real compiler/runtime implementation with allocation semantics, diagnostics, and native/Wasm equivalence |
 | Restricted `unsafe` and raw memory | Partial | [Unsafe Boundary Mechanics v1](UNSAFE-BOUNDARIES-V1.md): explicit `unsafe { .. }` boundary statements around ordinary safe checked code with a mandatory verbatim `@audit("...")` summary, a required module-level `permit { unsafe }` capability declaration mirroring effect permits, compile-time diagnostics `SPX-N101`-`SPX-N105`, additive Graph nodes (`"kind":"unsafe"`; non-boundary graphs byte-identical to the pinned pre-feature digest), transparent native C11 O0/O2 and Node/Wasm execution, and unchanged CleanupPlan v2 shapes in `tests/unsafe_boundaries_v1.rs`. No raw pointers or memory operations exist or are added; no lint/platform conformance and no safety claims about block contents are made | Unsafe boundaries are explicit graph nodes with capability, audit summary, lint, and platform conformance coverage for real raw-memory features (pointers/volatile/atomics) verified |
 | Checked/wrapping/saturating arithmetic | Partial | Checked `i64` arithmetic in the C/Clang lane returns exact `semaprax.arithmetic.v1` statuses without internal process termination | Full numeric family, explicit alternative modes, SIMD behavior, and backend equivalence verified |
 | Effects and capabilities | Partial | Declared function effects, module permits, and call-edge propagation | Inference, parameterized capabilities, no ambient authority, handlers, dependency summaries, and platform manifests verified |

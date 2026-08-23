@@ -3775,6 +3775,20 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             name_span,
                             value,
                             ..
+                        } if !self.allow_moves => {
+                            // Contract expressions stay pure: no stores.
+                            self.diagnostics.push(error(
+                                self.program,
+                                "SPX-U106",
+                                "assignment statements are not allowed in contract expressions",
+                                value.span,
+                            ));
+                        }
+                        Statement::Assign {
+                            name,
+                            name_span,
+                            value,
+                            ..
                         } => {
                             let target = self.scopes[block_scope]
                                 .bindings

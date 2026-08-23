@@ -316,13 +316,15 @@ fn main() -> i64 { choose(true) }
     let ResolvedStatement::Let {
         binding: then_binding,
         ..
-    } = &then_statements[0] else {
+    } = &then_statements[0]
+    else {
         panic!("statement must be a let");
     };
     let ResolvedStatement::Let {
         binding: else_binding,
         ..
-    } = &else_statements[0] else {
+    } = &else_statements[0]
+    else {
         panic!("statement must be a let");
     };
     let ResolvedExprKind::Place(then_place) = &then_tail.kind else {

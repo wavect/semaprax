@@ -1,0 +1,32 @@
+module examples.explicit_mutation;
+
+@id("mut.accumulator")
+fn accumulator() -> i64
+{
+    let mut total = 0;
+    total = total + 5;
+    total = total * 2;
+    let base = 3;
+    let mut other = base;
+    other = other + base;
+    total + other
+}
+
+@id("mut.checked_steps")
+fn checked_steps() -> i64
+{
+    let mut step = 1i32;
+    step = step * 100000000i32;
+    let mut narrowed = 250i32;
+    narrowed = narrowed - 50i32;
+    let quotient = step / narrowed;
+    if quotient > 0i32 { 500000 } else { 0 }
+}
+
+@id("main")
+fn main() -> i64
+{
+    let mut answer = accumulator();
+    answer = answer + checked_steps();
+    if answer > 0 { answer } else { 0 - answer }
+}

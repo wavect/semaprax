@@ -8086,7 +8086,9 @@ interface HostEcho permits { host.echo } {
   uses { host.echo }
 {
   let x = callee(1, 2);
-  let native = host_echo(identity<i64>(x));
+  let mut total = x;
+  total = total + x;
+  let native = host_echo(identity<i64>(total));
   let rebuilt = if flag && !false { Choice::A { v: Pair { a: native, b: 3 }.a } } else { choice };
   let y = pair with { b: 4 }.b;
   match rebuilt { Choice::A { v } => y + v, Choice::B {} => -y, }

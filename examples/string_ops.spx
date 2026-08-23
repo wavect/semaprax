@@ -1,0 +1,21 @@
+module test.string_ops;
+
+@id("ops.combine")
+fn combine(left: string, right: string) -> string
+{
+    string_concat(left, right)
+}
+
+@id("ops.world")
+fn world() -> string
+{
+    string_concat("w", "orld")
+}
+
+@id("test.main")
+fn main() -> i64
+{
+    let greeting = string_concat("hello", " ");
+    let message = string_concat(greeting, world());
+    if string_is_empty(message) { 0 } else { if string_len(message) == 11 && message == "hello world" { 7 } else { 8 } }
+}

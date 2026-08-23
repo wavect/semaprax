@@ -2056,23 +2056,44 @@ impl<'a> PlanBuilder<'a> {
                         args,
                         ..
                     } => {
-                        let target = self
-                            .program
-                            .resolve_call_target(callee, instance.as_ref())
-                            .ok_or_else(|| {
-                                plan_error(format!("unknown cleanup call target `{callee}`"))
-                            })?;
-                        if target.params.len() != args.len() {
-                            return Err(plan_error(format!(
-                                "cleanup call `{}` has inconsistent arity",
-                                expression.id
-                            )));
-                        }
+                        let params = if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
+                            // Compiler-owned string operations carry their
+                            // reserved identity instead of an authored
+                            // declaration; their synthetic parameters drive the
+                            // ordinary argument transfer machinery.
+                            if instance.is_some() {
+                                return Err(plan_error(format!(
+                                    "string operation call `{}` must be monomorphic",
+                                    expression.id
+                                )));
+                            }
+                            if args.len() != op.arity() {
+                                return Err(plan_error(format!(
+                                    "cleanup call `{}` has inconsistent arity",
+                                    expression.id
+                                )));
+                            }
+                            crate::string_ops::resolved_params(op)
+                        } else {
+                            let target = self
+                                .program
+                                .resolve_call_target(callee, instance.as_ref())
+                                .ok_or_else(|| {
+                                    plan_error(format!("unknown cleanup call target `{callee}`"))
+                                })?;
+                            if target.params.len() != args.len() {
+                                return Err(plan_error(format!(
+                                    "cleanup call `{}` has inconsistent arity",
+                                    expression.id
+                                )));
+                            }
+                            target.params.clone()
+                        };
                         frames.push(Frame::CallNext {
                             expression,
                             callee,
                             args,
-                            params: target.params.clone(),
+                            params,
                             index: 0,
                             flow: EvalResult {
                                 block,
@@ -3506,17 +3527,29 @@ impl<'a> PlanBuilder<'a> {
         flow: (BlockId, FlowState, CleanupRegionId),
     ) -> Result<EvalResult, Diagnostic> {
         let (block, state, region) = flow;
-        let target = self
-            .program
-            .resolve_call_target(callee, instance)
-            .ok_or_else(|| plan_error(format!("unknown cleanup call target `{callee}`")))?;
-        if target.params.len() != args.len() {
+        let params = if instance.is_none() {
+            if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
+                crate::string_ops::resolved_params(op)
+            } else {
+                let target = self
+                    .program
+                    .resolve_call_target(callee, instance)
+                    .ok_or_else(|| plan_error(format!("unknown cleanup call target `{callee}`")))?;
+                target.params.clone()
+            }
+        } else {
+            let target = self
+                .program
+                .resolve_call_target(callee, instance)
+                .ok_or_else(|| plan_error(format!("unknown cleanup call target `{callee}`")))?;
+            target.params.clone()
+        };
+        if params.len() != args.len() {
             return Err(plan_error(format!(
                 "cleanup call `{}` has inconsistent arity",
                 expression.id
             )));
         }
-        let params = target.params.clone();
         let mut current = block;
         let mut current_state = state;
         let mut commits = Vec::new();

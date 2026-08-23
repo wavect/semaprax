@@ -724,6 +724,13 @@ impl fmt::Display for FunctionInstanceId {
 pub struct ValueId(String);
 
 impl ValueId {
+    /// Synthetic identity for one compiler-owned intrinsic operation
+    /// parameter; intrinsic operations have no authored declaration, so the
+    /// identity only labels diagnostics and never indexes a binding.
+    pub(crate) fn intrinsic_parameter(operation: &str, index: usize) -> Self {
+        Self(exact_string(format!("{operation}.param.{index}")))
+    }
+
     fn parameter(function: &FunctionExecutionId, index: usize) -> Self {
         Self(exact_string(scoped_identity(
             function,
@@ -5276,6 +5283,12 @@ impl Resolver<'_> {
                 target_span: Span,
                 argument_count: usize,
             },
+            FinishStringOp {
+                span: Span,
+                path: String,
+                op: crate::string_ops::StringOp,
+                argument_count: usize,
+            },
             ChildNext {
                 children: &'expr [Expr],
                 index: usize,
@@ -5505,6 +5518,7 @@ impl Resolver<'_> {
                 Frame::Enter { path, .. }
                 | Frame::FinishNativeCall { path, .. }
                 | Frame::FinishCall { path, .. }
+                | Frame::FinishStringOp { path, .. }
                 | Frame::ChildNext { path, .. }
                 | Frame::MethodArgNext { path, .. }
                 | Frame::FinishUnary { path, .. }
@@ -5809,6 +5823,42 @@ impl Resolver<'_> {
                                 bindings,
                                 path,
                                 segment: "native-rust-arg",
+                            });
+                        } else if let Some(op) = crate::string_ops::by_name(name) {
+                            // Compiler-owned string operations resolve to
+                            // ordinary monomorphic calls carrying their
+                            // reserved `core.string.*` identity; backends
+                            // lower that identity intrinsically.
+                            if !type_arguments.is_empty() {
+                                return Err(self.error(
+                                    "SPX-H006",
+                                    format!("string operation `{name}` has type arguments"),
+                                    expr.span,
+                                ));
+                            }
+                            if args.len() != op.arity() {
+                                return Err(self.error(
+                                    "SPX-H006",
+                                    format!(
+                                        "string operation `{name}` expects {} arguments, received {}",
+                                        op.arity(),
+                                        args.len()
+                                    ),
+                                    expr.span,
+                                ));
+                            }
+                            frames.push(Frame::FinishStringOp {
+                                span: expr.span,
+                                path: path.clone(),
+                                op,
+                                argument_count: args.len(),
+                            });
+                            frames.push(Frame::ChildNext {
+                                children: args,
+                                index: 0,
+                                bindings,
+                                path,
+                                segment: "arg",
                             });
                         } else {
                             let template = self
@@ -6238,6 +6288,42 @@ impl Resolver<'_> {
                             callee,
                             type_arguments,
                             instance,
+                            args,
+                        },
+                        span,
+                    });
+                }
+                Frame::FinishStringOp {
+                    span,
+                    path,
+                    op,
+                    argument_count,
+                } => {
+                    let args = take_results(&mut results, argument_count);
+                    for (index, argument) in args.iter().enumerate() {
+                        if argument.ty != ResolvedType::String {
+                            return Err(self.error(
+                                "SPX-H006",
+                                format!(
+                                    "string operation `{}` argument {} expects `string`, received `{}`",
+                                    op.name(),
+                                    index,
+                                    argument.ty.identity_key()
+                                ),
+                                argument.span,
+                            ));
+                        }
+                    }
+                    let ty = op.return_type();
+                    let ownership = self.expression_ownership(&ty, OwnershipMode::Own, span)?;
+                    results.push(ResolvedExpr {
+                        id: ExpressionId::new(function, &path),
+                        ty,
+                        ownership,
+                        kind: ResolvedExprKind::Call {
+                            callee: DeclarationId::new(op.id()),
+                            type_arguments: Vec::new(),
+                            instance: None,
                             args,
                         },
                         span,
@@ -7685,6 +7771,69 @@ impl Resolver<'_> {
                                 result,
                             },
                         ),
+                        span: expr.span,
+                    });
+                }
+                if let Some(op) = crate::string_ops::by_name(name) {
+                    // Oracle parity: the recursive-reference resolver admits
+                    // string operations exactly like the iterative resolver.
+                    if !type_arguments.is_empty() {
+                        return Err(self.error(
+                            "SPX-H006",
+                            format!("string operation `{name}` has type arguments"),
+                            expr.span,
+                        ));
+                    }
+                    if args.len() != op.arity() {
+                        return Err(self.error(
+                            "SPX-H006",
+                            format!(
+                                "string operation `{name}` expects {} arguments, received {}",
+                                op.arity(),
+                                args.len()
+                            ),
+                            expr.span,
+                        ));
+                    }
+                    let args = args
+                        .iter()
+                        .enumerate()
+                        .map(|(index, argument)| {
+                            self.resolve_expr_recursive_reference(
+                                function,
+                                argument,
+                                bindings,
+                                &format!("{path}.arg.{index}"),
+                            )
+                        })
+                        .collect::<Result<Vec<_>, _>>()?;
+                    for (index, argument) in args.iter().enumerate() {
+                        if argument.ty != ResolvedType::String {
+                            return Err(self.error(
+                                "SPX-H006",
+                                format!(
+                                    "string operation `{}` argument {} expects `string`, received `{}`",
+                                    op.name(),
+                                    index,
+                                    argument.ty.identity_key()
+                                ),
+                                argument.span,
+                            ));
+                        }
+                    }
+                    let ty = op.return_type();
+                    let ownership =
+                        self.expression_ownership(&ty, OwnershipMode::Own, expr.span)?;
+                    return Ok(ResolvedExpr {
+                        id,
+                        ty,
+                        ownership,
+                        kind: ResolvedExprKind::Call {
+                            callee: DeclarationId::new(op.id()),
+                            type_arguments: Vec::new(),
+                            instance: None,
+                            args,
+                        },
                         span: expr.span,
                     });
                 }

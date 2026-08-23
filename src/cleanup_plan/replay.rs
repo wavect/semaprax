@@ -1100,18 +1100,9 @@ fn collect_supplemental_slots(
                     ..
                 } = &expression.kind
                 {
-                    let target = program
-                        .resolve_call_target(callee, instance.as_ref())
-                        .ok_or_else(|| {
-                            replay_error(
-                                function,
-                                format!(
-                                    "cleanup call `{}` has unknown callee `{callee}`",
-                                    expression.id
-                                ),
-                            )
-                        })?;
-                    if target.params.len() != args.len() {
+                    let params =
+                        resolved_call_params(program, function, callee, instance.as_ref())?;
+                    if params.len() != args.len() {
                         return Err(replay_error(
                             function,
                             format!("cleanup call `{}` has inconsistent arity", expression.id),
@@ -1149,11 +1140,9 @@ fn collect_supplemental_slots(
                 else {
                     unreachable!("call-argument continuation retains a call");
                 };
-                let target = program
-                    .resolve_call_target(callee, instance.as_ref())
-                    .ok_or_else(|| replay_error(function, "cleanup call target disappeared"))?;
+                let params = resolved_call_params(program, function, callee, instance.as_ref())?;
                 let argument = &args[index];
-                let parameter = &target.params[index];
+                let parameter = &params[index];
                 if parameter.ownership == OwnershipMode::Own
                     && type_needs_drop(program, function, &parameter.ty)?
                 {
@@ -1261,6 +1250,31 @@ fn type_needs_drop(
         && !matches!(ty, ResolvedType::String))
 }
 
+/// Resolve one call's parameters for replay: compiler-owned string operations
+/// carry their reserved identity instead of an authored declaration and use
+/// their synthetic parameters.
+fn resolved_call_params(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    callee: &DeclarationId,
+    instance: Option<&crate::hir::FunctionInstanceId>,
+) -> Result<Vec<crate::hir::ResolvedParam>, Diagnostic> {
+    if instance.is_none() {
+        if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
+            return Ok(crate::string_ops::resolved_params(op));
+        }
+    }
+    let target = program
+        .resolve_call_target(callee, instance)
+        .ok_or_else(|| {
+            replay_error(
+                function,
+                format!("cleanup call has unknown callee `{callee}`"),
+            )
+        })?;
+    Ok(target.params.clone())
+}
+
 fn validate_required_status_sources(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
@@ -1332,7 +1346,9 @@ fn collect_expression_statuses(
             ResolvedExprKind::Call {
                 callee, instance, ..
             } => {
-                if program
+                if instance.is_none() && crate::string_ops::by_id(callee.as_str()).is_some() {
+                    // String operations project like ordinary propagated calls.
+                } else if program
                     .resolve_call_target(callee, instance.as_ref())
                     .is_none()
                 {
@@ -1760,22 +1776,26 @@ fn validate_blocks_and_edges(
                             "call has more than one atomic commit",
                         ));
                     }
-                    let target = program
-                        .resolve_call_target(&fact.callee, fact.instance.as_ref())
-                        .ok_or_else(|| {
-                            replay_error(
-                                function,
-                                format!("call commit has unknown callee `{}`", fact.callee),
-                            )
-                        })?;
-                    if target.params.len() != fact.arguments.len() {
+                    let params = resolved_call_params(
+                        program,
+                        function,
+                        &fact.callee,
+                        fact.instance.as_ref(),
+                    )
+                    .map_err(|_| {
+                        replay_error(
+                            function,
+                            format!("call commit has unknown callee `{}`", fact.callee),
+                        )
+                    })?;
+                    if params.len() != fact.arguments.len() {
                         return Err(replay_error(
                             function,
                             "call commit callee signature has inconsistent arity",
                         ));
                     }
                     let mut expected_parameters = Vec::new();
-                    for (index, parameter) in target.params.iter().enumerate() {
+                    for (index, parameter) in params.iter().enumerate() {
                         if parameter.ownership == OwnershipMode::Own
                             && type_needs_drop(program, function, &parameter.ty)?
                         {
@@ -2429,7 +2449,7 @@ fn expression_skeleton(
         },
         CallArgument {
             expression: &'a ResolvedExpr,
-            target: &'a ResolvedFunction,
+            params: Vec<crate::hir::ResolvedParam>,
             args: &'a [ResolvedExpr],
             index: usize,
             states: Vec<CallSkeletonState>,
@@ -2614,14 +2634,24 @@ fn expression_skeleton(
                         args,
                         ..
                     } => {
-                        let target = program
-                            .resolve_call_target(callee, instance.as_ref())
-                            .ok_or_else(|| {
-                                replay_error(
-                                    function,
-                                    format!("unknown skeleton callee `{callee}`"),
-                                )
-                            })?;
+                        let intrinsic = if instance.is_none() {
+                            crate::string_ops::by_id(callee.as_str())
+                        } else {
+                            None
+                        };
+                        let params = if let Some(op) = intrinsic {
+                            crate::string_ops::resolved_params(op)
+                        } else {
+                            let target = program
+                                .resolve_call_target(callee, instance.as_ref())
+                                .ok_or_else(|| {
+                                    replay_error(
+                                        function,
+                                        format!("unknown skeleton callee `{callee}`"),
+                                    )
+                                })?;
+                            target.params.clone()
+                        };
                         work.charge(1, "call skeleton root state")?;
                         let states = vec![(empty_expr_path(), Vec::new())];
                         if let Some(argument) = args.first() {
@@ -2629,7 +2659,7 @@ fn expression_skeleton(
                                 frames,
                                 Frame::CallArgument {
                                     expression,
-                                    target,
+                                    params,
                                     args,
                                     index: 0,
                                     states,
@@ -2877,14 +2907,14 @@ fn expression_skeleton(
             }
             Frame::CallArgument {
                 expression,
-                target,
+                params,
                 args,
                 index,
                 states,
             } => {
                 let suffixes = produced.take().expect("call argument path retained");
                 let states = sequence_call_argument(
-                    program, function, expression, target, args, index, states, &suffixes, work,
+                    program, function, expression, &params, args, index, states, &suffixes, work,
                 )?;
                 let next = index + 1;
                 if call_states_have_active(&states) && next < args.len() {
@@ -2892,7 +2922,7 @@ fn expression_skeleton(
                         frames,
                         Frame::CallArgument {
                             expression,
-                            target,
+                            params,
                             args,
                             index: next,
                             states,
@@ -4048,7 +4078,7 @@ fn sequence_call_argument(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
     expression: &ResolvedExpr,
-    target: &ResolvedFunction,
+    params: &[crate::hir::ResolvedParam],
     args: &[ResolvedExpr],
     index: usize,
     states: Vec<CallSkeletonState>,
@@ -4056,8 +4086,7 @@ fn sequence_call_argument(
     work: &mut SkeletonWork<'_, '_>,
 ) -> Result<Vec<CallSkeletonState>, Diagnostic> {
     let argument = &args[index];
-    let parameter = target
-        .params
+    let parameter = params
         .get(index)
         .ok_or_else(|| replay_error(function, "skeleton call arity is inconsistent"))?;
     let mut next = Vec::new();

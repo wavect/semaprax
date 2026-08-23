@@ -1065,6 +1065,11 @@ fn emit_native_prelude(
     if program_uses_strings(program) {
         output.push_str(NATIVE_STRING_RUNTIME_C);
     }
+    if program_uses_string_ops(program) {
+        // String operation helpers stay out of programs that cannot reach
+        // them, so existing projections keep their exact committed bytes.
+        output.push_str(NATIVE_STRING_OPS_RUNTIME_C);
+    }
 }
 
 /// Whether any resolved signature, body, or contract admits an owned string
@@ -1090,6 +1095,27 @@ fn program_uses_strings(program: &ResolvedProgram) -> bool {
             || matches!(expression.kind, ResolvedExprKind::String(_))
         {
             return true;
+        }
+        pending.extend(resolved_expr_children(expression));
+    }
+    false
+}
+
+/// Whether any resolved function body or contract calls a compiler-owned
+/// string operation intrinsic.
+fn program_uses_string_ops(program: &ResolvedProgram) -> bool {
+    let mut pending: Vec<&ResolvedExpr> = Vec::new();
+    for function in &program.functions {
+        pending.push(&function.body);
+        for contract in function.requires.iter().chain(&function.ensures) {
+            pending.push(contract);
+        }
+    }
+    while let Some(expression) = pending.pop() {
+        if let ResolvedExprKind::Call { callee, .. } = &expression.kind {
+            if crate::string_ops::by_id(callee.as_str()).is_some() {
+                return true;
+            }
         }
         pending.extend(resolved_expr_children(expression));
     }
@@ -1965,6 +1991,28 @@ static __attribute__((unused)) void spx_string_drop(char *spx_value) {
 }
 "#;
 
+const NATIVE_STRING_OPS_RUNTIME_C: &str = r#"static __attribute__((unused)) int64_t spx_string_len(const char *spx_value) {
+    return (int64_t)strlen(spx_value);
+}
+
+static __attribute__((unused)) bool spx_string_is_empty(const char *spx_value) {
+    return spx_value[0] == '\0';
+}
+
+static __attribute__((unused)) char *spx_string_concat(
+    char *spx_left, char *spx_right
+) {
+    uint64_t spx_left_len = (uint64_t)strlen(spx_left);
+    uint64_t spx_right_len = (uint64_t)strlen(spx_right);
+    char *spx_joined = (char *)malloc((size_t)(spx_left_len + spx_right_len) + 1u);
+    if (spx_joined == NULL) spx_runtime_invariant_failure("string allocation failed");
+    memcpy(spx_joined, spx_left, (size_t)spx_left_len);
+    memcpy(spx_joined + spx_left_len, spx_right, (size_t)spx_right_len);
+    spx_joined[spx_left_len + spx_right_len] = '\0';
+    return spx_joined;
+}
+"#;
+
 const NATIVE_U8_RUNTIME_C: &str = r#"static __attribute__((unused)) spx_status_token spx_rt_u8_add(
     struct spx_context *spx_ctx, uint8_t a, uint8_t b, uint8_t *result_out
 ) {
@@ -2463,6 +2511,54 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         }
     }
 
+    fn emit_string_op(
+        &mut self,
+        op: crate::string_ops::StringOp,
+        args: &[ResolvedExpr],
+        result_type: &ResolvedType,
+    ) -> Result<CValue, Diagnostic> {
+        // Arguments stage left-to-right; every argument evaluation yields a
+        // fresh caller-owned buffer, and consuming operations free their
+        // inputs exactly at the operation site like owned string equality.
+        let mut arguments = Vec::with_capacity(args.len());
+        for argument in args {
+            let value = self.emit_expr(argument)?;
+            self.require_type(
+                &value.ty,
+                &ResolvedType::String,
+                "string operation argument",
+            )?;
+            arguments.push(value);
+        }
+        self.require_type(result_type, &op.return_type(), "string operation result")?;
+        let temporary = self.temporary(&op.return_type())?;
+        match op {
+            crate::string_ops::StringOp::Len => {
+                let input = &arguments[0].code;
+                self.line(&format!("{temporary} = spx_string_len({input});"));
+                self.line(&format!("spx_string_drop({input});"));
+            }
+            crate::string_ops::StringOp::IsEmpty => {
+                let input = &arguments[0].code;
+                self.line(&format!("{temporary} = spx_string_is_empty({input});"));
+                self.line(&format!("spx_string_drop({input});"));
+            }
+            crate::string_ops::StringOp::Concat => {
+                let left = &arguments[0].code;
+                let right = &arguments[1].code;
+                self.line(&format!(
+                    "{temporary} = spx_string_concat({left}, {right});"
+                ));
+                self.line(&format!("spx_string_drop({left});"));
+                self.line(&format!("spx_string_drop({right});"));
+            }
+        }
+        Ok(CValue {
+            code: temporary,
+            ty: op.return_type(),
+        })
+    }
+
     fn emit_expr(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
         let value = match &expr.kind {
             ResolvedExprKind::Int(value) => {
@@ -2548,6 +2644,11 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 args,
                 ..
             } => {
+                if instance.is_none() {
+                    if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
+                        return self.emit_string_op(op, args, &expr.ty);
+                    }
+                }
                 let execution = instance.as_ref().map_or_else(
                     || FunctionExecutionId::Monomorphic(callee.clone()),
                     |instance| FunctionExecutionId::Generic(instance.clone()),

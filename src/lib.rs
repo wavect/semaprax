@@ -79,6 +79,7 @@ pub mod semantic_workspace;
 pub mod semantic_workspace_change;
 pub mod semantic_workspace_operations;
 pub mod semantic_workspace_structural_change;
+pub mod simd_report;
 mod source_verify;
 pub mod workspace_analysis;
 pub mod workspace_graph;

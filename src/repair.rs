@@ -461,7 +461,7 @@ pub(crate) fn precheck_program(program: &Program) -> Result<(), Vec<Diagnostic>>
             | ExprKind::Uint8(_)
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
-            | ExprKind::Bool(_)
+            | ExprKind::Bool(_) | ExprKind::String(_)
             | ExprKind::Var(_) => {}
             ExprKind::Call { args, .. } => {
                 call_sites = call_sites.saturating_add(1);
@@ -592,7 +592,7 @@ fn scalar_expr(expression: &Expr) -> bool {
         | ExprKind::Uint8(_)
         | ExprKind::Float32(_)
         | ExprKind::Float64(_)
-        | ExprKind::Bool(_)
+        | ExprKind::Bool(_) | ExprKind::String(_)
         | ExprKind::Var(_) => true,
         ExprKind::Call {
             type_arguments,

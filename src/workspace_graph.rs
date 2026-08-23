@@ -5852,7 +5852,7 @@ fn validate_uses(
 
 fn type_contains_name_from(ty: &Type, names: &BTreeSet<&str>) -> bool {
     match ty {
-        Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64 | Type::Bool => false,
+        Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64 | Type::Bool | Type::String => false,
         Type::Named { name, arguments } => {
             names.contains(name.as_str())
                 || arguments
@@ -5915,7 +5915,7 @@ fn signature_type_is_admitted(
     visiting: &mut BTreeSet<String>,
 ) -> bool {
     match ty {
-        Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64 | Type::Bool => true,
+        Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64 | Type::Bool | Type::String => true,
         Type::Named { name, arguments } if arguments.is_empty() => {
             let Some(target_id) = resolve_type_id(module, name, programs) else {
                 return false;
@@ -6024,7 +6024,7 @@ fn exposed_type_reference_is_directly_imported(
     visiting: &mut BTreeSet<String>,
 ) -> bool {
     match ty {
-        Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64 | Type::Bool => true,
+        Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64 | Type::Bool | Type::String => true,
         Type::Named { name, arguments } if arguments.is_empty() => {
             let Some(target_id) = resolve_type_id(module, name, programs) else {
                 return false;
@@ -6088,7 +6088,7 @@ fn type_reference_is_admitted(
     visiting: &mut BTreeSet<String>,
 ) -> bool {
     match ty {
-        Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64 | Type::Bool => true,
+        Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64 | Type::Bool | Type::String => true,
         Type::Named { name, arguments } if arguments.is_empty() => {
             let Some(program) = programs.iter().find(|item| item.module == module) else {
                 return false;
@@ -6288,7 +6288,7 @@ fn visit_ast_call_sites(
         | ExprKind::Uint8(_)
         | ExprKind::Float32(_)
         | ExprKind::Float64(_)
-        | ExprKind::Bool(_)
+        | ExprKind::Bool(_) | ExprKind::String(_)
         | ExprKind::Var(_) => {}
     }
     Ok(())

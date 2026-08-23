@@ -627,6 +627,10 @@ impl Parser {
                 kind: ExprKind::Uint8(value),
                 span: token.span,
             },
+            TokenKind::String(value) => Expr {
+                kind: ExprKind::String(value),
+                span: token.span,
+            },
             TokenKind::Float(literal) => Expr {
                 kind: if literal.wide {
                     ExprKind::Float64(literal.value.to_bits())
@@ -1218,6 +1222,7 @@ impl Parser {
             "f32" if !self.at(&TokenKind::Lt) => Ok(Type::F32),
             "f64" if !self.at(&TokenKind::Lt) => Ok(Type::F64),
             "bool" if !self.at(&TokenKind::Lt) => Ok(Type::Bool),
+            "string" if !self.at(&TokenKind::Lt) => Ok(Type::String),
             _ => Ok(Type::Named {
                 name,
                 arguments: self.type_arguments()?,

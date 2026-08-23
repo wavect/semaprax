@@ -234,7 +234,7 @@ impl<'a> TypeTable<'a> {
                     Type::U8 => resolved.push(Type::U8),
                     Type::F32 => resolved.push(Type::F32),
                     Type::F64 => resolved.push(Type::F64),
-                    Type::Bool => resolved.push(Type::Bool),
+                    Type::Bool | Type::String => resolved.push(Type::Bool),
                     Type::Named {
                         name,
                         arguments: nested,
@@ -1913,7 +1913,7 @@ fn direct_function_type_argument(ty: &Type) -> bool {
 
 fn generic_function_signature_slot(ty: &Type, parameters: &HashSet<&str>) -> bool {
     match ty {
-        Type::I64 | Type::Bool => true,
+        Type::I64 | Type::Bool | Type::String => true,
         Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64 => false,
         Type::Named { name, arguments } => {
             arguments.is_empty() && parameters.contains(name.as_str())
@@ -1941,7 +1941,7 @@ fn substitute_function_type(
                 Type::U8 => resolved.push(Type::U8),
                 Type::F32 => resolved.push(Type::F32),
                 Type::F64 => resolved.push(Type::F64),
-                Type::Bool => resolved.push(Type::Bool),
+                Type::Bool | Type::String => resolved.push(Type::Bool),
                 Type::Named {
                     name,
                     arguments: nested,
@@ -2000,7 +2000,7 @@ fn generic_function_expression_is_direct_scalar(expression: &Expr) -> bool {
             | ExprKind::Uint8(_)
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
-            | ExprKind::Bool(_)
+            | ExprKind::Bool(_) | ExprKind::String(_)
             | ExprKind::Var(_) => {}
             ExprKind::Call { args, .. } => pending.extend(args.iter().rev()),
             ExprKind::Unary { value, .. } => pending.push(value),
@@ -2851,6 +2851,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     + diagnostics_owned_capacity(self.diagnostics),
             );
             match frame {
+                    _ => {},
                 VerifierFrame::Enter { expression, scope } => match &expression.kind {
                     ExprKind::Int(_) => self.values.push(Some(CheckedValue::value(Type::I64))),
                     ExprKind::Int32(_) => self.values.push(Some(CheckedValue::value(Type::I32))),
@@ -4711,7 +4712,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             | Type::U8
                             | Type::F32
                             | Type::F64
-                            | Type::Bool
+                            | Type::Bool | Type::String
                             | Type::Named { .. } => None,
                         });
                     let variant_name = variant_instance.as_ref().map(|(name, _)| name.clone());

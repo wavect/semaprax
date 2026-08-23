@@ -504,7 +504,7 @@ fn ast_expr_identity_slots(expression: &Expr) -> Result<usize, Vec<Diagnostic>> 
         | ExprKind::Uint8(_)
         | ExprKind::Float32(_)
         | ExprKind::Float64(_)
-        | ExprKind::Bool(_)
+        | ExprKind::Bool(_) | ExprKind::String(_)
         | ExprKind::Var(_) => {}
     }
     Ok(slots)
@@ -743,7 +743,7 @@ fn ast_expr_cost(expression: &Expr, cost: &mut StructuralCost) -> Result<(), Vec
         | ExprKind::Uint8(_)
         | ExprKind::Float32(_)
         | ExprKind::Float64(_)
-        | ExprKind::Bool(_) => {}
+        | ExprKind::Bool(_) | ExprKind::String(_) => {}
     }
     Ok(())
 }
@@ -814,7 +814,7 @@ fn default_expr_expanded_cost(
     visiting: &mut BTreeSet<String>,
 ) -> Result<ExpandedDefaultCost, Vec<Diagnostic>> {
     match ty {
-        Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64 | Type::Bool => {
+        Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64 | Type::Bool | Type::String => {
             Ok(ExpandedDefaultCost {
                 bytes: std::mem::size_of::<Expr>(),
                 identity_slots: 0,
@@ -1186,7 +1186,7 @@ fn default_expr(
         Type::U8 => ExprKind::Uint8(0),
         Type::F32 => ExprKind::Float32(0),
         Type::F64 => ExprKind::Float64(0),
-        Type::Bool => ExprKind::Bool(false),
+        Type::Bool | Type::String => ExprKind::Bool(false),
         Type::Named { name, arguments } if arguments.is_empty() => {
             let declaration = declarations
                 .binary_search_by_key(&name.as_str(), |(name, _)| *name)
@@ -1870,7 +1870,7 @@ fn collect_expression_type_edges(
         | ExprKind::Uint8(_)
         | ExprKind::Float32(_)
         | ExprKind::Float64(_)
-        | ExprKind::Bool(_)
+        | ExprKind::Bool(_) | ExprKind::String(_)
         | ExprKind::Var(_) => {}
     }
     Ok(())

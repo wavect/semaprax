@@ -1837,7 +1837,7 @@ impl DeclarationIndex {
                     Type::U8 => resolved.push(ResolvedType::U8),
                     Type::F32 => resolved.push(ResolvedType::F32),
                     Type::F64 => resolved.push(ResolvedType::F64),
-                    Type::Bool => resolved.push(ResolvedType::Bool),
+                    Type::Bool | Type::String => resolved.push(ResolvedType::Bool),
                     Type::Named { name, arguments } => {
                         if arguments.is_empty() {
                             if let Some(owner) = parameter_owner {
@@ -2083,7 +2083,7 @@ fn substitute_source_function_type(
                 Type::U8 => resolved.push(Type::U8),
                 Type::F32 => resolved.push(Type::F32),
                 Type::F64 => resolved.push(Type::F64),
-                Type::Bool => resolved.push(Type::Bool),
+                Type::Bool | Type::String => resolved.push(Type::Bool),
                 Type::Named {
                     name,
                     arguments: nested,
@@ -4697,7 +4697,7 @@ impl Resolver<'_> {
                 Frame::Enter(Type::U8) => result = Some(ResolvedType::U8),
                 Frame::Enter(Type::F32) => result = Some(ResolvedType::F32),
                 Frame::Enter(Type::F64) => result = Some(ResolvedType::F64),
-                Frame::Enter(Type::Bool) => result = Some(ResolvedType::Bool),
+                Frame::Enter(Type::Bool | Type::String) => result = Some(ResolvedType::Bool),
                 Frame::Enter(Type::Named { name, arguments }) => {
                     let declaration =
                         self.declarations.type_id(name).cloned().ok_or_else(|| {
@@ -5523,6 +5523,7 @@ impl Resolver<'_> {
                         ownership: OwnershipMode::Value,
                         kind: ResolvedExprKind::Int(*value),
                         span: expr.span,
+                        ResolvedExprKind::String(_) => {},
                     }),
                     ExprKind::Int32(value) => results.push(ResolvedExpr {
                         id: ExpressionId::new(function, &path),

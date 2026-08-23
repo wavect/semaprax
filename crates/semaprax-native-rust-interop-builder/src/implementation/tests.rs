@@ -89,7 +89,8 @@ fn observed_type_bytes(ty: &ResolvedType) -> usize {
         | ResolvedType::U8
         | ResolvedType::F32
         | ResolvedType::F64
-        | ResolvedType::Bool => 0,
+        | ResolvedType::Bool
+        | ResolvedType::String => 0,
         ResolvedType::TypeParameter { owner, .. } => owner.as_str().len(),
         ResolvedType::Nominal {
             declaration,
@@ -7782,13 +7783,6 @@ fn every_expression_shape_resolves_at_exact_depth_512_and_rejects_513() {
             ExprKind::Binary { left, right, .. } => {
                 replace_payload(left, replacement) || replace_payload(right, replacement)
             }
-            ExprKind::Int(_)
-            | ExprKind::Int32(_)
-            | ExprKind::Char(_)
-            | ExprKind::Uint8(_)
-            | ExprKind::Float32(_)
-            | ExprKind::Float64(_)
-            | ExprKind::Bool(_) => false,
             ExprKind::Block { statements, tail } => {
                 statements
                     .iter_mut()
@@ -7820,7 +7814,21 @@ fn every_expression_shape_resolves_at_exact_depth_512_and_rejects_513() {
                         .iter_mut()
                         .any(|field| replace_payload(&mut field.value, replacement))
             }
-            ExprKind::Var(_) => false,
+            ExprKind::MethodCall { receiver, args, .. } => {
+                replace_payload(receiver, replacement)
+                    || args
+                        .iter_mut()
+                        .any(|child| replace_payload(child, replacement))
+            }
+            ExprKind::Int(_)
+            | ExprKind::Int32(_)
+            | ExprKind::Char(_)
+            | ExprKind::Uint8(_)
+            | ExprKind::Float32(_)
+            | ExprKind::Float64(_)
+            | ExprKind::Bool(_)
+            | ExprKind::String(_)
+            | ExprKind::Var(_) => false,
         }
     }
 

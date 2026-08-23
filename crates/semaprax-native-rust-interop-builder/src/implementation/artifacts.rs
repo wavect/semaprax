@@ -1151,7 +1151,8 @@ fn c_expression_linear(
                 | ResolvedExprKind::Char(_)
                 | ResolvedExprKind::Uint8(_)
                 | ResolvedExprKind::Float32(_)
-                | ResolvedExprKind::Float64(_) => {
+                | ResolvedExprKind::Float64(_)
+                | ResolvedExprKind::String(_) => {
                     // Non-i64 scalar signatures are outside the scalar
                     // native boundary; admission rejects them first.
                     return Err(b107("scalar value signature required"));

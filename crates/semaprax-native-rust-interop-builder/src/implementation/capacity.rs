@@ -79,6 +79,9 @@ pub(super) struct AstCapacityStats {
 pub(super) fn ast_child(expression: &crate::ast::Expr, index: usize) -> Option<&crate::ast::Expr> {
     match &expression.kind {
         crate::ast::ExprKind::Call { args, .. } => args.get(index),
+        crate::ast::ExprKind::MethodCall { receiver, args, .. } => (index == 0)
+            .then_some(receiver.as_ref())
+            .or_else(|| args.get(index - 1)),
         crate::ast::ExprKind::Unary { value, .. }
         | crate::ast::ExprKind::Try { operand: value }
         | crate::ast::ExprKind::Project { base: value, .. } => (index == 0).then_some(value),
@@ -125,6 +128,7 @@ pub(super) fn ast_child(expression: &crate::ast::Expr, index: usize) -> Option<&
         | crate::ast::ExprKind::Float32(_)
         | crate::ast::ExprKind::Float64(_)
         | crate::ast::ExprKind::Bool(_)
+        | crate::ast::ExprKind::String(_)
         | crate::ast::ExprKind::Var(_) => None,
     }
 }
@@ -147,6 +151,7 @@ fn ast_child_identity_path_increment(
             };
             prefix.len() + decimal_digits(child_index)
         }
+        crate::ast::ExprKind::MethodCall { .. } => ".arg.".len() + decimal_digits(child_index),
         crate::ast::ExprKind::Unary { .. } => ".value".len(),
         crate::ast::ExprKind::Binary { .. } => {
             if child_index == 0 { ".left" } else { ".right" }.len()
@@ -188,6 +193,7 @@ fn ast_child_identity_path_increment(
         | crate::ast::ExprKind::Float32(_)
         | crate::ast::ExprKind::Float64(_)
         | crate::ast::ExprKind::Bool(_)
+        | crate::ast::ExprKind::String(_)
         | crate::ast::ExprKind::Var(_) => 0,
     }
 }
@@ -243,6 +249,10 @@ fn ast_type_identity_key_len(program: &Program, root: &crate::ast::Type) -> Opti
             }
             Frame::Enter(crate::ast::Type::Bool) => {
                 results[result_len] = "bool".len();
+                result_len = result_len.checked_add(1)?;
+            }
+            Frame::Enter(crate::ast::Type::String) => {
+                results[result_len] = "string".len();
                 result_len = result_len.checked_add(1)?;
             }
             Frame::Enter(crate::ast::Type::Named { name, arguments }) => {
@@ -466,6 +476,7 @@ pub(super) fn scan_ast_capacity<'a>(
                 stats.max_depth = stats.max_depth.max(depth);
                 let indexed_children = match &expression.kind {
                     crate::ast::ExprKind::Call { args, .. } => args.len(),
+                    crate::ast::ExprKind::MethodCall { args, .. } => args.len() + 1,
                     crate::ast::ExprKind::Block { statements, .. } => statements.len() + 1,
                     crate::ast::ExprKind::ConstructRecord { fields, .. }
                     | crate::ast::ExprKind::ConstructVariant { fields, .. } => fields.len(),
@@ -486,6 +497,7 @@ pub(super) fn scan_ast_capacity<'a>(
                     | crate::ast::ExprKind::Float32(_)
                     | crate::ast::ExprKind::Float64(_)
                     | crate::ast::ExprKind::Bool(_)
+                    | crate::ast::ExprKind::String(_)
                     | crate::ast::ExprKind::Var(_) => 0,
                 };
                 stats.max_indexed_children = stats.max_indexed_children.max(indexed_children);
@@ -692,7 +704,8 @@ fn declaration_field_type(
 ) -> Option<&crate::ast::Type> {
     match &declaration.kind {
         crate::ast::TypeDeclarationKind::Resource { .. } => None,
-        crate::ast::TypeDeclarationKind::Record { fields } => {
+        crate::ast::TypeDeclarationKind::Record { fields }
+        | crate::ast::TypeDeclarationKind::Class { fields, .. } => {
             fields.get(index).map(|field| &field.ty)
         }
         crate::ast::TypeDeclarationKind::Variant { cases } => {
@@ -713,7 +726,8 @@ fn declaration_field_identity_bytes(
 ) -> Option<usize> {
     match &declaration.kind {
         crate::ast::TypeDeclarationKind::Resource { .. } => None,
-        crate::ast::TypeDeclarationKind::Record { fields } => {
+        crate::ast::TypeDeclarationKind::Record { fields }
+        | crate::ast::TypeDeclarationKind::Class { fields, .. } => {
             fields.get(index).map(|field| field.stable_id.len())
         }
         crate::ast::TypeDeclarationKind::Variant { cases } => {
@@ -758,7 +772,8 @@ fn ast_resource_leaf_count(
                 | crate::ast::Type::U8
                 | crate::ast::Type::F32
                 | crate::ast::Type::F64
-                | crate::ast::Type::Bool,
+                | crate::ast::Type::Bool
+                | crate::ast::Type::String,
                 _,
             ) => {
                 values[value_len] = 0;
@@ -826,7 +841,8 @@ fn maximum_resource_leaf_count(program: &Program) -> Result<usize, Diagnostic> {
     for declaration in &program.types {
         let leaves = match &declaration.kind {
             crate::ast::TypeDeclarationKind::Resource { .. } => 1,
-            crate::ast::TypeDeclarationKind::Record { fields } => {
+            crate::ast::TypeDeclarationKind::Record { fields }
+            | crate::ast::TypeDeclarationKind::Class { fields, .. } => {
                 fields
                     .iter()
                     .try_fold(0usize, |total, field| -> Result<usize, Diagnostic> {
@@ -1729,6 +1745,7 @@ fn cleanup_plan_variable_identity_bytes(
                     };
                 prefix.len() + decimal_digits(child_index)
             }
+            crate::ast::ExprKind::MethodCall { .. } => ".arg.".len() + decimal_digits(child_index),
             crate::ast::ExprKind::Unary { .. } => ".value".len(),
             crate::ast::ExprKind::Binary { .. } => {
                 if child_index == 0 { ".left" } else { ".right" }.len()
@@ -1770,6 +1787,7 @@ fn cleanup_plan_variable_identity_bytes(
             | crate::ast::ExprKind::Float32(_)
             | crate::ast::ExprKind::Float64(_)
             | crate::ast::ExprKind::Bool(_)
+            | crate::ast::ExprKind::String(_)
             | crate::ast::ExprKind::Var(_) => 0,
         }
     }
@@ -2059,6 +2077,17 @@ fn cleanup_binding_flow<'a>(
                     .find(|function| function.name == *name)
                     .and_then(|function| function.params.get(next_child))
                     .is_some_and(|parameter| parameter.mode == crate::ast::ParamMode::Own),
+                crate::ast::ExprKind::MethodCall { method, .. } => program
+                    .types
+                    .iter()
+                    .find_map(|declaration| match &declaration.kind {
+                        crate::ast::TypeDeclarationKind::Class { methods, .. } => {
+                            methods.iter().find(|candidate| candidate.name == *method)
+                        }
+                        _ => None,
+                    })
+                    .and_then(|method_function| method_function.params.get(next_child))
+                    .is_some_and(|parameter| parameter.mode == crate::ast::ParamMode::Own),
                 crate::ast::ExprKind::Block { statements, .. } => {
                     next_child < statements.len() || consume
                 }
@@ -2078,6 +2107,7 @@ fn cleanup_binding_flow<'a>(
                 | crate::ast::ExprKind::Float32(_)
                 | crate::ast::ExprKind::Float64(_)
                 | crate::ast::ExprKind::Bool(_)
+                | crate::ast::ExprKind::String(_)
                 | crate::ast::ExprKind::Var(_) => false,
             };
             traversal[frame_index] = Some((expression, next_child + 1, 0));
@@ -2314,7 +2344,8 @@ fn cleanup_retained_stats(
             | crate::ast::Type::U8
             | crate::ast::Type::F32
             | crate::ast::Type::F64
-            | crate::ast::Type::Bool => CleanupTypeKey::Scalar,
+            | crate::ast::Type::Bool
+            | crate::ast::Type::String => CleanupTypeKey::Scalar,
             crate::ast::Type::Named { name, .. } => {
                 if let Some(index) = program
                     .types
@@ -2911,7 +2942,8 @@ fn cleanup_retained_stats(
                     maximum.max(lifecycle.stable_id.as_deref().map(str::len).unwrap_or(0))
                 })
             }
-            crate::ast::TypeDeclarationKind::Record { fields } => fields
+            crate::ast::TypeDeclarationKind::Record { fields }
+            | crate::ast::TypeDeclarationKind::Class { fields, .. } => fields
                 .iter()
                 .fold(maximum, |maximum, field| maximum.max(field.stable_id.len())),
             crate::ast::TypeDeclarationKind::Variant { cases } => {
@@ -3267,7 +3299,8 @@ fn cleanup_retained_stats(
                     | crate::ast::ExprKind::Uint8(_)
                     | crate::ast::ExprKind::Float32(_)
                     | crate::ast::ExprKind::Float64(_)
-                    | crate::ast::ExprKind::Bool(_) => CleanupTypeKey::Scalar,
+                    | crate::ast::ExprKind::Bool(_)
+                    | crate::ast::ExprKind::String(_) => CleanupTypeKey::Scalar,
                     crate::ast::ExprKind::Var(name) => {
                         variable_key(program, function, name, &traversal, stack_len, &results)?
                     }
@@ -3275,6 +3308,17 @@ fn cleanup_retained_stats(
                         .functions
                         .iter()
                         .find(|candidate| candidate.name == *name)
+                        .map(|candidate| key_for_type(program, &candidate.return_type))
+                        .unwrap_or(CleanupTypeKey::Scalar),
+                    crate::ast::ExprKind::MethodCall { method, .. } => program
+                        .types
+                        .iter()
+                        .find_map(|declaration| match &declaration.kind {
+                            crate::ast::TypeDeclarationKind::Class { methods, .. } => {
+                                methods.iter().find(|candidate| candidate.name == *method)
+                            }
+                            _ => None,
+                        })
                         .map(|candidate| key_for_type(program, &candidate.return_type))
                         .unwrap_or(CleanupTypeKey::Scalar),
                     crate::ast::ExprKind::Unary { .. } | crate::ast::ExprKind::Binary { .. } => {
@@ -3296,7 +3340,8 @@ fn cleanup_retained_stats(
                         if let Some(declaration_index) = declaration_index {
                             let declaration = &program.types[declaration_index];
                             let declared_fields = match &declaration.kind {
-                                crate::ast::TypeDeclarationKind::Record { fields } => fields,
+                                crate::ast::TypeDeclarationKind::Record { fields }
+                                | crate::ast::TypeDeclarationKind::Class { fields, .. } => fields,
                                 _ => {
                                     return Err(b109("max_builder_bytes", MAX_BUILDER_BYTES));
                                 }
@@ -3397,13 +3442,14 @@ fn cleanup_retained_stats(
                             let field_identity_bytes = match base {
                                 CleanupTypeKey::Declaration(index) => {
                                     match &program.types[index].kind {
-                                        crate::ast::TypeDeclarationKind::Record { fields } => {
-                                            fields
-                                                .iter()
-                                                .find(|field| field.name == initializer.name)
-                                                .map(|field| field.stable_id.len())
-                                                .unwrap_or(maximum_declaration_identity_bytes)
-                                        }
+                                        crate::ast::TypeDeclarationKind::Record { fields }
+                                        | crate::ast::TypeDeclarationKind::Class {
+                                            fields, ..
+                                        } => fields
+                                            .iter()
+                                            .find(|field| field.name == initializer.name)
+                                            .map(|field| field.stable_id.len())
+                                            .unwrap_or(maximum_declaration_identity_bytes),
                                         _ => maximum_declaration_identity_bytes,
                                     }
                                 }
@@ -3465,10 +3511,13 @@ fn cleanup_retained_stats(
                             CleanupTypeKey::Declaration(index) => {
                                 let declaration = &program.types[index];
                                 match &declaration.kind {
-                                    crate::ast::TypeDeclarationKind::Record { fields } => fields
-                                        .iter()
-                                        .find(|candidate| candidate.name == *field)
-                                        .map(|candidate| key_for_type(program, &candidate.ty)),
+                                    crate::ast::TypeDeclarationKind::Record { fields }
+                                    | crate::ast::TypeDeclarationKind::Class { fields, .. } => {
+                                        fields
+                                            .iter()
+                                            .find(|candidate| candidate.name == *field)
+                                            .map(|candidate| key_for_type(program, &candidate.ty))
+                                    }
                                     _ => None,
                                 }
                             }
@@ -3481,11 +3530,14 @@ fn cleanup_retained_stats(
                                 let selected_facts =
                                     facts_for_key(selected, declaration_facts, fallback);
                                 let field_identity_bytes = match &program.types[index].kind {
-                                    crate::ast::TypeDeclarationKind::Record { fields } => fields
-                                        .iter()
-                                        .find(|candidate| candidate.name == *field)
-                                        .map(|candidate| candidate.stable_id.len())
-                                        .unwrap_or(maximum_declaration_identity_bytes),
+                                    crate::ast::TypeDeclarationKind::Record { fields }
+                                    | crate::ast::TypeDeclarationKind::Class { fields, .. } => {
+                                        fields
+                                            .iter()
+                                            .find(|candidate| candidate.name == *field)
+                                            .map(|candidate| candidate.stable_id.len())
+                                            .unwrap_or(maximum_declaration_identity_bytes)
+                                    }
                                     _ => maximum_declaration_identity_bytes,
                                 };
                                 let selected_projection_segments = selected_facts
@@ -3905,7 +3957,8 @@ pub(super) fn hir_pre_resolve_capacity<'a>(
                 crate::ast::TypeDeclarationKind::Resource { lifecycles } => {
                     count.checked_add(lifecycles.len())
                 }
-                crate::ast::TypeDeclarationKind::Record { fields } => {
+                crate::ast::TypeDeclarationKind::Record { fields }
+                | crate::ast::TypeDeclarationKind::Class { fields, .. } => {
                     count.checked_add(fields.len())
                 }
                 crate::ast::TypeDeclarationKind::Variant { cases } => cases
@@ -4031,7 +4084,8 @@ pub(super) fn hir_pre_resolve_capacity<'a>(
         .try_fold(0usize, |total, declaration| {
             let fields = match &declaration.kind {
                 crate::ast::TypeDeclarationKind::Resource { .. } => 1,
-                crate::ast::TypeDeclarationKind::Record { fields } => fields.len(),
+                crate::ast::TypeDeclarationKind::Record { fields }
+                | crate::ast::TypeDeclarationKind::Class { fields, .. } => fields.len(),
                 crate::ast::TypeDeclarationKind::Variant { cases } => cases
                     .iter()
                     .try_fold(0usize, |count, case| count.checked_add(case.fields.len()))?,
@@ -5107,7 +5161,8 @@ fn hir_type_owned_capacity(ty: &ResolvedType) -> Option<usize> {
         | ResolvedType::U8
         | ResolvedType::F32
         | ResolvedType::F64
-        | ResolvedType::Bool => Some(0),
+        | ResolvedType::Bool
+        | ResolvedType::String => Some(0),
         ResolvedType::TypeParameter { owner, .. } => Some(owner.as_str().len()),
         ResolvedType::Nominal {
             declaration,
@@ -5454,6 +5509,11 @@ fn hir_expr_owned_capacity(expression: &ResolvedExpr) -> Result<usize, Diagnosti
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_) => {}
+            ResolvedExprKind::String(contents) => {
+                total = total
+                    .checked_add(contents.capacity())
+                    .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+            }
         }
     }
     Ok(total)
@@ -5663,6 +5723,24 @@ pub(super) fn hir_owned_capacity(resolved: &ResolvedProgram) -> Result<usize, Di
                         fields.capacity()
                             * std::mem::size_of::<crate::hir::ResolvedFieldDeclaration>(),
                     )
+                    .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+                for field in fields {
+                    total = total
+                        .checked_add(field.id.as_str().len())
+                        .and_then(|bytes| bytes.checked_add(field.name.capacity()))
+                        .and_then(|bytes| bytes.checked_add(hir_type_owned_capacity(&field.ty)?))
+                        .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+                }
+            }
+            crate::hir::ResolvedTypeDeclarationKind::Class { fields, methods } => {
+                total = total
+                    .checked_add(
+                        fields.capacity()
+                            * std::mem::size_of::<crate::hir::ResolvedFieldDeclaration>(),
+                    )
+                    .and_then(|bytes| {
+                        bytes.checked_add(methods.capacity() * std::mem::size_of::<String>())
+                    })
                     .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
                 for field in fields {
                     total = total
@@ -5886,6 +5964,7 @@ pub(super) fn validate_native_rust_expression_budget_for_closure(
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::String(_)
             | ResolvedExprKind::Place(_) => {}
         }
     }

@@ -1717,7 +1717,8 @@ impl Drop for ResolvedProgramOwner {
         for declaration in types {
             match declaration.kind {
                 crate::hir::ResolvedTypeDeclarationKind::Resource { .. } => {}
-                crate::hir::ResolvedTypeDeclarationKind::Record { fields } => {
+                crate::hir::ResolvedTypeDeclarationKind::Record { fields }
+                | crate::hir::ResolvedTypeDeclarationKind::Class { fields, .. } => {
                     for field in fields {
                         disposal_push(&mut self.frames, ResolvedDisposeFrame::Type(field.ty));
                         drain_disposal_frames(&mut self.frames, None);
@@ -1843,6 +1844,7 @@ fn drain_disposal_frames(
                 | ResolvedExprKind::Float32(_)
                 | ResolvedExprKind::Float64(_)
                 | ResolvedExprKind::Bool(_)
+                | ResolvedExprKind::String(_)
                 | ResolvedExprKind::Place(_) => {}
                 ResolvedExprKind::Call {
                     type_arguments,
@@ -2327,7 +2329,8 @@ fn canonical_format_scratch_capacity(
     for declaration in &program.types {
         match &declaration.kind {
             crate::ast::TypeDeclarationKind::Resource { .. } => {}
-            crate::ast::TypeDeclarationKind::Record { fields } => {
+            crate::ast::TypeDeclarationKind::Record { fields }
+            | crate::ast::TypeDeclarationKind::Class { fields, .. } => {
                 for field in fields {
                     type_depth = type_depth.max(ast_type_depth(&field.ty)?);
                 }
@@ -2893,7 +2896,13 @@ fn source_scalar_type(ty: &Type) -> Option<ScalarType> {
     match ty {
         Type::I64 => Some(ScalarType::I64),
         Type::Bool => Some(ScalarType::Bool),
-        Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64 | Type::Named { .. } => None,
+        Type::I32
+        | Type::Char
+        | Type::U8
+        | Type::F32
+        | Type::F64
+        | Type::String
+        | Type::Named { .. } => None,
     }
 }
 
@@ -3105,6 +3114,7 @@ fn resolved_call_child(expression: &ResolvedExpr, index: usize) -> Option<&Resol
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
         | ResolvedExprKind::Place(_) => None,
     }
 }
@@ -3740,6 +3750,7 @@ fn type_identity_metrics(
                     ResolvedType::F32 => Some(leaf("f32".len())),
                     ResolvedType::F64 => Some(leaf("f64".len())),
                     ResolvedType::Bool => Some(leaf("bool".len())),
+                    ResolvedType::String => Some(leaf("string".len())),
                     ResolvedType::TypeParameter { owner, index } => {
                         let owner_bytes = owner.as_str().len();
                         let root_bytes = "parameter:"
@@ -3873,7 +3884,8 @@ fn fingerprint_type_identity(
                 | ResolvedType::U8
                 | ResolvedType::F32
                 | ResolvedType::F64
-                | ResolvedType::Bool => {
+                | ResolvedType::Bool
+                | ResolvedType::String => {
                     let text = match ty {
                         ResolvedType::Unit => "unit",
                         ResolvedType::I64 => "i64",
@@ -3883,6 +3895,7 @@ fn fingerprint_type_identity(
                         ResolvedType::F32 => "f32",
                         ResolvedType::F64 => "f64",
                         ResolvedType::Bool => "bool",
+                        ResolvedType::String => "string",
                         _ => unreachable!(),
                     };
                     let mut key = String::with_capacity(text.len());
@@ -4084,6 +4097,7 @@ fn fingerprint_expression_types_scratch(
                     | ResolvedExprKind::Float32(_)
                     | ResolvedExprKind::Float64(_)
                     | ResolvedExprKind::Bool(_)
+                    | ResolvedExprKind::String(_)
                     | ResolvedExprKind::Place(_) => {}
                     ResolvedExprKind::Call {
                         type_arguments,
@@ -4617,7 +4631,8 @@ fn hash_expr(
                     | ResolvedExprKind::Char(_)
                     | ResolvedExprKind::Uint8(_)
                     | ResolvedExprKind::Float32(_)
-                    | ResolvedExprKind::Float64(_) => {
+                    | ResolvedExprKind::Float64(_)
+                    | ResolvedExprKind::String(_) => {
                         // Non-i64 scalar signatures are outside the scalar
                         // native boundary; admission rejects them first.
                         return Err(b107("scalar value signature required"));
@@ -5832,7 +5847,8 @@ fn validate_selected_scalar_closure(functions: &[&ResolvedFunction]) -> Result<(
             | ResolvedExprKind::Uint8(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
-            | ResolvedExprKind::Bool(_) => {}
+            | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::String(_) => {}
             ResolvedExprKind::Place(place)
                 if place.projections.is_empty()
                     && expression.ownership == hir::OwnershipMode::Value => {}

@@ -393,7 +393,7 @@ fn require_vocabulary(token: &str) -> Result<(), Vec<Diagnostic>> {
     Ok(())
 }
 
-fn within_vocabulary(token: &str) -> bool {
+pub(crate) fn within_vocabulary(token: &str) -> bool {
     AMBIENT_DOMAINS.contains(&token)
         || AMBIENT_DOMAINS.iter().any(|domain| {
             token
@@ -409,7 +409,7 @@ fn names_domain(token: &str, domain: &str) -> bool {
             .is_some_and(|rest| rest.starts_with('.'))
 }
 
-fn ambient_authority_json(tokens: &BTreeSet<String>) -> String {
+pub(crate) fn ambient_authority_json(tokens: &BTreeSet<String>) -> String {
     let members = AMBIENT_DOMAINS
         .iter()
         .map(|domain| {

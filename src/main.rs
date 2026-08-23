@@ -5,10 +5,10 @@ use semaprax::diagnostic::{Diagnostic, Severity};
 use semaprax::{
     abi_report, agent_economics, agent_transport, c_header, capability_manifest, codegen, cxx_shim,
     format, freestanding_object, graph, hygienic, impact, openapi, package_report, parse, patch,
-    patch_evidence, project, properties, quality_route, repair, review, semantic_workspace,
-    semantic_workspace_change, semantic_workspace_operations, semantic_workspace_structural_change,
-    target_evidence, ui_schema, verify, wasm, workspace, workspace_analysis, workspace_graph,
-    workspace_patch_evidence,
+    patch_evidence, plugin_manifest, project, properties, quality_route, repair, review,
+    semantic_workspace, semantic_workspace_change, semantic_workspace_operations,
+    semantic_workspace_structural_change, target_evidence, ui_schema, verify, wasm, workspace,
+    workspace_analysis, workspace_graph, workspace_patch_evidence,
 };
 
 fn main() -> ExitCode {
@@ -659,6 +659,14 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             let path = required_path(&args, 1)?;
             let options = package_report_options(&args)?;
             let envelope = package_report::generate(&path, &options)
+                .map_err(|errors| report(&errors, false))?;
+            println!("{envelope}");
+            Ok(())
+        }
+        "plugin-manifest" => {
+            let path = required_path(&args, 1)?;
+            let options = plugin_manifest_options(&args)?;
+            let envelope = plugin_manifest::generate(&path, &options)
                 .map_err(|errors| report(&errors, false))?;
             println!("{envelope}");
             Ok(())
@@ -1417,6 +1425,33 @@ fn package_report_options(args: &[String]) -> Result<package_report::PackageRepo
     })
 }
 
+fn plugin_manifest_options(args: &[String]) -> Result<plugin_manifest::PluginManifestOptions, u8> {
+    let mut max_bytes = plugin_manifest::PluginManifestOptions::default().max_bytes;
+    let mut seen = std::collections::BTreeSet::new();
+    let mut index = 2usize;
+    while index < args.len() {
+        let option = args[index].as_str();
+        if !matches!(option, "--max-bytes") {
+            eprintln!("unknown plugin-manifest option `{option}`");
+            return Err(2);
+        }
+        if !seen.insert(option.to_owned()) {
+            eprintln!("duplicate plugin-manifest option `{option}`");
+            return Err(2);
+        }
+        let value = args.get(index + 1).ok_or_else(|| {
+            eprintln!("plugin-manifest option `{option}` requires a value");
+            2
+        })?;
+        max_bytes = property_number(option, value)?;
+        index += 2;
+    }
+    plugin_manifest::PluginManifestOptions::new(max_bytes).map_err(|error| {
+        eprintln!("{error}");
+        2
+    })
+}
+
 fn ui_schema_options(args: &[String]) -> Result<ui_schema::UiSchemaOptions, u8> {
     let mut max_bytes = ui_schema::UiSchemaOptions::default().max_bytes;
     let mut seen = std::collections::BTreeSet::new();
@@ -1972,6 +2007,7 @@ fn print_help() {
              semaprax capability-manifest <file> [--max-bytes N]\n\
              semaprax package-report <file> [--max-bytes N]\n\
              semaprax ui-schema <file> [--max-bytes N]\n\
+           semaprax plugin-manifest <file> [--max-bytes N]\n\
             semaprax cxx-shim <file> --function name|stable-id[,...] [--function ...] [--max-bytes N] [--emit-fragment]\n\
            semaprax review <file> <patch.spatch>\n\
            semaprax target-evidence <file> <patch.spatch>\n\

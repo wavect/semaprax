@@ -1429,7 +1429,9 @@ fn collect_agent_contract_values(expression: &ResolvedExpr, values: &mut BTreeSe
         }
         ResolvedExprKind::Block { statements, tail } => {
             for statement in statements {
-                values.insert(statement.binding().id.clone());
+                if let ResolvedStatement::Let { binding, .. } = statement {
+                    values.insert(binding.id.clone());
+                }
                 collect_agent_contract_values(statement.value(), values);
             }
             collect_agent_contract_values(tail, values);
@@ -1568,6 +1570,11 @@ fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnos
                             "{{\"kind\":\"assign\",\"target\":{},\"value\":{}}}",
                             quote_json(binding.id.as_str()),
                             agent_contract_expr_json(value)?
+                        ),
+                        ResolvedStatement::Unsafe { audit, body, .. } => format!(
+                            "{{\"kind\":\"unsafe\",\"audit\":{},\"body\":{}}}",
+                            quote_json(audit),
+                            agent_contract_expr_json(body)?
                         ),
                     })
                 })
@@ -3313,7 +3320,9 @@ fn collect_expr_type_declarations(
         }
         ResolvedExprKind::Block { statements, tail } => {
             for statement in statements {
-                collect_nominal_declarations(&statement.binding().ty, declarations);
+                if let ResolvedStatement::Let { binding, .. } = statement {
+                    collect_nominal_declarations(&binding.ty, declarations);
+                }
                 collect_expr_type_declarations(statement.value(), declarations);
             }
             collect_expr_type_declarations(tail, declarations);
@@ -3741,6 +3750,11 @@ fn statement_json(
             quote_json(ownership_text(binding.ownership)),
             expr_json(program, value)?
         )),
+        ResolvedStatement::Unsafe { audit, body, .. } => Ok(format!(
+            "{{\"kind\":\"unsafe\",\"audit\":{},\"body\":{}}}",
+            quote_json(audit),
+            expr_json(program, body)?
+        )),
     }
 }
 
@@ -3865,7 +3879,9 @@ fn collect_expr_types(expression: &ResolvedExpr, types: &mut BTreeMap<String, Re
         }
         ResolvedExprKind::Block { statements, tail } => {
             for statement in statements {
-                collect_type(&statement.binding().ty, types);
+                if let ResolvedStatement::Let { binding, .. } = statement {
+                    collect_type(&binding.ty, types);
+                }
                 collect_expr_types(statement.value(), types);
             }
             collect_expr_types(tail, types);

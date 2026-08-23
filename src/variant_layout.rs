@@ -448,8 +448,9 @@ fn collect_expr_variant_types(
         }
         ResolvedExprKind::Block { statements, tail } => {
             for statement in statements {
-                let binding = statement.binding();
-                collect_variant_type(program, &binding.ty, instances)?;
+                if let crate::hir::ResolvedStatement::Let { binding, .. } = statement {
+                    collect_variant_type(program, &binding.ty, instances)?;
+                }
                 collect_expr_variant_types(program, statement.value(), instances)?;
             }
             collect_expr_variant_types(program, tail, instances)?;

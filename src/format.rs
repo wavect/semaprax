@@ -694,6 +694,7 @@ fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> usize {
                             .len()
                             .saturating_add(rendered_expr_len(value, 0))
                             .saturating_add(4),
+                        Statement::Unsafe { audit, .. } => escaped_len(audit).saturating_add(18),
                     };
                     total = total.saturating_add(part);
                     parts.push(part);
@@ -1156,6 +1157,15 @@ fn write_expr(output: &mut impl std::fmt::Write, value: &Expr, parent_precedence
                             frames.push(Frame::BlockNext(statements, tail, index + 1));
                             frames.push(Frame::Expr(value, 0));
                         }
+                        Statement::Unsafe { audit, body, .. } => {
+                            write!(output, "@audit(\"").unwrap();
+                            write_escaped(output, audit);
+                            write!(output, "\") unsafe ").unwrap();
+                            frames.push(Frame::BlockNext(statements, tail, index + 1));
+                            // The body is an ordinary block and renders with
+                            // the exact same inline block shape.
+                            frames.push(Frame::Expr(body, 0));
+                        }
                     }
                 } else {
                     frames.push(Frame::Close('}'));
@@ -1465,27 +1475,7 @@ fn write_function_body(output: &mut impl std::fmt::Write, body: &Expr) {
     writeln!(output, "{{").unwrap();
     if let ExprKind::Block { statements, tail } = &body.kind {
         for statement in statements {
-            match statement {
-                Statement::Let {
-                    name,
-                    mutable,
-                    value,
-                    ..
-                } => {
-                    if *mutable {
-                        write!(output, "    let mut {name} = ").unwrap();
-                    } else {
-                        write!(output, "    let {name} = ").unwrap();
-                    }
-                    write_expr(output, value, 0);
-                    writeln!(output, ";").unwrap();
-                }
-                Statement::Assign { name, value, .. } => {
-                    write!(output, "    {name} = ").unwrap();
-                    write_expr(output, value, 0);
-                    writeln!(output, ";").unwrap();
-                }
-            }
+            write_block_statement(output, statement, 1);
         }
         write!(output, "    ").unwrap();
         write_expr(output, tail, 0);
@@ -1496,6 +1486,58 @@ fn write_function_body(output: &mut impl std::fmt::Write, body: &Expr) {
         writeln!(output).unwrap();
     }
     writeln!(output, "}}").unwrap();
+}
+
+fn write_indent(output: &mut impl std::fmt::Write, depth: usize) {
+    for _ in 0..depth {
+        output.write_str("    ").unwrap();
+    }
+}
+
+/// Renders one statement of a multi-line block body. Unsafe boundary
+/// statements open their own indented braces; their ordinary block bodies
+/// recurse through this same helper.
+fn write_block_statement(output: &mut impl std::fmt::Write, statement: &Statement, depth: usize) {
+    match statement {
+        Statement::Let {
+            name,
+            mutable,
+            value,
+            ..
+        } => {
+            write_indent(output, depth);
+            if *mutable {
+                write!(output, "let mut {name} = ").unwrap();
+            } else {
+                write!(output, "let {name} = ").unwrap();
+            }
+            write_expr(output, value, 0);
+            writeln!(output, ";").unwrap();
+        }
+        Statement::Assign { name, value, .. } => {
+            write_indent(output, depth);
+            write!(output, "{name} = ").unwrap();
+            write_expr(output, value, 0);
+            writeln!(output, ";").unwrap();
+        }
+        Statement::Unsafe { audit, body, .. } => {
+            write_indent(output, depth);
+            write!(output, "@audit(\"").unwrap();
+            write_escaped(output, audit);
+            writeln!(output, "\") unsafe {{").unwrap();
+            let ExprKind::Block { statements, tail } = &body.kind else {
+                unreachable!("unsafe bodies always parse as blocks");
+            };
+            for inner in statements {
+                write_block_statement(output, inner, depth + 1);
+            }
+            write_indent(output, depth + 1);
+            write_expr(output, tail, 0);
+            writeln!(output).unwrap();
+            write_indent(output, depth);
+            writeln!(output, "}}").unwrap();
+        }
+    }
 }
 
 fn write_escaped(output: &mut impl std::fmt::Write, value: &str) {

@@ -692,6 +692,18 @@ impl<'a> Analyzer<'a> {
                                 }
                             }
                         }
+                        Statement::Unsafe { body, .. } => {
+                            // The boundary's ordinary block body evaluates
+                            // through this same block path; its scalar result
+                            // is discarded.
+                            match self.evaluate(body, environment, depth) {
+                                Outcome::Value(_) => {}
+                                other => {
+                                    interrupted = Some(other);
+                                    break;
+                                }
+                            }
+                        }
                     }
                 }
                 let outcome =

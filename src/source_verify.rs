@@ -3839,6 +3839,41 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 }
                             }
                         }
+                        Statement::Unsafe { body, span, .. } => {
+                            // Unsafe Boundary Mechanics v1: the module must
+                            // explicitly permit the `unsafe` capability and
+                            // the discarded body result must be a scalar Copy
+                            // value. Contract expressions reject boundaries.
+                            if !self.allow_moves {
+                                self.diagnostics.push(error(
+                                    self.program,
+                                    "SPX-N105",
+                                    "unsafe boundary statements are not allowed in contract expressions",
+                                    *span,
+                                ));
+                            } else {
+                                if !self.program.permits.iter().any(|permit| permit == "unsafe") {
+                                    self.diagnostics.push(error(
+                                        self.program,
+                                        "SPX-N101",
+                                        "unsafe block requires the module capability declaration `permit { unsafe }`",
+                                        *span,
+                                    ));
+                                }
+                                if let Some(actual) = &actual {
+                                    if actual.mode != ParamMode::Value
+                                        || !is_scalar_source_type(&actual.ty)
+                                    {
+                                        self.diagnostics.push(error(
+                                            self.program,
+                                            "SPX-N104",
+                                            "unsafe boundary bodies must produce a scalar Copy value",
+                                            body.span,
+                                        ));
+                                    }
+                                }
+                            }
+                        }
                     }
                     self.advance_block_statement(
                         expression,
@@ -6431,6 +6466,27 @@ fn check_expr(
                             program,
                             current,
                             value,
+                            &mut scope,
+                            functions,
+                            types,
+                            result_type,
+                            allow_moves,
+                            diagnostics,
+                        );
+                    }
+                    Statement::Unsafe { body, span, .. } => {
+                        // Contract expressions stay pure: unsafe boundary
+                        // statements are meaningless inside them.
+                        diagnostics.push(error(
+                            program,
+                            "SPX-N105",
+                            "unsafe boundary statements are not allowed in contract expressions",
+                            *span,
+                        ));
+                        check_expr(
+                            program,
+                            current,
+                            body,
                             &mut scope,
                             functions,
                             types,

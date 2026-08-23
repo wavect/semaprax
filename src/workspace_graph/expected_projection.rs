@@ -672,7 +672,12 @@ fn ast_expr_cost(expression: &Expr, cost: &mut StructuralCost) -> Result<(), Vec
         ExprKind::Block { statements, tail } => {
             for statement in statements {
                 cost.value(statement)?;
-                cost.string(statement.name())?;
+                // Only `let` and assignment statements name a binding; unsafe
+                // boundaries charge their verbatim audit summary instead.
+                match statement.audit() {
+                    Some(audit) => cost.string(audit)?,
+                    None => cost.string(statement.name())?,
+                }
                 ast_expr_cost(statement.value(), cost)?;
             }
             ast_expr_cost(tail, cost)?;

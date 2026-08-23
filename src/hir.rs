@@ -547,8 +547,17 @@ fn resolved_match_pattern_owned_capacity(pattern: &ResolvedMatchPattern) -> usiz
 
 #[cfg(test)]
 fn resolved_statement_owned_capacity(statement: &ResolvedStatement) -> usize {
-    resolved_binding_owned_capacity(statement.binding())
-        + resolved_expr_owned_capacity(statement.value())
+    match statement {
+        ResolvedStatement::Let { .. } | ResolvedStatement::Assign { .. } => {
+            resolved_binding_owned_capacity(statement.binding())
+                + resolved_expr_owned_capacity(statement.value())
+        }
+        // Unsafe boundaries carry only the verbatim audit summary plus their
+        // ordinary block body.
+        ResolvedStatement::Unsafe { audit, body, .. } => {
+            audit.capacity() + resolved_expr_owned_capacity(body)
+        }
+    }
 }
 
 /// Explicit Mutation v1 admits exactly the checked Copy scalar value types.
@@ -2377,6 +2386,21 @@ fn materialize_template_expr(
                             "generic template statements cannot assign to local bindings",
                         ));
                     }
+                    ResolvedStatement::Unsafe { audit, body, span } => {
+                        let body = materialize_template_expr(
+                            template,
+                            arguments,
+                            execution,
+                            body,
+                            &block_values,
+                            &format!("{statement_path}.body"),
+                        )?;
+                        materialized.push(ResolvedStatement::Unsafe {
+                            audit: audit.clone(),
+                            body: Box::new(body),
+                            span: *span,
+                        });
+                    }
                 }
             }
             ResolvedExprKind::Block {
@@ -2851,6 +2875,14 @@ pub enum ResolvedStatement {
         value: ResolvedExpr,
         span: Span,
     },
+    /// Unsafe Boundary Mechanics v1: `@audit("...") unsafe { ... }`. The body
+    /// is an ordinary checked safe block expression; the audit summary is
+    /// recorded verbatim. No raw pointers or memory operations exist.
+    Unsafe {
+        audit: String,
+        body: Box<ResolvedExpr>,
+        span: Span,
+    },
 }
 
 impl ResolvedStatement {
@@ -2858,6 +2890,7 @@ impl ResolvedStatement {
     pub fn value(&self) -> &ResolvedExpr {
         match self {
             Self::Let { value, .. } | Self::Assign { value, .. } => value,
+            Self::Unsafe { body, .. } => body,
         }
     }
 
@@ -2865,13 +2898,26 @@ impl ResolvedStatement {
     pub fn value_mut(&mut self) -> &mut ResolvedExpr {
         match self {
             Self::Let { value, .. } | Self::Assign { value, .. } => value,
+            Self::Unsafe { body, .. } => body,
         }
     }
 
-    /// The statement's target or declared binding.
+    /// The statement's target or declared binding. Only `let` and assignment
+    /// statements carry one.
     pub fn binding(&self) -> &ResolvedBinding {
         match self {
             Self::Let { binding, .. } | Self::Assign { binding, .. } => binding,
+            Self::Unsafe { .. } => {
+                panic!("unsafe boundary statements declare no binding")
+            }
+        }
+    }
+
+    /// The verbatim audit summary of an unsafe boundary statement.
+    pub fn audit(&self) -> Option<&str> {
+        match self {
+            Self::Unsafe { audit, .. } => Some(audit),
+            _ => None,
         }
     }
 
@@ -3374,9 +3420,12 @@ fn audit_resolved_expression(root: &ResolvedExpr) -> Result<(), Diagnostic> {
             ResolvedExprKind::Block { statements, tail } => {
                 pending.push(tail);
                 for statement in statements.iter().rev() {
-                    let binding = statement.binding();
-                    reject_nul_identity("resolved value", binding.id.as_str())?;
-                    audit_resolved_type(&binding.ty)?;
+                    if let ResolvedStatement::Let { binding, .. }
+                    | ResolvedStatement::Assign { binding, .. } = statement
+                    {
+                        reject_nul_identity("resolved value", binding.id.as_str())?;
+                        audit_resolved_type(&binding.ty)?;
+                    }
                     pending.push(statement.value());
                 }
             }
@@ -5123,6 +5172,15 @@ impl Resolver<'_> {
                 resolved: Vec<ResolvedStatement>,
                 target: ResolvedBinding,
             },
+            BlockAfterUnsafe {
+                span: Span,
+                path: String,
+                statements: &'expr [Statement],
+                tail: &'expr Expr,
+                index: usize,
+                scope: Rc<BTreeMap<String, Binding>>,
+                resolved: Vec<ResolvedStatement>,
+            },
             FinishBlock {
                 span: Span,
                 path: String,
@@ -5285,6 +5343,7 @@ impl Resolver<'_> {
                 | Frame::BlockNext { path, .. }
                 | Frame::BlockAfterLet { path, .. }
                 | Frame::BlockAfterAssign { path, .. }
+                | Frame::BlockAfterUnsafe { path, .. }
                 | Frame::FinishBlock { path, .. }
                 | Frame::FinishIf { path, .. }
                 | Frame::AfterIfCondition { path, .. }
@@ -5322,7 +5381,8 @@ impl Resolver<'_> {
                 }
                 Frame::BlockNext { scope, .. }
                 | Frame::BlockAfterLet { scope, .. }
-                | Frame::BlockAfterAssign { scope, .. } => resolver_scope_owned_capacity(scope),
+                | Frame::BlockAfterAssign { scope, .. }
+                | Frame::BlockAfterUnsafe { scope, .. } => resolver_scope_owned_capacity(scope),
                 _ => 0,
             };
             let retained = match frame {
@@ -5352,6 +5412,7 @@ impl Resolver<'_> {
                 Frame::BlockNext { resolved, .. }
                 | Frame::BlockAfterLet { resolved, .. }
                 | Frame::BlockAfterAssign { resolved, .. }
+                | Frame::BlockAfterUnsafe { resolved, .. }
                 | Frame::FinishBlock {
                     statements: resolved,
                     ..
@@ -6126,6 +6187,26 @@ impl Resolver<'_> {
                                     path: format!("{path}.s{index}.value"),
                                 });
                             }
+                            Statement::Unsafe { body, .. } => {
+                                // The body is an ordinary safe block; it
+                                // resolves with the enclosing scope and its
+                                // result is admitted (or rejected) when the
+                                // boundary statement is assembled.
+                                frames.push(Frame::BlockAfterUnsafe {
+                                    span,
+                                    path: path.clone(),
+                                    statements,
+                                    tail,
+                                    index,
+                                    scope: scope.clone(),
+                                    resolved,
+                                });
+                                frames.push(Frame::Enter {
+                                    expr: body,
+                                    bindings: scope,
+                                    path: format!("{path}.s{index}.body"),
+                                });
+                            }
                         }
                     }
                 }
@@ -6226,6 +6307,51 @@ impl Resolver<'_> {
                     resolved.push(ResolvedStatement::Assign {
                         binding: target,
                         value,
+                        span: *statement_span,
+                    });
+                    frames.push(Frame::BlockNext {
+                        span,
+                        path,
+                        statements,
+                        tail,
+                        index: index + 1,
+                        scope,
+                        resolved,
+                    });
+                }
+                Frame::BlockAfterUnsafe {
+                    span,
+                    path,
+                    statements,
+                    tail,
+                    index,
+                    scope,
+                    mut resolved,
+                } => {
+                    // The body block resolved like any ordinary nested block.
+                    // Boundary admission mirrors the mutation checks: the
+                    // discarded body result must be a scalar Copy value so no
+                    // cleanup or ownership semantics are introduced.
+                    let body = results.pop().expect("unsafe body result retained");
+                    if body.ownership != OwnershipMode::Value || !is_scalar_resolved_type(&body.ty)
+                    {
+                        return Err(self.error(
+                            "SPX-N104",
+                            "unsafe boundary bodies must produce a scalar Copy value",
+                            body.span,
+                        ));
+                    }
+                    let Statement::Unsafe {
+                        audit,
+                        span: statement_span,
+                        ..
+                    } = &statements[index]
+                    else {
+                        unreachable!("unsafe frame resumes at an unsafe statement")
+                    };
+                    resolved.push(ResolvedStatement::Unsafe {
+                        audit: audit.clone(),
+                        body: Box::new(body),
                         span: *statement_span,
                     });
                     frames.push(Frame::BlockNext {
@@ -7395,6 +7521,30 @@ impl Resolver<'_> {
                             resolved_statements.push(ResolvedStatement::Assign {
                                 binding: target,
                                 value,
+                                span: *span,
+                            });
+                        }
+                        Statement::Unsafe {
+                            audit, body, span, ..
+                        } => {
+                            let body = self.resolve_expr_recursive_reference(
+                                function,
+                                body,
+                                &scope,
+                                &format!("{statement_path}.body"),
+                            )?;
+                            if body.ownership != OwnershipMode::Value
+                                || !is_scalar_resolved_type(&body.ty)
+                            {
+                                return Err(self.error(
+                                    "SPX-N104",
+                                    "unsafe boundary bodies must produce a scalar Copy value",
+                                    body.span,
+                                ));
+                            }
+                            resolved_statements.push(ResolvedStatement::Unsafe {
+                                audit: audit.clone(),
+                                body: Box::new(body),
                                 span: *span,
                             });
                         }

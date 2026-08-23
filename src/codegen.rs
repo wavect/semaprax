@@ -2590,6 +2590,13 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             })?;
                             self.line(&format!("{} = {};", target.name, value.code));
                         }
+                        ResolvedStatement::Unsafe { body, .. } => {
+                            // Backends treat the boundary transparently: emit
+                            // exactly the ordinary block body and discard its
+                            // scalar Copy result.
+                            let value = self.emit_expr(body)?;
+                            self.line(&format!("(void)({});", value.code));
+                        }
                     }
                 }
                 let tail = self.emit_expr(tail)?;

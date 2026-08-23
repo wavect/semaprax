@@ -1,5 +1,149 @@
 # Changelog
 
+- Added the locally evidenced Region Structure Report v1 tranche, the first
+  executable slice of the completion-matrix row "Regions/arenas", moving that
+  row from Missing to Partial. The new read-only
+  `semaprax region-report <file> [--max-bytes N]` command and
+  `region_report` library API emit one deterministic digest-authenticated
+  canonical `semaprax.region-report.v1` JSON envelope per verified module: a
+  lifetime-structure report for every admitted explicit-ID monomorphic
+  effect-free scalar function, derived entirely from facts the existing
+  borrow/move checking already proves. Per function the report carries the
+  binding lifetime partition (parameters, `let`/`let mut` locals, and match
+  pattern bindings with real resolved-HIR value ids, ownership modes,
+  canonical type keys, definition offsets, effective live-range ends measured
+  at innermost statement/tail granularity, and use counts), canonical region
+  clusters under the rule that overlapping live ranges can never share one
+  region (greedily clustered in canonical binding-id order), explicit escape
+  facts naming ownership check `SPX-O104` as the reason every borrow today is
+  provably non-escaping, move facts recomputed from the resolved call graph
+  (own-consumption sites plus derived moved bindings), and maximal
+  bulk-release grouping candidates (sets of at least two bindings whose
+  effective ends coincide); every non-admitted function is recorded with one
+  of six closed exclusion reasons mirroring the shared scalar profile.
+  `verify_envelope` independently replays bytes, counts, vocabularies,
+  orderings, the full greedy clustering re-derivation from reported live
+  ranges, escape/move derivations, and exact bulk-release groupings, so
+  forged-but-re-signed mutations still fail closed;
+  `verify_envelope_against_source` fails closed on drift. Diagnostics use the
+  previously unused `SPX-L1xx` family (`SPX-L101` options, `SPX-L102`
+  fail-closed budget exhaustion without truncation, `SPX-L103` consistency).
+  `tests/region_report_v1.rs` pins golden KAT digests over
+  `examples/calculator.spx` and `examples/meaning.spx`, proves determinism,
+  exercises every exclusion reason, cross-checks every reported binding id
+  against the real resolved-HIR inventory across four examples plus a
+  match-pattern fixture, and covers per-field tamper rejection, budget
+  exhaustion, drift binding, and CLI exit codes. This tranche implements no
+  region inference, adds no region annotation syntax, introduces no arena
+  runtime behavior, changes no destructor behavior, executes nothing, and
+  changes no source.
+- Added the locally evidenced Deterministic Scoped Task Model v1, a hidden
+  target-neutral proof-data tranche (`src/scoped_tasks.rs`) in the exact
+  `native_settlement` style that moves the completion-matrix row "Structured
+  concurrency" from Missing to Partial. The model fixes, as executable
+  evidence only: a bounded task DAG (4,096 tasks / 4,096 scopes / 65,536 edges
+  / 1,000,000 work units) inside one strict scope tree where every non-root
+  scope requires exactly one parent join and cross-branch dependencies are
+  rejected at construction as escaping references; deterministic sequential
+  scheduling in canonical stable-id order; sticky cancellation propagation in
+  which cancelling a scope marks all descendants and materializes their
+  cancellation before any sibling starts new work while already-started work
+  drains to its scripted outcome; children-finalize-before-parents scope exit
+  in exact reverse completion order; sticky first-failure selection with
+  independent siblings draining and dependents of failed prerequisites
+  abandoned; closed per-task `Sendable`/`Shareable` annotations recorded as
+  declared intent only; and canonical JSON model/trace projections under two
+  separately domain-separated SHA-256 fingerprints.
+  `tests/scoped_tasks_model_v1.rs` plus seven focused module units pin four
+  known-answer trace digests for join-all, mid-scope cancellation, failure
+  drain with an abandoned dependent, and nested scopes; prove exact event
+  sequences, cancel-during-drain, failure-beats-cancellation stickiness,
+  hostile construction rejections (escape/double/orphan joins, cycles,
+  duplicates, zero physical codes, bounds/work budget), hostile run operations,
+  full input-permutation determinism, a byte-pinned trace projection, and JSON
+  validity. It adds no language syntax, no parser/HIR/Graph/verifier/backend
+  or CLI change, no runtime threads or scheduler integration, no real
+  concurrent execution (task bodies are closed scripted outcomes), no
+  `Sendable` checking of real programs, and no actors/reducers/synchronization
+  claim.
+- Added the locally evidenced Deterministic ARC Zone Model v1, a hidden
+  target-neutral proof model that moves the completion-matrix row "Shared
+  immutable ARC and opt-in managed zones" from Missing to Partial by fixing
+  bounded proof data only — no runtime RC integration, no language syntax, no
+  compiler or backend change, and no real allocation behavior. The new
+  `arc_zones` library module models shared-immutable reference counting inside
+  explicit opt-in managed zones: a strict zone containment tree with balanced,
+  parent-first enter/exit; accounted retain/release over base-reference,
+  explicit-handle, and live-payload-link strong counts with fail-closed double
+  releases that keep link-anchored objects alive; exact deterministic
+  finalization order — reverse construction at zone exit, cascading through
+  outgoing payload links in canonical target order depth-first; closed
+  cycle-participation deferral under which retained cycles (strongly connected
+  components plus self-loops) reject the zone exit with one canonical
+  smallest-member witness diagnostic instead of leaking silently; escape
+  demotion as a deterministic rewrite rule turning a proven zone-local shared
+  handle (sole unreleased base reference, zero incoming links) into unique
+  ownership whose later shared use fails closed; and closed concurrency
+  annotations under which every zone declares its single executing thread and
+  cross-zone or cross-thread sharing requires an explicit `Shareable` mark on
+  the shared object. Zones, objects, scripts, events, and traces are bounded
+  (`semaprax.arc-zones-model.v1`, `semaprax.arc-zones-trace.v1`) with
+  canonically ordered inventories, domain-separated SHA-256 model fingerprints
+  and trace digests, byte-pinned canonical JSON, and sticky run rejection.
+  `tests/arc_zones_model_v1.rs` pins four canonical known-answer trace digests
+  (shared fan-out release with canonical cascade order, cycle rejection with
+  smallest-member witness, escape demotion, nested-zone children-before-parents
+  drains), hostile rejections (foreign-zone handle release, unbalanced zone
+  exit, double release beyond outstanding references, sharing without
+  `Shareable`, demoted-object shared reuse), structural construction hostility,
+  determinism under inventory permutation and repeated execution, and
+  JSON-validity plus domain-separation projections; seven focused module units
+  cover the remaining state machine and error surface.
+
+>>>>>>> feat/arc-zones-v1
+- Added the locally evidenced Portable SIMD Eligibility Report v1 tranche,
+  the first executable slice of the completion-matrix row "SIMD and GPU".
+  The new read-only `semaprax simd-report <file.spx> [--max-bytes N]` command
+  and `simd_report` library API emit one deterministic canonical
+  digest-authenticated JSON envelope (`semaprax.simd-report.v1`) per verified
+  module: a static vectorization-eligibility analysis per admitted
+  explicit-ID monomorphic effect-free scalar function, derived exclusively
+  from the real resolved HIR nodes. Per function the report lists every
+  maximal pure straight-line arithmetic sub-expression over
+  `i64`/`i32`/`u8`/`f32`/`f64` (subtrees of `+`/`-`/`*`/unary `-` whose
+  leaves are plain numeric literals or projection-free numeric places) with
+  element type, operator and leaf counts, the closed portable lane-operation
+  sequence in post-order evaluation order, a domain-separated per-region
+  SHA-256 over the exact rendered root text, and the proposed portable lane
+  width (2/4/8) selected by a documented deterministic largest-feasible-first
+  rule under the fixed 128-bit lane model ceilings `i64`/`f64`→2,
+  `i32`/`f32`→4, `u8`→8; plus effect-freedom justification facts with exact
+  call/assignment counts; plus an explicit closed ineligibility reason for
+  EVERY non-covered expression — `call`, `contract`,
+  `division_remainder`, `bool_mixing`, `char_operation`, `mutation_target`
+  (assignment stores are recorded once and never descended),
+  `computed_operand`, `control_flow`, `aggregate_operation`, `scalar_leaf` —
+  and five closed function-admission exclusion reasons
+  (`automatic_identity`, `generic_function`, `declared_effects`,
+  `unsupported_parameter_mode`, `non_scalar_signature`; scalar signatures
+  deliberately admit `i32`/`u8`/`f32`/`f64`/`bool`/`char` so their bodies are
+  analyzed honestly). `verify_envelope` independently replays bytes, shapes,
+  module counts, both closed vocabularies, the fixed lane model and portable
+  operation table, strict stable-ID ordering, index continuity, per-region
+  digests, lane-width feasibility, operator-count agreement, effect-freedom
+  consistency, and fixed nonclaims. Diagnostics use the previously unused
+  `SPX-V1xx` family (options `SPX-V101`, fail-closed budget exhaustion
+  `SPX-V102`, envelope/HIR consistency `SPX-V103`). `tests/simd_report_v1.rs`
+  proves pinned golden KATs over `examples/calculator.spx` and
+  `examples/meaning.spx`, byte-identical determinism, every function and
+  expression reason exercised, lane-ceiling/tie-break coverage, tamper
+  rejection per digest field including forged-but-re-signed envelopes caught
+  by replay, source-drift binding, budget exhaustion, CLI exit codes, and
+  cross-consistency proving reported region operators equal the real
+  Add/Sub/Mul/Neg HIR nodes of the same program while division entries equal
+  its real Div/Rem nodes. No SIMD codegen or intrinsics are emitted, no
+  SPIR-V/WebGPU/GPU kernels exist, no autovectorization is claimed about any
+  backend, no target is executed, and no source is changed.
 - Added the locally evidenced Reference Interpreter v1 tranche, the first
   executable slice of the completion-matrix row "Fast development lane". The
   new `semaprax interpret <file> --function <name|stable-id> [--arg

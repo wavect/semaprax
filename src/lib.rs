@@ -9,6 +9,7 @@ pub mod agent_economics;
 pub mod agent_runtime;
 pub mod agent_transport;
 pub(crate) mod aggregate_layout;
+pub mod arc_zones;
 pub mod ast;
 pub(crate) mod bounded_output;
 pub mod c_header;
@@ -48,10 +49,13 @@ mod private_capacity_contract;
 pub mod project;
 pub mod properties;
 pub mod quality_route;
+pub mod region_report;
 pub mod repair;
 pub mod review;
 pub mod runtime_status;
+pub mod scoped_tasks;
 pub mod semantic_trace;
+pub mod simd_report;
 pub mod target_evidence;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
 #[doc(hidden)]

@@ -1,5 +1,43 @@
 # Changelog
 
+- Added the locally evidenced Region Structure Report v1 tranche, the first
+  executable slice of the completion-matrix row "Regions/arenas", moving that
+  row from Missing to Partial. The new read-only
+  `semaprax region-report <file> [--max-bytes N]` command and
+  `region_report` library API emit one deterministic digest-authenticated
+  canonical `semaprax.region-report.v1` JSON envelope per verified module: a
+  lifetime-structure report for every admitted explicit-ID monomorphic
+  effect-free scalar function, derived entirely from facts the existing
+  borrow/move checking already proves. Per function the report carries the
+  binding lifetime partition (parameters, `let`/`let mut` locals, and match
+  pattern bindings with real resolved-HIR value ids, ownership modes,
+  canonical type keys, definition offsets, effective live-range ends measured
+  at innermost statement/tail granularity, and use counts), canonical region
+  clusters under the rule that overlapping live ranges can never share one
+  region (greedily clustered in canonical binding-id order), explicit escape
+  facts naming ownership check `SPX-O104` as the reason every borrow today is
+  provably non-escaping, move facts recomputed from the resolved call graph
+  (own-consumption sites plus derived moved bindings), and maximal
+  bulk-release grouping candidates (sets of at least two bindings whose
+  effective ends coincide); every non-admitted function is recorded with one
+  of six closed exclusion reasons mirroring the shared scalar profile.
+  `verify_envelope` independently replays bytes, counts, vocabularies,
+  orderings, the full greedy clustering re-derivation from reported live
+  ranges, escape/move derivations, and exact bulk-release groupings, so
+  forged-but-re-signed mutations still fail closed;
+  `verify_envelope_against_source` fails closed on drift. Diagnostics use the
+  previously unused `SPX-L1xx` family (`SPX-L101` options, `SPX-L102`
+  fail-closed budget exhaustion without truncation, `SPX-L103` consistency).
+  `tests/region_report_v1.rs` pins golden KAT digests over
+  `examples/calculator.spx` and `examples/meaning.spx`, proves determinism,
+  exercises every exclusion reason, cross-checks every reported binding id
+  against the real resolved-HIR inventory across four examples plus a
+  match-pattern fixture, and covers per-field tamper rejection, budget
+  exhaustion, drift binding, and CLI exit codes. This tranche implements no
+  region inference, adds no region annotation syntax, introduces no arena
+  runtime behavior, changes no destructor behavior, executes nothing, and
+  changes no source.
+
 - Added the locally evidenced Reference Interpreter v1 tranche, the first
   executable slice of the completion-matrix row "Fast development lane". The
   new `semaprax interpret <file> --function <name|stable-id> [--arg

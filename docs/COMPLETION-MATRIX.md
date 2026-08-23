@@ -187,6 +187,27 @@ capability-manifest` (equal capability sections) and `semaprax abi-report`
 packaging, no host loading or lifecycle management, no versioning
 negotiation, no resource-limit enforcement, and no hostile-plugin execution
 testing. Current totals are 52 Partial/4 Missing.
+[Region Structure Report v1](REGION-REPORT-V1.md) is a locally evidenced
+read-only projection tranche (`semaprax region-report <file>`,
+`semaprax.region-report.v1`) that moves only the Regions/arenas row from
+Missing to Partial: for every admitted explicit-ID monomorphic effect-free
+scalar function of one verified module it reports the binding lifetime
+partition derived from existing borrow/move facts (parameters, `let`/`let
+mut` locals, and match pattern bindings with real resolved-HIR value ids,
+ownership modes, type keys, definition offsets, effective live-range ends,
+and use counts), canonical region clusters under the rule that overlapping
+live ranges can never share one region, escape facts naming `SPX-O104` as the
+check that makes today's borrows provably non-escaping, resolved-call-graph
+own-consumption move facts, and maximal bulk-release grouping candidates of
+co-dying bindings, all inside one digest-authenticated canonical envelope
+whose independent replay re-derives the clustering, escape, move, and
+grouping sections exactly. Pinned KATs, determinism, every exclusion reason,
+resolved-HIR cross-consistency, tamper rejection including forged-but-re-signed
+envelopes, budget fail-closed behavior, and CLI exit codes are green locally in
+`tests/region_report_v1.rs`. It implements no region inference, adds no region
+annotation syntax, introduces no arena runtime behavior, changes no destructor
+behavior, executes nothing, and changes no source. Current totals are 53
+Partial/3 Missing.
 
 Status values:
 
@@ -725,7 +746,7 @@ exactly 39 Partial and 17 Missing.
 | Immutable-by-default values and explicit mutation | Partial | [Explicit Mutation v1](EXPLICIT-MUTATION-V1.md): `let mut` locals plus statement-only `<binding> = <expr>;` with exact-type checking, immutable-by-default diagnostics `SPX-U101`-`SPX-U106`, canonical round-trip, deterministic additive Graph serialization with pinned non-mutation bytes, CleanupPlan v2 unchanged for straight-line mutation, and native C11 O0/O2 plus Node/Wasm execution evidence in `tests/explicit_mutation_v1.rs` | Field, collection, reference/mutable-borrow, and cross-task mutation rules verified |
 | Unique ownership and move safety | Partial | Explicit trivial/imported lifecycles; move/partial-place analysis; replay-validated cleanup plans; hostile-HIR parity; a private exact-instance native callable host integrating OS-seeded authority, non-mutating ledger plans, atomic owner commit, generation rotation, strict codecs, and a compiler-authenticated trace-path DFA; one narrow Node-executed Wasm slice; exact reference/native-host-O0/O2/Wasm outcomes, traces, publication, and final logical liveness for all 14 cases; a green Linux dynamically loaded generated-provider ASan+UBSan corpus; and a green fail-closed pinned-nightly Rust-host ASan job inside the current hosted-CI matrix | Open the public native gate only after general physical/malformed-response fallback cleanup and quiescence and mobile evidence, then extend exactly-once/double-free proof through loops, closures, concurrency, and FFI ownership |
 | Borrowed views and lifetime safety | Partial | Non-consuming `borrow` boundaries and move-after-borrow behavior | Mutable/shared aliasing, escaping borrows, reborrows, slices, and zero-copy FFI pass positive and compile-fail suites |
-| Regions/arenas | Missing | — | Region inference and annotations prevent escape; bulk release and destructor behavior are verified |
+| Regions/arenas | Partial | [Region Structure Report v1](REGION-REPORT-V1.md): read-only `semaprax region-report <file> [--max-bytes N]` emits one digest-authenticated canonical `semaprax.region-report.v1` envelope per verified module reporting, per admitted explicit-ID monomorphic effect-free scalar function, the binding lifetime partition from existing borrow/move facts (real resolved-HIR binding ids, kinds, ownership modes, type keys, definition offsets, effective live-range ends, use counts), canonical region clusters where overlapping live ranges can never share a region, escape facts naming enforcing check `SPX-O104` for today's provably non-escaping borrows, resolved-call-graph own-consumption move facts, and maximal bulk-release grouping candidates of co-dying bindings; independent replay re-derives every derived section exactly (`SPX-L101`-`SPX-L103`; evidence in `tests/region_report_v1.rs`) | Region inference and annotations prevent escape; bulk release and destructor behavior are verified |
 | Shared immutable ARC and opt-in managed zones | Missing | — | Retain/release correctness, cycle policy, escape optimization, and concurrency constraints verified |
 | Restricted `unsafe` and raw memory | Partial | [Unsafe Boundary Mechanics v1](UNSAFE-BOUNDARIES-V1.md): explicit `unsafe { .. }` boundary statements around ordinary safe checked code with a mandatory verbatim `@audit("...")` summary, a required module-level `permit { unsafe }` capability declaration mirroring effect permits, compile-time diagnostics `SPX-N101`-`SPX-N105`, additive Graph nodes (`"kind":"unsafe"`; non-boundary graphs byte-identical to the pinned pre-feature digest), transparent native C11 O0/O2 and Node/Wasm execution, and unchanged CleanupPlan v2 shapes in `tests/unsafe_boundaries_v1.rs`. No raw pointers or memory operations exist or are added; no lint/platform conformance and no safety claims about block contents are made | Unsafe boundaries are explicit graph nodes with capability, audit summary, lint, and platform conformance coverage for real raw-memory features (pointers/volatile/atomics) verified |
 | Checked/wrapping/saturating arithmetic | Partial | Checked `i64` arithmetic in the C/Clang lane returns exact `semaprax.arithmetic.v1` statuses without internal process termination | Full numeric family, explicit alternative modes, SIMD behavior, and backend equivalence verified |

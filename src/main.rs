@@ -5,10 +5,11 @@ use semaprax::diagnostic::{Diagnostic, Severity};
 use semaprax::{
     abi_report, agent_economics, agent_transport, c_header, capability_manifest, codegen, cxx_shim,
     format, freestanding_object, graph, hygienic, impact, interpreter, openapi, package_report,
-    parse, patch, patch_evidence, plugin_manifest, project, properties, quality_route, repair,
-    review, semantic_workspace, semantic_workspace_change, semantic_workspace_operations,
-    semantic_workspace_structural_change, target_evidence, ui_schema, verify, wasm, workspace,
-    workspace_analysis, workspace_graph, workspace_patch_evidence,
+    parse, patch, patch_evidence, plugin_manifest, project, properties, quality_route,
+    region_report, repair, review, semantic_workspace, semantic_workspace_change,
+    semantic_workspace_operations, semantic_workspace_structural_change, target_evidence,
+    ui_schema, verify, wasm, workspace, workspace_analysis, workspace_graph,
+    workspace_patch_evidence,
 };
 
 fn main() -> ExitCode {
@@ -659,6 +660,14 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             let path = required_path(&args, 1)?;
             let options = package_report_options(&args)?;
             let envelope = package_report::generate(&path, &options)
+                .map_err(|errors| report(&errors, false))?;
+            println!("{envelope}");
+            Ok(())
+        }
+        "region-report" => {
+            let path = required_path(&args, 1)?;
+            let options = region_report_options(&args)?;
+            let envelope = region_report::generate(&path, &options)
                 .map_err(|errors| report(&errors, false))?;
             println!("{envelope}");
             Ok(())
@@ -1437,6 +1446,33 @@ fn package_report_options(args: &[String]) -> Result<package_report::PackageRepo
     })
 }
 
+fn region_report_options(args: &[String]) -> Result<region_report::RegionReportOptions, u8> {
+    let mut max_bytes = region_report::RegionReportOptions::default().max_bytes;
+    let mut seen = std::collections::BTreeSet::new();
+    let mut index = 2usize;
+    while index < args.len() {
+        let option = args[index].as_str();
+        if !matches!(option, "--max-bytes") {
+            eprintln!("unknown region-report option `{option}`");
+            return Err(2);
+        }
+        if !seen.insert(option.to_owned()) {
+            eprintln!("duplicate region-report option `{option}`");
+            return Err(2);
+        }
+        let value = args.get(index + 1).ok_or_else(|| {
+            eprintln!("region-report option `{option}` requires a value");
+            2
+        })?;
+        max_bytes = property_number(option, value)?;
+        index += 2;
+    }
+    region_report::RegionReportOptions::new(max_bytes).map_err(|error| {
+        eprintln!("{error}");
+        2
+    })
+}
+
 fn interpret_options(
     args: &[String],
 ) -> Result<(String, Vec<String>, interpreter::InterpreterOptions), u8> {
@@ -2084,7 +2120,8 @@ fn print_help() {
             semaprax freestanding-object <file> [--max-bytes N]\n\
             semaprax abi-report <file> --function name|stable-id[,...] [--function ...] [--max-bytes N]\n\
              semaprax capability-manifest <file> [--max-bytes N]\n\
-             semaprax package-report <file> [--max-bytes N]\n\
+              semaprax package-report <file> [--max-bytes N]\n\
+             semaprax region-report <file> [--max-bytes N]\n\
             semaprax interpret <file> --function <name|stable-id> [--arg <i64|bool literal>]... [--max-bytes N]\n\
              semaprax ui-schema <file> [--max-bytes N]\n\
            semaprax plugin-manifest <file> [--max-bytes N]\n\

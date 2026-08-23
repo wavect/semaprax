@@ -773,7 +773,7 @@ ensures divisor != 13
     fn hex32(value: &str) -> [u8; 32] {
         assert_eq!(value.len(), 64);
         let mut bytes = [0_u8; 32];
-        for (index, chunk) in value.as_bytes().chunks_exact(2).enumerate() {
+        for (index, chunk) in value.as_bytes().as_chunks::<2>().0.iter().enumerate() {
             let nibble = |byte: u8| match byte {
                 b'0'..=b'9' => byte - b'0',
                 b'a'..=b'f' => byte - b'a' + 10,

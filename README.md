@@ -10,7 +10,7 @@ stable semantic program graph.
 [![CI](https://github.com/wavect/semaprax/actions/workflows/ci.yml/badge.svg)](https://github.com/wavect/semaprax/actions/workflows/ci.yml)
 [![Version](https://img.shields.io/badge/version-0.2.0-7c3aed.svg)](https://github.com/wavect/semaprax/blob/main/Cargo.toml)
 [![Status](https://img.shields.io/badge/status-pre--alpha-f59e0b.svg)](#project-status)
-[![Rust](https://img.shields.io/badge/Rust-1.85%2B-000000.svg?logo=rust)](https://github.com/wavect/semaprax/blob/main/Cargo.toml)
+[![Rust](https://img.shields.io/badge/Rust-1.88%2B-000000.svg?logo=rust)](https://github.com/wavect/semaprax/blob/main/Cargo.toml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-2563eb.svg)](LICENSE)
 
 [Get started](#get-started) · [See what works](#project-status) ·
@@ -41,7 +41,7 @@ That design gives SEMAPRAX three defining properties:
 
 ### Prerequisites
 
-- [Rust](https://www.rust-lang.org/tools/install) 1.85 or newer
+- [Rust](https://www.rust-lang.org/tools/install) 1.88 or newer
 - Clang for native compilation
 - Node.js 22 or newer for the browser/WebAssembly verification example
 

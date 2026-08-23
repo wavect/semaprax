@@ -3665,9 +3665,13 @@ fn dependency_evidence(
 }
 
 fn push_review_evidence(evidence: &mut Vec<ReviewEvidenceRef>, item: ReviewEvidenceRef) {
-    if crate::bounded_output::reserve_active(std::mem::size_of::<ReviewEvidenceRef>()) {
-        evidence.push(item);
-    }
+    // Reservation is best-effort accounting: a failed reserve has already
+    // marked the enclosing budget overflowed, so the render is rejected
+    // upstream. Dropping the reference here could instead flip a section's
+    // disposition inside an otherwise accepted artifact, so the reference
+    // is always retained.
+    let _ = crate::bounded_output::reserve_active(std::mem::size_of::<ReviewEvidenceRef>());
+    evidence.push(item);
 }
 
 fn push_review_finding(

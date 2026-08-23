@@ -1481,6 +1481,12 @@ fn map_review_child_diagnostics(
             "SPX-G109" | "SPX-G120" if diagnostic.message.contains("node") => {
                 limit_field("max_child_impact_nodes", MAX_CHILD_IMPACT_NODES)
             }
+            // A completeness violation is a review policy failure, not a
+            // byte- or node-budget breach; surface it unchanged instead of
+            // naming an unviolated limit.
+            "SPX-G109" | "SPX-G120" if diagnostic.message.contains("complete, nontruncated") => {
+                diagnostic
+            }
             "SPX-G109" | "SPX-G120" if diagnostic.message.contains("Impact") => {
                 limit_field("max_total_impact_bytes", MAX_TOTAL_IMPACT_BYTES)
             }

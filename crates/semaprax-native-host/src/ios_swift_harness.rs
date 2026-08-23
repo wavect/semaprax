@@ -347,7 +347,11 @@ pub unsafe extern "C" fn spx_private_apple_swift_fixture_register_v1(
             Err(_) => return status(CODE_ADMISSION),
         };
         let tag = match NEXT_TAG.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |v| {
-            (v <= TAG_MASK as u32).then_some(v + 1)
+            // The issued tag itself must stay within the tag field;
+            // accepting `v == TAG_MASK` would mint tag MASK+1, whose shifted
+            // encoding sets the invalid-handle sign bit and permanently
+            // poisons this runtime's handles.
+            (v < TAG_MASK as u32).then_some(v + 1)
         }) {
             Ok(tag) => tag as u16,
             Err(_) => return status(CODE_CAPACITY),

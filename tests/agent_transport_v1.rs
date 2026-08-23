@@ -531,6 +531,35 @@ fn serve_loop_answers_each_line_and_pivots_on_shutdown() {
 }
 
 #[test]
+fn serve_bounds_buffering_for_frames_without_a_newline() {
+    let fixture = Fixture::new();
+    // One hostile frame far above the declared maximum whose only newline is
+    // its terminator; the transport must bound its buffering, drain the
+    // frame, and report the exact declared-limit failure once.
+    let mut requests =
+        "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"context\",\"params\":{\"symbol\":\"".to_owned();
+    requests.push_str(&"s".repeat(300_000));
+    requests.push_str("\"}}\n");
+    let mut input = std::io::BufReader::new(requests.as_bytes());
+    let mut sink = Vec::new();
+    let outcome = semaprax::agent_transport::serve(
+        &mut input,
+        &mut sink,
+        &fixture.source,
+        TransportLimits::default(),
+    )
+    .unwrap();
+    assert_eq!(outcome.responses, 1);
+    assert!(outcome.stopped_by_shutdown);
+    let stdout = String::from_utf8(sink).unwrap();
+    assert_eq!(stdout.lines().count(), 1);
+    assert!(
+        stdout.contains("request exceeds agent transport max_request_bytes 65536"),
+        "{stdout}"
+    );
+}
+
+#[test]
 fn serve_at_end_of_file_is_a_clean_stop_without_shutdown() {
     let fixture = Fixture::new();
     let mut input =

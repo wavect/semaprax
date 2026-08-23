@@ -171,18 +171,23 @@ fn run(args: Vec<String>) -> Result<(), u8> {
         "run" => {
             let path = required_path(&args, 1)?;
             let output = std::env::temp_dir().join(format!("semaprax-run-{}", std::process::id()));
-            let program = checked(&path)?;
-            codegen::build(&program, &output).map_err(|error| report(&[error], false))?;
-            let status = Command::new(&output).status().map_err(|error| {
-                eprintln!("cannot run {}: {error}", output.display());
-                1
-            })?;
+            // The temporary executable is removed on every exit path below,
+            // including spawn failure.
+            let outcome = (|| -> Result<(), u8> {
+                let program = checked(&path)?;
+                codegen::build(&program, &output).map_err(|error| report(&[error], false))?;
+                let status = Command::new(&output).status().map_err(|error| {
+                    eprintln!("cannot run {}: {error}", output.display());
+                    1
+                })?;
+                if status.success() {
+                    Ok(())
+                } else {
+                    Err(child_result_code(&status))
+                }
+            })();
             let _ = std::fs::remove_file(&output);
-            if status.success() {
-                Ok(())
-            } else {
-                Err(status.code().unwrap_or(1) as u8)
-            }
+            outcome
         }
         "fmt" => {
             let path = required_path(&args, 1)?;
@@ -908,6 +913,35 @@ fn with_native_executable_suffix(path: PathBuf) -> PathBuf {
         return path;
     }
     path.with_extension(suffix)
+}
+
+/// Exit status of a child that was terminated by a signal. Shell convention
+/// reports `128 + signal`; platforms without signal exit statuses fall back
+/// to the generic failure code.
+fn child_exit_code(status: &std::process::ExitStatus) -> i32 {
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::ExitStatusExt;
+        status.signal().map_or(1, |signal| 128 + signal)
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = status;
+        1
+    }
+}
+
+/// The `run` command reports child failures as its own `u8` exit code. Raw
+/// platform codes can exceed that range (Windows NTSTATUS crash codes such
+/// as `0xC0000005`), so out-of-range values fall back to the generic failure
+/// code after printing the exact code for diagnosis instead of silently
+/// truncating a hard crash into an ordinary small failure.
+fn child_result_code(status: &std::process::ExitStatus) -> u8 {
+    let raw = status.code().unwrap_or_else(|| child_exit_code(status));
+    u8::try_from(raw).unwrap_or_else(|_| {
+        eprintln!("child process exited with code {raw}");
+        1
+    })
 }
 
 fn workspace_analysis_target_kind(

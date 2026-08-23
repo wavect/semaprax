@@ -2395,7 +2395,7 @@ fn prepared_inventory_exact_source_contract_is_raw_bounded_and_allocation_free()
         "let bytes_limit: libc::size_t",
         "let mut base: libc::off_t",
         "prepared.storage.fill(u64::MAX)",
-        "record % 4 != 0",
+        "!record.is_multiple_of(4)",
         "name_length > 1023",
         "name_end >= next",
         "next > bytes.len()",

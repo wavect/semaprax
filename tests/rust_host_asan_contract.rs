@@ -32,7 +32,7 @@ fn rust_host_asan_lane_is_pinned_instrumented_and_fail_closed() {
     }
     assert!(workflow.matches(PINNED_NIGHTLY).count() >= 2);
     assert!(workflow.contains("toolchain: stable"));
-    assert!(workflow.contains("toolchain: \"1.85\""));
+    assert!(workflow.contains("toolchain: \"1.88\""));
     assert!(workflow.contains("callable-host-sanitizers:"));
     assert!(workflow.contains("-fsanitize=address,undefined"));
 

@@ -330,7 +330,11 @@ impl AndroidJniRuntimeV1 {
             .map_err(|_| android_status(CODE_PROVIDER_ADMISSION))?;
         let tag = NEXT_RUNTIME_TAG
             .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
-                (current <= HANDLE_TAG_MASK as u32).then_some(current + 1)
+                // The issued tag itself must stay within the handle-tag
+                // field; accepting `current == HANDLE_TAG_MASK` would mint
+                // tag MASK+1, whose shifted encoding sets the invalid-handle
+                // sign bit and permanently poisons this runtime's handles.
+                (current < HANDLE_TAG_MASK as u32).then_some(current + 1)
             })
             .map_err(|_| android_status(CODE_CAPACITY))? as u16;
         Ok(Self {

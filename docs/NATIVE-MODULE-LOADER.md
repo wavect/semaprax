@@ -49,7 +49,7 @@ integration, general iOS admission, or public admission.
 Android retains dynamic-image profile 1. The mandatory API-35 x86_64 Emulator
 job compiles the loader and private host for both
 `x86_64-linux-android` and `aarch64-linux-android`, requires exact
-`libloading 0.8.9`, compiles target-bound Bionic/ELF providers with pinned NDK
+`libloading 0.9.0`, compiles target-bound Bionic/ELF providers with pinned NDK
 r27.2, and inspects both x86_64 and AArch64 ELFs. The runtime half pushes the
 x86_64 provider and standalone host runner to a canonical
 `/data/local/tmp` directory and requires `dladdr` root-image provenance, exact

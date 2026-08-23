@@ -45,7 +45,7 @@ fn project_v1_cross_platform_gate_is_web_only_and_source_locked() {
         "ubuntu-24.04",
         "macos-15",
         "windows-2025",
-        "toolchain: \"1.85\"",
+        "toolchain: \"1.88\"",
         "cargo test --locked -p semaprax --all-features --test project_cli_v1 -- --test-threads=1",
         "cargo test --locked -p semaprax --all-features --test project_manifest_v1 -- --test-threads=1",
         "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",

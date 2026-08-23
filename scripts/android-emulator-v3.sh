@@ -92,8 +92,8 @@ for target in x86_64-linux-android aarch64-linux-android; do
     --features unstable-android-emulator-harness
   loader_tree="$(cargo tree --locked -p semaprax-native-loader --target "$target" -e normal)"
   host_tree="$(cargo tree --locked -p semaprax-native-host --target "$target" -e normal)"
-  if ! grep -F 'libloading v0.8.9' <<<"$loader_tree" >/dev/null \
-    || ! grep -F 'libloading v0.8.9' <<<"$host_tree" >/dev/null; then
+  if ! grep -F 'libloading v0.9.0' <<<"$loader_tree" >/dev/null \
+    || ! grep -F 'libloading v0.9.0' <<<"$host_tree" >/dev/null; then
     echo "Android dynamic loader/host target lost its exact libloading dependency: $target" >&2
     exit 1
   fi

@@ -100,7 +100,7 @@ fn archive_extended_name(field: &[u8]) -> Result<&[u8], Error> {
         .ok_or(Error::Invalid)?;
     let padding = field.len().checked_sub(nul).ok_or(Error::Invalid)?;
     if !(1..=4).contains(&padding)
-        || field.len() % 4 != 0
+        || !field.len().is_multiple_of(4)
         || field[nul..].iter().any(|byte| *byte != 0)
     {
         return Err(Error::Invalid);

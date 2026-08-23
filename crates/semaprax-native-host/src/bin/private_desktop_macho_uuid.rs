@@ -91,7 +91,7 @@ fn canonicalize(input: &[u8]) -> Result<Vec<u8>, &'static str> {
     for _ in 0..command_count {
         let command = read_u32(input, offset)?;
         let size = usize::try_from(read_u32(input, offset + 4)?).map_err(|_| "size overflow")?;
-        if size < 8 || size % 8 != 0 {
+        if size < 8 || !size.is_multiple_of(8) {
             return Err("load command has a noncanonical size");
         }
         let next = offset

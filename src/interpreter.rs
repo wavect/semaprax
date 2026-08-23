@@ -1040,6 +1040,11 @@ fn combine(op: BinaryOp, lhs: Value, rhs: Value) -> Option<Result<Value, Normali
                 || arithmetic(None, StatusCase::DivisionByZero),
                 |quotient| Some(Ok(Value::Uint8(quotient))),
             ),
+            // Like division, `u8` remainder can only fail on a zero divisor.
+            BinaryOp::Rem => a.checked_rem(b).map_or_else(
+                || arithmetic(None, StatusCase::RemainderByZero),
+                |remainder| Some(Ok(Value::Uint8(remainder))),
+            ),
             _ => ordered(a < b, a == b),
         },
         (Value::Char(a), Value::Char(b)) => ordered(a < b, a == b),

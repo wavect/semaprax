@@ -97,6 +97,23 @@ language constructs, no semantic controls, accessibility, navigation,
 localization, assets, platform blocks, or custom rendering, no rendering,
 runtime, or DOM, and no target execution. Current totals are 47 Partial/9
 Missing.
+[Freestanding Object Profile v1](FREESTANDING-V1.md) is a locally evidenced
+read-only projection tranche (`semaprax freestanding-object`,
+`semaprax.freestanding.v1`) that moves only the Embedded and real-time row
+from Missing to Partial: for one verified effect-free scalar module it emits
+one deterministic digest-authenticated envelope containing the complete
+freestanding C11 translation unit derived from the production native C11
+projection with the host entry wrapper, stdio/stdlib includes, and
+public-failure reporter excluded, two recorded substitutions
+(invariant-failstop, external function linkage), explicit no-runtime/
+no-allocation/no-blocking/no-libc-dependency assertions replayed during
+independent verification, and declared allowed undefined symbols; tests
+compile the real emitted bytes with `-ffreestanding -nostdlib -c` into
+relocatable objects and pin the symbol surface against the declared set. It
+claims no MMIO/volatile/atomics, linker-script control, hardware/emulator
+execution, interrupt/RTOS model, or board targets, invokes no toolchain from
+the command itself, and claims no completion beyond this bounded slice.
+Current totals are 48 Partial/8 Missing.
 
 Status values:
 
@@ -651,7 +668,7 @@ exactly 39 Partial and 17 Missing.
 | Fast development lane | Missing | — | Cranelift JIT/AOT, incremental affected-node builds, hot reload, and debugger mapping verified |
 | Optimizing native lane | Partial | Validated stable-ID HIR lowers to sequenced C11/Clang AOT, including bounded explicitly instantiated generic Copy functions with exact template-plus-ordered-argument symbols, public nested scalar records, exact-instance generic Copy records, bounded irrefutable Copy-record patterns, and bounded copy variants/matches. Local generic-function O0/O2 execution proves exact instance separation, contracts, failure order, and poison; the hosted matrix is green in [run 31385406865, Ubuntu job 93445428338](https://github.com/wavect/semaprax/actions/runs/31385406865/job/93445428338). Existing callable/resource hosted evidence remains separately bounded | Public resource execution/admission, stable public aggregate ABI, generic inference/constraints/richer signatures, refutable/non-Copy matching, general fallback cleanup/quiescence, Android/iOS profiles, LLVM/MLIR lowering, LTO/PGO, cross-compilation, CPU specialization, debug/release parity, and reproducibility verified |
 | WebAssembly core/components | Partial | Validated stable-ID HIR lowers to direct Wasm core with bounded explicit generic Copy functions, public nested scalar and exact-instance generic Copy records, bounded record patterns, generic/prelude variants, and typed propagation. Generic functions have deterministic exact indices, failure-order/poison evidence, and 4,096-call local Node re-entry; the hosted matrix is green in [run 31385406865, Ubuntu job 93445428338](https://github.com/wavect/semaprax/actions/runs/31385406865/job/93445428338). Public Wasm Scalar Exports v1 adds a separate fail-closed `semaprax.web.v4` profile: selected explicit-ID monomorphic `i64`/`bool` adapters only, stable collision-free symbols, canonical bool boundaries, digest-authenticated Wasm, deterministic JS/TS artifacts, Node execution, pinned-TypeScript/Chromium execution, closed arithmetic/contract status normalization, and stable-ID rename preservation; its Chromium/TypeScript job is hosted green at `d883ace579bfd86f723cdc6819224fde51f0677d` in [run 32523952912, job 96901973072](https://github.com/wavect/semaprax/actions/runs/32523952912/job/96901973072). Legacy web-v3 output remains the default without `--export`. Existing owned-Wasm and private Component v3-v10 evidence remains separately bounded and unchanged | WASI, aggregate/resource/generic public exports, imports, async/capabilities, additional browser-engine conformance, general source-language algebraic Component mapping, general canonical resource ABI, stable public aggregate ABI, callable/FFI aggregate signatures, sandboxing, cross-realm/worker identity, public Component API/ABI, and production native-host/Wasm conformance verified |
-| Embedded and real-time | Missing | — | Bare-metal artifacts, no-runtime/no-allocation/no-blocking profiles, MMIO/volatile/atomics, linker control, and hardware/emulator tests verified |
+| Embedded and real-time | Partial | [Freestanding Object Profile v1](FREESTANDING-V1.md) adds the read-only `semaprax freestanding-object <file>` projection: one verified effect-free scalar module per invocation, one deterministic canonical `semaprax.freestanding.v1` envelope whose translation-unit bytes derive from the production native C11 projection with the host entry wrapper, stdio/stdlib includes, and public-failure reporter excluded and with recorded invariant-failstop and external-linkage substitutions; explicit no-runtime/no-allocation/no-blocking/no-libc-dependency assertions are recomputed from textual checks and replayed during independent digest verification; closed `SPX-A101`-`SPX-A104` fail-closed diagnostics; pinned envelope/unit KATs, determinism, per-field tamper rejection including forged-but-re-signed payloads, admission rejections, CLI exit codes, and a real toolchain gate compiling the emitted bytes into `-ffreestanding -nostdlib` relocatable objects with `nm`-verified symbol surface bounded by the declared allowed set (`memcpy`, `strcmp`) green locally in `tests/freestanding_object_v1.rs`. No MMIO/volatile/atomics support, linker-script control, hardware/emulator execution, interrupt/RTOS model, or board targets are claimed | Bare-metal artifacts beyond one relocatable-object scalar profile, MMIO/volatile/atomics, linker control, and hardware/emulator tests verified |
 | SIMD and GPU | Missing | — | Portable SIMD plus SPIR-V/WebGPU/platform kernels and memory/effect rules verified |
 
 ## Ecosystem interoperability

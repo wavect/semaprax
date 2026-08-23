@@ -4,8 +4,8 @@ use std::process::{Command, ExitCode};
 use semaprax::diagnostic::{Diagnostic, Severity};
 use semaprax::{
     abi_report, agent_economics, agent_transport, c_header, capability_manifest, codegen, cxx_shim,
-    format, graph, hygienic, impact, openapi, package_report, parse, patch, patch_evidence,
-    project, properties, quality_route, repair, review, semantic_workspace,
+    format, freestanding_object, graph, hygienic, impact, openapi, package_report, parse, patch,
+    patch_evidence, project, properties, quality_route, repair, review, semantic_workspace,
     semantic_workspace_change, semantic_workspace_operations, semantic_workspace_structural_change,
     target_evidence, ui_schema, verify, wasm, workspace, workspace_analysis, workspace_graph,
     workspace_patch_evidence,
@@ -637,6 +637,14 @@ fn run(args: Vec<String>) -> Result<(), u8> {
                     c_header::generate(&path, &options).map_err(|errors| report(&errors, false))?;
                 println!("{envelope}");
             }
+            Ok(())
+        }
+        "freestanding-object" => {
+            let path = required_path(&args, 1)?;
+            let options = freestanding_object_options(&args)?;
+            let envelope = freestanding_object::generate(&path, &options)
+                .map_err(|errors| report(&errors, false))?;
+            println!("{envelope}");
             Ok(())
         }
         "capability-manifest" => {
@@ -1320,6 +1328,39 @@ fn c_header_options(args: &[String]) -> Result<(c_header::CHeaderOptions, bool),
     Ok((options, emit_header))
 }
 
+fn freestanding_object_options(
+    args: &[String],
+) -> Result<freestanding_object::FreestandingObjectOptions, u8> {
+    let mut max_bytes = freestanding_object::FreestandingObjectOptions::default().max_bytes;
+    let mut seen = std::collections::BTreeSet::new();
+    let mut index = 2usize;
+    while index < args.len() {
+        let option = args[index].as_str();
+        match option {
+            "--max-bytes" => {
+                if !seen.insert(option.to_owned()) {
+                    eprintln!("duplicate freestanding-object option `{option}`");
+                    return Err(2);
+                }
+                let value = args.get(index + 1).ok_or_else(|| {
+                    eprintln!("freestanding-object option `{option}` requires a value");
+                    2
+                })?;
+                max_bytes = property_number(option, value)?;
+                index += 2;
+            }
+            other => {
+                eprintln!("unknown freestanding-object option `{other}`");
+                return Err(2);
+            }
+        }
+    }
+    freestanding_object::FreestandingObjectOptions::new(max_bytes).map_err(|error| {
+        eprintln!("{error}");
+        2
+    })
+}
+
 fn capability_manifest_options(
     args: &[String],
 ) -> Result<capability_manifest::CapabilityManifestOptions, u8> {
@@ -1926,6 +1967,7 @@ fn print_help() {
            semaprax openapi <file> --function <name|stable-id> ... [--max-bytes N]\n\
            semaprax openapi-compat <base.json> <candidate.json> [--max-bytes N]\n\
             semaprax c-header <file> --function name|stable-id[,...] [--function ...] [--max-bytes N] [--emit-header]\n\
+            semaprax freestanding-object <file> [--max-bytes N]\n\
             semaprax abi-report <file> --function name|stable-id[,...] [--function ...] [--max-bytes N]\n\
              semaprax capability-manifest <file> [--max-bytes N]\n\
              semaprax package-report <file> [--max-bytes N]\n\

@@ -33,7 +33,6 @@
   abi-report` admits (with byte-equal native prototypes) and what `semaprax
   openapi` publishes for the same program. The Interface-first packages and
   target matrices row moves from Missing to Partial.
-=======
 - Added the locally evidenced UI Dialect Schema Projection v1 tranche, the
   first executable slice of the completion-matrix row "First-class
   application/state/UI dialect". The new read-only `semaprax ui-schema <file>
@@ -64,6 +63,40 @@
   semantic controls, accessibility, navigation, localization, assets, platform
   blocks, custom rendering, or target execution. The First-class
   application/state/UI dialect row moves from Missing to Partial.
+- Added the locally evidenced Freestanding Object Profile v1 tranche, the
+  first executable slice of the completion-matrix row "Embedded and
+  real-time". The new read-only `semaprax freestanding-object <file>
+  [--max-bytes N]` command and `freestanding_object` library API admit one
+  verified effect-free scalar module (whole-module scalar gate, fail-closed)
+  and emit one deterministic canonical `semaprax.freestanding.v1` envelope
+  containing the complete freestanding C11 translation unit whose bytes start
+  from the production native C11 projection with the host entry wrapper,
+  `<stdio.h>`/`<stdlib.h>` includes, and `spx_public_failure` reporter
+  excluded, plus two recorded substitutions: a closed failstop replacement
+  for the hosted stderr/abort invariant reporter and external linkage for
+  each module function so the relocatable object exports callable symbols.
+  Four profile assertions — no-runtime, no-allocation, no-blocking, and
+  no-libc-dependency — are computed by explicit deterministic textual checks,
+  re-checked during independent envelope replay, and backed by a real
+  toolchain gate in `tests/freestanding_object_v1.rs`: the emitted bytes are
+  compiled twice with `-ffreestanding -nostdlib -c` into byte-identical
+  relocatable objects whose `nm` surface must stay inside the declared
+  allowed set (`memcpy`, `strcmp`, each with documented justification) while
+  every module symbol remains externally defined; compiler discovery follows
+  the existing native lanes and skips with an explicit message when no
+  toolchain exists. Domain-separated SHA-256 digests authenticate the payload,
+  source snapshot, and embedded unit; pinned golden KATs cover the envelope
+  and translation-unit bytes, per-digest-field tamper rejection including
+  forged-but-re-signed payloads caught by assertion replay, determinism,
+  budget exhaustion, every admission rejection reason, and CLI exit codes.
+  Option (`SPX-A101`), module-admission (`SPX-A102`), budget (`SPX-A103`),
+  and consistency (`SPX-A104`) diagnostics fail closed from the previously
+  unused `SPX-A1xx` family. The tranche claims no MMIO/volatile/atomics
+  support, no linker-script control, no hardware/emulator execution, no
+  interrupt or RTOS model, and no board targets; the artifact is a
+  relocatable object for one effect-free scalar profile only, the command
+  invokes no toolchain, and no completion beyond this bounded Partial slice
+  is claimed. The Embedded and real-time row moves from Missing to Partial.
 
 - Added the locally evidenced Canonical ABI Report v1 tranche, the first
   executable slice of the completion-matrix row "Portable canonical ABI and

@@ -1,0 +1,13 @@
+module demo.proto;
+
+@id("demo.geometry.point")
+record Point { @id("demo.geometry.point.x") x: i64, }
+
+@id("demo.shape")
+protocol Shape {
+  @id("demo.shape.area") fn area(self: Shape) -> i64;
+  fn label(self: Self) -> bool;
+}
+
+@id("demo.main")
+fn main() -> i64 { Point { x: 2 }.x }

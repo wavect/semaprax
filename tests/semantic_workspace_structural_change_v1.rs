@@ -302,11 +302,11 @@ fn public_api_getters_cli_and_whole_document_kats_are_exact() {
             raw_sha(artifacts.evidence()),
         ],
         [
-            "sha256:f293ee9025c5c67715f72f0f2ccf3fc439fbe3b2b473b6bb4bf5418dae1d0b6d",
-            "sha256:997c64259f9880fac8454dbab62c601207aaec334c515361a7b83eafc3d4bef9",
-            "sha256:1771ab019aa37e9329704e4c8bacce3f1af218e83208dee56b4302ec0893de35",
-            "sha256:a954582a303df59d93ac831d30c0abff64ac706e88eb4d85bea72fe1fcda77ba",
-            "sha256:ccee59a1dbbeaf867a39b9f1b146f2ccae943f41a2176c5ac97f299ae4ac2b10",
+            "sha256:880f5995f5a9ee8a1bb4d2e0aee72eff89a8c3543ef2c798dff76072b43796a1",
+            "sha256:a071871de6eec7c1fd80bb85b25f20457d4e40845f9aa03b0d7bfeac6828b5a1",
+            "sha256:9995c656b17c5b2ba20984a2ed1539b1664cfc07933be76b9213a1b236d65718",
+            "sha256:1e572a54a8545d652c69a542d012d27a96de1311f8a9b51fae460d6e969befe0",
+            "sha256:bf9347054379610147abb351545ba794282fdb51c46572bd7901e88b0b4fc59e",
         ]
     );
     for value in [
@@ -389,7 +389,7 @@ fn public_verification_receipt_is_exact_shared_locked_and_read_only() {
     .unwrap();
     assert_eq!(
         raw_sha(&receipt),
-        "sha256:a913c118fbfcc77493bb81a23b3b56f3c878b0782c05b4d43833f6845a72f65c"
+        "sha256:fceab22ea1808848d66e1e87f3faeb50f97eb2430b684c6d7cd3d35ead623ea0"
     );
     let value: serde_json::Value = serde_json::from_str(&receipt).unwrap();
     assert_eq!(
@@ -613,7 +613,7 @@ fn public_application_receipt_api_cli_kat_and_candidate_inventory_are_exact() {
     assert!(!receipt[..receipt.len() - 1].contains('\n'));
     assert_eq!(
         raw_sha(&receipt),
-        "sha256:f0001a8850f1abb7b645507e5698865d0ba0e9edaeed783920d37acbbdc16641"
+        "sha256:c14915a1dd1f5f79ea08527ab9be72aed9aa276626718ddda634a40ef7f72459"
     );
     let value: serde_json::Value = serde_json::from_str(&receipt).unwrap();
     assert_eq!(

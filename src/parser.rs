@@ -3,9 +3,9 @@ use std::path::Path;
 use crate::ast::{
     BinaryOp, Expr, ExprKind, FieldDeclaration, FieldInitializer, Function, ImportDeclaration,
     ImportFailure, ImportResult, InterfaceDeclaration, MatchArm, MatchPattern, MatchPatternField,
-    ModuleUse, ModuleUseKind, Param, ParamMode, Program, ResourceLifecycleDeclaration,
-    ResourceLifecycleKind, Span, Statement, Type, TypeDeclaration, TypeDeclarationKind,
-    TypeParameterDeclaration, UnaryOp, VariantCaseDeclaration,
+    ModuleUse, ModuleUseKind, Param, ParamMode, Program, ProtocolDeclaration, ProtocolMethod,
+    ResourceLifecycleDeclaration, ResourceLifecycleKind, Span, Statement, Type, TypeDeclaration,
+    TypeDeclarationKind, TypeParameterDeclaration, UnaryOp, VariantCaseDeclaration,
 };
 use crate::diagnostic::Diagnostic;
 use crate::lexer::{lex, Token, TokenKind};
@@ -45,6 +45,7 @@ impl Parser {
 
         let mut types = Vec::new();
         let mut interfaces = Vec::new();
+        let mut protocols = Vec::new();
         let mut functions = Vec::new();
         while !self.at(&TokenKind::Eof) {
             if self.at_keyword("use") {
@@ -64,10 +65,13 @@ impl Parser {
                 types.push(self.class(&module, stable_id)?);
             } else if self.at_keyword("interface") {
                 interfaces.push(self.interface(&module, stable_id)?);
+            } else if self.at_keyword("protocol") {
+                protocols.push(self.protocol(&module, stable_id)?);
             } else {
                 functions.push(self.function(&module, stable_id)?);
             }
         }
+        self.reject_duplicate_protocols(&protocols)?;
         if functions.is_empty() {
             return Err(self.error_here("SPX-P101", "a module must declare at least one function"));
         }
@@ -78,8 +82,77 @@ impl Parser {
             permits,
             types,
             interfaces,
+            protocols,
             functions,
         })
+    }
+
+    /// Protocol Projection v1 fail-closed structural gates: protocol names are
+    /// unique module-wide, method names are unique inside one protocol, every
+    /// protocol declares at least one method, and protocol/method stable ids
+    /// never repeat. (There is no `impl` syntax in v1, so implements cycles
+    /// cannot be expressed; conformance stays explicitly empty.)
+    fn reject_duplicate_protocols(
+        &self,
+        protocols: &[ProtocolDeclaration],
+    ) -> Result<(), Diagnostic> {
+        let mut names = std::collections::BTreeSet::new();
+        let mut ids = std::collections::BTreeSet::new();
+        for protocol in protocols {
+            if !names.insert(protocol.name.as_str()) {
+                return Err(Diagnostic::error(
+                    "SPX-P120",
+                    format!("duplicate protocol declaration name `{}`", protocol.name),
+                    protocol.name_span,
+                )
+                .at_path(&self.path));
+            }
+            if protocol.methods.is_empty() {
+                return Err(Diagnostic::error(
+                    "SPX-P123",
+                    format!(
+                        "protocol `{}` must declare at least one method",
+                        protocol.name
+                    ),
+                    protocol.span,
+                )
+                .at_path(&self.path));
+            }
+            let mut methods = std::collections::BTreeSet::new();
+            for method in &protocol.methods {
+                if !methods.insert(method.name.as_str()) {
+                    return Err(Diagnostic::error(
+                        "SPX-P121",
+                        format!(
+                            "duplicate method name `{}` in protocol `{}`",
+                            method.name, protocol.name
+                        ),
+                        method.name_span,
+                    )
+                    .at_path(&self.path));
+                }
+                if !ids.insert(method.stable_id.as_str()) {
+                    return Err(Diagnostic::error(
+                        "SPX-P122",
+                        format!(
+                            "duplicate protocol identity `{}` in protocol `{}`",
+                            method.stable_id, protocol.name
+                        ),
+                        method.name_span,
+                    )
+                    .at_path(&self.path));
+                }
+            }
+            if !ids.insert(protocol.stable_id.as_str()) {
+                return Err(Diagnostic::error(
+                    "SPX-P122",
+                    format!("duplicate protocol identity `{}`", protocol.stable_id),
+                    protocol.name_span,
+                )
+                .at_path(&self.path));
+            }
+        }
+        Ok(())
     }
 
     fn module_use(&mut self) -> Result<ModuleUse, Diagnostic> {
@@ -371,6 +444,94 @@ impl Parser {
             name_span,
             permits,
             imports,
+            span: start.merge(end),
+        })
+    }
+
+    /// Protocol Projection v1: `@id("...")? protocol Name { method... }`.
+    /// Each method is a body-less signature `@id("...")? fn name(params) ->
+    /// Type ;`. Signature resolution is checked later by the read-only
+    /// protocol projection; parsing only rejects structural duplicates.
+    fn protocol(
+        &mut self,
+        module: &str,
+        stable_id: Option<String>,
+    ) -> Result<ProtocolDeclaration, Diagnostic> {
+        let start = self.keyword("protocol")?.span;
+        let (name, name_span) = self.ident("protocol name")?;
+        let explicit_id = stable_id.is_some();
+        let stable_id = stable_id.unwrap_or_else(|| format!("auto:protocol:{module}.{name}"));
+        self.expect(&TokenKind::LBrace, "`{` before protocol methods")?;
+        let mut methods = Vec::new();
+        while !self.at(&TokenKind::RBrace) {
+            if self.at(&TokenKind::Eof) {
+                return Err(self.error_here("SPX-P106", "expected `}` after protocol methods"));
+            }
+            let method_id = self.stable_id_attribute()?;
+            let method_start = self.keyword("fn")?.span;
+            let (method_name, method_name_span) = self.ident("protocol method name")?;
+            self.expect(&TokenKind::LParen, "`(` after protocol method name")?;
+            let mut params = Vec::new();
+            if !self.at(&TokenKind::RParen) {
+                loop {
+                    let (param_name, span) = self.ident("protocol method parameter name")?;
+                    self.reject_mut_parameter(&param_name, span)?;
+                    self.expect(&TokenKind::Colon, "`:` after parameter name")?;
+                    let mode = if self.at_keyword("own") {
+                        self.bump();
+                        ParamMode::Own
+                    } else if self.at_keyword("borrow") {
+                        self.bump();
+                        ParamMode::Borrow
+                    } else if self.at_keyword("shared") {
+                        self.bump();
+                        ParamMode::Shared
+                    } else {
+                        ParamMode::Value
+                    };
+                    let ty = self.ty()?;
+                    params.push(Param {
+                        name: param_name,
+                        mode,
+                        ty,
+                        span,
+                    });
+                    if !self.take(&TokenKind::Comma) {
+                        break;
+                    }
+                }
+            }
+            self.expect(&TokenKind::RParen, "`)` after parameters")?;
+            self.expect(&TokenKind::Arrow, "`->` before return type")?;
+            let return_type = self.ty()?;
+            let end = self
+                .expect(
+                    &TokenKind::Semicolon,
+                    "`;` after protocol method signature",
+                )?
+                .span;
+            let method_explicit_id = method_id.is_some();
+            let method_stable_id =
+                method_id.unwrap_or_else(|| format!("auto:method:{stable_id}.{method_name}"));
+            methods.push(ProtocolMethod {
+                stable_id: method_stable_id,
+                explicit_id: method_explicit_id,
+                name: method_name,
+                name_span: method_name_span,
+                params,
+                return_type,
+                span: method_start.merge(end),
+            });
+        }
+        let end = self
+            .expect(&TokenKind::RBrace, "`}` after protocol methods")?
+            .span;
+        Ok(ProtocolDeclaration {
+            stable_id,
+            explicit_id,
+            name,
+            name_span,
+            methods,
             span: start.merge(end),
         })
     }

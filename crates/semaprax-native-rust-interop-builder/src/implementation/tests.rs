@@ -4480,6 +4480,7 @@ fn canonical_formatter_census_admits_shallow_wide_types_and_patterns() {
                 .map(|index| crate::ast::Statement::Let {
                     name: format!("value_{index}"),
                     name_span: crate::ast::Span::default(),
+                    mutable: false,
                     value: call(index),
                     span: crate::ast::Span::default(),
                 })
@@ -6502,7 +6503,7 @@ fn inventory_and_cleanup_hostile_envelopes_bind_the_shared_fixture() {
             peaks[4],
             capacity.retained_upper.checked_add(peaks[4]).unwrap(),
         ],
-        [2_803_431, 38_736, 2_842_167, 299_312, 3_102_743],
+        [2_803_527, 38_736, 2_842_263, 299_312, 3_102_839],
         "retained/inventory/cleanup envelope terms drifted"
     );
     let complete = capacity.complete().unwrap();
@@ -6554,7 +6555,7 @@ fn hir_complete_reservation_is_exact_and_one_less_prevents_resolution() {
     assert_eq!(capacity.scratch_upper, 16_170);
     assert_eq!(
         capacity.phase_peaks(),
-        [5_028, 15_428, 4_900, 3_488, 5_792, 3_456, 16_170, 1_032]
+        [5_028, 15_492, 4_900, 3_488, 5_792, 3_456, 16_170, 1_032]
     );
     assert_eq!(capacity.complete().unwrap(), 65_245);
     assert_eq!(
@@ -7789,10 +7790,10 @@ fn every_expression_shape_resolves_at_exact_depth_512_and_rejects_513() {
             | ExprKind::Float64(_)
             | ExprKind::Bool(_) => false,
             ExprKind::Block { statements, tail } => {
-                statements.iter_mut().any(|statement| {
-                    let crate::ast::Statement::Let { value, .. } = statement;
-                    replace_payload(value, replacement)
-                }) || replace_payload(tail, replacement)
+                statements
+                    .iter_mut()
+                    .any(|statement| replace_payload(statement.value_mut(), replacement))
+                    || replace_payload(tail, replacement)
             }
             ExprKind::If {
                 condition,

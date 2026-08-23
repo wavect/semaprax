@@ -143,10 +143,7 @@ fn children(expression: &hir::ResolvedExpr) -> Vec<&hir::ResolvedExpr> {
         hir::ResolvedExprKind::Binary { left, right, .. } => vec![left.as_ref(), right.as_ref()],
         hir::ResolvedExprKind::Block { statements, tail } => statements
             .iter()
-            .map(|statement| {
-                let hir::ResolvedStatement::Let { value, .. } = statement;
-                value
-            })
+            .map(|statement| statement.value())
             .chain(std::iter::once(tail.as_ref()))
             .collect(),
         hir::ResolvedExprKind::If {
@@ -455,10 +452,10 @@ fn replace_f64_in_expression(expression: &mut hir::ResolvedExpr, bits: u64) -> b
             replace_f64_in_expression(left, bits) || replace_f64_in_expression(right, bits)
         }
         hir::ResolvedExprKind::Block { statements, tail } => {
-            statements.iter_mut().any(|statement| {
-                let hir::ResolvedStatement::Let { value, .. } = statement;
-                replace_f64_in_expression(value, bits)
-            }) || replace_f64_in_expression(tail, bits)
+            statements
+                .iter_mut()
+                .any(|statement| replace_f64_in_expression(statement.value_mut(), bits))
+                || replace_f64_in_expression(tail, bits)
         }
         hir::ResolvedExprKind::If {
             condition,
@@ -514,10 +511,10 @@ fn replace_f32_in_expression(expression: &mut hir::ResolvedExpr, bits: u32) -> b
             replace_f32_in_expression(left, bits) || replace_f32_in_expression(right, bits)
         }
         hir::ResolvedExprKind::Block { statements, tail } => {
-            statements.iter_mut().any(|statement| {
-                let hir::ResolvedStatement::Let { value, .. } = statement;
-                replace_f32_in_expression(value, bits)
-            }) || replace_f32_in_expression(tail, bits)
+            statements
+                .iter_mut()
+                .any(|statement| replace_f32_in_expression(statement.value_mut(), bits))
+                || replace_f32_in_expression(tail, bits)
         }
         hir::ResolvedExprKind::If {
             condition,

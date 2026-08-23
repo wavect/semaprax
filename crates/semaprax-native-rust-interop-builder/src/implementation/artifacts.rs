@@ -854,6 +854,7 @@ enum CExpressionFrame<'a> {
     LazyRight(String),
     Block(&'a [ResolvedStatement], usize, &'a ResolvedExpr),
     BlockLet(&'a [ResolvedStatement], usize, &'a ResolvedExpr),
+    BlockAssign(&'a [ResolvedStatement], usize, &'a ResolvedExpr),
     IfCondition(&'a ResolvedExpr, &'a ResolvedExpr, ScalarType),
     IfThen(&'a ResolvedExpr, Option<String>),
     IfElse(Option<String>),
@@ -872,6 +873,7 @@ enum ReplayCExpressionFrame<'a> {
     FinishLazy(String),
     ContinueBlock(&'a [ResolvedStatement], usize, &'a ResolvedExpr),
     FinishBinding(&'a [ResolvedStatement], usize, &'a ResolvedExpr),
+    FinishAssignment(&'a [ResolvedStatement], usize, &'a ResolvedExpr),
     FinishCondition(&'a ResolvedExpr, &'a ResolvedExpr, ScalarType),
     FinishThen(&'a ResolvedExpr, Option<String>),
     FinishElse(Option<String>),
@@ -983,10 +985,7 @@ fn c_expression_child(expression: &ResolvedExpr, index: usize) -> Option<&Resolv
         }
         ResolvedExprKind::Block { statements, tail } => statements
             .get(index)
-            .map(|statement| {
-                let ResolvedStatement::Let { value, .. } = statement;
-                value
-            })
+            .map(|statement| statement.value())
             .or_else(|| (index == statements.len()).then_some(tail)),
         ResolvedExprKind::If {
             condition,
@@ -1297,23 +1296,45 @@ fn c_expression_linear(
                     .map_err(|_| b109("max_generated_c_bytes", MAX_GENERATED_C_BYTES))?;
                 values.push(name);
             }
-            CExpressionFrame::Block(statements, index, tail) => {
-                if let Some(ResolvedStatement::Let { value, .. }) = statements.get(index) {
+            CExpressionFrame::Block(statements, index, tail) => match statements.get(index) {
+                Some(ResolvedStatement::Let { value, .. }) => {
                     frames.push(CExpressionFrame::BlockLet(statements, index, tail));
                     frames.push(CExpressionFrame::Enter(value));
-                } else {
-                    frames.push(CExpressionFrame::Enter(tail));
                 }
-            }
+                Some(statement @ ResolvedStatement::Assign { value, .. }) => {
+                    frames.push(CExpressionFrame::BlockAssign(statements, index, tail));
+                    frames.push(CExpressionFrame::Enter(value));
+                    let _ = statement;
+                }
+                _ => frames.push(CExpressionFrame::Enter(tail)),
+            },
             CExpressionFrame::BlockLet(statements, index, tail) => {
                 let value = values.pop().ok_or_else(b111)?;
-                let ResolvedStatement::Let { binding, .. } = &statements[index];
+                let ResolvedStatement::Let { binding, .. } = &statements[index] else {
+                    unreachable!("statement frame resumed at a let");
+                };
                 let ty = c_expression_resolved_scalar(mode, &binding.ty).ok_or_else(b111)?;
                 if ty != ScalarType::Unit {
                     write!(
                         lines,
                         "{} v_{} = {value};",
                         c_expression_scalar(mode, ty),
+                        c_expression_hash(mode, binding.id.as_str())
+                    )
+                    .map_err(|_| b109("max_generated_c_bytes", MAX_GENERATED_C_BYTES))?;
+                }
+                frames.push(CExpressionFrame::Block(statements, index + 1, tail));
+            }
+            CExpressionFrame::BlockAssign(statements, index, tail) => {
+                let value = values.pop().ok_or_else(b111)?;
+                let ResolvedStatement::Assign { binding, .. } = &statements[index] else {
+                    unreachable!("statement frame resumed at an assignment");
+                };
+                let ty = c_expression_resolved_scalar(mode, &binding.ty).ok_or_else(b111)?;
+                if ty != ScalarType::Unit {
+                    write!(
+                        lines,
+                        "v_{} = {value};",
                         c_expression_hash(mode, binding.id.as_str())
                     )
                     .map_err(|_| b109("max_generated_c_bytes", MAX_GENERATED_C_BYTES))?;
@@ -1522,6 +1543,7 @@ fn c_expr_iterative(
         LazyRight(crate::ast::BinaryOp, String, String, usize, usize),
         Block(&'a [ResolvedStatement], usize, &'a ResolvedExpr, usize),
         BlockLet(&'a [ResolvedStatement], usize, &'a ResolvedExpr, usize),
+        BlockAssign(&'a [ResolvedStatement], usize, &'a ResolvedExpr, usize),
         IfCondition(&'a ResolvedExpr, &'a ResolvedExpr, ScalarType, usize),
         IfThen(String, &'a ResolvedExpr, Option<String>, usize, usize),
         IfElse(String, Option<String>, String, usize, usize, usize),
@@ -1760,19 +1782,42 @@ fn c_expr_iterative(
                 if index == statements.len() {
                     frames.push(Frame::Enter(tail, context));
                 } else {
-                    let ResolvedStatement::Let { value, .. } = &statements[index];
-                    frames.push(Frame::BlockLet(statements, index, tail, context));
-                    frames.push(Frame::Enter(value, context));
+                    match &statements[index] {
+                        ResolvedStatement::Let { value, .. } => {
+                            frames.push(Frame::BlockLet(statements, index, tail, context));
+                            frames.push(Frame::Enter(value, context));
+                        }
+                        ResolvedStatement::Assign { value, .. } => {
+                            frames.push(Frame::BlockAssign(statements, index, tail, context));
+                            frames.push(Frame::Enter(value, context));
+                        }
+                    }
                 }
             }
             Frame::BlockLet(statements, index, tail, context) => {
                 let value = results.pop().ok_or_else(b111)?;
-                let ResolvedStatement::Let { binding, .. } = &statements[index];
+                let ResolvedStatement::Let { binding, .. } = &statements[index] else {
+                    unreachable!("statement frame resumed at a let");
+                };
                 let ty = c_expression_resolved_scalar(mode, &binding.ty).ok_or_else(b111)?;
                 if ty != ScalarType::Unit {
                     contexts[context].push(format!(
                         "{} v_{} = {value};",
                         c_expression_scalar(mode, ty),
+                        c_expression_hash(mode, binding.id.as_str())
+                    ));
+                }
+                frames.push(Frame::Block(statements, index + 1, tail, context));
+            }
+            Frame::BlockAssign(statements, index, tail, context) => {
+                let value = results.pop().ok_or_else(b111)?;
+                let ResolvedStatement::Assign { binding, .. } = &statements[index] else {
+                    unreachable!("statement frame resumed at an assignment");
+                };
+                let ty = c_expression_resolved_scalar(mode, &binding.ty).ok_or_else(b111)?;
+                if ty != ScalarType::Unit {
+                    contexts[context].push(format!(
+                        "v_{} = {value};",
                         c_expression_hash(mode, binding.id.as_str())
                     ));
                 }
@@ -2991,6 +3036,7 @@ fn replay_c_expression(
         LazyRight(crate::ast::BinaryOp, String, usize, usize),
         Block(&'a [ResolvedStatement], usize, &'a ResolvedExpr, usize),
         BlockLet(&'a [ResolvedStatement], usize, &'a ResolvedExpr, usize),
+        BlockAssign(&'a [ResolvedStatement], usize, &'a ResolvedExpr, usize),
         IfCondition(&'a ResolvedExpr, &'a ResolvedExpr, ScalarType, usize),
         IfThen(String, &'a ResolvedExpr, Option<String>, usize, usize),
         IfElse(String, Option<String>, String, usize, usize, usize),
@@ -3194,22 +3240,41 @@ fn replay_c_expression(
                 ));
                 values.push(name);
             }
-            Frame::Block(statements, index, tail, context) => {
-                if let Some(ResolvedStatement::Let { value, .. }) = statements.get(index) {
+            Frame::Block(statements, index, tail, context) => match statements.get(index) {
+                Some(ResolvedStatement::Let { value, .. }) => {
                     frames.push(Frame::BlockLet(statements, index, tail, context));
                     frames.push(Frame::Enter(value, context));
-                } else {
-                    frames.push(Frame::Enter(tail, context));
                 }
-            }
+                Some(ResolvedStatement::Assign { value, .. }) => {
+                    frames.push(Frame::BlockAssign(statements, index, tail, context));
+                    frames.push(Frame::Enter(value, context));
+                }
+                _ => frames.push(Frame::Enter(tail, context)),
+            },
             Frame::BlockLet(statements, index, tail, context) => {
                 let value = values.pop().ok_or_else(b111)?;
-                let ResolvedStatement::Let { binding, .. } = &statements[index];
+                let ResolvedStatement::Let { binding, .. } = &statements[index] else {
+                    unreachable!("statement frame resumed at a let");
+                };
                 let ty = replay_resolved_scalar(&binding.ty).ok_or_else(b111)?;
                 if ty != ScalarType::Unit {
                     contexts[context].push(format!(
                         "{} v_{} = {value};",
                         replay_c_scalar(ty),
+                        replay_symbol_hash(binding.id.as_str())
+                    ));
+                }
+                frames.push(Frame::Block(statements, index + 1, tail, context));
+            }
+            Frame::BlockAssign(statements, index, tail, context) => {
+                let value = values.pop().ok_or_else(b111)?;
+                let ResolvedStatement::Assign { binding, .. } = &statements[index] else {
+                    unreachable!("statement frame resumed at an assignment");
+                };
+                let ty = replay_resolved_scalar(&binding.ty).ok_or_else(b111)?;
+                if ty != ScalarType::Unit {
+                    contexts[context].push(format!(
+                        "v_{} = {value};",
                         replay_symbol_hash(binding.id.as_str())
                     ));
                 }
@@ -3350,10 +3415,7 @@ fn replay_c_expression_child(expression: &ResolvedExpr, index: usize) -> Option<
         }
         ResolvedExprKind::Block { statements, tail } => statements
             .get(index)
-            .map(|statement| {
-                let ResolvedStatement::Let { value, .. } = statement;
-                value
-            })
+            .map(|statement| statement.value())
             .or_else(|| (index == statements.len()).then_some(tail)),
         ResolvedExprKind::If {
             condition,
@@ -3630,24 +3692,53 @@ fn replay_c_expression_linear_independent(
                 values.push(name);
             }
             ReplayCExpressionFrame::ContinueBlock(statements, index, tail) => {
-                if let Some(ResolvedStatement::Let { value, .. }) = statements.get(index) {
-                    frames.push(ReplayCExpressionFrame::FinishBinding(
-                        statements, index, tail,
-                    ));
-                    frames.push(ReplayCExpressionFrame::Evaluate(value));
-                } else {
-                    frames.push(ReplayCExpressionFrame::Evaluate(tail));
+                match statements.get(index) {
+                    Some(ResolvedStatement::Let { value, .. }) => {
+                        frames.push(ReplayCExpressionFrame::FinishBinding(
+                            statements, index, tail,
+                        ));
+                        frames.push(ReplayCExpressionFrame::Evaluate(value));
+                    }
+                    Some(ResolvedStatement::Assign { value, .. }) => {
+                        frames.push(ReplayCExpressionFrame::FinishAssignment(
+                            statements, index, tail,
+                        ));
+                        frames.push(ReplayCExpressionFrame::Evaluate(value));
+                    }
+                    _ => frames.push(ReplayCExpressionFrame::Evaluate(tail)),
                 }
             }
             ReplayCExpressionFrame::FinishBinding(statements, index, tail) => {
                 let value = values.pop().ok_or_else(b111)?;
-                let ResolvedStatement::Let { binding, .. } = &statements[index];
+                let ResolvedStatement::Let { binding, .. } = &statements[index] else {
+                    unreachable!("statement frame resumed at a let");
+                };
                 let ty = replay_resolved_scalar(&binding.ty).ok_or_else(b111)?;
                 if ty != ScalarType::Unit {
                     write!(
                         lines,
                         "{} v_{} = {value};",
                         replay_c_scalar(ty),
+                        replay_symbol_hash(binding.id.as_str())
+                    )
+                    .map_err(|_| b109("max_generated_c_bytes", MAX_GENERATED_C_BYTES))?;
+                }
+                frames.push(ReplayCExpressionFrame::ContinueBlock(
+                    statements,
+                    index + 1,
+                    tail,
+                ));
+            }
+            ReplayCExpressionFrame::FinishAssignment(statements, index, tail) => {
+                let value = values.pop().ok_or_else(b111)?;
+                let ResolvedStatement::Assign { binding, .. } = &statements[index] else {
+                    unreachable!("statement frame resumed at an assignment");
+                };
+                let ty = replay_resolved_scalar(&binding.ty).ok_or_else(b111)?;
+                if ty != ScalarType::Unit {
+                    write!(
+                        lines,
+                        "v_{} = {value};",
                         replay_symbol_hash(binding.id.as_str())
                     )
                     .map_err(|_| b109("max_generated_c_bytes", MAX_GENERATED_C_BYTES))?;

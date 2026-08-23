@@ -613,8 +613,7 @@ fn legacy_canonical_temporary_bytes(program: &Program) -> usize {
         }
         if let ExprKind::Block { statements, tail } = &function.body.kind {
             for statement in statements {
-                let Statement::Let { value, .. } = statement;
-                total = total.saturating_add(legacy_expr_temporary_bytes(value, 0));
+                total = total.saturating_add(legacy_expr_temporary_bytes(statement.value(), 0));
             }
             total = total.saturating_add(legacy_expr_temporary_bytes(tail, 0));
         } else {
@@ -681,14 +680,24 @@ fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> usize {
             ExprKind::Block { statements, tail } => {
                 let mut parts = Vec::with_capacity(statements.len() + 1);
                 for statement in statements {
-                    let Statement::Let { name, value, .. } = statement;
-                    let part = name
-                        .len()
-                        .saturating_add(rendered_expr_len(value, 0))
-                        .saturating_add(8);
+                    let part = match statement {
+                        Statement::Let {
+                            name,
+                            mutable,
+                            value,
+                            ..
+                        } => name
+                            .len()
+                            .saturating_add(rendered_expr_len(value, 0))
+                            .saturating_add(if *mutable { 12 } else { 8 }),
+                        Statement::Assign { name, value, .. } => name
+                            .len()
+                            .saturating_add(rendered_expr_len(value, 0))
+                            .saturating_add(4),
+                    };
                     total = total.saturating_add(part);
                     parts.push(part);
-                    stack.push((value, 0));
+                    stack.push((statement.value(), 0));
                 }
                 parts.push(rendered_expr_len(tail, 0));
                 let joined = joined_len(parts, statements.len() + 1, 1);
@@ -1127,10 +1136,27 @@ fn write_expr(output: &mut impl std::fmt::Write, value: &Expr, parent_precedence
             }
             Frame::Block(statements, tail, index) => {
                 if let Some(statement) = statements.get(index) {
-                    let Statement::Let { name, value, .. } = statement;
-                    write!(output, "let {name} = ").unwrap();
-                    frames.push(Frame::BlockNext(statements, tail, index + 1));
-                    frames.push(Frame::Expr(value, 0));
+                    match statement {
+                        Statement::Let {
+                            name,
+                            mutable,
+                            value,
+                            ..
+                        } => {
+                            if *mutable {
+                                write!(output, "let mut {name} = ").unwrap();
+                            } else {
+                                write!(output, "let {name} = ").unwrap();
+                            }
+                            frames.push(Frame::BlockNext(statements, tail, index + 1));
+                            frames.push(Frame::Expr(value, 0));
+                        }
+                        Statement::Assign { name, value, .. } => {
+                            write!(output, "{name} = ").unwrap();
+                            frames.push(Frame::BlockNext(statements, tail, index + 1));
+                            frames.push(Frame::Expr(value, 0));
+                        }
+                    }
                 } else {
                     frames.push(Frame::Close('}'));
                     frames.push(Frame::Expr(tail, 0));
@@ -1380,10 +1406,7 @@ fn contains_record_construction(value: &Expr) -> bool {
             }
             ExprKind::Block { statements, tail } => statements
                 .get(index)
-                .map(|statement| {
-                    let Statement::Let { value, .. } = statement;
-                    value
-                })
+                .map(|statement| statement.value())
                 .or_else(|| (index == statements.len()).then_some(tail)),
             ExprKind::If {
                 condition,
@@ -1443,8 +1466,22 @@ fn write_function_body(output: &mut impl std::fmt::Write, body: &Expr) {
     if let ExprKind::Block { statements, tail } = &body.kind {
         for statement in statements {
             match statement {
-                Statement::Let { name, value, .. } => {
-                    write!(output, "    let {name} = ").unwrap();
+                Statement::Let {
+                    name,
+                    mutable,
+                    value,
+                    ..
+                } => {
+                    if *mutable {
+                        write!(output, "    let mut {name} = ").unwrap();
+                    } else {
+                        write!(output, "    let {name} = ").unwrap();
+                    }
+                    write_expr(output, value, 0);
+                    writeln!(output, ";").unwrap();
+                }
+                Statement::Assign { name, value, .. } => {
+                    write!(output, "    {name} = ").unwrap();
                     write_expr(output, value, 0);
                     writeln!(output, ";").unwrap();
                 }

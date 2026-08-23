@@ -81,7 +81,9 @@ fn records_resolve_to_stable_type_field_and_place_identities() {
     let ResolvedExprKind::Block { statements, tail } = &main.body.kind else {
         panic!("main must resolve to a block");
     };
-    let hir::ResolvedStatement::Let { value: point, .. } = &statements[0];
+    let hir::ResolvedStatement::Let { value: point, .. } = &statements[0] else {
+        panic!("statement must be a let");
+    };
     let ResolvedExprKind::ConstructRecord { record, fields } = &point.kind else {
         panic!("point initializer must resolve as record construction");
     };
@@ -139,7 +141,9 @@ fn main() -> i64 {
     let ResolvedExprKind::Block { statements, .. } = &main.body.kind else {
         panic!("main must resolve to a block");
     };
-    let hir::ResolvedStatement::Let { value, .. } = &statements[1];
+    let hir::ResolvedStatement::Let { value, .. } = &statements[1] else {
+        panic!("statement must be a let");
+    };
     let ResolvedExprKind::UpdateRecord {
         base,
         record,
@@ -178,7 +182,9 @@ fn main() -> i64 {
     let ResolvedExprKind::Block { statements, .. } = &renamed_main.body.kind else {
         panic!("renamed main must resolve to a block");
     };
-    let hir::ResolvedStatement::Let { value, .. } = &statements[1];
+    let hir::ResolvedStatement::Let { value, .. } = &statements[1] else {
+        panic!("statement must be a let");
+    };
     let ResolvedExprKind::UpdateRecord { record, fields, .. } = &value.kind else {
         panic!("renamed update must remain a record update");
     };
@@ -214,7 +220,9 @@ fn main() -> i64 {
         let ResolvedExprKind::Block { statements, .. } = &mut main.body.kind else {
             panic!("main must resolve to a block");
         };
-        let hir::ResolvedStatement::Let { value, .. } = &mut statements[1];
+        let hir::ResolvedStatement::Let { value, .. } = &mut statements[1] else {
+            panic!("statement must be a let");
+        };
         let ResolvedExprKind::UpdateRecord { .. } = &value.kind else {
             panic!("updated must resolve to a record update");
         };
@@ -428,7 +436,9 @@ fn hostile_record_hir_fields_constructors_and_projections_are_rejected() {
     let ResolvedExprKind::Block { statements, .. } = &mut main.body.kind else {
         panic!("main must be a block");
     };
-    let hir::ResolvedStatement::Let { value, .. } = &mut statements[0];
+    let hir::ResolvedStatement::Let { value, .. } = &mut statements[0] else {
+        panic!("statement must be a let");
+    };
     let ResolvedExprKind::ConstructRecord { fields, .. } = &mut value.kind else {
         panic!("local must be a constructor");
     };
@@ -447,7 +457,9 @@ fn hostile_record_hir_fields_constructors_and_projections_are_rejected() {
     let ResolvedExprKind::Block { statements, .. } = &mut main.body.kind else {
         panic!("main must be a block");
     };
-    let hir::ResolvedStatement::Let { value, .. } = &mut statements[0];
+    let hir::ResolvedStatement::Let { value, .. } = &mut statements[0] else {
+        panic!("statement must be a let");
+    };
     let ResolvedExprKind::ConstructRecord { fields, .. } = &mut value.kind else {
         panic!("local must be a constructor");
     };
@@ -562,7 +574,9 @@ fn main() -> i64 { 0 }
     let ResolvedExprKind::Block { statements, .. } = &mut replay.body.kind else {
         panic!("replay must resolve to a block");
     };
-    let hir::ResolvedStatement::Let { value, .. } = &mut statements[0];
+    let hir::ResolvedStatement::Let { value, .. } = &mut statements[0] else {
+        panic!("statement must be a let");
+    };
     let ResolvedExprKind::If {
         then_branch,
         else_branch,

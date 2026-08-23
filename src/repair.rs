@@ -5,7 +5,7 @@ use std::path::Path;
 
 use sha2::{Digest, Sha256};
 
-use crate::ast::{Expr, ExprKind, ParamMode, Program, Statement, Type};
+use crate::ast::{Expr, ExprKind, ParamMode, Program, Type};
 use crate::diagnostic::{quote_json, Diagnostic};
 use crate::hir::{
     self, DeclarationId, ExpressionId, IdentityOrigin, ResolvedBinding, ResolvedExpr,
@@ -480,8 +480,7 @@ pub(crate) fn precheck_program(program: &Program) -> Result<(), Vec<Diagnostic>>
             ExprKind::Block { statements, tail } => {
                 expressions.push(tail);
                 for statement in statements {
-                    let Statement::Let { value, .. } = statement;
-                    expressions.push(value);
+                    expressions.push(statement.value());
                 }
             }
             ExprKind::If {
@@ -603,10 +602,10 @@ fn scalar_expr(expression: &Expr) -> bool {
         ExprKind::Unary { value, .. } => scalar_expr(value),
         ExprKind::Binary { left, right, .. } => scalar_expr(left) && scalar_expr(right),
         ExprKind::Block { statements, tail } => {
-            statements.iter().all(|statement| {
-                let Statement::Let { value, .. } = statement;
-                scalar_expr(value)
-            }) && scalar_expr(tail)
+            statements
+                .iter()
+                .all(|statement| scalar_expr(statement.value()))
+                && scalar_expr(tail)
         }
         ExprKind::If {
             condition,
@@ -717,8 +716,7 @@ fn collect_calls(
         }
         ResolvedExprKind::Block { statements, tail } => {
             for statement in statements {
-                let hir::ResolvedStatement::Let { value, .. } = statement;
-                collect_calls(value, known, calls, call_sites);
+                collect_calls(statement.value(), known, calls, call_sites);
             }
             collect_calls(tail, known, calls, call_sites);
         }
@@ -1165,20 +1163,36 @@ impl StructuralRebase<'_> {
                     return Err(rebase_mismatch());
                 }
                 for (left, right) in left_statements.iter().zip(right_statements) {
-                    let (
-                        ResolvedStatement::Let {
-                            binding: left_binding,
-                            value: left_value,
-                            ..
-                        },
-                        ResolvedStatement::Let {
-                            binding: right_binding,
-                            value: right_value,
-                            ..
-                        },
-                    ) = (left, right);
-                    self.compare_binding(left_binding, right_binding)?;
-                    self.compare_expr(left_value, right_value)?;
+                    match (left, right) {
+                        (
+                            ResolvedStatement::Let {
+                                binding: left_binding,
+                                value: left_value,
+                                ..
+                            },
+                            ResolvedStatement::Let {
+                                binding: right_binding,
+                                value: right_value,
+                                ..
+                            },
+                        )
+                        | (
+                            ResolvedStatement::Assign {
+                                binding: left_binding,
+                                value: left_value,
+                                ..
+                            },
+                            ResolvedStatement::Assign {
+                                binding: right_binding,
+                                value: right_value,
+                                ..
+                            },
+                        ) => {
+                            self.compare_binding(left_binding, right_binding)?;
+                            self.compare_expr(left_value, right_value)?;
+                        }
+                        _ => return Err(rebase_mismatch()),
+                    }
                 }
                 self.compare_expr(left_tail, right_tail)?;
             }

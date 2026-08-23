@@ -12,8 +12,7 @@ use sha2::{Digest, Sha256};
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
     DeclarationId, ResolvedExpr, ResolvedExprKind, ResolvedFieldDeclaration, ResolvedProgram,
-    ResolvedResourceDropKind, ResolvedStatement, ResolvedType, ResolvedTypeDeclaration,
-    ResolvedTypeDeclarationKind,
+    ResolvedResourceDropKind, ResolvedType, ResolvedTypeDeclaration, ResolvedTypeDeclarationKind,
 };
 
 const LAYOUT_DIGEST_DOMAIN: &[u8] = b"semaprax.aggregate-layout.v1\0";
@@ -488,9 +487,9 @@ fn collect_expr_record_types(
         }
         ResolvedExprKind::Block { statements, tail } => {
             for statement in statements {
-                let ResolvedStatement::Let { binding, value, .. } = statement;
+                let binding = statement.binding();
                 collect_record_type(program, &binding.ty, instances)?;
-                collect_expr_record_types(program, value, instances)?;
+                collect_expr_record_types(program, statement.value(), instances)?;
             }
             collect_expr_record_types(program, tail, instances)?;
         }

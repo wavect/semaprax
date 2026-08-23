@@ -264,7 +264,18 @@ impl FunctionPlan {
             }
             ResolvedExprKind::Block { statements, tail } => {
                 for statement in statements {
-                    let ResolvedStatement::Let { binding, value, .. } = statement;
+                    let ResolvedStatement::Let { binding, value, .. } = statement else {
+                        // Assignment targets reuse their `let` slot; only the
+                        // assigned value joins the local walk.
+                        self.collect_expr(
+                            program,
+                            variant_layouts,
+                            statement.value(),
+                            parameter_count,
+                            frame,
+                        )?;
+                        continue;
+                    };
                     self.collect_expr(program, variant_layouts, value, parameter_count, frame)?;
                     if is_aggregate(program, &binding.ty)? {
                         let (size, align) =
@@ -484,10 +495,10 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
             expression_has_try(left) || expression_has_try(right)
         }
         ResolvedExprKind::Block { statements, tail } => {
-            statements.iter().any(|statement| {
-                let ResolvedStatement::Let { value, .. } = statement;
-                expression_has_try(value)
-            }) || expression_has_try(tail)
+            statements
+                .iter()
+                .any(|statement| expression_has_try(statement.value()))
+                || expression_has_try(tail)
         }
         ResolvedExprKind::If {
             condition,
@@ -1364,8 +1375,10 @@ impl Emitter<'_> {
             ResolvedExprKind::Block { statements, tail } => {
                 let saved = self.bindings.clone();
                 for statement in statements {
-                    let ResolvedStatement::Let { binding, value, .. } = statement;
-                    let value = self.emit_expr(value)?;
+                    // Lets declare and store; assignments re-store into the
+                    // same scalar or aggregate slot.
+                    let binding = statement.binding();
+                    let value = self.emit_expr(statement.value())?;
                     let destination = if is_aggregate(self.program, &binding.ty)? {
                         let offset = self
                             .plan

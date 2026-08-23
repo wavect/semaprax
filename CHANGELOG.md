@@ -97,6 +97,41 @@
   relocatable object for one effect-free scalar profile only, the command
   invokes no toolchain, and no completion beyond this bounded Partial slice
   is claimed. The Embedded and real-time row moves from Missing to Partial.
+- Added Explicit Mutation v1, a bounded end-to-end language slice that moves
+  the completion-matrix row "Immutable-by-default values and explicit
+  mutation" from Missing to Partial. Local bindings may declare `let mut`,
+  and simple locals admit a new statement-only assignment form
+  `<binding> = <expr>;` over checked Copy scalar values (`i64`, `i32`, `u8`,
+  `char`, `f32`, `f64`, `bool`) with exact type matching: the assigned value
+  evaluates fully — checked arithmetic failure statuses propagate exactly as
+  from an initializer — before one atomic store into the binding's existing
+  value identity, so no new value id exists and evaluation stays
+  left-to-right. Immutable by default is enforced everywhere else through the
+  previously unused `SPX-U1xx` diagnostic family: assignment to an immutable
+  binding (`SPX-U101`), exact type mismatch (`SPX-U102`), `mut` outside local
+  `let` bindings such as parameters (`SPX-U103`), duplicate `mut` modifiers
+  (`SPX-U104`), non-scalar/non-Copy targets or values (`SPX-U105`), and
+  assignments inside contract expressions (`SPX-U106`); unknown targets keep
+  the established unknown-value diagnostics. The grammar admits no assignment
+  expression and no compound operators, so `(x = 2)` and chained `x = y = z`
+  fail at parse time. The canonical formatter renders both forms with exact
+  byte budgets and formats mutation-free programs byte-for-byte identically;
+  HIR gains `ResolvedStatement::Assign` carrying the reused target binding
+  plus per-binding mutability in resolver/validator scopes with matching
+  iterative and recursive oracle paths; Graph JSON adds `"mutable":true` only
+  on mutable lets and an additive `"kind":"assign"` node without touching
+  schema selection (v10-v14) or any pinned non-mutation graph bytes; cleanup
+  lowering treats assignments as initializer-equivalent value steps so
+  straight-line mutation produces structurally identical CleanupPlan v2
+  output (no slots, no finalizers); native C11 lowers to plain locals and
+  plain C11 stores verified at O0/O2 including assigned-overflow failure
+  statuses, and the Wasm core lane stores via `local.set` with identical
+  Node-executed results and i32 overflow trapping. Evidence lives in
+  `tests/explicit_mutation_v1.rs` (16 tests) and
+  `examples/explicit_mutation.spx` under the example check/fmt gates.
+  Non-claims: no field/aggregate mutation, no collection mutation, no
+  reference/mutable-borrow semantics, no concurrency/memory-model rules, and
+  no cross-task mutation.
 
 - Added the locally evidenced Canonical ABI Report v1 tranche, the first
   executable slice of the completion-matrix row "Portable canonical ABI and

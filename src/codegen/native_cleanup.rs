@@ -748,9 +748,18 @@ fn validate_expression(
         }
         ResolvedExprKind::Block { statements, tail } => {
             for statement in statements {
-                let ResolvedStatement::Let { binding, value, .. } = statement;
-                validate_supported_type(program, function, &binding.ty, "binding")?;
-                validate_expression(program, function, value)?;
+                let binding = statement.binding();
+                validate_supported_type(
+                    program,
+                    function,
+                    &binding.ty,
+                    if matches!(statement, ResolvedStatement::Assign { .. }) {
+                        "assignment target"
+                    } else {
+                        "binding"
+                    },
+                )?;
+                validate_expression(program, function, statement.value())?;
             }
             validate_expression(program, function, tail)?;
         }

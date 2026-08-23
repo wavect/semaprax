@@ -9,7 +9,7 @@ use crate::diagnostic::Diagnostic;
 use crate::graph;
 use crate::hir::{
     self, DeclarationId, IdentityOrigin, ResolvedExpr, ResolvedExprKind, ResolvedFunction,
-    ResolvedProgram, ResolvedStatement, ResolvedType,
+    ResolvedProgram, ResolvedType,
 };
 use crate::prelude;
 use crate::variant_layout::{VariantLayoutCache, VariantTarget};
@@ -375,8 +375,7 @@ fn walk_children(expr: &ResolvedExpr, mut visit: impl FnMut(&ResolvedExpr)) {
         }
         ResolvedExprKind::Block { statements, tail } => {
             for statement in statements {
-                let ResolvedStatement::Let { value, .. } = statement;
-                visit(value);
+                visit(statement.value());
             }
             visit(tail);
         }
@@ -885,7 +884,9 @@ mod tests {
         else {
             panic!("evaluate body block shape drifted");
         };
-        let ResolvedStatement::Let { value, .. } = &mut statements[0];
+        let crate::hir::ResolvedStatement::Let { value, .. } = &mut statements[0] else {
+            panic!("evaluate body shape drifted");
+        };
         let ResolvedExprKind::TryOption {
             some_case,
             none_case,

@@ -162,10 +162,7 @@ fn children(expression: &hir::ResolvedExpr) -> Vec<&hir::ResolvedExpr> {
         hir::ResolvedExprKind::Binary { left, right, .. } => vec![left.as_ref(), right.as_ref()],
         hir::ResolvedExprKind::Block { statements, tail } => statements
             .iter()
-            .map(|statement| {
-                let hir::ResolvedStatement::Let { value, .. } = statement;
-                value
-            })
+            .map(|statement| statement.value())
             .chain(std::iter::once(tail.as_ref()))
             .collect(),
         hir::ResolvedExprKind::If {

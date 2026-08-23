@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use semaprax::hir::{self, ResolvedExpr, ResolvedExprKind, ResolvedStatement};
+use semaprax::hir::{self, ResolvedExpr, ResolvedExprKind};
 use semaprax::{graph, impact, parse, patch};
 use sha2::{Digest, Sha256};
 
@@ -81,10 +81,7 @@ fn first_call<'a>(expression: &'a ResolvedExpr, template: &str) -> Option<&'a Re
         }
         ResolvedExprKind::Block { statements, tail } => statements
             .iter()
-            .find_map(|statement| {
-                let ResolvedStatement::Let { value, .. } = statement;
-                first_call(value, template)
-            })
+            .find_map(|statement| first_call(statement.value(), template))
             .or_else(|| first_call(tail, template)),
         ResolvedExprKind::If {
             condition,

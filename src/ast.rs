@@ -440,9 +440,48 @@ pub enum Statement {
     Let {
         name: String,
         name_span: Span,
+        /// Explicit Mutation v1: `true` when the binding was declared `let mut`.
+        mutable: bool,
         value: Expr,
         span: Span,
     },
+    /// Explicit Mutation v1: `<binding> = <expr>;` over a simple local
+    /// binding. Statement-only; there is no assignment expression.
+    Assign {
+        name: String,
+        name_span: Span,
+        value: Expr,
+        span: Span,
+    },
+}
+
+impl Statement {
+    /// The statement's evaluated expression: the initializer of a `let` or
+    /// the assigned value of an assignment.
+    pub fn value(&self) -> &Expr {
+        match self {
+            Self::Let { value, .. } | Self::Assign { value, .. } => value,
+        }
+    }
+
+    /// Mutable access to the statement's evaluated expression.
+    pub fn value_mut(&mut self) -> &mut Expr {
+        match self {
+            Self::Let { value, .. } | Self::Assign { value, .. } => value,
+        }
+    }
+
+    /// The statement's source-level binding name.
+    pub fn name(&self) -> &str {
+        match self {
+            Self::Let { name, .. } | Self::Assign { name, .. } => name,
+        }
+    }
+
+    /// `true` for assignment statements.
+    pub fn is_assign(&self) -> bool {
+        matches!(self, Self::Assign { .. })
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -548,9 +587,7 @@ impl Expr {
             }
             ExprKind::Block { statements, tail } => statements
                 .get(index)
-                .map(|statement| match statement {
-                    Statement::Let { value, .. } => value,
-                })
+                .map(|statement| statement.value())
                 .or_else(|| (index == statements.len()).then_some(tail)),
             ExprKind::If {
                 condition,
@@ -647,6 +684,7 @@ mod call_visitor_tests {
                             statements: vec![Statement::Let {
                                 name: "value".to_owned(),
                                 name_span: span,
+                                mutable: false,
                                 value: call("first", 1),
                                 span,
                             }],

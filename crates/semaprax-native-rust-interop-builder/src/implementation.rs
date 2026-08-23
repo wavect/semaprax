@@ -1916,8 +1916,9 @@ fn drain_disposal_frames(
             ResolvedDisposeFrame::Statements(mut statements) => {
                 if let Some(statement) = statements.pop() {
                     disposal_push(frames, ResolvedDisposeFrame::Statements(statements));
-                    let ResolvedStatement::Let { binding, value, .. } = statement;
-                    disposal_push(frames, ResolvedDisposeFrame::Type(binding.ty));
+                    let value = statement.value().clone();
+                    let ty = statement.binding().ty.clone();
+                    disposal_push(frames, ResolvedDisposeFrame::Type(ty));
                     pending_expression = Some(value);
                 }
             }
@@ -3066,10 +3067,7 @@ fn resolved_call_child(expression: &ResolvedExpr, index: usize) -> Option<&Resol
         }
         ResolvedExprKind::Block { statements, tail } => statements
             .get(index)
-            .map(|statement| {
-                let ResolvedStatement::Let { value, .. } = statement;
-                value
-            })
+            .map(|statement| statement.value())
             .or_else(|| (index == statements.len()).then_some(tail)),
         ResolvedExprKind::If {
             condition,
@@ -4202,14 +4200,17 @@ fn fingerprint_expression_types_scratch(
             }
             Frame::Statements(statements, index, depth) => {
                 if let Some(statement) = statements.get(index) {
-                    let ResolvedStatement::Let { binding, value, .. } = statement;
-                    maximum = maximum.max(fingerprint_binding_type_scratch(binding)?);
+                    maximum = maximum.max(fingerprint_binding_type_scratch(statement.binding())?);
                     push(
                         &mut stack,
                         &mut stack_len,
                         Frame::Statements(statements, index + 1, depth),
                     )?;
-                    push(&mut stack, &mut stack_len, Frame::Expr(value, depth))?;
+                    push(
+                        &mut stack,
+                        &mut stack_len,
+                        Frame::Expr(statement.value(), depth),
+                    )?;
                 }
             }
             Frame::Fields(fields, index, depth) => {
@@ -4403,8 +4404,17 @@ fn hash_expr(
                 frame(hasher, identity.as_bytes());
             }
             HirFingerprintAction::Statement(statement, depth) => {
-                let ResolvedStatement::Let { binding, value, .. } = statement;
-                frame(hasher, b"let");
+                let binding = statement.binding();
+                // The tag distinguishes lets from assignments; existing
+                // let fingerprints keep their exact byte sequence.
+                frame(
+                    hasher,
+                    if statement.is_assign() {
+                        b"assign"
+                    } else {
+                        b"let"
+                    },
+                );
                 frame(hasher, binding.id.as_str().as_bytes());
                 frame(hasher, binding.name.as_bytes());
                 let action_bytes = actions
@@ -4422,7 +4432,7 @@ fn hash_expr(
                 );
                 frame(hasher, binding_identity.as_bytes());
                 frame(hasher, ownership(binding.ownership));
-                actions.push(HirFingerprintAction::Expr(value, depth));
+                actions.push(HirFingerprintAction::Expr(statement.value(), depth));
             }
             HirFingerprintAction::Statements(statements, index, depth) => {
                 if let Some(statement) = statements.get(index) {
@@ -5840,7 +5850,7 @@ fn validate_selected_scalar_closure(functions: &[&ResolvedFunction]) -> Result<(
             }
             ResolvedExprKind::Block { statements, tail } => {
                 for statement in statements {
-                    let ResolvedStatement::Let { binding, value, .. } = statement;
+                    let (binding, value) = (statement.binding(), statement.value());
                     let unit_discard = binding.ty == ResolvedType::Unit
                         && value.ty == ResolvedType::Unit
                         && matches!(value.kind, ResolvedExprKind::NativeRustImportCall(_));
@@ -5900,7 +5910,7 @@ fn validate_native_unit_discard_bindings(
             match &expression.kind {
                 ResolvedExprKind::Block { statements, tail } => {
                     for statement in statements {
-                        let ResolvedStatement::Let { binding, value, .. } = statement;
+                        let (binding, value) = (statement.binding(), statement.value());
                         if value.ty == ResolvedType::Unit {
                             if !matches!(value.kind, ResolvedExprKind::NativeRustImportCall(_))
                                 || binding.ty != ResolvedType::Unit

@@ -591,7 +591,9 @@ fn authenticate_take_transfers(function: &ResolvedFunction) {
     let ResolvedExprKind::Block { statements, .. } = &function.body.kind else {
         panic!("expected take block")
     };
-    let ResolvedStatement::Let { binding, value, .. } = &statements[0];
+    let ResolvedStatement::Let { binding, value, .. } = &statements[0] else {
+        panic!("expected take block first statement")
+    };
     let ResolvedExprKind::ConstructRecord { fields, .. } = &value.kind else {
         panic!("expected record construction")
     };

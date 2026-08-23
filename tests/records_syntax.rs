@@ -92,7 +92,9 @@ fn construction_preserves_initializer_order_expands_shorthand_and_chains_project
         panic!("function body should be a block")
     };
 
-    let Statement::Let { value, .. } = &statements[1];
+    let Statement::Let { value, .. } = &statements[1] else {
+        panic!("local should be a let statement")
+    };
     let ExprKind::ConstructRecord { fields, .. } = &value.kind else {
         panic!("local should contain a record constructor")
     };

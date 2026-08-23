@@ -43,7 +43,7 @@ use serde_json::Value;
 use sha2::{Digest as _, Sha256};
 
 use crate::ast::{
-    Expr, ExprKind, FieldInitializer, Function, Param, ParamMode, Program, Span, Statement, Type,
+    Expr, ExprKind, FieldInitializer, Function, Param, ParamMode, Program, Span, Type,
     TypeDeclaration, TypeDeclarationKind,
 };
 use crate::bounded_output::{with_limit_usage, BudgetedJoin as _};
@@ -418,9 +418,7 @@ impl ScanState<'_> {
             ExprKind::Binary { left, right, .. } => self.scan(left).or_else(|| self.scan(right)),
             ExprKind::Block { statements, tail } => statements
                 .iter()
-                .find_map(|statement| match statement {
-                    Statement::Let { value, .. } => self.scan(value),
-                })
+                .find_map(|statement| self.scan(statement.value()))
                 .or_else(|| self.scan(tail)),
             ExprKind::If {
                 condition,

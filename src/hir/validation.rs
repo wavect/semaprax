@@ -1042,6 +1042,11 @@ impl<'a> HirValidator<'a> {
                             self.insert_value(&binding.id)?;
                             block_values.insert(binding.id.clone(), binding.ty.clone());
                         }
+                        ResolvedStatement::Assign { .. } => {
+                            return Err(hir_error(
+                                "generic template statements cannot assign to local bindings",
+                            ));
+                        }
                     }
                 }
                 self.validate_template_expr(
@@ -1639,6 +1644,16 @@ impl<'a> HirValidator<'a> {
                 outer_ids: Vec<ValueId>,
                 path: String,
             },
+            BlockAfterAssign {
+                expression: &'e ResolvedExpr,
+                statements: &'e [ResolvedStatement],
+                tail: &'e ResolvedExpr,
+                index: usize,
+                scope: BTreeMap<ValueId, ValidationBinding>,
+                outer: BTreeMap<ValueId, ValidationBinding>,
+                outer_ids: Vec<ValueId>,
+                path: String,
+            },
             BlockTail {
                 expression: &'e ResolvedExpr,
                 outer_ids: Vec<ValueId>,
@@ -1789,6 +1804,7 @@ impl<'a> HirValidator<'a> {
                 | Frame::NativeAfterArg { path, .. }
                 | Frame::BlockNext { path, .. }
                 | Frame::BlockAfterLet { path, .. }
+                | Frame::BlockAfterAssign { path, .. }
                 | Frame::RecordNext { path, .. }
                 | Frame::RecordAfterField { path, .. }
                 | Frame::VariantNext { path, .. }
@@ -1876,6 +1892,12 @@ impl<'a> HirValidator<'a> {
                         + resolved_type_owned_capacity(result)
                 }
                 Frame::BlockNext {
+                    scope: value,
+                    outer,
+                    outer_ids,
+                    ..
+                }
+                | Frame::BlockAfterAssign {
                     scope: value,
                     outer,
                     outer_ids,
@@ -2861,24 +2883,56 @@ impl<'a> HirValidator<'a> {
                             path: format!("{path}.tail"),
                         });
                     } else {
-                        let ResolvedStatement::Let { value, .. } = &statements[index];
-                        frames.push(Frame::BlockAfterLet {
-                            expression,
-                            statements,
-                            tail,
-                            index,
-                            outer,
-                            outer_ids,
-                            path: path.clone(),
-                        });
-                        let enabled = publication.enabled;
-                        publication.enabled = false;
-                        frames.push(Frame::RestorePublication(enabled));
-                        frames.push(Frame::Enter {
-                            expression: value,
-                            scope,
-                            path: format!("{path}.s{index}.value"),
-                        });
+                        match &statements[index] {
+                            ResolvedStatement::Let { value, .. } => {
+                                frames.push(Frame::BlockAfterLet {
+                                    expression,
+                                    statements,
+                                    tail,
+                                    index,
+                                    outer,
+                                    outer_ids,
+                                    path: path.clone(),
+                                });
+                                let enabled = publication.enabled;
+                                publication.enabled = false;
+                                frames.push(Frame::RestorePublication(enabled));
+                                frames.push(Frame::Enter {
+                                    expression: value,
+                                    scope,
+                                    path: format!("{path}.s{index}.value"),
+                                });
+                            }
+                            ResolvedStatement::Assign { binding, value, .. } => {
+                                // The target must be a previously declared
+                                // mutable scalar binding in this block's scope.
+                                if !scope.contains_key(&binding.id) {
+                                    return Err(hir_error(format!(
+                                        "assignment target `{}` has no enclosing binding",
+                                        binding.id
+                                    )));
+                                }
+                                let target_scope = scope.clone();
+                                frames.push(Frame::BlockAfterAssign {
+                                    expression,
+                                    statements,
+                                    tail,
+                                    index,
+                                    scope: target_scope,
+                                    outer,
+                                    outer_ids,
+                                    path: path.clone(),
+                                });
+                                let enabled = publication.enabled;
+                                publication.enabled = false;
+                                frames.push(Frame::RestorePublication(enabled));
+                                frames.push(Frame::Enter {
+                                    expression: value,
+                                    scope,
+                                    path: format!("{path}.s{index}.value"),
+                                });
+                            }
+                        }
                     }
                 }
                 Frame::BlockAfterLet {
@@ -2891,7 +2945,9 @@ impl<'a> HirValidator<'a> {
                     path,
                 } => {
                     let mut scope = scopes.pop().expect("block let scope retained");
-                    let ResolvedStatement::Let { binding, value, .. } = &statements[index];
+                    let ResolvedStatement::Let { binding, value, .. } = &statements[index] else {
+                        unreachable!("let frame resumes at a let statement")
+                    };
                     let statement_path = format!("{path}.s{index}");
                     if binding.id != ValueId::local(function, &statement_path) {
                         return Err(hir_error(format!(
@@ -2926,6 +2982,57 @@ impl<'a> HirValidator<'a> {
                             definitely_partial: BTreeSet::new(),
                         },
                     );
+                    frames.push(Frame::BlockNext {
+                        expression,
+                        statements,
+                        tail,
+                        index: index + 1,
+                        scope,
+                        outer,
+                        outer_ids,
+                        path,
+                    });
+                }
+                Frame::BlockAfterAssign {
+                    expression,
+                    statements,
+                    tail,
+                    index,
+                    scope,
+                    outer,
+                    outer_ids,
+                    path,
+                } => {
+                    scopes.pop().expect("block assign scope retained");
+                    let ResolvedStatement::Assign {
+                        binding,
+                        value: assigned,
+                        ..
+                    } = &statements[index]
+                    else {
+                        unreachable!("assign frame resumes at an assignment statement")
+                    };
+                    let target = scope.get(&binding.id).cloned();
+                    let Some(target) = target else {
+                        return Err(hir_error(format!(
+                            "assignment target `{}` has no enclosing binding",
+                            binding.id
+                        )));
+                    };
+                    self.require_type(&target.ty, &assigned.ty, "assignment")?;
+                    if target.ownership != OwnershipMode::Value
+                        || !crate::hir::is_scalar_resolved_type(&target.ty)
+                    {
+                        return Err(hir_error(
+                            "explicit mutation v1 supports only scalar Copy values",
+                        ));
+                    }
+                    if target.availability != Availability::Available {
+                        return Err(hir_error(format!(
+                            "assignment target `{}` is not available",
+                            binding.id
+                        )));
+                    }
                     frames.push(Frame::BlockNext {
                         expression,
                         statements,
@@ -4302,6 +4409,42 @@ impl<'a> HirValidator<'a> {
                                     definitely_partial: BTreeSet::new(),
                                 },
                             );
+                        }
+                        ResolvedStatement::Assign {
+                            binding,
+                            value: assigned,
+                            ..
+                        } => {
+                            let statement_path = format!("{path}.s{index}");
+                            self.validate_expr_recursive_reference(
+                                function,
+                                assigned,
+                                &mut block_scope,
+                                &format!("{statement_path}.value"),
+                                allow_moves,
+                                allowed_effects,
+                            )?;
+                            let target = block_scope.get(&binding.id).cloned();
+                            let Some(target) = target else {
+                                return Err(hir_error(format!(
+                                    "assignment target `{}` has no enclosing binding",
+                                    binding.id
+                                )));
+                            };
+                            self.require_type(&target.ty, &assigned.ty, "assignment")?;
+                            if target.ownership != OwnershipMode::Value
+                                || !crate::hir::is_scalar_resolved_type(&target.ty)
+                            {
+                                return Err(hir_error(
+                                    "explicit mutation v1 supports only scalar Copy values",
+                                ));
+                            }
+                            if target.availability != Availability::Available {
+                                return Err(hir_error(format!(
+                                    "assignment target `{}` is not available",
+                                    binding.id
+                                )));
+                            }
                         }
                     }
                 }

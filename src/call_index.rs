@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
     self, DeclarationId, ExpressionId, FunctionInstanceId, IdentityOrigin, ResolvedExpr,
-    ResolvedExprKind, ResolvedProgram, ResolvedStatement, ResolvedType,
+    ResolvedExprKind, ResolvedProgram, ResolvedType,
 };
 
 #[cfg(test)]
@@ -227,10 +227,7 @@ impl PersistentCallIndex {
                 }
                 ResolvedExprKind::Block { statements, tail } => statements
                     .get(index)
-                    .map(|statement| {
-                        let ResolvedStatement::Let { value, .. } = statement;
-                        value
-                    })
+                    .map(|statement| statement.value())
                     .or_else(|| (index == statements.len()).then_some(tail)),
                 ResolvedExprKind::If {
                     condition,

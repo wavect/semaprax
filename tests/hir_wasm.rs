@@ -31,7 +31,9 @@ fn resolved_hir_is_the_wasm_lowering_contract() {
     let helper = &mut renamed_metadata.functions[0];
     helper.params[0].name = "display_parameter".to_owned();
     if let ResolvedExprKind::Block { statements, .. } = &mut helper.body.kind {
-        let ResolvedStatement::Let { binding, .. } = &mut statements[0];
+        let ResolvedStatement::Let { binding, .. } = &mut statements[0] else {
+            panic!("expected a resolved let statement")
+        };
         binding.name = "display_local".to_owned();
     } else {
         panic!("expected a resolved block body");

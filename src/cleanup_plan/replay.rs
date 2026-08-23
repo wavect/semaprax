@@ -2654,7 +2654,7 @@ fn expression_skeleton(
                     }
                     ResolvedExprKind::Block { statements, tail } => {
                         let paths = work.singleton_path(empty_expr_path(), "block root path")?;
-                        if let Some(ResolvedStatement::Let { value, .. }) = statements.first() {
+                        if let Some(first_statement) = statements.first() {
                             push_frame!(
                                 frames,
                                 Frame::BlockValue {
@@ -2665,7 +2665,7 @@ fn expression_skeleton(
                                     paths,
                                 }
                             );
-                            push_frame!(frames, Frame::Eval(value));
+                            push_frame!(frames, Frame::Eval(first_statement.value()));
                         } else {
                             push_frame!(frames, Frame::BlockTail { expression, paths });
                             push_frame!(frames, Frame::Eval(tail));
@@ -2907,7 +2907,7 @@ fn expression_skeleton(
             } => {
                 let suffixes = produced.take().expect("binding path retained");
                 let mut paths = sequence_skeleton_paths(paths, &suffixes, work)?;
-                let ResolvedStatement::Let { binding, value, .. } = &statements[index];
+                let (binding, value) = (statements[index].binding(), statements[index].value());
                 if binding.ownership == OwnershipMode::Own
                     && type_needs_drop(program, function, &binding.ty)?
                 {
@@ -2927,7 +2927,6 @@ fn expression_skeleton(
                 }
                 let next = index + 1;
                 if has_active_paths(&paths) && next < statements.len() {
-                    let ResolvedStatement::Let { value, .. } = &statements[next];
                     push_frame!(
                         frames,
                         Frame::BlockValue {
@@ -2938,7 +2937,7 @@ fn expression_skeleton(
                             paths,
                         }
                     );
-                    push_frame!(frames, Frame::Eval(value));
+                    push_frame!(frames, Frame::Eval(statements[next].value()));
                 } else if has_active_paths(&paths) {
                     push_frame!(frames, Frame::BlockTail { expression, paths });
                     push_frame!(frames, Frame::Eval(tail));
@@ -5186,10 +5185,7 @@ fn replay_expression_child(expression: &ResolvedExpr, index: usize) -> Option<&R
         }
         ResolvedExprKind::Block { statements, tail } => statements
             .get(index)
-            .map(|statement| {
-                let ResolvedStatement::Let { value, .. } = statement;
-                value
-            })
+            .map(|statement| statement.value())
             .or_else(|| (index == statements.len()).then_some(tail)),
         ResolvedExprKind::If {
             condition,
@@ -5941,7 +5937,9 @@ fn main() -> i64 { 0 }
         let ResolvedExprKind::Block { statements, tail } = &original.body.kind else {
             panic!("generic fixture must have a block body")
         };
-        let ResolvedStatement::Let { value: first, .. } = &statements[0];
+        let ResolvedStatement::Let { value: first, .. } = &statements[0] else {
+            panic!("generic fixture first statement must be a let")
+        };
         let ResolvedExprKind::Match {
             scrutinee: first_scrutinee,
             ..

@@ -82,7 +82,9 @@ fn variants_resolve_to_stable_case_field_constructor_and_pattern_identities() {
     let ResolvedExprKind::Block { statements, .. } = &first.functions[0].body.kind else {
         unreachable!();
     };
-    let hir::ResolvedStatement::Let { value, .. } = &statements[0];
+    let hir::ResolvedStatement::Let { value, .. } = &statements[0] else {
+        panic!("first statement must be a let")
+    };
     let ResolvedExprKind::ConstructVariant {
         variant,
         case,

@@ -61,6 +61,7 @@ enum ExprFormatFrame<'a> {
     BinaryRight(&'a Expr, BinaryOp, bool),
     Block(&'a [Statement], &'a Expr, usize),
     BlockNext(&'a [Statement], &'a Expr, usize),
+    BlockNextAfterUnsafe(&'a [Statement], &'a Expr, usize),
     IfThen(&'a Expr, &'a Expr),
     IfElse(&'a Expr),
     Fields(&'a [crate::ast::FieldInitializer], usize, &'static str),
@@ -1161,7 +1162,10 @@ fn write_expr(output: &mut impl std::fmt::Write, value: &Expr, parent_precedence
                             write!(output, "@audit(\"").unwrap();
                             write_escaped(output, audit);
                             write!(output, "\") unsafe ").unwrap();
-                            frames.push(Frame::BlockNext(statements, tail, index + 1));
+                            // Unsafe boundary statements are not
+                            // semicolon-terminated by the grammar, so the
+                            // following separator is a bare space.
+                            frames.push(Frame::BlockNextAfterUnsafe(statements, tail, index + 1));
                             // The body is an ordinary block and renders with
                             // the exact same inline block shape.
                             frames.push(Frame::Expr(body, 0));
@@ -1174,6 +1178,10 @@ fn write_expr(output: &mut impl std::fmt::Write, value: &Expr, parent_precedence
             }
             Frame::BlockNext(statements, tail, index) => {
                 output.write_str("; ").unwrap();
+                frames.push(Frame::Block(statements, tail, index));
+            }
+            Frame::BlockNextAfterUnsafe(statements, tail, index) => {
+                output.write_char(' ').unwrap();
                 frames.push(Frame::Block(statements, tail, index));
             }
             Frame::IfThen(then_branch, else_branch) => {
@@ -1585,5 +1593,33 @@ mod iterative_formatter_tests {
             unreachable!()
         };
         assert_eq!(expr(tail, 0), "match value {  }");
+    }
+
+    #[test]
+    fn unsafe_statement_in_inline_block_stays_parseable() {
+        // The grammar terminates an unsafe boundary statement at its block;
+        // the enclosing inline block's tail expression follows directly.
+        let source = r#"
+module t;
+permit { unsafe }
+fn main(value:i64)->i64 {
+    { @audit("checked boundary") unsafe { value } value + 1 }
+}
+"#;
+        let program = crate::parse(source, Path::new("format-unsafe.spx")).unwrap();
+        let canonical = crate::format::canonical(&program);
+        // The canonical text must re-parse: the unsafe statement is not
+        // semicolon-terminated by the grammar.
+        let reparsed = crate::parse(&canonical, Path::new("format-unsafe-2.spx"))
+            .unwrap_or_else(|error| panic!("canonical text must re-parse: {error}\n{canonical}"));
+        assert_eq!(
+            canonical,
+            crate::format::canonical(&reparsed),
+            "canonical form must be idempotent"
+        );
+        assert!(
+            canonical.contains("@audit(\"checked boundary\") unsafe { value } value + 1"),
+            "{canonical}"
+        );
     }
 }

@@ -1,4 +1,5 @@
-use std::collections::BTreeMap;
+use std::collections::btree_map::Entry;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::ast::{
     Expr, ExprKind, MatchPattern, Program, RecordMatchFieldPattern, Span, Statement,
@@ -31,6 +32,11 @@ pub(super) struct SemanticSourceIndex {
     pub cases: BTreeMap<(String, String), Vec<Span>>,
     pub calls: BTreeMap<String, CallSite>,
     member_owners: BTreeMap<String, String>,
+    /// Field names declared by more than one owner. A folded place
+    /// projection (`p.x`) carries no base type, so its field cannot be
+    /// attributed to a record when the name is ambiguous; such sites must
+    /// fail closed instead of silently joining the first-declared owner.
+    ambiguous_member_fields: BTreeSet<String>,
 }
 
 impl SemanticSourceIndex {
@@ -90,9 +96,16 @@ impl SemanticSourceIndex {
     }
 
     fn member(&mut self, owner: &str, field: &str, span: Span, shorthand_binding: Option<String>) {
-        self.member_owners
-            .entry(field.to_owned())
-            .or_insert_with(|| owner.to_owned());
+        match self.member_owners.entry(field.to_owned()) {
+            Entry::Occupied(mut occupied) => {
+                if occupied.get() != owner {
+                    self.ambiguous_member_fields.insert(field.to_owned());
+                }
+            }
+            Entry::Vacant(vacant) => {
+                vacant.insert(owner.to_owned());
+            }
+        }
         self.members
             .entry((owner.to_owned(), field.to_owned()))
             .or_default()
@@ -336,6 +349,9 @@ impl SemanticSourceIndex {
                     let PlaceProjection::Field(field) = projection else {
                         return None;
                     };
+                    if self.ambiguous_member_fields.contains(field.as_str()) {
+                        return None;
+                    }
                     let owner = self.member_owners.get(field.as_str())?.clone();
                     self.member(&owner, field.as_str(), span, None);
                 }

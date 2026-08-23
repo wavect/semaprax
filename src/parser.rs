@@ -1214,15 +1214,25 @@ impl Parser {
 
     fn ty(&mut self) -> Result<Type, Diagnostic> {
         let (name, _) = self.qualified_ident("type")?;
+    let is_primitive = matches!(
+        name.as_str(),
+        "i64" | "i32" | "u8" | "char" | "f32" | "f64" | "bool" | "string"
+    );
+        if is_primitive && self.at(&TokenKind::Lt) {
+            return Err(self.error_here(
+                "SPX-P106",
+                format!("primitive type `{name}` does not accept generic arguments"),
+            ));
+        }
         match name.as_str() {
-            "i64" if !self.at(&TokenKind::Lt) => Ok(Type::I64),
-            "i32" if !self.at(&TokenKind::Lt) => Ok(Type::I32),
-            "u8" if !self.at(&TokenKind::Lt) => Ok(Type::U8),
-            "char" if !self.at(&TokenKind::Lt) => Ok(Type::Char),
-            "f32" if !self.at(&TokenKind::Lt) => Ok(Type::F32),
-            "f64" if !self.at(&TokenKind::Lt) => Ok(Type::F64),
-            "bool" if !self.at(&TokenKind::Lt) => Ok(Type::Bool),
-            "string" if !self.at(&TokenKind::Lt) => Ok(Type::String),
+            "i64" => Ok(Type::I64),
+            "i32" => Ok(Type::I32),
+            "u8" => Ok(Type::U8),
+            "char" => Ok(Type::Char),
+            "f32" => Ok(Type::F32),
+            "f64" => Ok(Type::F64),
+            "bool" => Ok(Type::Bool),
+            "string" => Ok(Type::String),
             _ => Ok(Type::Named {
                 name,
                 arguments: self.type_arguments()?,

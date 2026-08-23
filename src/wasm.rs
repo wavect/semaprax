@@ -1682,7 +1682,7 @@ fn emit_expr(
             if matches!(left.ty, ResolvedType::U8)
                 && matches!(
                     op,
-                    BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
+                    BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div
                 )
             {
                 // Checked u8 arithmetic without new host imports: bounded
@@ -1734,6 +1734,23 @@ fn emit_expr(
                 output.push(0x20);
                 write_u32(output, left_scratch);
                 return Ok(());
+            }
+            if matches!(left.ty, ResolvedType::U8) && matches!(op, BinaryOp::Rem) {
+                return Err(Diagnostic::io(
+                    "SPX-W102",
+                    "u8 remainder has no admitted Wasm lowering",
+                ));
+            }
+            if matches!(left.ty, ResolvedType::Char)
+                && matches!(
+                    op,
+                    BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
+                )
+            {
+                return Err(Diagnostic::io(
+                    "SPX-W102",
+                    "char arithmetic has no admitted Wasm lowering",
+                ));
             }
             match op {
                 BinaryOp::Add => call_import(output, 0),

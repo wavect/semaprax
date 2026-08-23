@@ -40,7 +40,7 @@ Private Economic Agent v1 additionally configures `cargo test --locked -p semapr
 Public C additionally runs `cargo test --locked -p semaprax --test economic_agent_v1 -- --nocapture` on Ubuntu, macOS, and Windows.
 Current totals remain 39 Partial/17 Missing.
 
-Private Native Rust Interoperability v1 A+B additionally requires three named
+Private Native Rust Interoperability v1 A+B additionally requires four named
 gates on Ubuntu, macOS, and Windows:
 
 ```sh
@@ -234,7 +234,12 @@ cargo run --locked -p semaprax -- fmt examples/records.spx --check
 cargo run --locked -p semaprax -- fmt examples/native_callable.spx --check
 ```
 
-`scripts/quality.sh` runs this baseline on Unix. Tests and documentation always
+`scripts/quality.sh` runs this baseline on Unix and extends the example gates
+with the later language slices: `example-checks` also covers `chars`,
+`integers_i32`, `bytes_u8`, and `explicit_mutation`; `example-fmt` additionally
+covers `effects` plus those same four. CI pins the six-check/seven-fmt subset
+above, so a local full run is strictly wider than the hosted baseline. Tests
+and documentation always
 enable every workspace feature so an internal or staged production surface
 cannot escape execution merely because it is not a default feature. The
 integration suite also discovers every committed `.spx` example and requires it

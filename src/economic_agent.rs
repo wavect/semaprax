@@ -6010,6 +6010,19 @@ fn parse_simulation(source: &str, plan: &Plan, intent: &Intent) -> Result<Simula
             return Err(g213());
         }
     }
+    // An x402-over-Solana intent executes through the synthesized direct
+    // Solana payment with the fixed compute-unit budget, so its declared
+    // units must match that exact budget just like a native Solana intent.
+    if matches!(
+        &intent.payment,
+        Payment::X402 {
+            rail: EconomicRail::Solana,
+            ..
+        }
+    ) && units != 200_000
+    {
+        return Err(g213());
+    }
     let expires = number(row, "expires_at_ms", "simulation", SIMULATION_SCHEMA)?;
     if expires <= plan.observed || expires > plan.expires {
         return Err(g213());

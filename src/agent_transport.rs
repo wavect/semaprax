@@ -550,16 +550,44 @@ pub fn serve(
             break;
         }
         let mut line = Vec::new();
-        let read = input.read_until(b'\n', &mut line).map_err(|error| {
-            vec![Diagnostic::io(
-                "SPX-I001",
-                format!("cannot read agent transport request: {error}"),
-            )]
-        })?;
-        if read == 0 {
+        let mut oversized = false;
+        let mut reached_eof = false;
+        loop {
+            let mut byte = [0u8; 1];
+            let read = input.read(&mut byte).map_err(|error| {
+                vec![Diagnostic::io(
+                    "SPX-I001",
+                    format!("cannot read agent transport request: {error}"),
+                )]
+            })?;
+            if read == 0 {
+                reached_eof = true;
+                break;
+            }
+            if byte[0] == b'\n' {
+                break;
+            }
+            // Buffering is bounded by the declared maximum so a peer that
+            // streams bytes without a newline cannot grow memory without
+            // limit. The remainder of the frame is still drained to keep
+            // newline framing aligned, and `handle_line` then reports the
+            // exact declared-limit failure for the oversized frame.
+            if line.len() < limits.max_request_bytes() {
+                line.push(byte[0]);
+            } else {
+                oversized = true;
+            }
+        }
+        if reached_eof && line.is_empty() && !oversized {
             break;
         }
-        let request = String::from_utf8_lossy(&line);
+        let request = if oversized {
+            // A non-whitespace filler keeps the trimmed length above the
+            // declared maximum so `handle_line` emits its exact limit error.
+            "x".repeat(limits.max_request_bytes() + 1)
+        } else {
+            String::from_utf8_lossy(&line).into_owned()
+        };
         if let Some(response) = session.handle_line(&request) {
             writeln!(output, "{response}").map_err(|error| {
                 vec![Diagnostic::io(

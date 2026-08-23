@@ -5784,10 +5784,7 @@ fn check_expr(
                 result_type,
                 allow_moves,
                 diagnostics,
-            );
-            let Some(receiver_value) = receiver_value else {
-                return None;
-            };
+            )?;
             let Type::Named {
                 name: class_name,
                 arguments: class_arguments,

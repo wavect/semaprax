@@ -35,7 +35,9 @@ semaprax cxx-shim <file> --function name|stable-id[,...] [--function ...] [--max
 The admission profile is exactly C Header Emission v1's: only explicitly
 selected functions are considered; a selected function is admitted only when
 it has an explicit stable identity, is monomorphic, declares no effects, has
-only by-value direct `i64`/`bool` parameters, and returns direct `i64`/`bool`.
+only by-value direct parameters over the full Copy-scalar surface (`i64`,
+`i32`, `u8`, `bool`, `f32`, `f64`, `char`; mixed signatures allowed), and
+returns a direct scalar from that same surface.
 Every other selected function is recorded as an exclusion with one closed
 reason: `automatic_identity`, `generic_function`, `declared_effects`,
 `unsupported_parameter_mode`, `unsupported_parameter_type`, or
@@ -106,7 +108,8 @@ consistency.
 
 ## Evidence
 
-Executable evidence lives in `tests/cxx_shim_projection_v1.rs` plus module
+Executable evidence lives in `tests/cxx_shim_projection_v1.rs`,
+`tests/interop_scalar_widen_v1.rs`, plus module
 tests in `src/cxx_shim.rs`: pinned golden envelope and path-independent
 `extern "C"` fragment digests over `examples/meaning.spx`, byte-identical
 double runs, verbatim cross-consistency against the native projection, every
@@ -120,6 +123,23 @@ envelopes that only the inner replay catches), and CLI exit-code contracts.
 No C++ compiler is invoked and no target execution is claimed; a stable shim
 workflow, exception/ownership policy, maintained adapters, unsafe
 classification, and hosted promotion all remain open.
+
+## Scalar-surface widening (2026-08-23)
+
+The shared admission profile was widened from by-value `i64`/`bool` to the
+full Copy-scalar surface: `i64`, `i32`, `u8`, `bool`, `f32`, `f64`, and
+`char` parameters and results, with mixed signatures allowed. Fragments need
+no rendering changes because declaration lines are extracted verbatim from
+the production native projection, which already emits `int64_t`, `int32_t`,
+`uint8_t`, `uint32_t` (for `char`), `float`, `double`, and `bool` for those
+scalars; widened `extern "C"` declarations are pinned byte-level against that
+projection in `tests/interop_scalar_widen_v1.rs`. Fragment shape, guard
+derivation, digest domains, hygiene rules, budget behavior, diagnostics
+(`SPX-X101`–`SPX-X105`), fixed nonclaims, and the bounded ownership slice are
+unchanged, all pre-existing pinned KATs remain green, and no new diagnostic
+codes were needed. Still nonclaimed: C++ compilation or conformance, any
+exception/memory/lifetime policy beyond the bounded slice, adapters, string,
+buffer, aggregate, or resource mappings, and hosted execution.
 
 See also [C-HEADER-V1.md](C-HEADER-V1.md) for the sibling C11 header tranche
 that shares this admission profile and envelope discipline.

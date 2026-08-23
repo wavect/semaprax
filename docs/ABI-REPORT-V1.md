@@ -31,9 +31,11 @@ semaprax abi-report <file> --function name|stable-id[,...] [--function ...] [--m
 
 The admission profile mirrors C Header Emission v1 exactly: a selected
 function is admitted only when it has an explicit stable identity, is
-monomorphic, declares no effects, has only by-value direct `i64`/`bool`
-parameters, and returns direct `i64`/`bool`. Every other selected function is
-recorded as an exclusion with one closed reason: `automatic_identity`,
+monomorphic, declares no effects, has only by-value direct parameters over
+the full Copy-scalar surface (`i64`, `i32`, `u8`, `bool`, `f32`, `f64`,
+`char`; mixed signatures allowed), and returns a direct scalar from that same
+surface. Every other selected function is recorded as an exclusion with one
+closed reason: `automatic_identity`,
 `generic_function`, `declared_effects`, `unsupported_parameter_mode`,
 `unsupported_parameter_type`, or `unsupported_result_type`. Exclusions never
 abort generation; an all-excluded invocation yields a valid empty report. If
@@ -49,20 +51,23 @@ Each admitted function entry carries two sections:
   projection (`codegen::emit_c`); exactly one must exist per admitted symbol
   or the command fails with `SPX-A204`, so every reported signature matches
   the ABI the backend really emits. `parameters` and `result` carry the
-  language type, the exact C type (`int64_t`/`bool`), and the size and
+  language type, the exact C type (`int64_t`, `int32_t`, `uint8_t`,
+  `uint32_t` for `char`, `float`, `double`, or `bool`), and the size and
   alignment taken from the checked compiler layouts
-  (`aggregate_layout::scalar_size_align` on `Native64`: `i64` is 8/8 and
-  `bool` is 1/1), each with `mode: value`. `parameter_passing` records
+  (`aggregate_layout::scalar_size_align` on `Native64`: `i64` 8/8, `i32`
+  4/4, `char` 4/4, `u8` 1/1, `f32` 4/4, `f64` 8/8, `bool` 1/1), each with
+  `mode: value`. `parameter_passing` records
   by-value copy semantics, and `status_out_contract` records that the lane
   returns `spx_status_token`, receives a leading
   `struct spx_context *spx_ctx`, writes `<c_type> *spx_result_out`, and
   publishes the result only at the final success commit.
 - `canonical` — the portable mapping used by the Public Scalar Export
-  Profile v1 Core-Wasm lane under `semaprax.wasm-scalar.v1`: `i64` maps to
-  Core-Wasm `i64` while `bool` narrows to `i32`, exactly as the web-v4 scalar
-  export adapters emit them. `export` is the injective raw symbol
-  `spx_scalar_` plus the lowercase hex encoding of the stable ID.
-  `bool_boundary` documents the real adapter behavior — every `bool`
+  Profile v1 Core-Wasm lane under `semaprax.wasm-scalar.v1`: every admitted
+  scalar is rendered exactly as the backend's Core-Wasm value-type lowering
+  renders it (`i64` stays `i64`, `f32` stays `f32`, `f64` stays `f64`, while
+  `bool`, `i32`, `u8`, and `char` all ride the `i32` lane). `export` is the
+  injective raw symbol `spx_scalar_` plus the lowercase hex encoding of the
+  stable ID. `bool_boundary` documents the real adapter behavior — every `bool`
   parameter and the `bool` result trap unless they are canonical Wasm
   booleans (`0` or `1`). `copy_behavior` is fixed to `copy` for this slice;
   nothing here describes borrowing.
@@ -97,17 +102,45 @@ unused `SPX-A2xx` family: `SPX-A201` options, `SPX-A202` selection,
 
 ## Evidence
 
-Executable evidence lives in `tests/abi_report_v1.rs` plus module tests in
-`src/abi_report.rs`: pinned golden envelope KATs over
-`examples/calculator.spx` and `examples/meaning.spx`, byte-identical double
+Executable evidence lives in `tests/abi_report_v1.rs`,
+`tests/interop_scalar_widen_v1.rs`, plus module tests in `src/abi_report.rs`:
+pinned golden envelope KATs over `examples/calculator.spx` and
+`examples/meaning.spx`, byte-identical double
 runs, verbatim cross-consistency against the native projection, byte-level
 cross-consistency of every portable mapping and raw export name against the
 real Core-Wasm module emitted by `wasm::emit_module_with_scalar_exports` for
-the same program and selection, checked-layout agreement including the
+the same program and selection (and, for widened scalars, against the real
+Core-Wasm module emitted by the ordinary lane for the same functions),
+checked-layout agreement including the
 Native64/Wasm32 `bool` divergence, every exclusion reason exercised against
 real programs, CLI exit-code contracts, budget-exhaustion failure, and tamper
 rejection per digest field. No compiler, Node runtime, browser, or any other
 target execution is involved, and hosted promotion remains pending.
+
+## Scalar-surface widening (2026-08-23)
+
+The admission profile was widened from by-value `i64`/`bool` to the full
+Copy-scalar surface: `i64`, `i32`, `u8`, `bool`, `f32`, `f64`, and `char`
+parameters and results, with mixed signatures allowed. Nothing else changed:
+envelope shape, digest domains, key order, ordering, budget rules,
+diagnostics (`SPX-A201`–`SPX-A204`), and nonclaims are byte-compatible for
+previously admitted programs, and all pre-existing pinned KATs remain green.
+
+- Native facts now cover every widened scalar: C spellings mirror the
+  production projection exactly (`int32_t`, `uint8_t`, `uint32_t` for `char`,
+  `float`, `double`), and sizes/alignments come unchanged from
+  `aggregate_layout::scalar_size_align(Native64)`.
+- Canonical rows report the exact Core-Wasm value types the backend lowers to
+  (`i32` for `bool`/`i32`/`u8`/`char`; exact-width `f32`/`f64`). For widened
+  selections these are authenticated byte-level against the ordinary
+  Core-Wasm module's type section for the same functions.
+- Remaining nonclaim: the Public Scalar Export Profile v1 adapter lane
+  (`emit_module_with_scalar_exports`) still admits only `i64`/`bool`
+  wrappers today. The `spx_scalar_` export name and bool-boundary note in a
+  widened canonical row therefore document the profile's conventions; they do
+  not claim that the wrapper lane already emits such adapters, and no new
+  diagnostic codes were needed — unsupported shapes keep failing closed under
+  the existing exclusion vocabulary.
 
 See also [C-HEADER-V1.md](C-HEADER-V1.md) for the sibling read-only native
 projection tranche and its shared admission profile, and

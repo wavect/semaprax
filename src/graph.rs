@@ -1189,6 +1189,7 @@ fn collect_result_propagations<'a>(
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
         | ResolvedExprKind::Place(_) => {}
     }
 }
@@ -1352,6 +1353,7 @@ fn expression_has_record_pattern(expression: &ResolvedExpr) -> bool {
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
         | ResolvedExprKind::Place(_) => false,
     }
 }
@@ -1408,7 +1410,8 @@ fn collect_agent_contract_values(expression: &ResolvedExpr, values: &mut BTreeSe
         | ResolvedExprKind::Uint8(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
-        | ResolvedExprKind::Bool(_) => {}
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_) => {}
         ResolvedExprKind::Place(place) => {
             values.insert(place.root.clone());
         }
@@ -1508,6 +1511,11 @@ fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnos
             quote_json(&crate::format::canonical_f64_bits(*bits))
         ),
         ResolvedExprKind::Bool(value) => format!("{{\"kind\":\"bool\",\"value\":{value}}}"),
+        ResolvedExprKind::String(value) => format!(
+            "{{\"kind\":\"string\",\"value\":{},\"display\":{}}}",
+            quote_json(value),
+            quote_json(&crate::format::canonical_string(value))
+        ),
         ResolvedExprKind::Place(place) => {
             format!("{{\"kind\":\"place\",\"place\":{}}}", place_json(place))
         }
@@ -3143,6 +3151,7 @@ fn visit_expr_call_instances(
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
         | ResolvedExprKind::Place(_) => {}
         ResolvedExprKind::Call { args, .. } => {
             for argument in args {
@@ -3209,6 +3218,7 @@ fn visit_expr_calls(expression: &ResolvedExpr, visit: &mut impl FnMut(&Declarati
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
         | ResolvedExprKind::Place(_) => {}
         ResolvedExprKind::Call { callee, args, .. } => {
             visit(callee);
@@ -3300,6 +3310,7 @@ fn collect_expr_type_declarations(
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
         | ResolvedExprKind::Place(_) => {}
         ResolvedExprKind::Call { args, .. } => {
             for argument in args {
@@ -3521,6 +3532,11 @@ fn expr_json(program: &ResolvedProgram, expression: &ResolvedExpr) -> Result<Str
         ResolvedExprKind::Bool(value) => {
             format!("{{{header},\"kind\":\"bool\",\"value\":{value}}}")
         }
+        ResolvedExprKind::String(value) => format!(
+            "{{{header},\"kind\":\"string\",\"value\":{},\"display\":{}}}",
+            quote_json(value),
+            quote_json(&crate::format::canonical_string(value))
+        ),
         ResolvedExprKind::Place(place) => format!(
             "{{{header},\"kind\":\"place\",\"place\":{}}}",
             place_json(place)
@@ -3861,6 +3877,7 @@ fn collect_expr_types(expression: &ResolvedExpr, types: &mut BTreeMap<String, Re
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
         | ResolvedExprKind::Place(_) => {}
         ResolvedExprKind::Call { args, .. } => {
             for argument in args {
@@ -3983,6 +4000,7 @@ fn type_json(ty: &ResolvedType) -> String {
         ResolvedType::F32 => "{\"kind\":\"primitive\",\"name\":\"f32\"}".to_owned(),
         ResolvedType::F64 => "{\"kind\":\"primitive\",\"name\":\"f64\"}".to_owned(),
         ResolvedType::Bool => "{\"kind\":\"primitive\",\"name\":\"bool\"}".to_owned(),
+        ResolvedType::String => "{\"kind\":\"primitive\",\"name\":\"string\"}".to_owned(),
         ResolvedType::TypeParameter { owner, index } => format!(
             "{{\"kind\":\"type_parameter\",\"owner\":{},\"index\":{index}}}",
             quote_json(owner.as_str())

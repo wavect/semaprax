@@ -67,7 +67,14 @@ fn binding_owned_capacity(binding: &Binding) -> usize {
 #[cfg(test)]
 fn ast_type_owned_capacity(ty: &Type) -> usize {
     match ty {
-        Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64 | Type::Bool => 0,
+        Type::I64
+        | Type::I32
+        | Type::Char
+        | Type::U8
+        | Type::F32
+        | Type::F64
+        | Type::Bool => 0,
+        Type::String => 0,
         Type::Named { name, arguments } => name
             .capacity()
             .saturating_add(arguments.capacity() * std::mem::size_of::<Type>())
@@ -234,7 +241,8 @@ impl<'a> TypeTable<'a> {
                     Type::U8 => resolved.push(Type::U8),
                     Type::F32 => resolved.push(Type::F32),
                     Type::F64 => resolved.push(Type::F64),
-                    Type::Bool | Type::String => resolved.push(Type::Bool),
+                    Type::Bool => resolved.push(Type::Bool),
+                    Type::String => resolved.push(Type::String),
                     Type::Named {
                         name,
                         arguments: nested,
@@ -1941,7 +1949,8 @@ fn substitute_function_type(
                 Type::U8 => resolved.push(Type::U8),
                 Type::F32 => resolved.push(Type::F32),
                 Type::F64 => resolved.push(Type::F64),
-                Type::Bool | Type::String => resolved.push(Type::Bool),
+                Type::Bool => resolved.push(Type::Bool),
+                Type::String => resolved.push(Type::String),
                 Type::Named {
                     name,
                     arguments: nested,
@@ -2851,7 +2860,6 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     + diagnostics_owned_capacity(self.diagnostics),
             );
             match frame {
-                    _ => {},
                 VerifierFrame::Enter { expression, scope } => match &expression.kind {
                     ExprKind::Int(_) => self.values.push(Some(CheckedValue::value(Type::I64))),
                     ExprKind::Int32(_) => self.values.push(Some(CheckedValue::value(Type::I32))),
@@ -2860,6 +2868,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     ExprKind::Float32(_) => self.values.push(Some(CheckedValue::value(Type::F32))),
                     ExprKind::Float64(_) => self.values.push(Some(CheckedValue::value(Type::F64))),
                     ExprKind::Bool(_) => self.values.push(Some(CheckedValue::value(Type::Bool))),
+                    ExprKind::String(_) => {
+                        self.values.push(Some(CheckedValue::value(Type::String)))
+                    }
                     ExprKind::Var(name) if name == "result" => {
                         let value = self.result_type.map(|ty| {
                             CheckedValue::returned(ty.clone(), self.types.contains_resource(ty))
@@ -3483,6 +3494,20 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             self.program,
                             "SPX-T208",
                             format!("operator `{}` expects i64 operands", op.text()),
+                            expression.span,
+                        ));
+                    }
+                    if !native_unit
+                        && !matches!(op, BinaryOp::Eq | BinaryOp::Ne)
+                        && (left_value.as_ref().is_some_and(|value| value.ty == Type::String)
+                            || right_value
+                                .as_ref()
+                                .is_some_and(|value| value.ty == Type::String))
+                    {
+                        self.diagnostics.push(error(
+                            self.program,
+                            "SPX-T250",
+                            format!("operator `{}` does not support string operands", op.text()),
                             expression.span,
                         ));
                     }
@@ -5094,6 +5119,7 @@ fn check_expr(
         ExprKind::Float32(_) => Some(CheckedValue::value(Type::F32)),
         ExprKind::Float64(_) => Some(CheckedValue::value(Type::F64)),
         ExprKind::Bool(_) => Some(CheckedValue::value(Type::Bool)),
+        ExprKind::String(_) => Some(CheckedValue::value(Type::String)),
         ExprKind::Var(name) if name == "result" => result_type
             .map(|ty| CheckedValue::returned(ty.clone(), types.contains_resource(ty)))
             .or_else(|| {
@@ -5500,6 +5526,20 @@ fn check_expr(
                     expr.span,
                 ));
             }
+            if !native_unit_operand
+                && !matches!(op, BinaryOp::Eq | BinaryOp::Ne)
+                && (left_ty.as_ref().is_some_and(|value: &CheckedValue| value.ty == Type::String)
+                    || right_ty
+                        .as_ref()
+                        .is_some_and(|value: &CheckedValue| value.ty == Type::String))
+            {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T250",
+                    format!("operator `{}` does not support string operands", op.text()),
+                    expr.span,
+                ));
+            }
             let (expected, output) = match op {
                 BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem => {
                     let expected = left_numeric
@@ -5890,6 +5930,7 @@ fn check_expr(
                 | Type::F32
                 | Type::F64
                 | Type::Bool
+                | Type::String
                 | Type::Named { .. } => None,
             });
             let variant_name = variant_instance.as_ref().map(|(name, _)| name.clone());

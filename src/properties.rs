@@ -951,6 +951,7 @@ impl ScalarKind {
             | Type::Char
             | Type::F32
             | Type::F64
+            | Type::String
             | Type::Named { .. } => unreachable!(
                 "ScalarKind::of called for unsupported type `{:?}`; admitted scalars are only i64 and bool",
                 ty
@@ -968,6 +969,7 @@ fn scalar_type_text(ty: &Type) -> &'static str {
         | Type::Char
         | Type::F32
         | Type::F64
+        | Type::String
         | Type::Named { .. } => unreachable!(
             "scalar_type_text called for unsupported type `{:?}`; admitted scalars are only i64 and bool",
             ty

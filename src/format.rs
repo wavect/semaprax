@@ -2,6 +2,7 @@ use crate::ast::{
     BinaryOp, Expr, ExprKind, ImportFailure, MatchPattern, ModuleUseKind, Program,
     ResourceLifecycleKind, Statement, TypeDeclarationKind, UnaryOp,
 };
+use std::fmt::Write as _;
 
 /// Canonical `f64` literal text: shortest round-trip decimal that always
 /// re-parses as a floating-point literal (it keeps a fraction or exponent).
@@ -64,6 +65,9 @@ pub(crate) fn canonical_string(value: &str) -> String {
             '\n' => text.push_str("\\n"),
             '\r' => text.push_str("\\r"),
             '\t' => text.push_str("\\t"),
+            _ if (ch as u32) < 0x20 || ch == '\u{7f}' => {
+                write!(text, "\\u{{{:x}}}", ch as u32).expect("writing to String cannot fail");
+            }
             _ => text.push(ch),
         }
     }
@@ -79,6 +83,9 @@ fn write_string_escaped(output: &mut impl std::fmt::Write, value: &str) {
             '\n' => output.write_str("\\n").unwrap(),
             '\r' => output.write_str("\\r").unwrap(),
             '\t' => output.write_str("\\t").unwrap(),
+            _ if (ch as u32) < 0x20 || ch == '\u{7f}' => {
+                write!(output, "\\u{{{:x}}}", ch as u32).unwrap();
+            }
             _ => output.write_char(ch).unwrap(),
         }
     }

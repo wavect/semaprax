@@ -4914,6 +4914,7 @@ fn visit_resolved_calls(
         | hir::ResolvedExprKind::Float32(_)
         | hir::ResolvedExprKind::Float64(_)
         | hir::ResolvedExprKind::Bool(_)
+        | hir::ResolvedExprKind::String(_)
         | hir::ResolvedExprKind::Place(_) => {}
     }
 }
@@ -5435,6 +5436,7 @@ fn collect_resolved_expression_type_sites(
         | hir::ResolvedExprKind::Float32(_)
         | hir::ResolvedExprKind::Float64(_)
         | hir::ResolvedExprKind::Bool(_)
+        | hir::ResolvedExprKind::String(_)
         | hir::ResolvedExprKind::Place(_) => {}
     }
     Ok(())

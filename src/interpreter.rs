@@ -627,11 +627,12 @@ fn child_expressions(expression: &ResolvedExpr) -> Vec<&ResolvedExpr> {
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
         | ResolvedExprKind::Place(_) => Vec::new(),
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 enum Value {
     Int(i64),
     Int32(i32),
@@ -640,6 +641,7 @@ enum Value {
     Float32(f32),
     Float64(f64),
     Bool(bool),
+    String(String),
 }
 
 enum Flow {
@@ -713,7 +715,7 @@ impl Evaluator<'_> {
             .iter()
             .rev()
             .find(|(key, _)| key == root)
-            .map(|(_, value)| *value)
+            .map(|(_, value)| value.clone())
     }
 
     fn evaluate_entry(
@@ -757,7 +759,7 @@ impl Evaluator<'_> {
             }
         }
         let value = self.evaluate(&function.body, &mut frame, depth)?;
-        frame.push((function.result_id.clone(), value));
+        frame.push((function.result_id.clone(), value.clone()));
         for clause in &function.ensures {
             self.charge().ok_or(Flow::Exhausted)?;
             match self.evaluate(clause, &mut frame, depth)? {
@@ -786,6 +788,7 @@ impl Evaluator<'_> {
             ResolvedExprKind::Float32(bits) => Ok(Value::Float32(f32::from_bits(*bits))),
             ResolvedExprKind::Float64(bits) => Ok(Value::Float64(f64::from_bits(*bits))),
             ResolvedExprKind::Bool(value) => Ok(Value::Bool(*value)),
+            ResolvedExprKind::String(value) => Ok(Value::String(value.clone())),
             ResolvedExprKind::Place(place) => {
                 if !place.projections.is_empty() {
                     return Err(Flow::Guard("scalar profile has no place projections"));
@@ -1055,6 +1058,13 @@ fn combine(op: BinaryOp, lhs: Value, rhs: Value) -> Option<Result<Value, Normali
             _ => float_ordered(op, a.partial_cmp(&b), a == b).map(Ok),
         },
         (Value::Bool(a), Value::Bool(b)) => match op {
+            BinaryOp::Eq => Some(Ok(Value::Bool(a == b))),
+            BinaryOp::Ne => Some(Ok(Value::Bool(a != b))),
+            _ => None,
+        },
+        // Owned strings compare by exact UTF-8 contents; any other operator
+        // over strings is ill-typed on verified programs.
+        (Value::String(a), Value::String(b)) => match op {
             BinaryOp::Eq => Some(Ok(Value::Bool(a == b))),
             BinaryOp::Ne => Some(Ok(Value::Bool(a != b))),
             _ => None,

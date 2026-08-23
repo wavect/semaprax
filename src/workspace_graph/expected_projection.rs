@@ -1186,7 +1186,8 @@ fn default_expr(
         Type::U8 => ExprKind::Uint8(0),
         Type::F32 => ExprKind::Float32(0),
         Type::F64 => ExprKind::Float64(0),
-        Type::Bool | Type::String => ExprKind::Bool(false),
+        Type::Bool => ExprKind::Bool(false),
+        Type::String => ExprKind::String(String::new()),
         Type::Named { name, arguments } if arguments.is_empty() => {
             let declaration = declarations
                 .binary_search_by_key(&name.as_str(), |(name, _)| *name)

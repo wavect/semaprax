@@ -494,6 +494,7 @@ fn collect_expr_variant_types(
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
         | ResolvedExprKind::Place(_) => {}
     }
     Ok(())

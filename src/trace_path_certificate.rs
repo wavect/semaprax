@@ -296,7 +296,8 @@ pub fn build_trace_path_certificate(
                             | ResolvedType::U8
                             | ResolvedType::F32
                             | ResolvedType::F64
-                            | ResolvedType::Bool => TracePathOutcome::ScalarSuccess,
+                            | ResolvedType::Bool
+                            | ResolvedType::String => TracePathOutcome::ScalarSuccess,
                             ResolvedType::Nominal { .. } => TracePathOutcome::OwnedSuccess,
                             ResolvedType::TypeParameter { .. } => {
                                 return Err(certificate_error(

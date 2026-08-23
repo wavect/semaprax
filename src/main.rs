@@ -4,11 +4,11 @@ use std::process::{Command, ExitCode};
 use semaprax::diagnostic::{Diagnostic, Severity};
 use semaprax::{
     abi_report, agent_economics, agent_transport, c_header, capability_manifest, codegen, cxx_shim,
-    format, freestanding_object, graph, hygienic, impact, openapi, package_report, parse, patch,
-    patch_evidence, project, properties, quality_route, repair, review, semantic_workspace,
-    semantic_workspace_change, semantic_workspace_operations, semantic_workspace_structural_change,
-    target_evidence, ui_schema, verify, wasm, workspace, workspace_analysis, workspace_graph,
-    workspace_patch_evidence,
+    format, freestanding_object, graph, hygienic, impact, interpreter, openapi, package_report,
+    parse, patch, patch_evidence, project, properties, quality_route, repair, review,
+    semantic_workspace, semantic_workspace_change, semantic_workspace_operations,
+    semantic_workspace_structural_change, target_evidence, ui_schema, verify, wasm, workspace,
+    workspace_analysis, workspace_graph, workspace_patch_evidence,
 };
 
 fn main() -> ExitCode {
@@ -662,6 +662,18 @@ fn run(args: Vec<String>) -> Result<(), u8> {
                 .map_err(|errors| report(&errors, false))?;
             println!("{envelope}");
             Ok(())
+        }
+        "interpret" => {
+            let path = required_path(&args, 1)?;
+            let (function, arguments, options) = interpret_options(&args)?;
+            let interpretation = interpreter::interpret(&path, &function, &arguments, &options)
+                .map_err(|errors| report(&errors, false))?;
+            println!("{}", interpretation.envelope);
+            if interpretation.returned {
+                Ok(())
+            } else {
+                Err(1)
+            }
         }
         "ui-schema" => {
             let path = required_path(&args, 1)?;
@@ -1417,6 +1429,73 @@ fn package_report_options(args: &[String]) -> Result<package_report::PackageRepo
     })
 }
 
+fn interpret_options(
+    args: &[String],
+) -> Result<(String, Vec<String>, interpreter::InterpreterOptions), u8> {
+    let mut function = None;
+    let mut arguments = Vec::new();
+    let mut options = interpreter::InterpreterOptions::default();
+    let mut seen = std::collections::BTreeSet::new();
+    let mut index = 2usize;
+    while index < args.len() {
+        let option = args[index].as_str();
+        match option {
+            "--function" => {
+                if !seen.insert(option.to_owned()) {
+                    eprintln!("duplicate interpret option `{option}`");
+                    return Err(2);
+                }
+                let value = args.get(index + 1).ok_or_else(|| {
+                    eprintln!("interpret option `{option}` requires a value");
+                    2
+                })?;
+                if value.is_empty() {
+                    eprintln!("interpret option `{option}` requires a function name or stable id");
+                    return Err(2);
+                }
+                function = Some(value.clone());
+            }
+            "--arg" => {
+                let value = args.get(index + 1).ok_or_else(|| {
+                    eprintln!("interpret option `{option}` requires a value");
+                    2
+                })?;
+                if value.is_empty() {
+                    eprintln!("interpret option `{option}` requires an i64 or bool literal");
+                    return Err(2);
+                }
+                arguments.push(value.clone());
+            }
+            "--max-bytes" => {
+                if !seen.insert(option.to_owned()) {
+                    eprintln!("duplicate interpret option `{option}`");
+                    return Err(2);
+                }
+                let value = args.get(index + 1).ok_or_else(|| {
+                    eprintln!("interpret option `{option}` requires a value");
+                    2
+                })?;
+                options.max_bytes = property_number(option, value)?;
+            }
+            other => {
+                eprintln!("unknown interpret option `{other}`");
+                return Err(2);
+            }
+        }
+        index += 2;
+    }
+    let Some(function) = function else {
+        eprintln!("interpret requires --function <name|stable-id>");
+        return Err(2);
+    };
+    let options = interpreter::InterpreterOptions::new(options.max_bytes, options.max_steps)
+        .map_err(|error| {
+            eprintln!("{error}");
+            2
+        })?;
+    Ok((function, arguments, options))
+}
+
 fn ui_schema_options(args: &[String]) -> Result<ui_schema::UiSchemaOptions, u8> {
     let mut max_bytes = ui_schema::UiSchemaOptions::default().max_bytes;
     let mut seen = std::collections::BTreeSet::new();
@@ -1971,6 +2050,7 @@ fn print_help() {
             semaprax abi-report <file> --function name|stable-id[,...] [--function ...] [--max-bytes N]\n\
              semaprax capability-manifest <file> [--max-bytes N]\n\
              semaprax package-report <file> [--max-bytes N]\n\
+            semaprax interpret <file> --function <name|stable-id> [--arg <i64|bool literal>]... [--max-bytes N]\n\
              semaprax ui-schema <file> [--max-bytes N]\n\
             semaprax cxx-shim <file> --function name|stable-id[,...] [--function ...] [--max-bytes N] [--emit-fragment]\n\
            semaprax review <file> <patch.spatch>\n\

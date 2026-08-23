@@ -1,5 +1,37 @@
 # Changelog
 
+- Added the locally evidenced Reference Interpreter v1 tranche, the first
+  executable slice of the completion-matrix row "Fast development lane". The
+  new `semaprax interpret <file> --function <name|stable-id> [--arg
+  <i64|bool literal>]... [--max-bytes N]` command and `interpreter` library
+  API evaluate ONE explicitly selected explicit-ID monomorphic effect-free
+  scalar function directly from verified HIR of one verified module — no
+  backend toolchain, no code generation, no target execution — under a
+  closed admission profile (explicit identity, monomorphic, effect-free,
+  by-value direct `i64`/`bool` boundary signature for the selected function
+  and every reachable callee) covering the admitted scalar surface:
+  Explicit Mutation v1 `let mut`/assignment, blocks, `if`, lazy `&&`/`||`,
+  strict left-to-right evaluation with sticky first-failure selection,
+  checked `i64`/`i32`/`u8` arithmetic reusing the compiler's exact
+  `runtime_status` table, total IEEE-754 `f32`/`f64`, char/u8/i32 locals,
+  requires/ensures contracts with `result` binding, and admitted calls
+  including bounded recursion. The deterministic canonical
+  `semaprax.interpret.v1` envelope reports the returned value or the exact
+  normalized failure status plus fuel accounting (steps used versus budget;
+  exhaustion is a fail-closed capacity outcome, never a language status),
+  the fixed call-depth ceiling, argument echo, source digest, and fixed
+  nonclaims; `verify_envelope` independently replays bytes, shapes,
+  grammars, fuel invariants, closed vocabularies, and exact compiler-owned
+  status reconstruction, and `verify_envelope_against_source` fails closed
+  on drift. Diagnostics use the previously unused `SPX-F1xx` family.
+  `tests/interpreter_v1.rs` proves a 28-row corpus produces byte-identical
+  result/status transcripts across the interpreter, native C11 O0/O2, and
+  Node/Wasm (full scalar surface versus native; the whole-program
+  web-profile subset versus all three), plus pinned golden/fuel KAT digests,
+  determinism, every admission reason, argument diagnostics, per-field
+  tamper rejection including re-signed forgeries, drift binding, and CLI
+  exit codes. No JIT/AOT/Cranelift, incremental persistence, hot reload,
+  debugger mapping, or target execution is claimed.
 - Added the locally evidenced Interface Package Report v1 tranche, the first
   executable slice of the completion-matrix row "Interface-first packages and
   target matrices". The new read-only `semaprax package-report <file>

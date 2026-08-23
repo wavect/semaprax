@@ -1,5 +1,27 @@
 # Changelog
 
+- Added the String + Object-Oriented Types large-implementation tranche
+  (branch `feat/string-oo-types`, worktree `.agent-worktrees/string-oo`):
+  - Owned heap `string` value type end-to-end — `"…"` literals with canonical
+    escaping, `Type::String`/`ResolvedType::String` (copy=false,
+    needs_drop=true, `owned:string` facts), move/borrow ownership, cleanup
+    plans, graph nodes, deterministic canonical round-trip, native C11 O0/O2,
+    browser/Wasm, and interpreter equivalence with pinned KATs in
+    `tests/string_scalars.rs` (`examples/strings.spx`). String arithmetic and
+    concatenation are rejected fail-closed until the allocation tranche.
+  - `class` declarations with fields, methods, construction, and static
+    method dispatch end-to-end — canonical projection, additive graph nodes,
+    Native64/Wasm32 sequential layouts, native+Wasm lowering, and
+    `tests/class_declarations_v1.rs` (`examples/classes.spx`). Inheritance
+    syntax is rejected fail-closed with a stable diagnostic until Badge 4.
+  - `protocol` declarations + read-only Protocol Projection v1 —
+    `semaprax protocol-check <file>` emits one digest-authenticated canonical
+    envelope; conformance stays explicitly empty; program-graph schema stays
+    v10–v14 with protocol nodes explicitly deferred;
+    `tests/protocol_projection_v1.rs`.
+  - Frozen workspace/workspace-graph KAT digests are re-pinned for the honest
+    builder-bytes growth caused by the new AST/HIR variants; all other bytes
+    stay byte-identical for programs without the new syntax.
 - Added the locally evidenced Region Structure Report v1 tranche, the first
   executable slice of the completion-matrix row "Regions/arenas", moving that
   row from Missing to Partial. The new read-only

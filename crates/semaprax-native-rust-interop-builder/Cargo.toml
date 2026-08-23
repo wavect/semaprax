@@ -2,7 +2,7 @@
 name = "semaprax-native-rust-interop"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.85"
+rust-version = "1.88"
 publish = false
 description = "Bounded Native Rust SDK builder for SEMAPRAX"
 license = "Apache-2.0"

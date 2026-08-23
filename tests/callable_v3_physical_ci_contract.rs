@@ -102,7 +102,7 @@ fn private_callable_v3_physical_ci_evidence_is_mandatory() {
         "arm64_provider_source",
         "libsemaprax_android_v3_arm64.so",
         "grep -F 'AArch64'",
-        "libloading v0.8.9",
+        "libloading v0.9.0",
         "--lib --crate-type staticlib",
         "-fPIC -shared",
         "llvm-readelf",

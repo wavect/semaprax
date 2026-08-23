@@ -53,7 +53,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
         with:
-          toolchain: "1.85"
+          toolchain: "1.88"
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
@@ -100,7 +100,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
         with:
-          toolchain: "1.85"
+          toolchain: "1.88"
       - name: Require project CLI manifest selection and rejection before publication
         run: cargo test --locked -p semaprax --all-features --test project_cli_v1 -- --test-threads=1
       - name: Require canonical project manifest and linked-HIR closure admission
@@ -118,7 +118,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
         with:
-          toolchain: "1.85"
+          toolchain: "1.88"
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
@@ -536,14 +536,14 @@ jobs:
         run: scripts/verify-rust-host-asan.sh
 
   msrv:
-    name: Rust 1.85 minimum
+    name: Rust 1.88 minimum
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
         with:
-          toolchain: "1.85"
+          toolchain: "1.88"
       - name: Resolve the real held rustc image (Unix)
         shell: bash
         run: echo "RUSTC=$(rustup which rustc)" >> "$GITHUB_ENV"

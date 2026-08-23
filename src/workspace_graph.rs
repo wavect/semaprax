@@ -2467,6 +2467,7 @@ fn declaration_kind_text(kind: hir::DeclarationKind) -> &'static str {
         hir::DeclarationKind::Resource => "resource",
         hir::DeclarationKind::ResourceDrop => "resource_drop",
         hir::DeclarationKind::Record => "record",
+        hir::DeclarationKind::Class => "class",
         hir::DeclarationKind::Field => "field",
         hir::DeclarationKind::Variant => "variant",
         hir::DeclarationKind::VariantCase => "variant_case",
@@ -2988,7 +2989,7 @@ fn build_operation_sidecar(
         for declaration in &program.types {
             let kind = match declaration.kind {
                 TypeDeclarationKind::Resource { .. } => "resource",
-                TypeDeclarationKind::Record { .. } => "record",
+                TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. } => "record",
                 TypeDeclarationKind::Variant { .. } => "variant",
             };
             push_operation_declaration(
@@ -4395,7 +4396,7 @@ fn authenticated_declaration_fingerprints(
                         )?;
                     }
                 }
-                TypeDeclarationKind::Record { fields } => {
+                TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } => {
                     for field in fields {
                         insert_declaration_fingerprint(
                             &mut fingerprints,
@@ -4574,7 +4575,8 @@ fn validate_retained_facts(
         for declaration in &module.types {
             match &declaration.kind {
                 hir::ResolvedTypeDeclarationKind::Resource { .. } => {}
-                hir::ResolvedTypeDeclarationKind::Record { fields } => {
+                hir::ResolvedTypeDeclarationKind::Record { fields }
+                | hir::ResolvedTypeDeclarationKind::Class { fields, .. } => {
                     for (index, field) in fields.iter().enumerate() {
                         let path = crate::bounded_output::budgeted_format(format_args!(
                             "type.{}.field.{index}",
@@ -4869,6 +4871,7 @@ fn visit_resolved_calls(
             visit_resolved_calls(left, visit);
             visit_resolved_calls(right, visit);
         }
+        hir::ResolvedExprKind::String(_) => {}
         hir::ResolvedExprKind::Block { statements, tail } => {
             for statement in statements {
                 visit_resolved_calls(statement.value(), visit);
@@ -5239,6 +5242,7 @@ fn collect_resolved_expression_type_sites(
 ) -> Result<(), Vec<Diagnostic>> {
     let expression_id = crate::bounded_output::budgeted_format(format_args!("{}", expression.id));
     match &expression.kind {
+        hir::ResolvedExprKind::String(_) => {}
         hir::ResolvedExprKind::Call {
             type_arguments,
             args,
@@ -5550,7 +5554,9 @@ fn declaration_count(program: &Program) -> Option<usize> {
             TypeDeclarationKind::Resource { lifecycles } => {
                 count = count.checked_add(lifecycles.len())?;
             }
-            TypeDeclarationKind::Record { fields } => count = count.checked_add(fields.len())?,
+            TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } => {
+                count = count.checked_add(fields.len())?
+            }
             TypeDeclarationKind::Variant { cases } => {
                 count = count.checked_add(cases.len())?;
                 for case in cases {
@@ -5635,7 +5641,7 @@ fn index_authored(
                         }
                     }
                 }
-                TypeDeclarationKind::Record { fields } => {
+                TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } => {
                     for field in fields {
                         insert_other(&mut declarations, &field.stable_id, program)?;
                     }
@@ -5852,7 +5858,14 @@ fn validate_uses(
 
 fn type_contains_name_from(ty: &Type, names: &BTreeSet<&str>) -> bool {
     match ty {
-        Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64 | Type::Bool => false,
+        Type::I64
+        | Type::I32
+        | Type::Char
+        | Type::U8
+        | Type::F32
+        | Type::F64
+        | Type::Bool
+        | Type::String => false,
         Type::Named { name, arguments } => {
             names.contains(name.as_str())
                 || arguments
@@ -5915,7 +5928,14 @@ fn signature_type_is_admitted(
     visiting: &mut BTreeSet<String>,
 ) -> bool {
     match ty {
-        Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64 | Type::Bool => true,
+        Type::I64
+        | Type::I32
+        | Type::Char
+        | Type::U8
+        | Type::F32
+        | Type::F64
+        | Type::Bool
+        | Type::String => true,
         Type::Named { name, arguments } if arguments.is_empty() => {
             let Some(target_id) = resolve_type_id(module, name, programs) else {
                 return false;
@@ -5998,11 +6018,13 @@ fn exposed_types_are_directly_imported(
     }
     let admitted = match &declaration.kind {
         TypeDeclarationKind::Resource { .. } => return false,
-        TypeDeclarationKind::Record { fields } => fields.iter().all(|field| {
-            exposed_type_reference_is_directly_imported(
-                caller, module, &field.ty, authored, programs, visiting,
-            )
-        }),
+        TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } => {
+            fields.iter().all(|field| {
+                exposed_type_reference_is_directly_imported(
+                    caller, module, &field.ty, authored, programs, visiting,
+                )
+            })
+        }
         TypeDeclarationKind::Variant { cases } => {
             cases.iter().flat_map(|case| &case.fields).all(|field| {
                 exposed_type_reference_is_directly_imported(
@@ -6024,7 +6046,14 @@ fn exposed_type_reference_is_directly_imported(
     visiting: &mut BTreeSet<String>,
 ) -> bool {
     match ty {
-        Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64 | Type::Bool => true,
+        Type::I64
+        | Type::I32
+        | Type::Char
+        | Type::U8
+        | Type::F32
+        | Type::F64
+        | Type::Bool
+        | Type::String => true,
         Type::Named { name, arguments } if arguments.is_empty() => {
             let Some(target_id) = resolve_type_id(module, name, programs) else {
                 return false;
@@ -6067,9 +6096,11 @@ fn type_is_admitted(
     }
     let valid = match &declaration.kind {
         TypeDeclarationKind::Resource { .. } => return false,
-        TypeDeclarationKind::Record { fields } => fields.iter().all(|field| {
-            type_reference_is_admitted(module, &field.ty, authored, programs, visiting)
-        }),
+        TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } => {
+            fields.iter().all(|field| {
+                type_reference_is_admitted(module, &field.ty, authored, programs, visiting)
+            })
+        }
         TypeDeclarationKind::Variant { cases } => {
             cases.iter().flat_map(|case| &case.fields).all(|field| {
                 type_reference_is_admitted(module, &field.ty, authored, programs, visiting)
@@ -6088,7 +6119,14 @@ fn type_reference_is_admitted(
     visiting: &mut BTreeSet<String>,
 ) -> bool {
     match ty {
-        Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64 | Type::Bool => true,
+        Type::I64
+        | Type::I32
+        | Type::Char
+        | Type::U8
+        | Type::F32
+        | Type::F64
+        | Type::Bool
+        | Type::String => true,
         Type::Named { name, arguments } if arguments.is_empty() => {
             let Some(program) = programs.iter().find(|item| item.module == module) else {
                 return false;
@@ -6289,7 +6327,11 @@ fn visit_ast_call_sites(
         | ExprKind::Float32(_)
         | ExprKind::Float64(_)
         | ExprKind::Bool(_)
+        | ExprKind::String(_)
         | ExprKind::Var(_) => {}
+        // Method calls resolve to hoisted functions in HIR; the AST-level
+        // call-site walk sees them through the resolved Call edge instead.
+        ExprKind::MethodCall { .. } => {}
     }
     Ok(())
 }
@@ -6525,7 +6567,9 @@ fn expected_declaration_facts(
         for declaration in &program.types {
             let kind = match declaration.kind {
                 TypeDeclarationKind::Resource { .. } => hir::DeclarationKind::Resource,
-                TypeDeclarationKind::Record { .. } => hir::DeclarationKind::Record,
+                TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. } => {
+                    hir::DeclarationKind::Record
+                }
                 TypeDeclarationKind::Variant { .. } => hir::DeclarationKind::Variant,
             };
             insert_expected_declaration(
@@ -6559,7 +6603,7 @@ fn expected_declaration_facts(
                         Some(&declaration.stable_id),
                     )?;
                 }
-                TypeDeclarationKind::Record { fields } => {
+                TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } => {
                     for field in fields {
                         insert_expected_declaration(
                             &mut facts,
@@ -6634,7 +6678,9 @@ fn expected_compiler_declaration_facts(
     let mut facts = BTreeMap::new();
     for declaration in prelude::declarations() {
         let kind = match &declaration.kind {
-            TypeDeclarationKind::Record { .. } => hir::DeclarationKind::Record,
+            TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. } => {
+                hir::DeclarationKind::Record
+            }
             TypeDeclarationKind::Variant { .. } => hir::DeclarationKind::Variant,
             TypeDeclarationKind::Resource { .. } => {
                 return Err(vec![graph_error(
@@ -6645,7 +6691,7 @@ fn expected_compiler_declaration_facts(
         };
         insert_expected_compiler_declaration(&mut facts, &declaration.stable_id, kind, None)?;
         match &declaration.kind {
-            TypeDeclarationKind::Record { fields } => {
+            TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } => {
                 for field in fields {
                     insert_expected_compiler_declaration(
                         &mut facts,
@@ -6748,7 +6794,8 @@ fn validate_retained_declaration_shapes(
         for declaration in &module.types {
             let kind = match &declaration.kind {
                 hir::ResolvedTypeDeclarationKind::Resource { .. } => hir::DeclarationKind::Resource,
-                hir::ResolvedTypeDeclarationKind::Record { .. } => hir::DeclarationKind::Record,
+                hir::ResolvedTypeDeclarationKind::Record { .. }
+                | hir::ResolvedTypeDeclarationKind::Class { .. } => hir::DeclarationKind::Record,
                 hir::ResolvedTypeDeclarationKind::Variant { .. } => hir::DeclarationKind::Variant,
             };
             require_retained_shape_fact(
@@ -6770,7 +6817,8 @@ fn validate_retained_declaration_shapes(
                         &mut seen,
                     )?;
                 }
-                hir::ResolvedTypeDeclarationKind::Record { fields } => {
+                hir::ResolvedTypeDeclarationKind::Record { fields }
+                | hir::ResolvedTypeDeclarationKind::Class { fields, .. } => {
                     for field in fields {
                         require_retained_shape_fact(
                             facts,
@@ -9624,7 +9672,7 @@ module graph.v14;
             );
             assert_eq!(
                 document_sha,
-                "sha256:b2e79130cf6eeef51251cbe83dd9c2918cad9b13a5d17514242b624ebe69814b"
+                "sha256:4ed737683a267723cd2f0960ac9806bb0c202f17b6dd5838a78373029f553316"
             );
             assert!(json.starts_with(
                 "{\"schema\":\"semaprax.workspace-semantic-graph.v1\",\"workspace_manifest_schema\":\"semaprax.workspace-semantic-manifest.v1\",\"workspace_revision\":\"sha256:workspace\",\"graph_digest\":\"sha256:"

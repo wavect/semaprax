@@ -1717,7 +1717,7 @@ const fn declaration_kind_rank(kind: DeclarationKind) -> usize {
     match kind {
         DeclarationKind::Resource => 0,
         DeclarationKind::ResourceDrop => 1,
-        DeclarationKind::Record => 2,
+        DeclarationKind::Record | DeclarationKind::Class => 2,
         DeclarationKind::Field => 3,
         DeclarationKind::Variant => 4,
         DeclarationKind::VariantCase => 5,
@@ -2046,6 +2046,7 @@ fn declaration_kind_text(kind: DeclarationKind) -> &'static str {
         DeclarationKind::Resource => "resource",
         DeclarationKind::ResourceDrop => "resource_drop",
         DeclarationKind::Record => "record",
+        DeclarationKind::Class => "class",
         DeclarationKind::Field => "field",
         DeclarationKind::Variant => "variant",
         DeclarationKind::VariantCase => "variant_case",
@@ -4280,10 +4281,10 @@ fn main() -> i64 uses { collision.same } {
                 .each_ref()
                 .map(|artifact| document_sha(&artifact.json)),
             [
-                "sha256:3def718651783123abf94293a0d569c58ce5c88e16c412961ebd19ea496cb8b5",
-                "sha256:142b9f4944775816a9e5dea2f5d727dfcaa962f50bf4b25351ed044dae45ade0",
-                "sha256:b82dc6ed8ea68251d7b91645456a4ce41d464698037e59c8e8463bc5b9ee86ba",
-                "sha256:69f8872e210c4d3d75fdcf5fd23d98f84e1fe5571f5aef01a7b7750481a68e46"
+                "sha256:00829c371ed32631eafa2e2a95571ac53528335e9cec951360276499e8c2b646",
+                "sha256:4f8082fa68699f12b57b92b2383188215dd0f3275404472ffeb4d10e6ebfd6e2",
+                "sha256:2a7867e3c2873e95376caf9487011d4ef9cb99e3b259cfe8c484394f2aaffa88",
+                "sha256:148779457470709328b5bcdfb6e3d3ca8ebdd67fcebdd1289e00d15402f3947e"
             ]
         );
         for artifact in &contexts {
@@ -4340,8 +4341,8 @@ fn main() -> i64 uses { collision.same } {
                 .each_ref()
                 .map(|artifact| document_sha(&artifact.json)),
             [
-                "sha256:ca2f59b690bf4ff19fff27b9814fcfcbf33712b597f85a25697f0857a12491fe",
-                "sha256:3c51f9e782d61da2c332be1777acc663b38e9f887e3ef2e3413d1060e52570b8",
+                "sha256:d6c439fc21e47721f1a1728ce861b3380522422869fbd7cf9e3f3bac0de9fc1c",
+                "sha256:783b08cfebcf8281ac071b2286ac9d05dfca7a48a2f4c5a15fce595ac2613da9",
             ]
         );
         let declaration_impact: serde_json::Value = serde_json::from_str(&impacts[0].json).unwrap();
@@ -4476,7 +4477,7 @@ fn main() -> i64 uses { collision.same } {
         let review = analysis.render_review(declaration_target.clone()).unwrap();
         assert_eq!(
             document_sha(&review.json),
-            "sha256:129ef2b3ce9e5c93917ac18091a1037dad0ee634e180fe2188be96c4e1f62c91"
+            "sha256:aa0c86d45357cb6d58e003b0c681f41d91f446e88d14f02757204e8907a06fd7"
         );
         let direct_context = analysis
             .render_context(

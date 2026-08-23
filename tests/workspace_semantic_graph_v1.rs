@@ -473,7 +473,7 @@ fn public_api_cli_bytes_getters_and_read_only_locking_are_exact() {
     );
     assert_eq!(
         document_digest(graph.to_json().as_bytes()),
-        "sha256:0648f365509e0a03c1659a00f1a36bc03d7ab8004b617c0d3a010a2c97050e8d"
+        "sha256:dfbc55b10ac267899c9f2ab7cc6126c37e79b34aff5e25612ca9882335b25767"
     );
 
     let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
@@ -887,14 +887,14 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
             document_digest(capability_review.as_bytes()),
         ],
         [
-            "sha256:d879830789d1c25ee3c78eb7e6cc08fe9d69c259d2e1f5987f5d3d767d206c58",
-            "sha256:48c5e4da460d29aa63651e9bb6e921ae7716e90417d6552e78240e1472db0700",
-            "sha256:8874b5ef95dee584b71b46b733a305e41f12cf99ed3a9e85587c7fba66a981ca",
-            "sha256:b7600eaad24dcc3736d85187aab5ba28d1c3a9fbbb681f129676c4740c42f638",
-            "sha256:12c59d083f1a725d7448fa901712ff7bc11f4b22fc5ccec1382da2cd65dc9dd3",
-            "sha256:ac1ad2b738db7805982d94697e9d214837f78834a790b1b5c8836ae56285b312",
-            "sha256:a1f1c64acb00185a5e7c5b106d03dae489021725b9192fc8f82542e4010f93f6",
-            "sha256:2170b888cba1c16a3e7d66db17bb469a9ef6118e49b73dabc215cbbfe7c6a8ed",
+            "sha256:1a0c7c8208d6d24a823498e3cfd4cd0ce1c951b79c893e03a51dc48c7c71738b",
+            "sha256:c4bb4ed40cac3792e2cc1bf82160459e2b7554d77b9a71588799f8d38fd3bf01",
+            "sha256:0d3b47877deb2160904053808234efb84007914afa6218ac03c6eb758d35a699",
+            "sha256:e68f58e68db4d741dca010e33a9f71862ac752b4e8b21d7ea9ff16c3d28456f3",
+            "sha256:de814a8467d71ee8866e12c432d527860c318b7c34e223aeec43f70210fee2a4",
+            "sha256:0466c1a8b6d1f1a816c6a6a09879efb0f655719aa8733fa105b1739e6fdb6032",
+            "sha256:c34ca5dfaa8f03a93efa823680ed72bcdb9bccdb609f8714b00809f39f254286",
+            "sha256:84e23f800991d8311366e759ec02303f7a4411ddb1635337fd562b94f316a487",
         ]
     );
 

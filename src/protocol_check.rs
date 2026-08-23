@@ -299,7 +299,7 @@ pub fn validate_program(program: &Program) -> Result<(), Diagnostic> {
                     }
                 }
             }
-            TypeDeclarationKind::Record { fields } => {
+            TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } => {
                 for field in fields {
                     ids.insert(field.stable_id.as_str());
                 }
@@ -387,6 +387,11 @@ fn check_type(
         Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64 | Type::Bool => {
             Ok(())
         }
+        Type::String => Err(signature_error(
+            &protocol.name,
+            &method.name,
+            "`string` parameters and results are outside Protocol Projection v1".to_owned(),
+        )),
         Type::Named { name, arguments } => {
             if !arguments.is_empty() {
                 return Err(signature_error(

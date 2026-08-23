@@ -48,6 +48,7 @@ mod private_capacity_contract;
 pub mod project;
 pub mod properties;
 pub mod quality_route;
+pub mod region_report;
 pub mod repair;
 pub mod review;
 pub mod runtime_status;

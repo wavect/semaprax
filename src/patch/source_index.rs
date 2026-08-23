@@ -38,7 +38,8 @@ impl SemanticSourceIndex {
         let mut index = Self::default();
         for declaration in &program.types {
             match &declaration.kind {
-                TypeDeclarationKind::Record { fields } => {
+                TypeDeclarationKind::Record { fields }
+                | TypeDeclarationKind::Class { fields, .. } => {
                     for field in fields {
                         index.member(
                             &declaration.stable_id,

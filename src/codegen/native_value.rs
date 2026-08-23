@@ -184,6 +184,11 @@ pub(crate) fn plan(
                 "non-i64 scalar result is outside the staged single-frame value corpus",
             ));
         }
+        ResolvedType::String => {
+            return Err(value_error(
+                "string result is outside the staged single-frame value corpus",
+            ));
+        }
         ResolvedType::I64 => {
             let result = planner.new_scalar(&function.body.id, "int64_t")?;
             planner.push(NativeValueStep::Copy {
@@ -977,6 +982,11 @@ fn validate_signature(
                     "non-i64 scalar parameter is outside the staged single-frame value corpus",
                 ));
             }
+            ResolvedType::String => {
+                return Err(value_error(
+                    "string parameter is outside the staged single-frame value corpus",
+                ));
+            }
             ResolvedType::I64 | ResolvedType::Bool => {
                 if parameter.ownership != OwnershipMode::Value {
                     return Err(value_error("scalar parameter is not passed by value"));
@@ -1018,6 +1028,7 @@ fn validate_signature(
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool
+        | ResolvedType::String
         | ResolvedType::TypeParameter { .. }
         | ResolvedType::Nominal { .. } => {
             Err(value_error("result type is outside the staged corpus"))
@@ -1043,7 +1054,7 @@ fn require_trivial_resource(
         ResolvedTypeDeclarationKind::Resource { .. } => {
             Err(value_error("imported resource lifecycle is not staged"))
         }
-        ResolvedTypeDeclarationKind::Record { .. } => {
+        ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. } => {
             Err(value_error("record type is outside the staged corpus"))
         }
         ResolvedTypeDeclarationKind::Variant { .. } => {

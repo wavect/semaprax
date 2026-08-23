@@ -225,6 +225,9 @@ fn layout_type(
             let (size, align) = scalar_size_align(target, ty)?;
             scalar_layout(target, ty, size, align)
         }
+        ResolvedType::String => Err(layout_error(
+            "owned string values have no aggregate value layout in v1",
+        )),
         ResolvedType::TypeParameter { .. } => Err(layout_error(
             "generic aggregate layouts are outside executable records v1",
         )),
@@ -309,7 +312,7 @@ fn layout_nominal(
                 kind: ValueLayoutKind::Resource,
             })
         }
-        ResolvedTypeDeclarationKind::Record { fields } => {
+        ResolvedTypeDeclarationKind::Record { fields } | ResolvedTypeDeclarationKind::Class { fields, .. } => {
             if arguments.len() != item.type_parameters.len()
                 || arguments
                     .iter()
@@ -438,7 +441,7 @@ fn collect_record_type(
         collect_record_type(program, argument, instances)?;
     }
     let item = unique_type(program, declaration)?;
-    if let ResolvedTypeDeclarationKind::Record { fields } = &item.kind {
+    if let ResolvedTypeDeclarationKind::Record { fields } | ResolvedTypeDeclarationKind::Class { fields, .. } = &item.kind {
         if instances.insert(ty.clone()) {
             for field in fields {
                 let field_ty = crate::hir::substitute_type(&field.ty, declaration, arguments)?;
@@ -529,6 +532,7 @@ fn collect_expr_record_types(
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
         | ResolvedExprKind::Place(_) => {}
     }
     Ok(())

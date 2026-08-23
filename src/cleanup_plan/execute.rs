@@ -238,7 +238,7 @@ fn validate_public_result_type(
             Ok(())
         }
         Some(
-            ResolvedTypeDeclarationKind::Record { .. }
+            ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. }
             | ResolvedTypeDeclarationKind::Variant { .. },
         )
         | None => Err(CleanupExecutionError::UnsupportedResultType(
@@ -264,6 +264,7 @@ fn collect_variant_domains(
             | hir::ResolvedExprKind::Float32(_)
             | hir::ResolvedExprKind::Float64(_)
             | hir::ResolvedExprKind::Bool(_)
+            | hir::ResolvedExprKind::String(_)
             | hir::ResolvedExprKind::Place(_) => {}
             hir::ResolvedExprKind::Call { args, .. } => {
                 for argument in args {
@@ -326,7 +327,7 @@ fn collect_variant_domains(
                     .and_then(|item| match &item.kind {
                         ResolvedTypeDeclarationKind::Variant { cases } => Some(cases),
                         ResolvedTypeDeclarationKind::Resource { .. }
-                        | ResolvedTypeDeclarationKind::Record { .. } => None,
+                        | ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. } => None,
                     })
                     .ok_or_else(|| {
                         invariant(format!(
@@ -375,7 +376,7 @@ fn collect_variant_domains(
                     .and_then(|item| match &item.kind {
                         ResolvedTypeDeclarationKind::Variant { cases } => Some(cases),
                         ResolvedTypeDeclarationKind::Resource { .. }
-                        | ResolvedTypeDeclarationKind::Record { .. } => None,
+                        | ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. } => None,
                     })
                     .ok_or_else(|| {
                         invariant(format!(
@@ -661,6 +662,7 @@ fn find_expression_by<'a>(
         | hir::ResolvedExprKind::Float32(_)
         | hir::ResolvedExprKind::Float64(_)
         | hir::ResolvedExprKind::Bool(_)
+        | hir::ResolvedExprKind::String(_)
         | hir::ResolvedExprKind::Place(_) => None,
     }
 }
@@ -1260,8 +1262,9 @@ impl<'a> Executor<'a> {
             }
             (CleanupResultSource::Scalar { .. }, ResolvedType::Nominal { .. })
             | (CleanupResultSource::Scalar { .. }, ResolvedType::Unit)
+            | (CleanupResultSource::Scalar { .. }, ResolvedType::String)
             | (CleanupResultSource::Owned { .. }, ResolvedType::Unit)
-            | (
+            |             (
                 CleanupResultSource::Owned { .. },
                 ResolvedType::I64
                 | ResolvedType::I32
@@ -1269,7 +1272,8 @@ impl<'a> Executor<'a> {
                 | ResolvedType::U8
                 | ResolvedType::F32
                 | ResolvedType::F64
-                | ResolvedType::Bool,
+                | ResolvedType::Bool
+                | ResolvedType::String,
             )
             | (_, ResolvedType::TypeParameter { .. }) => false,
         };

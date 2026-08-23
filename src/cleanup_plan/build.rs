@@ -342,6 +342,7 @@ fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize {
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool => 0,
+        ResolvedType::String => 0,
         ResolvedType::TypeParameter { owner, .. } => owner.as_str().len(),
         ResolvedType::Nominal {
             declaration,
@@ -743,11 +744,15 @@ impl<'a> PlanBuilder<'a> {
     }
 
     fn needs_drop(&self, ty: &ResolvedType) -> Result<bool, Diagnostic> {
-        self.program
+        // Owned strings free their heap buffer inline in each backend; they
+        // never join the resource-lifecycle cleanup plan.
+        Ok(self
+            .program
             .declarations
             .type_facts(ty)
             .map(|facts| facts.needs_drop)
-            .ok_or_else(|| plan_error(format!("type `{}` has no cleanup facts", ty.identity_key())))
+            .ok_or_else(|| plan_error(format!("type `{}` has no cleanup facts", ty.identity_key())))?
+            && !matches!(ty, ResolvedType::String))
     }
 
     fn assign_slot(
@@ -841,7 +846,7 @@ impl<'a> PlanBuilder<'a> {
                     lifecycle: drop.id.clone(),
                 })
             }
-            ResolvedTypeDeclarationKind::Record { fields } => {
+            ResolvedTypeDeclarationKind::Record { fields } | ResolvedTypeDeclarationKind::Class { fields, .. } => {
                 let mut shapes = Vec::with_capacity(fields.len());
                 for field in fields {
                     projections.push(field.id.clone());
@@ -1943,7 +1948,8 @@ impl<'a> PlanBuilder<'a> {
                     | ResolvedExprKind::Uint8(_)
                     | ResolvedExprKind::Float32(_)
                     | ResolvedExprKind::Float64(_)
-                    | ResolvedExprKind::Bool(_) => results.push(EvalResult {
+                    | ResolvedExprKind::Bool(_)
+                    | ResolvedExprKind::String(_) => results.push(EvalResult {
                         block,
                         state,
                         owned_source: None,
@@ -2919,6 +2925,7 @@ impl<'a> PlanBuilder<'a> {
                         | ResolvedType::F32
                         | ResolvedType::F64
                         | ResolvedType::Bool
+                        | ResolvedType::String
                         | ResolvedType::TypeParameter { .. } => false,
                     };
                     if is_record {
@@ -3292,7 +3299,8 @@ impl<'a> PlanBuilder<'a> {
             | ResolvedExprKind::Uint8(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
-            | ResolvedExprKind::Bool(_) => Ok(EvalResult {
+            | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::String(_) => Ok(EvalResult {
                 block,
                 state,
                 owned_source: None,
@@ -4439,6 +4447,7 @@ impl<'a> PlanBuilder<'a> {
             | ResolvedType::F32
             | ResolvedType::F64
             | ResolvedType::Bool
+            | ResolvedType::String
             | ResolvedType::TypeParameter { .. } => false,
         };
         if is_record {

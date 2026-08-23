@@ -586,6 +586,7 @@ fn precheck_program(program: &Program) -> Result<AstUsage, Vec<Diagnostic>> {
         declarations += match &ty.kind {
             TypeDeclarationKind::Resource { lifecycles } => lifecycles.len(),
             TypeDeclarationKind::Record { fields } => fields.len(),
+            TypeDeclarationKind::Class { fields, methods } => fields.len() + methods.len(),
             TypeDeclarationKind::Variant { cases } => {
                 cases.len() + cases.iter().map(|case| case.fields.len()).sum::<usize>()
             }
@@ -611,6 +612,15 @@ fn precheck_program(program: &Program) -> Result<AstUsage, Vec<Diagnostic>> {
         stack.extend(function.ensures.iter());
         stack.push(&function.body);
     }
+    for ty in &program.types {
+        if let TypeDeclarationKind::Class { methods, .. } = &ty.kind {
+            for method in methods {
+                stack.extend(method.requires.iter());
+                stack.extend(method.ensures.iter());
+                stack.push(&method.body);
+            }
+        }
+    }
     let mut call_sites = 0usize;
     while let Some(expression) = stack.pop() {
         match &expression.kind {
@@ -620,7 +630,7 @@ fn precheck_program(program: &Program) -> Result<AstUsage, Vec<Diagnostic>> {
             | ExprKind::Uint8(_)
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
-            | ExprKind::Bool(_)
+            | ExprKind::Bool(_) | ExprKind::String(_)
             | ExprKind::Var(_) => {}
             ExprKind::Call { args, .. } => {
                 call_sites += 1;
@@ -664,6 +674,10 @@ fn precheck_program(program: &Program) -> Result<AstUsage, Vec<Diagnostic>> {
             ExprKind::Match { scrutinee, arms } => {
                 stack.push(scrutinee);
                 stack.extend(arms.iter().map(|arm| &arm.value));
+            }
+            ExprKind::MethodCall { receiver, args, .. } => {
+                stack.push(receiver);
+                stack.extend(args);
             }
         }
     }

@@ -64,6 +64,7 @@ fn contains_unsafe_boundary(expression: &ResolvedExpr) -> bool {
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
         | ResolvedExprKind::Place(_) => false,
     }
 }
@@ -387,6 +388,7 @@ impl<'a> HirValidator<'a> {
             let expected_kind = match &declaration.kind {
                 ResolvedTypeDeclarationKind::Resource { .. } => DeclarationKind::Resource,
                 ResolvedTypeDeclarationKind::Record { .. } => DeclarationKind::Record,
+                ResolvedTypeDeclarationKind::Class { .. } => DeclarationKind::Class,
                 ResolvedTypeDeclarationKind::Variant { .. } => DeclarationKind::Variant,
             };
             match self.program.declarations.declaration(&declaration.id) {
@@ -481,7 +483,7 @@ impl<'a> HirValidator<'a> {
                     }
                 }
             }
-            if let ResolvedTypeDeclarationKind::Record { fields } = &declaration.kind {
+            if let ResolvedTypeDeclarationKind::Record { fields } | ResolvedTypeDeclarationKind::Class { fields, .. } = &declaration.kind {
                 let indexed = self
                     .program
                     .declarations
@@ -566,7 +568,8 @@ impl<'a> HirValidator<'a> {
                             | ResolvedType::Char
                             | ResolvedType::U8
                             | ResolvedType::F32
-                            | ResolvedType::F64 => {
+                            | ResolvedType::F64
+                            | ResolvedType::String => {
                                 return Err(hir_error(format!(
                                     "field `{}` has an invalid generic copy record template",
                                     field.id
@@ -716,7 +719,8 @@ impl<'a> HirValidator<'a> {
                             | ResolvedType::Char
                             | ResolvedType::U8
                             | ResolvedType::F32
-                            | ResolvedType::F64 => {
+                            | ResolvedType::F64
+                            | ResolvedType::String => {
                                 return Err(hir_error(format!(
                                     "field `{}` has an invalid generic copy payload template",
                                     field.id
@@ -767,7 +771,10 @@ impl<'a> HirValidator<'a> {
         }
         for declaration in self.program.declarations.declarations() {
             match declaration.kind {
-                DeclarationKind::Resource | DeclarationKind::Record | DeclarationKind::Variant
+                DeclarationKind::Resource
+                | DeclarationKind::Record
+                | DeclarationKind::Class
+                | DeclarationKind::Variant
                     if !type_ids.contains(&declaration.id) =>
                 {
                     return Err(hir_error(format!(
@@ -823,6 +830,7 @@ impl<'a> HirValidator<'a> {
                 DeclarationKind::Resource
                 | DeclarationKind::ResourceDrop
                 | DeclarationKind::Record
+                | DeclarationKind::Class
                 | DeclarationKind::Field
                 | DeclarationKind::Variant
                 | DeclarationKind::VariantCase
@@ -927,7 +935,8 @@ impl<'a> HirValidator<'a> {
             | ResolvedType::Char
             | ResolvedType::U8
             | ResolvedType::F32
-            | ResolvedType::F64 => Err(hir_error(format!(
+            | ResolvedType::F64
+            | ResolvedType::String => Err(hir_error(format!(
                 "generic template `{}` has an invalid direct-scalar signature slot",
                 template.id
             ))),
@@ -1009,7 +1018,8 @@ impl<'a> HirValidator<'a> {
             | ResolvedExprKind::Uint8(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
-            | ResolvedExprKind::Bool(_) => {}
+            | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::String(_) => {}
             ResolvedExprKind::Place(place) => {
                 if !place.projections.is_empty() || values.get(&place.root) != Some(&expression.ty)
                 {
@@ -2212,6 +2222,14 @@ impl<'a> HirValidator<'a> {
                             )?;
                             scopes.push(scope);
                         }
+                        ResolvedExprKind::String(_) => {
+                            self.finish_expr(
+                                expression,
+                                &ResolvedType::String,
+                                OwnershipMode::Own,
+                            )?;
+                            scopes.push(scope);
+                        }
                         ResolvedExprKind::Place(place) => {
                             let binding = scope.get(&place.root).ok_or_else(|| {
                                 hir_error(format!(
@@ -2444,9 +2462,12 @@ impl<'a> HirValidator<'a> {
                                 .ok_or_else(|| {
                                     hir_error(format!("record `{record}` is not indexed"))
                                 })?;
-                            if declaration.kind != DeclarationKind::Record {
+                            if !matches!(
+                                declaration.kind,
+                                DeclarationKind::Record | DeclarationKind::Class
+                            ) {
                                 return Err(hir_error(format!(
-                                    "constructor target `{record}` is not a record"
+                                    "constructor target `{record}` is not a record or class"
                                 )));
                             }
                             let expected = self
@@ -4219,6 +4240,7 @@ impl<'a> HirValidator<'a> {
         self.validate_type(&expression.ty)?;
 
         let (ty, ownership) = match &expression.kind {
+            ResolvedExprKind::String(_) => (ResolvedType::String, OwnershipMode::Own),
             ResolvedExprKind::Int(_) => (ResolvedType::I64, OwnershipMode::Value),
             ResolvedExprKind::Int32(_) => (ResolvedType::I32, OwnershipMode::Value),
             ResolvedExprKind::Char(value) => {
@@ -4671,9 +4693,12 @@ impl<'a> HirValidator<'a> {
                     .declarations
                     .declaration(record)
                     .ok_or_else(|| hir_error(format!("record `{record}` is not indexed")))?;
-                if declaration.kind != DeclarationKind::Record {
+                if !matches!(
+                    declaration.kind,
+                    DeclarationKind::Record | DeclarationKind::Class
+                ) {
                     return Err(hir_error(format!(
-                        "constructor target `{record}` is not a record"
+                        "constructor target `{record}` is not a record or class"
                     )));
                 }
                 let expected_fields = self
@@ -5430,7 +5455,7 @@ impl<'a> HirValidator<'a> {
             .program
             .declarations
             .declaration(declaration)
-            .is_none_or(|item| item.kind != DeclarationKind::Record)
+            .is_none_or(|item| !matches!(item.kind, DeclarationKind::Record | DeclarationKind::Class))
         {
             return Err(hir_error(format!(
                 "field `{field}` projects from a non-record nominal type"
@@ -5588,6 +5613,7 @@ impl<'a> HirValidator<'a> {
                     | ResolvedExprKind::Float32(_)
                     | ResolvedExprKind::Float64(_)
                     | ResolvedExprKind::Bool(_)
+                    | ResolvedExprKind::String(_)
                     | ResolvedExprKind::Call { .. }
                     | ResolvedExprKind::NativeRustImportCall(_)
                     | ResolvedExprKind::Unary { .. }
@@ -5811,7 +5837,8 @@ impl<'a> HirValidator<'a> {
                     | ResolvedType::U8
                     | ResolvedType::F32
                     | ResolvedType::F64
-                    | ResolvedType::Bool,
+                    | ResolvedType::Bool
+                    | ResolvedType::String,
                 ) => {}
                 Frame::Enter(ResolvedType::TypeParameter { .. }) => {
                     return Err(hir_error(
@@ -5834,6 +5861,7 @@ impl<'a> HirValidator<'a> {
                                 kind,
                                 DeclarationKind::Resource
                                     | DeclarationKind::Record
+                                    | DeclarationKind::Class
                                     | DeclarationKind::Variant
                             )
                         })

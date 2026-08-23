@@ -53,6 +53,9 @@ impl NativeResourceAbi {
             ResolvedType::F32 => Ok("float"),
             ResolvedType::F64 => Ok("double"),
             ResolvedType::Bool => Ok("bool"),
+            // Owned strings lower to a C heap pointer; the backend owns the
+            // allocation and frees it exactly once per value.
+            ResolvedType::String => Ok("char *"),
             ResolvedType::TypeParameter { .. } => Err(resource_error(format!(
                 "native representation is unavailable for generic type `{}`",
                 ty.identity_key()
@@ -77,7 +80,7 @@ impl NativeResourceAbi {
                         ))
                     })?;
                 match &resolved.kind {
-                    ResolvedTypeDeclarationKind::Record { .. } => Err(resource_error(format!(
+                    ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. } => Err(resource_error(format!(
                         "native aggregate representation is unavailable for record `{declaration}`"
                     ))),
                     ResolvedTypeDeclarationKind::Variant { .. } => Err(resource_error(format!(

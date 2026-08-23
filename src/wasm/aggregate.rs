@@ -414,6 +414,7 @@ impl FunctionPlan {
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::String(_)
             | ResolvedExprKind::Place(_) => {}
         }
         Ok(())
@@ -526,6 +527,7 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
         | ResolvedExprKind::Place(_) => false,
     }
 }
@@ -554,7 +556,10 @@ fn is_record(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagn
         .iter()
         .find(|item| item.id == *declaration)
         .ok_or_else(|| error(format!("unknown aggregate type `{declaration}`")))?;
-    if !matches!(item.kind, ResolvedTypeDeclarationKind::Record { .. }) {
+    if !matches!(
+        item.kind,
+        ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. }
+    ) {
         return Ok(false);
     }
     if arguments.len() != item.type_parameters.len()
@@ -1353,6 +1358,11 @@ impl Emitter<'_> {
                     local: destination,
                     ty: ResolvedType::Bool,
                 })
+            }
+            ResolvedExprKind::String(value) => {
+                return Err(error(format!(
+                    "string literal `{value}` is outside aggregate WebAssembly lowering"
+                )));
             }
             ResolvedExprKind::Place(place) => {
                 let value = self.place_value(place)?;

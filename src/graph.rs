@@ -1189,6 +1189,7 @@ fn collect_result_propagations<'a>(
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
         | ResolvedExprKind::Place(_) => {}
     }
 }
@@ -1270,7 +1271,7 @@ pub(crate) fn graph_schema_from_parts(
         return "semaprax.graph.v13";
     }
     if types.iter().any(|declaration| {
-        matches!(declaration.kind, ResolvedTypeDeclarationKind::Record { .. })
+        matches!(declaration.kind, ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. })
             && !declaration.type_parameters.is_empty()
     }) {
         return "semaprax.graph.v12";
@@ -1352,6 +1353,7 @@ fn expression_has_record_pattern(expression: &ResolvedExpr) -> bool {
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
         | ResolvedExprKind::Place(_) => false,
     }
 }
@@ -1408,7 +1410,8 @@ fn collect_agent_contract_values(expression: &ResolvedExpr, values: &mut BTreeSe
         | ResolvedExprKind::Uint8(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
-        | ResolvedExprKind::Bool(_) => {}
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_) => {}
         ResolvedExprKind::Place(place) => {
             values.insert(place.root.clone());
         }
@@ -1508,6 +1511,11 @@ fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnos
             quote_json(&crate::format::canonical_f64_bits(*bits))
         ),
         ResolvedExprKind::Bool(value) => format!("{{\"kind\":\"bool\",\"value\":{value}}}"),
+        ResolvedExprKind::String(value) => format!(
+            "{{\"kind\":\"string\",\"value\":{},\"display\":{}}}",
+            quote_json(value),
+            quote_json(&crate::format::canonical_string(value))
+        ),
         ResolvedExprKind::Place(place) => {
             format!("{{\"kind\":\"place\",\"place\":{}}}", place_json(place))
         }
@@ -1918,6 +1926,34 @@ fn agent_type_declarations_json(
                             quote_json(field.id.as_str()),
                             quote_json(&field.ty.identity_key())
                         ))
+                        .collect::<Vec<_>>()
+                        .budgeted_join(",")
+                ))
+            }
+            ResolvedTypeDeclarationKind::Class { fields, methods } => {
+                let parameters = if declaration.type_parameters.is_empty() {
+                    String::new()
+                } else {
+                    format!(
+                        ",\"type_parameters\":[{}]",
+                        type_parameters_json(&declaration.id, &declaration.type_parameters)
+                    )
+                };
+                Ok(format!(
+                    "{{\"id\":{},\"kind\":\"class\"{parameters},\"fields\":[{}],\"methods\":[{}]}}",
+                    quote_json(declaration.id.as_str()),
+                    fields
+                        .iter()
+                        .map(|field| format!(
+                            "{{\"id\":{},\"type_id\":{}}}",
+                            quote_json(field.id.as_str()),
+                            quote_json(&field.ty.identity_key())
+                        ))
+                        .collect::<Vec<_>>()
+                        .budgeted_join(","),
+                    methods
+                        .iter()
+                        .map(|method| quote_json(method.as_str()))
                         .collect::<Vec<_>>()
                         .budgeted_join(",")
                 ))
@@ -2551,7 +2587,7 @@ fn graph_json(
                     ResolvedResourceDropKind::Imported { import, .. } => Some(import.clone()),
                     ResolvedResourceDropKind::Trivial => None,
                 },
-                ResolvedTypeDeclarationKind::Record { .. } => None,
+                ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. } => None,
                 ResolvedTypeDeclarationKind::Variant { .. } => None,
             })
             .collect::<BTreeSet<_>>();
@@ -2703,6 +2739,120 @@ fn graph_json(
                         metadata.identity_origin.is_persistent(),
                         quote_json(declaration.id.as_str()),
                         quote_json(&field.ty.identity_key())
+                    )
+                    .expect("writing to a string cannot fail");
+                }
+            }
+            ResolvedTypeDeclarationKind::Class { fields, methods } => {
+                let (parameters, type_id) = if declaration.type_parameters.is_empty() {
+                    (String::new(), quote_json(&ty.identity_key()))
+                } else {
+                    (
+                        format!(
+                            ",\"type_parameters\":[{}]",
+                            type_parameters_json(&declaration.id, &declaration.type_parameters)
+                        ),
+                        "null".to_owned(),
+                    )
+                };
+                write!(
+                    output,
+                    "{{\"id\":{},\"kind\":\"class\",\"name\":{},\"identity_origin\":{},\"persistent\":{}{parameters},\"type_id\":{},\"fields\":[{}],\"methods\":[{}]}}",
+                    quote_json(declaration.id.as_str()),
+                    quote_json(&declaration.name),
+                    quote_json(type_origin.text()),
+                    type_origin.is_persistent(),
+                    type_id,
+                    fields
+                        .iter()
+                        .map(|field| quote_json(field.id.as_str()))
+                        .collect::<Vec<_>>()
+                        .budgeted_join(","),
+                    methods
+                        .iter()
+                        .map(|method| quote_json(method.as_str()))
+                        .collect::<Vec<_>>()
+                        .budgeted_join(",")
+                )
+                .expect("writing to a string cannot fail");
+
+                for (index, field) in fields.iter().enumerate() {
+                    let metadata = program
+                        .declarations
+                        .declaration(&field.id)
+                        .ok_or_else(|| graph_reference_error("field", &field.id))?;
+                    if metadata.kind != crate::hir::DeclarationKind::Field
+                        || metadata.owner.as_ref() != Some(&declaration.id)
+                    {
+                        return Err(Diagnostic::io(
+                            "SPX-G003",
+                            format!(
+                                "field `{}` is not indexed under class `{}`",
+                                field.id, declaration.id
+                            ),
+                        ));
+                    }
+                    output.push(',');
+                    write!(
+                        output,
+                        "{{\"id\":{},\"kind\":\"field\",\"name\":{},\"identity_origin\":{},\"persistent\":{},\"owner\":{},\"index\":{index},\"type_id\":{}}}",
+                        quote_json(field.id.as_str()),
+                        quote_json(&field.name),
+                        quote_json(metadata.identity_origin.text()),
+                        metadata.identity_origin.is_persistent(),
+                        quote_json(declaration.id.as_str()),
+                        quote_json(&field.ty.identity_key())
+                    )
+                    .expect("writing to a string cannot fail");
+                }
+                for method in methods {
+                    let metadata = program
+                        .declarations
+                        .declaration(method)
+                        .ok_or_else(|| graph_reference_error("method", method))?;
+                    if metadata.kind != crate::hir::DeclarationKind::Function
+                        || metadata.owner.as_ref() != Some(&declaration.id)
+                    {
+                        return Err(Diagnostic::io(
+                            "SPX-G003",
+                            format!(
+                                "method `{}` is not indexed under class `{}`",
+                                method, declaration.id
+                            ),
+                        ));
+                    }
+                    output.push(',');
+                    let resolved_method = program
+                        .resolve_call_target(method, None)
+                        .ok_or_else(|| {
+                            Diagnostic::io(
+                                "SPX-G003",
+                                format!("method `{method}` has no resolved function body"),
+                            )
+                        })?;
+                    let params_json = resolved_method
+                        .params
+                        .iter()
+                        .map(|param| {
+                            format!(
+                                "{{\"id\":{},\"name\":{},\"type_id\":{}}}",
+                                quote_json(param.id.as_str()),
+                                quote_json(&param.name),
+                                quote_json(&param.ty.identity_key())
+                            )
+                        })
+                        .collect::<Vec<_>>()
+                        .budgeted_join(",");
+                    write!(
+                        output,
+                        "{{\"id\":{},\"kind\":\"function\",\"name\":{},\"identity_origin\":{},\"persistent\":{},\"owner\":{},\"params\":[{}],\"return_type_id\":{}}}",
+                        quote_json(resolved_method.id.as_str()),
+                        quote_json(&resolved_method.name),
+                        quote_json(metadata.identity_origin.text()),
+                        metadata.identity_origin.is_persistent(),
+                        quote_json(declaration.id.as_str()),
+                        params_json,
+                        quote_json(&resolved_method.return_type.identity_key())
                     )
                     .expect("writing to a string cannot fail");
                 }
@@ -3143,6 +3293,7 @@ fn visit_expr_call_instances(
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
         | ResolvedExprKind::Place(_) => {}
         ResolvedExprKind::Call { args, .. } => {
             for argument in args {
@@ -3209,6 +3360,7 @@ fn visit_expr_calls(expression: &ResolvedExpr, visit: &mut impl FnMut(&Declarati
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
         | ResolvedExprKind::Place(_) => {}
         ResolvedExprKind::Call { callee, args, .. } => {
             visit(callee);
@@ -3300,6 +3452,7 @@ fn collect_expr_type_declarations(
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
         | ResolvedExprKind::Place(_) => {}
         ResolvedExprKind::Call { args, .. } => {
             for argument in args {
@@ -3466,7 +3619,7 @@ fn close_type_declarations(
             .copied()
             .ok_or_else(|| graph_reference_error("type declaration", &id))?;
         let fields = match &declaration.kind {
-            ResolvedTypeDeclarationKind::Record { fields } => fields.iter().collect::<Vec<_>>(),
+            ResolvedTypeDeclarationKind::Record { fields } | ResolvedTypeDeclarationKind::Class { fields, .. } => fields.iter().collect::<Vec<_>>(),
             ResolvedTypeDeclarationKind::Variant { cases } => cases
                 .iter()
                 .flat_map(|case| &case.fields)
@@ -3521,6 +3674,11 @@ fn expr_json(program: &ResolvedProgram, expression: &ResolvedExpr) -> Result<Str
         ResolvedExprKind::Bool(value) => {
             format!("{{{header},\"kind\":\"bool\",\"value\":{value}}}")
         }
+        ResolvedExprKind::String(value) => format!(
+            "{{{header},\"kind\":\"string\",\"value\":{},\"display\":{}}}",
+            quote_json(value),
+            quote_json(&crate::format::canonical_string(value))
+        ),
         ResolvedExprKind::Place(place) => format!(
             "{{{header},\"kind\":\"place\",\"place\":{}}}",
             place_json(place)
@@ -3805,7 +3963,7 @@ fn type_facts_array(
             );
         }
         if declaration.type_parameters.is_empty() {
-            if let ResolvedTypeDeclarationKind::Record { fields } = &declaration.kind {
+            if let ResolvedTypeDeclarationKind::Record { fields } | ResolvedTypeDeclarationKind::Class { fields, .. } = &declaration.kind {
                 for field in fields {
                     collect_type(&field.ty, &mut types);
                 }
@@ -3861,6 +4019,7 @@ fn collect_expr_types(expression: &ResolvedExpr, types: &mut BTreeMap<String, Re
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
         | ResolvedExprKind::Place(_) => {}
         ResolvedExprKind::Call { args, .. } => {
             for argument in args {
@@ -3983,6 +4142,7 @@ fn type_json(ty: &ResolvedType) -> String {
         ResolvedType::F32 => "{\"kind\":\"primitive\",\"name\":\"f32\"}".to_owned(),
         ResolvedType::F64 => "{\"kind\":\"primitive\",\"name\":\"f64\"}".to_owned(),
         ResolvedType::Bool => "{\"kind\":\"primitive\",\"name\":\"bool\"}".to_owned(),
+        ResolvedType::String => "{\"kind\":\"primitive\",\"name\":\"string\"}".to_owned(),
         ResolvedType::TypeParameter { owner, index } => format!(
             "{{\"kind\":\"type_parameter\",\"owner\":{},\"index\":{index}}}",
             quote_json(owner.as_str())

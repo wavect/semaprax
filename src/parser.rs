@@ -60,6 +60,8 @@ impl Parser {
                 types.push(self.record(&module, stable_id)?);
             } else if self.at_keyword("variant") {
                 types.push(self.variant(&module, stable_id)?);
+            } else if self.at_keyword("class") {
+                types.push(self.class(&module, stable_id)?);
             } else if self.at_keyword("interface") {
                 interfaces.push(self.interface(&module, stable_id)?);
             } else {
@@ -494,6 +496,66 @@ impl Parser {
         })
     }
 
+    fn class(
+        &mut self,
+        module: &str,
+        stable_id: Option<String>,
+    ) -> Result<TypeDeclaration, Diagnostic> {
+        let start = self.keyword("class")?.span;
+        let (name, name_span) = self.ident("class name")?;
+        let type_parameters = self.type_parameters()?;
+        if self.take(&TokenKind::Colon) {
+            return Err(self.error_here(
+                "SPX-P106",
+                "class inheritance is not supported; remove `: Parent`",
+            ));
+        }
+        let explicit_id = stable_id.is_some();
+        let stable_id = stable_id.unwrap_or_else(|| format!("auto:class:{module}.{name}"));
+        self.expect(&TokenKind::LBrace, "`{` before class members")?;
+        let mut fields = Vec::new();
+        let mut methods = Vec::new();
+        while !self.at(&TokenKind::RBrace) {
+            if self.at(&TokenKind::Eof) {
+                return Err(self.error_here("SPX-P106", "expected `}` after class members"));
+            }
+            let member_id = self.stable_id_attribute()?;
+            if self.at_keyword("fn") {
+                methods.push(self.function(module, member_id)?);
+            } else {
+                let (field_name, field_name_span) = self.ident("class field name")?;
+                self.expect(&TokenKind::Colon, "`:` after class field name")?;
+                let ty = self.ty()?;
+                let end = self
+                    .expect(&TokenKind::Comma, "`,` after class field")?
+                    .span;
+                let field_explicit = member_id.is_some();
+                let field_stable =
+                    member_id.unwrap_or_else(|| format!("auto:field:{stable_id}.{field_name}"));
+                fields.push(FieldDeclaration {
+                    stable_id: field_stable,
+                    explicit_id: field_explicit,
+                    name: field_name,
+                    name_span: field_name_span,
+                    ty,
+                    span: field_name_span.merge(end),
+                });
+            }
+        }
+        let end = self
+            .expect(&TokenKind::RBrace, "`}` after class members")?
+            .span;
+        Ok(TypeDeclaration {
+            stable_id,
+            explicit_id,
+            name,
+            name_span,
+            type_parameters,
+            kind: TypeDeclarationKind::Class { fields, methods },
+            span: start.merge(end),
+        })
+    }
+
     fn function(
         &mut self,
         module: &str,
@@ -625,6 +687,10 @@ impl Parser {
             },
             TokenKind::Uint8(value) => Expr {
                 kind: ExprKind::Uint8(value),
+                span: token.span,
+            },
+            TokenKind::String(value) => Expr {
+                kind: ExprKind::String(value),
                 span: token.span,
             },
             TokenKind::Float(literal) => Expr {
@@ -832,16 +898,7 @@ impl Parser {
             }
 
             if self.take(&TokenKind::Dot) {
-                let (field, field_span) = self.ident("field name after `.`")?;
-                let start = expression.span;
-                expression = Expr {
-                    kind: ExprKind::Project {
-                        base: Box::new(expression),
-                        field,
-                        field_span,
-                    },
-                    span: start.merge(field_span),
-                };
+                expression = self.dot_suffix(expression)?;
                 continue;
             }
             if self.at(&TokenKind::Question) {
@@ -858,6 +915,60 @@ impl Parser {
             break;
         }
         Ok(expression)
+    }
+
+    /// Parses one `.` postfix suffix (field projection or method call) after
+    /// the receiver has already been parsed. Kept out of the recursive
+    /// postfix loop so deep expression nesting does not pay for its locals.
+    fn dot_suffix(&mut self, expression: Expr) -> Result<Expr, Diagnostic> {
+        let (field, field_span) = self.ident("field name after `.`")?;
+        let start = expression.span;
+        // Allow generic type arguments after method name like `obj.method<T>(...)`
+        let method_type_arguments =
+            if self.at(&TokenKind::Lt) && self.looks_like_generic_function_call() {
+                self.type_arguments()?
+            } else {
+                Vec::new()
+            };
+        if self.at(&TokenKind::LParen) {
+            self.bump();
+            let mut args = Vec::new();
+            if !self.at(&TokenKind::RParen) {
+                loop {
+                    args.push(self.expression(0)?);
+                    if !self.take(&TokenKind::Comma) {
+                        break;
+                    }
+                }
+            }
+            let end = self
+                .expect(&TokenKind::RParen, "`)` after method arguments")?
+                .span;
+            return Ok(Expr {
+                kind: ExprKind::MethodCall {
+                    receiver: Box::new(expression),
+                    method: field,
+                    method_span: field_span,
+                    type_arguments: method_type_arguments,
+                    args,
+                },
+                span: start.merge(end),
+            });
+        }
+        if !method_type_arguments.is_empty() {
+            return Err(self.error_previous(
+                "SPX-P202",
+                "generic arguments require a call; use `.method::<T>(...)`",
+            ));
+        }
+        Ok(Expr {
+            kind: ExprKind::Project {
+                base: Box::new(expression),
+                field,
+                field_span,
+            },
+            span: start.merge(field_span),
+        })
     }
 
     fn block(&mut self, description: &str) -> Result<Expr, Diagnostic> {
@@ -1210,10 +1321,10 @@ impl Parser {
 
     fn ty(&mut self) -> Result<Type, Diagnostic> {
         let (name, _) = self.qualified_ident("type")?;
-        let is_primitive = matches!(
-            name.as_str(),
-            "i64" | "i32" | "u8" | "char" | "f32" | "f64" | "bool"
-        );
+    let is_primitive = matches!(
+        name.as_str(),
+        "i64" | "i32" | "u8" | "char" | "f32" | "f64" | "bool" | "string"
+    );
         if is_primitive && self.at(&TokenKind::Lt) {
             return Err(self.error_here(
                 "SPX-P106",
@@ -1228,6 +1339,7 @@ impl Parser {
             "f32" => Ok(Type::F32),
             "f64" => Ok(Type::F64),
             "bool" => Ok(Type::Bool),
+            "string" => Ok(Type::String),
             _ => Ok(Type::Named {
                 name,
                 arguments: self.type_arguments()?,

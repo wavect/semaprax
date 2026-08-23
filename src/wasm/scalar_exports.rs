@@ -320,7 +320,8 @@ fn validate_expression_profile(
             | ResolvedExprKind::Uint8(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
-            | ResolvedExprKind::Bool(_) => {}
+            | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::String(_) => {}
             ResolvedExprKind::Place(place) => {
                 if !place.projections.is_empty() {
                     return Err(admission(format!(
@@ -401,6 +402,7 @@ fn scalar_type(ty: &ResolvedType) -> Option<ScalarType> {
         | ResolvedType::U8
         | ResolvedType::F32
         | ResolvedType::F64
+        | ResolvedType::String
         | ResolvedType::TypeParameter { .. }
         | ResolvedType::Nominal { .. } => None,
     }

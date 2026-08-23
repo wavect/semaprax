@@ -461,7 +461,7 @@ pub(crate) fn precheck_program(program: &Program) -> Result<(), Vec<Diagnostic>>
             | ExprKind::Uint8(_)
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
-            | ExprKind::Bool(_)
+            | ExprKind::Bool(_) | ExprKind::String(_)
             | ExprKind::Var(_) => {}
             ExprKind::Call { args, .. } => {
                 call_sites = call_sites.saturating_add(1);
@@ -503,6 +503,10 @@ pub(crate) fn precheck_program(program: &Program) -> Result<(), Vec<Diagnostic>>
             ExprKind::Try { operand }
             | ExprKind::UpdateRecord { base: operand, .. }
             | ExprKind::Project { base: operand, .. } => expressions.push(operand),
+            ExprKind::MethodCall { receiver, args, .. } => {
+                expressions.push(receiver);
+                expressions.extend(args);
+            }
         }
         if let ExprKind::UpdateRecord { fields, .. } = &expression.kind {
             expressions.extend(fields.iter().map(|field| &field.value));
@@ -592,7 +596,7 @@ fn scalar_expr(expression: &Expr) -> bool {
         | ExprKind::Uint8(_)
         | ExprKind::Float32(_)
         | ExprKind::Float64(_)
-        | ExprKind::Bool(_)
+        | ExprKind::Bool(_) | ExprKind::String(_)
         | ExprKind::Var(_) => true,
         ExprKind::Call {
             type_arguments,
@@ -617,7 +621,8 @@ fn scalar_expr(expression: &Expr) -> bool {
         | ExprKind::Match { .. }
         | ExprKind::Try { .. }
         | ExprKind::UpdateRecord { .. }
-        | ExprKind::Project { .. } => false,
+        | ExprKind::Project { .. }
+        | ExprKind::MethodCall { .. } => false,
     }
 }
 
@@ -694,6 +699,7 @@ fn collect_calls(
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
         | ResolvedExprKind::Place(_) => {}
         ResolvedExprKind::Call { callee, args, .. } => {
             *call_sites = call_sites.saturating_add(1);

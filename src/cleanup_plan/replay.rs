@@ -662,7 +662,8 @@ fn expression_skeleton_work_upper(
                 | ResolvedExprKind::Uint8(_)
                 | ResolvedExprKind::Float32(_)
                 | ResolvedExprKind::Float64(_)
-                | ResolvedExprKind::Bool(_) => 2,
+                | ResolvedExprKind::Bool(_)
+                | ResolvedExprKind::String(_) => 2,
                 ResolvedExprKind::Place(place) => place.projections.len().saturating_mul(2) + 8,
                 ResolvedExprKind::Unary { .. } => 8,
                 ResolvedExprKind::Binary { .. } => 12,
@@ -1218,7 +1219,7 @@ fn expected_shape_for_type(
                 lifecycle: drop.id.clone(),
             })
         }
-        ResolvedTypeDeclarationKind::Record { fields } => {
+        ResolvedTypeDeclarationKind::Record { fields } | ResolvedTypeDeclarationKind::Class { fields, .. } => {
             let mut expected_fields = Vec::with_capacity(fields.len());
             for field in fields {
                 expected_fields.push(FieldLiveness {
@@ -1244,7 +1245,9 @@ fn type_needs_drop(
     function: &ResolvedFunction,
     ty: &ResolvedType,
 ) -> Result<bool, Diagnostic> {
-    program
+    // Owned strings free their heap buffer inline in each backend; they never
+    // join the resource-lifecycle cleanup plan.
+    Ok(program
         .declarations
         .type_facts(ty)
         .map(|facts| facts.needs_drop)
@@ -1253,7 +1256,8 @@ fn type_needs_drop(
                 function,
                 format!("type `{}` has no cleanup facts", ty.identity_key()),
             )
-        })
+        })?
+        && !matches!(ty, ResolvedType::String))
 }
 
 fn validate_required_status_sources(
@@ -1405,6 +1409,7 @@ fn collect_expression_statuses(
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::String(_)
             | ResolvedExprKind::Place(_) => {}
         }
     }
@@ -2546,7 +2551,8 @@ fn expression_skeleton(
                     | ResolvedExprKind::Uint8(_)
                     | ResolvedExprKind::Float32(_)
                     | ResolvedExprKind::Float64(_)
-                    | ResolvedExprKind::Bool(_) => {
+                    | ResolvedExprKind::Bool(_)
+                    | ResolvedExprKind::String(_) => {
                         produced =
                             Some(work.singleton_path(empty_expr_path(), "literal skeleton path")?);
                     }
@@ -3647,6 +3653,7 @@ fn validate_match_skeleton_shape(
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool
+        | ResolvedType::String
         | ResolvedType::TypeParameter { .. } => false,
     };
     if is_record {
@@ -5245,6 +5252,7 @@ fn replay_expression_child(expression: &ResolvedExpr, index: usize) -> Option<&R
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
         | ResolvedExprKind::Place(_) => None,
     }
 }

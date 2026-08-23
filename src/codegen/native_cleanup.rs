@@ -493,7 +493,7 @@ fn validate_program_types(
 ) -> Result<(), Diagnostic> {
     for declaration in &program.types {
         match &declaration.kind {
-            ResolvedTypeDeclarationKind::Record { .. } => {
+            ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. } => {
                 return Err(unsupported(
                     function,
                     format!("does not support record declaration `{}`", declaration.id),
@@ -554,6 +554,8 @@ fn validate_supported_type(
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool => Ok(()),
+        // Owned strings are ordinary values with backend-inline drops.
+        ResolvedType::String => Ok(()),
         ResolvedType::TypeParameter { .. } => Err(unsupported(
             function,
             format!(
@@ -585,7 +587,7 @@ fn validate_supported_type(
                 ResolvedTypeDeclarationKind::Resource { drop } => {
                     validate_trivial_drop(function, &drop.id, &drop.kind)
                 }
-                ResolvedTypeDeclarationKind::Record { .. } => Err(unsupported(
+                ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. } => Err(unsupported(
                     function,
                     format!("uses record type `{declaration}`"),
                 )),
@@ -628,7 +630,7 @@ fn direct_resource_lifecycle<'a>(
         .ok_or_else(|| unsupported(function, format!("references unknown type `{declaration}`")))?;
     match &item.kind {
         ResolvedTypeDeclarationKind::Resource { drop } => Ok(&drop.id),
-        ResolvedTypeDeclarationKind::Record { .. } => Err(unsupported(
+        ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. } => Err(unsupported(
             function,
             format!("{context} `{declaration}` is not an opaque resource"),
         )),
@@ -692,7 +694,8 @@ fn validate_expression(
         | ResolvedExprKind::Uint8(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
-        | ResolvedExprKind::Bool(_) => {}
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_) => {}
         ResolvedExprKind::Place(place) => {
             if !place.projections.is_empty() {
                 return Err(unsupported(

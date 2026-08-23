@@ -4521,6 +4521,10 @@ fn authored_declaration_ids(program: &Program) -> Vec<String> {
             TypeDeclarationKind::Record { fields } => {
                 ids.extend(fields.iter().map(|item| item.stable_id.clone()));
             }
+            TypeDeclarationKind::Class { fields, methods } => {
+                ids.extend(fields.iter().map(|item| item.stable_id.clone()));
+                ids.extend(methods.iter().map(|item| item.stable_id.clone()));
+            }
             TypeDeclarationKind::Variant { cases } => {
                 for case in cases {
                     ids.push(case.stable_id.clone());

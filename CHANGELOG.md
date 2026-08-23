@@ -1,5 +1,34 @@
 # Changelog
 
+- Added the locally evidenced Deterministic Scoped Task Model v1, a hidden
+  target-neutral proof-data tranche (`src/scoped_tasks.rs`) in the exact
+  `native_settlement` style that moves the completion-matrix row "Structured
+  concurrency" from Missing to Partial. The model fixes, as executable
+  evidence only: a bounded task DAG (4,096 tasks / 4,096 scopes / 65,536 edges
+  / 1,000,000 work units) inside one strict scope tree where every non-root
+  scope requires exactly one parent join and cross-branch dependencies are
+  rejected at construction as escaping references; deterministic sequential
+  scheduling in canonical stable-id order; sticky cancellation propagation in
+  which cancelling a scope marks all descendants and materializes their
+  cancellation before any sibling starts new work while already-started work
+  drains to its scripted outcome; children-finalize-before-parents scope exit
+  in exact reverse completion order; sticky first-failure selection with
+  independent siblings draining and dependents of failed prerequisites
+  abandoned; closed per-task `Sendable`/`Shareable` annotations recorded as
+  declared intent only; and canonical JSON model/trace projections under two
+  separately domain-separated SHA-256 fingerprints.
+  `tests/scoped_tasks_model_v1.rs` plus seven focused module units pin four
+  known-answer trace digests for join-all, mid-scope cancellation, failure
+  drain with an abandoned dependent, and nested scopes; prove exact event
+  sequences, cancel-during-drain, failure-beats-cancellation stickiness,
+  hostile construction rejections (escape/double/orphan joins, cycles,
+  duplicates, zero physical codes, bounds/work budget), hostile run operations,
+  full input-permutation determinism, a byte-pinned trace projection, and JSON
+  validity. It adds no language syntax, no parser/HIR/Graph/verifier/backend
+  or CLI change, no runtime threads or scheduler integration, no real
+  concurrent execution (task bodies are closed scripted outcomes), no
+  `Sendable` checking of real programs, and no actors/reducers/synchronization
+  claim.
 - Added the locally evidenced Reference Interpreter v1 tranche, the first
   executable slice of the completion-matrix row "Fast development lane". The
   new `semaprax interpret <file> --function <name|stable-id> [--arg

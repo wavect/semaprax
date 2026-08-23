@@ -945,7 +945,15 @@ impl ScalarKind {
         match ty {
             Type::I64 => ScalarKind::Int,
             Type::Bool => ScalarKind::Bool,
-            _ => ScalarKind::Int,
+            Type::I32
+            | Type::U8
+            | Type::Char
+            | Type::F32
+            | Type::F64
+            | Type::Named { .. } => unreachable!(
+                "ScalarKind::of called for unsupported type `{:?}`; admitted scalars are only i64 and bool",
+                ty
+            ),
         }
     }
 }
@@ -954,7 +962,15 @@ fn scalar_type_text(ty: &Type) -> &'static str {
     match ty {
         Type::I64 => "i64",
         Type::Bool => "bool",
-        _ => "i64",
+        Type::I32
+        | Type::U8
+        | Type::Char
+        | Type::F32
+        | Type::F64
+        | Type::Named { .. } => unreachable!(
+            "scalar_type_text called for unsupported type `{:?}`; admitted scalars are only i64 and bool",
+            ty
+        ),
     }
 }
 

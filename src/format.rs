@@ -2,6 +2,7 @@ use crate::ast::{
     BinaryOp, Expr, ExprKind, ImportFailure, MatchPattern, ModuleUseKind, Program,
     ResourceLifecycleKind, Statement, TypeDeclarationKind, UnaryOp,
 };
+use std::fmt::Write as _;
 
 /// Canonical `f64` literal text: shortest round-trip decimal that always
 /// re-parses as a floating-point literal (it keeps a fraction or exponent).
@@ -53,6 +54,41 @@ pub(crate) fn canonical_char(value: u32) -> String {
     }
     text.push('\'');
     text
+}
+
+pub(crate) fn canonical_string(value: &str) -> String {
+    let mut text = String::from("\"");
+    for ch in value.chars() {
+        match ch {
+            '\\' => text.push_str("\\\\"),
+            '"' => text.push_str("\\\""),
+            '\n' => text.push_str("\\n"),
+            '\r' => text.push_str("\\r"),
+            '\t' => text.push_str("\\t"),
+            _ if (ch as u32) < 0x20 || ch == '\u{7f}' => {
+                write!(text, "\\u{{{:x}}}", ch as u32).expect("writing to String cannot fail");
+            }
+            _ => text.push(ch),
+        }
+    }
+    text.push('"');
+    text
+}
+
+fn write_string_escaped(output: &mut impl std::fmt::Write, value: &str) {
+    for ch in value.chars() {
+        match ch {
+            '\\' => output.write_str("\\\\").unwrap(),
+            '"' => output.write_str("\\\"").unwrap(),
+            '\n' => output.write_str("\\n").unwrap(),
+            '\r' => output.write_str("\\r").unwrap(),
+            '\t' => output.write_str("\\t").unwrap(),
+            _ if (ch as u32) < 0x20 || ch == '\u{7f}' => {
+                write!(output, "\\u{{{:x}}}", ch as u32).unwrap();
+            }
+            _ => output.write_char(ch).unwrap(),
+        }
+    }
 }
 
 enum ExprFormatFrame<'a> {
@@ -705,7 +741,7 @@ fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> usize {
             | ExprKind::Uint8(_)
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
-            | ExprKind::Bool(_) => {}
+            | ExprKind::Bool(_) | ExprKind::String(_) => {}
             ExprKind::Var(name) => total = total.saturating_add(name.len()),
             ExprKind::MethodCall {
                 receiver,
@@ -1060,6 +1096,11 @@ fn write_expr(output: &mut impl std::fmt::Write, value: &Expr, parent_precedence
                 }
                 ExprKind::Float64(bits) => output.write_str(&canonical_f64_bits(*bits)).unwrap(),
                 ExprKind::Bool(value) => write!(output, "{value}").unwrap(),
+                ExprKind::String(value) => {
+                    output.write_char('"').unwrap();
+                    write_string_escaped(output, value);
+                    output.write_char('"').unwrap();
+                }
                 ExprKind::Var(name) => output.write_str(name).unwrap(),
                 ExprKind::Call {
                     name,
@@ -1411,6 +1452,7 @@ fn write_type(output: &mut impl std::fmt::Write, ty: &crate::ast::Type) {
             Frame::Type(crate::ast::Type::F32) => output.write_str("f32").unwrap(),
             Frame::Type(crate::ast::Type::F64) => output.write_str("f64").unwrap(),
             Frame::Type(crate::ast::Type::Bool) => output.write_str("bool").unwrap(),
+            Frame::Type(crate::ast::Type::String) => output.write_str("string").unwrap(),
             Frame::Type(crate::ast::Type::Named { name, arguments }) => {
                 output.write_str(name).unwrap();
                 if !arguments.is_empty() {
@@ -1573,7 +1615,7 @@ fn contains_record_construction(value: &Expr) -> bool {
             | ExprKind::Uint8(_)
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
-            | ExprKind::Bool(_)
+            | ExprKind::Bool(_) | ExprKind::String(_)
             | ExprKind::Var(_) => None,
         }
     }

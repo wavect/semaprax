@@ -28,6 +28,7 @@ pub enum Type {
     F32,
     F64,
     Bool,
+    String,
     Named { name: String, arguments: Vec<Type> },
 }
 
@@ -47,6 +48,7 @@ impl fmt::Display for Type {
                 Frame::Type(Type::F32) => f.write_str("f32")?,
                 Frame::Type(Type::F64) => f.write_str("f64")?,
                 Frame::Type(Type::Bool) => f.write_str("bool")?,
+                Frame::Type(Type::String) => f.write_str("string")?,
                 Frame::Type(Type::Named { name, arguments }) => {
                     f.write_str(name)?;
                     if !arguments.is_empty() {
@@ -293,6 +295,7 @@ pub enum ExprKind {
     /// An `f64` literal stored as its exact IEEE-754 bit pattern.
     Float64(u64),
     Bool(bool),
+    String(String),
     Var(String),
     Call {
         name: String,
@@ -654,6 +657,7 @@ impl Expr {
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
             | ExprKind::Bool(_)
+            | ExprKind::String(_)
             | ExprKind::Var(_) => None,
         }
     }

@@ -497,7 +497,7 @@ impl<'a> Analyzer<'a> {
             return Some(REASON_EVALUATION_STEP_BUDGET_EXHAUSTED);
         }
         match &expression.kind {
-            ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Var(_) => None,
+            ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::String(_) | ExprKind::Var(_) => None,
             ExprKind::Int32(_) => Some(REASON_INT32_LITERAL),
             ExprKind::Float32(_) | ExprKind::Float64(_) => Some(REASON_FLOAT_LITERAL),
             ExprKind::Char(_) => Some(REASON_CHAR_LITERAL),
@@ -571,6 +571,7 @@ impl<'a> Analyzer<'a> {
             ExprKind::Uint8(_) => Outcome::Unsupported(REASON_UINT8_LITERAL),
             ExprKind::Bool(value) => Outcome::Value(Value::Bool(*value)),
             ExprKind::MethodCall { .. } => Outcome::Unsupported(REASON_METHOD_CALL),
+            ExprKind::String(_) => Outcome::Unsupported(REASON_ILL_TYPED_EXPRESSION),
             ExprKind::Var(name) => lookup(environment, name).map_or_else(
                 || Outcome::Unsupported(REASON_UNRESOLVED_VARIABLE),
                 Outcome::Value,
@@ -953,6 +954,7 @@ impl ScalarKind {
             | Type::Char
             | Type::F32
             | Type::F64
+            | Type::String
             | Type::Named { .. } => unreachable!(
                 "ScalarKind::of called for unsupported type `{:?}`; admitted scalars are only i64 and bool",
                 ty
@@ -970,6 +972,7 @@ fn scalar_type_text(ty: &Type) -> &'static str {
         | Type::Char
         | Type::F32
         | Type::F64
+        | Type::String
         | Type::Named { .. } => unreachable!(
             "scalar_type_text called for unsupported type `{:?}`; admitted scalars are only i64 and bool",
             ty

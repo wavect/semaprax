@@ -1062,6 +1062,35 @@ fn emit_native_prelude(
         // existing projections keep their exact committed bytes.
         output.push_str(NATIVE_U8_RUNTIME_C);
     }
+    if program_uses_strings(program) {
+        output.push_str(NATIVE_STRING_RUNTIME_C);
+    }
+}
+
+/// Whether any resolved signature, body, or contract admits an owned string
+/// value that lowers through the string runtime helpers.
+fn program_uses_strings(program: &ResolvedProgram) -> bool {
+    let mut pending: Vec<&ResolvedExpr> = Vec::new();
+    for function in &program.functions {
+        if matches!(function.return_type, ResolvedType::String)
+            || function.params.iter().any(|param| matches!(param.ty, ResolvedType::String))
+        {
+            return true;
+        }
+        pending.push(&function.body);
+        for contract in function.requires.iter().chain(&function.ensures) {
+            pending.push(contract);
+        }
+    }
+    while let Some(expression) = pending.pop() {
+        if matches!(expression.ty, ResolvedType::String)
+            || matches!(expression.kind, ResolvedExprKind::String(_))
+        {
+            return true;
+        }
+        pending.extend(resolved_expr_children(expression));
+    }
+    false
 }
 
 /// Whether any resolved function body or contract contains checked u8
@@ -1144,6 +1173,7 @@ fn resolved_expr_children<'a>(
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
         | ResolvedExprKind::Place(_) => Box::new(std::iter::empty()),
     }
 }
@@ -1906,6 +1936,32 @@ static __attribute__((unused)) int spx_public_failure(
 
 "#;
 
+const NATIVE_STRING_RUNTIME_C: &str = r#"#include <stdlib.h>
+#include <string.h>
+
+static __attribute__((unused)) char *spx_string_from_literal(
+    const char *spx_data, uint64_t spx_len
+) {
+    char *spx_copy = (char *)malloc((size_t)spx_len + 1u);
+    if (spx_copy == NULL) spx_runtime_invariant_failure("string allocation failed");
+    memcpy(spx_copy, spx_data, (size_t)spx_len);
+    spx_copy[spx_len] = '\0';
+    return spx_copy;
+}
+
+static __attribute__((unused)) char *spx_string_clone(const char *spx_source) {
+    return spx_string_from_literal(spx_source, (uint64_t)strlen(spx_source));
+}
+
+static __attribute__((unused)) bool spx_string_eq(const char *a, const char *b) {
+    return strcmp(a, b) == 0;
+}
+
+static __attribute__((unused)) void spx_string_drop(char *spx_value) {
+    free(spx_value);
+}
+"#;
+
 const NATIVE_U8_RUNTIME_C: &str = r#"static __attribute__((unused)) spx_status_token spx_rt_u8_add(
     struct spx_context *spx_ctx, uint8_t a, uint8_t b, uint8_t *result_out
 ) {
@@ -2079,6 +2135,13 @@ fn emit_function(
     emitter.line("goto spx_epilogue;");
     drop(emitter);
     output.push_str("spx_epilogue:\n");
+    // Callee-owned string parameters free their buffers on every exit path;
+    // the staged result is handed to the caller instead.
+    for (index, param) in function.params.iter().enumerate() {
+        if matches!(param.ty, ResolvedType::String) {
+            output.push_str(&format!("    spx_string_drop(spx_param_{index});\n"));
+        }
+    }
     if has_try {
         output.push_str("    if (spx_status == SPX_STATUS_SUCCESS && !spx_result_staged) spx_runtime_invariant_failure(\"unstaged function result\");\n");
     }
@@ -2141,6 +2204,7 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
         | ResolvedExprKind::Place(_) => false,
     }
 }
@@ -2447,9 +2511,32 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     ty: ResolvedType::Bool,
                 }
             }
+            ResolvedExprKind::String(value) => {
+                self.require_type(&expr.ty, &ResolvedType::String, "string literal")?;
+                let temporary = self.temporary(&ResolvedType::String)?;
+                self.line(&format!(
+                    "{temporary} = spx_string_from_literal(\"{}\", UINT64_C({}));",
+                    c_string(value),
+                    value.len()
+                ));
+                CValue {
+                    code: temporary,
+                    ty: ResolvedType::String,
+                }
+            }
             ResolvedExprKind::Place(place) => {
                 let value = self.emit_place(place)?;
                 self.require_type(&expr.ty, &value.ty, "place expression")?;
+                // Every read of an owned string place yields a fresh buffer so
+                // the source place keeps its unique owner.
+                if matches!(value.ty, ResolvedType::String) {
+                    let temporary = self.temporary(&ResolvedType::String)?;
+                    self.line(&format!("{temporary} = spx_string_clone({});", value.code));
+                    return Ok(CValue {
+                        code: temporary,
+                        ty: value.ty,
+                    });
+                }
                 value
             }
             ResolvedExprKind::Call {
@@ -2585,6 +2672,11 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             // store is a plain C11 assignment into the local.
                             let value = self.emit_expr(assigned)?;
                             self.require_type(&value.ty, &binding.ty, "assignment")?;
+                            if matches!(binding.ty, ResolvedType::String) {
+                                return Err(backend_error(
+                                    "string assignment has no admitted native lowering",
+                                ));
+                            }
                             let target = self.variables.get(&binding.id).ok_or_else(|| {
                                 backend_error(format!(
                                     "assignment target `{}` has no native local",
@@ -2598,12 +2690,33 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             // exactly the ordinary block body and discard its
                             // scalar Copy result.
                             let value = self.emit_expr(body)?;
+                            if matches!(value.ty, ResolvedType::String) {
+                                return Err(backend_error(
+                                    "discarding an owned string has no admitted native lowering",
+                                ));
+                            }
                             self.line(&format!("(void)({});", value.code));
                         }
                     }
                 }
                 let tail = self.emit_expr(tail)?;
                 self.require_type(&tail.ty, &expr.ty, "block result")?;
+                // Owned string locals introduced in this block free exactly
+                // their own buffer when the block exits; outer bindings and
+                // the tail value are untouched. The order is sorted so the
+                // projection stays byte-deterministic.
+                let mut introduced: Vec<String> = self
+                    .variables
+                    .iter()
+                    .filter(|(id, binding)| {
+                        matches!(binding.ty, ResolvedType::String) && !saved.contains_key(*id)
+                    })
+                    .map(|(_, binding)| binding.name.clone())
+                    .collect();
+                introduced.sort();
+                for name in introduced {
+                    self.line(&format!("spx_string_drop({name});"));
+                }
                 self.variables = saved;
                 tail
             }
@@ -3209,6 +3322,31 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         if matches!(op, BinaryOp::Eq | BinaryOp::Ne) && is_aggregate_type(self.program, &left.ty)? {
             return Err(backend_error(
                 "aggregate equality is outside executable copy variants v1",
+            ));
+        }
+        // Owned strings compare by UTF-8 contents; both operand buffers stay
+        // owned by this expression and are freed right after the comparison.
+        if matches!(op, BinaryOp::Eq | BinaryOp::Ne) && matches!(left.ty, ResolvedType::String) {
+            let right = self.emit_expr(right)?;
+            self.require_type(&right.ty, &ResolvedType::String, "binary right operand")?;
+            self.require_type(result_type, &ResolvedType::Bool, "binary result")?;
+            let temporary = self.temporary(&ResolvedType::Bool)?;
+            let comparison = if op == BinaryOp::Eq {
+                format!("spx_string_eq({}, {})", left.code, right.code)
+            } else {
+                format!("!spx_string_eq({}, {})", left.code, right.code)
+            };
+            self.line(&format!("{temporary} = {comparison};"));
+            self.line(&format!("spx_string_drop({});", left.code));
+            self.line(&format!("spx_string_drop({});", right.code));
+            return Ok(CValue {
+                code: temporary,
+                ty: ResolvedType::Bool,
+            });
+        }
+        if !matches!(op, BinaryOp::Eq | BinaryOp::Ne) && matches!(left.ty, ResolvedType::String) {
+            return Err(backend_error(
+                "string operands only support equality comparison",
             ));
         }
         let float_operand = matches!(left.ty, ResolvedType::F32 | ResolvedType::F64);

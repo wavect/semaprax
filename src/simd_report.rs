@@ -378,6 +378,7 @@ fn scalar_type_name(ty: &Type) -> Option<&'static str> {
         Type::F64 => Some("f64"),
         Type::Bool => Some("bool"),
         Type::Char => Some("char"),
+        Type::String => None,
         Type::Named { .. } => None,
     }
 }
@@ -590,6 +591,9 @@ fn render_expr(
         }
         ResolvedExprKind::Bool(value) => {
             output.push_str(if *value { "true" } else { "false" });
+        }
+        ResolvedExprKind::String(value) => {
+            output.push_str(&crate::format::canonical_string(value));
         }
         ResolvedExprKind::Char(value) => {
             output.push_str(&format!("char({value})"));
@@ -815,6 +819,9 @@ impl Walker<'_> {
             }
             ResolvedExprKind::Bool(_) => {
                 self.push_ineligible(expr, REASON_BOOL_MIXING);
+            }
+            ResolvedExprKind::String(_) => {
+                self.push_ineligible(expr, REASON_SCALAR_LEAF);
             }
             ResolvedExprKind::Char(_) => {
                 self.push_ineligible(expr, REASON_CHAR_OPERATION);

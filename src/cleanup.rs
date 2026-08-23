@@ -44,6 +44,7 @@ fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize {
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool => 0,
+        ResolvedType::String => 0,
         ResolvedType::TypeParameter { owner, .. } => owner.as_str().len(),
         ResolvedType::Nominal {
             declaration,
@@ -291,13 +292,17 @@ struct InventoryBuilder<'a> {
 
 impl InventoryBuilder<'_> {
     fn needs_drop(&self, ty: &ResolvedType) -> Result<bool, Diagnostic> {
-        self.program
+        // Owned strings free their heap buffer inline in each backend; they
+        // never join the resource-lifecycle cleanup inventory.
+        Ok(self
+            .program
             .declarations
             .type_facts(ty)
             .map(|facts| facts.needs_drop)
             .ok_or_else(|| {
                 cleanup_error(format!("type `{}` has no cleanup facts", ty.identity_key()))
-            })
+            })?
+            && !matches!(ty, ResolvedType::String))
     }
 
     fn add_slot(
@@ -620,6 +625,7 @@ impl InventoryBuilder<'_> {
                         | ResolvedExprKind::Float32(_)
                         | ResolvedExprKind::Float64(_)
                         | ResolvedExprKind::Bool(_)
+                        | ResolvedExprKind::String(_)
                         | ResolvedExprKind::Place(_) => {}
                     }
                     if enter.is_some() || action.is_some() {

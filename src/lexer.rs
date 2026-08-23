@@ -392,8 +392,38 @@ impl Lexer<'_> {
                     Some('n') => value.push('\n'),
                     Some('r') => value.push('\r'),
                     Some('t') => value.push('\t'),
+                    Some('0') => value.push('\0'),
                     Some('"') => value.push('"'),
+                    Some('\'') => value.push('\''),
                     Some('\\') => value.push('\\'),
+                    Some('u') if self.take('{') => {
+                        let mut digits = String::new();
+                        while matches!(self.peek(), Some(next) if next.is_ascii_hexdigit()) {
+                            digits.push(self.bump().expect("hex digit peeked"));
+                        }
+                        if !self.take('}') || digits.is_empty() || digits.len() > 6 {
+                            return Err(self.error(
+                                "SPX-P005",
+                                "unicode escape requires one to six hexadecimal digits in braces",
+                                self.span_from(start, line, column),
+                            ));
+                        }
+                        let scalar = u32::from_str_radix(&digits, 16).map_err(|_| {
+                            self.error(
+                                "SPX-P005",
+                                "unicode escape is outside the Unicode range",
+                                self.span_from(start, line, column),
+                            )
+                        })?;
+                        let scalar = char::from_u32(scalar).ok_or_else(|| {
+                            self.error(
+                                "SPX-P005",
+                                "unicode escape is not a Unicode scalar value",
+                                self.span_from(start, line, column),
+                            )
+                        })?;
+                        value.push(scalar);
+                    }
                     Some(other) => {
                         return Err(self.error(
                             "SPX-P005",

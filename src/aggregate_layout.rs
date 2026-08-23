@@ -225,6 +225,9 @@ fn layout_type(
             let (size, align) = scalar_size_align(target, ty)?;
             scalar_layout(target, ty, size, align)
         }
+        ResolvedType::String => Err(layout_error(
+            "owned string values have no aggregate value layout in v1",
+        )),
         ResolvedType::TypeParameter { .. } => Err(layout_error(
             "generic aggregate layouts are outside executable records v1",
         )),
@@ -529,6 +532,7 @@ fn collect_expr_record_types(
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
         | ResolvedExprKind::Place(_) => {}
     }
     Ok(())

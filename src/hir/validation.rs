@@ -64,6 +64,7 @@ fn contains_unsafe_boundary(expression: &ResolvedExpr) -> bool {
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
         | ResolvedExprKind::Place(_) => false,
     }
 }
@@ -567,7 +568,8 @@ impl<'a> HirValidator<'a> {
                             | ResolvedType::Char
                             | ResolvedType::U8
                             | ResolvedType::F32
-                            | ResolvedType::F64 => {
+                            | ResolvedType::F64
+                            | ResolvedType::String => {
                                 return Err(hir_error(format!(
                                     "field `{}` has an invalid generic copy record template",
                                     field.id
@@ -717,7 +719,8 @@ impl<'a> HirValidator<'a> {
                             | ResolvedType::Char
                             | ResolvedType::U8
                             | ResolvedType::F32
-                            | ResolvedType::F64 => {
+                            | ResolvedType::F64
+                            | ResolvedType::String => {
                                 return Err(hir_error(format!(
                                     "field `{}` has an invalid generic copy payload template",
                                     field.id
@@ -932,7 +935,8 @@ impl<'a> HirValidator<'a> {
             | ResolvedType::Char
             | ResolvedType::U8
             | ResolvedType::F32
-            | ResolvedType::F64 => Err(hir_error(format!(
+            | ResolvedType::F64
+            | ResolvedType::String => Err(hir_error(format!(
                 "generic template `{}` has an invalid direct-scalar signature slot",
                 template.id
             ))),
@@ -1014,7 +1018,8 @@ impl<'a> HirValidator<'a> {
             | ResolvedExprKind::Uint8(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
-            | ResolvedExprKind::Bool(_) => {}
+            | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::String(_) => {}
             ResolvedExprKind::Place(place) => {
                 if !place.projections.is_empty() || values.get(&place.root) != Some(&expression.ty)
                 {
@@ -2214,6 +2219,14 @@ impl<'a> HirValidator<'a> {
                                 expression,
                                 &ResolvedType::Bool,
                                 OwnershipMode::Value,
+                            )?;
+                            scopes.push(scope);
+                        }
+                        ResolvedExprKind::String(_) => {
+                            self.finish_expr(
+                                expression,
+                                &ResolvedType::String,
+                                OwnershipMode::Own,
                             )?;
                             scopes.push(scope);
                         }
@@ -4227,6 +4240,7 @@ impl<'a> HirValidator<'a> {
         self.validate_type(&expression.ty)?;
 
         let (ty, ownership) = match &expression.kind {
+            ResolvedExprKind::String(_) => (ResolvedType::String, OwnershipMode::Own),
             ResolvedExprKind::Int(_) => (ResolvedType::I64, OwnershipMode::Value),
             ResolvedExprKind::Int32(_) => (ResolvedType::I32, OwnershipMode::Value),
             ResolvedExprKind::Char(value) => {
@@ -5599,6 +5613,7 @@ impl<'a> HirValidator<'a> {
                     | ResolvedExprKind::Float32(_)
                     | ResolvedExprKind::Float64(_)
                     | ResolvedExprKind::Bool(_)
+                    | ResolvedExprKind::String(_)
                     | ResolvedExprKind::Call { .. }
                     | ResolvedExprKind::NativeRustImportCall(_)
                     | ResolvedExprKind::Unary { .. }
@@ -5822,7 +5837,8 @@ impl<'a> HirValidator<'a> {
                     | ResolvedType::U8
                     | ResolvedType::F32
                     | ResolvedType::F64
-                    | ResolvedType::Bool,
+                    | ResolvedType::Bool
+                    | ResolvedType::String,
                 ) => {}
                 Frame::Enter(ResolvedType::TypeParameter { .. }) => {
                     return Err(hir_error(

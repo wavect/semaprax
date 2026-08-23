@@ -531,7 +531,8 @@ fn collect_expr(
         | ResolvedExprKind::Uint8(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
-        | ResolvedExprKind::Bool(_) => {}
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_) => {}
     }
 }
 

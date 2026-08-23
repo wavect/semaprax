@@ -689,6 +689,10 @@ impl Parser {
                 kind: ExprKind::Uint8(value),
                 span: token.span,
             },
+            TokenKind::String(value) => Expr {
+                kind: ExprKind::String(value),
+                span: token.span,
+            },
             TokenKind::Float(literal) => Expr {
                 kind: if literal.wide {
                     ExprKind::Float64(literal.value.to_bits())
@@ -1317,10 +1321,10 @@ impl Parser {
 
     fn ty(&mut self) -> Result<Type, Diagnostic> {
         let (name, _) = self.qualified_ident("type")?;
-        let is_primitive = matches!(
-            name.as_str(),
-            "i64" | "i32" | "u8" | "char" | "f32" | "f64" | "bool"
-        );
+    let is_primitive = matches!(
+        name.as_str(),
+        "i64" | "i32" | "u8" | "char" | "f32" | "f64" | "bool" | "string"
+    );
         if is_primitive && self.at(&TokenKind::Lt) {
             return Err(self.error_here(
                 "SPX-P106",
@@ -1335,6 +1339,7 @@ impl Parser {
             "f32" => Ok(Type::F32),
             "f64" => Ok(Type::F64),
             "bool" => Ok(Type::Bool),
+            "string" => Ok(Type::String),
             _ => Ok(Type::Named {
                 name,
                 arguments: self.type_arguments()?,

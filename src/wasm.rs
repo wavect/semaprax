@@ -89,6 +89,187 @@ const I64: u8 = 0x7e;
 const F32: u8 = 0x7d;
 const F64: u8 = 0x7c;
 const SCALAR_IMPORT_COUNT: u32 = 7;
+/// Host imports backing owned strings, appended after the scalar imports:
+/// `spx_string_new`, `spx_string_eq`, `spx_string_clone`.
+const STRING_IMPORT_COUNT: u32 = 3;
+/// Linear-memory base offset for string literal bytes.
+const STRING_DATA_BASE: u32 = 1024;
+/// Fixed import indexes on the scalar-only string path (no owned adapters).
+const STRING_IMPORT_BASE_NEW: u32 = 7;
+const STRING_IMPORT_BASE_EQ: u32 = 8;
+const STRING_IMPORT_BASE_CLONE: u32 = 9;
+
+/// Deterministic literal table shared by the data segment and expression
+/// lowering; identical contents always map to one offset.
+#[derive(Default)]
+struct StringData {
+    offsets: HashMap<String, u32>,
+    bytes: Vec<u8>,
+}
+
+impl StringData {
+    fn intern(&mut self, value: &str) -> (u32, u32) {
+        if let Some(offset) = self.offsets.get(value) {
+            return (*offset, value.len() as u32);
+        }
+        let offset = STRING_DATA_BASE + self.bytes.len() as u32;
+        self.offsets.insert(value.to_owned(), offset);
+        self.bytes.extend_from_slice(value.as_bytes());
+        (offset, value.len() as u32)
+    }
+}
+
+/// Whether any resolved function admits an owned string in a signature,
+/// body, or contract.
+fn program_uses_strings(program: &ResolvedProgram) -> bool {
+    let mut pending: Vec<&ResolvedExpr> = Vec::new();
+    for function in &program.functions {
+        if matches!(function.return_type, ResolvedType::String)
+            || function
+                .params
+                .iter()
+                .any(|param| matches!(param.ty, ResolvedType::String))
+        {
+            return true;
+        }
+        pending.push(&function.body);
+        pending.extend(function.requires.iter().chain(&function.ensures));
+    }
+    while let Some(expression) = pending.pop() {
+        if matches!(expression.ty, ResolvedType::String)
+            || matches!(expression.kind, ResolvedExprKind::String(_))
+        {
+            return true;
+        }
+        match &expression.kind {
+            ResolvedExprKind::Call { args, .. } => pending.extend(args.iter()),
+            ResolvedExprKind::NativeRustImportCall(call) => pending.extend(call.args.iter()),
+            ResolvedExprKind::Unary { value, .. }
+            | ResolvedExprKind::Try { operand: value, .. }
+            | ResolvedExprKind::TryOption { operand: value, .. }
+            | ResolvedExprKind::Project { base: value, .. } => pending.push(value),
+            ResolvedExprKind::Binary { left, right, .. } => {
+                pending.push(left);
+                pending.push(right);
+            }
+            ResolvedExprKind::Block { statements, tail } => {
+                pending.extend(statements.iter().map(|statement| statement.value()));
+                pending.push(tail);
+            }
+            ResolvedExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                pending.push(condition);
+                pending.push(then_branch);
+                pending.push(else_branch);
+            }
+            ResolvedExprKind::ConstructRecord { fields, .. }
+            | ResolvedExprKind::ConstructVariant { fields, .. } => {
+                pending.extend(fields.iter().map(|field| &field.value));
+            }
+            ResolvedExprKind::Match { scrutinee, arms } => {
+                pending.push(scrutinee);
+                pending.extend(arms.iter().map(|arm| &arm.value));
+            }
+            ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+                pending.push(base);
+                pending.extend(fields.iter().map(|field| &field.value));
+            }
+            ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Int32(_)
+            | ResolvedExprKind::Char(_)
+            | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Float32(_)
+            | ResolvedExprKind::Float64(_)
+            | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::String(_)
+            | ResolvedExprKind::Place(_) => {}
+        }
+    }
+    false
+}
+
+/// Collect every distinct literal in deterministic pre-order with offsets.
+fn collect_string_data(program: &ResolvedProgram) -> StringData {
+    let mut data = StringData::default();
+    let mut pending: Vec<&ResolvedExpr> = Vec::new();
+    for function in &program.functions {
+        pending.push(&function.body);
+        pending.extend(function.requires.iter().chain(&function.ensures));
+    }
+    while let Some(expression) = pending.pop() {
+        if let ResolvedExprKind::String(value) = &expression.kind {
+            data.intern(value);
+        }
+        // Reuse the same traversal shape as `program_uses_strings`, pushing
+        // children in reverse so pre-order stays deterministic.
+        match &expression.kind {
+            ResolvedExprKind::Call { args, .. } => {
+                for arg in args.iter().rev() {
+                    pending.push(arg);
+                }
+            }
+            ResolvedExprKind::NativeRustImportCall(call) => {
+                for arg in call.args.iter().rev() {
+                    pending.push(arg);
+                }
+            }
+            ResolvedExprKind::Unary { value, .. }
+            | ResolvedExprKind::Try { operand: value, .. }
+            | ResolvedExprKind::TryOption { operand: value, .. }
+            | ResolvedExprKind::Project { base: value, .. } => pending.push(value),
+            ResolvedExprKind::Binary { left, right, .. } => {
+                pending.push(right);
+                pending.push(left);
+            }
+            ResolvedExprKind::Block { statements, tail } => {
+                pending.push(tail);
+                for statement in statements.iter().rev() {
+                    pending.push(statement.value());
+                }
+            }
+            ResolvedExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                pending.push(else_branch);
+                pending.push(then_branch);
+                pending.push(condition);
+            }
+            ResolvedExprKind::ConstructRecord { fields, .. }
+            | ResolvedExprKind::ConstructVariant { fields, .. } => {
+                for field in fields.iter().rev() {
+                    pending.push(&field.value);
+                }
+            }
+            ResolvedExprKind::Match { scrutinee, arms } => {
+                for arm in arms.iter().rev() {
+                    pending.push(&arm.value);
+                }
+                pending.push(scrutinee);
+            }
+            ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+                for field in fields.iter().rev() {
+                    pending.push(&field.value);
+                }
+                pending.push(base);
+            }
+            ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Int32(_)
+            | ResolvedExprKind::Char(_)
+            | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Float32(_)
+            | ResolvedExprKind::Float64(_)
+            | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::String(_)
+            | ResolvedExprKind::Place(_) => {}
+        }
+    }
+    data
+}
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub(super) struct Signature {
@@ -97,7 +278,7 @@ pub(super) struct Signature {
 }
 
 #[derive(Default)]
-struct LocalLayout {
+struct LocalLayout<'a> {
     declarations: Vec<ResolvedType>,
     lets: HashMap<ValueId, u32>,
     /// Two reserved i64 scratch slots used by inline checked i32 arithmetic.
@@ -105,6 +286,9 @@ struct LocalLayout {
     /// Checked u8 arithmetic stages operands and results in two trailing
     /// scratch locals so the failure trap never taints live stack values.
     u8_scratch: Option<(u32, u32)>,
+    /// Interned string literal offsets for the whole program, when strings
+    /// are admitted at all.
+    string_data: Option<&'a StringData>,
 }
 
 trait ByteOutput: std::ops::Deref<Target = [u8]> {
@@ -223,10 +407,29 @@ fn emit_resolved_module_internal(
             "Public Scalar Export Profile v1 does not admit owned-resource adapters",
         ));
     }
+    // Owned strings lower through dedicated host imports; they are admitted
+    // only on the scalar core path so import indexes stay deterministic.
+    let uses_strings = program_uses_strings(program);
+    if uses_strings && (!owned_plans.is_empty() || has_authored_aggregate) {
+        return Err(Diagnostic::io(
+            "SPX-W116",
+            "string values are outside aggregate and resource WebAssembly lowering",
+        ));
+    }
+    let string_data = if uses_strings {
+        collect_string_data(program)
+    } else {
+        StringData::default()
+    };
+    let string_import_base = SCALAR_IMPORT_COUNT;
     let import_count = if owned_plans.is_empty() {
         SCALAR_IMPORT_COUNT
     } else {
         SCALAR_IMPORT_COUNT + owned::IMPORT_NAMES.len() as u32
+    } + if uses_strings {
+        STRING_IMPORT_COUNT
+    } else {
+        0
     };
     let mut types = Vec::<Signature>::new();
     let mut type_indexes = HashMap::<Signature, u32>::new();
@@ -258,6 +461,42 @@ fn emit_resolved_module_internal(
         &mut types,
         &mut type_indexes,
     );
+    let string_import_types = if uses_strings {
+        Some((
+            string_import_base,
+            [
+                // spx_string_new(ptr: i32, len: i32) -> handle: i64
+                intern_type(
+                    Signature {
+                        params: vec![I32, I32],
+                        results: vec![I64],
+                    },
+                    &mut types,
+                    &mut type_indexes,
+                ),
+                // spx_string_eq(a: i64, b: i64) -> bool: i32
+                intern_type(
+                    Signature {
+                        params: vec![I64, I64],
+                        results: vec![I32],
+                    },
+                    &mut types,
+                    &mut type_indexes,
+                ),
+                // spx_string_clone(handle: i64) -> handle: i64
+                intern_type(
+                    Signature {
+                        params: vec![I64],
+                        results: vec![I64],
+                    },
+                    &mut types,
+                    &mut type_indexes,
+                ),
+            ],
+        ))
+    } else {
+        None
+    };
 
     let owned_import_types = if owned_plans.is_empty() {
         None
@@ -426,6 +665,12 @@ fn emit_resolved_module_internal(
     }
     function_import(&mut imports, "env", "spx_neg", unary_checked);
     function_import(&mut imports, "env", "spx_contract_fail", contract_fail);
+    if let Some((base, [string_new, string_eq, string_clone])) = string_import_types {
+        let _ = base;
+        function_import(&mut imports, "env", "spx_string_new", string_new);
+        function_import(&mut imports, "env", "spx_string_eq", string_eq);
+        function_import(&mut imports, "env", "spx_string_clone", string_clone);
+    }
     if let Some(type_indexes) = owned_import_types {
         for (name, type_index) in owned::IMPORT_NAMES.into_iter().zip(type_indexes) {
             function_import(&mut imports, "env", name, type_index);
@@ -449,16 +694,20 @@ fn emit_resolved_module_internal(
     }
     section(&mut module, 3, functions);
 
-    if !owned_plans.is_empty() {
+    if !owned_plans.is_empty() || uses_strings {
         let mut memories = crate::bounded_output::CappedVec::new();
         write_u32(&mut memories, 1);
         memories.extend([0x00, 0x01]); // one-page, unbounded memory
         section(&mut module, 5, memories);
     }
 
+    // String literal bytes live in one deterministic data segment so host
+    // shims can materialize handles with `spx_string_new(ptr, len)`.
+
     let mut exports = crate::bounded_output::CappedVec::new();
     let legacy_export_count = if scalar_exports.is_empty() {
-        1 + owned_plans.len() as u32 + u32::from(!owned_plans.is_empty())
+        1 + owned_plans.len() as u32
+            + u32::from(!owned_plans.is_empty() || uses_strings)
     } else {
         0
     };
@@ -482,7 +731,7 @@ fn emit_resolved_module_internal(
         write_name(&mut exports, "semaprax_main");
         exports.push(0x00);
         write_u32(&mut exports, import_count + main_index as u32);
-        if !owned_plans.is_empty() {
+        if !owned_plans.is_empty() || uses_strings {
             write_name(&mut exports, "memory");
             exports.push(0x02);
             write_u32(&mut exports, 0);
@@ -521,6 +770,7 @@ fn emit_resolved_module_internal(
             lets: HashMap::new(),
             wide_scratch: [0; 2],
             u8_scratch: None,
+            string_data: Some(&string_data),
         };
         for contract in &function.requires {
             collect_locals(contract, function.params.len() as u32, &mut layout)?;
@@ -613,6 +863,19 @@ fn emit_resolved_module_internal(
         code.extend_from_slice(&body);
     }
     section(&mut module, 10, code);
+    // String literal bytes live in one deterministic data segment so host
+    // shims can materialize handles with `spx_string_new(ptr, len)`.
+    if uses_strings {
+        let mut data = crate::bounded_output::CappedVec::new();
+        write_u32(&mut data, 1);
+        data.push(0x00); // active segment, memory 0
+        data.push(0x41); // i32.const
+        write_i32(&mut data, STRING_DATA_BASE as i32);
+        data.push(0x0b); // end of init expression
+        write_u32(&mut data, string_data.bytes.len() as u32);
+        data.extend_bytes(&string_data.bytes);
+        section(&mut module, 11, data);
+    }
     Ok(module.into_vec())
 }
 
@@ -1447,6 +1710,7 @@ fn collect_locals(
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
         | ResolvedExprKind::Place(_) => {}
     }
     Ok(())
@@ -1492,6 +1756,27 @@ fn emit_expr(
             output.push(0x41);
             write_i64(output, i64::from(*value));
         }
+        ResolvedExprKind::String(value) => {
+            // A string value is an abstract host handle riding the i64 lane;
+            // the handle is freshly allocated for this evaluation.
+            let Some(table) = layout.string_data else {
+                return Err(Diagnostic::io(
+                    "SPX-W116",
+                    "string literal reached lowering without string admission",
+                ));
+            };
+            let Some(&offset) = table.offsets.get(value) else {
+                return Err(Diagnostic::io(
+                    "SPX-W116",
+                    "string literal has no data-segment offset",
+                ));
+            };
+            output.push(0x41); // i32.const offset
+            write_u32(output, offset);
+            output.push(0x41); // i32.const len
+            write_i64(output, value.len() as i64);
+            call_import(output, STRING_IMPORT_BASE_NEW);
+        }
         ResolvedExprKind::Place(place) => {
             if !place.projections.is_empty() {
                 return Err(Diagnostic::io(
@@ -1512,6 +1797,11 @@ fn emit_expr(
             })?;
             output.push(0x20);
             write_u32(output, index);
+            // Every read of an owned string place clones the handle so the
+            // source place keeps its unique owner.
+            if matches!(expr.ty, ResolvedType::String) {
+                call_import(output, STRING_IMPORT_BASE_CLONE);
+            }
         }
         ResolvedExprKind::Call {
             callee,
@@ -1599,6 +1889,23 @@ fn emit_expr(
             }
         },
         ResolvedExprKind::Binary { op, left, right } => {
+            if matches!(left.ty, ResolvedType::String) {
+                // Owned strings compare by UTF-8 contents through the host
+                // shim; every other operator over strings is ill-typed.
+                if !matches!(op, BinaryOp::Eq | BinaryOp::Ne) {
+                    return Err(Diagnostic::io(
+                        "SPX-W116",
+                        "string operands only support equality comparison",
+                    ));
+                }
+                emit_expr(output, left, value_indexes, function_indexes, layout, result)?;
+                emit_expr(output, right, value_indexes, function_indexes, layout, result)?;
+                call_import(output, STRING_IMPORT_BASE_EQ);
+                if *op == BinaryOp::Ne {
+                    output.push(0x45); // i32.eqz keeps bool results exact
+                }
+                return Ok(());
+            }
             if matches!(
                 op,
                 BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem
@@ -2137,6 +2444,7 @@ pub(crate) fn needs_i32_wide_scratch(expression: &ResolvedExpr) -> bool {
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::String(_)
             | ResolvedExprKind::Place(_) => {}
         }
     }
@@ -2213,6 +2521,7 @@ fn contains_u8_arithmetic(expression: &ResolvedExpr) -> bool {
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
         | ResolvedExprKind::Place(_) => false,
     }
 }
@@ -2230,6 +2539,8 @@ fn wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
         ResolvedType::F32 => Ok(F32),
         ResolvedType::F64 => Ok(F64),
         ResolvedType::Bool | ResolvedType::Nominal { .. } => Ok(I32),
+        // Owned strings lower to an abstract host handle riding the i64 lane.
+        ResolvedType::String => Ok(I64),
         ResolvedType::TypeParameter { .. } => Err(Diagnostic::io(
             "SPX-W109",
             format!(
@@ -2291,6 +2602,18 @@ fn write_u32(output: &mut impl ByteOutput, mut value: u32) {
 }
 
 fn write_i64(output: &mut impl ByteOutput, mut value: i64) {
+    loop {
+        let byte = (value as u8) & 0x7f;
+        value >>= 7;
+        let done = (value == 0 && byte & 0x40 == 0) || (value == -1 && byte & 0x40 != 0);
+        output.push(if done { byte } else { byte | 0x80 });
+        if done {
+            break;
+        }
+    }
+}
+
+fn write_i32(output: &mut impl ByteOutput, mut value: i32) {
     loop {
         let byte = (value as u8) & 0x7f;
         value >>= 7;

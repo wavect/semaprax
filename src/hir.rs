@@ -303,6 +303,7 @@ fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize {
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool => 0,
+        ResolvedType::String => 0,
         ResolvedType::TypeParameter { owner, .. } => owner.as_str().len(),
         ResolvedType::Nominal {
             declaration,
@@ -477,7 +478,8 @@ fn resolved_expr_owned_capacity(expression: &ResolvedExpr) -> usize {
         | ResolvedExprKind::Uint8(_)
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
-        | ResolvedExprKind::Bool(_) => {}
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_) => {}
     }
     bytes
 }
@@ -1151,6 +1153,7 @@ impl DeclarationIndex {
                         ResolvedType::F32 => Some((true, false, false, "scalar:f32")),
                         ResolvedType::F64 => Some((true, false, false, "scalar:f64")),
                         ResolvedType::Bool => Some((true, false, false, "scalar:bool")),
+                        ResolvedType::String => Some((false, false, true, "owned:string")),
                         ResolvedType::TypeParameter { .. } | ResolvedType::Nominal { .. } => None,
                     };
                     if let Some((copy, contains_resource, needs_drop, key)) = scalar {
@@ -1927,6 +1930,7 @@ impl DeclarationIndex {
                     Type::F32 => resolved.push(ResolvedType::F32),
                     Type::F64 => resolved.push(ResolvedType::F64),
                     Type::Bool => resolved.push(ResolvedType::Bool),
+                    Type::String => resolved.push(ResolvedType::String),
                     Type::Named { name, arguments } => {
                         if arguments.is_empty() {
                             if let Some(owner) = parameter_owner {
@@ -1976,6 +1980,8 @@ pub enum ResolvedType {
     /// IEEE-754 double precision.
     F64,
     Bool,
+    /// An owned heap UTF-8 string value; never `Copy`.
+    String,
     TypeParameter {
         owner: DeclarationId,
         index: u32,
@@ -1998,6 +2004,7 @@ impl ResolvedType {
             | Self::F32
             | Self::F64
             | Self::Bool
+            | Self::String
             | Self::TypeParameter { .. } => None,
         }
     }
@@ -2021,6 +2028,7 @@ impl ResolvedType {
                     Self::F32 => keys.push("f32".to_owned()),
                     Self::F64 => keys.push("f64".to_owned()),
                     Self::Bool => keys.push("bool".to_owned()),
+                    Self::String => keys.push("string".to_owned()),
                     Self::TypeParameter { owner, index } => keys.push(format!(
                         "parameter:{}:{}:{index}",
                         owner.as_str().len(),
@@ -2101,6 +2109,7 @@ pub(crate) fn substitute_type(
                 ResolvedType::F32 => resolved.push(ResolvedType::F32),
                 ResolvedType::F64 => resolved.push(ResolvedType::F64),
                 ResolvedType::Bool => resolved.push(ResolvedType::Bool),
+                ResolvedType::String => resolved.push(ResolvedType::String),
                 ResolvedType::TypeParameter {
                     owner: parameter_owner,
                     index,
@@ -2173,6 +2182,7 @@ fn substitute_source_function_type(
                 Type::F32 => resolved.push(Type::F32),
                 Type::F64 => resolved.push(Type::F64),
                 Type::Bool => resolved.push(Type::Bool),
+                Type::String => resolved.push(Type::String),
                 Type::Named {
                     name,
                     arguments: nested,
@@ -2345,6 +2355,7 @@ fn materialize_template_expr(
         ResolvedExprKind::Float32(bits) => ResolvedExprKind::Float32(*bits),
         ResolvedExprKind::Float64(bits) => ResolvedExprKind::Float64(*bits),
         ResolvedExprKind::Bool(value) => ResolvedExprKind::Bool(*value),
+        ResolvedExprKind::String(value) => ResolvedExprKind::String(value.clone()),
         ResolvedExprKind::Place(place) => ResolvedExprKind::Place(Place {
             root: values
                 .get(&place.root)
@@ -2834,6 +2845,8 @@ pub enum ResolvedExprKind {
     /// An `f64` literal held as its exact IEEE-754 bit pattern.
     Float64(u64),
     Bool(bool),
+    /// A string literal held as its exact owned UTF-8 contents.
+    String(String),
     Place(Place),
     Call {
         callee: DeclarationId,
@@ -3437,7 +3450,8 @@ fn audit_resolved_type(root: &ResolvedType) -> Result<(), Diagnostic> {
             | ResolvedType::U8
             | ResolvedType::F32
             | ResolvedType::F64
-            | ResolvedType::Bool => {}
+            | ResolvedType::Bool
+            | ResolvedType::String => {}
             ResolvedType::TypeParameter { owner, .. } => {
                 reject_nul_identity("resolved type-parameter owner", owner.as_str())?;
             }
@@ -3490,7 +3504,8 @@ fn audit_resolved_expression(root: &ResolvedExpr) -> Result<(), Diagnostic> {
             | ResolvedExprKind::Uint8(_)
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
-            | ResolvedExprKind::Bool(_) => {}
+            | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::String(_) => {}
             ResolvedExprKind::Place(place) => audit_hir_place(place)?,
             ResolvedExprKind::Call { callee, args, .. } => {
                 reject_nul_identity("resolved call target", callee.as_str())?;
@@ -4079,6 +4094,7 @@ fn visit_resolved_calls(
         | ResolvedExprKind::Float32(_)
         | ResolvedExprKind::Float64(_)
         | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
         | ResolvedExprKind::Place(_) => {}
     }
 }
@@ -4183,6 +4199,7 @@ pub(crate) fn workspace_call_sites(
             | ResolvedExprKind::Float32(_)
             | ResolvedExprKind::Float64(_)
             | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::String(_)
             | ResolvedExprKind::Place(_) => {}
         }
     }
@@ -4717,7 +4734,13 @@ impl Resolver<'_> {
             .map(|(index, param)| {
                 let ty = self.resolve_type(&param.ty, param.span)?;
                 let id = ValueId::parameter(function_scope, index);
-                let ownership = param.mode.into();
+                // Owned strings are non-Copy: even a by-value `string`
+                // parameter carries unique ownership.
+                let ownership = if ty == ResolvedType::String {
+                    OwnershipMode::Own
+                } else {
+                    param.mode.into()
+                };
                 bindings.insert(
                     param.name.clone(),
                     Binding {
@@ -4819,6 +4842,7 @@ impl Resolver<'_> {
                 Frame::Enter(Type::F32) => result = Some(ResolvedType::F32),
                 Frame::Enter(Type::F64) => result = Some(ResolvedType::F64),
                 Frame::Enter(Type::Bool) => result = Some(ResolvedType::Bool),
+                Frame::Enter(Type::String) => result = Some(ResolvedType::String),
                 Frame::Enter(Type::Named { name, arguments }) => {
                     let declaration =
                         self.declarations.type_id(name).cloned().ok_or_else(|| {
@@ -5548,6 +5572,7 @@ impl Resolver<'_> {
                             | Type::F32
                             | Type::F64
                             | Type::Bool => 0,
+                            Type::String => 0,
                             Type::Named { name, arguments } => {
                                 name.capacity() + arguments.capacity() * std::mem::size_of::<Type>()
                             }
@@ -5668,6 +5693,20 @@ impl Resolver<'_> {
                         kind: ResolvedExprKind::Int(*value),
                         span: expr.span,
                     }),
+                    ExprKind::String(value) => {
+                        let ty = ResolvedType::String;
+                        results.push(ResolvedExpr {
+                            id: ExpressionId::new(function, &path),
+                            ownership: self.expression_ownership(
+                                &ty,
+                                OwnershipMode::Own,
+                                expr.span,
+                            )?,
+                            ty,
+                            kind: ResolvedExprKind::String(value.clone()),
+                            span: expr.span,
+                        });
+                    }
                     ExprKind::Int32(value) => results.push(ResolvedExpr {
                         id: ExpressionId::new(function, &path),
                         ty: ResolvedType::I32,
@@ -7547,6 +7586,11 @@ impl Resolver<'_> {
                 ResolvedExprKind::Bool(*value),
                 ResolvedType::Bool,
                 OwnershipMode::Value,
+            ),
+            ExprKind::String(value) => (
+                ResolvedExprKind::String(value.clone()),
+                ResolvedType::String,
+                OwnershipMode::Own,
             ),
             ExprKind::Var(name) => {
                 let binding = bindings.get(name).ok_or_else(|| {

@@ -160,6 +160,33 @@ the body transparently on native C11 O0/O2 and Node/Wasm, and CleanupPlan v2
 shapes are unchanged. It claims no raw pointers or memory operations, no lint
 or platform conformance, boundary mechanics only, and no safety claims about
 block contents. Current totals are 51 Partial/5 Missing.
+[Plugin Manifest Projection v1](PLUGIN-MANIFEST-V1.md) is a locally
+evidenced read-only projection tranche (`semaprax plugin-manifest <file>`,
+`semaprax.plugin-manifest.v1`) that moves only the Plugins row from Missing
+to Partial: one verified module is described by one digest-authenticated
+canonical envelope carrying its sorted provided-export inventory
+(explicit-ID monomorphic effect-free by-value `i64`/`bool` functions with
+persistent stable IDs, interface types, rendered contracts, and exact
+Native64 prototype lines extracted verbatim from the production native
+projection under per-export domain-separated digests), six closed exclusion
+reasons covering every non-admitted function, plugin identity fields sourced
+from module metadata conventions (module name plus a build-hash-style
+version derived from the domain-separated stable source digest; no version
+metadata exists in the language today), required host capabilities derived
+exactly like Build Capability Manifest v1 inside the same closed five-domain
+vocabulary with fail-closed `SPX-N102` rejection of every out-of-vocabulary
+token, an explicit empty-by-default canonical resource-limits section, and a
+closed unavailable-sections inventory. Independent replay re-derives
+counts, all closed sections, exclusion vocabulary, export order, identity/
+version consistency, and every signature digest; pinned KATs, tamper
+rejection including forged-but-re-signed envelopes, determinism, budget
+fail-closed behavior, CLI exit codes, and cross-consistency with `semaprax
+capability-manifest` (equal capability sections) and `semaprax abi-report`
+(byte-equal symbols/signatures) are green locally in
+`tests/plugin_manifest_v1.rs`. It performs no Component Model runtime or
+packaging, no host loading or lifecycle management, no versioning
+negotiation, no resource-limit enforcement, and no hostile-plugin execution
+testing. Current totals are 52 Partial/4 Missing.
 
 Status values:
 
@@ -743,7 +770,7 @@ exactly 39 Partial and 17 Missing.
 | Windows | Partial | A private portable PE engine package and separate Win32 GUI-subsystem frontend with one visible window/button, `IAccessible` name, pre-launch engine digest, exact imported-DLL/no-export-directory contract, and ordered control/destroy/quit path are green in [run 31343897595, job 93322134480](https://github.com/wavect/semaprax/actions/runs/31343897595/job/93322134480). Earlier hosted evidence also confirms the callable corpus and dependency isolation in [run 31257545008, job 93103151756](https://github.com/wavect/semaprax/actions/runs/31257545008/job/93103151756) | Public/general Win32 or WinUI host, signed engine provenance, comprehensive accessibility/lifecycle, installer/MSIX/signing metadata, and representative application sample verified |
 | Linux | Partial | Host compilation exercised in CI | Native application, selected UI adapter, accessibility, AppImage/deb/rpm metadata, and sample verified |
 | Edge and server | Partial | Host-native scalar CLI only | Server runtime, async I/O, HTTP/data adapters, native/WASI output, observability, deployment, and load/conformance tests verified |
-| Plugins | Missing | — | Capability-limited Component Model plugins, lifecycle, versioning, resource limits, and hostile-plugin tests verified |
+| Plugins | Partial | [Plugin Manifest Projection v1](PLUGIN-MANIFEST-V1.md) adds the read-only `semaprax plugin-manifest <file> [--max-bytes N]` projection: one deterministic canonical `semaprax.plugin-manifest.v1` envelope per verified module with the sorted provided-export inventory (explicit-ID monomorphic effect-free by-value `i64`/`bool` functions under per-export digest-authenticated verbatim Native64 signatures), six closed exclusion reasons, module-name plus digest-derived build-hash version identity fields, required host capabilities derived exactly like Build Capability Manifest v1 over the closed five-domain vocabulary with fail-closed `SPX-N101`-`SPX-N104` diagnostics, an explicit empty-by-default resource-limits section, and a closed unavailable-sections inventory; independent replay re-derives counts, sections, vocabulary, ordering, identity/version consistency, and digests, so forged-but-re-signed mutations still fail closed. Pinned KATs, determinism, budget exhaustion, CLI exit codes, tamper rejection per digest field, and cross-consistency with `semaprax capability-manifest` and `semaprax abi-report` are green locally in `tests/plugin_manifest_v1.rs`. No Component Model runtime or packaging, host loading/lifecycle, versioning negotiation, resource-limit enforcement, hostile-plugin execution tests, or target execution is claimed | Capability-limited Component Model plugins, lifecycle, versioning, resource limits, and hostile-plugin tests verified |
 
 ## Agent economics, review, and operations
 

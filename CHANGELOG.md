@@ -1,5 +1,6 @@
 # Changelog
 
+<<<<<<< HEAD
 - Added the locally evidenced Reference Interpreter v1 tranche, the first
   executable slice of the completion-matrix row "Fast development lane". The
   new `semaprax interpret <file> --function <name|stable-id> [--arg
@@ -64,6 +65,48 @@
   Non-claims: no raw pointers or memory operations, no lint/platform
   conformance coverage, no safety claims about block contents, and no
   capability machinery beyond the single compile-time gate.
+- Added the locally evidenced Plugin Manifest Projection v1 tranche, the
+  first executable slice of the completion-matrix row "Plugins". The new
+  read-only `semaprax plugin-manifest <file> [--max-bytes N]` command and
+  `plugin_manifest` library API project one verified module into one
+  deterministic canonical `semaprax.plugin-manifest.v1` envelope describing
+  a capability-limited plugin descriptor: a sorted provided-export inventory
+  of explicit-ID monomorphic effect-free by-value `i64`/`bool` functions,
+  each with its persistent stable ID, interface parameter/result types,
+  canonically rendered requires/ensures clauses, and the exact Native64
+  prototype line extracted verbatim from the production native C11
+  projection under a per-export domain-separated digest; every other
+  function is recorded under one of six closed exclusion reasons mirroring
+  Canonical ABI Report v1. Plugin identity fields follow the existing module
+  metadata conventions — the module declaration name plus a build-hash-style
+  version derived from the domain-separated stable source digest, because
+  the language has no version metadata today. The required host capabilities
+  section reuses the Build Capability Manifest v1 derivation and helpers
+  over the same closed five-domain vocabulary (module permits plus declared
+  function and interface-import effects; unconsumed interface permits stay
+  checked-but-not-declared), failing closed with `SPX-N102` on any
+  out-of-vocabulary token. An explicit empty-by-default canonical
+  resource-limits section, a closed five-entry unavailable-sections
+  inventory, and fixed nonclaims state that the projection provides no
+  Component Model runtime or packaging, no host loading or lifecycle
+  management, no versioning negotiation, no resource-limit enforcement, and
+  no hostile-plugin execution testing. Domain-separated SHA-256 digests
+  authenticate the payload, source snapshot, identity, and every export
+  signature; `verify_envelope` independently replays the exact bytes,
+  counts, all closed sections, exclusion vocabulary, strict stable-id
+  ordering, capability vocabulary, identity/version consistency, and every
+  signature digest, so forged-but-re-signed mutations still fail closed.
+  Options (`SPX-N101`), out-of-vocabulary (`SPX-N102`), budget
+  (`SPX-N103`), and consistency (`SPX-N104`) diagnostics come from the
+  previously unused `SPX-N1xx` family. `tests/plugin_manifest_v1.rs` pins
+  golden envelope KATs over two examples, determinism, every exclusion
+  reason, independent digest recomputation, per-field tamper rejection
+  including re-signed forgeries, budget exhaustion, source-drift fail-closed
+  behavior through both embedded digests, CLI exit codes, and
+  cross-consistency proving `required_capabilities` equals what `semaprax
+  capability-manifest` derives for the same program and that listed exports
+  carry byte-equal native symbols/signatures to what `semaprax abi-report`
+  admits. The Plugins row moves from Missing to Partial.
 - Added the locally evidenced Interface Package Report v1 tranche, the first
   executable slice of the completion-matrix row "Interface-first packages and
   target matrices". The new read-only `semaprax package-report <file>

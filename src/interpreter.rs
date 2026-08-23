@@ -103,6 +103,7 @@ const REASON_TRY_EXPRESSION: &str = "try_expression";
 const REASON_PLACE_PROJECTION: &str = "place_projection";
 const REASON_UNSUPPORTED_CALLEE: &str = "unsupported_callee";
 const REASON_UNSUPPORTED_SCALAR_OPERATION: &str = "unsupported_scalar_operation";
+const REASON_UNSAFE_BOUNDARY: &str = "unsafe_boundary";
 
 const OUTCOME_RETURNED: &str = "returned";
 const OUTCOME_FAILED: &str = "failed";
@@ -517,6 +518,14 @@ fn scan_closure(
                 }
                 Ok(())
             }
+            ResolvedExprKind::Block { statements, .. } => {
+                for statement in statements {
+                    if matches!(statement, ResolvedStatement::Unsafe { .. }) {
+                        return Err(reject_scan(expression, REASON_UNSAFE_BOUNDARY));
+                    }
+                }
+                Ok(())
+            }
             ResolvedExprKind::Binary { op, .. } => {
                 let unsupported = matches!(
                     (*op, &expression.ty),
@@ -907,6 +916,11 @@ impl Evaluator<'_> {
                                     break;
                                 }
                             }
+                        }
+                        ResolvedStatement::Unsafe { .. } => {
+                            interrupted =
+                                Some(Flow::Guard("unsafe boundary outside the admitted surface"));
+                            break;
                         }
                     }
                 }

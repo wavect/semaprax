@@ -37,9 +37,10 @@ with exactly one closed reason: `automatic_identity`,
 `unsupported_parameter_type`, `unsupported_result_type`, `generic_call`,
 `import_call`, `record_construction`, `variant_construction`,
 `record_update`, `record_projection`, `match_expression`,
-`try_expression`, `place_projection`, `unsupported_callee`, or
+`try_expression`, `place_projection`, `unsupported_callee`,
 `unsupported_scalar_operation` (the backend-unlowerable shapes:
-`f32`/`f64`/`u8` remainder and `char` arithmetic).
+`f32`/`f64`/`u8` remainder and `char` arithmetic), or `unsafe_boundary`
+(Unsafe Boundary Mechanics v1 statements are outside the admitted surface).
 
 Inside that profile the interpreter evaluates the full admitted scalar
 surface: `let` (including Explicit Mutation v1 `let mut`) and assignment

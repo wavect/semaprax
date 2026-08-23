@@ -1376,8 +1376,14 @@ impl Emitter<'_> {
                 let saved = self.bindings.clone();
                 for statement in statements {
                     // Lets declare and store; assignments re-store into the
-                    // same scalar or aggregate slot.
-                    let binding = statement.binding();
+                    // same scalar or aggregate slot. Unsafe boundaries emit
+                    // their ordinary body transparently and bind nothing.
+                    let (ResolvedStatement::Let { binding, .. }
+                    | ResolvedStatement::Assign { binding, .. }) = statement
+                    else {
+                        self.emit_expr(statement.value())?;
+                        continue;
+                    };
                     let value = self.emit_expr(statement.value())?;
                     let destination = if is_aggregate(self.program, &binding.ty)? {
                         let offset = self

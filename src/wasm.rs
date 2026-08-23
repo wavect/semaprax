@@ -1392,10 +1392,14 @@ fn collect_locals(
                             ));
                         }
                     }
-                    // An assignment target reuses its `let` local; only the
-                    // assigned value contributes to the local walk.
+                    // An assignment target reuses its `let` local and an
+                    // unsafe boundary adds none; only their values contribute
+                    // to the local walk.
                     ResolvedStatement::Assign { value, .. } => {
                         collect_locals(value, parameter_count, layout)?;
+                    }
+                    ResolvedStatement::Unsafe { body, .. } => {
+                        collect_locals(body, parameter_count, layout)?;
                     }
                 }
             }
@@ -1819,6 +1823,19 @@ fn emit_expr(
                         })?;
                         output.push(0x21);
                         write_u32(output, *index);
+                    }
+                    // Unsafe boundaries are transparent: the ordinary body is
+                    // emitted exactly as-is and its scalar Copy result drops.
+                    ResolvedStatement::Unsafe { body, .. } => {
+                        emit_expr(
+                            output,
+                            body,
+                            value_indexes,
+                            function_indexes,
+                            layout,
+                            result,
+                        )?;
+                        output.push(0x1A);
                     }
                 }
             }

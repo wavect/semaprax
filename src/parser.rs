@@ -874,6 +874,8 @@ impl Parser {
                 statements.push(self.let_statement()?);
             } else if self.at_assign_statement() {
                 statements.push(self.assign_statement()?);
+            } else if self.at_unsafe_statement() {
+                statements.push(self.unsafe_statement()?);
             } else {
                 break;
             }
@@ -952,6 +954,70 @@ impl Parser {
             name_span,
             value,
             span: name_span.merge(end),
+        })
+    }
+
+    /// Unsafe Boundary Mechanics v1: an unsafe boundary statement is
+    /// `@audit("<summary>") unsafe { ... }`. The audit attribute is mandatory
+    /// (`SPX-N102`) and its summary must be a non-empty string (`SPX-N103`);
+    /// the body is parsed as an ordinary block.
+    fn at_unsafe_statement(&self) -> bool {
+        if self.at_keyword("unsafe")
+            && self.tokens.get(self.cursor + 1).map(|t| &t.kind) == Some(&TokenKind::LBrace)
+        {
+            return true;
+        }
+        // Any statement-position attribute is a boundary annotation attempt;
+        // `@` cannot begin an expression, so this keeps diagnostics precise.
+        self.at(&TokenKind::At)
+            && matches!(
+                self.tokens.get(self.cursor + 1).map(|t| &t.kind),
+                Some(TokenKind::Ident(_))
+            )
+    }
+
+    fn unsafe_statement(&mut self) -> Result<Statement, Diagnostic> {
+        if !self.take(&TokenKind::At) {
+            return Err(self.error_here(
+                "SPX-N102",
+                "unsafe blocks require an audit summary annotation: `@audit(\"...\")`",
+            ));
+        }
+        let (attribute, attribute_span) = self.ident("attribute name")?;
+        if attribute != "audit" {
+            return Err(self.error_here(
+                "SPX-P102",
+                format!("unknown attribute `@{attribute}`; only `@id` and `@audit` are supported"),
+            ));
+        }
+        self.expect(&TokenKind::LParen, "`(` after @audit")?;
+        let audit = match &self.bump().kind {
+            TokenKind::String(value) => value.clone(),
+            _ => {
+                return Err(
+                    self.error_previous("SPX-N103", "@audit expects a string literal summary")
+                );
+            }
+        };
+        let audit_end = self
+            .expect(&TokenKind::RParen, "`)` after @audit summary")?
+            .span;
+        if audit.is_empty() {
+            return Err(Diagnostic::error(
+                "SPX-N103",
+                "@audit summary must be a non-empty string",
+                attribute_span.merge(audit_end),
+            )
+            .at_path(&self.path));
+        }
+        self.keyword("unsafe")?;
+        let body = self.block("unsafe block body")?;
+        let span = attribute_span.merge(body.span);
+        Ok(Statement::Unsafe {
+            audit,
+            audit_span: attribute_span.merge(audit_end),
+            body: Box::new(body),
+            span,
         })
     }
 

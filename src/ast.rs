@@ -453,14 +453,25 @@ pub enum Statement {
         value: Expr,
         span: Span,
     },
+    /// Unsafe Boundary Mechanics v1: `@audit("...") unsafe { ... }`. The body
+    /// is an ordinary safe block expression; no raw pointers or memory
+    /// operations exist inside. The audit summary is recorded verbatim.
+    Unsafe {
+        audit: String,
+        audit_span: Span,
+        body: Box<Expr>,
+        span: Span,
+    },
 }
 
 impl Statement {
-    /// The statement's evaluated expression: the initializer of a `let` or
-    /// the assigned value of an assignment.
+    /// The statement's evaluated expression: the initializer of a `let`, the
+    /// assigned value of an assignment, or the ordinary block body of an
+    /// unsafe boundary statement.
     pub fn value(&self) -> &Expr {
         match self {
             Self::Let { value, .. } | Self::Assign { value, .. } => value,
+            Self::Unsafe { body, .. } => body,
         }
     }
 
@@ -468,13 +479,24 @@ impl Statement {
     pub fn value_mut(&mut self) -> &mut Expr {
         match self {
             Self::Let { value, .. } | Self::Assign { value, .. } => value,
+            Self::Unsafe { body, .. } => body,
         }
     }
 
-    /// The statement's source-level binding name.
+    /// The statement's source-level binding name. Only `let` and assignment
+    /// statements bind or target a name.
     pub fn name(&self) -> &str {
         match self {
             Self::Let { name, .. } | Self::Assign { name, .. } => name,
+            Self::Unsafe { .. } => panic!("unsafe boundary statements declare no binding"),
+        }
+    }
+
+    /// The verbatim audit summary of an unsafe boundary statement.
+    pub fn audit(&self) -> Option<&str> {
+        match self {
+            Self::Unsafe { audit, .. } => Some(audit),
+            _ => None,
         }
     }
 

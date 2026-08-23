@@ -1191,6 +1191,23 @@ impl StructuralRebase<'_> {
                             self.compare_binding(left_binding, right_binding)?;
                             self.compare_expr(left_value, right_value)?;
                         }
+                        (
+                            ResolvedStatement::Unsafe {
+                                audit: left_audit,
+                                body: left_body,
+                                ..
+                            },
+                            ResolvedStatement::Unsafe {
+                                audit: right_audit,
+                                body: right_body,
+                                ..
+                            },
+                        ) => {
+                            if left_audit != right_audit {
+                                return Err(rebase_mismatch());
+                            }
+                            self.compare_expr(left_body, right_body)?;
+                        }
                         _ => return Err(rebase_mismatch()),
                     }
                 }

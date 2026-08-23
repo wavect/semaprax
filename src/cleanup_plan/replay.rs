@@ -2907,42 +2907,72 @@ fn expression_skeleton(
             } => {
                 let suffixes = produced.take().expect("binding path retained");
                 let mut paths = sequence_skeleton_paths(paths, &suffixes, work)?;
-                let (binding, value) = (statements[index].binding(), statements[index].value());
-                if binding.ownership == OwnershipMode::Own
-                    && type_needs_drop(program, function, &binding.ty)?
-                {
-                    let value_id = work.clone_owned(&value.id, "binding value expression clone")?;
-                    let binding_id = work.clone_owned(&binding.id, "binding storage clone")?;
-                    paths = transfer_completed_paths(
-                        function,
-                        paths,
-                        value_id,
-                        CleanupPlace {
-                            storage: StorageId::Value(binding_id),
-                            projections: Vec::new(),
-                        },
-                        "owned binding",
-                        work,
-                    )?;
-                }
-                let next = index + 1;
-                if has_active_paths(&paths) && next < statements.len() {
-                    push_frame!(
-                        frames,
-                        Frame::BlockValue {
-                            expression,
-                            statements,
-                            tail,
-                            index: next,
-                            paths,
+                match &statements[index] {
+                    ResolvedStatement::Unsafe { .. } => {
+                        // Unsafe boundaries bind and own nothing here: their
+                        // ordinary block body was evaluated as this
+                        // statement's value expression.
+                        let next = index + 1;
+                        if has_active_paths(&paths) && next < statements.len() {
+                            push_frame!(
+                                frames,
+                                Frame::BlockValue {
+                                    expression,
+                                    statements,
+                                    tail,
+                                    index: next,
+                                    paths,
+                                }
+                            );
+                            push_frame!(frames, Frame::Eval(statements[next].value()));
+                        } else if has_active_paths(&paths) {
+                            push_frame!(frames, Frame::BlockTail { expression, paths });
+                            push_frame!(frames, Frame::Eval(tail));
+                        } else {
+                            produced = Some(paths);
                         }
-                    );
-                    push_frame!(frames, Frame::Eval(statements[next].value()));
-                } else if has_active_paths(&paths) {
-                    push_frame!(frames, Frame::BlockTail { expression, paths });
-                    push_frame!(frames, Frame::Eval(tail));
-                } else {
-                    produced = Some(paths);
+                    }
+                    statement => {
+                        let (binding, value) = (statement.binding(), statement.value());
+                        if binding.ownership == OwnershipMode::Own
+                            && type_needs_drop(program, function, &binding.ty)?
+                        {
+                            let value_id =
+                                work.clone_owned(&value.id, "binding value expression clone")?;
+                            let binding_id =
+                                work.clone_owned(&binding.id, "binding storage clone")?;
+                            paths = transfer_completed_paths(
+                                function,
+                                paths,
+                                value_id,
+                                CleanupPlace {
+                                    storage: StorageId::Value(binding_id),
+                                    projections: Vec::new(),
+                                },
+                                "owned binding",
+                                work,
+                            )?;
+                        }
+                        let next = index + 1;
+                        if has_active_paths(&paths) && next < statements.len() {
+                            push_frame!(
+                                frames,
+                                Frame::BlockValue {
+                                    expression,
+                                    statements,
+                                    tail,
+                                    index: next,
+                                    paths,
+                                }
+                            );
+                            push_frame!(frames, Frame::Eval(statements[next].value()));
+                        } else if has_active_paths(&paths) {
+                            push_frame!(frames, Frame::BlockTail { expression, paths });
+                            push_frame!(frames, Frame::Eval(tail));
+                        } else {
+                            produced = Some(paths);
+                        }
+                    }
                 }
             }
             Frame::BlockTail { expression, paths } => {

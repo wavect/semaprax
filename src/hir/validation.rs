@@ -13,6 +13,61 @@ pub(crate) fn validate_core(program: &ResolvedProgram) -> Result<(), Diagnostic>
     HirValidator::new(program)?.validate()
 }
 
+/// `true` when the resolved expression tree contains an unsafe boundary
+/// statement anywhere inside its blocks, branches, arms, or nested bodies.
+fn contains_unsafe_boundary(expression: &ResolvedExpr) -> bool {
+    match &expression.kind {
+        ResolvedExprKind::Block { statements, tail } => {
+            statements.iter().any(|statement| match statement {
+                ResolvedStatement::Unsafe { .. } => true,
+                _ => contains_unsafe_boundary(statement.value()),
+            }) || contains_unsafe_boundary(tail)
+        }
+        ResolvedExprKind::Call { args, .. } => args.iter().any(contains_unsafe_boundary),
+        ResolvedExprKind::NativeRustImportCall(call) => {
+            call.args.iter().any(contains_unsafe_boundary)
+        }
+        ResolvedExprKind::Unary { value, .. }
+        | ResolvedExprKind::Try { operand: value, .. }
+        | ResolvedExprKind::TryOption { operand: value, .. }
+        | ResolvedExprKind::Project { base: value, .. } => contains_unsafe_boundary(value),
+        ResolvedExprKind::Binary { left, right, .. } => {
+            contains_unsafe_boundary(left) || contains_unsafe_boundary(right)
+        }
+        ResolvedExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            contains_unsafe_boundary(condition)
+                || contains_unsafe_boundary(then_branch)
+                || contains_unsafe_boundary(else_branch)
+        }
+        ResolvedExprKind::ConstructRecord { fields, .. }
+        | ResolvedExprKind::ConstructVariant { fields, .. } => fields
+            .iter()
+            .any(|field| contains_unsafe_boundary(&field.value)),
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            contains_unsafe_boundary(scrutinee)
+                || arms.iter().any(|arm| contains_unsafe_boundary(&arm.value))
+        }
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            contains_unsafe_boundary(base)
+                || fields
+                    .iter()
+                    .any(|field| contains_unsafe_boundary(&field.value))
+        }
+        ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Int32(_)
+        | ResolvedExprKind::Char(_)
+        | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Float32(_)
+        | ResolvedExprKind::Float64(_)
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::Place(_) => false,
+    }
+}
+
 #[derive(Clone)]
 pub(super) struct HirValidator<'a> {
     program: &'a ResolvedProgram,
@@ -1047,6 +1102,15 @@ impl<'a> HirValidator<'a> {
                                 "generic template statements cannot assign to local bindings",
                             ));
                         }
+                        ResolvedStatement::Unsafe { body, .. } => {
+                            self.validate_template_expr(
+                                template,
+                                execution,
+                                body,
+                                &mut block_values,
+                                &format!("{statement_path}.body"),
+                            )?;
+                        }
                     }
                 }
                 self.validate_template_expr(
@@ -1155,6 +1219,12 @@ impl<'a> HirValidator<'a> {
                     function.id
                 )));
             }
+        }
+        if contains_unsafe_boundary(&function.body) && !permits.contains("unsafe") {
+            return Err(hir_error(format!(
+                "function `{}` contains an unsafe boundary but the module does not declare `permit {{ unsafe }}`",
+                function.id
+            )));
         }
         let declared_effects = function.effects.iter().cloned().collect::<BTreeSet<_>>();
         let mut required_lifecycle_effects = BTreeSet::new();
@@ -1650,6 +1720,15 @@ impl<'a> HirValidator<'a> {
                 tail: &'e ResolvedExpr,
                 index: usize,
                 scope: BTreeMap<ValueId, ValidationBinding>,
+                outer: BTreeMap<ValueId, ValidationBinding>,
+                outer_ids: Vec<ValueId>,
+                path: String,
+            },
+            BlockAfterUnsafe {
+                expression: &'e ResolvedExpr,
+                statements: &'e [ResolvedStatement],
+                tail: &'e ResolvedExpr,
+                index: usize,
                 outer: BTreeMap<ValueId, ValidationBinding>,
                 outer_ids: Vec<ValueId>,
                 path: String,
@@ -2932,8 +3011,68 @@ impl<'a> HirValidator<'a> {
                                     path: format!("{path}.s{index}.value"),
                                 });
                             }
+                            ResolvedStatement::Unsafe { body, .. } => {
+                                // Contract expressions stay pure; ordinary
+                                // blocks resolve the body like any nested
+                                // block and bind nothing outside it.
+                                if !allow_moves {
+                                    return Err(hir_error(
+                                        "contract expressions cannot contain unsafe boundary statements",
+                                    ));
+                                }
+                                frames.push(Frame::BlockAfterUnsafe {
+                                    expression,
+                                    statements,
+                                    tail,
+                                    index,
+                                    outer,
+                                    outer_ids,
+                                    path: path.clone(),
+                                });
+                                let enabled = publication.enabled;
+                                publication.enabled = false;
+                                frames.push(Frame::RestorePublication(enabled));
+                                frames.push(Frame::Enter {
+                                    expression: body,
+                                    scope,
+                                    path: format!("{path}.s{index}.body"),
+                                });
+                            }
                         }
                     }
+                }
+                Frame::BlockAfterUnsafe {
+                    expression,
+                    statements,
+                    tail,
+                    index,
+                    outer,
+                    outer_ids,
+                    path,
+                } => {
+                    // The body block validated like any nested block; its
+                    // merged scope continues into the enclosing block.
+                    let scope = scopes.pop().expect("unsafe body scope retained");
+                    let ResolvedStatement::Unsafe { body, .. } = &statements[index] else {
+                        unreachable!("unsafe frame resumes at an unsafe statement")
+                    };
+                    if body.ownership != OwnershipMode::Value
+                        || !crate::hir::is_scalar_resolved_type(&body.ty)
+                    {
+                        return Err(hir_error(
+                            "unsafe boundary bodies must produce a scalar Copy value",
+                        ));
+                    }
+                    frames.push(Frame::BlockNext {
+                        expression,
+                        statements,
+                        tail,
+                        index: index + 1,
+                        scope,
+                        outer,
+                        outer_ids,
+                        path,
+                    });
                 }
                 Frame::BlockAfterLet {
                     expression,
@@ -4444,6 +4583,32 @@ impl<'a> HirValidator<'a> {
                                     "assignment target `{}` is not available",
                                     binding.id
                                 )));
+                            }
+                        }
+                        ResolvedStatement::Unsafe { body, .. } => {
+                            if !allow_moves {
+                                return Err(hir_error(
+                                    "contract expressions cannot contain unsafe boundary statements",
+                                ));
+                            }
+                            let statement_path = format!("{path}.s{index}.body");
+                            self.validate_expr_recursive_reference(
+                                function,
+                                body,
+                                &mut block_scope,
+                                &statement_path,
+                                allow_moves,
+                                allowed_effects,
+                            )?;
+                            let ResolvedExprKind::Block { tail, .. } = &body.kind else {
+                                unreachable!("unsafe bodies always parse as blocks")
+                            };
+                            if tail.ownership != OwnershipMode::Value
+                                || !crate::hir::is_scalar_resolved_type(&tail.ty)
+                            {
+                                return Err(hir_error(
+                                    "unsafe boundary bodies must produce a scalar Copy value",
+                                ));
                             }
                         }
                     }

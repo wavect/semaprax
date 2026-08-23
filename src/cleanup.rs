@@ -9,7 +9,8 @@
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
     DeclarationId, ExpressionId, OwnershipMode, ResolvedBinding, ResolvedExpr, ResolvedExprKind,
-    ResolvedFunction, ResolvedProgram, ResolvedType, ResolvedTypeDeclarationKind, ValueId,
+    ResolvedFunction, ResolvedProgram, ResolvedStatement, ResolvedType,
+    ResolvedTypeDeclarationKind, ValueId,
 };
 
 #[cfg(test)]
@@ -566,11 +567,15 @@ impl InventoryBuilder<'_> {
                         ResolvedExprKind::Block { statements, tail } => {
                             let statement_index = index / 2;
                             if let Some(statement) = statements.get(statement_index) {
-                                let (binding, value) = (statement.binding(), statement.value());
                                 if index % 2 == 0 {
-                                    enter = Some(value);
+                                    enter = Some(statement.value());
                                 } else {
-                                    action = Some(Frame::AddBinding(binding));
+                                    // Only `let` and assignment statements
+                                    // carry bindings; unsafe boundaries add
+                                    // none.
+                                    if let ResolvedStatement::Let { binding, .. } = statement {
+                                        action = Some(Frame::AddBinding(binding));
+                                    }
                                 }
                             } else if index == statements.len() * 2 {
                                 enter = Some(tail);

@@ -127,7 +127,8 @@ bindings, exact type mismatches, `mut` outside local lets, duplicate
 modifiers, non-scalar/non-Copy targets or values, and assignments inside
 contract expressions. It claims no field, aggregate, reference/borrow, or
 collection mutation, no concurrency or memory-model rules, and no cross-task
-rules. [Reference Interpreter v1](INTERPRETER-V1.md) is a locally evidenced
+rules. Current totals are 49 Partial/7 Missing.
+[Reference Interpreter v1](INTERPRETER-V1.md) is a locally evidenced
 evaluation tranche (`semaprax interpret <file> --function <name|stable-id>
 [--arg <i64|bool literal>]... [--max-bytes N]`, `semaprax.interpret.v1`)
 that moves only the Fast development lane row from Missing to Partial: one
@@ -146,6 +147,19 @@ binding, and CLI exit codes are green locally in `tests/interpreter_v1.rs`.
 It makes no JIT/AOT/Cranelift, incremental persistence, hot reload, or
 debugger mapping claim, executes no target, and changes no source. Current
 totals are 50 Partial/6 Missing.
+[Unsafe Boundary Mechanics v1](UNSAFE-BOUNDARIES-V1.md) is a locally
+evidenced language slice that moves only the Restricted unsafe and raw memory
+row from Missing to Partial: an `unsafe { .. }` statement wraps ordinary safe
+checked statements (no raw pointers or memory operations exist and none are
+added), each block requires a verbatim `@audit("...")` summary following the
+`@id` attribute pattern, the module must declare `permit { unsafe }` through
+the existing permit mechanism (`SPX-N101`-`SPX-N105` fail closed), Graph JSON
+gains one explicit `"kind":"unsafe"` node per boundary with unchanged schema
+selection and byte-identical output for non-boundary programs, backends lower
+the body transparently on native C11 O0/O2 and Node/Wasm, and CleanupPlan v2
+shapes are unchanged. It claims no raw pointers or memory operations, no lint
+or platform conformance, boundary mechanics only, and no safety claims about
+block contents. Current totals are 51 Partial/5 Missing.
 
 Status values:
 
@@ -686,7 +700,7 @@ exactly 39 Partial and 17 Missing.
 | Borrowed views and lifetime safety | Partial | Non-consuming `borrow` boundaries and move-after-borrow behavior | Mutable/shared aliasing, escaping borrows, reborrows, slices, and zero-copy FFI pass positive and compile-fail suites |
 | Regions/arenas | Missing | — | Region inference and annotations prevent escape; bulk release and destructor behavior are verified |
 | Shared immutable ARC and opt-in managed zones | Missing | — | Retain/release correctness, cycle policy, escape optimization, and concurrency constraints verified |
-| Restricted `unsafe` and raw memory | Missing | — | Unsafe boundaries are explicit graph nodes with capability, audit summary, lint, and platform conformance coverage |
+| Restricted `unsafe` and raw memory | Partial | [Unsafe Boundary Mechanics v1](UNSAFE-BOUNDARIES-V1.md): explicit `unsafe { .. }` boundary statements around ordinary safe checked code with a mandatory verbatim `@audit("...")` summary, a required module-level `permit { unsafe }` capability declaration mirroring effect permits, compile-time diagnostics `SPX-N101`-`SPX-N105`, additive Graph nodes (`"kind":"unsafe"`; non-boundary graphs byte-identical to the pinned pre-feature digest), transparent native C11 O0/O2 and Node/Wasm execution, and unchanged CleanupPlan v2 shapes in `tests/unsafe_boundaries_v1.rs`. No raw pointers or memory operations exist or are added; no lint/platform conformance and no safety claims about block contents are made | Unsafe boundaries are explicit graph nodes with capability, audit summary, lint, and platform conformance coverage for real raw-memory features (pointers/volatile/atomics) verified |
 | Checked/wrapping/saturating arithmetic | Partial | Checked `i64` arithmetic in the C/Clang lane returns exact `semaprax.arithmetic.v1` statuses without internal process termination | Full numeric family, explicit alternative modes, SIMD behavior, and backend equivalence verified |
 | Effects and capabilities | Partial | Declared function effects, module permits, and call-edge propagation | Inference, parameterized capabilities, no ambient authority, handlers, dependency summaries, and platform manifests verified |
 | Contracts and progressive verification | Partial | Contract type checking and runtime guards. The additive read-only Property-Test Generation v1 tranche (`semaprax.properties`) now generates deterministic boundary-lattice plus seeded candidates from admitted scalar signatures, filters them through `requires`, evaluates bodies and interprocedural callees with checked semantics under one step budget, and reports exact `ensures` counterexamples in canonical digest-bound `semaprax.property-tests.v1` JSON; it performs no symbolic execution, static discharge, shrinking, or target execution and changes no status | Static discharge, bounded symbolic/SMT checks, counterexamples, invariants/state machines, property tests, and proof obligations verified |

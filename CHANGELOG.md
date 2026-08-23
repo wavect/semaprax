@@ -32,6 +32,38 @@
   tamper rejection including re-signed forgeries, drift binding, and CLI
   exit codes. No JIT/AOT/Cranelift, incremental persistence, hot reload,
   debugger mapping, or target execution is claimed.
+- Added Unsafe Boundary Mechanics v1, a bounded end-to-end language slice
+  that moves the completion-matrix row "Restricted `unsafe` and raw memory"
+  from Missing to Partial by proving boundary mechanics ONLY: a new statement
+  form `@audit("<summary>") unsafe { .. }` wraps ordinary safe checked
+  statements plus one required final value expression - no raw pointers or
+  memory operations exist in the language and none are added, and block
+  contents are verified by exactly the same rules as safe code. Each unsafe
+  block requires an audit summary attribute following the existing attribute
+  syntax pattern, recorded verbatim, and the enclosing module must declare
+  the capability through the unchanged module permit mechanism with the
+  reserved name `unsafe` (`permit { unsafe }`); without it compilation fails
+  through the previously unused `SPX-N1xx` diagnostic family: missing
+  capability declaration (`SPX-N101`), missing audit annotation (`SPX-N102`),
+  empty or non-string audit summary (`SPX-N103`), non-scalar/non-Copy body
+  results (`SPX-N104`, so discarding introduces no ownership or cleanup
+  semantics), and boundaries inside contract expressions (`SPX-N105`). The
+  canonical formatter renders multi-line and inline forms byte-stably;
+  HIR carries `ResolvedStatement::Unsafe` through both iterative and
+  recursive resolution/validation paths without changing frame budgets;
+  Graph JSON adds one explicit `"kind":"unsafe"` node per boundary carrying
+  the verbatim audit string in full and compact serializers without touching
+  schema selection (boundary-only programs stay at v10) or any pinned
+  non-boundary bytes (the Explicit Mutation v1 digest still holds);
+  CleanupPlan v2 output is structurally identical to the plain
+  block-equivalent form; native C11 lowers the body transparently (scalar
+  result discarded) verified at O0/O2 including checked-overflow failure
+  statuses inside boundaries, and the Wasm core lane emits the body's
+  instructions plus `drop` with identical Node-executed results and overflow
+  trapping. Evidence lives in `tests/unsafe_boundaries_v1.rs` (13 tests).
+  Non-claims: no raw pointers or memory operations, no lint/platform
+  conformance coverage, no safety claims about block contents, and no
+  capability machinery beyond the single compile-time gate.
 - Added the locally evidenced Interface Package Report v1 tranche, the first
   executable slice of the completion-matrix row "Interface-first packages and
   target matrices". The new read-only `semaprax package-report <file>

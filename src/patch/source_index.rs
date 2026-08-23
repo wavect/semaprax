@@ -203,6 +203,13 @@ impl SemanticSourceIndex {
                                 ..
                             },
                         ) => self.expr(value, resolved_value, tokens)?,
+                        (
+                            Statement::Unsafe { body, .. },
+                            ResolvedStatement::Unsafe {
+                                body: resolved_body,
+                                ..
+                            },
+                        ) => self.expr(body, resolved_body, tokens)?,
                         _ => return None,
                     }
                 }

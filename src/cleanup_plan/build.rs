@@ -1463,7 +1463,20 @@ impl<'a> PlanBuilder<'a> {
         let mut current = block;
         let mut current_state = state;
         for statement in statements {
-            let (binding, value) = (statement.binding(), statement.value());
+            let (binding, value) = match statement {
+                ResolvedStatement::Let { binding, value, .. }
+                | ResolvedStatement::Assign { binding, value, .. } => (binding, value),
+                // Unsafe boundaries bind nothing: their ordinary block body
+                // lowers like any nested block expression and owns nothing at
+                // this level.
+                _ => {
+                    let evaluated =
+                        self.lower_expr(statement.value(), current, current_state, root)?;
+                    current = evaluated.block;
+                    current_state = evaluated.state;
+                    continue;
+                }
+            };
             let evaluated = self.lower_expr(value, current, current_state, root)?;
             current = evaluated.block;
             current_state = evaluated.state;
@@ -2659,24 +2672,28 @@ impl<'a> PlanBuilder<'a> {
                     child_region,
                     destination,
                 } => {
-                    let (binding, value) = (statements[index].binding(), statements[index].value());
                     let evaluated = results.pop().expect("block statement result retained");
                     let mut state = evaluated.state;
-                    if let Some(binding_place) = self.binding_slot(binding, child_region)? {
-                        let source = evaluated.owned_source.ok_or_else(|| {
-                            plan_error(format!(
-                                "owned binding `{}` has no cleanup source",
-                                binding.id
-                            ))
-                        })?;
-                        self.transfer(
-                            evaluated.block,
-                            value.id.clone(),
-                            source,
-                            binding_place,
-                            &mut state,
-                            true,
-                        )?;
+                    if let ResolvedStatement::Let { binding, .. }
+                    | ResolvedStatement::Assign { binding, .. } = &statements[index]
+                    {
+                        if let Some(binding_place) = self.binding_slot(binding, child_region)? {
+                            let value = &statements[index].value();
+                            let source = evaluated.owned_source.ok_or_else(|| {
+                                plan_error(format!(
+                                    "owned binding `{}` has no cleanup source",
+                                    binding.id
+                                ))
+                            })?;
+                            self.transfer(
+                                evaluated.block,
+                                value.id.clone(),
+                                source,
+                                binding_place,
+                                &mut state,
+                                true,
+                            )?;
+                        }
                     }
                     frames.push(Frame::BlockNext {
                         expression,
@@ -3637,7 +3654,23 @@ impl<'a> PlanBuilder<'a> {
         let mut current = entry;
         let mut current_state = state;
         for statement in statements {
-            let (binding, value) = (statement.binding(), statement.value());
+            let (binding, value) = match statement {
+                ResolvedStatement::Let { binding, value, .. }
+                | ResolvedStatement::Assign { binding, value, .. } => (binding, value),
+                // Unsafe boundaries bind nothing: their ordinary body lowers
+                // like any nested block expression.
+                _ => {
+                    let evaluated = self.lower_expr_recursive_reference(
+                        statement.value(),
+                        current,
+                        current_state,
+                        region,
+                    )?;
+                    current = evaluated.block;
+                    current_state = evaluated.state;
+                    continue;
+                }
+            };
             let evaluated =
                 self.lower_expr_recursive_reference(value, current, current_state, region)?;
             current = evaluated.block;

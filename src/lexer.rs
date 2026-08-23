@@ -173,7 +173,7 @@ impl Lexer<'_> {
                 if self.starts_with("u8") {
                     return self.uint8_token(start, line, column);
                 }
-                if self.peek().is_some_and(|next| next == 'i' || next == 'u') {
+                if self.peek().is_some_and(is_ident_start) {
                     return Err(self.error(
                         "SPX-P003",
                         "integer literals accept only an `i32` or `u8` suffix",

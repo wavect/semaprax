@@ -288,3 +288,23 @@ fn main() -> i64 { if true { missing } else { 0 } }
         "SPX-T202"
     );
 }
+
+#[test]
+fn glued_integer_suffixes_fail_with_stable_lexer_diagnostics() {
+    let cases = ["12f32", "12abc", "12_x", "12i64"];
+    for literal in cases {
+        let statement = format!("let glued = {literal}; 0");
+        let source = format!(
+            r#"
+module test.int_lex;
+@id("app.main")
+fn main() -> i64 {{ {statement} }}
+"#
+        );
+        let error = parse(&source, Path::new("int-lex.spx")).expect_err(&format!(
+            "glued integer suffix `{literal}` must be rejected"
+        ));
+        assert_eq!(error.code, "SPX-P003", "{literal}: {error}");
+        assert!(error.message.contains("suffix"), "{literal}: {error}");
+    }
+}

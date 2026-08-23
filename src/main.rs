@@ -181,7 +181,7 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             if status.success() {
                 Ok(())
             } else {
-                Err(status.code().unwrap_or(1) as u8)
+                Err(status.code().unwrap_or_else(|| child_exit_code(&status)) as u8)
             }
         }
         "fmt" => {
@@ -900,6 +900,22 @@ fn with_native_executable_suffix(path: PathBuf) -> PathBuf {
         return path;
     }
     path.with_extension(suffix)
+}
+
+/// Exit status of a child that was terminated by a signal. Shell convention
+/// reports `128 + signal`; platforms without signal exit statuses fall back
+/// to the generic failure code.
+fn child_exit_code(status: &std::process::ExitStatus) -> i32 {
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::ExitStatusExt;
+        status.signal().map_or(1, |signal| 128 + signal)
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = status;
+        1
+    }
 }
 
 fn workspace_analysis_target_kind(

@@ -24,6 +24,7 @@ pub mod diagnostic;
 pub mod digest_hex;
 pub mod economic_agent;
 pub mod format;
+pub mod freestanding_object;
 pub mod graph;
 pub mod hir;
 pub mod hygienic;

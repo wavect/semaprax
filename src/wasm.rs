@@ -200,6 +200,7 @@ fn emit_resolved_module_internal(
         matches!(
             &declaration.kind,
             ResolvedTypeDeclarationKind::Record { .. }
+                | ResolvedTypeDeclarationKind::Class { .. }
                 | ResolvedTypeDeclarationKind::Variant { .. }
         ) && !program
             .declarations

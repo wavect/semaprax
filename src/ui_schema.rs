@@ -68,6 +68,7 @@ const RECORD_REASON_GENERIC_TYPE: &str = "generic_type";
 const RECORD_REASON_RESOURCE_TYPE: &str = "resource_type";
 const RECORD_REASON_VARIANT_TYPE: &str = "variant_type";
 const RECORD_REASON_MIXED_FIELD_TYPES: &str = "mixed_field_types";
+const RECORD_REASON_CLASS_TYPE: &str = "class_type";
 
 const KIND_RECORD: &str = "record";
 const KIND_FUNCTION: &str = "function";
@@ -309,6 +310,7 @@ fn record_admission(declaration: &TypeDeclaration) -> Option<&'static str> {
     match &declaration.kind {
         TypeDeclarationKind::Resource { .. } => Some(RECORD_REASON_RESOURCE_TYPE),
         TypeDeclarationKind::Variant { .. } => Some(RECORD_REASON_VARIANT_TYPE),
+        TypeDeclarationKind::Class { .. } => Some(RECORD_REASON_CLASS_TYPE),
         TypeDeclarationKind::Record { fields } => {
             if fields
                 .iter()

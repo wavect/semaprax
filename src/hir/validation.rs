@@ -386,7 +386,8 @@ impl<'a> HirValidator<'a> {
         for declaration in &self.program.types {
             let expected_kind = match &declaration.kind {
                 ResolvedTypeDeclarationKind::Resource { .. } => DeclarationKind::Resource,
-                ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. } => DeclarationKind::Record,
+                ResolvedTypeDeclarationKind::Record { .. } => DeclarationKind::Record,
+                ResolvedTypeDeclarationKind::Class { .. } => DeclarationKind::Class,
                 ResolvedTypeDeclarationKind::Variant { .. } => DeclarationKind::Variant,
             };
             match self.program.declarations.declaration(&declaration.id) {
@@ -481,7 +482,7 @@ impl<'a> HirValidator<'a> {
                     }
                 }
             }
-            if let (ResolvedTypeDeclarationKind::Record { fields } | ResolvedTypeDeclarationKind::Class { fields, .. }) = &declaration.kind {
+            if let ResolvedTypeDeclarationKind::Record { fields } | ResolvedTypeDeclarationKind::Class { fields, .. } = &declaration.kind {
                 let indexed = self
                     .program
                     .declarations
@@ -767,7 +768,10 @@ impl<'a> HirValidator<'a> {
         }
         for declaration in self.program.declarations.declarations() {
             match declaration.kind {
-                DeclarationKind::Resource | DeclarationKind::Record | DeclarationKind::Variant
+                DeclarationKind::Resource
+                | DeclarationKind::Record
+                | DeclarationKind::Class
+                | DeclarationKind::Variant
                     if !type_ids.contains(&declaration.id) =>
                 {
                     return Err(hir_error(format!(
@@ -823,6 +827,7 @@ impl<'a> HirValidator<'a> {
                 DeclarationKind::Resource
                 | DeclarationKind::ResourceDrop
                 | DeclarationKind::Record
+                | DeclarationKind::Class
                 | DeclarationKind::Field
                 | DeclarationKind::Variant
                 | DeclarationKind::VariantCase
@@ -2444,9 +2449,12 @@ impl<'a> HirValidator<'a> {
                                 .ok_or_else(|| {
                                     hir_error(format!("record `{record}` is not indexed"))
                                 })?;
-                            if declaration.kind != DeclarationKind::Record {
+                            if !matches!(
+                                declaration.kind,
+                                DeclarationKind::Record | DeclarationKind::Class
+                            ) {
                                 return Err(hir_error(format!(
-                                    "constructor target `{record}` is not a record"
+                                    "constructor target `{record}` is not a record or class"
                                 )));
                             }
                             let expected = self
@@ -4671,9 +4679,12 @@ impl<'a> HirValidator<'a> {
                     .declarations
                     .declaration(record)
                     .ok_or_else(|| hir_error(format!("record `{record}` is not indexed")))?;
-                if declaration.kind != DeclarationKind::Record {
+                if !matches!(
+                    declaration.kind,
+                    DeclarationKind::Record | DeclarationKind::Class
+                ) {
                     return Err(hir_error(format!(
-                        "constructor target `{record}` is not a record"
+                        "constructor target `{record}` is not a record or class"
                     )));
                 }
                 let expected_fields = self
@@ -5430,7 +5441,7 @@ impl<'a> HirValidator<'a> {
             .program
             .declarations
             .declaration(declaration)
-            .is_none_or(|item| item.kind != DeclarationKind::Record)
+            .is_none_or(|item| !matches!(item.kind, DeclarationKind::Record | DeclarationKind::Class))
         {
             return Err(hir_error(format!(
                 "field `{field}` projects from a non-record nominal type"
@@ -5834,6 +5845,7 @@ impl<'a> HirValidator<'a> {
                                 kind,
                                 DeclarationKind::Resource
                                     | DeclarationKind::Record
+                                    | DeclarationKind::Class
                                     | DeclarationKind::Variant
                             )
                         })

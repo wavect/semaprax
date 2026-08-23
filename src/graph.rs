@@ -1899,7 +1899,7 @@ fn agent_type_declarations_json(
                     ResolvedResourceDropKind::Imported { .. } => "imported",
                 })
             )),
-            ResolvedTypeDeclarationKind::Record { fields } | ResolvedTypeDeclarationKind::Class { fields, .. } => {
+            ResolvedTypeDeclarationKind::Record { fields } => {
                 let parameters = if declaration.type_parameters.is_empty() {
                     String::new()
                 } else {
@@ -1918,6 +1918,34 @@ fn agent_type_declarations_json(
                             quote_json(field.id.as_str()),
                             quote_json(&field.ty.identity_key())
                         ))
+                        .collect::<Vec<_>>()
+                        .budgeted_join(",")
+                ))
+            }
+            ResolvedTypeDeclarationKind::Class { fields, methods } => {
+                let parameters = if declaration.type_parameters.is_empty() {
+                    String::new()
+                } else {
+                    format!(
+                        ",\"type_parameters\":[{}]",
+                        type_parameters_json(&declaration.id, &declaration.type_parameters)
+                    )
+                };
+                Ok(format!(
+                    "{{\"id\":{},\"kind\":\"class\"{parameters},\"fields\":[{}],\"methods\":[{}]}}",
+                    quote_json(declaration.id.as_str()),
+                    fields
+                        .iter()
+                        .map(|field| format!(
+                            "{{\"id\":{},\"type_id\":{}}}",
+                            quote_json(field.id.as_str()),
+                            quote_json(&field.ty.identity_key())
+                        ))
+                        .collect::<Vec<_>>()
+                        .budgeted_join(","),
+                    methods
+                        .iter()
+                        .map(|method| quote_json(method.as_str()))
                         .collect::<Vec<_>>()
                         .budgeted_join(",")
                 ))
@@ -2649,7 +2677,7 @@ fn graph_json(
                 }
                 .expect("writing to a string cannot fail");
             }
-            ResolvedTypeDeclarationKind::Record { fields } | ResolvedTypeDeclarationKind::Class { fields, .. } => {
+            ResolvedTypeDeclarationKind::Record { fields } => {
                 let (parameters, type_id) = if declaration.type_parameters.is_empty() {
                     (String::new(), quote_json(&ty.identity_key()))
                 } else {
@@ -2703,6 +2731,120 @@ fn graph_json(
                         metadata.identity_origin.is_persistent(),
                         quote_json(declaration.id.as_str()),
                         quote_json(&field.ty.identity_key())
+                    )
+                    .expect("writing to a string cannot fail");
+                }
+            }
+            ResolvedTypeDeclarationKind::Class { fields, methods } => {
+                let (parameters, type_id) = if declaration.type_parameters.is_empty() {
+                    (String::new(), quote_json(&ty.identity_key()))
+                } else {
+                    (
+                        format!(
+                            ",\"type_parameters\":[{}]",
+                            type_parameters_json(&declaration.id, &declaration.type_parameters)
+                        ),
+                        "null".to_owned(),
+                    )
+                };
+                write!(
+                    output,
+                    "{{\"id\":{},\"kind\":\"class\",\"name\":{},\"identity_origin\":{},\"persistent\":{}{parameters},\"type_id\":{},\"fields\":[{}],\"methods\":[{}]}}",
+                    quote_json(declaration.id.as_str()),
+                    quote_json(&declaration.name),
+                    quote_json(type_origin.text()),
+                    type_origin.is_persistent(),
+                    type_id,
+                    fields
+                        .iter()
+                        .map(|field| quote_json(field.id.as_str()))
+                        .collect::<Vec<_>>()
+                        .budgeted_join(","),
+                    methods
+                        .iter()
+                        .map(|method| quote_json(method.as_str()))
+                        .collect::<Vec<_>>()
+                        .budgeted_join(",")
+                )
+                .expect("writing to a string cannot fail");
+
+                for (index, field) in fields.iter().enumerate() {
+                    let metadata = program
+                        .declarations
+                        .declaration(&field.id)
+                        .ok_or_else(|| graph_reference_error("field", &field.id))?;
+                    if metadata.kind != crate::hir::DeclarationKind::Field
+                        || metadata.owner.as_ref() != Some(&declaration.id)
+                    {
+                        return Err(Diagnostic::io(
+                            "SPX-G003",
+                            format!(
+                                "field `{}` is not indexed under class `{}`",
+                                field.id, declaration.id
+                            ),
+                        ));
+                    }
+                    output.push(',');
+                    write!(
+                        output,
+                        "{{\"id\":{},\"kind\":\"field\",\"name\":{},\"identity_origin\":{},\"persistent\":{},\"owner\":{},\"index\":{index},\"type_id\":{}}}",
+                        quote_json(field.id.as_str()),
+                        quote_json(&field.name),
+                        quote_json(metadata.identity_origin.text()),
+                        metadata.identity_origin.is_persistent(),
+                        quote_json(declaration.id.as_str()),
+                        quote_json(&field.ty.identity_key())
+                    )
+                    .expect("writing to a string cannot fail");
+                }
+                for method in methods {
+                    let metadata = program
+                        .declarations
+                        .declaration(method)
+                        .ok_or_else(|| graph_reference_error("method", method))?;
+                    if metadata.kind != crate::hir::DeclarationKind::Function
+                        || metadata.owner.as_ref() != Some(&declaration.id)
+                    {
+                        return Err(Diagnostic::io(
+                            "SPX-G003",
+                            format!(
+                                "method `{}` is not indexed under class `{}`",
+                                method, declaration.id
+                            ),
+                        ));
+                    }
+                    output.push(',');
+                    let resolved_method = program
+                        .resolve_call_target(method, None)
+                        .ok_or_else(|| {
+                            Diagnostic::io(
+                                "SPX-G003",
+                                format!("method `{method}` has no resolved function body"),
+                            )
+                        })?;
+                    let params_json = resolved_method
+                        .params
+                        .iter()
+                        .map(|param| {
+                            format!(
+                                "{{\"id\":{},\"name\":{},\"type_id\":{}}}",
+                                quote_json(param.id.as_str()),
+                                quote_json(&param.name),
+                                quote_json(&param.ty.identity_key())
+                            )
+                        })
+                        .collect::<Vec<_>>()
+                        .budgeted_join(",");
+                    write!(
+                        output,
+                        "{{\"id\":{},\"kind\":\"function\",\"name\":{},\"identity_origin\":{},\"persistent\":{},\"owner\":{},\"params\":[{}],\"return_type_id\":{}}}",
+                        quote_json(resolved_method.id.as_str()),
+                        quote_json(&resolved_method.name),
+                        quote_json(metadata.identity_origin.text()),
+                        metadata.identity_origin.is_persistent(),
+                        quote_json(declaration.id.as_str()),
+                        params_json,
+                        quote_json(&resolved_method.return_type.identity_key())
                     )
                     .expect("writing to a string cannot fail");
                 }
@@ -3805,7 +3947,7 @@ fn type_facts_array(
             );
         }
         if declaration.type_parameters.is_empty() {
-            if let (ResolvedTypeDeclarationKind::Record { fields } | ResolvedTypeDeclarationKind::Class { fields, .. }) = &declaration.kind {
+            if let ResolvedTypeDeclarationKind::Record { fields } | ResolvedTypeDeclarationKind::Class { fields, .. } = &declaration.kind {
                 for field in fields {
                     collect_type(&field.ty, &mut types);
                 }

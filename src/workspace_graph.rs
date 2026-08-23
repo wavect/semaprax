@@ -2467,6 +2467,7 @@ fn declaration_kind_text(kind: hir::DeclarationKind) -> &'static str {
         hir::DeclarationKind::Resource => "resource",
         hir::DeclarationKind::ResourceDrop => "resource_drop",
         hir::DeclarationKind::Record => "record",
+        hir::DeclarationKind::Class => "class",
         hir::DeclarationKind::Field => "field",
         hir::DeclarationKind::Variant => "variant",
         hir::DeclarationKind::VariantCase => "variant_case",
@@ -2989,6 +2990,7 @@ fn build_operation_sidecar(
             let kind = match declaration.kind {
                 TypeDeclarationKind::Resource { .. } => "resource",
                 TypeDeclarationKind::Record { .. } => "record",
+                TypeDeclarationKind::Class { .. } => "class",
                 TypeDeclarationKind::Variant { .. } => "variant",
             };
             push_operation_declaration(
@@ -3002,6 +3004,21 @@ fn build_operation_sidecar(
                 declaration.name_span,
                 declaration.span,
             )?;
+            if let TypeDeclarationKind::Class { methods, .. } = &declaration.kind {
+                for method in methods {
+                    push_operation_declaration(
+                        &mut declarations,
+                        &mut declaration_index,
+                        program,
+                        &method.stable_id,
+                        "function",
+                        method.explicit_id,
+                        &method.name,
+                        method.name_span,
+                        method.span,
+                    )?;
+                }
+            }
         }
         for interface in &program.interfaces {
             push_operation_declaration(
@@ -4406,6 +4423,26 @@ fn authenticated_declaration_fingerprints(
                         )?;
                     }
                 }
+                TypeDeclarationKind::Class { fields, methods } => {
+                    for field in fields {
+                        insert_declaration_fingerprint(
+                            &mut fingerprints,
+                            &field.stable_id,
+                            "field",
+                            field.span,
+                            source,
+                        )?;
+                    }
+                    for method in methods {
+                        insert_declaration_fingerprint(
+                            &mut fingerprints,
+                            &method.stable_id,
+                            "function",
+                            method.span,
+                            source,
+                        )?;
+                    }
+                }
                 TypeDeclarationKind::Variant { cases } => {
                     for case in cases {
                         insert_declaration_fingerprint(
@@ -4574,7 +4611,8 @@ fn validate_retained_facts(
         for declaration in &module.types {
             match &declaration.kind {
                 hir::ResolvedTypeDeclarationKind::Resource { .. } => {}
-                hir::ResolvedTypeDeclarationKind::Record { fields } => {
+                hir::ResolvedTypeDeclarationKind::Record { fields }
+                | hir::ResolvedTypeDeclarationKind::Class { fields, .. } => {
                     for (index, field) in fields.iter().enumerate() {
                         let path = crate::bounded_output::budgeted_format(format_args!(
                             "type.{}.field.{index}",
@@ -5551,6 +5589,10 @@ fn declaration_count(program: &Program) -> Option<usize> {
                 count = count.checked_add(lifecycles.len())?;
             }
             TypeDeclarationKind::Record { fields } => count = count.checked_add(fields.len())?,
+            TypeDeclarationKind::Class { fields, methods } => {
+                count = count.checked_add(fields.len())?;
+                count = count.checked_add(methods.len())?;
+            }
             TypeDeclarationKind::Variant { cases } => {
                 count = count.checked_add(cases.len())?;
                 for case in cases {
@@ -5638,6 +5680,14 @@ fn index_authored(
                 TypeDeclarationKind::Record { fields } => {
                     for field in fields {
                         insert_other(&mut declarations, &field.stable_id, program)?;
+                    }
+                }
+                TypeDeclarationKind::Class { fields, methods } => {
+                    for field in fields {
+                        insert_other(&mut declarations, &field.stable_id, program)?;
+                    }
+                    for method in methods {
+                        insert_other(&mut declarations, &method.stable_id, program)?;
                     }
                 }
                 TypeDeclarationKind::Variant { cases } => {
@@ -5998,11 +6048,13 @@ fn exposed_types_are_directly_imported(
     }
     let admitted = match &declaration.kind {
         TypeDeclarationKind::Resource { .. } => return false,
-        TypeDeclarationKind::Record { fields } => fields.iter().all(|field| {
-            exposed_type_reference_is_directly_imported(
-                caller, module, &field.ty, authored, programs, visiting,
-            )
-        }),
+        TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } => {
+            fields.iter().all(|field| {
+                exposed_type_reference_is_directly_imported(
+                    caller, module, &field.ty, authored, programs, visiting,
+                )
+            })
+        }
         TypeDeclarationKind::Variant { cases } => {
             cases.iter().flat_map(|case| &case.fields).all(|field| {
                 exposed_type_reference_is_directly_imported(
@@ -6067,9 +6119,11 @@ fn type_is_admitted(
     }
     let valid = match &declaration.kind {
         TypeDeclarationKind::Resource { .. } => return false,
-        TypeDeclarationKind::Record { fields } => fields.iter().all(|field| {
-            type_reference_is_admitted(module, &field.ty, authored, programs, visiting)
-        }),
+        TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } => {
+            fields
+                .iter()
+                .all(|field| type_reference_is_admitted(module, &field.ty, authored, programs, visiting))
+        }
         TypeDeclarationKind::Variant { cases } => {
             cases.iter().flat_map(|case| &case.fields).all(|field| {
                 type_reference_is_admitted(module, &field.ty, authored, programs, visiting)
@@ -6163,6 +6217,22 @@ fn visit_ast_call_sites(
     match &expression.kind {
         ExprKind::Call { name, args, .. } => {
             visit(name, path)?;
+            for (index, argument) in args.iter().enumerate() {
+                visit_ast_call_sites(
+                    argument,
+                    &crate::bounded_output::budgeted_format(format_args!("{path}.arg.{index}")),
+                    visit,
+                )?;
+            }
+        }
+        ExprKind::MethodCall {
+            receiver, args, ..
+        } => {
+            visit_ast_call_sites(
+                receiver,
+                &crate::bounded_output::budgeted_format(format_args!("{path}.receiver")),
+                visit,
+            )?;
             for (index, argument) in args.iter().enumerate() {
                 visit_ast_call_sites(
                     argument,
@@ -6526,6 +6596,7 @@ fn expected_declaration_facts(
             let kind = match declaration.kind {
                 TypeDeclarationKind::Resource { .. } => hir::DeclarationKind::Resource,
                 TypeDeclarationKind::Record { .. } => hir::DeclarationKind::Record,
+                TypeDeclarationKind::Class { .. } => hir::DeclarationKind::Class,
                 TypeDeclarationKind::Variant { .. } => hir::DeclarationKind::Variant,
             };
             insert_expected_declaration(
@@ -6567,6 +6638,28 @@ fn expected_declaration_facts(
                             &field.stable_id,
                             hir::DeclarationKind::Field,
                             identity_origin(field.explicit_id),
+                            Some(&declaration.stable_id),
+                        )?;
+                    }
+                }
+                TypeDeclarationKind::Class { fields, methods } => {
+                    for field in fields {
+                        insert_expected_declaration(
+                            &mut facts,
+                            program,
+                            &field.stable_id,
+                            hir::DeclarationKind::Field,
+                            identity_origin(field.explicit_id),
+                            Some(&declaration.stable_id),
+                        )?;
+                    }
+                    for method in methods {
+                        insert_expected_declaration(
+                            &mut facts,
+                            program,
+                            &method.stable_id,
+                            hir::DeclarationKind::Function,
+                            identity_origin(method.explicit_id),
                             Some(&declaration.stable_id),
                         )?;
                     }
@@ -6635,6 +6728,12 @@ fn expected_compiler_declaration_facts(
     for declaration in prelude::declarations() {
         let kind = match &declaration.kind {
             TypeDeclarationKind::Record { .. } => hir::DeclarationKind::Record,
+            TypeDeclarationKind::Class { .. } => {
+                return Err(vec![graph_error(
+                    "SPX-G173",
+                    "compiler prelude unexpectedly declares a class",
+                )]);
+            }
             TypeDeclarationKind::Variant { .. } => hir::DeclarationKind::Variant,
             TypeDeclarationKind::Resource { .. } => {
                 return Err(vec![graph_error(
@@ -6655,6 +6754,7 @@ fn expected_compiler_declaration_facts(
                     )?;
                 }
             }
+            TypeDeclarationKind::Class { .. } => unreachable!("class rejected above"),
             TypeDeclarationKind::Variant { cases } => {
                 for case in cases {
                     insert_expected_compiler_declaration(
@@ -6749,6 +6849,7 @@ fn validate_retained_declaration_shapes(
             let kind = match &declaration.kind {
                 hir::ResolvedTypeDeclarationKind::Resource { .. } => hir::DeclarationKind::Resource,
                 hir::ResolvedTypeDeclarationKind::Record { .. } => hir::DeclarationKind::Record,
+                hir::ResolvedTypeDeclarationKind::Class { .. } => hir::DeclarationKind::Class,
                 hir::ResolvedTypeDeclarationKind::Variant { .. } => hir::DeclarationKind::Variant,
             };
             require_retained_shape_fact(
@@ -6777,6 +6878,28 @@ fn validate_retained_declaration_shapes(
                             module,
                             field.id.as_str(),
                             hir::DeclarationKind::Field,
+                            Some(declaration.id.as_str()),
+                            &mut seen,
+                        )?;
+                    }
+                }
+                hir::ResolvedTypeDeclarationKind::Class { fields, methods } => {
+                    for field in fields {
+                        require_retained_shape_fact(
+                            facts,
+                            module,
+                            field.id.as_str(),
+                            hir::DeclarationKind::Field,
+                            Some(declaration.id.as_str()),
+                            &mut seen,
+                        )?;
+                    }
+                    for method_id in methods {
+                        require_retained_shape_fact(
+                            facts,
+                            module,
+                            method_id.as_str(),
+                            hir::DeclarationKind::Function,
                             Some(declaration.id.as_str()),
                             &mut seen,
                         )?;
@@ -9624,7 +9747,7 @@ module graph.v14;
             );
             assert_eq!(
                 document_sha,
-                "sha256:6639d985e25d4d33a72e37034c6e3f116940d3598bbf46162a6baaeb547da972"
+                "sha256:ac4fbd4f529cb99fa70637440cf2b06886436c24f507c6f6fc1f16a2bc0334a1"
             );
             assert!(json.starts_with(
                 "{\"schema\":\"semaprax.workspace-semantic-graph.v1\",\"workspace_manifest_schema\":\"semaprax.workspace-semantic-manifest.v1\",\"workspace_revision\":\"sha256:workspace\",\"graph_digest\":\"sha256:"

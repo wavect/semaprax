@@ -179,6 +179,7 @@ pub(crate) enum SourceConsumerKind {
     FunctionTemplate,
     Resource,
     Record,
+    Class,
     Field,
     Variant,
     VariantCase,
@@ -194,6 +195,7 @@ impl SourceConsumerKind {
             Self::FunctionTemplate => "function_template",
             Self::Resource => "resource",
             Self::Record => "record",
+            Self::Class => "class",
             Self::Field => "field",
             Self::Variant => "variant",
             Self::VariantCase => "variant_case",
@@ -470,6 +472,25 @@ fn assign_source_consumers(program: &Program, edits: &mut [PlannedEdit]) {
                     );
                 }
                 SourceConsumerKind::Record
+            }
+            TypeDeclarationKind::Class { fields, methods } => {
+                for field in fields {
+                    add(
+                        field.span,
+                        field.name_span,
+                        &field.stable_id,
+                        SourceConsumerKind::Field,
+                    );
+                }
+                for method in methods {
+                    add(
+                        method.span,
+                        method.name_span,
+                        &method.stable_id,
+                        SourceConsumerKind::Function,
+                    );
+                }
+                SourceConsumerKind::Class
             }
             TypeDeclarationKind::Variant { cases } => {
                 for case in cases {
@@ -2626,6 +2647,15 @@ fn member_identity(
                     kind: SourceConsumerKind::Field,
                 });
             }
+            TypeDeclarationKind::Class { fields, .. } if declaration.stable_id == owner => {
+                let field = fields.iter().find(|field| field.stable_id == member)?;
+                return Some(MemberIdentity {
+                    owner_explicit: declaration.explicit_id,
+                    member_explicit: field.explicit_id,
+                    name: field.name.clone(),
+                    kind: SourceConsumerKind::Field,
+                });
+            }
             TypeDeclarationKind::Variant { cases } => {
                 if let Some(case) = cases.iter().find(|case| case.stable_id == owner) {
                     let field = case.fields.iter().find(|field| field.stable_id == member)?;
@@ -2637,7 +2667,9 @@ fn member_identity(
                     });
                 }
             }
-            TypeDeclarationKind::Resource { .. } | TypeDeclarationKind::Record { .. } => {}
+            TypeDeclarationKind::Resource { .. }
+            | TypeDeclarationKind::Record { .. }
+            | TypeDeclarationKind::Class { .. } => {}
         }
     }
     None

@@ -78,7 +78,8 @@ mod private_capacity_contract_tests {
                 );
                 let fields: Vec<&crate::ast::Type> = match &declaration.kind {
                     crate::ast::TypeDeclarationKind::Resource { .. } => Vec::new(),
-                    crate::ast::TypeDeclarationKind::Record { fields } | ResolvedTypeDeclarationKind::Class { fields, .. } => {
+                    crate::ast::TypeDeclarationKind::Record { fields }
+                    | crate::ast::TypeDeclarationKind::Class { fields, .. } => {
                         fields.iter().map(|field| &field.ty).collect()
                     }
                     crate::ast::TypeDeclarationKind::Variant { cases } => cases
@@ -3923,6 +3924,7 @@ fn declaration_identity_subject(kind: DeclarationKind) -> &'static str {
         DeclarationKind::Resource => "resolved resource declaration",
         DeclarationKind::ResourceDrop => "resolved resource lifecycle declaration",
         DeclarationKind::Record => "resolved record declaration",
+        DeclarationKind::Class => "resolved class declaration",
         DeclarationKind::Field => "resolved field declaration",
         DeclarationKind::Variant => "resolved variant declaration",
         DeclarationKind::VariantCase => "resolved variant case declaration",
@@ -4288,28 +4290,7 @@ impl Resolver<'_> {
                             },
                         }
                     }
-                    ResolvedTypeDeclarationKind::Class { .. } => {
-                        let fields = self
-                            .declarations
-                            .record_fields(&id)
-                            .ok_or_else(|| {
-                                self.error(
-                                    "SPX-H006",
-                                    format!("class `{id}` has no resolved fields"),
-                                    declaration.span,
-                                )
-                            })?
-                            .to_vec();
-                        let methods = match &declaration.kind {
-                            TypeDeclarationKind::Class { methods, .. } => methods
-                                .iter()
-                                .map(|m| DeclarationId::new(m.stable_id.clone()))
-                                .collect(),
-                            _ => unreachable!(),
-                        };
-                        ResolvedTypeDeclarationKind::Class { fields, methods }
-                    }
-                    TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. } => {
+                    TypeDeclarationKind::Record { .. } => {
                         let fields = self
                             .declarations
                             .record_fields(&id)
@@ -4321,7 +4302,25 @@ impl Resolver<'_> {
                                 )
                             })?
                             .to_vec();
-                        ResolvedTypeDeclarationKind::Record { fields } | ResolvedTypeDeclarationKind::Class { .. }
+                        ResolvedTypeDeclarationKind::Record { fields }
+                    }
+                    TypeDeclarationKind::Class { methods, .. } => {
+                        let fields = self
+                            .declarations
+                            .record_fields(&id)
+                            .ok_or_else(|| {
+                                self.error(
+                                    "SPX-H006",
+                                    format!("class `{id}` has no resolved fields"),
+                                    declaration.span,
+                                )
+                            })?
+                            .to_vec();
+                        let methods = methods
+                            .iter()
+                            .map(|method| DeclarationId::new(method.stable_id.clone()))
+                            .collect();
+                        ResolvedTypeDeclarationKind::Class { fields, methods }
                     }
                     TypeDeclarationKind::Variant { .. } => {
                         let cases = self
@@ -5249,6 +5248,12 @@ impl Resolver<'_> {
                 path: String,
                 segment: &'static str,
             },
+            MethodArgNext {
+                args: &'expr [Expr],
+                index: usize,
+                bindings: Rc<BTreeMap<String, Binding>>,
+                path: String,
+            },
             FinishUnary {
                 span: Span,
                 path: String,
@@ -5447,7 +5452,6 @@ impl Resolver<'_> {
                 path: String,
                 method: &'expr str,
                 type_arguments: Vec<ResolvedType>,
-                method_span: Span,
                 args_len: usize,
             },
         }
@@ -5467,6 +5471,7 @@ impl Resolver<'_> {
                 | Frame::FinishNativeCall { path, .. }
                 | Frame::FinishCall { path, .. }
                 | Frame::ChildNext { path, .. }
+                | Frame::MethodArgNext { path, .. }
                 | Frame::FinishUnary { path, .. }
                 | Frame::FinishBinary { path, .. }
                 | Frame::AfterBinaryLeft { path, .. }
@@ -5495,6 +5500,7 @@ impl Resolver<'_> {
             let scope = match frame {
                 Frame::Enter { bindings, .. }
                 | Frame::ChildNext { bindings, .. }
+                | Frame::MethodArgNext { bindings, .. }
                 | Frame::AfterBinaryLeft { bindings, .. }
                 | Frame::AfterIfCondition { bindings, .. }
                 | Frame::AfterIfThen { bindings, .. }
@@ -6091,22 +6097,22 @@ impl Resolver<'_> {
                             path: path.clone(),
                             method,
                             type_arguments: resolved_args,
-                            method_span: expr.span,
                             args_len: args.len(),
                         });
                         if !args.is_empty() {
-                            frames.push(Frame::ChildNext {
-                                children: args,
+                            frames.push(Frame::MethodArgNext {
+                                args,
                                 index: 0,
                                 bindings: bindings.clone(),
-                                path: format!("{path}.args"),
-                                segment: "arg",
+                                path: path.clone(),
                             });
                         }
+                        // The receiver lowers to the call's first argument, so
+                        // it carries the canonical `.arg.0` identity slot.
                         frames.push(Frame::Enter {
                             expr: receiver,
                             bindings,
-                            path: format!("{path}.receiver"),
+                            path: format!("{path}.arg.0"),
                         });
                     }
                 },
@@ -6204,6 +6210,28 @@ impl Resolver<'_> {
                             expr: &children[index],
                             bindings,
                             path: format!("{path}.{segment}.{index}"),
+                        });
+                    }
+                }
+                Frame::MethodArgNext {
+                    args,
+                    index,
+                    bindings,
+                    path,
+                } => {
+                    if index < args.len() {
+                        frames.push(Frame::MethodArgNext {
+                            args,
+                            index: index + 1,
+                            bindings: bindings.clone(),
+                            path: path.clone(),
+                        });
+                        // Method arguments lower to call slots shifted by one
+                        // so the receiver owns `.arg.0`.
+                        frames.push(Frame::Enter {
+                            expr: &args[index],
+                            bindings,
+                            path: format!("{path}.arg.{}", index + 1),
                         });
                     }
                 }
@@ -7316,7 +7344,6 @@ impl Resolver<'_> {
                     path,
                     method,
                     type_arguments,
-                    method_span: _,
                     args_len,
                 } => {
                     if !type_arguments.is_empty() {
@@ -7688,13 +7715,162 @@ impl Resolver<'_> {
                     ownership,
                 )
             }
+            ExprKind::MethodCall {
+                receiver,
+                method,
+                type_arguments,
+                args,
+                ..
+            } => {
+                if !type_arguments.is_empty() {
+                    return Err(self.error(
+                        "SPX-P106",
+                        "method call generic arguments are not supported in this slice",
+                        expr.span,
+                    ));
+                }
+                let receiver = self.resolve_expr_recursive_reference(
+                    function,
+                    receiver,
+                    bindings,
+                    &format!("{path}.arg.0"),
+                )?;
+                let ResolvedType::Nominal {
+                    declaration: class_id,
+                    arguments: class_args,
+                } = &receiver.ty
+                else {
+                    return Err(self.error(
+                        "SPX-H001",
+                        format!("cannot resolve method `{method}` on a non-class value"),
+                        expr.span,
+                    ));
+                };
+                let class_decl = self.declarations.declaration(class_id).ok_or_else(|| {
+                    self.error("SPX-H001", format!("unknown class `{class_id}`"), expr.span)
+                })?;
+                if class_decl.kind != DeclarationKind::Class {
+                    return Err(self.error(
+                        "SPX-H001",
+                        format!(
+                            "method `{method}` requires a class receiver, found `{class_id}`"
+                        ),
+                        expr.span,
+                    ));
+                }
+                let method_id = self
+                    .declarations
+                    .declarations()
+                    .find(|decl| {
+                        decl.kind == DeclarationKind::Function
+                            && decl.name == *method
+                            && decl.owner.as_ref() == Some(class_id)
+                    })
+                    .map(|decl| decl.id.clone())
+                    .ok_or_else(|| {
+                        self.error(
+                            "SPX-H001",
+                            format!("unresolved method `{method}` on class `{class_id}`"),
+                            expr.span,
+                        )
+                    })?;
+                let class_ast = self
+                    .program
+                    .types
+                    .iter()
+                    .find(|t| t.stable_id == class_id.as_str())
+                    .ok_or_else(|| {
+                        self.error("SPX-H006", format!("class `{class_id}` has no AST"), expr.span)
+                    })?;
+                let TypeDeclarationKind::Class { methods, .. } = &class_ast.kind else {
+                    return Err(
+                        self.error("SPX-H006", format!("`{class_id}` is not a class"), expr.span)
+                    );
+                };
+                let method_ast = methods.iter().find(|m| m.name == *method).ok_or_else(|| {
+                    self.error(
+                        "SPX-H001",
+                        format!("unresolved method `{method}` on class `{class_id}`"),
+                        expr.span,
+                    )
+                })?;
+                let Some(self_param) = method_ast.params.first() else {
+                    return Err(self.error(
+                        "SPX-H001",
+                        format!("method `{method}` has no self parameter"),
+                        method_ast.span,
+                    ));
+                };
+                let self_ty = self.resolve_type(&self_param.ty, self_param.span)?;
+                let expected_self = ResolvedType::Nominal {
+                    declaration: class_id.clone(),
+                    arguments: class_args.clone(),
+                };
+                if self_ty != expected_self {
+                    return Err(self.error(
+                        "SPX-H001",
+                        format!(
+                            "method `{method}` self parameter type does not match class `{class_id}`"
+                        ),
+                        self_param.span,
+                    ));
+                }
+                if method_ast.params.len() - 1 != args.len() {
+                    return Err(self.error(
+                        "SPX-H001",
+                        format!(
+                            "method `{method}` expects {} arguments, found {}",
+                            method_ast.params.len() - 1,
+                            args.len()
+                        ),
+                        expr.span,
+                    ));
+                }
+                let mut call_args = Vec::with_capacity(1 + args.len());
+                call_args.push(receiver);
+                for (index, (argument, param)) in args
+                    .iter()
+                    .zip(method_ast.params.iter().skip(1))
+                    .enumerate()
+                {
+                    let resolved = self.resolve_expr_recursive_reference(
+                        function,
+                        argument,
+                        bindings,
+                        &format!("{path}.arg.{}", index + 1),
+                    )?;
+                    let param_ty = self.resolve_type(&param.ty, param.span)?;
+                    if resolved.ty != param_ty {
+                        return Err(self.error(
+                            "SPX-H001",
+                            format!(
+                                "method `{method}` argument `{}` expects type mismatch",
+                                param.name
+                            ),
+                            argument.span,
+                        ));
+                    }
+                    call_args.push(resolved);
+                }
+                let ty = self.resolve_type(&method_ast.return_type, method_ast.span)?;
+                let ownership = self.expression_ownership(&ty, OwnershipMode::Own, expr.span)?;
+                (
+                    ResolvedExprKind::Call {
+                        callee: method_id,
+                        type_arguments: Vec::new(),
+                        instance: None,
+                        args: call_args,
+                    },
+                    ty,
+                    ownership,
+                )
+            }
             ExprKind::Unary { op, value } => {
                 // Peel this linear family without consuming resolver frames.
                 // The general expression-frame conversion handles the other
                 // recursive families separately; this fast path preserves the
                 // exact canonical `.value` identity chain.
-                let mut unary = Vec::new();
-                unary.push((*op, expr.span, path.to_owned()));
+                let mut unary = Vec::new();                unary.push((*op, expr.span, path.to_owned()));
                 let mut leaf = value.as_ref();
                 let mut leaf_path = format!("{path}.value");
                 while let ExprKind::Unary { op, value } = &leaf.kind {
@@ -7942,11 +8118,11 @@ impl Resolver<'_> {
                 if self
                     .declarations
                     .declaration(&record)
-                    .is_none_or(|item| item.kind != DeclarationKind::Record)
+                    .is_none_or(|item| !matches!(item.kind, DeclarationKind::Record | DeclarationKind::Class))
                 {
                     return Err(self.error(
                         "SPX-H001",
-                        format!("constructor target `{type_name}` is not a record"),
+                        format!("constructor target `{type_name}` is not a record or class"),
                         expr.span,
                     ));
                 }
@@ -9087,7 +9263,7 @@ fn main() -> i64 { helper(1) }
                 .iter_mut()
                 .find(|declaration| declaration.name == "Pair")
                 .unwrap();
-            let ResolvedTypeDeclarationKind::Record { fields } | ResolvedTypeDeclarationKind::Class { .. } = &mut record.kind else {
+            let ResolvedTypeDeclarationKind::Record { fields } = &mut record.kind else {
                 panic!("Pair must be a record")
             };
             fields[0].id = DeclarationId::new("pair.value\0forged");
@@ -9352,7 +9528,7 @@ fn main() -> i64 { helper(1) }
             declaration: DeclarationId::new("node.type"),
             arguments: Vec::new(),
         };
-        let ResolvedTypeDeclarationKind::Record { fields } | ResolvedTypeDeclarationKind::Class { .. } = &mut program.types[0].kind else {
+        let ResolvedTypeDeclarationKind::Record { fields } = &mut program.types[0].kind else {
             panic!("Node must be a record");
         };
         fields[0].ty = recursive.clone();
@@ -9369,7 +9545,7 @@ fn main() -> i64 { helper(1) }
     #[test]
     fn validator_rejects_unit_in_an_ordinary_record_field_and_index() {
         let mut program = record_program();
-        let ResolvedTypeDeclarationKind::Record { fields } | ResolvedTypeDeclarationKind::Class { .. } = &mut program.types[0].kind else {
+        let ResolvedTypeDeclarationKind::Record { fields } = &mut program.types[0].kind else {
             panic!("Node must be a record");
         };
         fields[0].ty = ResolvedType::Unit;

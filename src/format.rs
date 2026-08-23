@@ -354,6 +354,53 @@ pub(crate) fn write_canonical(program: &Program, output: &mut impl std::fmt::Wri
                 }
                 writeln!(output, "}}").unwrap();
             }
+            TypeDeclarationKind::Class { fields, methods } => {
+                write!(output, "class {}", declaration.name).unwrap();
+                write_type_parameters(output, &declaration.type_parameters);
+                if fields.is_empty() && methods.is_empty() {
+                    writeln!(output, " {{ }}").unwrap();
+                    continue;
+                }
+                writeln!(output, " {{").unwrap();
+                for field in fields {
+                    if field.explicit_id {
+                        write!(output, "    @id(\"").unwrap();
+                        write_escaped(output, &field.stable_id);
+                        writeln!(output, "\")").unwrap();
+                    }
+                    write!(output, "    {}: ", field.name).unwrap();
+                    write_type(output, &field.ty);
+                    writeln!(output, ",").unwrap();
+                }
+                for method in methods {
+                    writeln!(output).unwrap();
+                    if method.explicit_id {
+                        write!(output, "    @id(\"").unwrap();
+                        write_escaped(output, &method.stable_id);
+                        writeln!(output, "\")").unwrap();
+                    }
+                    write!(output, "    fn {}", method.name).unwrap();
+                    write_type_parameters(output, &method.type_parameters);
+                    output.write_char('(').unwrap();
+                    for (index, param) in method.params.iter().enumerate() {
+                        if index > 0 {
+                            output.write_str(", ").unwrap();
+                        }
+                        write!(output, "{}: {}", param.name, param.mode.source_prefix()).unwrap();
+                        write_type(output, &param.ty);
+                    }
+                    output.write_str(") -> ").unwrap();
+                    write_type(output, &method.return_type);
+                    writeln!(output).unwrap();
+                    if !method.effects.is_empty() {
+                        write!(output, "        uses {{ ").unwrap();
+                        write_joined(output, &method.effects, ", ");
+                        writeln!(output, " }}").unwrap();
+                    }
+                    write_indented_function_body(output, &method.body, 2);
+                }
+                writeln!(output, "}}").unwrap();
+            }
         }
     }
     for interface in &program.interfaces {
@@ -562,11 +609,33 @@ fn legacy_canonical_temporary_bytes(program: &Program) -> usize {
                     }
                 }
             }
-            TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } => {
+            TypeDeclarationKind::Record { fields } => {
                 for field in fields {
                     if field.explicit_id {
                         total = total.saturating_add(escaped_len(&field.stable_id));
                     }
+                }
+            }
+            TypeDeclarationKind::Class { fields, methods } => {
+                for field in fields {
+                    if field.explicit_id {
+                        total = total.saturating_add(escaped_len(&field.stable_id));
+                    }
+                }
+                for method in methods {
+                    if method.explicit_id {
+                        total = total.saturating_add(escaped_len(&method.stable_id));
+                    }
+                    total = total
+                        .saturating_add(legacy_type_parameter_bytes(&method.type_parameters))
+                        .saturating_add(method.name.len())
+                        .saturating_add(legacy_string_join_bytes(&method.effects));
+                    for param in &method.params {
+                        total = total.saturating_add(param.name.len());
+                    }
+                    total = total.saturating_add(
+                        legacy_expr_temporary_bytes(&method.body, 0).saturating_mul(2),
+                    );
                 }
             }
             TypeDeclarationKind::Variant { cases } => {
@@ -637,8 +706,21 @@ fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> usize {
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
             | ExprKind::Bool(_) => {}
-                        ExprKind::MethodCall { .. } => {},
-ExprKind::Var(name) => total = total.saturating_add(name.len()),
+            ExprKind::Var(name) => total = total.saturating_add(name.len()),
+            ExprKind::MethodCall {
+                receiver,
+                args,
+                ..
+            } => {
+                let joined = joined_len(
+                    args.iter().map(|argument| rendered_expr_len(argument, 0)),
+                    args.len(),
+                    2,
+                );
+                total = total.saturating_add(joined).saturating_add(rendered);
+                stack.push((receiver, 8));
+                stack.extend(args.iter().rev().map(|argument| (argument, 0)));
+            }
             ExprKind::Call {
                 type_arguments,
                 args,
@@ -1248,6 +1330,27 @@ fn write_expr(output: &mut impl std::fmt::Write, value: &Expr, parent_precedence
                 }
             }
             Frame::ProjectField(field) => write!(output, ".{field}").unwrap(),
+            Frame::MethodCallSuffix(method, type_arguments, args, delimited) => {
+                if delimited {
+                    output.write_char(')').unwrap();
+                }
+                output.write_char('.').unwrap();
+                output.write_str(method).unwrap();
+                if !type_arguments.is_empty() {
+                    output.write_str("::").unwrap();
+                    output.write_char('<').unwrap();
+                    for (index, argument) in type_arguments.iter().enumerate() {
+                        if index != 0 {
+                            output.write_str(", ").unwrap();
+                        }
+                        write_type(output, argument);
+                    }
+                    output.write_char('>').unwrap();
+                }
+                output.write_char('(').unwrap();
+                frames.push(Frame::Close(')'));
+                frames.push(Frame::CallArgs(args, 0));
+            }
             Frame::Close('}') => output.write_str(" }").unwrap(),
             Frame::Close(character) => output.write_char(character).unwrap(),
         }
@@ -1455,6 +1558,13 @@ fn contains_record_construction(value: &Expr) -> bool {
                     arms.get(index - 1).map(|arm| &arm.value)
                 }
             }
+            ExprKind::MethodCall { receiver, args, .. } => {
+                if index == 0 {
+                    Some(receiver)
+                } else {
+                    args.get(index - 1)
+                }
+            }
             ExprKind::ConstructRecord { .. }
             | ExprKind::ConstructVariant { .. }
             | ExprKind::Int(_)
@@ -1464,8 +1574,7 @@ fn contains_record_construction(value: &Expr) -> bool {
             | ExprKind::Float32(_)
             | ExprKind::Float64(_)
             | ExprKind::Bool(_)
-            |             ExprKind::MethodCall { .. } => false,
-ExprKind::Var(_) => None,
+            | ExprKind::Var(_) => None,
         }
     }
     let mut frames = FormatFrameStack::new(Frame::Enter(value), ScratchStackKind::ContainsRecord);
@@ -1492,20 +1601,26 @@ ExprKind::Var(_) => None,
 }
 
 fn write_function_body(output: &mut impl std::fmt::Write, body: &Expr) {
+    write_indented_function_body(output, body, 1);
+}
+
+fn write_indented_function_body(output: &mut impl std::fmt::Write, body: &Expr, depth: usize) {
+    let indent = "    ".repeat(depth);
     writeln!(output, "{{").unwrap();
     if let ExprKind::Block { statements, tail } = &body.kind {
         for statement in statements {
-            write_block_statement(output, statement, 1);
+            write_block_statement(output, statement, depth);
         }
-        write!(output, "    ").unwrap();
+        output.write_str(&indent).unwrap();
         write_expr(output, tail, 0);
         writeln!(output).unwrap();
     } else {
-        write!(output, "    ").unwrap();
+        output.write_str(&indent).unwrap();
         write_expr(output, body, 0);
         writeln!(output).unwrap();
     }
-    writeln!(output, "}}").unwrap();
+    let closer = "    ".repeat(depth.saturating_sub(1));
+    writeln!(output, "{closer}}}").unwrap();
 }
 
 fn write_indent(output: &mut impl std::fmt::Write, depth: usize) {

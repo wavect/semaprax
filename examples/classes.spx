@@ -1,0 +1,27 @@
+module example.classes;
+
+@id("example.counter")
+class Counter {
+    @id("example.counter.value")
+    value: i64,
+
+    @id("example.counter.get")
+    fn get(self: Counter) -> i64
+{
+        self.value
+    }
+
+    @id("example.counter.bumped")
+    fn bumped(self: Counter, amount: i64) -> Counter
+{
+        Counter { value: self.value + amount }
+    }
+}
+
+@id("example.main")
+fn main() -> i64
+{
+    let base = Counter { value: 40 };
+    let next = base.bumped(2);
+    if next.get() == 42 && base.get() == 40 { next.get() } else { 0 }
+}

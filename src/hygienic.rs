@@ -96,6 +96,8 @@ const REASON_MATCH_EXPRESSION: &str = "match_expression";
 const REASON_TRY_EXPRESSION: &str = "try_expression";
 const REASON_GENERIC_CALL: &str = "generic_call";
 const REASON_UNSUPPORTED_CALLEE: &str = "unsupported_callee";
+const REASON_CLASS_DECLARATION: &str = "class_declaration";
+const REASON_METHOD_CALL: &str = "method_call";
 
 const TRUNCATION_BYTE_BUDGET: &str = "byte_budget";
 
@@ -432,6 +434,7 @@ impl ScanState<'_> {
             ExprKind::ConstructVariant { .. } => Some(REASON_VARIANT_CONSTRUCTION),
             ExprKind::UpdateRecord { .. } => Some(REASON_RECORD_UPDATE),
             ExprKind::Project { .. } => Some(REASON_RECORD_PROJECTION),
+            ExprKind::MethodCall { .. } => Some(REASON_METHOD_CALL),
             ExprKind::Match { .. } => Some(REASON_MATCH_EXPRESSION),
             ExprKind::Try { .. } => Some(REASON_TRY_EXPRESSION),
         }
@@ -486,6 +489,13 @@ fn collect_inventory(program: &Program) -> Result<Inventory, Vec<Diagnostic>> {
                     declaration,
                     "variant",
                     REASON_VARIANT_DECLARATION,
+                ));
+            }
+            TypeDeclarationKind::Class { .. } => {
+                excluded_types_json.push(excluded_type_json(
+                    declaration,
+                    "class",
+                    REASON_CLASS_DECLARATION,
                 ));
             }
             TypeDeclarationKind::Record { fields } => {

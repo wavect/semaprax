@@ -554,7 +554,10 @@ fn is_record(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagn
         .iter()
         .find(|item| item.id == *declaration)
         .ok_or_else(|| error(format!("unknown aggregate type `{declaration}`")))?;
-    if !matches!(item.kind, ResolvedTypeDeclarationKind::Record { .. }) {
+    if !matches!(
+        item.kind,
+        ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. }
+    ) {
         return Ok(false);
     }
     if arguments.len() != item.type_parameters.len()

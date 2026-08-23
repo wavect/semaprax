@@ -1380,6 +1380,100 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
         }
     }
 
+    for declaration in &program.types {
+        let TypeDeclarationKind::Class { fields: _, methods } = &declaration.kind else {
+            continue;
+        };
+        let mut method_names = HashSet::new();
+        for method in methods {
+            if !source_identifier(&method.name) {
+                diagnostics.push(error(
+                    program,
+                    "SPX-S104",
+                    format!("`{}` is not a valid method identifier", method.name),
+                    method.name_span,
+                ));
+            }
+            if !method_names.insert(method.name.as_str()) {
+                diagnostics.push(error(
+                    program,
+                    "SPX-S101",
+                    format!(
+                        "duplicate method `{}` in class `{}`",
+                        method.name, declaration.name
+                    ),
+                    method.span,
+                ));
+            }
+            if method.stable_id.contains('\0') {
+                diagnostics.push(invalid_stable_id(
+                    program,
+                    "SPX-S102",
+                    format!("method `{}.{}`", declaration.name, method.name),
+                    method.span,
+                ));
+            } else if !ids.insert(method.stable_id.as_str()) {
+                diagnostics.push(error(
+                    program,
+                    "SPX-S102",
+                    format!("duplicate stable id `{}`", method.stable_id),
+                    method.span,
+                ));
+            }
+            if !method.explicit_id {
+                diagnostics.push(
+                    Diagnostic::warning(
+                        "SPX-S103",
+                        format!(
+                            "method `{}.{}` has an automatic identity that changes when renamed",
+                            declaration.name, method.name
+                        ),
+                        method.name_span,
+                    )
+                    .at_path(&program.path)
+                    .with_help("add @id(\"your.namespace.class.method\") before the method"),
+                );
+            }
+            if !method.type_parameters.is_empty() {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T224",
+                    format!(
+                        "class method `{}.{}` cannot declare generic parameters in this slice",
+                        declaration.name, method.name
+                    ),
+                    method.type_parameters[0].span,
+                ));
+            }
+            for param in &method.params {
+                if !source_identifier(&param.name) {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-S105",
+                        format!("`{}` is not a valid parameter identifier", param.name),
+                        param.span,
+                    ));
+                }
+                check_declared_type(
+                    program,
+                    &param.ty,
+                    param.span,
+                    &types,
+                    &HashSet::new(),
+                    &mut diagnostics,
+                );
+            }
+            check_declared_type(
+                program,
+                &method.return_type,
+                method.span,
+                &types,
+                &HashSet::new(),
+                &mut diagnostics,
+            );
+        }
+    }
+
     let call_graph = program
         .functions
         .iter()
@@ -2026,7 +2120,8 @@ fn generic_function_expression_is_direct_scalar(expression: &Expr) -> bool {
             | ExprKind::Match { .. }
             | ExprKind::Try { .. }
             | ExprKind::UpdateRecord { .. }
-            | ExprKind::Project { .. } => return false,
+            | ExprKind::Project { .. }
+            | ExprKind::MethodCall { .. } => return false,
         }
     }
     true
@@ -2400,6 +2495,20 @@ enum VerifierFrame<'a> {
         scope: usize,
         index: usize,
         target: VerifierCallTarget<'a>,
+    },
+    ResumeMethodReceiver {
+        expression: &'a Expr,
+        receiver: &'a Expr,
+        method: &'a str,
+        args: &'a [Expr],
+        scope: usize,
+    },
+    ResumeMethodArgument {
+        expression: &'a Expr,
+        method: &'a Function,
+        args: &'a [Expr],
+        scope: usize,
+        index: usize,
     },
     ResumeTry {
         expression: &'a Expr,
@@ -3088,12 +3197,39 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                         self.types.contains_resource(target.return_type()),
                                     )
                                 }
-                                VerifierCallTarget::Ordinary(None) => {
-                                    self.values.push(None);
-                                    continue;
-                                }
-                            }));
+                            VerifierCallTarget::Ordinary(None) => {
+                                self.values.push(None);
+                                continue;
+                            }
+                        }));
                         }
+                    }
+                    ExprKind::MethodCall {
+                        receiver,
+                        method,
+                        type_arguments,
+                        args,
+                        ..
+                    } => {
+                        if !type_arguments.is_empty() {
+                            self.diagnostics.push(error(
+                                self.program,
+                                "SPX-T225",
+                                format!("method `{method}` does not accept type arguments in this slice"),
+                                expression.span,
+                            ));
+                        }
+                        self.frames.push(VerifierFrame::ResumeMethodReceiver {
+                            expression,
+                            receiver,
+                            method,
+                            args,
+                            scope,
+                        });
+                        self.frames.push(VerifierFrame::Enter {
+                            expression: receiver,
+                            scope,
+                        });
                     }
                     ExprKind::If {
                         condition,
@@ -4023,6 +4159,207 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             VerifierCallTarget::Ordinary(None) => None,
                         };
                         self.values.push(output);
+                    }
+                }
+                VerifierFrame::ResumeMethodReceiver {
+                    expression,
+                    receiver,
+                    method,
+                    args,
+                    scope,
+                } => {
+                    let actual = self.values.pop().unwrap_or(None);
+                    let Some(receiver_value) = actual else {
+                        self.values.push(None);
+                        continue;
+                    };
+                    let Type::Named {
+                        name: class_name,
+                        arguments: class_arguments,
+                    } = &receiver_value.ty
+                    else {
+                        self.diagnostics.push(error(
+                            self.program,
+                            "SPX-T203",
+                            format!(
+                                "method `{method}` requires a class receiver, found `{}`",
+                                receiver_value.ty
+                            ),
+                            receiver.span,
+                        ));
+                        self.values.push(None);
+                        continue;
+                    };
+                    if !class_arguments.is_empty() {
+                        self.diagnostics.push(error(
+                            self.program,
+                            "SPX-T203",
+                            format!(
+                                "method `{method}` on generic class `{class_name}` is not supported in this slice"
+                            ),
+                            expression.span,
+                        ));
+                        self.values.push(None);
+                        continue;
+                    }
+                    let declaration = self.types.declaration(class_name);
+                    let method_fn = declaration.and_then(|declaration| match &declaration.kind {
+                        TypeDeclarationKind::Class { methods, .. } => methods
+                            .iter()
+                            .find(|candidate| candidate.name == *method),
+                        TypeDeclarationKind::Resource { .. }
+                        | TypeDeclarationKind::Record { .. }
+                        | TypeDeclarationKind::Variant { .. } => None,
+                    });
+                    let Some(method_fn) = method_fn else {
+                        self.diagnostics.push(error(
+                            self.program,
+                            "SPX-T203",
+                            format!("unknown method `{method}` on `{class_name}`"),
+                            expression.span,
+                        ));
+                        self.values.push(None);
+                        continue;
+                    };
+                    let Some(self_param) = method_fn.params.first() else {
+                        self.diagnostics.push(error(
+                            self.program,
+                            "SPX-T205",
+                            format!("method `{method}` on `{class_name}` has no `self` parameter"),
+                            method_fn.span,
+                        ));
+                        self.values.push(None);
+                        continue;
+                    };
+                    let expected_self = Type::Named {
+                        name: class_name.clone(),
+                        arguments: Vec::new(),
+                    };
+                    if self_param.mode != ParamMode::Value || self_param.ty != expected_self {
+                        self.diagnostics.push(error(
+                            self.program,
+                            "SPX-T205",
+                            format!(
+                                "method `{method}` expects a value-mode `self: {}` receiver, found `{}`",
+                                class_name, self_param.ty
+                            ),
+                            self_param.span,
+                        ));
+                        self.values.push(None);
+                        continue;
+                    }
+                    if method_fn.params.len() - 1 != args.len() {
+                        self.diagnostics.push(error(
+                            self.program,
+                            "SPX-T204",
+                            format!(
+                                "`{}.{}` expects {} arguments, received {}",
+                                class_name,
+                                method,
+                                method_fn.params.len() - 1,
+                                args.len()
+                            ),
+                            expression.span,
+                        ));
+                        self.values.push(None);
+                        continue;
+                    }
+                    check_argument_ownership(
+                        self.program,
+                        self.current,
+                        method_fn.name.as_str(),
+                        receiver,
+                        self_param,
+                        Some(&receiver_value),
+                        &mut self.scopes[scope].bindings,
+                        self.types,
+                        self.allow_moves,
+                        self.diagnostics,
+                    );
+                    if args.is_empty() {
+                        self.values.push(Some(CheckedValue::returned(
+                            method_fn.return_type.clone(),
+                            self.types.contains_resource(&method_fn.return_type),
+                        )));
+                        continue;
+                    }
+                    self.frames.push(VerifierFrame::ResumeMethodArgument {
+                        expression,
+                        method: method_fn,
+                        args,
+                        scope,
+                        index: 0,
+                    });
+                    self.frames.push(VerifierFrame::Enter {
+                        expression: &args[0],
+                        scope,
+                    });
+                }
+                VerifierFrame::ResumeMethodArgument {
+                    expression,
+                    method,
+                    args,
+                    scope,
+                    index,
+                } => {
+                    let actual = self.values.pop().unwrap_or(None);
+                    let argument = &args[index];
+                    if let Some(param) = method.params.get(index + 1) {
+                        if let Some(actual) = &actual {
+                            reject_native_unit_value(
+                                self.program,
+                                argument,
+                                actual,
+                                self.diagnostics,
+                            );
+                        }
+                        if actual.as_ref().is_some_and(|actual| {
+                            !actual.native_unit && actual.ty != param.ty
+                        }) {
+                            self.diagnostics.push(error(
+                                self.program,
+                                "SPX-T205",
+                                format!(
+                                    "argument `{}` to `{}` expects {}, received {}",
+                                    param.name,
+                                    method.name,
+                                    param.ty,
+                                    actual.as_ref().expect("type checked above").ty
+                                ),
+                                argument.span,
+                            ));
+                        }
+                        check_argument_ownership(
+                            self.program,
+                            self.current,
+                            method.name.as_str(),
+                            argument,
+                            param,
+                            actual.as_ref(),
+                            &mut self.scopes[scope].bindings,
+                            self.types,
+                            self.allow_moves,
+                            self.diagnostics,
+                        );
+                    }
+                    let next = index + 1;
+                    if let Some(argument) = args.get(next) {
+                        self.frames.push(VerifierFrame::ResumeMethodArgument {
+                            expression,
+                            method,
+                            args,
+                            scope,
+                            index: next,
+                        });
+                        self.frames.push(VerifierFrame::Enter {
+                            expression: argument,
+                            scope,
+                        });
+                    } else {
+                        self.values.push(Some(CheckedValue::returned(
+                            method.return_type.clone(),
+                            self.types.contains_resource(&method.return_type),
+                        )));
                     }
                 }
                 VerifierFrame::ResumeTry {
@@ -5372,6 +5709,188 @@ fn check_expr(
                     types.contains_resource(&target.return_type),
                 )
             })
+        }
+        ExprKind::MethodCall {
+            receiver,
+            method,
+            type_arguments,
+            args,
+            ..
+        } => {
+            if !type_arguments.is_empty() {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T225",
+                    format!("method `{method}` does not accept type arguments in this slice"),
+                    expr.span,
+                ));
+            }
+            let receiver_value = check_expr(
+                program,
+                current,
+                receiver,
+                variables,
+                functions,
+                types,
+                result_type,
+                allow_moves,
+                diagnostics,
+            );
+            let Some(receiver_value) = receiver_value else {
+                return None;
+            };
+            let Type::Named {
+                name: class_name,
+                arguments: class_arguments,
+            } = &receiver_value.ty
+            else {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T203",
+                    format!(
+                        "method `{method}` requires a class receiver, found `{}`",
+                        receiver_value.ty
+                    ),
+                    receiver.span,
+                ));
+                return None;
+            };
+            if !class_arguments.is_empty() {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T203",
+                    format!(
+                        "method `{method}` on generic class `{class_name}` is not supported in this slice"
+                    ),
+                    expr.span,
+                ));
+                return None;
+            }
+            let method_fn = types
+                .declaration(class_name)
+                .and_then(|declaration| match &declaration.kind {
+                    TypeDeclarationKind::Class { methods, .. } => methods
+                        .iter()
+                        .find(|candidate| candidate.name == *method),
+                    TypeDeclarationKind::Resource { .. }
+                    | TypeDeclarationKind::Record { .. }
+                    | TypeDeclarationKind::Variant { .. } => None,
+                });
+            let Some(method_fn) = method_fn else {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T203",
+                    format!("unknown method `{method}` on `{class_name}`"),
+                    expr.span,
+                ));
+                return None;
+            };
+            let Some(self_param) = method_fn.params.first() else {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T205",
+                    format!("method `{method}` on `{class_name}` has no `self` parameter"),
+                    method_fn.span,
+                ));
+                return None;
+            };
+            if self_param.mode != ParamMode::Value
+                || self_param.ty
+                    != (Type::Named {
+                        name: class_name.clone(),
+                        arguments: Vec::new(),
+                    })
+            {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T205",
+                    format!(
+                        "method `{method}` expects a value-mode `self: {class_name}` receiver, found `{}`",
+                        self_param.ty
+                    ),
+                    self_param.span,
+                ));
+                return None;
+            }
+            if method_fn.params.len() - 1 != args.len() {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T204",
+                    format!(
+                        "`{}.{}` expects {} arguments, received {}",
+                        class_name,
+                        method,
+                        method_fn.params.len() - 1,
+                        args.len()
+                    ),
+                    expr.span,
+                ));
+                return None;
+            }
+            check_argument_ownership(
+                program,
+                current,
+                method_fn.name.as_str(),
+                receiver,
+                self_param,
+                Some(&receiver_value),
+                variables,
+                types,
+                allow_moves,
+                diagnostics,
+            );
+            for (index, (argument, param)) in args
+                .iter()
+                .zip(method_fn.params.iter().skip(1))
+                .enumerate()
+            {
+                let actual = check_expr(
+                    program,
+                    current,
+                    argument,
+                    variables,
+                    functions,
+                    types,
+                    result_type,
+                    allow_moves,
+                    diagnostics,
+                );
+                if let Some(actual) = &actual {
+                    reject_native_unit_value(program, argument, actual, diagnostics);
+                }
+                if actual.as_ref().is_some_and(|actual| {
+                    !actual.native_unit && actual.ty != param.ty
+                }) {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T205",
+                        format!(
+                            "argument `{}` to `{method}` expects {}, received {}",
+                            param.name,
+                            param.ty,
+                            actual.as_ref().expect("type checked above").ty
+                        ),
+                        argument.span,
+                    ));
+                }
+                check_argument_ownership(
+                    program,
+                    current,
+                    method_fn.name.as_str(),
+                    argument,
+                    param,
+                    actual.as_ref(),
+                    variables,
+                    types,
+                    allow_moves,
+                    diagnostics,
+                );
+                let _ = index;
+            }
+            Some(CheckedValue::returned(
+                method_fn.return_type.clone(),
+                types.contains_resource(&method_fn.return_type),
+            ))
         }
         ExprKind::Unary { op, value } => {
             // Peel maximal unary chains iteratively. The language admits an

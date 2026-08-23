@@ -894,56 +894,7 @@ impl Parser {
             }
 
             if self.take(&TokenKind::Dot) {
-                let (field, field_span) = self.ident("field name after `.`")?;
-                let start = expression.span;
-                // Allow generic type arguments after method name like `obj.method<T>(...)`
-                let method_type_arguments = if self.at(&TokenKind::Lt)
-                    && self.looks_like_generic_function_call()
-                {
-                    self.type_arguments()?
-                } else {
-                    Vec::new()
-                };
-                if self.at(&TokenKind::LParen) {
-                    self.bump();
-                    let mut args = Vec::new();
-                    if !self.at(&TokenKind::RParen) {
-                        loop {
-                            args.push(self.expression(0)?);
-                            if !self.take(&TokenKind::Comma) {
-                                break;
-                            }
-                        }
-                    }
-                    let end = self
-                        .expect(&TokenKind::RParen, "`)` after method arguments")?
-                        .span;
-                    expression = Expr {
-                        kind: ExprKind::MethodCall {
-                            receiver: Box::new(expression),
-                            method: field,
-                            method_span: field_span,
-                            type_arguments: method_type_arguments,
-                            args,
-                        },
-                        span: start.merge(end),
-                    };
-                    continue;
-                }
-                if !method_type_arguments.is_empty() {
-                    return Err(self.error_previous(
-                        "SPX-P202",
-                        "generic arguments require a call; use `.method::<T>(...)`",
-                    ));
-                }
-                expression = Expr {
-                    kind: ExprKind::Project {
-                        base: Box::new(expression),
-                        field,
-                        field_span,
-                    },
-                    span: start.merge(field_span),
-                };
+                expression = self.dot_suffix(expression)?;
                 continue;
             }
             if self.at(&TokenKind::Question) {
@@ -960,6 +911,60 @@ impl Parser {
             break;
         }
         Ok(expression)
+    }
+
+    /// Parses one `.` postfix suffix (field projection or method call) after
+    /// the receiver has already been parsed. Kept out of the recursive
+    /// postfix loop so deep expression nesting does not pay for its locals.
+    fn dot_suffix(&mut self, expression: Expr) -> Result<Expr, Diagnostic> {
+        let (field, field_span) = self.ident("field name after `.`")?;
+        let start = expression.span;
+        // Allow generic type arguments after method name like `obj.method<T>(...)`
+        let method_type_arguments =
+            if self.at(&TokenKind::Lt) && self.looks_like_generic_function_call() {
+                self.type_arguments()?
+            } else {
+                Vec::new()
+            };
+        if self.at(&TokenKind::LParen) {
+            self.bump();
+            let mut args = Vec::new();
+            if !self.at(&TokenKind::RParen) {
+                loop {
+                    args.push(self.expression(0)?);
+                    if !self.take(&TokenKind::Comma) {
+                        break;
+                    }
+                }
+            }
+            let end = self
+                .expect(&TokenKind::RParen, "`)` after method arguments")?
+                .span;
+            return Ok(Expr {
+                kind: ExprKind::MethodCall {
+                    receiver: Box::new(expression),
+                    method: field,
+                    method_span: field_span,
+                    type_arguments: method_type_arguments,
+                    args,
+                },
+                span: start.merge(end),
+            });
+        }
+        if !method_type_arguments.is_empty() {
+            return Err(self.error_previous(
+                "SPX-P202",
+                "generic arguments require a call; use `.method::<T>(...)`",
+            ));
+        }
+        Ok(Expr {
+            kind: ExprKind::Project {
+                base: Box::new(expression),
+                field,
+                field_span,
+            },
+            span: start.merge(field_span),
+        })
     }
 
     fn block(&mut self, description: &str) -> Result<Expr, Diagnostic> {

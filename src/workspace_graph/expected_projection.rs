@@ -242,6 +242,23 @@ fn rewrite_type_declaration_runtime_cost(
                 rewrite_type_runtime_cost(&field.ty, target_module, caller, programs, cost)?;
             }
         }
+        TypeDeclarationKind::Class { fields, methods } => {
+            for field in fields {
+                rewrite_type_runtime_cost(&field.ty, target_module, caller, programs, cost)?;
+            }
+            for method in methods {
+                for param in &method.params {
+                    rewrite_type_runtime_cost(&param.ty, target_module, caller, programs, cost)?;
+                }
+                rewrite_type_runtime_cost(
+                    &method.return_type,
+                    target_module,
+                    caller,
+                    programs,
+                    cost,
+                )?;
+            }
+        }
         TypeDeclarationKind::Variant { cases } => {
             for case in cases {
                 for field in &case.fields {
@@ -376,6 +393,14 @@ fn ast_type_declaration_identity_slots(
                 slots = checked_builder_sum(slots, ast_type_identity_slots(&field.ty)?)?;
             }
         }
+        TypeDeclarationKind::Class { fields, methods } => {
+            for field in fields {
+                slots = checked_builder_sum(slots, ast_type_identity_slots(&field.ty)?)?;
+            }
+            for method in methods {
+                slots = checked_builder_sum(slots, ast_function_identity_slots(method)?)?;
+            }
+        }
         TypeDeclarationKind::Variant { cases } => {
             for case in cases {
                 for field in &case.fields {
@@ -428,6 +453,15 @@ fn ast_expr_identity_slots(expression: &Expr) -> Result<usize, Vec<Diagnostic>> 
             for ty in type_arguments {
                 slots = checked_builder_sum(slots, ast_type_identity_slots(ty)?)?;
             }
+            for argument in args {
+                slots = checked_builder_sum(slots, ast_expr_identity_slots(argument)?)?;
+            }
+        }
+        ExprKind::MethodCall { receiver, type_arguments, args, .. } => {
+            for ty in type_arguments {
+                slots = checked_builder_sum(slots, ast_type_identity_slots(ty)?)?;
+            }
+            slots = checked_builder_sum(slots, ast_expr_identity_slots(receiver)?)?;
             for argument in args {
                 slots = checked_builder_sum(slots, ast_expr_identity_slots(argument)?)?;
             }
@@ -572,6 +606,14 @@ fn ast_type_declaration_cost(
         TypeDeclarationKind::Record { fields } => {
             for field in fields {
                 ast_field_cost(field, cost)?;
+            }
+        }
+        TypeDeclarationKind::Class { fields, methods } => {
+            for field in fields {
+                ast_field_cost(field, cost)?;
+            }
+            for method in methods {
+                ast_function_cost(method, cost)?;
             }
         }
         TypeDeclarationKind::Variant { cases } => {
@@ -737,6 +779,22 @@ fn ast_expr_cost(expression: &Expr, cost: &mut StructuralCost) -> Result<(), Vec
             ast_expr_cost(base, cost)?;
             cost.string(field)?;
         }
+        ExprKind::MethodCall {
+            receiver,
+            method,
+            type_arguments,
+            args,
+            ..
+        } => {
+            ast_expr_cost(receiver, cost)?;
+            cost.string(method)?;
+            for ty in type_arguments {
+                ast_type_cost(ty, cost)?;
+            }
+            for argument in args {
+                ast_expr_cost(argument, cost)?;
+            }
+        }
         ExprKind::Int(_)
         | ExprKind::Int32(_)
         | ExprKind::Char(_)
@@ -864,6 +922,28 @@ fn default_expr_expanded_cost(
             cost.string(alias)?;
             match &declaration.kind {
                 TypeDeclarationKind::Record { fields } => {
+                    for field in fields {
+                        cost.add(std::mem::size_of::<FieldInitializer>())?;
+                        cost.string(&field.name)?;
+                        let nested = default_expr_expanded_cost(
+                            &field.ty,
+                            target.module,
+                            caller,
+                            authored,
+                            programs,
+                            memo,
+                            visiting,
+                        )?;
+                        cost.add(nested.bytes)?;
+                        identity_slots = checked_builder_sum(
+                            identity_slots,
+                            nested.identity_slots.checked_add(1).ok_or_else(|| {
+                                vec![limit_error("builder_bytes", active_builder_limit())]
+                            })?,
+                        )?;
+                    }
+                }
+                TypeDeclarationKind::Class { fields, .. } => {
                     for field in fields {
                         cost.add(std::mem::size_of::<FieldInitializer>())?;
                         cost.string(&field.name)?;
@@ -1123,6 +1203,17 @@ fn rewrite_type_declaration(
                 rewrite_type(&mut field.ty, target_module, caller, programs)?;
             }
         }
+        TypeDeclarationKind::Class { fields, methods } => {
+            for field in fields {
+                rewrite_type(&mut field.ty, target_module, caller, programs)?;
+            }
+            for method in methods {
+                for param in &mut method.params {
+                    rewrite_type(&mut param.ty, target_module, caller, programs)?;
+                }
+                rewrite_type(&mut method.return_type, target_module, caller, programs)?;
+            }
+        }
         TypeDeclarationKind::Variant { cases } => {
             for case in cases {
                 for field in &mut case.fields {
@@ -1198,7 +1289,8 @@ fn default_expr(
                     )]
                 })?;
             match &declaration.kind {
-                TypeDeclarationKind::Record { fields } => ExprKind::ConstructRecord {
+                TypeDeclarationKind::Record { fields }
+                | TypeDeclarationKind::Class { fields, .. } => ExprKind::ConstructRecord {
                     type_name: crate::bounded_output::budgeted_clone(name),
                     type_span: span,
                     type_arguments: Vec::new(),
@@ -1310,6 +1402,53 @@ pub(super) fn collect_expected_edges(
                         &crate::bounded_output::budgeted_format(format_args!(
                             "type.{}.field.{index}",
                             declaration.stable_id
+                        )),
+                        declaration_type_uses,
+                        module_paths,
+                        authored,
+                        edges,
+                    )?;
+                }
+            }
+            TypeDeclarationKind::Class { fields, methods } => {
+                for (index, field) in fields.iter().enumerate() {
+                    collect_type_reference_edge(
+                        program,
+                        &declaration.stable_id,
+                        &field.ty,
+                        &crate::bounded_output::budgeted_format(format_args!(
+                            "type.{}.field.{index}",
+                            declaration.stable_id
+                        )),
+                        declaration_type_uses,
+                        module_paths,
+                        authored,
+                        edges,
+                    )?;
+                }
+                for method in methods {
+                    for (param_index, param) in method.params.iter().enumerate() {
+                        collect_type_reference_edge(
+                            program,
+                            &method.stable_id,
+                            &param.ty,
+                            &crate::bounded_output::budgeted_format(format_args!(
+                                "fn.{}.param.{param_index}",
+                                method.stable_id
+                            )),
+                            declaration_type_uses,
+                            module_paths,
+                            authored,
+                            edges,
+                        )?;
+                    }
+                    collect_type_reference_edge(
+                        program,
+                        &method.stable_id,
+                        &method.return_type,
+                        &crate::bounded_output::budgeted_format(format_args!(
+                            "fn.{}.return",
+                            method.stable_id
                         )),
                         declaration_type_uses,
                         module_paths,
@@ -1646,6 +1785,53 @@ fn collect_expression_type_edges(
                     edges,
                 )?;
             }
+            for (index, argument) in args.iter().enumerate() {
+                let child =
+                    crate::bounded_output::budgeted_format(format_args!("{path}.arg.{index}"));
+                collect_expression_type_edges(
+                    program,
+                    owner,
+                    argument,
+                    &child,
+                    type_uses,
+                    module_paths,
+                    authored,
+                    edges,
+                )?;
+            }
+        }
+        ExprKind::MethodCall {
+            receiver,
+            type_arguments,
+            args,
+            ..
+        } => {
+            for (index, argument) in type_arguments.iter().enumerate() {
+                let type_path = crate::bounded_output::budgeted_format(format_args!(
+                    "{path}.type_argument.{index}"
+                ));
+                collect_type_reference_edge_at(
+                    program,
+                    owner,
+                    argument,
+                    &type_path,
+                    Some(&expression_id),
+                    type_uses,
+                    module_paths,
+                    authored,
+                    edges,
+                )?;
+            }
+            collect_expression_type_edges(
+                program,
+                owner,
+                receiver,
+                &crate::bounded_output::budgeted_format(format_args!("{path}.receiver")),
+                type_uses,
+                module_paths,
+                authored,
+                edges,
+            )?;
             for (index, argument) in args.iter().enumerate() {
                 let child =
                     crate::bounded_output::budgeted_format(format_args!("{path}.arg.{index}"));

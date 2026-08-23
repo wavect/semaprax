@@ -1375,7 +1375,10 @@ fn record_declaration_id<'a>(
         .iter()
         .find(|item| item.id == *declaration)
         .ok_or_else(|| backend_error(format!("unknown native type `{declaration}`")))?;
-    if !matches!(item.kind, ResolvedTypeDeclarationKind::Record { .. }) {
+    if !matches!(
+        item.kind,
+        ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. }
+    ) {
         return Ok(None);
     }
     if arguments.len() != item.type_parameters.len()

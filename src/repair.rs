@@ -503,6 +503,10 @@ pub(crate) fn precheck_program(program: &Program) -> Result<(), Vec<Diagnostic>>
             ExprKind::Try { operand }
             | ExprKind::UpdateRecord { base: operand, .. }
             | ExprKind::Project { base: operand, .. } => expressions.push(operand),
+            ExprKind::MethodCall { receiver, args, .. } => {
+                expressions.push(receiver);
+                expressions.extend(args);
+            }
         }
         if let ExprKind::UpdateRecord { fields, .. } = &expression.kind {
             expressions.extend(fields.iter().map(|field| &field.value));
@@ -617,7 +621,8 @@ fn scalar_expr(expression: &Expr) -> bool {
         | ExprKind::Match { .. }
         | ExprKind::Try { .. }
         | ExprKind::UpdateRecord { .. }
-        | ExprKind::Project { .. } => false,
+        | ExprKind::Project { .. }
+        | ExprKind::MethodCall { .. } => false,
     }
 }
 

@@ -438,7 +438,7 @@ fn collect_record_type(
         collect_record_type(program, argument, instances)?;
     }
     let item = unique_type(program, declaration)?;
-    if let ResolvedTypeDeclarationKind::Record { fields } = &item.kind {
+    if let ResolvedTypeDeclarationKind::Record { fields } | ResolvedTypeDeclarationKind::Class { fields, .. } = &item.kind {
         if instances.insert(ty.clone()) {
             for field in fields {
                 let field_ty = crate::hir::substitute_type(&field.ty, declaration, arguments)?;

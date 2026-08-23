@@ -2735,6 +2735,7 @@ fn declaration_kind_text(kind: hir::DeclarationKind) -> &'static str {
         hir::DeclarationKind::Resource => "resource",
         hir::DeclarationKind::ResourceDrop => "resource_drop",
         hir::DeclarationKind::Record => "record",
+        hir::DeclarationKind::Class => "class",
         hir::DeclarationKind::Field => "field",
         hir::DeclarationKind::Variant => "variant",
         hir::DeclarationKind::VariantCase => "variant_case",

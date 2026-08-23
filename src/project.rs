@@ -417,7 +417,11 @@ fn load_snapshot(manifest_path: &Path) -> Result<ProjectSnapshot, Vec<Diagnostic
         }
         let selection = DeclaredPathSelection::open(&root.join(relative_path), "source")?;
         let path = selection.canonical_path.clone();
-        let mut held = HeldFile::open(path, MAX_TOTAL_SOURCE_BYTES)?;
+        // Each source is bounded by the *remaining* shared budget, not the
+        // whole aggregate constant, so one large source cannot consume the
+        // entire multi-file allowance before the total check fires.
+        let remaining_source_bytes = MAX_TOTAL_SOURCE_BYTES - total_source_bytes;
+        let mut held = HeldFile::open(path, remaining_source_bytes)?;
         if held.identity != selection.identity {
             return Err(authentication(format!(
                 "Project v1 source {relative} selection changed while opening"

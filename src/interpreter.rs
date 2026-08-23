@@ -14,8 +14,10 @@
 //!
 //! The admission profile is closed: the selected function (and every callee
 //! reachable from it) must have an explicit stable identity, be monomorphic,
-//! declare no effects, take only by-value direct `i64`/`bool` parameters,
-//! and return direct `i64`/`bool`. Function bodies may use the admitted
+//! declare no effects, take only by-value direct parameters of the admitted
+//! scalar types (`i64`, `i32`, `u8`, `char`, `f32`, `f64`, `bool`), and
+//! return one direct value of those same types — mixed scalar signatures are
+//! admitted. Function bodies may use the admitted
 //! scalar surface — `let` (including `let mut`) and assignment statements,
 //! blocks, `if`, lazy `&&`/`||`, unary negation/logical not, all admitted
 //! binary operators with left-to-right evaluation and sticky failure
@@ -23,7 +25,8 @@
 //! requires/ensures contracts, and calls to other admitted functions — and
 //! nothing else. Aggregate construction/projection/update, variant
 //! construction, matching, postfix `?`, import calls, generic calls, place
-//! projections, and backend-unlowerable scalar operations (`f32`/`f64`/`u8`
+//! projections, strings at the boundary, and backend-unlowerable scalar
+//! operations (`f32`/`f64`/`u8`
 //! remainder, `char` arithmetic) are rejected with one closed reason before
 //! any evaluation.
 //!
@@ -187,10 +190,15 @@ fn consistency_error(message: String) -> Diagnostic {
     Diagnostic::io("SPX-F106", message)
 }
 
-/// One CLI-level argument literal: an `i64` or `bool` value.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+/// One CLI-level argument literal: one admitted scalar value.
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ArgumentValue {
     Int(i64),
+    Int32(i32),
+    Uint8(u8),
+    Char(u32),
+    Float32(f32),
+    Float64(f64),
     Bool(bool),
 }
 
@@ -198,6 +206,11 @@ impl ArgumentValue {
     fn type_text(self) -> &'static str {
         match self {
             Self::Int(_) => "i64",
+            Self::Int32(_) => "i32",
+            Self::Uint8(_) => "u8",
+            Self::Char(_) => "char",
+            Self::Float32(_) => "f32",
+            Self::Float64(_) => "f64",
             Self::Bool(_) => "bool",
         }
     }
@@ -205,36 +218,192 @@ impl ArgumentValue {
     fn render(self) -> String {
         match self {
             Self::Int(value) => value.to_string(),
+            // Suffixed widths always render with their explicit suffix: bare
+            // decimals canonically denote `i64`, so the suffix is what keeps
+            // each rendering uniquely replayable.
+            Self::Int32(value) => format!("{value}i32"),
+            Self::Uint8(value) => format!("{value}u8"),
+            Self::Char(value) => crate::format::canonical_char(value),
+            Self::Float32(value) => format!("{:08x}", value.to_bits()),
+            Self::Float64(value) => format!("{:016x}", value.to_bits()),
             Self::Bool(value) => value.to_string(),
         }
     }
 }
 
-/// Parses one canonical `--arg` literal: `true`/`false` or a canonical
-/// optionally negative decimal integer that fits `i64`.
+/// Parses one canonical `--arg` literal for the widened scalar surface:
+///
+/// - `true`/`false`;
+/// - a canonical optionally negative decimal integer that fits `i64`;
+/// - the same integer with an explicit `i32` or `u8` suffix (exactly the
+///   suffixes the language lexer admits; there is deliberately no `i64`
+///   suffix), e.g. `7i32` or `200u8`;
+/// - a floating-point literal in the language grammar — digits, a required
+///   fraction, an optional exponent, and an optional `f32`/`f64` suffix —
+///   whose value must be finite, e.g. `1.5`, `-0.0`, `2.5e-3`, `0.25f32`;
+/// - a `char` literal in the language's escape syntax: one Unicode scalar
+///   between single quotes, with the named escapes `\n`, `\r`, `\t`, `\0`,
+///   `\'`, `\\` and `\u{...}` carrying one to six hexadecimal digits.
+///
+/// Non-canonical or out-of-range literals fail closed (`SPX-F103`).
 pub fn parse_argument(text: &str) -> Result<ArgumentValue, Diagnostic> {
-    match text {
-        "true" => return Ok(ArgumentValue::Bool(true)),
-        "false" => return Ok(ArgumentValue::Bool(false)),
-        _ => {}
+    if text == "true" {
+        return Ok(ArgumentValue::Bool(true));
     }
-    let digits = text.strip_prefix('-').unwrap_or(text);
+    if text == "false" {
+        return Ok(ArgumentValue::Bool(false));
+    }
+    if text.starts_with('\'') {
+        return parse_char_argument(text);
+    }
+    let (sign, remainder) = match text.strip_prefix('-') {
+        Some(rest) => ("-", rest),
+        None => ("", text),
+    };
+    let digits_end = remainder
+        .bytes()
+        .take_while(|byte| byte.is_ascii_digit())
+        .count();
+    let (digits, tail) = remainder.split_at(digits_end);
     if digits.is_empty()
-        || !digits.bytes().all(|byte| byte.is_ascii_digit())
         || (digits.len() > 1 && digits.starts_with('0'))
+        || tail.starts_with(|character: char| character.is_ascii_digit())
     {
         return Err(argument_error(format!(
-            "argument `{text}` is not an i64 or bool literal"
+            "argument `{text}` is not a scalar literal"
         )));
     }
-    text.parse::<i64>().map_or_else(
-        |_| {
-            Err(argument_error(format!(
-                "argument `{text}` does not fit i64"
-            )))
+    if let Some(fraction) = tail.strip_prefix('.') {
+        return parse_float_argument(text, sign, digits, fraction);
+    }
+    match tail {
+        "" => format!("{sign}{digits}")
+            .parse::<i64>()
+            .map(ArgumentValue::Int)
+            .map_err(|_| argument_error(format!("argument `{text}` does not fit i64"))),
+        "i32" => format!("{sign}{digits}")
+            .parse::<i32>()
+            .map(ArgumentValue::Int32)
+            .map_err(|_| argument_error(format!("argument `{text}` is outside the i32 range"))),
+        "u8" => {
+            if sign == "-" {
+                return Err(argument_error(format!(
+                    "argument `{text}` is outside the u8 range"
+                )));
+            }
+            digits
+                .parse::<u8>()
+                .map(ArgumentValue::Uint8)
+                .map_err(|_| argument_error(format!("argument `{text}` is outside the u8 range")))
+        }
+        _ => Err(argument_error(format!(
+            "argument `{text}` is not a scalar literal"
+        ))),
+    }
+}
+
+/// Parses the character-literal form of one [`parse_argument`] input using
+/// exactly the language's escape vocabulary.
+fn parse_char_argument(text: &str) -> Result<ArgumentValue, Diagnostic> {
+    let invalid = || argument_error(format!("argument `{text}` is not a char literal"));
+    let mut characters = text.chars();
+    if characters.next() != Some('\'') {
+        return Err(invalid());
+    }
+    let value = match characters.next() {
+        Some('\\') => match characters.next() {
+            Some('n') => '\n',
+            Some('r') => '\r',
+            Some('t') => '\t',
+            Some('0') => '\0',
+            Some('\'') => '\'',
+            Some('\\') => '\\',
+            Some('u') => {
+                if characters.next() != Some('{') {
+                    return Err(invalid());
+                }
+                let mut digits = String::new();
+                for character in characters.by_ref() {
+                    if character == '}' {
+                        break;
+                    }
+                    if !character.is_ascii_hexdigit() || digits.len() >= 6 {
+                        return Err(invalid());
+                    }
+                    digits.push(character);
+                }
+                if digits.is_empty() {
+                    return Err(invalid());
+                }
+                let scalar = u32::from_str_radix(&digits, 16).map_err(|_| invalid())?;
+                char::from_u32(scalar).ok_or_else(invalid)?
+            }
+            _ => return Err(invalid()),
         },
-        |value| Ok(ArgumentValue::Int(value)),
-    )
+        Some(character) if character != '\'' => character,
+        _ => return Err(invalid()),
+    };
+    if characters.next() != Some('\'') || characters.next().is_some() {
+        return Err(invalid());
+    }
+    Ok(ArgumentValue::Char(value as u32))
+}
+
+/// Parses the floating-point form of one [`parse_argument`] input: a required
+/// fraction, an optional exponent, and an optional `f32`/`f64` suffix, with a
+/// single rounding from decimal digits in the declared precision.
+fn parse_float_argument(
+    text: &str,
+    sign: &str,
+    digits: &str,
+    fraction_and_more: &str,
+) -> Result<ArgumentValue, Diagnostic> {
+    let invalid = |detail: &str| {
+        argument_error(format!(
+            "argument `{text}` is not a float literal ({detail})"
+        ))
+    };
+    let fraction_end = fraction_and_more
+        .bytes()
+        .take_while(|byte| byte.is_ascii_digit())
+        .count();
+    let (fraction, mut tail) = fraction_and_more.split_at(fraction_end);
+    if fraction.is_empty() {
+        return Err(invalid("fraction requires at least one digit"));
+    }
+    let mut body = format!("{sign}{digits}.{fraction}");
+    if matches!(tail.as_bytes().first(), Some(b'e') | Some(b'E')) {
+        let mut exponent = &tail[1..];
+        let negative_exponent = matches!(exponent.as_bytes().first(), Some(b'+') | Some(b'-'));
+        if negative_exponent {
+            exponent = &exponent[1..];
+        }
+        let exponent_digits = exponent
+            .bytes()
+            .take_while(|byte| byte.is_ascii_digit())
+            .count();
+        if exponent_digits == 0 {
+            return Err(invalid("exponent requires at least one digit"));
+        }
+        body.push_str(&tail[..1 + usize::from(negative_exponent) + exponent_digits]);
+        tail = &tail[1 + usize::from(negative_exponent) + exponent_digits..];
+    }
+    let wide = match tail {
+        "" | "f64" => true,
+        "f32" => false,
+        _ => return Err(invalid("only `f32` and `f64` suffixes are admitted")),
+    };
+    if wide {
+        match body.parse::<f64>() {
+            Ok(value) if value.is_finite() => Ok(ArgumentValue::Float64(value)),
+            _ => Err(invalid("literal is outside the declared float range")),
+        }
+    } else {
+        match body.parse::<f32>() {
+            Ok(value) if value.is_finite() => Ok(ArgumentValue::Float32(value)),
+            _ => Err(invalid("literal is outside the declared float range")),
+        }
+    }
 }
 
 /// One completed interpretation: the authenticated envelope plus whether the
@@ -411,7 +580,8 @@ fn select_function<'a>(program: &'a Program, token: &str) -> Result<&'a Function
 }
 
 /// Closed AST-level admission gate mirroring Canonical ABI Report v1: explicit
-/// identity, monomorphic, effect-free, by-value direct `i64`/`bool` signature.
+/// identity, monomorphic, effect-free, by-value direct signature over the
+/// admitted scalar types (`i64`, `i32`, `u8`, `char`, `f32`, `f64`, `bool`).
 fn admission(function: &Function) -> Option<&'static str> {
     if !function.explicit_id {
         return Some(REASON_AUTOMATIC_IDENTITY);
@@ -426,14 +596,24 @@ fn admission(function: &Function) -> Option<&'static str> {
         if param.mode != ParamMode::Value {
             return Some(REASON_UNSUPPORTED_PARAMETER_MODE);
         }
-        if !matches!(param.ty, Type::I64 | Type::Bool) {
+        if !is_admitted_scalar(&param.ty) {
             return Some(REASON_UNSUPPORTED_PARAMETER_TYPE);
         }
     }
-    if !matches!(function.return_type, Type::I64 | Type::Bool) {
+    if !is_admitted_scalar(&function.return_type) {
         return Some(REASON_UNSUPPORTED_RESULT_TYPE);
     }
     None
+}
+
+/// The widened direct scalar boundary: exactly the primitive scalar types the
+/// engine already evaluates; strings, records, variants, and generics stay
+/// outside the profile.
+fn is_admitted_scalar(ty: &Type) -> bool {
+    matches!(
+        ty,
+        Type::I64 | Type::I32 | Type::U8 | Type::F32 | Type::F64 | Type::Char | Type::Bool
+    )
 }
 
 fn bind_arguments(
@@ -451,18 +631,22 @@ fn bind_arguments(
     let mut bound = Vec::with_capacity(arguments.len());
     for (param, text) in function.params.iter().zip(arguments) {
         let value = parse_argument(text).map_err(|error| vec![error])?;
-        let type_matches = matches!((&param.ty, value), (Type::I64, ArgumentValue::Int(_)))
-            || matches!((&param.ty, value), (Type::Bool, ArgumentValue::Bool(_)));
+        let type_matches = matches!(
+            (&param.ty, value),
+            (Type::I64, ArgumentValue::Int(_))
+                | (Type::I32, ArgumentValue::Int32(_))
+                | (Type::U8, ArgumentValue::Uint8(_))
+                | (Type::Char, ArgumentValue::Char(_))
+                | (Type::F32, ArgumentValue::Float32(_))
+                | (Type::F64, ArgumentValue::Float64(_))
+                | (Type::Bool, ArgumentValue::Bool(_))
+        );
         if !type_matches {
             return Err(vec![argument_error(format!(
                 "parameter `{}` of function `{}` expects {}, but argument `{text}` is {}",
                 param.name,
                 function.name,
-                match param.ty {
-                    Type::I64 => "i64",
-                    Type::Bool => "bool",
-                    _ => "a scalar",
-                },
+                param.ty,
                 value.type_text(),
             ))]);
         }
@@ -659,8 +843,18 @@ struct OutcomeJson {
 fn returned_outcome(value: &Value) -> OutcomeJson {
     let (type_text, rendered) = match value {
         Value::Int(value) => ("i64", value.to_string()),
+        // Suffixed widths always render with their explicit suffix so each
+        // canonical rendering replays uniquely against the closed grammars.
+        Value::Int32(value) => ("i32", format!("{value}i32")),
+        Value::Uint8(value) => ("u8", format!("{value}u8")),
+        Value::Char(value) => ("char", crate::format::canonical_char(*value)),
+        // Floats render as their exact big-endian IEEE-754 bit pattern so the
+        // envelope distinguishes `-0.0`, infinities, and NaN payloads without
+        // relying on any platform's decimal formatting.
+        Value::Float32(value) => ("f32", format!("{:08x}", value.to_bits())),
+        Value::Float64(value) => ("f64", format!("{:016x}", value.to_bits())),
         Value::Bool(value) => ("bool", value.to_string()),
-        other => unreachable!("admitted boundary types keep results on i64/bool, found {other:?}"),
+        other => unreachable!("admitted boundary types keep results on scalars, found {other:?}"),
     };
     OutcomeJson {
         kind: OUTCOME_RETURNED,
@@ -727,6 +921,11 @@ impl Evaluator<'_> {
         for (param, (_, argument)) in function.params.iter().zip(arguments.iter()) {
             let value = match (&param.ty, *argument) {
                 (ResolvedType::I64, ArgumentValue::Int(inner)) => Value::Int(inner),
+                (ResolvedType::I32, ArgumentValue::Int32(inner)) => Value::Int32(inner),
+                (ResolvedType::U8, ArgumentValue::Uint8(inner)) => Value::Uint8(inner),
+                (ResolvedType::Char, ArgumentValue::Char(inner)) => Value::Char(inner),
+                (ResolvedType::F32, ArgumentValue::Float32(inner)) => Value::Float32(inner),
+                (ResolvedType::F64, ArgumentValue::Float64(inner)) => Value::Float64(inner),
                 (ResolvedType::Bool, ArgumentValue::Bool(inner)) => Value::Bool(inner),
                 _ => return Err(Flow::Guard("argument/parameter binding mismatch")),
             };
@@ -1322,10 +1521,10 @@ pub fn verify_envelope(envelope: &str) -> Result<(), Diagnostic> {
             ));
         }
         let type_text = match argument["type"].as_str() {
-            Some(type_text @ ("i64" | "bool")) => type_text,
+            Some(type_text @ ("i64" | "i32" | "u8" | "char" | "f32" | "f64" | "bool")) => type_text,
             _ => {
                 return Err(consistency_error(
-                    "argument type must be `i64` or `bool`".to_owned(),
+                    "argument type must be one of i64, i32, u8, char, f32, f64, bool".to_owned(),
                 ))
             }
         };
@@ -1334,13 +1533,9 @@ pub fn verify_envelope(envelope: &str) -> Result<(), Diagnostic> {
                 "argument value must be a string".to_owned(),
             ));
         };
-        let value_ok = match parse_argument(value_text) {
-            Ok(value) => value.type_text() == type_text,
-            Err(_) => false,
-        };
-        if !value_ok {
+        if !canonical_scalar_value_matches(type_text, value_text) {
             return Err(consistency_error(format!(
-                "argument value `{value_text}` does not canonically parse as `{type_text}`"
+                "argument value `{value_text}` is not the canonical rendering of `{type_text}`"
             )));
         }
     }
@@ -1427,26 +1622,24 @@ pub fn verify_envelope(envelope: &str) -> Result<(), Diagnostic> {
                     "returned outcomes must carry exactly [kind, type, value]".to_owned(),
                 ));
             }
-            let type_text = match outcome["type"].as_str() {
-                Some(type_text @ ("i64" | "bool")) => type_text,
-                _ => {
-                    return Err(consistency_error(
-                        "returned outcome type must be `i64` or `bool`".to_owned(),
-                    ))
-                }
-            };
+            let type_text =
+                match outcome["type"].as_str() {
+                    Some(type_text @ ("i64" | "i32" | "u8" | "char" | "f32" | "f64" | "bool")) => {
+                        type_text
+                    }
+                    _ => return Err(consistency_error(
+                        "returned outcome type must be one of i64, i32, u8, char, f32, f64, bool"
+                            .to_owned(),
+                    )),
+                };
             let Some(value_text) = outcome["value"].as_str() else {
                 return Err(consistency_error(
                     "returned outcome value must be a string".to_owned(),
                 ));
             };
-            let value_ok = match parse_argument(value_text) {
-                Ok(value) => value.type_text() == type_text,
-                Err(_) => false,
-            };
-            if !value_ok {
+            if !canonical_scalar_value_matches(type_text, value_text) {
                 return Err(consistency_error(format!(
-                    "returned outcome value `{value_text}` does not canonically parse as `{type_text}`"
+                    "returned outcome value `{value_text}` is not the canonical rendering of `{type_text}`"
                 )));
             }
         }
@@ -1495,6 +1688,32 @@ pub fn verify_envelope(envelope: &str) -> Result<(), Diagnostic> {
         ));
     }
     Ok(())
+}
+
+/// Replays one canonical scalar value rendering against its declared type:
+/// integers and booleans through the closed [`parse_argument`] grammar, chars
+/// as canonical language literals, and floats as exact big-endian IEEE-754
+/// bit patterns (`f32` eight, `f64` sixteen lowercase hexadecimal digits).
+fn canonical_scalar_value_matches(type_text: &str, value_text: &str) -> bool {
+    match type_text {
+        "i64" => matches!(parse_argument(value_text), Ok(ArgumentValue::Int(_))),
+        "i32" => matches!(parse_argument(value_text), Ok(ArgumentValue::Int32(_))),
+        "u8" => matches!(parse_argument(value_text), Ok(ArgumentValue::Uint8(_))),
+        "bool" => matches!(parse_argument(value_text), Ok(ArgumentValue::Bool(_))),
+        "char" => matches!(
+            parse_argument(value_text),
+            Ok(ArgumentValue::Char(value))
+                if crate::format::canonical_char(value) == value_text
+        ),
+        "f32" | "f64" => {
+            let width = if type_text == "f32" { 8 } else { 16 };
+            value_text.len() == width
+                && value_text
+                    .bytes()
+                    .all(|byte| matches!(byte, b'0'..=b'9' | b'a'..=b'f'))
+        }
+        _ => false,
+    }
 }
 
 /// Rebuilds the exact compiler-owned normalized status from its closed
@@ -1663,7 +1882,6 @@ mod tests {
         for hostile in [
             "",
             "+1",
-            "1.5",
             "007",
             "0x10",
             "1_000",
@@ -1677,6 +1895,121 @@ mod tests {
         ] {
             assert!(parse_argument(hostile).is_err(), "{hostile}");
         }
+    }
+
+    #[test]
+    fn widened_scalar_literals_are_canonical() {
+        // Suffixed integers mirror the language lexer: only `i32` and `u8`.
+        assert_eq!(literal("7i32"), ArgumentValue::Int32(7));
+        assert_eq!(literal("-2147483648i32"), ArgumentValue::Int32(i32::MIN));
+        assert_eq!(literal("2147483647i32"), ArgumentValue::Int32(i32::MAX));
+        assert_eq!(literal("200u8"), ArgumentValue::Uint8(200));
+        assert_eq!(literal("255u8"), ArgumentValue::Uint8(u8::MAX));
+        for hostile in [
+            "7i64",
+            "7u16",
+            "2147483648i32",
+            "-2147483649i32",
+            "256u8",
+            "-1u8",
+            "007i32",
+            "0u8x",
+            "7 i32",
+        ] {
+            assert!(parse_argument(hostile).is_err(), "{hostile}");
+        }
+
+        // Floats follow the language grammar: required fraction, optional
+        // exponent, optional `f32`/`f64` suffix, finite values only.
+        assert_eq!(literal("1.5"), ArgumentValue::Float64(1.5));
+        match literal("-0.0") {
+            ArgumentValue::Float64(value) => {
+                assert!(value.is_sign_negative());
+                assert_eq!(value, 0.0f64);
+            }
+            other => panic!("-0.0 parsed as {other:?}"),
+        }
+        assert_eq!(literal("2.5e-3"), ArgumentValue::Float64(2.5e-3));
+        assert_eq!(literal("1.0f64"), ArgumentValue::Float64(1.0));
+        match literal("0.25f32") {
+            ArgumentValue::Float32(value) => assert_eq!(value, 0.25f32),
+            other => panic!("0.25f32 parsed as {other:?}"),
+        }
+        // An f32 literal rounds once in f32 precision.
+        match literal("0.1f32") {
+            ArgumentValue::Float32(value) => assert_eq!(value.to_bits(), 0.1f32.to_bits()),
+            other => panic!("0.1f32 parsed as {other:?}"),
+        }
+        for hostile in [
+            "inf", "-inf", "nan", "1.", ".5", "1e5", "1.5x", "1.5e", "1.5e+", "1.0e9999", "00.5",
+            "1.5f32x", "1.5.6",
+        ] {
+            assert!(parse_argument(hostile).is_err(), "{hostile}");
+        }
+
+        // Chars use the language escape vocabulary.
+        assert_eq!(literal("'a'"), ArgumentValue::Char('a' as u32));
+        assert_eq!(literal("'\\n'"), ArgumentValue::Char('\n' as u32));
+        assert_eq!(literal("'\\0'"), ArgumentValue::Char('\0' as u32));
+        assert_eq!(literal("'\\\\'"), ArgumentValue::Char('\\' as u32));
+        assert_eq!(literal("'\\''"), ArgumentValue::Char('\'' as u32));
+        assert_eq!(literal("'\\u{2603}'"), ArgumentValue::Char(0x2603));
+        for hostile in [
+            "''",
+            "'ab'",
+            "'a",
+            "a'",
+            "'\\x41'",
+            "'\\u{}'",
+            "'\\u{110000}'",
+            "'\\u{d800}'",
+            "'\\u{1234567}'",
+            "'",
+            "'\\q'",
+        ] {
+            assert!(parse_argument(hostile).is_err(), "{hostile}");
+        }
+    }
+
+    #[test]
+    fn widened_scalar_renderings_are_canonical_and_replayable() {
+        let cases = [
+            (ArgumentValue::Int(-22), ("i64", "-22")),
+            (ArgumentValue::Int32(-7), ("i32", "-7i32")),
+            (ArgumentValue::Uint8(255), ("u8", "255u8")),
+            (ArgumentValue::Bool(true), ("bool", "true")),
+        ];
+        for (value, (type_text, rendered)) in cases {
+            assert_eq!(value.type_text(), type_text);
+            assert_eq!(value.render(), rendered);
+            assert!(canonical_scalar_value_matches(type_text, &value.render()));
+        }
+        // Char rendering is the canonical language literal and replays.
+        let snowman = ArgumentValue::Char(0x2603);
+        assert_eq!(snowman.type_text(), "char");
+        assert_eq!(snowman.render(), "'\\u{2603}'");
+        assert!(canonical_scalar_value_matches("char", "'\\u{2603}'"));
+        assert!(canonical_scalar_value_matches("char", "'a'"));
+        assert!(!canonical_scalar_value_matches("char", "'\\u{61}'"));
+        // Float rendering is the exact big-endian bit pattern.
+        assert_eq!(
+            ArgumentValue::Float64(-2.5).render(),
+            format!("{:016x}", (-2.5f64).to_bits())
+        );
+        assert_eq!(
+            ArgumentValue::Float32(2.0).render(),
+            format!("{:08x}", 2.0f32.to_bits())
+        );
+        assert!(canonical_scalar_value_matches(
+            "f64",
+            &ArgumentValue::Float64(f64::INFINITY).render()
+        ));
+        assert!(canonical_scalar_value_matches(
+            "f32",
+            &ArgumentValue::Float32(f32::NAN).render()
+        ));
+        assert!(!canonical_scalar_value_matches("f32", "4000000"));
+        assert!(!canonical_scalar_value_matches("f64", "40000000000000G0"));
     }
 
     #[test]

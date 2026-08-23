@@ -1359,11 +1359,9 @@ impl Emitter<'_> {
                     ty: ResolvedType::Bool,
                 })
             }
-            ResolvedExprKind::String(value) => {
-                return Err(error(format!(
-                    "string literal `{value}` is outside aggregate WebAssembly lowering"
-                )));
-            }
+            ResolvedExprKind::String(value) => Err(error(format!(
+                "string literal `{value}` is outside aggregate WebAssembly lowering"
+            ))),
             ResolvedExprKind::Place(place) => {
                 let value = self.place_value(place)?;
                 self.materialize(expr, &value)

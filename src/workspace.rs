@@ -679,7 +679,7 @@ struct WorkspaceGuard {
     root_identity: FileIdentity,
     control: PathBuf,
     lock_path: PathBuf,
-    lock: File,
+    lock: LockFile,
     lock_identity: FileIdentity,
     snapshot: WorkspaceSnapshot,
     semantic_graph: Option<crate::workspace_graph::WorkspaceGraphBuild>,
@@ -692,12 +692,37 @@ struct WorkspaceGuard {
     mode: WorkspaceMode,
 }
 
+struct LockFile(File);
+
+impl std::ops::Deref for LockFile {
+    type Target = File;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for LockFile {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl Drop for LockFile {
+    fn drop(&mut self) {
+        #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
+        {
+            let _ = fs2::FileExt::unlock(&self.0);
+        }
+    }
+}
+
 struct WorkspaceLockGuard {
     root: PathBuf,
     root_identity: FileIdentity,
     control: PathBuf,
     lock_path: PathBuf,
-    lock: File,
+    lock: LockFile,
     lock_identity: FileIdentity,
     exclusive: bool,
 }
@@ -3826,16 +3851,17 @@ fn acquire_lock_only(root: &Path, exclusive: bool) -> Result<WorkspaceLockGuard,
         return Err(io("SPX-I209", "workspace LOCK must be a real regular file"));
     }
     require_single_link_path(&lock_path, "SPX-I209")?;
-    let lock = OpenOptions::new()
+    let file = OpenOptions::new()
         .read(true)
         .write(true)
         .open(&lock_path)
         .map_err(|error| io("SPX-I209", format!("cannot open workspace LOCK: {error}")))?;
-    let lock_identity = identity_from_file(&lock, "SPX-I209")?;
-    lock_file(&lock, exclusive)?;
-    if let Err(diagnostics) = recheck_lock(&lock_path, &lock, &lock_identity) {
-        return Err(unlock_with_diagnostics(&lock, diagnostics));
+    let lock_identity = identity_from_file(&file, "SPX-I209")?;
+    lock_file(&file, exclusive)?;
+    if let Err(diagnostics) = recheck_lock(&lock_path, &file, &lock_identity) {
+        return Err(unlock_with_diagnostics(&file, diagnostics));
     }
+    let lock = LockFile(file);
     Ok(WorkspaceLockGuard {
         root,
         root_identity,

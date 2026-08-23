@@ -2165,7 +2165,7 @@ pub fn inventory_entries_exact_prepared<const N: usize, const F: usize, const D:
                     .cast::<FILE_ID_EXTD_DIR_INFO>()
             };
             let name_bytes = usize::try_from(entry.FileNameLength).map_err(|_| Error::Changed)?;
-            if name_bytes % 2 != 0 {
+            if !name_bytes.is_multiple_of(2) {
                 return Err(Error::Changed);
             }
             let name_end = header_end.checked_add(name_bytes).ok_or(Error::Changed)?;
@@ -2341,7 +2341,7 @@ pub fn inventory_exact_prepared<const N: usize>(
                     .cast::<FILE_ID_EXTD_DIR_INFO>()
             };
             let name_bytes = usize::try_from(entry.FileNameLength).map_err(|_| Error::Changed)?;
-            if name_bytes % 2 != 0 {
+            if !name_bytes.is_multiple_of(2) {
                 return Err(Error::Changed);
             }
             let name_end = header_end.checked_add(name_bytes).ok_or(Error::Changed)?;
@@ -2678,7 +2678,7 @@ pub fn discard_owned_stage_prepared<const N: usize>(
                     .cast::<FILE_ID_BOTH_DIR_INFO>()
             };
             let name_bytes = usize::try_from(entry.FileNameLength).map_err(|_| Error::Changed)?;
-            if name_bytes % 2 != 0 {
+            if !name_bytes.is_multiple_of(2) {
                 return Err(Error::Changed);
             }
             let name_end = header_end.checked_add(name_bytes).ok_or(Error::Changed)?;

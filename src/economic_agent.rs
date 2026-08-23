@@ -4695,7 +4695,7 @@ fn valid_script(value: &str) -> bool {
     value.len() == 44 && value.starts_with("0014") && lower_hex(value, 44)
 }
 fn hex_bytes(value: &str) -> Option<Vec<u8>> {
-    if value.len() % 2 != 0 {
+    if !value.len().is_multiple_of(2) {
         return None;
     }
     value
@@ -5502,20 +5502,19 @@ fn keccak_f(state: &mut [u64; 25]) {
 }
 fn keccak256(bytes: &[u8]) -> [u8; 32] {
     let mut state = [0u64; 25];
-    let mut chunks = bytes.chunks_exact(136);
-    for chunk in &mut chunks {
-        for (index, word) in chunk.chunks_exact(8).enumerate() {
-            state[index] ^= u64::from_le_bytes(word.try_into().unwrap_or([0; 8]));
+    let (blocks, remainder) = bytes.as_chunks::<136>();
+    for block in blocks {
+        for (index, word) in block.as_chunks::<8>().0.iter().enumerate() {
+            state[index] ^= u64::from_le_bytes(*word);
         }
         keccak_f(&mut state);
     }
-    let remainder = chunks.remainder();
-    let mut block = [0u8; 136];
-    block[..remainder.len()].copy_from_slice(remainder);
-    block[remainder.len()] = 0x01;
-    block[135] |= 0x80;
-    for (index, word) in block.chunks_exact(8).enumerate() {
-        state[index] ^= u64::from_le_bytes(word.try_into().unwrap_or([0; 8]));
+    let mut tail = [0u8; 136];
+    tail[..remainder.len()].copy_from_slice(remainder);
+    tail[remainder.len()] = 0x01;
+    tail[135] |= 0x80;
+    for (index, word) in tail.as_chunks::<8>().0.iter().enumerate() {
+        state[index] ^= u64::from_le_bytes(*word);
     }
     keccak_f(&mut state);
     let mut output = [0u8; 32];
@@ -8944,7 +8943,7 @@ mod tests {
                         "v5" => version == 5,
                         "v6" => version == 6,
                         "odd" => version >= 7 && version % 2 == 1 && state != "approved",
-                        "even" => version >= 8 && version % 2 == 0,
+                        "even" => version >= 8 && version.is_multiple_of(2),
                         _ => false,
                     };
                     if matches {

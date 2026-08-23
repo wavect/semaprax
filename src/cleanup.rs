@@ -567,7 +567,7 @@ impl InventoryBuilder<'_> {
                         ResolvedExprKind::Block { statements, tail } => {
                             let statement_index = index / 2;
                             if let Some(statement) = statements.get(statement_index) {
-                                if index % 2 == 0 {
+                                if index.is_multiple_of(2) {
                                     enter = Some(statement.value());
                                 } else {
                                     // Only `let` and assignment statements

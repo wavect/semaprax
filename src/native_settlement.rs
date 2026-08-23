@@ -2288,7 +2288,7 @@ mod tests {
             for mut encoded in 0..combinations {
                 let mut states = Vec::new();
                 for _ in 0..resource_count {
-                    states.push(if encoded % 2 == 0 {
+                    states.push(if encoded.is_multiple_of(2) {
                         SettlementResourceState::Live
                     } else {
                         SettlementResourceState::Dead
@@ -2318,7 +2318,7 @@ mod tests {
                         if ordinal == result_ordinal {
                             states.push(SettlementResourceState::ProvisionalResult);
                         } else {
-                            states.push(if encoded % 2 == 0 {
+                            states.push(if encoded.is_multiple_of(2) {
                                 SettlementResourceState::Live
                             } else {
                                 SettlementResourceState::Dead

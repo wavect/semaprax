@@ -159,8 +159,8 @@ fn discover_changes(root: &Path, base: &str) -> Result<BTreeSet<String>, String>
     ] {
         let output = git(root, &arguments)?;
         let fields = nul_fields(&output.stdout, "Git diff")?;
-        let mut pairs = fields.chunks_exact(2);
-        for pair in &mut pairs {
+        let (pairs, pair_remainder) = fields.as_chunks::<2>();
+        for pair in pairs {
             if !matches!(pair[0], "A" | "C" | "D" | "M" | "T" | "U" | "X" | "B") {
                 return Err(format!(
                     "Git returned unsupported change status `{}`",
@@ -170,7 +170,7 @@ fn discover_changes(root: &Path, base: &str) -> Result<BTreeSet<String>, String>
             validate_alias(pair[1])?;
             paths.insert(pair[1].to_owned());
         }
-        if !pairs.remainder().is_empty() {
+        if !pair_remainder.is_empty() {
             return Err("Git diff returned a malformed NUL record".to_owned());
         }
     }

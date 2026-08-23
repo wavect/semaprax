@@ -2605,7 +2605,7 @@ fn parse_darwin_inventory_records(
         let name_end = header_end.checked_add(name_length).ok_or(Error::Changed)?;
         let next = offset.checked_add(record).ok_or(Error::Changed)?;
         if record < header + 1
-            || record % 4 != 0
+            || !record.is_multiple_of(4)
             || name_length > 1023
             || name_end >= next
             || next <= offset

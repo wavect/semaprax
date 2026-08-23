@@ -287,7 +287,11 @@ fn collect_variant_domains(
             }
             hir::ResolvedExprKind::Block { statements, tail } => {
                 for statement in statements {
-                    visit(program, statement.value(), domains)?;
+                    for index in 0..statement.child_count() {
+                        if let Some(child) = statement.child(index) {
+                            visit(program, child, domains)?;
+                        }
+                    }
                 }
                 visit(program, tail, domains)?;
             }
@@ -632,7 +636,13 @@ fn find_expression_by<'a>(
         }
         hir::ResolvedExprKind::Block { statements, tail } => statements
             .iter()
-            .find_map(|statement| find_expression_by(statement.value(), predicate))
+            .find_map(|statement| {
+                (0..statement.child_count()).find_map(|index| {
+                    statement
+                        .child(index)
+                        .and_then(|child| find_expression_by(child, predicate))
+                })
+            })
             .or_else(|| find_expression_by(tail, predicate)),
         hir::ResolvedExprKind::If {
             condition,

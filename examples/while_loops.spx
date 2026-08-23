@@ -1,0 +1,35 @@
+module examples.while_loops;
+
+@id("loops.digit_sum")
+fn digit_sum(value: i64) -> i64
+{
+    let mut remaining = value;
+    let mut total = 0;
+    while remaining > 0 {
+        total = total + remaining % 10;
+        remaining = remaining / 10;
+        remaining > 0
+    }
+    total
+}
+
+@id("loops.factorial")
+fn factorial(value: i64) -> i64
+{
+    let mut counter = value;
+    let mut product = 1;
+    while counter > 1 {
+        product = product * counter;
+        counter = counter - 1;
+        counter > 1
+    }
+    if product > 0 { product } else { 0 }
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    let sum = digit_sum(98765);
+    let six = factorial(3);
+    sum + six
+}

@@ -657,6 +657,15 @@ fn render_expr(
                         output.push_str(&render_child(walker, body, 0));
                         output.push_str("; ");
                     }
+                    ResolvedStatement::While {
+                        condition, body, ..
+                    } => {
+                        output.push_str("while ");
+                        output.push_str(&render_child(walker, condition, 0));
+                        output.push(' ');
+                        output.push_str(&render_child(walker, body, 0));
+                        output.push_str("; ");
+                    }
                 }
             }
             output.push_str(&render_child(walker, tail, 0));
@@ -937,6 +946,18 @@ impl Walker<'_> {
                 self.push_ineligible(value, REASON_MUTATION_TARGET);
             }
             ResolvedStatement::Unsafe { body, .. } => {
+                self.scan_expr(body);
+            }
+            ResolvedStatement::While {
+                condition, body, ..
+            } => {
+                // Loop-carried iteration is control flow that defeats
+                // straight-line SIMD packing; both the loop and its contents
+                // stay ineligible while their scalar statements remain
+                // individually reportable.
+                self.push_ineligible(condition, REASON_CONTROL_FLOW);
+                self.push_ineligible(body, REASON_CONTROL_FLOW);
+                self.scan_expr(condition);
                 self.scan_expr(body);
             }
         }

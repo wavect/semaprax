@@ -1206,6 +1206,68 @@ impl<'a> PlanBuilder<'a> {
         Ok(())
     }
 
+    /// Lower one Bounded While-Loops v1 statement.
+    ///
+    /// The admission profile guarantees the condition and body contain only
+    /// Copy-scalar operations, so the loop contributes no cleanup slots,
+    /// transfers, or finalizers of its own: every failure exit inside the
+    /// loop finalizes exactly what was live on loop entry. The plan therefore
+    /// linearizes one admitted iteration — condition evaluation branches on
+    /// its Boolean result into a single body pass or the loop continuation,
+    /// and the builder fail-closes if the body pass could ever change owned
+    /// liveness (which would make a single pass unrepresentative).
+    fn lower_while(
+        &mut self,
+        condition: &ResolvedExpr,
+        body: &ResolvedExpr,
+        block: BlockId,
+        state: FlowState,
+        region: CleanupRegionId,
+    ) -> Result<EvalResult, Diagnostic> {
+        let entry_state = state.clone();
+        let evaluated_condition = self.lower_expr(condition, block, state, region)?;
+        if evaluated_condition.owned_source.is_some() {
+            return Err(plan_error(
+                "while condition owns a value, which no admitted program can express",
+            ));
+        }
+        let body_entry = self.new_block(region)?;
+        let after = self.new_block(region)?;
+        let true_edge = self.new_edge(
+            evaluated_condition.block,
+            body_entry,
+            EdgeCondition::BooleanResult(condition.id.clone(), true),
+        )?;
+        let false_edge = self.new_edge(
+            evaluated_condition.block,
+            after,
+            EdgeCondition::BooleanResult(condition.id.clone(), false),
+        )?;
+        self.terminate(
+            evaluated_condition.block,
+            CleanupTerminator::Branch(vec![true_edge, false_edge]),
+        )?;
+
+        // The body is an ordinary checked block; lowering it once yields the
+        // exact per-iteration ownership events of any iteration count.
+        let evaluated_body =
+            self.lower_expr(body, body_entry, evaluated_condition.state.clone(), region)?;
+        if evaluated_body.state != evaluated_condition.state
+            || evaluated_body.owned_source.is_some()
+        {
+            return Err(plan_error(
+                "while loop body changes owned liveness, which the Bounded While-Loops v1 admission profile forbids",
+            ));
+        }
+        let join_edge = self.new_edge(evaluated_body.block, after, EdgeCondition::Always)?;
+        self.terminate(evaluated_body.block, CleanupTerminator::Goto(join_edge))?;
+        Ok(EvalResult {
+            block: after,
+            state: entry_state,
+            owned_source: None,
+        })
+    }
+
     fn split_status(
         &mut self,
         block: BlockId,
@@ -1477,9 +1539,18 @@ impl<'a> PlanBuilder<'a> {
                 // Unsafe boundaries bind nothing: their ordinary block body
                 // lowers like any nested block expression and owns nothing at
                 // this level.
-                _ => {
+                ResolvedStatement::Unsafe { body, .. } => {
+                    let evaluated = self.lower_expr(body, current, current_state, root)?;
+                    current = evaluated.block;
+                    current_state = evaluated.state;
+                    continue;
+                }
+                // Bounded While-Loops v1: linearize one admitted iteration.
+                ResolvedStatement::While {
+                    condition, body, ..
+                } => {
                     let evaluated =
-                        self.lower_expr(statement.value(), current, current_state, root)?;
+                        self.lower_while(condition, body, current, current_state, root)?;
                     current = evaluated.block;
                     current_state = evaluated.state;
                     continue;
@@ -2639,23 +2710,56 @@ impl<'a> PlanBuilder<'a> {
                     destination,
                 } => {
                     if index < statements.len() {
-                        frames.push(Frame::BlockAfterStatement {
-                            expression,
-                            statements,
-                            tail,
-                            index,
-                            child_region,
-                            destination,
-                        });
-                        if active_region != child_region {
-                            frames.push(Frame::RestoreRegion(active_region));
-                            active_region = child_region;
+                        if let ResolvedStatement::While {
+                            condition, body, ..
+                        } = &statements[index]
+                        {
+                            // Bounded While-Loops v1: linearize one admitted
+                            // iteration synchronously; its continuation feeds
+                            // the ordinary after-statement bookkeeping.
+                            if active_region != child_region {
+                                frames.push(Frame::RestoreRegion(active_region));
+                                active_region = child_region;
+                            }
+                            let evaluated = self.lower_while(
+                                condition,
+                                body,
+                                flow.block,
+                                flow.state,
+                                child_region,
+                            )?;
+                            frames.push(Frame::BlockAfterStatement {
+                                expression,
+                                statements,
+                                tail,
+                                index,
+                                child_region,
+                                destination,
+                            });
+                            results.push(EvalResult {
+                                block: evaluated.block,
+                                state: evaluated.state,
+                                owned_source: None,
+                            });
+                        } else {
+                            frames.push(Frame::BlockAfterStatement {
+                                expression,
+                                statements,
+                                tail,
+                                index,
+                                child_region,
+                                destination,
+                            });
+                            if active_region != child_region {
+                                frames.push(Frame::RestoreRegion(active_region));
+                                active_region = child_region;
+                            }
+                            frames.push(Frame::Enter {
+                                expression: statements[index].value(),
+                                block: flow.block,
+                                state: flow.state,
+                            });
                         }
-                        frames.push(Frame::Enter {
-                            expression: statements[index].value(),
-                            block: flow.block,
-                            state: flow.state,
-                        });
                     } else {
                         frames.push(Frame::BlockAfterTail {
                             expression,
@@ -3668,15 +3772,21 @@ impl<'a> PlanBuilder<'a> {
             let (binding, value) = match statement {
                 ResolvedStatement::Let { binding, value, .. }
                 | ResolvedStatement::Assign { binding, value, .. } => (binding, value),
-                // Unsafe boundaries bind nothing: their ordinary body lowers
+                // Unsafe boundaries bind nothing: their ordinary block body lowers
                 // like any nested block expression.
-                _ => {
-                    let evaluated = self.lower_expr_recursive_reference(
-                        statement.value(),
-                        current,
-                        current_state,
-                        region,
-                    )?;
+                ResolvedStatement::Unsafe { body, .. } => {
+                    let evaluated =
+                        self.lower_expr_recursive_reference(body, current, current_state, region)?;
+                    current = evaluated.block;
+                    current_state = evaluated.state;
+                    continue;
+                }
+                // Bounded While-Loops v1: linearize one admitted iteration.
+                ResolvedStatement::While {
+                    condition, body, ..
+                } => {
+                    let evaluated =
+                        self.lower_while(condition, body, current, current_state, region)?;
                     current = evaluated.block;
                     current_state = evaluated.state;
                     continue;

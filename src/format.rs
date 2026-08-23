@@ -98,6 +98,8 @@ enum ExprFormatFrame<'a> {
     Block(&'a [Statement], &'a Expr, usize),
     BlockNext(&'a [Statement], &'a Expr, usize),
     BlockNextAfterUnsafe(&'a [Statement], &'a Expr, usize),
+    WhileBody(&'a Expr),
+    BlockNextAfterWhile(&'a [Statement], &'a Expr, usize),
     IfThen(&'a Expr, &'a Expr),
     IfElse(&'a Expr),
     Fields(&'a [crate::ast::FieldInitializer], usize, &'static str),
@@ -720,7 +722,12 @@ fn legacy_canonical_temporary_bytes(program: &Program) -> usize {
         }
         if let ExprKind::Block { statements, tail } = &function.body.kind {
             for statement in statements {
-                total = total.saturating_add(legacy_expr_temporary_bytes(statement.value(), 0));
+                let child_count = statement.child_count();
+                for child_index in 0..child_count {
+                    if let Some(child) = statement.child(child_index) {
+                        total = total.saturating_add(legacy_expr_temporary_bytes(child, 0));
+                    }
+                }
             }
             total = total.saturating_add(legacy_expr_temporary_bytes(tail, 0));
         } else {
@@ -813,10 +820,21 @@ fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> usize {
                             .saturating_add(rendered_expr_len(value, 0))
                             .saturating_add(4),
                         Statement::Unsafe { audit, .. } => escaped_len(audit).saturating_add(18),
+                        // `while ` + condition + one separator space; the body
+                        // block renders through the shared expression budget
+                        // below.
+                        Statement::While { condition, .. } => {
+                            rendered_expr_len(condition, 0).saturating_add(7)
+                        }
                     };
                     total = total.saturating_add(part);
                     parts.push(part);
-                    stack.push((statement.value(), 0));
+                    let child_count = statement.child_count();
+                    for child_index in 0..child_count {
+                        if let Some(child) = statement.child(child_index) {
+                            stack.push((child, 0));
+                        }
+                    }
                 }
                 parts.push(rendered_expr_len(tail, 0));
                 let joined = joined_len(parts, statements.len() + 1, 1);
@@ -1314,6 +1332,19 @@ fn write_expr(output: &mut impl std::fmt::Write, value: &Expr, parent_precedence
                             // the exact same inline block shape.
                             frames.push(Frame::Expr(body, 0));
                         }
+                        Statement::While {
+                            condition, body, ..
+                        } => {
+                            write!(output, "while ").unwrap();
+                            // While statements are not semicolon-terminated;
+                            // like unsafe boundaries they are followed by one
+                            // bare space before the next statement. Frames run
+                            // in reverse push order, so the trailing separator
+                            // is pushed first and the condition last.
+                            frames.push(Frame::BlockNextAfterWhile(statements, tail, index + 1));
+                            frames.push(Frame::WhileBody(body));
+                            frames.push(Frame::Expr(condition, 0));
+                        }
                     }
                 } else {
                     frames.push(Frame::Close('}'));
@@ -1325,6 +1356,14 @@ fn write_expr(output: &mut impl std::fmt::Write, value: &Expr, parent_precedence
                 frames.push(Frame::Block(statements, tail, index));
             }
             Frame::BlockNextAfterUnsafe(statements, tail, index) => {
+                output.write_char(' ').unwrap();
+                frames.push(Frame::Block(statements, tail, index));
+            }
+            Frame::WhileBody(body) => {
+                output.write_char(' ').unwrap();
+                frames.push(Frame::Expr(body, 0));
+            }
+            Frame::BlockNextAfterWhile(statements, tail, index) => {
                 output.write_char(' ').unwrap();
                 frames.push(Frame::Block(statements, tail, index));
             }
@@ -1588,10 +1627,17 @@ fn contains_record_construction(value: &Expr) -> bool {
             ExprKind::Binary { left, right, .. } => {
                 [left.as_ref(), right.as_ref()].get(index).copied()
             }
-            ExprKind::Block { statements, tail } => statements
-                .get(index)
-                .map(|statement| statement.value())
-                .or_else(|| (index == statements.len()).then_some(tail)),
+            ExprKind::Block { statements, tail } => {
+                let mut offset = 0;
+                for statement in statements {
+                    let count = statement.child_count();
+                    if index < offset + count {
+                        return statement.child(index - offset);
+                    }
+                    offset += count;
+                }
+                (index == offset).then_some(tail)
+            }
             ExprKind::If {
                 condition,
                 then_branch,
@@ -1715,6 +1761,25 @@ fn write_block_statement(output: &mut impl std::fmt::Write, statement: &Statemen
             writeln!(output, "\") unsafe {{").unwrap();
             let ExprKind::Block { statements, tail } = &body.kind else {
                 unreachable!("unsafe bodies always parse as blocks");
+            };
+            for inner in statements {
+                write_block_statement(output, inner, depth + 1);
+            }
+            write_indent(output, depth + 1);
+            write_expr(output, tail, 0);
+            writeln!(output).unwrap();
+            write_indent(output, depth);
+            writeln!(output, "}}").unwrap();
+        }
+        Statement::While {
+            condition, body, ..
+        } => {
+            write_indent(output, depth);
+            write!(output, "while ").unwrap();
+            write_expr(output, condition, 0);
+            writeln!(output, " {{").unwrap();
+            let ExprKind::Block { statements, tail } = &body.kind else {
+                unreachable!("while bodies always parse as blocks");
             };
             for inner in statements {
                 write_block_statement(output, inner, depth + 1);

@@ -152,6 +152,12 @@ fn generate_with_hook(
     mut hook: impl FnMut(EvidencePoint),
 ) -> Result<String, Vec<Diagnostic>> {
     let build = build_owned(root, workspace_patch_path)?;
+    for child in &build.facts.files {
+        crate::graph::reject_while_loop_evidence_schema(&child.base_source_graph_schema)
+            .map_err(|error| vec![error])?;
+        crate::graph::reject_while_loop_evidence_schema(&child.candidate_source_graph_schema)
+            .map_err(|error| vec![error])?;
+    }
     let capsule = match render_capsule_bounded(&build.facts) {
         Ok(capsule) => capsule,
         Err(diagnostics) => return Err(build.release_with_error(diagnostics)),

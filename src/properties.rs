@@ -47,6 +47,7 @@ const REASON_RECORD_PROJECTION: &str = "record_projection";
 const REASON_MATCH_EXPRESSION: &str = "match_expression";
 const REASON_TRY_EXPRESSION: &str = "try_expression";
 const REASON_ASSIGNMENT: &str = "assignment_statement";
+const REASON_WHILE_LOOP: &str = "while_statement";
 const REASON_GENERIC_CALL: &str = "generic_call";
 const REASON_UNRESOLVED_CALL: &str = "unresolved_call";
 const REASON_UNRESOLVED_VARIABLE: &str = "unresolved_variable";
@@ -522,7 +523,10 @@ impl<'a> Analyzer<'a> {
             ExprKind::Binary { left, right, .. } => self.scan(left).or_else(|| self.scan(right)),
             ExprKind::Block { statements, tail } => statements
                 .iter()
-                .find_map(|statement| self.scan(statement.value()))
+                .find_map(|statement| {
+                    (0..statement.child_count())
+                        .find_map(|index| statement.child(index).and_then(|child| self.scan(child)))
+                })
                 .or_else(|| self.scan(tail)),
             ExprKind::If {
                 condition,
@@ -707,6 +711,14 @@ impl<'a> Analyzer<'a> {
                                     break;
                                 }
                             }
+                        }
+                        Statement::While { .. } => {
+                            // Property-test generation stays loop-free: the
+                            // seeded candidate corpus never needs iteration,
+                            // and unbounded evaluation would break the step
+                            // budget contract for generated tests.
+                            interrupted = Some(Outcome::Unsupported(REASON_WHILE_LOOP));
+                            break;
                         }
                     }
                 }

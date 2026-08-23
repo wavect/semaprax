@@ -225,10 +225,17 @@ impl PersistentCallIndex {
                 ResolvedExprKind::Binary { left, right, .. } => {
                     [left.as_ref(), right.as_ref()].get(index).copied()
                 }
-                ResolvedExprKind::Block { statements, tail } => statements
-                    .get(index)
-                    .map(|statement| statement.value())
-                    .or_else(|| (index == statements.len()).then_some(tail)),
+                ResolvedExprKind::Block { statements, tail } => {
+                    let mut offset = 0;
+                    for statement in statements {
+                        let count = statement.child_count();
+                        if index < offset + count {
+                            return statement.child(index - offset);
+                        }
+                        offset += count;
+                    }
+                    (index == offset).then_some(tail)
+                }
                 ResolvedExprKind::If {
                     condition,
                     then_branch,

@@ -421,7 +421,10 @@ impl ScanState<'_> {
             ExprKind::Binary { left, right, .. } => self.scan(left).or_else(|| self.scan(right)),
             ExprKind::Block { statements, tail } => statements
                 .iter()
-                .find_map(|statement| self.scan(statement.value()))
+                .find_map(|statement| {
+                    (0..statement.child_count())
+                        .find_map(|index| statement.child(index).and_then(|child| self.scan(child)))
+                })
                 .or_else(|| self.scan(tail)),
             ExprKind::If {
                 condition,

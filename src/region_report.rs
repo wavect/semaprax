@@ -487,6 +487,15 @@ fn collect_expr(
                     ResolvedStatement::Unsafe { body, span, .. } => {
                         collect_expr(body, span.end, resolved, facts);
                     }
+                    ResolvedStatement::While {
+                        condition, body, ..
+                    } => {
+                        // The loop re-evaluates its condition and body every
+                        // iteration; the region report records their last
+                        // textual extent without inventing iteration counts.
+                        collect_expr(condition, body.span.end, resolved, facts);
+                        collect_expr(body, body.span.end, resolved, facts);
+                    }
                 }
             }
             collect_expr(tail, tail.span.end, resolved, facts);

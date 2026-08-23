@@ -481,7 +481,11 @@ pub(crate) fn precheck_program(program: &Program) -> Result<(), Vec<Diagnostic>>
             ExprKind::Block { statements, tail } => {
                 expressions.push(tail);
                 for statement in statements {
-                    expressions.push(statement.value());
+                    for index in 0..statement.child_count() {
+                        if let Some(child) = statement.child(index) {
+                            expressions.push(child);
+                        }
+                    }
                 }
             }
             ExprKind::If {
@@ -608,10 +612,10 @@ fn scalar_expr(expression: &Expr) -> bool {
         ExprKind::Unary { value, .. } => scalar_expr(value),
         ExprKind::Binary { left, right, .. } => scalar_expr(left) && scalar_expr(right),
         ExprKind::Block { statements, tail } => {
-            statements
-                .iter()
-                .all(|statement| scalar_expr(statement.value()))
-                && scalar_expr(tail)
+            statements.iter().all(|statement| {
+                (0..statement.child_count())
+                    .all(|index| statement.child(index).is_some_and(scalar_expr))
+            }) && scalar_expr(tail)
         }
         ExprKind::If {
             condition,

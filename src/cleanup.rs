@@ -571,19 +571,34 @@ impl InventoryBuilder<'_> {
                             };
                         }
                         ResolvedExprKind::Block { statements, tail } => {
-                            let statement_index = index / 2;
-                            if let Some(statement) = statements.get(statement_index) {
-                                if index.is_multiple_of(2) {
-                                    enter = Some(statement.value());
-                                } else {
-                                    // Only `let` and assignment statements
-                                    // carry bindings; unsafe boundaries add
-                                    // none.
-                                    if let ResolvedStatement::Let { binding, .. } = statement {
-                                        action = Some(Frame::AddBinding(binding));
+                            // Each statement contributes child_count()
+                            // expression visits followed by one binding step.
+                            let per_statement = |statement: &ResolvedStatement| {
+                                statement.child_count().saturating_add(1)
+                            };
+                            let mut offset = 0usize;
+                            let mut matched = None;
+                            for statement in statements.iter() {
+                                let steps = per_statement(statement);
+                                if index < offset + steps {
+                                    let within = index - offset;
+                                    if within < statement.child_count() {
+                                        enter = statement.child(within);
                                     }
+                                    // Only `let` statements carry bindings;
+                                    // assignment, unsafe, and while
+                                    // statements add none here.
+                                    if within == statement.child_count() {
+                                        if let ResolvedStatement::Let { binding, .. } = statement {
+                                            action = Some(Frame::AddBinding(binding));
+                                        }
+                                    }
+                                    matched = Some(());
+                                    break;
                                 }
-                            } else if index == statements.len() * 2 {
+                                offset += steps;
+                            }
+                            if matched.is_none() && index == offset {
                                 enter = Some(tail);
                             }
                         }

@@ -508,16 +508,26 @@ pub enum Statement {
         body: Box<Expr>,
         span: Span,
     },
+    /// Bounded While-Loops v1: `while <condition> { <body> }`. The condition
+    /// must be exactly `bool` and the body is an ordinary block whose value is
+    /// discarded; the statement itself produces no value.
+    While {
+        condition: Box<Expr>,
+        body: Box<Expr>,
+        span: Span,
+    },
 }
 
 impl Statement {
     /// The statement's evaluated expression: the initializer of a `let`, the
     /// assigned value of an assignment, or the ordinary block body of an
-    /// unsafe boundary statement.
+    /// unsafe boundary statement. While statements carry two evaluated
+    /// expressions and must be traversed with [`Statement::child`] instead.
     pub fn value(&self) -> &Expr {
         match self {
             Self::Let { value, .. } | Self::Assign { value, .. } => value,
             Self::Unsafe { body, .. } => body,
+            Self::While { .. } => panic!("while statements expose condition and body children"),
         }
     }
 
@@ -526,6 +536,7 @@ impl Statement {
         match self {
             Self::Let { value, .. } | Self::Assign { value, .. } => value,
             Self::Unsafe { body, .. } => body,
+            Self::While { .. } => panic!("while statements expose condition and body children"),
         }
     }
 
@@ -534,7 +545,9 @@ impl Statement {
     pub fn name(&self) -> &str {
         match self {
             Self::Let { name, .. } | Self::Assign { name, .. } => name,
-            Self::Unsafe { .. } => panic!("unsafe boundary statements declare no binding"),
+            Self::Unsafe { .. } | Self::While { .. } => {
+                panic!("only let and assignment statements declare a binding")
+            }
         }
     }
 
@@ -549,6 +562,27 @@ impl Statement {
     /// `true` for assignment statements.
     pub fn is_assign(&self) -> bool {
         matches!(self, Self::Assign { .. })
+    }
+
+    /// Number of directly nested evaluated expressions. `let`, assignment,
+    /// and unsafe statements contribute one; while statements contribute its
+    /// condition then its body, in evaluation order.
+    pub fn child_count(&self) -> usize {
+        match self {
+            Self::Let { .. } | Self::Assign { .. } | Self::Unsafe { .. } => 1,
+            Self::While { .. } => 2,
+        }
+    }
+
+    /// One directly nested evaluated expression in left-to-right order.
+    pub fn child(&self, index: usize) -> Option<&Expr> {
+        match self {
+            Self::Let { value, .. } | Self::Assign { value, .. } => (index == 0).then_some(value),
+            Self::Unsafe { body, .. } => (index == 0).then_some(body.as_ref()),
+            Self::While {
+                condition, body, ..
+            } => [condition.as_ref(), body.as_ref()].get(index).copied(),
+        }
     }
 }
 
@@ -656,10 +690,17 @@ impl Expr {
             ExprKind::Binary { left, right, .. } => {
                 [left.as_ref(), right.as_ref()].get(index).copied()
             }
-            ExprKind::Block { statements, tail } => statements
-                .get(index)
-                .map(|statement| statement.value())
-                .or_else(|| (index == statements.len()).then_some(tail)),
+            ExprKind::Block { statements, tail } => {
+                let mut offset = 0;
+                for statement in statements {
+                    let count = statement.child_count();
+                    if index < offset + count {
+                        return statement.child(index - offset);
+                    }
+                    offset += count;
+                }
+                (index == offset).then_some(tail)
+            }
             ExprKind::If {
                 condition,
                 then_branch,

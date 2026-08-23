@@ -1145,6 +1145,8 @@ impl Parser {
                 statements.push(self.assign_statement()?);
             } else if self.at_unsafe_statement() {
                 statements.push(self.unsafe_statement()?);
+            } else if self.at_keyword("while") {
+                statements.push(self.while_statement()?);
             } else {
                 break;
             }
@@ -1223,6 +1225,21 @@ impl Parser {
             name_span,
             value,
             span: name_span.merge(end),
+        })
+    }
+
+    /// Bounded While-Loops v1: `while <condition> { <body> }`. The condition
+    /// excludes record literals exactly like `if` conditions; the body is an
+    /// ordinary block whose discarded value is checked by the verifier.
+    fn while_statement(&mut self) -> Result<Statement, Diagnostic> {
+        let start = self.keyword("while")?.span;
+        let condition = self.expression_with_record_literals(0, false)?;
+        let body = self.block("`while` body")?;
+        let span = start.merge(body.span);
+        Ok(Statement::While {
+            condition: Box::new(condition),
+            body: Box::new(body),
+            span,
         })
     }
 

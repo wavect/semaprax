@@ -228,7 +228,14 @@ execution (`examples/integers_i32.spx`,
 exact suffixed literals, range-checked arithmetic that selects the normalized
 arithmetic failure statuses, one-byte Native64 layouts, graph nodes, native
 C11, and Wasm execution (`examples/bytes_u8.spx`,
-`tests/u8_scalars.rs`), feature-minimal Graph v14/v13/v12/v11/v10 lattice for
+`tests/u8_scalars.rs`), [Explicit Mutation
+v1](EXPLICIT-MUTATION-V1.md) with immutable-by-default locals, an opt-in
+`let mut` modifier, statement-only `<binding> = <expr>;` over checked Copy
+scalars with exact-type checking, `SPX-U101`-`SPX-U106` diagnostics,
+additive graph serialization with pinned non-mutation bytes, unchanged
+CleanupPlan v2 shapes for straight-line mutation, native C11 O0/O2 plus
+Node/Wasm execution evidence (`examples/explicit_mutation.spx`,
+`tests/explicit_mutation_v1.rs`), and a feature-minimal Graph v14/v13/v12/v11/v10 lattice for
 generic functions/explicit record patterns/generic records/Option propagation/legacy, validated
 stable-ID HIR/type facts, mandatory replay-validated CleanupPlan v2/v3 plans, versioned normalized-status
 and semantic-event-dictionary types, native scalar status/out execution, a

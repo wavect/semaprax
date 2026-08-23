@@ -90,7 +90,16 @@ links here instead of duplicating it.
 
 ## Source projection
 
-`lexer` and `parser` accept a deliberately small grammar. `format::canonical` is the single source projection. Graph revisions hash this canonical form rather than incidental whitespace, so formatting-only edits do not invalidate an agent transaction. The cross-protocol revision token is `sha256:<64 lowercase hex digits>` over `b"semaprax.graph-revision.v1\0" || canonical_source_utf8`. It is collision-resistant content addressing and stale-base detection, not a signature or MAC.
+`lexer` and `parser` accept a deliberately small grammar.
+[Explicit Mutation v1](EXPLICIT-MUTATION-V1.md) extends that grammar with a
+`let mut` modifier and statement-only `<binding> = <expr>;`: the verifier
+tracks per-binding mutability and rejects immutable targets, exact type
+mismatches, and non-scalar admission (`SPX-U101`-`SPX-U106`) before lowering;
+HIR assignments reuse their target's `ValueId`, Graph serialization stays
+additive with byte-identical non-mutation output, native C11 lowers to plain
+locals plus stores, Wasm stores via `local.set`, and CleanupPlan v2 shapes
+are unchanged for straight-line mutation.
+`format::canonical` is the single source projection. Graph revisions hash this canonical form rather than incidental whitespace, so formatting-only edits do not invalidate an agent transaction. The cross-protocol revision token is `sha256:<64 lowercase hex digits>` over `b"semaprax.graph-revision.v1\0" || canonical_source_utf8`. It is collision-resistant content addressing and stale-base detection, not a signature or MAC.
 
 Declarations should carry an explicit `@id`. Automatic identities are accepted
 for exploration but produce `SPX-S103`, because a name-derived ID cannot

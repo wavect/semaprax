@@ -417,7 +417,7 @@ fn is_profile_id(value: &str) -> bool {
 
 /// A fixed-width hexadecimal encoding is injective over the exact ID bytes and
 /// is therefore collision-free without normalisation or display-name input.
-fn raw_symbol(stable_id: &str) -> String {
+pub(super) fn raw_symbol(stable_id: &str) -> String {
     const HEX: &[u8; 16] = b"0123456789abcdef";
     let mut symbol = String::with_capacity("spx_scalar_".len() + stable_id.len() * 2);
     symbol.push_str("spx_scalar_");

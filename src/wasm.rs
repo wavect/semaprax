@@ -1498,12 +1498,14 @@ fn build_project_web_carrier(
             "Project Web build envelope bytes exceed max_bytes {max_bytes}"
         )));
     }
-    Ok(ProjectWebBuild {
+    let build = ProjectWebBuild {
         envelope,
         payload_digest,
         artifact_bytes,
         max_bytes,
-    })
+    };
+    verify_project_web_build(&build)?;
+    Ok(build)
 }
 
 fn render_project_web_build_payload(
@@ -1714,6 +1716,13 @@ fn verify_project_web_build(build: &ProjectWebBuild) -> Result<(), Diagnostic> {
             "Project Web build cumulative artifact bytes disagree",
         ));
     }
+    verify_embedded_project_web_manifest(
+        &decoded,
+        string("project")?,
+        string("project_revision")?,
+        string("workspace_revision")?,
+        string("entry_module")?,
+    )?;
     let nonclaims = object
         .get("nonclaims")
         .and_then(serde_json::Value::as_array)
@@ -1772,6 +1781,183 @@ fn verify_project_web_build(build: &ProjectWebBuild) -> Result<(), Diagnostic> {
     Ok(())
 }
 
+fn verify_embedded_project_web_manifest(
+    artifacts: &[Vec<u8>],
+    project: &str,
+    project_revision: &str,
+    workspace_revision: &str,
+    entry_module: &str,
+) -> Result<(), Diagnostic> {
+    let manifest_bytes = artifacts
+        .get(4)
+        .ok_or_else(|| project_web_build_error("Project Web build embedded manifest is absent"))?;
+    let manifest_source = std::str::from_utf8(manifest_bytes)
+        .map_err(|_| project_web_build_error("Project Web build embedded manifest is not UTF-8"))?;
+    if !manifest_source.ends_with('\n') {
+        return Err(project_web_build_error(
+            "Project Web build embedded manifest is not canonical newline-terminated JSON",
+        ));
+    }
+    let manifest: serde_json::Value = serde_json::from_str(manifest_source).map_err(|_| {
+        project_web_build_error("Project Web build embedded manifest is not valid JSON")
+    })?;
+    let object = manifest.as_object().ok_or_else(|| {
+        project_web_build_error("Project Web build embedded manifest must be one JSON object")
+    })?;
+    const MANIFEST_KEYS: [&str; 9] = [
+        "schema",
+        "project_schema",
+        "project",
+        "project_revision",
+        "workspace_revision",
+        "entry_module",
+        "capabilities",
+        "artifacts",
+        "scalar_abi",
+    ];
+    if object.len() != MANIFEST_KEYS.len()
+        || MANIFEST_KEYS.iter().any(|key| !object.contains_key(*key))
+    {
+        return Err(project_web_build_error(
+            "Project Web build embedded manifest has a foreign or missing field",
+        ));
+    }
+    let string = |key: &str| object.get(key).and_then(serde_json::Value::as_str);
+    if string("schema") != Some("semaprax.web-project.v1")
+        || string("project_schema") != Some("semaprax.project.v1")
+        || string("project") != Some(project)
+        || string("project_revision") != Some(project_revision)
+        || string("workspace_revision") != Some(workspace_revision)
+        || string("entry_module") != Some(entry_module)
+        || object
+            .get("capabilities")
+            .and_then(serde_json::Value::as_array)
+            .is_none_or(|capabilities| !capabilities.is_empty())
+    {
+        return Err(project_web_build_error(
+            "Project Web build embedded manifest disagrees with carrier identity",
+        ));
+    }
+
+    const MANIFEST_ARTIFACTS: [(&str, usize); 6] = [
+        ("app.wasm", 0),
+        ("index.html", 6),
+        ("package.json", 5),
+        ("semaprax.bindings.d.ts", 3),
+        ("semaprax.bindings.js", 2),
+        ("semaprax.js", 1),
+    ];
+    let manifest_artifacts = object
+        .get("artifacts")
+        .and_then(serde_json::Value::as_array)
+        .filter(|rows| rows.len() == MANIFEST_ARTIFACTS.len())
+        .ok_or_else(|| {
+            project_web_build_error("Project Web build embedded artifact inventory is invalid")
+        })?;
+    for (row, (expected_path, artifact_index)) in manifest_artifacts.iter().zip(MANIFEST_ARTIFACTS)
+    {
+        let row = row.as_object().ok_or_else(|| {
+            project_web_build_error("Project Web build embedded artifact row is invalid")
+        })?;
+        if row.len() != 2
+            || row.get("path").and_then(serde_json::Value::as_str) != Some(expected_path)
+        {
+            return Err(project_web_build_error(
+                "Project Web build embedded artifact order or path is invalid",
+            ));
+        }
+        let bytes = artifacts.get(artifact_index).ok_or_else(|| {
+            project_web_build_error("Project Web build embedded artifact target is absent")
+        })?;
+        let digest = format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(bytes)));
+        if row.get("sha256").and_then(serde_json::Value::as_str) != Some(digest.as_str()) {
+            return Err(project_web_build_error(
+                "Project Web build embedded artifact SHA-256 disagrees with decoded bytes",
+            ));
+        }
+    }
+
+    let scalar_abi = object
+        .get("scalar_abi")
+        .and_then(serde_json::Value::as_object)
+        .ok_or_else(|| project_web_build_error("Project Web build scalar ABI is invalid"))?;
+    if scalar_abi.len() != 2
+        || scalar_abi.get("schema").and_then(serde_json::Value::as_str)
+            != Some("semaprax.wasm-scalar.v1")
+    {
+        return Err(project_web_build_error(
+            "Project Web build scalar ABI schema is invalid",
+        ));
+    }
+    let functions = scalar_abi
+        .get("functions")
+        .and_then(serde_json::Value::as_array)
+        .filter(|functions| (1..=32).contains(&functions.len()))
+        .ok_or_else(|| project_web_build_error("Project Web build scalar ABI functions invalid"))?;
+    let mut previous_id: Option<&str> = None;
+    for function in functions {
+        let function = function.as_object().ok_or_else(|| {
+            project_web_build_error("Project Web build scalar ABI function is invalid")
+        })?;
+        if function.len() != 4
+            || ["stable_id", "wasm_export", "parameters", "result"]
+                .iter()
+                .any(|key| !function.contains_key(*key))
+        {
+            return Err(project_web_build_error(
+                "Project Web build scalar ABI function is not closed",
+            ));
+        }
+        let stable_id = function
+            .get("stable_id")
+            .and_then(serde_json::Value::as_str)
+            .filter(|id| {
+                !id.is_empty()
+                    && id.len() <= 128
+                    && id.bytes().all(|byte| {
+                        byte.is_ascii_lowercase() || byte.is_ascii_digit() || b"._-".contains(&byte)
+                    })
+            })
+            .ok_or_else(|| project_web_build_error("Project Web build scalar stable ID invalid"))?;
+        if previous_id.is_some_and(|previous| previous.as_bytes() >= stable_id.as_bytes()) {
+            return Err(project_web_build_error(
+                "Project Web build scalar stable IDs are not canonical",
+            ));
+        }
+        previous_id = Some(stable_id);
+        let expected_symbol = scalar_exports::raw_symbol(stable_id);
+        if function
+            .get("wasm_export")
+            .and_then(serde_json::Value::as_str)
+            != Some(expected_symbol.as_str())
+        {
+            return Err(project_web_build_error(
+                "Project Web build scalar export symbol disagrees with stable ID",
+            ));
+        }
+        let parameters = function
+            .get("parameters")
+            .and_then(serde_json::Value::as_array)
+            .filter(|parameters| parameters.len() <= 8)
+            .ok_or_else(|| {
+                project_web_build_error("Project Web build scalar parameters are invalid")
+            })?;
+        if parameters
+            .iter()
+            .any(|ty| !matches!(ty.as_str(), Some("i64" | "bool")))
+            || !matches!(
+                function.get("result").and_then(serde_json::Value::as_str),
+                Some("i64" | "bool")
+            )
+        {
+            return Err(project_web_build_error(
+                "Project Web build scalar type is outside the closed ABI",
+            ));
+        }
+    }
+    Ok(())
+}
+
 fn decode_lower_hex(value: &str) -> Result<Vec<u8>, Diagnostic> {
     if value.len() & 1 == 1 {
         return Err(project_web_build_error(
@@ -1795,6 +1981,76 @@ fn decode_lower_hex(value: &str) -> Result<Vec<u8>, Diagnostic> {
         bytes.push((high << 4) | low);
     }
     Ok(bytes)
+}
+
+#[cfg(test)]
+mod project_web_build_tests {
+    use super::*;
+
+    fn embedded_manifest(project: &str, artifacts: &[Vec<u8>]) -> String {
+        let digest = |index: usize| {
+            format!(
+                "{:x}",
+                crate::digest_hex::LowerHex(Sha256::digest(&artifacts[index]))
+            )
+        };
+        format!(
+            "{{\"schema\":\"semaprax.web-project.v1\",\"project_schema\":\"semaprax.project.v1\",\"project\":{project:?},\"project_revision\":\"sha256:project\",\"workspace_revision\":\"sha256:workspace\",\"entry_module\":\"calculator.app\",\"capabilities\":[],\"artifacts\":[{{\"path\":\"app.wasm\",\"sha256\":\"{}\"}},{{\"path\":\"index.html\",\"sha256\":\"{}\"}},{{\"path\":\"package.json\",\"sha256\":\"{}\"}},{{\"path\":\"semaprax.bindings.d.ts\",\"sha256\":\"{}\"}},{{\"path\":\"semaprax.bindings.js\",\"sha256\":\"{}\"}},{{\"path\":\"semaprax.js\",\"sha256\":\"{}\"}}],\"scalar_abi\":{{\"schema\":\"semaprax.wasm-scalar.v1\",\"functions\":[{{\"stable_id\":\"calculator.add\",\"wasm_export\":{},\"parameters\":[\"i64\",\"i64\"],\"result\":\"i64\"}}]}}}}\n",
+            digest(0),
+            digest(6),
+            digest(5),
+            digest(3),
+            digest(2),
+            digest(1),
+            quote_json(&scalar_exports::raw_symbol("calculator.add")),
+        )
+    }
+
+    #[test]
+    fn independently_replayed_inner_manifest_rejects_self_resigned_identity_forgery() {
+        let mut bytes = vec![
+            b"wasm".to_vec(),
+            b"runtime".to_vec(),
+            b"bindings".to_vec(),
+            b"declarations".to_vec(),
+            Vec::new(),
+            b"package".to_vec(),
+            b"index".to_vec(),
+        ];
+        bytes[4] = embedded_manifest("calculator", &bytes).into_bytes();
+        let refs = PROJECT_WEB_ARTIFACT_PATHS
+            .iter()
+            .copied()
+            .zip(bytes.iter().map(Vec::as_slice))
+            .collect::<Vec<_>>();
+        build_project_web_carrier(
+            "calculator",
+            "sha256:project",
+            "sha256:workspace",
+            "calculator.app",
+            64 * 1024,
+            &refs,
+        )
+        .unwrap();
+
+        bytes[4] = embedded_manifest("calculat0r", &bytes).into_bytes();
+        let forged_refs = PROJECT_WEB_ARTIFACT_PATHS
+            .iter()
+            .copied()
+            .zip(bytes.iter().map(Vec::as_slice))
+            .collect::<Vec<_>>();
+        let error = build_project_web_carrier(
+            "calculator",
+            "sha256:project",
+            "sha256:workspace",
+            "calculator.app",
+            64 * 1024,
+            &forged_refs,
+        )
+        .unwrap_err();
+        assert_eq!(error.code, "SPX-W117");
+        assert!(error.message.contains("embedded manifest disagrees"));
+    }
 }
 
 pub(crate) fn prepare_project_web_with_scalar_exports(

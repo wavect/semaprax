@@ -405,6 +405,10 @@ pub enum ExprKind {
 #[derive(Clone, Debug)]
 pub struct MatchArm {
     pub pattern: MatchPattern,
+    /// Refutable Match v1: `pattern if guard => value`. The guard is an
+    /// ordinary bool expression evaluated after the pattern matches and at
+    /// most once; a failing guard falls through to the following arms.
+    pub guard: Option<Box<Expr>>,
     pub value: Expr,
     pub span: Span,
 }
@@ -428,14 +432,60 @@ pub enum MatchPattern {
     Wildcard {
         span: Span,
     },
+    /// Refutable Match v1: one exact scalar literal (`-3`, `7i32`, `9u8`,
+    /// `'x'`, `true`). Floats and strings never parse as patterns.
+    Literal {
+        value: PatternLiteral,
+        span: Span,
+    },
+    /// Refutable Match v1: `a | b` over literal alternatives of one type.
+    /// The parser accepts only literal atoms here; deeper restrictions are
+    /// enforced by the resolvers with stable diagnostics.
+    Or {
+        alternatives: Vec<MatchPattern>,
+        span: Span,
+    },
+    /// Refutable Match v1: irrefutable whole-scrutinee binding (`n => ...`).
+    Binding {
+        name: String,
+        span: Span,
+    },
+}
+
+/// The exact scalar value of a literal pattern. Suffixed typing rules are
+/// identical to expression literals because the lexer produces the same
+/// tokens; sign folding for negative integers happens in the parser.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PatternLiteral {
+    Int(i64),
+    Int32(i32),
+    Uint8(u8),
+    Char(u32),
+    Bool(bool),
+}
+
+impl PatternLiteral {
+    /// The scrutinee scalar type this literal compares against exactly.
+    pub fn type_text(&self) -> &'static str {
+        match self {
+            Self::Int(_) => "i64",
+            Self::Int32(_) => "i32",
+            Self::Uint8(_) => "u8",
+            Self::Char(_) => "char",
+            Self::Bool(_) => "bool",
+        }
+    }
 }
 
 impl MatchPattern {
     pub fn span(&self) -> Span {
         match self {
-            Self::Variant { span, .. } | Self::Record { span, .. } | Self::Wildcard { span } => {
-                *span
-            }
+            Self::Variant { span, .. }
+            | Self::Record { span, .. }
+            | Self::Wildcard { span }
+            | Self::Literal { span, .. }
+            | Self::Or { span, .. }
+            | Self::Binding { span, .. } => *span,
         }
     }
 }
@@ -867,11 +917,13 @@ mod call_visitor_tests {
                             arms: vec![
                                 MatchArm {
                                     pattern: MatchPattern::Wildcard { span },
+                                    guard: None,
                                     value: call("eighth", 8),
                                     span,
                                 },
                                 MatchArm {
                                     pattern: MatchPattern::Wildcard { span },
+                                    guard: None,
                                     value: call("ninth", 9),
                                     span,
                                 },

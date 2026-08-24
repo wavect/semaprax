@@ -723,6 +723,10 @@ fn render_expr(
                     output.push('|');
                 }
                 output.push_str(pattern_tag(walker, &arm.pattern).as_str());
+                if let Some(guard) = &arm.guard {
+                    output.push_str(" if ");
+                    output.push_str(&render_child(walker, guard, 0));
+                }
                 output.push_str("=>");
                 output.push_str(&render_child(walker, &arm.value, 0));
             }
@@ -792,6 +796,25 @@ fn pattern_tag(walker: &Walker<'_>, pattern: &hir::ResolvedMatchPattern) -> Stri
         ),
         hir::ResolvedMatchPattern::Record { record, .. } => walker.declaration_name(record),
         hir::ResolvedMatchPattern::Wildcard => "_".to_owned(),
+        // Refutable Match v1: literal/or patterns tag with their canonical
+        // value text; a binding arm tags with its name.
+        hir::ResolvedMatchPattern::Literal(value) => pattern_value_text(*value),
+        hir::ResolvedMatchPattern::Or(alternatives) => alternatives
+            .iter()
+            .map(|alternative| pattern_tag(walker, alternative))
+            .collect::<Vec<_>>()
+            .join("|"),
+        hir::ResolvedMatchPattern::Binding(binding) => binding.name.clone(),
+    }
+}
+
+fn pattern_value_text(value: hir::PatternValue) -> String {
+    match value {
+        hir::PatternValue::Int(value) => value.to_string(),
+        hir::PatternValue::Int32(value) => format!("{value}i32"),
+        hir::PatternValue::Uint8(value) => format!("{value}u8"),
+        hir::PatternValue::Char(value) => crate::format::canonical_char(value),
+        hir::PatternValue::Bool(value) => value.to_string(),
     }
 }
 
@@ -931,6 +954,9 @@ impl Walker<'_> {
                 self.push_ineligible(expr, REASON_CONTROL_FLOW);
                 self.scan_expr(scrutinee);
                 for arm in arms {
+                    if let Some(guard) = &arm.guard {
+                        self.scan_expr(guard);
+                    }
                     self.scan_expr(&arm.value);
                 }
             }

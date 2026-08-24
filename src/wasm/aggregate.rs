@@ -387,6 +387,27 @@ impl FunctionPlan {
                                 frame,
                             )?,
                         crate::hir::ResolvedMatchPattern::Wildcard => {}
+                        // Refutable Match v1: a binding arm owns one scalar
+                        // local; literals and or-patterns own nothing.
+                        crate::hir::ResolvedMatchPattern::Binding(binding) => {
+                            let local =
+                                self.add_local(parameter_count, scalar_wasm_type(&binding.ty)?)?;
+                            if self
+                                .scalar_bindings
+                                .insert(binding.id.clone(), local)
+                                .is_some()
+                            {
+                                return Err(error(format!(
+                                    "duplicate match binding identity `{}`",
+                                    binding.id
+                                )));
+                            }
+                        }
+                        crate::hir::ResolvedMatchPattern::Literal(_)
+                        | crate::hir::ResolvedMatchPattern::Or(_) => {}
+                    }
+                    if let Some(guard) = &arm.guard {
+                        self.collect_expr(program, variant_layouts, guard, parameter_count, frame)?;
                     }
                     self.collect_expr(
                         program,
@@ -1596,6 +1617,19 @@ impl Emitter<'_> {
                     return Err(error("copy match result must be i64 or bool"));
                 }
                 let scrutinee = self.emit_expr(scrutinee)?;
+                // Refutable Match v1: Copy-scalar scrutinees lower to the
+                // literal/guard decision chain even on the aggregate lane;
+                // aggregate storage keeps the pre-feature lowering below.
+                if matches!(
+                    value_type(&scrutinee),
+                    ResolvedType::I64
+                        | ResolvedType::I32
+                        | ResolvedType::U8
+                        | ResolvedType::Char
+                        | ResolvedType::Bool
+                ) {
+                    return self.emit_scalar_refutable_match(expr, &scrutinee, arms);
+                }
                 let Value::Aggregate { pointer, ty } = &scrutinee else {
                     return Err(error("match scrutinee is not aggregate storage"));
                 };
@@ -1619,6 +1653,13 @@ impl Emitter<'_> {
                         }
                         crate::hir::ResolvedMatchPattern::Variant { .. } => {
                             return Err(error("variant pattern has a record match scrutinee"));
+                        }
+                        crate::hir::ResolvedMatchPattern::Literal(_)
+                        | crate::hir::ResolvedMatchPattern::Or(_)
+                        | crate::hir::ResolvedMatchPattern::Binding(_) => {
+                            return Err(error(
+                                "refutable pattern has an aggregate record match scrutinee",
+                            ));
                         }
                     }
                     let value = self.emit_expr(&arm.value)?;
@@ -2019,6 +2060,11 @@ impl Emitter<'_> {
             return Ok(());
         };
         let saved = self.bindings.clone();
+        if arm.guard.is_some() {
+            return Err(error(
+                "guards are outside aggregate match lowering",
+            ));
+        }
         match &arm.pattern {
             crate::hir::ResolvedMatchPattern::Variant {
                 variant,
@@ -2101,8 +2147,164 @@ impl Emitter<'_> {
             crate::hir::ResolvedMatchPattern::Record { .. } => {
                 return Err(error("record pattern has a variant match scrutinee"));
             }
+            crate::hir::ResolvedMatchPattern::Literal(_)
+            | crate::hir::ResolvedMatchPattern::Or(_)
+            | crate::hir::ResolvedMatchPattern::Binding(_) => {
+                return Err(error("refutable pattern has an aggregate variant match scrutinee"));
+            }
         }
         self.bindings = saved;
+        Ok(())
+    }
+
+    /// Refutable Match v1 aggregate-lane lowering. The scrutinee is a scalar
+    /// already staged in its own planned local, so every arm test re-reads it
+    /// with `local.get` — one evaluation, many reads. Each arm nests one
+    /// reject block whose `br_if 0` falls through to the following arms and
+    /// one outer `br` that exits the whole chain after selection; a guard is
+    /// an ordinary emitted bool expression short-circuited after the pattern
+    /// test so it evaluates exactly once per reached matching arm.
+    fn emit_scalar_refutable_match(
+        &mut self,
+        expr: &ResolvedExpr,
+        scrutinee: &Value,
+        arms: &[crate::hir::ResolvedMatchArm],
+    ) -> Result<Value, Diagnostic> {
+        let Value::Scalar {
+            local: scrutinee_local,
+            ty: scrutinee_ty,
+        } = scrutinee
+        else {
+            return Err(error("scalar match scrutinee is not scalar storage"));
+        };
+        let destination = Value::Scalar {
+            local: self.plan.expr_scalar(expr)?,
+            ty: expr.ty.clone(),
+        };
+        // block $done (void): selecting any arm jumps here after storing.
+        self.output.extend([0x02, 0x40]);
+        self.control_depth += 1;
+        for (index, arm) in arms.iter().enumerate() {
+            let final_arm = index + 1 == arms.len();
+            if !final_arm {
+                // block $reject: `br_if 0` exits this arm only.
+                self.output.extend([0x02, 0x40]);
+                self.control_depth += 1;
+                self.emit_scalar_pattern_test(scrutinee_local, scrutinee_ty, &arm.pattern)?;
+                self.output.push(0x45); // i32.eqz
+                self.output.extend([0x0d, 0x00]); // br_if 0 -> next arm
+            }
+            let saved = self.bindings.clone();
+            if let crate::hir::ResolvedMatchPattern::Binding(binding) = &arm.pattern {
+                let local = self
+                    .plan
+                    .scalar_bindings
+                    .get(&binding.id)
+                    .copied()
+                    .ok_or_else(|| error(format!("missing match binding `{}`", binding.id)))?;
+                require_type(&binding.ty, scrutinee_ty, "scalar match binding")?;
+                self.output.push(0x20);
+                write_u32(self.output, *scrutinee_local);
+                self.output.push(0x21);
+                write_u32(self.output, local);
+                self.bindings.insert(
+                    binding.id.clone(),
+                    Value::Scalar {
+                        local,
+                        ty: binding.ty.clone(),
+                    },
+                );
+            }
+            if let Some(guard) = &arm.guard {
+                // Guard false must fall through to the following arms: emit
+                // the guard, invert, and branch to the reject label of this
+                // same arm. The reject block is still the innermost label at
+                // depth zero because selection has not happened yet.
+                let flag = self.emit_expr(guard)?;
+                require_type(value_type(&flag), &ResolvedType::Bool, "match guard")?;
+                self.output.push(0x45); // i32.eqz
+                self.output.extend([0x0d, 0x00]); // br_if 0 -> next arm
+            }
+            let value = self.emit_expr(&arm.value)?;
+            self.copy_value(&destination, &value, "refutable match arm result")?;
+            self.bindings = saved;
+            if !final_arm {
+                // Selecting this arm exits the whole chain. The only labels
+                // enclosing this point are this arm's own reject block (0)
+                // and `$done` (1); every earlier arm's block was already
+                // closed. The trailing catch-all arm simply falls out of
+                // `$done` without a branch.
+                self.output.extend([0x0c, 0x01]); // br 1 -> $done
+                self.output.push(0x0b); // end reject block
+                self.control_depth -= 1;
+            }
+        }
+        self.output.push(0x0b); // end $done
+        self.control_depth -= 1;
+        Ok(destination)
+    }
+
+    /// Pushes an i32 truth value: does the staged scalar equal any literal
+    /// alternative of this pattern?
+    fn emit_scalar_pattern_test(
+        &mut self,
+        scrutinee_local: &u32,
+        scrutinee_ty: &ResolvedType,
+        pattern: &crate::hir::ResolvedMatchPattern,
+    ) -> Result<(), Diagnostic> {
+        let alternatives: Vec<crate::hir::PatternValue> = match pattern {
+            crate::hir::ResolvedMatchPattern::Literal(value) => vec![*value],
+            crate::hir::ResolvedMatchPattern::Or(alternatives) => alternatives
+                .iter()
+                .map(|alternative| match alternative {
+                    crate::hir::ResolvedMatchPattern::Literal(value) => *value,
+                    _ => unreachable!("or-pattern alternatives are literals"),
+                })
+                .collect(),
+            crate::hir::ResolvedMatchPattern::Wildcard | crate::hir::ResolvedMatchPattern::Binding(_) => {
+                return Err(error("irrefutable arm must be the trailing catch-all"));
+            }
+            crate::hir::ResolvedMatchPattern::Variant { .. }
+            | crate::hir::ResolvedMatchPattern::Record { .. } => {
+                return Err(error("aggregate pattern has a Copy-scalar match scrutinee"));
+            }
+        };
+        for (position, value) in alternatives.iter().enumerate() {
+            require_type(&value.ty(), scrutinee_ty, "literal pattern type")?;
+            if position != 0 {
+                self.output.push(0x72); // i32.or combines equality flags
+            }
+            self.output.push(0x20);
+            write_u32(self.output, *scrutinee_local);
+            match (scrutinee_ty, value) {
+                (ResolvedType::I64, crate::hir::PatternValue::Int(inner)) => {
+                    self.output.push(0x42);
+                    write_i64(self.output, *inner);
+                    self.output.push(0x51); // i64.eq -> i32
+                }
+                (ResolvedType::I32, crate::hir::PatternValue::Int32(inner)) => {
+                    self.output.push(0x41);
+                    write_i64(self.output, i64::from(*inner));
+                    self.output.push(0x46); // i32.eq
+                }
+                (ResolvedType::U8, crate::hir::PatternValue::Uint8(inner)) => {
+                    self.output.push(0x41);
+                    write_i64(self.output, i64::from(*inner));
+                    self.output.push(0x46);
+                }
+                (ResolvedType::Char, crate::hir::PatternValue::Char(inner)) => {
+                    self.output.push(0x41);
+                    write_i64(self.output, i64::from(*inner));
+                    self.output.push(0x46);
+                }
+                (ResolvedType::Bool, crate::hir::PatternValue::Bool(inner)) => {
+                    self.output.push(0x41);
+                    write_i64(self.output, i64::from(*inner));
+                    self.output.push(0x46);
+                }
+                _ => return Err(error("literal pattern disagrees with its scrutinee type")),
+            }
+        }
         Ok(())
     }
 

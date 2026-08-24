@@ -5497,6 +5497,22 @@ fn collect_resolved_pattern_type_sites(
             }
         }
         hir::ResolvedMatchPattern::Wildcard => {}
+        // Refutable Match v1: scalar patterns contribute no named-type sites.
+        hir::ResolvedMatchPattern::Literal(_) | hir::ResolvedMatchPattern::Binding(_) => {}
+        hir::ResolvedMatchPattern::Or(alternatives) => {
+            for (index, alternative) in alternatives.iter().enumerate() {
+                collect_resolved_pattern_type_sites(
+                    owner,
+                    alternative,
+                    &crate::bounded_output::budgeted_format(format_args!(
+                        "{path}.alternative.{index}"
+                    )),
+                    expression,
+                    imported,
+                    out,
+                )?;
+            }
+        }
     }
     Ok(())
 }

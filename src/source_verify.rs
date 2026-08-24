@@ -3037,6 +3037,41 @@ enum VerifierFrame<'a> {
         state: VariantMatchState<'a>,
         arm_scope: usize,
     },
+    /// Refutable Match v1: one decision-chain state machine per scalar
+    /// match, mirroring `VariantMatchState` without case bookkeeping.
+    PrepareScalarMatchArm(ScalarMatchState<'a>),
+    ResumeScalarMatchGuard {
+        state: ScalarMatchState<'a>,
+        arm_scope: usize,
+    },
+    ResumeScalarMatchArm {
+        state: ScalarMatchState<'a>,
+        arm_scope: usize,
+    },
+}
+
+#[allow(dead_code)]
+struct ScalarMatchState<'a> {
+    expression: &'a Expr,
+    arms: &'a [crate::ast::MatchArm],
+    parent_scope: usize,
+    index: usize,
+    scrutinee_ty: Type,
+    outer_names: Vec<String>,
+    baseline: HashMap<String, Binding>,
+    arm_states: Vec<HashMap<String, Binding>>,
+    result: Option<CheckedValue>,
+}
+
+/// Refutable Match v1: the declared scalar type of an AST literal pattern.
+fn pattern_literal_type(value: crate::ast::PatternLiteral) -> Type {
+    match value {
+        crate::ast::PatternLiteral::Int(_) => Type::I64,
+        crate::ast::PatternLiteral::Int32(_) => Type::I32,
+        crate::ast::PatternLiteral::Uint8(_) => Type::U8,
+        crate::ast::PatternLiteral::Char(_) => Type::Char,
+        crate::ast::PatternLiteral::Bool(_) => Type::Bool,
+    }
 }
 
 #[allow(dead_code)]
@@ -5991,6 +6026,166 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     if let Some(value) = &scrutinee_value {
                         reject_native_unit_value(self.program, scrutinee, value, self.diagnostics);
                     }
+                    // Refutable Match v1: Copy-scalar scrutinees take the
+                    // literal/guard decision chain; every other type keeps
+                    // the pre-feature record/variant surfaces below.
+                    let scalar_scrutinee = scrutinee_value.as_ref().is_some_and(|value| {
+                        matches!(
+                            value.ty,
+                            Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::Bool
+                        ) && value.mode == ParamMode::Value
+                    });
+                    if scalar_scrutinee {
+                        let scrutinee_ty = scrutinee_value
+                            .as_ref()
+                            .map(|value| value.ty.clone())
+                            .expect("scalar scrutinee checked above");
+                        if arms.is_empty() {
+                            self.diagnostics.push(error(
+                                self.program,
+                                "SPX-M101",
+                                "match has no arms",
+                                expression.span,
+                            ));
+                            self.values.push(None);
+                            continue;
+                        }
+                        for arm in arms.iter() {
+                            match &arm.pattern {
+                                MatchPattern::Wildcard { .. }
+                                | MatchPattern::Binding { .. } => {}
+                                MatchPattern::Literal { value, span } => {
+                                    if pattern_literal_type(*value) != scrutinee_ty {
+                                        self.diagnostics.push(error(
+                                            self.program,
+                                            "SPX-T255",
+                                            format!(
+                                                "literal pattern of type `{}` cannot match a \
+                                                 `{}` scrutinee; pattern literals compare \
+                                                 against exactly their own type",
+                                                value.type_text(),
+                                                scrutinee_ty
+                                            ),
+                                            *span,
+                                        ));
+                                    }
+                                }
+                                MatchPattern::Or { alternatives, span } => {
+                                    let mut seen_type: Option<Type> = None;
+                                    for alternative in alternatives {
+                                        let MatchPattern::Literal { value, span } = alternative
+                                        else {
+                                            self.diagnostics.push(error(
+                                                self.program,
+                                                "SPX-M105",
+                                                "or-patterns admit only literal alternatives in v1",
+                                                alternative.span(),
+                                            ));
+                                            continue;
+                                        };
+                                        if pattern_literal_type(*value) != scrutinee_ty {
+                                            self.diagnostics.push(error(
+                                                self.program,
+                                                "SPX-T255",
+                                                format!(
+                                                    "literal pattern of type `{}` cannot match a \
+                                                     `{}` scrutinee; pattern literals compare \
+                                                     against exactly their own type",
+                                                    value.type_text(),
+                                                    scrutinee_ty
+                                                ),
+                                                *span,
+                                            ));
+                                        }
+                                        match &seen_type {
+                                            None => seen_type = Some(pattern_literal_type(*value)),
+                                            Some(seen) if *seen == pattern_literal_type(*value) => {}
+                                            Some(seen) => {
+                                                self.diagnostics.push(error(
+                                                    self.program,
+                                                    "SPX-M105",
+                                                    format!(
+                                                        "or-pattern mixes `{seen}` and `{}` literal \
+                                                         alternatives",
+                                                        pattern_literal_type(*value)
+                                                    ),
+                                                    *span,
+                                                ));
+                                            }
+                                        }
+                                    }
+                                    if alternatives.is_empty() {
+                                        self.diagnostics.push(error(
+                                            self.program,
+                                            "SPX-M105",
+                                            "or-pattern needs at least one literal alternative",
+                                            *span,
+                                        ));
+                                    }
+                                }
+                                MatchPattern::Variant { span, .. }
+                                | MatchPattern::Record { span, .. } => {
+                                    self.diagnostics.push(error(
+                                        self.program,
+                                        "SPX-M103",
+                                        "aggregate pattern is incompatible with a Copy-scalar \
+                                         scrutinee",
+                                        *span,
+                                    ));
+                                }
+                            }
+                        }
+                        let last = arms.last().expect("empty checked above");
+                        let catch_all = matches!(
+                            &last.pattern,
+                            MatchPattern::Wildcard { .. } | MatchPattern::Binding { .. }
+                        );
+                        if !catch_all || last.guard.is_some() {
+                            self.diagnostics.push(error(
+                                self.program,
+                                "SPX-T257",
+                                "refutable match requires a trailing irrefutable catch-all arm \
+                                 (`_` or a binding) without a guard",
+                                last.span,
+                            ));
+                        }
+                        let outer_names = self.scopes[scope]
+                            .bindings
+                            .keys()
+                            .cloned()
+                            .collect::<Vec<_>>();
+                        self.frames
+                            .push(VerifierFrame::PrepareScalarMatchArm(ScalarMatchState {
+                                expression,
+                                arms,
+                                parent_scope: scope,
+                                index: 0,
+                                scrutinee_ty: scrutinee_ty.clone(),
+                                outer_names,
+                                baseline: self.scopes[scope].bindings.clone(),
+                                arm_states: Vec::new(),
+                                result: None,
+                            }));
+                        continue;
+                    }
+                    let refutable_syntax = arms.iter().any(|arm| {
+                        arm.guard.is_some()
+                            || matches!(
+                                &arm.pattern,
+                                MatchPattern::Literal { .. }
+                                    | MatchPattern::Or { .. }
+                                    | MatchPattern::Binding { .. }
+                            )
+                    });
+                    if refutable_syntax {
+                        self.diagnostics.push(error(
+                            self.program,
+                            "SPX-T254",
+                            "guards and literal/or/binding patterns require a Copy-scalar \
+                             scrutinee (i64/i32/u8/char/bool)",
+                            scrutinee.span,
+                        ));
+                    }
                     if scrutinee_value
                         .as_ref()
                         .is_some_and(|value| self.types.record_fields(&value.ty).is_some())
@@ -6059,6 +6254,17 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 "variant pattern is incompatible with a record scrutinee",
                                 first.pattern.span(),
                             )),
+                            MatchPattern::Literal { .. }
+                            | MatchPattern::Or { .. }
+                            | MatchPattern::Binding { .. } => {
+                                self.diagnostics.push(error(
+                                    self.program,
+                                    "SPX-T254",
+                                    "refutable patterns are incompatible with an aggregate \
+                                     record scrutinee",
+                                    first.pattern.span(),
+                                ));
+                            }
                         }
                         self.frames.push(VerifierFrame::ResumeRecordMatchArm {
                             arm: first,
@@ -6346,6 +6552,17 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             "record pattern is incompatible with a variant scrutinee",
                             *span,
                         )),
+                        MatchPattern::Literal { span, .. }
+                        | MatchPattern::Or { span, .. }
+                        | MatchPattern::Binding { span, .. } => {
+                            self.diagnostics.push(error(
+                                self.program,
+                                "SPX-T254",
+                                "refutable patterns are incompatible with an aggregate variant \
+                                 scrutinee",
+                                *span,
+                            ));
+                        }
                     }
                     self.frames
                         .push(VerifierFrame::ResumeVariantMatchArm { state, arm_scope });
@@ -6395,6 +6612,174 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     state.index += 1;
                     self.frames
                         .push(VerifierFrame::PrepareVariantMatchArm(state));
+                }
+                VerifierFrame::PrepareScalarMatchArm(state) => {
+                    if state.index >= state.arms.len() {
+                        if let Some((first, rest)) = state.arm_states.split_first() {
+                            let mut joined = first.clone();
+                            for branch in rest {
+                                for name in &state.outer_names {
+                                    if let (Some(joined_binding), Some(branch_binding)) =
+                                        (joined.get_mut(name), branch.get(name))
+                                    {
+                                        joined_binding.availability = joined_binding
+                                            .availability
+                                            .join(branch_binding.availability);
+                                        joined_binding.moved_places =
+                                            join_moved_places(joined_binding, branch_binding);
+                                        joined_binding.definitely_partial =
+                                            join_definitely_partial(joined_binding, branch_binding);
+                                    }
+                                }
+                            }
+                            merge_moved(
+                                &mut self.scopes[state.parent_scope].bindings,
+                                &joined,
+                                &state.outer_names,
+                            );
+                        }
+                        self.values.push(state.result);
+                        continue;
+                    }
+                    let arm = &state.arms[state.index];
+                    let arm_scope = self.scopes.len();
+                    self.scopes.push(VerifierScope {
+                        bindings: state.baseline.clone(),
+                    });
+                    match &arm.pattern {
+                        MatchPattern::Wildcard { .. } => {}
+                        MatchPattern::Binding { name, span } => {
+                            if !source_identifier(name)
+                                || self.scopes[arm_scope].bindings.contains_key(name)
+                            {
+                                self.diagnostics.push(error(
+                                    self.program,
+                                    "SPX-M104",
+                                    format!("invalid or duplicate pattern binding `{name}`"),
+                                    *span,
+                                ));
+                            } else {
+                                self.scopes[arm_scope].bindings.insert(
+                                    name.clone(),
+                                    Binding {
+                                        ty: state.scrutinee_ty.clone(),
+                                        mode: ParamMode::Value,
+                                        availability: Availability::Available,
+                                        moved_places: HashMap::new(),
+                                        definitely_partial: HashSet::new(),
+                                        native_unit_discard: false,
+                                        mutable: false,
+                                    },
+                                );
+                            }
+                        }
+                        // Literal/or diagnostics fired during admission; the
+                        // arm value still checks so downstream errors stay
+                        // deterministic.
+                        _ => {}
+                    }
+                    match &arm.guard {
+                        Some(guard) => {
+                            self.frames.push(VerifierFrame::ResumeScalarMatchGuard {
+                                state,
+                                arm_scope,
+                            });
+                            self.frames.push(VerifierFrame::Enter {
+                                expression: guard.as_ref(),
+                                scope: arm_scope,
+                            });
+                        }
+                        None => {
+                            self.frames.push(VerifierFrame::ResumeScalarMatchArm {
+                                state,
+                                arm_scope,
+                            });
+                            self.frames.push(VerifierFrame::Enter {
+                                expression: &arm.value,
+                                scope: arm_scope,
+                            });
+                        }
+                    }
+                }
+                VerifierFrame::ResumeScalarMatchGuard {
+                    state,
+                    arm_scope,
+                } => {
+                    if arm_scope + 1 != self.scopes.len() {
+                        return Err(Diagnostic::io(
+                            "SPX-H006",
+                            "scalar match guard scope is not the active child",
+                        ));
+                    }
+                    let guard_value = self.values.pop().unwrap_or(None);
+                    let arm = &state.arms[state.index];
+                    if let Some(value) = &guard_value {
+                        if value.ty != Type::Bool || value.mode != ParamMode::Value {
+                            self.diagnostics.push(error(
+                                self.program,
+                                "SPX-T256",
+                                format!(
+                                    "match guard must be bool; received {}",
+                                    value.ty
+                                ),
+                                arm.guard
+                                    .as_ref()
+                                    .map_or(arm.span, |guard| guard.span),
+                            ));
+                        }
+                    }
+                    // The arm value observes the guard's moves within this
+                    // arm only.
+                    self.frames.push(VerifierFrame::ResumeScalarMatchArm {
+                        state,
+                        arm_scope,
+                    });
+                    self.frames.push(VerifierFrame::Enter {
+                        expression: &arm.value,
+                        scope: arm_scope,
+                    });
+                }
+                VerifierFrame::ResumeScalarMatchArm {
+                    mut state,
+                    arm_scope,
+                } => {
+                    if arm_scope + 1 != self.scopes.len() {
+                        return Err(Diagnostic::io(
+                            "SPX-H006",
+                            "scalar match arm scope is not the active child",
+                        ));
+                    }
+                    let arm = &state.arms[state.index];
+                    let arm_value = self.values.pop().unwrap_or(None);
+                    if let Some(value) = &arm_value {
+                        reject_native_unit_value(self.program, &arm.value, value, self.diagnostics);
+                    }
+                    if let Some(arm_value) = arm_value {
+                        if let Some(expected) = &state.result {
+                            if expected.ty != arm_value.ty || expected.mode != arm_value.mode {
+                                self.diagnostics.push(error(
+                                    self.program,
+                                    "SPX-T259",
+                                    format!(
+                                        "match arms return incompatible values: {} and {}",
+                                        expected.ty, arm_value.ty
+                                    ),
+                                    arm.value.span,
+                                ));
+                            }
+                        } else {
+                            state.result = Some(arm_value);
+                        }
+                    }
+                    state.arm_states.push(
+                        self.scopes
+                            .pop()
+                            .expect("scalar arm scope is active")
+                            .bindings,
+                    );
+                    state.index += 1;
+                    self.frames
+                        .push(VerifierFrame::PrepareScalarMatchArm(state));
                 }
             }
         }
@@ -7361,6 +7746,195 @@ fn check_expr(
             if let Some(value) = &scrutinee_value {
                 reject_native_unit_value(program, scrutinee, value, diagnostics);
             }
+            // Refutable Match v1: Copy-scalar decision chain in the
+            // recursive oracle twin.
+            let scalar_scrutinee = scrutinee_value.as_ref().is_some_and(|value| {
+                matches!(
+                    value.ty,
+                    Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::Bool
+                ) && value.mode == ParamMode::Value
+            });
+            if scalar_scrutinee {
+                let scrutinee_value = scrutinee_value.expect("scalar checked above");
+                let mut result = None::<CheckedValue>;
+                for arm in arms {
+                    match &arm.pattern {
+                        MatchPattern::Wildcard { .. } => {}
+                        MatchPattern::Binding { name, span } => {
+                            if !source_identifier(name) || variables.contains_key(name) {
+                                diagnostics.push(error(
+                                    program,
+                                    "SPX-M104",
+                                    format!("invalid or duplicate pattern binding `{name}`"),
+                                    *span,
+                                ));
+                            } else {
+                                variables.insert(
+                                    name.clone(),
+                                    Binding {
+                                        ty: scrutinee_value.ty.clone(),
+                                        mode: ParamMode::Value,
+                                        availability: Availability::Available,
+                                        moved_places: HashMap::new(),
+                                        definitely_partial: HashSet::new(),
+                                        native_unit_discard: false,
+                                        mutable: false,
+                                    },
+                                );
+                            }
+                        }
+                        MatchPattern::Literal { value, span } => {
+                            if pattern_literal_type(*value) != scrutinee_value.ty {
+                                diagnostics.push(error(
+                                    program,
+                                    "SPX-T255",
+                                    format!(
+                                        "literal pattern of type `{}` cannot match a `{}` \
+                                         scrutinee; pattern literals compare against exactly \
+                                         their own type",
+                                        value.type_text(),
+                                        scrutinee_value.ty
+                                    ),
+                                    *span,
+                                ));
+                            }
+                        }
+                        MatchPattern::Or { alternatives, span } => {
+                            let mut seen_type: Option<Type> = None;
+                            for alternative in alternatives {
+                                let MatchPattern::Literal { value, span } = alternative else {
+                                    diagnostics.push(error(
+                                        program,
+                                        "SPX-M105",
+                                        "or-patterns admit only literal alternatives in v1",
+                                        alternative.span(),
+                                    ));
+                                    continue;
+                                };
+                                if pattern_literal_type(*value) != scrutinee_value.ty {
+                                    diagnostics.push(error(
+                                        program,
+                                        "SPX-T255",
+                                        format!(
+                                            "literal pattern of type `{}` cannot match a `{}` \
+                                             scrutinee; pattern literals compare against \
+                                             exactly their own type",
+                                            value.type_text(),
+                                            scrutinee_value.ty
+                                        ),
+                                        *span,
+                                    ));
+                                }
+                                match (&seen_type, pattern_literal_type(*value)) {
+                                    (None, ty) => seen_type = Some(ty),
+                                    (Some(seen), ty) if *seen == ty => {}
+                                    (Some(seen), ty) => {
+                                        diagnostics.push(error(
+                                            program,
+                                            "SPX-M105",
+                                            format!(
+                                                "or-pattern mixes `{seen}` and `{ty}` literal \
+                                                 alternatives"
+                                            ),
+                                            *span,
+                                        ));
+                                    }
+                                }
+                            }
+                            if alternatives.is_empty() {
+                                diagnostics.push(error(
+                                    program,
+                                    "SPX-M105",
+                                    "or-pattern needs at least one literal alternative",
+                                    *span,
+                                ));
+                            }
+                        }
+                        MatchPattern::Variant { span, .. } | MatchPattern::Record { span, .. } => {
+                            diagnostics.push(error(
+                                program,
+                                "SPX-M103",
+                                "aggregate pattern is incompatible with a Copy-scalar scrutinee",
+                                *span,
+                            ));
+                        }
+                    }
+                    if let Some(guard) = &arm.guard {
+                        let guard_value = check_expr(
+                            program,
+                            current,
+                            guard.as_ref(),
+                            variables,
+                            functions,
+                            types,
+                            result_type,
+                            allow_moves,
+                            diagnostics,
+                        );
+                        if let Some(value) = &guard_value {
+                            reject_native_unit_value(program, guard.as_ref(), value, diagnostics);
+                        }
+                        if guard_value.as_ref().is_none_or(
+                            |value| value.ty != Type::Bool || value.mode != ParamMode::Value,
+                        ) {
+                            diagnostics.push(error(
+                                program,
+                                "SPX-T256",
+                                format!("match guard must be bool; received {}", guard_value
+                                    .as_ref()
+                                    .map_or_else(|| "an invalid value".to_owned(), |value| value.ty.to_string())),
+                                guard.span,
+                            ));
+                        }
+                    }
+                    let arm_value = check_expr(
+                        program,
+                        current,
+                        &arm.value,
+                        variables,
+                        functions,
+                        types,
+                        result_type,
+                        allow_moves,
+                        diagnostics,
+                    );
+                    if let Some(value) = &arm_value {
+                        reject_native_unit_value(program, &arm.value, value, diagnostics);
+                    }
+                    if let Some(arm_value) = arm_value {
+                        if let Some(expected) = &result {
+                            if expected.ty != arm_value.ty || expected.mode != arm_value.mode {
+                                diagnostics.push(error(
+                                    program,
+                                    "SPX-T259",
+                                    format!(
+                                        "match arms return incompatible values: {} and {}",
+                                        expected.ty, arm_value.ty
+                                    ),
+                                    arm.value.span,
+                                ));
+                            }
+                        } else {
+                            result = Some(arm_value);
+                        }
+                    }
+                }
+                let last = arms.last().expect("match always has an arm list");
+                let catch_all = matches!(
+                    &last.pattern,
+                    MatchPattern::Wildcard { .. } | MatchPattern::Binding { .. }
+                );
+                if !catch_all || last.guard.is_some() {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T257",
+                        "refutable match requires a trailing irrefutable catch-all arm (`_` or \
+                         a binding) without a guard",
+                        last.span,
+                    ));
+                }
+                return result;
+            }
             if scrutinee_value
                 .as_ref()
                 .is_some_and(|value| types.record_fields(&value.ty).is_some())
@@ -7423,6 +7997,17 @@ fn check_expr(
                         "variant pattern is incompatible with a record scrutinee",
                         first.pattern.span(),
                     )),
+                    MatchPattern::Literal { .. }
+                    | MatchPattern::Or { .. }
+                    | MatchPattern::Binding { .. } => {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T254",
+                            "refutable patterns are incompatible with an aggregate record \
+                             scrutinee",
+                            first.pattern.span(),
+                        ));
+                    }
                 }
                 let result = check_expr(
                     program,
@@ -7615,6 +8200,17 @@ fn check_expr(
                         "record pattern is incompatible with a variant scrutinee",
                         *span,
                     )),
+                    MatchPattern::Literal { span, .. }
+                    | MatchPattern::Or { span, .. }
+                    | MatchPattern::Binding { span, .. } => {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T254",
+                            "refutable patterns are incompatible with an aggregate variant \
+                             scrutinee",
+                            *span,
+                        ));
+                    }
                 }
                 let arm_value = check_expr(
                     program,

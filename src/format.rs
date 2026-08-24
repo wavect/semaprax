@@ -104,6 +104,7 @@ enum ExprFormatFrame<'a> {
     IfElse(&'a Expr),
     Fields(&'a [crate::ast::FieldInitializer], usize, &'static str),
     MatchArms(&'a [crate::ast::MatchArm], usize),
+    MatchArmValue(&'a Expr),
     TryEnd(bool),
     PostfixFields(&'a [crate::ast::FieldInitializer]),
     ProjectField(&'a str),
@@ -912,11 +913,21 @@ fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> usize {
                 let mut parts = Vec::with_capacity(arms.len());
                 for arm in arms {
                     total = total.saturating_add(legacy_match_pattern_bytes(&arm.pattern));
+                    // Refutable Match v1: guarded arms render their guard
+                    // between the pattern and `=>`.
+                    let guard_len = arm
+                        .guard
+                        .as_ref()
+                        .map_or(0, |guard| rendered_expr_len(guard, 0).saturating_add(4));
                     let part = rendered_match_pattern_len(&arm.pattern)
                         .saturating_add(rendered_expr_len(&arm.value, 0))
-                        .saturating_add(5);
+                        .saturating_add(5)
+                        .saturating_add(guard_len);
                     total = total.saturating_add(part);
                     parts.push(part);
+                    if let Some(guard) = &arm.guard {
+                        stack.push((guard.as_ref(), 0));
+                    }
                     stack.push((&arm.value, 0));
                 }
                 total = total
@@ -1004,6 +1015,9 @@ fn rendered_match_pattern_len(pattern: &MatchPattern) -> usize {
 fn legacy_match_pattern_bytes(pattern: &MatchPattern) -> usize {
     match pattern {
         MatchPattern::Wildcard { .. } => 0,
+        // Refutable Match v1 patterns have no legacy byte accounting; their
+        // exact canonical rendering is already counted by the caller.
+        MatchPattern::Literal { .. } | MatchPattern::Or { .. } | MatchPattern::Binding { .. } => 0,
         MatchPattern::Variant {
             type_name,
             case_name,
@@ -1444,14 +1458,25 @@ fn write_expr(output: &mut impl std::fmt::Write, value: &Expr, parent_precedence
                         output.write_str(", ").unwrap();
                     }
                     write_match_pattern(output, &arm.pattern);
-                    output.write_str(" => ").unwrap();
+                    if let Some(guard) = &arm.guard {
+                        // Refutable Match v1: `pattern if guard => value`.
+                        output.write_str(" if ").unwrap();
+                        frames.push(Frame::MatchArmValue(&arm.value));
+                        frames.push(Frame::Expr(guard.as_ref(), 0));
+                    } else {
+                        output.write_str(" => ").unwrap();
+                        frames.push(Frame::Expr(&arm.value, 0));
+                    }
                     frames.push(Frame::MatchArms(arms, index + 1));
-                    frames.push(Frame::Expr(&arm.value, 0));
                 } else if index == 0 {
                     output.write_str(" {  }").unwrap();
                 } else {
                     output.write_str(", }").unwrap();
                 }
+            }
+            Frame::MatchArmValue(value) => {
+                output.write_str(" => ").unwrap();
+                frames.push(Frame::Expr(value, 0));
             }
             Frame::TryEnd(delimited) => {
                 if delimited {
@@ -1575,6 +1600,18 @@ fn write_type(output: &mut impl std::fmt::Write, ty: &crate::ast::Type) {
 fn write_match_pattern(output: &mut impl std::fmt::Write, pattern: &MatchPattern) {
     match pattern {
         MatchPattern::Wildcard { .. } => output.write_char('_').unwrap(),
+        MatchPattern::Literal { value, .. } => {
+            write_pattern_literal(output, *value);
+        }
+        MatchPattern::Binding { name, .. } => output.write_str(name).unwrap(),
+        MatchPattern::Or { alternatives, .. } => {
+            for (index, alternative) in alternatives.iter().enumerate() {
+                if index != 0 {
+                    output.write_str(" | ").unwrap();
+                }
+                write_match_pattern(output, alternative);
+            }
+        }
         MatchPattern::Variant {
             type_name,
             case_name,
@@ -1602,6 +1639,18 @@ fn write_match_pattern(output: &mut impl std::fmt::Write, pattern: &MatchPattern
         MatchPattern::Record {
             type_name, fields, ..
         } => write_record_match_pattern(output, type_name, fields),
+    }
+}
+
+fn write_pattern_literal(output: &mut impl std::fmt::Write, value: crate::ast::PatternLiteral) {
+    match value {
+        crate::ast::PatternLiteral::Int(value) => write!(output, "{value}").unwrap(),
+        // The explicit suffix keeps the declared width stable across
+        // canonical round trips, exactly like expression literals.
+        crate::ast::PatternLiteral::Int32(value) => write!(output, "{value}i32").unwrap(),
+        crate::ast::PatternLiteral::Uint8(value) => write!(output, "{value}u8").unwrap(),
+        crate::ast::PatternLiteral::Char(value) => output.write_str(&canonical_char(value)).unwrap(),
+        crate::ast::PatternLiteral::Bool(value) => write!(output, "{value}").unwrap(),
     }
 }
 

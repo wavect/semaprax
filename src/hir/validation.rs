@@ -2027,6 +2027,38 @@ impl<'a> HirValidator<'a> {
                 result: Option<(ResolvedType, OwnershipMode)>,
                 path: String,
             },
+            /// Refutable Match v1 decision-chain twins. They mirror the
+            /// resolver's Copy-scalar admission structurally, fail-closed.
+            ScalarMatchNext {
+                expression: &'e ResolvedExpr,
+                arms: &'e [ResolvedMatchArm],
+                index: usize,
+                outer: BTreeMap<ValueId, ValidationBinding>,
+                outer_ids: Vec<ValueId>,
+                arm_scopes: Vec<BTreeMap<ValueId, ValidationBinding>>,
+                result: Option<(ResolvedType, OwnershipMode)>,
+                path: String,
+            },
+            ScalarMatchAfterGuard {
+                expression: &'e ResolvedExpr,
+                arms: &'e [ResolvedMatchArm],
+                index: usize,
+                outer: BTreeMap<ValueId, ValidationBinding>,
+                outer_ids: Vec<ValueId>,
+                arm_scopes: Vec<BTreeMap<ValueId, ValidationBinding>>,
+                result: Option<(ResolvedType, OwnershipMode)>,
+                path: String,
+            },
+            ScalarMatchAfterArm {
+                expression: &'e ResolvedExpr,
+                arms: &'e [ResolvedMatchArm],
+                index: usize,
+                outer: BTreeMap<ValueId, ValidationBinding>,
+                outer_ids: Vec<ValueId>,
+                arm_scopes: Vec<BTreeMap<ValueId, ValidationBinding>>,
+                result: Option<(ResolvedType, OwnershipMode)>,
+                path: String,
+            },
         }
 
         const { assert!(std::mem::size_of::<Frame<'static>>() == 288) };
@@ -2071,7 +2103,10 @@ impl<'a> HirValidator<'a> {
                 | Frame::UpdateAfterField { path, .. }
                 | Frame::MatchScrutinee { path, .. }
                 | Frame::VariantMatchNext { path, .. }
-                | Frame::VariantMatchAfterArm { path, .. } => path.capacity(),
+                | Frame::VariantMatchAfterArm { path, .. }
+                | Frame::ScalarMatchNext { path, .. }
+                | Frame::ScalarMatchAfterGuard { path, .. }
+                | Frame::ScalarMatchAfterArm { path, .. } => path.capacity(),
                 _ => 0,
             };
             let retained = match frame {
@@ -2266,6 +2301,30 @@ impl<'a> HirValidator<'a> {
                             * (std::mem::size_of::<DeclarationId>()
                                 + std::mem::size_of::<BTreeSet<DeclarationId>>())
                         + covered.iter().map(|id| id.as_str().len()).sum::<usize>()
+                        + result
+                            .as_ref()
+                            .map_or(0, |(ty, _)| resolved_type_owned_capacity(ty))
+                }
+                Frame::ScalarMatchNext { outer, outer_ids, arm_scopes, result, .. }
+                | Frame::ScalarMatchAfterGuard {
+                    outer,
+                    outer_ids,
+                    arm_scopes,
+                    result,
+                    ..
+                }
+                | Frame::ScalarMatchAfterArm {
+                    outer,
+                    outer_ids,
+                    arm_scopes,
+                    result,
+                    ..
+                } => {
+                    scope(outer)
+                        + ids(outer_ids)
+                        + arm_scopes.capacity()
+                            * std::mem::size_of::<BTreeMap<ValueId, ValidationBinding>>()
+                        + arm_scopes.iter().map(scope).sum::<usize>()
                         + result
                             .as_ref()
                             .map_or(0, |(ty, _)| resolved_type_owned_capacity(ty))
@@ -3916,6 +3975,37 @@ impl<'a> HirValidator<'a> {
                     let ResolvedExprKind::Match { scrutinee, .. } = &expression.kind else {
                         unreachable!()
                     };
+                    // Refutable Match v1: Copy-scalar scrutinees validate
+                    // through the decision-chain twins below.
+                    if matches!(
+                        scrutinee.ty,
+                        ResolvedType::I64
+                            | ResolvedType::I32
+                            | ResolvedType::U8
+                            | ResolvedType::Char
+                            | ResolvedType::Bool
+                    ) {
+                        if scrutinee.ownership != OwnershipMode::Value {
+                            return Err(hir_error(
+                                "resolved refutable match scrutinee is not Copy",
+                            ));
+                        }
+                        if arms.is_empty() {
+                            return Err(hir_error("resolved match has no arms"));
+                        }
+                        let outer_ids = outer.keys().cloned().collect::<Vec<_>>();
+                        frames.push(Frame::ScalarMatchNext {
+                            expression,
+                            arms,
+                            index: 0,
+                            outer,
+                            outer_ids,
+                            arm_scopes: Vec::with_capacity(arms.len()),
+                            result: None,
+                            path,
+                        });
+                        continue;
+                    }
                     let ResolvedType::Nominal {
                         declaration: matched,
                         arguments,
@@ -3958,6 +4048,14 @@ impl<'a> HirValidator<'a> {
                                 return Err(hir_error(
                                     "resolved variant pattern has a record scrutinee",
                                 ))
+                            }
+                            ResolvedMatchPattern::Literal(_)
+                            | ResolvedMatchPattern::Or(_)
+                            | ResolvedMatchPattern::Binding(_) => {
+                                return Err(hir_error(
+                                    "resolved refutable pattern has an aggregate record \
+                                     scrutinee",
+                                ));
                             }
                         }
                         frames.push(Frame::RecordMatchArm {
@@ -4150,6 +4248,14 @@ impl<'a> HirValidator<'a> {
                                     "resolved record pattern has a variant scrutinee",
                                 ))
                             }
+                            ResolvedMatchPattern::Literal(_)
+                            | ResolvedMatchPattern::Or(_)
+                            | ResolvedMatchPattern::Binding(_) => {
+                                return Err(hir_error(
+                                    "resolved refutable pattern has an aggregate variant \
+                                     scrutinee",
+                                ));
+                            }
                         }
                         frames.push(Frame::VariantMatchAfterArm {
                             expression,
@@ -4216,6 +4322,225 @@ impl<'a> HirValidator<'a> {
                         arm_scopes,
                         covered,
                         wildcard_seen,
+                        result,
+                        path,
+                    });
+                }
+                Frame::ScalarMatchNext {
+                    expression,
+                    arms,
+                    index,
+                    outer,
+                    outer_ids,
+                    arm_scopes,
+                    result,
+                    path,
+                } => {
+                    let ResolvedExprKind::Match { scrutinee, .. } = &expression.kind else {
+                        unreachable!()
+                    };
+                    if index == arms.len() {
+                        // Admission already required the trailing catch-all;
+                        // re-check it here against hostile HIR.
+                        let last = arms.last().expect("non-empty checked above");
+                        let catch_all = matches!(
+                            &last.pattern,
+                            ResolvedMatchPattern::Wildcard | ResolvedMatchPattern::Binding(_)
+                        );
+                        if !catch_all || last.guard.is_some() {
+                            return Err(hir_error(
+                                "resolved refutable match lacks a trailing irrefutable \
+                                 guard-free catch-all",
+                            ));
+                        }
+                        let (ty, ownership) =
+                            result.ok_or_else(|| hir_error("resolved match has no result"))?;
+                        let mut final_scope = outer;
+                        if let Some((first, rest)) = arm_scopes.split_first() {
+                            let mut joined = first.clone();
+                            for arm_scope in rest {
+                                Self::join_conditional(&mut joined, arm_scope, &outer_ids);
+                            }
+                            Self::merge_availability(&mut final_scope, &joined, &outer_ids);
+                        }
+                        publication.publish(&final_scope);
+                        self.finish_expr(expression, &ty, ownership)?;
+                        scopes.push(final_scope);
+                        continue;
+                    }
+                    let arm = &arms[index];
+                    let mut arm_scope = outer.clone();
+                    match &arm.pattern {
+                        ResolvedMatchPattern::Wildcard => {}
+                        ResolvedMatchPattern::Binding(binding) => {
+                            if binding.id
+                                != ValueId::local(function, &format!("{path}.arm.{index}.binding"))
+                                || binding.ty != scrutinee.ty
+                                || binding.ownership != OwnershipMode::Value
+                            {
+                                return Err(hir_error(
+                                    "resolved scalar match binding is invalid",
+                                ));
+                            }
+                            self.insert_value(&binding.id)?;
+                            self.validate_type(&binding.ty)?;
+                            if arm_scope.contains_key(&binding.id) {
+                                return Err(hir_error(
+                                    "resolved match pattern binding shadows an existing value",
+                                ));
+                            }
+                            arm_scope.insert(
+                                binding.id.clone(),
+                                ValidationBinding {
+                                    ty: binding.ty.clone(),
+                                    ownership: OwnershipMode::Value,
+                                    availability: Availability::Available,
+                                    moved_places: BTreeMap::new(),
+                                    definitely_partial: BTreeSet::new(),
+                                },
+                            );
+                        }
+                        ResolvedMatchPattern::Literal(value) => {
+                            if value.ty() != scrutinee.ty {
+                                return Err(hir_error(
+                                    "resolved literal pattern disagrees with its scrutinee type",
+                                ));
+                            }
+                        }
+                        ResolvedMatchPattern::Or(alternatives) => {
+                            if alternatives.is_empty() {
+                                return Err(hir_error("resolved or-pattern has no alternatives"));
+                            }
+                            for alternative in alternatives {
+                                let ResolvedMatchPattern::Literal(value) = alternative else {
+                                    return Err(hir_error(
+                                        "resolved or-pattern contains a non-literal alternative",
+                                    ));
+                                };
+                                if value.ty() != scrutinee.ty {
+                                    return Err(hir_error(
+                                        "resolved or-pattern alternative disagrees with its \
+                                         scrutinee type",
+                                    ));
+                                }
+                            }
+                        }
+                        ResolvedMatchPattern::Variant { .. } | ResolvedMatchPattern::Record { .. } => {
+                            return Err(hir_error(
+                                "resolved aggregate pattern has a Copy-scalar scrutinee",
+                            ));
+                        }
+                    }
+                    if let Some(guard) = &arm.guard {
+                        frames.push(Frame::ScalarMatchAfterGuard {
+                            expression,
+                            arms,
+                            index,
+                            outer,
+                            outer_ids,
+                            arm_scopes,
+                            result,
+                            path: path.clone(),
+                        });
+                        let enabled = publication.enabled;
+                        publication.enabled = false;
+                        frames.push(Frame::RestorePublication(enabled));
+                        frames.push(Frame::Enter {
+                            expression: guard.as_ref(),
+                            scope: arm_scope,
+                            path: format!("{path}.arm.{index}.guard"),
+                        });
+                    } else {
+                        frames.push(Frame::ScalarMatchAfterArm {
+                            expression,
+                            arms,
+                            index,
+                            outer,
+                            outer_ids,
+                            arm_scopes,
+                            result,
+                            path: path.clone(),
+                        });
+                        let enabled = publication.enabled;
+                        publication.enabled = false;
+                        frames.push(Frame::RestorePublication(enabled));
+                        frames.push(Frame::Enter {
+                            expression: &arm.value,
+                            scope: arm_scope,
+                            path: format!("{path}.arm.{index}.value"),
+                        });
+                    }
+                }
+                Frame::ScalarMatchAfterGuard {
+                    expression,
+                    arms,
+                    index,
+                    outer,
+                    outer_ids,
+                    arm_scopes,
+                    result,
+                    path,
+                } => {
+                    let arm = &arms[index];
+                    let Some(guard) = &arm.guard else {
+                        unreachable!("guard continuation retains a guarded arm")
+                    };
+                    let scope_after_guard =
+                        scopes.pop().expect("scalar match guard scope retained");
+                    if guard.ty != ResolvedType::Bool || guard.ownership != OwnershipMode::Value {
+                        return Err(hir_error("resolved match guard is not exactly bool"));
+                    }
+                    // The arm value observes the guard's moves within this
+                    // arm only, so it resolves under the post-guard scope.
+                    let enabled = publication.enabled;
+                    publication.enabled = false;
+                    frames.push(Frame::ScalarMatchAfterArm {
+                        expression,
+                        arms,
+                        index,
+                        outer,
+                        outer_ids,
+                        arm_scopes,
+                        result,
+                        path: path.clone(),
+                    });
+                    frames.push(Frame::RestorePublication(enabled));
+                    frames.push(Frame::Enter {
+                        expression: &arm.value,
+                        scope: scope_after_guard,
+                        path: format!("{path}.arm.{index}.value"),
+                    });
+                }
+                Frame::ScalarMatchAfterArm {
+                    expression,
+                    arms,
+                    index,
+                    outer,
+                    outer_ids,
+                    mut arm_scopes,
+                    mut result,
+                    path,
+                } => {
+                    let arm_scope = scopes.pop().expect("scalar match arm scope retained");
+                    let arm = &arms[index];
+                    if let Some((ty, ownership)) = &result {
+                        self.require_type(&arm.value.ty, ty, "match arm")?;
+                        if arm.value.ownership != *ownership {
+                            return Err(hir_error(
+                                "resolved match arms have inconsistent ownership",
+                            ));
+                        }
+                    } else {
+                        result = Some((arm.value.ty.clone(), arm.value.ownership));
+                    }
+                    arm_scopes.push(arm_scope);
+                    frames.push(Frame::ScalarMatchNext {
+                        expression,
+                        arms,
+                        index: index + 1,
+                        outer,
+                        outer_ids,
+                        arm_scopes,
                         result,
                         path,
                     });
@@ -5269,6 +5594,146 @@ impl<'a> HirValidator<'a> {
                     allow_moves,
                     allowed_effects,
                 )?;
+                // Refutable Match v1: mirror of the iterative decision-chain
+                // twins over a Copy-scalar scrutinee.
+                if matches!(
+                    scrutinee.ty,
+                    ResolvedType::I64
+                        | ResolvedType::I32
+                        | ResolvedType::U8
+                        | ResolvedType::Char
+                        | ResolvedType::Bool
+                ) {
+                    if scrutinee.ownership != OwnershipMode::Value {
+                        return Err(hir_error("resolved refutable match scrutinee is not Copy"));
+                    }
+                    if arms.is_empty() {
+                        return Err(hir_error("resolved match has no arms"));
+                    }
+                    for (arm_index, arm) in arms.iter().enumerate() {
+                        let mut arm_scope = scope.clone();
+                        match &arm.pattern {
+                            ResolvedMatchPattern::Wildcard => {}
+                            ResolvedMatchPattern::Binding(binding) => {
+                                if binding.id
+                                    != ValueId::local(
+                                        function,
+                                        &format!("{path}.arm.{arm_index}.binding"),
+                                    )
+                                    || binding.ty != scrutinee.ty
+                                    || binding.ownership != OwnershipMode::Value
+                                {
+                                    return Err(hir_error(
+                                        "resolved scalar match binding is invalid",
+                                    ));
+                                }
+                                self.insert_value(&binding.id)?;
+                                self.validate_type(&binding.ty)?;
+                                if arm_scope.contains_key(&binding.id) {
+                                    return Err(hir_error(
+                                        "resolved match pattern binding shadows an existing value",
+                                    ));
+                                }
+                                arm_scope.insert(
+                                    binding.id.clone(),
+                                    ValidationBinding {
+                                        ty: binding.ty.clone(),
+                                        ownership: OwnershipMode::Value,
+                                        availability: Availability::Available,
+                                        moved_places: BTreeMap::new(),
+                                        definitely_partial: BTreeSet::new(),
+                                    },
+                                );
+                            }
+                            ResolvedMatchPattern::Literal(value) => {
+                                if value.ty() != scrutinee.ty {
+                                    return Err(hir_error(
+                                        "resolved literal pattern disagrees with its scrutinee \
+                                         type",
+                                    ));
+                                }
+                            }
+                            ResolvedMatchPattern::Or(alternatives) => {
+                                if alternatives.is_empty() {
+                                    return Err(hir_error(
+                                        "resolved or-pattern has no alternatives",
+                                    ));
+                                }
+                                for alternative in alternatives {
+                                    let ResolvedMatchPattern::Literal(value) = alternative else {
+                                        return Err(hir_error(
+                                            "resolved or-pattern contains a non-literal \
+                                             alternative",
+                                        ));
+                                    };
+                                    if value.ty() != scrutinee.ty {
+                                        return Err(hir_error(
+                                            "resolved or-pattern alternative disagrees with its \
+                                             scrutinee type",
+                                        ));
+                                    }
+                                }
+                            }
+                            ResolvedMatchPattern::Variant { .. }
+                            | ResolvedMatchPattern::Record { .. } => {
+                                return Err(hir_error(
+                                    "resolved aggregate pattern has a Copy-scalar scrutinee",
+                                ));
+                            }
+                        }
+                        if let Some(guard) = &arm.guard {
+                            self.validate_expr_recursive_reference(
+                                function,
+                                guard.as_ref(),
+                                &mut arm_scope,
+                                &format!("{path}.arm.{arm_index}.guard"),
+                                allow_moves,
+                                allowed_effects,
+                            )?;
+                            if guard.ty != ResolvedType::Bool
+                                || guard.ownership != OwnershipMode::Value
+                            {
+                                return Err(hir_error(
+                                    "resolved match guard is not exactly bool",
+                                ));
+                            }
+                        }
+                        self.validate_expr_recursive_reference(
+                            function,
+                            &arm.value,
+                            &mut arm_scope,
+                            &format!("{path}.arm.{arm_index}.value"),
+                            allow_moves,
+                            allowed_effects,
+                        )?;
+                    }
+                    let last = arms.last().expect("empty checked above");
+                    let catch_all = matches!(
+                        &last.pattern,
+                        ResolvedMatchPattern::Wildcard | ResolvedMatchPattern::Binding(_)
+                    );
+                    if !catch_all || last.guard.is_some() {
+                        return Err(hir_error(
+                            "resolved refutable match lacks a trailing irrefutable guard-free \
+                             catch-all",
+                        ));
+                    }
+                    for arm in arms.iter().skip(1) {
+                        self.require_type(&arm.value.ty, &arms[0].value.ty, "match arm")?;
+                        if arm.value.ownership != arms[0].value.ownership {
+                            return Err(hir_error(
+                                "resolved match arms have inconsistent ownership",
+                            ));
+                        }
+                    }
+                    self.require_type(&expression.ty, &arms[0].value.ty, "match expression")?;
+                    if expression.ownership != arms[0].value.ownership {
+                        return Err(hir_error(
+                            "resolved match expression has inconsistent ownership",
+                        ));
+                    }
+                    return Ok(());
+                }
                 let ResolvedType::Nominal {
                     declaration: matched_type,
                     arguments,
@@ -5310,6 +5775,13 @@ impl<'a> HirValidator<'a> {
                         ResolvedMatchPattern::Variant { .. } => {
                             return Err(hir_error(
                                 "resolved variant pattern has a record scrutinee",
+                            ));
+                        }
+                        ResolvedMatchPattern::Literal(_)
+                        | ResolvedMatchPattern::Or(_)
+                        | ResolvedMatchPattern::Binding(_) => {
+                            return Err(hir_error(
+                                "resolved refutable pattern has an aggregate record scrutinee",
                             ));
                         }
                     }
@@ -5451,6 +5923,13 @@ impl<'a> HirValidator<'a> {
                         ResolvedMatchPattern::Record { .. } => {
                             return Err(hir_error(
                                 "resolved record pattern has a variant scrutinee",
+                            ));
+                        }
+                        ResolvedMatchPattern::Literal(_)
+                        | ResolvedMatchPattern::Or(_)
+                        | ResolvedMatchPattern::Binding(_) => {
+                            return Err(hir_error(
+                                "resolved refutable pattern has an aggregate variant scrutinee",
                             ));
                         }
                     }

@@ -58,6 +58,10 @@ pub enum TokenKind {
     Ge,
     AndAnd,
     OrOr,
+    /// Refutable Match v1: a single `|` separating or-pattern alternatives.
+    /// The expression grammar never accepts it, so only pattern positions
+    /// observe the new token.
+    Pipe,
     Eof,
 }
 
@@ -152,6 +156,7 @@ impl Lexer<'_> {
             '>' => TokenKind::Gt,
             '&' if self.take('&') => TokenKind::AndAnd,
             '|' if self.take('|') => TokenKind::OrOr,
+            '|' => TokenKind::Pipe,
             '"' => return self.string_token(start, line, column),
             '\'' => return self.char_token(start, line, column),
             value if value.is_ascii_digit() => {
@@ -196,7 +201,7 @@ impl Lexer<'_> {
                 }
                 TokenKind::Ident(self.source[start..self.offset].to_owned())
             }
-            '&' | '|' => {
+            '&' => {
                 return Err(self.error(
                     "SPX-P002",
                     format!("unexpected `{character}`; did you mean `{character}{character}`?"),

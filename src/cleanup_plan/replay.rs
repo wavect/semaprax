@@ -558,6 +558,263 @@ fn sequence_path_counts(left: HirPathCounts, right: HirPathCounts) -> HirPathCou
     }
 }
 
+/// `true` when the resolved expression tree contains a while statement.
+fn expression_contains_while(expression: &ResolvedExpr) -> bool {
+    let mut stack = [None; 514];
+    stack[0] = Some(expression);
+    let mut len = 1usize;
+    while len != 0 {
+        len -= 1;
+        let expression = stack[len].take().expect("census frame retained");
+        if let ResolvedExprKind::Block { statements, tail } = &expression.kind {
+            if statements
+                .iter()
+                .any(|statement| matches!(statement, ResolvedStatement::While { .. }))
+            {
+                return true;
+            }
+            for statement in statements {
+                for index in 0..statement.child_count() {
+                    if len + 1 >= stack.len() {
+                        return false;
+                    }
+                    if let Some(child) = statement.child(index) {
+                        stack[len] = Some(child);
+                        len += 1;
+                    }
+                }
+            }
+            if len + 1 >= stack.len() {
+                return false;
+            }
+            stack[len] = Some(tail.as_ref());
+            len += 1;
+            continue;
+        }
+        for index in 0.. {
+            match replay_expression_child(expression, index) {
+                Some(child) => {
+                    if len + 1 >= stack.len() {
+                        return false;
+                    }
+                    stack[len] = Some(child);
+                    len += 1;
+                }
+                None => break,
+            }
+        }
+    }
+    false
+}
+
+/// While-aware path census. Mirrors `expression_path_counts` exactly and adds
+/// the single-pass while contribution: the condition branches into one body
+/// pass or the skip continuation, so normal paths multiply by
+/// `body.normal + 1` while failure paths propagate through both sides.
+fn expression_path_counts_with_while(
+    function: &ResolvedFunction,
+    expression: &ResolvedExpr,
+) -> Result<HirPathCounts, Diagnostic> {
+    fn count(
+        function: &ResolvedFunction,
+        expression: &ResolvedExpr,
+    ) -> Result<HirPathCounts, Diagnostic> {
+        let saturating_total = HirPathCounts {
+            normal: MAX_REPLAY_PATHS + 1,
+            failed: 0,
+            residual: 0,
+        };
+        let counts = match &expression.kind {
+            ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Int32(_)
+            | ResolvedExprKind::Char(_)
+            | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Float32(_)
+            | ResolvedExprKind::Float64(_)
+            | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::String(_)
+            | ResolvedExprKind::Place(_) => HirPathCounts::ONE,
+            ResolvedExprKind::Unary { op, value } => {
+                let inner = count(function, value)?;
+                if *op == UnaryOp::Neg {
+                    HirPathCounts {
+                        normal: inner.normal,
+                        failed: inner.failed.saturating_add(inner.normal),
+                        residual: inner.residual,
+                    }
+                } else {
+                    inner
+                }
+            }
+            ResolvedExprKind::Binary { op, left, right } => {
+                let left_counts = count(function, left)?;
+                let right_counts = count(function, right)?;
+                if matches!(op, BinaryOp::And | BinaryOp::Or) {
+                    HirPathCounts {
+                        normal: left_counts
+                            .normal
+                            .saturating_mul(right_counts.normal.saturating_add(1)),
+                        failed: left_counts
+                            .failed
+                            .saturating_add(left_counts.normal.saturating_mul(right_counts.failed)),
+                        residual: left_counts.residual.saturating_add(
+                            left_counts.normal.saturating_mul(right_counts.residual),
+                        ),
+                    }
+                } else {
+                    let sequenced = sequence_path_counts(left_counts, right_counts);
+                    if matches!(
+                        op,
+                        BinaryOp::Add
+                            | BinaryOp::Sub
+                            | BinaryOp::Mul
+                            | BinaryOp::Div
+                            | BinaryOp::Rem
+                    ) {
+                        HirPathCounts {
+                            failed: sequenced.failed.saturating_add(sequenced.normal),
+                            ..sequenced
+                        }
+                    } else {
+                        sequenced
+                    }
+                }
+            }
+            ResolvedExprKind::Call { args, .. } => {
+                let mut accumulator = HirPathCounts::ONE;
+                for argument in args {
+                    accumulator = sequence_path_counts(accumulator, count(function, argument)?);
+                }
+                HirPathCounts {
+                    failed: accumulator.failed.saturating_add(accumulator.normal),
+                    ..accumulator
+                }
+            }
+            ResolvedExprKind::NativeRustImportCall(call) => {
+                let mut accumulator = HirPathCounts::ONE;
+                for argument in &call.args {
+                    accumulator = sequence_path_counts(accumulator, count(function, argument)?);
+                }
+                HirPathCounts {
+                    failed: accumulator.failed.saturating_add(accumulator.normal),
+                    ..accumulator
+                }
+            }
+            ResolvedExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                let condition_counts = count(function, condition)?;
+                let then_counts = count(function, then_branch)?;
+                let else_counts = count(function, else_branch)?;
+                HirPathCounts {
+                    normal: condition_counts
+                        .normal
+                        .saturating_mul(then_counts.normal.saturating_add(else_counts.normal)),
+                    failed: condition_counts.failed.saturating_add(
+                        condition_counts
+                            .normal
+                            .saturating_mul(then_counts.failed.saturating_add(else_counts.failed)),
+                    ),
+                    residual: condition_counts.residual.saturating_add(
+                        condition_counts.normal.saturating_mul(
+                            then_counts.residual.saturating_add(else_counts.residual),
+                        ),
+                    ),
+                }
+            }
+            ResolvedExprKind::Match { scrutinee, arms } => {
+                let scrutinee_counts = count(function, scrutinee)?;
+                let mut arms_normal = 0usize;
+                let mut arms_failed = 0usize;
+                let mut arms_residual = 0usize;
+                for arm in arms {
+                    let arm_counts = count(function, &arm.value)?;
+                    arms_normal = arms_normal.saturating_add(arm_counts.normal);
+                    arms_failed = arms_failed.saturating_add(arm_counts.failed);
+                    arms_residual = arms_residual.saturating_add(arm_counts.residual);
+                }
+                HirPathCounts {
+                    normal: scrutinee_counts.normal.saturating_mul(arms_normal),
+                    failed: scrutinee_counts
+                        .failed
+                        .saturating_add(scrutinee_counts.normal.saturating_mul(arms_failed)),
+                    residual: scrutinee_counts
+                        .residual
+                        .saturating_add(scrutinee_counts.normal.saturating_mul(arms_residual)),
+                }
+            }
+            ResolvedExprKind::Try { operand, .. } | ResolvedExprKind::TryOption { operand, .. } => {
+                let operand_counts = count(function, operand)?;
+                HirPathCounts {
+                    residual: operand_counts
+                        .residual
+                        .saturating_add(operand_counts.normal),
+                    ..operand_counts
+                }
+            }
+            ResolvedExprKind::Project { base, .. } => count(function, base)?,
+            ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+                let mut accumulator = count(function, base)?;
+                for field in fields {
+                    accumulator = sequence_path_counts(accumulator, count(function, &field.value)?);
+                }
+                accumulator
+            }
+            ResolvedExprKind::ConstructRecord { fields, .. }
+            | ResolvedExprKind::ConstructVariant { fields, .. } => {
+                let mut accumulator = HirPathCounts::ONE;
+                for field in fields {
+                    accumulator = sequence_path_counts(accumulator, count(function, &field.value)?);
+                }
+                accumulator
+            }
+            ResolvedExprKind::Block { statements, tail } => {
+                let mut accumulator = HirPathCounts::ONE;
+                for statement in statements {
+                    match statement {
+                        ResolvedStatement::While {
+                            condition, body, ..
+                        } => {
+                            let condition_counts = count(function, condition)?;
+                            let body_counts = count(function, body)?;
+                            let contribution = HirPathCounts {
+                                normal: condition_counts
+                                    .normal
+                                    .saturating_mul(body_counts.normal.saturating_add(1)),
+                                failed: condition_counts.failed.saturating_add(
+                                    condition_counts.normal.saturating_mul(body_counts.failed),
+                                ),
+                                residual: condition_counts.residual.saturating_add(
+                                    condition_counts.normal.saturating_mul(body_counts.residual),
+                                ),
+                            };
+                            accumulator = sequence_path_counts(accumulator, contribution);
+                        }
+                        other => {
+                            for index in 0..other.child_count() {
+                                let child = other.child(index).ok_or_else(|| {
+                                    replay_error(function, "while statement child is missing")
+                                })?;
+                                accumulator =
+                                    sequence_path_counts(accumulator, count(function, child)?);
+                            }
+                        }
+                    }
+                }
+                accumulator = sequence_path_counts(accumulator, count(function, tail)?);
+                accumulator
+            }
+        };
+        if counts.total() > MAX_REPLAY_PATHS {
+            return Ok(saturating_total);
+        }
+        Ok(counts)
+    }
+    count(function, expression)
+}
+
 fn hir_terminal_path_bound(function: &ResolvedFunction) -> Result<usize, Diagnostic> {
     let mut paths = HirPathCounts::ONE;
     for contract in &function.requires {
@@ -672,7 +929,17 @@ fn expression_skeleton_work_upper(
                     call.args.len().saturating_mul(4) + 8
                 }
                 ResolvedExprKind::Block { statements, .. } => {
-                    statements.len().saturating_mul(4) + 5
+                    // While statements add two continuation pushes plus their
+                    // Boolean split beyond the ordinary statement budget.
+                    let while_count = statements
+                        .iter()
+                        .filter(|statement| matches!(statement, ResolvedStatement::While { .. }))
+                        .count();
+                    statements
+                        .len()
+                        .saturating_mul(4)
+                        .saturating_add(while_count.saturating_mul(6))
+                        .saturating_add(5)
                 }
                 ResolvedExprKind::ConstructVariant { fields, .. }
                 | ResolvedExprKind::ConstructRecord { fields, .. } => {
@@ -790,6 +1057,9 @@ fn expression_path_counts(
     function: &ResolvedFunction,
     expression: &ResolvedExpr,
 ) -> Result<HirPathCounts, Diagnostic> {
+    if expression_contains_while(expression) {
+        return expression_path_counts_with_while(function, expression);
+    }
     #[derive(Clone, Copy)]
     struct Frame<'a> {
         expression: &'a ResolvedExpr,
@@ -2470,6 +2740,23 @@ fn expression_skeleton(
             expression: &'a ResolvedExpr,
             paths: Vec<ExprSkeletonPath>,
         },
+        WhileAfterCondition {
+            prefixes: Vec<ExprSkeletonPath>,
+            expression: &'a ResolvedExpr,
+            statements: &'a [ResolvedStatement],
+            tail: &'a ResolvedExpr,
+            index: usize,
+            condition: &'a ResolvedExpr,
+            body: &'a ResolvedExpr,
+        },
+        WhileAfterBody {
+            expression: &'a ResolvedExpr,
+            statements: &'a [ResolvedStatement],
+            tail: &'a ResolvedExpr,
+            index: usize,
+            true_prefixes: Vec<ExprSkeletonPath>,
+            false_prefixes: Vec<ExprSkeletonPath>,
+        },
         VariantField {
             fields: &'a [crate::hir::ResolvedFieldInitializer],
             index: usize,
@@ -2553,6 +2840,77 @@ fn expression_skeleton(
             note_skeleton_materialization();
             $frames.push($frame);
         }};
+    }
+
+    /// Continue one block's statement walk after a statement completes:
+    /// advance to the next statement, fall through to the tail, or report
+    /// settled paths when no active paths remain.
+    #[allow(clippy::too_many_arguments)]
+    fn advance_block_value<'a, 'e>(
+        function: &'a ResolvedFunction,
+        frames: &mut Vec<Frame<'e>>,
+        work: &mut SkeletonWork<'_, '_>,
+        expression: &'e ResolvedExpr,
+        statements: &'e [ResolvedStatement],
+        tail: &'e ResolvedExpr,
+        index: usize,
+        paths: Vec<ExprSkeletonPath>,
+    ) -> Result<Option<Vec<ExprSkeletonPath>>, Diagnostic> {
+        let mut push = |frames: &mut Vec<Frame<'e>>, frame: Frame<'e>| -> Result<(), Diagnostic> {
+            if frames.len() == frames.capacity() {
+                return Err(replay_error(
+                    function,
+                    "typed-HIR skeleton traversal exceeds the admitted depth",
+                ));
+            }
+            work.charge(1, "typed-HIR skeleton continuation push")?;
+            note_skeleton_materialization();
+            frames.push(frame);
+            Ok(())
+        };
+        let next = index + 1;
+        if has_active_paths(&paths) && next < statements.len() {
+            match &statements[next] {
+                ResolvedStatement::While {
+                    condition, body, ..
+                } => {
+                    // While statements route through their own continuation
+                    // pair; the accumulated prefixes thread through the loop.
+                    push(
+                        frames,
+                        Frame::WhileAfterCondition {
+                            prefixes: paths,
+                            expression,
+                            statements,
+                            tail,
+                            index: next,
+                            condition,
+                            body,
+                        },
+                    )?;
+                    push(frames, Frame::Eval(condition))?;
+                }
+                _ => {
+                    push(
+                        frames,
+                        Frame::BlockValue {
+                            expression,
+                            statements,
+                            tail,
+                            index: next,
+                            paths,
+                        },
+                    )?;
+                    push(frames, Frame::Eval(statements[next].value()))?;
+                }
+            }
+        } else if has_active_paths(&paths) {
+            push(frames, Frame::BlockTail { expression, paths })?;
+            push(frames, Frame::Eval(tail))?;
+        } else {
+            return Ok(Some(paths));
+        }
+        Ok(None)
     }
 
     // The semantic depth ceiling excludes the function-body block.  The
@@ -2692,17 +3050,41 @@ fn expression_skeleton(
                     ResolvedExprKind::Block { statements, tail } => {
                         let paths = work.singleton_path(empty_expr_path(), "block root path")?;
                         if let Some(first_statement) = statements.first() {
-                            push_frame!(
-                                frames,
-                                Frame::BlockValue {
-                                    expression,
-                                    statements,
-                                    tail,
-                                    index: 0,
-                                    paths,
+                            match first_statement {
+                                ResolvedStatement::While {
+                                    condition, body, ..
+                                } => {
+                                    // While statements route through their
+                                    // own condition/body continuation pair;
+                                    // no per-statement value is produced.
+                                    push_frame!(
+                                        frames,
+                                        Frame::WhileAfterCondition {
+                                            prefixes: paths,
+                                            expression,
+                                            statements,
+                                            tail,
+                                            index: 0,
+                                            condition,
+                                            body,
+                                        }
+                                    );
+                                    push_frame!(frames, Frame::Eval(condition));
                                 }
-                            );
-                            push_frame!(frames, Frame::Eval(first_statement.value()));
+                                _ => {
+                                    push_frame!(
+                                        frames,
+                                        Frame::BlockValue {
+                                            expression,
+                                            statements,
+                                            tail,
+                                            index: 0,
+                                            paths,
+                                        }
+                                    );
+                                    push_frame!(frames, Frame::Eval(first_statement.value()));
+                                }
+                            }
                         } else {
                             push_frame!(frames, Frame::BlockTail { expression, paths });
                             push_frame!(frames, Frame::Eval(tail));
@@ -2949,24 +3331,17 @@ fn expression_skeleton(
                         // Unsafe boundaries bind and own nothing here: their
                         // ordinary block body was evaluated as this
                         // statement's value expression.
-                        let next = index + 1;
-                        if has_active_paths(&paths) && next < statements.len() {
-                            push_frame!(
-                                frames,
-                                Frame::BlockValue {
-                                    expression,
-                                    statements,
-                                    tail,
-                                    index: next,
-                                    paths,
-                                }
-                            );
-                            push_frame!(frames, Frame::Eval(statements[next].value()));
-                        } else if has_active_paths(&paths) {
-                            push_frame!(frames, Frame::BlockTail { expression, paths });
-                            push_frame!(frames, Frame::Eval(tail));
-                        } else {
-                            produced = Some(paths);
+                        if let Some(settled) = advance_block_value(
+                            function,
+                            &mut frames,
+                            work,
+                            expression,
+                            statements,
+                            tail,
+                            index,
+                            paths,
+                        )? {
+                            produced = Some(settled);
                         }
                     }
                     statement => {
@@ -2990,26 +3365,74 @@ fn expression_skeleton(
                                 work,
                             )?;
                         }
-                        let next = index + 1;
-                        if has_active_paths(&paths) && next < statements.len() {
-                            push_frame!(
-                                frames,
-                                Frame::BlockValue {
-                                    expression,
-                                    statements,
-                                    tail,
-                                    index: next,
-                                    paths,
-                                }
-                            );
-                            push_frame!(frames, Frame::Eval(statements[next].value()));
-                        } else if has_active_paths(&paths) {
-                            push_frame!(frames, Frame::BlockTail { expression, paths });
-                            push_frame!(frames, Frame::Eval(tail));
-                        } else {
-                            produced = Some(paths);
+                        if let Some(settled) = advance_block_value(
+                            function,
+                            &mut frames,
+                            work,
+                            expression,
+                            statements,
+                            tail,
+                            index,
+                            paths,
+                        )? {
+                            produced = Some(settled);
                         }
                     }
+                }
+            }
+            Frame::WhileAfterCondition {
+                prefixes,
+                expression,
+                statements,
+                tail,
+                index,
+                condition,
+                body,
+            } => {
+                let condition_paths = produced.take().expect("while condition path retained");
+                let prefixed = sequence_skeleton_paths(prefixes, &condition_paths, work)?;
+                let (_, true_prefixes, false_prefixes) =
+                    split_boolean_prefixes(prefixed, &condition.id, work)?;
+                push_frame!(
+                    frames,
+                    Frame::WhileAfterBody {
+                        expression,
+                        statements,
+                        tail,
+                        index,
+                        true_prefixes,
+                        false_prefixes,
+                    }
+                );
+                push_frame!(frames, Frame::Eval(body));
+            }
+            Frame::WhileAfterBody {
+                expression,
+                statements,
+                tail,
+                index,
+                true_prefixes,
+                false_prefixes,
+            } => {
+                let body_paths = produced.take().expect("while body path retained");
+                let joined = sequence_skeleton_paths(true_prefixes, &body_paths, work)?;
+                // The skip branch joins the body branch at the loop
+                // continuation without further observations.
+                let mut combined = Vec::new();
+                for path in joined.into_iter().chain(false_prefixes) {
+                    work.push_expr_path(&mut combined, path, "while join path")?;
+                }
+                if let Some(settled) = advance_block_value(
+                    function,
+                    &mut frames,
+                    work,
+                    expression,
+                    statements,
+                    tail,
+                    index,
+                    combined,
+                )? {
+                    produced = Some(settled);
                 }
             }
             Frame::BlockTail { expression, paths } => {
@@ -5250,10 +5673,17 @@ fn replay_expression_child(expression: &ResolvedExpr, index: usize) -> Option<&R
         ResolvedExprKind::Binary { left, right, .. } => {
             [left.as_ref(), right.as_ref()].get(index).copied()
         }
-        ResolvedExprKind::Block { statements, tail } => statements
-            .get(index)
-            .map(|statement| statement.value())
-            .or_else(|| (index == statements.len()).then_some(tail)),
+        ResolvedExprKind::Block { statements, tail } => {
+            let mut offset = 0;
+            for statement in statements {
+                let count = statement.child_count();
+                if index < offset + count {
+                    return statement.child(index - offset);
+                }
+                offset += count;
+            }
+            (index == offset).then_some(tail)
+        }
         ResolvedExprKind::If {
             condition,
             then_branch,

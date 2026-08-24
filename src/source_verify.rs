@@ -2138,7 +2138,13 @@ fn generic_function_expression_is_direct_scalar(expression: &Expr) -> bool {
             }
             ExprKind::Block { statements, tail } => {
                 pending.push(tail);
-                pending.extend(statements.iter().rev().map(|statement| statement.value()));
+                for statement in statements.iter().rev() {
+                    for index in (0..statement.child_count()).rev() {
+                        if let Some(child) = statement.child(index) {
+                            pending.push(child);
+                        }
+                    }
+                }
             }
             ExprKind::If {
                 condition,
@@ -2517,6 +2523,21 @@ enum VerifierFrame<'a> {
         index: usize,
         outer_names: Vec<String>,
     },
+    ResumeWhileCondition {
+        condition: &'a Expr,
+    },
+    ResumeWhileBody {
+        expression: &'a Expr,
+        statements: &'a [Statement],
+        tail: &'a Expr,
+        parent_scope: usize,
+        block_scope: usize,
+        index: usize,
+        outer_names: Vec<String>,
+        statement_span: Span,
+        baseline_names: Vec<String>,
+        baseline_bindings: HashMap<String, Binding>,
+    },
     ResumeBlockTail {
         parent_scope: usize,
         block_scope: usize,
@@ -2818,6 +2839,26 @@ fn verifier_frame_owned_capacity(frame: &VerifierFrame<'_>) -> usize {
         VerifierFrame::ResumeBlockStatement { outer_names, .. }
         | VerifierFrame::ResumeBlockTail { outer_names, .. }
         | VerifierFrame::ResumeRecordMatchArm { outer_names, .. } => strings(outer_names),
+        VerifierFrame::ResumeWhileBody {
+            outer_names,
+            baseline_names,
+            baseline_bindings,
+            ..
+        } => strings(outer_names)
+            .saturating_add(strings(baseline_names))
+            .saturating_add(
+                baseline_bindings
+                    .capacity()
+                    .saturating_mul(std::mem::size_of::<(String, Binding)>())
+                    .saturating_add(
+                        baseline_bindings
+                            .iter()
+                            .map(|(name, binding)| {
+                                name.capacity() + binding_owned_capacity(binding)
+                            })
+                            .sum::<usize>(),
+                    ),
+            ),
         VerifierFrame::ResumeRecordField { supplied, .. }
         | VerifierFrame::PrepareRecordField { supplied, .. }
         | VerifierFrame::ResumeVariantField { supplied, .. }
@@ -2922,6 +2963,25 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 ));
             }
         }
+        if let Statement::While {
+            condition, body, ..
+        } = next_statement
+        {
+            // While statements complete through their own continuation
+            // pair; no per-statement value is produced or consumed.
+            self.begin_while_statement(
+                expression,
+                statements,
+                tail,
+                parent_scope,
+                block_scope,
+                next,
+                outer_names,
+                condition,
+                body,
+            );
+            return;
+        }
         self.frames.push(VerifierFrame::ResumeBlockStatement {
             expression,
             statements,
@@ -2935,6 +2995,242 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             expression: next_statement.value(),
             scope: block_scope,
         });
+    }
+
+    /// Begin verification of one `while` statement inside the block scope:
+    /// run the Bounded While-Loops v1 admission scan once, reject contract
+    /// contexts up front, then type-check the condition.
+    #[allow(clippy::too_many_arguments)]
+    fn begin_while_statement(
+        &mut self,
+        expression: &'p Expr,
+        statements: &'p [Statement],
+        tail: &'p Expr,
+        parent_scope: usize,
+        block_scope: usize,
+        index: usize,
+        outer_names: Vec<String>,
+        condition: &'p Expr,
+        body: &'p Expr,
+    ) {
+        if !self.allow_moves {
+            self.diagnostics.push(error(
+                self.program,
+                "SPX-T253",
+                "while statements are not allowed in contract expressions",
+                condition.span,
+            ));
+        }
+        let _ = self.reject_while_disallowed(condition);
+        let _ = self.reject_while_disallowed(body);
+        let baseline_names = self.scopes[block_scope]
+            .bindings
+            .keys()
+            .cloned()
+            .collect::<Vec<_>>();
+        let baseline_bindings = self.scopes[block_scope].bindings.clone();
+        self.frames.push(VerifierFrame::ResumeWhileBody {
+            expression,
+            statements,
+            tail,
+            parent_scope,
+            block_scope,
+            index,
+            outer_names,
+            statement_span: condition.span.merge(body.span),
+            baseline_names,
+            baseline_bindings,
+        });
+        self.frames
+            .push(VerifierFrame::ResumeWhileCondition { condition });
+        self.frames.push(VerifierFrame::Enter {
+            expression: condition,
+            scope: block_scope,
+        });
+    }
+
+    /// Bounded While-Loops v1 admission profile: a loop condition or body may
+    /// contain only Copy-scalar operations — scalar literals, names, checked
+    /// scalar arithmetic and comparisons, nested `if`s over scalars, blocks
+    /// with scalar statements, scalar `let`/assignment statements, nested
+    /// while loops, and monomorphic calls to scalar-value functions. Every
+    /// other construct is rejected fail-closed so loop cleanup stays
+    /// edge-free.
+    fn reject_while_disallowed(&mut self, expression: &'p Expr) -> Result<(), ()> {
+        match &expression.kind {
+            ExprKind::Int(_)
+            | ExprKind::Int32(_)
+            | ExprKind::Char(_)
+            | ExprKind::Uint8(_)
+            | ExprKind::Float32(_)
+            | ExprKind::Float64(_)
+            | ExprKind::Bool(_)
+            | ExprKind::Var(_) => Ok(()),
+            ExprKind::String(_) => {
+                self.diagnostics.push(error(
+                    self.program,
+                    "SPX-T252",
+                    "string literals are not yet admitted in while bodies",
+                    expression.span,
+                ));
+                Err(())
+            }
+            ExprKind::Unary { value, .. } => self.reject_while_disallowed(value),
+            ExprKind::Binary { left, right, .. } => {
+                let left = self.reject_while_disallowed(left);
+                let right = self.reject_while_disallowed(right);
+                left.and(right)
+            }
+            ExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                let condition = self.reject_while_disallowed(condition);
+                let then_branch = self.reject_while_disallowed(then_branch);
+                let else_branch = self.reject_while_disallowed(else_branch);
+                condition.and(then_branch).and(else_branch)
+            }
+            ExprKind::Block { statements, tail } => {
+                let mut result = Ok(());
+                for statement in statements {
+                    result = self.reject_while_disallowed_statement(statement);
+                    result?;
+                }
+                result.and(self.reject_while_disallowed(tail))
+            }
+            ExprKind::Call {
+                type_arguments,
+                args,
+                name,
+                ..
+            } => {
+                if !type_arguments.is_empty() {
+                    self.diagnostics.push(error(
+                        self.program,
+                        "SPX-T252",
+                        "generic calls are not yet admitted in while bodies",
+                        expression.span,
+                    ));
+                    return Err(());
+                }
+                // Only calls that resolve to a monomorphic function with
+                // by-value scalar parameters and a scalar result keep the
+                // loop cleanup-edge-free; unknown names keep flowing so the
+                // established unresolved-value diagnostic fires instead.
+                if let Some(declared) = self.functions.get(name.as_str()) {
+                    let scalar_signature = is_scalar_source_type(&declared.return_type)
+                        && declared.params.iter().all(|param| {
+                            param.mode == ParamMode::Value && is_scalar_source_type(&param.ty)
+                        });
+                    if !scalar_signature {
+                        self.diagnostics.push(error(
+                            self.program,
+                            "SPX-T252",
+                            format!(
+                                "call `{name}` is not admitted in while bodies; only scalar functions qualify"
+                            ),
+                            expression.span,
+                        ));
+                        return Err(());
+                    }
+                }
+                let mut result = Ok(());
+                for argument in args {
+                    result = self.reject_while_disallowed(argument);
+                    result?;
+                }
+                result
+            }
+            ExprKind::MethodCall { .. } => {
+                self.diagnostics.push(error(
+                    self.program,
+                    "SPX-T252",
+                    "method calls are not yet admitted in while bodies",
+                    expression.span,
+                ));
+                Err(())
+            }
+            ExprKind::Project { .. } => {
+                self.diagnostics.push(error(
+                    self.program,
+                    "SPX-T252",
+                    "record field projection is not yet admitted in while bodies",
+                    expression.span,
+                ));
+                Err(())
+            }
+            ExprKind::ConstructRecord { .. } => {
+                self.diagnostics.push(error(
+                    self.program,
+                    "SPX-T252",
+                    "record construction is not yet admitted in while bodies",
+                    expression.span,
+                ));
+                Err(())
+            }
+            ExprKind::ConstructVariant { .. } => {
+                self.diagnostics.push(error(
+                    self.program,
+                    "SPX-T252",
+                    "variant construction is not yet admitted in while bodies",
+                    expression.span,
+                ));
+                Err(())
+            }
+            ExprKind::UpdateRecord { .. } => {
+                self.diagnostics.push(error(
+                    self.program,
+                    "SPX-T252",
+                    "record updates are not yet admitted in while bodies",
+                    expression.span,
+                ));
+                Err(())
+            }
+            ExprKind::Match { .. } => {
+                self.diagnostics.push(error(
+                    self.program,
+                    "SPX-T252",
+                    "match expressions are not yet admitted in while bodies",
+                    expression.span,
+                ));
+                Err(())
+            }
+            ExprKind::Try { .. } => {
+                self.diagnostics.push(error(
+                    self.program,
+                    "SPX-T252",
+                    "postfix `?` propagation is not yet admitted in while bodies",
+                    expression.span,
+                ));
+                Err(())
+            }
+        }
+    }
+
+    /// Statement-level half of the Bounded While-Loops v1 admission scan.
+    fn reject_while_disallowed_statement(&mut self, statement: &'p Statement) -> Result<(), ()> {
+        match statement {
+            Statement::Let { value, .. } | Statement::Assign { value, .. } => {
+                self.reject_while_disallowed(value)
+            }
+            Statement::Unsafe { span, .. } => {
+                self.diagnostics.push(error(
+                    self.program,
+                    "SPX-T252",
+                    "unsafe boundary statements are not yet admitted in while bodies",
+                    *span,
+                ));
+                Err(())
+            }
+            Statement::While {
+                condition, body, ..
+            } => {
+                let condition = self.reject_while_disallowed(condition);
+                let body = self.reject_while_disallowed(body);
+                condition.and(body)
+            }
+        }
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -3343,19 +3639,36 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                     ));
                                 }
                             }
-                            self.frames.push(VerifierFrame::ResumeBlockStatement {
-                                expression,
-                                statements,
-                                tail,
-                                parent_scope: scope,
-                                block_scope,
-                                index: 0,
-                                outer_names,
-                            });
-                            self.frames.push(VerifierFrame::Enter {
-                                expression: first_statement.value(),
-                                scope: block_scope,
-                            });
+                            if let Statement::While {
+                                condition, body, ..
+                            } = first_statement
+                            {
+                                self.begin_while_statement(
+                                    expression,
+                                    statements,
+                                    tail,
+                                    scope,
+                                    block_scope,
+                                    0,
+                                    outer_names,
+                                    condition,
+                                    body,
+                                );
+                            } else {
+                                self.frames.push(VerifierFrame::ResumeBlockStatement {
+                                    expression,
+                                    statements,
+                                    tail,
+                                    parent_scope: scope,
+                                    block_scope,
+                                    index: 0,
+                                    outer_names,
+                                });
+                                self.frames.push(VerifierFrame::Enter {
+                                    expression: first_statement.value(),
+                                    scope: block_scope,
+                                });
+                            }
                         } else {
                             self.frames.push(VerifierFrame::ResumeBlockTail {
                                 parent_scope: scope,
@@ -4174,7 +4487,91 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 }
                             }
                         }
+                        // While statements never route through this frame:
+                        // they complete through ResumeWhileBody instead.
+                        Statement::While { .. } => {}
                     }
+                    self.advance_block_statement(
+                        expression,
+                        statements,
+                        tail,
+                        parent_scope,
+                        block_scope,
+                        index,
+                        outer_names,
+                    );
+                }
+                VerifierFrame::ResumeWhileCondition { condition, .. } => {
+                    // The condition is re-evaluated before every iteration and
+                    // must be exactly `bool`.
+                    let condition_value = self.values.pop().unwrap_or(None);
+                    if let Some(value) = condition_value {
+                        if value.native_unit {
+                            reject_native_unit_value(
+                                self.program,
+                                condition,
+                                &value,
+                                self.diagnostics,
+                            );
+                        } else if value.ty != Type::Bool {
+                            self.diagnostics.push(error(
+                                self.program,
+                                "SPX-T251",
+                                "`while` condition must be bool",
+                                condition.span,
+                            ));
+                        }
+                    }
+                    // The body is an ordinary block; it verifies with its own
+                    // child scope and its value is discarded by
+                    // ResumeWhileBody.
+                }
+                VerifierFrame::ResumeWhileBody {
+                    expression,
+                    statements,
+                    tail,
+                    parent_scope,
+                    block_scope,
+                    index,
+                    outer_names,
+                    statement_span,
+                    baseline_names,
+                    baseline_bindings,
+                    ..
+                } => {
+                    // Discard the body block's value: while statements
+                    // produce none. The body block merged its own child scope
+                    // through ResumeBlockTail. Because the v1 admission
+                    // profile admits only Copy-scalar operations inside the
+                    // loop, every outer binding must be exactly as available
+                    // as it was on entry; any drift means a move happened
+                    // inside the loop and is rejected fail-closed.
+                    let _ = self.values.pop();
+                    for name in &baseline_names {
+                        let drifted = match (
+                            self.scopes[block_scope].bindings.get(name),
+                            baseline_bindings.get(name),
+                        ) {
+                            (Some(now), Some(before)) => {
+                                now.availability != before.availability
+                                    || now.moved_places != before.moved_places
+                                    || now.definitely_partial != before.definitely_partial
+                            }
+                            (Some(_), None) | (None, Some(_)) => true,
+                            (None, None) => false,
+                        };
+                        if drifted {
+                            self.diagnostics.push(error(
+                                self.program,
+                                "SPX-T252",
+                                format!(
+                                    "ownership of `{name}` changes inside a while loop, which is not yet admitted"
+                                ),
+                                statement_span,
+                            ));
+                        }
+                    }
+                    let _ = baseline_names;
                     self.advance_block_statement(
                         expression,
                         statements,
@@ -7193,6 +7590,24 @@ fn check_expr(
                             diagnostics,
                         );
                     }
+                    Statement::While { condition, body, .. } => {
+                        // Contract expressions stay pure: while statements
+                        // never execute inside them. The condition and body
+                        // are still checked so their own diagnostics surface.
+                        check_while_statement(
+                            program,
+                            current,
+                            condition,
+                            body,
+                            condition.span.merge(body.span),
+                            &mut scope,
+                            functions,
+                            types,
+                            result_type,
+                            allow_moves,
+                            diagnostics,
+                        );
+                    }
                 }
             }
             let actual = check_expr(
@@ -7318,6 +7733,292 @@ fn check_expr(
                 }
                 _ => None,
             }
+        }
+    }
+}
+
+/// Recursive-oracle twin of the iterative verifier's `while` handling: the
+/// contract-context rejection, the collect-all admission scan, the condition
+/// typing check, ordinary body-block checking, and ownership-drift detection,
+/// emitted in exactly the same diagnostic order.
+#[cfg(test)]
+#[allow(clippy::too_many_arguments)]
+fn check_while_statement(
+    program: &Program,
+    current: &Function,
+    condition: &Expr,
+    body: &Expr,
+    statement_span: Span,
+    variables: &mut HashMap<String, Binding>,
+    functions: &HashMap<&str, &Function>,
+    types: &TypeTable<'_>,
+    result_type: Option<&Type>,
+    allow_moves: bool,
+    diagnostics: &mut Vec<Diagnostic>,
+) {
+    if !allow_moves {
+        diagnostics.push(error(
+            program,
+            "SPX-T253",
+            "while statements are not allowed in contract expressions",
+            condition.span,
+        ));
+    }
+    let _ = reject_while_disallowed_oracle(program, condition, functions, diagnostics);
+    let _ = reject_while_disallowed_oracle(program, body, functions, diagnostics);
+    let baseline = variables.clone();
+    if let Some(value) = check_expr(
+        program,
+        current,
+        condition,
+        variables,
+        functions,
+        types,
+        result_type,
+        allow_moves,
+        diagnostics,
+    ) {
+        if value.native_unit {
+            reject_native_unit_value(program, condition, &value, diagnostics);
+        } else if value.ty != Type::Bool {
+            diagnostics.push(error(
+                program,
+                "SPX-T251",
+                "`while` condition must be bool",
+                condition.span,
+            ));
+        }
+    }
+    let _ = check_expr(
+        program,
+        current,
+        body,
+        variables,
+        functions,
+        types,
+        result_type,
+        allow_moves,
+        diagnostics,
+    );
+    for (name, before) in &baseline {
+        let drifted = match variables.get(name) {
+            Some(now) => {
+                now.availability != before.availability
+                    || now.moved_places != before.moved_places
+                    || now.definitely_partial != before.definitely_partial
+            }
+            None => true,
+        };
+        if drifted {
+            diagnostics.push(error(
+                program,
+                "SPX-T252",
+                format!(
+                    "ownership of `{name}` changes inside a while loop, which is not yet admitted"
+                ),
+                statement_span,
+            ));
+        }
+    }
+}
+
+/// Collect-all admission scan used by the recursive oracle; mirrors
+/// `IterativeVerifier::reject_while_disallowed` diagnostic for diagnostic.
+#[cfg(test)]
+fn reject_while_disallowed_oracle(
+    program: &Program,
+    expression: &Expr,
+    functions: &HashMap<&str, &Function>,
+    diagnostics: &mut Vec<Diagnostic>,
+) -> Result<(), ()> {
+    match &expression.kind {
+        ExprKind::Int(_)
+        | ExprKind::Int32(_)
+        | ExprKind::Char(_)
+        | ExprKind::Uint8(_)
+        | ExprKind::Float32(_)
+        | ExprKind::Float64(_)
+        | ExprKind::Bool(_)
+        | ExprKind::Var(_) => Ok(()),
+        ExprKind::String(_) => {
+            diagnostics.push(error(
+                program,
+                "SPX-T252",
+                "string literals are not yet admitted in while bodies",
+                expression.span,
+            ));
+            Err(())
+        }
+        ExprKind::Unary { value, .. } => {
+            reject_while_disallowed_oracle(program, value, functions, diagnostics)
+        }
+        ExprKind::Binary { left, right, .. } => {
+            let left = reject_while_disallowed_oracle(program, left, functions, diagnostics);
+            let right = reject_while_disallowed_oracle(program, right, functions, diagnostics);
+            left.and(right)
+        }
+        ExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            let condition =
+                reject_while_disallowed_oracle(program, condition, functions, diagnostics);
+            let then = reject_while_disallowed_oracle(program, then_branch, functions, diagnostics);
+            let else_branch =
+                reject_while_disallowed_oracle(program, else_branch, functions, diagnostics);
+            condition.and(then).and(else_branch)
+        }
+        ExprKind::Block { statements, tail } => {
+            let mut result = Ok(());
+            for statement in statements {
+                result = reject_while_disallowed_statement_oracle(
+                    program,
+                    statement,
+                    functions,
+                    diagnostics,
+                );
+                result?;
+            }
+            result.and(reject_while_disallowed_oracle(
+                program,
+                tail,
+                functions,
+                diagnostics,
+            ))
+        }
+        ExprKind::Call {
+            type_arguments,
+            args,
+            name,
+            ..
+        } => {
+            if !type_arguments.is_empty() {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T252",
+                    "generic calls are not yet admitted in while bodies",
+                    expression.span,
+                ));
+                return Err(());
+            }
+            if let Some(declared) = functions.get(name.as_str()) {
+                let scalar_signature = is_scalar_source_type(&declared.return_type)
+                    && declared.params.iter().all(|param| {
+                        param.mode == ParamMode::Value && is_scalar_source_type(&param.ty)
+                    });
+                if !scalar_signature {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T252",
+                        format!(
+                            "call `{name}` is not admitted in while bodies; only scalar functions qualify"
+                        ),
+                        expression.span,
+                    ));
+                    return Err(());
+                }
+            }
+            let mut result = Ok(());
+            for argument in args {
+                result = reject_while_disallowed_oracle(program, argument, functions, diagnostics);
+                result?;
+            }
+            result
+        }
+        ExprKind::MethodCall { .. } => {
+            diagnostics.push(error(
+                program,
+                "SPX-T252",
+                "method calls are not yet admitted in while bodies",
+                expression.span,
+            ));
+            Err(())
+        }
+        ExprKind::Project { .. } => {
+            diagnostics.push(error(
+                program,
+                "SPX-T252",
+                "record field projection is not yet admitted in while bodies",
+                expression.span,
+            ));
+            Err(())
+        }
+        ExprKind::ConstructRecord { .. } => {
+            diagnostics.push(error(
+                program,
+                "SPX-T252",
+                "record construction is not yet admitted in while bodies",
+                expression.span,
+            ));
+            Err(())
+        }
+        ExprKind::ConstructVariant { .. } => {
+            diagnostics.push(error(
+                program,
+                "SPX-T252",
+                "variant construction is not yet admitted in while bodies",
+                expression.span,
+            ));
+            Err(())
+        }
+        ExprKind::UpdateRecord { .. } => {
+            diagnostics.push(error(
+                program,
+                "SPX-T252",
+                "record updates are not yet admitted in while bodies",
+                expression.span,
+            ));
+            Err(())
+        }
+        ExprKind::Match { .. } => {
+            diagnostics.push(error(
+                program,
+                "SPX-T252",
+                "match expressions are not yet admitted in while bodies",
+                expression.span,
+            ));
+            Err(())
+        }
+        ExprKind::Try { .. } => {
+            diagnostics.push(error(
+                program,
+                "SPX-T252",
+                "postfix `?` propagation is not yet admitted in while bodies",
+                expression.span,
+            ));
+            Err(())
+        }
+    }
+}
+
+#[cfg(test)]
+fn reject_while_disallowed_statement_oracle(
+    program: &Program,
+    statement: &Statement,
+    functions: &HashMap<&str, &Function>,
+    diagnostics: &mut Vec<Diagnostic>,
+) -> Result<(), ()> {
+    match statement {
+        Statement::Let { value, .. } | Statement::Assign { value, .. } => {
+            reject_while_disallowed_oracle(program, value, functions, diagnostics)
+        }
+        Statement::Unsafe { span, .. } => {
+            diagnostics.push(error(
+                program,
+                "SPX-T252",
+                "unsafe boundary statements are not yet admitted in while bodies",
+                *span,
+            ));
+            Err(())
+        }
+        Statement::While {
+            condition, body, ..
+        } => {
+            let condition =
+                reject_while_disallowed_oracle(program, condition, functions, diagnostics);
+            let body = reject_while_disallowed_oracle(program, body, functions, diagnostics);
+            condition.and(body)
         }
     }
 }
@@ -7846,7 +8547,7 @@ fn source_identifier(value: &str) -> bool {
 }
 
 /// Explicit Mutation v1 admits exactly the checked Copy scalar value types.
-fn is_scalar_source_type(ty: &Type) -> bool {
+pub(crate) fn is_scalar_source_type(ty: &Type) -> bool {
     matches!(
         ty,
         Type::I64 | Type::I32 | Type::U8 | Type::Char | Type::F32 | Type::F64 | Type::Bool

@@ -497,7 +497,11 @@ fn collect_expr_record_types(
                 if let ResolvedStatement::Let { binding, .. } = statement {
                     collect_record_type(program, &binding.ty, instances)?;
                 }
-                collect_expr_record_types(program, statement.value(), instances)?;
+                for index in 0..statement.child_count() {
+                    if let Some(child) = statement.child(index) {
+                        collect_expr_record_types(program, child, instances)?;
+                    }
+                }
             }
             collect_expr_record_types(program, tail, instances)?;
         }

@@ -837,6 +837,8 @@ pub(crate) fn derive_candidate_overlay(
     let mut base_files = Vec::with_capacity(sources.len());
     let mut candidate = BTreeMap::new();
     for source in sources {
+        crate::graph::reject_while_loop_evidence_schema(&source.source_graph_schema)
+            .map_err(|error| vec![error])?;
         base_files.push(StructuralBaseFileFact {
             path: source.path.clone(),
             source_graph_schema: source.source_graph_schema,

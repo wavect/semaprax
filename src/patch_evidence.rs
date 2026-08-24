@@ -638,6 +638,8 @@ pub(crate) fn facts_from_review(
     .map_err(|error| vec![error])?;
     let supporting = build.supporting_evidence();
     validate_supporting(supporting.kind(), supporting.schema())?;
+    crate::graph::reject_while_loop_evidence_schema(build.source_graph_schema())
+        .map_err(|error| vec![error])?;
     let usage = build.usage();
     Ok(PatchEvidenceFacts {
         source_graph_schema: build.source_graph_schema().to_owned(),

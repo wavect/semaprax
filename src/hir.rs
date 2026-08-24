@@ -17,7 +17,7 @@ use crate::cleanup::CleanupInventory;
 use crate::cleanup_plan::CleanupPlan;
 use crate::conformance::STATUS_DOMAIN_MAX_BYTES_V1;
 use crate::diagnostic::Diagnostic;
-use crate::source_verify;
+use crate::source_verify::{self, is_scalar_source_type};
 
 macro_rules! format {
     ($($argument:tt)*) => {
@@ -414,12 +414,18 @@ fn resolved_expr_owned_capacity(expression: &ResolvedExpr) -> usize {
         ResolvedExprKind::Block { statements, tail } => {
             bytes += statements.capacity() * std::mem::size_of::<ResolvedStatement>();
             for statement in statements {
-                let binding = statement.binding();
-                let value = statement.value();
-                bytes += binding.id.as_str().len()
-                    + binding.name.capacity()
-                    + resolved_type_owned_capacity(&binding.ty)
-                    + resolved_expr_owned_capacity(value);
+                if let ResolvedStatement::Let { binding, value, .. } = statement {
+                    bytes += binding.id.as_str().len()
+                        + binding.name.capacity()
+                        + resolved_type_owned_capacity(&binding.ty)
+                        + resolved_expr_owned_capacity(value);
+                } else {
+                    for index in 0..statement.child_count() {
+                        if let Some(child) = statement.child(index) {
+                            bytes += resolved_expr_owned_capacity(child);
+                        }
+                    }
+                }
             }
             bytes += child(tail);
         }
@@ -560,6 +566,10 @@ fn resolved_statement_owned_capacity(statement: &ResolvedStatement) -> usize {
         ResolvedStatement::Unsafe { audit, body, .. } => {
             audit.capacity() + resolved_expr_owned_capacity(body)
         }
+        // While loops carry their condition plus their ordinary block body.
+        ResolvedStatement::While {
+            condition, body, ..
+        } => resolved_expr_owned_capacity(condition) + resolved_expr_owned_capacity(body),
     }
 }
 
@@ -2498,6 +2508,9 @@ fn materialize_template_expr(
                             "generic template statements cannot assign to local bindings",
                         ));
                     }
+                    ResolvedStatement::While { .. } => {
+                        return Err(hir_error("generic templates cannot contain while loops"));
+                    }
                     ResolvedStatement::Unsafe { audit, body, span } => {
                         let body = materialize_template_expr(
                             template,
@@ -3004,14 +3017,27 @@ pub enum ResolvedStatement {
         body: Box<ResolvedExpr>,
         span: Span,
     },
+    /// Bounded While-Loops v1: `while <condition> { <body> }`. The condition
+    /// must be exactly `bool` and the body is an ordinary checked block whose
+    /// value is discarded. The statement produces no value.
+    While {
+        condition: Box<ResolvedExpr>,
+        body: Box<ResolvedExpr>,
+        span: Span,
+    },
 }
 
 impl ResolvedStatement {
-    /// The statement's evaluated expression.
+    /// The statement's evaluated expression. While statements carry two
+    /// evaluated expressions and must be traversed with
+    /// [`ResolvedStatement::child`] instead.
     pub fn value(&self) -> &ResolvedExpr {
         match self {
             Self::Let { value, .. } | Self::Assign { value, .. } => value,
             Self::Unsafe { body, .. } => body,
+            Self::While { .. } => {
+                panic!("while statements expose condition and body children")
+            }
         }
     }
 
@@ -3020,6 +3046,9 @@ impl ResolvedStatement {
         match self {
             Self::Let { value, .. } | Self::Assign { value, .. } => value,
             Self::Unsafe { body, .. } => body,
+            Self::While { .. } => {
+                panic!("while statements expose condition and body children")
+            }
         }
     }
 
@@ -3028,8 +3057,8 @@ impl ResolvedStatement {
     pub fn binding(&self) -> &ResolvedBinding {
         match self {
             Self::Let { binding, .. } | Self::Assign { binding, .. } => binding,
-            Self::Unsafe { .. } => {
-                panic!("unsafe boundary statements declare no binding")
+            Self::Unsafe { .. } | Self::While { .. } => {
+                panic!("only let and assignment statements declare a binding")
             }
         }
     }
@@ -3045,6 +3074,27 @@ impl ResolvedStatement {
     /// `true` for assignment statements.
     pub fn is_assign(&self) -> bool {
         matches!(self, Self::Assign { .. })
+    }
+
+    /// Number of directly nested evaluated expressions. `let`, assignment,
+    /// and unsafe statements contribute one; while statements contribute its
+    /// condition then its body, in evaluation order.
+    pub fn child_count(&self) -> usize {
+        match self {
+            Self::Let { .. } | Self::Assign { .. } | Self::Unsafe { .. } => 1,
+            Self::While { .. } => 2,
+        }
+    }
+
+    /// One directly nested evaluated expression in left-to-right order.
+    pub fn child(&self, index: usize) -> Option<&ResolvedExpr> {
+        match self {
+            Self::Let { value, .. } | Self::Assign { value, .. } => (index == 0).then_some(value),
+            Self::Unsafe { body, .. } => (index == 0).then_some(body.as_ref()),
+            Self::While {
+                condition, body, ..
+            } => [condition.as_ref(), body.as_ref()].get(index).copied(),
+        }
     }
 }
 
@@ -3551,7 +3601,11 @@ fn audit_resolved_expression(root: &ResolvedExpr) -> Result<(), Diagnostic> {
                         reject_nul_identity("resolved value", binding.id.as_str())?;
                         audit_resolved_type(&binding.ty)?;
                     }
-                    pending.push(statement.value());
+                    for index in (0..statement.child_count()).rev() {
+                        if let Some(child) = statement.child(index) {
+                            pending.push(child);
+                        }
+                    }
                 }
             }
             ResolvedExprKind::If {
@@ -4070,7 +4124,11 @@ fn visit_resolved_calls(
         }
         ResolvedExprKind::Block { statements, tail } => {
             for statement in statements {
-                visit_resolved_calls(statement.value(), visit);
+                for index in 0..statement.child_count() {
+                    if let Some(child) = statement.child(index) {
+                        visit_resolved_calls(child, visit);
+                    }
+                }
             }
             visit_resolved_calls(tail, visit);
         }
@@ -4179,7 +4237,11 @@ pub(crate) fn workspace_call_sites(
             }
             ResolvedExprKind::Block { statements, tail } => {
                 for statement in statements {
-                    walk(owner, statement.value(), sites);
+                    for index in 0..statement.child_count() {
+                        if let Some(child) = statement.child(index) {
+                            walk(owner, child, sites);
+                        }
+                    }
                 }
                 walk(owner, tail, sites);
             }
@@ -5330,6 +5392,147 @@ impl Resolver<'_> {
             ));
         }
         Ok((field_id, field_ty))
+    /// Bounded While-Loops v1 admission profile: a loop condition or body may
+    /// contain only Copy-scalar operations — scalar literals, names, checked
+    /// scalar arithmetic and comparisons, nested `if`s over scalars, blocks
+    /// with scalar statements, scalar `let`/assignment statements, nested
+    /// while loops, and monomorphic calls to scalar-value functions. Every
+    /// other construct (records, variants, matches, `?`, projections, method
+    /// calls, strings, unsafe boundaries, generic calls, non-scalar calls)
+    /// is rejected fail-closed so loop cleanup stays edge-free.
+    fn reject_while_disallowed(&self, expression: &Expr) -> Result<(), Diagnostic> {
+        match &expression.kind {
+            ExprKind::Int(_)
+            | ExprKind::Int32(_)
+            | ExprKind::Char(_)
+            | ExprKind::Uint8(_)
+            | ExprKind::Float32(_)
+            | ExprKind::Float64(_)
+            | ExprKind::Bool(_)
+            | ExprKind::Var(_) => Ok(()),
+            ExprKind::String(_) => Err(self.error(
+                "SPX-T252",
+                "string literals are not yet admitted in while bodies",
+                expression.span,
+            )),
+            ExprKind::Unary { value, .. } => self.reject_while_disallowed(value),
+            ExprKind::Binary { left, right, .. } => {
+                self.reject_while_disallowed(left)?;
+                self.reject_while_disallowed(right)
+            }
+            ExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                self.reject_while_disallowed(condition)?;
+                self.reject_while_disallowed(then_branch)?;
+                self.reject_while_disallowed(else_branch)
+            }
+            ExprKind::Block { statements, tail } => {
+                for statement in statements {
+                    self.reject_while_disallowed_statement(statement)?;
+                }
+                self.reject_while_disallowed(tail)
+            }
+            ExprKind::Call {
+                type_arguments,
+                args,
+                name,
+                ..
+            } => {
+                if !type_arguments.is_empty() {
+                    return Err(self.error(
+                        "SPX-T252",
+                        "generic calls are not yet admitted in while bodies",
+                        expression.span,
+                    ));
+                }
+                // Only calls that resolve to a monomorphic function with
+                // by-value scalar parameters and a scalar result keep the
+                // loop cleanup-edge-free; everything else is rejected here
+                // even when the callee itself resolves cleanly.
+                let declared = self
+                    .program
+                    .functions
+                    .iter()
+                    .find(|function| function.name == *name);
+                if let Some(declared) = declared {
+                    let scalar_signature = is_scalar_source_type(&declared.return_type)
+                        && declared.params.iter().all(|param| {
+                            param.mode == ParamMode::Value && is_scalar_source_type(&param.ty)
+                        });
+                    if !scalar_signature {
+                        return Err(self.error(
+                            "SPX-T252",
+                            format!(
+                                "call `{name}` is not admitted in while bodies; only scalar functions qualify"
+                            ),
+                            expression.span,
+                        ));
+                    }
+                }
+                for argument in args {
+                    self.reject_while_disallowed(argument)?;
+                }
+                Ok(())
+            }
+            ExprKind::MethodCall { .. } => Err(self.error(
+                "SPX-T252",
+                "method calls are not yet admitted in while bodies",
+                expression.span,
+            )),
+            ExprKind::Project { .. } => Err(self.error(
+                "SPX-T252",
+                "record field projection is not yet admitted in while bodies",
+                expression.span,
+            )),
+            ExprKind::ConstructRecord { .. } => Err(self.error(
+                "SPX-T252",
+                "record construction is not yet admitted in while bodies",
+                expression.span,
+            )),
+            ExprKind::ConstructVariant { .. } => Err(self.error(
+                "SPX-T252",
+                "variant construction is not yet admitted in while bodies",
+                expression.span,
+            )),
+            ExprKind::UpdateRecord { .. } => Err(self.error(
+                "SPX-T252",
+                "record updates are not yet admitted in while bodies",
+                expression.span,
+            )),
+            ExprKind::Match { .. } => Err(self.error(
+                "SPX-T252",
+                "match expressions are not yet admitted in while bodies",
+                expression.span,
+            )),
+            ExprKind::Try { .. } => Err(self.error(
+                "SPX-T252",
+                "postfix `?` propagation is not yet admitted in while bodies",
+                expression.span,
+            )),
+        }
+    }
+
+    /// Statement-level half of the Bounded While-Loops v1 admission scan.
+    fn reject_while_disallowed_statement(&self, statement: &Statement) -> Result<(), Diagnostic> {
+        match statement {
+            Statement::Let { value, .. } | Statement::Assign { value, .. } => {
+                self.reject_while_disallowed(value)
+            }
+            Statement::Unsafe { span, .. } => Err(self.error(
+                "SPX-T252",
+                "unsafe boundary statements are not yet admitted in while bodies",
+                *span,
+            )),
+            Statement::While {
+                condition, body, ..
+            } => {
+                self.reject_while_disallowed(condition)?;
+                self.reject_while_disallowed(body)
+            }
+        }
     }
 
     fn resolve_expr_iterative(
@@ -5436,6 +5639,28 @@ impl Resolver<'_> {
                 index: usize,
                 scope: Rc<BTreeMap<String, Binding>>,
                 resolved: Vec<ResolvedStatement>,
+            },
+            BlockWhileCondition {
+                span: Span,
+                path: String,
+                condition: &'expr Expr,
+                body: &'expr Expr,
+                statements: &'expr [Statement],
+                tail: &'expr Expr,
+                index: usize,
+                scope: Rc<BTreeMap<String, Binding>>,
+                resolved: Vec<ResolvedStatement>,
+            },
+            BlockWhileBody {
+                span: Span,
+                path: String,
+                statements: &'expr [Statement],
+                tail: &'expr Expr,
+                index: usize,
+                scope: Rc<BTreeMap<String, Binding>>,
+                resolved: Vec<ResolvedStatement>,
+                condition: Box<ResolvedExpr>,
+                condition_span: Span,
             },
             FinishBlock {
                 span: Span,
@@ -5609,6 +5834,8 @@ impl Resolver<'_> {
                 | Frame::BlockAfterLet { path, .. }
                 | Frame::BlockAfterAssign { path, .. }
                 | Frame::BlockAfterUnsafe { path, .. }
+                | Frame::BlockWhileCondition { path, .. }
+                | Frame::BlockWhileBody { path, .. }
                 | Frame::FinishBlock { path, .. }
                 | Frame::FinishIf { path, .. }
                 | Frame::AfterIfCondition { path, .. }
@@ -5649,7 +5876,9 @@ impl Resolver<'_> {
                 Frame::BlockNext { scope, .. }
                 | Frame::BlockAfterLet { scope, .. }
                 | Frame::BlockAfterAssign { scope, .. }
-                | Frame::BlockAfterUnsafe { scope, .. } => resolver_scope_owned_capacity(scope),
+                | Frame::BlockAfterUnsafe { scope, .. }
+                | Frame::BlockWhileCondition { scope, .. }
+                | Frame::BlockWhileBody { scope, .. } => resolver_scope_owned_capacity(scope),
                 _ => 0,
             };
             let retained = match frame {
@@ -5688,6 +5917,8 @@ impl Resolver<'_> {
                 | Frame::BlockAfterLet { resolved, .. }
                 | Frame::BlockAfterAssign { resolved, .. }
                 | Frame::BlockAfterUnsafe { resolved, .. }
+                | Frame::BlockWhileCondition { resolved, .. }
+                | Frame::BlockWhileBody { resolved, .. }
                 | Frame::FinishBlock {
                     statements: resolved,
                     ..
@@ -6648,6 +6879,31 @@ impl Resolver<'_> {
                                     path: format!("{path}.s{index}.body"),
                                 });
                             }
+                            Statement::While {
+                                condition, body, ..
+                            } => {
+                                // Bounded While-Loops v1: admit only the
+                                // Copy-scalar profile before resolving, so a
+                                // loop can never introduce cleanup structure.
+                                self.reject_while_disallowed(condition)?;
+                                self.reject_while_disallowed(body)?;
+                                frames.push(Frame::BlockWhileCondition {
+                                    span,
+                                    path: path.clone(),
+                                    condition,
+                                    body,
+                                    statements,
+                                    tail,
+                                    index,
+                                    scope: scope.clone(),
+                                    resolved,
+                                });
+                                frames.push(Frame::Enter {
+                                    expr: condition,
+                                    bindings: scope,
+                                    path: format!("{path}.s{index}.condition"),
+                                });
+                            }
                         }
                     }
                 }
@@ -6813,6 +7069,80 @@ impl Resolver<'_> {
                         audit: audit.clone(),
                         body: Box::new(body),
                         span: *statement_span,
+                    });
+                    frames.push(Frame::BlockNext {
+                        span,
+                        path,
+                        statements,
+                        tail,
+                        index: index + 1,
+                        scope,
+                        resolved,
+                    });
+                }
+                Frame::BlockWhileCondition {
+                    span,
+                    path,
+                    condition,
+                    body,
+                    statements,
+                    tail,
+                    index,
+                    scope,
+                    resolved,
+                } => {
+                    // The condition is re-evaluated before every iteration and
+                    // must be exactly `bool`.
+                    let evaluated = results.pop().expect("while condition result retained");
+                    if evaluated.ty != ResolvedType::Bool {
+                        return Err(self.error(
+                            "SPX-T251",
+                            "`while` condition must be bool",
+                            condition.span,
+                        ));
+                    }
+                    frames.push(Frame::BlockWhileBody {
+                        span,
+                        path: path.clone(),
+                        statements,
+                        tail,
+                        index,
+                        scope: scope.clone(),
+                        resolved,
+                        condition: Box::new(evaluated),
+                        condition_span: condition.span,
+                    });
+                    frames.push(Frame::Enter {
+                        expr: body,
+                        bindings: scope.clone(),
+                        path: format!("{path}.s{index}.body"),
+                    });
+                }
+                Frame::BlockWhileBody {
+                    span,
+                    path,
+                    statements,
+                    tail,
+                    index,
+                    scope,
+                    mut resolved,
+                    condition,
+                    condition_span,
+                } => {
+                    // The body block resolved like any ordinary nested block;
+                    // its value is discarded by the statement.
+                    let body = results.pop().expect("while body result retained");
+                    let Statement::While {
+                        span: statement_span,
+                        ..
+                    } = &statements[index]
+                    else {
+                        unreachable!("while frame resumes at a while statement")
+                    };
+                    resolved.push(ResolvedStatement::While {
+                        condition,
+                        body: Box::new(body),
+                        span: condition_span.merge(*statement_span),
                     });
                     frames.push(Frame::BlockNext {
                         span,
@@ -8409,6 +8739,41 @@ impl Resolver<'_> {
                                 audit: audit.clone(),
                                 body: Box::new(body),
                                 span: *span,
+                            });
+                        }
+                        Statement::While {
+                            condition,
+                            body,
+                            span,
+                            ..
+                        } => {
+                            // Mirror the iterative admission and typing checks
+                            // exactly, including path spellings.
+                            self.reject_while_disallowed(condition)?;
+                            self.reject_while_disallowed(body)?;
+                            let resolved_condition = self.resolve_expr_recursive_reference(
+                                function,
+                                condition,
+                                &scope,
+                                &format!("{statement_path}.condition"),
+                            )?;
+                            if resolved_condition.ty != ResolvedType::Bool {
+                                return Err(self.error(
+                                    "SPX-T251",
+                                    "`while` condition must be bool",
+                                    condition.span,
+                                ));
+                            }
+                            let resolved_body = self.resolve_expr_recursive_reference(
+                                function,
+                                body,
+                                &scope,
+                                &format!("{statement_path}.body"),
+                            )?;
+                            resolved_statements.push(ResolvedStatement::While {
+                                condition: Box::new(resolved_condition),
+                                body: Box::new(resolved_body),
+                                span: condition.span.merge(*span),
                             });
                         }
                     }

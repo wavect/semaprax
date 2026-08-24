@@ -652,7 +652,11 @@ fn precheck_program(program: &Program) -> Result<AstUsage, Vec<Diagnostic>> {
             ExprKind::Block { statements, tail } => {
                 stack.push(tail);
                 for statement in statements.iter().rev() {
-                    stack.push(statement.value());
+                    for index in (0..statement.child_count()).rev() {
+                        if let Some(child) = statement.child(index) {
+                            stack.push(child);
+                        }
+                    }
                 }
             }
             ExprKind::If {

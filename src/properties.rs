@@ -47,6 +47,7 @@ const REASON_RECORD_PROJECTION: &str = "record_projection";
 const REASON_MATCH_EXPRESSION: &str = "match_expression";
 const REASON_TRY_EXPRESSION: &str = "try_expression";
 const REASON_ASSIGNMENT: &str = "assignment_statement";
+const REASON_WHILE_LOOP: &str = "while_statement";
 const REASON_GENERIC_CALL: &str = "generic_call";
 const REASON_UNRESOLVED_CALL: &str = "unresolved_call";
 const REASON_UNRESOLVED_VARIABLE: &str = "unresolved_variable";
@@ -526,7 +527,9 @@ impl<'a> Analyzer<'a> {
                     // Field Mutation v1 targets stay outside the scalar
                     // property slice.
                     Statement::Assign { field: Some(_), .. } => Some(REASON_RECORD_PROJECTION),
-                    _ => self.scan(statement.value()),
+                    _ => (0..statement.child_count()).find_map(|index| {
+                        statement.child(index).and_then(|child| self.scan(child))
+                    }),
                 })
                 .or_else(|| self.scan(tail)),
             ExprKind::If {
@@ -720,6 +723,14 @@ impl<'a> Analyzer<'a> {
                                     break;
                                 }
                             }
+                        }
+                        Statement::While { .. } => {
+                            // Property-test generation stays loop-free: the
+                            // seeded candidate corpus never needs iteration,
+                            // and unbounded evaluation would break the step
+                            // budget contract for generated tests.
+                            interrupted = Some(Outcome::Unsupported(REASON_WHILE_LOOP));
+                            break;
                         }
                     }
                 }

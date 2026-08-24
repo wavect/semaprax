@@ -485,7 +485,11 @@ fn ast_expr_identity_slots(expression: &Expr) -> Result<usize, Vec<Diagnostic>> 
                 if matches!(statement, crate::ast::Statement::Let { .. }) {
                     slots = checked_builder_sum(slots, 1)?;
                 }
-                slots = checked_builder_sum(slots, ast_expr_identity_slots(statement.value())?)?;
+                for index in 0..statement.child_count() {
+                    if let Some(child) = statement.child(index) {
+                        slots = checked_builder_sum(slots, ast_expr_identity_slots(child)?)?;
+                    }
+                }
             }
             slots = checked_builder_sum(slots, ast_expr_identity_slots(tail)?)?;
         }
@@ -721,12 +725,20 @@ fn ast_expr_cost(expression: &Expr, cost: &mut StructuralCost) -> Result<(), Vec
             for statement in statements {
                 cost.value(statement)?;
                 // Only `let` and assignment statements name a binding; unsafe
-                // boundaries charge their verbatim audit summary instead.
+                // boundaries charge their verbatim audit summary instead and
+                // while statements carry no binding at all.
                 match statement.audit() {
                     Some(audit) => cost.string(audit)?,
+                    None if matches!(statement, crate::ast::Statement::While { .. }) => {
+                        cost.string("")?
+                    }
                     None => cost.string(statement.name())?,
                 }
-                ast_expr_cost(statement.value(), cost)?;
+                for index in 0..statement.child_count() {
+                    if let Some(child) = statement.child(index) {
+                        ast_expr_cost(child, cost)?;
+                    }
+                }
             }
             ast_expr_cost(tail, cost)?;
         }
@@ -1894,16 +1906,33 @@ fn collect_expression_type_edges(
         }
         ExprKind::Block { statements, tail } => {
             for (index, statement) in statements.iter().enumerate() {
-                collect_expression_type_edges(
-                    program,
-                    owner,
-                    statement.value(),
-                    &crate::bounded_output::budgeted_format(format_args!("{path}.s{index}.value")),
-                    type_uses,
-                    module_paths,
-                    authored,
-                    edges,
-                )?;
+                let child_count = statement.child_count();
+                for child_index in 0..child_count {
+                    let Some(child) = statement.child(child_index) else {
+                        continue;
+                    };
+                    let segment = if matches!(statement, crate::ast::Statement::While { .. }) {
+                        if child_index == 0 {
+                            "condition"
+                        } else {
+                            "body"
+                        }
+                    } else {
+                        "value"
+                    };
+                    collect_expression_type_edges(
+                        program,
+                        owner,
+                        child,
+                        &crate::bounded_output::budgeted_format(format_args!(
+                            "{path}.s{index}.{segment}"
+                        )),
+                        type_uses,
+                        module_paths,
+                        authored,
+                        edges,
+                    )?;
+                }
             }
             collect_expression_type_edges(
                 program,

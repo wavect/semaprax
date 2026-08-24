@@ -451,7 +451,11 @@ fn collect_expr_variant_types(
                 if let crate::hir::ResolvedStatement::Let { binding, .. } = statement {
                     collect_variant_type(program, &binding.ty, instances)?;
                 }
-                collect_expr_variant_types(program, statement.value(), instances)?;
+                for index in 0..statement.child_count() {
+                    if let Some(child) = statement.child(index) {
+                        collect_expr_variant_types(program, child, instances)?;
+                    }
+                }
             }
             collect_expr_variant_types(program, tail, instances)?;
         }

@@ -453,7 +453,11 @@ fn walk_children(expr: &ResolvedExpr, mut visit: impl FnMut(&ResolvedExpr)) {
         }
         ResolvedExprKind::Block { statements, tail } => {
             for statement in statements {
-                visit(statement.value());
+                for index in 0..statement.child_count() {
+                    if let Some(child) = statement.child(index) {
+                        visit(child);
+                    }
+                }
             }
             visit(tail);
         }

@@ -777,11 +777,18 @@ fn child_expressions(expression: &ResolvedExpr) -> Vec<&ResolvedExpr> {
         | ResolvedExprKind::TryOption { operand: value, .. }
         | ResolvedExprKind::Project { base: value, .. } => vec![value.as_ref()],
         ResolvedExprKind::Binary { left, right, .. } => vec![left.as_ref(), right.as_ref()],
-        ResolvedExprKind::Block { statements, tail } => statements
-            .iter()
-            .map(|statement| statement.value())
-            .chain(std::iter::once(tail.as_ref()))
-            .collect(),
+        ResolvedExprKind::Block { statements, tail } => {
+            let mut collected = Vec::new();
+            for statement in statements {
+                for index in 0..statement.child_count() {
+                    if let Some(child) = statement.child(index) {
+                        collected.push(child);
+                    }
+                }
+            }
+            collected.push(tail.as_ref());
+            collected
+        }
         ResolvedExprKind::If {
             condition,
             then_branch,
@@ -1151,6 +1158,41 @@ impl Evaluator<'_> {
                             interrupted =
                                 Some(Flow::Guard("unsafe boundary outside the admitted surface"));
                             break;
+                        }
+                        ResolvedStatement::While {
+                            condition, body, ..
+                        } => {
+                            // Bounded While-Loops v1: the condition
+                            // re-evaluates before every iteration and every
+                            // evaluated node charges fuel, so a non-terminating
+                            // loop fails closed through the existing exhausted
+                            // budget path.
+                            loop {
+                                let charge = self.charge();
+                                if charge.is_none() {
+                                    interrupted = Some(Flow::Exhausted);
+                                    break;
+                                }
+                                let flag = match self.evaluate(condition, environment, depth) {
+                                    Ok(Value::Bool(flag)) => flag,
+                                    Ok(_) => {
+                                        interrupted =
+                                            Some(Flow::Guard("non-boolean while condition"));
+                                        break;
+                                    }
+                                    Err(flow) => {
+                                        interrupted = Some(flow);
+                                        break;
+                                    }
+                                };
+                                if !flag {
+                                    break;
+                                }
+                                if let Err(flow) = self.evaluate(body, environment, depth) {
+                                    interrupted = Some(flow);
+                                    break;
+                                }
+                            }
                         }
                     }
                 }

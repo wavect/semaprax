@@ -20,7 +20,8 @@ fn contains_unsafe_boundary(expression: &ResolvedExpr) -> bool {
         ResolvedExprKind::Block { statements, tail } => {
             statements.iter().any(|statement| match statement {
                 ResolvedStatement::Unsafe { .. } => true,
-                _ => contains_unsafe_boundary(statement.value()),
+                _ => (0..statement.child_count())
+                    .any(|index| statement.child(index).is_some_and(contains_unsafe_boundary)),
             }) || contains_unsafe_boundary(tail)
         }
         ResolvedExprKind::Call { args, .. } => args.iter().any(contains_unsafe_boundary),
@@ -1123,6 +1124,9 @@ impl<'a> HirValidator<'a> {
                                 &format!("{statement_path}.body"),
                             )?;
                         }
+                        ResolvedStatement::While { .. } => {
+                            return Err(hir_error("generic templates cannot contain while loops"));
+                        }
                     }
                 }
                 self.validate_template_expr(
@@ -1173,6 +1177,102 @@ impl<'a> HirValidator<'a> {
             }
         }
         Ok(())
+    }
+
+    /// Bounded While-Loops v1 admission re-check at the HIR trust boundary.
+    /// Loop conditions and bodies may contain only Copy-scalar operations;
+    /// anything else fails closed as malformed HIR because source resolution
+    /// already rejected it with `SPX-T252`.
+    fn validate_while_admission(&self, expression: &ResolvedExpr) -> Result<(), Diagnostic> {
+        match &expression.kind {
+            ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Int32(_)
+            | ResolvedExprKind::Char(_)
+            | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Float32(_)
+            | ResolvedExprKind::Float64(_)
+            | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::Place(_) => Ok(()),
+            ResolvedExprKind::String(_) => {
+                Err(hir_error("while loops cannot contain string literals"))
+            }
+            ResolvedExprKind::Unary { value, .. } => self.validate_while_admission(value),
+            ResolvedExprKind::Binary { left, right, .. } => {
+                self.validate_while_admission(left)?;
+                self.validate_while_admission(right)
+            }
+            ResolvedExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                self.validate_while_admission(condition)?;
+                self.validate_while_admission(then_branch)?;
+                self.validate_while_admission(else_branch)
+            }
+            ResolvedExprKind::Block { statements, tail } => {
+                for statement in statements {
+                    for index in 0..statement.child_count() {
+                        let child = statement
+                            .child(index)
+                            .ok_or_else(|| hir_error("while statement child is missing"))?;
+                        self.validate_while_admission(child)?;
+                    }
+                }
+                self.validate_while_admission(tail)
+            }
+            ResolvedExprKind::Call {
+                callee,
+                instance,
+                type_arguments,
+                args,
+            } => {
+                if instance.is_some() || !type_arguments.is_empty() {
+                    return Err(hir_error("while loops cannot contain generic calls"));
+                }
+                let target = self
+                    .program
+                    .resolve_call_target(callee, None)
+                    .ok_or_else(|| {
+                        hir_error(format!("while loop call `{callee}` is not indexed"))
+                    })?;
+                let scalar_signature = crate::hir::is_scalar_resolved_type(&target.return_type)
+                    && target.params.iter().all(|param| {
+                        param.ownership == OwnershipMode::Value
+                            && crate::hir::is_scalar_resolved_type(&param.ty)
+                    });
+                if !scalar_signature {
+                    return Err(hir_error(format!(
+                        "while loop call `{callee}` is not a scalar-value function"
+                    )));
+                }
+                for argument in args {
+                    self.validate_while_admission(argument)?;
+                }
+                Ok(())
+            }
+            ResolvedExprKind::NativeRustImportCall(_) => Err(hir_error(
+                "while loops cannot contain native Rust import calls",
+            )),
+            ResolvedExprKind::Project { .. } => {
+                Err(hir_error("while loops cannot project record fields"))
+            }
+            ResolvedExprKind::ConstructRecord { .. } => {
+                Err(hir_error("while loops cannot construct records"))
+            }
+            ResolvedExprKind::ConstructVariant { .. } => {
+                Err(hir_error("while loops cannot construct variants"))
+            }
+            ResolvedExprKind::UpdateRecord { .. } => {
+                Err(hir_error("while loops cannot update records"))
+            }
+            ResolvedExprKind::Match { .. } => {
+                Err(hir_error("while loops cannot contain match expressions"))
+            }
+            ResolvedExprKind::Try { .. } | ResolvedExprKind::TryOption { .. } => Err(hir_error(
+                "while loops cannot contain postfix `?` propagation",
+            )),
+        }
     }
 
     fn reachable_function_instances(
@@ -1750,6 +1850,26 @@ impl<'a> HirValidator<'a> {
                 outer_ids: Vec<ValueId>,
                 path: String,
             },
+            BlockAfterWhileCondition {
+                expression: &'e ResolvedExpr,
+                statements: &'e [ResolvedStatement],
+                tail: &'e ResolvedExpr,
+                index: usize,
+                outer: BTreeMap<ValueId, ValidationBinding>,
+                outer_ids: Vec<ValueId>,
+                path: String,
+                body: &'e ResolvedExpr,
+            },
+            BlockAfterWhileBody {
+                expression: &'e ResolvedExpr,
+                statements: &'e [ResolvedStatement],
+                tail: &'e ResolvedExpr,
+                index: usize,
+                outer: BTreeMap<ValueId, ValidationBinding>,
+                outer_ids: Vec<ValueId>,
+                path: String,
+                entry: BTreeMap<ValueId, ValidationBinding>,
+            },
             BlockTail {
                 expression: &'e ResolvedExpr,
                 outer_ids: Vec<ValueId>,
@@ -1901,6 +2021,9 @@ impl<'a> HirValidator<'a> {
                 | Frame::BlockNext { path, .. }
                 | Frame::BlockAfterLet { path, .. }
                 | Frame::BlockAfterAssign { path, .. }
+                | Frame::BlockAfterUnsafe { path, .. }
+                | Frame::BlockAfterWhileCondition { path, .. }
+                | Frame::BlockAfterWhileBody { path, .. }
                 | Frame::RecordNext { path, .. }
                 | Frame::RecordAfterField { path, .. }
                 | Frame::VariantNext { path, .. }
@@ -3093,6 +3216,37 @@ impl<'a> HirValidator<'a> {
                                     path: format!("{path}.s{index}.body"),
                                 });
                             }
+                            ResolvedStatement::While {
+                                condition, body, ..
+                            } => {
+                                // Bounded While-Loops v1: re-check admission
+                                // at the trust boundary and require an exact
+                                // `bool` condition before validating the body
+                                // like any nested block.
+                                self.validate_while_admission(condition)?;
+                                self.validate_while_admission(body)?;
+                                if condition.ty != ResolvedType::Bool {
+                                    return Err(hir_error("`while` condition must be bool"));
+                                }
+                                frames.push(Frame::BlockAfterWhileCondition {
+                                    expression,
+                                    statements,
+                                    tail,
+                                    index,
+                                    outer,
+                                    outer_ids,
+                                    path: path.clone(),
+                                    body,
+                                });
+                                let enabled = publication.enabled;
+                                publication.enabled = false;
+                                frames.push(Frame::RestorePublication(enabled));
+                                frames.push(Frame::Enter {
+                                    expression: condition,
+                                    scope,
+                                    path: format!("{path}.s{index}.condition"),
+                                });
+                            }
                         }
                     }
                 }
@@ -3124,6 +3278,74 @@ impl<'a> HirValidator<'a> {
                         tail,
                         index: index + 1,
                         scope,
+                        outer,
+                        outer_ids,
+                        path,
+                    });
+                }
+                Frame::BlockAfterWhileCondition {
+                    expression,
+                    statements,
+                    tail,
+                    index,
+                    outer,
+                    outer_ids,
+                    path,
+                    body,
+                } => {
+                    // The condition validated like any expression; it must be
+                    // exactly `bool` because it re-evaluates before every
+                    // iteration.
+                    let scope = scopes.pop().expect("while condition scope retained");
+                    let ResolvedStatement::While { condition, .. } = &statements[index] else {
+                        unreachable!("while condition frame resumes at a while statement")
+                    };
+                    if condition.ty != ResolvedType::Bool {
+                        return Err(hir_error("`while` condition must be bool"));
+                    }
+                    frames.push(Frame::BlockAfterWhileBody {
+                        expression,
+                        statements,
+                        tail,
+                        index,
+                        outer,
+                        outer_ids,
+                        path: path.clone(),
+                        entry: scope.clone(),
+                    });
+                    let enabled = publication.enabled;
+                    publication.enabled = false;
+                    frames.push(Frame::RestorePublication(enabled));
+                    frames.push(Frame::Enter {
+                        expression: body,
+                        scope,
+                        path: format!("{path}.s{index}.body"),
+                    });
+                }
+                Frame::BlockAfterWhileBody {
+                    expression,
+                    statements,
+                    tail,
+                    index,
+                    outer,
+                    outer_ids,
+                    path,
+                    entry,
+                } => {
+                    // The body block validated like any nested block. Because
+                    // zero or more iterations run, its merged ownership state
+                    // must equal the loop-entry state exactly; admission keeps
+                    // every loop binding Copy-scalar so nothing can drift.
+                    let after = scopes.pop().expect("while body scope retained");
+                    if after != entry {
+                        return Err(hir_error("while loop body changes ownership liveness"));
+                    }
+                    frames.push(Frame::BlockNext {
+                        expression,
+                        statements,
+                        tail,
+                        index: index + 1,
+                        scope: entry,
                         outer,
                         outer_ids,
                         path,
@@ -4715,6 +4937,40 @@ impl<'a> HirValidator<'a> {
                             {
                                 return Err(hir_error(
                                     "unsafe boundary bodies must produce a scalar Copy value",
+                                ));
+                            }
+                        }
+                        ResolvedStatement::While {
+                            condition, body, ..
+                        } => {
+                            // Bounded While-Loops v1: mirror the iterative
+                            // admission re-check, condition typing, body
+                            // validation, and exact entry-state equality.
+                            self.validate_while_admission(condition)?;
+                            self.validate_while_admission(body)?;
+                            let entry_scope = block_scope.clone();
+                            self.validate_expr_recursive_reference(
+                                function,
+                                condition,
+                                &mut block_scope,
+                                &format!("{path}.s{index}.condition"),
+                                allow_moves,
+                                allowed_effects,
+                            )?;
+                            if condition.ty != ResolvedType::Bool {
+                                return Err(hir_error("`while` condition must be bool"));
+                            }
+                            self.validate_expr_recursive_reference(
+                                function,
+                                body,
+                                &mut block_scope,
+                                &format!("{path}.s{index}.body"),
+                                allow_moves,
+                                allowed_effects,
+                            )?;
+                            if block_scope != entry_scope {
+                                return Err(hir_error(
+                                    "while loop body changes ownership liveness",
                                 ));
                             }
                         }

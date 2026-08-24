@@ -1168,7 +1168,9 @@ fn resolved_expr_children<'a>(
         ResolvedExprKind::Block { statements, tail } => Box::new(
             statements
                 .iter()
-                .map(|statement| statement.value())
+                .flat_map(|statement| {
+                    (0..statement.child_count()).filter_map(move |index| statement.child(index))
+                })
                 .chain(std::iter::once(tail.as_ref())),
         ),
         ResolvedExprKind::If {
@@ -2224,10 +2226,10 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
             expression_has_try(left) || expression_has_try(right)
         }
         ResolvedExprKind::Block { statements, tail } => {
-            statements
-                .iter()
-                .any(|statement| expression_has_try(statement.value()))
-                || expression_has_try(tail)
+            statements.iter().any(|statement| {
+                (0..statement.child_count())
+                    .any(|index| statement.child(index).is_some_and(expression_has_try))
+            }) || expression_has_try(tail)
         }
         ResolvedExprKind::If {
             condition,
@@ -2837,6 +2839,35 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                 ));
                             }
                             self.line(&format!("(void)({});", value.code));
+                        }
+                        ResolvedStatement::While {
+                            condition, body, ..
+                        } => {
+                            // Bounded While-Loops v1 lowers to a native C11
+                            // loop. Because checked sub-expressions lower to
+                            // statements, the condition re-evaluates at the
+                            // top of every iteration and breaks out on false;
+                            // checked-arithmetic failures inside the loop jump
+                            // to the shared epilogue exactly like
+                            // straight-line failures.
+                            self.line("for (;;) {");
+                            self.indent += 1;
+                            let condition = self.emit_expr(condition)?;
+                            self.require_type(
+                                &condition.ty,
+                                &ResolvedType::Bool,
+                                "while condition",
+                            )?;
+                            self.line(&format!("if (!({})) break;", condition.code));
+                            let body_value = self.emit_expr(body)?;
+                            if matches!(body_value.ty, ResolvedType::String) {
+                                return Err(backend_error(
+                                    "discarding an owned string has no admitted native lowering",
+                                ));
+                            }
+                            self.line(&format!("(void)({});", body_value.code));
+                            self.indent -= 1;
+                            self.line("}");
                         }
                     }
                 }

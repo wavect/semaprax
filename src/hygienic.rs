@@ -425,7 +425,9 @@ impl ScanState<'_> {
                     // Field Mutation v1 targets stay outside the typed
                     // hygienic core.
                     Statement::Assign { field: Some(_), .. } => Some(REASON_RECORD_PROJECTION),
-                    _ => self.scan(statement.value()),
+                    _ => (0..statement.child_count()).find_map(|index| {
+                        statement.child(index).and_then(|child| self.scan(child))
+                    }),
                 })
                 .or_else(|| self.scan(tail)),
             ExprKind::If {

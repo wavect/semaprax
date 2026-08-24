@@ -159,7 +159,13 @@ fn program_uses_strings(program: &ResolvedProgram) -> bool {
                 pending.push(right);
             }
             ResolvedExprKind::Block { statements, tail } => {
-                pending.extend(statements.iter().map(|statement| statement.value()));
+                for statement in statements {
+                    for index in 0..statement.child_count() {
+                        if let Some(child) = statement.child(index) {
+                            pending.push(child);
+                        }
+                    }
+                }
                 pending.push(tail);
             }
             ResolvedExprKind::If {
@@ -297,7 +303,11 @@ fn collect_string_data(program: &ResolvedProgram) -> StringData {
             ResolvedExprKind::Block { statements, tail } => {
                 pending.push(tail);
                 for statement in statements.iter().rev() {
-                    pending.push(statement.value());
+                    for index in (0..statement.child_count()).rev() {
+                        if let Some(child) = statement.child(index) {
+                            pending.push(child);
+                        }
+                    }
                 }
             }
             ResolvedExprKind::If {
@@ -1764,6 +1774,12 @@ fn collect_locals(
                     ResolvedStatement::Unsafe { body, .. } => {
                         collect_locals(body, parameter_count, layout)?;
                     }
+                    ResolvedStatement::While {
+                        condition, body, ..
+                    } => {
+                        collect_locals(condition, parameter_count, layout)?;
+                        collect_locals(body, parameter_count, layout)?;
+                    }
                 }
             }
             collect_locals(tail, parameter_count, layout)?;
@@ -2299,6 +2315,41 @@ fn emit_expr(
                         )?;
                         output.push(0x1A);
                     }
+                    // Bounded While-Loops v1 lowers to a core `block`/`loop`
+                    // pair: the condition re-evaluates at the top, a false
+                    // condition branches out of the enclosing block, and the
+                    // discarded body value falls through to the back-edge
+                    // branch. Checked-arithmetic failures inside the loop use
+                    // the same host imports/traps as straight-line code.
+                    ResolvedStatement::While {
+                        condition, body, ..
+                    } => {
+                        debug_assert!(matches!(condition.ty, ResolvedType::Bool));
+                        output.extend_bytes(&[0x02, 0x40]); // block (empty)
+                        output.extend_bytes(&[0x03, 0x40]); // loop (empty) $top
+                        emit_expr(
+                            output,
+                            condition,
+                            value_indexes,
+                            function_indexes,
+                            layout,
+                            result,
+                        )?;
+                        output.push(0x45); // i32.eqz
+                        output.extend_bytes(&[0x0d, 0x01]); // br_if 1 -> $exit on false
+                        emit_expr(
+                            output,
+                            body,
+                            value_indexes,
+                            function_indexes,
+                            layout,
+                            result,
+                        )?;
+                        output.push(0x1A); // drop body value
+                        output.extend_bytes(&[0x0c, 0x00]); // br 0 -> $top
+                        output.push(0x0b); // end loop
+                        output.push(0x0b); // end block
+                    }
                 }
             }
             emit_expr(
@@ -2544,7 +2595,11 @@ pub(crate) fn needs_i32_wide_scratch(expression: &ResolvedExpr) -> bool {
             ResolvedExprKind::NativeRustImportCall(call) => pending.extend(call.args.iter()),
             ResolvedExprKind::Block { statements, tail } => {
                 for statement in statements {
-                    pending.push(statement.value());
+                    for index in 0..statement.child_count() {
+                        if let Some(child) = statement.child(index) {
+                            pending.push(child);
+                        }
+                    }
                 }
                 pending.push(tail);
             }
@@ -2624,9 +2679,10 @@ fn contains_u8_arithmetic(expression: &ResolvedExpr) -> bool {
         }
         ResolvedExprKind::Block { statements, tail } => {
             contains_u8_arithmetic(tail)
-                || statements
-                    .iter()
-                    .any(|statement| contains_u8_arithmetic(statement.value()))
+                || statements.iter().any(|statement| {
+                    (0..statement.child_count())
+                        .any(|index| statement.child(index).is_some_and(contains_u8_arithmetic))
+                })
         }
         ResolvedExprKind::If {
             condition,

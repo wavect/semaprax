@@ -1151,7 +1151,11 @@ fn collect_result_propagations<'a>(
         }
         ResolvedExprKind::Block { statements, tail } => {
             for statement in statements {
-                collect_result_propagations(statement.value(), propagations);
+                for index in 0..statement.child_count() {
+                    if let Some(child) = statement.child(index) {
+                        collect_result_propagations(child, propagations);
+                    }
+                }
             }
             collect_result_propagations(tail, propagations);
         }
@@ -1252,11 +1256,35 @@ pub(crate) fn graph_schema(program: &ResolvedProgram) -> &'static str {
     )
 }
 
+/// Bounded While-Loops v1 nonclaim gate: programs selecting Graph v15 stay
+/// outside every evidence/patch flow until that combination is separately
+/// evidenced. Generation fails closed so no capsule can ever carry a schema
+/// the independent verifiers reject as unsupported.
+pub(crate) fn reject_while_loop_evidence_schema(schema: &str) -> Result<(), Diagnostic> {
+    if schema == "semaprax.graph.v15" {
+        Err(Diagnostic::io(
+            "SPX-G410",
+            "while-loop programs select `semaprax.graph.v15`, which is outside this evidence flow's admission",
+        ))
+    } else {
+        Ok(())
+    }
+}
+
 pub(crate) fn graph_schema_from_parts(
     types: &[hir::ResolvedTypeDeclaration],
     functions: &[ResolvedFunction],
     function_templates: &[hir::ResolvedFunctionTemplate],
 ) -> &'static str {
+    // Bounded While-Loops v1 selects v15 above the whole lower lattice only
+    // when an authenticated while node exists; programs without while syntax
+    // keep their exact pre-existing schema and bytes.
+    if functions
+        .iter()
+        .any(|function| expression_has_while(&function.body))
+    {
+        return "semaprax.graph.v15";
+    }
     if !function_templates.is_empty() {
         return "semaprax.graph.v14";
     }
@@ -1299,6 +1327,61 @@ pub(crate) fn graph_schema_from_parts(
     }
 }
 
+/// `true` when the resolved expression tree contains an authenticated while
+/// statement anywhere inside its blocks, branches, arms, or nested bodies.
+fn expression_has_while(expression: &ResolvedExpr) -> bool {
+    match &expression.kind {
+        ResolvedExprKind::Block { statements, tail } => {
+            statements.iter().any(|statement| match statement {
+                ResolvedStatement::While { .. } => true,
+                _ => (0..statement.child_count())
+                    .any(|index| statement.child(index).is_some_and(expression_has_while)),
+            }) || expression_has_while(tail)
+        }
+        ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_while),
+        ResolvedExprKind::NativeRustImportCall(call) => call.args.iter().any(expression_has_while),
+        ResolvedExprKind::Unary { value, .. }
+        | ResolvedExprKind::Try { operand: value, .. }
+        | ResolvedExprKind::TryOption { operand: value, .. }
+        | ResolvedExprKind::Project { base: value, .. } => expression_has_while(value),
+        ResolvedExprKind::Binary { left, right, .. } => {
+            expression_has_while(left) || expression_has_while(right)
+        }
+        ResolvedExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            expression_has_while(condition)
+                || expression_has_while(then_branch)
+                || expression_has_while(else_branch)
+        }
+        ResolvedExprKind::ConstructRecord { fields, .. }
+        | ResolvedExprKind::ConstructVariant { fields, .. } => fields
+            .iter()
+            .any(|field| expression_has_while(&field.value)),
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            expression_has_while(scrutinee)
+                || arms.iter().any(|arm| expression_has_while(&arm.value))
+        }
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            expression_has_while(base)
+                || fields
+                    .iter()
+                    .any(|field| expression_has_while(&field.value))
+        }
+        ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Int32(_)
+        | ResolvedExprKind::Char(_)
+        | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Float32(_)
+        | ResolvedExprKind::Float64(_)
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
+        | ResolvedExprKind::Place(_) => false,
+    }
+}
+
 fn expression_has_record_pattern(expression: &ResolvedExpr) -> bool {
     match &expression.kind {
         ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_record_pattern),
@@ -1313,10 +1396,13 @@ fn expression_has_record_pattern(expression: &ResolvedExpr) -> bool {
             expression_has_record_pattern(left) || expression_has_record_pattern(right)
         }
         ResolvedExprKind::Block { statements, tail } => {
-            statements
-                .iter()
-                .any(|statement| expression_has_record_pattern(statement.value()))
-                || expression_has_record_pattern(tail)
+            statements.iter().any(|statement| {
+                (0..statement.child_count()).any(|index| {
+                    statement
+                        .child(index)
+                        .is_some_and(expression_has_record_pattern)
+                })
+            }) || expression_has_record_pattern(tail)
         }
         ResolvedExprKind::If {
             condition,
@@ -1437,7 +1523,11 @@ fn collect_agent_contract_values(expression: &ResolvedExpr, values: &mut BTreeSe
                 if let ResolvedStatement::Let { binding, .. } = statement {
                     values.insert(binding.id.clone());
                 }
-                collect_agent_contract_values(statement.value(), values);
+                for index in 0..statement.child_count() {
+                    if let Some(child) = statement.child(index) {
+                        collect_agent_contract_values(child, values);
+                    }
+                }
             }
             collect_agent_contract_values(tail, values);
         }
@@ -1595,6 +1685,15 @@ fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnos
                             quote_json(audit),
                             agent_contract_expr_json(body)?
                         ),
+                        ResolvedStatement::While { .. } => {
+                            // Contract expressions reject while statements at
+                            // verification time, so this projection can never
+                            // observe one.
+                            return Err(Diagnostic::io(
+                                "SPX-G218",
+                                "while statements are outside the current semantic Graph contract projections",
+                            ));
+                        }
                     })
                 })
                 .collect::<Result<Vec<_>, Diagnostic>>()?
@@ -3325,7 +3424,11 @@ fn visit_expr_call_instances(
         }
         ResolvedExprKind::Block { statements, tail } => {
             for statement in statements {
-                visit_expr_call_instances(statement.value(), visit);
+                for index in 0..statement.child_count() {
+                    if let Some(child) = statement.child(index) {
+                        visit_expr_call_instances(child, visit);
+                    }
+                }
             }
             visit_expr_call_instances(tail, visit);
         }
@@ -3391,7 +3494,11 @@ fn visit_expr_calls(expression: &ResolvedExpr, visit: &mut impl FnMut(&Declarati
         }
         ResolvedExprKind::Block { statements, tail } => {
             for statement in statements {
-                visit_expr_calls(statement.value(), visit);
+                for index in 0..statement.child_count() {
+                    if let Some(child) = statement.child(index) {
+                        visit_expr_calls(child, visit);
+                    }
+                }
             }
             visit_expr_calls(tail, visit);
         }
@@ -3487,7 +3594,11 @@ fn collect_expr_type_declarations(
                 if let ResolvedStatement::Let { binding, .. } = statement {
                     collect_nominal_declarations(&binding.ty, declarations);
                 }
-                collect_expr_type_declarations(statement.value(), declarations);
+                for index in 0..statement.child_count() {
+                    if let Some(child) = statement.child(index) {
+                        collect_expr_type_declarations(child, declarations);
+                    }
+                }
             }
             collect_expr_type_declarations(tail, declarations);
         }
@@ -3941,6 +4052,11 @@ fn statement_json(
             quote_json(audit),
             expr_json(program, body)?
         )),
+        ResolvedStatement::While { condition, body, .. } => Ok(format!(
+            "{{\"kind\":\"while\",\"condition\":{},\"body\":{}}}",
+            expr_json(program, condition)?,
+            expr_json(program, body)?
+        )),
     }
 }
 
@@ -4071,7 +4187,11 @@ fn collect_expr_types(expression: &ResolvedExpr, types: &mut BTreeMap<String, Re
                 if let ResolvedStatement::Let { binding, .. } = statement {
                     collect_type(&binding.ty, types);
                 }
-                collect_expr_types(statement.value(), types);
+                for index in 0..statement.child_count() {
+                    if let Some(child) = statement.child(index) {
+                        collect_expr_types(child, types);
+                    }
+                }
             }
             collect_expr_types(tail, types);
         }

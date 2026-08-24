@@ -1,5 +1,18 @@
 # Changelog
 
+- Added batch-3 additive tranches:
+  - String operations breadth v2 — reserved intrinsics `string_starts_with`,
+    `string_contains`, `string_len_chars`, `string_from_char` following the
+    string-ops v1 architecture with a separate v2 gating group so v1-only
+    programs keep byte-identical C/Wasm bytes; native+Wasm evidence in
+    `tests/string_ops_v2.rs` (`examples/string_ops_v2.spx`).
+  - Property-test generation widening — `semaprax properties` generates and
+    evaluates the full Copy-scalar surface (suffixed ints, canonical chars,
+    bit-pattern floats) including bounded while loops under fuel, with
+    legacy reports replaying byte-identically; evidence in
+    `tests/property_widen_v1.rs`.
+  - Refutable match v1 exists as an UNVERIFIED work-in-progress branch
+    (`feat/refutable-match-v1`); it is not merged into `main`.
 - Added the parallel batch-1/batch-2 language and projection tranches
   (isolated worktrees under `.agent-worktrees/`, merged into `main`):
   - String operations v1 — reserved `core.string.*` intrinsic calls

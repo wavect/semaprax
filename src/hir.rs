@@ -4246,6 +4246,12 @@ fn audit_cleanup_plan(plan: &CleanupPlan) -> Result<(), Diagnostic> {
                 reject_nul_identity("cleanup-plan match scrutinee", scrutinee.as_str())?;
                 reject_nul_identity("cleanup-plan variant case", case.as_str())?;
             }
+            crate::cleanup_plan::EdgeCondition::ArmSelected { scrutinee, .. } => {
+                reject_nul_identity(
+                    "cleanup-plan scalar-match scrutinee",
+                    scrutinee.as_str(),
+                )?;
+            }
             crate::cleanup_plan::EdgeCondition::StatusZero(source)
             | crate::cleanup_plan::EdgeCondition::StatusNonzero(source) => {
                 audit_status_source(source)?;
@@ -6450,8 +6456,15 @@ impl Resolver<'_> {
             path.saturating_add(scope).saturating_add(retained)
         }
 
-        const { assert!(std::mem::size_of::<Frame<'static>>() == 552) };
+        #[cfg(test)]
+        eprintln!(
+            "FRAME_SIZE={}",
+            std::mem::size_of::<Frame<'static>>()
+        );
 
+        // Refutable Match v1 grew `ResolvedMatchPattern` (Literal/Or/
+        // Binding), which grows this frame's arm-pattern payload.
+        const { assert!(std::mem::size_of::<Frame<'static>>() == 592) };
         let mut frames = vec![Frame::Enter {
             expr,
             bindings: Rc::new(bindings.clone()),

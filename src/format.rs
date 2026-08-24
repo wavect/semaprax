@@ -1458,16 +1458,21 @@ fn write_expr(output: &mut impl std::fmt::Write, value: &Expr, parent_precedence
                         output.write_str(", ").unwrap();
                     }
                     write_match_pattern(output, &arm.pattern);
-                    if let Some(guard) = &arm.guard {
-                        // Refutable Match v1: `pattern if guard => value`.
-                        output.write_str(" if ").unwrap();
-                        frames.push(Frame::MatchArmValue(&arm.value));
-                        frames.push(Frame::Expr(guard.as_ref(), 0));
-                    } else {
-                        output.write_str(" => ").unwrap();
-                        frames.push(Frame::Expr(&arm.value, 0));
-                    }
+                    // Frames run LIFO: the continuation frame goes in first
+                    // so the guard/value render before the next arm.
                     frames.push(Frame::MatchArms(arms, index + 1));
+                    match &arm.guard {
+                        // Refutable Match v1: `pattern if guard => value`.
+                        Some(guard) => {
+                            output.write_str(" if ").unwrap();
+                            frames.push(Frame::MatchArmValue(&arm.value));
+                            frames.push(Frame::Expr(guard.as_ref(), 0));
+                        }
+                        None => {
+                            output.write_str(" => ").unwrap();
+                            frames.push(Frame::Expr(&arm.value, 0));
+                        }
+                    }
                 } else if index == 0 {
                     output.write_str(" {  }").unwrap();
                 } else {

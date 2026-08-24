@@ -260,6 +260,14 @@ pub enum EdgeCondition {
         case: DeclarationId,
         matches: bool,
     },
+    /// Refutable Match v1: the decision chain of a Copy-scalar match. Arm
+    /// `arm` of the match expression `scrutinee` selected (`true`) or
+    /// rejected (`false`) its pattern-and-guard test.
+    ArmSelected {
+        scrutinee: ExpressionId,
+        arm: u32,
+        selected: bool,
+    },
     StatusZero(StatusSourceId),
     StatusNonzero(StatusSourceId),
 }
@@ -461,6 +469,7 @@ impl CleanupPlan {
                 EdgeCondition::VariantCase {
                     scrutinee, case, ..
                 } => scrutinee.as_str().len().saturating_add(case.as_str().len()),
+                EdgeCondition::ArmSelected { scrutinee, .. } => scrutinee.as_str().len(),
                 EdgeCondition::StatusZero(status) | EdgeCondition::StatusNonzero(status) => {
                     status_id_bytes(status)
                 }

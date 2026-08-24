@@ -321,6 +321,14 @@ fn edge_condition_json(condition: &EdgeCondition) -> String {
             quote_json(case.as_str()),
             matches
         ),
+        EdgeCondition::ArmSelected {
+            scrutinee,
+            arm,
+            selected,
+        } => format!(
+            "{{\"kind\":\"arm_selected\",\"scrutinee\":{},\"arm\":{arm},\"selected\":{selected}}}",
+            quote_json(scrutinee.as_str())
+        ),
         EdgeCondition::StatusZero(source) => format!(
             "{{\"kind\":\"status_zero\",\"source\":{}}}",
             status_source_id_json(source)

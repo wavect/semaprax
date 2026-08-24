@@ -204,6 +204,12 @@ enum SkeletonObservation {
         case: DeclarationId,
         matches: bool,
     },
+    /// Refutable Match v1: one scalar decision-chain selection.
+    ArmSelected {
+        scrutinee: ExpressionId,
+        arm: u32,
+        selected: bool,
+    },
     Status {
         source: StatusSourceId,
         success: bool,
@@ -960,7 +966,11 @@ fn expression_skeleton_work_upper(
                 ResolvedExprKind::Try { .. } | ResolvedExprKind::TryOption { .. } => 10,
                 ResolvedExprKind::Project { .. } | ResolvedExprKind::Upcast { .. } => 6,
                 ResolvedExprKind::If { .. } => 10,
-                ResolvedExprKind::Match { arms, .. } => arms.len().saturating_mul(4) + 8,
+                ResolvedExprKind::Match { arms, .. } => {
+                    // Guards recurse as separate sub-skeletons, so each arm
+                    // carries extra headroom over the aggregate baseline.
+                    arms.len().saturating_mul(16).saturating_add(8)
+                }
             };
             let paths = expression_path_counts(function, expression)?.total().max(1);
             if paths > MAX_REPLAY_PATHS {
@@ -3821,6 +3831,22 @@ fn expression_skeleton(
                     produced = Some(scrutinee_paths);
                     continue;
                 }
+                // Refutable Match v1: scalar decision chains authenticate as
+                // one ArmSelected observation per arm plus the guard's own
+                // Boolean join; guards recurse as sub-skeletons.
+                if matches!(
+                    scrutinee.ty,
+                    ResolvedType::I64
+                        | ResolvedType::I32
+                        | ResolvedType::U8
+                        | ResolvedType::Char
+                        | ResolvedType::Bool
+                ) {
+                    produced = Some(finish_scalar_match_skeleton(
+                        program, function, expression, scrutinee, arms, scrutinee_paths, work,
+                    )?);
+                    continue;
+                }
                 let is_record =
                     validate_match_skeleton_shape(program, function, expression, scrutinee, arms)?;
                 push_frame!(
@@ -4138,7 +4164,6 @@ fn validate_match_skeleton_shape(
     }
     Ok(is_record)
 }
-
 #[allow(clippy::too_many_arguments)]
 fn finish_match_arm(
     program: &ResolvedProgram,
@@ -4212,6 +4237,215 @@ fn finish_match_arm(
         work.push_expr_path(&mut next_remaining, path, "match remaining scrutinee path")?;
     }
     Ok(next_remaining)
+}
+
+/// Refutable Match v1 skeleton expectations for a Copy-scalar match. Each
+/// non-final arm contributes one `ArmSelected` pair (selected paths continue
+/// through the optional guard's Boolean join; rejected paths fall through),
+/// and the trailing catch-all arm consumes everything unconditionally —
+/// mirroring the canonical builder exactly.
+#[allow(clippy::too_many_arguments)]
+fn finish_scalar_match_skeleton(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    expression: &ResolvedExpr,
+    scrutinee: &ResolvedExpr,
+    arms: &[ResolvedMatchArm],
+    scrutinee_paths: Vec<ExprSkeletonPath>,
+    work: &mut SkeletonWork<'_, '_>,
+) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
+    if type_needs_drop(program, function, &expression.ty)? {
+        return Err(replay_error(
+            function,
+            "droppable refutable-match result reached the copy-only cleanup skeleton",
+        ));
+    }
+    let last = arms.last().ok_or_else(|| replay_error(function, "refutable match has no arms"))?;
+    let catch_all = matches!(
+        &last.pattern,
+        ResolvedMatchPattern::Wildcard | ResolvedMatchPattern::Binding(_)
+    );
+    if !catch_all || last.guard.is_some() {
+        return Err(replay_error(
+            function,
+            "resolved refutable match lacks a trailing irrefutable guard-free catch-all",
+        ));
+    }
+
+    let mut results: Vec<ExprSkeletonPath> = Vec::new();
+    let mut next_remaining: Vec<ExprSkeletonPath> = Vec::new();
+    let mut remaining = scrutinee_paths;
+    for (index, arm) in arms.iter().enumerate() {
+        // Terminal paths from earlier decisions bypass the whole chain.
+        for path in remaining.iter().filter(|path| path.failed || path.residual) {
+            let terminal = clone_expr_path_shallow(path, work)?;
+            work.push_expr_path(&mut next_remaining, terminal, "match terminal scrutinee path")?;
+        }
+        remaining.retain(|path| !path.failed && !path.residual);
+
+        let final_arm = index + 1 == arms.len();
+        let mut selected_paths: Vec<ExprSkeletonPath> = Vec::new();
+        let mut rejected_paths: Vec<ExprSkeletonPath> = Vec::new();
+        if final_arm {
+            selected_paths = std::mem::take(&mut remaining);
+        } else {
+            for path in std::mem::take(&mut remaining) {
+                let mut selected = work.clone_expr_path(&path, "scalar match selected clone")?;
+                let scrutinee_id = work.clone_owned(&scrutinee.id, "scalar match selected scrutinee clone")?;
+                work.push_observation(
+                    &mut selected,
+                    SkeletonObservation::ArmSelected {
+                        scrutinee: scrutinee_id,
+                        arm: u32::try_from(index)
+                            .map_err(|_| replay_error(function, "too many scalar match arms"))?,
+                        selected: true,
+                    },
+                    "scalar match selected observation",
+                )?;
+                selected_paths.push(selected);
+                let mut rejected = path;
+                let scrutinee_id =
+                    work.clone_owned(&scrutinee.id, "scalar match rejected scrutinee clone")?;
+                work.push_observation(
+                    &mut rejected,
+                    SkeletonObservation::ArmSelected {
+                        scrutinee: scrutinee_id,
+                        arm: u32::try_from(index)
+                            .map_err(|_| replay_error(function, "too many scalar match arms"))?,
+                        selected: false,
+                    },
+                    "scalar match rejected observation",
+                )?;
+                rejected_paths.push(rejected);
+            }
+        }
+
+        // Guard evaluation happens after selection and before the value.
+        if let Some(guard) = &arm.guard {
+            let mut guard_true_paths: Vec<ExprSkeletonPath> = Vec::new();
+            let mut guard_false_paths: Vec<ExprSkeletonPath> = Vec::new();
+            for selected_prefix in selected_paths {
+                let guard_paths = expression_skeleton(program, function, guard.as_ref(), work)?;
+                let (terminal, when_true, when_false) =
+                    split_boolean_prefixes_at(guard_paths, &guard.id, work)?;
+                for terminal in terminal {
+                    work.push_expr_path(
+                        &mut next_remaining,
+                        terminal,
+                        "scalar match guard terminal",
+                    )?;
+                }
+                guard_true_paths.extend(when_true);
+                guard_false_paths.extend(when_false);
+            }
+            // A false guard falls through to the following arms.
+            for mut path in guard_false_paths {
+                let guard_id = work.clone_owned(&guard.id, "scalar match guard-false id clone")?;
+                work.push_observation(
+                    &mut path,
+                    SkeletonObservation::Boolean {
+                        expression: guard_id,
+                        value: false,
+                    },
+                    "scalar match guard-false observation",
+                )?;
+                rejected_paths.push(path);
+            }
+            remaining.extend(rejected_paths);
+            // The true prefix continues into the arm value below.
+            for selected in guard_true_paths {
+                append_scalar_arm_value(
+                    program,
+                    function,
+                    expression,
+                    arm,
+                    selected,
+                    &mut results,
+                    work,
+                )?;
+            }
+        } else {
+            remaining.extend(rejected_paths);
+            for selected in selected_paths {
+                append_scalar_arm_value(
+                    program, function, expression, arm, selected, &mut results, work,
+                )?;
+            }
+        }
+    }
+    for path in remaining {
+        work.push_expr_path(&mut results, path, "scalar match leftover path")?;
+    }
+    Ok(results)
+}
+
+/// Sequences one selected-arm prefix with its arm-value sub-skeleton and
+/// publishes the conditional-result transfer for owned values.
+#[allow(clippy::too_many_arguments)]
+fn append_scalar_arm_value(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    expression: &ResolvedExpr,
+    arm: &ResolvedMatchArm,
+    selected_prefix: ExprSkeletonPath,
+    results: &mut Vec<ExprSkeletonPath>,
+    work: &mut SkeletonWork<'_, '_>,
+) -> Result<(), Diagnostic> {
+    let value_paths = expression_skeleton(program, function, &arm.value, work)?;
+    let sequenced = sequence_skeleton_paths(
+        work.singleton_path(selected_prefix, "scalar match selected prefix")?,
+        &value_paths,
+        work,
+    )?;
+    let finished = finish_conditional_result(program, function, expression, sequenced, work)?;
+    append_expr_paths(results, finished, work, "scalar match arm result")?;
+    Ok(())
+}
+
+#[allow(clippy::type_complexity)]
+fn split_boolean_prefixes_at(
+    paths: Vec<ExprSkeletonPath>,
+    expression: &ExpressionId,
+    work: &mut SkeletonWork<'_, '_>,
+) -> Result<(Vec<ExprSkeletonPath>, Vec<ExprSkeletonPath>, Vec<ExprSkeletonPath>), Diagnostic> {
+    let mut terminal = Vec::new();
+    let mut true_paths = Vec::new();
+    let mut false_paths = Vec::new();
+    for mut path in paths {
+        if path.failed || path.residual {
+            work.push_expr_path(&mut terminal, path, "guard terminal path")?;
+            continue;
+        }
+        let mut when_true = work.clone_expr_path(&path, "guard true path clone")?;
+        let true_expression = work.clone_owned(expression, "guard true expression clone")?;
+        work.push_observation(
+            &mut when_true,
+            SkeletonObservation::Boolean {
+                expression: true_expression,
+                value: true,
+            },
+            "guard true observation",
+        )?;
+        true_paths.push(when_true);
+        let false_expression = work.clone_owned(expression, "guard false expression clone")?;
+        work.push_observation(
+            &mut path,
+            SkeletonObservation::Boolean {
+                expression: false_expression,
+                value: false,
+            },
+            "guard false observation",
+        )?;
+        false_paths.push(path);
+    }
+    Ok((terminal, true_paths, false_paths))
+}
+
+fn clone_expr_path_shallow(
+    path: &ExprSkeletonPath,
+    _work: &mut SkeletonWork<'_, '_>,
+) -> Result<ExprSkeletonPath, Diagnostic> {
+    Ok(path.clone())
 }
 
 fn append_expr_paths(
@@ -4984,6 +5218,20 @@ fn plan_skeleton_paths(
                             )?,
                             matches: *matches,
                         },
+                        EdgeCondition::ArmSelected {
+                            scrutinee,
+                            arm,
+                            selected,
+                        } => SkeletonObservation::ArmSelected {
+                            scrutinee: skeleton_clone(
+                                budget,
+                                function,
+                                scrutinee,
+                                "plan scalar-match scrutinee clone",
+                            )?,
+                            arm: *arm,
+                            selected: *selected,
+                        },
                         EdgeCondition::StatusZero(source) => SkeletonObservation::Status {
                             source: skeleton_clone(
                                 budget,
@@ -5461,6 +5709,7 @@ fn state_for_edge(
         }
         EdgeCondition::BooleanResult(_, true)
         | EdgeCondition::VariantCase { .. }
+        | EdgeCondition::ArmSelected { .. }
         | EdgeCondition::StatusZero(_) => {}
         EdgeCondition::StatusNonzero(source) => {
             state.pending_failure = Some(source.clone());
@@ -5712,9 +5961,31 @@ fn replay_expression_child(expression: &ResolvedExpr, index: usize) -> Option<&R
         | ResolvedExprKind::ConstructVariant { fields, .. } => {
             fields.get(index).map(|field| &field.value)
         }
-        ResolvedExprKind::Match { scrutinee, arms } => (index == 0)
-            .then_some(scrutinee.as_ref())
-            .or_else(|| arms.get(index - 1).map(|arm| &arm.value)),
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            if index == 0 {
+                Some(scrutinee.as_ref())
+            } else {
+                // Refutable Match v1: each arm contributes its optional
+                // guard first, then its value.
+                let mut cursor = index - 1;
+                for arm in arms {
+                    match &arm.guard {
+                        Some(guard) => {
+                            if cursor == 0 {
+                                return Some(guard.as_ref());
+                            }
+                            cursor -= 1;
+                        }
+                        None => {}
+                    }
+                    if cursor == 0 {
+                        return Some(&arm.value);
+                    }
+                    cursor -= 1;
+                }
+                None
+            }
+        }
         ResolvedExprKind::UpdateRecord { base, fields, .. } => (index == 0)
             .then_some(base.as_ref())
             .or_else(|| fields.get(index - 1).map(|field| &field.value)),
@@ -5911,7 +6182,8 @@ fn validate_reference_coverage(function: &ResolvedFunction) -> Result<(), Diagno
             }
             EdgeCondition::Always
             | EdgeCondition::BooleanResult(_, _)
-            | EdgeCondition::VariantCase { .. } => {}
+            | EdgeCondition::VariantCase { .. }
+            | EdgeCondition::ArmSelected { .. } => {}
         }
     }
     for exit in &plan.exits {
@@ -5981,6 +6253,9 @@ fn validate_edge_condition(
         EdgeCondition::VariantCase { scrutinee, .. } => {
             require_expression(function, expressions, scrutinee)
         }
+        EdgeCondition::ArmSelected { scrutinee, .. } => {
+            require_expression(function, expressions, scrutinee)
+        }
         EdgeCondition::StatusZero(source) | EdgeCondition::StatusNonzero(source) => {
             require_status(function, statuses, source)
         }
@@ -6008,6 +6283,18 @@ fn validate_branch_pair(
                 matches: b_matches,
             },
         ) => a_scrutinee == b_scrutinee && a_case == b_case && a_matches != b_matches,
+        (
+            EdgeCondition::ArmSelected {
+                scrutinee: a_scrutinee,
+                arm: a_arm,
+                selected: a_selected,
+            },
+            EdgeCondition::ArmSelected {
+                scrutinee: b_scrutinee,
+                arm: b_arm,
+                selected: b_selected,
+            },
+        ) => a_scrutinee == b_scrutinee && a_arm == b_arm && a_selected != b_selected,
         (EdgeCondition::StatusZero(a), EdgeCondition::StatusNonzero(b))
         | (EdgeCondition::StatusNonzero(a), EdgeCondition::StatusZero(b)) => a == b,
         _ => false,
@@ -6409,6 +6696,7 @@ fn main() -> i64 { 0 }
                 } => Some((scrutinee.clone(), case.clone(), *matches)),
                 EdgeCondition::Always
                 | EdgeCondition::BooleanResult(_, _)
+                | EdgeCondition::ArmSelected { .. }
                 | EdgeCondition::StatusZero(_)
                 | EdgeCondition::StatusNonzero(_) => None,
             })
@@ -7432,7 +7720,8 @@ fn main() -> i64 { 0 }
                 }
                 EdgeCondition::Always
                 | EdgeCondition::BooleanResult(_, _)
-                | EdgeCondition::VariantCase { .. } => {}
+                | EdgeCondition::VariantCase { .. }
+                | EdgeCondition::ArmSelected { .. } => {}
             }
         }
         for block in &mut function.cleanup_plan.blocks {
@@ -7474,6 +7763,7 @@ fn main() -> i64 { 0 }
                 EdgeCondition::BooleanResult(expression, _) => Some(expression.clone()),
                 EdgeCondition::Always
                 | EdgeCondition::VariantCase { .. }
+                | EdgeCondition::ArmSelected { .. }
                 | EdgeCondition::StatusZero(_)
                 | EdgeCondition::StatusNonzero(_) => None,
             })

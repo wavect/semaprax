@@ -380,6 +380,7 @@ pub(crate) fn cleanup_plan_owned_capacity(
             EdgeCondition::VariantCase {
                 scrutinee, case, ..
             } => scrutinee.as_str().len().checked_add(case.as_str().len())?,
+            EdgeCondition::ArmSelected { scrutinee, .. } => scrutinee.as_str().len(),
             EdgeCondition::StatusZero(source) | EdgeCondition::StatusNonzero(source) => {
                 status_id(source)
             }

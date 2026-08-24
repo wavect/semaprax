@@ -104,7 +104,8 @@ fn string_ops_v2_programs_round_trip_canonically_and_hash_stably() {
     assert!(canonical.contains("string_starts_with(m, \"hé\")"));
     assert!(canonical.contains("string_contains(m, \"ll\")"));
     assert!(canonical.contains("string_len_chars(m)"));
-    assert!(canonical.contains("string_from_char('\\u{2603}')"));    let reparsed = parse(&canonical, Path::new("canonical.spx")).unwrap();
+    assert!(canonical.contains("string_from_char('\\u{2603}')"));
+    let reparsed = parse(&canonical, Path::new("canonical.spx")).unwrap();
     assert!(verify::verify(&reparsed).is_empty());
     assert_eq!(graph::revision(&program), graph::revision(&reparsed));
     assert_eq!(format::canonical(&reparsed), canonical);
@@ -128,8 +129,14 @@ fn graph_json_exposes_deterministic_breadth_v2_operation_nodes() {
     // suite.
     let v1_only = parse(V1_ONLY, Path::new("v1_only.spx")).unwrap();
     let v1_only_json = graph::to_json(&v1_only).unwrap();
-    assert_eq!(v1_only_json, graph::to_json(&parse(V1_ONLY, Path::new("v1_only.spx")).unwrap()).unwrap());
-    assert_eq!(graph::revision(&v1_only), graph::revision(&parse(V1_ONLY, Path::new("v1_only.spx")).unwrap()));
+    assert_eq!(
+        v1_only_json,
+        graph::to_json(&parse(V1_ONLY, Path::new("v1_only.spx")).unwrap()).unwrap()
+    );
+    assert_eq!(
+        graph::revision(&v1_only),
+        graph::revision(&parse(V1_ONLY, Path::new("v1_only.spx")).unwrap())
+    );
     assert!(v1_only_json.contains("\"callee\":\"core.string.concat\""));
     assert!(!v1_only_json.contains("core.string.starts_with"));
     assert!(!v1_only_json.contains("core.string.contains\""));
@@ -350,9 +357,8 @@ fn main() -> i64 {
     }
 }
 "#;
-    let borrows =
-        hir::resolve(&parse(borrows_source, Path::new("borrows_v2.spx")).unwrap())
-            .expect("borrowed breadth-v2 reads keep their operand available");
+    let borrows = hir::resolve(&parse(borrows_source, Path::new("borrows_v2.spx")).unwrap())
+        .expect("borrowed breadth-v2 reads keep their operand available");
     assert!(!borrows.functions.is_empty());
 }
 

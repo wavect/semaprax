@@ -616,11 +616,7 @@ fn emit_resolved_module_internal(
     // The v2 operation group's base index follows the first wave so every
     // admitted subset keeps deterministic, gap-free import indexes.
     let string_ops_v2_base = SCALAR_IMPORT_COUNT
-        + if uses_strings {
-            STRING_IMPORT_COUNT
-        } else {
-            0
-        }
+        + if uses_strings { STRING_IMPORT_COUNT } else { 0 }
         + if uses_string_ops {
             STRING_OPS_IMPORT_COUNT
         } else {

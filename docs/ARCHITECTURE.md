@@ -171,10 +171,10 @@ plumbing and traps on detected overflow). Mixed-width operands are rejected
 by the verifier and re-checked fail-closed in HIR validation and both
 backends. i32 stays outside generic arguments, template signature slots,
 Public Scalar Export Profile v1, the native host/callable corpus, and the
-Native Rust interop boundary; string or other heap-backed types remain
-unimplemented because no allocation model exists yet.
-corpus; string or other heap-backed types remain unimplemented because no
-allocation model exists yet.
+Native Rust interop boundary. Owned `string` values are implemented separately
+through the compiler-owned allocation/clone/drop model and the bounded
+operations described below; borrowed string views, byte collections, and
+general heap-backed aggregates remain unimplemented.
 The locally evidenced unsigned-byte tranche adds `u8` as a checked-arithmetic
 Copy scalar on the same spine: integer literals carry an exact `u8` suffix
 (unsuffixed digit runs stay `i64`; out-of-range or malformed suffixes select
@@ -1468,6 +1468,18 @@ provenance or target execution. This method owns no output path, filesystem
 write, process, tool, environment, native, or Rust build authority. Apply and
 build are separate, and build is open-state-only, so uncertainty cannot trigger
 a later action. See [Project Agent Workflow v1](PROJECT-AGENT-WORKFLOW-V1.md).
+
+The additive `project_product_acceptance_v1` integration runner composes these
+previously separate product lanes without granting the daemon new authority.
+For one copied calculator Project it executes entry and test meaning in the
+interpreter and native C11 at O0/O2, the test closure in Core Wasm, and the
+authenticated Web carrier; then it drives the complete v4 rename workflow and
+repeats the stable-ID Web and native consumer checks. Explicit environment
+gates additionally compile the generated declarations with pinned TypeScript
+5.8.3 and build and run the baseline and renamed Project Rust SDK consumers
+under the existing held-tool authority. Keeping this orchestration in
+`tests/support/project_product.rs` avoids duplicating compiler or publication
+logic in another monolithic test.
 
 ## Semantic workspace graph, analysis, and evidence-gated changes
 

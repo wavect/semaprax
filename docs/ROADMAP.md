@@ -105,6 +105,15 @@ filesystem, process, native, Rust, tool, or environment authority. General
 change/build, hosted promotion, and persistent indexing remain open, so totals
 remain unchanged.
 
+One unified local product-acceptance runner now composes calculator Project
+entry/test interpreter and native O0/O2 execution, the Core-Wasm test closure,
+direct/inline Web consumers, the complete v4 change workflow, and stable-ID
+rename checks. Explicit switches additionally require pinned TypeScript 5.8.3
+declaration consumption and rebuild and execute the Project Rust consumer
+before and after the rename. This closes the local evidence-fragmentation gap
+but not hosted promotion; new language breadth follows only after the mandatory
+matrix carries both optional paths successfully.
+
 ## 0.1 — Executable semantic seed
 
 Status: implemented in this repository.
@@ -275,20 +284,16 @@ match the reference outcome, complete trace, publication, and final logical
 liveness for all 14 cases at native O0/O2; the remaining public and language
 gates below are not.
 
-- String and other heap-backed types: still unimplemented because the language
-  has no allocation model yet; floats deliberately cover only the by-value
-  scalar slice.
-- Fixed-width integer types beyond `i64` and `i32` (narrower or unsigned
-  widths), wrapping or saturating arithmetic modes, integer remainder outside
-  `i64`, and float-remainder or math-library intrinsics.
-- Float, char, or i32 admission into generic instantiation arguments,
+- Borrowed string/byte views, fixed arrays, owned byte collections, and general
+  heap-backed aggregates remain unimplemented. Owned `string` values and the
+  bounded `core.string.*` operation families are implemented with
+  native/Wasm/interpreter evidence.
+- Fixed-width integer types beyond `i64`, `i32`, and `u8`; wrapping or
+  saturating arithmetic modes; integer remainder outside `i64`; and
+  float-remainder or math-library intrinsics.
+- Float, char, i32, or u8 admission into generic instantiation arguments,
   generic template signature slots, Public Scalar Export Profile v1, the
   native host/callable corpus, and the Native Rust interop boundary.
-- Fixed-width integer types beyond `i64`, saturating/wrapping arithmetic, and
-  float-remainder or math-library intrinsics.
-- Float, char, or u8 admission into generic instantiation arguments, generic
-  template signature slots, Public Scalar Export Profile v1, the native
-  host/callable corpus, and the Native Rust interop boundary.
 - Complete record breadth plus nested/resource-bearing generic records and
   variants and
   non-copy `Option`/`Result` instantiations.

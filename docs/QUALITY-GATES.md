@@ -284,7 +284,21 @@ preparation, materialization, and Node stable-ID execution. Run:
 cargo test --locked -p semaprax --all-features \
   --test project_agent_workflow_v1 -- --test-threads=1 --nocapture
 cargo test --locked -p semaprax --all-features --lib project -- --test-threads=1
+cargo test --locked -p semaprax --all-features \
+  --test project_product_acceptance_v1 -- --test-threads=1 --nocapture
 ```
+
+The unified product gate must execute Project entry/test meaning, native C11
+entry and test closures at O0/O2, the Core-Wasm test closure, direct and v4
+inline Web consumers, the complete derive/preview/impact/review/apply/build
+cycle, changed authenticated revisions, and unchanged stable-ID behavior. A
+qualifying held-tool promotion run additionally sets
+`SEMAPRAX_REQUIRE_PROJECT_NATIVE_RUST_SDK=1` so baseline and post-rename Rust
+packages are generated and their compiler-free consumers execute. It also sets
+`SEMAPRAX_REQUIRE_PROJECT_TYPESCRIPT=1` and provides `TSC` naming the pinned
+TypeScript 5.8.3 executable so the generated declarations are consumed under
+strict NodeNext checking. A run without either explicit switch is local
+non-Rust/non-TypeScript evidence only.
 
 Exact-head Ubuntu/macOS/Windows and minimum-Rust promotion remains mandatory;
 local success does not complete the v0.2 objective.

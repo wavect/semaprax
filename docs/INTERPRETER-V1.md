@@ -1,7 +1,7 @@
 # Reference Interpreter v1
 
 `semaprax interpret <file.spx> --function <name|stable-id>
-[--arg <i64|bool literal>]... [--max-bytes N]` is a deterministic, read-only
+[--arg <scalar literal>]... [--max-bytes N]` is a deterministic, read-only
 reference evaluator that runs ONE explicitly selected explicit-ID monomorphic
 effect-free scalar function directly from the resolved HIR of one verified
 single-file SEMAPRAX module — no backend toolchain, no code generation, no
@@ -20,8 +20,14 @@ semaprax interpret <file> --function name|stable-id [--arg literal]... [--max-by
 - `--function` (exactly once) selects one function by display name or
   persistent stable ID; an unknown token fails closed (`SPX-F102`).
 - `--arg` repeats once per parameter in declaration order. A literal is
-  either `true`/`false` or a canonical optionally negative decimal integer;
-  non-canonical or out-of-range literals fail closed (`SPX-F103`).
+  `true`/`false`, a canonical optionally negative decimal integer (optionally
+  suffixed `i32` or `u8`, exactly the suffixes the language lexer admits),
+  a floating-point literal in the language grammar (required fraction,
+  optional exponent, optional `f32`/`f64` suffix, finite value only), or a
+  `char` literal in the language's escape syntax (`\n`, `\r`, `\t`, `\0`,
+  `\'`, `\\`, `\u{...}`). A literal binds only to the parameter type it
+  canonically denotes — bare decimals are `i64`; non-canonical, out-of-range,
+  or mismatched literals fail closed (`SPX-F103`).
 - `--max-bytes` (default 64 KiB, bounds follow the Agent Context byte limits)
   bounds the whole envelope. Overflow fails closed with `SPX-F104`; output is
   never truncated.
@@ -30,8 +36,9 @@ semaprax interpret <file> --function name|stable-id [--arg literal]... [--max-by
 
 The selected function — and every callee transitively reachable from it —
 must have an explicit stable identity, be monomorphic, declare no effects,
-take only by-value direct `i64`/`bool` parameters, and return direct
-`i64`/`bool`. Anything else fails the whole command closed (`SPX-F102`)
+take only by-value direct parameters of the admitted scalar types, and return
+one direct value of those same types (mixed scalar signatures are admitted).
+Anything else fails the whole command closed (`SPX-F102`)
 with exactly one closed reason: `automatic_identity`,
 `generic_function`, `declared_effects`, `unsupported_parameter_mode`,
 `unsupported_parameter_type`, `unsupported_result_type`, `generic_call`,
@@ -72,8 +79,13 @@ domain-separated SHA-256 of the exact payload bytes
 
 Outcomes:
 
-- `{"kind":"returned","type":"i64"|"bool","value":"<decimal>|true|false"}`
-  for successful evaluation;
+- `{"kind":"returned","type":"<scalar>","value":"<canonical>"}` for successful
+  evaluation, where the type is one of `i64`, `i32`, `u8`, `char`, `f32`,
+  `f64`, `bool` and the canonical value grammar is per type: decimal for
+  `i64`, the suffixed decimal (`610i32`, `253u8`) for narrower integers,
+  `true`/`false` for bool, the canonical char literal for char, and the exact
+  big-endian IEEE-754 bit pattern as lowercase hex (eight digits for `f32`,
+  sixteen for `f64`) for floats;
 - `{"kind":"failed","status":{...}}` carrying the exact compiler-owned
   normalized status (`semaprax.status.v1`) selected by checked arithmetic or
   a false contract clause — the same statuses the native C11 and Core-Wasm
@@ -124,6 +136,40 @@ argument diagnostics, per-field tamper rejection including re-signed
 forgeries, drift binding, and CLI exit-code contracts. Toolchain-dependent
 parity legs skip when clang or Node is unavailable unless
 `SEMAPRAX_REQUIRE_INTERPRETER_BACKEND_PARITY` is set.
+`tests/interpreter_scalar_widen_v1.rs` adds a 24-row widened-surface corpus
+with the same producer contracts.
+
+## Scalar admission widening (2026-08-23)
+
+The admission profile is widened from direct `i64`/`bool` signatures to all
+seven primitive scalar types — `i64`, `i32`, `u8`, `char`, `f32`, `f64`,
+`bool` — for by-value parameters and results, including mixed signatures
+(e.g. `fn f(a: i32, b: u8) -> f64`). This is an admission change only: the
+engine already evaluated these types inside admitted bodies, its arithmetic,
+statuses, fuel accounting, and evaluation order are unchanged, and the
+envelope schema stays `semaprax.interpret.v1` with no structural member
+added (the payload carries no admission-description field). Replay is
+extended additively: previously accepted envelopes still verify byte-for-byte
+under the same rules.
+
+Canonical value renderings per type: integers echo as decimals, with narrower
+integer widths always carrying their explicit suffix (`-7i32`, `255u8`) so
+every rendering replays uniquely against one closed grammar; chars render in
+the language's canonical escape syntax (`'a'`, `'\n'`, `'\u{2603}'`); floats
+render as their exact big-endian IEEE-754 bit patterns (`f32` eight lowercase
+hex digits, `f64` sixteen), which makes `-0.0`, infinities, and NaN payloads
+directly observable without trusting any platform's decimal formatting.
+
+Nonclaims of this widening: no strings, records, variants, generics, effects,
+or Option/Result returns are admitted; `--arg` binding stays exact (a bare
+decimal canonically denotes only `i64`; narrower widths require their
+suffix; float literals must carry the matching precision); engine arithmetic,
+status normalization, and backends are untouched; and NaN-producing
+arithmetic (e.g. `0.0 / 0.0`) remains outside the cross-backend bit-exactness
+guarantee because hardware default-NaN generation and Wasm/V8 canonicalization
+need not agree on sign or payload — such programs are evaluated with total
+IEEE-754 comparison semantics everywhere, but their NaN bits are not pinned
+across producers.
 
 Nonclaims: no JIT/AOT/Cranelift or any machine-code emission, no incremental
 persistence, no hot reload, no debugger mapping, no target execution, and

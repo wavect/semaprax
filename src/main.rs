@@ -1609,7 +1609,7 @@ fn interpret_options(
                     2
                 })?;
                 if value.is_empty() {
-                    eprintln!("interpret option `{option}` requires an i64 or bool literal");
+                    eprintln!("interpret option `{option}` requires a scalar literal");
                     return Err(2);
                 }
                 arguments.push(value.clone());
@@ -2228,7 +2228,7 @@ fn print_help() {
              semaprax region-report <file> [--max-bytes N]\n\
              semaprax simd-report <file> [--max-bytes N]\n\
             semaprax protocol-check <file> [--max-bytes N]\n\
-            semaprax interpret <file> --function <name|stable-id> [--arg <i64|bool literal>]... [--max-bytes N]\n\
+            semaprax interpret <file> --function <name|stable-id> [--arg <scalar literal>]... [--max-bytes N]\n\
              semaprax ui-schema <file> [--max-bytes N]\n\
            semaprax plugin-manifest <file> [--max-bytes N]\n\
             semaprax cxx-shim <file> --function name|stable-id[,...] [--function ...] [--max-bytes N] [--emit-fragment]\n\

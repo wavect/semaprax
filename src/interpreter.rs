@@ -684,7 +684,27 @@ fn scan_closure(
             ResolvedExprKind::Upcast { .. } => {
                 Err(reject_scan(expression, REASON_RECORD_PROJECTION))
             }
-            ResolvedExprKind::Match { .. } => Err(reject_scan(expression, REASON_MATCH_EXPRESSION)),
+            ResolvedExprKind::Match { scrutinee, arms } => {
+                // Refutable Match v1: scalar decision chains over admitted
+                // Copy scalars with literal/or/binding patterns join the
+                // profile; every aggregate match shape stays rejected.
+                let scalar = matches!(
+                    scrutinee.ty,
+                    ResolvedType::I64
+                        | ResolvedType::I32
+                        | ResolvedType::U8
+                        | ResolvedType::Char
+                        | ResolvedType::Bool
+                );
+                let patterns_admitted = arms.iter().all(|arm| {
+                    arm.pattern_is_literal_or_irrefutable()
+                });
+                if !scalar || !patterns_admitted || arms.is_empty() {
+                    Err(reject_scan(expression, REASON_MATCH_EXPRESSION))
+                } else {
+                    Ok(())
+                }
+            }
             ResolvedExprKind::Try { .. } | ResolvedExprKind::TryOption { .. } => {
                 Err(reject_scan(expression, REASON_TRY_EXPRESSION))
             }
@@ -763,6 +783,19 @@ fn scan_closure(
     Ok(())
 }
 
+/// Refutable Match v1: exact equality between the staged scrutinee value and
+/// a literal pattern of the same type.
+fn pattern_value_matches(staged: &Value, value: crate::hir::PatternValue) -> bool {
+    match (staged, value) {
+        (Value::Int(actual), crate::hir::PatternValue::Int(expected)) => *actual == expected,
+        (Value::Int32(actual), crate::hir::PatternValue::Int32(expected)) => *actual == expected,
+        (Value::Uint8(actual), crate::hir::PatternValue::Uint8(expected)) => *actual == expected,
+        (Value::Char(actual), crate::hir::PatternValue::Char(expected)) => *actual == expected,
+        (Value::Bool(actual), crate::hir::PatternValue::Bool(expected)) => *actual == expected,
+        _ => false,
+    }
+}
+
 fn reject_scan(expression: &ResolvedExpr, reason: &'static str) -> Vec<Diagnostic> {
     vec![selection_error(
         reason,
@@ -808,7 +841,12 @@ fn child_expressions(expression: &ResolvedExpr) -> Vec<&ResolvedExpr> {
         }
         ResolvedExprKind::Match { scrutinee, arms } => {
             let mut collected = vec![scrutinee.as_ref()];
-            collected.extend(arms.iter().map(|arm| &arm.value));
+            for arm in arms {
+                if let Some(guard) = &arm.guard {
+                    collected.push(guard.as_ref());
+                }
+                collected.push(&arm.value);
+            }
             collected
         }
         ResolvedExprKind::UpdateRecord { base, fields, .. } => {
@@ -1207,12 +1245,77 @@ impl Evaluator<'_> {
                 environment.truncate(base);
                 outcome
             }
+            // Refutable Match v1: one scrutinee evaluation, arms tested in
+            // order, guards evaluated once after their pattern matched, and
+            // failing guards fall through. Every evaluated node charges fuel
+            // through the ordinary recursive `evaluate` calls.
+            ResolvedExprKind::Match { scrutinee, arms } => {
+                let staged = self.evaluate(scrutinee, environment, depth)?;
+                for arm in arms {
+                    let selected = match &arm.pattern {
+                        crate::hir::ResolvedMatchPattern::Wildcard => true,
+                        crate::hir::ResolvedMatchPattern::Binding(binding) => {
+                            let _ = binding;
+                            true
+                        }
+                        crate::hir::ResolvedMatchPattern::Literal(value) => pattern_value_matches(&staged, *value),
+                        crate::hir::ResolvedMatchPattern::Or(alternatives) => {
+                            let mut matched = false;
+                            for alternative in alternatives {
+                                match alternative {
+                                    crate::hir::ResolvedMatchPattern::Literal(value) => {
+                                        matched |= pattern_value_matches(&staged, *value);
+                                    }
+                                    _ => {
+                                        return Err(Flow::Guard(
+                                            "or-pattern alternative is not a literal",
+                                        ));
+                                    }
+                                }
+                            }
+                            matched
+                        }
+                        crate::hir::ResolvedMatchPattern::Variant { .. } | crate::hir::ResolvedMatchPattern::Record { .. } => {
+                            return Err(Flow::Guard(
+                                "aggregate match shape reached scalar evaluation",
+                            ));
+                        }
+                    };
+                    if !selected {
+                        continue;
+                    }
+                    // Binding arms capture the staged scrutinee value.
+                    let mut bound: Option<(ValueId, Value)> = None;
+                    if let crate::hir::ResolvedMatchPattern::Binding(binding) = &arm.pattern {
+                        bound = Some((binding.id.clone(), staged.clone()));
+                        environment.push((binding.id.clone(), staged.clone()));
+                    }
+                    let guard_ok = match &arm.guard {
+                        Some(guard) => match self.evaluate(guard.as_ref(), environment, depth)? {
+                            Value::Bool(flag) => flag,
+                            _ => return Err(Flow::Guard("non-boolean match guard")),
+                        },
+                        None => true,
+                    };
+                    if !guard_ok {
+                        if bound.is_some() {
+                            environment.pop();
+                        }
+                        continue;
+                    }
+                    let outcome = self.evaluate(&arm.value, environment, depth);
+                    if bound.is_some() {
+                        environment.pop();
+                    }
+                    return outcome;
+                }
+                Err(Flow::Guard("refutable match selected no arm"))
+            }
             ResolvedExprKind::ConstructRecord { .. }
             | ResolvedExprKind::ConstructVariant { .. }
             | ResolvedExprKind::UpdateRecord { .. }
             | ResolvedExprKind::Project { .. }
             | ResolvedExprKind::Upcast { .. }
-            | ResolvedExprKind::Match { .. }
             | ResolvedExprKind::Try { .. }
             | ResolvedExprKind::TryOption { .. }
             | ResolvedExprKind::NativeRustImportCall(_) => Err(Flow::Guard(

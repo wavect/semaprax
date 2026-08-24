@@ -3152,6 +3152,23 @@ pub enum ResolvedExprKind {
     },
 }
 
+impl ResolvedMatchArm {
+    /// Refutable Match v1 interpreter admission: literal and or-of-literal
+    /// patterns are refutable; wildcard/binding are irrefutable; aggregate
+    /// patterns never join the scalar profile.
+    pub fn pattern_is_literal_or_irrefutable(&self) -> bool {
+        match &self.pattern {
+            ResolvedMatchPattern::Wildcard
+            | ResolvedMatchPattern::Binding(_)
+            | ResolvedMatchPattern::Literal(_) => true,
+            ResolvedMatchPattern::Or(alternatives) => alternatives
+                .iter()
+                .all(|alternative| matches!(alternative, ResolvedMatchPattern::Literal(_))),
+            ResolvedMatchPattern::Variant { .. } | ResolvedMatchPattern::Record { .. } => false,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ResolvedMatchArm {
     pub pattern: ResolvedMatchPattern,
@@ -6456,12 +6473,6 @@ impl Resolver<'_> {
             path.saturating_add(scope).saturating_add(retained)
         }
 
-        #[cfg(test)]
-        eprintln!(
-            "FRAME_SIZE={}",
-            std::mem::size_of::<Frame<'static>>()
-        );
-
         // Refutable Match v1 grew `ResolvedMatchPattern` (Literal/Or/
         // Binding), which grows this frame's arm-pattern payload.
         const { assert!(std::mem::size_of::<Frame<'static>>() == 592) };
@@ -8461,13 +8472,13 @@ impl Resolver<'_> {
                     mut resolved,
                     pattern,
                 } => {
-                    // Frames pushed the value first, then the guard, so the
-                    // value pops first.
-                    let value = results.pop().expect("scalar match arm value retained");
+                    // The guard's Enter resolved after the value's, so the
+                    // guard's result sits on top of the results stack.
                     let guard = arms[index]
                         .guard
                         .is_some()
                         .then(|| Box::new(results.pop().expect("scalar match arm guard retained")));
+                    let value = results.pop().expect("scalar match arm value retained");
                     if let Some(guard) = &guard {
                         if guard.ty != ResolvedType::Bool {
                             return Err(self.error(

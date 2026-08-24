@@ -1755,7 +1755,20 @@ fn contains_record_construction(value: &Expr) -> bool {
                 if index == 0 {
                     Some(scrutinee)
                 } else {
-                    arms.get(index - 1).map(|arm| &arm.value)
+                    let mut cursor = index - 1;
+                    for arm in arms {
+                        if let Some(guard) = arm.guard.as_deref() {
+                            if cursor == 0 {
+                                return Some(guard);
+                            }
+                            cursor -= 1;
+                        }
+                        if cursor == 0 {
+                            return Some(&arm.value);
+                        }
+                        cursor -= 1;
+                    }
+                    None
                 }
             }
             ExprKind::MethodCall { receiver, args, .. } => {

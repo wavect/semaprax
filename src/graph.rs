@@ -1179,6 +1179,9 @@ fn collect_result_propagations<'a>(
         ResolvedExprKind::Match { scrutinee, arms } => {
             collect_result_propagations(scrutinee, propagations);
             for arm in arms {
+                if let Some(guard) = &arm.guard {
+                    collect_result_propagations(guard, propagations);
+                }
                 collect_result_propagations(&arm.value, propagations);
             }
         }

@@ -2458,6 +2458,14 @@ fn validate_typed_control_skeleton(
     expected.sort();
     actual.sort();
     if actual != expected {
+        if std::env::var_os("SPX_PROBE_SKELETON").is_some() {
+            for (index, path) in expected.iter().enumerate() {
+                eprintln!("EXP[{index}] {path:?}");
+            }
+            for (index, path) in actual.iter().enumerate() {
+                eprintln!("ACT[{index}] {path:?}");
+            }
+        }
         return Err(replay_error(
             function,
             "cleanup CFG decision or ownership-event sequence disagrees with typed HIR",
@@ -4241,9 +4249,9 @@ fn finish_match_arm(
 
 /// Refutable Match v1 skeleton expectations for a Copy-scalar match. Each
 /// non-final arm contributes one `ArmSelected` pair (selected paths continue
-/// through the optional guard's Boolean join; rejected paths fall through),
-/// and the trailing catch-all arm consumes everything unconditionally —
-/// mirroring the canonical builder exactly.
+/// through the optional guard's Boolean join; rejected paths — including
+/// false guards — fall through), and the trailing catch-all arm consumes
+/// everything unconditionally, mirroring the canonical builder exactly.
 #[allow(clippy::too_many_arguments)]
 fn finish_scalar_match_skeleton(
     program: &ResolvedProgram,
@@ -4260,7 +4268,9 @@ fn finish_scalar_match_skeleton(
             "droppable refutable-match result reached the copy-only cleanup skeleton",
         ));
     }
-    let last = arms.last().ok_or_else(|| replay_error(function, "refutable match has no arms"))?;
+    let last = arms
+        .last()
+        .ok_or_else(|| replay_error(function, "refutable match has no arms"))?;
     let catch_all = matches!(
         &last.pattern,
         ResolvedMatchPattern::Wildcard | ResolvedMatchPattern::Binding(_)
@@ -4273,36 +4283,42 @@ fn finish_scalar_match_skeleton(
     }
 
     let mut results: Vec<ExprSkeletonPath> = Vec::new();
-    let mut next_remaining: Vec<ExprSkeletonPath> = Vec::new();
     let mut remaining = scrutinee_paths;
     for (index, arm) in arms.iter().enumerate() {
-        // Terminal paths from earlier decisions bypass the whole chain.
-        for path in remaining.iter().filter(|path| path.failed || path.residual) {
-            let terminal = clone_expr_path_shallow(path, work)?;
-            work.push_expr_path(&mut next_remaining, terminal, "match terminal scrutinee path")?;
-        }
-        remaining.retain(|path| !path.failed && !path.residual);
-
         let final_arm = index + 1 == arms.len();
+
+        // Terminal paths bypass the rest of the decision chain.
+        let mut active = Vec::new();
+        for path in std::mem::take(&mut remaining) {
+            if path.failed || path.residual {
+                results.push(path);
+            } else {
+                active.push(path);
+            }
+        }
+
         let mut selected_paths: Vec<ExprSkeletonPath> = Vec::new();
         let mut rejected_paths: Vec<ExprSkeletonPath> = Vec::new();
         if final_arm {
-            selected_paths = std::mem::take(&mut remaining);
+            selected_paths = active;
         } else {
-            for path in std::mem::take(&mut remaining) {
+            let arm_index = u32::try_from(index)
+                .map_err(|_| replay_error(function, "too many scalar match arms"))?;
+            for path in active {
                 let mut selected = work.clone_expr_path(&path, "scalar match selected clone")?;
-                let scrutinee_id = work.clone_owned(&scrutinee.id, "scalar match selected scrutinee clone")?;
+                let scrutinee_id =
+                    work.clone_owned(&scrutinee.id, "scalar match selected scrutinee clone")?;
                 work.push_observation(
                     &mut selected,
                     SkeletonObservation::ArmSelected {
                         scrutinee: scrutinee_id,
-                        arm: u32::try_from(index)
-                            .map_err(|_| replay_error(function, "too many scalar match arms"))?,
+                        arm: arm_index,
                         selected: true,
                     },
                     "scalar match selected observation",
                 )?;
                 selected_paths.push(selected);
+
                 let mut rejected = path;
                 let scrutinee_id =
                     work.clone_owned(&scrutinee.id, "scalar match rejected scrutinee clone")?;
@@ -4310,8 +4326,7 @@ fn finish_scalar_match_skeleton(
                     &mut rejected,
                     SkeletonObservation::ArmSelected {
                         scrutinee: scrutinee_id,
-                        arm: u32::try_from(index)
-                            .map_err(|_| replay_error(function, "too many scalar match arms"))?,
+                        arm: arm_index,
                         selected: false,
                     },
                     "scalar match rejected observation",
@@ -4320,40 +4335,35 @@ fn finish_scalar_match_skeleton(
             }
         }
 
-        // Guard evaluation happens after selection and before the value.
         if let Some(guard) = &arm.guard {
-            let mut guard_true_paths: Vec<ExprSkeletonPath> = Vec::new();
-            let mut guard_false_paths: Vec<ExprSkeletonPath> = Vec::new();
-            for selected_prefix in selected_paths {
-                let guard_paths = expression_skeleton(program, function, guard.as_ref(), work)?;
-                let (terminal, when_true, when_false) =
-                    split_boolean_prefixes_at(guard_paths, &guard.id, work)?;
-                for terminal in terminal {
-                    work.push_expr_path(
-                        &mut next_remaining,
-                        terminal,
-                        "scalar match guard terminal",
-                    )?;
-                }
-                guard_true_paths.extend(when_true);
-                guard_false_paths.extend(when_false);
+            let guard_paths = expression_skeleton(program, function, guard.as_ref(), work)?;
+            let (terminal, when_true, when_false) =
+                split_boolean_prefixes_at(guard_paths, &guard.id, work)?;
+            // The true continuation consumes the shared prefixes; false and
+            // terminal continuations clone them.
+            let mut with_false = Vec::new();
+            for prefix in &selected_paths {
+                let cloned = clone_expr_path_shallow(prefix, work)?;
+                let prefixed =
+                    sequence_skeleton_paths(work.singleton_path(cloned, "guard-false prefix")?, &when_false, work)?;
+                with_false.extend(prefixed);
             }
-            // A false guard falls through to the following arms.
-            for mut path in guard_false_paths {
-                let guard_id = work.clone_owned(&guard.id, "scalar match guard-false id clone")?;
-                work.push_observation(
-                    &mut path,
-                    SkeletonObservation::Boolean {
-                        expression: guard_id,
-                        value: false,
-                    },
-                    "scalar match guard-false observation",
+            let mut with_terminal = Vec::new();
+            for prefix in &selected_paths {
+                let cloned = clone_expr_path_shallow(prefix, work)?;
+                let prefixed = sequence_skeleton_paths(
+                    work.singleton_path(cloned, "guard-terminal prefix")?,
+                    &terminal,
+                    work,
                 )?;
-                rejected_paths.push(path);
+                with_terminal.extend(prefixed);
             }
+            let with_true = sequence_skeleton_paths(selected_paths, &when_true, work)?;
+            // False guards and failed guard evaluations fall through.
+            rejected_paths.extend(with_false);
+            rejected_paths.extend(with_terminal);
             remaining.extend(rejected_paths);
-            // The true prefix continues into the arm value below.
-            for selected in guard_true_paths {
+            for selected in with_true {
                 append_scalar_arm_value(
                     program,
                     function,
@@ -4368,13 +4378,19 @@ fn finish_scalar_match_skeleton(
             remaining.extend(rejected_paths);
             for selected in selected_paths {
                 append_scalar_arm_value(
-                    program, function, expression, arm, selected, &mut results, work,
+                    program,
+                    function,
+                    expression,
+                    arm,
+                    selected,
+                    &mut results,
+                    work,
                 )?;
             }
         }
     }
     for path in remaining {
-        work.push_expr_path(&mut results, path, "scalar match leftover path")?;
+        results.push(path);
     }
     Ok(results)
 }
@@ -4400,6 +4416,13 @@ fn append_scalar_arm_value(
     let finished = finish_conditional_result(program, function, expression, sequenced, work)?;
     append_expr_paths(results, finished, work, "scalar match arm result")?;
     Ok(())
+}
+
+fn clone_expr_path_shallow(
+    path: &ExprSkeletonPath,
+    _work: &mut SkeletonWork<'_, '_>,
+) -> Result<ExprSkeletonPath, Diagnostic> {
+    Ok(path.clone())
 }
 
 #[allow(clippy::type_complexity)]
@@ -4439,13 +4462,6 @@ fn split_boolean_prefixes_at(
         false_paths.push(path);
     }
     Ok((terminal, true_paths, false_paths))
-}
-
-fn clone_expr_path_shallow(
-    path: &ExprSkeletonPath,
-    _work: &mut SkeletonWork<'_, '_>,
-) -> Result<ExprSkeletonPath, Diagnostic> {
-    Ok(path.clone())
 }
 
 fn append_expr_paths(

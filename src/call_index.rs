@@ -254,7 +254,22 @@ impl PersistentCallIndex {
                     if index == 0 {
                         Some(scrutinee)
                     } else {
-                        arms.get(index - 1).map(|arm| &arm.value)
+                        // Refutable Match v1: guards are evaluated children
+                        // between the scrutinee and the arm values.
+                        let mut cursor = index - 1;
+                        for arm in arms {
+                            if let Some(guard) = &arm.guard {
+                                if cursor == 0 {
+                                    return Some(guard.as_ref());
+                                }
+                                cursor -= 1;
+                            }
+                            if cursor == 0 {
+                                return Some(&arm.value);
+                            }
+                            cursor -= 1;
+                        }
+                        None
                     }
                 }
                 ResolvedExprKind::UpdateRecord { base, fields, .. } => {

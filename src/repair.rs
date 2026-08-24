@@ -512,6 +512,7 @@ pub(crate) fn precheck_program(program: &Program) -> Result<(), Vec<Diagnostic>>
                 expressions.push(receiver);
                 expressions.extend(args);
             }
+            ExprKind::SuperMethod { args, .. } => expressions.extend(args),
         }
         if let ExprKind::UpdateRecord { fields, .. } = &expression.kind {
             expressions.extend(fields.iter().map(|field| &field.value));
@@ -628,7 +629,8 @@ fn scalar_expr(expression: &Expr) -> bool {
         | ExprKind::Try { .. }
         | ExprKind::UpdateRecord { .. }
         | ExprKind::Project { .. }
-        | ExprKind::MethodCall { .. } => false,
+        | ExprKind::MethodCall { .. }
+        | ExprKind::SuperMethod { .. } => false,
     }
 }
 
@@ -763,6 +765,7 @@ fn collect_calls(
             }
         }
         ResolvedExprKind::Project { base, .. } => collect_calls(base, known, calls, call_sites),
+        ResolvedExprKind::Upcast { source } => collect_calls(source, known, calls, call_sites),
     }
 }
 

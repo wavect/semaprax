@@ -775,7 +775,9 @@ fn validate_expression(
                 ),
             ));
         }
-        ResolvedExprKind::ConstructRecord { .. } | ResolvedExprKind::Project { .. } => {
+        ResolvedExprKind::ConstructRecord { .. }
+        | ResolvedExprKind::Project { .. }
+        | ResolvedExprKind::Upcast { .. } => {
             return Err(unsupported(
                 function,
                 format!(

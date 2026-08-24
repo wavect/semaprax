@@ -278,7 +278,8 @@ fn collect_variant_domains(
                 }
             }
             hir::ResolvedExprKind::Unary { value, .. }
-            | hir::ResolvedExprKind::Project { base: value, .. } => {
+            | hir::ResolvedExprKind::Project { base: value, .. }
+            | hir::ResolvedExprKind::Upcast { source: value } => {
                 visit(program, value, domains)?;
             }
             hir::ResolvedExprKind::Binary { left, right, .. } => {
@@ -628,9 +629,8 @@ fn find_expression_by<'a>(
         hir::ResolvedExprKind::Unary { value, .. }
         | hir::ResolvedExprKind::Project { base: value, .. }
         | hir::ResolvedExprKind::Try { operand: value, .. }
-        | hir::ResolvedExprKind::TryOption { operand: value, .. } => {
-            find_expression_by(value, predicate)
-        }
+        | hir::ResolvedExprKind::TryOption { operand: value, .. }
+        | hir::ResolvedExprKind::Upcast { source: value } => find_expression_by(value, predicate),
         hir::ResolvedExprKind::Binary { left, right, .. } => {
             find_expression_by(left, predicate).or_else(|| find_expression_by(right, predicate))
         }

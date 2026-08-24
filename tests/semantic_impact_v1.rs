@@ -75,6 +75,7 @@ fn first_call<'a>(expression: &'a ResolvedExpr, template: &str) -> Option<&'a Re
             .find_map(|argument| first_call(argument, template)),
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Project { base: value, .. }
+        | ResolvedExprKind::Upcast { source: value }
         | ResolvedExprKind::Try { operand: value, .. }
         | ResolvedExprKind::TryOption { operand: value, .. } => first_call(value, template),
         ResolvedExprKind::Binary { left, right, .. } => {

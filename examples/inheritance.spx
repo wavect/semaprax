@@ -1,0 +1,60 @@
+module example.inheritance;
+
+@id("example.animal")
+class Animal {
+    @id("example.animal.legs")
+    legs: i64,
+
+    @id("example.animal.speak")
+    fn speak(self: Animal) -> i64
+{
+        self.legs
+    }
+
+    @id("example.animal.name")
+    fn name(self: Animal) -> string
+{
+        let base = "animal";
+        base
+    }
+}
+
+@id("example.dog")
+class Dog : Animal {
+    @id("example.dog.bark_count")
+    bark_count: i64,
+
+    @id("example.dog.speak")
+    fn speak(self: Dog) -> i64
+{
+        super.speak() + self.bark_count
+    }
+
+    @id("example.dog.name")
+    fn name(self: Dog) -> string
+{
+        let base = "dog";
+        base
+    }
+}
+
+@id("example.puppy")
+class Puppy : Dog {
+    @id("example.puppy.cuteness")
+    cuteness: i64,
+
+    @id("example.puppy.total")
+    fn total(self: Puppy) -> i64
+{
+        self.speak() + self.cuteness
+    }
+}
+
+@id("example.main")
+fn main() -> i64
+{
+    let d = Dog { legs: 4, bark_count: 2 };
+    let p = Puppy { legs: 4, bark_count: 1, cuteness: 10 };
+    let a: Animal = p;
+    if d.speak() == 6 && a.speak() == 4 && p.total() == 15 { if d.name() == "dog" && a.name() == "animal" { d.speak() } else { 0 } } else { 0 }
+}

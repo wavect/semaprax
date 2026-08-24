@@ -4911,6 +4911,7 @@ fn visit_resolved_calls(
             }
         }
         hir::ResolvedExprKind::Project { base, .. } => visit_resolved_calls(base, visit),
+        hir::ResolvedExprKind::Upcast { source } => visit_resolved_calls(source, visit),
         hir::ResolvedExprKind::Int(_)
         | hir::ResolvedExprKind::Int32(_)
         | hir::ResolvedExprKind::Char(_)
@@ -5430,6 +5431,13 @@ fn collect_resolved_expression_type_sites(
             owner,
             base,
             &crate::bounded_output::budgeted_format(format_args!("{path}.base")),
+            imported,
+            out,
+        )?,
+        hir::ResolvedExprKind::Upcast { source } => collect_resolved_expression_type_sites(
+            owner,
+            source,
+            &crate::bounded_output::budgeted_format(format_args!("{path}.source")),
             imported,
             out,
         )?,
@@ -6334,6 +6342,8 @@ fn visit_ast_call_sites(
         // Method calls resolve to hoisted functions in HIR; the AST-level
         // call-site walk sees them through the resolved Call edge instead.
         ExprKind::MethodCall { .. } => {}
+        // `super.method(...)` also resolves to a hoisted parent method in HIR.
+        ExprKind::SuperMethod { .. } => {}
     }
     Ok(())
 }
@@ -9675,7 +9685,7 @@ module graph.v14;
             );
             assert_eq!(
                 document_sha,
-                "sha256:4ed737683a267723cd2f0960ac9806bb0c202f17b6dd5838a78373029f553316"
+                "sha256:77cf462521295b53cba06190f502db53c4fdfd0ce28ebe23423dfa917d88898f"
             );
             assert!(json.starts_with(
                 "{\"schema\":\"semaprax.workspace-semantic-graph.v1\",\"workspace_manifest_schema\":\"semaprax.workspace-semantic-manifest.v1\",\"workspace_revision\":\"sha256:workspace\",\"graph_digest\":\"sha256:"

@@ -1213,6 +1213,7 @@ fn c_expression_linear(
                 | ResolvedExprKind::TryOption { .. }
                 | ResolvedExprKind::UpdateRecord { .. }
                 | ResolvedExprKind::Project { .. }
+                | ResolvedExprKind::Upcast { .. }
                 | ResolvedExprKind::Place(_) => {
                     return Err(b107("scalar value signature required"));
                 }

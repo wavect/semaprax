@@ -31,7 +31,8 @@ fn contains_unsafe_boundary(expression: &ResolvedExpr) -> bool {
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Try { operand: value, .. }
         | ResolvedExprKind::TryOption { operand: value, .. }
-        | ResolvedExprKind::Project { base: value, .. } => contains_unsafe_boundary(value),
+        | ResolvedExprKind::Project { base: value, .. }
+        | ResolvedExprKind::Upcast { source: value } => contains_unsafe_boundary(value),
         ResolvedExprKind::Binary { left, right, .. } => {
             contains_unsafe_boundary(left) || contains_unsafe_boundary(right)
         }
@@ -504,7 +505,16 @@ impl<'a> HirValidator<'a> {
                     )));
                 }
                 for (position, (field, indexed_field)) in fields.iter().zip(indexed).enumerate() {
-                    if !field_ids.insert(field.id.clone()) {
+                    // Class Inheritance v1: inherited members reappear in a
+                    // child's effective sequence; global identity uniqueness
+                    // remains scoped to each declaring class.
+                    let declared_here = self
+                        .program
+                        .declarations
+                        .declaration(&field.id)
+                        .and_then(|item| item.owner.clone())
+                        .is_some_and(|owner| owner == declaration.id);
+                    if declared_here && !field_ids.insert(field.id.clone()) {
                         return Err(hir_error(format!(
                             "duplicate resolved field identity `{}`",
                             field.id
@@ -521,11 +531,32 @@ impl<'a> HirValidator<'a> {
                             declaration.id
                         )));
                     }
+                    // An effective member is either declared by this class or
+                    // owned by one of its ancestors.
+                    let mut owner_ok = self
+                        .program
+                        .declarations
+                        .declaration(&field.id)
+                        .and_then(|item| item.owner.clone())
+                        .map(|owner| owner == declaration.id)
+                        .unwrap_or(false);
+                    if !owner_ok {
+                        let mut ancestors =
+                            self.program.declarations.class_ancestors(&declaration.id);
+                        owner_ok = ancestors.iter().any(|ancestor| {
+                            self.program
+                                .declarations
+                                .declaration(&field.id)
+                                .and_then(|item| item.owner.clone())
+                                .is_some_and(|owner| owner == *ancestor)
+                        });
+                        let _ = &mut ancestors;
+                    }
                     match self.program.declarations.declaration(&field.id) {
                         Some(item)
                             if item.kind == DeclarationKind::Field
                                 && item.name == field.name
-                                && item.owner.as_ref() == Some(&declaration.id)
+                                && owner_ok
                                 && self
                                     .program
                                     .declarations
@@ -1170,7 +1201,8 @@ impl<'a> HirValidator<'a> {
             | ResolvedExprKind::Try { .. }
             | ResolvedExprKind::TryOption { .. }
             | ResolvedExprKind::UpdateRecord { .. }
-            | ResolvedExprKind::Project { .. } => {
+            | ResolvedExprKind::Project { .. }
+            | ResolvedExprKind::Upcast { .. } => {
                 return Err(hir_error(
                     "generic template expression is outside the direct-scalar slice",
                 ));
@@ -1772,6 +1804,9 @@ impl<'a> HirValidator<'a> {
             Project {
                 expression: &'e ResolvedExpr,
                 field: &'e DeclarationId,
+            },
+            Upcast {
+                expression: &'e ResolvedExpr,
             },
             Try {
                 expression: &'e ResolvedExpr,
@@ -2753,6 +2788,17 @@ impl<'a> HirValidator<'a> {
                                 expression: base,
                                 scope,
                                 path: format!("{path}.base"),
+                            });
+                        }
+                        // Class Inheritance v1: independently re-derive the
+                        // upcast contract from the resolved source before the
+                        // ancestor-typed result is accepted.
+                        ResolvedExprKind::Upcast { source } => {
+                            frames.push(Frame::Upcast { expression });
+                            frames.push(Frame::Enter {
+                                expression: source,
+                                scope,
+                                path: format!("{path}.source"),
                             });
                         }
                         ResolvedExprKind::Try { operand, .. } => {
@@ -4179,6 +4225,16 @@ impl<'a> HirValidator<'a> {
                     let projected = self.field_type_for_type(&base.ty, field)?;
                     let ownership = self.expected_ownership(&projected, base.ownership)?;
                     self.finish_expr(expression, &projected, ownership)?;
+                    scopes.push(scope);
+                }
+                Frame::Upcast { expression } => {
+                    let scope = scopes.pop().expect("upcast scope retained");
+                    let ResolvedExprKind::Upcast { source } = &expression.kind else {
+                        unreachable!()
+                    };
+                    self.validate_upcast(expression, source)?;
+                    let ownership = self.expected_ownership(&expression.ty, OwnershipMode::Own)?;
+                    self.finish_expr(expression, &expression.ty, ownership)?;
                     scopes.push(scope);
                 }
                 Frame::Try {
@@ -5743,6 +5799,19 @@ impl<'a> HirValidator<'a> {
                 let ownership = self.expected_ownership(&projected, base.ownership)?;
                 (projected, ownership)
             }
+            ResolvedExprKind::Upcast { source } => {
+                self.validate_expr_recursive_reference(
+                    function,
+                    source,
+                    scope,
+                    &format!("{path}.source"),
+                    allow_moves,
+                    allowed_effects,
+                )?;
+                self.validate_upcast(expression, source)?;
+                let ownership = self.expected_ownership(&expression.ty, OwnershipMode::Own)?;
+                (expression.ty.clone(), ownership)
+            }
         };
 
         self.require_type(&expression.ty, &ty, "expression")?;
@@ -5946,7 +6015,8 @@ impl<'a> HirValidator<'a> {
                             frames.push(Frame::Enter(&first.value, arm_scope));
                         }
                     }
-                    ResolvedExprKind::Project { base, .. } => {
+                    ResolvedExprKind::Project { base, .. }
+                    | ResolvedExprKind::Upcast { source: base } => {
                         frames.push(Frame::Enter(base, scope_index));
                     }
                     ResolvedExprKind::Int(_)
@@ -6308,6 +6378,75 @@ impl<'a> HirValidator<'a> {
                 param.id
             )))
         }
+    }
+
+    /// Class Inheritance v1: independent re-derivation of the upcast
+    /// contract. The source must be a descendant class value whose effective
+    /// field sequence extends the ancestor's exactly, with a cleanup-inert
+    /// child-declared suffix.
+    fn validate_upcast(
+        &self,
+        expression: &ResolvedExpr,
+        source: &ResolvedExpr,
+    ) -> Result<(), Diagnostic> {
+        let (
+            ResolvedType::Nominal {
+                declaration: child_id,
+                arguments: child_arguments,
+            },
+            ResolvedType::Nominal {
+                declaration: parent_id,
+                arguments: parent_arguments,
+            },
+        ) = (&source.ty, &expression.ty)
+        else {
+            return Err(hir_error(
+                "resolved upcast operands are not nominal classes",
+            ));
+        };
+        if !child_arguments.is_empty() || !parent_arguments.is_empty() {
+            return Err(hir_error("resolved upcast has generic class arguments"));
+        }
+        if !self.program.declarations.class_extends(child_id, parent_id) {
+            return Err(hir_error(format!(
+                "resolved upcast `{child_id}` does not inherit from `{parent_id}`"
+            )));
+        }
+        let child_fields = self
+            .program
+            .declarations
+            .record_fields(child_id)
+            .ok_or_else(|| hir_error(format!("class `{child_id}` has no fields")))?;
+        let parent_fields = self
+            .program
+            .declarations
+            .record_fields(parent_id)
+            .ok_or_else(|| hir_error(format!("class `{parent_id}` has no fields")))?;
+        if child_fields.len() < parent_fields.len()
+            || child_fields[..parent_fields.len()]
+                .iter()
+                .zip(parent_fields.iter())
+                .any(|(child_field, parent_field)| child_field.id != parent_field.id)
+        {
+            return Err(hir_error(format!(
+                "resolved upcast `{child_id}` prefix disagrees with ancestor `{parent_id}`"
+            )));
+        }
+        for field in &child_fields[parent_fields.len()..] {
+            let drops = self
+                .program
+                .declarations
+                .type_facts(&field.ty)
+                .is_some_and(|facts| facts.needs_drop);
+            if drops {
+                return Err(hir_error(format!(
+                    "resolved upcast from `{child_id}` would discard owned field `{}`",
+                    field.name
+                )));
+            }
+        }
+        let _ = source;
+        Ok(())
     }
 
     fn expected_ownership(

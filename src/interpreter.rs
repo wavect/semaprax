@@ -681,6 +681,9 @@ fn scan_closure(
             ResolvedExprKind::Project { .. } => {
                 Err(reject_scan(expression, REASON_RECORD_PROJECTION))
             }
+            ResolvedExprKind::Upcast { .. } => {
+                Err(reject_scan(expression, REASON_RECORD_PROJECTION))
+            }
             ResolvedExprKind::Match { .. } => Err(reject_scan(expression, REASON_MATCH_EXPRESSION)),
             ResolvedExprKind::Try { .. } | ResolvedExprKind::TryOption { .. } => {
                 Err(reject_scan(expression, REASON_TRY_EXPRESSION))
@@ -775,7 +778,8 @@ fn child_expressions(expression: &ResolvedExpr) -> Vec<&ResolvedExpr> {
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Try { operand: value, .. }
         | ResolvedExprKind::TryOption { operand: value, .. }
-        | ResolvedExprKind::Project { base: value, .. } => vec![value.as_ref()],
+        | ResolvedExprKind::Project { base: value, .. }
+        | ResolvedExprKind::Upcast { source: value } => vec![value.as_ref()],
         ResolvedExprKind::Binary { left, right, .. } => vec![left.as_ref(), right.as_ref()],
         ResolvedExprKind::Block { statements, tail } => {
             let mut collected = Vec::new();
@@ -1207,6 +1211,7 @@ impl Evaluator<'_> {
             | ResolvedExprKind::ConstructVariant { .. }
             | ResolvedExprKind::UpdateRecord { .. }
             | ResolvedExprKind::Project { .. }
+            | ResolvedExprKind::Upcast { .. }
             | ResolvedExprKind::Match { .. }
             | ResolvedExprKind::Try { .. }
             | ResolvedExprKind::TryOption { .. }

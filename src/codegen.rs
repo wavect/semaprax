@@ -1162,9 +1162,8 @@ fn resolved_expr_children<'a>(
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Try { operand: value, .. }
         | ResolvedExprKind::TryOption { operand: value, .. }
-        | ResolvedExprKind::Project { base: value, .. } => {
-            Box::new(std::iter::once(value.as_ref()))
-        }
+        | ResolvedExprKind::Project { base: value, .. }
+        | ResolvedExprKind::Upcast { source: value } => Box::new(std::iter::once(value.as_ref())),
         ResolvedExprKind::Block { statements, tail } => Box::new(
             statements
                 .iter()
@@ -2219,9 +2218,9 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
         ResolvedExprKind::Try { .. } | ResolvedExprKind::TryOption { .. } => true,
         ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_try),
         ResolvedExprKind::NativeRustImportCall(call) => call.args.iter().any(expression_has_try),
-        ResolvedExprKind::Unary { value, .. } | ResolvedExprKind::Project { base: value, .. } => {
-            expression_has_try(value)
-        }
+        ResolvedExprKind::Unary { value, .. }
+        | ResolvedExprKind::Project { base: value, .. }
+        | ResolvedExprKind::Upcast { source: value } => expression_has_try(value),
         ResolvedExprKind::Binary { left, right, .. } => {
             expression_has_try(left) || expression_has_try(right)
         }
@@ -3324,6 +3323,55 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 CValue {
                     code: format!("({}).{}", base.code, c_field_symbol(&field.field)),
                     ty: field.ty,
+                }
+            }
+            ResolvedExprKind::Upcast { source } => {
+                // Class Inheritance v1: the ancestor prefix moves
+                // field-by-field from the consumed descendant value; the
+                // canonical layouts guarantee identical offsets.
+                let source = self.emit_expr(source)?;
+                let target_layout = self.record_layout(&expr.ty)?;
+                let source_layout = self.record_layout(&source.ty)?;
+                if target_layout.record == source_layout.record {
+                    return Err(backend_error(format!(
+                        "native upcast `{}` requires a descendant source",
+                        expr.ty.identity_key()
+                    )));
+                }
+                for field in &target_layout.fields {
+                    let source_field =
+                        source_layout.field(&field.field).cloned().ok_or_else(|| {
+                            backend_error(format!(
+                                "native upcast source `{}` has no inherited field `{}`",
+                                source_layout.record, field.field
+                            ))
+                        })?;
+                    if (source_field.offset, source_field.size, source_field.align)
+                        != (field.offset, field.size, field.align)
+                    {
+                        return Err(backend_error(format!(
+                            "native upcast field `{}` disagrees with the ancestor prefix layout",
+                            field.field
+                        )));
+                    }
+                }
+                let temporary = self.temporary(&expr.ty)?;
+                if target_layout.fields.is_empty() {
+                    self.line(&format!(
+                        "{temporary}.spx_empty_record_padding = UINT8_C(0);"
+                    ));
+                }
+                for field in &target_layout.fields {
+                    self.line(&format!(
+                        "{temporary}.{} = ({}).{};",
+                        c_field_symbol(&field.field),
+                        source.code,
+                        c_field_symbol(&field.field)
+                    ));
+                }
+                CValue {
+                    code: temporary,
+                    ty: expr.ty.clone(),
                 }
             }
             ResolvedExprKind::UpdateRecord {

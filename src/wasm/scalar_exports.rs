@@ -382,7 +382,8 @@ fn validate_expression_profile(
             | ResolvedExprKind::Try { .. }
             | ResolvedExprKind::TryOption { .. }
             | ResolvedExprKind::UpdateRecord { .. }
-            | ResolvedExprKind::Project { .. } => {
+            | ResolvedExprKind::Project { .. }
+            | ResolvedExprKind::Upcast { .. } => {
                 return Err(admission(format!(
                     "Public Scalar Export Profile v1 function `{function_id}` contains an aggregate, variant, or result expression"
                 )));

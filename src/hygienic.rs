@@ -442,7 +442,7 @@ impl ScanState<'_> {
             ExprKind::ConstructVariant { .. } => Some(REASON_VARIANT_CONSTRUCTION),
             ExprKind::UpdateRecord { .. } => Some(REASON_RECORD_UPDATE),
             ExprKind::Project { .. } => Some(REASON_RECORD_PROJECTION),
-            ExprKind::MethodCall { .. } => Some(REASON_METHOD_CALL),
+            ExprKind::MethodCall { .. } | ExprKind::SuperMethod { .. } => Some(REASON_METHOD_CALL),
             ExprKind::Match { .. } => Some(REASON_MATCH_EXPRESSION),
             ExprKind::Try { .. } => Some(REASON_TRY_EXPRESSION),
         }

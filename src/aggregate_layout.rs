@@ -472,7 +472,9 @@ fn collect_expr_record_types(
                 collect_expr_record_types(program, argument, instances)?;
             }
         }
-        ResolvedExprKind::Unary { value, .. } | ResolvedExprKind::Project { base: value, .. } => {
+        ResolvedExprKind::Unary { value, .. }
+        | ResolvedExprKind::Project { base: value, .. }
+        | ResolvedExprKind::Upcast { source: value } => {
             collect_expr_record_types(program, value, instances)?;
         }
         ResolvedExprKind::Try {

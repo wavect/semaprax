@@ -345,6 +345,7 @@ fn resolved_expr_owned_capacity(expression: &ResolvedExpr) -> usize {
     match &expression.kind {
         ResolvedExprKind::Place(place) => bytes += resolved_place_owned_capacity(place),
         ResolvedExprKind::Unary { value: operand, .. } => bytes += child(operand),
+        ResolvedExprKind::Upcast { source } => bytes += child(source),
         ResolvedExprKind::Project { base, field } => {
             bytes += child(base) + field.as_str().len();
         }
@@ -886,6 +887,9 @@ pub struct DeclarationIndex {
     imports_by_key: BTreeMap<String, DeclarationId>,
     native_rust_imports_by_name: BTreeMap<String, DeclarationId>,
     type_facts_by_id: BTreeMap<String, TypeFacts>,
+    /// Class Inheritance v1: the declared parent of each extending class.
+    /// Classes without `extends` have no entry.
+    class_parents: BTreeMap<DeclarationId, DeclarationId>,
 }
 
 impl DeclarationIndex {
@@ -1033,6 +1037,34 @@ impl DeclarationIndex {
 
     pub fn record_fields(&self, owner: &DeclarationId) -> Option<&[ResolvedFieldDeclaration]> {
         self.record_fields.get(owner).map(Vec::as_slice)
+    }
+
+    /// Class Inheritance v1: the declared parent of `class`, if any.
+    pub fn class_parent(&self, class: &DeclarationId) -> Option<&DeclarationId> {
+        self.class_parents.get(class)
+    }
+
+    /// The ancestor chain of `class`, nearest parent first. Cycle-safe by
+    /// construction; inheritance cycles are diagnosed before resolution.
+    pub fn class_ancestors(&self, class: &DeclarationId) -> Vec<DeclarationId> {
+        let mut ancestors = Vec::new();
+        let mut visited = BTreeSet::new();
+        let mut cursor = class.clone();
+        while let Some(parent) = self.class_parents.get(&cursor) {
+            if !visited.insert(parent.clone()) {
+                break;
+            }
+            ancestors.push(parent.clone());
+            cursor = parent.clone();
+        }
+        ancestors
+    }
+
+    /// `true` when `ancestor` names a class that `class` transitively extends.
+    pub fn class_extends(&self, class: &DeclarationId, ancestor: &DeclarationId) -> bool {
+        self.class_ancestors(class)
+            .iter()
+            .any(|item| item == ancestor)
     }
 
     pub fn case_id(&self, owner: &DeclarationId, name: &str) -> Option<&DeclarationId> {
@@ -1801,6 +1833,7 @@ impl DeclarationIndex {
             }
             index.variant_cases.insert(owner, resolved_cases);
         }
+        index.materialize_class_inheritance(program)?;
         if !index.populate_type_facts() {
             return Err(Diagnostic::error(
                 "SPX-T217",
@@ -1810,6 +1843,159 @@ impl DeclarationIndex {
             .at_path(&program.path));
         }
         Ok(index)
+    }
+
+    /// Class Inheritance v1: resolves `extends` links, rejects unknown or
+    /// non-class parents and inheritance cycles, then prepends each class's
+    /// inherited field prefix so layouts, semantic facts, projections, and
+    /// cleanup treat an inherited member exactly like a declared one.
+    fn materialize_class_inheritance(&mut self, program: &Program) -> Result<(), Diagnostic> {
+        for declaration in &program.types {
+            let Some(extends) = &declaration.extends else {
+                continue;
+            };
+            let child = DeclarationId::new(declaration.stable_id.clone());
+            let Type::Named {
+                name: parent_name,
+                arguments: parent_arguments,
+            } = extends
+            else {
+                return Err(Diagnostic::error(
+                    "SPX-T227",
+                    format!(
+                        "class `{}` must extend a named class type",
+                        declaration.name
+                    ),
+                    declaration.name_span,
+                )
+                .at_path(&program.path));
+            };
+            if !parent_arguments.is_empty() {
+                return Err(Diagnostic::error(
+                    "SPX-T227",
+                    format!(
+                        "class `{}` extends generic type `{parent_name}`; inheritance over generic classes is closed in this slice",
+                        declaration.name
+                    ),
+                    declaration.name_span,
+                )
+                .at_path(&program.path));
+            }
+            let parent = self.types_by_name.get(parent_name).ok_or_else(|| {
+                Diagnostic::error(
+                    "SPX-T227",
+                    format!(
+                        "class `{}` extends unknown type `{parent_name}`",
+                        declaration.name
+                    ),
+                    declaration.name_span,
+                )
+                .at_path(&program.path)
+            })?;
+            if self
+                .declaration(parent)
+                .is_none_or(|item| item.kind != DeclarationKind::Class)
+            {
+                return Err(Diagnostic::error(
+                    "SPX-T227",
+                    format!(
+                        "class `{}` extends non-class type `{parent_name}`",
+                        declaration.name
+                    ),
+                    declaration.name_span,
+                )
+                .at_path(&program.path));
+            }
+            self.class_parents.insert(child, parent.clone());
+        }
+        for declaration in &program.types {
+            if !matches!(declaration.kind, TypeDeclarationKind::Class { .. }) {
+                continue;
+            }
+            let child = DeclarationId::new(declaration.stable_id.clone());
+            let mut visited = BTreeSet::new();
+            let mut cursor = child.clone();
+            while let Some(parent) = self.class_parents.get(&cursor) {
+                if parent == &child || !visited.insert(parent.clone()) {
+                    return Err(Diagnostic::error(
+                        "SPX-T228",
+                        format!(
+                            "class `{}` participates in an inheritance cycle",
+                            declaration.name
+                        ),
+                        declaration.span,
+                    )
+                    .at_path(&program.path));
+                }
+                cursor = parent.clone();
+            }
+        }
+        // Materialize effective fields root-first so a child's prefix equals
+        // its standalone ancestor layout at every depth. Declared-only lists
+        // are snapshotted first because ancestors are materialized in place.
+        let mut declared_fields = BTreeMap::new();
+        for declaration in &program.types {
+            if matches!(declaration.kind, TypeDeclarationKind::Class { .. }) {
+                let id = DeclarationId::new(declaration.stable_id.clone());
+                if let Some(fields) = self.record_fields(&id) {
+                    declared_fields.insert(id, fields.to_vec());
+                }
+            }
+        }
+        for declaration in &program.types {
+            let TypeDeclarationKind::Class { .. } = &declaration.kind else {
+                continue;
+            };
+            let child = DeclarationId::new(declaration.stable_id.clone());
+            let mut chain = self.class_ancestors(&child);
+            chain.reverse();
+            chain.push(child.clone());
+            let mut effective = Vec::new();
+            let mut seen_names = BTreeSet::new();
+            let mut seen_ids = BTreeSet::new();
+            for member in &chain {
+                let is_child = member == &child;
+                let fields = declared_fields.get(member).ok_or_else(|| {
+                    Diagnostic::error(
+                        "SPX-H006",
+                        format!("class `{member}` has no resolved fields"),
+                        declaration.span,
+                    )
+                    .at_path(&program.path)
+                })?;
+                for mut field in fields.iter().cloned() {
+                    if !seen_names.insert(field.name.clone()) || !seen_ids.insert(field.id.clone())
+                    {
+                        return Err(Diagnostic::error(
+                            "SPX-T229",
+                            format!(
+                                "class `{}` redeclares member `{}` from an ancestor",
+                                declaration.name, field.name
+                            ),
+                            field.span,
+                        )
+                        .at_path(&program.path));
+                    }
+                    // Effective positions are canonical for the extending
+                    // class; backends consume them as declaration order.
+                    field.index = u32::try_from(effective.len()).map_err(|_| {
+                        Diagnostic::error(
+                            "SPX-H006",
+                            format!("class `{}` has too many fields", declaration.name),
+                            declaration.span,
+                        )
+                        .at_path(&program.path)
+                    })?;
+                    if !is_child {
+                        self.fields_by_owner_name
+                            .insert((child.clone(), field.name.clone()), field.id.clone());
+                    }
+                    effective.push(field);
+                }
+            }
+            self.record_fields.insert(child, effective);
+        }
+        Ok(())
     }
 
     fn insert_top_level(
@@ -2576,7 +2762,8 @@ fn materialize_template_expr(
         | ResolvedExprKind::Try { .. }
         | ResolvedExprKind::TryOption { .. }
         | ResolvedExprKind::UpdateRecord { .. }
-        | ResolvedExprKind::Project { .. } => {
+        | ResolvedExprKind::Project { .. }
+        | ResolvedExprKind::Upcast { .. } => {
             return Err(hir_error(
                 "generic template uses an expression outside the direct-scalar slice",
             ));
@@ -2936,6 +3123,14 @@ pub enum ResolvedExprKind {
     Project {
         base: Box<ResolvedExpr>,
         field: DeclarationId,
+    },
+    /// Class Inheritance v1: implicit prefix upcast of an owned descendant
+    /// class value to an ancestor class value. The source is consumed; its
+    /// inherited leaves transfer into the ancestor-typed result, so the
+    /// child-declared suffix must be cleanup-inert (checked at resolution).
+    /// Backends copy the ancestor prefix field-by-field from the source.
+    Upcast {
+        source: Box<ResolvedExpr>,
     },
 }
 
@@ -3578,6 +3773,7 @@ fn audit_resolved_expression(root: &ResolvedExpr) -> Result<(), Diagnostic> {
                 reject_nul_identity("resolved call target", callee.as_str())?;
                 pending.extend(args);
             }
+            ResolvedExprKind::Upcast { source } => pending.push(source),
             ResolvedExprKind::NativeRustImportCall(call) => {
                 reject_nul_identity("resolved native Rust import target", call.import.as_str())?;
                 if call.expression != expression.id {
@@ -4117,7 +4313,8 @@ fn visit_resolved_calls(
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Try { operand: value, .. }
         | ResolvedExprKind::TryOption { operand: value, .. }
-        | ResolvedExprKind::Project { base: value, .. } => visit_resolved_calls(value, visit),
+        | ResolvedExprKind::Project { base: value, .. }
+        | ResolvedExprKind::Upcast { source: value } => visit_resolved_calls(value, visit),
         ResolvedExprKind::Binary { left, right, .. } => {
             visit_resolved_calls(left, visit);
             visit_resolved_calls(right, visit);
@@ -4230,7 +4427,8 @@ pub(crate) fn workspace_call_sites(
             ResolvedExprKind::Unary { value, .. }
             | ResolvedExprKind::Try { operand: value, .. }
             | ResolvedExprKind::TryOption { operand: value, .. }
-            | ResolvedExprKind::Project { base: value, .. } => walk(owner, value, sites),
+            | ResolvedExprKind::Project { base: value, .. }
+            | ResolvedExprKind::Upcast { source: value } => walk(owner, value, sites),
             ResolvedExprKind::Binary { left, right, .. } => {
                 walk(owner, left, sites);
                 walk(owner, right, sites);
@@ -5805,8 +6003,32 @@ impl Resolver<'_> {
                 span: Span,
                 path: String,
                 method: &'expr str,
+                receiver: &'expr Expr,
+                bindings: Rc<BTreeMap<String, Binding>>,
                 type_arguments: Vec<ResolvedType>,
                 args_len: usize,
+            },
+            FinishSuperMethod {
+                span: Span,
+                method_span: Span,
+                path: String,
+                method: &'expr str,
+                holder: DeclarationId,
+                callee: DeclarationId,
+                args_len: usize,
+            },
+            StartUpcast {
+                source: &'expr Expr,
+                bindings: Rc<BTreeMap<String, Binding>>,
+                slot_path: String,
+                holder: DeclarationId,
+                span: Span,
+                resume: Box<Frame<'expr>>,
+            },
+            FinishUpcast {
+                slot_path: String,
+                holder: DeclarationId,
+                span: Span,
             },
         }
 
@@ -5852,12 +6074,20 @@ impl Resolver<'_> {
                 | Frame::UpdateNext { path, .. }
                 | Frame::UpdateAfterField { path, .. }
                 | Frame::FinishProject { path, .. }
-                | Frame::FinishMethodCall { path, .. } => path.capacity(),
+                | Frame::FinishMethodCall { path, .. }
+                | Frame::FinishSuperMethod { path, .. }
+                | Frame::StartUpcast {
+                    slot_path: path, ..
+                }
+                | Frame::FinishUpcast {
+                    slot_path: path, ..
+                } => path.capacity(),
             };
             let scope = match frame {
                 Frame::Enter { bindings, .. }
                 | Frame::ChildNext { bindings, .. }
                 | Frame::MethodArgNext { bindings, .. }
+                | Frame::StartUpcast { bindings, .. }
                 | Frame::AfterBinaryLeft { bindings, .. }
                 | Frame::AfterIfCondition { bindings, .. }
                 | Frame::AfterIfThen { bindings, .. }
@@ -6510,6 +6740,8 @@ impl Resolver<'_> {
                             span: expr.span,
                             path: path.clone(),
                             method,
+                            receiver,
+                            bindings: bindings.clone(),
                             type_arguments: resolved_args,
                             args_len: args.len(),
                         });
@@ -6527,6 +6759,94 @@ impl Resolver<'_> {
                             expr: receiver,
                             bindings,
                             path: format!("{path}.arg.0"),
+                        });
+                    }
+                    ExprKind::SuperMethod {
+                        method,
+                        method_span,
+                        args,
+                    } => {
+                        // `super` resolves against the enclosing class-method's
+                        // owner; the enclosing method's own receiver becomes
+                        // the callee's `self` argument.
+                        let FunctionExecutionId::Monomorphic(template) = function else {
+                            return Err(self.error(
+                                "SPX-T231",
+                                "`super` is only allowed inside a class-method override",
+                                *method_span,
+                            ));
+                        };
+                        let owner = self
+                            .declarations
+                            .declaration(template)
+                            .and_then(|item| item.owner.clone())
+                            .ok_or_else(|| {
+                                self.error(
+                                    "SPX-T231",
+                                    "`super` is only allowed inside a class-method override",
+                                    *method_span,
+                                )
+                            })?;
+                        let parent = self
+                            .declarations
+                            .class_parent(&owner)
+                            .cloned()
+                            .ok_or_else(|| {
+                                self.error(
+                                    "SPX-T231",
+                                    format!(
+                                        "`super.{method}` requires a parent; the enclosing class has none"
+                                    ),
+                                    *method_span,
+                                )
+                            })?;
+                        let (holder, callee) = self
+                            .resolve_method_in_chain(&parent, method, *method_span)
+                            .map_err(|_| {
+                                self.error(
+                                    "SPX-T231",
+                                    format!("unresolved super method `{method}`"),
+                                    *method_span,
+                                )
+                            })?;
+                        frames.push(Frame::FinishSuperMethod {
+                            span: expr.span,
+                            method_span: *method_span,
+                            path: path.clone(),
+                            method,
+                            holder: holder.clone(),
+                            callee,
+                            args_len: args.len(),
+                        });
+                        if !args.is_empty() {
+                            frames.push(Frame::MethodArgNext {
+                                args,
+                                index: 0,
+                                bindings: bindings.clone(),
+                                path: path.clone(),
+                            });
+                        }
+                        // The inherited receiver is the enclosing method's
+                        // own `self` parameter. It is created here as the
+                        // upcast source; the finish frame wraps it under the
+                        // canonical `.arg.0` argument identity.
+                        let owner_ty = ResolvedType::Nominal {
+                            declaration: owner.clone(),
+                            arguments: Vec::new(),
+                        };
+                        results.push(ResolvedExpr {
+                            id: ExpressionId::new(function, &format!("{path}.arg.0.source")),
+                            ty: owner_ty.clone(),
+                            ownership: self.expression_ownership(
+                                &owner_ty,
+                                OwnershipMode::Own,
+                                expr.span,
+                            )?,
+                            kind: ResolvedExprKind::Place(Place {
+                                root: ValueId::parameter(function, 0),
+                                projections: Vec::new(),
+                            }),
+                            span: expr.span,
                         });
                     }
                 },
@@ -6921,6 +7241,7 @@ impl Resolver<'_> {
                         name,
                         name_span,
                         mutable,
+                        declared,
                         span: statement_span,
                         ..
                     } = &statements[index]
@@ -6928,6 +7249,68 @@ impl Resolver<'_> {
                         unreachable!("let frame resumes at a let statement")
                     };
                     let statement_path = format!("{path}.s{index}");
+                    // Class Inheritance v1: an explicit declared type accepts
+                    // either the value's exact type or an ancestor class; a
+                    // descendant value is consumed through a prefix upcast
+                    // whose source re-resolves at the canonical `.source`
+                    // identity below the binding slot.
+                    if let Some(declared_ast) = declared {
+                        let declared_ty = self.resolve_type(declared_ast, *name_span)?;
+                        if value.ty != declared_ty {
+                            let ResolvedType::Nominal {
+                                declaration: child_id,
+                                ..
+                            } = &value.ty
+                            else {
+                                return Err(self.error(
+                                    "SPX-T232",
+                                    format!(
+                                        "declared binding type `{}` does not accept value type `{}`",
+                                        declared_ty.identity_key(),
+                                        value.ty.identity_key()
+                                    ),
+                                    *name_span,
+                                ));
+                            };
+                            let ResolvedType::Nominal {
+                                declaration: parent_id,
+                                ..
+                            } = &declared_ty
+                            else {
+                                return Err(self.error(
+                                    "SPX-T232",
+                                    format!(
+                                        "declared binding type `{}` does not accept value type `{}`",
+                                        declared_ty.identity_key(),
+                                        value.ty.identity_key()
+                                    ),
+                                    *name_span,
+                                ));
+                            };
+                            self.check_upcast_admissible(child_id, parent_id, *name_span)?;
+                            let slot_path = format!("{statement_path}.value");
+                            frames.push(Frame::StartUpcast {
+                                source: match &statements[index] {
+                                    Statement::Let { value, .. } => value,
+                                    _ => unreachable!("let frame resumes at a let statement"),
+                                },
+                                bindings: scope.clone(),
+                                slot_path,
+                                holder: parent_id.clone(),
+                                span: value.span,
+                                resume: Box::new(Frame::BlockAfterLet {
+                                    span,
+                                    path,
+                                    statements,
+                                    tail,
+                                    index,
+                                    scope,
+                                    resolved,
+                                }),
+                            });
+                            continue;
+                        }
+                    }
                     let binding = ResolvedBinding {
                         id: ValueId::local(function, &statement_path),
                         name: name.clone(),
@@ -7928,6 +8311,8 @@ impl Resolver<'_> {
                     span,
                     path,
                     method,
+                    receiver: receiver_ast,
+                    bindings,
                     type_arguments,
                     args_len,
                 } => {
@@ -7941,18 +8326,21 @@ impl Resolver<'_> {
                     let mut all = take_results(&mut results, args_len + 1);
                     let receiver = all.remove(0);
                     let args = all;
-                    let ResolvedType::Nominal {
-                        declaration: class_id,
-                        arguments: class_args,
-                    } = &receiver.ty
-                    else {
+                    let receiver_class = match &receiver.ty {
+                        ResolvedType::Nominal {
+                            declaration: class_id,
+                            arguments,
+                        } => Some((class_id.clone(), arguments.clone())),
+                        _ => None,
+                    };
+                    let Some((class_id, class_args)) = receiver_class else {
                         return Err(self.error(
                             "SPX-H001",
                             format!("cannot resolve method `{method}` on a non-class value"),
                             span,
                         ));
                     };
-                    let class_decl = self.declarations.declaration(class_id).ok_or_else(|| {
+                    let class_decl = self.declarations.declaration(&class_id).ok_or_else(|| {
                         self.error("SPX-H001", format!("unknown class `{class_id}`"), span)
                     })?;
                     if class_decl.kind != DeclarationKind::Class {
@@ -7964,34 +8352,48 @@ impl Resolver<'_> {
                             span,
                         ));
                     }
-                    let method_id = self
-                        .declarations
-                        .declarations()
-                        .find(|decl| {
-                            decl.kind == DeclarationKind::Function
-                                && decl.name == *method
-                                && decl.owner.as_ref() == Some(class_id)
-                        })
-                        .map(|decl| decl.id.clone())
-                        .ok_or_else(|| {
-                            self.error(
-                                "SPX-H001",
-                                format!("unresolved method `{method}` on class `{class_id}`"),
+                    // Class Inheritance v1: method resolution walks the
+                    // declared receiver's ancestor chain nearest-first, so an
+                    // override replaces the inherited symbol for receivers of
+                    // its own class while unoverridden parents stay callable.
+                    let (holder, method_id) =
+                        self.resolve_method_in_chain(&class_id, method, span)?;
+                    // An inherited receiver is consumed through a prefix
+                    // upcast: re-enter the receiver expression at the
+                    // canonical `.source` identity and wrap its result before
+                    // the method-call continuation resumes.
+                    if holder != class_id {
+                        self.check_upcast_admissible(&class_id, &holder, receiver.span)?;
+                        frames.push(Frame::StartUpcast {
+                            source: receiver_ast,
+                            bindings: bindings.clone(),
+                            slot_path: format!("{path}.arg.0"),
+                            holder: holder.clone(),
+                            span: receiver.span,
+                            resume: Box::new(Frame::FinishMethodCall {
                                 span,
-                            )
-                        })?;
-                    let class_ast = self
+                                path,
+                                method,
+                                receiver: receiver_ast,
+                                bindings,
+                                type_arguments,
+                                args_len,
+                            }),
+                        });
+                        continue;
+                    }
+                    let holder_ast = self
                         .program
                         .types
                         .iter()
-                        .find(|t| t.stable_id == class_id.as_str())
+                        .find(|t| t.stable_id == holder.as_str())
                         .ok_or_else(|| {
-                            self.error("SPX-H006", format!("class `{class_id}` has no AST"), span)
+                            self.error("SPX-H006", format!("class `{holder}` has no AST"), span)
                         })?;
-                    let TypeDeclarationKind::Class { methods, .. } = &class_ast.kind else {
+                    let TypeDeclarationKind::Class { methods, .. } = &holder_ast.kind else {
                         return Err(self.error(
                             "SPX-H006",
-                            format!("`{class_id}` is not a class"),
+                            format!("`{holder}` is not a class"),
                             span,
                         ));
                     };
@@ -7999,7 +8401,7 @@ impl Resolver<'_> {
                         methods.iter().find(|m| m.name == *method).ok_or_else(|| {
                             self.error(
                                 "SPX-H001",
-                                format!("unresolved method `{method}` on class `{class_id}`"),
+                                format!("unresolved method `{method}` on class `{holder}`"),
                                 span,
                             )
                         })?;
@@ -8013,14 +8415,14 @@ impl Resolver<'_> {
                     let self_param = &method_ast.params[0];
                     let self_ty = self.resolve_type(&self_param.ty, self_param.span)?;
                     let expected_self = ResolvedType::Nominal {
-                        declaration: class_id.clone(),
+                        declaration: holder.clone(),
                         arguments: class_args.clone(),
                     };
                     if self_ty != expected_self {
                         return Err(self.error(
                             "SPX-H001",
                             format!(
-                                "method `{method}` self parameter type `{:?}` does not match class `{class_id}`",
+                                "method `{method}` self parameter type `{:?}` does not match class `{holder}`",
                                 self_ty
                             ),
                             self_param.span,
@@ -8068,6 +8470,186 @@ impl Resolver<'_> {
                             type_arguments: Vec::new(),
                             instance: None,
                             args: call_args,
+                        },
+                        span,
+                    });
+                }
+                Frame::FinishSuperMethod {
+                    span,
+                    method_span,
+                    path,
+                    method,
+                    holder,
+                    callee,
+                    args_len,
+                } => {
+                    let mut all = take_results(&mut results, args_len + 1);
+                    let receiver = all.remove(0);
+                    let args = all;
+                    // The inherited receiver is the enclosing override's own
+                    // `self`, upcast to the declaring ancestor exactly like a
+                    // declared-type binding. The source place is synthesized
+                    // here, so both identities are canonical by construction.
+                    let ResolvedType::Nominal {
+                        declaration: self_class,
+                        ..
+                    } = &receiver.ty
+                    else {
+                        return Err(self.error(
+                            "SPX-H006",
+                            "super receiver is not a class value",
+                            method_span,
+                        ));
+                    };
+                    let receiver = if *self_class == holder {
+                        receiver
+                    } else {
+                        self.check_upcast_admissible(self_class, &holder, method_span)?;
+                        let source = ResolvedExpr {
+                            id: ExpressionId::new(function, &format!("{path}.arg.0.source")),
+                            ty: receiver.ty.clone(),
+                            ownership: receiver.ownership,
+                            kind: receiver.kind,
+                            span: receiver.span,
+                        };
+                        ResolvedExpr {
+                            id: ExpressionId::new(function, &format!("{path}.arg.0")),
+                            ty: ResolvedType::Nominal {
+                                declaration: holder.clone(),
+                                arguments: Vec::new(),
+                            },
+                            ownership: self.expression_ownership(
+                                &ResolvedType::Nominal {
+                                    declaration: holder.clone(),
+                                    arguments: Vec::new(),
+                                },
+                                OwnershipMode::Own,
+                                span,
+                            )?,
+                            kind: ResolvedExprKind::Upcast {
+                                source: Box::new(source),
+                            },
+                            span: receiver.span,
+                        }
+                    };
+                    let holder_ast = self
+                        .program
+                        .types
+                        .iter()
+                        .find(|t| t.stable_id == holder.as_str())
+                        .ok_or_else(|| {
+                            self.error("SPX-H006", format!("class `{holder}` has no AST"), span)
+                        })?;
+                    let TypeDeclarationKind::Class { methods, .. } = &holder_ast.kind else {
+                        return Err(self.error(
+                            "SPX-H006",
+                            format!("`{holder}` is not a class"),
+                            span,
+                        ));
+                    };
+                    let method_ast =
+                        methods.iter().find(|m| m.name == *method).ok_or_else(|| {
+                            self.error(
+                                "SPX-H001",
+                                format!("unresolved super method `{method}` on `{holder}`"),
+                                method_span,
+                            )
+                        })?;
+                    if method_ast.params.is_empty() {
+                        return Err(self.error(
+                            "SPX-H001",
+                            format!("super method `{method}` has no self parameter"),
+                            method_ast.span,
+                        ));
+                    }
+                    if method_ast.params.len() - 1 != args.len() {
+                        return Err(self.error(
+                            "SPX-T231",
+                            format!(
+                                "`super.{method}` expects {} arguments, found {}",
+                                method_ast.params.len() - 1,
+                                args.len()
+                            ),
+                            span,
+                        ));
+                    }
+                    for (arg, param) in args.iter().zip(method_ast.params.iter().skip(1)) {
+                        let param_ty = self.resolve_type(&param.ty, param.span)?;
+                        if arg.ty != param_ty {
+                            return Err(self.error(
+                                "SPX-T231",
+                                format!(
+                                    "`super.{method}` argument `{}` expects type `{}`, found `{}`",
+                                    param.name,
+                                    param_ty.identity_key(),
+                                    arg.ty.identity_key()
+                                ),
+                                arg.span,
+                            ));
+                        }
+                    }
+                    let return_ty = self.resolve_type(&method_ast.return_type, method_ast.span)?;
+                    let ownership =
+                        self.expression_ownership(&return_ty, OwnershipMode::Own, span)?;
+                    let mut call_args = Vec::with_capacity(1 + args.len());
+                    call_args.push(receiver);
+                    call_args.extend(args);
+                    results.push(ResolvedExpr {
+                        id: ExpressionId::new(function, &path),
+                        ty: return_ty,
+                        ownership,
+                        kind: ResolvedExprKind::Call {
+                            callee,
+                            type_arguments: Vec::new(),
+                            instance: None,
+                            args: call_args,
+                        },
+                        span,
+                    });
+                }
+                Frame::StartUpcast {
+                    source,
+                    bindings,
+                    slot_path,
+                    holder,
+                    span,
+                    resume,
+                } => {
+                    // Re-resolve the consumed expression at the canonical
+                    // `.source` identity below its occupied slot, then wrap
+                    // and resume the interrupted continuation.
+                    frames.push(*resume);
+                    frames.push(Frame::FinishUpcast {
+                        slot_path: slot_path.clone(),
+                        holder,
+                        span,
+                    });
+                    frames.push(Frame::Enter {
+                        expr: source,
+                        bindings,
+                        path: format!("{slot_path}.source"),
+                    });
+                }
+                Frame::FinishUpcast {
+                    slot_path,
+                    holder,
+                    span,
+                } => {
+                    let source = results.pop().expect("upcast source result retained");
+                    let declared = ResolvedType::Nominal {
+                        declaration: holder,
+                        arguments: Vec::new(),
+                    };
+                    results.push(ResolvedExpr {
+                        id: ExpressionId::new(function, &slot_path),
+                        ty: declared.clone(),
+                        ownership: self.expression_ownership(
+                            &declared,
+                            OwnershipMode::Own,
+                            span,
+                        )?,
+                        kind: ResolvedExprKind::Upcast {
+                            source: Box::new(source),
                         },
                         span,
                     });
@@ -8611,6 +9193,7 @@ impl Resolver<'_> {
                             name,
                             name_span,
                             mutable,
+                            declared: _,
                             value,
                             span,
                         } => {
@@ -9306,6 +9889,15 @@ impl Resolver<'_> {
                     ownership,
                 )
             }
+            // The test-only reference resolver never walks class-method
+            // bodies; `super` resolution is owned by the iterative resolver.
+            ExprKind::SuperMethod { method_span, .. } => {
+                return Err(self.error(
+                    "SPX-T231",
+                    "`super` is only allowed inside a class-method override",
+                    *method_span,
+                ));
+            }
             ExprKind::Project { base, field, .. } => {
                 let base = self.resolve_expr_recursive_reference(
                     function,
@@ -9388,6 +9980,98 @@ impl Resolver<'_> {
 
     fn error(&self, code: &'static str, message: impl Into<String>, span: Span) -> Diagnostic {
         Diagnostic::error(code, message, span).at_path(&self.program.path)
+    }
+
+    /// Class Inheritance v1: finds the nearest ancestor of `start` (inclusive)
+    /// declaring a method named `method`, returning the declaring class and
+    /// the method's stable identity.
+    fn resolve_method_in_chain(
+        &self,
+        start: &DeclarationId,
+        method: &str,
+        span: Span,
+    ) -> Result<(DeclarationId, DeclarationId), Diagnostic> {
+        let mut chain = vec![start.clone()];
+        chain.extend(self.declarations.class_ancestors(start));
+        for class in &chain {
+            if let Some(declaration) = self
+                .declarations
+                .declarations()
+                .find(|decl| {
+                    decl.kind == DeclarationKind::Function
+                        && decl.name == method
+                        && decl.owner.as_ref() == Some(class)
+                })
+                .map(|decl| decl.id.clone())
+            {
+                return Ok((class.clone(), declaration));
+            }
+        }
+        Err(self.error(
+            "SPX-H001",
+            format!("unresolved method `{method}` on class `{start}`"),
+            span,
+        ))
+    }
+
+    /// Class Inheritance v1: consumes `receiver` (a whole value of some
+    /// descendant of `holder`) as a `holder`-typed value. Exact-type receivers
+    /// pass through unchanged; descendants are consumed through the same
+    /// prefix-upcast block a declared-type binding uses, which requires the
+    /// child-declared suffix to introduce no cleanup leaves.
+    /// Class Inheritance v1: admits an implicit upcast from class `child` to
+    /// its ancestor `parent`. The prefix must be exactly the ancestor's
+    /// effective layout, and the child-declared suffix must be cleanup-inert:
+    /// consuming the child transfers its inherited leaves into the
+    /// ancestor-typed result, so owned suffix state would otherwise leak.
+    fn check_upcast_admissible(
+        &self,
+        child: &DeclarationId,
+        parent: &DeclarationId,
+        span: Span,
+    ) -> Result<(), Diagnostic> {
+        if !self.declarations.class_extends(child, parent) {
+            return Err(self.error(
+                "SPX-T232",
+                format!("`{child}` does not inherit from `{parent}`"),
+                span,
+            ));
+        }
+        let child_fields = self.declarations.record_fields(child).ok_or_else(|| {
+            self.error("SPX-H006", format!("class `{child}` has no fields"), span)
+        })?;
+        let parent_fields = self.declarations.record_fields(parent).ok_or_else(|| {
+            self.error("SPX-H006", format!("class `{parent}` has no fields"), span)
+        })?;
+        if child_fields.len() < parent_fields.len()
+            || child_fields[..parent_fields.len()]
+                .iter()
+                .zip(parent_fields.iter())
+                .any(|(child_field, parent_field)| child_field.id != parent_field.id)
+        {
+            return Err(self.error(
+                "SPX-H006",
+                format!("class `{child}` prefix disagrees with ancestor `{parent}`"),
+                span,
+            ));
+        }
+        for field in &child_fields[parent_fields.len()..] {
+            let drops = self
+                .declarations
+                .type_facts(&field.ty)
+                .is_some_and(|facts| facts.needs_drop);
+            if drops {
+                return Err(self.error(
+                    "SPX-T233",
+                    format!(
+                        "upcast from `{child}` to `{parent}` would discard owned field `{}`; only cleanup-inert child fields are admitted in this slice",
+                        field.name
+                    ),
+                    span,
+                ));
+            }
+        }
+        Ok(())
     }
 
     fn expression_ownership(

@@ -396,6 +396,10 @@ pub(crate) fn write_canonical(program: &Program, output: &mut impl std::fmt::Wri
             TypeDeclarationKind::Class { fields, methods } => {
                 write!(output, "class {}", declaration.name).unwrap();
                 write_type_parameters(output, &declaration.type_parameters);
+                if let Some(parent) = &declaration.extends {
+                    write!(output, " : ").unwrap();
+                    write_type(output, parent);
+                }
                 if fields.is_empty() && methods.is_empty() {
                     writeln!(output, " {{ }}").unwrap();
                     continue;
@@ -967,6 +971,18 @@ fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> usize {
                 total = total.saturating_add(rendered);
                 stack.push((base, if delimited { 0 } else { 8 }));
             }
+            ExprKind::SuperMethod { method, args, .. } => {
+                let joined = joined_len(
+                    args.iter().map(|argument| rendered_expr_len(argument, 0)),
+                    args.len(),
+                    2,
+                );
+                total = total
+                    .saturating_add(method.len())
+                    .saturating_add(joined)
+                    .saturating_add(rendered);
+                stack.extend(args.iter().rev().map(|argument| (argument, 0)));
+            }
         }
     }
     total
@@ -1289,6 +1305,17 @@ fn write_expr(output: &mut impl std::fmt::Write, value: &Expr, parent_precedence
                     ));
                     frames.push(Frame::Expr(receiver, if delimited { 0 } else { 8 }));
                 }
+                ExprKind::SuperMethod { method, args, .. } => {
+                    output.write_str("super.").unwrap();
+                    output.write_str(method).unwrap();
+                    output.write_char('(').unwrap();
+                    if args.is_empty() {
+                        output.write_char(')').unwrap();
+                    } else {
+                        frames.push(Frame::Close(')'));
+                        frames.push(Frame::CallArgs(args, 0));
+                    }
+                }
             },
             Frame::CallArgs(args, index) => {
                 if let Some(argument) = args.get(index) {
@@ -1312,14 +1339,20 @@ fn write_expr(output: &mut impl std::fmt::Write, value: &Expr, parent_precedence
                         Statement::Let {
                             name,
                             mutable,
+                            declared,
                             value,
                             ..
                         } => {
                             if *mutable {
-                                write!(output, "let mut {name} = ").unwrap();
+                                write!(output, "let mut {name}").unwrap();
                             } else {
-                                write!(output, "let {name} = ").unwrap();
+                                write!(output, "let {name}").unwrap();
                             }
+                            if let Some(ty) = declared {
+                                write!(output, ": ").unwrap();
+                                write_type(output, ty);
+                            }
+                            write!(output, " = ").unwrap();
                             frames.push(Frame::BlockNext(statements, tail, index + 1));
                             frames.push(Frame::Expr(value, 0));
                         }
@@ -1678,6 +1711,7 @@ fn contains_record_construction(value: &Expr) -> bool {
                     args.get(index - 1)
                 }
             }
+            ExprKind::SuperMethod { args, .. } => args.get(index),
             ExprKind::ConstructRecord { .. }
             | ExprKind::ConstructVariant { .. }
             | ExprKind::Int(_)
@@ -1751,15 +1785,21 @@ fn write_block_statement(output: &mut impl std::fmt::Write, statement: &Statemen
         Statement::Let {
             name,
             mutable,
+            declared,
             value,
             ..
         } => {
             write_indent(output, depth);
             if *mutable {
-                write!(output, "let mut {name} = ").unwrap();
+                write!(output, "let mut {name}").unwrap();
             } else {
-                write!(output, "let {name} = ").unwrap();
+                write!(output, "let {name}").unwrap();
             }
+            if let Some(ty) = declared {
+                write!(output, ": ").unwrap();
+                write_type(output, ty);
+            }
+            write!(output, " = ").unwrap();
             write_expr(output, value, 0);
             writeln!(output, ";").unwrap();
         }

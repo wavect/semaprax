@@ -1142,7 +1142,9 @@ fn collect_result_propagations<'a>(
                 collect_result_propagations(argument, propagations);
             }
         }
-        ResolvedExprKind::Unary { value, .. } | ResolvedExprKind::Project { base: value, .. } => {
+        ResolvedExprKind::Unary { value, .. }
+        | ResolvedExprKind::Project { base: value, .. }
+        | ResolvedExprKind::Upcast { source: value } => {
             collect_result_propagations(value, propagations);
         }
         ResolvedExprKind::Binary { left, right, .. } => {
@@ -1391,7 +1393,8 @@ fn expression_has_record_pattern(expression: &ResolvedExpr) -> bool {
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Try { operand: value, .. }
         | ResolvedExprKind::TryOption { operand: value, .. }
-        | ResolvedExprKind::Project { base: value, .. } => expression_has_record_pattern(value),
+        | ResolvedExprKind::Project { base: value, .. }
+        | ResolvedExprKind::Upcast { source: value } => expression_has_record_pattern(value),
         ResolvedExprKind::Binary { left, right, .. } => {
             expression_has_record_pattern(left) || expression_has_record_pattern(right)
         }
@@ -1575,6 +1578,7 @@ fn collect_agent_contract_values(expression: &ResolvedExpr, values: &mut BTreeSe
             }
         }
         ResolvedExprKind::Project { base, .. } => collect_agent_contract_values(base, values),
+        ResolvedExprKind::Upcast { source } => collect_agent_contract_values(source, values),
     }
 }
 
@@ -1829,6 +1833,10 @@ fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnos
             "{{\"kind\":\"project\",\"base\":{},\"field\":{}}}",
             agent_contract_expr_json(base)?,
             quote_json(field.as_str())
+        ),
+        ResolvedExprKind::Upcast { source } => format!(
+            "{{\"kind\":\"upcast\",\"source\":{}}}",
+            agent_contract_expr_json(source)?
         ),
     })
 }
@@ -2866,9 +2874,18 @@ fn graph_json(
                         "null".to_owned(),
                     )
                 };
+                // Class Inheritance v1: the declared parent is an additive
+                // graph fact; parentless classes omit the key entirely so
+                // pre-inheritance projections stay byte-identical.
+                let extends = program
+                    .declarations
+                    .class_parent(&declaration.id)
+                    .map_or_else(String::new, |parent| {
+                        format!(",\"extends\":{}", quote_json(parent.as_str()))
+                    });
                 write!(
                     output,
-                    "{{\"id\":{},\"kind\":\"class\",\"name\":{},\"identity_origin\":{},\"persistent\":{}{parameters},\"type_id\":{},\"fields\":[{}],\"methods\":[{}]}}",
+                    "{{\"id\":{},\"kind\":\"class\",\"name\":{},\"identity_origin\":{},\"persistent\":{}{parameters},\"type_id\":{}{extends},\"fields\":[{}],\"methods\":[{}]}}",
                     quote_json(declaration.id.as_str()),
                     quote_json(&declaration.name),
                     quote_json(type_origin.text()),
@@ -2892,9 +2909,20 @@ fn graph_json(
                         .declarations
                         .declaration(&field.id)
                         .ok_or_else(|| graph_reference_error("field", &field.id))?;
-                    if metadata.kind != crate::hir::DeclarationKind::Field
-                        || metadata.owner.as_ref() != Some(&declaration.id)
-                    {
+                    // Class Inheritance v1: an effective member is declared by
+                    // the rendering class or by one of its ancestors; the node
+                    // always records the true declaring owner.
+                    let declaring_owner = metadata.owner.clone().ok_or_else(|| {
+                        Diagnostic::io(
+                            "SPX-G003",
+                            format!("field `{}` has no owning declaration", field.id),
+                        )
+                    })?;
+                    let owner_is_visible = declaring_owner == declaration.id
+                        || program
+                            .declarations
+                            .class_extends(&declaration.id, &declaring_owner);
+                    if metadata.kind != crate::hir::DeclarationKind::Field || !owner_is_visible {
                         return Err(Diagnostic::io(
                             "SPX-G003",
                             format!(
@@ -2911,7 +2939,7 @@ fn graph_json(
                         quote_json(&field.name),
                         quote_json(metadata.identity_origin.text()),
                         metadata.identity_origin.is_persistent(),
-                        quote_json(declaration.id.as_str()),
+                        quote_json(declaring_owner.as_str()),
                         quote_json(&field.ty.identity_key())
                     )
                     .expect("writing to a string cannot fail");
@@ -3418,6 +3446,9 @@ fn visit_expr_call_instances(
         ResolvedExprKind::Unary { value, .. } | ResolvedExprKind::Project { base: value, .. } => {
             visit_expr_call_instances(value, visit);
         }
+        ResolvedExprKind::Upcast { source: value } => {
+            visit_expr_call_instances(value, visit);
+        }
         ResolvedExprKind::Binary { left, right, .. } => {
             visit_expr_call_instances(left, visit);
             visit_expr_call_instances(right, visit);
@@ -3488,6 +3519,7 @@ fn visit_expr_calls(expression: &ResolvedExpr, visit: &mut impl FnMut(&Declarati
             }
         }
         ResolvedExprKind::Unary { value, .. } => visit_expr_calls(value, visit),
+        ResolvedExprKind::Upcast { source: value } => visit_expr_calls(value, visit),
         ResolvedExprKind::Binary { left, right, .. } => {
             visit_expr_calls(left, visit);
             visit_expr_calls(right, visit);
@@ -3583,6 +3615,9 @@ fn collect_expr_type_declarations(
             }
         }
         ResolvedExprKind::Unary { value, .. } => {
+            collect_expr_type_declarations(value, declarations);
+        }
+        ResolvedExprKind::Upcast { source: value } => {
             collect_expr_type_declarations(value, declarations);
         }
         ResolvedExprKind::Binary { left, right, .. } => {
@@ -3997,6 +4032,10 @@ fn expr_json(program: &ResolvedProgram, expression: &ResolvedExpr) -> Result<Str
             expr_json(program, base)?,
             quote_json(field.as_str())
         ),
+        ResolvedExprKind::Upcast { source } => format!(
+            "{{{header},\"kind\":\"upcast\",\"source\":{}}}",
+            expr_json(program, source)?
+        ),
     };
     Ok(output)
 }
@@ -4178,6 +4217,7 @@ fn collect_expr_types(expression: &ResolvedExpr, types: &mut BTreeMap<String, Re
             }
         }
         ResolvedExprKind::Unary { value, .. } => collect_expr_types(value, types),
+        ResolvedExprKind::Upcast { source: value } => collect_expr_types(value, types),
         ResolvedExprKind::Binary { left, right, .. } => {
             collect_expr_types(left, types);
             collect_expr_types(right, types);

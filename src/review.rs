@@ -684,6 +684,7 @@ fn precheck_program(program: &Program) -> Result<AstUsage, Vec<Diagnostic>> {
                 stack.push(receiver);
                 stack.extend(args);
             }
+            ExprKind::SuperMethod { args, .. } => stack.extend(args),
         }
     }
     Ok(AstUsage {

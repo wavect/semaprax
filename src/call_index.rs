@@ -219,9 +219,8 @@ impl PersistentCallIndex {
                 ResolvedExprKind::Unary { value, .. }
                 | ResolvedExprKind::Project { base: value, .. }
                 | ResolvedExprKind::Try { operand: value, .. }
-                | ResolvedExprKind::TryOption { operand: value, .. } => {
-                    (index == 0).then_some(value)
-                }
+                | ResolvedExprKind::TryOption { operand: value, .. }
+                | ResolvedExprKind::Upcast { source: value } => (index == 0).then_some(value),
                 ResolvedExprKind::Binary { left, right, .. } => {
                     [left.as_ref(), right.as_ref()].get(index).copied()
                 }

@@ -395,6 +395,9 @@ impl FunctionPlan {
             ResolvedExprKind::Project { base, .. } => {
                 self.collect_expr(program, variant_layouts, base, parameter_count, frame)?;
             }
+            ResolvedExprKind::Upcast { source } => {
+                self.collect_expr(program, variant_layouts, source, parameter_count, frame)?;
+            }
             ResolvedExprKind::UpdateRecord { base, fields, .. } => {
                 self.collect_expr(program, variant_layouts, base, parameter_count, frame)?;
                 for field in fields {
@@ -489,9 +492,9 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
         ResolvedExprKind::Try { .. } | ResolvedExprKind::TryOption { .. } => true,
         ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_try),
         ResolvedExprKind::NativeRustImportCall(call) => call.args.iter().any(expression_has_try),
-        ResolvedExprKind::Unary { value, .. } | ResolvedExprKind::Project { base: value, .. } => {
-            expression_has_try(value)
-        }
+        ResolvedExprKind::Unary { value, .. }
+        | ResolvedExprKind::Project { base: value, .. }
+        | ResolvedExprKind::Upcast { source: value } => expression_has_try(value),
         ResolvedExprKind::Binary { left, right, .. } => {
             expression_has_try(left) || expression_has_try(right)
         }
@@ -1884,6 +1887,49 @@ impl Emitter<'_> {
                 let base = self.emit_expr(base)?;
                 let projected = self.project_value(&base, field)?;
                 self.materialize(expr, &projected)
+            }
+            ResolvedExprKind::Upcast { source } => {
+                // Class Inheritance v1: copy the ancestor prefix fields from
+                // the consumed descendant value; canonical layouts guarantee
+                // identical offsets on both sides.
+                let value = self.emit_expr(source)?;
+                let destination = Value::Aggregate {
+                    pointer: self.plan.expr_pointer(expr)?,
+                    ty: expr.ty.clone(),
+                };
+                let target_layout = layout(self.program, &expr.ty)?;
+                let source_layout = layout(self.program, value_type(&value))?;
+                if target_layout.record == source_layout.record {
+                    return Err(error("upcast requires a descendant source layout"));
+                }
+                let Value::Aggregate { pointer, .. } = &destination else {
+                    unreachable!();
+                };
+                for field in &target_layout.fields {
+                    if source_layout.field(&field.field).map(|candidate| {
+                        (candidate.offset, candidate.size, candidate.align)
+                            == (field.offset, field.size, field.align)
+                    }) != Some(true)
+                    {
+                        return Err(error(
+                            "upcast source prefix disagrees with the ancestor layout",
+                        ));
+                    }
+                    let field_destination = value_at(
+                        Pointer {
+                            local: pointer.local,
+                            offset: pointer
+                                .offset
+                                .checked_add(field.offset)
+                                .ok_or_else(|| error("field pointer overflows u32"))?,
+                        },
+                        field.ty.clone(),
+                        self.program,
+                    )?;
+                    let field_source = self.project_value(&value, &field.field)?;
+                    self.copy_value(&field_destination, &field_source, "upcast prefix field")?;
+                }
+                Ok(destination)
             }
             ResolvedExprKind::UpdateRecord {
                 base,

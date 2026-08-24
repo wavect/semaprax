@@ -1190,16 +1190,13 @@ fn resolved_expr_children<'a>(
         | ResolvedExprKind::ConstructVariant { fields, .. } => {
             Box::new(fields.iter().map(|field| &field.value))
         }
-        ResolvedExprKind::Match { scrutinee, arms } => {
-            Box::new(
-                std::iter::once(scrutinee.as_ref())
-                    .chain(
-                        arms.iter()
-                            .filter_map(|arm| arm.guard.as_deref())
-                            .chain(arms.iter().map(|arm| &arm.value)),
-                    ),
-            )
-        }
+        ResolvedExprKind::Match { scrutinee, arms } => Box::new(
+            std::iter::once(scrutinee.as_ref()).chain(
+                arms.iter()
+                    .filter_map(|arm| arm.guard.as_deref())
+                    .chain(arms.iter().map(|arm| &arm.value)),
+            ),
+        ),
         ResolvedExprKind::UpdateRecord { base, fields, .. } => {
             Box::new(std::iter::once(base.as_ref()).chain(fields.iter().map(|field| &field.value)))
         }
@@ -2567,13 +2564,10 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 );
             }
             let test = match &arm.pattern {
-                hir::ResolvedMatchPattern::Wildcard | hir::ResolvedMatchPattern::Binding(_) => {
-                    None
+                hir::ResolvedMatchPattern::Wildcard | hir::ResolvedMatchPattern::Binding(_) => None,
+                hir::ResolvedMatchPattern::Literal(value) => {
+                    Some(format!("{staged} == {}", c_pattern_literal(*value)))
                 }
-                hir::ResolvedMatchPattern::Literal(value) => Some(format!(
-                    "{staged} == {}",
-                    c_pattern_literal(*value)
-                )),
                 hir::ResolvedMatchPattern::Or(alternatives) => Some(
                     alternatives
                         .iter()
@@ -2586,9 +2580,8 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                         .collect::<Vec<_>>()
                         .join(" || "),
                 ),
-                hir::ResolvedMatchPattern::Variant { .. } | hir::ResolvedMatchPattern::Record {
-                    ..
-                } => {
+                hir::ResolvedMatchPattern::Variant { .. }
+                | hir::ResolvedMatchPattern::Record { .. } => {
                     return Err(backend_error(
                         "aggregate pattern has a Copy-scalar match scrutinee",
                     ));

@@ -1323,8 +1323,12 @@ impl<'a> PlanBuilder<'a> {
                 decision = next_decision;
             }
             let value_block = if let Some(guard) = &arm.guard {
-                let evaluated_guard =
-                    self.lower_expr_recursive_reference(guard.as_ref(), arm_entry, branch_state.clone(), region)?;
+                let evaluated_guard = self.lower_expr_recursive_reference(
+                    guard.as_ref(),
+                    arm_entry,
+                    branch_state.clone(),
+                    region,
+                )?;
                 if evaluated_guard.owned_source.is_some() {
                     return Err(plan_error(
                         "scalar match guard owns a value, which no admitted program can express",
@@ -3471,9 +3475,9 @@ impl<'a> PlanBuilder<'a> {
                     if index == arms.len() {
                         let entry_state = branch_state;
                         let mut arm_results = arm_results.into_iter();
-                        let first = arm_results.next().ok_or_else(|| {
-                            plan_error("refutable match produced no arm result")
-                        })?;
+                        let first = arm_results
+                            .next()
+                            .ok_or_else(|| plan_error("refutable match produced no arm result"))?;
                         let mut merged_state = first.state.clone();
                         let mut completed = vec![first];
                         for result in arm_results {
@@ -3507,8 +3511,7 @@ impl<'a> PlanBuilder<'a> {
                             // The resolver guarantees one trailing
                             // irrefutable guard-free catch-all, so the final
                             // decision falls through unconditionally.
-                            let edge =
-                                self.new_edge(decision, arm_entry, EdgeCondition::Always)?;
+                            let edge = self.new_edge(decision, arm_entry, EdgeCondition::Always)?;
                             self.terminate(decision, CleanupTerminator::Goto(edge))?;
                         } else {
                             // Every earlier arm — including irrefutable
@@ -3597,9 +3600,7 @@ impl<'a> PlanBuilder<'a> {
                     }
                     let arm = &arms[index];
                     let Some(guard_expr) = &arm.guard else {
-                        return Err(plan_error(
-                            "scalar match guard continuation lost its guard",
-                        ));
+                        return Err(plan_error("scalar match guard continuation lost its guard"));
                     };
                     let value_entry = self.new_block(active_region)?;
                     let true_edge = self.new_edge(
@@ -3644,10 +3645,9 @@ impl<'a> PlanBuilder<'a> {
                 } => {
                     let mut result = results.pop().expect("scalar match arm value retained");
                     if let Some(destination) = destination.clone() {
-                        let source = result
-                            .owned_source
-                            .take()
-                            .ok_or_else(|| plan_error("owned scalar match arm has no cleanup source"))?;
+                        let source = result.owned_source.take().ok_or_else(|| {
+                            plan_error("owned scalar match arm has no cleanup source")
+                        })?;
                         self.transfer(
                             result.block,
                             expression.id.clone(),

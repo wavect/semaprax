@@ -6052,8 +6052,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         }
                         for arm in arms.iter() {
                             match &arm.pattern {
-                                MatchPattern::Wildcard { .. }
-                                | MatchPattern::Binding { .. } => {}
+                                MatchPattern::Wildcard { .. } | MatchPattern::Binding { .. } => {}
                                 MatchPattern::Literal { value, span } => {
                                     if pattern_literal_type(*value) != scrutinee_ty {
                                         self.diagnostics.push(error(
@@ -6099,7 +6098,8 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                         }
                                         match &seen_type {
                                             None => seen_type = Some(pattern_literal_type(*value)),
-                                            Some(seen) if *seen == pattern_literal_type(*value) => {}
+                                            Some(seen) if *seen == pattern_literal_type(*value) => {
+                                            }
                                             Some(seen) => {
                                                 self.diagnostics.push(error(
                                                     self.program,
@@ -6680,20 +6680,16 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     }
                     match &arm.guard {
                         Some(guard) => {
-                            self.frames.push(VerifierFrame::ResumeScalarMatchGuard {
-                                state,
-                                arm_scope,
-                            });
+                            self.frames
+                                .push(VerifierFrame::ResumeScalarMatchGuard { state, arm_scope });
                             self.frames.push(VerifierFrame::Enter {
                                 expression: guard.as_ref(),
                                 scope: arm_scope,
                             });
                         }
                         None => {
-                            self.frames.push(VerifierFrame::ResumeScalarMatchArm {
-                                state,
-                                arm_scope,
-                            });
+                            self.frames
+                                .push(VerifierFrame::ResumeScalarMatchArm { state, arm_scope });
                             self.frames.push(VerifierFrame::Enter {
                                 expression: &arm.value,
                                 scope: arm_scope,
@@ -6701,10 +6697,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         }
                     }
                 }
-                VerifierFrame::ResumeScalarMatchGuard {
-                    state,
-                    arm_scope,
-                } => {
+                VerifierFrame::ResumeScalarMatchGuard { state, arm_scope } => {
                     if arm_scope + 1 != self.scopes.len() {
                         return Err(Diagnostic::io(
                             "SPX-H006",
@@ -6718,22 +6711,15 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             self.diagnostics.push(error(
                                 self.program,
                                 "SPX-T256",
-                                format!(
-                                    "match guard must be bool; received {}",
-                                    value.ty
-                                ),
-                                arm.guard
-                                    .as_ref()
-                                    .map_or(arm.span, |guard| guard.span),
+                                format!("match guard must be bool; received {}", value.ty),
+                                arm.guard.as_ref().map_or(arm.span, |guard| guard.span),
                             ));
                         }
                     }
                     // The arm value observes the guard's moves within this
                     // arm only.
-                    self.frames.push(VerifierFrame::ResumeScalarMatchArm {
-                        state,
-                        arm_scope,
-                    });
+                    self.frames
+                        .push(VerifierFrame::ResumeScalarMatchArm { state, arm_scope });
                     self.frames.push(VerifierFrame::Enter {
                         expression: &arm.value,
                         scope: arm_scope,

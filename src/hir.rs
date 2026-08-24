@@ -461,10 +461,7 @@ fn resolved_expr_owned_capacity(expression: &ResolvedExpr) -> usize {
                 .iter()
                 .map(|arm| {
                     resolved_match_pattern_owned_capacity(&arm.pattern)
-                        + arm
-                            .guard
-                            .as_ref()
-                            .map_or(0, |guard| child(guard))
+                        + arm.guard.as_ref().map_or(0, |guard| child(guard))
                         + resolved_expr_owned_capacity(&arm.value)
                 })
                 .sum::<usize>();
@@ -3942,10 +3939,7 @@ fn audit_resolved_expression(root: &ResolvedExpr) -> Result<(), Diagnostic> {
                         // Refutable Match v1: binding arms carry a real value
                         // identity; literals and or-patterns carry none.
                         ResolvedMatchPattern::Binding(binding) => {
-                            reject_nul_identity(
-                                "resolved match binding",
-                                binding.id.as_str(),
-                            )?;
+                            reject_nul_identity("resolved match binding", binding.id.as_str())?;
                             audit_resolved_type(&binding.ty)?;
                         }
                         ResolvedMatchPattern::Literal(_) | ResolvedMatchPattern::Or(_) => {}
@@ -4264,10 +4258,7 @@ fn audit_cleanup_plan(plan: &CleanupPlan) -> Result<(), Diagnostic> {
                 reject_nul_identity("cleanup-plan variant case", case.as_str())?;
             }
             crate::cleanup_plan::EdgeCondition::ArmSelected { scrutinee, .. } => {
-                reject_nul_identity(
-                    "cleanup-plan scalar-match scrutinee",
-                    scrutinee.as_str(),
-                )?;
+                reject_nul_identity("cleanup-plan scalar-match scrutinee", scrutinee.as_str())?;
             }
             crate::cleanup_plan::EdgeCondition::StatusZero(source)
             | crate::cleanup_plan::EdgeCondition::StatusNonzero(source) => {
@@ -6447,10 +6438,14 @@ impl Resolver<'_> {
                             .sum::<usize>()
                 }
                 Frame::ScalarMatchNext {
-                    scrutinee, resolved, ..
+                    scrutinee,
+                    resolved,
+                    ..
                 }
                 | Frame::ScalarMatchAfterArm {
-                    scrutinee, resolved, ..
+                    scrutinee,
+                    resolved,
+                    ..
                 } => {
                     resolved_expr_owned_capacity(scrutinee)
                         + resolved.capacity() * std::mem::size_of::<ResolvedMatchArm>()
@@ -8420,9 +8415,9 @@ impl Resolver<'_> {
                                             }
                                             // SPX-M105 rejected non-literal
                                             // alternatives during admission.
-                                            _ => unreachable!(
-                                                "or-pattern alternatives are literals"
-                                            ),
+                                            _ => {
+                                                unreachable!("or-pattern alternatives are literals")
+                                            }
                                         })
                                         .collect(),
                                 )
@@ -8492,8 +8487,7 @@ impl Resolver<'_> {
                         }
                     }
                     if let Some(first) = resolved.first() {
-                        if first.value.ty != value.ty || first.value.ownership != value.ownership
-                        {
+                        if first.value.ty != value.ty || first.value.ownership != value.ownership {
                             return Err(self.error(
                                 "SPX-T259",
                                 format!(
@@ -10074,11 +10068,14 @@ impl Resolver<'_> {
                         | ResolvedType::Bool
                 ) {
                     if arms.is_empty() {
-                        return Err(self.error("SPX-H006", "resolved match has no arms", expr.span));
+                        return Err(self.error(
+                            "SPX-H006",
+                            "resolved match has no arms",
+                            expr.span,
+                        ));
                     }
                     self.validate_refutable_match_admission(&scrutinee.ty, arms)?;
-                    let mut resolved_arms: Vec<ResolvedMatchArm> =
-                        Vec::with_capacity(arms.len());
+                    let mut resolved_arms: Vec<ResolvedMatchArm> = Vec::with_capacity(arms.len());
                     for (arm_index, arm) in arms.iter().enumerate() {
                         let mut arm_bindings = bindings.clone();
                         let pattern = match &arm.pattern {

@@ -915,11 +915,11 @@ fn edge_condition(
             "{} != SPX_STATUS_SUCCESS",
             status_binding(bindings, source)?
         )),
-        EdgeCondition::VariantCase { .. } | EdgeCondition::ArmSelected { .. } => Err(
-            cleanup_error(
+        EdgeCondition::VariantCase { .. } | EdgeCondition::ArmSelected { .. } => {
+            Err(cleanup_error(
                 "decision-chain cleanup edges are outside the native owned-resource slice",
-            ),
-        ),
+            ))
+        }
     }
 }
 

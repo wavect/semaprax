@@ -2523,12 +2523,16 @@ fn emit_scalar_refutable_match(
     layout: &LocalLayout<'_>,
     result: Option<(u32, &str)>,
 ) -> Result<(), Diagnostic> {
-    let scratch = layout.match_scratch.get(expr.id.as_str()).copied().ok_or_else(|| {
-        Diagnostic::io(
-            "SPX-W108",
-            format!("missing WebAssembly local layout for match `{}`", expr.id),
-        )
-    })?;
+    let scratch = layout
+        .match_scratch
+        .get(expr.id.as_str())
+        .copied()
+        .ok_or_else(|| {
+            Diagnostic::io(
+                "SPX-W108",
+                format!("missing WebAssembly local layout for match `{}`", expr.id),
+            )
+        })?;
     // One evaluation: emit the scrutinee, then store it in the staging local.
     emit_expr(
         output,
@@ -2604,15 +2608,27 @@ fn emit_pattern_test(
                     crate::hir::ResolvedMatchPattern::Literal(value) => {
                         flattened.push(*value);
                     }
-                    _ => return Err(Diagnostic::io("SPX-M105", "or-pattern alternatives must be literals")),
+                    _ => {
+                        return Err(Diagnostic::io(
+                            "SPX-M105",
+                            "or-pattern alternatives must be literals",
+                        ))
+                    }
                 }
             }
             return emit_alternative_tests(output, scratch, scrutinee_ty, &flattened);
         }
-        _ => {
+        // Refutable Match v1: an irrefutable pattern with a guard tests as
+        // constant true; the guard decides. Unguarded irrefutable arms only
+        // occur as the trailing catch-all, which emits no test.
+        crate::hir::ResolvedMatchPattern::Wildcard | crate::hir::ResolvedMatchPattern::Binding(_) => {
+            output.extend_bytes(&[0x41, 0x01]); // i32.const 1
+            return Ok(());
+        }
+        crate::hir::ResolvedMatchPattern::Variant { .. } | crate::hir::ResolvedMatchPattern::Record { .. } => {
             return Err(Diagnostic::io(
                 "SPX-W110",
-                "non-literal arm reached scalar match lowering",
+                "aggregate arm reached scalar match lowering",
             ))
         }
     };
@@ -2626,9 +2642,6 @@ fn emit_alternative_tests(
     alternatives: &[crate::hir::PatternValue],
 ) -> Result<(), Diagnostic> {
     for (position, value) in alternatives.iter().enumerate() {
-        if position != 0 {
-            output.push(0x72); // i32.or combines equality flags
-        }
         output.push(0x20); // local.get scratch
         write_u32(output, scratch);
         match (scrutinee_ty, value) {
@@ -2666,6 +2679,11 @@ fn emit_alternative_tests(
                     ),
                 ));
             }
+        }
+        // Both equality flags are now stacked; join them for alternatives
+        // after the first.
+        if position != 0 {
+            output.push(0x72); // i32.or
         }
     }
     Ok(())

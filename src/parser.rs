@@ -1446,10 +1446,7 @@ impl Parser {
             }
         }
         let span = alternatives[0].span().merge(last_span);
-        Ok(MatchPattern::Or {
-            alternatives,
-            span,
-        })
+        Ok(MatchPattern::Or { alternatives, span })
     }
 
     fn match_pattern_atom(&mut self) -> Result<MatchPattern, Diagnostic> {
@@ -1460,10 +1457,7 @@ impl Parser {
         if self.take(&TokenKind::Minus) {
             let minus_span = self.previous_span();
             let token = self.bump().clone();
-            let negated = |value: i128,
-                           minimum: i128,
-                           span: Span|
-             -> Result<i128, Diagnostic> {
+            let negated = |value: i128, minimum: i128, span: Span| -> Result<i128, Diagnostic> {
                 let folded = -value;
                 if folded < minimum {
                     return Err(Diagnostic::error(
@@ -1476,12 +1470,16 @@ impl Parser {
                 Ok(folded)
             };
             let value = match token.kind {
-                TokenKind::Int(value) => PatternLiteral::Int(
-                    negated(i128::from(value), i128::from(i64::MIN), token.span)? as i64,
-                ),
-                TokenKind::Int32(value) => PatternLiteral::Int32(
-                    negated(i128::from(value), i128::from(i32::MIN), token.span)? as i32,
-                ),
+                TokenKind::Int(value) => PatternLiteral::Int(negated(
+                    i128::from(value),
+                    i128::from(i64::MIN),
+                    token.span,
+                )? as i64),
+                TokenKind::Int32(value) => PatternLiteral::Int32(negated(
+                    i128::from(value),
+                    i128::from(i32::MIN),
+                    token.span,
+                )? as i32),
                 _ => {
                     return Err(Diagnostic::error(
                         "SPX-P206",

@@ -1267,6 +1267,13 @@ pub(crate) fn graph_schema(program: &ResolvedProgram) -> &'static str {
 /// so the gate rejects both additive schemas; generation fails closed so no
 /// capsule can ever carry a schema the independent verifiers reject as
 /// unsupported.
+/// Public additive view of the evidence-flow schema gate used by executable
+/// evidence: Refutable Match v1 sources select v16, which stays outside every
+/// patch/evidence admission alongside the While-Loops v15 extension.
+pub fn reject_evidence_schema(schema: &str) -> Result<(), Diagnostic> {
+    reject_while_loop_evidence_schema(schema)
+}
+
 pub(crate) fn reject_while_loop_evidence_schema(schema: &str) -> Result<(), Diagnostic> {
     if schema == "semaprax.graph.v15" {
         Err(Diagnostic::io(
@@ -1513,13 +1520,9 @@ fn expression_has_refutable_match(expression: &ResolvedExpr) -> bool {
             expression_has_refutable_match(scrutinee)
                 || arms.iter().any(|arm| {
                     is_refutable_arm(arm)
-                        || arm
-                            .guard
-                            .as_ref()
-                            .is_some_and(|guard| {
-                                expression_has_while(guard)
-                                    || expression_has_refutable_match(guard)
-                            })
+                        || arm.guard.as_ref().is_some_and(|guard| {
+                            expression_has_while(guard) || expression_has_refutable_match(guard)
+                        })
                         || expression_has_while(&arm.value)
                         || expression_has_refutable_match(&arm.value)
                 })

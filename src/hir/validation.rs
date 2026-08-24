@@ -2305,7 +2305,13 @@ impl<'a> HirValidator<'a> {
                             .as_ref()
                             .map_or(0, |(ty, _)| resolved_type_owned_capacity(ty))
                 }
-                Frame::ScalarMatchNext { outer, outer_ids, arm_scopes, result, .. }
+                Frame::ScalarMatchNext {
+                    outer,
+                    outer_ids,
+                    arm_scopes,
+                    result,
+                    ..
+                }
                 | Frame::ScalarMatchAfterGuard {
                     outer,
                     outer_ids,
@@ -4378,9 +4384,7 @@ impl<'a> HirValidator<'a> {
                                 || binding.ty != scrutinee.ty
                                 || binding.ownership != OwnershipMode::Value
                             {
-                                return Err(hir_error(
-                                    "resolved scalar match binding is invalid",
-                                ));
+                                return Err(hir_error("resolved scalar match binding is invalid"));
                             }
                             self.insert_value(&binding.id)?;
                             self.validate_type(&binding.ty)?;
@@ -4425,7 +4429,8 @@ impl<'a> HirValidator<'a> {
                                 }
                             }
                         }
-                        ResolvedMatchPattern::Variant { .. } | ResolvedMatchPattern::Record { .. } => {
+                        ResolvedMatchPattern::Variant { .. }
+                        | ResolvedMatchPattern::Record { .. } => {
                             return Err(hir_error(
                                 "resolved aggregate pattern has a Copy-scalar scrutinee",
                             ));
@@ -5693,9 +5698,7 @@ impl<'a> HirValidator<'a> {
                             if guard.ty != ResolvedType::Bool
                                 || guard.ownership != OwnershipMode::Value
                             {
-                                return Err(hir_error(
-                                    "resolved match guard is not exactly bool",
-                                ));
+                                return Err(hir_error("resolved match guard is not exactly bool"));
                             }
                         }
                         self.validate_expr_recursive_reference(

@@ -2061,9 +2061,7 @@ impl Emitter<'_> {
         };
         let saved = self.bindings.clone();
         if arm.guard.is_some() {
-            return Err(error(
-                "guards are outside aggregate match lowering",
-            ));
+            return Err(error("guards are outside aggregate match lowering"));
         }
         match &arm.pattern {
             crate::hir::ResolvedMatchPattern::Variant {
@@ -2150,7 +2148,9 @@ impl Emitter<'_> {
             crate::hir::ResolvedMatchPattern::Literal(_)
             | crate::hir::ResolvedMatchPattern::Or(_)
             | crate::hir::ResolvedMatchPattern::Binding(_) => {
-                return Err(error("refutable pattern has an aggregate variant match scrutinee"));
+                return Err(error(
+                    "refutable pattern has an aggregate variant match scrutinee",
+                ));
             }
         }
         self.bindings = saved;
@@ -2261,8 +2261,13 @@ impl Emitter<'_> {
                     _ => unreachable!("or-pattern alternatives are literals"),
                 })
                 .collect(),
-            crate::hir::ResolvedMatchPattern::Wildcard | crate::hir::ResolvedMatchPattern::Binding(_) => {
-                return Err(error("irrefutable arm must be the trailing catch-all"));
+            crate::hir::ResolvedMatchPattern::Wildcard
+            | crate::hir::ResolvedMatchPattern::Binding(_) => {
+                // Irrefutable pattern: constant true; a guard decides. An
+                // unguarded irrefutable arm is the trailing catch-all, which
+                // never reaches test emission.
+                self.output.extend([0x41, 0x01]); // i32.const 1
+                return Ok(());
             }
             crate::hir::ResolvedMatchPattern::Variant { .. }
             | crate::hir::ResolvedMatchPattern::Record { .. } => {
@@ -2271,9 +2276,6 @@ impl Emitter<'_> {
         };
         for (position, value) in alternatives.iter().enumerate() {
             require_type(&value.ty(), scrutinee_ty, "literal pattern type")?;
-            if position != 0 {
-                self.output.push(0x72); // i32.or combines equality flags
-            }
             self.output.push(0x20);
             write_u32(self.output, *scrutinee_local);
             match (scrutinee_ty, value) {
@@ -2303,6 +2305,9 @@ impl Emitter<'_> {
                     self.output.push(0x46);
                 }
                 _ => return Err(error("literal pattern disagrees with its scrutinee type")),
+            }
+            if position != 0 {
+                self.output.push(0x72); // i32.or combines equality flags
             }
         }
         Ok(())

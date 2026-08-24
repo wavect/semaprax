@@ -696,9 +696,9 @@ fn scan_closure(
                         | ResolvedType::Char
                         | ResolvedType::Bool
                 );
-                let patterns_admitted = arms.iter().all(|arm| {
-                    arm.pattern_is_literal_or_irrefutable()
-                });
+                let patterns_admitted = arms
+                    .iter()
+                    .all(|arm| arm.pattern_is_literal_or_irrefutable());
                 if !scalar || !patterns_admitted || arms.is_empty() {
                     Err(reject_scan(expression, REASON_MATCH_EXPRESSION))
                 } else {
@@ -1258,7 +1258,9 @@ impl Evaluator<'_> {
                             let _ = binding;
                             true
                         }
-                        crate::hir::ResolvedMatchPattern::Literal(value) => pattern_value_matches(&staged, *value),
+                        crate::hir::ResolvedMatchPattern::Literal(value) => {
+                            pattern_value_matches(&staged, *value)
+                        }
                         crate::hir::ResolvedMatchPattern::Or(alternatives) => {
                             let mut matched = false;
                             for alternative in alternatives {
@@ -1275,7 +1277,8 @@ impl Evaluator<'_> {
                             }
                             matched
                         }
-                        crate::hir::ResolvedMatchPattern::Variant { .. } | crate::hir::ResolvedMatchPattern::Record { .. } => {
+                        crate::hir::ResolvedMatchPattern::Variant { .. }
+                        | crate::hir::ResolvedMatchPattern::Record { .. } => {
                             return Err(Flow::Guard(
                                 "aggregate match shape reached scalar evaluation",
                             ));

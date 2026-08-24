@@ -3851,7 +3851,13 @@ fn expression_skeleton(
                         | ResolvedType::Bool
                 ) {
                     produced = Some(finish_scalar_match_skeleton(
-                        program, function, expression, scrutinee, arms, scrutinee_paths, work,
+                        program,
+                        function,
+                        expression,
+                        scrutinee,
+                        arms,
+                        scrutinee_paths,
+                        work,
                     )?);
                     continue;
                 }
@@ -4344,8 +4350,11 @@ fn finish_scalar_match_skeleton(
             let mut with_false = Vec::new();
             for prefix in &selected_paths {
                 let cloned = clone_expr_path_shallow(prefix, work)?;
-                let prefixed =
-                    sequence_skeleton_paths(work.singleton_path(cloned, "guard-false prefix")?, &when_false, work)?;
+                let prefixed = sequence_skeleton_paths(
+                    work.singleton_path(cloned, "guard-false prefix")?,
+                    &when_false,
+                    work,
+                )?;
                 with_false.extend(prefixed);
             }
             let mut with_terminal = Vec::new();
@@ -4430,7 +4439,14 @@ fn split_boolean_prefixes_at(
     paths: Vec<ExprSkeletonPath>,
     expression: &ExpressionId,
     work: &mut SkeletonWork<'_, '_>,
-) -> Result<(Vec<ExprSkeletonPath>, Vec<ExprSkeletonPath>, Vec<ExprSkeletonPath>), Diagnostic> {
+) -> Result<
+    (
+        Vec<ExprSkeletonPath>,
+        Vec<ExprSkeletonPath>,
+        Vec<ExprSkeletonPath>,
+    ),
+    Diagnostic,
+> {
     let mut terminal = Vec::new();
     let mut true_paths = Vec::new();
     let mut false_paths = Vec::new();

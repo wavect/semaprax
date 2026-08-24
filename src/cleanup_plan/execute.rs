@@ -1114,9 +1114,10 @@ impl<'a> Executor<'a> {
                 selected,
             } => {
                 self.used_arm_selections.insert(scrutinee.clone());
-                let actual = self.scenario.arm_selections.get(scrutinee).ok_or_else(|| {
-                    CleanupExecutionError::MissingArmSelection(scrutinee.clone())
-                })?;
+                let actual =
+                    self.scenario.arm_selections.get(scrutinee).ok_or_else(|| {
+                        CleanupExecutionError::MissingArmSelection(scrutinee.clone())
+                    })?;
                 Ok((*actual == *arm) == *selected)
             }
             EdgeCondition::StatusZero(source) | EdgeCondition::StatusNonzero(source) => {

@@ -1654,7 +1654,9 @@ fn write_pattern_literal(output: &mut impl std::fmt::Write, value: crate::ast::P
         // canonical round trips, exactly like expression literals.
         crate::ast::PatternLiteral::Int32(value) => write!(output, "{value}i32").unwrap(),
         crate::ast::PatternLiteral::Uint8(value) => write!(output, "{value}u8").unwrap(),
-        crate::ast::PatternLiteral::Char(value) => output.write_str(&canonical_char(value)).unwrap(),
+        crate::ast::PatternLiteral::Char(value) => {
+            output.write_str(&canonical_char(value)).unwrap()
+        }
         crate::ast::PatternLiteral::Bool(value) => write!(output, "{value}").unwrap(),
     }
 }

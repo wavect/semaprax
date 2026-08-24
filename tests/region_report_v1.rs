@@ -234,6 +234,7 @@ fn reported_binding_ids_equal_the_resolved_hir_inventory() {
                 }
             }
             hir::ResolvedExprKind::Project { base, .. } => collect_expr(base, ids),
+            hir::ResolvedExprKind::Upcast { source } => collect_expr(source, ids),
             hir::ResolvedExprKind::Try { operand, .. }
             | hir::ResolvedExprKind::TryOption { operand, .. } => collect_expr(operand, ids),
             hir::ResolvedExprKind::Int(_)

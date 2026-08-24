@@ -147,7 +147,8 @@ fn program_uses_strings(program: &ResolvedProgram) -> bool {
             ResolvedExprKind::Unary { value, .. }
             | ResolvedExprKind::Try { operand: value, .. }
             | ResolvedExprKind::TryOption { operand: value, .. }
-            | ResolvedExprKind::Project { base: value, .. } => pending.push(value),
+            | ResolvedExprKind::Project { base: value, .. }
+            | ResolvedExprKind::Upcast { source: value } => pending.push(value),
             ResolvedExprKind::Binary { left, right, .. } => {
                 pending.push(left);
                 pending.push(right);
@@ -219,7 +220,8 @@ fn collect_string_data(program: &ResolvedProgram) -> StringData {
             ResolvedExprKind::Unary { value, .. }
             | ResolvedExprKind::Try { operand: value, .. }
             | ResolvedExprKind::TryOption { operand: value, .. }
-            | ResolvedExprKind::Project { base: value, .. } => pending.push(value),
+            | ResolvedExprKind::Project { base: value, .. }
+            | ResolvedExprKind::Upcast { source: value } => pending.push(value),
             ResolvedExprKind::Binary { left, right, .. } => {
                 pending.push(right);
                 pending.push(left);
@@ -1692,6 +1694,9 @@ fn collect_locals(
         ResolvedExprKind::Project { base, .. } => {
             collect_locals(base, parameter_count, layout)?;
         }
+        ResolvedExprKind::Upcast { source } => {
+            collect_locals(source, parameter_count, layout)?;
+        }
         ResolvedExprKind::UpdateRecord { base, fields, .. } => {
             collect_locals(base, parameter_count, layout)?;
             for field in fields {
@@ -2222,6 +2227,7 @@ fn emit_expr(
         | ResolvedExprKind::Try { .. }
         | ResolvedExprKind::TryOption { .. }
         | ResolvedExprKind::Project { .. }
+        | ResolvedExprKind::Upcast { .. }
         | ResolvedExprKind::UpdateRecord { .. } => {
             return Err(Diagnostic::io(
                 "SPX-W110",
@@ -2446,6 +2452,7 @@ pub(crate) fn needs_i32_wide_scratch(expression: &ResolvedExpr) -> bool {
                 pending.push(operand);
             }
             ResolvedExprKind::Project { base, .. } => pending.push(base),
+            ResolvedExprKind::Upcast { source } => pending.push(source),
             ResolvedExprKind::Int(_)
             | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
@@ -2489,7 +2496,8 @@ fn contains_u8_arithmetic(expression: &ResolvedExpr) -> bool {
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Try { operand: value, .. }
         | ResolvedExprKind::TryOption { operand: value, .. }
-        | ResolvedExprKind::Project { base: value, .. } => contains_u8_arithmetic(value),
+        | ResolvedExprKind::Project { base: value, .. }
+        | ResolvedExprKind::Upcast { source: value } => contains_u8_arithmetic(value),
         ResolvedExprKind::Call { args, .. } => args.iter().any(contains_u8_arithmetic),
         ResolvedExprKind::NativeRustImportCall(call) => {
             call.args.iter().any(contains_u8_arithmetic)

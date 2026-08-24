@@ -725,6 +725,9 @@ fn render_expr(
             output.push('.');
             output.push_str(&walker.declaration_name(field));
         }
+        ResolvedExprKind::Upcast { source } => {
+            output.push_str(&render_child(walker, source, 7));
+        }
     }
 }
 
@@ -920,6 +923,10 @@ impl Walker<'_> {
             ResolvedExprKind::Project { base, .. } => {
                 self.push_ineligible(expr, REASON_AGGREGATE_OPERATION);
                 self.scan_expr(base);
+            }
+            ResolvedExprKind::Upcast { source } => {
+                self.push_ineligible(expr, REASON_AGGREGATE_OPERATION);
+                self.scan_expr(source);
             }
         }
     }

@@ -536,7 +536,7 @@ impl<'a> Analyzer<'a> {
             ExprKind::ConstructVariant { .. } => Some(REASON_VARIANT_CONSTRUCTION),
             ExprKind::UpdateRecord { .. } => Some(REASON_RECORD_UPDATE),
             ExprKind::Project { .. } => Some(REASON_RECORD_PROJECTION),
-            ExprKind::MethodCall { .. } => Some(REASON_METHOD_CALL),
+            ExprKind::MethodCall { .. } | ExprKind::SuperMethod { .. } => Some(REASON_METHOD_CALL),
             ExprKind::Match { .. } => Some(REASON_MATCH_EXPRESSION),
             ExprKind::Try { .. } => Some(REASON_TRY_EXPRESSION),
         }
@@ -570,7 +570,9 @@ impl<'a> Analyzer<'a> {
             ExprKind::Char(_) => Outcome::Unsupported(REASON_CHAR_LITERAL),
             ExprKind::Uint8(_) => Outcome::Unsupported(REASON_UINT8_LITERAL),
             ExprKind::Bool(value) => Outcome::Value(Value::Bool(*value)),
-            ExprKind::MethodCall { .. } => Outcome::Unsupported(REASON_METHOD_CALL),
+            ExprKind::MethodCall { .. } | ExprKind::SuperMethod { .. } => {
+                Outcome::Unsupported(REASON_METHOD_CALL)
+            }
             ExprKind::String(_) => Outcome::Unsupported(REASON_ILL_TYPED_EXPRESSION),
             ExprKind::Var(name) => lookup(environment, name).map_or_else(
                 || Outcome::Unsupported(REASON_UNRESOLVED_VARIABLE),

@@ -128,6 +128,54 @@ struct CheckedValue {
     native_unit: bool,
 }
 
+/// Class Inheritance v1: resolves a method against a receiver class's
+/// ancestor chain, nearest definition first. Returns the declaring class name
+/// and the method. Cycle-safe; `None` for unknown classes/methods.
+fn resolve_class_method<'a>(
+    types: &'a TypeTable<'a>,
+    class_name: &str,
+    method: &str,
+) -> Option<(&'a str, &'a Function)> {
+    let mut visited = HashSet::new();
+    let mut cursor = class_name.to_owned();
+    loop {
+        let declaration = types.declaration(cursor.as_str())?;
+        let TypeDeclarationKind::Class { methods, .. } = &declaration.kind else {
+            return None;
+        };
+        if let Some(found) = methods.iter().find(|candidate| candidate.name == method) {
+            return Some((declaration.name.as_str(), found));
+        }
+        let Type::Named { name: parent, .. } = declaration.extends.as_ref()? else {
+            return None;
+        };
+        if !visited.insert(parent.clone()) {
+            return None;
+        }
+        cursor = parent.clone();
+    }
+}
+
+/// Class Inheritance v1: the effective member fields of `ty` — declared
+/// fields for records and parentless classes, the ancestor-merged prefix list
+/// for extending classes.
+fn effective_record_fields<'t>(
+    types: &'t TypeTable<'t>,
+    ty: &Type,
+) -> Option<&'t [FieldDeclaration]> {
+    let Type::Named { name, .. } = ty else {
+        return None;
+    };
+    match &types.declaration(name)?.kind {
+        TypeDeclarationKind::Record { .. } => types.record_fields(ty),
+        TypeDeclarationKind::Class { .. } => types
+            .merged_class_fields
+            .get(name.as_str())
+            .map(Vec::as_slice),
+        TypeDeclarationKind::Resource { .. } | TypeDeclarationKind::Variant { .. } => None,
+    }
+}
+
 fn reject_native_unit_value(
     program: &Program,
     expression: &Expr,
@@ -169,17 +217,79 @@ impl CheckedValue {
 
 struct TypeTable<'a> {
     declarations: HashMap<&'a str, &'a TypeDeclaration>,
+    /// Class Inheritance v1: declared parent name per extending class.
+    class_parents: HashMap<&'a str, &'a str>,
+    /// Class Inheritance v1: the effective declared-field list of every
+    /// extending class, root ancestor first, so construction, projection,
+    /// and pattern checks treat inherited members like declared ones.
+    merged_class_fields: HashMap<&'a str, Vec<FieldDeclaration>>,
 }
 
 impl<'a> TypeTable<'a> {
     fn new(program: &'a Program) -> Self {
+        let declarations: HashMap<&'a str, &'a TypeDeclaration> = program
+            .types
+            .iter()
+            .chain(crate::prelude::declarations())
+            .map(|declaration| (declaration.name.as_str(), declaration))
+            .collect();
+        let mut merged_class_fields = HashMap::new();
+        for (name, declaration) in &declarations {
+            if !matches!(declaration.kind, TypeDeclarationKind::Class { .. }) {
+                continue;
+            }
+            let mut chain = Vec::new();
+            let mut visited = HashSet::new();
+            let mut cursor = *name;
+            let rooted = loop {
+                let Some(ancestor) = declarations.get(cursor).copied() else {
+                    break false;
+                };
+                if !matches!(ancestor.kind, TypeDeclarationKind::Class { .. })
+                    || !visited.insert(cursor)
+                {
+                    break false;
+                }
+                chain.push(ancestor);
+                let Some(Type::Named {
+                    name: parent_name, ..
+                }) = ancestor.extends.as_ref()
+                else {
+                    break true;
+                };
+                cursor = parent_name.as_str();
+            };
+            if !rooted {
+                continue;
+            }
+            let mut fields = Vec::new();
+            for ancestor in chain.into_iter().rev() {
+                let TypeDeclarationKind::Class {
+                    fields: declared, ..
+                } = &ancestor.kind
+                else {
+                    unreachable!("class kind checked above")
+                };
+                fields.extend(declared.iter().cloned());
+            }
+            merged_class_fields.insert(*name, fields);
+        }
+        let mut class_parents = HashMap::new();
+        for (name, declaration) in &declarations {
+            if !matches!(declaration.kind, TypeDeclarationKind::Class { .. }) {
+                continue;
+            }
+            if let Some(Type::Named {
+                name: parent_name, ..
+            }) = declaration.extends.as_ref()
+            {
+                class_parents.insert(*name, parent_name.as_str());
+            }
+        }
         Self {
-            declarations: program
-                .types
-                .iter()
-                .chain(crate::prelude::declarations())
-                .map(|declaration| (declaration.name.as_str(), declaration))
-                .collect(),
+            declarations,
+            merged_class_fields,
+            class_parents,
         }
     }
 
@@ -270,6 +380,61 @@ impl<'a> TypeTable<'a> {
             }
         }
         (resolved.len() == 1).then(|| resolved.pop().expect("type count checked above"))
+    }
+
+    /// Class Inheritance v1: `true` when `child_name` transitively extends
+    /// `ancestor_name`. Cycle-safe.
+    fn class_extends(&self, child_name: &str, ancestor_name: &str) -> bool {
+        let mut visited = HashSet::new();
+        let mut cursor = child_name;
+        while let Some(parent) = self.class_parents.get(cursor).copied() {
+            if parent == ancestor_name {
+                return true;
+            }
+            if !visited.insert(parent) {
+                return false;
+            }
+            cursor = parent;
+        }
+        false
+    }
+
+    /// `true` when `ty` is or transitively contains an owned `string`.
+    fn contains_string(&self, ty: &Type) -> bool {
+        let mut visiting = HashSet::new();
+        self.contains_string_inner(ty, &mut visiting)
+    }
+
+    fn contains_string_inner(&self, ty: &Type, visiting: &mut HashSet<String>) -> bool {
+        match ty {
+            Type::String => true,
+            Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64 | Type::Bool => {
+                false
+            }
+            Type::Named { name, arguments } => {
+                if !visiting.insert(name.clone()) {
+                    return false;
+                }
+                if arguments
+                    .iter()
+                    .any(|argument| self.contains_string_inner(argument, visiting))
+                {
+                    return true;
+                }
+                let Some(declaration) = self.declaration(name) else {
+                    return false;
+                };
+                match &declaration.kind {
+                    TypeDeclarationKind::Record { fields }
+                    | TypeDeclarationKind::Class { fields, .. } => fields
+                        .iter()
+                        .any(|field| self.contains_string_inner(&field.ty, visiting)),
+                    TypeDeclarationKind::Resource { .. } | TypeDeclarationKind::Variant { .. } => {
+                        false
+                    }
+                }
+            }
+        }
     }
 
     fn contains_resource(&self, ty: &Type) -> bool {
@@ -1126,7 +1291,24 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                 .iter()
                 .map(|parameter| parameter.name.as_str())
                 .collect::<HashSet<_>>();
+            let is_class = matches!(declaration.kind, TypeDeclarationKind::Class { .. });
             for field in fields {
+                // Class Inheritance v1: owned strings inside class members are
+                // closed. The cleanup plan deliberately keeps strings out of
+                // the resource-lifecycle inventory, so an aggregate carrying
+                // one has no finalizer representation yet; classes fail closed
+                // here instead of at cleanup-plan construction.
+                if is_class && types.contains_string(&field.ty) {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T234",
+                        format!(
+                            "class `{}` member `{}` carries `string`; string-bearing members are outside Class Inheritance v1",
+                            declaration.name, field.name
+                        ),
+                        field.span,
+                    ));
+                }
                 check_declared_type(
                     program,
                     &field.ty,
@@ -1486,6 +1668,200 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                 &HashSet::new(),
                 &mut diagnostics,
             );
+        }
+    }
+
+    // Class Inheritance v1: static structural checks over `extends` links —
+    // unknown or non-class parents, cycles, member collisions with ancestors,
+    // and exact-signature override validation.
+    let mut class_parents: HashMap<&str, &str> = HashMap::new();
+    for declaration in &program.types {
+        let TypeDeclarationKind::Class { .. } = &declaration.kind else {
+            continue;
+        };
+        let Some(parent) = &declaration.extends else {
+            continue;
+        };
+        let Type::Named {
+            name: parent_name,
+            arguments: parent_arguments,
+        } = parent
+        else {
+            diagnostics.push(error(
+                program,
+                "SPX-T227",
+                format!(
+                    "class `{}` must extend a named class type",
+                    declaration.name
+                ),
+                declaration.name_span,
+            ));
+            continue;
+        };
+        if !parent_arguments.is_empty() {
+            diagnostics.push(error(
+                program,
+                "SPX-T227",
+                format!(
+                    "class `{}` extends generic type `{parent_name}`; inheritance over generic classes is closed in this slice",
+                    declaration.name
+                ),
+                declaration.name_span,
+            ));
+            continue;
+        }
+        match types.declaration(parent_name) {
+            None => {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T227",
+                    format!(
+                        "class `{}` extends unknown type `{parent_name}`",
+                        declaration.name
+                    ),
+                    declaration.name_span,
+                ));
+            }
+            Some(parent_declaration) => {
+                if !matches!(parent_declaration.kind, TypeDeclarationKind::Class { .. }) {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T227",
+                        format!(
+                            "class `{}` extends non-class type `{parent_name}`",
+                            declaration.name
+                        ),
+                        declaration.name_span,
+                    ));
+                } else {
+                    class_parents.insert(declaration.name.as_str(), parent_name.as_str());
+                }
+            }
+        }
+    }
+    for declaration in &program.types {
+        if !matches!(declaration.kind, TypeDeclarationKind::Class { .. }) {
+            continue;
+        }
+        let mut visited = HashSet::new();
+        let mut cursor = class_parents.get(declaration.name.as_str()).copied();
+        while let Some(parent_name) = cursor {
+            if parent_name == declaration.name.as_str() || !visited.insert(parent_name) {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T228",
+                    format!(
+                        "class `{}` participates in an inheritance cycle",
+                        declaration.name
+                    ),
+                    declaration.span,
+                ));
+                break;
+            }
+            cursor = class_parents.get(parent_name).copied();
+        }
+    }
+    for declaration in &program.types {
+        let TypeDeclarationKind::Class {
+            fields: own_fields,
+            methods: own_methods,
+        } = &declaration.kind
+        else {
+            continue;
+        };
+        // Walk root-first so the nearest ancestor's members shadow outer ones.
+        let mut chain = Vec::new();
+        let mut visited = HashSet::new();
+        let mut cursor = class_parents.get(declaration.name.as_str()).copied();
+        while let Some(parent_name) = cursor {
+            if !visited.insert(parent_name) {
+                break;
+            }
+            chain.push(parent_name);
+            cursor = class_parents.get(parent_name).copied();
+        }
+        let mut ancestor_members: Vec<(&str, bool)> = Vec::new();
+        for ancestor_name in chain.iter().rev() {
+            let Some(ancestor) = types.declaration(ancestor_name) else {
+                continue;
+            };
+            let TypeDeclarationKind::Class {
+                fields, methods, ..
+            } = &ancestor.kind
+            else {
+                continue;
+            };
+            for field in fields {
+                ancestor_members.push((field.name.as_str(), true));
+            }
+            for method in methods {
+                ancestor_members.push((method.name.as_str(), false));
+            }
+        }
+        for field in own_fields {
+            if ancestor_members.iter().any(|(name, _)| *name == field.name) {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T229",
+                    format!(
+                        "class `{}` redeclares member `{}` from an ancestor",
+                        declaration.name, field.name
+                    ),
+                    field.span,
+                ));
+            }
+        }
+        for method in own_methods {
+            if ancestor_members
+                .iter()
+                .any(|(name, is_field)| *name == method.name && *is_field)
+            {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T229",
+                    format!(
+                        "class `{}` redeclares member `{}` from an ancestor",
+                        declaration.name, method.name
+                    ),
+                    method.span,
+                ));
+                continue;
+            }
+            // Nearest ancestor declaring the same method name defines the
+            // override contract; the non-self signature must match exactly.
+            for ancestor_name in chain.iter().rev() {
+                let Some(ancestor) = types.declaration(ancestor_name) else {
+                    continue;
+                };
+                let TypeDeclarationKind::Class { methods, .. } = &ancestor.kind else {
+                    continue;
+                };
+                let Some(overridden) = methods
+                    .iter()
+                    .find(|candidate| candidate.name == method.name)
+                else {
+                    continue;
+                };
+                let same_signature = !overridden.params.is_empty()
+                    && overridden.params.len() == method.params.len()
+                    && overridden.params[1..]
+                        .iter()
+                        .zip(method.params[1..].iter())
+                        .all(|(base, over)| base.mode == over.mode && base.ty == over.ty)
+                    && overridden.return_type == method.return_type;
+                if !same_signature {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T230",
+                        format!(
+                            "override `{}.{}` does not exactly match `{}.{}`",
+                            declaration.name, method.name, ancestor_name, method.name
+                        ),
+                        method.span,
+                    ));
+                }
+                break;
+            }
         }
     }
 
@@ -2144,7 +2520,8 @@ fn generic_function_expression_is_direct_scalar(expression: &Expr) -> bool {
             | ExprKind::Try { .. }
             | ExprKind::UpdateRecord { .. }
             | ExprKind::Project { .. }
-            | ExprKind::MethodCall { .. } => return false,
+            | ExprKind::MethodCall { .. }
+            | ExprKind::SuperMethod { .. } => return false,
         }
     }
     true
@@ -2319,7 +2696,7 @@ fn check_record_pattern(
                     &expected,
                     Type::Named { name, .. } if name == pattern_type
                 );
-                let declared_fields = types.record_fields(&expected);
+                let declared_fields = effective_record_fields(types, &expected);
                 if !compatible || declared_fields.is_none() || types.contains_resource(&expected) {
                     diagnostics.push(error(
                         program,
@@ -2872,6 +3249,41 @@ struct IterativeVerifier<'a, 'p> {
 }
 
 impl<'a, 'p> IterativeVerifier<'a, 'p> {
+    /// Class Inheritance v1: `true` when consuming `child` as `ancestor`
+    /// would leave owned child-declared state behind. The suffix is every
+    /// effective child field beyond the ancestor prefix length.
+    fn upcast_discards_owned_state(&self, child: &str, ancestor: &str) -> bool {
+        let child_fields = match self.types.merged_class_fields.get(child) {
+            Some(fields) => fields.as_slice(),
+            None => return false,
+        };
+        let parent_len = self
+            .types
+            .merged_class_fields
+            .get(ancestor)
+            .map(Vec::as_slice)
+            .map(|fields| {
+                // The ancestor may be parentless: fall back to its declared
+                // field count through the declaration itself.
+                fields.len()
+            })
+            .unwrap_or_else(|| {
+                self.types
+                    .declaration(ancestor)
+                    .map(|declaration| match &declaration.kind {
+                        TypeDeclarationKind::Class { fields, .. } => fields.len(),
+                        _ => 0,
+                    })
+                    .unwrap_or(0)
+            });
+        if child_fields.len() < parent_len {
+            return true;
+        }
+        child_fields[parent_len..].iter().any(|field| {
+            self.types.contains_string(&field.ty) || self.types.contains_resource(&field.ty)
+        })
+    }
+
     /// Queue the next block statement (any kind) or fall through to the
     /// block tail after one statement completes.
     #[allow(clippy::too_many_arguments)]
@@ -3239,11 +3651,11 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     } => {
                         if !type_arguments.is_empty() {
                             self.diagnostics.push(error(
-                                self.program,
-                                "SPX-T225",
-                                format!("method `{method}` does not accept type arguments in this slice"),
-                                expression.span,
-                            ));
+                        self.program,
+                        "SPX-T225",
+                        format!("method `{method}` does not accept type arguments in this slice"),
+                        expression.span,
+                    ));
                         }
                         self.frames.push(VerifierFrame::ResumeMethodReceiver {
                             expression,
@@ -3256,6 +3668,18 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             expression: receiver,
                             scope,
                         });
+                    }
+                    // These walkers only traverse generic-function and contract
+                    // expressions; `super` is meaningful only inside a class-method
+                    // override, whose body is resolved by the HIR layer instead.
+                    ExprKind::SuperMethod { method_span, .. } => {
+                        self.diagnostics.push(error(
+                            self.program,
+                            "SPX-T231",
+                            "`super` is only allowed inside a class-method override",
+                            *method_span,
+                        ));
+                        self.values.push(None);
                     }
                     ExprKind::If {
                         condition,
@@ -3369,7 +3793,6 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         fields,
                         ..
                     } => {
-                        let declaration = self.types.declaration(type_name);
                         let instance = Type::Named {
                             name: type_name.clone(),
                             arguments: type_arguments.clone(),
@@ -3382,15 +3805,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             &HashSet::new(),
                             self.diagnostics,
                         );
-                        let declared_fields =
-                            declaration.and_then(|declaration| match &declaration.kind {
-                                TypeDeclarationKind::Record { fields }
-                                | TypeDeclarationKind::Class { fields, .. } => {
-                                    Some(fields.as_slice())
-                                }
-                                TypeDeclarationKind::Resource { .. }
-                                | TypeDeclarationKind::Variant { .. } => None,
-                            });
+                        let declared_fields = effective_record_fields(self.types, &instance);
                         if declared_fields.is_none() {
                             self.diagnostics.push(error(
                                 self.program,
@@ -3909,6 +4324,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             name,
                             name_span,
                             mutable,
+                            declared,
                             value,
                             ..
                         } => {
@@ -3920,6 +4336,57 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                     *name_span,
                                 ));
                             } else if let Some(actual) = actual {
+                                // Class Inheritance v1: a declared type accepts
+                                // the value's exact type or an ancestor class
+                                // whose prefix consumes the value cleanly; the
+                                // binding carries the declared type.
+                                let mut binding_ty = actual.ty.clone();
+                                let mut binding_mode = actual.mode;
+                                if let Some(declared_ty) = declared {
+                                    let exact = actual.ty == *declared_ty;
+                                    let mut upcast = false;
+                                    if !exact {
+                                        if let (
+                                            Type::Named { name: child, .. },
+                                            Type::Named { name: ancestor, .. },
+                                        ) = (&actual.ty, declared_ty)
+                                        {
+                                            if self.types.class_extends(child, ancestor) {
+                                                if self.upcast_discards_owned_state(child, ancestor)
+                                                {
+                                                    self.diagnostics.push(error(
+                                                        self.program,
+                                                        "SPX-T233",
+                                                        format!(
+                                                            "upcast from `{child}` to `{ancestor}` would discard owned state; only cleanup-inert child fields are admitted in this slice"
+                                                        ),
+                                                        value.span,
+                                                    ));
+                                                }
+                                                upcast = true;
+                                            }
+                                        }
+                                    }
+                                    if exact || upcast {
+                                        binding_ty = declared_ty.clone();
+                                        binding_mode = if self.types.contains_resource(declared_ty)
+                                        {
+                                            ParamMode::Own
+                                        } else {
+                                            ParamMode::Value
+                                        };
+                                    } else {
+                                        self.diagnostics.push(error(
+                                            self.program,
+                                            "SPX-T232",
+                                            format!(
+                                                "declared binding type `{declared_ty}` does not accept value type `{}`",
+                                                actual.ty
+                                            ),
+                                            value.span,
+                                        ));
+                                    }
+                                }
                                 if self.types.contains_resource(&actual.ty)
                                     && actual.mode == ParamMode::Own
                                 {
@@ -3941,8 +4408,8 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 self.scopes[block_scope].bindings.insert(
                                     name.clone(),
                                     Binding {
-                                        ty: actual.ty,
-                                        mode: actual.mode,
+                                        ty: binding_ty,
+                                        mode: binding_mode,
                                         availability: Availability::Available,
                                         moved_places: HashMap::new(),
                                         definitely_partial: HashSet::new(),
@@ -4249,15 +4716,13 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         continue;
                     }
                     let declaration = self.types.declaration(class_name);
-                    let method_fn = declaration.and_then(|declaration| match &declaration.kind {
-                        TypeDeclarationKind::Class { methods, .. } => {
-                            methods.iter().find(|candidate| candidate.name == *method)
-                        }
-                        TypeDeclarationKind::Resource { .. }
-                        | TypeDeclarationKind::Record { .. }
-                        | TypeDeclarationKind::Variant { .. } => None,
-                    });
-                    let Some(method_fn) = method_fn else {
+                    let _ = declaration;
+                    // Class Inheritance v1: resolution walks the receiver's
+                    // ancestor chain nearest-first; an inherited method's
+                    // declared class owns the expected `self` type.
+                    let Some((holder_name, method_fn)) =
+                        resolve_class_method(self.types, class_name, method)
+                    else {
                         self.diagnostics.push(error(
                             self.program,
                             "SPX-T203",
@@ -4278,7 +4743,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         continue;
                     };
                     let expected_self = Type::Named {
-                        name: class_name.clone(),
+                        name: holder_name.to_owned(),
                         arguments: Vec::new(),
                     };
                     if self_param.mode != ParamMode::Value || self_param.ty != expected_self {
@@ -4286,8 +4751,8 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             self.program,
                             "SPX-T205",
                             format!(
-                                "method `{method}` expects a value-mode `self: {}` receiver, found `{}`",
-                                class_name, self_param.ty
+                                "method `{method}` expects a value-mode `self: {holder_name}` receiver, found `{}`",
+                                self_param.ty
                             ),
                             self_param.span,
                         ));
@@ -4511,7 +4976,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         continue;
                     };
                     reject_native_unit_value(self.program, base, &base_value, self.diagnostics);
-                    let Some(fields) = self.types.record_fields(&base_value.ty) else {
+                    let Some(fields) = effective_record_fields(self.types, &base_value.ty) else {
                         self.diagnostics.push(error(
                             self.program,
                             "SPX-T214",
@@ -4820,7 +5285,8 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         continue;
                     };
                     reject_native_unit_value(self.program, base, &base_value, self.diagnostics);
-                    let Some(declared_fields) = self.types.record_fields(&base_value.ty) else {
+                    let Some(declared_fields) = effective_record_fields(self.types, &base_value.ty)
+                    else {
                         self.diagnostics.push(error(
                             self.program,
                             "SPX-T215",
@@ -5479,6 +5945,18 @@ fn check_expr(
         ExprKind::Float64(_) => Some(CheckedValue::value(Type::F64)),
         ExprKind::Bool(_) => Some(CheckedValue::value(Type::Bool)),
         ExprKind::String(_) => Some(CheckedValue::value(Type::String)),
+        // This walker only traverses generic-function and contract
+        // expressions; `super` is meaningful only inside a class-method
+        // override, whose body is resolved by the HIR layer instead.
+        ExprKind::SuperMethod { method_span, .. } => {
+            diagnostics.push(error(
+                program,
+                "SPX-T231",
+                "`super` is only allowed inside a class-method override",
+                *method_span,
+            ));
+            None
+        }
         ExprKind::Var(name) if name == "result" => result_type
             .map(|ty| CheckedValue::returned(ty.clone(), types.contains_resource(ty)))
             .or_else(|| {
@@ -5785,9 +6263,7 @@ fn check_expr(
                 allow_moves,
                 diagnostics,
             );
-            let Some(receiver_value) = receiver_value else {
-                return None;
-            };
+            let receiver_value = receiver_value?;
             let Type::Named {
                 name: class_name,
                 arguments: class_arguments,
@@ -5815,17 +6291,10 @@ fn check_expr(
                 ));
                 return None;
             }
-            let method_fn = types
-                .declaration(class_name)
-                .and_then(|declaration| match &declaration.kind {
-                    TypeDeclarationKind::Class { methods, .. } => methods
-                        .iter()
-                        .find(|candidate| candidate.name == *method),
-                    TypeDeclarationKind::Resource { .. }
-                    | TypeDeclarationKind::Record { .. }
-                    | TypeDeclarationKind::Variant { .. } => None,
-                });
-            let Some(method_fn) = method_fn else {
+            // Class Inheritance v1: nearest-definition ancestor walk; the
+            // declaring class owns the expected `self` type.
+            let Some((holder_name, method_fn)) = resolve_class_method(types, class_name, method)
+            else {
                 diagnostics.push(error(
                     program,
                     "SPX-T203",
@@ -5834,6 +6303,7 @@ fn check_expr(
                 ));
                 return None;
             };
+            let _ = holder_name;
             let Some(self_param) = method_fn.params.first() else {
                 diagnostics.push(error(
                     program,
@@ -5846,7 +6316,7 @@ fn check_expr(
             if self_param.mode != ParamMode::Value
                 || self_param.ty
                     != (Type::Named {
-                        name: class_name.clone(),
+                        name: holder_name.to_owned(),
                         arguments: Vec::new(),
                     })
             {
@@ -6804,7 +7274,7 @@ fn check_expr(
                 diagnostics,
             )?;
             reject_native_unit_value(program, base, &base_value, diagnostics);
-            let declared_fields = types.record_fields(&base_value.ty);
+            let declared_fields = effective_record_fields(types, &base_value.ty);
             if declared_fields.is_none() {
                 diagnostics.push(error(
                     program,
@@ -6940,7 +7410,7 @@ fn check_expr(
                 diagnostics,
             )?;
             reject_native_unit_value(program, base, &base_value, diagnostics);
-            let Some(fields) = types.record_fields(&base_value.ty) else {
+            let Some(fields) = effective_record_fields(types, &base_value.ty) else {
                 diagnostics.push(error(
                     program,
                     "SPX-T214",

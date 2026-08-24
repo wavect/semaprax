@@ -1858,7 +1858,8 @@ fn drain_disposal_frames(
                     disposal_push(frames, ResolvedDisposeFrame::Exprs(call.args));
                 }
                 ResolvedExprKind::Unary { value, .. }
-                | ResolvedExprKind::Project { base: value, .. } => {
+                | ResolvedExprKind::Project { base: value, .. }
+                | ResolvedExprKind::Upcast { source: value } => {
                     pending_expression = Some(*value);
                 }
                 ResolvedExprKind::Binary { left, right, .. } => {
@@ -3070,7 +3071,8 @@ fn resolved_call_child(expression: &ResolvedExpr, index: usize) -> Option<&Resol
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Try { operand: value, .. }
         | ResolvedExprKind::TryOption { operand: value, .. }
-        | ResolvedExprKind::Project { base: value, .. } => (index == 0).then_some(value),
+        | ResolvedExprKind::Project { base: value, .. }
+        | ResolvedExprKind::Upcast { source: value } => (index == 0).then_some(value),
         ResolvedExprKind::Binary { left, right, .. } => {
             [left.as_ref(), right.as_ref()].get(index).copied()
         }
@@ -4200,6 +4202,9 @@ fn fingerprint_expression_types_scratch(
                     ResolvedExprKind::Project { base, .. } => {
                         push(&mut stack, &mut stack_len, Frame::Expr(base, child_depth))?
                     }
+                    ResolvedExprKind::Upcast { source } => {
+                        push(&mut stack, &mut stack_len, Frame::Expr(source, child_depth))?
+                    }
                 }
             }
             Frame::Exprs(expressions, index, depth) => {
@@ -4826,6 +4831,10 @@ fn hash_expr(
                         frame(hasher, b"project");
                         actions.push(HirFingerprintAction::Bytes(field.as_str().as_bytes()));
                         actions.push(HirFingerprintAction::Expr(base, child_depth));
+                    }
+                    ResolvedExprKind::Upcast { source } => {
+                        frame(hasher, b"upcast");
+                        actions.push(HirFingerprintAction::Expr(source, child_depth));
                     }
                 }
             }
@@ -5896,6 +5905,7 @@ fn validate_selected_scalar_closure(functions: &[&ResolvedFunction]) -> Result<(
             | ResolvedExprKind::TryOption { .. }
             | ResolvedExprKind::UpdateRecord { .. }
             | ResolvedExprKind::Project { .. }
+            | ResolvedExprKind::Upcast { .. }
             | ResolvedExprKind::Place(_) => {
                 return Err(b107("scalar value signature required"));
             }

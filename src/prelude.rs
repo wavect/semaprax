@@ -179,6 +179,7 @@ fn option() -> TypeDeclaration {
                 ),
             ],
         },
+        extends: None,
         span: Span::default(),
     }
 }
@@ -204,6 +205,7 @@ fn result() -> TypeDeclaration {
                 ),
             ],
         },
+        extends: None,
         span: Span::default(),
     }
 }

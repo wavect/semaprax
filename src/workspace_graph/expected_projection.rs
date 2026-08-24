@@ -148,9 +148,6 @@ pub(super) fn synthetic_builder_bytes(
     let hir_upper = fixed_hir_upper
         .checked_add(identity_occurrence_upper)
         .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
-    if hir_upper > active_builder_limit() {
-        return Err(vec![limit_error("builder_bytes", active_builder_limit())]);
-    }
     Ok(SyntheticBuilderCosts {
         raw_clone_and_hir: checked_usage(
             raw.0,
@@ -467,6 +464,11 @@ fn ast_expr_identity_slots(expression: &Expr) -> Result<usize, Vec<Diagnostic>> 
                 slots = checked_builder_sum(slots, ast_type_identity_slots(ty)?)?;
             }
             slots = checked_builder_sum(slots, ast_expr_identity_slots(receiver)?)?;
+            for argument in args {
+                slots = checked_builder_sum(slots, ast_expr_identity_slots(argument)?)?;
+            }
+        }
+        ExprKind::SuperMethod { args, .. } => {
             for argument in args {
                 slots = checked_builder_sum(slots, ast_expr_identity_slots(argument)?)?;
             }
@@ -797,6 +799,12 @@ fn ast_expr_cost(expression: &Expr, cost: &mut StructuralCost) -> Result<(), Vec
             for ty in type_arguments {
                 ast_type_cost(ty, cost)?;
             }
+            for argument in args {
+                ast_expr_cost(argument, cost)?;
+            }
+        }
+        ExprKind::SuperMethod { method, args, .. } => {
+            cost.string(method)?;
             for argument in args {
                 ast_expr_cost(argument, cost)?;
             }
@@ -1845,6 +1853,22 @@ fn collect_expression_type_edges(
                 authored,
                 edges,
             )?;
+            for (index, argument) in args.iter().enumerate() {
+                let child =
+                    crate::bounded_output::budgeted_format(format_args!("{path}.arg.{index}"));
+                collect_expression_type_edges(
+                    program,
+                    owner,
+                    argument,
+                    &child,
+                    type_uses,
+                    module_paths,
+                    authored,
+                    edges,
+                )?;
+            }
+        }
+        ExprKind::SuperMethod { args, .. } => {
             for (index, argument) in args.iter().enumerate() {
                 let child =
                     crate::bounded_output::budgeted_format(format_args!("{path}.arg.{index}"));

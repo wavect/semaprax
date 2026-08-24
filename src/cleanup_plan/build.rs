@@ -1650,6 +1650,7 @@ impl<'a> PlanBuilder<'a> {
                 expression: &'e ResolvedExpr,
                 field: &'e DeclarationId,
             },
+            UpcastAfterSource,
             NativeNext {
                 args: &'e [ResolvedExpr],
                 index: usize,
@@ -2035,6 +2036,18 @@ impl<'a> PlanBuilder<'a> {
                         frames.push(Frame::Project { expression, field });
                         frames.push(Frame::Enter {
                             expression: base,
+                            block,
+                            state,
+                        });
+                    }
+                    // Class Inheritance v1: an upcast consumes its source, so
+                    // the surrounding transfer moves the source's inherited
+                    // leaves; the child-declared suffix is checked inert at
+                    // resolution and contributes no liveness here.
+                    ResolvedExprKind::Upcast { source } => {
+                        frames.push(Frame::UpcastAfterSource);
+                        frames.push(Frame::Enter {
+                            expression: source,
                             block,
                             state,
                         });
@@ -2463,6 +2476,12 @@ impl<'a> PlanBuilder<'a> {
                         state,
                         owned_source: destination,
                     });
+                }
+                // The upcast contributes no liveness of its own; the source
+                // place stays the transfer source for the surrounding move.
+                Frame::UpcastAfterSource { .. } => {
+                    let source = results.pop().expect("upcast source retained");
+                    results.push(source);
                 }
                 Frame::Project { expression, field } => {
                     let base = results.pop().expect("projection base retained");
@@ -3492,6 +3511,11 @@ impl<'a> PlanBuilder<'a> {
                     state,
                     owned_source: destination,
                 })
+            }
+            // Class Inheritance v1: the upcast itself is transparent; its
+            // consumed source remains the surrounding transfer's source.
+            ResolvedExprKind::Upcast { source } => {
+                self.lower_expr_recursive_reference(source, block, state, region)
             }
         }
     }

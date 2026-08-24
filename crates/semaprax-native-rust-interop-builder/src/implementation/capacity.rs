@@ -82,6 +82,7 @@ pub(super) fn ast_child(expression: &crate::ast::Expr, index: usize) -> Option<&
         crate::ast::ExprKind::MethodCall { receiver, args, .. } => (index == 0)
             .then_some(receiver.as_ref())
             .or_else(|| args.get(index - 1)),
+        crate::ast::ExprKind::SuperMethod { args, .. } => args.get(index),
         crate::ast::ExprKind::Unary { value, .. }
         | crate::ast::ExprKind::Try { operand: value }
         | crate::ast::ExprKind::Project { base: value, .. } => (index == 0).then_some(value),
@@ -151,7 +152,9 @@ fn ast_child_identity_path_increment(
             };
             prefix.len() + decimal_digits(child_index)
         }
-        crate::ast::ExprKind::MethodCall { .. } => ".arg.".len() + decimal_digits(child_index),
+        crate::ast::ExprKind::MethodCall { .. } | crate::ast::ExprKind::SuperMethod { .. } => {
+            ".arg.".len() + decimal_digits(child_index)
+        }
         crate::ast::ExprKind::Unary { .. } => ".value".len(),
         crate::ast::ExprKind::Binary { .. } => {
             if child_index == 0 { ".left" } else { ".right" }.len()
@@ -477,6 +480,7 @@ pub(super) fn scan_ast_capacity<'a>(
                 let indexed_children = match &expression.kind {
                     crate::ast::ExprKind::Call { args, .. } => args.len(),
                     crate::ast::ExprKind::MethodCall { args, .. } => args.len() + 1,
+                    crate::ast::ExprKind::SuperMethod { args, .. } => args.len(),
                     crate::ast::ExprKind::Block { statements, .. } => statements.len() + 1,
                     crate::ast::ExprKind::ConstructRecord { fields, .. }
                     | crate::ast::ExprKind::ConstructVariant { fields, .. } => fields.len(),
@@ -1745,7 +1749,9 @@ fn cleanup_plan_variable_identity_bytes(
                     };
                 prefix.len() + decimal_digits(child_index)
             }
-            crate::ast::ExprKind::MethodCall { .. } => ".arg.".len() + decimal_digits(child_index),
+            crate::ast::ExprKind::MethodCall { .. } | crate::ast::ExprKind::SuperMethod { .. } => {
+                ".arg.".len() + decimal_digits(child_index)
+            }
             crate::ast::ExprKind::Unary { .. } => ".value".len(),
             crate::ast::ExprKind::Binary { .. } => {
                 if child_index == 0 { ".left" } else { ".right" }.len()
@@ -2100,6 +2106,7 @@ fn cleanup_binding_flow<'a>(
                 crate::ast::ExprKind::Project { .. }
                 | crate::ast::ExprKind::Unary { .. }
                 | crate::ast::ExprKind::Binary { .. } => false,
+                crate::ast::ExprKind::SuperMethod { .. } => next_child != 0 && consume,
                 crate::ast::ExprKind::Int(_)
                 | crate::ast::ExprKind::Int32(_)
                 | crate::ast::ExprKind::Char(_)
@@ -3311,6 +3318,17 @@ fn cleanup_retained_stats(
                         .map(|candidate| key_for_type(program, &candidate.return_type))
                         .unwrap_or(CleanupTypeKey::Scalar),
                     crate::ast::ExprKind::MethodCall { method, .. } => program
+                        .types
+                        .iter()
+                        .find_map(|declaration| match &declaration.kind {
+                            crate::ast::TypeDeclarationKind::Class { methods, .. } => {
+                                methods.iter().find(|candidate| candidate.name == *method)
+                            }
+                            _ => None,
+                        })
+                        .map(|candidate| key_for_type(program, &candidate.return_type))
+                        .unwrap_or(CleanupTypeKey::Scalar),
+                    crate::ast::ExprKind::SuperMethod { method, .. } => program
                         .types
                         .iter()
                         .find_map(|declaration| match &declaration.kind {
@@ -5377,6 +5395,7 @@ fn hir_expr_owned_capacity(expression: &ResolvedExpr) -> Result<usize, Diagnosti
                     .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
                 pending.push(base);
             }
+            ResolvedExprKind::Upcast { source } => pending.push(source),
             ResolvedExprKind::Binary { left, right, .. } => {
                 pending.push(left);
                 pending.push(right);
@@ -5925,7 +5944,8 @@ pub(super) fn validate_native_rust_expression_budget_for_closure(
             ResolvedExprKind::Unary { value, .. }
             | ResolvedExprKind::Try { operand: value, .. }
             | ResolvedExprKind::TryOption { operand: value, .. }
-            | ResolvedExprKind::Project { base: value, .. } => pending.push((value, child_depth)),
+            | ResolvedExprKind::Project { base: value, .. }
+            | ResolvedExprKind::Upcast { source: value } => pending.push((value, child_depth)),
             ResolvedExprKind::Binary { left, right, .. } => {
                 pending.push((left, child_depth));
                 pending.push((right, child_depth));

@@ -146,6 +146,9 @@ pub struct TypeDeclaration {
     pub name_span: Span,
     pub type_parameters: Vec<TypeParameterDeclaration>,
     pub kind: TypeDeclarationKind,
+    /// Class Inheritance v1: the single named parent of a `class C : P` block.
+    /// `None` for every other declaration and for parentless classes.
+    pub extends: Option<Type>,
     pub span: Span,
 }
 
@@ -341,6 +344,14 @@ pub enum ExprKind {
         type_arguments: Vec<Type>,
         args: Vec<Expr>,
     },
+    /// Class Inheritance v1: `super.method(args)` inside a class-method
+    /// override. Resolves statically against the parent chain, skipping the
+    /// enclosing class, with the enclosing method's receiver as `self`.
+    SuperMethod {
+        method: String,
+        method_span: Span,
+        args: Vec<Expr>,
+    },
     Unary {
         op: UnaryOp,
         value: Box<Expr>,
@@ -486,8 +497,11 @@ pub enum Statement {
     Let {
         name: String,
         name_span: Span,
-        /// Explicit Mutation v1: `true` when the binding was declared `let mut`.
+        /// Explicit Mutation v1: `true` when the source declared `let mut`.
         mutable: bool,
+        /// Class Inheritance v1: optional declared type annotation
+        /// `let name: T = value;`. `None` when the source omitted `: T`.
+        declared: Option<Type>,
         value: Expr,
         span: Span,
     },
@@ -650,6 +664,7 @@ impl Expr {
             ExprKind::MethodCall { receiver, args, .. } => (index == 0)
                 .then_some(receiver.as_ref())
                 .or_else(|| args.get(index - 1)),
+            ExprKind::SuperMethod { args, .. } => args.get(index),
             ExprKind::Unary { value, .. }
             | ExprKind::Try { operand: value }
             | ExprKind::Project { base: value, .. } => (index == 0).then_some(value),
@@ -757,6 +772,7 @@ mod call_visitor_tests {
                                 name: "value".to_owned(),
                                 name_span: span,
                                 mutable: false,
+                                declared: None,
                                 value: call("first", 1),
                                 span,
                             }],

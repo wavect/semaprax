@@ -560,7 +560,8 @@ impl InventoryBuilder<'_> {
                         ResolvedExprKind::Unary { value, .. }
                         | ResolvedExprKind::Project { base: value, .. }
                         | ResolvedExprKind::Try { operand: value, .. }
-                        | ResolvedExprKind::TryOption { operand: value, .. } => {
+                        | ResolvedExprKind::TryOption { operand: value, .. }
+                        | ResolvedExprKind::Upcast { source: value } => {
                             enter = (index == 0).then_some(value.as_ref());
                         }
                         ResolvedExprKind::Binary { left, right, .. } => {

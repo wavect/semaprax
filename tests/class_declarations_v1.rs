@@ -165,10 +165,15 @@ fn wasm_class_programs_match_native_results_in_node() {
 }
 
 #[test]
-fn inheritance_syntax_is_rejected_with_a_stable_diagnostic() {
-    let error = parse(INHERITANCE, Path::new("inheritance.spx")).unwrap_err();
-    assert_eq!(error.code, "SPX-P106");
-    assert!(error.message.contains("inheritance"));
+fn inheritance_syntax_is_admitted_and_verifies_cleanly() {
+    // Class Inheritance v1 admits `class Child : Parent`; the previously
+    // rejected syntax now parses, round-trips canonically, and verifies.
+    let program = parse(INHERITANCE, Path::new("inheritance.spx")).expect("must parse");
+    assert!(verify::verify(&program).is_empty());
+    let canonical = format::canonical(&program);
+    assert!(canonical.contains("class B : A"), "{canonical}");
+    let reparsed = parse(&canonical, Path::new("inheritance-canonical.spx")).unwrap();
+    assert_eq!(format::canonical(&reparsed), canonical);
 }
 
 fn command_available(name: &str) -> bool {

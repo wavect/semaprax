@@ -300,6 +300,7 @@ impl Parser {
             name_span,
             type_parameters,
             kind: TypeDeclarationKind::Resource { lifecycles },
+            extends: None,
             span: start.merge(end),
         })
     }
@@ -578,6 +579,7 @@ impl Parser {
             name_span,
             type_parameters,
             kind: TypeDeclarationKind::Record { fields },
+            extends: None,
             span: start.merge(end),
         })
     }
@@ -650,6 +652,7 @@ impl Parser {
             name_span,
             type_parameters,
             kind: TypeDeclarationKind::Variant { cases },
+            extends: None,
             span: start.merge(end),
         })
     }
@@ -662,12 +665,12 @@ impl Parser {
         let start = self.keyword("class")?.span;
         let (name, name_span) = self.ident("class name")?;
         let type_parameters = self.type_parameters()?;
-        if self.take(&TokenKind::Colon) {
-            return Err(self.error_here(
-                "SPX-P106",
-                "class inheritance is not supported; remove `: Parent`",
-            ));
-        }
+        // Class Inheritance v1: one optional named parent `class C : P { .. }`.
+        let extends = if self.take(&TokenKind::Colon) {
+            Some(self.ty()?)
+        } else {
+            None
+        };
         let explicit_id = stable_id.is_some();
         let stable_id = stable_id.unwrap_or_else(|| format!("auto:class:{module}.{name}"));
         self.expect(&TokenKind::LBrace, "`{` before class members")?;
@@ -710,6 +713,7 @@ impl Parser {
             name_span,
             type_parameters,
             kind: TypeDeclarationKind::Class { fields, methods },
+            extends,
             span: start.merge(end),
         })
     }
@@ -1102,6 +1106,16 @@ impl Parser {
             let end = self
                 .expect(&TokenKind::RParen, "`)` after method arguments")?
                 .span;
+            if matches!(&expression.kind, ExprKind::Var(name) if name == "super") {
+                return Ok(Expr {
+                    kind: ExprKind::SuperMethod {
+                        method: field,
+                        method_span: field_span,
+                        args,
+                    },
+                    span: start.merge(end),
+                });
+            }
             return Ok(Expr {
                 kind: ExprKind::MethodCall {
                     receiver: Box::new(expression),
@@ -1178,6 +1192,12 @@ impl Parser {
             }
         }
         let (name, name_span) = self.ident("local binding name")?;
+        // Class Inheritance v1: optional declared type `let name: T = value;`.
+        let declared = if self.take(&TokenKind::Colon) {
+            Some(self.ty()?)
+        } else {
+            None
+        };
         self.expect(&TokenKind::Eq, "`=` in local binding")?;
         let value = self.expression(0)?;
         let end = self
@@ -1187,6 +1207,7 @@ impl Parser {
             name,
             name_span,
             mutable,
+            declared,
             value,
             span: statement_start.merge(end),
         })

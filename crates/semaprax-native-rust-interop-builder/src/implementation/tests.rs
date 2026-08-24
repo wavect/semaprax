@@ -4482,6 +4482,7 @@ fn canonical_formatter_census_admits_shallow_wide_types_and_patterns() {
                     name: format!("value_{index}"),
                     name_span: crate::ast::Span::default(),
                     mutable: false,
+                    declared: None,
                     value: call(index),
                     span: crate::ast::Span::default(),
                 })
@@ -6323,6 +6324,7 @@ fn cleanup_pattern_binding_lookup_is_iterative_at_exact_depth() {
                         span,
                     }],
                 },
+                extends: None,
                 span,
             })
             .collect();
@@ -7780,6 +7782,9 @@ fn every_expression_shape_resolves_at_exact_depth_512_and_rejects_513() {
             ExprKind::Unary { value, .. }
             | ExprKind::Try { operand: value }
             | ExprKind::Project { base: value, .. } => replace_payload(value, replacement),
+            ExprKind::SuperMethod { args, .. } => args
+                .iter_mut()
+                .any(|child| replace_payload(child, replacement)),
             ExprKind::Binary { left, right, .. } => {
                 replace_payload(left, replacement) || replace_payload(right, replacement)
             }

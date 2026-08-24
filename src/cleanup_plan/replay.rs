@@ -690,7 +690,7 @@ fn expression_skeleton_work_upper(
                     )?,
                 )?,
                 ResolvedExprKind::Try { .. } | ResolvedExprKind::TryOption { .. } => 10,
-                ResolvedExprKind::Project { .. } => 6,
+                ResolvedExprKind::Project { .. } | ResolvedExprKind::Upcast { .. } => 6,
                 ResolvedExprKind::If { .. } => 10,
                 ResolvedExprKind::Match { arms, .. } => arms.len().saturating_mul(4) + 8,
             };
@@ -1403,6 +1403,7 @@ fn collect_expression_statuses(
             | ResolvedExprKind::Match { .. }
             | ResolvedExprKind::UpdateRecord { .. }
             | ResolvedExprKind::Project { .. }
+            | ResolvedExprKind::Upcast { .. }
             | ResolvedExprKind::Int(_)
             | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
@@ -2407,6 +2408,7 @@ fn expression_skeleton(
 ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
     enum Frame<'a> {
         Eval(&'a ResolvedExpr),
+        UpcastPassthrough,
         Unary {
             expression: &'a ResolvedExpr,
             op: UnaryOp,
@@ -2596,6 +2598,13 @@ fn expression_skeleton(
                     ResolvedExprKind::Project { base, field } => {
                         push_frame!(frames, Frame::Project { expression, field });
                         push_frame!(frames, Frame::Eval(base));
+                    }
+                    // Class Inheritance v1: the upcast is transparent to the
+                    // skeleton; the consumed source's place stays the
+                    // surrounding transfer's owned source.
+                    ResolvedExprKind::Upcast { source } => {
+                        push_frame!(frames, Frame::UpcastPassthrough);
+                        push_frame!(frames, Frame::Eval(source));
                     }
                     ResolvedExprKind::Binary { op, left, right } => {
                         push_frame!(
@@ -3239,6 +3248,8 @@ fn expression_skeleton(
                     work,
                 )?);
             }
+            // The upcast contributes no skeleton observations of its own.
+            Frame::UpcastPassthrough => {}
             Frame::Project { expression, field } => {
                 let mut paths = produced.take().expect("projection base path retained");
                 if expression.ownership == OwnershipMode::Own
@@ -5217,7 +5228,8 @@ fn replay_expression_child(expression: &ResolvedExpr, index: usize) -> Option<&R
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Try { operand: value, .. }
         | ResolvedExprKind::TryOption { operand: value, .. }
-        | ResolvedExprKind::Project { base: value, .. } => (index == 0).then_some(value),
+        | ResolvedExprKind::Project { base: value, .. }
+        | ResolvedExprKind::Upcast { source: value } => (index == 0).then_some(value),
         ResolvedExprKind::Binary { left, right, .. } => {
             [left.as_ref(), right.as_ref()].get(index).copied()
         }

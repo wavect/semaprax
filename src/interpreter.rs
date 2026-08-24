@@ -1108,6 +1108,35 @@ impl Evaluator<'_> {
                                 _ => Err(Flow::Guard("ill-typed string operation operand")),
                             }
                         }
+                        crate::string_ops::StringOp::StartsWith => {
+                            match (values.first(), values.get(1)) {
+                                (Some(Value::String(value)), Some(Value::String(prefix))) => {
+                                    Ok(Value::Bool(value.starts_with(prefix.as_str())))
+                                }
+                                _ => Err(Flow::Guard("ill-typed string operation operand")),
+                            }
+                        }
+                        crate::string_ops::StringOp::Contains => {
+                            match (values.first(), values.get(1)) {
+                                (Some(Value::String(value)), Some(Value::String(needle))) => {
+                                    Ok(Value::Bool(value.contains(needle.as_str())))
+                                }
+                                _ => Err(Flow::Guard("ill-typed string operation operand")),
+                            }
+                        }
+                        crate::string_ops::StringOp::LenChars => match values.first() {
+                            Some(Value::String(value)) => {
+                                Ok(Value::Int(value.chars().count() as i64))
+                            }
+                            _ => Err(Flow::Guard("ill-typed string operation operand")),
+                        },
+                        crate::string_ops::StringOp::FromChar => match values.first() {
+                            Some(Value::Char(scalar)) => match char::from_u32(*scalar) {
+                                Some(value) => Ok(Value::String(value.to_string())),
+                                None => Err(Flow::Guard("ill-typed string operation operand")),
+                            },
+                            _ => Err(Flow::Guard("ill-typed string operation operand")),
+                        },
                     };
                 }
                 let Some(function) = self.admitted.get(callee.as_str()) else {

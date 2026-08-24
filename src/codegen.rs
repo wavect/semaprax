@@ -2769,25 +2769,62 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                         }
                         ResolvedStatement::Assign {
                             binding,
+                            field,
                             value: assigned,
                             ..
                         } => {
                             // The assigned value is emitted fully first; the
-                            // store is a plain C11 assignment into the local.
+                            // store is a plain C11 assignment into the local
+                            // or, for Field Mutation v1, into its one direct
+                            // scalar field.
                             let value = self.emit_expr(assigned)?;
-                            self.require_type(&value.ty, &binding.ty, "assignment")?;
-                            if matches!(binding.ty, ResolvedType::String) {
-                                return Err(backend_error(
-                                    "string assignment has no admitted native lowering",
-                                ));
+                            match field {
+                                Some(field_id) => {
+                                    let layout = self.record_layout(&binding.ty)?;
+                                    let field =
+                                        layout.field(field_id).cloned().ok_or_else(|| {
+                                            backend_error(format!(
+                                                "native record `{}` has no assignment field `{field_id}`",
+                                                layout.record
+                                            ))
+                                        })?;
+                                    self.require_type(&value.ty, &field.ty, "field assignment")?;
+                                    if matches!(field.ty, ResolvedType::String) {
+                                        return Err(backend_error(
+                                            "string field assignment has no admitted native lowering",
+                                        ));
+                                    }
+                                    let target =
+                                        self.variables.get(&binding.id).ok_or_else(|| {
+                                            backend_error(format!(
+                                                "assignment target `{}` has no native local",
+                                                binding.id
+                                            ))
+                                        })?;
+                                    self.line(&format!(
+                                        "{}.{} = {};",
+                                        target.name,
+                                        c_field_symbol(&field.field),
+                                        value.code
+                                    ));
+                                }
+                                None => {
+                                    self.require_type(&value.ty, &binding.ty, "assignment")?;
+                                    if matches!(binding.ty, ResolvedType::String) {
+                                        return Err(backend_error(
+                                            "string assignment has no admitted native lowering",
+                                        ));
+                                    }
+                                    let target =
+                                        self.variables.get(&binding.id).ok_or_else(|| {
+                                            backend_error(format!(
+                                                "assignment target `{}` has no native local",
+                                                binding.id
+                                            ))
+                                        })?;
+                                    self.line(&format!("{} = {};", target.name, value.code));
+                                }
                             }
-                            let target = self.variables.get(&binding.id).ok_or_else(|| {
-                                backend_error(format!(
-                                    "assignment target `{}` has no native local",
-                                    binding.id
-                                ))
-                            })?;
-                            self.line(&format!("{} = {};", target.name, value.code));
                         }
                         ResolvedStatement::Unsafe { body, .. } => {
                             // Backends treat the boundary transparently: emit

@@ -808,8 +808,16 @@ fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> usize {
                             .len()
                             .saturating_add(rendered_expr_len(value, 0))
                             .saturating_add(if *mutable { 12 } else { 8 }),
-                        Statement::Assign { name, value, .. } => name
+                        Statement::Assign {
+                            name, field, value, ..
+                        } => name
                             .len()
+                            .saturating_add(
+                                field
+                                    .as_ref()
+                                    .map(|field| field.name.len().saturating_add(1))
+                                    .unwrap_or(0),
+                            )
                             .saturating_add(rendered_expr_len(value, 0))
                             .saturating_add(4),
                         Statement::Unsafe { audit, .. } => escaped_len(audit).saturating_add(18),
@@ -1297,8 +1305,15 @@ fn write_expr(output: &mut impl std::fmt::Write, value: &Expr, parent_precedence
                             frames.push(Frame::BlockNext(statements, tail, index + 1));
                             frames.push(Frame::Expr(value, 0));
                         }
-                        Statement::Assign { name, value, .. } => {
-                            write!(output, "{name} = ").unwrap();
+                        Statement::Assign {
+                            name, field, value, ..
+                        } => {
+                            match field {
+                                Some(field) => {
+                                    write!(output, "{name}.{} = ", field.name).unwrap();
+                                }
+                                None => write!(output, "{name} = ").unwrap(),
+                            }
                             frames.push(Frame::BlockNext(statements, tail, index + 1));
                             frames.push(Frame::Expr(value, 0));
                         }
@@ -1702,9 +1717,14 @@ fn write_block_statement(output: &mut impl std::fmt::Write, statement: &Statemen
             write_expr(output, value, 0);
             writeln!(output, ";").unwrap();
         }
-        Statement::Assign { name, value, .. } => {
+        Statement::Assign {
+            name, field, value, ..
+        } => {
             write_indent(output, depth);
-            write!(output, "{name} = ").unwrap();
+            match field {
+                Some(field) => write!(output, "{name}.{} = ", field.name).unwrap(),
+                None => write!(output, "{name} = ").unwrap(),
+            }
             write_expr(output, value, 0);
             writeln!(output, ";").unwrap();
         }

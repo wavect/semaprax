@@ -473,7 +473,10 @@ fn public_api_cli_bytes_getters_and_read_only_locking_are_exact() {
     );
     assert_eq!(
         document_digest(graph.to_json().as_bytes()),
-        "sha256:dfbc55b10ac267899c9f2ab7cc6126c37e79b34aff5e25612ca9882335b25767"
+        // Re-pinned for Field Mutation v1: `ResolvedStatement::Assign` gained one
+        // `Option<DeclarationId>` field, growing the deterministic
+        // `HIR_EXPR_FIXED_BUNDLE` budget term.
+        "sha256:90133b21dc9ab95d3c7373c03865352ecbbd39d0a60965cec682a38792759173"
     );
 
     let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
@@ -887,14 +890,14 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
             document_digest(capability_review.as_bytes()),
         ],
         [
-            "sha256:1a0c7c8208d6d24a823498e3cfd4cd0ce1c951b79c893e03a51dc48c7c71738b",
-            "sha256:c4bb4ed40cac3792e2cc1bf82160459e2b7554d77b9a71588799f8d38fd3bf01",
-            "sha256:0d3b47877deb2160904053808234efb84007914afa6218ac03c6eb758d35a699",
-            "sha256:e68f58e68db4d741dca010e33a9f71862ac752b4e8b21d7ea9ff16c3d28456f3",
-            "sha256:de814a8467d71ee8866e12c432d527860c318b7c34e223aeec43f70210fee2a4",
-            "sha256:0466c1a8b6d1f1a816c6a6a09879efb0f655719aa8733fa105b1739e6fdb6032",
-            "sha256:c34ca5dfaa8f03a93efa823680ed72bcdb9bccdb609f8714b00809f39f254286",
-            "sha256:84e23f800991d8311366e759ec02303f7a4411ddb1635337fd562b94f316a487",
+            "sha256:ce9edee53f82213410b03c2ba21e4bedbe0b27995db8cd6bac645cb308192c54",
+            "sha256:a477cad83bbedadb3cca3634844ad654ee46c716eca1fdb66713c28041bf75cc",
+            "sha256:b01b5803b1f9ee77bfd1d5086fc1700dff2f750a6da94c9b38b0f7c8f4c0dba8",
+            "sha256:0e3d523a2ce0d9ea502175c2b1ab6c74afa4899e4ac7da72c7f8bc004975d6f4",
+            "sha256:dec1ae2191f685dbf51953b7b25f9dea7747ca1f76b84a3f31545307ac202510",
+            "sha256:92b7f383b354fb492349d89dc861bc6727e028161700a74b8bc4bd46c7896ed0",
+            "sha256:960f05a602cf55250a34876f8f230c1afcb1c7c2c84b34a199935fb8cc9da965",
+            "sha256:cf06a270d47ee4b0efaad1d78d57ecc9efd747836e94e025cf1a5f8576caa1aa",
         ]
     );
 

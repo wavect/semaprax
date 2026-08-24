@@ -1383,6 +1383,44 @@ impl Emitter<'_> {
             ResolvedExprKind::Block { statements, tail } => {
                 let saved = self.bindings.clone();
                 for statement in statements {
+                    // Field Mutation v1: the assigned value evaluates fully
+                    // first, then stores into the direct scalar field of the
+                    // aggregate binding's frame slot.
+                    if let ResolvedStatement::Assign {
+                        binding,
+                        field: Some(field_id),
+                        ..
+                    } = statement
+                    {
+                        let value = self.emit_expr(statement.value())?;
+                        let offset = self
+                            .plan
+                            .aggregate_bindings
+                            .get(&binding.id)
+                            .copied()
+                            .ok_or_else(|| {
+                                error(format!("missing aggregate binding `{}`", binding.id))
+                            })?;
+                        let record_layout = layout(self.program, &binding.ty)?;
+                        let field = record_layout.field(field_id).cloned().ok_or_else(|| {
+                            error(format!(
+                                "record `{}` has no assignment field `{field_id}`",
+                                record_layout.record
+                            ))
+                        })?;
+                        let destination = value_at(
+                            Pointer {
+                                local: self.plan.frame_base,
+                                offset: offset
+                                    .checked_add(field.offset)
+                                    .ok_or_else(|| error("field pointer overflows u32"))?,
+                            },
+                            field.ty,
+                            self.program,
+                        )?;
+                        self.copy_value(&destination, &value, "field assignment")?;
+                        continue;
+                    }
                     // Lets declare and store; assignments re-store into the
                     // same scalar or aggregate slot. Unsafe boundaries emit
                     // their ordinary body transparently and bind nothing.

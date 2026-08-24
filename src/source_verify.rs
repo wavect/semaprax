@@ -4013,6 +4013,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         Statement::Assign {
                             name,
                             name_span,
+                            field,
                             value,
                             ..
                         } => {
@@ -4029,38 +4030,111 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 ));
                             }
                             if let Some((mutable, binding_ty)) = target {
-                                if !mutable {
-                                    self.diagnostics.push(error(
-                                        self.program,
-                                        "SPX-U101",
-                                        format!(
-                                            "cannot assign to immutable binding `{name}`; declare it with `let mut`"
-                                        ),
-                                        *name_span,
-                                    ));
-                                }
-                                if let Some(actual) = &actual {
-                                    if mutable && actual.ty != binding_ty {
-                                        self.diagnostics.push(error(
-                                            self.program,
-                                            "SPX-U102",
-                                            format!(
-                                                "assigned value type `{}` does not exactly match binding type `{}`",
-                                                actual.ty, binding_ty
-                                            ),
-                                            value.span,
-                                        ));
+                                match field {
+                                    Some(field) => {
+                                        // Field Mutation v1: one direct scalar
+                                        // Copy field of a `let mut` record or
+                                        // class local.
+                                        if !mutable {
+                                            self.diagnostics.push(error(
+                                                self.program,
+                                                "SPX-U107",
+                                                format!(
+                                                    "cannot assign to field of immutable binding `{name}`; declare it with `let mut`"
+                                                ),
+                                                *name_span,
+                                            ));
+                                        }
+                                        match self.types.record_fields(&binding_ty) {
+                                            None => {
+                                                self.diagnostics.push(error(
+                                                    self.program,
+                                                    "SPX-U112",
+                                                    format!(
+                                                        "cannot mutate a field of non-record value `{binding_ty}`"
+                                                    ),
+                                                    field.span,
+                                                ));
+                                            }
+                                            Some(fields) => {
+                                                let declared = fields
+                                                    .iter()
+                                                    .find(|candidate| candidate.name == field.name);
+                                                if let Some(declared) = declared {
+                                                    let field_ty = self
+                                                        .types
+                                                        .record_field_type(&binding_ty, declared)
+                                                        .unwrap_or_else(|| declared.ty.clone());
+                                                    if !is_scalar_source_type(&field_ty) {
+                                                        self.diagnostics.push(error(
+                                                            self.program,
+                                                            "SPX-U109",
+                                                            "field mutation v1 supports only direct scalar Copy record fields",
+                                                            field.span,
+                                                        ));
+                                                    }
+                                                    if let Some(actual) = &actual {
+                                                        if actual.ty != field_ty {
+                                                            self.diagnostics.push(error(
+                                                                self.program,
+                                                                "SPX-U110",
+                                                                format!(
+                                                                    "assigned value type `{}` does not exactly match field type `{}`",
+                                                                    actual.ty, field_ty
+                                                                ),
+                                                                value.span,
+                                                            ));
+                                                        }
+                                                    }
+                                                } else {
+                                                    self.diagnostics.push(error(
+                                                        self.program,
+                                                        "SPX-U108",
+                                                        format!(
+                                                            "record `{binding_ty}` has no field `{}`",
+                                                            field.name
+                                                        ),
+                                                        field.span,
+                                                    ));
+                                                }
+                                            }
+                                        }
                                     }
-                                    if mutable
-                                        && (actual.mode != ParamMode::Value
-                                            || !is_scalar_source_type(&actual.ty))
-                                    {
-                                        self.diagnostics.push(error(
-                                            self.program,
-                                            "SPX-U105",
-                                            "explicit mutation v1 supports only scalar Copy values",
-                                            value.span,
-                                        ));
+                                    None => {
+                                        if !mutable {
+                                            self.diagnostics.push(error(
+                                                self.program,
+                                                "SPX-U101",
+                                                format!(
+                                                    "cannot assign to immutable binding `{name}`; declare it with `let mut`"
+                                                ),
+                                                *name_span,
+                                            ));
+                                        }
+                                        if let Some(actual) = &actual {
+                                            if mutable && actual.ty != binding_ty {
+                                                self.diagnostics.push(error(
+                                                    self.program,
+                                                    "SPX-U102",
+                                                    format!(
+                                                        "assigned value type `{}` does not exactly match binding type `{}`",
+                                                        actual.ty, binding_ty
+                                                    ),
+                                                    value.span,
+                                                ));
+                                            }
+                                            if mutable
+                                                && (actual.mode != ParamMode::Value
+                                                    || !is_scalar_source_type(&actual.ty))
+                                            {
+                                                self.diagnostics.push(error(
+                                                    self.program,
+                                                    "SPX-U105",
+                                                    "explicit mutation v1 supports only scalar Copy values",
+                                                    value.span,
+                                                ));
+                                            }
+                                        }
                                     }
                                 }
                             }

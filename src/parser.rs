@@ -1,11 +1,12 @@
 use std::path::Path;
 
 use crate::ast::{
-    BinaryOp, Expr, ExprKind, FieldDeclaration, FieldInitializer, Function, ImportDeclaration,
-    ImportFailure, ImportResult, InterfaceDeclaration, MatchArm, MatchPattern, MatchPatternField,
-    ModuleUse, ModuleUseKind, Param, ParamMode, Program, ProtocolDeclaration, ProtocolMethod,
-    ResourceLifecycleDeclaration, ResourceLifecycleKind, Span, Statement, Type, TypeDeclaration,
-    TypeDeclarationKind, TypeParameterDeclaration, UnaryOp, VariantCaseDeclaration,
+    BinaryOp, Expr, ExprKind, FieldDeclaration, FieldInitializer, FieldTarget, Function,
+    ImportDeclaration, ImportFailure, ImportResult, InterfaceDeclaration, MatchArm, MatchPattern,
+    MatchPatternField, ModuleUse, ModuleUseKind, Param, ParamMode, Program, ProtocolDeclaration,
+    ProtocolMethod, ResourceLifecycleDeclaration, ResourceLifecycleKind, Span, Statement, Type,
+    TypeDeclaration, TypeDeclarationKind, TypeParameterDeclaration, UnaryOp,
+    VariantCaseDeclaration,
 };
 use crate::diagnostic::Diagnostic;
 use crate::lexer::{lex, Token, TokenKind};
@@ -1193,8 +1194,29 @@ impl Parser {
     }
 
     fn at_assign_statement(&self) -> bool {
-        matches!(&self.current().kind, TokenKind::Ident(_))
-            && self.tokens.get(self.cursor + 1).map(|token| &token.kind) == Some(&TokenKind::Eq)
+        if !matches!(&self.current().kind, TokenKind::Ident(_)) {
+            return false;
+        }
+        if self.tokens.get(self.cursor + 1).map(|token| &token.kind) == Some(&TokenKind::Eq) {
+            return true;
+        }
+        // Field Mutation v1: `<binding>.<field> = ...`. Deeper chains also
+        // enter the assignment statement so they can be rejected there.
+        let mut index = self.cursor + 1;
+        while matches!(
+            self.tokens.get(index).map(|token| &token.kind),
+            Some(TokenKind::Dot)
+        ) && matches!(
+            self.tokens.get(index + 1).map(|token| &token.kind),
+            Some(TokenKind::Ident(_))
+        ) {
+            match self.tokens.get(index + 2).map(|token| &token.kind) {
+                Some(TokenKind::Eq) => return true,
+                Some(TokenKind::Dot) => index += 2,
+                _ => return false,
+            }
+        }
+        false
     }
 
     /// Explicit Mutation v1 admits no mutable parameters: parameters are
@@ -1213,6 +1235,23 @@ impl Parser {
 
     fn assign_statement(&mut self) -> Result<Statement, Diagnostic> {
         let (name, name_span) = self.ident("assignable binding name")?;
+        // Field Mutation v1 admits exactly one direct field level; deeper
+        // place chains stay outside the slice.
+        let field = if self.take(&TokenKind::Dot) {
+            let (field_name, field_span) = self.ident("assignment field name")?;
+            if self.at(&TokenKind::Dot) {
+                return Err(self.error_here(
+                    "SPX-U111",
+                    "nested place chains like `a.b.c = ...` are outside field mutation v1",
+                ));
+            }
+            Some(FieldTarget {
+                name: field_name,
+                span: field_span,
+            })
+        } else {
+            None
+        };
         self.expect(&TokenKind::Eq, "`=` in assignment")?;
         let value = self.expression(0)?;
         let end = self
@@ -1221,6 +1260,7 @@ impl Parser {
         Ok(Statement::Assign {
             name,
             name_span,
+            field,
             value,
             span: name_span.merge(end),
         })

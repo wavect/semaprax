@@ -1576,10 +1576,19 @@ fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnos
                             quote_json(binding.id.as_str()),
                             agent_contract_expr_json(value)?
                         ),
-                        ResolvedStatement::Assign { binding, value, .. } => format!(
-                            "{{\"kind\":\"assign\",\"target\":{},\"value\":{}}}",
+                        ResolvedStatement::Assign {
+                            binding,
+                            field,
+                            value,
+                            ..
+                        } => format!(
+                            "{{\"kind\":\"assign\",\"target\":{},\"value\":{}{}}}",
                             quote_json(binding.id.as_str()),
-                            agent_contract_expr_json(value)?
+                            agent_contract_expr_json(value)?,
+                            field
+                                .as_ref()
+                                .map(|field| format!(",\"field\":{}", quote_json(field.as_str())))
+                                .unwrap_or_default()
                         ),
                         ResolvedStatement::Unsafe { audit, body, .. } => format!(
                             "{{\"kind\":\"unsafe\",\"audit\":{},\"body\":{}}}",
@@ -3905,14 +3914,28 @@ fn statement_json(
                 expr_json(program, value)?
             ))
         }
-        ResolvedStatement::Assign { binding, value, .. } => Ok(format!(
-            "{{\"kind\":\"assign\",\"target\":{{\"id\":{},\"name\":{},\"type_id\":{},\"ownership_mode\":{}}},\"value\":{}}}",
-            quote_json(binding.id.as_str()),
-            quote_json(&binding.name),
-            quote_json(&binding.ty.identity_key()),
-            quote_json(ownership_text(binding.ownership)),
-            expr_json(program, value)?
-        )),
+        ResolvedStatement::Assign {
+            binding,
+            field,
+            value,
+            ..
+        } => {
+            // The field attribute is additive and emitted only on
+            // `<binding>.<field>` targets so pre-field-mutation graphs stay
+            // byte-identical.
+            let field_attribute = match field {
+                Some(field) => format!(",\"field\":{}", quote_json(field.as_str())),
+                None => String::new(),
+            };
+            Ok(format!(
+                "{{\"kind\":\"assign\",\"target\":{{\"id\":{},\"name\":{},\"type_id\":{},\"ownership_mode\":{}}},\"value\":{}{field_attribute}}}",
+                quote_json(binding.id.as_str()),
+                quote_json(&binding.name),
+                quote_json(&binding.ty.identity_key()),
+                quote_json(ownership_text(binding.ownership)),
+                expr_json(program, value)?
+            ))
+        }
         ResolvedStatement::Unsafe { audit, body, .. } => Ok(format!(
             "{{\"kind\":\"unsafe\",\"audit\":{},\"body\":{}}}",
             quote_json(audit),

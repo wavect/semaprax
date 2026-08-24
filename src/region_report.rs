@@ -478,6 +478,7 @@ fn collect_expr(
                     }
                     ResolvedStatement::Assign {
                         binding,
+                        field: _,
                         value,
                         span,
                     } => {

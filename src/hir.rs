@@ -5590,6 +5590,8 @@ impl Resolver<'_> {
             ));
         }
         Ok((field_id, field_ty))
+    }
+
     /// Bounded While-Loops v1 admission profile: a loop condition or body may
     /// contain only Copy-scalar operations — scalar literals, names, checked
     /// scalar arithmetic and comparisons, nested `if`s over scalars, blocks
@@ -5678,6 +5680,11 @@ impl Resolver<'_> {
             ExprKind::MethodCall { .. } => Err(self.error(
                 "SPX-T252",
                 "method calls are not yet admitted in while bodies",
+                expression.span,
+            )),
+            ExprKind::SuperMethod { .. } => Err(self.error(
+                "SPX-T252",
+                "super method calls are not yet admitted in while bodies",
                 expression.span,
             )),
             ExprKind::Project { .. } => Err(self.error(

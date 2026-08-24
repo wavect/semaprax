@@ -1345,7 +1345,8 @@ fn expression_has_while(expression: &ResolvedExpr) -> bool {
         ResolvedExprKind::Unary { value, .. }
         | ResolvedExprKind::Try { operand: value, .. }
         | ResolvedExprKind::TryOption { operand: value, .. }
-        | ResolvedExprKind::Project { base: value, .. } => expression_has_while(value),
+        | ResolvedExprKind::Project { base: value, .. }
+        | ResolvedExprKind::Upcast { source: value } => expression_has_while(value),
         ResolvedExprKind::Binary { left, right, .. } => {
             expression_has_while(left) || expression_has_while(right)
         }
@@ -4091,7 +4092,9 @@ fn statement_json(
             quote_json(audit),
             expr_json(program, body)?
         )),
-        ResolvedStatement::While { condition, body, .. } => Ok(format!(
+        ResolvedStatement::While {
+            condition, body, ..
+        } => Ok(format!(
             "{{\"kind\":\"while\",\"condition\":{},\"body\":{}}}",
             expr_json(program, condition)?,
             expr_json(program, body)?

@@ -3554,6 +3554,15 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 }
                 result
             }
+            ExprKind::SuperMethod { .. } => {
+                self.diagnostics.push(error(
+                    self.program,
+                    "SPX-T252",
+                    "super method calls are not yet admitted in while bodies",
+                    expression.span,
+                ));
+                Err(())
+            }
             ExprKind::MethodCall { .. } => {
                 self.diagnostics.push(error(
                     self.program,
@@ -8312,6 +8321,15 @@ fn reject_while_disallowed_oracle(
         | ExprKind::Float64(_)
         | ExprKind::Bool(_)
         | ExprKind::Var(_) => Ok(()),
+        ExprKind::SuperMethod { .. } => {
+            diagnostics.push(error(
+                program,
+                "SPX-T252",
+                "super method calls are not yet admitted in while bodies",
+                expression.span,
+            ));
+            Err(())
+        }
         ExprKind::String(_) => {
             diagnostics.push(error(
                 program,

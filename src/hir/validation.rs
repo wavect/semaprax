@@ -1286,6 +1286,9 @@ impl<'a> HirValidator<'a> {
             ResolvedExprKind::NativeRustImportCall(_) => Err(hir_error(
                 "while loops cannot contain native Rust import calls",
             )),
+            ResolvedExprKind::Upcast { .. } => {
+                Err(hir_error("while loops cannot contain inheritance upcasts"))
+            }
             ResolvedExprKind::Project { .. } => {
                 Err(hir_error("while loops cannot project record fields"))
             }

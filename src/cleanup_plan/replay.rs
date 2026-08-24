@@ -646,6 +646,7 @@ fn expression_path_counts_with_while(
                     inner
                 }
             }
+            ResolvedExprKind::Upcast { source } => count(function, source)?,
             ResolvedExprKind::Binary { op, left, right } => {
                 let left_counts = count(function, left)?;
                 let right_counts = count(function, right)?;

@@ -1,5 +1,47 @@
 # Changelog
 
+- Added the parallel batch-1/batch-2 language and projection tranches
+  (isolated worktrees under `.agent-worktrees/`, merged into `main`):
+  - String operations v1 — reserved `core.string.*` intrinsic calls
+    (`string_len`, `string_concat`, `string_is_empty`) admitted through the
+    ordinary monomorphic call path with borrow/move ownership, native C11
+    O0/O2 + Node/Wasm + interpreter equivalence, gated C helpers/host imports,
+    and pinned evidence in `tests/string_ops_v1.rs`
+    (`examples/string_ops.spx`, `docs/STRING-OPS-V1.md`).
+  - Field mutation v1 — statement-only direct scalar Copy-field assignment
+    `<binding>.<field> = <expr>;` on `let mut` record/class locals with
+    diagnostics `SPX-U107`-`SPX-U112`, additive graph `"field"` attribute,
+    unchanged CleanupPlan shapes, and native+Wasm equivalence in
+    `tests/field_mutation_v1.rs` (`examples/field_mutation.spx`,
+    `docs/FIELD-MUTATION-V1.md`).
+  - Bounded while-loop v1 — `while <bool> { body }` under a Copy-scalar
+    admission profile with diagnostics `SPX-T251`-`SPX-T253`/`SPX-G410`,
+    program-level Graph v15 selected above v14, linearized cleanup-plan
+    iteration with fail-closed liveness guards, native/Wasm loop lowering,
+    fuel-accounted interpretation, and `tests/while_loops_v1.rs`
+    (`examples/while_loops.spx`, `docs/WHILE-LOOPS-V1.md`).
+  - Reference Interpreter scalar widening — admission widened to the full
+    Copy-scalar surface (`i64`/`i32`/`u8`/`bool`/`f32`/`f64`/char) including
+    suffixed/float/char argument parsing, with a 24-row cross-backend parity
+    corpus in `tests/interpreter_scalar_widen_v1.rs`.
+  - Interop scalar widening — `semaprax abi-report`, `semaprax c-header`, and
+    `semaprax cxx-shim` admit the full Copy-scalar surface with verbatim
+    native-line digests and byte-level Wasm cross-consistency in
+    `tests/interop_scalar_widen_v1.rs`.
+  - Schema scalar widening — `semaprax openapi`, `semaprax package-report`,
+    and `semaprax ui-schema` admit the full Copy-scalar surface with
+    bound-aware compat classification, layout cross-consistency, and pinned
+    widened KATs in `tests/schema_scalar_widen_v1.rs`.
+  - Class single inheritance v1 — `class Child : Parent { ... }` with
+    ancestor-prefix layouts, static nearest-first method resolution, exact-
+    signature overrides, `super.m(...)` calls, typed-let upcasts
+    (`ResolvedExprKind::Upcast`), diagnostics `SPX-T227`-`SPX-T234`, and a
+    cleanup-inert suffix rule keeping plan schemas unchanged; evidence in
+    `tests/class_inheritance_v1.rs` (`examples/inheritance.spx`,
+    `docs/CLASS-INHERITANCE-V1.md`).
+  - Frozen KAT digests and HIR capacity pins are re-pinned for honest
+    AST/HIR builder-bytes growth from the new syntax; programs without the
+    new constructs keep byte-identical projections.
 - Added the String + Object-Oriented Types large-implementation tranche
   (branch `feat/string-oo-types`, worktree `.agent-worktrees/string-oo`):
   - Owned heap `string` value type end-to-end — `"…"` literals with canonical

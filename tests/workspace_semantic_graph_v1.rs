@@ -476,7 +476,7 @@ fn public_api_cli_bytes_getters_and_read_only_locking_are_exact() {
         // Re-pinned for Field Mutation v1: `ResolvedStatement::Assign` gained one
         // `Option<DeclarationId>` field, growing the deterministic
         // `HIR_EXPR_FIXED_BUNDLE` budget term.
-        "sha256:90133b21dc9ab95d3c7373c03865352ecbbd39d0a60965cec682a38792759173"
+        "sha256:a5aacb46e6c3a2b05fd16db8b32eae1b2561548422c4415ee6554ddf00e2288b"
     );
 
     let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
@@ -890,14 +890,14 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
             document_digest(capability_review.as_bytes()),
         ],
         [
-            "sha256:ce9edee53f82213410b03c2ba21e4bedbe0b27995db8cd6bac645cb308192c54",
-            "sha256:a477cad83bbedadb3cca3634844ad654ee46c716eca1fdb66713c28041bf75cc",
-            "sha256:b01b5803b1f9ee77bfd1d5086fc1700dff2f750a6da94c9b38b0f7c8f4c0dba8",
-            "sha256:0e3d523a2ce0d9ea502175c2b1ab6c74afa4899e4ac7da72c7f8bc004975d6f4",
-            "sha256:dec1ae2191f685dbf51953b7b25f9dea7747ca1f76b84a3f31545307ac202510",
-            "sha256:92b7f383b354fb492349d89dc861bc6727e028161700a74b8bc4bd46c7896ed0",
-            "sha256:960f05a602cf55250a34876f8f230c1afcb1c7c2c84b34a199935fb8cc9da965",
-            "sha256:cf06a270d47ee4b0efaad1d78d57ecc9efd747836e94e025cf1a5f8576caa1aa",
+            "sha256:bf513c039331206211e00d61df9e1b84b8cf94e7da65e0de28d65e32a1e78352",
+            "sha256:25ba35798667eeb560242d920686b23d58ecba1c40510bd06b2f6983b4fc55dd",
+            "sha256:340be08153f93ea9001120b6b7dc4fce3d62dd4e3f579e38c3fff2b547e2f61e",
+            "sha256:869def246de39004e8f90606e33a7a0bc371d7a813058a1ea8deb5202cffe2cf",
+            "sha256:c9b45318033cdec7ed98db59e535691f4582c748f496763bc5d06952fb54e688",
+            "sha256:0e7be7a2b497aaec8f15a7b34a5a8716e74950de53a7daf8984910840cacd22b",
+            "sha256:52b3ebade0a34ac7834c4ed97581763a1632e25b17b8bad074d42b861ae16026",
+            "sha256:23ca502a005bc7bfae1c30f8e05027bb986c761148fa138ef4e5c21061d61687",
         ]
     );
 

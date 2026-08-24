@@ -265,6 +265,31 @@ green locally in `tests/simd_report_v1.rs`. It emits no SIMD codegen or
 intrinsics, no SPIR-V/WebGPU/GPU kernels, makes no autovectorization claim,
 executes no target, and changes no source. Current totals are 56
 Partial/0 Missing.
+[Batch integration 2026-08-24] Seven locally evidenced tranches deepen
+existing Partial rows without moving any status: String operations v1 adds
+reserved `core.string.*` intrinsics (`string_len`, `string_concat`,
+`string_is_empty`) through the ordinary monomorphic call path with
+native/Wasm/interpreter equivalence (`tests/string_ops_v1.rs`);
+Field mutation v1 admits direct scalar Copy-field assignment on `let mut`
+record/class locals (`SPX-U107`-`SPX-U112`, unchanged CleanupPlan shapes,
+`tests/field_mutation_v1.rs`); Bounded while-loop v1 admits `while <bool>`
+under a Copy-scalar profile with program-level Graph v15 above v14,
+linearized cleanup-plan iteration under fail-closed liveness guards, and
+native/Wasm/interpreter lowering (`SPX-T251`-`SPX-T253`, `tests/
+while_loops_v1.rs`); Reference Interpreter admission widens to the full
+Copy-scalar surface (`tests/interpreter_scalar_widen_v1.rs`);
+`abi-report`/`c-header`/`cxx-shim`, `openapi`/`package-report`/`ui-schema`
+admit the same widened surface with verbatim-native digests, bound-aware
+compat classification, and layout cross-consistency
+(`tests/interop_scalar_widen_v1.rs`, `tests/schema_scalar_widen_v1.rs`);
+Class single inheritance v1 adds ancestor-prefix layouts, static nearest-
+first method resolution, exact-signature overrides, `super.m(...)` calls,
+and typed-let upcasts under a cleanup-inert suffix rule
+(`SPX-T227`-`SPX-T234`, `tests/class_inheritance_v1.rs`). All claims remain
+bounded by their doc files' nonclaims; no target execution, hosted
+promotion, or status change is claimed, and frozen KATs were re-pinned only
+for honest builder-bytes growth from the new syntax. Current totals remain
+56 Partial/0 Missing.
 
 Status values:
 

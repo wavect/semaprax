@@ -265,15 +265,20 @@ impl FunctionPlan {
             ResolvedExprKind::Block { statements, tail } => {
                 for statement in statements {
                     let ResolvedStatement::Let { binding, value, .. } = statement else {
-                        // Assignment targets reuse their `let` slot; only the
-                        // assigned value joins the local walk.
-                        self.collect_expr(
-                            program,
-                            variant_layouts,
-                            statement.value(),
-                            parameter_count,
-                            frame,
-                        )?;
+                        // Assignment targets reuse their `let` slot and while
+                        // statements contribute their condition and body; only
+                        // evaluated expressions join the local walk.
+                        for index in 0..statement.child_count() {
+                            if let Some(child) = statement.child(index) {
+                                self.collect_expr(
+                                    program,
+                                    variant_layouts,
+                                    child,
+                                    parameter_count,
+                                    frame,
+                                )?;
+                            }
+                        }
                         continue;
                     };
                     self.collect_expr(program, variant_layouts, value, parameter_count, frame)?;
@@ -1430,7 +1435,14 @@ impl Emitter<'_> {
                     let (ResolvedStatement::Let { binding, .. }
                     | ResolvedStatement::Assign { binding, .. }) = statement
                     else {
-                        self.emit_expr(statement.value())?;
+                        if let ResolvedStatement::While {
+                            condition, body, ..
+                        } = statement
+                        {
+                            self.emit_while(condition, body)?;
+                        } else {
+                            self.emit_expr(statement.value())?;
+                        }
                         continue;
                     };
                     let value = self.emit_expr(statement.value())?;
@@ -3090,6 +3102,32 @@ impl Emitter<'_> {
             self.control_depth + self.status_exit_extra_depth,
         );
         self.output.push(0x0b);
+    }
+
+    /// Bounded While-Loops v1 lowers to a core `block`/`loop` pair: the
+    /// condition re-evaluates at the top, a false condition branches out of
+    /// the enclosing block, and the discarded body value falls through to the
+    /// back-edge branch. Checked-arithmetic failures inside the loop keep the
+    /// same sticky host-status contract as straight-line code.
+    fn emit_while(
+        &mut self,
+        condition: &ResolvedExpr,
+        body: &ResolvedExpr,
+    ) -> Result<(), Diagnostic> {
+        self.output.extend([0x02, 0x40]); // block (empty) $exit
+        self.output.extend([0x03, 0x40]); // loop (empty) $top
+        self.control_depth += 2;
+        let condition_value = self.emit_expr(condition)?;
+        self.require_scalar(&condition_value, &ResolvedType::Bool, "while condition")?;
+        self.get_scalar(&condition_value);
+        self.output.push(0x45); // i32.eqz
+        self.output.extend([0x0d, 0x01]); // br_if 1 -> $exit on false
+        let _body_value = self.emit_expr(body)?;
+        self.control_depth -= 2;
+        self.output.extend([0x0c, 0x00]); // br 0 -> $top
+        self.output.push(0x0b); // end loop
+        self.output.push(0x0b); // end block
+        Ok(())
     }
 }
 

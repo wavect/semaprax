@@ -224,13 +224,20 @@ fn program_uses_string_ops(program: &ResolvedProgram) -> bool {
             ResolvedExprKind::Unary { value, .. }
             | ResolvedExprKind::Try { operand: value, .. }
             | ResolvedExprKind::TryOption { operand: value, .. }
-            | ResolvedExprKind::Project { base: value, .. } => pending.push(value),
+            | ResolvedExprKind::Project { base: value, .. }
+            | ResolvedExprKind::Upcast { source: value } => pending.push(value),
             ResolvedExprKind::Binary { left, right, .. } => {
                 pending.push(left);
                 pending.push(right);
             }
             ResolvedExprKind::Block { statements, tail } => {
-                pending.extend(statements.iter().map(|statement| statement.value()));
+                for statement in statements {
+                    for index in 0..statement.child_count() {
+                        if let Some(child) = statement.child(index) {
+                            pending.push(child);
+                        }
+                    }
+                }
                 pending.push(tail);
             }
             ResolvedExprKind::If {

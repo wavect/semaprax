@@ -252,8 +252,7 @@ fn graph_serialization_is_deterministic_and_selects_v16_only_with_refutable_node
     assert!(!aggregate_json.contains("\"exhaustive\":false"));
 
     let plain = parse(PLAIN_STABLE, Path::new("plain.spx")).unwrap();
-    let wire =
-        serde_json::from_str::<serde_json::Value>(&graph::to_json(&plain).unwrap()).unwrap();
+    let wire = serde_json::from_str::<serde_json::Value>(&graph::to_json(&plain).unwrap()).unwrap();
     assert_eq!(wire["schema"], "semaprax.graph.v10");
 }
 
@@ -313,7 +312,11 @@ fn scalar_matches_add_no_cleanup_slots_and_replay_exactly() {
             _ => None,
         })
         .collect();
-    assert_eq!(selected_arms, vec![0, 1, 2], "one selection edge per refutable arm");
+    assert_eq!(
+        selected_arms,
+        vec![0, 1, 2],
+        "one selection edge per refutable arm"
+    );
     // Success is itself replay evidence: hir::resolve re-validates every plan
     // against the independent gate before returning.
 }
@@ -482,16 +485,16 @@ fn main(s: string) -> i64 { match s { _ => 0, } }
 "#,
         ),
     ];
-    let also_accepted: &[&[&str]] = &[&["SPX-M103"]];
-    let mut index = 0usize;
-    for (label, source) in sources {
+    for (index, (label, source)) in sources.iter().enumerate() {
         let report = verify_diagnostics(source);
+        // The string-scrutinee entry keeps its pre-feature M103 rejection;
+        // every other entry must select SPX-T254.
         let admitted = report.iter().any(|item| item.code == "SPX-T254")
-            || also_accepted
-                .get(index - 2)
-                .is_some_and(|codes| codes.iter().any(|code| report.iter().any(|item| &item.code == *code)));
-        assert!(admitted, "{label} stays outside the Copy-scalar surface: {report:?}");
-        index += 1;
+            || (index == 2 && report.iter().any(|item| item.code == "SPX-M103"));
+        assert!(
+            admitted,
+            "{label} stays outside the Copy-scalar surface: {report:?}"
+        );
     }
 }
 
@@ -668,17 +671,6 @@ fn wasm_refutable_matches_match_native_results_in_node() {
     );
 }
 
-fn envelope_for(path: &Path, token: &str, arguments: &[&str], max_steps: usize) -> String {
-    let owned: Vec<String> = arguments
-        .iter()
-        .map(|argument| (*argument).to_owned())
-        .collect();
-    let options = InterpreterOptions::new(65536, max_steps).unwrap();
-    interpreter::interpret(path, token, &owned, &options)
-        .expect("interpretation")
-        .envelope
-}
-
 #[test]
 fn interpreter_agrees_with_backends_on_refutable_results() {
     let path = write_corpus(CORPUS, "interpret");
@@ -727,17 +719,16 @@ fn interpreter_agrees_with_backends_on_refutable_results() {
 fn interpreter_fuel_exhaustion_fails_closed_on_recursive_guards() {
     let path = write_corpus(CORPUS, "fuel");
     let options = InterpreterOptions::new(65536, 16).unwrap();
-    let interpretation = interpreter::interpret(
-        &path,
-        "rm.countdown",
-        &["1000000".to_owned()],
-        &options,
-    )
-    .expect("interpretation");
+    let interpretation =
+        interpreter::interpret(&path, "rm.countdown", &["1000000".to_owned()], &options)
+            .expect("interpretation");
     let parsed: serde_json::Value = serde_json::from_str(&interpretation.envelope).unwrap();
     assert_eq!(parsed["payload"]["outcome"]["kind"], "fuel_exhausted");
     assert_eq!(parsed["payload"]["fuel"]["exhausted"], true);
-    assert!(!interpretation.returned, "exhausted programs return nothing");
+    assert!(
+        !interpretation.returned,
+        "exhausted programs return nothing"
+    );
 }
 
 #[test]

@@ -2621,11 +2621,13 @@ fn emit_pattern_test(
         // Refutable Match v1: an irrefutable pattern with a guard tests as
         // constant true; the guard decides. Unguarded irrefutable arms only
         // occur as the trailing catch-all, which emits no test.
-        crate::hir::ResolvedMatchPattern::Wildcard | crate::hir::ResolvedMatchPattern::Binding(_) => {
+        crate::hir::ResolvedMatchPattern::Wildcard
+        | crate::hir::ResolvedMatchPattern::Binding(_) => {
             output.extend_bytes(&[0x41, 0x01]); // i32.const 1
             return Ok(());
         }
-        crate::hir::ResolvedMatchPattern::Variant { .. } | crate::hir::ResolvedMatchPattern::Record { .. } => {
+        crate::hir::ResolvedMatchPattern::Variant { .. }
+        | crate::hir::ResolvedMatchPattern::Record { .. } => {
             return Err(Diagnostic::io(
                 "SPX-W110",
                 "aggregate arm reached scalar match lowering",

@@ -1,0 +1,25 @@
+module test.refutable_match;
+
+@id("refutable.sign_class")
+fn sign_class(value: i64) -> i64
+{
+    match value { 0 => 0, -1 | -2 => -9, n if n < 0 => -1, n => 1, }
+}
+
+@id("refutable.digit_name")
+fn digit_name(digit: u8) -> i64
+{
+    match digit { 0u8 => 10, 9u8 => 90, k if k > 4u8 => 2, _ => 1, }
+}
+
+@id("refutable.route")
+fn route(code: char) -> i64
+{
+    match code { 'a' => 1, 'b' | 'c' => 2, _ => 3, }
+}
+
+@id("main")
+fn main() -> i64
+{
+    sign_class(5) + sign_class(-1) + digit_name(4u8) + route('c')
+}

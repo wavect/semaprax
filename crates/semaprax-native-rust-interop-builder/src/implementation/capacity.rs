@@ -652,7 +652,20 @@ fn ast_pattern_binding_stats(
     pattern: &crate::ast::MatchPattern,
 ) -> Result<(usize, usize), Diagnostic> {
     match pattern {
+        // Refutable Match v1: literal/or patterns bind nothing; a binding
+        // arm binds exactly the scrutinee.
         crate::ast::MatchPattern::Wildcard { .. } => Ok((0, 0)),
+        crate::ast::MatchPattern::Literal { .. } => Ok((0, 0)),
+        crate::ast::MatchPattern::Or { alternatives, .. } => {
+            let mut total = (0usize, 0usize);
+            for alternative in alternatives {
+                let (count, names) = ast_pattern_binding_stats(alternative)?;
+                total.0 = total.0.saturating_add(count);
+                total.1 = total.1.saturating_add(names);
+            }
+            Ok(total)
+        }
+        crate::ast::MatchPattern::Binding { name, .. } => Ok((1, name.len())),
         crate::ast::MatchPattern::Variant { fields, .. } => Ok((
             fields.len(),
             fields.iter().map(|field| field.binding.len()).sum(),
@@ -2496,7 +2509,20 @@ fn cleanup_retained_stats(
                 }
                 found
             }
-            crate::ast::MatchPattern::Wildcard { .. } => None,
+            // Refutable Match v1: scalar patterns reference no named type.
+            crate::ast::MatchPattern::Wildcard { .. }
+            | crate::ast::MatchPattern::Literal { .. }
+            | crate::ast::MatchPattern::Binding { .. } => None,
+            crate::ast::MatchPattern::Or { alternatives, .. } => {
+                let mut found = None;
+                for alternative in alternatives {
+                    found = pattern_binding_key(program, alternative, name)?;
+                    if found.is_some() {
+                        break;
+                    }
+                }
+                found
+            }
         })
     }
 
@@ -5217,6 +5243,18 @@ fn hir_binding_owned_capacity(binding: &crate::hir::ResolvedBinding) -> Option<u
 fn hir_match_pattern_owned_capacity(pattern: &crate::hir::ResolvedMatchPattern) -> Option<usize> {
     match pattern {
         crate::hir::ResolvedMatchPattern::Wildcard => Some(0),
+        // Refutable Match v1: literal/or/binding capacity accounting.
+        crate::hir::ResolvedMatchPattern::Literal(_) => Some(0),
+        crate::hir::ResolvedMatchPattern::Binding(binding) => hir_binding_owned_capacity(binding),
+        crate::hir::ResolvedMatchPattern::Or(alternatives) => {
+            let mut bytes = alternatives
+                .capacity()
+                .checked_mul(std::mem::size_of::<crate::hir::ResolvedMatchPattern>())?;
+            for alternative in alternatives {
+                bytes = bytes.checked_add(hir_match_pattern_owned_capacity(alternative)?)?;
+            }
+            Some(bytes)
+        }
         crate::hir::ResolvedMatchPattern::Variant {
             variant,
             case,

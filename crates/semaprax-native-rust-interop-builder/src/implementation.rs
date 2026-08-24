@@ -2007,6 +2007,10 @@ fn dispose_match_pattern(
             disposal_push(frames, ResolvedDisposeFrame::Type(instance));
             disposal_push(frames, ResolvedDisposeFrame::RecordPatternFields(fields));
         }
+        // Refutable Match v1: a binding arm owns the Copy scrutinee; literal
+        // and or-patterns own nothing.
+        crate::hir::ResolvedMatchPattern::Binding(_) => {}
+        crate::hir::ResolvedMatchPattern::Literal(_) | crate::hir::ResolvedMatchPattern::Or(_) => {}
     }
 }
 
@@ -4026,7 +4030,16 @@ fn fingerprint_pattern_types_scratch(
     pattern: &crate::hir::ResolvedMatchPattern,
 ) -> Result<usize, Diagnostic> {
     match pattern {
-        crate::hir::ResolvedMatchPattern::Wildcard => Ok(0),
+        crate::hir::ResolvedMatchPattern::Wildcard
+        | crate::hir::ResolvedMatchPattern::Literal(_) => Ok(0),
+        crate::hir::ResolvedMatchPattern::Binding(binding) => {
+            fingerprint_binding_type_scratch(binding)
+        }
+        crate::hir::ResolvedMatchPattern::Or(alternatives) => alternatives
+            .iter()
+            .try_fold(0usize, |maximum, alternative| {
+                Ok(maximum.max(fingerprint_pattern_types_scratch(alternative)?))
+            }),
         crate::hir::ResolvedMatchPattern::Variant { fields, .. } => {
             fields.iter().try_fold(0usize, |maximum, field| {
                 Ok(maximum.max(fingerprint_binding_type_scratch(&field.binding)?))
@@ -4555,6 +4568,52 @@ fn hash_expr(
             }
             HirFingerprintAction::Pattern(pattern) => match pattern {
                 crate::hir::ResolvedMatchPattern::Wildcard => frame(hasher, b"wildcard"),
+                // Refutable Match v1: deterministic fingerprints for the
+                // additive pattern spellings.
+                crate::hir::ResolvedMatchPattern::Literal(value) => {
+                    frame(hasher, b"literal");
+                    match value {
+                        crate::hir::PatternValue::Int(inner) => {
+                            frame(hasher, b"int");
+                            frame(hasher, inner.to_le_bytes().as_slice());
+                        }
+                        crate::hir::PatternValue::Int32(inner) => {
+                            frame(hasher, b"int32");
+                            frame(hasher, inner.to_le_bytes().as_slice());
+                        }
+                        crate::hir::PatternValue::Uint8(inner) => {
+                            frame(hasher, b"uint8");
+                            frame(hasher, [*inner].as_slice());
+                        }
+                        crate::hir::PatternValue::Char(inner) => {
+                            frame(hasher, b"char");
+                            frame(hasher, inner.to_le_bytes().as_slice());
+                        }
+                        crate::hir::PatternValue::Bool(inner) => {
+                            frame(hasher, b"bool");
+                            frame(hasher, [*inner as u8].as_slice());
+                        }
+                    }
+                }
+                crate::hir::ResolvedMatchPattern::Or(alternatives) => {
+                    frame(hasher, b"or");
+                    hash_count(hasher, "or-alternatives", alternatives.len());
+                    for alternative in alternatives {
+                        actions.push(HirFingerprintAction::Pattern(alternative));
+                    }
+                    return Ok(());
+                }
+                crate::hir::ResolvedMatchPattern::Binding(binding) => {
+                    frame(hasher, b"binding");
+                    hash_binding(
+                        hasher,
+                        binding,
+                        _capacity_baseline,
+                        actions
+                            .capacity()
+                            .saturating_mul(std::mem::size_of::<HirFingerprintAction<'_>>()),
+                    )?;
+                }
                 crate::hir::ResolvedMatchPattern::Variant {
                     variant,
                     case,

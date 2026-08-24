@@ -4588,6 +4588,7 @@ fn formatter_frame_capacity_covers_nested_delimiters_and_helper_stacks() {
         kind: ExprKind::Match {
             scrutinee: Box::new(scrutinee),
             arms: vec![MatchArm {
+                guard: None,
                 pattern: MatchPattern::Record {
                     type_name: "Root".into(),
                     type_span: span,
@@ -5589,6 +5590,7 @@ fn main() -> i64 {{
         match &edge.condition {
             semaprax::cleanup_plan::EdgeCondition::BooleanResult(expression, _) => note(expression),
             semaprax::cleanup_plan::EdgeCondition::VariantCase { scrutinee, .. } => note(scrutinee),
+            semaprax::cleanup_plan::EdgeCondition::ArmSelected { scrutinee, .. } => note(scrutinee),
             semaprax::cleanup_plan::EdgeCondition::StatusZero(source)
             | semaprax::cleanup_plan::EdgeCondition::StatusNonzero(source) => {
                 note(&source.expression)
@@ -6344,6 +6346,7 @@ fn cleanup_pattern_binding_lookup_is_iterative_at_exact_depth() {
                     span,
                 }),
                 arms: vec![MatchArm {
+                    guard: None,
                     pattern: MatchPattern::Record {
                         type_name: "R0".into(),
                         type_span: span,

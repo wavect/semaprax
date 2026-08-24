@@ -6001,14 +6001,11 @@ fn replay_expression_child(expression: &ResolvedExpr, index: usize) -> Option<&R
                 // guard first, then its value.
                 let mut cursor = index - 1;
                 for arm in arms {
-                    match &arm.guard {
-                        Some(guard) => {
-                            if cursor == 0 {
-                                return Some(guard.as_ref());
-                            }
-                            cursor -= 1;
+                    if let Some(guard) = &arm.guard {
+                        if cursor == 0 {
+                            return Some(guard.as_ref());
                         }
-                        None => {}
+                        cursor -= 1;
                     }
                     if cursor == 0 {
                         return Some(&arm.value);

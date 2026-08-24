@@ -246,8 +246,8 @@ fn poly<T>(value: i64) -> i64 { value }
 @id("ex.effect")
 fn effect(value: i64) -> i64 uses { host.echo } { value }
 
-@id("ex.float")
-fn float(ratio: f32) -> i64 { 0 }
+@id("ex.string")
+fn string(text: string) -> i64 { 0 }
 
 @id("ex.outcome")
 fn outcome(flag: bool) -> Result<bool, bool> { Result<bool, bool>::Ok { value: flag } }
@@ -261,7 +261,7 @@ fn main() -> i64 { 0 }
     let expected_reasons = [
         ("ex.poly", "generic_function"),
         ("ex.effect", "declared_effects"),
-        ("ex.float", "unsupported_parameter_type"),
+        ("ex.string", "unsupported_parameter_type"),
         ("ex.outcome", "unsupported_result_type"),
         ("ex.lent", "unsupported_parameter_mode"),
     ];

@@ -2,9 +2,10 @@
 //!
 //! [`generate`] projects one verified single-file SEMAPRAX source into one
 //! canonical OpenAPI 3.1 document wrapped in a `semaprax.openapi.v1`
-//! envelope. Only explicitly selected monomorphic effect-free functions with
-//! direct by-value `i64`/`bool` parameters and results are admitted; every
-//! other selection fails closed with a stable exclusion reason. The document
+//! envelope. Only explicitly selected monomorphic effect-free functions over
+//! direct by-value Copy scalars (`i64`, `i32`, `u8`, `f32`, `f64`, `char`,
+//! `bool`; mixed signatures allowed) are admitted; every other selection
+//! fails closed with a stable exclusion reason. The document
 //! is serialized through `serde_json::Value` maps, whose canonical
 //! sorted-key compact form makes the exact bytes replayable, and the envelope
 //! carries a domain-separated SHA-256 digest over those exact payload bytes.
@@ -77,12 +78,31 @@ const VERDICT_COMPATIBLE: &str = "compatible";
 const I64_DESCRIPTION: &str = "Signed 64-bit two's-complement integer; \
 range [-9223372036854775808, 9223372036854775807]; little-endian byte order \
 in SEMAPRAX target ABIs.";
+const I32_DESCRIPTION: &str = "Signed 32-bit two's-complement integer; \
+range [-2147483648, 2147483647]; little-endian byte order in SEMAPRAX target ABIs.";
+const U8_DESCRIPTION: &str = "Unsigned 8-bit integer; range [0, 255]; \
+little-endian byte order in SEMAPRAX target ABIs.";
+const F32_DESCRIPTION: &str = "IEEE-754 single-precision binary floating-point \
+value; total arithmetic with no compiler-owned failure statuses; IEEE-754 \
+binary interchange encoding in SEMAPRAX target ABIs.";
+const F64_DESCRIPTION: &str = "IEEE-754 double-precision binary floating-point \
+value; total arithmetic with no compiler-owned failure statuses; IEEE-754 \
+binary interchange encoding in SEMAPRAX target ABIs.";
+const CHAR_DESCRIPTION: &str = "Exactly one Unicode scalar value; compared by \
+scalar-value ordering with no arithmetic and no compiler-owned failure \
+statuses; carried as one UTF-8 code point.";
 const BOOL_DESCRIPTION: &str = "Canonical true/false boolean.";
 
 const ARITHMETIC_STATUS_NOTE: &str = "Checked i64 arithmetic failures select \
 the compiler-owned failure domain semaprax.arithmetic.v1 codes 1 add_overflow, \
 2 sub_overflow, 3 mul_overflow, 4 division_by_zero, 5 division_overflow, \
 6 remainder_by_zero, 7 remainder_overflow, 8 negation_overflow.";
+const I32_ARITHMETIC_STATUS_NOTE: &str = "Checked i32 arithmetic failures \
+select the compiler-owned failure domain semaprax.arithmetic.v1 with the same \
+normalized codes as checked i64 arithmetic.";
+const U8_ARITHMETIC_STATUS_NOTE: &str = "Checked u8 range-guarded arithmetic \
+failures select the compiler-owned failure domain semaprax.arithmetic.v1 with \
+the same normalized codes as checked i64 arithmetic.";
 const CONTRACT_STATUS_NOTE: &str = "A violated requires clause selects the \
 compiler-owned failure domain semaprax.contract.v1 code 1; a violated ensures \
 clause selects code 2.";
@@ -245,9 +265,10 @@ pub fn generate(
     Ok(envelope)
 }
 
-/// Admission vocabulary mirrors the Public Scalar Export Profile: only
-/// monomorphic, effect-free functions over direct by-value `i64`/`bool`
-/// scalars are admitted. Bodies are not interpreted.
+/// Admission vocabulary mirrors the widened Copy-scalar export profile: only
+/// monomorphic, effect-free functions over direct by-value Copy scalars
+/// (`i64`, `i32`, `u8`, `f32`, `f64`, `char`, `bool`) are admitted. Bodies
+/// are not interpreted; strings, named types, and non-value modes stay out.
 fn admission(function: &Function) -> Option<&'static str> {
     if !function.type_parameters.is_empty() {
         return Some(REASON_GENERIC_FUNCTION);
@@ -259,14 +280,22 @@ fn admission(function: &Function) -> Option<&'static str> {
         if param.mode != ParamMode::Value {
             return Some(REASON_UNSUPPORTED_PARAMETER_MODE);
         }
-        if !matches!(param.ty, Type::I64 | Type::Bool) {
+        if !is_widened_scalar(&param.ty) {
             return Some(REASON_UNSUPPORTED_PARAMETER_TYPE);
         }
     }
-    if !matches!(function.return_type, Type::I64 | Type::Bool) {
+    if !is_widened_scalar(&function.return_type) {
         return Some(REASON_UNSUPPORTED_RESULT_TYPE);
     }
     None
+}
+
+/// The full widened Copy-scalar surface admitted by this projection.
+fn is_widened_scalar(ty: &Type) -> bool {
+    matches!(
+        ty,
+        Type::I64 | Type::I32 | Type::U8 | Type::F32 | Type::F64 | Type::Char | Type::Bool
+    )
 }
 
 fn build_envelope(
@@ -351,7 +380,9 @@ fn build_document(
 
     for function in admitted {
         let component = derived_name(&function.stable_id);
-        let has_i64 = signature_has_i64(function);
+        let has_checked_integer = signature_has_type(function, |ty| {
+            matches!(ty, Type::I64 | Type::I32 | Type::U8)
+        });
         let has_contracts = !function.requires.is_empty() || !function.ensures.is_empty();
 
         let mut request_properties = Map::new();
@@ -396,7 +427,7 @@ fn build_document(
                 ),
             ])),
         );
-        if has_i64 || has_contracts {
+        if has_checked_integer || has_contracts {
             status_needed = true;
             responses.insert(
                 "default".to_owned(),
@@ -499,28 +530,84 @@ integer range and byte-order notes are static descriptions derived from declared
     ]))
 }
 
-fn signature_has_i64(function: &Function) -> bool {
-    function.params.iter().any(|param| param.ty == Type::I64) || function.return_type == Type::I64
+fn signature_has_type<F>(function: &Function, predicate: F) -> bool
+where
+    F: Fn(&Type) -> bool,
+{
+    function.params.iter().any(|param| predicate(&param.ty)) || predicate(&function.return_type)
 }
 
 fn scalar_schema(ty: &Type) -> Value {
-    match ty {
-        Type::Bool => Value::Object(Map::from_iter([
-            ("type".to_owned(), Value::String("boolean".to_owned())),
-            (
-                "description".to_owned(),
-                Value::String(BOOL_DESCRIPTION.to_owned()),
-            ),
-        ])),
-        _ => Value::Object(Map::from_iter([
-            ("type".to_owned(), Value::String("integer".to_owned())),
-            ("format".to_owned(), Value::String("int64".to_owned())),
-            (
-                "description".to_owned(),
-                Value::String(I64_DESCRIPTION.to_owned()),
-            ),
-        ])),
+    let (members, description): (Vec<(&str, Value)>, &str) = match ty {
+        Type::Bool => (
+            vec![("type", Value::String("boolean".to_owned()))],
+            BOOL_DESCRIPTION,
+        ),
+        Type::I64 => (
+            vec![
+                ("type", Value::String("integer".to_owned())),
+                ("format", Value::String("int64".to_owned())),
+            ],
+            I64_DESCRIPTION,
+        ),
+        Type::I32 => (
+            vec![
+                ("type", Value::String("integer".to_owned())),
+                ("format", Value::String("int32".to_owned())),
+            ],
+            I32_DESCRIPTION,
+        ),
+        // OpenAPI 3.1 defines no unsigned-byte format, so the byte width is
+        // carried by the int32 format plus the explicit compiler-owned range
+        // bounds.
+        Type::U8 => (
+            vec![
+                ("type", Value::String("integer".to_owned())),
+                ("format", Value::String("int32".to_owned())),
+                ("minimum", Value::from(0)),
+                ("maximum", Value::from(255)),
+            ],
+            U8_DESCRIPTION,
+        ),
+        Type::F32 => (
+            vec![
+                ("type", Value::String("number".to_owned())),
+                ("format", Value::String("float".to_owned())),
+            ],
+            F32_DESCRIPTION,
+        ),
+        Type::F64 => (
+            vec![
+                ("type", Value::String("number".to_owned())),
+                ("format", Value::String("double".to_owned())),
+            ],
+            F64_DESCRIPTION,
+        ),
+        Type::Char => (
+            vec![
+                ("type", Value::String("string".to_owned())),
+                ("minLength", Value::from(1)),
+                ("maxLength", Value::from(1)),
+            ],
+            CHAR_DESCRIPTION,
+        ),
+        _ => (
+            vec![
+                ("type", Value::String("integer".to_owned())),
+                ("format", Value::String("int64".to_owned())),
+            ],
+            I64_DESCRIPTION,
+        ),
+    };
+    let mut object = Map::new();
+    for (key, value) in members {
+        object.insert(key.to_owned(), value);
     }
+    object.insert(
+        "description".to_owned(),
+        Value::String(description.to_owned()),
+    );
+    Value::Object(object)
 }
 
 fn status_schema() -> Value {
@@ -611,9 +698,23 @@ fn operation_description(function: &Function) -> String {
         description.push_str(CONTRACT_STATUS_NOTE);
         description.push(' ');
     }
-    if signature_has_i64(function) {
-        description.push_str(ARITHMETIC_STATUS_NOTE);
-    } else if function.requires.is_empty() && function.ensures.is_empty() {
+    let mut notes: Vec<&'static str> = Vec::new();
+    if signature_has_type(function, |ty| ty == &Type::I64) {
+        notes.push(ARITHMETIC_STATUS_NOTE);
+    }
+    if signature_has_type(function, |ty| ty == &Type::I32) {
+        notes.push(I32_ARITHMETIC_STATUS_NOTE);
+    }
+    if signature_has_type(function, |ty| ty == &Type::U8) {
+        notes.push(U8_ARITHMETIC_STATUS_NOTE);
+    }
+    for (index, note) in notes.iter().enumerate() {
+        if index > 0 {
+            description.push(' ');
+        }
+        description.push_str(note);
+    }
+    if notes.is_empty() && function.requires.is_empty() && function.ensures.is_empty() {
         description.push_str(TOTAL_SIGNATURE_NOTE);
     }
     description
@@ -925,42 +1026,80 @@ fn resolve_ref<'a>(reference: &str, schemas: &'a Map<String, Value>) -> Option<&
     schemas.get(name)
 }
 
-/// Ordered `(name, type, format)` request properties of one request schema.
-fn request_parameters(schema: &Value) -> Vec<(String, String, Option<String>)> {
+/// Ordered `(name, shape)` request properties of one request schema.
+fn request_parameters(schema: &Value) -> Vec<(String, SchemaShape)> {
     let mut parameters = Vec::new();
     let Some(properties) = schema.get("properties").and_then(Value::as_object) else {
         return parameters;
     };
     for (name, property) in properties {
-        parameters.push((
-            name.clone(),
-            property
-                .get("type")
-                .and_then(Value::as_str)
-                .unwrap_or_default()
-                .to_owned(),
-            property
-                .get("format")
-                .and_then(Value::as_str)
-                .map(str::to_owned),
-        ));
+        parameters.push((name.clone(), SchemaShape::of(property)));
     }
     parameters.sort_by(|left, right| left.0.cmp(&right.0));
     parameters
 }
 
-fn result_shape(schema: &Value) -> (String, Option<String>) {
-    (
-        schema
-            .get("type")
-            .and_then(Value::as_str)
-            .unwrap_or_default()
-            .to_owned(),
-        schema
-            .get("format")
-            .and_then(Value::as_str)
-            .map(str::to_owned),
-    )
+/// The discriminating structural projection of one admitted scalar schema
+/// object. Beyond JSON type and format it carries the explicit bound members,
+/// so widened integer widths that share a format (for example `i32` versus
+/// `u8`, both rendered `integer:int32`) still compare as different shapes.
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct SchemaShape {
+    ty: String,
+    format: Option<String>,
+    minimum: Option<i64>,
+    maximum: Option<i64>,
+    min_length: Option<u64>,
+    max_length: Option<u64>,
+}
+
+impl SchemaShape {
+    fn of(schema: &Value) -> Self {
+        Self {
+            ty: schema
+                .get("type")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_owned(),
+            format: schema
+                .get("format")
+                .and_then(Value::as_str)
+                .map(str::to_owned),
+            minimum: schema.get("minimum").and_then(Value::as_i64),
+            maximum: schema.get("maximum").and_then(Value::as_i64),
+            min_length: schema.get("minLength").and_then(Value::as_u64),
+            max_length: schema.get("maxLength").and_then(Value::as_u64),
+        }
+    }
+
+    /// Stable human-readable rendering used inside finding detail texts;
+    /// legacy bound-free shapes render exactly as before.
+    fn label(&self) -> String {
+        let mut label = format!("{}:{}", self.ty, self.format.as_deref().unwrap_or("-"));
+        if self.minimum.is_some() || self.maximum.is_some() {
+            label.push_str(&format!(
+                " range[{},{}]",
+                self.minimum
+                    .map_or("-".to_owned(), |bound| bound.to_string()),
+                self.maximum
+                    .map_or("-".to_owned(), |bound| bound.to_string()),
+            ));
+        }
+        if self.min_length.is_some() || self.max_length.is_some() {
+            label.push_str(&format!(
+                " length[{},{}]",
+                self.min_length
+                    .map_or("-".to_owned(), |bound| bound.to_string()),
+                self.max_length
+                    .map_or("-".to_owned(), |bound| bound.to_string()),
+            ));
+        }
+        label
+    }
+}
+
+fn result_shape(schema: &Value) -> SchemaShape {
+    SchemaShape::of(schema)
 }
 
 fn classify(base: &Value, candidate: &Value) -> Vec<Finding> {
@@ -1001,10 +1140,10 @@ fn classify(base: &Value, candidate: &Value) -> Vec<Finding> {
         let base_parameters = request_parameters(base_request);
         let candidate_parameters = request_parameters(candidate_request);
 
-        for (name, base_type, base_format) in &base_parameters {
+        for (name, base_shape) in &base_parameters {
             let matched = candidate_parameters
                 .iter()
-                .find(|(candidate_name, _, _)| candidate_name == name);
+                .find(|(candidate_name, _)| candidate_name == name);
             match matched {
                 None => findings.push(Finding {
                     code: FINDING_PARAMETER_REMOVED,
@@ -1012,28 +1151,26 @@ fn classify(base: &Value, candidate: &Value) -> Vec<Finding> {
                     location: format!("{path}:{name}"),
                     detail: format!("request parameter `{name}` removed"),
                 }),
-                Some((_, candidate_type, candidate_format)) => {
-                    if base_type != candidate_type || base_format != candidate_format {
+                Some((_, candidate_shape)) => {
+                    if base_shape != candidate_shape {
                         findings.push(Finding {
                             code: FINDING_PARAMETER_TYPE_CHANGED,
                             severity: SEVERITY_BREAKING,
                             location: format!("{path}:{name}"),
                             detail: format!(
-                                "request parameter `{name}` changed type from {}:{} to {}:{}",
-                                base_type,
-                                base_format.as_deref().unwrap_or("-"),
-                                candidate_type,
-                                candidate_format.as_deref().unwrap_or("-"),
+                                "request parameter `{name}` changed type from {} to {}",
+                                base_shape.label(),
+                                candidate_shape.label(),
                             ),
                         });
                     }
                 }
             }
         }
-        for (name, candidate_type, _) in &candidate_parameters {
+        for (name, candidate_shape) in &candidate_parameters {
             if base_parameters
                 .iter()
-                .any(|(base_name, _, _)| base_name == name)
+                .any(|(base_name, _)| base_name == name)
             {
                 continue;
             }
@@ -1043,7 +1180,10 @@ fn classify(base: &Value, candidate: &Value) -> Vec<Finding> {
                 code: FINDING_REQUIRED_PARAMETER_ADDED,
                 severity: SEVERITY_BREAKING,
                 location: format!("{path}:{name}"),
-                detail: format!("required request parameter `{name}` added ({candidate_type})"),
+                detail: format!(
+                    "required request parameter `{name}` added ({})",
+                    candidate_shape.label()
+                ),
             });
         }
         if let (Some(base_result), Some(candidate_result)) = (
@@ -1058,11 +1198,9 @@ fn classify(base: &Value, candidate: &Value) -> Vec<Finding> {
                     severity: SEVERITY_BREAKING,
                     location: path.clone(),
                     detail: format!(
-                        "result changed type from {}:{} to {}:{}",
-                        base_shape.0,
-                        base_shape.1.as_deref().unwrap_or("-"),
-                        candidate_shape.0,
-                        candidate_shape.1.as_deref().unwrap_or("-"),
+                        "result changed type from {} to {}",
+                        base_shape.label(),
+                        candidate_shape.label(),
                     ),
                 });
             }

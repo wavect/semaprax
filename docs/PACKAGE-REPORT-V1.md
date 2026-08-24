@@ -116,3 +116,33 @@ See also [ABI-REPORT-V1.md](ABI-REPORT-V1.md) for the sibling read-only ABI
 descriptor whose admission profile this report mirrors, and
 [CAPABILITY-MANIFEST-V1.md](CAPABILITY-MANIFEST-V1.md) for the capability
 vocabulary of the same modules.
+
+## Widened scalar profile (2026-08-24)
+
+Schema Scalar Widening v1 extends the export inventory to the full
+Copy-scalar surface — `i64`, `i32`, `u8`, `f32`, `f64`, `char`, `bool`,
+mixed signatures allowed — where the profile previously admitted only
+`i64`/`bool`. Interface `parameters` and `result` carry the widened language
+types verbatim, and `native64.signature` is still extracted exactly once per
+admitted symbol from the production native C11 projection, which already
+lowers the widened scalars (`int32_t`, `uint8_t`, `float`, `double`,
+`uint32_t` for char); any missing or duplicated prototype still fails closed
+with `SPX-P303`. The envelope schema stays `semaprax.package-report.v1`: no
+additive bump was required because verification authenticates structure,
+exact bytes, closed sections, counts, ordering, and embedded signature
+digests rather than any closed parameter/result type vocabulary, so
+pre-widening envelopes replay unchanged and all prior pinned KATs remain
+green untouched. The closed unavailable-capability inventory and exclusion
+vocabulary are unchanged.
+
+Honest note: the admission profile now intentionally exceeds Canonical ABI
+Report v1 (which remains `i64`/`bool`-only), so whole-module inventories can
+admit more than `semaprax abi-report` would select for programs using widened
+scalars; cross-consistency claims therefore compare export sets against
+`semaprax openapi` operations for the same program, which share this widened
+profile, plus byte-equal prototypes against the backend projection itself.
+Remaining nonclaims: no strings, named/aggregate types, variants, resources,
+or generics in the widened profile; no resolver, lockfile, dependency model,
+registry/hosting, version-compatibility engine, conformance tests,
+provenance/signatures/licenses/SBOM, or target execution; read-only with no
+source changes. Widened-type evidence lives in `tests/schema_scalar_widen_v1.rs`.

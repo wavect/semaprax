@@ -1,0 +1,22 @@
+module test.widen.mixed;
+
+@id("widen.mix")
+fn mix(a: i32, b: u8) -> f64
+{
+    1.5
+}
+
+@id("widen.ratio")
+fn ratio(r: f32) -> char
+{
+    'x'
+}
+
+@id("widen.count")
+fn count(c: char, flag: bool) -> u8
+{
+    7u8
+}
+
+@id("app.main")
+fn main() -> i64 { 0 }

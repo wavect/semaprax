@@ -1,0 +1,34 @@
+module test.widen.state;
+
+@id("widen.tensor")
+record Tensor {
+    @id("widen.tensor.a")
+    a: i64,
+
+    @id("widen.tensor.b")
+    b: i32,
+
+    @id("widen.tensor.c")
+    c: u8,
+
+    @id("widen.tensor.d")
+    d: f32,
+
+    @id("widen.tensor.e")
+    e: f64,
+
+    @id("widen.tensor.g")
+    g: char,
+
+    @id("widen.tensor.h")
+    h: bool,
+}
+
+@id("widen.action")
+fn action(a: i32, b: u8) -> f64
+{
+    1.5
+}
+
+@id("app.main")
+fn main() -> i64 { 0 }

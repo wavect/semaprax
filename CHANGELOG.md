@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Added the ownership control-flow regression battery v1
+  (`tests/ownership_control_flow_v1.rs`): fourteen pinned cases locking the
+  exact move-safety behavior across lazy boolean operands, match scrutinees,
+  refutable-match guards, branch-block joins, while-loop admission
+  (`SPX-T252`), explicit-mutation boundaries (`SPX-U105`), `?` propagation
+  with live resources (`SPX-T218`), and borrowed-parameter transfer
+  (`SPX-O102`), alongside admitted conditional-move success cases. The audit
+  behind it found no verifier soundness holes; the battery converts that
+  audit into executable evidence for the "Unique ownership and move safety"
+  row. Status stays Partial; totals remain 56 Partial/0 Missing.
+
 - Added the locally evidenced Project Agent Transport v2 and `semapraxd
   --stdio`: one host-bound Project v1 session retains the single Phase-A graph,
   linked entry/test HIR, and typed context index; serves revision-bound

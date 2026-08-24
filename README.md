@@ -224,6 +224,7 @@ Start with [Agent Context v1](docs/AGENT-CONTEXT-V1.md),
 | `semaprax check [semaprax.toml]` / `semaprax build [semaprax.toml] [--target web]` | Check or publish the bounded Project Manifest v1 Web package; `--manifest-path` selects another manifest. |
 | `semaprax graph <file>` | Emit the revisioned semantic graph. |
 | `semaprax context <file> <stable-id> [options]` | Emit a deterministic, bounded semantic context. |
+| `semapraxd --stdio [--manifest-path semaprax.toml]` | Serve one authenticated Project v1 snapshot through Project Agent Transport v2. |
 | `semaprax impact <file> <patch.spatch> [options]` | Preview supported source consumers and reverse-call impact without writing. |
 | `semaprax review <file> <patch.spatch>` | Emit the bounded semantic review report. |
 | `semaprax patch <file> <patch.spatch>` | Apply a supported atomic semantic transaction. |
@@ -255,6 +256,13 @@ boundary: interface/native imports and `use type` are excluded, while explicit
 stable-ID `use function` provider edges compose the named modules. A final
 post-publication input drift is `SPX-J103`; callers reconcile the retained
 digest-bound package and never delete it automatically.
+
+For repeated agent queries, `semapraxd --stdio --manifest-path
+examples/calculator-project/semaprax.toml` retains that authenticated project's
+linked HIR, complete Project graph, and typed context index. Requests bind the
+revisions returned by `workspace/open`; input drift invalidates the session
+before retained meaning can escape. See [Project Agent Transport
+v2](docs/PROJECT-AGENT-TRANSPORT-V2.md).
 
 ## Roadmap
 

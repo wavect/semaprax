@@ -3,6 +3,7 @@ name = "semaprax"
 version = "0.2.0"
 edition = "2021"
 rust-version = "1.88"
+default-run = "semaprax"
 description = "The agent-native systems programming language"
 license = "Apache-2.0"
 repository = "https://github.com/wavect/semaprax"
@@ -54,6 +55,10 @@ winapi-util = "=0.1.11"
 [[bin]]
 name = "semaprax"
 path = "src/main.rs"
+
+[[bin]]
+name = "semapraxd"
+path = "src/bin/semapraxd.rs"
 
 [profile.release]
 lto = "thin"

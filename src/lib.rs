@@ -2,7 +2,8 @@
 
 //! SEMAPRAX v0.1 compiler library.
 //!
-//! The source projection is for humans. The semantic graph is the agent API.
+//! The source projection is for humans. Semantic graphs and the bounded
+//! project transport are the agent-facing interfaces.
 
 pub mod abi_report;
 pub mod agent_economics;
@@ -47,6 +48,8 @@ pub mod plugin_manifest;
 #[allow(dead_code, reason = "path-included by the unpublished native builder")]
 mod private_capacity_contract;
 pub mod project;
+#[doc(hidden)]
+pub mod project_transport;
 pub mod properties;
 pub mod protocol_check;
 pub mod quality_route;

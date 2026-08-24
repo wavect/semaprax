@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Added the locally evidenced Project Agent Transport v2 and `semapraxd
+  --stdio`: one host-bound Project v1 session retains the single Phase-A graph,
+  linked entry/test HIR, and typed context index; serves revision-bound
+  snapshot/check/graph/context/test requests; and absorbs drift before cached
+  meaning can escape. Build/change/network/disk-persistence authority remains
+  open, so completion totals stay 56 Partial/0 Missing and hosted promotion is
+  not claimed.
+
 - Added Public Project Developer Loop v1: `semaprax run` and `semaprax test`
   now evaluate the exact authenticated Project v1 entry or manifest-declared
   test closure in process, with bounded fuel/output, deterministic

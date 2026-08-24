@@ -31,6 +31,9 @@ pub(crate) const MAX_REVIEW_OUTPUT_BYTES: usize = 32 * 1024 * 1024;
 const CONTEXT_SCHEMA: &str = "semaprax.workspace-semantic-context.v1";
 const IMPACT_SCHEMA: &str = "semaprax.workspace-semantic-impact.v1";
 const REVIEW_SCHEMA: &str = "semaprax.workspace-semantic-review.v1";
+const PROJECT_CONTEXT_SCHEMA: &str = "semaprax.project-semantic-context.v1";
+const PROJECT_CONTEXT_DIGEST_DOMAIN: &[u8] =
+    b"semaprax.project-semantic-context.artifact-digest.v1\0";
 const WORKSPACE_MANIFEST_SCHEMA: &str = "semaprax.workspace-semantic-manifest.v1";
 const CONTEXT_DIGEST_DOMAIN: &[u8] = b"semaprax.workspace-semantic-context.artifact-digest.v1\0";
 const IMPACT_DIGEST_DOMAIN: &[u8] = b"semaprax.workspace-semantic-impact.artifact-digest.v1\0";
@@ -489,6 +492,14 @@ pub(crate) struct WorkspaceAnalysis {
     reverse: BTreeMap<WorkspaceAnalysisNode, Vec<usize>>,
 }
 
+#[derive(Clone, Copy)]
+pub(crate) struct ProjectAnalysisSubject<'a> {
+    pub(crate) project_name: &'a str,
+    pub(crate) project_revision: &'a str,
+    pub(crate) test_module: &'a str,
+    pub(crate) graph_digest: &'a str,
+}
+
 impl WorkspaceAnalysis {
     pub(crate) fn build(projection: WorkspaceGraphProjection) -> Result<Self, Vec<Diagnostic>> {
         let (workspace_graph_digest, workspace_graph_output_bytes) =
@@ -506,6 +517,51 @@ impl WorkspaceAnalysis {
             analysis.builder_bytes = builder_bytes;
             analysis
         })
+    }
+
+    pub(crate) fn build_project(
+        projection: WorkspaceGraphProjection,
+        graph_digest: &str,
+    ) -> Result<Self, Vec<Diagnostic>> {
+        crate::workspace_graph::validate_project_projection(&projection)?;
+        let (result, overflowed, builder_bytes) =
+            crate::bounded_output::with_limit_usage(MAX_BUILDER_BYTES, || {
+                Self::build_bounded(projection)
+            });
+        if overflowed {
+            return Err(vec![limit_error("builder_bytes", MAX_BUILDER_BYTES)]);
+        }
+        result.map(|mut analysis| {
+            analysis.workspace_graph_digest = graph_digest.to_owned();
+            analysis.workspace_graph_output_bytes = 0;
+            analysis.builder_bytes = builder_bytes;
+            analysis
+        })
+    }
+
+    pub(crate) fn render_project_context(
+        &self,
+        subject: ProjectAnalysisSubject<'_>,
+        target_kind: WorkspaceAnalysisTargetKind,
+        target: &str,
+        options: WorkspaceContextOptions,
+    ) -> Result<String, Vec<Diagnostic>> {
+        let target = WorkspaceAnalysisTarget::new(target_kind, target)?;
+        let facts = self.context(target, options.direction, options.depth, options.max_nodes)?;
+        let (payload, overflowed) = crate::bounded_output::with_limit(options.max_bytes, || {
+            render_project_context_json(self, subject, &facts, options, None)
+        });
+        if overflowed {
+            return Err(vec![limit_error("output_bytes", options.max_bytes)]);
+        }
+        let digest = project_context_digest(payload.as_bytes());
+        let (json, overflowed) = crate::bounded_output::with_limit(options.max_bytes, || {
+            render_project_context_json(self, subject, &facts, options, Some(&digest))
+        });
+        if overflowed || json.len() > options.max_bytes {
+            return Err(vec![limit_error("output_bytes", options.max_bytes)]);
+        }
+        Ok(json)
     }
 
     fn build_bounded(projection: WorkspaceGraphProjection) -> Result<Self, Vec<Diagnostic>> {
@@ -2607,6 +2663,87 @@ fn render_context_json(
         facts.nodes.len(),
         None,
         facts.used_builder_bytes,
+    )
+}
+
+fn render_project_context_json(
+    analysis: &WorkspaceAnalysis,
+    subject: ProjectAnalysisSubject<'_>,
+    facts: &WorkspaceContextFacts,
+    options: WorkspaceContextOptions,
+    digest: Option<&str>,
+) -> String {
+    use std::fmt::Write as _;
+
+    let mut output = crate::bounded_output::CappedString::new();
+    output.push_str("{\"schema\":");
+    push_json_string(&mut output, PROJECT_CONTEXT_SCHEMA);
+    output.push_str(",\"project_schema\":\"semaprax.project.v1\",\"project\":");
+    push_json_string(&mut output, subject.project_name);
+    output.push_str(",\"project_revision\":");
+    push_json_string(&mut output, subject.project_revision);
+    output.push_str(",\"workspace_revision\":");
+    push_json_string(&mut output, analysis.workspace_revision());
+    output.push_str(",\"project_graph_digest\":");
+    push_json_string(&mut output, subject.graph_digest);
+    if let Some(digest) = digest {
+        output.push_str(",\"artifact_digest\":");
+        push_json_string(&mut output, digest);
+    }
+    output.push_str(",\"entry_module\":");
+    push_json_string(&mut output, analysis.entry_module());
+    output.push_str(",\"test_module\":");
+    push_json_string(&mut output, subject.test_module);
+    output.push_str(",\"target\":");
+    push_target(&mut output, analysis, &facts.target);
+    output.push_str(",\"query\":{\"direction\":");
+    push_json_string(&mut output, direction_text(facts.direction));
+    write!(
+        output,
+        ",\"depth\":{},\"max_bytes\":{},\"max_nodes\":{}}}",
+        options.depth, options.max_bytes, options.max_nodes
+    )
+    .expect("writing to a string cannot fail");
+    output.push_str(",\"nodes\":[");
+    for (index, node) in facts.nodes.iter().enumerate() {
+        if index > 0 {
+            output.push(',');
+        }
+        push_node(&mut output, node);
+    }
+    output.push_str("],\"edges\":[");
+    for (index, path_edge) in facts.path_edges.iter().enumerate() {
+        if index > 0 {
+            output.push(',');
+        }
+        push_edge(&mut output, &analysis.edges()[path_edge.edge_index]);
+    }
+    output.push_str("],\"truncation\":");
+    push_prefix_truncation(&mut output, &facts.truncation, options.depth, 0);
+    output.push_str(",\"frontier\":");
+    push_context_prefix_frontier(&mut output, facts, facts.nodes.len());
+    output.push_str(",\"budget\":{");
+    write!(
+        output,
+        "\"used_nodes\":{},\"used_edges\":{},\"used_depth\":{},\"used_builder_bytes\":{}",
+        facts.nodes.len(),
+        facts.path_edges.len(),
+        used_depth(&facts.nodes),
+        facts.used_builder_bytes,
+    )
+    .expect("writing to a string cannot fail");
+    output.push_str("},\"nonclaims\":[\"authenticated_declared_project_inputs_not_managed_workspace_state\",\"read_only_structural_context_over_six_edge_families\",\"no_patch_change_review_or_commit_authority\",\"no_target_execution_or_external_consumer_compatibility\",\"no_persistent_cache_or_repository_index\"]}");
+    output.into_string()
+}
+
+fn project_context_digest(payload: &[u8]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(PROJECT_CONTEXT_DIGEST_DOMAIN);
+    hasher.update((payload.len() as u64).to_le_bytes());
+    hasher.update(payload);
+    format!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(hasher.finalize())
     )
 }
 

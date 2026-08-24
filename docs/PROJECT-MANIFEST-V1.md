@@ -118,6 +118,12 @@ and exact artifact digests. The test closure is retained for the bounded
 project runner and backend equivalence evidence; it is not a general test
 framework or discovery system.
 
+Additive [Project Agent Transport v2](PROJECT-AGENT-TRANSPORT-V2.md) retains the
+same one-time Phase-A products inside a sequential `semapraxd --stdio` process:
+entry/test HIR, one complete declared-project graph, and one typed context
+index. It reauthenticates held inputs around every revision-bound semantic
+response and grants no build or mutation authority.
+
 Web publication inherits the scalar package's documented fresh-output,
 caller-exclusive parent/new-tree contract.
 

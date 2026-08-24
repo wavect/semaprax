@@ -8,6 +8,7 @@
 mod authority;
 mod execution;
 mod manifest;
+mod semantic;
 #[cfg(test)]
 mod tests;
 
@@ -31,6 +32,7 @@ pub use manifest::{
     ProjectManifest, MAX_MANIFEST_BYTES, MAX_MODULE_BYTES, MAX_NAME_BYTES, MAX_PATH_BYTES,
     MAX_SOURCES, MAX_STABLE_ID_BYTES, MAX_TOTAL_SOURCE_BYTES, MAX_WEB_EXPORTS, PROJECT_SCHEMA,
 };
+pub use semantic::{PROJECT_SEMANTIC_CONTEXT_SCHEMA, PROJECT_SEMANTIC_GRAPH_SCHEMA};
 
 const MANIFEST_FILE: &str = "semaprax.toml";
 const MAX_HELD_DIRECTORIES: usize = 128;
@@ -78,11 +80,13 @@ pub struct ProjectSnapshot {
     project_revision: String,
     entry_program: crate::hir::ResolvedProgram,
     test_program: crate::hir::ResolvedProgram,
+    semantic: semantic::ProjectSemanticState,
     declared_inputs: Vec<DeclaredPathSelection>,
     held_manifest: HeldFile,
     held_sources: Vec<HeldFile>,
     held_directories: Vec<HeldDirectory>,
     published_subject: Option<&'static str>,
+    request_invalidation: Option<Vec<Diagnostic>>,
 }
 
 impl ProjectSnapshot {
@@ -116,6 +120,62 @@ impl ProjectSnapshot {
 
     pub fn test_program(&self) -> &crate::hir::ResolvedProgram {
         &self.test_program
+    }
+
+    /// Return the retained complete declared-project graph. This performs no
+    /// filesystem access and carries Project-specific, not managed-Workspace,
+    /// provenance.
+    pub fn semantic_graph(&self) -> &str {
+        self.semantic.graph()
+    }
+
+    /// Render bounded Project-specific Context from the retained typed index.
+    pub fn semantic_context(
+        &self,
+        target_kind: crate::workspace_analysis::WorkspaceAnalysisTargetKind,
+        target: &str,
+        options: crate::workspace_analysis::WorkspaceContextOptions,
+    ) -> Result<String, Vec<Diagnostic>> {
+        self.semantic.context(
+            self.manifest.name(),
+            &self.project_revision,
+            self.manifest.test_module(),
+            target_kind,
+            target,
+            options,
+        )
+    }
+
+    /// Reauthenticate immediately before and after one complete read-only
+    /// request. Any observed drift permanently invalidates this snapshot so a
+    /// later request cannot act on retained state.
+    pub fn with_authenticated_request<T>(
+        &mut self,
+        operation: impl FnOnce(&ProjectSnapshot) -> Result<T, Vec<Diagnostic>>,
+    ) -> Result<T, Vec<Diagnostic>> {
+        if let Some(invalidation) = &self.request_invalidation {
+            return Err(invalidation.clone());
+        }
+        if let Err(drift) = self.recheck() {
+            let invalidation = self.publication_uncertainty(drift);
+            self.request_invalidation = Some(invalidation.clone());
+            return Err(invalidation);
+        }
+        let result = operation(self);
+        match self.recheck() {
+            Ok(()) => result,
+            Err(drift) => {
+                let mut invalidation = self.publication_uncertainty(drift);
+                self.request_invalidation = Some(invalidation.clone());
+                match result {
+                    Ok(_) => Err(invalidation),
+                    Err(mut primary) => {
+                        primary.append(&mut invalidation);
+                        Err(primary)
+                    }
+                }
+            }
+        }
     }
 
     /// Report successful admission. The linked scalar profile was validated
@@ -256,7 +316,7 @@ pub fn with_authenticated_project<T>(
         (Err(mut primary), Err(mut drift)) => {
             if !primary
                 .iter()
-                .any(|diagnostic| diagnostic.code == "SPX-J103")
+                .any(|diagnostic| matches!(diagnostic.code, "SPX-J102" | "SPX-J103"))
             {
                 primary.append(&mut drift);
             }
@@ -352,8 +412,32 @@ fn load_snapshot(manifest_path: &Path) -> Result<ProjectSnapshot, Vec<Diagnostic
     let path_set = semantic_workspace::render_path_set(manifest.sources())?;
     let preflight = semantic_workspace::preflight_owned(&path_set, workspace_sources)?;
     let (files, workspace_manifest, workspace_revision, graph) = preflight.into_snapshot_parts();
-    let (entry_program, test_program) =
-        graph.into_linked_scalar_programs(manifest.entry(), manifest.test_module())?;
+    let canonical_manifest = manifest.to_canonical_toml();
+    let project_revision = project_revision(&canonical_manifest, &workspace_revision);
+    let graph_source_facts = files
+        .iter()
+        .map(|file| crate::workspace_graph::ProjectGraphSourceFact {
+            path: file.path().to_owned(),
+            source_graph_schema: file.source_graph_schema().to_owned(),
+            source_revision: file.source_revision().to_owned(),
+            source_digest: file.source_digest().to_owned(),
+        })
+        .collect();
+    let semantic_parts = graph.into_project_semantic_parts(
+        &workspace_revision,
+        graph_source_facts,
+        canonical_manifest.len(),
+        manifest.entry(),
+        manifest.test_module(),
+    )?;
+    let entry_program = semantic_parts.entry_program;
+    let test_program = semantic_parts.test_program;
+    let semantic = semantic::ProjectSemanticState::new(
+        semantic_parts.projection,
+        manifest.name(),
+        &project_revision,
+        manifest.test_module(),
+    )?;
     crate::wasm::emit_resolved_module_with_scalar_exports(&entry_program, manifest.web_exports())
         .map_err(|error| vec![error])?;
     let sources = files
@@ -370,7 +454,6 @@ fn load_snapshot(manifest_path: &Path) -> Result<ProjectSnapshot, Vec<Diagnostic
             }
         })
         .collect();
-    let project_revision = project_revision(&manifest.to_canonical_toml(), &workspace_revision);
     let mut snapshot = ProjectSnapshot {
         root,
         manifest,
@@ -380,11 +463,13 @@ fn load_snapshot(manifest_path: &Path) -> Result<ProjectSnapshot, Vec<Diagnostic
         project_revision,
         entry_program,
         test_program,
+        semantic,
         declared_inputs,
         held_manifest,
         held_sources,
         held_directories,
         published_subject: None,
+        request_invalidation: None,
     };
     snapshot.recheck()?;
     Ok(snapshot)

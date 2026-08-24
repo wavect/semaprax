@@ -301,7 +301,12 @@ gates below are not.
   payload preservation, closed framing/params grammar, notification silence,
   and fail-closed oversized-frame termination. Persistent indexed revisions,
   incremental resolution, multi-source sessions, and network transports remain
-  open.
+  open. Additive [Project Agent Transport v2](PROJECT-AGENT-TRANSPORT-V2.md)
+  now supplies `semapraxd --stdio` over one authenticated multi-file Project
+  v1 input. It retains one Phase-A graph, linked HIR, and typed context index
+  across sequential requests, requires exact revision bindings, and fail-stops
+  on held-input drift. Build/change methods, incremental refresh, persistence
+  across processes, and network service remain open.
 - Typed hygienic generation: the bounded read-only
   [Typed Hygienic Generation v1](HYGIENIC-GEN-V1.md) tranche now synthesizes
   default constructors and scalar field accessors from admitted non-generic
@@ -318,7 +323,8 @@ gates below are not.
   with verbatim native-projection declarations (`semaprax c-header`). Header
   import, raw bindings, ownership-aware signatures, safe wrappers, and
   compiled conformance remain open.
-- A persistent graph daemon with indexed revisions across processes.
+- A persistent graph daemon with indexed revisions across processes (Project
+  Transport v2 retains one exact revision for its process lifetime only).
 - Complete ownership/lifetime/region analysis across control flow.
 
 Exit criterion: build a non-trivial CLI and edit it entirely through semantic transactions.

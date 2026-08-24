@@ -80,6 +80,10 @@ proof scaffolding, not a wired native-runtime claim.
 - `src/agent_transport.rs`: bounded deterministic JSON-RPC 2.0 loop
   (`semaprax serve`) over one checked program; closed method set, no ambient
   authority, no persistent index.
+- `src/project_transport/`, `src/bin/semapraxd.rs`: strict bounded Project
+  Agent Transport v2 over one host-bound Project v1 manifest; retained
+  Phase-A graph/HIR/context index, revision-bound read-only requests, and
+  absorbing held-input drift; no build/change/network/disk-cache authority.
 - `src/agent_runtime.rs`, `src/agent_runtime/`: bounded injected-host Agent
   profile, runtime-owned streaming sinks, cancellation, Trace, and Evidence;
   no built-in transport, write tool, durable memory, or economic authority.

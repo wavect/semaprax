@@ -1386,6 +1386,24 @@ drift is `SPX-J103`: the complete retained output remains for caller
 reconciliation and is never deleted automatically.
 See [Project Manifest v1](PROJECT-MANIFEST-V1.md).
 
+### Project Agent Transport v2
+
+`src/project_transport/` and `src/bin/semapraxd.rs` add a separate strict
+stdio protocol without changing Graph Agent Transport v1. The startup path is
+the sole manifest-selection authority. The one Phase-A build yields validated
+entry/test linked HIR, a complete declared-project projection, and a typed
+analysis index. Project graph/context renderers bind raw declared Project
+inputs and never reuse managed-Workspace provenance.
+
+Every semantic request binds both revisions inside a pre/post held-input guard;
+drift is absorbing and no already-rendered semantic payload is written. Raw
+framing is bounded, duplicate-detecting, and invalid-UTF-8/CR rejecting.
+Responses are all-or-error under a cap including the LF. The sequential
+read-only method set admits snapshot, check, graph, context, and the in-process
+manifest test closure. Build, impact/review, rename/change/apply, network
+service, and disk persistence are absent. See [Project Agent Transport
+v2](PROJECT-AGENT-TRANSPORT-V2.md).
+
 ## Semantic workspace graph, analysis, and evidence-gated changes
 
 `src/semantic_workspace.rs` additively initializes a Semantic Workspace v1 in

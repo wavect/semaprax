@@ -190,6 +190,7 @@ local gates are:
 cargo test --locked -p semaprax --all-features --lib project::tests::
 cargo test --locked -p semaprax --all-features --test project_cli_v1 -- --test-threads=1
 cargo test --locked -p semaprax --all-features --test project_developer_loop_v1 -- --test-threads=1
+cargo test --locked -p semaprax --all-features --test project_agent_transport_v2 -- --test-threads=1
 cargo test --locked -p semaprax --all-features --test project_native_publication_v1 -- --test-threads=1
 cargo test --locked -p semaprax --test project_manifest_v1
 cargo test --locked -p semaprax --test project_backend_equivalence_v1 -- --test-threads=1
@@ -211,6 +212,13 @@ is never deleted automatically. Project v1 grants no general packages,
 dependencies, registries, capability grants, interface/native imports, `use
 type` edges, generics, resources, test discovery, hostile-window no-clobber
 native publication, or cross-build executable byte-determinism claim.
+
+Project Agent Transport v2 additionally requires byte-preserved Transport v1,
+strict raw UTF-8/LF framing, recursive duplicate-key and CR rejection,
+notification silence, exact request/response boundaries, one retained Phase-A
+graph/index, revision-bound semantic requests, zero-write snapshot/check/graph/
+context/test operation, and absorbing held-input drift before response write.
+No build, mutation, network, or disk-persistence claim follows.
 
 Quality gates are executable evidence, not a checklist substitute for reasoning. Every pull request must pass the baseline and the gates for each changed semantic layer.
 

@@ -49,6 +49,19 @@ const MAX_ENTRY_MODULE_BYTES: usize = 16 * 1024 * 1024;
 const WORKSPACE_GRAPH_SCHEMA: &str = "semaprax.workspace-semantic-graph.v1";
 const WORKSPACE_MANIFEST_SCHEMA: &str = "semaprax.workspace-semantic-manifest.v1";
 const ARTIFACT_DIGEST_DOMAIN: &[u8] = b"semaprax.workspace-semantic-graph.artifact-digest.v1\0";
+const PROJECT_GRAPH_SCHEMA: &str = "semaprax.project-semantic-graph.v1";
+const PROJECT_GRAPH_DIGEST_DOMAIN: &[u8] = b"semaprax.project-semantic-graph.artifact-digest.v1\0";
+const PROJECT_GRAPH_NONCLAIMS: [&str; 9] = [
+    "authenticated_declared_project_inputs_not_managed_workspace_state",
+    "no_exclusive_lock_stage_publish_apply_or_commit_authority",
+    "not_patch_evidence_signature_provenance_approval_or_reusable_authorization",
+    "no_target_codegen_artifact_project_test_or_external_execution",
+    "no_generic_resource_interface_ownership_or_lifetime_composition",
+    "no_dynamic_linking_package_registry_network_or_dependency_fetch",
+    "no_incremental_cache_persistence_or_repository_index",
+    "no_create_delete_move_or_source_rewrite",
+    "no_external_consumer_compatibility",
+];
 const NONCLAIMS: [&str; 18] = [
     "no_exclusive_lock_stage_publish_apply_or_commit_authority",
     "not_patch_evidence_signature_provenance_approval_or_reusable_authorization",
@@ -139,6 +152,35 @@ pub(crate) struct WorkspaceGraphBuild {
     change_builder_bytes: usize,
     operation_sidecar: Option<WorkspaceOperationSidecar>,
     operation_builder_bytes: usize,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct ProjectGraphSourceFact {
+    pub(crate) path: String,
+    pub(crate) source_graph_schema: String,
+    pub(crate) source_revision: String,
+    pub(crate) source_digest: String,
+}
+
+pub(crate) struct ProjectSemanticParts {
+    pub(crate) entry_program: hir::ResolvedProgram,
+    pub(crate) test_program: hir::ResolvedProgram,
+    pub(crate) projection: WorkspaceGraphProjection,
+}
+
+pub(crate) struct ProjectSemanticGraphArtifact {
+    json: String,
+    digest: String,
+}
+
+impl ProjectSemanticGraphArtifact {
+    pub(crate) fn json(&self) -> &str {
+        &self.json
+    }
+
+    pub(crate) fn digest(&self) -> &str {
+        &self.digest
+    }
 }
 
 pub(crate) struct WorkspaceGraphOperationView {
@@ -1126,6 +1168,136 @@ impl WorkspaceGraphBuild {
         let entry = self.linked_scalar_program(entry_module)?;
         let test = self.linked_scalar_program(test_module)?;
         Ok((entry, test))
+    }
+
+    /// Consume one Project Phase-A build into its two executable closures and
+    /// one complete declared-project projection. The projection moves the
+    /// already validated HIR and graph edges; it never reparses or resolves a
+    /// source and it is not a managed Workspace authority.
+    pub(crate) fn into_project_semantic_parts(
+        self,
+        workspace_revision: &str,
+        source_facts: Vec<ProjectGraphSourceFact>,
+        manifest_bytes: usize,
+        entry_module: &str,
+        test_module: &str,
+    ) -> Result<ProjectSemanticParts, Vec<Diagnostic>> {
+        self.validate_entire_scalar_workspace(entry_module, test_module)?;
+        let entry_program = self.linked_scalar_program(entry_module)?;
+        let test_program = self.linked_scalar_program(test_module)?;
+        let projection = self.into_project_projection(
+            workspace_revision,
+            source_facts,
+            manifest_bytes,
+            entry_module,
+        )?;
+        Ok(ProjectSemanticParts {
+            entry_program,
+            test_program,
+            projection,
+        })
+    }
+
+    fn into_project_projection(
+        self,
+        workspace_revision: &str,
+        source_facts: Vec<ProjectGraphSourceFact>,
+        manifest_bytes: usize,
+        entry_module: &str,
+    ) -> Result<WorkspaceGraphProjection, Vec<Diagnostic>> {
+        validate_entry_module(entry_module)?;
+        let mut source_facts = source_facts
+            .into_iter()
+            .map(|fact| (fact.path.clone(), fact))
+            .collect::<BTreeMap<_, _>>();
+        if source_facts.len() != self.usage.managed_files {
+            return Err(vec![graph_error(
+                "SPX-G173",
+                "project source facts disagree with the Phase-A file inventory",
+            )]);
+        }
+
+        let mut dependency_depths = self.hir.dependency_depths;
+        let mut modules = Vec::with_capacity(self.hir.modules.len());
+        for module in self.hir.modules {
+            let source = source_facts.remove(&module.path).ok_or_else(|| {
+                vec![graph_error(
+                    "SPX-G173",
+                    "project module source fact is absent from the authenticated snapshot",
+                )]
+            })?;
+            let dependency_depth = dependency_depths.remove(&module.module).ok_or_else(|| {
+                vec![graph_error(
+                    "SPX-G173",
+                    "project module dependency depth is absent",
+                )]
+            })?;
+            modules.push(WorkspaceGraphProjectionModule {
+                path: module.path,
+                module: module.module,
+                source_graph_schema: source.source_graph_schema,
+                source_revision: source.source_revision,
+                source_digest: source.source_digest,
+                dependency_depth,
+                permits: module.permits,
+                types: module.types,
+                interfaces: module.interfaces,
+                functions: module.functions,
+                function_templates: module.function_templates,
+                function_instances: module.function_instances,
+            });
+        }
+        modules.sort_by(|left, right| left.path.cmp(&right.path));
+        if !source_facts.is_empty() || !dependency_depths.is_empty() {
+            return Err(vec![graph_error(
+                "SPX-G173",
+                "project Phase-A facts contain unconsumed source or module entries",
+            )]);
+        }
+
+        let mut declarations = self
+            .hir
+            .declarations
+            .into_iter()
+            .map(|(id, fact)| WorkspaceGraphProjectionDeclaration {
+                id,
+                kind: fact.kind,
+                origin: fact.origin,
+                owner: fact.owner,
+                path: fact.path,
+                module: fact.module,
+            })
+            .collect::<Vec<_>>();
+        declarations.sort_by(|left, right| left.id.cmp(&right.id));
+        let mut edges = self.edges;
+        edges.sort();
+        let work = self.usage;
+        Ok(WorkspaceGraphProjection {
+            workspace_revision: workspace_revision.to_owned(),
+            entry_module: entry_module.to_owned(),
+            usage: WorkspaceGraphProjectionUsage {
+                used_managed_files: work.managed_files,
+                used_total_source_bytes: work.total_source_bytes,
+                used_entry_module_bytes: entry_module.len(),
+                used_declarations: work.declarations,
+                used_callables: work.callables,
+                used_call_sites: work.call_sites,
+                used_uses: work.uses,
+                used_resolved_cross_file_edges: work.resolved_cross_file_edges,
+                used_dependency_depth: work.dependency_depth,
+                used_builder_bytes: work.builder_bytes,
+                used_manifest_bytes: manifest_bytes,
+                used_output_bytes: 0,
+                used_retained_generations: 0,
+                used_staging_attempts: 0,
+                used_unexpected_inventory_entries: 0,
+                used_reachable_modules: modules.len(),
+            },
+            modules,
+            declarations,
+            edges,
+            shared_prelude_ids: self.hir.shared_prelude_ids.into_iter().collect(),
+        })
     }
 
     fn validate_entire_scalar_workspace(
@@ -2122,6 +2294,183 @@ fn render_semantic_graph(
     render_semantic_graph_with_output_limit(projection, MAX_OUTPUT_BYTES)
 }
 
+pub(crate) fn render_project_semantic_graph(
+    projection: &WorkspaceGraphProjection,
+    project_name: &str,
+    project_revision: &str,
+    test_module: &str,
+) -> Result<ProjectSemanticGraphArtifact, Vec<Diagnostic>> {
+    validate_render_projection(projection)?;
+    validate_entry_module(test_module)?;
+    if !projection
+        .modules
+        .iter()
+        .any(|module| module.module == test_module)
+    {
+        return Err(vec![graph_error(
+            "SPX-G173",
+            "project test module is absent from the complete semantic projection",
+        )]);
+    }
+    let (payload, overflowed) = crate::bounded_output::with_limit(MAX_OUTPUT_BYTES, || {
+        render_project_graph_json(
+            projection,
+            project_name,
+            project_revision,
+            test_module,
+            None,
+        )
+    });
+    if overflowed {
+        return Err(vec![limit_error("output_bytes", MAX_OUTPUT_BYTES)]);
+    }
+    let digest = project_artifact_digest(PROJECT_GRAPH_DIGEST_DOMAIN, payload.as_bytes());
+    let (json, overflowed) = crate::bounded_output::with_limit(MAX_OUTPUT_BYTES, || {
+        render_project_graph_json(
+            projection,
+            project_name,
+            project_revision,
+            test_module,
+            Some(&digest),
+        )
+    });
+    if overflowed || json.len() > MAX_OUTPUT_BYTES {
+        return Err(vec![limit_error("output_bytes", MAX_OUTPUT_BYTES)]);
+    }
+    Ok(ProjectSemanticGraphArtifact { json, digest })
+}
+
+fn render_project_graph_json(
+    projection: &WorkspaceGraphProjection,
+    project_name: &str,
+    project_revision: &str,
+    test_module: &str,
+    digest: Option<&str>,
+) -> String {
+    use std::fmt::Write as _;
+
+    let mut output = crate::bounded_output::CappedString::new();
+    output.push_str("{\"schema\":");
+    push_json_string(&mut output, PROJECT_GRAPH_SCHEMA);
+    output.push_str(",\"project_schema\":\"semaprax.project.v1\",\"project\":");
+    push_json_string(&mut output, project_name);
+    output.push_str(",\"project_revision\":");
+    push_json_string(&mut output, project_revision);
+    output.push_str(",\"workspace_revision\":");
+    push_json_string(&mut output, projection.workspace_revision());
+    if let Some(digest) = digest {
+        output.push_str(",\"graph_digest\":");
+        push_json_string(&mut output, digest);
+    }
+    output.push_str(",\"entry_module\":");
+    push_json_string(&mut output, projection.entry_module());
+    output.push_str(",\"test_module\":");
+    push_json_string(&mut output, test_module);
+    output.push_str(",\"modules\":[");
+    for (index, module) in projection.modules.iter().enumerate() {
+        if index > 0 {
+            output.push(',');
+        }
+        output.push_str("{\"path\":");
+        push_json_string(&mut output, &module.path);
+        output.push_str(",\"module\":");
+        push_json_string(&mut output, &module.module);
+        output.push_str(",\"source_graph_schema\":");
+        push_json_string(&mut output, &module.source_graph_schema);
+        output.push_str(",\"source_revision\":");
+        push_json_string(&mut output, &module.source_revision);
+        output.push_str(",\"source_digest\":");
+        push_json_string(&mut output, &module.source_digest);
+        write!(
+            output,
+            ",\"dependency_depth\":{}}}",
+            module.dependency_depth
+        )
+        .expect("writing to a string cannot fail");
+    }
+    output.push_str("],\"declarations\":[");
+    for (index, declaration) in projection.declarations.iter().enumerate() {
+        if index > 0 {
+            output.push(',');
+        }
+        output.push_str("{\"id\":");
+        push_json_string(&mut output, &declaration.id);
+        output.push_str(",\"kind\":");
+        push_json_string(&mut output, declaration_kind_text(declaration.kind));
+        output.push_str(",\"identity_origin\":");
+        push_json_string(&mut output, identity_origin_text(declaration.origin));
+        output.push_str(",\"owner\":");
+        push_optional_json_string(&mut output, declaration.owner.as_deref());
+        output.push_str(",\"path\":");
+        push_optional_json_string(&mut output, declaration.path.as_deref());
+        output.push_str(",\"module\":");
+        push_optional_json_string(&mut output, declaration.module.as_deref());
+        output.push('}');
+    }
+    output.push_str("],\"edges\":[");
+    for (index, edge) in projection.edges.iter().enumerate() {
+        if index > 0 {
+            output.push(',');
+        }
+        output.push_str("{\"caller_path\":");
+        push_json_string(&mut output, &edge.caller_path);
+        output.push_str(",\"caller\":");
+        push_json_string(&mut output, &edge.caller);
+        output.push_str(",\"target_path\":");
+        push_json_string(&mut output, &edge.target_path);
+        output.push_str(",\"target\":");
+        push_json_string(&mut output, &edge.target);
+        output.push_str(",\"kind\":");
+        push_json_string(&mut output, edge.kind);
+        output.push_str(",\"site\":");
+        push_json_string(&mut output, edge.site);
+        output.push_str(",\"expression\":");
+        push_json_string(&mut output, &edge.expression);
+        output.push_str(",\"ast_path\":");
+        push_json_string(&mut output, &edge.ast_path);
+        output.push_str(",\"alias\":");
+        push_json_string(&mut output, &edge.alias);
+        write!(output, ",\"ordinal\":{}}}", edge.ordinal).expect("writing to a string cannot fail");
+    }
+    let usage = projection.usage;
+    output.push_str("],\"budget\":{");
+    write!(
+        output,
+        "\"used_sources\":{},\"used_total_source_bytes\":{},\"used_declarations\":{},\"used_callables\":{},\"used_call_sites\":{},\"used_uses\":{},\"used_cross_file_edges\":{},\"used_dependency_depth\":{},\"used_builder_bytes\":{},\"used_manifest_bytes\":{}",
+        usage.used_managed_files,
+        usage.used_total_source_bytes,
+        usage.used_declarations,
+        usage.used_callables,
+        usage.used_call_sites,
+        usage.used_uses,
+        usage.used_resolved_cross_file_edges,
+        usage.used_dependency_depth,
+        usage.used_builder_bytes,
+        usage.used_manifest_bytes,
+    )
+    .expect("writing to a string cannot fail");
+    output.push_str("},\"nonclaims\":[");
+    for (index, nonclaim) in PROJECT_GRAPH_NONCLAIMS.iter().enumerate() {
+        if index > 0 {
+            output.push(',');
+        }
+        push_json_string(&mut output, nonclaim);
+    }
+    output.push_str("]}");
+    output.into_string()
+}
+
+fn project_artifact_digest(domain: &[u8], payload: &[u8]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(domain);
+    hasher.update((payload.len() as u64).to_le_bytes());
+    hasher.update(payload);
+    format!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(hasher.finalize())
+    )
+}
+
 fn render_semantic_graph_with_output_limit(
     mut projection: WorkspaceGraphProjection,
     output_limit: usize,
@@ -2151,6 +2500,12 @@ pub(crate) fn projection_graph_binding(
 ) -> Result<(String, usize), Vec<Diagnostic>> {
     validate_render_projection(projection)?;
     semantic_graph_digest_and_output_bytes(projection, MAX_OUTPUT_BYTES)
+}
+
+pub(crate) fn validate_project_projection(
+    projection: &WorkspaceGraphProjection,
+) -> Result<(), Vec<Diagnostic>> {
+    validate_render_projection(projection)
 }
 
 fn semantic_graph_digest_and_output_bytes(

@@ -357,6 +357,16 @@ provenance, or automatic identity selection. Exact replay inside apply mints
 | Desktop and mobile applications | Partial | Private macOS engine/AppKit ([job 93309086230](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086230)), Windows engine/Win32 UI ([job 93322134480](https://github.com/wavect/semaprax/actions/runs/31343897595/job/93322134480)), Swift/iOS XCFramework/app ([job 93309086228](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086228)), and Android JNI/Kotlin app ([job 93309086206](https://github.com/wavect/semaprax/actions/runs/31338834586/job/93309086206)) gates are green. Public SDKs, UI language, lifecycle breadth, signing/distribution, and device breadth remain open |
 | Full SEMAPRAX product objective | Partial | No single lane proves native mobile + desktop + web + broad interop + full ownership/lifetime safety together; the global goal is not complete |
 
+Project Agent Transport v2 deepens the existing Partial human/agent projection
+row without changing its status. `semapraxd --stdio` binds one Project v1
+manifest at startup, retains entry/test HIR plus one complete Project-specific
+graph and typed context index from the same Phase-A build, and serves closed
+revision-bound snapshot/check/graph/context/test requests. Pre/post request
+held-input reauthentication is absorbing, strict raw framing and response caps
+are executable, and Transport v1 remains byte-preserved. Build/change/network/
+disk-persistence methods, cross-process revision indexing, and exact-head
+hosted promotion remain open. Totals remain 56 Partial/0 Missing.
+
 Project Manifest v1 is a locally evidenced bounded build-input slice, not a
 status transition. It authenticates one canonical explicit 2–16-source
 `semaprax.toml` set, reuses the existing Semantic Workspace Phase-A build once

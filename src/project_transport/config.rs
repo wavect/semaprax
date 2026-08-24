@@ -1,0 +1,140 @@
+use std::ffi::OsString;
+use std::path::PathBuf;
+
+use super::framing::StdioLimits;
+
+const DEFAULT_MANIFEST: &str = "semaprax.toml";
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct ServerConfig {
+    manifest_path: PathBuf,
+    limits: StdioLimits,
+}
+
+impl ServerConfig {
+    pub(crate) fn parse(arguments: impl IntoIterator<Item = OsString>) -> Result<Self, String> {
+        let mut arguments = arguments.into_iter();
+        let _program = arguments.next();
+        let mut stdio = false;
+        let mut manifest_path = None;
+        let mut max_request_bytes = None;
+        let mut max_response_bytes = None;
+
+        while let Some(argument) = arguments.next() {
+            let Some(option) = argument.to_str() else {
+                return Err("semapraxd options must be UTF-8".to_owned());
+            };
+            match option {
+                "--stdio" if !stdio => stdio = true,
+                "--stdio" => return Err("--stdio may not be repeated".to_owned()),
+                "--manifest-path" if manifest_path.is_none() => {
+                    manifest_path = Some(required_path(&mut arguments, option)?);
+                }
+                "--manifest-path" => {
+                    return Err("--manifest-path may not be repeated".to_owned());
+                }
+                "--max-request-bytes" if max_request_bytes.is_none() => {
+                    max_request_bytes = Some(required_number(&mut arguments, option)?);
+                }
+                "--max-request-bytes" => {
+                    return Err("--max-request-bytes may not be repeated".to_owned());
+                }
+                "--max-response-bytes" if max_response_bytes.is_none() => {
+                    max_response_bytes = Some(required_number(&mut arguments, option)?);
+                }
+                "--max-response-bytes" => {
+                    return Err("--max-response-bytes may not be repeated".to_owned());
+                }
+                unknown => return Err(format!("unknown semapraxd option `{unknown}`")),
+            }
+        }
+        if !stdio {
+            return Err("semapraxd requires --stdio".to_owned());
+        }
+        let defaults = StdioLimits::default();
+        let limits = StdioLimits::new(
+            max_request_bytes.unwrap_or(defaults.request_bytes()),
+            max_response_bytes.unwrap_or(defaults.response_bytes()),
+        )?;
+        Ok(Self {
+            manifest_path: manifest_path.unwrap_or_else(|| PathBuf::from(DEFAULT_MANIFEST)),
+            limits,
+        })
+    }
+
+    pub(crate) fn manifest_path(&self) -> &std::path::Path {
+        &self.manifest_path
+    }
+
+    pub(crate) const fn limits(&self) -> StdioLimits {
+        self.limits
+    }
+}
+
+fn required_path(
+    arguments: &mut impl Iterator<Item = OsString>,
+    option: &str,
+) -> Result<PathBuf, String> {
+    let value = arguments
+        .next()
+        .ok_or_else(|| format!("{option} requires a path"))?;
+    if value.is_empty() {
+        return Err(format!("{option} requires a nonempty path"));
+    }
+    Ok(PathBuf::from(value))
+}
+
+fn required_number(
+    arguments: &mut impl Iterator<Item = OsString>,
+    option: &str,
+) -> Result<usize, String> {
+    let value = arguments
+        .next()
+        .ok_or_else(|| format!("{option} requires a number"))?;
+    let value = value
+        .to_str()
+        .ok_or_else(|| format!("{option} requires an ASCII decimal number"))?;
+    if value.is_empty()
+        || (value.len() > 1 && value.starts_with('0'))
+        || !value.bytes().all(|byte| byte.is_ascii_digit())
+    {
+        return Err(format!("{option} requires a canonical decimal number"));
+    }
+    value
+        .parse::<usize>()
+        .map_err(|_| format!("{option} number is outside the host usize range"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ServerConfig, DEFAULT_MANIFEST};
+    use std::ffi::OsString;
+
+    fn parse(arguments: &[&str]) -> Result<ServerConfig, String> {
+        ServerConfig::parse(arguments.iter().map(OsString::from))
+    }
+
+    #[test]
+    fn stdio_defaults_bind_one_fixed_manifest() {
+        let config = parse(&["semapraxd", "--stdio"]).unwrap();
+        assert_eq!(config.manifest_path().to_str(), Some(DEFAULT_MANIFEST));
+    }
+
+    #[test]
+    fn startup_authority_is_closed_and_nonrepeating() {
+        assert!(parse(&["semapraxd"]).is_err());
+        assert!(parse(&["semapraxd", "--stdio", "--stdio"]).is_err());
+        assert!(parse(&["semapraxd", "--stdio", "--manifest-path"]).is_err());
+        assert!(parse(&[
+            "semapraxd",
+            "--stdio",
+            "--manifest-path",
+            "a",
+            "--manifest-path",
+            "b"
+        ])
+        .is_err());
+        assert!(parse(&["semapraxd", "--stdio", "--unknown"]).is_err());
+        assert!(parse(&["semapraxd", "--stdio", "--max-request-bytes", "01"]).is_err());
+    }
+}

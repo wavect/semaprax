@@ -1255,6 +1255,11 @@ impl<'a> HirValidator<'a> {
             callees.push((callee.clone(), instance.cloned()));
         });
         for (callee, instance) in callees {
+            if instance.is_none() && crate::string_ops::by_id(callee.as_str()).is_some() {
+                // String operations carry no authored declaration and their
+                // scalar/string results contribute no lifecycle effects.
+                continue;
+            }
             let target = self
                 .program
                 .resolve_call_target(&callee, instance.as_ref())
@@ -2321,39 +2326,66 @@ impl<'a> HirValidator<'a> {
                                     "resolved call has a non-scalar generic type argument",
                                 ));
                             }
-                            let target = self
-                                .program
-                                .resolve_call_target(callee, instance.as_ref())
-                                .ok_or_else(|| {
-                                    hir_error(format!("resolved callee `{callee}` is not indexed"))
-                                })?;
-                            if args.len() != target.params.len() {
-                                return Err(hir_error(format!(
-                                    "call to `{callee}` has {} arguments but expects {}",
-                                    args.len(),
-                                    target.params.len()
-                                )));
-                            }
-                            match allowed_effects {
-                                Some(allowed) => {
-                                    for effect in &target.effects {
-                                        if !allowed.contains(effect) {
-                                            return Err(hir_error(format!("call to `{callee}` requires undeclared effect `{effect}`")));
+                            let (params, return_type) = if let Some(op) =
+                                crate::string_ops::by_id(callee.as_str())
+                            {
+                                // Compiler-owned string operations carry
+                                // their reserved identity instead of an
+                                // authored declaration; their synthetic
+                                // parameters keep the ordinary argument
+                                // ownership and transfer machinery.
+                                if instance.is_some() || !type_arguments.is_empty() {
+                                    return Err(hir_error(
+                                        "string operation call must be monomorphic",
+                                    ));
+                                }
+                                if args.len() != op.arity() {
+                                    return Err(hir_error(format!(
+                                            "string operation `{}` expects {} arguments but received {}",
+                                            op.name(),
+                                            op.arity(),
+                                            args.len()
+                                        )));
+                                }
+                                (crate::string_ops::resolved_params(op), op.return_type())
+                            } else {
+                                let target = self
+                                    .program
+                                    .resolve_call_target(callee, instance.as_ref())
+                                    .ok_or_else(|| {
+                                        hir_error(format!(
+                                            "resolved callee `{callee}` is not indexed"
+                                        ))
+                                    })?;
+                                if args.len() != target.params.len() {
+                                    return Err(hir_error(format!(
+                                        "call to `{callee}` has {} arguments but expects {}",
+                                        args.len(),
+                                        target.params.len()
+                                    )));
+                                }
+                                match allowed_effects {
+                                    Some(allowed) => {
+                                        for effect in &target.effects {
+                                            if !allowed.contains(effect) {
+                                                return Err(hir_error(format!("call to `{callee}` requires undeclared effect `{effect}`")));
+                                            }
                                         }
                                     }
+                                    None if !target.effects.is_empty() => {
+                                        return Err(hir_error(format!(
+                                            "contract calls effectful function `{callee}`"
+                                        )))
+                                    }
+                                    None => {}
                                 }
-                                None if !target.effects.is_empty() => {
-                                    return Err(hir_error(format!(
-                                        "contract calls effectful function `{callee}`"
-                                    )))
-                                }
-                                None => {}
-                            }
+                                (target.params.clone(), target.return_type.clone())
+                            };
                             frames.push(Frame::CallNext {
                                 expression,
                                 args,
-                                params: target.params.clone(),
-                                return_type: target.return_type.clone(),
+                                params,
+                                return_type,
                                 index: 0,
                                 scope,
                                 path,
@@ -4348,22 +4380,47 @@ impl<'a> HirValidator<'a> {
                         ));
                     }
                 }
-                let target = self
-                    .program
-                    .resolve_call_target(callee, instance.as_ref())
-                    .ok_or_else(|| {
-                        hir_error(format!("resolved callee `{callee}` is not indexed"))
-                    })?;
-                if args.len() != target.params.len() {
+                let intrinsic = if instance.is_none() {
+                    crate::string_ops::by_id(callee.as_str())
+                } else {
+                    None
+                };
+                let (params, return_type, target_effects) = if let Some(op) = intrinsic {
+                    // String operations carry their reserved identity instead
+                    // of an authored declaration.
+                    if args.len() != op.arity() {
+                        return Err(hir_error(format!(
+                            "string operation `{}` expects {} arguments but received {}",
+                            op.name(),
+                            op.arity(),
+                            args.len()
+                        )));
+                    }
+                    (
+                        crate::string_ops::resolved_params(op),
+                        op.return_type(),
+                        Vec::new(),
+                    )
+                } else {
+                    let target = self
+                        .program
+                        .resolve_call_target(callee, instance.as_ref())
+                        .ok_or_else(|| {
+                            hir_error(format!("resolved callee `{callee}` is not indexed"))
+                        })?;
+                    (
+                        target.params.clone(),
+                        target.return_type.clone(),
+                        target.effects.clone(),
+                    )
+                };
+                if args.len() != params.len() {
                     return Err(hir_error(format!(
                         "call to `{callee}` has {} arguments but expects {}",
                         args.len(),
-                        target.params.len()
+                        params.len()
                     )));
                 }
-                let params = target.params.clone();
-                let return_type = target.return_type.clone();
-                let target_effects = target.effects.clone();
                 match allowed_effects {
                     Some(allowed) => {
                         for effect in &target_effects {

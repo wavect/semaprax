@@ -98,6 +98,12 @@ const STRING_DATA_BASE: u32 = 1024;
 const STRING_IMPORT_BASE_NEW: u32 = 7;
 const STRING_IMPORT_BASE_EQ: u32 = 8;
 const STRING_IMPORT_BASE_CLONE: u32 = 9;
+/// Host imports backing compiler-owned string operations, appended after the
+/// base string imports only when a program reaches the operations so existing
+/// modules keep their exact bytes: `spx_string_len`, `spx_string_concat`.
+const STRING_OPS_IMPORT_COUNT: u32 = 2;
+const STRING_OPS_IMPORT_BASE_LEN: u32 = 10;
+const STRING_OPS_IMPORT_BASE_CONCAT: u32 = 11;
 
 /// Deterministic literal table shared by the data segment and expression
 /// lowering; identical contents always map to one offset.
@@ -140,6 +146,70 @@ fn program_uses_strings(program: &ResolvedProgram) -> bool {
             || matches!(expression.kind, ResolvedExprKind::String(_))
         {
             return true;
+        }
+        match &expression.kind {
+            ResolvedExprKind::Call { args, .. } => pending.extend(args.iter()),
+            ResolvedExprKind::NativeRustImportCall(call) => pending.extend(call.args.iter()),
+            ResolvedExprKind::Unary { value, .. }
+            | ResolvedExprKind::Try { operand: value, .. }
+            | ResolvedExprKind::TryOption { operand: value, .. }
+            | ResolvedExprKind::Project { base: value, .. } => pending.push(value),
+            ResolvedExprKind::Binary { left, right, .. } => {
+                pending.push(left);
+                pending.push(right);
+            }
+            ResolvedExprKind::Block { statements, tail } => {
+                pending.extend(statements.iter().map(|statement| statement.value()));
+                pending.push(tail);
+            }
+            ResolvedExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                pending.push(condition);
+                pending.push(then_branch);
+                pending.push(else_branch);
+            }
+            ResolvedExprKind::ConstructRecord { fields, .. }
+            | ResolvedExprKind::ConstructVariant { fields, .. } => {
+                pending.extend(fields.iter().map(|field| &field.value));
+            }
+            ResolvedExprKind::Match { scrutinee, arms } => {
+                pending.push(scrutinee);
+                pending.extend(arms.iter().map(|arm| &arm.value));
+            }
+            ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+                pending.push(base);
+                pending.extend(fields.iter().map(|field| &field.value));
+            }
+            ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Int32(_)
+            | ResolvedExprKind::Char(_)
+            | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Float32(_)
+            | ResolvedExprKind::Float64(_)
+            | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::String(_)
+            | ResolvedExprKind::Place(_) => {}
+        }
+    }
+    false
+}
+
+/// Whether any resolved function body or contract calls a compiler-owned
+/// string operation intrinsic.
+fn program_uses_string_ops(program: &ResolvedProgram) -> bool {
+    let mut pending: Vec<&ResolvedExpr> = Vec::new();
+    for function in &program.functions {
+        pending.push(&function.body);
+        pending.extend(function.requires.iter().chain(&function.ensures));
+    }
+    while let Some(expression) = pending.pop() {
+        if let ResolvedExprKind::Call { callee, .. } = &expression.kind {
+            if crate::string_ops::by_id(callee.as_str()).is_some() {
+                return true;
+            }
         }
         match &expression.kind {
             ResolvedExprKind::Call { args, .. } => pending.extend(args.iter()),
@@ -416,6 +486,7 @@ fn emit_resolved_module_internal(
             "string values are outside aggregate and resource WebAssembly lowering",
         ));
     }
+    let uses_string_ops = program_uses_string_ops(program);
     let string_data = if uses_strings {
         collect_string_data(program)
     } else {
@@ -426,7 +497,12 @@ fn emit_resolved_module_internal(
         SCALAR_IMPORT_COUNT
     } else {
         SCALAR_IMPORT_COUNT + owned::IMPORT_NAMES.len() as u32
-    } + if uses_strings { STRING_IMPORT_COUNT } else { 0 };
+    } + if uses_strings { STRING_IMPORT_COUNT } else { 0 }
+        + if uses_string_ops {
+            STRING_OPS_IMPORT_COUNT
+        } else {
+            0
+        };
     let mut types = Vec::<Signature>::new();
     let mut type_indexes = HashMap::<Signature, u32>::new();
     let binary_checked = intern_type(
@@ -490,6 +566,30 @@ fn emit_resolved_module_internal(
                 ),
             ],
         ))
+    } else {
+        None
+    };
+    let string_ops_import_types = if uses_string_ops {
+        Some([
+            // spx_string_len(handle: i64) -> byte length: i64
+            intern_type(
+                Signature {
+                    params: vec![I64],
+                    results: vec![I64],
+                },
+                &mut types,
+                &mut type_indexes,
+            ),
+            // spx_string_concat(a: i64, b: i64) -> joined handle: i64
+            intern_type(
+                Signature {
+                    params: vec![I64, I64],
+                    results: vec![I64],
+                },
+                &mut types,
+                &mut type_indexes,
+            ),
+        ])
     } else {
         None
     };
@@ -666,6 +766,10 @@ fn emit_resolved_module_internal(
         function_import(&mut imports, "env", "spx_string_new", string_new);
         function_import(&mut imports, "env", "spx_string_eq", string_eq);
         function_import(&mut imports, "env", "spx_string_clone", string_clone);
+    }
+    if let Some([string_len, string_concat]) = string_ops_import_types {
+        function_import(&mut imports, "env", "spx_string_len", string_len);
+        function_import(&mut imports, "env", "spx_string_concat", string_concat);
     }
     if let Some(type_indexes) = owned_import_types {
         for (name, type_index) in owned::IMPORT_NAMES.into_iter().zip(type_indexes) {
@@ -1804,6 +1908,30 @@ fn emit_expr(
             args,
             ..
         } => {
+            if instance.is_none() {
+                if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
+                    // Compiler-owned string operations lower through their
+                    // dedicated host imports; borrowed reads leave the input
+                    // handle owned by the caller and concatenation hands both
+                    // input handles to the host shim.
+                    for arg in args {
+                        emit_expr(output, arg, value_indexes, function_indexes, layout, result)?;
+                    }
+                    match op {
+                        crate::string_ops::StringOp::Len => {
+                            call_import(output, STRING_OPS_IMPORT_BASE_LEN);
+                        }
+                        crate::string_ops::StringOp::IsEmpty => {
+                            call_import(output, STRING_OPS_IMPORT_BASE_LEN);
+                            output.push(0x50); // i64.eqz keeps bool results exact
+                        }
+                        crate::string_ops::StringOp::Concat => {
+                            call_import(output, STRING_OPS_IMPORT_BASE_CONCAT);
+                        }
+                    }
+                    return Ok(());
+                }
+            }
             for arg in args {
                 emit_expr(output, arg, value_indexes, function_indexes, layout, result)?;
             }

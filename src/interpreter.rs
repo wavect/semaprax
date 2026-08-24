@@ -697,7 +697,8 @@ fn scan_closure(
                 if instance.is_some() {
                     return Err(reject_scan(expression, REASON_GENERIC_CALL));
                 }
-                if !admitted.contains_key(callee.as_str()) {
+                let intrinsic = crate::string_ops::by_id(callee.as_str()).is_some();
+                if !intrinsic && !admitted.contains_key(callee.as_str()) {
                     return Err(reject_scan(expression, REASON_UNSUPPORTED_CALLEE));
                 }
                 Ok(())
@@ -1070,6 +1071,33 @@ impl Evaluator<'_> {
             } => {
                 if instance.is_some() || !type_arguments.is_empty() {
                     return Err(Flow::Guard("generic call inside the scalar profile"));
+                }
+                if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
+                    // Compiler-owned string operations evaluate in place;
+                    // their byte semantics match the native and Wasm backends.
+                    self.charge().ok_or(Flow::Exhausted)?;
+                    let mut values = Vec::with_capacity(args.len());
+                    for argument in args {
+                        values.push(self.evaluate(argument, environment, depth)?);
+                    }
+                    return match op {
+                        crate::string_ops::StringOp::Len => match values.first() {
+                            Some(Value::String(value)) => Ok(Value::Int(value.len() as i64)),
+                            _ => Err(Flow::Guard("ill-typed string operation operand")),
+                        },
+                        crate::string_ops::StringOp::IsEmpty => match values.first() {
+                            Some(Value::String(value)) => Ok(Value::Bool(value.is_empty())),
+                            _ => Err(Flow::Guard("ill-typed string operation operand")),
+                        },
+                        crate::string_ops::StringOp::Concat => {
+                            match (values.first(), values.get(1)) {
+                                (Some(Value::String(left)), Some(Value::String(right))) => {
+                                    Ok(Value::String(format!("{left}{right}")))
+                                }
+                                _ => Err(Flow::Guard("ill-typed string operation operand")),
+                            }
+                        }
+                    };
                 }
                 let Some(function) = self.admitted.get(callee.as_str()) else {
                     return Err(Flow::Guard("call outside the admitted closure"));

@@ -1260,6 +1260,17 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                 function.name_span,
             ));
         }
+        if crate::string_ops::by_name(&function.name).is_some() {
+            diagnostics.push(error(
+                program,
+                "SPX-S113",
+                format!(
+                    "function name `{}` is reserved by the compiler-owned string operations",
+                    function.name
+                ),
+                function.name_span,
+            ));
+        }
         if functions.insert(function.name.as_str(), function).is_some() {
             diagnostics.push(error(
                 program,
@@ -3117,6 +3128,39 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 }
                             }
                             VerifierCallTarget::Native(import)
+                        } else if let Some(op) = crate::string_ops::by_name(name) {
+                            // Compiler-owned string operations verify through
+                            // the ordinary monomorphic machinery with one
+                            // synthetic signature; consuming arguments use the
+                            // established `own` transfer mode and borrowed
+                            // arguments never mark their sources moved.
+                            let params = crate::string_ops::ast_params(op);
+                            if !type_arguments.is_empty() {
+                                self.diagnostics.push(error(
+                                    self.program,
+                                    "SPX-T225",
+                                    format!("monomorphic function `{name}` does not accept type arguments"),
+                                    expression.span,
+                                ));
+                            }
+                            if args.len() != params.len() {
+                                self.diagnostics.push(error(
+                                    self.program,
+                                    "SPX-T204",
+                                    format!(
+                                        "`{name}` expects {} arguments, received {}",
+                                        params.len(),
+                                        args.len()
+                                    ),
+                                    expression.span,
+                                ));
+                            }
+                            VerifierCallTarget::Ordinary(Some(
+                                VerifierFunctionSignature::Specialized {
+                                    params,
+                                    return_type: op.ast_return_type(),
+                                },
+                            ))
                         } else {
                             let target = self.functions.get(name.as_str()).copied();
                             if target.is_none() {

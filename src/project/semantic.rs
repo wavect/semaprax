@@ -8,12 +8,14 @@ use std::collections::BTreeMap;
 
 use crate::diagnostic::Diagnostic;
 use crate::workspace_analysis::{
-    ProjectAnalysisSubject, WorkspaceAnalysis, WorkspaceAnalysisTargetKind, WorkspaceContextOptions,
+    ProjectAnalysisSubject, WorkspaceAnalysis, WorkspaceAnalysisTargetKind,
+    WorkspaceContextOptions, WorkspaceImpactOptions,
 };
 use crate::workspace_graph::{self, WorkspaceGraphProjection};
 
 pub const PROJECT_SEMANTIC_GRAPH_SCHEMA: &str = "semaprax.project-semantic-graph.v1";
 pub const PROJECT_SEMANTIC_CONTEXT_SCHEMA: &str = "semaprax.project-semantic-context.v1";
+pub const PROJECT_SEMANTIC_IMPACT_SCHEMA: &str = crate::workspace_analysis::PROJECT_IMPACT_SCHEMA;
 
 pub(super) struct ProjectSemanticState {
     graph_json: String,
@@ -109,6 +111,28 @@ impl ProjectSemanticState {
             options,
         )
     }
+
+    pub(super) fn impact(
+        &self,
+        project_name: &str,
+        project_revision: &str,
+        test_module: &str,
+        target_kind: WorkspaceAnalysisTargetKind,
+        target: &str,
+        options: WorkspaceImpactOptions,
+    ) -> Result<String, Vec<Diagnostic>> {
+        self.analysis.render_project_impact(
+            ProjectAnalysisSubject {
+                project_name,
+                project_revision,
+                test_module,
+                graph_digest: &self.graph_digest,
+            },
+            target_kind,
+            target,
+            options,
+        )
+    }
 }
 
 #[cfg(test)]
@@ -118,7 +142,9 @@ mod tests {
 
     use super::*;
     use crate::project::with_authenticated_project;
-    use crate::workspace_analysis::{WorkspaceAnalysisDirection, WorkspaceContextOptions};
+    use crate::workspace_analysis::{
+        WorkspaceAnalysisDirection, WorkspaceContextOptions, WorkspaceImpactOptions,
+    };
 
     static SERIAL: AtomicU64 = AtomicU64::new(0);
 
@@ -226,5 +252,60 @@ mod tests {
         });
         assert!(second.is_err());
         assert!(!acted.get());
+    }
+
+    #[test]
+    fn retained_project_impact_is_project_bound_reverse_only_and_deterministic() {
+        let fixture = fixture();
+        let manifest_path = fixture.0.join("semaprax.toml");
+        let render = || {
+            let snapshot = crate::project::load_snapshot(&manifest_path).unwrap();
+            snapshot
+                .semantic
+                .impact(
+                    snapshot.manifest.name(),
+                    snapshot.project_revision(),
+                    snapshot.manifest.test_module(),
+                    WorkspaceAnalysisTargetKind::Declaration,
+                    "calculator.add",
+                    WorkspaceImpactOptions::default(),
+                )
+                .unwrap()
+        };
+        let first = render();
+        assert_eq!(first, render());
+        assert!(!first.ends_with('\n'));
+
+        let report: serde_json::Value = serde_json::from_str(&first).unwrap();
+        assert_eq!(report["schema"], PROJECT_SEMANTIC_IMPACT_SCHEMA);
+        assert_eq!(report["project_schema"], "semaprax.project.v1");
+        assert_eq!(report["query"]["direction"], "reverse");
+        assert_eq!(report["project_graph_digest"], {
+            let snapshot = crate::project::load_snapshot(&manifest_path).unwrap();
+            snapshot.semantic.graph_digest().to_owned()
+        });
+        assert!(report.get("workspace_manifest_schema").is_none());
+        assert!(report["affected"].as_array().unwrap().len() > 1);
+        assert!(!report["dependency_edges"].as_array().unwrap().is_empty());
+        assert_eq!(
+            report["budget"]["used_output_bytes"].as_u64().unwrap() as usize,
+            first.len()
+        );
+
+        let snapshot = crate::project::load_snapshot(&manifest_path).unwrap();
+        let truncated = snapshot
+            .semantic
+            .impact(
+                snapshot.manifest.name(),
+                snapshot.project_revision(),
+                snapshot.manifest.test_module(),
+                WorkspaceAnalysisTargetKind::Declaration,
+                "calculator.add",
+                WorkspaceImpactOptions::new(16, 4096, 1).unwrap(),
+            )
+            .unwrap();
+        let truncated: serde_json::Value = serde_json::from_str(&truncated).unwrap();
+        assert_eq!(truncated["truncation"]["truncated"], true);
+        assert!(!truncated["frontier"].as_array().unwrap().is_empty());
     }
 }

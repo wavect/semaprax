@@ -32,8 +32,11 @@ const CONTEXT_SCHEMA: &str = "semaprax.workspace-semantic-context.v1";
 const IMPACT_SCHEMA: &str = "semaprax.workspace-semantic-impact.v1";
 const REVIEW_SCHEMA: &str = "semaprax.workspace-semantic-review.v1";
 const PROJECT_CONTEXT_SCHEMA: &str = "semaprax.project-semantic-context.v1";
+pub(crate) const PROJECT_IMPACT_SCHEMA: &str = "semaprax.project-semantic-impact.v1";
 const PROJECT_CONTEXT_DIGEST_DOMAIN: &[u8] =
     b"semaprax.project-semantic-context.artifact-digest.v1\0";
+const PROJECT_IMPACT_DIGEST_DOMAIN: &[u8] =
+    b"semaprax.project-semantic-impact.artifact-digest.v1\0";
 const WORKSPACE_MANIFEST_SCHEMA: &str = "semaprax.workspace-semantic-manifest.v1";
 const CONTEXT_DIGEST_DOMAIN: &[u8] = b"semaprax.workspace-semantic-context.artifact-digest.v1\0";
 const IMPACT_DIGEST_DOMAIN: &[u8] = b"semaprax.workspace-semantic-impact.artifact-digest.v1\0";
@@ -562,6 +565,18 @@ impl WorkspaceAnalysis {
             return Err(vec![limit_error("output_bytes", options.max_bytes)]);
         }
         Ok(json)
+    }
+
+    pub(crate) fn render_project_impact(
+        &self,
+        subject: ProjectAnalysisSubject<'_>,
+        target_kind: WorkspaceAnalysisTargetKind,
+        target: &str,
+        options: WorkspaceImpactOptions,
+    ) -> Result<String, Vec<Diagnostic>> {
+        let target = WorkspaceAnalysisTarget::new(target_kind, target)?;
+        let facts = self.impact(target, options.depth, options.max_nodes)?;
+        render_project_impact_artifact(self, subject, facts, options)
     }
 
     fn build_bounded(projection: WorkspaceGraphProjection) -> Result<Self, Vec<Diagnostic>> {
@@ -2749,6 +2764,114 @@ fn project_context_digest(payload: &[u8]) -> String {
 
 #[allow(
     clippy::too_many_arguments,
+    reason = "closed canonical Project Impact renderer binding"
+)]
+fn render_project_impact_json(
+    analysis: &WorkspaceAnalysis,
+    subject: ProjectAnalysisSubject<'_>,
+    facts: &WorkspaceImpactFacts,
+    options: WorkspaceImpactOptions,
+    digest: Option<&str>,
+    used_output_bytes: usize,
+    retained_nodes: usize,
+    retained_ranks: Option<&BTreeMap<WorkspaceAnalysisNode, usize>>,
+    used_builder_bytes: usize,
+) -> String {
+    let mut output = crate::bounded_output::CappedString::new();
+    output.push_str("{\"schema\":");
+    push_json_string(&mut output, PROJECT_IMPACT_SCHEMA);
+    output.push_str(",\"project_schema\":\"semaprax.project.v1\",\"project\":");
+    push_json_string(&mut output, subject.project_name);
+    output.push_str(",\"project_revision\":");
+    push_json_string(&mut output, subject.project_revision);
+    output.push_str(",\"workspace_revision\":");
+    push_json_string(&mut output, analysis.workspace_revision());
+    output.push_str(",\"project_graph_digest\":");
+    push_json_string(&mut output, subject.graph_digest);
+    if let Some(digest) = digest {
+        output.push_str(",\"artifact_digest\":");
+        push_json_string(&mut output, digest);
+    }
+    output.push_str(",\"entry_module\":");
+    push_json_string(&mut output, analysis.entry_module());
+    output.push_str(",\"test_module\":");
+    push_json_string(&mut output, subject.test_module);
+    output.push_str(",\"target\":");
+    push_target(&mut output, analysis, &facts.target);
+    write!(
+        output,
+        ",\"query\":{{\"direction\":\"reverse\",\"depth\":{},\"max_bytes\":{},\"max_nodes\":{}}}",
+        options.depth, options.max_bytes, options.max_nodes,
+    )
+    .expect("writing to a string cannot fail");
+    output.push_str(",\"affected\":[");
+    for (index, affected) in facts.nodes[..retained_nodes].iter().enumerate() {
+        if index > 0 {
+            output.push(',');
+        }
+        push_affected(
+            &mut output,
+            analysis,
+            facts,
+            affected,
+            retained_ranks,
+            retained_nodes,
+        );
+    }
+    output.push_str("],\"dependency_edges\":[");
+    let mut first_edge = true;
+    for path_edge in &facts.path_edges {
+        let typed = &analysis.typed_edges[path_edge.edge_index];
+        if !edge_is_visible(typed, retained_ranks, retained_nodes) {
+            continue;
+        }
+        if !first_edge {
+            output.push(',');
+        }
+        push_edge(&mut output, &analysis.edges()[path_edge.edge_index]);
+        first_edge = false;
+    }
+    output.push_str("],\"truncation\":");
+    push_prefix_truncation(
+        &mut output,
+        &facts.truncation,
+        options.depth,
+        facts.nodes.len() - retained_nodes,
+    );
+    output.push_str(",\"frontier\":");
+    push_impact_prefix_frontier(&mut output, facts, retained_nodes);
+    output.push_str(",\"budget\":{");
+    let used_edges = facts
+        .path_edges
+        .iter()
+        .filter(|path_edge| {
+            edge_is_visible(
+                &analysis.typed_edges[path_edge.edge_index],
+                retained_ranks,
+                retained_nodes,
+            )
+        })
+        .count();
+    write!(
+        output,
+        "\"used_nodes\":{},\"used_edges\":{},\"used_depth\":{},\"used_builder_bytes\":{},\"used_output_bytes\":{}",
+        retained_nodes,
+        used_edges,
+        facts.nodes[..retained_nodes]
+            .iter()
+            .map(|affected| affected.node.depth)
+            .max()
+            .unwrap_or(0),
+        used_builder_bytes,
+        used_output_bytes,
+    )
+    .expect("writing to a string cannot fail");
+    output.push_str("},\"nonclaims\":[\"authenticated_declared_project_inputs_not_managed_workspace_state\",\"potential_structural_dependency_impact_not_patch_candidate_or_behavioral_delta\",\"only_reverse_closure_over_six_workspace_graph_edge_families\",\"no_patch_change_review_or_commit_authority\",\"no_target_execution_or_external_consumer_compatibility\",\"no_persistent_cache_or_repository_index\"]}");
+    output.into_string()
+}
+
+#[allow(
+    clippy::too_many_arguments,
     reason = "closed canonical Context renderer binding"
 )]
 fn render_context_json_prefix(
@@ -3178,6 +3301,108 @@ fn render_impact_artifact(
         digest,
         facts,
     })
+}
+
+fn render_project_impact_artifact(
+    analysis: &WorkspaceAnalysis,
+    subject: ProjectAnalysisSubject<'_>,
+    mut facts: WorkspaceImpactFacts,
+    options: WorkspaceImpactOptions,
+) -> Result<String, Vec<Diagnostic>> {
+    let remaining_builder_bytes = MAX_BUILDER_BYTES
+        .checked_sub(facts.aggregate_builder_bytes)
+        .ok_or_else(|| vec![limit_error("builder_bytes", MAX_BUILDER_BYTES)])?;
+    let (ranks, rank_builder_bytes) = retained_node_ranks(
+        facts.nodes.iter().map(|fact| &fact.node.node),
+        remaining_builder_bytes,
+    )?;
+    facts.used_builder_bytes = checked_builder_sum(facts.used_builder_bytes, rank_builder_bytes)?;
+    facts.aggregate_builder_bytes =
+        checked_builder_sum(facts.aggregate_builder_bytes, rank_builder_bytes)?;
+    let prefix_builder_bytes = facts.used_builder_bytes;
+    let prefix_aggregate_builder_bytes = facts.aggregate_builder_bytes;
+    let mut low = 1usize;
+    let mut high = facts.nodes.len();
+    let mut retained_nodes = None;
+    while low <= high {
+        let raw_candidate = low + (high - low) / 2;
+        let candidate = next_impact_builder_feasible_prefix(
+            &facts,
+            raw_candidate,
+            prefix_builder_bytes,
+            prefix_aggregate_builder_bytes,
+        )
+        .ok_or_else(|| vec![limit_error("builder_bytes", MAX_BUILDER_BYTES)])?;
+        if candidate > high {
+            if raw_candidate == 1 {
+                break;
+            }
+            high = raw_candidate - 1;
+            continue;
+        }
+        let candidate_builder_bytes = checked_builder_sum(
+            prefix_builder_bytes,
+            impact_finalization_debit(&facts, candidate)?,
+        )?;
+        let measured = measure_artifact(options.max_bytes, |used_output_bytes| {
+            render_project_impact_json(
+                analysis,
+                subject,
+                &facts,
+                options,
+                Some(DIGEST_PLACEHOLDER),
+                used_output_bytes,
+                candidate,
+                Some(&ranks),
+                candidate_builder_bytes,
+            )
+        })?;
+        if measured.is_some() {
+            retained_nodes = Some(candidate);
+            low = candidate.saturating_add(1);
+        } else if candidate == 1 {
+            break;
+        } else {
+            high = candidate - 1;
+        }
+    }
+    let retained_nodes =
+        retained_nodes.ok_or_else(|| vec![limit_error("output_bytes", options.max_bytes)])?;
+    let finalization_debit = impact_finalization_debit(&facts, retained_nodes)?;
+    facts.used_builder_bytes = checked_builder_sum(prefix_builder_bytes, finalization_debit)?;
+    facts.aggregate_builder_bytes =
+        checked_builder_sum(prefix_aggregate_builder_bytes, finalization_debit)?;
+    let final_builder_bytes = finalize_impact_prefix(
+        analysis,
+        &mut facts,
+        retained_nodes,
+        &ranks,
+        finalization_debit,
+    )?;
+    if final_builder_bytes != finalization_debit {
+        return Err(vec![invariant_error(
+            "Project Semantic Impact replay or digest binding disagrees",
+        )]);
+    }
+    let (json, _) = bind_artifact(
+        options.max_bytes,
+        PROJECT_IMPACT_DIGEST_DOMAIN,
+        "Project Semantic Impact replay or digest binding disagrees",
+        |digest, used_output_bytes| {
+            render_project_impact_json(
+                analysis,
+                subject,
+                &facts,
+                options,
+                digest,
+                used_output_bytes,
+                facts.nodes.len(),
+                None,
+                facts.used_builder_bytes,
+            )
+        },
+    )?;
+    Ok(json)
 }
 
 fn measure_artifact(

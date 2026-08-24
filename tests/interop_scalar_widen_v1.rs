@@ -83,9 +83,9 @@ fn mixed_fixture() -> PathBuf {
     static FIXTURE: OnceLock<PathBuf> = OnceLock::new();
     FIXTURE
         .get_or_init(|| {
-            let directory = Path::new("target").join("semaprax-interop-widen-kat");
-            std::fs::create_dir_all(&directory).unwrap();
-            let path = directory.join("mixed.spx");
+            let directory = Path::new(MIXED_FIXTURE_PATH).parent().expect("parent");
+            std::fs::create_dir_all(directory).unwrap();
+            let path = PathBuf::from(MIXED_FIXTURE_PATH);
             std::fs::write(&path, MIXED_SOURCE).unwrap();
             path
         })

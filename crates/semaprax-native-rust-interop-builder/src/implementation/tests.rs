@@ -6535,7 +6535,7 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
     let lower = include_str!("../../../../src/cleanup_plan/build.rs");
     let calls = include_str!("../../../../src/call_index.rs");
     for (source, expected) in [
-        (hir_resolver, "size_of::<Frame<'static>>() == 552"),
+        (hir_resolver, "size_of::<Frame<'static>>() == 592"),
         (hir_validator, "size_of::<Frame<'static>>() == 288"),
         (verifier, "size_of::<VerifierFrame<'static>>() == 320"),
         (verifier, "size_of::<VariantMatchState<'static>>() == 312"),

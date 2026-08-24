@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt::Write as _;
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::Path;
@@ -1297,9 +1298,98 @@ pub(crate) struct PreparedProjectWeb {
     manifest: String,
 }
 
+/// The closed schema for one pathless, deterministic Project Web build.
+pub const PROJECT_WEB_BUILD_SCHEMA: &str = "semaprax.project-web-build.v1";
+
+/// Hard ceiling for an inline Project Web build envelope. Callers may select
+/// a smaller limit, but cannot widen this process-wide admission boundary.
+pub const MAX_PROJECT_WEB_BUILD_BYTES: usize = 16 * 1024 * 1024;
+
+const PROJECT_WEB_PACKAGE: &str = "{\"private\":true,\"type\":\"module\",\"exports\":\"./semaprax.bindings.js\",\"types\":\"./semaprax.bindings.d.ts\"}\n";
+const PROJECT_WEB_ARTIFACT_PATHS: [&str; 7] = [
+    "app.wasm",
+    "semaprax.js",
+    "semaprax.bindings.js",
+    "semaprax.bindings.d.ts",
+    "semaprax.scalar-exports.json",
+    "package.json",
+    "index.html",
+];
+
+/// One self-contained Web package returned without filesystem or process
+/// authority. The envelope is canonical JSON and every artifact is encoded as
+/// lowercase hexadecimal bytes in the fixed publication order.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProjectWebBuild {
+    envelope: String,
+    payload_digest: String,
+    artifact_bytes: usize,
+    max_bytes: usize,
+}
+
+impl ProjectWebBuild {
+    pub fn envelope(&self) -> &str {
+        &self.envelope
+    }
+
+    pub fn payload_digest(&self) -> &str {
+        &self.payload_digest
+    }
+
+    pub fn artifact_bytes(&self) -> usize {
+        self.artifact_bytes
+    }
+
+    pub fn max_bytes(&self) -> usize {
+        self.max_bytes
+    }
+
+    /// Independently decode and replay the closed carrier, including exact
+    /// artifact order, byte counts, SHA-256 values, cumulative limits, payload
+    /// digest, and canonical JSON rendering.
+    pub fn verify(&self) -> Result<(), Diagnostic> {
+        verify_project_web_build(self)
+    }
+
+    /// Admit an externally transported envelope only after the same exact
+    /// replay used for compiler-produced carriers. The caller supplies the
+    /// trusted upper bound; a serialized envelope cannot widen it.
+    pub fn verify_envelope(envelope: &str, max_bytes: usize) -> Result<Self, Diagnostic> {
+        if max_bytes == 0 || max_bytes > MAX_PROJECT_WEB_BUILD_BYTES || envelope.len() > max_bytes {
+            return Err(project_web_build_error(
+                "Project Web build exceeds the verifier's closed envelope limit",
+            ));
+        }
+        let value: serde_json::Value = serde_json::from_str(envelope)
+            .map_err(|_| project_web_build_error("Project Web build envelope is not valid JSON"))?;
+        let object = value.as_object().ok_or_else(|| {
+            project_web_build_error("Project Web build envelope must be one JSON object")
+        })?;
+        let payload_digest = object
+            .get("payload_digest")
+            .and_then(serde_json::Value::as_str)
+            .ok_or_else(|| project_web_build_error("Project Web build payload_digest is invalid"))?
+            .to_owned();
+        let artifact_bytes = object
+            .get("artifact_bytes")
+            .and_then(serde_json::Value::as_u64)
+            .and_then(|value| usize::try_from(value).ok())
+            .ok_or_else(|| {
+                project_web_build_error("Project Web build artifact_bytes is invalid")
+            })?;
+        let build = Self {
+            envelope: envelope.to_owned(),
+            payload_digest,
+            artifact_bytes,
+            max_bytes,
+        };
+        build.verify()?;
+        Ok(build)
+    }
+}
+
 impl PreparedProjectWeb {
     pub(crate) fn publish(self, output: &Path) -> Result<(), Diagnostic> {
-        let package = "{\"private\":true,\"type\":\"module\",\"exports\":\"./semaprax.bindings.js\",\"types\":\"./semaprax.bindings.d.ts\"}\n";
         let index = scalar_browser_html();
         let artifacts: [(&str, &[u8]); 7] = [
             ("app.wasm", &self.wasm_bytes),
@@ -1307,11 +1397,404 @@ impl PreparedProjectWeb {
             ("semaprax.bindings.js", self.bindings.as_bytes()),
             ("semaprax.bindings.d.ts", self.declarations.as_bytes()),
             ("semaprax.scalar-exports.json", self.manifest.as_bytes()),
-            ("package.json", package.as_bytes()),
+            ("package.json", PROJECT_WEB_PACKAGE.as_bytes()),
             ("index.html", index.as_bytes()),
         ];
         publish_scalar_package(output, &artifacts)
     }
+
+    pub(crate) fn into_inline(
+        self,
+        project_name: &str,
+        project_revision: &str,
+        workspace_revision: &str,
+        entry_module: &str,
+        max_bytes: usize,
+    ) -> Result<ProjectWebBuild, Diagnostic> {
+        let artifacts: [(&str, &[u8]); 7] = [
+            ("app.wasm", &self.wasm_bytes),
+            ("semaprax.js", self.runtime.as_bytes()),
+            ("semaprax.bindings.js", self.bindings.as_bytes()),
+            ("semaprax.bindings.d.ts", self.declarations.as_bytes()),
+            ("semaprax.scalar-exports.json", self.manifest.as_bytes()),
+            ("package.json", PROJECT_WEB_PACKAGE.as_bytes()),
+            ("index.html", scalar_browser_html().as_bytes()),
+        ];
+        build_project_web_carrier(
+            project_name,
+            project_revision,
+            workspace_revision,
+            entry_module,
+            max_bytes,
+            &artifacts,
+        )
+    }
+}
+
+fn project_web_build_error(message: impl Into<String>) -> Diagnostic {
+    Diagnostic::io("SPX-W117", message)
+}
+
+fn build_project_web_carrier(
+    project_name: &str,
+    project_revision: &str,
+    workspace_revision: &str,
+    entry_module: &str,
+    max_bytes: usize,
+    artifacts: &[(&str, &[u8])],
+) -> Result<ProjectWebBuild, Diagnostic> {
+    if max_bytes == 0 || max_bytes > MAX_PROJECT_WEB_BUILD_BYTES {
+        return Err(project_web_build_error(format!(
+            "Project Web build max_bytes must be between 1 and {MAX_PROJECT_WEB_BUILD_BYTES}"
+        )));
+    }
+    if artifacts.len() != PROJECT_WEB_ARTIFACT_PATHS.len()
+        || artifacts
+            .iter()
+            .zip(PROJECT_WEB_ARTIFACT_PATHS)
+            .any(|((actual, _), expected)| *actual != expected)
+    {
+        return Err(project_web_build_error(
+            "Project Web build artifact inventory is not the closed seven-artifact package",
+        ));
+    }
+
+    let mut artifact_bytes = 0usize;
+    for (_, bytes) in artifacts {
+        artifact_bytes = artifact_bytes.checked_add(bytes.len()).ok_or_else(|| {
+            project_web_build_error("Project Web build cumulative artifact bytes overflowed")
+        })?;
+        if artifact_bytes > max_bytes {
+            return Err(project_web_build_error(format!(
+                "Project Web build cumulative artifact bytes exceed max_bytes {max_bytes}"
+            )));
+        }
+    }
+
+    let payload = render_project_web_build_payload(
+        project_name,
+        project_revision,
+        workspace_revision,
+        entry_module,
+        max_bytes,
+        artifact_bytes,
+        artifacts,
+    )?;
+    let payload_digest = format!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(Sha256::digest(payload.as_bytes()))
+    );
+    let mut envelope = payload;
+    debug_assert!(envelope.ends_with('}'));
+    envelope.pop();
+    write!(
+        envelope,
+        ",\"payload_digest\":{}}}",
+        quote_json(&payload_digest)
+    )
+    .expect("writing canonical Project Web build JSON to String cannot fail");
+    if envelope.len() > max_bytes {
+        return Err(project_web_build_error(format!(
+            "Project Web build envelope bytes exceed max_bytes {max_bytes}"
+        )));
+    }
+    Ok(ProjectWebBuild {
+        envelope,
+        payload_digest,
+        artifact_bytes,
+        max_bytes,
+    })
+}
+
+fn render_project_web_build_payload(
+    project_name: &str,
+    project_revision: &str,
+    workspace_revision: &str,
+    entry_module: &str,
+    max_bytes: usize,
+    artifact_bytes: usize,
+    artifacts: &[(&str, &[u8])],
+) -> Result<String, Diagnostic> {
+    let mut payload = format!(
+        "{{\"schema\":{},\"project_schema\":\"semaprax.project.v1\",\"project\":{},\"project_revision\":{},\"workspace_revision\":{},\"entry_module\":{},\"encoding\":\"hex-lower\",\"limits\":{{\"max_bytes\":{max_bytes}}},\"artifact_count\":7,\"artifact_bytes\":{artifact_bytes},\"artifacts\":[",
+        quote_json(PROJECT_WEB_BUILD_SCHEMA),
+        quote_json(project_name),
+        quote_json(project_revision),
+        quote_json(workspace_revision),
+        quote_json(entry_module),
+    );
+    if payload.len() > max_bytes {
+        return Err(project_web_build_error(format!(
+            "Project Web build envelope bytes exceed max_bytes {max_bytes}"
+        )));
+    }
+    for (index, (path, bytes)) in artifacts.iter().enumerate() {
+        if index != 0 {
+            payload.push(',');
+        }
+        let sha256 = format!(
+            "sha256:{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(bytes))
+        );
+        write!(
+            payload,
+            "{{\"path\":{},\"bytes\":{},\"sha256\":{},\"content_hex\":\"",
+            quote_json(path),
+            bytes.len(),
+            quote_json(&sha256),
+        )
+        .expect("writing canonical Project Web artifact JSON to String cannot fail");
+        const HEX: &[u8; 16] = b"0123456789abcdef";
+        for byte in *bytes {
+            payload.push(char::from(HEX[usize::from(byte >> 4)]));
+            payload.push(char::from(HEX[usize::from(byte & 0x0f)]));
+        }
+        payload.push_str("\"}");
+        if payload.len() > max_bytes {
+            return Err(project_web_build_error(format!(
+                "Project Web build envelope bytes exceed max_bytes {max_bytes}"
+            )));
+        }
+    }
+    payload.push_str("],\"nonclaims\":[\"no_filesystem_authority\",\"no_process_authority\",\"no_publication_or_cache\"]}");
+    if payload.len() > max_bytes {
+        return Err(project_web_build_error(format!(
+            "Project Web build envelope bytes exceed max_bytes {max_bytes}"
+        )));
+    }
+    Ok(payload)
+}
+
+fn verify_project_web_build(build: &ProjectWebBuild) -> Result<(), Diagnostic> {
+    if build.max_bytes == 0
+        || build.max_bytes > MAX_PROJECT_WEB_BUILD_BYTES
+        || build.envelope.len() > build.max_bytes
+    {
+        return Err(project_web_build_error(
+            "Project Web build exceeds its closed envelope limit",
+        ));
+    }
+    let value: serde_json::Value = serde_json::from_str(&build.envelope)
+        .map_err(|_| project_web_build_error("Project Web build envelope is not valid JSON"))?;
+    let object = value.as_object().ok_or_else(|| {
+        project_web_build_error("Project Web build envelope must be one JSON object")
+    })?;
+    const KEYS: [&str; 13] = [
+        "schema",
+        "project_schema",
+        "project",
+        "project_revision",
+        "workspace_revision",
+        "entry_module",
+        "encoding",
+        "limits",
+        "artifact_count",
+        "artifact_bytes",
+        "artifacts",
+        "nonclaims",
+        "payload_digest",
+    ];
+    if object.len() != KEYS.len() || KEYS.iter().any(|key| !object.contains_key(*key)) {
+        return Err(project_web_build_error(
+            "Project Web build envelope has a foreign or missing field",
+        ));
+    }
+    let string = |key: &str| {
+        object
+            .get(key)
+            .and_then(serde_json::Value::as_str)
+            .ok_or_else(|| project_web_build_error(format!("Project Web build {key} is invalid")))
+    };
+    if string("schema")? != PROJECT_WEB_BUILD_SCHEMA
+        || string("project_schema")? != "semaprax.project.v1"
+        || string("encoding")? != "hex-lower"
+    {
+        return Err(project_web_build_error(
+            "Project Web build schema or encoding is invalid",
+        ));
+    }
+    let limits = object
+        .get("limits")
+        .and_then(serde_json::Value::as_object)
+        .ok_or_else(|| project_web_build_error("Project Web build limits are invalid"))?;
+    if limits.len() != 1 {
+        return Err(project_web_build_error(
+            "Project Web build limits are not closed",
+        ));
+    }
+    let declared_max = limits
+        .get("max_bytes")
+        .and_then(serde_json::Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .ok_or_else(|| project_web_build_error("Project Web build max_bytes is invalid"))?;
+    if declared_max != build.max_bytes {
+        return Err(project_web_build_error(
+            "Project Web build max_bytes disagrees with its carrier",
+        ));
+    }
+    if object
+        .get("artifact_count")
+        .and_then(serde_json::Value::as_u64)
+        != Some(7)
+    {
+        return Err(project_web_build_error(
+            "Project Web build artifact_count is not seven",
+        ));
+    }
+    let rows = object
+        .get("artifacts")
+        .and_then(serde_json::Value::as_array)
+        .filter(|rows| rows.len() == PROJECT_WEB_ARTIFACT_PATHS.len())
+        .ok_or_else(|| {
+            project_web_build_error("Project Web build artifact inventory is invalid")
+        })?;
+    let mut decoded = Vec::with_capacity(rows.len());
+    let mut replayed_artifact_bytes = 0usize;
+    for (row, expected_path) in rows.iter().zip(PROJECT_WEB_ARTIFACT_PATHS) {
+        let row = row.as_object().ok_or_else(|| {
+            project_web_build_error("Project Web build artifact must be one JSON object")
+        })?;
+        if row.len() != 4
+            || ["path", "bytes", "sha256", "content_hex"]
+                .iter()
+                .any(|key| !row.contains_key(*key))
+        {
+            return Err(project_web_build_error(
+                "Project Web build artifact has a foreign or missing field",
+            ));
+        }
+        if row.get("path").and_then(serde_json::Value::as_str) != Some(expected_path) {
+            return Err(project_web_build_error(
+                "Project Web build artifact order or path is invalid",
+            ));
+        }
+        let declared_bytes = row
+            .get("bytes")
+            .and_then(serde_json::Value::as_u64)
+            .and_then(|value| usize::try_from(value).ok())
+            .ok_or_else(|| project_web_build_error("Project Web build byte count is invalid"))?;
+        let content = row
+            .get("content_hex")
+            .and_then(serde_json::Value::as_str)
+            .ok_or_else(|| project_web_build_error("Project Web build content_hex is invalid"))?;
+        let bytes = decode_lower_hex(content)?;
+        if bytes.len() != declared_bytes {
+            return Err(project_web_build_error(
+                "Project Web build artifact byte count disagrees with content",
+            ));
+        }
+        let expected_sha256 = format!(
+            "sha256:{:x}",
+            crate::digest_hex::LowerHex(Sha256::digest(&bytes))
+        );
+        if row.get("sha256").and_then(serde_json::Value::as_str) != Some(expected_sha256.as_str()) {
+            return Err(project_web_build_error(
+                "Project Web build artifact SHA-256 disagrees with content",
+            ));
+        }
+        replayed_artifact_bytes = replayed_artifact_bytes
+            .checked_add(bytes.len())
+            .ok_or_else(|| project_web_build_error("Project Web build byte count overflowed"))?;
+        if replayed_artifact_bytes > build.max_bytes {
+            return Err(project_web_build_error(
+                "Project Web build cumulative artifact bytes exceed max_bytes",
+            ));
+        }
+        decoded.push(bytes);
+    }
+    let declared_artifact_bytes = object
+        .get("artifact_bytes")
+        .and_then(serde_json::Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .ok_or_else(|| project_web_build_error("Project Web build artifact_bytes is invalid"))?;
+    if declared_artifact_bytes != replayed_artifact_bytes
+        || declared_artifact_bytes != build.artifact_bytes
+    {
+        return Err(project_web_build_error(
+            "Project Web build cumulative artifact bytes disagree",
+        ));
+    }
+    let nonclaims = object
+        .get("nonclaims")
+        .and_then(serde_json::Value::as_array)
+        .ok_or_else(|| project_web_build_error("Project Web build nonclaims are invalid"))?;
+    let expected_nonclaims = [
+        "no_filesystem_authority",
+        "no_process_authority",
+        "no_publication_or_cache",
+    ];
+    if nonclaims.len() != expected_nonclaims.len()
+        || nonclaims
+            .iter()
+            .zip(expected_nonclaims)
+            .any(|(actual, expected)| actual.as_str() != Some(expected))
+    {
+        return Err(project_web_build_error(
+            "Project Web build nonclaims are not the closed vocabulary",
+        ));
+    }
+    let artifact_refs = PROJECT_WEB_ARTIFACT_PATHS
+        .iter()
+        .copied()
+        .zip(decoded.iter().map(Vec::as_slice))
+        .collect::<Vec<_>>();
+    let payload = render_project_web_build_payload(
+        string("project")?,
+        string("project_revision")?,
+        string("workspace_revision")?,
+        string("entry_module")?,
+        build.max_bytes,
+        build.artifact_bytes,
+        &artifact_refs,
+    )?;
+    let replayed_digest = format!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(Sha256::digest(payload.as_bytes()))
+    );
+    if string("payload_digest")? != replayed_digest || build.payload_digest != replayed_digest {
+        return Err(project_web_build_error(
+            "Project Web build payload digest disagrees with exact replay",
+        ));
+    }
+    let mut canonical = payload;
+    canonical.pop();
+    write!(
+        canonical,
+        ",\"payload_digest\":{}}}",
+        quote_json(&replayed_digest)
+    )
+    .expect("writing canonical Project Web build JSON to String cannot fail");
+    if canonical != build.envelope {
+        return Err(project_web_build_error(
+            "Project Web build envelope is not canonical exact replay",
+        ));
+    }
+    Ok(())
+}
+
+fn decode_lower_hex(value: &str) -> Result<Vec<u8>, Diagnostic> {
+    if value.len() & 1 == 1 {
+        return Err(project_web_build_error(
+            "Project Web build content_hex has odd length",
+        ));
+    }
+    let mut bytes = Vec::with_capacity(value.len() / 2);
+    for index in (0..value.len()).step_by(2) {
+        let pair = &value.as_bytes()[index..index + 2];
+        let digit = |byte: u8| match byte {
+            b'0'..=b'9' => Some(byte - b'0'),
+            b'a'..=b'f' => Some(byte - b'a' + 10),
+            _ => None,
+        };
+        let high = digit(pair[0]).ok_or_else(|| {
+            project_web_build_error("Project Web build content_hex is not lowercase hexadecimal")
+        })?;
+        let low = digit(pair[1]).ok_or_else(|| {
+            project_web_build_error("Project Web build content_hex is not lowercase hexadecimal")
+        })?;
+        bytes.push((high << 4) | low);
+    }
+    Ok(bytes)
 }
 
 pub(crate) fn prepare_project_web_with_scalar_exports(

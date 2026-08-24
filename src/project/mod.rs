@@ -21,6 +21,7 @@ use std::path::{Path, PathBuf};
 use crate::diagnostic::Diagnostic;
 use crate::semantic_workspace::SemanticWorkspaceSource;
 
+pub use crate::wasm::{ProjectWebBuild, MAX_PROJECT_WEB_BUILD_BYTES, PROJECT_WEB_BUILD_SCHEMA};
 use authority::{authentication, DeclaredPathSelection, HeldDirectory, HeldFile};
 #[cfg(all(test, windows))]
 use authority::{declared_absolute_path, has_declared_alias_component};
@@ -35,7 +36,9 @@ pub use manifest::{
 };
 pub use native_sdk::{ProjectNativeSdkExport, ProjectNativeSdkSubject};
 pub(crate) use rename::{PreparedProjectRename, ProjectRenameDerivation};
-pub use semantic::{PROJECT_SEMANTIC_CONTEXT_SCHEMA, PROJECT_SEMANTIC_GRAPH_SCHEMA};
+pub use semantic::{
+    PROJECT_SEMANTIC_CONTEXT_SCHEMA, PROJECT_SEMANTIC_GRAPH_SCHEMA, PROJECT_SEMANTIC_IMPACT_SCHEMA,
+};
 
 const MANIFEST_FILE: &str = "semaprax.toml";
 const MAX_HELD_DIRECTORIES: usize = 128;
@@ -246,6 +249,31 @@ impl ProjectSnapshot {
         self.published_subject = Some(WEB_PUBLICATION_SUBJECT);
         self.recheck()
             .map_err(|drift| self.publication_uncertainty(drift))
+    }
+
+    /// Build the authenticated entry closure as one deterministic pathless
+    /// carrier. This performs no filesystem access, process launch,
+    /// publication, or caching. `max_bytes` bounds both the cumulative decoded
+    /// artifact inventory and the final canonical hexadecimal envelope.
+    pub fn build_web_inline(&self, max_bytes: usize) -> Result<ProjectWebBuild, Vec<Diagnostic>> {
+        crate::wasm::prepare_project_web_with_scalar_exports(
+            &self.entry_program,
+            self.manifest.name(),
+            &self.project_revision,
+            &self.workspace_revision,
+            self.manifest.entry(),
+            self.manifest.web_exports(),
+        )
+        .and_then(|prepared| {
+            prepared.into_inline(
+                self.manifest.name(),
+                &self.project_revision,
+                &self.workspace_revision,
+                self.manifest.entry(),
+                max_bytes,
+            )
+        })
+        .map_err(|error| vec![error])
     }
 
     /// Build the authenticated project entry closure as one native executable.

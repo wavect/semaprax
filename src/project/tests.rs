@@ -462,6 +462,82 @@ fn snapshot_reuses_workspace_phase_a_and_rechecks_bytes() {
     let _ = std::fs::remove_dir_all(root);
 }
 
+#[test]
+fn inline_web_build_is_exact_pathless_bounded_and_replayable() {
+    let root = fixture();
+    let before = file_inventory(&root);
+    let build = with_authenticated_project(&root.join(MANIFEST_FILE), |snapshot| {
+        snapshot.build_web_inline(MAX_PROJECT_WEB_BUILD_BYTES)
+    })
+    .unwrap();
+    assert_eq!(file_inventory(&root), before);
+    build.verify().unwrap();
+    assert_eq!(
+        ProjectWebBuild::verify_envelope(build.envelope(), build.max_bytes()).unwrap(),
+        build
+    );
+    let forged = build.envelope().replacen("app.wasm", "App.wasm", 1);
+    assert_eq!(
+        ProjectWebBuild::verify_envelope(&forged, build.max_bytes())
+            .unwrap_err()
+            .code,
+        "SPX-W117"
+    );
+    assert!(build.envelope().len() <= build.max_bytes());
+    assert!(build.artifact_bytes() < build.envelope().len());
+    assert!(build.payload_digest().starts_with("sha256:"));
+
+    let value: serde_json::Value = serde_json::from_str(build.envelope()).unwrap();
+    assert_eq!(value["schema"], PROJECT_WEB_BUILD_SCHEMA);
+    assert_eq!(value["project"], "calculator");
+    assert_eq!(value["artifact_count"], 7);
+    assert_eq!(
+        value["artifacts"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|artifact| artifact["path"].as_str().unwrap())
+            .collect::<Vec<_>>(),
+        [
+            "app.wasm",
+            "semaprax.js",
+            "semaprax.bindings.js",
+            "semaprax.bindings.d.ts",
+            "semaprax.scalar-exports.json",
+            "package.json",
+            "index.html",
+        ]
+    );
+    for artifact in value["artifacts"].as_array().unwrap() {
+        assert!(artifact["sha256"].as_str().unwrap().starts_with("sha256:"));
+        assert!(artifact["content_hex"]
+            .as_str()
+            .unwrap()
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)));
+    }
+
+    let bounded = with_authenticated_project(&root.join(MANIFEST_FILE), |snapshot| {
+        snapshot.build_web_inline(build.envelope().len())
+    })
+    .unwrap();
+    assert!(bounded.envelope().len() <= build.envelope().len());
+    bounded.verify().unwrap();
+
+    let error = with_authenticated_project(&root.join(MANIFEST_FILE), |snapshot| {
+        snapshot.build_web_inline(build.artifact_bytes())
+    })
+    .unwrap_err();
+    assert_eq!(error[0].code, "SPX-W117");
+    let error = with_authenticated_project(&root.join(MANIFEST_FILE), |snapshot| {
+        snapshot.build_web_inline(MAX_PROJECT_WEB_BUILD_BYTES + 1)
+    })
+    .unwrap_err();
+    assert_eq!(error[0].code, "SPX-W117");
+    assert_eq!(file_inventory(&root), before);
+    let _ = std::fs::remove_dir_all(root);
+}
+
 #[cfg(unix)]
 #[test]
 fn source_alias_and_duplicate_physical_identity_are_rejected() {

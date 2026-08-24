@@ -31,9 +31,57 @@ impl Fixture {
         Self(root.canonicalize().unwrap())
     }
 
+    fn config_validator(label: &str) -> Self {
+        let root = std::env::temp_dir().join(format!(
+            "semaprax-project-workflow-v2-{label}-{}-{}",
+            std::process::id(),
+            SERIAL.fetch_add(1, Ordering::Relaxed)
+        ));
+        std::fs::create_dir_all(root.join("src")).unwrap();
+        let example =
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/config-validator-project");
+        for relative in [
+            "semaprax.toml",
+            "src/app.spx",
+            "src/core.spx",
+            "src/rules.spx",
+            "src/tests.spx",
+        ] {
+            std::fs::copy(example.join(relative), root.join(relative)).unwrap();
+        }
+        Self(root.canonicalize().unwrap())
+    }
+
     fn manifest(&self) -> PathBuf {
         self.0.join("semaprax.toml")
     }
+}
+
+#[test]
+fn daemon_v2_web_and_npm_targets_return_the_same_text_carrier() {
+    let fixture = Fixture::config_validator("web-alias");
+    let mut daemon = Daemon::start(&fixture);
+    let opened = daemon.call(json!({"jsonrpc":"2.0","id":1,"method":"workspace/open"}));
+    let project_revision = opened["result"]["project_revision"].as_str().unwrap();
+    let workspace_revision = opened["result"]["workspace_revision"].as_str().unwrap();
+    let build = |id, target| {
+        json!({
+            "jsonrpc":"2.0","id":id,"method":"build","params":{
+                "project_revision":project_revision,
+                "workspace_revision":workspace_revision,
+                "target":target,
+                "max_bytes":project::MAX_PROJECT_NPM_BUILD_BYTES
+            }
+        })
+    };
+    let web = daemon.call(build(2, "web"));
+    let npm = daemon.call(build(3, "npm"));
+    assert_eq!(
+        web["result"]["build"]["schema"],
+        project::PROJECT_NPM_BUILD_SCHEMA
+    );
+    assert_eq!(web["result"]["build"], npm["result"]["build"]);
+    daemon.finish();
 }
 
 impl Drop for Fixture {
@@ -246,6 +294,14 @@ fn daemon_derives_reviews_applies_and_rebuilds_the_stable_web_api() {
     let opened = daemon.call(json!({"jsonrpc":"2.0","id":2,"method":"workspace/open"}));
     let base_project = opened["result"]["project_revision"].as_str().unwrap();
     let base_workspace = opened["result"]["workspace_revision"].as_str().unwrap();
+    let held_v1_npm = daemon.call(json!({
+        "jsonrpc":"2.0","id":18,"method":"build","params":{
+            "project_revision":base_project,"workspace_revision":base_workspace,
+            "target":"npm","max_bytes":BUILD_MAX_BYTES
+        }
+    }));
+    assert!(held_v1_npm.get("error").is_some());
+    assert!(held_v1_npm.get("result").is_none());
     let legacy = daemon.call(json!({
         "jsonrpc":"2.0","id":19,"method":"rename/preview","params":{
             "project_revision":base_project,"workspace_revision":base_workspace,

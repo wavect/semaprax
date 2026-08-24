@@ -29,7 +29,13 @@ pub enum Type {
     F64,
     Bool,
     String,
-    Named { name: String, arguments: Vec<Type> },
+    /// A borrowed UTF-8 view. Source functions may receive it only through
+    /// an explicit `borrow str` parameter; it has no literal or owned form.
+    Str,
+    Named {
+        name: String,
+        arguments: Vec<Type>,
+    },
 }
 
 impl fmt::Display for Type {
@@ -49,6 +55,7 @@ impl fmt::Display for Type {
                 Frame::Type(Type::F64) => f.write_str("f64")?,
                 Frame::Type(Type::Bool) => f.write_str("bool")?,
                 Frame::Type(Type::String) => f.write_str("string")?,
+                Frame::Type(Type::Str) => f.write_str("str")?,
                 Frame::Type(Type::Named { name, arguments }) => {
                     f.write_str(name)?;
                     if !arguments.is_empty() {

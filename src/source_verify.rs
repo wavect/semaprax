@@ -68,7 +68,7 @@ fn binding_owned_capacity(binding: &Binding) -> usize {
 fn ast_type_owned_capacity(ty: &Type) -> usize {
     match ty {
         Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64 | Type::Bool => 0,
-        Type::String => 0,
+        Type::String | Type::Str => 0,
         Type::Named { name, arguments } => name
             .capacity()
             .saturating_add(arguments.capacity() * std::mem::size_of::<Type>())
@@ -351,6 +351,7 @@ impl<'a> TypeTable<'a> {
                     Type::F64 => resolved.push(Type::F64),
                     Type::Bool => resolved.push(Type::Bool),
                     Type::String => resolved.push(Type::String),
+                    Type::Str => resolved.push(Type::Str),
                     Type::Named {
                         name,
                         arguments: nested,
@@ -408,9 +409,14 @@ impl<'a> TypeTable<'a> {
     fn contains_string_inner(&self, ty: &Type, visiting: &mut HashSet<String>) -> bool {
         match ty {
             Type::String => true,
-            Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64 | Type::Bool => {
-                false
-            }
+            Type::I64
+            | Type::I32
+            | Type::Char
+            | Type::U8
+            | Type::F32
+            | Type::F64
+            | Type::Bool
+            | Type::Str => false,
             Type::Named { name, arguments } => {
                 if !visiting.insert(name.clone()) {
                     return false;
@@ -780,6 +786,17 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
             let mut field_names = HashSet::new();
             let mut field_ids = HashSet::new();
             for field in fields {
+                if field.ty == Type::Str {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-O116",
+                        format!(
+                            "aggregate field `{}.{}` cannot store borrowed `str`",
+                            declaration.name, field.name
+                        ),
+                        field.span,
+                    ));
+                }
                 if !source_identifier(&field.name) {
                     diagnostics.push(error(
                         program,
@@ -900,6 +917,17 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                 let mut field_names = HashSet::new();
                 let mut field_ids = HashSet::new();
                 for field in &case.fields {
+                    if field.ty == Type::Str {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-O116",
+                            format!(
+                                "variant field `{}::{}.{}` cannot store borrowed `str`",
+                                declaration.name, case.name, field.name
+                            ),
+                            field.span,
+                        ));
+                    }
                     if !source_identifier(&field.name) {
                         diagnostics.push(error(
                             program,
@@ -1453,6 +1481,17 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                 function.name_span,
             ));
         }
+        if crate::str_ops::by_name(&function.name).is_some() {
+            diagnostics.push(error(
+                program,
+                "SPX-S113",
+                format!(
+                    "function name `{}` is reserved by the compiler-owned borrowed string operations",
+                    function.name
+                ),
+                function.name_span,
+            ));
+        }
         if functions.insert(function.name.as_str(), function).is_some() {
             diagnostics.push(error(
                 program,
@@ -1996,6 +2035,17 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
         for function in &specializations {
             let specialized_diagnostic_start = diagnostics.len();
             let mut variables = HashMap::new();
+            if function.return_type == Type::Str {
+                diagnostics.push(error(
+                    program,
+                    "SPX-O116",
+                    format!(
+                        "function `{}` cannot return borrowed `str`; borrowed text is confined to the invocation",
+                        function.name
+                    ),
+                    function.span,
+                ));
+            }
             for param in &function.params {
                 if !source_identifier(&param.name) {
                     diagnostics.push(error(
@@ -2416,7 +2466,7 @@ fn direct_function_type_argument(ty: &Type) -> bool {
 fn generic_function_signature_slot(ty: &Type, parameters: &HashSet<&str>) -> bool {
     match ty {
         Type::I64 | Type::Bool | Type::String => true,
-        Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64 => false,
+        Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64 | Type::Str => false,
         Type::Named { name, arguments } => {
             arguments.is_empty() && parameters.contains(name.as_str())
         }
@@ -2445,6 +2495,7 @@ fn substitute_function_type(
                 Type::F64 => resolved.push(Type::F64),
                 Type::Bool => resolved.push(Type::Bool),
                 Type::String => resolved.push(Type::String),
+                Type::Str => resolved.push(Type::Str),
                 Type::Named {
                     name,
                     arguments: nested,
@@ -2616,6 +2667,23 @@ fn check_ownership_mode(
     types: &TypeTable<'_>,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
+    if param.ty == Type::Str {
+        if param.mode != ParamMode::Borrow {
+            diagnostics.push(
+                error(
+                    program,
+                    "SPX-O115",
+                    format!(
+                        "borrowed text parameter `{}.{}` must use `borrow str`",
+                        function.name, param.name
+                    ),
+                    param.span,
+                )
+                .with_help(format!("use `{}: borrow str`", param.name)),
+            );
+        }
+        return;
+    }
     match (types.contains_resource(&param.ty), param.mode) {
         (true, ParamMode::Value) => diagnostics.push(
             error(
@@ -3887,6 +3955,34 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             // established `own` transfer mode and borrowed
                             // arguments never mark their sources moved.
                             let params = crate::string_ops::ast_params(op);
+                            if !type_arguments.is_empty() {
+                                self.diagnostics.push(error(
+                                    self.program,
+                                    "SPX-T225",
+                                    format!("monomorphic function `{name}` does not accept type arguments"),
+                                    expression.span,
+                                ));
+                            }
+                            if args.len() != params.len() {
+                                self.diagnostics.push(error(
+                                    self.program,
+                                    "SPX-T204",
+                                    format!(
+                                        "`{name}` expects {} arguments, received {}",
+                                        params.len(),
+                                        args.len()
+                                    ),
+                                    expression.span,
+                                ));
+                            }
+                            VerifierCallTarget::Ordinary(Some(
+                                VerifierFunctionSignature::Specialized {
+                                    params,
+                                    return_type: op.ast_return_type(),
+                                },
+                            ))
+                        } else if let Some(op) = crate::str_ops::by_name(name) {
+                            let params = crate::str_ops::ast_params(op);
                             if !type_arguments.is_empty() {
                                 self.diagnostics.push(error(
                                     self.program,
@@ -6293,6 +6389,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             | Type::F64
                             | Type::Bool
                             | Type::String
+                            | Type::Str
                             | Type::Named { .. } => None,
                         });
                     let variant_name = variant_instance.as_ref().map(|(name, _)| name.clone());
@@ -8036,6 +8133,7 @@ fn check_expr(
                 | Type::F64
                 | Type::Bool
                 | Type::String
+                | Type::Str
                 | Type::Named { .. } => None,
             });
             let variant_name = variant_instance.as_ref().map(|(name, _)| name.clone());

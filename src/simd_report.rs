@@ -378,7 +378,7 @@ fn scalar_type_name(ty: &Type) -> Option<&'static str> {
         Type::F64 => Some("f64"),
         Type::Bool => Some("bool"),
         Type::Char => Some("char"),
-        Type::String => None,
+        Type::String | Type::Str => None,
         Type::Named { .. } => None,
     }
 }

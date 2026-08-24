@@ -354,9 +354,9 @@ pub(super) fn derive_from_admitted(
                     parameter_index
                 )));
             }
-            ResolvedType::String => {
+            ResolvedType::String | ResolvedType::Str => {
                 return Err(host_error(format!(
-                    "string parameter {} is outside the native host slice",
+                    "text parameter {} is outside the native host slice",
                     parameter_index
                 )));
             }

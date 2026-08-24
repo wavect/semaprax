@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+- Added the locally evidenced Useful Text Consumer v1 / Project Manifest v2
+  tranche. Source and hostile HIR now admit a non-escaping `borrow str` input
+  view with compiler-owned byte-length, empty, prefix, and contains operations;
+  cleanup remains inert, the interpreter preserves invocation-root provenance,
+  native C checks null, length, and UTF-8 over host-provided readable storage,
+  while Wasm/JavaScript additionally validates linear-memory ranges and uses
+  validated UTF-8 with fixed scratch. Every invocation has an exact 65,536-byte
+  cumulative borrowed-input ceiling; contains uses linear-time byte-KMP, with
+  a fixed native table and a caller-visible reserved two-page Wasm table beside
+  the one-page public scratch region. Native root admission charges each
+  external view once, nested aliases do not recharge it, and text-profile call
+  cycles reject before emission. Project v2 adds canonical package
+  version/profile metadata, disconnected stable-ID export-root linking,
+  generated JS/TS, a create-new exact six-file npm package, and the
+  context-bound `semaprax.project-npm-build.v1` pathless carrier. The opaque
+  prepared build retains trusted Project facts for publish authorization;
+  context-free envelope inspection proves compiler consistency only. Local evidence
+  covers Unicode/embedded NUL, periodic worst-case KMP at the exact byte bound,
+  native O0/O2, Wasm, stable-ID display rename,
+  carrier tamper rejection, and offline pack/install/consumer execution while
+  preserving Project-v1 and scalar Web bytes. Exact-head hosted promotion is
+  pending. This does not claim `usize`, arrays/slices, indexing, iteration,
+  general text processing, dependency resolution, or npm registry publication.
+
 - Added one locally evidenced v0.2 product-acceptance runner over the
   multi-module calculator Project. It executes the authenticated entry and test
   closures through the interpreter and native C11 at O0/O2, the test closure

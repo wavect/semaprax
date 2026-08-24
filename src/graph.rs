@@ -4560,6 +4560,7 @@ fn type_json(ty: &ResolvedType) -> String {
         ResolvedType::F64 => "{\"kind\":\"primitive\",\"name\":\"f64\"}".to_owned(),
         ResolvedType::Bool => "{\"kind\":\"primitive\",\"name\":\"bool\"}".to_owned(),
         ResolvedType::String => "{\"kind\":\"primitive\",\"name\":\"string\"}".to_owned(),
+        ResolvedType::Str => "{\"kind\":\"primitive\",\"name\":\"str\"}".to_owned(),
         ResolvedType::TypeParameter { owner, index } => format!(
             "{{\"kind\":\"type_parameter\",\"owner\":{},\"index\":{index}}}",
             quote_json(owner.as_str())

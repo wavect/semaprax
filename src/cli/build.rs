@@ -104,9 +104,11 @@ pub(crate) fn parse(args: &[String]) -> Result<BuildOptions, u8> {
     });
     if !matches!(
         target.as_str(),
-        "native" | "native-callable" | "web" | "wasm"
+        "native" | "native-callable" | "web" | "wasm" | "npm"
     ) {
-        eprintln!("unsupported target `{target}`; available: native, native-callable, web");
+        eprintln!(
+            "unsupported target `{target}`; available: native, native-callable, web, wasm, npm"
+        );
         return Err(2);
     }
     if target == "native-callable" {
@@ -119,11 +121,15 @@ pub(crate) fn parse(args: &[String]) -> Result<BuildOptions, u8> {
         return Err(2);
     }
     if !exports.is_empty() && !matches!(target.as_str(), "web" | "wasm") {
-        eprintln!("--export is only valid with --target web");
+        eprintln!("--export is only valid with --target web or wasm");
+        return Err(2);
+    }
+    if matches!(&input, BuildInput::Source(_)) && target == "npm" {
+        eprintln!("npm is only valid with an authenticated Project v2 manifest");
         return Err(2);
     }
     if matches!(&input, BuildInput::Project(_)) {
-        if !matches!(target.as_str(), "web" | "wasm" | "native") {
+        if !matches!(target.as_str(), "web" | "wasm" | "native" | "npm") {
             eprintln!(
                 "Project v1 publishes only explicit web and native targets; native-callable publication remains held"
             );
@@ -235,6 +241,29 @@ mod tests {
             DEFAULT_MANIFEST,
             "--target",
             "web",
+            "--export",
+            "app.main",
+        ]))
+        .is_err());
+
+        let npm = parse(&strings(&[
+            "--manifest-path",
+            "fixtures/semaprax.toml",
+            "--target",
+            "npm",
+            "-o",
+            "package",
+        ]))
+        .unwrap();
+        assert_eq!(npm.target, "npm");
+        assert_eq!(npm.output, Some(PathBuf::from("package")));
+        assert!(matches!(npm.input, BuildInput::Project(_)));
+        assert!(parse(&strings(&["app.spx", "--target", "npm"])).is_err());
+        assert!(parse(&strings(&[
+            "--manifest-path",
+            DEFAULT_MANIFEST,
+            "--target",
+            "npm",
             "--export",
             "app.main",
         ]))

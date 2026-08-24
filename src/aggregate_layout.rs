@@ -228,6 +228,9 @@ fn layout_type(
         ResolvedType::String => Err(layout_error(
             "owned string values have no aggregate value layout in v1",
         )),
+        ResolvedType::Str => Err(layout_error(
+            "borrowed string views have no aggregate value layout",
+        )),
         ResolvedType::TypeParameter { .. } => Err(layout_error(
             "generic aggregate layouts are outside executable records v1",
         )),

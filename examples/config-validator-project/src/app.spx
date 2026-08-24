@@ -1,0 +1,8 @@
+module config_validator.app;
+use function @id("config-validator.rules-ready") from config_validator.core as rules_ready;
+
+@id("config-validator.app.main")
+fn main() -> i64
+{
+    rules_ready()
+}

@@ -168,6 +168,11 @@ pub(crate) struct ProjectSemanticParts {
     pub(crate) projection: WorkspaceGraphProjection,
 }
 
+pub(crate) struct ProjectWebRoots<'a> {
+    pub(crate) stable_ids: &'a [String],
+    pub(crate) useful_text_profile: bool,
+}
+
 pub(crate) struct ProjectSemanticGraphArtifact {
     json: String,
     digest: String,
@@ -1156,6 +1161,112 @@ impl WorkspaceGraphBuild {
             .map_err(|error| vec![error])
     }
 
+    /// Link the ordinary entry-provider closure plus exact persistent
+    /// function identities selected as additional roots. This is the Project
+    /// Web planning seam: a selected export need not be called by `main`, but
+    /// unrelated unselected functions outside the entry closure remain out of
+    /// the backend HIR.
+    pub(crate) fn linked_scalar_program_with_roots(
+        &self,
+        entry_module: &str,
+        additional_roots: &[String],
+        useful_text_profile: bool,
+    ) -> Result<hir::ResolvedProgram, Vec<Diagnostic>> {
+        let base = self.linked_scalar_program(entry_module)?;
+        if additional_roots.is_empty() {
+            return Ok(base);
+        }
+
+        let mut available = BTreeMap::<hir::DeclarationId, hir::LinkedScalarFunction>::new();
+        for module in &self.hir.modules {
+            for function in &module.functions {
+                let Some(fact) = self.hir.declarations.get(function.id.as_str()) else {
+                    return Err(vec![graph_error(
+                        "SPX-G173",
+                        "workspace scalar function is absent from declaration facts",
+                    )]);
+                };
+                if fact.kind != hir::DeclarationKind::Function
+                    || fact.path.as_deref() != Some(module.path.as_str())
+                    || fact.module.as_deref() != Some(module.module.as_str())
+                {
+                    return Err(vec![graph_error(
+                        "SPX-G173",
+                        "workspace scalar function declaration facts disagree with retained body",
+                    )]);
+                }
+                if available
+                    .insert(
+                        function.id.clone(),
+                        hir::LinkedScalarFunction {
+                            function: function.clone(),
+                            origin: fact.origin,
+                        },
+                    )
+                    .is_some()
+                {
+                    return Err(vec![graph_error(
+                        "SPX-G173",
+                        "workspace scalar function identity is duplicated",
+                    )]);
+                }
+            }
+        }
+
+        let mut retained = base
+            .functions
+            .iter()
+            .map(|function| function.id.clone())
+            .collect::<BTreeSet<_>>();
+        let mut pending = additional_roots
+            .iter()
+            .map(|root| hir::DeclarationId::new(root.clone()))
+            .collect::<BTreeSet<_>>();
+        while let Some(function_id) = pending.pop_first() {
+            let Some(linked) = available.get(&function_id) else {
+                return Err(vec![Diagnostic::io(
+                    "SPX-W115",
+                    format!(
+                        "selected Project Web export identity `{function_id}` does not name an authenticated function"
+                    ),
+                )]);
+            };
+            if !retained.insert(function_id.clone()) {
+                continue;
+            }
+            for callee in resolved_function_callees(&linked.function) {
+                if available.contains_key(&callee) && !retained.contains(&callee) {
+                    pending.insert(callee);
+                }
+            }
+        }
+
+        let functions = retained
+            .into_iter()
+            .map(|id| {
+                available
+                    .get(&id)
+                    .map(|linked| hir::LinkedScalarFunction {
+                        function: linked.function.clone(),
+                        origin: linked.origin,
+                    })
+                    .ok_or_else(|| {
+                        vec![graph_error(
+                            "SPX-G173",
+                            "entry-provider closure names an unauthenticated function",
+                        )]
+                    })
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        if useful_text_profile {
+            hir::link_useful_text_workspace(base.module, base.entrypoint, functions)
+                .map_err(|error| vec![error])
+        } else {
+            hir::link_scalar_workspace(base.module, base.entrypoint, functions)
+                .map_err(|error| vec![error])
+        }
+    }
+
     /// Consume one Phase-A graph build only after deriving both requested
     /// closures. The returned programs retain independently validated HIR, but
     /// their common provider bodies originate from this one graph build.
@@ -1181,9 +1292,18 @@ impl WorkspaceGraphBuild {
         manifest_bytes: usize,
         entry_module: &str,
         test_module: &str,
+        web_roots: ProjectWebRoots<'_>,
     ) -> Result<ProjectSemanticParts, Vec<Diagnostic>> {
-        self.validate_entire_scalar_workspace(entry_module, test_module)?;
-        let entry_program = self.linked_scalar_program(entry_module)?;
+        self.validate_entire_project_workspace(
+            entry_module,
+            test_module,
+            web_roots.useful_text_profile,
+        )?;
+        let entry_program = self.linked_scalar_program_with_roots(
+            entry_module,
+            web_roots.stable_ids,
+            web_roots.useful_text_profile,
+        )?;
         let test_program = self.linked_scalar_program(test_module)?;
         let projection = self.into_project_projection(
             workspace_revision,
@@ -1300,10 +1420,11 @@ impl WorkspaceGraphBuild {
         })
     }
 
-    fn validate_entire_scalar_workspace(
+    fn validate_entire_project_workspace(
         &self,
         entry_module: &str,
         test_module: &str,
+        useful_text_profile: bool,
     ) -> Result<(), Vec<Diagnostic>> {
         validate_entry_module(entry_module)?;
         validate_entry_module(test_module)?;
@@ -1335,26 +1456,36 @@ impl WorkspaceGraphBuild {
                 )]);
             }
             for function in &module.functions {
+                let admitted_parameter = |parameter: &hir::ResolvedParam| {
+                    matches!(
+                        (&parameter.ty, parameter.ownership),
+                        (
+                            hir::ResolvedType::I64 | hir::ResolvedType::Bool,
+                            hir::OwnershipMode::Value
+                        )
+                    ) || (useful_text_profile
+                        && parameter.ty == hir::ResolvedType::Str
+                        && parameter.ownership == hir::OwnershipMode::Borrow)
+                };
                 if !function.effects.is_empty()
-                    || function
-                        .params
-                        .iter()
-                        .any(|parameter| parameter.ownership != hir::OwnershipMode::Value)
                     || !matches!(
                         function.return_type,
                         hir::ResolvedType::I64 | hir::ResolvedType::Bool
                     )
-                    || function.params.iter().any(|parameter| {
-                        !matches!(
-                            parameter.ty,
-                            hir::ResolvedType::I64 | hir::ResolvedType::Bool
-                        )
-                    })
+                    || function
+                        .params
+                        .iter()
+                        .any(|parameter| !admitted_parameter(parameter))
                 {
+                    let profile = if useful_text_profile {
+                        "selected Project linker"
+                    } else {
+                        "pure scalar linker"
+                    };
                     return Err(vec![graph_error(
                         "SPX-G172",
                         format!(
-                            "workspace function `{}` is outside the pure scalar linker profile",
+                            "workspace function `{}` is outside the {profile} profile",
                             function.id
                         ),
                     )]);
@@ -1368,6 +1499,14 @@ impl WorkspaceGraphBuild {
             )]);
         }
         Ok(())
+    }
+
+    fn validate_entire_scalar_workspace(
+        &self,
+        entry_module: &str,
+        test_module: &str,
+    ) -> Result<(), Vec<Diagnostic>> {
+        self.validate_entire_project_workspace(entry_module, test_module, false)
     }
 
     pub(crate) fn change_builder_bytes(&self) -> Option<usize> {
@@ -1489,6 +1628,94 @@ impl WorkspaceGraphBuild {
         }
         Ok(schemas)
     }
+}
+
+fn resolved_function_callees(function: &hir::ResolvedFunction) -> BTreeSet<hir::DeclarationId> {
+    fn visit(expression: &hir::ResolvedExpr, callees: &mut BTreeSet<hir::DeclarationId>) {
+        if let hir::ResolvedExprKind::Call { callee, .. } = &expression.kind {
+            callees.insert(callee.clone());
+        }
+        match &expression.kind {
+            hir::ResolvedExprKind::Call { args, .. } => {
+                for argument in args {
+                    visit(argument, callees);
+                }
+            }
+            hir::ResolvedExprKind::NativeRustImportCall(call) => {
+                for argument in &call.args {
+                    visit(argument, callees);
+                }
+            }
+            hir::ResolvedExprKind::Unary { value, .. }
+            | hir::ResolvedExprKind::Try { operand: value, .. }
+            | hir::ResolvedExprKind::TryOption { operand: value, .. }
+            | hir::ResolvedExprKind::Project { base: value, .. }
+            | hir::ResolvedExprKind::Upcast { source: value } => visit(value, callees),
+            hir::ResolvedExprKind::Binary { left, right, .. } => {
+                visit(left, callees);
+                visit(right, callees);
+            }
+            hir::ResolvedExprKind::Block { statements, tail } => {
+                for statement in statements {
+                    for index in 0..statement.child_count() {
+                        if let Some(child) = statement.child(index) {
+                            visit(child, callees);
+                        }
+                    }
+                }
+                visit(tail, callees);
+            }
+            hir::ResolvedExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                visit(condition, callees);
+                visit(then_branch, callees);
+                visit(else_branch, callees);
+            }
+            hir::ResolvedExprKind::ConstructRecord { fields, .. }
+            | hir::ResolvedExprKind::ConstructVariant { fields, .. } => {
+                for field in fields {
+                    visit(&field.value, callees);
+                }
+            }
+            hir::ResolvedExprKind::Match { scrutinee, arms } => {
+                visit(scrutinee, callees);
+                for arm in arms {
+                    if let Some(guard) = &arm.guard {
+                        visit(guard, callees);
+                    }
+                    visit(&arm.value, callees);
+                }
+            }
+            hir::ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+                visit(base, callees);
+                for field in fields {
+                    visit(&field.value, callees);
+                }
+            }
+            hir::ResolvedExprKind::Int(_)
+            | hir::ResolvedExprKind::Int32(_)
+            | hir::ResolvedExprKind::Char(_)
+            | hir::ResolvedExprKind::Uint8(_)
+            | hir::ResolvedExprKind::Float32(_)
+            | hir::ResolvedExprKind::Float64(_)
+            | hir::ResolvedExprKind::Bool(_)
+            | hir::ResolvedExprKind::String(_)
+            | hir::ResolvedExprKind::Place(_) => {}
+        }
+    }
+
+    let mut callees = BTreeSet::new();
+    for requirement in &function.requires {
+        visit(requirement, &mut callees);
+    }
+    visit(&function.body, &mut callees);
+    for postcondition in &function.ensures {
+        visit(postcondition, &mut callees);
+    }
+    callees
 }
 
 impl WorkspaceGraphChangeView {
@@ -6267,7 +6494,8 @@ fn type_contains_name_from(ty: &Type, names: &BTreeSet<&str>) -> bool {
         | Type::F32
         | Type::F64
         | Type::Bool
-        | Type::String => false,
+        | Type::String
+        | Type::Str => false,
         Type::Named { name, arguments } => {
             names.contains(name.as_str())
                 || arguments
@@ -6337,7 +6565,8 @@ fn signature_type_is_admitted(
         | Type::F32
         | Type::F64
         | Type::Bool
-        | Type::String => true,
+        | Type::String
+        | Type::Str => true,
         Type::Named { name, arguments } if arguments.is_empty() => {
             let Some(target_id) = resolve_type_id(module, name, programs) else {
                 return false;
@@ -6455,7 +6684,8 @@ fn exposed_type_reference_is_directly_imported(
         | Type::F32
         | Type::F64
         | Type::Bool
-        | Type::String => true,
+        | Type::String
+        | Type::Str => true,
         Type::Named { name, arguments } if arguments.is_empty() => {
             let Some(target_id) = resolve_type_id(module, name, programs) else {
                 return false;
@@ -6528,7 +6758,8 @@ fn type_reference_is_admitted(
         | Type::F32
         | Type::F64
         | Type::Bool
-        | Type::String => true,
+        | Type::String
+        | Type::Str => true,
         Type::Named { name, arguments } if arguments.is_empty() => {
             let Some(program) = programs.iter().find(|item| item.module == module) else {
                 return false;
@@ -7480,6 +7711,70 @@ fn main() -> i64 { answer() + 2 }
             .starts_with("workspace.synthetic.main.")));
         assert_eq!(entry.entrypoint.as_str(), "app.main");
         assert_eq!(test.entrypoint.as_str(), "test.main");
+    }
+
+    #[test]
+    fn project_web_roots_retain_selected_disconnected_call_closure_only() {
+        let app = canonical_source(
+            "app/main.spx",
+            r#"
+module app.main;
+
+@id("app.main")
+fn main() -> i64 { 0 }
+"#,
+        );
+        let test = canonical_source(
+            "test/main.spx",
+            r#"
+module test.main;
+
+@id("test.main")
+fn main() -> i64 { 0 }
+"#,
+        );
+        let exports = canonical_source(
+            "lib/exports.spx",
+            r#"
+module lib.exports;
+
+@id("lib.helper")
+fn helper(value: i64) -> i64 { value + 1 }
+
+@id("lib.selected")
+fn selected(value: i64) -> i64 { helper(value) }
+
+@id("lib.unselected")
+fn unselected(value: i64) -> i64 { value + 100 }
+"#,
+        );
+        let build = build_owned(vec![app, test, exports]).unwrap();
+        build
+            .validate_entire_scalar_workspace("app.main", "test.main")
+            .unwrap();
+        let linked = build
+            .linked_scalar_program_with_roots("app.main", &["lib.selected".to_owned()], false)
+            .unwrap();
+        let ids = linked
+            .functions
+            .iter()
+            .map(|function| function.id.as_str())
+            .collect::<BTreeSet<_>>();
+        assert_eq!(
+            ids,
+            BTreeSet::from(["app.main", "lib.helper", "lib.selected"])
+        );
+        assert!(!ids.contains("lib.unselected"));
+        assert!(!ids.contains("test.main"));
+        hir::validate(&linked).unwrap();
+
+        let error = build
+            .linked_scalar_program_with_roots("app.main", &["lib.absent".to_owned()], false)
+            .unwrap_err();
+        assert_eq!(error[0].code, "SPX-W115");
+        assert!(error[0]
+            .message
+            .contains("does not name an authenticated function"));
     }
 
     #[test]

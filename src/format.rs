@@ -1580,6 +1580,7 @@ fn write_type(output: &mut impl std::fmt::Write, ty: &crate::ast::Type) {
             Frame::Type(crate::ast::Type::F64) => output.write_str("f64").unwrap(),
             Frame::Type(crate::ast::Type::Bool) => output.write_str("bool").unwrap(),
             Frame::Type(crate::ast::Type::String) => output.write_str("string").unwrap(),
+            Frame::Type(crate::ast::Type::Str) => output.write_str("str").unwrap(),
             Frame::Type(crate::ast::Type::Named { name, arguments }) => {
                 output.write_str(name).unwrap();
                 if !arguments.is_empty() {

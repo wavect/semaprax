@@ -1127,7 +1127,7 @@ impl ScalarKind {
             Type::F32 => ScalarKind::Float32,
             Type::F64 => ScalarKind::Float64,
             Type::Bool => ScalarKind::Bool,
-            Type::String | Type::Named { .. } => unreachable!(
+            Type::String | Type::Str | Type::Named { .. } => unreachable!(
                 "ScalarKind::of called for unsupported type `{:?}`; admitted scalars are the seven primitive Copy types",
                 ty
             ),
@@ -1156,7 +1156,7 @@ fn scalar_type_text(ty: &Type) -> &'static str {
         Type::F32 => "f32",
         Type::F64 => "f64",
         Type::Bool => "bool",
-        Type::String | Type::Named { .. } => unreachable!(
+        Type::String | Type::Str | Type::Named { .. } => unreachable!(
             "scalar_type_text called for unsupported type `{:?}`; admitted scalars are the seven primitive Copy types",
             ty
         ),

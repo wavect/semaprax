@@ -930,7 +930,8 @@ fn default_expr_expanded_cost(
         | Type::F32
         | Type::F64
         | Type::Bool
-        | Type::String => Ok(ExpandedDefaultCost {
+        | Type::String
+        | Type::Str => Ok(ExpandedDefaultCost {
             bytes: std::mem::size_of::<Expr>(),
             identity_slots: 0,
         }),
@@ -1335,6 +1336,12 @@ fn default_expr(
         Type::F64 => ExprKind::Float64(0),
         Type::Bool => ExprKind::Bool(false),
         Type::String => ExprKind::String(String::new()),
+        Type::Str => {
+            return Err(vec![graph_error(
+                "SPX-G173",
+                "borrowed `str` has no synthesizable workspace default",
+            )]);
+        }
         Type::Named { name, arguments } if arguments.is_empty() => {
             let declaration = declarations
                 .binary_search_by_key(&name.as_str(), |(name, _)| *name)

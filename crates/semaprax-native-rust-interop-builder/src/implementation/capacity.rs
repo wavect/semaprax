@@ -258,6 +258,10 @@ fn ast_type_identity_key_len(program: &Program, root: &crate::ast::Type) -> Opti
                 results[result_len] = "string".len();
                 result_len = result_len.checked_add(1)?;
             }
+            Frame::Enter(crate::ast::Type::Str) => {
+                results[result_len] = "str".len();
+                result_len = result_len.checked_add(1)?;
+            }
             Frame::Enter(crate::ast::Type::Named { name, arguments }) => {
                 let declaration = program
                     .types
@@ -790,7 +794,8 @@ fn ast_resource_leaf_count(
                 | crate::ast::Type::F32
                 | crate::ast::Type::F64
                 | crate::ast::Type::Bool
-                | crate::ast::Type::String,
+                | crate::ast::Type::String
+                | crate::ast::Type::Str,
                 _,
             ) => {
                 values[value_len] = 0;
@@ -2365,7 +2370,8 @@ fn cleanup_retained_stats(
             | crate::ast::Type::F32
             | crate::ast::Type::F64
             | crate::ast::Type::Bool
-            | crate::ast::Type::String => CleanupTypeKey::Scalar,
+            | crate::ast::Type::String
+            | crate::ast::Type::Str => CleanupTypeKey::Scalar,
             crate::ast::Type::Named { name, .. } => {
                 if let Some(index) = program
                     .types
@@ -5206,7 +5212,8 @@ fn hir_type_owned_capacity(ty: &ResolvedType) -> Option<usize> {
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool
-        | ResolvedType::String => Some(0),
+        | ResolvedType::String
+        | ResolvedType::Str => Some(0),
         ResolvedType::TypeParameter { owner, .. } => Some(owner.as_str().len()),
         ResolvedType::Nominal {
             declaration,

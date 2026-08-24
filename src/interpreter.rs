@@ -51,6 +51,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
+use std::sync::Arc;
 
 use sha2::{Digest as _, Sha256};
 
@@ -191,7 +192,7 @@ fn consistency_error(message: String) -> Diagnostic {
 }
 
 /// One CLI-level argument literal: one admitted scalar value.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ArgumentValue {
     Int(i64),
     Int32(i32),
@@ -200,10 +201,11 @@ pub enum ArgumentValue {
     Float32(f32),
     Float64(f64),
     Bool(bool),
+    BorrowedStr(String),
 }
 
 impl ArgumentValue {
-    fn type_text(self) -> &'static str {
+    fn type_text(&self) -> &'static str {
         match self {
             Self::Int(_) => "i64",
             Self::Int32(_) => "i32",
@@ -212,10 +214,11 @@ impl ArgumentValue {
             Self::Float32(_) => "f32",
             Self::Float64(_) => "f64",
             Self::Bool(_) => "bool",
+            Self::BorrowedStr(_) => "str",
         }
     }
 
-    fn render(self) -> String {
+    fn render(&self) -> String {
         match self {
             Self::Int(value) => value.to_string(),
             // Suffixed widths always render with their explicit suffix: bare
@@ -223,10 +226,13 @@ impl ArgumentValue {
             // each rendering uniquely replayable.
             Self::Int32(value) => format!("{value}i32"),
             Self::Uint8(value) => format!("{value}u8"),
-            Self::Char(value) => crate::format::canonical_char(value),
+            Self::Char(value) => crate::format::canonical_char(*value),
             Self::Float32(value) => format!("{:08x}", value.to_bits()),
             Self::Float64(value) => format!("{:016x}", value.to_bits()),
             Self::Bool(value) => value.to_string(),
+            Self::BorrowedStr(value) => {
+                serde_json::to_string(value).expect("Rust strings always serialize as JSON")
+            }
         }
     }
 }
@@ -247,6 +253,25 @@ impl ArgumentValue {
 ///
 /// Non-canonical or out-of-range literals fail closed (`SPX-F103`).
 pub fn parse_argument(text: &str) -> Result<ArgumentValue, Diagnostic> {
+    if text.starts_with('"') {
+        let value = serde_json::from_str::<String>(text).map_err(|_| {
+            argument_error(format!(
+                "argument `{text}` is not a canonical UTF-8 string literal"
+            ))
+        })?;
+        if serde_json::to_string(&value).ok().as_deref() != Some(text) {
+            return Err(argument_error(format!(
+                "argument `{text}` is not a canonical UTF-8 string literal"
+            )));
+        }
+        if value.len() > crate::str_ops::MAX_BORROWED_STR_BYTES {
+            return Err(argument_error(format!(
+                "borrowed `str` argument exceeds the {}-byte profile limit",
+                crate::str_ops::MAX_BORROWED_STR_BYTES
+            )));
+        }
+        return Ok(ArgumentValue::BorrowedStr(value));
+    }
     if text == "true" {
         return Ok(ArgumentValue::Bool(true));
     }
@@ -701,9 +726,8 @@ fn select_function<'a>(program: &'a Program, token: &str) -> Result<&'a Function
         })
 }
 
-/// Closed AST-level admission gate mirroring Canonical ABI Report v1: explicit
-/// identity, monomorphic, effect-free, by-value direct signature over the
-/// admitted scalar types (`i64`, `i32`, `u8`, `char`, `f32`, `f64`, `bool`).
+/// Closed AST-level admission gate for scalar results and direct scalar or
+/// invocation-borrowed UTF-8 inputs.
 fn admission(function: &Function) -> Option<&'static str> {
     if !function.explicit_id {
         return Some(REASON_AUTOMATIC_IDENTITY);
@@ -715,10 +739,12 @@ fn admission(function: &Function) -> Option<&'static str> {
         return Some(REASON_DECLARED_EFFECTS);
     }
     for param in &function.params {
-        if param.mode != ParamMode::Value {
+        let admitted = (param.mode == ParamMode::Value && is_admitted_scalar(&param.ty))
+            || (param.mode == ParamMode::Borrow && param.ty == Type::Str);
+        if !admitted && param.mode != ParamMode::Value {
             return Some(REASON_UNSUPPORTED_PARAMETER_MODE);
         }
-        if !is_admitted_scalar(&param.ty) {
+        if !admitted {
             return Some(REASON_UNSUPPORTED_PARAMETER_TYPE);
         }
     }
@@ -754,7 +780,7 @@ fn bind_arguments(
     for (param, text) in function.params.iter().zip(arguments) {
         let value = parse_argument(text).map_err(|error| vec![error])?;
         let type_matches = matches!(
-            (&param.ty, value),
+            (&param.ty, &value),
             (Type::I64, ArgumentValue::Int(_))
                 | (Type::I32, ArgumentValue::Int32(_))
                 | (Type::U8, ArgumentValue::Uint8(_))
@@ -762,6 +788,7 @@ fn bind_arguments(
                 | (Type::F32, ArgumentValue::Float32(_))
                 | (Type::F64, ArgumentValue::Float64(_))
                 | (Type::Bool, ArgumentValue::Bool(_))
+                | (Type::Str, ArgumentValue::BorrowedStr(_))
         );
         if !type_matches {
             return Err(vec![argument_error(format!(
@@ -842,7 +869,8 @@ fn scan_closure(
                 if instance.is_some() {
                     return Err(reject_scan(expression, REASON_GENERIC_CALL));
                 }
-                let intrinsic = crate::string_ops::by_id(callee.as_str()).is_some();
+                let intrinsic = crate::string_ops::by_id(callee.as_str()).is_some()
+                    || crate::str_ops::by_id(callee.as_str()).is_some();
                 if !intrinsic && !admitted.contains_key(callee.as_str()) {
                     return Err(reject_scan(expression, REASON_UNSUPPORTED_CALLEE));
                 }
@@ -1035,6 +1063,20 @@ enum Value {
     Float64(f64),
     Bool(bool),
     String(String),
+    BorrowedStr(BorrowedStrValue),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct BorrowedStrValue {
+    invocation_root: ValueId,
+    text: Arc<str>,
+}
+
+fn borrowed_text(value: &Value) -> Option<&str> {
+    match value {
+        Value::BorrowedStr(value) => Some(value.text.as_ref()),
+        _ => None,
+    }
 }
 
 enum Flow {
@@ -1141,16 +1183,34 @@ impl Evaluator<'_> {
         function: &ResolvedFunction,
         arguments: &[(String, ArgumentValue)],
     ) -> Result<Value, Flow> {
+        let borrowed = arguments
+            .iter()
+            .filter_map(|(_, argument)| match argument {
+                ArgumentValue::BorrowedStr(value) => Some(value.as_str()),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        if !crate::str_ops::within_work_budget(&borrowed) {
+            return Err(Flow::Guard(
+                "borrowed string invocation exceeds byte budget",
+            ));
+        }
         let mut values = Vec::with_capacity(arguments.len());
         for (param, (_, argument)) in function.params.iter().zip(arguments.iter()) {
-            let value = match (&param.ty, *argument) {
-                (ResolvedType::I64, ArgumentValue::Int(inner)) => Value::Int(inner),
-                (ResolvedType::I32, ArgumentValue::Int32(inner)) => Value::Int32(inner),
-                (ResolvedType::U8, ArgumentValue::Uint8(inner)) => Value::Uint8(inner),
-                (ResolvedType::Char, ArgumentValue::Char(inner)) => Value::Char(inner),
-                (ResolvedType::F32, ArgumentValue::Float32(inner)) => Value::Float32(inner),
-                (ResolvedType::F64, ArgumentValue::Float64(inner)) => Value::Float64(inner),
-                (ResolvedType::Bool, ArgumentValue::Bool(inner)) => Value::Bool(inner),
+            let value = match (&param.ty, argument) {
+                (ResolvedType::I64, ArgumentValue::Int(inner)) => Value::Int(*inner),
+                (ResolvedType::I32, ArgumentValue::Int32(inner)) => Value::Int32(*inner),
+                (ResolvedType::U8, ArgumentValue::Uint8(inner)) => Value::Uint8(*inner),
+                (ResolvedType::Char, ArgumentValue::Char(inner)) => Value::Char(*inner),
+                (ResolvedType::F32, ArgumentValue::Float32(inner)) => Value::Float32(*inner),
+                (ResolvedType::F64, ArgumentValue::Float64(inner)) => Value::Float64(*inner),
+                (ResolvedType::Bool, ArgumentValue::Bool(inner)) => Value::Bool(*inner),
+                (ResolvedType::Str, ArgumentValue::BorrowedStr(inner)) => {
+                    Value::BorrowedStr(BorrowedStrValue {
+                        invocation_root: param.id.clone(),
+                        text: Arc::from(inner.as_str()),
+                    })
+                }
                 _ => return Err(Flow::Guard("argument/parameter binding mismatch")),
             };
             values.push((param.id.clone(), value));
@@ -1349,6 +1409,41 @@ impl Evaluator<'_> {
                             },
                             _ => Err(Flow::Guard("ill-typed string operation operand")),
                         },
+                    };
+                }
+                if let Some(op) = crate::str_ops::by_id(callee.as_str()) {
+                    self.charge().ok_or(Flow::Exhausted)?;
+                    let mut values = Vec::with_capacity(args.len());
+                    for argument in args {
+                        values.push(self.evaluate(argument, environment, depth)?);
+                    }
+                    return match op {
+                        crate::str_ops::StrOp::LenBytes => borrowed_text(&values[0])
+                            .map(|value| Value::Int(value.len() as i64))
+                            .ok_or(Flow::Guard("ill-typed borrowed string operand")),
+                        crate::str_ops::StrOp::IsEmpty => borrowed_text(&values[0])
+                            .map(|value| Value::Bool(value.is_empty()))
+                            .ok_or(Flow::Guard("ill-typed borrowed string operand")),
+                        crate::str_ops::StrOp::StartsWith => {
+                            match (borrowed_text(&values[0]), borrowed_text(&values[1])) {
+                                (Some(value), Some(prefix)) => {
+                                    Ok(Value::Bool(value.starts_with(prefix)))
+                                }
+                                _ => Err(Flow::Guard("ill-typed borrowed string operand")),
+                            }
+                        }
+                        crate::str_ops::StrOp::Contains => {
+                            match (borrowed_text(&values[0]), borrowed_text(&values[1])) {
+                                (Some(value), Some(needle)) => {
+                                    crate::str_ops::contains(value, needle)
+                                        .map(Value::Bool)
+                                        .ok_or(Flow::Guard(
+                                            "borrowed string operation exceeds byte budget",
+                                        ))
+                                }
+                                _ => Err(Flow::Guard("ill-typed borrowed string operand")),
+                            }
+                        }
                     };
                 }
                 let Some(function) = self.admitted.get(callee.as_str()) else {
@@ -2084,6 +2179,11 @@ fn canonical_scalar_value_matches(type_text: &str, value_text: &str) -> bool {
         "i32" => matches!(parse_argument(value_text), Ok(ArgumentValue::Int32(_))),
         "u8" => matches!(parse_argument(value_text), Ok(ArgumentValue::Uint8(_))),
         "bool" => matches!(parse_argument(value_text), Ok(ArgumentValue::Bool(_))),
+        "str" => matches!(
+            parse_argument(value_text),
+            Ok(ArgumentValue::BorrowedStr(value))
+                if serde_json::to_string(&value).ok().as_deref() == Some(value_text)
+        ),
         "char" => matches!(
             parse_argument(value_text),
             Ok(ArgumentValue::Char(value))
@@ -2594,5 +2694,22 @@ mod tests {
             domain_digest(SOURCE_DIGEST_DOMAIN, b"abc"),
             domain_digest(SOURCE_DIGEST_DOMAIN, b"abc")
         );
+    }
+
+    #[test]
+    fn borrowed_str_clones_preserve_invocation_root_and_shared_evidence() {
+        let root = ValueId::intrinsic_parameter("test.borrowed.root", 0);
+        let original = Value::BorrowedStr(BorrowedStrValue {
+            invocation_root: root.clone(),
+            text: Arc::from("aé\0z"),
+        });
+        let forwarded = original.clone();
+        let (Value::BorrowedStr(original), Value::BorrowedStr(forwarded)) = (original, forwarded)
+        else {
+            panic!("borrowed values retain their distinct runtime form")
+        };
+        assert_eq!(original.invocation_root, root);
+        assert_eq!(forwarded.invocation_root, root);
+        assert!(Arc::ptr_eq(&original.text, &forwarded.text));
     }
 }

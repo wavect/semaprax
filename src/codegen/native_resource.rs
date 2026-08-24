@@ -56,6 +56,9 @@ impl NativeResourceAbi {
             // Owned strings lower to a C heap pointer; the backend owns the
             // allocation and frees it exactly once per value.
             ResolvedType::String => Ok("char *"),
+            // Borrowed UTF-8 text is a non-owning pointer/length view. The
+            // definition is emitted only for programs reaching Str ops.
+            ResolvedType::Str => Ok("spx_str_v1"),
             ResolvedType::TypeParameter { .. } => Err(resource_error(format!(
                 "native representation is unavailable for generic type `{}`",
                 ty.identity_key()

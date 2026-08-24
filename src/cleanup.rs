@@ -44,7 +44,7 @@ fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize {
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool => 0,
-        ResolvedType::String => 0,
+        ResolvedType::String | ResolvedType::Str => 0,
         ResolvedType::TypeParameter { owner, .. } => owner.as_str().len(),
         ResolvedType::Nominal {
             declaration,
@@ -302,7 +302,7 @@ impl InventoryBuilder<'_> {
             .ok_or_else(|| {
                 cleanup_error(format!("type `{}` has no cleanup facts", ty.identity_key()))
             })?
-            && !matches!(ty, ResolvedType::String))
+            && !matches!(ty, ResolvedType::String | ResolvedType::Str))
     }
 
     fn add_slot(

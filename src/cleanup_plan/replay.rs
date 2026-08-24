@@ -1528,7 +1528,7 @@ fn type_needs_drop(
                 format!("type `{}` has no cleanup facts", ty.identity_key()),
             )
         })?
-        && !matches!(ty, ResolvedType::String))
+        && !matches!(ty, ResolvedType::String | ResolvedType::Str))
 }
 
 /// Resolve one call's parameters for replay: compiler-owned string operations
@@ -1543,6 +1543,9 @@ fn resolved_call_params(
     if instance.is_none() {
         if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
             return Ok(crate::string_ops::resolved_params(op));
+        }
+        if let Some(op) = crate::str_ops::by_id(callee.as_str()) {
+            return Ok(crate::str_ops::resolved_params(op));
         }
     }
     let target = program
@@ -1627,7 +1630,10 @@ fn collect_expression_statuses(
             ResolvedExprKind::Call {
                 callee, instance, ..
             } => {
-                if instance.is_none() && crate::string_ops::by_id(callee.as_str()).is_some() {
+                if instance.is_none()
+                    && (crate::string_ops::by_id(callee.as_str()).is_some()
+                        || crate::str_ops::by_id(callee.as_str()).is_some())
+                {
                     // String operations project like ordinary propagated calls.
                 } else if program
                     .resolve_call_target(callee, instance.as_ref())
@@ -3020,13 +3026,18 @@ fn expression_skeleton(
                         args,
                         ..
                     } => {
-                        let intrinsic = if instance.is_none() {
-                            crate::string_ops::by_id(callee.as_str())
-                        } else {
-                            None
-                        };
-                        let params = if let Some(op) = intrinsic {
+                        let string_intrinsic = instance
+                            .is_none()
+                            .then(|| crate::string_ops::by_id(callee.as_str()))
+                            .flatten();
+                        let str_intrinsic = instance
+                            .is_none()
+                            .then(|| crate::str_ops::by_id(callee.as_str()))
+                            .flatten();
+                        let params = if let Some(op) = string_intrinsic {
                             crate::string_ops::resolved_params(op)
+                        } else if let Some(op) = str_intrinsic {
+                            crate::str_ops::resolved_params(op)
                         } else {
                             let target = program
                                 .resolve_call_target(callee, instance.as_ref())
@@ -4160,6 +4171,7 @@ fn validate_match_skeleton_shape(
         | ResolvedType::F64
         | ResolvedType::Bool
         | ResolvedType::String
+        | ResolvedType::Str
         | ResolvedType::TypeParameter { .. } => false,
     };
     if is_record {

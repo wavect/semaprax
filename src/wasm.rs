@@ -35,6 +35,7 @@ mod scalar_algebra_component_v5;
 mod scalar_exports;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod source_result_component_v4;
+mod text_exports;
 
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 pub(crate) use generic_function_component_v9::{
@@ -479,6 +480,15 @@ struct LocalLayout<'a> {
     /// Base import index of the breadth-v2 string operation group; only v2
     /// call sites consult it, so first-wave modules are unaffected.
     string_ops_v2_base: u32,
+    /// Module-local helper indexes used only by the additive borrowed-text
+    /// profile. Legacy modules leave this absent and retain exact bytes.
+    text_intrinsics: Option<TextIntrinsicIndexes>,
+}
+
+#[derive(Clone, Copy)]
+struct TextIntrinsicIndexes {
+    starts_with: u32,
+    contains: u32,
 }
 
 trait ByteOutput: std::ops::Deref<Target = [u8]> {
@@ -535,13 +545,31 @@ pub fn emit_module_with_scalar_exports(
     emit_resolved_module_with_scalar_exports(&resolved, export_ids)
 }
 
+/// Emit the bounded Public Borrowed Text Export Profile v1 for selected
+/// stable identities. Each borrowed `str` parameter expands to an exact
+/// `(i32 pointer, i32 byte_length)` pair at the raw boundary; internally it
+/// remains one packed i64 view.
+pub fn emit_module_with_text_exports(
+    program: &Program,
+    export_ids: &[String],
+) -> Result<Vec<u8>, Diagnostic> {
+    reject_native_rust_imports(program)?;
+    let resolved = hir::resolve(program).map_err(|diagnostics| {
+        diagnostics
+            .into_iter()
+            .find(|item| item.severity.is_error())
+            .unwrap_or_else(|| Diagnostic::io("SPX-W100", "HIR resolution failed"))
+    })?;
+    emit_resolved_module_with_text_exports(&resolved, export_ids)
+}
+
 /// Emit a WebAssembly core module from verified, identity-resolved HIR.
 ///
 /// Most callers should use [`emit_module`], which resolves and verifies parsed
 /// source first. This entry point exists for semantic consumers that already
 /// hold HIR and keeps all backend lowering independent of source-level names.
 pub fn emit_resolved_module(program: &ResolvedProgram) -> Result<Vec<u8>, Diagnostic> {
-    emit_resolved_module_internal(program, &[])
+    emit_resolved_module_internal(program, &[], &[])
 }
 
 /// Emit the bounded Public Scalar Export Profile v1 from resolved HIR.
@@ -550,13 +578,30 @@ pub fn emit_resolved_module_with_scalar_exports(
     export_ids: &[String],
 ) -> Result<Vec<u8>, Diagnostic> {
     let plans = scalar_exports::prepare(program, export_ids)?;
-    emit_resolved_module_internal(program, &plans)
+    emit_resolved_module_internal(program, &plans, &[])
+}
+
+/// Emit Public Borrowed Text Export Profile v1 from resolved HIR.
+pub fn emit_resolved_module_with_text_exports(
+    program: &ResolvedProgram,
+    export_ids: &[String],
+) -> Result<Vec<u8>, Diagnostic> {
+    let plans = text_exports::prepare(program, export_ids)?;
+    emit_resolved_module_internal(program, &[], &plans)
 }
 
 fn emit_resolved_module_internal(
     program: &ResolvedProgram,
     scalar_exports: &[scalar_exports::ScalarExportPlan],
+    text_exports: &[text_exports::TextExportPlan],
 ) -> Result<Vec<u8>, Diagnostic> {
+    if !scalar_exports.is_empty() && !text_exports.is_empty() {
+        return Err(Diagnostic::io(
+            "SPX-W119",
+            "scalar-v1 and borrowed-text-v1 exports cannot share one module",
+        ));
+    }
+    let has_public_profile = !scalar_exports.is_empty() || !text_exports.is_empty();
     if program
         .interfaces
         .iter()
@@ -582,7 +627,7 @@ fn emit_resolved_module_internal(
             .is_some_and(|item| item.identity_origin == IdentityOrigin::CompilerOwned)
     });
     if has_authored_aggregate || !concrete_variants.is_empty() {
-        if !scalar_exports.is_empty() {
+        if has_public_profile {
             return Err(Diagnostic::io(
                 "SPX-W115",
                 "Public Scalar Export Profile v1 does not admit aggregate or variant lowering",
@@ -591,7 +636,7 @@ fn emit_resolved_module_internal(
         return aggregate::emit(program);
     }
     let owned_plans = owned::plan(program)?;
-    if !scalar_exports.is_empty() && !owned_plans.is_empty() {
+    if has_public_profile && !owned_plans.is_empty() {
         return Err(Diagnostic::io(
             "SPX-W115",
             "Public Scalar Export Profile v1 does not admit owned-resource adapters",
@@ -658,7 +703,7 @@ fn emit_resolved_module_internal(
     );
     let contract_fail = intern_type(
         Signature {
-            params: if scalar_exports.is_empty() {
+            params: if !has_public_profile {
                 vec![]
             } else {
                 vec![I32]
@@ -907,6 +952,39 @@ fn emit_resolved_module_internal(
             )
         })
         .collect::<Vec<_>>();
+    let text_validator_type = (!text_exports.is_empty()).then(|| {
+        intern_type(
+            Signature {
+                params: vec![I32, I32],
+                results: vec![I32],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
+    let text_binary_type = (!text_exports.is_empty()).then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I64],
+                results: vec![I32],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
+    let text_export_types = text_exports
+        .iter()
+        .map(|plan| {
+            intern_type(
+                Signature {
+                    params: plan.raw_params(),
+                    results: vec![plan.result.internal_wasm_type()],
+                },
+                &mut types,
+                &mut type_indexes,
+            )
+        })
+        .collect::<Vec<_>>();
     let owned_function_types = owned_plans
         .iter()
         .map(|plan| {
@@ -920,6 +998,14 @@ fn emit_resolved_module_internal(
         .enumerate()
         .map(|(index, (_, execution))| (execution.clone(), import_count + index as u32))
         .collect();
+    let text_helper_base = import_count
+        + executable_functions.len() as u32
+        + owned_plans.len() as u32
+        + scalar_exports.len() as u32;
+    let text_intrinsics = (!text_exports.is_empty()).then_some(TextIntrinsicIndexes {
+        starts_with: text_helper_base + 1,
+        contains: text_helper_base + 2,
+    });
 
     let mut module = crate::bounded_output::CappedVec::from_slice(b"\0asm\x01\0\0\0");
     let mut type_section = crate::bounded_output::CappedVec::new();
@@ -964,7 +1050,11 @@ fn emit_resolved_module_internal(
     let mut functions = crate::bounded_output::CappedVec::new();
     write_u32(
         &mut functions,
-        (function_types.len() + owned_function_types.len() + scalar_export_types.len()) as u32,
+        (function_types.len()
+            + owned_function_types.len()
+            + scalar_export_types.len()
+            + usize::from(text_validator_type.is_some()) * 3
+            + text_export_types.len()) as u32,
     );
     for type_index in function_types {
         write_u32(&mut functions, type_index);
@@ -975,29 +1065,60 @@ fn emit_resolved_module_internal(
     for type_index in scalar_export_types {
         write_u32(&mut functions, type_index);
     }
+    if let (Some(validator), Some(binary)) = (text_validator_type, text_binary_type) {
+        write_u32(&mut functions, validator);
+        write_u32(&mut functions, binary);
+        write_u32(&mut functions, binary);
+    }
+    for type_index in text_export_types {
+        write_u32(&mut functions, type_index);
+    }
     section(&mut module, 3, functions);
 
-    if !owned_plans.is_empty() || uses_strings {
+    if !owned_plans.is_empty() || uses_strings || !text_exports.is_empty() {
         let mut memories = crate::bounded_output::CappedVec::new();
         write_u32(&mut memories, 1);
-        memories.extend([0x00, 0x01]); // one-page, unbounded memory
+        if text_exports.is_empty() {
+            memories.extend([0x00, 0x01]); // one-page, unbounded memory
+        } else {
+            let pages = text_exports::FIXED_MEMORY_PAGES;
+            memories.extend([0x01, pages, pages]); // fixed scratch plus private KMP table
+        }
         section(&mut module, 5, memories);
+    }
+
+    if !text_exports.is_empty() {
+        let mut globals = crate::bounded_output::CappedVec::new();
+        write_u32(&mut globals, 3);
+        // Mutable exact invocation status.
+        globals.extend_bytes(&[I32, 0x01, 0x41, 0x00, 0x0b]);
+        // Immutable scratch base and capacity metadata.
+        globals.extend_bytes(&[I32, 0x00, 0x41]);
+        write_i32(&mut globals, text_exports::SCRATCH_BASE as i32);
+        globals.push(0x0b);
+        globals.extend_bytes(&[I32, 0x00, 0x41]);
+        write_i32(&mut globals, text_exports::SCRATCH_CAPACITY as i32);
+        globals.push(0x0b);
+        section(&mut module, 6, globals);
     }
 
     // String literal bytes live in one deterministic data segment so host
     // shims can materialize handles with `spx_string_new(ptr, len)`.
 
     let mut exports = crate::bounded_output::CappedVec::new();
-    let legacy_export_count = if scalar_exports.is_empty() {
+    let legacy_export_count = if !has_public_profile {
         1 + owned_plans.len() as u32 + u32::from(!owned_plans.is_empty() || uses_strings)
     } else {
         0
     };
     write_u32(
         &mut exports,
-        legacy_export_count + scalar_exports.len() as u32,
+        legacy_export_count
+            + scalar_exports.len() as u32
+            + text_exports.len() as u32
+            + if text_exports.is_empty() { 0 } else { 4 },
     );
-    if scalar_exports.is_empty() {
+    if !has_public_profile {
         let main_index = program
             .functions
             .iter()
@@ -1031,12 +1152,34 @@ fn emit_resolved_module_internal(
         exports.push(0x00);
         write_u32(&mut exports, scalar_export_base + ordinal as u32);
     }
+    if !text_exports.is_empty() {
+        for (name, kind, index) in [
+            (text_exports::MEMORY_EXPORT, 0x02, 0),
+            (text_exports::STATUS_GLOBAL_EXPORT, 0x03, 0),
+            (text_exports::SCRATCH_BASE_EXPORT, 0x03, 1),
+            (text_exports::SCRATCH_CAPACITY_EXPORT, 0x03, 2),
+        ] {
+            write_name(&mut exports, name);
+            exports.push(kind);
+            write_u32(&mut exports, index);
+        }
+        let text_export_base = text_helper_base + 3;
+        for (ordinal, plan) in text_exports.iter().enumerate() {
+            write_name(&mut exports, &plan.wasm_export);
+            exports.push(0x00);
+            write_u32(&mut exports, text_export_base + ordinal as u32);
+        }
+    }
     section(&mut module, 7, exports);
 
     let mut code = crate::bounded_output::CappedVec::new();
     write_u32(
         &mut code,
-        (executable_functions.len() + owned_plans.len() + scalar_exports.len()) as u32,
+        (executable_functions.len()
+            + owned_plans.len()
+            + scalar_exports.len()
+            + if text_exports.is_empty() { 0 } else { 3 }
+            + text_exports.len()) as u32,
     );
     for (function, _) in &executable_functions {
         let mut body = crate::bounded_output::CappedVec::new();
@@ -1055,6 +1198,7 @@ fn emit_resolved_module_internal(
             match_scratch: HashMap::new(),
             string_data: Some(&string_data),
             string_ops_v2_base,
+            text_intrinsics,
         };
         for contract in &function.requires {
             collect_locals(contract, function.params.len() as u32, &mut layout)?;
@@ -1105,7 +1249,7 @@ fn emit_resolved_module_internal(
                 &layout,
                 None,
             )?;
-            emit_contract_guard(&mut body, (!scalar_exports.is_empty()).then_some(1));
+            emit_contract_guard(&mut body, has_public_profile.then_some(1));
         }
         emit_expr(
             &mut body,
@@ -1126,7 +1270,7 @@ fn emit_resolved_module_internal(
                 &layout,
                 None,
             )?;
-            emit_contract_guard(&mut body, (!scalar_exports.is_empty()).then_some(2));
+            emit_contract_guard(&mut body, has_public_profile.then_some(2));
         }
         body.push(0x20);
         write_u32(&mut body, result_local);
@@ -1145,6 +1289,24 @@ fn emit_resolved_module_internal(
         plan.emit_wrapper_body(&mut body, &function_indexes)?;
         write_u32(&mut code, body.len() as u32);
         code.extend_from_slice(&body);
+    }
+    if !text_exports.is_empty() {
+        for emitter in [
+            text_exports::emit_utf8_validator_body as fn(&mut crate::bounded_output::CappedVec),
+            text_exports::emit_starts_with_body,
+            text_exports::emit_contains_body,
+        ] {
+            let mut body = crate::bounded_output::CappedVec::new();
+            emitter(&mut body);
+            write_u32(&mut code, body.len() as u32);
+            code.extend_from_slice(&body);
+        }
+        for plan in text_exports {
+            let mut body = crate::bounded_output::CappedVec::new();
+            plan.emit_wrapper_body(&mut body, &function_indexes, text_helper_base, 0)?;
+            write_u32(&mut code, body.len() as u32);
+            code.extend_from_slice(&body);
+        }
     }
     section(&mut module, 10, code);
     // String literal bytes live in one deterministic data segment so host
@@ -1253,7 +1415,7 @@ pub fn build_web_with_scalar_exports(
             .unwrap_or_else(|| Diagnostic::io("SPX-W100", "HIR resolution failed"))
     })?;
     let plans = scalar_exports::prepare(&resolved, export_ids)?;
-    let wasm_bytes = emit_resolved_module_internal(&resolved, &plans)?;
+    let wasm_bytes = emit_resolved_module_internal(&resolved, &plans, &[])?;
     let wasm_sha256 = format!(
         "{:x}",
         crate::digest_hex::LowerHex(Sha256::digest(&wasm_bytes))
@@ -2066,7 +2228,7 @@ pub(crate) fn prepare_project_web_with_scalar_exports(
     export_ids: &[String],
 ) -> Result<PreparedProjectWeb, Diagnostic> {
     let plans = scalar_exports::prepare(program, export_ids)?;
-    let wasm_bytes = emit_resolved_module_internal(program, &plans)?;
+    let wasm_bytes = emit_resolved_module_internal(program, &plans, &[])?;
     let wasm_sha256 = format!(
         "{:x}",
         crate::digest_hex::LowerHex(Sha256::digest(&wasm_bytes))
@@ -2883,6 +3045,39 @@ fn emit_expr(
             ..
         } => {
             if instance.is_none() {
+                if let Some(op) = crate::str_ops::by_id(callee.as_str()) {
+                    let helpers = layout.text_intrinsics.ok_or_else(|| {
+                        Diagnostic::io(
+                            "SPX-W119",
+                            "borrowed `str` operation reached a non-text Wasm profile",
+                        )
+                    })?;
+                    for arg in args {
+                        emit_expr(output, arg, value_indexes, function_indexes, layout, result)?;
+                    }
+                    match op {
+                        crate::str_ops::StrOp::LenBytes => {
+                            output.push(0x42); // i64.const 32
+                            write_i64(output, 32);
+                            output.push(0x88); // i64.shr_u
+                        }
+                        crate::str_ops::StrOp::IsEmpty => {
+                            output.push(0x42);
+                            write_i64(output, 32);
+                            output.push(0x88); // i64.shr_u
+                            output.push(0x50); // i64.eqz
+                        }
+                        crate::str_ops::StrOp::StartsWith => {
+                            output.push(0x10);
+                            write_u32(output, helpers.starts_with);
+                        }
+                        crate::str_ops::StrOp::Contains => {
+                            output.push(0x10);
+                            write_u32(output, helpers.contains);
+                        }
+                    }
+                    return Ok(());
+                }
                 if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
                     // Compiler-owned string operations lower through their
                     // dedicated host imports; borrowed reads leave the input
@@ -3926,7 +4121,7 @@ fn wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
         ResolvedType::F64 => Ok(F64),
         ResolvedType::Bool | ResolvedType::Nominal { .. } => Ok(I32),
         // Owned strings lower to an abstract host handle riding the i64 lane.
-        ResolvedType::String => Ok(I64),
+        ResolvedType::String | ResolvedType::Str => Ok(I64),
         ResolvedType::TypeParameter { .. } => Err(Diagnostic::io(
             "SPX-W109",
             format!(

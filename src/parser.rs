@@ -1672,7 +1672,7 @@ impl Parser {
         let (name, _) = self.qualified_ident("type")?;
         let is_primitive = matches!(
             name.as_str(),
-            "i64" | "i32" | "u8" | "char" | "f32" | "f64" | "bool" | "string"
+            "i64" | "i32" | "u8" | "char" | "f32" | "f64" | "bool" | "string" | "str"
         );
         if is_primitive && self.at(&TokenKind::Lt) {
             return Err(self.error_here(
@@ -1689,6 +1689,7 @@ impl Parser {
             "f64" => Ok(Type::F64),
             "bool" => Ok(Type::Bool),
             "string" => Ok(Type::String),
+            "str" => Ok(Type::Str),
             _ => Ok(Type::Named {
                 name,
                 arguments: self.type_arguments()?,

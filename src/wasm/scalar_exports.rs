@@ -404,6 +404,7 @@ fn scalar_type(ty: &ResolvedType) -> Option<ScalarType> {
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::String
+        | ResolvedType::Str
         | ResolvedType::TypeParameter { .. }
         | ResolvedType::Nominal { .. } => None,
     }

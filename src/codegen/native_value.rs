@@ -184,9 +184,9 @@ pub(crate) fn plan(
                 "non-i64 scalar result is outside the staged single-frame value corpus",
             ));
         }
-        ResolvedType::String => {
+        ResolvedType::String | ResolvedType::Str => {
             return Err(value_error(
-                "string result is outside the staged single-frame value corpus",
+                "text result is outside the staged single-frame value corpus",
             ));
         }
         ResolvedType::I64 => {
@@ -982,9 +982,9 @@ fn validate_signature(
                     "non-i64 scalar parameter is outside the staged single-frame value corpus",
                 ));
             }
-            ResolvedType::String => {
+            ResolvedType::String | ResolvedType::Str => {
                 return Err(value_error(
-                    "string parameter is outside the staged single-frame value corpus",
+                    "text parameter is outside the staged single-frame value corpus",
                 ));
             }
             ResolvedType::I64 | ResolvedType::Bool => {
@@ -1029,6 +1029,7 @@ fn validate_signature(
         | ResolvedType::F64
         | ResolvedType::Bool
         | ResolvedType::String
+        | ResolvedType::Str
         | ResolvedType::TypeParameter { .. }
         | ResolvedType::Nominal { .. } => {
             Err(value_error("result type is outside the staged corpus"))

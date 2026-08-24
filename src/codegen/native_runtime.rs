@@ -13,6 +13,28 @@ pub(super) fn emit_status_runtime(output: &mut impl super::COutput) {
     output.push_str(STATUS_RUNTIME_C);
 }
 
+/// Emit the additive borrowed-text context extension. The ordinary emitter is
+/// intentionally byte-frozen for every pre-text native projection.
+pub(super) fn emit_status_runtime_with_borrowed_str(output: &mut impl super::COutput) {
+    let runtime = STATUS_RUNTIME_C
+        .replacen(
+            "    uint64_t trace_generation;\n};",
+            "    uint64_t trace_generation;\n    uint32_t borrowed_str_depth;\n};",
+            1,
+        )
+        .replacen(
+            "        context->trace_generation == UINT64_C(0);",
+            "        context->trace_generation == UINT64_C(0) &&\n        context->borrowed_str_depth == UINT32_C(0);",
+            1,
+        )
+        .replacen(
+            "    context->trace_generation = UINT64_C(0);\n    return true;",
+            "    context->trace_generation = UINT64_C(0);\n    context->borrowed_str_depth = UINT32_C(0);\n    return true;",
+            1,
+        );
+    output.push_str(&runtime);
+}
+
 const STATUS_RUNTIME_C: &str = r#"#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>

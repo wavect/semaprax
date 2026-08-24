@@ -324,6 +324,7 @@ fn materialize_result(
         | (ResolvedType::F64, _)
         | (ResolvedType::Bool, _)
         | (ResolvedType::String, _)
+        | (ResolvedType::Str, _)
         | (ResolvedType::TypeParameter { .. }, _)
         | (ResolvedType::Nominal { .. }, _) => Err(MaterializeError::ResultTypeMismatch),
     }

@@ -218,7 +218,40 @@ cargo test --locked -p semaprax --test project_manifest_v1
 cargo test --locked -p semaprax --test project_backend_equivalence_v1 -- --test-threads=1
 ```
 
-Project CLI publication is Web (default) or explicit native. Project `run`
+Project Manifest v2 / Useful Text Consumer v1 additionally requires canonical
+version/profile parsing with v1 preservation; borrow-only, input-only `str`
+source and hostile-HIR enforcement; cleanup-inert graph/HIR projection;
+interpreter invocation-root provenance; Unicode and embedded-NUL behavior;
+native O0/O2 pointer-plus-length execution over host-provided readable storage,
+including exact root-only cumulative charging, nested alias/forwarding, and
+40-KiB-plus-40-KiB rejection; direct and mutual call-cycle rejection;
+Wasm range/UTF-8 checks,
+the exact 65,536-byte cumulative input ceiling, linear-time byte-KMP periodic
+worst cases, fixed three-page memory with only 64 KiB public scratch, and
+closed import/callback authority; exact disconnected
+stable-ID export-root linking; deterministic JS/TS declarations; exact
+six-file npm inventory; exact semantic-recipe/Wasm replay; rejection of
+self-resigned Wasm under the retained Project binding; explicit
+consistency-only context-free inspection; create-new/no-clobber publication;
+pathless daemon carrier verification; stable-ID display rename; and offline pack/install plus
+compiler-free consumer execution. Focused local gates are:
+
+```sh
+cargo test --locked -p semaprax --all-features --test borrowed_str_v1
+cargo test --locked -p semaprax --all-features --test borrowed_str_native_v1
+cargo test --locked -p semaprax --all-features --test wasm_text_exports_v1
+cargo test --locked -p semaprax --all-features --test config_validator_project_v1 -- --test-threads=1
+cargo test --locked -p semaprax --all-features --test project_agent_workflow_v1 -- --test-threads=1
+```
+
+These gates are local evidence until the exact-head hosted matrix is green.
+They do not prove `usize`, arrays/slices, indexing, iteration, a general text
+processor, dependency resolution, registry behavior, signing/provenance, or
+npm registry publication.
+
+Project CLI publication is Web (default), explicit native, or npm. For Project
+v2, default/`web`/`wasm` and `npm` deliberately select the same exact six-file
+Useful Text package; Project v1 stays on its frozen scalar Web route. Project `run`
 and `test` must additionally prove exact authenticated closure selection,
 deterministic revision/stable-ID/fuel/outcome envelopes, zero/nonzero test
 status, distinct language/fuel/depth failures, bounded output, no source or
@@ -273,9 +306,10 @@ Open/Derived/Prepared/Applying transitions; notification silence; both revision
 bindings; distinct derivation/Project-Impact/Project-Review digest domains;
 typed base/candidate reverse closures with no managed-Workspace schema; stale
 digest non-consumption; response overflow before state/effect; no build while a
-change is pending; unchanged A0 overlap/reload/`SPX-J110` uncertainty; and a
-Web-only inline build with no path/process/tool/environment authority. The
-carrier gate requires the exact seven-file order, cumulative exact/minus-one
+change is pending; unchanged A0 overlap/reload/`SPX-J110` uncertainty; and
+pathless Web plus Project-v2-only npm builds with no selected path/process/
+tool/environment/registry authority. The Web carrier gate requires the exact
+seven-file order, cumulative exact/minus-one
 caps, lowercase decoding, every length/SHA, canonical payload digest,
 independent replay/tamper rejection, byte equality with ordinary Project Web
 preparation, materialization, and Node stable-ID execution. Run:

@@ -176,7 +176,8 @@ fn observed_type_bytes(ty: &ResolvedType) -> usize {
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool
-        | ResolvedType::String => 0,
+        | ResolvedType::String
+        | ResolvedType::Str => 0,
         ResolvedType::TypeParameter { owner, .. } => owner.as_str().len(),
         ResolvedType::Nominal {
             declaration,

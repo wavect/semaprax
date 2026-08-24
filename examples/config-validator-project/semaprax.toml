@@ -1,0 +1,8 @@
+schema = "semaprax.project.v2"
+name = "config-validator"
+version = "1.0.0"
+profile = "useful-text-consumer.v1"
+entry = "config_validator.app"
+sources = ["src/app.spx", "src/core.spx", "src/rules.spx", "src/tests.spx"]
+web_exports = ["config-validator.accepts-line", "config-validator.byte-length", "config-validator.classify"]
+tests = ["config_validator.tests"]

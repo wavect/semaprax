@@ -343,7 +343,7 @@ fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize {
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool => 0,
-        ResolvedType::String => 0,
+        ResolvedType::String | ResolvedType::Str => 0,
         ResolvedType::TypeParameter { owner, .. } => owner.as_str().len(),
         ResolvedType::Nominal {
             declaration,
@@ -755,7 +755,7 @@ impl<'a> PlanBuilder<'a> {
             .ok_or_else(|| {
                 plan_error(format!("type `{}` has no cleanup facts", ty.identity_key()))
             })?
-            && !matches!(ty, ResolvedType::String))
+            && !matches!(ty, ResolvedType::String | ResolvedType::Str))
     }
 
     fn assign_slot(
@@ -2363,6 +2363,20 @@ impl<'a> PlanBuilder<'a> {
                                 )));
                             }
                             crate::string_ops::resolved_params(op)
+                        } else if let Some(op) = crate::str_ops::by_id(callee.as_str()) {
+                            if instance.is_some() {
+                                return Err(plan_error(format!(
+                                    "borrowed str operation call `{}` must be monomorphic",
+                                    expression.id
+                                )));
+                            }
+                            if args.len() != op.arity() {
+                                return Err(plan_error(format!(
+                                    "cleanup call `{}` has inconsistent arity",
+                                    expression.id
+                                )));
+                            }
+                            crate::str_ops::resolved_params(op)
                         } else {
                             let target = self
                                 .program
@@ -3319,6 +3333,7 @@ impl<'a> PlanBuilder<'a> {
                         | ResolvedType::F64
                         | ResolvedType::Bool
                         | ResolvedType::String
+                        | ResolvedType::Str
                         | ResolvedType::TypeParameter { .. } => false,
                     };
                     if is_record {
@@ -4111,6 +4126,8 @@ impl<'a> PlanBuilder<'a> {
         let params = if instance.is_none() {
             if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
                 crate::string_ops::resolved_params(op)
+            } else if let Some(op) = crate::str_ops::by_id(callee.as_str()) {
+                crate::str_ops::resolved_params(op)
             } else {
                 let target = self
                     .program
@@ -5107,6 +5124,7 @@ impl<'a> PlanBuilder<'a> {
             | ResolvedType::F64
             | ResolvedType::Bool
             | ResolvedType::String
+            | ResolvedType::Str
             | ResolvedType::TypeParameter { .. } => false,
         };
         if is_record {

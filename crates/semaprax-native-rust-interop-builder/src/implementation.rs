@@ -4218,6 +4218,7 @@ fn type_identity_metrics(
                     ResolvedType::F64 => Some(leaf("f64".len())),
                     ResolvedType::Bool => Some(leaf("bool".len())),
                     ResolvedType::String => Some(leaf("string".len())),
+                    ResolvedType::Str => Some(leaf("str".len())),
                     ResolvedType::TypeParameter { owner, index } => {
                         let owner_bytes = owner.as_str().len();
                         let root_bytes = "parameter:"
@@ -4352,7 +4353,8 @@ fn fingerprint_type_identity(
                 | ResolvedType::F32
                 | ResolvedType::F64
                 | ResolvedType::Bool
-                | ResolvedType::String => {
+                | ResolvedType::String
+                | ResolvedType::Str => {
                     let text = match ty {
                         ResolvedType::Unit => "unit",
                         ResolvedType::I64 => "i64",
@@ -4363,6 +4365,7 @@ fn fingerprint_type_identity(
                         ResolvedType::F64 => "f64",
                         ResolvedType::Bool => "bool",
                         ResolvedType::String => "string",
+                        ResolvedType::Str => "str",
                         _ => unreachable!(),
                     };
                     let mut key = String::with_capacity(text.len());

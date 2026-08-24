@@ -9,6 +9,10 @@ fn manifest() -> String {
     "schema = \"semaprax.project.v1\"\nname = \"calculator\"\nentry = \"calculator.app\"\nsources = [\"a/core.spx\", \"t/tests.spx\", \"z/app.spx\"]\nweb_exports = [\"calculator.add\", \"calculator.divide\"]\ntests = [\"calculator.tests\"]\n".to_owned()
 }
 
+fn manifest_v2() -> String {
+    "schema = \"semaprax.project.v2\"\nname = \"config-validator\"\nversion = \"1.2.3-rc.1+build.7\"\nprofile = \"useful-text-consumer.v1\"\nentry = \"config.app\"\nsources = [\"a/core.spx\", \"t/tests.spx\", \"z/app.spx\"]\nweb_exports = [\"config.classify\", \"config.valid\"]\ntests = [\"config.tests\"]\n".to_owned()
+}
+
 fn fixture() -> PathBuf {
     let root = std::env::temp_dir().join(format!(
         "semaprax-project-v1-{}-{}",
@@ -212,6 +216,69 @@ fn canonical_manifest_round_trips_and_rejects_confusion() {
         ),
         manifest().replace("entry = \"calculator.app\"", "entry = \"calculator.tests\""),
         manifest().trim_end().to_owned(),
+    ] {
+        assert_eq!(
+            ProjectManifest::parse(&malformed).unwrap_err()[0].code,
+            "SPX-J100"
+        );
+    }
+}
+
+#[test]
+fn canonical_v2_manifest_round_trips_with_explicit_package_metadata() {
+    let parsed = ProjectManifest::parse(&manifest_v2()).unwrap();
+    assert_eq!(parsed.schema(), PROJECT_SCHEMA_V2);
+    assert_eq!(parsed.name(), "config-validator");
+    assert_eq!(parsed.package_version(), Some("1.2.3-rc.1+build.7"));
+    assert_eq!(
+        parsed.profile(),
+        Some(PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1)
+    );
+    assert!(parsed.is_v2());
+    assert_eq!(parsed.to_canonical_toml(), manifest_v2());
+
+    let v1 = ProjectManifest::parse(&manifest()).unwrap();
+    assert_eq!(v1.schema(), PROJECT_SCHEMA);
+    assert_eq!(v1.package_version(), None);
+    assert_eq!(v1.profile(), None);
+    assert!(!v1.is_v2());
+    assert_eq!(v1.to_canonical_toml(), manifest());
+}
+
+#[test]
+fn v2_manifest_rejects_noncanonical_semver_profile_and_assignment_confusion() {
+    for invalid in [
+        "",
+        "1",
+        "1.2",
+        "01.2.3",
+        "1.02.3",
+        "1.2.03",
+        "1.2.3-01",
+        "1.2.3-",
+        "1.2.3+",
+        "1.2.3+build+other",
+        "v1.2.3",
+        "1.2.3-α",
+    ] {
+        let malformed = manifest_v2().replace("1.2.3-rc.1+build.7", invalid);
+        assert_eq!(
+            ProjectManifest::parse(&malformed).unwrap_err()[0].code,
+            "SPX-J100",
+            "noncanonical version admitted: {invalid:?}"
+        );
+    }
+    for malformed in [
+        manifest_v2().replace(
+            "profile = \"useful-text-consumer.v1\"",
+            "profile = \"scalar.v1\"",
+        ),
+        manifest_v2().replace(
+            "version = \"1.2.3-rc.1+build.7\"\nprofile",
+            "profile = \"useful-text-consumer.v1\"\nversion",
+        ),
+        manifest_v2().replace("version =", "package_version ="),
+        manifest_v2().trim_end().to_owned(),
     ] {
         assert_eq!(
             ProjectManifest::parse(&malformed).unwrap_err()[0].code,
@@ -586,6 +653,42 @@ fn snapshot_reuses_workspace_phase_a_and_rechecks_bytes() {
     .unwrap_err();
     assert_eq!(error[0].code, "SPX-TEST");
     assert_eq!(error[1].code, "SPX-J102");
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn selected_disconnected_web_export_is_an_exact_additional_link_root() {
+    let root = fixture();
+    std::fs::create_dir(root.join("q")).unwrap();
+    std::fs::write(
+        root.join("q/exports.spx"),
+        "module calculator.exports;\n\n@id(\"calculator.detached.helper\")\nfn helper(value: i64) -> i64\n{\n    value + 1\n}\n\n@id(\"calculator.detached\")\nfn detached(value: i64) -> i64\n{\n    helper(value)\n}\n\n@id(\"calculator.unselected\")\nfn unselected(value: i64) -> i64\n{\n    value + 100\n}\n",
+    )
+    .unwrap();
+    let selected_manifest = manifest()
+        .replace(
+            "sources = [\"a/core.spx\", \"t/tests.spx\", \"z/app.spx\"]",
+            "sources = [\"a/core.spx\", \"q/exports.spx\", \"t/tests.spx\", \"z/app.spx\"]",
+        )
+        .replace(
+            "web_exports = [\"calculator.add\", \"calculator.divide\"]",
+            "web_exports = [\"calculator.add\", \"calculator.detached\"]",
+        );
+    std::fs::write(root.join(MANIFEST_FILE), selected_manifest).unwrap();
+
+    with_authenticated_project(&root.join(MANIFEST_FILE), |snapshot| {
+        let ids = snapshot
+            .entry_program()
+            .functions
+            .iter()
+            .map(|function| function.id.as_str())
+            .collect::<BTreeSet<_>>();
+        assert!(ids.contains("calculator.detached"));
+        assert!(ids.contains("calculator.detached.helper"));
+        assert!(!ids.contains("calculator.unselected"));
+        Ok(())
+    })
+    .unwrap();
     let _ = std::fs::remove_dir_all(root);
 }
 

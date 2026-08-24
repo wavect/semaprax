@@ -1300,6 +1300,7 @@ impl<'a> Executor<'a> {
             (CleanupResultSource::Scalar { .. }, ResolvedType::Nominal { .. })
             | (CleanupResultSource::Scalar { .. }, ResolvedType::Unit)
             | (CleanupResultSource::Scalar { .. }, ResolvedType::String)
+            | (CleanupResultSource::Scalar { .. }, ResolvedType::Str)
             | (CleanupResultSource::Owned { .. }, ResolvedType::Unit)
             | (
                 CleanupResultSource::Owned { .. },
@@ -1310,7 +1311,8 @@ impl<'a> Executor<'a> {
                 | ResolvedType::F32
                 | ResolvedType::F64
                 | ResolvedType::Bool
-                | ResolvedType::String,
+                | ResolvedType::String
+                | ResolvedType::Str,
             )
             | (_, ResolvedType::TypeParameter { .. }) => false,
         };

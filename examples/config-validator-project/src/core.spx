@@ -1,0 +1,7 @@
+module config_validator.core;
+
+@id("config-validator.rules-ready")
+fn rules_ready() -> i64
+{
+    0
+}

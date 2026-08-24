@@ -10,6 +10,7 @@ mod build;
 mod execution;
 mod manifest;
 mod native_sdk;
+mod npm;
 mod rename;
 mod semantic;
 #[cfg(test)]
@@ -32,9 +33,11 @@ pub use execution::{
 use manifest::{capacity, grammar};
 pub use manifest::{
     ProjectManifest, MAX_MANIFEST_BYTES, MAX_MODULE_BYTES, MAX_NAME_BYTES, MAX_PATH_BYTES,
-    MAX_SOURCES, MAX_STABLE_ID_BYTES, MAX_TOTAL_SOURCE_BYTES, MAX_WEB_EXPORTS, PROJECT_SCHEMA,
+    MAX_SOURCES, MAX_STABLE_ID_BYTES, MAX_TOTAL_SOURCE_BYTES, MAX_VERSION_BYTES, MAX_WEB_EXPORTS,
+    PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1, PROJECT_SCHEMA, PROJECT_SCHEMA_V2,
 };
 pub use native_sdk::{ProjectNativeSdkExport, ProjectNativeSdkSubject};
+pub use npm::{ProjectNpmBuild, MAX_PROJECT_NPM_BUILD_BYTES, PROJECT_NPM_BUILD_SCHEMA};
 pub(crate) use rename::{PreparedProjectRename, ProjectRenameDerivation};
 pub use semantic::{
     PROJECT_SEMANTIC_CONTEXT_SCHEMA, PROJECT_SEMANTIC_GRAPH_SCHEMA, PROJECT_SEMANTIC_IMPACT_SCHEMA,
@@ -235,6 +238,14 @@ impl ProjectSnapshot {
 
     /// Build the authenticated project entry closure as one scalar Web package.
     pub fn build_web(&mut self, output: &Path) -> Result<(), Vec<Diagnostic>> {
+        // Project v2 has one public JavaScript product: the exact six-file
+        // Useful Text Consumer npm/Web package. Keeping `web` and the default
+        // route as aliases avoids a scalar-v1 fallback while `npm` remains the
+        // explicit package-manager spelling. Frozen Project v1 bytes and
+        // publication behavior stay on the scalar route below.
+        if self.manifest.is_v2() {
+            return self.build_npm(output);
+        }
         let prepared = crate::wasm::prepare_project_web_with_scalar_exports(
             &self.entry_program,
             self.manifest.name(),
@@ -252,11 +263,19 @@ impl ProjectSnapshot {
             .map_err(|drift| self.publication_uncertainty(drift))
     }
 
-    /// Build the authenticated entry closure as one deterministic pathless
-    /// carrier. This performs no filesystem access, process launch,
-    /// publication, or caching. `max_bytes` bounds both the cumulative decoded
-    /// artifact inventory and the final canonical hexadecimal envelope.
+    /// Build a Project v1 authenticated entry closure as one deterministic
+    /// pathless scalar-Web carrier. Project v2 keeps the frozen return type
+    /// honest by using [`Self::build_npm_inline`] for its text Web carrier.
+    /// This performs no filesystem access, process launch, publication, or
+    /// caching. `max_bytes` bounds both the cumulative decoded artifact
+    /// inventory and the final canonical hexadecimal envelope.
     pub fn build_web_inline(&self, max_bytes: usize) -> Result<ProjectWebBuild, Vec<Diagnostic>> {
+        if self.manifest.is_v2() {
+            return Err(vec![Diagnostic::io(
+                "SPX-W120",
+                "Project v2 pathless Web builds use build_npm_inline",
+            )]);
+        }
         crate::wasm::prepare_project_web_with_scalar_exports(
             &self.entry_program,
             self.manifest.name(),
@@ -276,6 +295,39 @@ impl ProjectSnapshot {
                 max_bytes,
             )
         })
+        .map_err(|error| vec![error])
+    }
+
+    /// Build and publish the exact installable six-file npm package admitted
+    /// only by Project v2's Useful Text Consumer profile.
+    pub fn build_npm(&mut self, output: &Path) -> Result<(), Vec<Diagnostic>> {
+        let prepared = npm::prepare(
+            &self.manifest,
+            &self.entry_program,
+            &self.project_revision,
+            &self.workspace_revision,
+            self.semantic.graph_digest(),
+            MAX_PROJECT_NPM_BUILD_BYTES,
+        )
+        .map_err(|error| vec![error])?;
+        self.recheck()?;
+        prepared.publish(output).map_err(|error| vec![error])?;
+        self.published_subject = Some(NPM_PUBLICATION_SUBJECT);
+        self.recheck()
+            .map_err(|drift| self.publication_uncertainty(drift))
+    }
+
+    /// Build one deterministic, pathless, context-bound npm carrier whose
+    /// self-consistency can be replayed without filesystem or process authority.
+    pub fn build_npm_inline(&self, max_bytes: usize) -> Result<ProjectNpmBuild, Vec<Diagnostic>> {
+        npm::prepare(
+            &self.manifest,
+            &self.entry_program,
+            &self.project_revision,
+            &self.workspace_revision,
+            self.semantic.graph_digest(),
+            max_bytes,
+        )
         .map_err(|error| vec![error])
     }
 
@@ -484,5 +536,6 @@ pub(crate) fn load_snapshot(manifest_path: &Path) -> Result<ProjectSnapshot, Vec
 }
 
 const WEB_PUBLICATION_SUBJECT: &str = "digest-bound Web package";
+const NPM_PUBLICATION_SUBJECT: &str = "installable npm package";
 const NATIVE_PUBLICATION_SUBJECT: &str = "native executable";
 const AUTHENTICATED_PROJECT_SUBJECT_OPERATION: &str = "authenticated Project subject operation";

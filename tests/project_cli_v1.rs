@@ -307,6 +307,25 @@ fn project_build_rejections_happen_before_any_output_clobber() {
         assert_eq!(std::fs::read(&blocked_output).unwrap(), sentinel, "{label}");
     }
 
+    let v1_npm = cli(
+        &fixture.root,
+        &[
+            "build",
+            "semaprax.toml",
+            "--target",
+            "npm",
+            "-o",
+            blocked_output.to_str().unwrap(),
+        ],
+    );
+    assert_eq!(v1_npm.status.code(), Some(1), "{v1_npm:?}");
+    assert!(
+        stderr(&v1_npm).contains("npm facade requires the useful-text-consumer.v1 Project profile"),
+        "{}",
+        stderr(&v1_npm)
+    );
+    assert_eq!(std::fs::read(&blocked_output).unwrap(), sentinel);
+
     let existing_native = cli(
         &fixture.root,
         &[

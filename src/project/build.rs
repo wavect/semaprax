@@ -43,6 +43,10 @@ pub(super) fn build_owned(
         canonical_manifest.len(),
         manifest.entry(),
         manifest.test_module(),
+        crate::workspace_graph::ProjectWebRoots {
+            stable_ids: manifest.web_exports(),
+            useful_text_profile: manifest.is_v2(),
+        },
     )?;
     let entry_program = semantic_parts.entry_program;
     let test_program = semantic_parts.test_program;
@@ -54,8 +58,16 @@ pub(super) fn build_owned(
     )?;
     // This is the complete public Web-export admission gate used by ordinary
     // Project loading. Candidate planning must not validate a weaker profile.
-    crate::wasm::emit_resolved_module_with_scalar_exports(&entry_program, manifest.web_exports())
+    if manifest.is_v2() {
+        crate::wasm::emit_resolved_module_with_text_exports(&entry_program, manifest.web_exports())
+            .map_err(|error| vec![error])?;
+    } else {
+        crate::wasm::emit_resolved_module_with_scalar_exports(
+            &entry_program,
+            manifest.web_exports(),
+        )
         .map_err(|error| vec![error])?;
+    }
     let sources = files
         .into_iter()
         .map(|file| {

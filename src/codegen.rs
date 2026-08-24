@@ -1053,7 +1053,11 @@ fn emit_native_prelude(
     resource_abi: &native_resource::NativeResourceAbi,
     program: &ResolvedProgram,
 ) {
-    native_runtime::emit_status_runtime(output);
+    if program_uses_borrowed_str(program) {
+        native_runtime::emit_status_runtime_with_borrowed_str(output);
+    } else {
+        native_runtime::emit_status_runtime(output);
+    }
     output.push_str(&resource_abi.declarations);
     output.push_str("#include <stdio.h>\n\n");
     output.push_str(NATIVE_SCALAR_RUNTIME_C);
@@ -1074,6 +1078,11 @@ fn emit_native_prelude(
         // Breadth-v2 string operation helpers gate as their own group so
         // first-wave programs keep their exact committed bytes.
         output.push_str(NATIVE_STRING_OPS_V2_RUNTIME_C);
+    }
+    if program_uses_borrowed_str(program) {
+        // Borrowed text is a distinct length-aware carrier. Keep it behind a
+        // reachability gate so every pre-text native projection is byte exact.
+        output.push_str(NATIVE_BORROWED_STR_RUNTIME_C);
     }
 }
 
@@ -1142,6 +1151,36 @@ fn program_uses_string_ops_v2(program: &ResolvedProgram) -> bool {
             if crate::string_ops::by_id(callee.as_str())
                 .is_some_and(crate::string_ops::StringOp::is_breadth_v2)
             {
+                return true;
+            }
+        }
+        pending.extend(resolved_expr_children(expression));
+    }
+    false
+}
+
+/// Whether any resolved function body or contract calls a compiler-owned
+/// borrowed-text operation intrinsic.
+fn program_uses_borrowed_str(program: &ResolvedProgram) -> bool {
+    let mut pending: Vec<&ResolvedExpr> = Vec::new();
+    for function in &program.functions {
+        if matches!(function.return_type, ResolvedType::Str)
+            || function
+                .params
+                .iter()
+                .any(|param| matches!(param.ty, ResolvedType::Str))
+        {
+            return true;
+        }
+        pending.push(&function.body);
+        pending.extend(function.requires.iter().chain(&function.ensures));
+    }
+    while let Some(expression) = pending.pop() {
+        if matches!(expression.ty, ResolvedType::Str) {
+            return true;
+        }
+        if let ResolvedExprKind::Call { callee, .. } = &expression.kind {
+            if crate::str_ops::by_id(callee.as_str()).is_some() {
                 return true;
             }
         }
@@ -2097,6 +2136,117 @@ static __attribute__((unused)) char *spx_string_from_char(uint32_t spx_scalar) {
 }
 "#;
 
+const NATIVE_BORROWED_STR_RUNTIME_C: &str = r#"#include <limits.h>
+#include <stddef.h>
+#include <string.h>
+
+typedef struct {
+    const uint8_t *data;
+    uint64_t len;
+} spx_str_v1;
+
+#define SPX_BORROWED_STR_MAX_BYTES UINT64_C(65536)
+
+static __attribute__((unused)) void spx_str_require_valid(spx_str_v1 value) {
+    if (value.len != UINT64_C(0) && value.data == NULL) {
+        spx_runtime_invariant_failure("borrowed str has null data with nonzero length");
+    }
+    if (value.len > SPX_BORROWED_STR_MAX_BYTES
+        || value.len > (uint64_t)SIZE_MAX
+        || value.len > (uint64_t)INT64_MAX) {
+        spx_runtime_invariant_failure("borrowed str length exceeds native profile");
+    }
+    uint64_t offset = UINT64_C(0);
+    while (offset < value.len) {
+        const uint8_t first = value.data[offset];
+        uint64_t width = UINT64_C(0);
+        if (first <= UINT8_C(0x7f)) {
+            width = UINT64_C(1);
+        } else if (first >= UINT8_C(0xc2) && first <= UINT8_C(0xdf)) {
+            width = UINT64_C(2);
+        } else if (first >= UINT8_C(0xe0) && first <= UINT8_C(0xef)) {
+            width = UINT64_C(3);
+        } else if (first >= UINT8_C(0xf0) && first <= UINT8_C(0xf4)) {
+            width = UINT64_C(4);
+        } else {
+            spx_runtime_invariant_failure("borrowed str is not canonical UTF-8");
+        }
+        if (width > value.len - offset) {
+            spx_runtime_invariant_failure("borrowed str has truncated UTF-8");
+        }
+        if (width >= UINT64_C(2)) {
+            const uint8_t second = value.data[offset + UINT64_C(1)];
+            if ((second & UINT8_C(0xc0)) != UINT8_C(0x80)
+                || (first == UINT8_C(0xe0) && second < UINT8_C(0xa0))
+                || (first == UINT8_C(0xed) && second > UINT8_C(0x9f))
+                || (first == UINT8_C(0xf0) && second < UINT8_C(0x90))
+                || (first == UINT8_C(0xf4) && second > UINT8_C(0x8f))) {
+                spx_runtime_invariant_failure("borrowed str is not canonical UTF-8");
+            }
+        }
+        for (uint64_t tail = UINT64_C(2); tail < width; ++tail) {
+            if ((value.data[offset + tail] & UINT8_C(0xc0)) != UINT8_C(0x80)) {
+                spx_runtime_invariant_failure("borrowed str is not canonical UTF-8");
+            }
+        }
+        offset += width;
+    }
+}
+
+static __attribute__((unused)) int64_t spx_str_len_bytes(spx_str_v1 value) {
+    spx_str_require_valid(value);
+    return (int64_t)value.len;
+}
+
+static __attribute__((unused)) bool spx_str_is_empty(spx_str_v1 value) {
+    spx_str_require_valid(value);
+    return value.len == UINT64_C(0);
+}
+
+static __attribute__((unused)) bool spx_str_starts_with(
+    spx_str_v1 value, spx_str_v1 prefix
+) {
+    spx_str_require_valid(value);
+    spx_str_require_valid(prefix);
+    if (prefix.len == UINT64_C(0)) return true;
+    if (prefix.len > value.len) return false;
+    return memcmp(value.data, prefix.data, (size_t)prefix.len) == 0;
+}
+
+static __attribute__((unused)) bool spx_str_contains(
+    spx_str_v1 value, spx_str_v1 needle
+) {
+    spx_str_require_valid(value);
+    spx_str_require_valid(needle);
+    if (needle.len == UINT64_C(0)) return true;
+    if (needle.len > value.len) return false;
+
+    /* Fixed-capacity KMP: every byte advances or shortens the matched prefix. */
+    uint16_t prefix[SPX_BORROWED_STR_MAX_BYTES];
+    prefix[0] = UINT16_C(0);
+    uint64_t matched = UINT64_C(0);
+    for (uint64_t index = UINT64_C(1); index < needle.len; ++index) {
+        while (matched != UINT64_C(0) && needle.data[matched] != needle.data[index]) {
+            matched = (uint64_t)prefix[matched - UINT64_C(1)];
+        }
+        if (needle.data[matched] == needle.data[index]) ++matched;
+        prefix[index] = (uint16_t)matched;
+    }
+
+    matched = UINT64_C(0);
+    for (uint64_t index = UINT64_C(0); index < value.len; ++index) {
+        while (matched != UINT64_C(0) && needle.data[matched] != value.data[index]) {
+            matched = (uint64_t)prefix[matched - UINT64_C(1)];
+        }
+        if (needle.data[matched] == value.data[index]) {
+            ++matched;
+            if (matched == needle.len) return true;
+        }
+    }
+    return false;
+}
+"#;
+
 const NATIVE_U8_RUNTIME_C: &str = r#"static __attribute__((unused)) spx_status_token spx_rt_u8_add(
     struct spx_context *spx_ctx, uint8_t a, uint8_t b, uint8_t *result_out
 ) {
@@ -2215,6 +2365,31 @@ fn emit_function(
         emitter.line("bool spx_result_staged = false;");
     }
     emitter.line("(void)spx_ctx;");
+    let borrowed_params = function
+        .params
+        .iter()
+        .enumerate()
+        .filter(|(_, param)| matches!(param.ty, ResolvedType::Str))
+        .map(|(index, _)| index)
+        .collect::<Vec<_>>();
+    if !borrowed_params.is_empty() {
+        emitter
+            .line("const bool spx_borrowed_str_root = spx_ctx->borrowed_str_depth == UINT32_C(0);");
+        emitter.line("if (spx_ctx->borrowed_str_depth == UINT32_MAX) spx_runtime_invariant_failure(\"borrowed str call depth exhausted\");");
+        emitter.line("if (spx_borrowed_str_root) {");
+        emitter.indent += 1;
+        emitter.line("uint64_t spx_borrowed_str_bytes = UINT64_C(0);");
+        for index in &borrowed_params {
+            emitter.line(&format!("spx_str_require_valid(spx_param_{index});"));
+            emitter.line(&format!(
+                "if (spx_param_{index}.len > SPX_BORROWED_STR_MAX_BYTES - spx_borrowed_str_bytes) spx_runtime_invariant_failure(\"borrowed str invocation exceeds byte budget\");"
+            ));
+            emitter.line(&format!("spx_borrowed_str_bytes += spx_param_{index}.len;"));
+        }
+        emitter.indent -= 1;
+        emitter.line("}");
+        emitter.line("++spx_ctx->borrowed_str_depth;");
+    }
     emitter.line(&format!(
         "{} spx_result = {{0}};",
         c_value_type(program, resource_abi, &function.return_type)?
@@ -2270,6 +2445,10 @@ fn emit_function(
     emitter.line("goto spx_epilogue;");
     drop(emitter);
     output.push_str("spx_epilogue:\n");
+    if !borrowed_params.is_empty() {
+        output.push_str("    if (spx_ctx->borrowed_str_depth == UINT32_C(0)) spx_runtime_invariant_failure(\"borrowed str call depth underflow\");\n");
+        output.push_str("    --spx_ctx->borrowed_str_depth;\n");
+    }
     // Callee-owned string parameters free their buffers on every exit path;
     // the staged result is handed to the caller instead.
     for (index, param) in function.params.iter().enumerate() {
@@ -2779,6 +2958,62 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         })
     }
 
+    fn emit_str_op(
+        &mut self,
+        op: crate::str_ops::StrOp,
+        args: &[ResolvedExpr],
+        result_type: &ResolvedType,
+    ) -> Result<CValue, Diagnostic> {
+        // A borrowed view is copied as a two-word carrier only. Operations do
+        // not allocate, clone, retain, consume, or drop either source view.
+        let mut arguments = Vec::with_capacity(args.len());
+        if args.len() != op.arity() {
+            return Err(backend_error(format!(
+                "borrowed str operation `{}` has {} arguments; expected {}",
+                op.id(),
+                args.len(),
+                op.arity()
+            )));
+        }
+        for argument in args {
+            let value = self.emit_expr(argument)?;
+            self.require_type(
+                &value.ty,
+                &ResolvedType::Str,
+                "borrowed str operation argument",
+            )?;
+            arguments.push(value);
+        }
+        self.require_type(
+            result_type,
+            &op.return_type(),
+            "borrowed str operation result",
+        )?;
+        let temporary = self.temporary(&op.return_type())?;
+        match op {
+            crate::str_ops::StrOp::LenBytes => self.line(&format!(
+                "{temporary} = spx_str_len_bytes({});",
+                arguments[0].code
+            )),
+            crate::str_ops::StrOp::IsEmpty => self.line(&format!(
+                "{temporary} = spx_str_is_empty({});",
+                arguments[0].code
+            )),
+            crate::str_ops::StrOp::StartsWith => self.line(&format!(
+                "{temporary} = spx_str_starts_with({}, {});",
+                arguments[0].code, arguments[1].code
+            )),
+            crate::str_ops::StrOp::Contains => self.line(&format!(
+                "{temporary} = spx_str_contains({}, {});",
+                arguments[0].code, arguments[1].code
+            )),
+        }
+        Ok(CValue {
+            code: temporary,
+            ty: op.return_type(),
+        })
+    }
+
     fn emit_expr(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
         let value = match &expr.kind {
             ResolvedExprKind::Int(value) => {
@@ -2865,6 +3100,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 ..
             } => {
                 if instance.is_none() {
+                    if let Some(op) = crate::str_ops::by_id(callee.as_str()) {
+                        return self.emit_str_op(op, args, &expr.ty);
+                    }
                     if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
                         return self.emit_string_op(op, args, &expr.ty);
                     }

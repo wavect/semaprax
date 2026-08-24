@@ -2,7 +2,8 @@
 //!
 //! Requests select no path, source, patch, output, tool, or environment.
 //! The only retained mutation plan is derived from authenticated Project
-//! meaning, and the Web build is returned inline without physical effects.
+//! meaning, and Web or Project-v2 npm builds are returned inline without
+//! physical effects.
 
 use serde_json::{Map, Value};
 
@@ -225,16 +226,33 @@ impl Session {
         }
         self.subject(id, params, |snapshot, mut params| {
             let target = take_string(&mut params, "target")?;
-            if target != "web" {
-                return Err(super::parameter_diagnostic(
-                    "target must be web; native and Rust builds are outside daemon authority",
-                ));
-            }
             let max_bytes = take_optional_usize(&mut params, "max_bytes")?
                 .unwrap_or(DEFAULT_INLINE_BUILD_BYTES);
             reject_unknown(&params)?;
-            let build = snapshot.build_web_inline(max_bytes)?;
-            Ok(format!("{{\"build\":{}}}", build.envelope()))
+            let envelope = match target.as_str() {
+                "web" => {
+                    if snapshot.manifest().is_v2() {
+                        let build = snapshot.build_npm_inline(max_bytes)?;
+                        build.verify().map_err(|error| vec![error])?;
+                        build.envelope().to_owned()
+                    } else {
+                        let build = snapshot.build_web_inline(max_bytes)?;
+                        build.verify().map_err(|error| vec![error])?;
+                        build.envelope().to_owned()
+                    }
+                }
+                "npm" => {
+                    let build = snapshot.build_npm_inline(max_bytes)?;
+                    build.verify().map_err(|error| vec![error])?;
+                    build.envelope().to_owned()
+                }
+                _ => {
+                    return Err(super::parameter_diagnostic(
+                        "target must be web or npm; native and Rust builds are outside daemon authority",
+                    ));
+                }
+            };
+            Ok(format!("{{\"build\":{envelope}}}"))
         })
     }
 }

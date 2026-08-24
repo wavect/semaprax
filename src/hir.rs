@@ -303,7 +303,7 @@ fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize {
         | ResolvedType::F32
         | ResolvedType::F64
         | ResolvedType::Bool => 0,
-        ResolvedType::String => 0,
+        ResolvedType::String | ResolvedType::Str => 0,
         ResolvedType::TypeParameter { owner, .. } => owner.as_str().len(),
         ResolvedType::Nominal {
             declaration,
@@ -1218,6 +1218,7 @@ impl DeclarationIndex {
                         ResolvedType::F64 => Some((true, false, false, "scalar:f64")),
                         ResolvedType::Bool => Some((true, false, false, "scalar:bool")),
                         ResolvedType::String => Some((false, false, true, "owned:string")),
+                        ResolvedType::Str => Some((false, false, false, "borrowed:str")),
                         ResolvedType::TypeParameter { .. } | ResolvedType::Nominal { .. } => None,
                     };
                     if let Some((copy, contains_resource, needs_drop, key)) = scalar {
@@ -2154,6 +2155,7 @@ impl DeclarationIndex {
                     Type::F64 => resolved.push(ResolvedType::F64),
                     Type::Bool => resolved.push(ResolvedType::Bool),
                     Type::String => resolved.push(ResolvedType::String),
+                    Type::Str => resolved.push(ResolvedType::Str),
                     Type::Named { name, arguments } => {
                         if arguments.is_empty() {
                             if let Some(owner) = parameter_owner {
@@ -2205,6 +2207,8 @@ pub enum ResolvedType {
     Bool,
     /// An owned heap UTF-8 string value; never `Copy`.
     String,
+    /// A non-owning UTF-8 view rooted in the current invocation.
+    Str,
     TypeParameter {
         owner: DeclarationId,
         index: u32,
@@ -2228,6 +2232,7 @@ impl ResolvedType {
             | Self::F64
             | Self::Bool
             | Self::String
+            | Self::Str
             | Self::TypeParameter { .. } => None,
         }
     }
@@ -2252,6 +2257,7 @@ impl ResolvedType {
                     Self::F64 => keys.push("f64".to_owned()),
                     Self::Bool => keys.push("bool".to_owned()),
                     Self::String => keys.push("string".to_owned()),
+                    Self::Str => keys.push("str".to_owned()),
                     Self::TypeParameter { owner, index } => keys.push(format!(
                         "parameter:{}:{}:{index}",
                         owner.as_str().len(),
@@ -2333,6 +2339,7 @@ pub(crate) fn substitute_type(
                 ResolvedType::F64 => resolved.push(ResolvedType::F64),
                 ResolvedType::Bool => resolved.push(ResolvedType::Bool),
                 ResolvedType::String => resolved.push(ResolvedType::String),
+                ResolvedType::Str => resolved.push(ResolvedType::Str),
                 ResolvedType::TypeParameter {
                     owner: parameter_owner,
                     index,
@@ -2406,6 +2413,7 @@ fn substitute_source_function_type(
                 Type::F64 => resolved.push(Type::F64),
                 Type::Bool => resolved.push(Type::Bool),
                 Type::String => resolved.push(Type::String),
+                Type::Str => resolved.push(Type::Str),
                 Type::Named {
                     name,
                     arguments: nested,
@@ -3550,6 +3558,99 @@ pub(crate) fn link_scalar_workspace(
     Ok(linked)
 }
 
+/// Assemble one backend-ready Useful Text Consumer program from authenticated
+/// workspace functions. The authored entry remains the exact scalar `main`,
+/// while additional selected roots may accept only non-escaping `borrow str`
+/// views and return scalar values.
+pub(crate) fn link_useful_text_workspace(
+    module: String,
+    entrypoint: DeclarationId,
+    mut linked_functions: Vec<LinkedScalarFunction>,
+) -> Result<ResolvedProgram, Diagnostic> {
+    if linked_functions.is_empty() {
+        return Err(link_error("workspace text closure has no functions"));
+    }
+    linked_functions.sort_by(|left, right| left.function.id.cmp(&right.function.id));
+
+    let mut seen = BTreeSet::new();
+    let mut entry_origin = None;
+    for linked in &linked_functions {
+        let function = &linked.function;
+        if !seen.insert(function.id.clone()) {
+            return Err(link_error(format!(
+                "workspace text closure duplicates function `{}`",
+                function.id
+            )));
+        }
+        if !function.effects.is_empty()
+            || !scalar_type(&function.return_type)
+            || function.params.iter().any(|parameter| {
+                !matches!(
+                    (&parameter.ty, parameter.ownership),
+                    (ResolvedType::I64 | ResolvedType::Bool, OwnershipMode::Value)
+                        | (ResolvedType::Str, OwnershipMode::Borrow)
+                )
+            })
+        {
+            return Err(link_error(format!(
+                "workspace function `{}` is outside the Useful Text Consumer linker profile",
+                function.id
+            )));
+        }
+        if function.id == entrypoint {
+            entry_origin = Some(linked.origin);
+            if function.name != "main"
+                || !function.params.is_empty()
+                || function.return_type != ResolvedType::I64
+            {
+                return Err(link_error(
+                    "workspace text entry point must be an authored `fn main() -> i64`",
+                ));
+            }
+        }
+    }
+    if entry_origin != Some(IdentityOrigin::Explicit) {
+        return Err(link_error(
+            "workspace text entry point must have an explicit authored identity",
+        ));
+    }
+
+    let mut declarations = DeclarationIndex::default();
+    for linked in &linked_functions {
+        declarations.insert_top_level(
+            linked.function.name.clone(),
+            linked.function.id.clone(),
+            DeclarationKind::Function,
+            linked.origin,
+        );
+        declarations
+            .type_parameters
+            .insert(linked.function.id.clone(), Vec::new());
+    }
+    if !declarations.populate_type_facts() {
+        return Err(link_error(
+            "workspace text linker could not construct type facts",
+        ));
+    }
+    let mut linked = ResolvedProgram {
+        module,
+        permits: Vec::new(),
+        entrypoint,
+        declarations,
+        types: Vec::new(),
+        interfaces: Vec::new(),
+        function_templates: Vec::new(),
+        functions: linked_functions
+            .drain(..)
+            .map(|linked| linked.function)
+            .collect(),
+        function_instances: Vec::new(),
+    };
+    rebuild_cleanup_metadata(&mut linked)?;
+    validate(&linked)?;
+    Ok(linked)
+}
+
 fn scalar_type(ty: &ResolvedType) -> bool {
     matches!(ty, ResolvedType::I64 | ResolvedType::Bool)
 }
@@ -3792,7 +3893,8 @@ fn audit_resolved_type(root: &ResolvedType) -> Result<(), Diagnostic> {
             | ResolvedType::F32
             | ResolvedType::F64
             | ResolvedType::Bool
-            | ResolvedType::String => {}
+            | ResolvedType::String
+            | ResolvedType::Str => {}
             ResolvedType::TypeParameter { owner, .. } => {
                 reject_nul_identity("resolved type-parameter owner", owner.as_str())?;
             }
@@ -5111,6 +5213,15 @@ impl Resolver<'_> {
                 // parameter carries unique ownership.
                 let ownership = if ty == ResolvedType::String {
                     OwnershipMode::Own
+                } else if ty == ResolvedType::Str {
+                    if param.mode != ParamMode::Borrow {
+                        return Err(self.error(
+                            "SPX-H006",
+                            "resolved `str` parameter must have borrow ownership",
+                            param.span,
+                        ));
+                    }
+                    OwnershipMode::Borrow
                 } else {
                     param.mode.into()
                 };
@@ -5133,6 +5244,13 @@ impl Resolver<'_> {
             })
             .collect::<Result<Vec<_>, Diagnostic>>()?;
         let return_type = self.resolve_type(&function.return_type, function.span)?;
+        if return_type == ResolvedType::Str {
+            return Err(self.error(
+                "SPX-H006",
+                "borrowed `str` cannot escape through a function result",
+                function.span,
+            ));
+        }
         let result_id = ValueId::result(function_scope);
 
         let requires = function
@@ -5216,6 +5334,7 @@ impl Resolver<'_> {
                 Frame::Enter(Type::F64) => result = Some(ResolvedType::F64),
                 Frame::Enter(Type::Bool) => result = Some(ResolvedType::Bool),
                 Frame::Enter(Type::String) => result = Some(ResolvedType::String),
+                Frame::Enter(Type::Str) => result = Some(ResolvedType::Str),
                 Frame::Enter(Type::Named { name, arguments }) => {
                     let declaration =
                         self.declarations.type_id(name).cloned().ok_or_else(|| {
@@ -5968,6 +6087,12 @@ impl Resolver<'_> {
                 op: crate::string_ops::StringOp,
                 argument_count: usize,
             },
+            FinishStrOp {
+                span: Span,
+                path: String,
+                op: crate::str_ops::StrOp,
+                argument_count: usize,
+            },
             ChildNext {
                 children: &'expr [Expr],
                 index: usize,
@@ -6269,6 +6394,7 @@ impl Resolver<'_> {
                 | Frame::FinishNativeCall { path, .. }
                 | Frame::FinishCall { path, .. }
                 | Frame::FinishStringOp { path, .. }
+                | Frame::FinishStrOp { path, .. }
                 | Frame::ChildNext { path, .. }
                 | Frame::MethodArgNext { path, .. }
                 | Frame::FinishUnary { path, .. }
@@ -6363,7 +6489,7 @@ impl Resolver<'_> {
                             | Type::F32
                             | Type::F64
                             | Type::Bool => 0,
-                            Type::String => 0,
+                            Type::String | Type::Str => 0,
                             Type::Named { name, arguments } => {
                                 name.capacity() + arguments.capacity() * std::mem::size_of::<Type>()
                             }
@@ -6634,6 +6760,40 @@ impl Resolver<'_> {
                                 ));
                             }
                             frames.push(Frame::FinishStringOp {
+                                span: expr.span,
+                                path: path.clone(),
+                                op,
+                                argument_count: args.len(),
+                            });
+                            frames.push(Frame::ChildNext {
+                                children: args,
+                                index: 0,
+                                bindings,
+                                path,
+                                segment: "arg",
+                            });
+                        } else if let Some(op) = crate::str_ops::by_name(name) {
+                            if !type_arguments.is_empty() {
+                                return Err(self.error(
+                                    "SPX-H006",
+                                    format!(
+                                        "borrowed string operation `{name}` has type arguments"
+                                    ),
+                                    expr.span,
+                                ));
+                            }
+                            if args.len() != op.arity() {
+                                return Err(self.error(
+                                    "SPX-H006",
+                                    format!(
+                                        "borrowed string operation `{name}` expects {} arguments, received {}",
+                                        op.arity(),
+                                        args.len()
+                                    ),
+                                    expr.span,
+                                ));
+                            }
+                            frames.push(Frame::FinishStrOp {
                                 span: expr.span,
                                 path: path.clone(),
                                 op,
@@ -7183,6 +7343,44 @@ impl Resolver<'_> {
                                 "SPX-H006",
                                 format!(
                                     "string operation `{}` argument {} expects `{}`, received `{}`",
+                                    op.name(),
+                                    index,
+                                    expected.identity_key(),
+                                    argument.ty.identity_key()
+                                ),
+                                argument.span,
+                            ));
+                        }
+                    }
+                    let ty = op.return_type();
+                    let ownership = self.expression_ownership(&ty, OwnershipMode::Own, span)?;
+                    results.push(ResolvedExpr {
+                        id: ExpressionId::new(function, &path),
+                        ty,
+                        ownership,
+                        kind: ResolvedExprKind::Call {
+                            callee: DeclarationId::new(op.id()),
+                            type_arguments: Vec::new(),
+                            instance: None,
+                            args,
+                        },
+                        span,
+                    });
+                }
+                Frame::FinishStrOp {
+                    span,
+                    path,
+                    op,
+                    argument_count,
+                } => {
+                    let args = take_results(&mut results, argument_count);
+                    for (index, argument) in args.iter().enumerate() {
+                        if argument.ty != op.param_types()[index] {
+                            let expected = &op.param_types()[index];
+                            return Err(self.error(
+                                "SPX-H006",
+                                format!(
+                                    "borrowed string operation `{}` argument {} expects `{}`, received `{}`",
                                     op.name(),
                                     index,
                                     expected.identity_key(),
@@ -9318,6 +9516,69 @@ impl Resolver<'_> {
                                 "SPX-H006",
                                 format!(
                                     "string operation `{}` argument {} expects `{}`, received `{}`",
+                                    op.name(),
+                                    index,
+                                    expected.identity_key(),
+                                    argument.ty.identity_key()
+                                ),
+                                argument.span,
+                            ));
+                        }
+                    }
+                    let ty = op.return_type();
+                    let ownership =
+                        self.expression_ownership(&ty, OwnershipMode::Own, expr.span)?;
+                    return Ok(ResolvedExpr {
+                        id,
+                        ty,
+                        ownership,
+                        kind: ResolvedExprKind::Call {
+                            callee: DeclarationId::new(op.id()),
+                            type_arguments: Vec::new(),
+                            instance: None,
+                            args,
+                        },
+                        span: expr.span,
+                    });
+                }
+                if let Some(op) = crate::str_ops::by_name(name) {
+                    if !type_arguments.is_empty() {
+                        return Err(self.error(
+                            "SPX-H006",
+                            format!("borrowed string operation `{name}` has type arguments"),
+                            expr.span,
+                        ));
+                    }
+                    if args.len() != op.arity() {
+                        return Err(self.error(
+                            "SPX-H006",
+                            format!(
+                                "borrowed string operation `{name}` expects {} arguments, received {}",
+                                op.arity(),
+                                args.len()
+                            ),
+                            expr.span,
+                        ));
+                    }
+                    let args = args
+                        .iter()
+                        .enumerate()
+                        .map(|(index, argument)| {
+                            self.resolve_expr_recursive_reference(
+                                function,
+                                argument,
+                                bindings,
+                                &format!("{path}.arg.{index}"),
+                            )
+                        })
+                        .collect::<Result<Vec<_>, _>>()?;
+                    for (index, argument) in args.iter().enumerate() {
+                        if argument.ty != op.param_types()[index] {
+                            let expected = &op.param_types()[index];
+                            return Err(self.error(
+                                "SPX-H006",
+                                format!(
+                                    "borrowed string operation `{}` argument {} expects `{}`, received `{}`",
                                     op.name(),
                                     index,
                                     expected.identity_key(),

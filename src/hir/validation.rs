@@ -570,6 +570,12 @@ impl<'a> HirValidator<'a> {
                         }
                     }
                     if declaration.type_parameters.is_empty() {
+                        if field.ty == ResolvedType::Str {
+                            return Err(hir_error(format!(
+                                "field `{}` cannot store borrowed `str`",
+                                field.id
+                            )));
+                        }
                         if field.ty == ResolvedType::Unit {
                             return Err(hir_error(format!(
                                 "field `{}` uses Unit outside a native Rust import result",
@@ -603,7 +609,8 @@ impl<'a> HirValidator<'a> {
                             | ResolvedType::U8
                             | ResolvedType::F32
                             | ResolvedType::F64
-                            | ResolvedType::String => {
+                            | ResolvedType::String
+                            | ResolvedType::Str => {
                                 return Err(hir_error(format!(
                                     "field `{}` has an invalid generic copy record template",
                                     field.id
@@ -754,7 +761,8 @@ impl<'a> HirValidator<'a> {
                             | ResolvedType::U8
                             | ResolvedType::F32
                             | ResolvedType::F64
-                            | ResolvedType::String => {
+                            | ResolvedType::String
+                            | ResolvedType::Str => {
                                 return Err(hir_error(format!(
                                     "field `{}` has an invalid generic copy payload template",
                                     field.id
@@ -970,7 +978,8 @@ impl<'a> HirValidator<'a> {
             | ResolvedType::U8
             | ResolvedType::F32
             | ResolvedType::F64
-            | ResolvedType::String => Err(hir_error(format!(
+            | ResolvedType::String
+            | ResolvedType::Str => Err(hir_error(format!(
                 "generic template `{}` has an invalid direct-scalar signature slot",
                 template.id
             ))),
@@ -1390,7 +1399,10 @@ impl<'a> HirValidator<'a> {
             callees.push((callee.clone(), instance.cloned()));
         });
         for (callee, instance) in callees {
-            if instance.is_none() && crate::string_ops::by_id(callee.as_str()).is_some() {
+            if instance.is_none()
+                && (crate::string_ops::by_id(callee.as_str()).is_some()
+                    || crate::str_ops::by_id(callee.as_str()).is_some())
+            {
                 // String operations carry no authored declaration and their
                 // scalar/string results contribute no lifecycle effects.
                 continue;
@@ -1450,6 +1462,12 @@ impl<'a> HirValidator<'a> {
             )));
         }
         self.insert_value(&function.result_id)?;
+        if function.return_type == ResolvedType::Str {
+            return Err(hir_error(format!(
+                "function `{}` cannot return borrowed `str`",
+                function.id
+            )));
+        }
 
         for (index, contract) in function.requires.iter().enumerate() {
             let mut contract_scope = scope.clone();
@@ -2574,6 +2592,21 @@ impl<'a> HirValidator<'a> {
                                         )));
                                 }
                                 (crate::string_ops::resolved_params(op), op.return_type())
+                            } else if let Some(op) = crate::str_ops::by_id(callee.as_str()) {
+                                if instance.is_some() || !type_arguments.is_empty() {
+                                    return Err(hir_error(
+                                        "borrowed string operation call must be monomorphic",
+                                    ));
+                                }
+                                if args.len() != op.arity() {
+                                    return Err(hir_error(format!(
+                                        "borrowed string operation `{}` expects {} arguments but received {}",
+                                        op.name(),
+                                        op.arity(),
+                                        args.len()
+                                    )));
+                                }
+                                (crate::str_ops::resolved_params(op), op.return_type())
                             } else {
                                 let target = self
                                     .program
@@ -5004,12 +5037,15 @@ impl<'a> HirValidator<'a> {
                         ));
                     }
                 }
-                let intrinsic = if instance.is_none() {
-                    crate::string_ops::by_id(callee.as_str())
-                } else {
-                    None
-                };
-                let (params, return_type, target_effects) = if let Some(op) = intrinsic {
+                let string_intrinsic = instance
+                    .is_none()
+                    .then(|| crate::string_ops::by_id(callee.as_str()))
+                    .flatten();
+                let str_intrinsic = instance
+                    .is_none()
+                    .then(|| crate::str_ops::by_id(callee.as_str()))
+                    .flatten();
+                let (params, return_type, target_effects) = if let Some(op) = string_intrinsic {
                     // String operations carry their reserved identity instead
                     // of an authored declaration.
                     if args.len() != op.arity() {
@@ -5022,6 +5058,20 @@ impl<'a> HirValidator<'a> {
                     }
                     (
                         crate::string_ops::resolved_params(op),
+                        op.return_type(),
+                        Vec::new(),
+                    )
+                } else if let Some(op) = str_intrinsic {
+                    if args.len() != op.arity() {
+                        return Err(hir_error(format!(
+                            "borrowed string operation `{}` expects {} arguments but received {}",
+                            op.name(),
+                            op.arity(),
+                            args.len()
+                        )));
+                    }
+                    (
+                        crate::str_ops::resolved_params(op),
                         op.return_type(),
                         Vec::new(),
                     )
@@ -6736,7 +6786,8 @@ impl<'a> HirValidator<'a> {
                     | ResolvedType::F32
                     | ResolvedType::F64
                     | ResolvedType::Bool
-                    | ResolvedType::String,
+                    | ResolvedType::String
+                    | ResolvedType::Str,
                 ) => {}
                 Frame::Enter(ResolvedType::TypeParameter { .. }) => {
                     return Err(hir_error(
@@ -6813,6 +6864,13 @@ impl<'a> HirValidator<'a> {
         ty: &ResolvedType,
         ownership: OwnershipMode,
     ) -> Result<(), Diagnostic> {
+        if ty == &ResolvedType::Str {
+            return if ownership == OwnershipMode::Borrow {
+                Ok(())
+            } else {
+                Err(hir_error("borrowed `str` must have borrow ownership"))
+            };
+        }
         let facts = self.program.declarations.type_facts(ty).ok_or_else(|| {
             hir_error(format!(
                 "type `{}` has no semantic facts",

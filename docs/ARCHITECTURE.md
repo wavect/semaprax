@@ -172,9 +172,10 @@ by the verifier and re-checked fail-closed in HIR validation and both
 backends. i32 stays outside generic arguments, template signature slots,
 Public Scalar Export Profile v1, the native host/callable corpus, and the
 Native Rust interop boundary. Owned `string` values are implemented separately
-through the compiler-owned allocation/clone/drop model and the bounded
-operations described below; borrowed string views, byte collections, and
-general heap-backed aggregates remain unimplemented.
+through the compiler-owned allocation/clone/drop model and bounded operations.
+The additive Useful Text Consumer profile admits only non-escaping `borrow
+str` inputs; general borrowed slicing, byte collections, indexing/iteration,
+and general heap-backed aggregates remain unimplemented.
 The locally evidenced unsigned-byte tranche adds `u8` as a checked-arithmetic
 Copy scalar on the same spine: integer literals carry an exact `u8` suffix
 (unsuffixed digit runs stay `i64`; out-of-range or malformed suffixes select
@@ -1408,6 +1409,53 @@ and general Project SDK/package/import/capability/aggregate/resource support
 remain open.
 See [Project Manifest v1](PROJECT-MANIFEST-V1.md).
 
+## Project Manifest v2 and Useful Text Consumer v1
+
+[Project Manifest v2](PROJECT-MANIFEST-V2.md) is additive and locally
+evidenced. Its canonical manifest requires package `version` and the closed
+`useful-text-consumer.v1` profile while retaining the v1 held-input authority,
+single Phase-A link, exact stable-ID export roots, and post-operation drift
+checks. Selected export roots are linked even when disconnected from the entry
+root. V1 manifests, Web artifacts, and carrier bytes remain unchanged.
+
+The language-side [`str` profile](USEFUL-TEXT-CONSUMER-V1.md) is an
+invocation-bounded borrowed UTF-8 view. Source/HIR validation admits it only as
+`borrow str`, forbids return and aggregate storage, and assigns no cleanup
+slot. The interpreter carries invocation-root provenance instead of cloned
+owned-string evidence. Native C lowers it as a pointer plus `u64` length and
+checks null, length bounds, and UTF-8 after the host has supplied readable
+storage; it cannot authenticate an arbitrary non-null C pointer. A text-only,
+invocation-local context depth makes native root-call admission charge every
+borrowed parameter exactly once while nested forwarding/aliasing does not
+recharge it; the profile excludes imports and callbacks, so reentrant host
+entry is not admitted. The public
+Wasm adapter additionally validates that every view lies in the public 64-KiB
+scratch region and that cumulative borrowed input is at most 65,536 bytes.
+The fixed three-page memory reserves page zero for public scratch and pages one
+and two for a caller-visible reserved `u16` KMP prefix table whose sentinel is
+reset on every call; memory cannot grow. The native
+and interpreter paths enforce the same cumulative byte ceiling. `contains`
+uses fixed-capacity byte-KMP across all three paths, giving linear work on
+periodic inputs without treating embedded NUL as a terminator. The four
+compiler-owned operations are byte length, empty, prefix, and contains.
+The exact text-profile compiled call graph must be acyclic; direct and mutual
+recursion reject alongside loops before Wasm emission.
+
+The Project-v2 npm route renders an exact six-file, dependency-free package and
+a context-bound `semaprax.project-npm-build.v1` carrier. The carrier binds
+package identity/version, Project/workspace/graph revisions, a canonical
+semantic recipe, artifact order/bytes/digests, cumulative bounds, and its
+payload digest. Context-free inspection replays the recipe through the real
+parser, resolver, text planner, and emitter and proves exact compiler
+consistency, but it does not authenticate the self-claimed Project facts or
+mint a publishable build. Only the opaque build prepared by the retained
+Project snapshot carries the trusted facts required by `verify` and `publish`. The
+daemon returns this carrier pathlessly and gains no output-path, filesystem,
+process, npm, network, or registry authority. Local gates perform offline
+pack/install, declaration consumption, runtime execution, carrier tamper
+replay, and stable-ID display-rename preservation. Exact-head hosted promotion
+and registry publication remain pending.
+
 ### Project Agent Transport v2
 
 `src/project_transport/` and `src/bin/semapraxd.rs` add a separate strict
@@ -1650,7 +1698,7 @@ This is the first ownership IR, not a complete borrow checker. Mutable alias exc
 
 The direct Wasm encoder emits standard WebAssembly core modules without requiring a Rust target installation or an external assembler. Monomorphic functions and explicitly referenced generic-function instances compile to distinct typed Wasm functions; unused templates allocate no index, and `main` remains exported as `semaprax_main`. The aggregate profile lowers bounded copy variants into checked Wasm32 frame layouts with a `u32` tag and aligned maximum payload, zero-fills before tag-last publication, evaluates a match scrutinee once, and evaluates only the selected scalar arm. An invalid tag uses a private negative sentinel, restores the shadow stack, and traps out of band at the public wrapper; it is never mapped to a language failure. Contracts trap through a host import. Arithmetic lowers to a small generated JavaScript host that performs checked `i64` operations with `BigInt`, preserving the safe arithmetic semantics instead of silently accepting Wasm's wrapping operators.
 
-The web package contains `app.wasm`, `semaprax.js`, `index.html`, `package.json`, and a `semaprax.web.v3` graph-revision/capability manifest. Version 3 adds a required `semaprax.wasm-owned.v1` function map; scalar-only packages carry an empty map and do not allocate owned-runtime identity. This is real browser-executable output; it is not yet the UI dialect, DOM renderer, SSR/hydration system, WASI target, or Component Model backend.
+The web package contains `app.wasm`, `semaprax.js`, `index.html`, `package.json`, and a `semaprax.web.v3` graph-revision/capability manifest. Version 3 adds a required `semaprax.wasm-owned.v1` function map; scalar-only packages carry an empty map and do not allocate owned-runtime identity. The additive Useful Text Consumer profile has a separate export planner and fixed-scratch UTF-8 adapter; it does not widen or rewrite legacy scalar Web output. This is real browser-executable output; it is not yet the UI dialect, DOM renderer, SSR/hydration system, WASI target, or Component Model backend.
 
 The additive [Public Wasm Scalar Exports v1](WASM-SCALAR-EXPORTS-V1.md)
 profile selects 1–32 explicit stable-ID functions from a completely

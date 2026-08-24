@@ -146,6 +146,7 @@ fn run(args: Vec<String>) -> Result<(), u8> {
                         let mut output = options.output.clone().unwrap_or_else(|| {
                             let suffix = match options.target.as_str() {
                                 "web" | "wasm" => "web".to_owned(),
+                                "npm" => "npm".to_owned(),
                                 _ => format!("out{}", std::env::consts::EXE_SUFFIX),
                             };
                             snapshot
@@ -157,6 +158,7 @@ fn run(args: Vec<String>) -> Result<(), u8> {
                         }
                         match options.target.as_str() {
                             "web" | "wasm" => snapshot.build_web(&output)?,
+                            "npm" => snapshot.build_npm(&output)?,
                             "native" => snapshot.build_native(&output)?,
                             _ => unreachable!("validated project target"),
                         }
@@ -165,6 +167,8 @@ fn run(args: Vec<String>) -> Result<(), u8> {
                     .map_err(|errors| report(&errors, false))?;
                     if matches!(options.target.as_str(), "native") {
                         println!("built project native executable {}", output.display());
+                    } else if matches!(options.target.as_str(), "npm") {
+                        println!("built Project v2 npm package {}", output.display());
                     } else {
                         println!("built project web package {}", output.display());
                     }
@@ -2064,7 +2068,7 @@ fn print_help() {
             semaprax context-benchmark <manifest>\n\
             semaprax serve <file> [--max-request-bytes N]\n\
             semaprax quality-plan <quick|changed|full> [exact-changed-path ...]\n\
-           semaprax build [<file>|semaprax.toml|--manifest-path path] [--target native|native-callable|web] [--function stable-id] [--export stable-id ...] [-o path]\n\
+           semaprax build [<file>|semaprax.toml|--manifest-path path] [--target native|native-callable|web|wasm|npm] [--function stable-id] [--export stable-id ...] [-o path]\n\
            semaprax run <file>\n\
            semaprax run [semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]\n\
            semaprax test [semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]\n\

@@ -390,6 +390,11 @@ fn check_type(
             &method.name,
             "`string` parameters and results are outside Protocol Projection v1".to_owned(),
         )),
+        Type::Str => Err(signature_error(
+            &protocol.name,
+            &method.name,
+            "borrowed `str` is outside Protocol Projection v1".to_owned(),
+        )),
         Type::Named { name, arguments } => {
             if !arguments.is_empty() {
                 return Err(signature_error(

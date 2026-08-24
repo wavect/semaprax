@@ -114,6 +114,29 @@ before and after the rename. This closes the local evidence-fragmentation gap
 but not hosted promotion; new language breadth follows only after the mandatory
 matrix carries both optional paths successfully.
 
+## Useful Text Consumer v1 and Project Manifest v2
+
+[Useful Text Consumer v1](USEFUL-TEXT-CONSUMER-V1.md) and [Project Manifest
+v2](PROJECT-MANIFEST-V2.md) form the next locally evidenced product tranche.
+The language adds non-escaping `borrow str` inputs and four compiler-owned
+read operations without turning borrowed text into owned `string`. Native
+checks null, length, and UTF-8 for host-provided readable storage;
+all three execution paths enforce a 65,536-byte cumulative input ceiling and
+linear-time byte-KMP contains. Wasm/JavaScript also validates the public
+64-KiB scratch range inside fixed three-page memory; the other two pages are a
+caller-visible reserved fixed KMP table reset before use.
+Project v2 adds canonical package version/profile metadata,
+disconnected stable-ID export-root linking, and an exact npm artifact/carrier
+route. The config-validator acceptance gate covers Unicode, embedded NUL,
+native O0/O2, Wasm, generated JS/TS, stable-ID display rename, independent
+carrier replay, and offline pack/install.
+
+This tranche has local evidence only. Exact-head hosted promotion is pending,
+and npm registry publication is not claimed. `usize`, arrays, slices,
+indexing, iteration, general text processing, mutable/owned view conversion,
+dependencies, lockfiles, signing, provenance, and registry distribution stay
+on the roadmap. Project v1 bytes and behavior remain frozen.
+
 ## 0.1 — Executable semantic seed
 
 Status: implemented in this repository.
@@ -284,8 +307,10 @@ match the reference outcome, complete trace, publication, and final logical
 liveness for all 14 cases at native O0/O2; the remaining public and language
 gates below are not.
 
-- Borrowed string/byte views, fixed arrays, owned byte collections, and general
-  heap-backed aggregates remain unimplemented. Owned `string` values and the
+- General borrowed string/byte slicing, fixed arrays, owned byte collections,
+  indexing/iteration, and general heap-backed aggregates remain unimplemented.
+  The restrictive non-escaping `borrow str` input profile is locally evidenced;
+  owned `string` values and the
   bounded `core.string.*` operation families are implemented with
   native/Wasm/interpreter evidence.
 - Fixed-width integer types beyond `i64`, `i32`, and `u8`; wrapping or

@@ -81,3 +81,79 @@ non-movement, interpreter agreement, native C11 O0/O2 execution equality, Node
 Wasm execution equality, and the byte-gating of helpers/imports for programs
 that do not use the operations. `examples/string_ops.spx` is the canonical
 committed example exercised by the examples suite.
+
+---
+
+## String operations breadth v2 (2026-08-24)
+
+Status: implemented in the `feat/string-ops-breadth-v2` tranche. Four more
+prelude-style intrinsics extend the same admission shape; everything above is
+unchanged.
+
+### Operations
+
+| Source name           | Reserved stable identity         | Signature                              | Argument ownership        |
+| --------------------- | -------------------------------- | -------------------------------------- | ------------------------- |
+| `string_starts_with`  | `core.string.starts_with`        | `(s: string, prefix: string) -> bool`  | both borrowed reads       |
+| `string_contains`     | `core.string.contains`           | `(s: string, needle: string) -> bool`  | both borrowed reads       |
+| `string_len_chars`    | `core.string.len_chars`          | `(s: string) -> i64`                   | borrowed read             |
+| `string_from_char`    | `core.string.from_char`          | `(c: char) -> string`                  | copied scalar, no transfer|
+
+`string_len_chars` counts Unicode scalar values, so `"héllo"` has a char
+length of 5 while its UTF-8 byte length (`string_len`) is 6 on every backend.
+An empty needle/prefix follows the ordinary substring convention: every string
+starts with and contains the empty string.
+
+### Why `string_char_at` did not land
+
+A character-indexing operation (`string_char_at(s, index) -> char`) was part
+of the planned wave but is not admitted. Its negative/out-of-bounds story has
+no home: the compiler's normalized runtime failure lattice carries exactly two
+classes today (`semaprax.contract.v1`, `semaprax.arithmetic.v1`; see the
+OpenAPI status schema and the native status runtime), with no range/bounds
+class, and inventing one would require editing the shared failure machinery
+far beyond the additive intrinsic-table seams this wave committed to. The
+contingency named in the plan applies: `Option<char>` is not an alternative
+because `char` payloads are not admitted inside `Option`. `string_len_chars`
+lands instead as the third borrowed read, and indexing stays out of scope
+along with slicing and mutation.
+
+### Admission and gating
+
+Same architecture as v1: reserved names resolve through the synthetic
+signatures into ordinary monomorphic calls bound to their `core.string.*`
+identities; parser, canonical formatter, resolver/HIR, verifier, semantic
+graph, cleanup planning/replay, interpreter, and both backends consume the
+extended table without new node kinds or diagnostic codes. The only table
+extension beyond name/id/arity bookkeeping is per-parameter expected types:
+`resolved_params`, `ast_params`, and the two HIR argument checks now consult
+`StringOp::param_types()` so `string_from_char` admits exactly one `char`.
+
+Backends gate breadth-v2 lowering as one separate group:
+
+- Native C11 appends `NATIVE_STRING_OPS_V2_RUNTIME_C` (helpers
+  `spx_string_starts_with`, `spx_string_contains`, `spx_string_len_chars`,
+  `spx_string_from_char`) only when a program reaches a v2 call. Borrowed
+  operations free their staged input buffers at the operation site exactly
+  like the first-wave reads; `string_from_char` allocates one fresh owned
+  buffer from the scalar's UTF-8 encoding and consumes nothing.
+- Wasm32 emits four host imports as one group directly after any first-wave
+  imports (deterministic gap-free indexes computed from which groups are
+  present). First-wave-only programs keep byte-identical modules, and
+  programs without any operations keep byte-identical output on both
+  backends.
+- Interpreter evaluates all four inside the scalar profile with identical
+  semantics (`chars().count()` for scalar counting).
+
+### Evidence
+
+`tests/string_ops_v2.rs` proves canonical round-trip, deterministic graph JSON
+with pinned fragments for the four new identities (and their absence for
+first-wave-only and operation-free programs), HIR binding with ownership
+modes, stable diagnostics (argument type including the `char` parameter,
+arity for one- and two-argument forms, reserved-name shadowing,
+use-after-move behind a borrowed read), borrow non-movement, interpreter
+agreement, native C11 O0/O2 execution equality over ASCII, empty strings,
+whole-value prefixes, and 1–4-byte scalar content, Node/Wasm execution
+equality, and the group-gating byte guarantees. `examples/string_ops_v2.spx`
+is the canonical committed example exercised by the examples suite.

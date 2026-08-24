@@ -104,6 +104,13 @@ const STRING_IMPORT_BASE_CLONE: u32 = 9;
 const STRING_OPS_IMPORT_COUNT: u32 = 2;
 const STRING_OPS_IMPORT_BASE_LEN: u32 = 10;
 const STRING_OPS_IMPORT_BASE_CONCAT: u32 = 11;
+/// Host imports backing breadth-v2 compiler-owned string operations, emitted
+/// as one group only when a program reaches a v2 operation: first-wave-only
+/// modules keep their exact bytes, and the group's base index follows the
+/// first wave so every admitted combination stays deterministic:
+/// `spx_string_starts_with`, `spx_string_contains`, `spx_string_len_chars`,
+/// `spx_string_from_char`.
+const STRING_OPS_V2_IMPORT_COUNT: u32 = 4;
 
 /// Deterministic literal table shared by the data segment and expression
 /// lowering; identical contents always map to one offset.
@@ -275,6 +282,79 @@ fn program_uses_string_ops(program: &ResolvedProgram) -> bool {
     false
 }
 
+/// Whether any resolved function body or contract calls a breadth-v2
+/// compiler-owned string operation intrinsic.
+fn program_uses_string_ops_v2(program: &ResolvedProgram) -> bool {
+    let mut pending: Vec<&ResolvedExpr> = Vec::new();
+    for function in &program.functions {
+        pending.push(&function.body);
+        pending.extend(function.requires.iter().chain(&function.ensures));
+    }
+    while let Some(expression) = pending.pop() {
+        if let ResolvedExprKind::Call { callee, .. } = &expression.kind {
+            if crate::string_ops::by_id(callee.as_str())
+                .is_some_and(crate::string_ops::StringOp::is_breadth_v2)
+            {
+                return true;
+            }
+        }
+        match &expression.kind {
+            ResolvedExprKind::Call { args, .. } => pending.extend(args.iter()),
+            ResolvedExprKind::NativeRustImportCall(call) => pending.extend(call.args.iter()),
+            ResolvedExprKind::Unary { value, .. }
+            | ResolvedExprKind::Try { operand: value, .. }
+            | ResolvedExprKind::TryOption { operand: value, .. }
+            | ResolvedExprKind::Project { base: value, .. }
+            | ResolvedExprKind::Upcast { source: value } => pending.push(value),
+            ResolvedExprKind::Binary { left, right, .. } => {
+                pending.push(left);
+                pending.push(right);
+            }
+            ResolvedExprKind::Block { statements, tail } => {
+                for statement in statements {
+                    for index in 0..statement.child_count() {
+                        if let Some(child) = statement.child(index) {
+                            pending.push(child);
+                        }
+                    }
+                }
+                pending.push(tail);
+            }
+            ResolvedExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                pending.push(condition);
+                pending.push(then_branch);
+                pending.push(else_branch);
+            }
+            ResolvedExprKind::ConstructRecord { fields, .. }
+            | ResolvedExprKind::ConstructVariant { fields, .. } => {
+                pending.extend(fields.iter().map(|field| &field.value));
+            }
+            ResolvedExprKind::Match { scrutinee, arms } => {
+                pending.push(scrutinee);
+                pending.extend(arms.iter().map(|arm| &arm.value));
+            }
+            ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+                pending.push(base);
+                pending.extend(fields.iter().map(|field| &field.value));
+            }
+            ResolvedExprKind::Int(_)
+            | ResolvedExprKind::Int32(_)
+            | ResolvedExprKind::Char(_)
+            | ResolvedExprKind::Uint8(_)
+            | ResolvedExprKind::Float32(_)
+            | ResolvedExprKind::Float64(_)
+            | ResolvedExprKind::Bool(_)
+            | ResolvedExprKind::String(_)
+            | ResolvedExprKind::Place(_) => {}
+        }
+    }
+    false
+}
+
 /// Collect every distinct literal in deterministic pre-order with offsets.
 fn collect_string_data(program: &ResolvedProgram) -> StringData {
     let mut data = StringData::default();
@@ -378,6 +458,9 @@ struct LocalLayout<'a> {
     /// Interned string literal offsets for the whole program, when strings
     /// are admitted at all.
     string_data: Option<&'a StringData>,
+    /// Base import index of the breadth-v2 string operation group; only v2
+    /// call sites consult it, so first-wave modules are unaffected.
+    string_ops_v2_base: u32,
 }
 
 trait ByteOutput: std::ops::Deref<Target = [u8]> {
@@ -506,6 +589,7 @@ fn emit_resolved_module_internal(
         ));
     }
     let uses_string_ops = program_uses_string_ops(program);
+    let uses_string_ops_v2 = program_uses_string_ops_v2(program);
     let string_data = if uses_strings {
         collect_string_data(program)
     } else {
@@ -521,9 +605,23 @@ fn emit_resolved_module_internal(
             STRING_OPS_IMPORT_COUNT
         } else {
             0
+        }
+        + if uses_string_ops_v2 {
+            STRING_OPS_V2_IMPORT_COUNT
+        } else {
+            0
         };
     let mut types = Vec::<Signature>::new();
     let mut type_indexes = HashMap::<Signature, u32>::new();
+    // The v2 operation group's base index follows the first wave so every
+    // admitted subset keeps deterministic, gap-free import indexes.
+    let string_ops_v2_base = SCALAR_IMPORT_COUNT
+        + if uses_strings { STRING_IMPORT_COUNT } else { 0 }
+        + if uses_string_ops {
+            STRING_OPS_IMPORT_COUNT
+        } else {
+            0
+        };
     let binary_checked = intern_type(
         Signature {
             params: vec![I64, I64],
@@ -603,6 +701,48 @@ fn emit_resolved_module_internal(
             intern_type(
                 Signature {
                     params: vec![I64, I64],
+                    results: vec![I64],
+                },
+                &mut types,
+                &mut type_indexes,
+            ),
+        ])
+    } else {
+        None
+    };
+    let string_ops_v2_import_types = if uses_string_ops_v2 {
+        Some([
+            // spx_string_starts_with(value: i64, prefix: i64) -> bool: i32
+            intern_type(
+                Signature {
+                    params: vec![I64, I64],
+                    results: vec![I32],
+                },
+                &mut types,
+                &mut type_indexes,
+            ),
+            // spx_string_contains(value: i64, needle: i64) -> bool: i32
+            intern_type(
+                Signature {
+                    params: vec![I64, I64],
+                    results: vec![I32],
+                },
+                &mut types,
+                &mut type_indexes,
+            ),
+            // spx_string_len_chars(handle: i64) -> scalar count: i64
+            intern_type(
+                Signature {
+                    params: vec![I64],
+                    results: vec![I64],
+                },
+                &mut types,
+                &mut type_indexes,
+            ),
+            // spx_string_from_char(scalar: i32) -> handle: i64
+            intern_type(
+                Signature {
+                    params: vec![I32],
                     results: vec![I64],
                 },
                 &mut types,
@@ -790,6 +930,12 @@ fn emit_resolved_module_internal(
         function_import(&mut imports, "env", "spx_string_len", string_len);
         function_import(&mut imports, "env", "spx_string_concat", string_concat);
     }
+    if let Some([starts_with, contains, len_chars, from_char]) = string_ops_v2_import_types {
+        function_import(&mut imports, "env", "spx_string_starts_with", starts_with);
+        function_import(&mut imports, "env", "spx_string_contains", contains);
+        function_import(&mut imports, "env", "spx_string_len_chars", len_chars);
+        function_import(&mut imports, "env", "spx_string_from_char", from_char);
+    }
     if let Some(type_indexes) = owned_import_types {
         for (name, type_index) in owned::IMPORT_NAMES.into_iter().zip(type_indexes) {
             function_import(&mut imports, "env", name, type_index);
@@ -889,6 +1035,7 @@ fn emit_resolved_module_internal(
             wide_scratch: [0; 2],
             u8_scratch: None,
             string_data: Some(&string_data),
+            string_ops_v2_base,
         };
         for contract in &function.requires {
             collect_locals(contract, function.params.len() as u32, &mut layout)?;
@@ -1955,6 +2102,18 @@ fn emit_expr(
                         }
                         crate::string_ops::StringOp::Concat => {
                             call_import(output, STRING_OPS_IMPORT_BASE_CONCAT);
+                        }
+                        crate::string_ops::StringOp::StartsWith => {
+                            call_import(output, layout.string_ops_v2_base);
+                        }
+                        crate::string_ops::StringOp::Contains => {
+                            call_import(output, layout.string_ops_v2_base + 1);
+                        }
+                        crate::string_ops::StringOp::LenChars => {
+                            call_import(output, layout.string_ops_v2_base + 2);
+                        }
+                        crate::string_ops::StringOp::FromChar => {
+                            call_import(output, layout.string_ops_v2_base + 3);
                         }
                     }
                     return Ok(());

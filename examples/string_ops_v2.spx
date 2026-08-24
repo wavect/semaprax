@@ -1,0 +1,21 @@
+module test.string_ops_v2;
+
+@id("ops.has_prefix")
+fn has_prefix(value: string, prefix: string) -> bool
+{
+    string_starts_with(value, prefix)
+}
+
+@id("ops.holds")
+fn holds(value: string) -> i64
+{
+    if string_contains(value, "☃") { string_len_chars(string_concat(value, "!")) } else { 0 }
+}
+
+@id("test.main")
+fn main() -> i64
+{
+    let m = string_concat("h", "éllo");
+    let reads = string_starts_with(m, "hé") && string_contains(m, "ll") && string_starts_with(m, m) && string_contains(m, "");
+    if reads == false { 1 } else { if string_len_chars(m) == 5 && string_len(m) == 6 && has_prefix(m, "zzz") == false { let snow = string_from_char('\u{2603}'); let snow_ok = string_len_chars(snow) == 1 && string_len(snow) == 3; if holds(snow) == 2 && snow_ok { let wave = string_from_char('\u{1f600}'); let acute = string_concat(string_from_char('\u{e9}'), "!"); if string_contains(string_from_char('a'), "a") && string_contains(wave, "😀") && string_len_chars(acute) == 2 && string_starts_with("", "") && string_len_chars("") == 0 && string_starts_with("", "h") == false { 7 } else { 9 } } else { 11 } } else { 13 } }
+}

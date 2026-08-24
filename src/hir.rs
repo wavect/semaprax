@@ -6940,13 +6940,15 @@ impl Resolver<'_> {
                 } => {
                     let args = take_results(&mut results, argument_count);
                     for (index, argument) in args.iter().enumerate() {
-                        if argument.ty != ResolvedType::String {
+                        if argument.ty != op.param_types()[index] {
+                            let expected = &op.param_types()[index];
                             return Err(self.error(
                                 "SPX-H006",
                                 format!(
-                                    "string operation `{}` argument {} expects `string`, received `{}`",
+                                    "string operation `{}` argument {} expects `{}`, received `{}`",
                                     op.name(),
                                     index,
+                                    expected.identity_key(),
                                     argument.ty.identity_key()
                                 ),
                                 argument.span,
@@ -8844,13 +8846,15 @@ impl Resolver<'_> {
                         })
                         .collect::<Result<Vec<_>, _>>()?;
                     for (index, argument) in args.iter().enumerate() {
-                        if argument.ty != ResolvedType::String {
+                        if argument.ty != op.param_types()[index] {
+                            let expected = &op.param_types()[index];
                             return Err(self.error(
                                 "SPX-H006",
                                 format!(
-                                    "string operation `{}` argument {} expects `string`, received `{}`",
+                                    "string operation `{}` argument {} expects `{}`, received `{}`",
                                     op.name(),
                                     index,
+                                    expected.identity_key(),
                                     argument.ty.identity_key()
                                 ),
                                 argument.span,

@@ -1070,6 +1070,11 @@ fn emit_native_prelude(
         // them, so existing projections keep their exact committed bytes.
         output.push_str(NATIVE_STRING_OPS_RUNTIME_C);
     }
+    if program_uses_string_ops_v2(program) {
+        // Breadth-v2 string operation helpers gate as their own group so
+        // first-wave programs keep their exact committed bytes.
+        output.push_str(NATIVE_STRING_OPS_V2_RUNTIME_C);
+    }
 }
 
 /// Whether any resolved signature, body, or contract admits an owned string
@@ -1114,6 +1119,29 @@ fn program_uses_string_ops(program: &ResolvedProgram) -> bool {
     while let Some(expression) = pending.pop() {
         if let ResolvedExprKind::Call { callee, .. } = &expression.kind {
             if crate::string_ops::by_id(callee.as_str()).is_some() {
+                return true;
+            }
+        }
+        pending.extend(resolved_expr_children(expression));
+    }
+    false
+}
+
+/// Whether any resolved function body or contract calls a breadth-v2
+/// compiler-owned string operation intrinsic.
+fn program_uses_string_ops_v2(program: &ResolvedProgram) -> bool {
+    let mut pending: Vec<&ResolvedExpr> = Vec::new();
+    for function in &program.functions {
+        pending.push(&function.body);
+        for contract in function.requires.iter().chain(&function.ensures) {
+            pending.push(contract);
+        }
+    }
+    while let Some(expression) = pending.pop() {
+        if let ResolvedExprKind::Call { callee, .. } = &expression.kind {
+            if crate::string_ops::by_id(callee.as_str())
+                .is_some_and(crate::string_ops::StringOp::is_breadth_v2)
+            {
                 return true;
             }
         }
@@ -2014,6 +2042,57 @@ static __attribute__((unused)) char *spx_string_concat(
 }
 "#;
 
+const NATIVE_STRING_OPS_V2_RUNTIME_C: &str = r#"static __attribute__((unused)) bool spx_string_starts_with(
+    const char *spx_value, const char *spx_prefix
+) {
+    return strncmp(spx_value, spx_prefix, strlen(spx_prefix)) == 0;
+}
+
+static __attribute__((unused)) bool spx_string_contains(
+    const char *spx_value, const char *spx_needle
+) {
+    return strstr(spx_value, spx_needle) != NULL;
+}
+
+static __attribute__((unused)) int64_t spx_string_len_chars(const char *spx_value) {
+    int64_t spx_count = 0;
+    for (const unsigned char *spx_cursor = (const unsigned char *)spx_value;
+         *spx_cursor != UINT8_C(0);
+         ++spx_cursor) {
+        if ((*spx_cursor & UINT8_C(0xC0)) != UINT8_C(0x80)) ++spx_count;
+    }
+    return spx_count;
+}
+
+static __attribute__((unused)) char *spx_string_from_char(uint32_t spx_scalar) {
+    char spx_encoded[4];
+    uint64_t spx_length;
+    if (spx_scalar < UINT32_C(0x80)) {
+        spx_encoded[0] = (char)(uint8_t)spx_scalar;
+        spx_length = UINT64_C(1);
+    } else if (spx_scalar < UINT32_C(0x800)) {
+        spx_encoded[0] = (char)(uint8_t)(UINT8_C(0xC0) | (uint8_t)(spx_scalar >> 6));
+        spx_encoded[1] = (char)(uint8_t)(UINT8_C(0x80) | (uint8_t)(spx_scalar & UINT32_C(0x3F)));
+        spx_length = UINT64_C(2);
+    } else if (spx_scalar < UINT32_C(0x10000)) {
+        spx_encoded[0] = (char)(uint8_t)(UINT8_C(0xE0) | (uint8_t)(spx_scalar >> 12));
+        spx_encoded[1] =
+            (char)(uint8_t)(UINT8_C(0x80) | (uint8_t)((spx_scalar >> 6) & UINT32_C(0x3F)));
+        spx_encoded[2] = (char)(uint8_t)(UINT8_C(0x80) | (uint8_t)(spx_scalar & UINT32_C(0x3F)));
+        spx_length = UINT64_C(3);
+    } else {
+        spx_encoded[0] = (char)(uint8_t)(UINT8_C(0xF0) | (uint8_t)(spx_scalar >> 18));
+        spx_encoded[1] =
+            (char)(uint8_t)(UINT8_C(0x80) | (uint8_t)((spx_scalar >> 12) & UINT32_C(0x3F)));
+        spx_encoded[2] =
+            (char)(uint8_t)(UINT8_C(0x80) | (uint8_t)((spx_scalar >> 6) & UINT32_C(0x3F)));
+        spx_encoded[3] = (char)(uint8_t)(UINT8_C(0x80) | (uint8_t)(spx_scalar & UINT32_C(0x3F)));
+        spx_length = UINT64_C(4);
+    }
+    return spx_string_from_literal(spx_encoded, spx_length);
+}
+"#;
+
 const NATIVE_U8_RUNTIME_C: &str = r#"static __attribute__((unused)) spx_status_token spx_rt_u8_add(
     struct spx_context *spx_ctx, uint8_t a, uint8_t b, uint8_t *result_out
 ) {
@@ -2522,11 +2601,11 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         // fresh caller-owned buffer, and consuming operations free their
         // inputs exactly at the operation site like owned string equality.
         let mut arguments = Vec::with_capacity(args.len());
-        for argument in args {
+        for (index, argument) in args.iter().enumerate() {
             let value = self.emit_expr(argument)?;
             self.require_type(
                 &value.ty,
-                &ResolvedType::String,
+                &op.param_types()[index],
                 "string operation argument",
             )?;
             arguments.push(value);
@@ -2552,6 +2631,33 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 ));
                 self.line(&format!("spx_string_drop({left});"));
                 self.line(&format!("spx_string_drop({right});"));
+            }
+            crate::string_ops::StringOp::StartsWith => {
+                let value = &arguments[0].code;
+                let prefix = &arguments[1].code;
+                self.line(&format!(
+                    "{temporary} = spx_string_starts_with({value}, {prefix});"
+                ));
+                self.line(&format!("spx_string_drop({value});"));
+                self.line(&format!("spx_string_drop({prefix});"));
+            }
+            crate::string_ops::StringOp::Contains => {
+                let value = &arguments[0].code;
+                let needle = &arguments[1].code;
+                self.line(&format!(
+                    "{temporary} = spx_string_contains({value}, {needle});"
+                ));
+                self.line(&format!("spx_string_drop({value});"));
+                self.line(&format!("spx_string_drop({needle});"));
+            }
+            crate::string_ops::StringOp::LenChars => {
+                let input = &arguments[0].code;
+                self.line(&format!("{temporary} = spx_string_len_chars({input});"));
+                self.line(&format!("spx_string_drop({input});"));
+            }
+            crate::string_ops::StringOp::FromChar => {
+                let scalar = &arguments[0].code;
+                self.line(&format!("{temporary} = spx_string_from_char({scalar});"));
             }
         }
         Ok(CValue {

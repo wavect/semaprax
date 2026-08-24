@@ -560,6 +560,10 @@ fn collect_pattern_bindings(pattern: &ResolvedMatchPattern, facts: &mut Function
         ResolvedMatchPattern::Record { fields, .. } => {
             collect_record_pattern_fields(fields, facts);
         }
+        // Refutable Match v1: binding arms introduce one fact; literals and
+        // or-patterns introduce none.
+        ResolvedMatchPattern::Binding(binding) => facts.push_pattern_binding(binding),
+        ResolvedMatchPattern::Literal(_) | ResolvedMatchPattern::Or(_) => {}
     }
 }
 

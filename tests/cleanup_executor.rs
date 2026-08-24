@@ -374,6 +374,7 @@ fn missing_and_unused_scenario_decisions_are_rejected() {
             EdgeCondition::BooleanResult(expression, _) => Some(expression.clone()),
             EdgeCondition::Always
             | EdgeCondition::VariantCase { .. }
+            | EdgeCondition::ArmSelected { .. }
             | EdgeCondition::StatusZero(_)
             | EdgeCondition::StatusNonzero(_) => None,
         })
@@ -784,6 +785,7 @@ fn untaken_owned_branch_finalizes_before_scalar_publication() {
             EdgeCondition::BooleanResult(expression, _) => Some(expression.clone()),
             EdgeCondition::Always
             | EdgeCondition::VariantCase { .. }
+            | EdgeCondition::ArmSelected { .. }
             | EdgeCondition::StatusZero(_)
             | EdgeCondition::StatusNonzero(_) => None,
         })

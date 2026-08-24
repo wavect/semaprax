@@ -1218,9 +1218,13 @@ fn resolved_expr_children<'a>(
         | ResolvedExprKind::ConstructVariant { fields, .. } => {
             Box::new(fields.iter().map(|field| &field.value))
         }
-        ResolvedExprKind::Match { scrutinee, arms } => {
-            Box::new(std::iter::once(scrutinee.as_ref()).chain(arms.iter().map(|arm| &arm.value)))
-        }
+        ResolvedExprKind::Match { scrutinee, arms } => Box::new(
+            std::iter::once(scrutinee.as_ref()).chain(
+                arms.iter()
+                    .filter_map(|arm| arm.guard.as_deref())
+                    .chain(arms.iter().map(|arm| &arm.value)),
+            ),
+        ),
         ResolvedExprKind::UpdateRecord { base, fields, .. } => {
             Box::new(std::iter::once(base.as_ref()).chain(fields.iter().map(|field| &field.value)))
         }
@@ -2323,7 +2327,13 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
             fields.iter().any(|field| expression_has_try(&field.value))
         }
         ResolvedExprKind::Match { scrutinee, arms } => {
-            expression_has_try(scrutinee) || arms.iter().any(|arm| expression_has_try(&arm.value))
+            expression_has_try(scrutinee)
+                || arms.iter().any(|arm| {
+                    arm.guard
+                        .as_ref()
+                        .is_some_and(|guard| expression_has_try(guard))
+                        || expression_has_try(&arm.value)
+                })
         }
         ResolvedExprKind::UpdateRecord { base, fields, .. } => {
             expression_has_try(base) || fields.iter().any(|field| expression_has_try(&field.value))
@@ -2506,6 +2516,18 @@ fn c_i64(value: i64) -> String {
     }
 }
 
+/// Refutable Match v1: exact C spelling of a literal pattern, using the same
+/// conventions as the matching expression literals.
+fn c_pattern_literal(value: hir::PatternValue) -> String {
+    match value {
+        hir::PatternValue::Int(value) => c_i64(value),
+        hir::PatternValue::Int32(value) => format!("INT32_C({value})"),
+        hir::PatternValue::Uint8(value) => format!("UINT8_C({value})"),
+        hir::PatternValue::Char(value) => format!("UINT32_C(0x{value:x})"),
+        hir::PatternValue::Bool(value) => value.to_string(),
+    }
+}
+
 #[derive(Clone)]
 struct CBinding {
     name: String,
@@ -2589,6 +2611,97 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 actual.identity_key()
             )))
         }
+    }
+
+    /// Refutable Match v1 native lowering: the scrutinee stages once, then
+    /// every arm tests `!matched && (<literal equality>)` with an optional
+    /// inner guard branch. `&&` short-circuits so a guard evaluates exactly
+    /// once per reached arm whose pattern matched; failing guards leave
+    /// `matched` false and fall through to the following arms. The resolver
+    /// guarantees one trailing irrefutable guard-free catch-all, but the
+    /// defensive no-arm check mirrors exhaustive matches.
+    fn emit_scalar_match(
+        &mut self,
+        expr: &ResolvedExpr,
+        scrutinee: &CValue,
+        arms: &[hir::ResolvedMatchArm],
+    ) -> Result<CValue, Diagnostic> {
+        let staged = self.temporary(&scrutinee.ty)?;
+        self.line(&format!("{staged} = {};", scrutinee.code));
+        let result = self.temporary(&expr.ty)?;
+        let matched = self.temporary(&ResolvedType::Bool)?;
+        self.line(&format!("{matched} = false;"));
+        for arm in arms {
+            let saved = self.variables.clone();
+            if let hir::ResolvedMatchPattern::Binding(binding) = &arm.pattern {
+                self.variables.insert(
+                    binding.id.clone(),
+                    CBinding {
+                        name: staged.clone(),
+                        ty: binding.ty.clone(),
+                    },
+                );
+            }
+            let test = match &arm.pattern {
+                hir::ResolvedMatchPattern::Wildcard | hir::ResolvedMatchPattern::Binding(_) => None,
+                hir::ResolvedMatchPattern::Literal(value) => {
+                    Some(format!("{staged} == {}", c_pattern_literal(*value)))
+                }
+                hir::ResolvedMatchPattern::Or(alternatives) => Some(
+                    alternatives
+                        .iter()
+                        .map(|alternative| match alternative {
+                            hir::ResolvedMatchPattern::Literal(value) => {
+                                format!("{staged} == {}", c_pattern_literal(*value))
+                            }
+                            _ => unreachable!("or-pattern alternatives are literals"),
+                        })
+                        .collect::<Vec<_>>()
+                        .join(" || "),
+                ),
+                hir::ResolvedMatchPattern::Variant { .. }
+                | hir::ResolvedMatchPattern::Record { .. } => {
+                    return Err(backend_error(
+                        "aggregate pattern has a Copy-scalar match scrutinee",
+                    ));
+                }
+            };
+            match &test {
+                Some(test) => self.line(&format!("if (!{matched} && ({test})) {{")),
+                None => self.line(&format!("if (!{matched}) {{")),
+            }
+            self.indent += 1;
+            if let Some(guard) = &arm.guard {
+                // The guard evaluates once here, after the pattern matched
+                // and before any part of the arm value; a false guard leaves
+                // `matched` untouched and falls through to the next arm.
+                let flag = self.emit_expr(guard)?;
+                self.require_type(&flag.ty, &ResolvedType::Bool, "match guard")?;
+                self.line(&format!("if ({}) {{", flag.code));
+                self.indent += 1;
+                self.line(&format!("{matched} = true;"));
+                let value = self.emit_expr(&arm.value)?;
+                self.require_type(&value.ty, &expr.ty, "match arm result")?;
+                self.line(&format!("{result} = {};", value.code));
+                self.indent -= 1;
+                self.line("}");
+            } else {
+                self.line(&format!("{matched} = true;"));
+                let value = self.emit_expr(&arm.value)?;
+                self.require_type(&value.ty, &expr.ty, "match arm result")?;
+                self.line(&format!("{result} = {};", value.code));
+            }
+            self.variables = saved;
+            self.indent -= 1;
+            self.line("}");
+        }
+        self.line(&format!(
+            "if (!{matched}) spx_runtime_invariant_failure(\"refutable match selected no arm\");"
+        ));
+        Ok(CValue {
+            code: result,
+            ty: expr.ty.clone(),
+        })
     }
 
     fn emit_string_op(
@@ -3112,6 +3225,19 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     return Err(backend_error("copy match arms must produce i64 or bool"));
                 }
                 let scrutinee = self.emit_expr(scrutinee)?;
+                // Refutable Match v1: Copy-scalar scrutinees lower to the
+                // literal/guard decision chain; aggregates keep the exact
+                // pre-feature lowering below.
+                if matches!(
+                    scrutinee.ty,
+                    ResolvedType::I64
+                        | ResolvedType::I32
+                        | ResolvedType::U8
+                        | ResolvedType::Char
+                        | ResolvedType::Bool
+                ) {
+                    return self.emit_scalar_match(expr, &scrutinee, arms);
+                }
                 if let Some(record) = record_declaration_id(self.program, &scrutinee.ty)?.cloned() {
                     let [arm] = arms.as_slice() else {
                         return Err(backend_error(
@@ -3137,6 +3263,13 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                         hir::ResolvedMatchPattern::Variant { .. } => {
                             return Err(backend_error(
                                 "variant pattern has a record match scrutinee",
+                            ));
+                        }
+                        hir::ResolvedMatchPattern::Literal(_)
+                        | hir::ResolvedMatchPattern::Or(_)
+                        | hir::ResolvedMatchPattern::Binding(_) => {
+                            return Err(backend_error(
+                                "refutable pattern has an aggregate record match scrutinee",
                             ));
                         }
                     }
@@ -3222,6 +3355,13 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                         hir::ResolvedMatchPattern::Record { .. } => {
                             return Err(backend_error(
                                 "record pattern has a variant match scrutinee",
+                            ));
+                        }
+                        hir::ResolvedMatchPattern::Literal(_)
+                        | hir::ResolvedMatchPattern::Or(_)
+                        | hir::ResolvedMatchPattern::Binding(_) => {
+                            return Err(backend_error(
+                                "refutable pattern has an aggregate variant match scrutinee",
                             ));
                         }
                     }

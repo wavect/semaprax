@@ -44,6 +44,9 @@ pub struct CleanupScenario {
     /// supplied case belongs to the scrutinee's resolved variant before
     /// following any plan edge.
     pub variant_cases: BTreeMap<ExpressionId, DeclarationId>,
+    /// Refutable Match v1: the selected arm index (0-based) for each reached
+    /// scalar-match decision chain.
+    pub arm_selections: BTreeMap<ExpressionId, u32>,
     pub operations: BTreeMap<StatusSourceId, OperationOutcome>,
     /// A value for `CommitResult`; failure scenarios use `None`. `ReturnUnit`
     /// is reserved for a future source-level unit return type and is rejected
@@ -64,6 +67,7 @@ impl CleanupScenario {
             scenario_id: scenario_id.into(),
             booleans: BTreeMap::new(),
             variant_cases: BTreeMap::new(),
+            arm_selections: BTreeMap::new(),
             operations: BTreeMap::new(),
             result,
             available_finalizer_imports: BTreeSet::new(),
@@ -83,6 +87,7 @@ pub enum CleanupExecutionError {
     UnsupportedResultType(String),
     MissingBooleanDecision(ExpressionId),
     MissingVariantDecision(ExpressionId),
+    MissingArmSelection(ExpressionId),
     InvalidVariantDecision {
         scrutinee: ExpressionId,
         case: DeclarationId,
@@ -113,6 +118,10 @@ impl fmt::Display for CleanupExecutionError {
             Self::MissingBooleanDecision(expression) => write!(
                 formatter,
                 "cleanup scenario has no boolean decision for `{expression}`"
+            ),
+            Self::MissingArmSelection(scrutinee) => write!(
+                formatter,
+                "cleanup scenario supplies no arm selection for scalar match `{scrutinee}`"
             ),
             Self::MissingVariantDecision(scrutinee) => write!(
                 formatter,
@@ -717,6 +726,7 @@ struct Executor<'a> {
     live: BTreeSet<LivenessFlagId>,
     used_booleans: BTreeSet<ExpressionId>,
     used_variant_cases: BTreeSet<ExpressionId>,
+    used_arm_selections: BTreeSet<ExpressionId>,
     variant_domains: BTreeMap<ExpressionId, BTreeSet<DeclarationId>>,
     used_operations: BTreeSet<StatusSourceId>,
     visited: BTreeSet<BlockId>,
@@ -761,6 +771,7 @@ impl<'a> Executor<'a> {
             live: BTreeSet::new(),
             used_booleans: BTreeSet::new(),
             used_variant_cases: BTreeSet::new(),
+            used_arm_selections: BTreeSet::new(),
             variant_domains,
             used_operations: BTreeSet::new(),
             visited: BTreeSet::new(),
@@ -1097,6 +1108,18 @@ impl<'a> Executor<'a> {
                 }
                 Ok((actual == case) == *matches)
             }
+            EdgeCondition::ArmSelected {
+                scrutinee,
+                arm,
+                selected,
+            } => {
+                self.used_arm_selections.insert(scrutinee.clone());
+                let actual =
+                    self.scenario.arm_selections.get(scrutinee).ok_or_else(|| {
+                        CleanupExecutionError::MissingArmSelection(scrutinee.clone())
+                    })?;
+                Ok((*actual == *arm) == *selected)
+            }
             EdgeCondition::StatusZero(source) | EdgeCondition::StatusNonzero(source) => {
                 self.used_operations.insert(source.clone());
                 let outcome = self.scenario.operations.get(source).ok_or_else(|| {
@@ -1108,7 +1131,8 @@ impl<'a> Executor<'a> {
                     EdgeCondition::StatusNonzero(_) => !success,
                     EdgeCondition::Always
                     | EdgeCondition::BooleanResult(_, _)
-                    | EdgeCondition::VariantCase { .. } => unreachable!(),
+                    | EdgeCondition::VariantCase { .. }
+                    | EdgeCondition::ArmSelected { .. } => unreachable!(),
                 })
             }
         }

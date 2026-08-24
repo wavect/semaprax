@@ -461,6 +461,7 @@ fn resolved_expr_owned_capacity(expression: &ResolvedExpr) -> usize {
                 .iter()
                 .map(|arm| {
                     resolved_match_pattern_owned_capacity(&arm.pattern)
+                        + arm.guard.as_ref().map_or(0, |guard| child(guard))
                         + resolved_expr_owned_capacity(&arm.value)
                 })
                 .sum::<usize>();
@@ -524,6 +525,15 @@ fn resolved_record_pattern_field_owned_capacity(field: &ResolvedRecordMatchPatte
 fn resolved_match_pattern_owned_capacity(pattern: &ResolvedMatchPattern) -> usize {
     match pattern {
         ResolvedMatchPattern::Wildcard => 0,
+        ResolvedMatchPattern::Literal(_) => 0,
+        ResolvedMatchPattern::Binding(binding) => resolved_binding_owned_capacity(binding),
+        ResolvedMatchPattern::Or(alternatives) => {
+            alternatives.capacity() * std::mem::size_of::<ResolvedMatchPattern>()
+                + alternatives
+                    .iter()
+                    .map(resolved_match_pattern_owned_capacity)
+                    .sum::<usize>()
+        }
         ResolvedMatchPattern::Variant {
             variant,
             case,
@@ -595,7 +605,12 @@ fn resolved_field_initializer_owned_capacity(field: &ResolvedFieldInitializer) -
 
 #[cfg(test)]
 fn resolved_match_arm_owned_capacity(arm: &ResolvedMatchArm) -> usize {
-    resolved_match_pattern_owned_capacity(&arm.pattern) + resolved_expr_owned_capacity(&arm.value)
+    resolved_match_pattern_owned_capacity(&arm.pattern)
+        + arm
+            .guard
+            .as_ref()
+            .map_or(0, |guard| resolved_expr_owned_capacity(guard))
+        + resolved_expr_owned_capacity(&arm.value)
 }
 
 #[cfg(test)]
@@ -3134,9 +3149,30 @@ pub enum ResolvedExprKind {
     },
 }
 
+impl ResolvedMatchArm {
+    /// Refutable Match v1 interpreter admission: literal and or-of-literal
+    /// patterns are refutable; wildcard/binding are irrefutable; aggregate
+    /// patterns never join the scalar profile.
+    pub fn pattern_is_literal_or_irrefutable(&self) -> bool {
+        match &self.pattern {
+            ResolvedMatchPattern::Wildcard
+            | ResolvedMatchPattern::Binding(_)
+            | ResolvedMatchPattern::Literal(_) => true,
+            ResolvedMatchPattern::Or(alternatives) => alternatives
+                .iter()
+                .all(|alternative| matches!(alternative, ResolvedMatchPattern::Literal(_))),
+            ResolvedMatchPattern::Variant { .. } | ResolvedMatchPattern::Record { .. } => false,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ResolvedMatchArm {
     pub pattern: ResolvedMatchPattern,
+    /// Refutable Match v1: ordinary bool expression evaluated once after the
+    /// pattern matches; a false result falls through to the following arms.
+    /// `None` for every pre-feature arm.
+    pub guard: Option<Box<ResolvedExpr>>,
     pub value: ResolvedExpr,
     pub span: Span,
 }
@@ -3154,6 +3190,49 @@ pub enum ResolvedMatchPattern {
         fields: Vec<ResolvedRecordMatchPatternField>,
     },
     Wildcard,
+    /// Refutable Match v1: one exact scalar literal compared against the
+    /// scrutinee with exact equality. The literal's type equals the
+    /// scrutinee type; floats are never admitted.
+    Literal(PatternValue),
+    /// Refutable Match v1: `a | b` flattened to same-typed literal
+    /// alternatives. Never empty; nesting is rejected at resolution.
+    Or(Vec<ResolvedMatchPattern>),
+    /// Refutable Match v1: irrefutable whole-scrutinee binding of a Copy
+    /// scalar.
+    Binding(ResolvedBinding),
+}
+
+/// The exact scalar value carried by [`ResolvedMatchPattern::Literal`].
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PatternValue {
+    Int(i64),
+    Int32(i32),
+    Uint8(u8),
+    Char(u32),
+    Bool(bool),
+}
+
+impl PatternValue {
+    pub fn from_ast(value: crate::ast::PatternLiteral) -> Self {
+        match value {
+            crate::ast::PatternLiteral::Int(inner) => Self::Int(inner),
+            crate::ast::PatternLiteral::Int32(inner) => Self::Int32(inner),
+            crate::ast::PatternLiteral::Uint8(inner) => Self::Uint8(inner),
+            crate::ast::PatternLiteral::Char(inner) => Self::Char(inner),
+            crate::ast::PatternLiteral::Bool(inner) => Self::Bool(inner),
+        }
+    }
+
+    /// The scalar scrutinee type this literal compares against.
+    pub fn ty(&self) -> ResolvedType {
+        match self {
+            Self::Int(_) => ResolvedType::I64,
+            Self::Int32(_) => ResolvedType::I32,
+            Self::Uint8(_) => ResolvedType::U8,
+            Self::Char(_) => ResolvedType::Char,
+            Self::Bool(_) => ResolvedType::Bool,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -3857,6 +3936,16 @@ fn audit_resolved_expression(root: &ResolvedExpr) -> Result<(), Diagnostic> {
                             instance,
                             fields,
                         } => audit_resolved_record_match_pattern(record, instance, fields)?,
+                        // Refutable Match v1: binding arms carry a real value
+                        // identity; literals and or-patterns carry none.
+                        ResolvedMatchPattern::Binding(binding) => {
+                            reject_nul_identity("resolved match binding", binding.id.as_str())?;
+                            audit_resolved_type(&binding.ty)?;
+                        }
+                        ResolvedMatchPattern::Literal(_) | ResolvedMatchPattern::Or(_) => {}
+                    }
+                    if let Some(guard) = &arm.guard {
+                        pending.push(guard);
                     }
                     pending.push(&arm.value);
                 }
@@ -4167,6 +4256,9 @@ fn audit_cleanup_plan(plan: &CleanupPlan) -> Result<(), Diagnostic> {
             } => {
                 reject_nul_identity("cleanup-plan match scrutinee", scrutinee.as_str())?;
                 reject_nul_identity("cleanup-plan variant case", case.as_str())?;
+            }
+            crate::cleanup_plan::EdgeCondition::ArmSelected { scrutinee, .. } => {
+                reject_nul_identity("cleanup-plan scalar-match scrutinee", scrutinee.as_str())?;
             }
             crate::cleanup_plan::EdgeCondition::StatusZero(source)
             | crate::cleanup_plan::EdgeCondition::StatusNonzero(source) => {
@@ -5740,6 +5832,107 @@ impl Resolver<'_> {
         }
     }
 
+    /// Refutable Match v1 admission over a Copy-scalar scrutinee: literal
+    /// patterns must compare against exactly the scrutinee type
+    /// (`SPX-T255`), or-patterns stay flat and same-typed (`SPX-M105`),
+    /// aggregate patterns never mix with scalar scrutinees (`SPX-H001`), and
+    /// a refutable match requires one trailing irrefutable guard-free
+    /// catch-all arm (`SPX-T257`).
+    fn validate_refutable_match_admission(
+        &self,
+        scrutinee: &ResolvedType,
+        arms: &[crate::ast::MatchArm],
+    ) -> Result<(), Diagnostic> {
+        for arm in arms {
+            match &arm.pattern {
+                crate::ast::MatchPattern::Wildcard { .. }
+                | crate::ast::MatchPattern::Binding { .. } => {}
+                crate::ast::MatchPattern::Literal { value, span } => {
+                    if PatternValue::from_ast(*value).ty() != *scrutinee {
+                        return Err(self.error(
+                            "SPX-T255",
+                            format!(
+                                "literal pattern of type `{}` cannot match a `{}` scrutinee; \
+                                 pattern literals compare against exactly their own type",
+                                value.type_text(),
+                                scrutinee.identity_key()
+                            ),
+                            *span,
+                        ));
+                    }
+                }
+                crate::ast::MatchPattern::Or { alternatives, span } => {
+                    let mut alternative_type: Option<&'static str> = None;
+                    for alternative in alternatives {
+                        let crate::ast::MatchPattern::Literal { value, span } = alternative else {
+                            return Err(self.error(
+                                "SPX-M105",
+                                "or-patterns admit only literal alternatives in v1",
+                                alternative.span(),
+                            ));
+                        };
+                        if PatternValue::from_ast(*value).ty() != *scrutinee {
+                            return Err(self.error(
+                                "SPX-T255",
+                                format!(
+                                    "literal pattern of type `{}` cannot match a `{}` scrutinee; \
+                                     pattern literals compare against exactly their own type",
+                                    value.type_text(),
+                                    scrutinee.identity_key()
+                                ),
+                                *span,
+                            ));
+                        }
+                        let type_text = value.type_text();
+                        match alternative_type {
+                            None => alternative_type = Some(type_text),
+                            Some(seen) if seen == type_text => {}
+                            Some(seen) => {
+                                return Err(self.error(
+                                    "SPX-M105",
+                                    format!(
+                                        "or-pattern mixes `{seen}` and `{type_text}` literal \
+                                         alternatives; all alternatives must share one type"
+                                    ),
+                                    *span,
+                                ));
+                            }
+                        }
+                    }
+                    if alternatives.is_empty() {
+                        return Err(self.error(
+                            "SPX-M105",
+                            "or-pattern needs at least one literal alternative",
+                            *span,
+                        ));
+                    }
+                }
+                crate::ast::MatchPattern::Variant { span, .. }
+                | crate::ast::MatchPattern::Record { span, .. } => {
+                    return Err(self.error(
+                        "SPX-H001",
+                        "aggregate pattern has a Copy-scalar scrutinee",
+                        *span,
+                    ));
+                }
+            }
+        }
+        let last = arms.last().expect("match always has arm syntax");
+        let catch_all = matches!(
+            &last.pattern,
+            crate::ast::MatchPattern::Wildcard { .. } | crate::ast::MatchPattern::Binding { .. }
+        );
+        if !catch_all || last.guard.is_some() {
+            return Err(self.error(
+                "SPX-T257",
+                "refutable match requires a trailing irrefutable catch-all arm \
+                 (`_` or a binding) without a guard",
+                last.span,
+            ));
+        }
+        Ok(())
+    }
+
     fn resolve_expr_iterative(
         &self,
         function: &FunctionExecutionId,
@@ -5970,6 +6163,28 @@ impl Resolver<'_> {
                 resolved: Vec<ResolvedMatchArm>,
                 pattern: ResolvedMatchPattern,
             },
+            /// Refutable Match v1 decision chain over a Copy-scalar
+            /// scrutinee. Arms resolve in order under the enclosing bindings;
+            /// binding arms extend them for their own arm only.
+            ScalarMatchNext {
+                span: Span,
+                path: String,
+                arms: &'expr [crate::ast::MatchArm],
+                index: usize,
+                bindings: Rc<BTreeMap<String, Binding>>,
+                scrutinee: ResolvedExpr,
+                resolved: Vec<ResolvedMatchArm>,
+            },
+            ScalarMatchAfterArm {
+                span: Span,
+                path: String,
+                arms: &'expr [crate::ast::MatchArm],
+                index: usize,
+                bindings: Rc<BTreeMap<String, Binding>>,
+                scrutinee: ResolvedExpr,
+                resolved: Vec<ResolvedMatchArm>,
+                pattern: ResolvedMatchPattern,
+            },
             FinishTry {
                 span: Span,
                 path: String,
@@ -6076,6 +6291,8 @@ impl Resolver<'_> {
                 | Frame::AfterMatchScrutinee { path, .. }
                 | Frame::MatchNext { path, .. }
                 | Frame::MatchAfterArm { path, .. }
+                | Frame::ScalarMatchNext { path, .. }
+                | Frame::ScalarMatchAfterArm { path, .. }
                 | Frame::FinishTry { path, .. }
                 | Frame::AfterUpdateBase { path, .. }
                 | Frame::UpdateNext { path, .. }
@@ -6105,6 +6322,8 @@ impl Resolver<'_> {
                 | Frame::AfterMatchScrutinee { bindings, .. }
                 | Frame::MatchNext { bindings, .. }
                 | Frame::MatchAfterArm { bindings, .. }
+                | Frame::ScalarMatchNext { bindings, .. }
+                | Frame::ScalarMatchAfterArm { bindings, .. }
                 | Frame::AfterUpdateBase { bindings, .. }
                 | Frame::UpdateNext { bindings, .. }
                 | Frame::UpdateAfterField { bindings, .. } => {
@@ -6218,6 +6437,23 @@ impl Resolver<'_> {
                             .map(resolved_match_arm_owned_capacity)
                             .sum::<usize>()
                 }
+                Frame::ScalarMatchNext {
+                    scrutinee,
+                    resolved,
+                    ..
+                }
+                | Frame::ScalarMatchAfterArm {
+                    scrutinee,
+                    resolved,
+                    ..
+                } => {
+                    resolved_expr_owned_capacity(scrutinee)
+                        + resolved.capacity() * std::mem::size_of::<ResolvedMatchArm>()
+                        + resolved
+                            .iter()
+                            .map(resolved_match_arm_owned_capacity)
+                            .sum::<usize>()
+                }
                 Frame::UpdateNext { base, resolved, .. }
                 | Frame::UpdateAfterField { base, resolved, .. } => {
                     resolved_expr_owned_capacity(base)
@@ -6232,8 +6468,9 @@ impl Resolver<'_> {
             path.saturating_add(scope).saturating_add(retained)
         }
 
-        const { assert!(std::mem::size_of::<Frame<'static>>() == 552) };
-
+        // Refutable Match v1 grew `ResolvedMatchPattern` (Literal/Or/
+        // Binding), which grows this frame's arm-pattern payload.
+        const { assert!(std::mem::size_of::<Frame<'static>>() == 592) };
         let mut frames = vec![Frame::Enter {
             expr,
             bindings: Rc::new(bindings.clone()),
@@ -7813,6 +8050,52 @@ impl Resolver<'_> {
                     bindings,
                 } => {
                     let scrutinee = results.pop().expect("match scrutinee retained");
+                    // Refutable Match v1: Copy-scalar scrutinees take the
+                    // literal/guard decision chain; every aggregate or
+                    // non-scalar type keeps the exact pre-feature surface.
+                    if matches!(
+                        scrutinee.ty,
+                        ResolvedType::I64
+                            | ResolvedType::I32
+                            | ResolvedType::U8
+                            | ResolvedType::Char
+                            | ResolvedType::Bool
+                    ) {
+                        if arms.is_empty() {
+                            return Err(self.error("SPX-H006", "resolved match has no arms", span));
+                        }
+                        self.validate_refutable_match_admission(&scrutinee.ty, arms)?;
+                        frames.push(Frame::ScalarMatchNext {
+                            span,
+                            path,
+                            arms,
+                            index: 0,
+                            bindings,
+                            scrutinee,
+                            resolved: Vec::with_capacity(arms.len()),
+                        });
+                        continue;
+                    }
+                    let refutable_syntax = arms.iter().any(|arm| {
+                        arm.guard.is_some()
+                            || matches!(
+                                &arm.pattern,
+                                crate::ast::MatchPattern::Literal { .. }
+                                    | crate::ast::MatchPattern::Or { .. }
+                                    | crate::ast::MatchPattern::Binding { .. }
+                            )
+                    });
+                    if refutable_syntax {
+                        return Err(self.error(
+                            "SPX-T254",
+                            format!(
+                                "guards and literal/or/binding patterns require a Copy-scalar \
+                                 scrutinee (i64/i32/u8/char/bool); received {}",
+                                scrutinee.ty.identity_key()
+                            ),
+                            span,
+                        ));
+                    }
                     let ResolvedType::Nominal {
                         declaration: matched_type,
                         arguments,
@@ -7997,6 +8280,19 @@ impl Resolver<'_> {
                                     *pattern_span,
                                 )?
                             }
+                            // Refutable Match v1 patterns on aggregate
+                            // scrutinees were rejected during admission
+                            // (SPX-T254); the legacy chain never sees them.
+                            MatchPattern::Literal { span, .. }
+                            | MatchPattern::Or { span, .. }
+                            | MatchPattern::Binding { span, .. } => {
+                                return Err(self.error(
+                                    "SPX-T254",
+                                    "guards and literal/or/binding patterns require a \
+                                     Copy-scalar scrutinee",
+                                    *span,
+                                ));
+                            }
                         };
                         frames.push(Frame::MatchAfterArm {
                             span,
@@ -8032,8 +8328,11 @@ impl Resolver<'_> {
                     pattern,
                 } => {
                     let value = results.pop().expect("match arm value retained");
+                    // Aggregate matches reject guards with SPX-T254 before
+                    // any arm resolves, so pre-feature arms carry no guard.
                     resolved.push(ResolvedMatchArm {
                         pattern,
+                        guard: None,
                         value,
                         span: arms[index].span,
                     });
@@ -8047,6 +8346,173 @@ impl Resolver<'_> {
                         matched_type,
                         instance_arguments,
                         matched_kind,
+                        resolved,
+                    });
+                }
+                Frame::ScalarMatchNext {
+                    span,
+                    path,
+                    arms,
+                    index,
+                    bindings,
+                    scrutinee,
+                    resolved,
+                } => {
+                    if index == arms.len() {
+                        // SPX-T257 already guaranteed a trailing catch-all
+                        // during admission, so at least one arm exists and
+                        // all arm values unified to one type.
+                        let ty = resolved[0].value.ty.clone();
+                        results.push(ResolvedExpr {
+                            id: ExpressionId::new(function, &path),
+                            ty,
+                            ownership: OwnershipMode::Value,
+                            kind: ResolvedExprKind::Match {
+                                scrutinee: Box::new(scrutinee),
+                                arms: resolved,
+                            },
+                            span,
+                        });
+                    } else {
+                        let arm = &arms[index];
+                        let mut arm_bindings = bindings.clone();
+                        let pattern = match &arm.pattern {
+                            crate::ast::MatchPattern::Wildcard { .. } => {
+                                ResolvedMatchPattern::Wildcard
+                            }
+                            crate::ast::MatchPattern::Binding { name, .. } => {
+                                let binding = ResolvedBinding {
+                                    id: ValueId::local(
+                                        function,
+                                        &format!("{path}.arm.{index}.binding"),
+                                    ),
+                                    name: name.clone(),
+                                    ownership: OwnershipMode::Value,
+                                    ty: scrutinee.ty.clone(),
+                                    span: arm.pattern.span(),
+                                };
+                                Rc::make_mut(&mut arm_bindings).insert(
+                                    name.clone(),
+                                    Binding {
+                                        id: binding.id.clone(),
+                                        ty: binding.ty.clone(),
+                                        ownership: OwnershipMode::Value,
+                                        mutable: false,
+                                    },
+                                );
+                                ResolvedMatchPattern::Binding(binding)
+                            }
+                            crate::ast::MatchPattern::Literal { value, .. } => {
+                                ResolvedMatchPattern::Literal(PatternValue::from_ast(*value))
+                            }
+                            crate::ast::MatchPattern::Or { alternatives, .. } => {
+                                ResolvedMatchPattern::Or(
+                                    alternatives
+                                        .iter()
+                                        .map(|alternative| match alternative {
+                                            crate::ast::MatchPattern::Literal { value, .. } => {
+                                                ResolvedMatchPattern::Literal(
+                                                    PatternValue::from_ast(*value),
+                                                )
+                                            }
+                                            // SPX-M105 rejected non-literal
+                                            // alternatives during admission.
+                                            _ => {
+                                                unreachable!("or-pattern alternatives are literals")
+                                            }
+                                        })
+                                        .collect(),
+                                )
+                            }
+                            // Aggregate patterns on scalar scrutinees were
+                            // rejected during admission.
+                            crate::ast::MatchPattern::Variant { .. }
+                            | crate::ast::MatchPattern::Record { .. } => {
+                                return Err(self.error(
+                                    "SPX-H001",
+                                    "aggregate pattern has a Copy-scalar scrutinee",
+                                    arm.span,
+                                ));
+                            }
+                        };
+                        frames.push(Frame::ScalarMatchAfterArm {
+                            span,
+                            path: path.clone(),
+                            arms,
+                            index,
+                            bindings,
+                            scrutinee,
+                            resolved,
+                            pattern,
+                        });
+                        if let Some(guard) = &arm.guard {
+                            frames.push(Frame::Enter {
+                                expr: guard.as_ref(),
+                                bindings: arm_bindings.clone(),
+                                path: format!("{path}.arm.{index}.guard"),
+                            });
+                        }
+                        frames.push(Frame::Enter {
+                            expr: &arm.value,
+                            bindings: arm_bindings,
+                            path: format!("{path}.arm.{index}.value"),
+                        });
+                    }
+                }
+                Frame::ScalarMatchAfterArm {
+                    span,
+                    path,
+                    arms,
+                    index,
+                    bindings,
+                    scrutinee,
+                    mut resolved,
+                    pattern,
+                } => {
+                    // The guard's Enter resolved after the value's, so the
+                    // guard's result sits on top of the results stack.
+                    let guard = arms[index]
+                        .guard
+                        .is_some()
+                        .then(|| Box::new(results.pop().expect("scalar match arm guard retained")));
+                    let value = results.pop().expect("scalar match arm value retained");
+                    if let Some(guard) = &guard {
+                        if guard.ty != ResolvedType::Bool {
+                            return Err(self.error(
+                                "SPX-T256",
+                                format!(
+                                    "match guard must be bool; received {}",
+                                    guard.ty.identity_key()
+                                ),
+                                arms[index].span,
+                            ));
+                        }
+                    }
+                    if let Some(first) = resolved.first() {
+                        if first.value.ty != value.ty || first.value.ownership != value.ownership {
+                            return Err(self.error(
+                                "SPX-T259",
+                                format!(
+                                    "match arms disagree on the result type; expected {}",
+                                    first.value.ty.identity_key()
+                                ),
+                                arms[index].span,
+                            ));
+                        }
+                    }
+                    resolved.push(ResolvedMatchArm {
+                        pattern,
+                        guard,
+                        value,
+                        span: arms[index].span,
+                    });
+                    frames.push(Frame::ScalarMatchNext {
+                        span,
+                        path,
+                        arms,
+                        index: index + 1,
+                        bindings,
+                        scrutinee,
                         resolved,
                     });
                 }
@@ -9595,6 +10061,155 @@ impl Resolver<'_> {
                     bindings,
                     &format!("{path}.scrutinee"),
                 )?;
+                // Refutable Match v1: mirror of the iterative resolver's
+                // Copy-scalar decision chain, producing identical identities.
+                if matches!(
+                    scrutinee.ty,
+                    ResolvedType::I64
+                        | ResolvedType::I32
+                        | ResolvedType::U8
+                        | ResolvedType::Char
+                        | ResolvedType::Bool
+                ) {
+                    if arms.is_empty() {
+                        return Err(self.error(
+                            "SPX-H006",
+                            "resolved match has no arms",
+                            expr.span,
+                        ));
+                    }
+                    self.validate_refutable_match_admission(&scrutinee.ty, arms)?;
+                    let mut resolved_arms: Vec<ResolvedMatchArm> = Vec::with_capacity(arms.len());
+                    for (arm_index, arm) in arms.iter().enumerate() {
+                        let mut arm_bindings = bindings.clone();
+                        let pattern = match &arm.pattern {
+                            MatchPattern::Wildcard { .. } => ResolvedMatchPattern::Wildcard,
+                            MatchPattern::Binding { name, .. } => {
+                                let binding = ResolvedBinding {
+                                    id: ValueId::local(
+                                        function,
+                                        &format!("{path}.arm.{arm_index}.binding"),
+                                    ),
+                                    name: name.clone(),
+                                    ownership: OwnershipMode::Value,
+                                    ty: scrutinee.ty.clone(),
+                                    span: arm.pattern.span(),
+                                };
+                                arm_bindings.insert(
+                                    name.clone(),
+                                    Binding {
+                                        id: binding.id.clone(),
+                                        ty: binding.ty.clone(),
+                                        ownership: OwnershipMode::Value,
+                                        mutable: false,
+                                    },
+                                );
+                                ResolvedMatchPattern::Binding(binding)
+                            }
+                            MatchPattern::Literal { value, .. } => {
+                                ResolvedMatchPattern::Literal(PatternValue::from_ast(*value))
+                            }
+                            MatchPattern::Or { alternatives, .. } => ResolvedMatchPattern::Or(
+                                alternatives
+                                    .iter()
+                                    .map(|alternative| match alternative {
+                                        MatchPattern::Literal { value, .. } => {
+                                            ResolvedMatchPattern::Literal(PatternValue::from_ast(
+                                                *value,
+                                            ))
+                                        }
+                                        _ => unreachable!("or-pattern alternatives are literals"),
+                                    })
+                                    .collect(),
+                            ),
+                            MatchPattern::Variant { .. } | MatchPattern::Record { .. } => {
+                                return Err(self.error(
+                                    "SPX-H001",
+                                    "aggregate pattern has a Copy-scalar scrutinee",
+                                    arm.span,
+                                ));
+                            }
+                        };
+                        let guard = match &arm.guard {
+                            Some(guard) => {
+                                let resolved_guard = self.resolve_expr_recursive_reference(
+                                    function,
+                                    guard.as_ref(),
+                                    &arm_bindings,
+                                    &format!("{path}.arm.{arm_index}.guard"),
+                                )?;
+                                if resolved_guard.ty != ResolvedType::Bool {
+                                    return Err(self.error(
+                                        "SPX-T256",
+                                        format!(
+                                            "match guard must be bool; received {}",
+                                            resolved_guard.ty.identity_key()
+                                        ),
+                                        arm.span,
+                                    ));
+                                }
+                                Some(Box::new(resolved_guard))
+                            }
+                            None => None,
+                        };
+                        let value = self.resolve_expr_recursive_reference(
+                            function,
+                            &arm.value,
+                            &arm_bindings,
+                            &format!("{path}.arm.{arm_index}.value"),
+                        )?;
+                        if let Some(first) = resolved_arms.first() {
+                            if first.value.ty != value.ty
+                                || first.value.ownership != value.ownership
+                            {
+                                return Err(self.error(
+                                    "SPX-T259",
+                                    format!(
+                                        "match arms disagree on the result type; expected {}",
+                                        first.value.ty.identity_key()
+                                    ),
+                                    arm.span,
+                                ));
+                            }
+                        }
+                        resolved_arms.push(ResolvedMatchArm {
+                            pattern,
+                            guard,
+                            value,
+                            span: arm.span,
+                        });
+                    }
+                    return Ok(ResolvedExpr {
+                        id: ExpressionId::new(function, path),
+                        ty: resolved_arms[0].value.ty.clone(),
+                        ownership: OwnershipMode::Value,
+                        kind: ResolvedExprKind::Match {
+                            scrutinee: Box::new(scrutinee),
+                            arms: resolved_arms,
+                        },
+                        span: expr.span,
+                    });
+                }
+                let refutable_syntax = arms.iter().any(|arm| {
+                    arm.guard.is_some()
+                        || matches!(
+                            &arm.pattern,
+                            crate::ast::MatchPattern::Literal { .. }
+                                | crate::ast::MatchPattern::Or { .. }
+                                | crate::ast::MatchPattern::Binding { .. }
+                        )
+                });
+                if refutable_syntax {
+                    return Err(self.error(
+                        "SPX-T254",
+                        format!(
+                            "guards and literal/or/binding patterns require a Copy-scalar \
+                             scrutinee (i64/i32/u8/char/bool); received {}",
+                            scrutinee.ty.identity_key()
+                        ),
+                        expr.span,
+                    ));
+                }
                 let ResolvedType::Nominal {
                     declaration: matched_type,
                     arguments,
@@ -9734,6 +10349,19 @@ impl Resolver<'_> {
                                 *span,
                             )?
                         }
+                        // Refutable Match v1 patterns on aggregate
+                        // scrutinees were rejected during admission
+                        // (SPX-T254); the legacy chain never sees them.
+                        MatchPattern::Literal { span, .. }
+                        | MatchPattern::Or { span, .. }
+                        | MatchPattern::Binding { span, .. } => {
+                            return Err(self.error(
+                                "SPX-T254",
+                                "guards and literal/or/binding patterns require a \
+                                 Copy-scalar scrutinee",
+                                *span,
+                            ));
+                        }
                     };
                     let value = self.resolve_expr_recursive_reference(
                         function,
@@ -9743,6 +10371,9 @@ impl Resolver<'_> {
                     )?;
                     resolved_arms.push(ResolvedMatchArm {
                         pattern,
+                        // Aggregate matches reject guards with SPX-T254
+                        // before any arm resolves.
+                        guard: None,
                         value,
                         span: arm.span,
                     });

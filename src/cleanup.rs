@@ -623,7 +623,23 @@ impl InventoryBuilder<'_> {
                             enter = if index == 0 {
                                 Some(scrutinee)
                             } else {
-                                arms.get(index - 1).map(|arm| &arm.value)
+                                let mut cursor = index - 1;
+                                let mut found = None;
+                                for arm in arms {
+                                    if let Some(guard) = &arm.guard {
+                                        if cursor == 0 {
+                                            found = Some(guard.as_ref());
+                                            break;
+                                        }
+                                        cursor -= 1;
+                                    }
+                                    if cursor == 0 {
+                                        found = Some(&arm.value);
+                                        break;
+                                    }
+                                    cursor -= 1;
+                                }
+                                found
                             };
                         }
                         ResolvedExprKind::UpdateRecord { base, fields, .. } => {

@@ -525,6 +525,9 @@ fn collect_expr_record_types(
         ResolvedExprKind::Match { scrutinee, arms } => {
             collect_expr_record_types(program, scrutinee, instances)?;
             for arm in arms {
+                if let Some(guard) = &arm.guard {
+                    collect_expr_record_types(program, guard, instances)?;
+                }
                 collect_expr_record_types(program, &arm.value, instances)?;
             }
         }

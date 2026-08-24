@@ -4897,6 +4897,9 @@ fn visit_resolved_calls(
         hir::ResolvedExprKind::Match { scrutinee, arms } => {
             visit_resolved_calls(scrutinee, visit);
             for arm in arms {
+                if let Some(guard) = &arm.guard {
+                    visit_resolved_calls(guard, visit);
+                }
                 visit_resolved_calls(&arm.value, visit);
             }
         }
@@ -5386,6 +5389,17 @@ fn collect_resolved_expression_type_sites(
                     imported,
                     out,
                 )?;
+                if let Some(guard) = &arm.guard {
+                    collect_resolved_expression_type_sites(
+                        owner,
+                        guard,
+                        &crate::bounded_output::budgeted_format(format_args!(
+                            "{path}.arm.{index}.guard"
+                        )),
+                        imported,
+                        out,
+                    )?;
+                }
                 collect_resolved_expression_type_sites(
                     owner,
                     &arm.value,
@@ -5497,6 +5511,22 @@ fn collect_resolved_pattern_type_sites(
             }
         }
         hir::ResolvedMatchPattern::Wildcard => {}
+        // Refutable Match v1: scalar patterns contribute no named-type sites.
+        hir::ResolvedMatchPattern::Literal(_) | hir::ResolvedMatchPattern::Binding(_) => {}
+        hir::ResolvedMatchPattern::Or(alternatives) => {
+            for (index, alternative) in alternatives.iter().enumerate() {
+                collect_resolved_pattern_type_sites(
+                    owner,
+                    alternative,
+                    &crate::bounded_output::budgeted_format(format_args!(
+                        "{path}.alternative.{index}"
+                    )),
+                    expression,
+                    imported,
+                    out,
+                )?;
+            }
+        }
     }
     Ok(())
 }
@@ -6291,6 +6321,15 @@ fn visit_ast_call_sites(
                 visit,
             )?;
             for (index, arm) in arms.iter().enumerate() {
+                if let Some(guard) = &arm.guard {
+                    visit_ast_call_sites(
+                        guard.as_ref(),
+                        &crate::bounded_output::budgeted_format(format_args!(
+                            "{path}.arm.{index}.guard"
+                        )),
+                        visit,
+                    )?;
+                }
                 visit_ast_call_sites(
                     &arm.value,
                     &crate::bounded_output::budgeted_format(format_args!(

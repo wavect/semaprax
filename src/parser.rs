@@ -3,9 +3,9 @@ use std::path::Path;
 use crate::ast::{
     BinaryOp, Expr, ExprKind, FieldDeclaration, FieldInitializer, FieldTarget, Function,
     ImportDeclaration, ImportFailure, ImportResult, InterfaceDeclaration, MatchArm, MatchPattern,
-    MatchPatternField, ModuleUse, ModuleUseKind, Param, ParamMode, Program, ProtocolDeclaration,
-    ProtocolMethod, ResourceLifecycleDeclaration, ResourceLifecycleKind, Span, Statement, Type,
-    TypeDeclaration, TypeDeclarationKind, TypeParameterDeclaration, UnaryOp,
+    MatchPatternField, ModuleUse, ModuleUseKind, Param, ParamMode, PatternLiteral, Program,
+    ProtocolDeclaration, ProtocolMethod, ResourceLifecycleDeclaration, ResourceLifecycleKind, Span,
+    Statement, Type, TypeDeclaration, TypeDeclarationKind, TypeParameterDeclaration, UnaryOp,
     VariantCaseDeclaration,
 };
 use crate::diagnostic::Diagnostic;
@@ -1393,11 +1393,23 @@ impl Parser {
                 return Err(self.error_here("SPX-P205", "expected `}` after match arms"));
             }
             let pattern = self.match_pattern()?;
+            // Refutable Match v1: `pattern if guard => value`. The guard
+            // expression ends at `=>` because no operator consumes FatArrow.
+            let guard = if self.at_keyword("if") {
+                self.bump();
+                Some(Box::new(self.expression(0)?))
+            } else {
+                None
+            };
             self.expect(&TokenKind::FatArrow, "`=>` after match pattern")?;
             let value = self.expression(0)?;
-            let arm_span = pattern.span().merge(value.span);
+            let pattern_end = guard
+                .as_ref()
+                .map_or(pattern.span(), |guard| pattern.span().merge(guard.span));
+            let arm_span = pattern_end.merge(value.span);
             arms.push(MatchArm {
                 pattern,
+                guard,
                 value,
                 span: arm_span,
             });
@@ -1416,58 +1428,159 @@ impl Parser {
     }
 
     fn match_pattern(&mut self) -> Result<MatchPattern, Diagnostic> {
-        let (type_name, type_span) = self.ident("variant name or `_` in match pattern")?;
-        if type_name == "_" {
-            return Ok(MatchPattern::Wildcard { span: type_span });
+        let first = self.match_pattern_atom()?;
+        if !self.take(&TokenKind::Pipe) {
+            return Ok(first);
         }
-        if self.take(&TokenKind::LBrace) {
-            let fields = self.record_match_pattern_fields()?;
-            let end = self
-                .expect(&TokenKind::RBrace, "`}` after record pattern")?
-                .span;
-            return Ok(MatchPattern::Record {
-                type_name,
-                type_span,
-                fields,
-                span: type_span.merge(end),
-            });
-        }
-        self.expect(
-            &TokenKind::ColonColon,
-            "`{` after record name or `::` after variant name in match pattern",
-        )?;
-        let (case_name, case_span) = self.ident("variant case name in match pattern")?;
-        self.expect(&TokenKind::LBrace, "`{` after variant case pattern")?;
-        let mut fields = Vec::new();
-        while !self.at(&TokenKind::RBrace) {
-            let (name, name_span) = self.ident("variant pattern field name")?;
-            let (binding, binding_span) = if self.take(&TokenKind::Colon) {
-                self.ident("variant pattern binding name")?
-            } else {
-                (name.clone(), name_span)
-            };
-            fields.push(MatchPatternField {
-                name,
-                name_span,
-                binding,
-                binding_span,
-                span: name_span.merge(binding_span),
-            });
-            if !self.take(&TokenKind::Comma) {
+        // Refutable Match v1: `a | b | c` over literal alternatives. Only
+        // literal atoms parse here; same-type and non-nesting rules are
+        // enforced by the resolvers with SPX-M105.
+        let mut alternatives = vec![first];
+        let mut last_span;
+        loop {
+            let next = self.match_pattern_atom()?;
+            last_span = next.span();
+            alternatives.push(next);
+            if !self.take(&TokenKind::Pipe) {
                 break;
             }
         }
-        let end = self
-            .expect(&TokenKind::RBrace, "`}` after variant pattern")?
-            .span;
-        Ok(MatchPattern::Variant {
-            type_name,
-            type_span,
-            case_name,
-            case_span,
-            fields,
-            span: type_span.merge(end),
-        })
+        let span = alternatives[0].span().merge(last_span);
+        Ok(MatchPattern::Or { alternatives, span })
+    }
+
+    fn match_pattern_atom(&mut self) -> Result<MatchPattern, Diagnostic> {
+        // Refutable Match v1: negative integer literals fold their sign at
+        // parse time so patterns stay exact constants like expression
+        // literals; `-9223372036854775808` stays unrepresentable exactly as
+        // in the expression grammar (SPX-P003 at the lexer).
+        if self.take(&TokenKind::Minus) {
+            let minus_span = self.previous_span();
+            let token = self.bump().clone();
+            let negated = |value: i128, minimum: i128, span: Span| -> Result<i128, Diagnostic> {
+                let folded = -value;
+                if folded < minimum {
+                    return Err(Diagnostic::error(
+                        "SPX-P206",
+                        "negative literal pattern is outside its integer range",
+                        span,
+                    )
+                    .at_path(&self.path));
+                }
+                Ok(folded)
+            };
+            let value = match token.kind {
+                TokenKind::Int(value) => PatternLiteral::Int(negated(
+                    i128::from(value),
+                    i128::from(i64::MIN),
+                    token.span,
+                )? as i64),
+                TokenKind::Int32(value) => PatternLiteral::Int32(negated(
+                    i128::from(value),
+                    i128::from(i32::MIN),
+                    token.span,
+                )? as i32),
+                _ => {
+                    return Err(Diagnostic::error(
+                        "SPX-P206",
+                        "`-` must precede an integer literal in a match pattern",
+                        token.span,
+                    )
+                    .at_path(&self.path))
+                }
+            };
+            let span = minus_span.merge(token.span);
+            return Ok(MatchPattern::Literal { value, span });
+        }
+        let token = self.bump().clone();
+        let pattern = match token.kind {
+            TokenKind::Ident(name) if name == "_" => MatchPattern::Wildcard { span: token.span },
+            TokenKind::Ident(name) if name == "true" || name == "false" => {
+                MatchPattern::Literal {
+                    value: PatternLiteral::Bool(name == "true"),
+                    span: token.span,
+                }
+            }
+            TokenKind::Ident(name) => {
+                if self.take(&TokenKind::LBrace) {
+                    let fields = self.record_match_pattern_fields()?;
+                    let end = self
+                        .expect(&TokenKind::RBrace, "`}` after record pattern")?
+                        .span;
+                    MatchPattern::Record {
+                        type_name: name,
+                        type_span: token.span,
+                        fields,
+                        span: token.span.merge(end),
+                    }
+                } else if self.take(&TokenKind::ColonColon) {
+                    let (case_name, case_span) = self.ident("variant case name in match pattern")?;
+                    self.expect(&TokenKind::LBrace, "`{` after variant case pattern")?;
+                    let mut fields = Vec::new();
+                    while !self.at(&TokenKind::RBrace) {
+                        let (name, name_span) = self.ident("variant pattern field name")?;
+                        let (binding, binding_span) = if self.take(&TokenKind::Colon) {
+                            self.ident("variant pattern binding name")?
+                        } else {
+                            (name.clone(), name_span)
+                        };
+                        fields.push(MatchPatternField {
+                            name,
+                            name_span,
+                            binding,
+                            binding_span,
+                            span: name_span.merge(binding_span),
+                        });
+                        if !self.take(&TokenKind::Comma) {
+                            break;
+                        }
+                    }
+                    let end = self
+                        .expect(&TokenKind::RBrace, "`}` after variant pattern")?
+                        .span;
+                    MatchPattern::Variant {
+                        type_name: name,
+                        type_span: token.span,
+                        case_name,
+                        case_span,
+                        fields,
+                        span: token.span.merge(end),
+                    }
+                } else {
+                    // Refutable Match v1: an irrefutable whole-scrutinee
+                    // binding arm.
+                    MatchPattern::Binding {
+                        name,
+                        span: token.span,
+                    }
+                }
+            }
+            TokenKind::Int(value) => MatchPattern::Literal {
+                value: PatternLiteral::Int(value),
+                span: token.span,
+            },
+            TokenKind::Int32(value) => MatchPattern::Literal {
+                value: PatternLiteral::Int32(value),
+                span: token.span,
+            },
+            TokenKind::Uint8(value) => MatchPattern::Literal {
+                value: PatternLiteral::Uint8(value),
+                span: token.span,
+            },
+            TokenKind::Char(value) => MatchPattern::Literal {
+                value: PatternLiteral::Char(value),
+                span: token.span,
+            },
+            _ => {
+                return Err(Diagnostic::error(
+                    "SPX-P206",
+                    "match patterns admit `_`, bindings, aggregate patterns, and integer/char/bool literals",
+                    token.span,
+                )
+                .at_path(&self.path))
+            }
+        };
+        Ok(pattern)
     }
 
     fn record_match_pattern_fields(
@@ -1807,6 +1920,12 @@ impl Parser {
 
     fn current(&self) -> &Token {
         &self.tokens[self.cursor]
+    }
+
+    /// The span of the token immediately before the cursor. The cursor never
+    /// sits at index zero while parsing, so this is always a real token.
+    fn previous_span(&self) -> Span {
+        self.tokens[self.cursor.saturating_sub(1)].span
     }
 
     fn bump(&mut self) -> &Token {

@@ -1179,6 +1179,9 @@ fn collect_result_propagations<'a>(
         ResolvedExprKind::Match { scrutinee, arms } => {
             collect_result_propagations(scrutinee, propagations);
             for arm in arms {
+                if let Some(guard) = &arm.guard {
+                    collect_result_propagations(guard, propagations);
+                }
                 collect_result_propagations(&arm.value, propagations);
             }
         }
@@ -1260,13 +1263,27 @@ pub(crate) fn graph_schema(program: &ResolvedProgram) -> &'static str {
 
 /// Bounded While-Loops v1 nonclaim gate: programs selecting Graph v15 stay
 /// outside every evidence/patch flow until that combination is separately
-/// evidenced. Generation fails closed so no capsule can ever carry a schema
-/// the independent verifiers reject as unsupported.
+/// evidenced. Refutable Match v1 selects Graph v16 above the same lattice,
+/// so the gate rejects both additive schemas; generation fails closed so no
+/// capsule can ever carry a schema the independent verifiers reject as
+/// unsupported.
+/// Public additive view of the evidence-flow schema gate used by executable
+/// evidence: Refutable Match v1 sources select v16, which stays outside every
+/// patch/evidence admission alongside the While-Loops v15 extension.
+pub fn reject_evidence_schema(schema: &str) -> Result<(), Diagnostic> {
+    reject_while_loop_evidence_schema(schema)
+}
+
 pub(crate) fn reject_while_loop_evidence_schema(schema: &str) -> Result<(), Diagnostic> {
     if schema == "semaprax.graph.v15" {
         Err(Diagnostic::io(
             "SPX-G410",
             "while-loop programs select `semaprax.graph.v15`, which is outside this evidence flow's admission",
+        ))
+    } else if schema == "semaprax.graph.v16" {
+        Err(Diagnostic::io(
+            "SPX-G410",
+            "refutable-match programs select `semaprax.graph.v16`, which is outside this evidence flow's admission",
         ))
     } else {
         Ok(())
@@ -1278,6 +1295,16 @@ pub(crate) fn graph_schema_from_parts(
     functions: &[ResolvedFunction],
     function_templates: &[hir::ResolvedFunctionTemplate],
 ) -> &'static str {
+    // Refutable Match v1 selects v16 above the whole lower lattice (including
+    // the v15 while extension) only when an authenticated refutable node
+    // exists; programs without refutable-match syntax keep their exact
+    // pre-existing schema and bytes.
+    if functions
+        .iter()
+        .any(|function| expression_has_refutable_match(&function.body))
+    {
+        return "semaprax.graph.v16";
+    }
     // Bounded While-Loops v1 selects v15 above the whole lower lattice only
     // when an authenticated while node exists; programs without while syntax
     // keep their exact pre-existing schema and bytes.
@@ -1450,6 +1477,86 @@ fn expression_has_record_pattern(expression: &ResolvedExpr) -> bool {
     }
 }
 
+/// Refutable Match v1: `true` when the resolved expression tree contains a
+/// match arm with a guard or a literal/or/binding pattern anywhere inside its
+/// blocks, branches, nested matches, or guards.
+fn expression_has_refutable_match(expression: &ResolvedExpr) -> bool {
+    match &expression.kind {
+        ResolvedExprKind::Block { statements, tail } => {
+            statements.iter().any(|statement| {
+                (0..statement.child_count()).any(|index| {
+                    statement
+                        .child(index)
+                        .is_some_and(expression_has_refutable_match)
+                })
+            }) || expression_has_refutable_match(tail)
+        }
+        ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_refutable_match),
+        ResolvedExprKind::NativeRustImportCall(call) => {
+            call.args.iter().any(expression_has_refutable_match)
+        }
+        ResolvedExprKind::Unary { value, .. }
+        | ResolvedExprKind::Try { operand: value, .. }
+        | ResolvedExprKind::TryOption { operand: value, .. }
+        | ResolvedExprKind::Project { base: value, .. }
+        | ResolvedExprKind::Upcast { source: value } => expression_has_refutable_match(value),
+        ResolvedExprKind::Binary { left, right, .. } => {
+            expression_has_refutable_match(left) || expression_has_refutable_match(right)
+        }
+        ResolvedExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            expression_has_refutable_match(condition)
+                || expression_has_refutable_match(then_branch)
+                || expression_has_refutable_match(else_branch)
+        }
+        ResolvedExprKind::ConstructRecord { fields, .. }
+        | ResolvedExprKind::ConstructVariant { fields, .. } => fields
+            .iter()
+            .any(|field| expression_has_refutable_match(&field.value)),
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            expression_has_refutable_match(scrutinee)
+                || arms.iter().any(|arm| {
+                    is_refutable_arm(arm)
+                        || arm.guard.as_ref().is_some_and(|guard| {
+                            expression_has_while(guard) || expression_has_refutable_match(guard)
+                        })
+                        || expression_has_while(&arm.value)
+                        || expression_has_refutable_match(&arm.value)
+                })
+        }
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            expression_has_refutable_match(base)
+                || fields
+                    .iter()
+                    .any(|field| expression_has_refutable_match(&field.value))
+        }
+        ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Int32(_)
+        | ResolvedExprKind::Char(_)
+        | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Float32(_)
+        | ResolvedExprKind::Float64(_)
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::String(_)
+        | ResolvedExprKind::Place(_) => false,
+    }
+}
+
+/// Refutable Match v1: an arm selects Graph v16 exactly when it carries a
+/// guard or a literal/or/binding pattern.
+fn is_refutable_arm(arm: &crate::hir::ResolvedMatchArm) -> bool {
+    arm.guard.is_some()
+        || matches!(
+            &arm.pattern,
+            crate::hir::ResolvedMatchPattern::Literal(_)
+                | crate::hir::ResolvedMatchPattern::Or(_)
+                | crate::hir::ResolvedMatchPattern::Binding(_)
+        )
+}
+
 fn collect_record_pattern_values(
     fields: &[crate::hir::ResolvedRecordMatchPatternField],
     values: &mut BTreeSet<ValueId>,
@@ -1565,6 +1672,16 @@ fn collect_agent_contract_values(expression: &ResolvedExpr, values: &mut BTreeSe
                         collect_record_pattern_values(fields, values);
                     }
                     crate::hir::ResolvedMatchPattern::Wildcard => {}
+                    // Refutable Match v1: a binding arm contributes its own
+                    // value; literals and or-patterns contribute nothing.
+                    crate::hir::ResolvedMatchPattern::Binding(binding) => {
+                        values.insert(binding.id.clone());
+                    }
+                    crate::hir::ResolvedMatchPattern::Literal(_)
+                    | crate::hir::ResolvedMatchPattern::Or(_) => {}
+                }
+                if let Some(guard) = &arm.guard {
+                    collect_agent_contract_values(guard, values);
                 }
                 collect_agent_contract_values(&arm.value, values);
             }
@@ -1848,6 +1965,34 @@ fn graph_match_pattern_json(pattern: &crate::hir::ResolvedMatchPattern, id: &str
             "{{\"id\":{},\"kind\":\"wildcard_pattern\"}}",
             quote_json(id)
         ),
+        // Refutable Match v1: additive literal/or/binding pattern nodes.
+        crate::hir::ResolvedMatchPattern::Literal(value) => format!(
+            "{{\"id\":{},\"kind\":\"literal_pattern\",\"type\":{},\"value\":{}}}",
+            quote_json(id),
+            type_json(&value.ty()),
+            quote_json(&pattern_value_text(*value))
+        ),
+        crate::hir::ResolvedMatchPattern::Or(alternatives) => format!(
+            "{{\"id\":{},\"kind\":\"or_pattern\",\"alternatives\":[{}]}}",
+            quote_json(id),
+            alternatives
+                .iter()
+                .enumerate()
+                .map(|(index, alternative)| {
+                    let alternative_id = format!("{id}.alternative.{index}");
+                    graph_match_pattern_json(alternative, &alternative_id)
+                })
+                .collect::<Vec<_>>()
+                .join(",")
+        ),
+        crate::hir::ResolvedMatchPattern::Binding(binding) => format!(
+            "{{\"id\":{},\"kind\":\"binding_pattern\",\"binding\":{{\"id\":{},\"name\":{},\"type_id\":{},\"ownership_mode\":{}}}}}",
+            quote_json(id),
+            quote_json(binding.id.as_str()),
+            quote_json(&binding.name),
+            quote_json(&binding.ty.identity_key()),
+            quote_json(ownership_text(binding.ownership))
+        ),
         crate::hir::ResolvedMatchPattern::Variant {
             variant,
             case,
@@ -1932,9 +2077,42 @@ fn graph_record_match_field_json(
     )
 }
 
+/// Refutable Match v1: exact canonical text of a literal pattern value,
+/// mirroring the canonical formatter so graph consumers read one spelling.
+fn pattern_value_text(value: crate::hir::PatternValue) -> String {
+    match value {
+        crate::hir::PatternValue::Int(value) => value.to_string(),
+        crate::hir::PatternValue::Int32(value) => format!("{value}i32"),
+        crate::hir::PatternValue::Uint8(value) => format!("{value}u8"),
+        crate::hir::PatternValue::Char(value) => crate::format::canonical_char(value),
+        crate::hir::PatternValue::Bool(value) => value.to_string(),
+    }
+}
+
 fn match_pattern_json(pattern: &crate::hir::ResolvedMatchPattern) -> String {
     match pattern {
         crate::hir::ResolvedMatchPattern::Wildcard => "{\"kind\":\"wildcard\"}".to_owned(),
+        // Refutable Match v1: additive literal/or/binding pattern spellings.
+        crate::hir::ResolvedMatchPattern::Literal(value) => format!(
+            "{{\"kind\":\"literal\",\"type\":{},\"value\":{}}}",
+            type_json(&value.ty()),
+            quote_json(&pattern_value_text(*value))
+        ),
+        crate::hir::ResolvedMatchPattern::Or(alternatives) => format!(
+            "{{\"kind\":\"or\",\"alternatives\":[{}]}}",
+            alternatives
+                .iter()
+                .map(match_pattern_json)
+                .collect::<Vec<_>>()
+                .join(",")
+        ),
+        crate::hir::ResolvedMatchPattern::Binding(binding) => format!(
+            "{{\"kind\":\"binding\",\"binding\":{{\"id\":{},\"name\":{},\"type_id\":{},\"ownership_mode\":{}}}}}",
+            quote_json(binding.id.as_str()),
+            quote_json(&binding.name),
+            quote_json(&binding.ty.identity_key()),
+            quote_json(ownership_text(binding.ownership))
+        ),
         crate::hir::ResolvedMatchPattern::Variant {
             variant,
             case,
@@ -3684,6 +3862,16 @@ fn collect_expr_type_declarations(
                         declarations,
                     ),
                     crate::hir::ResolvedMatchPattern::Wildcard => {}
+                    // Refutable Match v1: scalar binding types join the
+                    // closure; literals and or-patterns carry no declarations.
+                    crate::hir::ResolvedMatchPattern::Binding(binding) => {
+                        collect_nominal_declarations(&binding.ty, declarations);
+                    }
+                    crate::hir::ResolvedMatchPattern::Literal(_)
+                    | crate::hir::ResolvedMatchPattern::Or(_) => {}
+                }
+                if let Some(guard) = &arm.guard {
+                    collect_expr_type_declarations(guard, declarations);
                 }
                 collect_expr_type_declarations(&arm.value, declarations);
             }
@@ -3950,24 +4138,50 @@ fn expr_json(program: &ResolvedProgram, expression: &ResolvedExpr) -> Result<Str
                 .collect::<Result<Vec<_>, Diagnostic>>()?
                 .budgeted_join(",")
         ),
-        ResolvedExprKind::Match { scrutinee, arms } => format!(
-            "{{{header},\"kind\":\"match\",\"exhaustive\":true,\"scrutinee\":{},\"arms\":[{}]}}",
-            expr_json(program, scrutinee)?,
-            arms.iter()
-                .enumerate()
-                .map(|(index, arm)| {
-                    let arm_id = format!("{}:match-arm:{index}", expression.id.as_str());
-                    let pattern_id = format!("{arm_id}:pattern");
-                    Ok(format!(
-                        "{{\"id\":{},\"kind\":\"match_arm\",\"pattern\":{},\"value\":{}}}",
-                        quote_json(&arm_id),
-                        graph_match_pattern_json(&arm.pattern, &pattern_id),
-                        expr_json(program, &arm.value)?
-                    ))
-                })
-                .collect::<Result<Vec<_>, Diagnostic>>()?
-                .budgeted_join(",")
-        ),
+        ResolvedExprKind::Match { scrutinee, arms } => {
+            // Refutable Match v1: matches carrying guards or literal/or
+            // patterns project `"exhaustive":false` plus additive per-arm
+            // guard nodes; every pre-feature match keeps the exact
+            // `"exhaustive":true` bytes.
+            let exhaustive = !arms.iter().any(|arm| {
+                arm.guard.is_some()
+                    || matches!(
+                        &arm.pattern,
+                        crate::hir::ResolvedMatchPattern::Literal(_)
+                            | crate::hir::ResolvedMatchPattern::Or(_)
+                            | crate::hir::ResolvedMatchPattern::Binding(_)
+                    )
+            });
+            format!(
+                "{{{header},\"kind\":\"match\",\"exhaustive\":{exhaustive},\"scrutinee\":{},\"arms\":[{}]}}",
+                expr_json(program, scrutinee)?,
+                arms.iter()
+                    .enumerate()
+                    .map(|(index, arm)| {
+                        let arm_id = format!("{}:match-arm:{index}", expression.id.as_str());
+                        let pattern_id = format!("{arm_id}:pattern");
+                        let guard = match &arm.guard {
+                            Some(guard) => {
+                                let guard_id = format!("{arm_id}:guard");
+                                format!(
+                                    ",\"guard\":{{\"id\":{},\"kind\":\"guard\",\"condition\":{}}}",
+                                    quote_json(&guard_id),
+                                    expr_json(program, guard)?
+                                )
+                            }
+                            None => String::new(),
+                        };
+                        Ok(format!(
+                            "{{\"id\":{},\"kind\":\"match_arm\",\"pattern\":{},\"value\":{}{guard}}}",
+                            quote_json(&arm_id),
+                            graph_match_pattern_json(&arm.pattern, &pattern_id),
+                            expr_json(program, &arm.value)?
+                        ))
+                    })
+                    .collect::<Result<Vec<_>, Diagnostic>>()?
+                    .budgeted_join(",")
+            )
+        }
         ResolvedExprKind::Try {
             operand,
             result,
@@ -4270,6 +4484,16 @@ fn collect_expr_types(expression: &ResolvedExpr, types: &mut BTreeMap<String, Re
                         instance, fields, ..
                     } => collect_record_pattern_types(instance, fields, types),
                     crate::hir::ResolvedMatchPattern::Wildcard => {}
+                    // Refutable Match v1: scalar binding types join the
+                    // table; literals and or-patterns contribute nothing.
+                    crate::hir::ResolvedMatchPattern::Binding(binding) => {
+                        collect_type(&binding.ty, types);
+                    }
+                    crate::hir::ResolvedMatchPattern::Literal(_)
+                    | crate::hir::ResolvedMatchPattern::Or(_) => {}
+                }
+                if let Some(guard) = &arm.guard {
+                    collect_expr_types(guard, types);
                 }
                 collect_expr_types(&arm.value, types);
             }

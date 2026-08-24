@@ -161,6 +161,12 @@ fn reported_binding_ids_equal_the_resolved_hir_inventory() {
             hir::ResolvedMatchPattern::Record { fields, .. } => {
                 collect_record_fields(fields, ids);
             }
+            // Refutable Match v1: binding arms carry a real identity;
+            // literals and or-patterns carry none.
+            hir::ResolvedMatchPattern::Binding(binding) => {
+                ids.push(binding.id.as_str().to_owned());
+            }
+            hir::ResolvedMatchPattern::Literal(_) | hir::ResolvedMatchPattern::Or(_) => {}
         }
     }
 

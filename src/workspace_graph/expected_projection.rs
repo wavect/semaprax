@@ -574,7 +574,19 @@ fn ast_pattern_identity_slots(
             }
             Ok(slots)
         }
-        crate::ast::MatchPattern::Wildcard { .. } => Ok(0),
+        crate::ast::MatchPattern::Wildcard { .. } | crate::ast::MatchPattern::Literal { .. } => {
+            Ok(0)
+        }
+        // Refutable Match v1: a binding arm contributes one identity slot;
+        // or-patterns contribute their alternatives.
+        crate::ast::MatchPattern::Binding { .. } => Ok(1),
+        crate::ast::MatchPattern::Or { alternatives, .. } => {
+            let mut slots = 0usize;
+            for alternative in alternatives {
+                slots = checked_builder_sum(slots, ast_pattern_identity_slots(alternative)?)?;
+            }
+            Ok(slots)
+        }
     }
 }
 
@@ -862,6 +874,18 @@ fn ast_pattern_cost(
             }
         }
         crate::ast::MatchPattern::Wildcard { .. } => {}
+        // Refutable Match v1: literal/or/binding structural costs.
+        crate::ast::MatchPattern::Literal { value, .. } => {
+            cost.string(value.type_text())?;
+        }
+        crate::ast::MatchPattern::Or { alternatives, .. } => {
+            for alternative in alternatives {
+                ast_pattern_cost(alternative, cost)?;
+            }
+        }
+        crate::ast::MatchPattern::Binding { name, .. } => {
+            cost.string(name)?;
+        }
     }
     Ok(())
 }
@@ -2158,6 +2182,26 @@ fn collect_match_pattern_type_edges(
             )?;
         }
         crate::ast::MatchPattern::Wildcard { .. } => {}
+        // Refutable Match v1: literal/binding patterns reference no named
+        // types; or-patterns recurse into their literal alternatives.
+        crate::ast::MatchPattern::Literal { .. } | crate::ast::MatchPattern::Binding { .. } => {}
+        crate::ast::MatchPattern::Or { alternatives, .. } => {
+            for (index, alternative) in alternatives.iter().enumerate() {
+                collect_match_pattern_type_edges(
+                    program,
+                    owner,
+                    alternative,
+                    &crate::bounded_output::budgeted_format(format_args!(
+                        "{path}.alternative.{index}"
+                    )),
+                    expression,
+                    type_uses,
+                    module_paths,
+                    authored,
+                    edges,
+                )?;
+            }
+        }
     }
     if let crate::ast::MatchPattern::Record { fields, .. } = pattern {
         for (index, field) in fields.iter().enumerate() {

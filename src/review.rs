@@ -678,7 +678,12 @@ fn precheck_program(program: &Program) -> Result<AstUsage, Vec<Diagnostic>> {
             }
             ExprKind::Match { scrutinee, arms } => {
                 stack.push(scrutinee);
-                stack.extend(arms.iter().map(|arm| &arm.value));
+                for arm in arms {
+                    if let Some(guard) = &arm.guard {
+                        stack.push(guard.as_ref());
+                    }
+                    stack.push(&arm.value);
+                }
             }
             ExprKind::MethodCall { receiver, args, .. } => {
                 stack.push(receiver);

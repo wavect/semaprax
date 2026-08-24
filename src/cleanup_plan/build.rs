@@ -187,6 +187,7 @@ fn edge_condition_owned_capacity(condition: &EdgeCondition) -> usize {
         EdgeCondition::VariantCase {
             scrutinee, case, ..
         } => scrutinee.as_str().len() + case.as_str().len(),
+        EdgeCondition::ArmSelected { scrutinee, .. } => scrutinee.as_str().len(),
         EdgeCondition::StatusZero(source) | EdgeCondition::StatusNonzero(source) => {
             status_source_id_owned_capacity(source)
         }
@@ -1268,6 +1269,140 @@ impl<'a> PlanBuilder<'a> {
         })
     }
 
+    /// Refutable Match v1 recursive-reference twin: one linearized pass
+    /// whose Boolean joins mirror the while model, with fail-closed
+    /// owned-liveness equality at the join.
+    #[cfg(test)]
+    #[allow(clippy::too_many_arguments)]
+    fn lower_scalar_match(
+        &mut self,
+        expression: &ResolvedExpr,
+        scrutinee: &ResolvedExpr,
+        arms: &[ResolvedMatchArm],
+        decision_start: BlockId,
+        branch_state: FlowState,
+        region: CleanupRegionId,
+        destination: Option<CleanupPlace>,
+    ) -> Result<EvalResult, Diagnostic> {
+        if arms.is_empty() {
+            return Err(plan_error("refutable match has no arms"));
+        }
+        let entry_state = branch_state.clone();
+        let mut decision = decision_start;
+        let mut arm_results = Vec::with_capacity(arms.len());
+        for (index, arm) in arms.iter().enumerate() {
+            let final_arm = index + 1 == arms.len();
+            let arm_entry = self.new_block(region)?;
+            if final_arm {
+                let edge = self.new_edge(decision, arm_entry, EdgeCondition::Always)?;
+                self.terminate(decision, CleanupTerminator::Goto(edge))?;
+            } else {
+                let next_decision = self.new_block(region)?;
+                let selected = self.new_edge(
+                    decision,
+                    arm_entry,
+                    EdgeCondition::ArmSelected {
+                        scrutinee: scrutinee.id.clone(),
+                        arm: u32::try_from(index).map_err(|_| plan_error("too many match arms"))?,
+                        selected: true,
+                    },
+                )?;
+                let rejected = self.new_edge(
+                    decision,
+                    next_decision,
+                    EdgeCondition::ArmSelected {
+                        scrutinee: scrutinee.id.clone(),
+                        arm: u32::try_from(index).map_err(|_| plan_error("too many match arms"))?,
+                        selected: false,
+                    },
+                )?;
+                self.terminate(
+                    decision,
+                    CleanupTerminator::Branch(vec![selected, rejected]),
+                )?;
+                decision = next_decision;
+            }
+            let value_block = if let Some(guard) = &arm.guard {
+                let evaluated_guard = self.lower_expr_recursive_reference(
+                    guard.as_ref(),
+                    arm_entry,
+                    branch_state.clone(),
+                    region,
+                )?;
+                if evaluated_guard.owned_source.is_some() {
+                    return Err(plan_error(
+                        "scalar match guard owns a value, which no admitted program can express",
+                    ));
+                }
+                let value_entry = self.new_block(region)?;
+                let true_edge = self.new_edge(
+                    evaluated_guard.block,
+                    value_entry,
+                    EdgeCondition::BooleanResult(guard.id.clone(), true),
+                )?;
+                let false_edge = self.new_edge(
+                    evaluated_guard.block,
+                    decision,
+                    EdgeCondition::BooleanResult(guard.id.clone(), false),
+                )?;
+                self.terminate(
+                    evaluated_guard.block,
+                    CleanupTerminator::Branch(vec![true_edge, false_edge]),
+                )?;
+                value_entry
+            } else {
+                arm_entry
+            };
+            let mut result = self.lower_expr_recursive_reference(
+                &arm.value,
+                value_block,
+                branch_state.clone(),
+                region,
+            )?;
+            if let Some(destination) = destination.clone() {
+                let source = result
+                    .owned_source
+                    .take()
+                    .ok_or_else(|| plan_error("owned scalar match arm has no cleanup source"))?;
+                self.transfer(
+                    result.block,
+                    expression.id.clone(),
+                    source,
+                    destination,
+                    &mut result.state,
+                    true,
+                )?;
+            }
+            arm_results.push(result);
+        }
+        let mut arm_results = arm_results.into_iter();
+        let first = arm_results
+            .next()
+            .ok_or_else(|| plan_error("refutable match produced no arm result"))?;
+        let mut merged_state = first.state.clone();
+        let mut completed = vec![first];
+        for result in arm_results {
+            merged_state = self.merge_states(&merged_state, &result.state)?;
+            completed.push(result);
+        }
+        if merged_state != entry_state {
+            return Err(plan_error(
+                "refutable match changes owned liveness, which the Refutable Match v1 \
+                 admission profile forbids",
+            ));
+        }
+        let join = self.new_block(region)?;
+        for result in completed {
+            let edge = self.new_edge(result.block, join, EdgeCondition::Always)?;
+            self.terminate(result.block, CleanupTerminator::Goto(edge))?;
+        }
+        Ok(EvalResult {
+            block: join,
+            state: merged_state,
+            owned_source: None,
+        })
+    }
+
     fn split_status(
         &mut self,
         block: BlockId,
@@ -1826,6 +1961,7 @@ impl<'a> PlanBuilder<'a> {
                 residual_type: &'e ResolvedType,
             },
             MatchAfterScrutinee {
+                expression: &'e ResolvedExpr,
                 scrutinee: &'e ResolvedExpr,
                 arms: &'e [ResolvedMatchArm],
             },
@@ -1845,6 +1981,39 @@ impl<'a> PlanBuilder<'a> {
                 decision: BlockId,
                 branch_state: FlowState,
                 arm_results: Vec<EvalResult>,
+            },
+            /// Refutable Match v1 decision chain over a Copy-scalar
+            /// scrutinee: one linearized pass whose Boolean joins mirror the
+            /// while model. Owned-liveness equality is fail-closed.
+            ScalarMatchNext {
+                expression: &'e ResolvedExpr,
+                scrutinee: &'e ResolvedExpr,
+                arms: &'e [ResolvedMatchArm],
+                index: usize,
+                decision: BlockId,
+                branch_state: FlowState,
+                arm_results: Vec<EvalResult>,
+                destination: Option<CleanupPlace>,
+            },
+            ScalarMatchAfterGuard {
+                expression: &'e ResolvedExpr,
+                scrutinee: &'e ResolvedExpr,
+                arms: &'e [ResolvedMatchArm],
+                index: usize,
+                decision: BlockId,
+                branch_state: FlowState,
+                arm_results: Vec<EvalResult>,
+                destination: Option<CleanupPlace>,
+            },
+            ScalarMatchAfterArm {
+                expression: &'e ResolvedExpr,
+                scrutinee: &'e ResolvedExpr,
+                arms: &'e [ResolvedMatchArm],
+                index: usize,
+                decision: BlockId,
+                branch_state: FlowState,
+                arm_results: Vec<EvalResult>,
+                destination: Option<CleanupPlace>,
             },
             UpdateAfterBase {
                 expression: &'e ResolvedExpr,
@@ -1956,6 +2125,28 @@ impl<'a> PlanBuilder<'a> {
                     arm_results,
                     ..
                 } => flow_state_owned_capacity(branch_state) + results(arm_results),
+                Frame::ScalarMatchNext {
+                    branch_state,
+                    arm_results,
+                    destination: place,
+                    ..
+                }
+                | Frame::ScalarMatchAfterGuard {
+                    branch_state,
+                    arm_results,
+                    destination: place,
+                    ..
+                }
+                | Frame::ScalarMatchAfterArm {
+                    branch_state,
+                    arm_results,
+                    destination: place,
+                    ..
+                } => {
+                    flow_state_owned_capacity(branch_state)
+                        + results(arm_results)
+                        + destination(place)
+                }
                 Frame::UpdateNext {
                     flow,
                     destination: place,
@@ -2322,7 +2513,11 @@ impl<'a> PlanBuilder<'a> {
                                 "droppable match result reached the copy-only cleanup slice",
                             ));
                         }
-                        frames.push(Frame::MatchAfterScrutinee { scrutinee, arms });
+                        frames.push(Frame::MatchAfterScrutinee {
+                            expression,
+                            scrutinee,
+                            arms,
+                        });
                         frames.push(Frame::Enter {
                             expression: scrutinee,
                             block,
@@ -3074,12 +3269,40 @@ impl<'a> PlanBuilder<'a> {
                         active_region,
                     )?);
                 }
-                Frame::MatchAfterScrutinee { scrutinee, arms } => {
+                Frame::MatchAfterScrutinee {
+                    expression,
+                    scrutinee,
+                    arms,
+                } => {
                     let scrutinee_result = results.pop().expect("match scrutinee result retained");
                     if scrutinee_result.owned_source.is_some() {
                         return Err(plan_error(
                             "droppable match scrutinee reached the copy-only cleanup slice",
                         ));
+                    }
+                    // Refutable Match v1: Copy-scalar scrutinees lower to the
+                    // literal/guard decision chain; aggregates keep the
+                    // pre-feature variant/record lowering below.
+                    if matches!(
+                        scrutinee.ty,
+                        ResolvedType::I64
+                            | ResolvedType::I32
+                            | ResolvedType::U8
+                            | ResolvedType::Char
+                            | ResolvedType::Bool
+                    ) {
+                        let destination = self.expression_slot(expression, active_region)?;
+                        frames.push(Frame::ScalarMatchNext {
+                            expression,
+                            scrutinee,
+                            arms,
+                            index: 0,
+                            decision: scrutinee_result.block,
+                            branch_state: scrutinee_result.state,
+                            arm_results: Vec::with_capacity(arms.len()),
+                            destination,
+                        });
+                        continue;
                     }
                     let is_record = match &scrutinee.ty {
                         ResolvedType::Nominal { declaration, .. } => self
@@ -3237,6 +3460,213 @@ impl<'a> PlanBuilder<'a> {
                         decision,
                         branch_state,
                         arm_results,
+                    });
+                }
+                Frame::ScalarMatchNext {
+                    expression,
+                    scrutinee,
+                    arms,
+                    index,
+                    mut decision,
+                    branch_state,
+                    arm_results,
+                    destination,
+                } => {
+                    if index == arms.len() {
+                        let entry_state = branch_state;
+                        let mut arm_results = arm_results.into_iter();
+                        let first = arm_results
+                            .next()
+                            .ok_or_else(|| plan_error("refutable match produced no arm result"))?;
+                        let mut merged_state = first.state.clone();
+                        let mut completed = vec![first];
+                        for result in arm_results {
+                            merged_state = self.merge_states(&merged_state, &result.state)?;
+                            completed.push(result);
+                        }
+                        // Copy-scalar admission makes every path observe the
+                        // same owned liveness as the decision entry; anything
+                        // else means a non-admitted shape reached lowering.
+                        if merged_state != entry_state {
+                            return Err(plan_error(
+                                "refutable match changes owned liveness, which the \
+                                 Refutable Match v1 admission profile forbids",
+                            ));
+                        }
+                        let join = self.new_block(active_region)?;
+                        for result in completed {
+                            let edge = self.new_edge(result.block, join, EdgeCondition::Always)?;
+                            self.terminate(result.block, CleanupTerminator::Goto(edge))?;
+                        }
+                        results.push(EvalResult {
+                            block: join,
+                            state: merged_state,
+                            owned_source: None,
+                        });
+                    } else {
+                        let arm = &arms[index];
+                        let final_arm = index + 1 == arms.len();
+                        let arm_entry = self.new_block(active_region)?;
+                        if final_arm {
+                            // The resolver guarantees one trailing
+                            // irrefutable guard-free catch-all, so the final
+                            // decision falls through unconditionally.
+                            let edge = self.new_edge(decision, arm_entry, EdgeCondition::Always)?;
+                            self.terminate(decision, CleanupTerminator::Goto(edge))?;
+                        } else {
+                            // Every earlier arm — including irrefutable
+                            // bindings — authenticates as one conditional
+                            // decision so the plan stays total.
+                            let next_decision = self.new_block(active_region)?;
+                            let selected = self.new_edge(
+                                decision,
+                                arm_entry,
+                                EdgeCondition::ArmSelected {
+                                    scrutinee: scrutinee.id.clone(),
+                                    arm: u32::try_from(index)
+                                        .map_err(|_| plan_error("too many match arms"))?,
+                                    selected: true,
+                                },
+                            )?;
+                            let rejected = self.new_edge(
+                                decision,
+                                next_decision,
+                                EdgeCondition::ArmSelected {
+                                    scrutinee: scrutinee.id.clone(),
+                                    arm: u32::try_from(index)
+                                        .map_err(|_| plan_error("too many match arms"))?,
+                                    selected: false,
+                                },
+                            )?;
+                            self.terminate(
+                                decision,
+                                CleanupTerminator::Branch(vec![selected, rejected]),
+                            )?;
+                            decision = next_decision;
+                        }
+                        if let Some(guard) = &arm.guard {
+                            frames.push(Frame::ScalarMatchAfterGuard {
+                                expression,
+                                scrutinee,
+                                arms,
+                                index,
+                                decision,
+                                branch_state: branch_state.clone(),
+                                arm_results,
+                                destination,
+                            });
+                            frames.push(Frame::Enter {
+                                expression: guard.as_ref(),
+                                block: arm_entry,
+                                state: branch_state,
+                            });
+                        } else {
+                            frames.push(Frame::ScalarMatchAfterArm {
+                                expression,
+                                scrutinee,
+                                arms,
+                                index,
+                                decision,
+                                branch_state: branch_state.clone(),
+                                arm_results,
+                                destination,
+                            });
+                            frames.push(Frame::Enter {
+                                expression: &arm.value,
+                                block: arm_entry,
+                                state: branch_state,
+                            });
+                        }
+                    }
+                }
+                Frame::ScalarMatchAfterGuard {
+                    expression,
+                    scrutinee,
+                    arms,
+                    index,
+                    decision,
+                    branch_state,
+                    arm_results,
+                    destination,
+                } => {
+                    // The guard is an ordinary bool expression evaluated once
+                    // after the pattern matched; its Boolean join routes to
+                    // this arm's value or falls through to the next decision.
+                    let guard = results.pop().expect("scalar match guard retained");
+                    if guard.owned_source.is_some() {
+                        return Err(plan_error(
+                            "scalar match guard owns a value, which no admitted program can express",
+                        ));
+                    }
+                    let arm = &arms[index];
+                    let Some(guard_expr) = &arm.guard else {
+                        return Err(plan_error("scalar match guard continuation lost its guard"));
+                    };
+                    let value_entry = self.new_block(active_region)?;
+                    let true_edge = self.new_edge(
+                        guard.block,
+                        value_entry,
+                        EdgeCondition::BooleanResult(guard_expr.id.clone(), true),
+                    )?;
+                    let false_edge = self.new_edge(
+                        guard.block,
+                        decision,
+                        EdgeCondition::BooleanResult(guard_expr.id.clone(), false),
+                    )?;
+                    self.terminate(
+                        guard.block,
+                        CleanupTerminator::Branch(vec![true_edge, false_edge]),
+                    )?;
+                    frames.push(Frame::ScalarMatchAfterArm {
+                        expression,
+                        scrutinee,
+                        arms,
+                        index,
+                        decision,
+                        branch_state: branch_state.clone(),
+                        arm_results,
+                        destination,
+                    });
+                    frames.push(Frame::Enter {
+                        expression: &arm.value,
+                        block: value_entry,
+                        state: branch_state,
+                    });
+                }
+                Frame::ScalarMatchAfterArm {
+                    expression,
+                    scrutinee,
+                    arms,
+                    index,
+                    decision,
+                    branch_state,
+                    mut arm_results,
+                    destination,
+                } => {
+                    let mut result = results.pop().expect("scalar match arm value retained");
+                    if let Some(destination) = destination.clone() {
+                        let source = result.owned_source.take().ok_or_else(|| {
+                            plan_error("owned scalar match arm has no cleanup source")
+                        })?;
+                        self.transfer(
+                            result.block,
+                            expression.id.clone(),
+                            source,
+                            destination,
+                            &mut result.state,
+                            true,
+                        )?;
+                    }
+                    arm_results.push(result);
+                    frames.push(Frame::ScalarMatchNext {
+                        expression,
+                        scrutinee,
+                        arms,
+                        index: index + 1,
+                        decision,
+                        branch_state,
+                        arm_results,
+                        destination,
                     });
                 }
                 Frame::UpdateAfterBase {
@@ -3631,7 +4061,7 @@ impl<'a> PlanBuilder<'a> {
                 region,
             ),
             ResolvedExprKind::Match { scrutinee, arms } => {
-                self.lower_match(scrutinee, arms, block, state, region)
+                self.lower_match(expression, scrutinee, arms, block, state, region)
             }
             ResolvedExprKind::UpdateRecord { .. } => {
                 self.lower_update_record(expression, block, state, region)
@@ -4617,6 +5047,7 @@ impl<'a> PlanBuilder<'a> {
     #[cfg(test)]
     fn lower_match(
         &mut self,
+        expression: &ResolvedExpr,
         scrutinee: &ResolvedExpr,
         arms: &[ResolvedMatchArm],
         block: BlockId,
@@ -4638,6 +5069,27 @@ impl<'a> PlanBuilder<'a> {
             return Err(plan_error(
                 "droppable match scrutinee reached the copy-only cleanup slice",
             ));
+        }
+        // Refutable Match v1: recursive-reference twin of the scalar
+        // decision chain.
+        if matches!(
+            scrutinee.ty,
+            ResolvedType::I64
+                | ResolvedType::I32
+                | ResolvedType::U8
+                | ResolvedType::Char
+                | ResolvedType::Bool
+        ) {
+            let destination = self.expression_slot(expression, region)?;
+            return self.lower_scalar_match(
+                expression,
+                scrutinee,
+                arms,
+                scrutinee_result.block,
+                scrutinee_result.state,
+                region,
+                destination,
+            );
         }
 
         let is_record = match &scrutinee.ty {

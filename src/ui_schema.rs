@@ -1039,7 +1039,15 @@ fn main() -> i64 { 0 }
                 .iter()
                 .map(|field| (field.offset, field.size_bytes, field.align_bytes))
                 .collect::<Vec<_>>(),
-            vec![(0, 8, 8), (8, 4, 4), (12, 1, 1), (16, 4, 4), (24, 8, 8), (32, 4, 4), (36, 1, 1)]
+            vec![
+                (0, 8, 8),
+                (8, 4, 4),
+                (12, 1, 1),
+                (16, 4, 4),
+                (24, 8, 8),
+                (32, 4, 4),
+                (36, 1, 1)
+            ]
         );
         cleanup(&path);
     }

@@ -281,7 +281,7 @@ int main(void) {{
     return 0;
 }}
 "#,
-        main_fn = format!("spx_decl_{}", hex_identity("app.main")),
+        main_fn = format_args!("spx_decl_{}", hex_identity("app.main")),
     );
     run_native_probe(&generated, &probe, "string branches");
 }

@@ -133,9 +133,12 @@ fn openapi_widened_document_kat_is_pinned() {
         "widen.count".to_owned(),
         "app.main".to_owned(),
     ];
-    let report =
-        openapi::generate(Path::new(MIXED_PATH), &selections, &OpenApiOptions::default())
-            .expect("envelope");
+    let report = openapi::generate(
+        Path::new(MIXED_PATH),
+        &selections,
+        &OpenApiOptions::default(),
+    )
+    .expect("envelope");
     let envelope: Value = serde_json::from_str(&report).unwrap();
     assert_eq!(envelope["schema"], "semaprax.openapi.v1");
     assert_eq!(envelope["operations"], 4);
@@ -146,7 +149,10 @@ fn openapi_widened_document_kat_is_pinned() {
         schemas["widen_mix.Request"].to_string(),
         WIDEN_MIX_REQUEST_SCHEMA
     );
-    assert_eq!(schemas["widen_mix.Result"].to_string(), WIDEN_MIX_RESULT_SCHEMA);
+    assert_eq!(
+        schemas["widen_mix.Result"].to_string(),
+        WIDEN_MIX_RESULT_SCHEMA
+    );
     assert_eq!(
         schemas["widen_ratio.Result"].to_string(),
         WIDEN_RATIO_RESULT_SCHEMA
@@ -158,12 +164,16 @@ fn openapi_widened_document_kat_is_pinned() {
 
     // Failure-surface rules survive widening: checked i32/u8 positions keep
     // the default response while total f32->char signatures stay without one.
-    assert!(envelope["document"]["paths"]["/widen.mix"]["post"]["responses"]
-        .get("default")
-        .is_some());
-    assert!(envelope["document"]["paths"]["/widen.ratio"]["post"]["responses"]
-        .get("default")
-        .is_none());
+    assert!(
+        envelope["document"]["paths"]["/widen.mix"]["post"]["responses"]
+            .get("default")
+            .is_some()
+    );
+    assert!(
+        envelope["document"]["paths"]["/widen.ratio"]["post"]["responses"]
+            .get("default")
+            .is_none()
+    );
 
     // The pinned document digest is independently replayable from the exact
     // embedded document bytes using the documented domain-separated scheme.
@@ -178,12 +188,18 @@ fn openapi_widened_document_kat_is_pinned() {
 #[test]
 fn openapi_widened_generation_is_deterministic() {
     let selections = ["widen.mix".to_owned(), "widen.count".to_owned()];
-    let first =
-        openapi::generate(Path::new(MIXED_PATH), &selections, &OpenApiOptions::default())
-            .expect("first");
-    let second =
-        openapi::generate(Path::new(MIXED_PATH), &selections, &OpenApiOptions::default())
-            .expect("second");
+    let first = openapi::generate(
+        Path::new(MIXED_PATH),
+        &selections,
+        &OpenApiOptions::default(),
+    )
+    .expect("first");
+    let second = openapi::generate(
+        Path::new(MIXED_PATH),
+        &selections,
+        &OpenApiOptions::default(),
+    )
+    .expect("second");
     assert_eq!(first, second);
 }
 
@@ -212,12 +228,8 @@ fn main() -> i64 { 0 }
         ("wex.effect", "declared_effects"),
         ("wex.string", "unsupported_parameter_type"),
     ] {
-        let errors = openapi::generate(
-            &path,
-            &[selection.to_owned()],
-            &OpenApiOptions::default(),
-        )
-        .unwrap_err();
+        let errors = openapi::generate(&path, &[selection.to_owned()], &OpenApiOptions::default())
+            .unwrap_err();
         assert_eq!(errors[0].code, "SPX-OA103", "selection {selection}");
         assert!(
             errors[0].message.contains(reason),
@@ -227,12 +239,7 @@ fn main() -> i64 { 0 }
 
     // Budget exhaustion stays fail-closed over widened envelopes.
     let tiny = OpenApiOptions::new(graph::MIN_AGENT_CONTEXT_BYTES).unwrap();
-    let errors = openapi::generate(
-        &path,
-        &["app.main".to_owned()],
-        &tiny,
-    )
-    .unwrap_err();
+    let errors = openapi::generate(&path, &["app.main".to_owned()], &tiny).unwrap_err();
     assert_eq!(errors[0].code, "SPX-OA105");
     cleanup(&path);
 }
@@ -258,22 +265,17 @@ fn openapi_widened_compat_classifies_width_and_result_changes() {
     let base_path = write_temp(base_source);
     let candidate_path = write_temp(candidate_source);
     let selections = ["wcompat.f".to_owned()];
-    let base = openapi::generate(&base_path, &selections, &OpenApiOptions::default())
-        .expect("base");
-    let candidate =
-        openapi::generate(&candidate_path, &selections, &OpenApiOptions::default())
-            .expect("candidate");
+    let base =
+        openapi::generate(&base_path, &selections, &OpenApiOptions::default()).expect("base");
+    let candidate = openapi::generate(&candidate_path, &selections, &OpenApiOptions::default())
+        .expect("candidate");
 
     let base_file = write_temp("base");
     let candidate_file = write_temp("candidate");
     std::fs::write(&base_file, &base).unwrap();
     std::fs::write(&candidate_file, &candidate).unwrap();
-    let report = openapi::compatibility(
-        &base_file,
-        &candidate_file,
-        &OpenApiOptions::default(),
-    )
-    .expect("report");
+    let report = openapi::compatibility(&base_file, &candidate_file, &OpenApiOptions::default())
+        .expect("report");
     let parsed: Value = serde_json::from_str(&report).unwrap();
     assert_eq!(parsed["verdict"], "breaking");
     let findings: Vec<&str> = parsed["findings"]
@@ -298,12 +300,8 @@ fn openapi_widened_compat_classifies_width_and_result_changes() {
     assert_ne!(forged, base);
     let re_signed = remint_openapi_document_digest(&forged);
     std::fs::write(&base_file, &re_signed).unwrap();
-    let report = openapi::compatibility(
-        &base_file,
-        &candidate_file,
-        &OpenApiOptions::default(),
-    )
-    .expect("re-signed inputs authenticate");
+    let report = openapi::compatibility(&base_file, &candidate_file, &OpenApiOptions::default())
+        .expect("re-signed inputs authenticate");
     let parsed: Value = serde_json::from_str(&report).unwrap();
     let findings: Vec<&str> = parsed["findings"]
         .as_array()
@@ -318,12 +316,8 @@ fn openapi_widened_compat_classifies_width_and_result_changes() {
 
     // Tampering without re-minting fails authentication closed.
     std::fs::write(&base_file, &forged).unwrap();
-    let errors = openapi::compatibility(
-        &base_file,
-        &candidate_file,
-        &OpenApiOptions::default(),
-    )
-    .unwrap_err();
+    let errors = openapi::compatibility(&base_file, &candidate_file, &OpenApiOptions::default())
+        .unwrap_err();
     assert_eq!(errors[0].code, "SPX-OA104");
 
     cleanup(&base_path);
@@ -400,20 +394,21 @@ fn package_report_widened_exports_carry_verbatim_native_prototypes() {
     assert_eq!(exports.len(), 4);
     let by_id: std::collections::BTreeMap<String, &Value> = exports
         .iter()
-        .map(|export| (
-            export["stable_id"].as_str().unwrap().to_owned(),
-            export,
-        ))
+        .map(|export| (export["stable_id"].as_str().unwrap().to_owned(), export))
         .collect();
 
     // Prototypes are extracted verbatim from the production native projection
     // with compiler-exact C types per widened family.
     assert_eq!(
-        by_id["widen.mix"]["native64"]["signature"].as_str().unwrap(),
+        by_id["widen.mix"]["native64"]["signature"]
+            .as_str()
+            .unwrap(),
         WIDEN_MIX_NATIVE_SIGNATURE
     );
     assert_eq!(
-        by_id["widen.ratio"]["native64"]["signature"].as_str().unwrap(),
+        by_id["widen.ratio"]["native64"]["signature"]
+            .as_str()
+            .unwrap(),
         WIDEN_RATIO_NATIVE_SIGNATURE
     );
     assert!(by_id["widen.count"]["native64"]["signature"]
@@ -506,15 +501,14 @@ fn main() -> i64 { 0 }
     let envelope = package_report::generate(&path, &options).expect("envelope");
     assert!(envelope.contains("\"reason\":\"unsupported_parameter_type\""));
     assert!(envelope.contains("\"reason\":\"automatic_identity\""));
-    assert!(envelope.contains(
-        "\"functions_total\":7,\"exports_admitted\":5,\"exports_excluded\":2"
-    ));
+    assert!(
+        envelope.contains("\"functions_total\":7,\"exports_admitted\":5,\"exports_excluded\":2")
+    );
     let again = package_report::generate(&path, &options).expect("again");
     assert_eq!(envelope, again, "generation must be deterministic");
 
     let tiny = PackageReportOptions::new(graph::MIN_AGENT_CONTEXT_BYTES).unwrap();
-    let errors = package_report::generate(&path, &tiny)
-        .expect_err("tiny budgets must fail closed");
+    let errors = package_report::generate(&path, &tiny).expect_err("tiny budgets must fail closed");
     assert!(errors.iter().any(|item| item.code == "SPX-P302"));
     cleanup(&path);
 }
@@ -559,8 +553,8 @@ fn package_report_widened_exports_equal_openapi_operations() {
     for id in &package_ids {
         assert!(openapi_envelope.contains(&format!("\"x-stable-id\":\"{id}\"")));
     }
-    let export_types: std::collections::BTreeMap<String, (Vec<String>, String)> = value
-        ["payload"]["exports"]
+    let export_types: std::collections::BTreeMap<String, (Vec<String>, String)> = value["payload"]
+        ["exports"]
         .as_array()
         .unwrap()
         .iter()
@@ -580,21 +574,15 @@ fn package_report_widened_exports_equal_openapi_operations() {
         })
         .collect();
     let expected_pairs = [
-        (
-            "widen.mix",
-            vec!["integer:int32", "integer:int32[0,255]"],
-        ),
+        ("widen.mix", vec!["integer:int32", "integer:int32[0,255]"]),
         ("widen.ratio", vec!["number:float"]),
     ];
     for (stable_id, parameter_labels) in expected_pairs {
         let operation = &openapi_value["document"]["paths"][format!("/{stable_id}")]["post"];
-        let request_ref = operation["requestBody"]["content"]["application/json"]["schema"]
-            ["$ref"]
+        let request_ref = operation["requestBody"]["content"]["application/json"]["schema"]["$ref"]
             .as_str()
             .unwrap();
-        let component = request_ref
-            .strip_prefix("#/components/schemas/")
-            .unwrap();
+        let component = request_ref.strip_prefix("#/components/schemas/").unwrap();
         let request = &openapi_value["document"]["components"]["schemas"][component];
         let properties = request["properties"].as_object().unwrap();
         let mut labels: Vec<String> = properties
@@ -666,11 +654,7 @@ impl SchemaShapeLabel {
     }
 
     fn render(&self) -> String {
-        let mut label = format!(
-            "{}:{}",
-            self.ty,
-            self.format.as_deref().unwrap_or("-")
-        );
+        let mut label = format!("{}:{}", self.ty, self.format.as_deref().unwrap_or("-"));
         if self.minimum.is_some() || self.maximum.is_some() {
             label.push_str(&format!(
                 "[{:?},{}]",
@@ -731,10 +715,7 @@ fn ui_schema_widened_golden_envelope_kat_is_pinned() {
     assert!(envelope.contains(WIDEN_ACTION_ENTRY_JSON));
     // The whole-envelope digest is pinned, so any rendering change breaks
     // this KAT loudly.
-    assert_eq!(
-        sha256_hex(envelope.as_bytes()),
-        WIDEN_UI_ENVELOPE_SHA256
-    );
+    assert_eq!(sha256_hex(envelope.as_bytes()), WIDEN_UI_ENVELOPE_SHA256);
     ui_schema::verify_envelope(&envelope).expect("verified");
 }
 
@@ -879,8 +860,10 @@ fn ui_schema_widened_tamper_and_remint_are_rejected() {
     assert_eq!(error.code, "SPX-U103");
 
     // Widened action signature mutations fail the same way.
-    let tampered_signature =
-        envelope.replace("{\"name\":\"a\",\"type\":\"i32\"}", "{\"name\":\"a\",\"type\":\"i64\"}");
+    let tampered_signature = envelope.replace(
+        "{\"name\":\"a\",\"type\":\"i32\"}",
+        "{\"name\":\"a\",\"type\":\"i64\"}",
+    );
     assert_ne!(tampered_signature, envelope);
     assert!(ui_schema::verify_envelope(&tampered_signature).is_err());
     let error = ui_schema::verify_envelope(&remint_ui_digest(&tampered_signature))
@@ -965,8 +948,7 @@ fn main() -> i64 { 0 }
     ui_schema::verify_envelope(&envelope).expect("verified");
 
     let tiny = UiSchemaOptions::new(graph::MIN_AGENT_CONTEXT_BYTES).unwrap();
-    let errors =
-        ui_schema::generate(&path, &tiny).expect_err("tiny budgets must fail closed");
+    let errors = ui_schema::generate(&path, &tiny).expect_err("tiny budgets must fail closed");
     assert!(errors.iter().any(|item| item.code == "SPX-U102"));
 
     cleanup(&path);

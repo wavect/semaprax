@@ -380,8 +380,9 @@ fn build_document(
 
     for function in admitted {
         let component = derived_name(&function.stable_id);
-        let has_checked_integer =
-            signature_has_type(function, |ty| matches!(ty, Type::I64 | Type::I32 | Type::U8));
+        let has_checked_integer = signature_has_type(function, |ty| {
+            matches!(ty, Type::I64 | Type::I32 | Type::U8)
+        });
         let has_contracts = !function.requires.is_empty() || !function.ensures.is_empty();
 
         let mut request_properties = Map::new();
@@ -697,22 +698,23 @@ fn operation_description(function: &Function) -> String {
         description.push_str(CONTRACT_STATUS_NOTE);
         description.push(' ');
     }
-    let mut noted_checked_integer = false;
+    let mut notes: Vec<&'static str> = Vec::new();
     if signature_has_type(function, |ty| ty == &Type::I64) {
-        description.push_str(ARITHMETIC_STATUS_NOTE);
-        noted_checked_integer = true;
+        notes.push(ARITHMETIC_STATUS_NOTE);
     }
     if signature_has_type(function, |ty| ty == &Type::I32) {
-        description.push(' ');
-        description.push_str(I32_ARITHMETIC_STATUS_NOTE);
-        noted_checked_integer = true;
+        notes.push(I32_ARITHMETIC_STATUS_NOTE);
     }
     if signature_has_type(function, |ty| ty == &Type::U8) {
-        description.push(' ');
-        description.push_str(U8_ARITHMETIC_STATUS_NOTE);
-        noted_checked_integer = true;
+        notes.push(U8_ARITHMETIC_STATUS_NOTE);
     }
-    if !noted_checked_integer && function.requires.is_empty() && function.ensures.is_empty() {
+    for (index, note) in notes.iter().enumerate() {
+        if index > 0 {
+            description.push(' ');
+        }
+        description.push_str(note);
+    }
+    if notes.is_empty() && function.requires.is_empty() && function.ensures.is_empty() {
         description.push_str(TOTAL_SIGNATURE_NOTE);
     }
     description
@@ -1077,8 +1079,10 @@ impl SchemaShape {
         if self.minimum.is_some() || self.maximum.is_some() {
             label.push_str(&format!(
                 " range[{},{}]",
-                self.minimum.map_or("-".to_owned(), |bound| bound.to_string()),
-                self.maximum.map_or("-".to_owned(), |bound| bound.to_string()),
+                self.minimum
+                    .map_or("-".to_owned(), |bound| bound.to_string()),
+                self.maximum
+                    .map_or("-".to_owned(), |bound| bound.to_string()),
             ));
         }
         if self.min_length.is_some() || self.max_length.is_some() {
@@ -1164,7 +1168,10 @@ fn classify(base: &Value, candidate: &Value) -> Vec<Finding> {
             }
         }
         for (name, candidate_shape) in &candidate_parameters {
-            if base_parameters.iter().any(|(base_name, _)| base_name == name) {
+            if base_parameters
+                .iter()
+                .any(|(base_name, _)| base_name == name)
+            {
                 continue;
             }
             // Every admitted scalar parameter is required, so any unknown

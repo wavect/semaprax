@@ -109,3 +109,30 @@ execution is claimed; hosted promotion remains pending.
 
 See also [ABI-REPORT-V1.md](ABI-REPORT-V1.md) for the sibling read-only
 projection tranche whose function admission profile this slice mirrors.
+
+## Widened scalar profile (2026-08-24)
+
+Schema Scalar Widening v1 admits state-shape records whose fields are any mix
+of the full Copy-scalar surface — `i64`, `i32`, `u8`, `f32`, `f64`, `char`,
+`bool` — and action descriptors whose parameters/results use the same
+widened profile, mirroring the widened package-report/openapi admission
+style. Field offsets, sizes, and alignments continue to come exclusively from
+the checked Native64 compiler layouts (`aggregate_layout`), which already
+define every widened scalar (4/4 for i32, f32, and char; 1/1 for u8 and bool;
+8/8 for i64 and f64), and a missing layout entry still fails closed with
+`SPX-U103`. The envelope schema stays `semaprax.ui-dialect-schema.v1`: no
+additive bump was required because verification rebuilds canonical layout and
+signature bytes from the parsed values and replays digests rather than
+checking any closed type vocabulary, so pre-widening envelopes replay
+unchanged and all prior pinned KATs remain green untouched. Record exclusion
+reasons (including `mixed_field_types`) and function exclusion reasons are
+unchanged and still closed.
+
+Remaining nonclaims: strings, nested/named field types, variants, resources,
+and generics stay outside the widened record profile; reserved UI sections
+remain explicitly empty; no rendering, runtime, DOM, typed update/view
+constructs, semantic controls, accessibility, navigation, localization,
+assets, platform blocks, custom rendering, or target execution; read-only
+with no source changes. Widened-type evidence lives in
+`tests/schema_scalar_widen_v1.rs`, with in-crate unit tests comparing widened
+state shapes directly against `aggregate_layout`.

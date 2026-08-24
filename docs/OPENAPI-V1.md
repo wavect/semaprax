@@ -28,8 +28,11 @@ semaprax openapi-compat <base.json> <candidate.json> [--max-bytes N]
 ## Admission model
 
 A selected function is admitted to the document only when it is monomorphic,
-declares no effects, has only by-value direct `i64`/`bool` parameters, and
-returns direct `i64`/`bool`. Every other selection fails with `SPX-OA103` and
+declares no effects, has only by-value direct Copy-scalar parameters, and
+returns a direct Copy scalar. The widened Copy-scalar surface is `i64`, `i32`,
+`u8`, `f32`, `f64`, `char`, and `bool`; mixed signatures are allowed. Strings,
+named types, variants, resources, generics, and non-value parameter modes stay
+outside the profile. Every other selection fails with `SPX-OA103` and
 one closed reason: `generic_function`, `declared_effects`,
 `unsupported_parameter_mode`, `unsupported_parameter_type`, or
 `unsupported_result_type`. Function bodies are never interpreted; the
@@ -50,17 +53,27 @@ The envelope binds its inputs exactly:
   any conforming JSON reader.
 - `nonclaims`: explicit non-goals.
 
-Inside the document each operation lives at `/` + stable id with method `post`,
+Inside the document each parameter and result schema object renders its
+declared Copy scalar exactly: `i64` as `integer`/`int64`, `i32` as
+`integer`/`int32`, `u8` as `integer`/`int32` with explicit `minimum: 0` /
+`maximum: 255` bounds (OpenAPI 3.1 defines no unsigned-byte format),
+`f32` as `number`/`float`, `f64` as `number`/`double`, `char` as `string`
+with `minLength: 1` / `maxLength: 1`, and `bool` as `boolean`; every object
+carries a static description derived from compiler ranges. Each operation
+lives at `/` + stable id with method `post`,
 an `operationId` derived from the stable id (characters outside
 `[A-Za-z0-9_]` map to `_`; derivation collisions across the selection set fail
 closed), an `x-stable-id` extension, a request-body `$ref` to a per-operation
 `<op>.Request` schema whose required list preserves authored parameter order,
 a `200` response referencing `<op>.Result`, and — when the signature contains
-any `i64` position or any `requires`/`ensures` clause — a `default` response
-referencing the shared `Semaprax.Status.v1` component. That status component
+any checked-integer position (`i64`, `i32`, or `u8`) or any
+`requires`/`ensures` clause — a `default`
+response referencing the shared `Semaprax.Status.v1` component. That status
+component
 is a static description of the compiler-owned failure domains
 (`semaprax.arithmetic.v1` codes 1–8, `semaprax.contract.v1` codes 1–2); it is
-emitted only when at least one operation can surface such a failure.
+emitted only when at least one operation can surface such a failure. Total
+float and char signatures carry no default response of their own.
 
 ## Compatibility report
 
@@ -77,7 +90,10 @@ required parameter removed, `OAC-B003` parameter type changed, `OAC-B004`
 new required parameter added (every admitted parameter is required, so any
 unknown candidate parameter is breaking), `OAC-B005` result type changed;
 non-breaking `OAC-N001` operation added; informational `OAC-I001` operation
-description changed, `OAC-I002` source revision changed. Findings are ordered
+description changed, `OAC-I002` source revision changed. Type comparison is
+shape-aware: beyond JSON type and format it includes the explicit bound
+members, so widened widths that share a rendering (for example `i32` versus
+`u8`, both `integer:int32`) still classify as breaking changes. Findings are ordered
 shared-operations first (authored order), then removals, additions, and the
 revision note. The verdict is `breaking` exactly when at least one breaking
 finding exists, and the migration block states the version-bump consequence.
@@ -104,3 +120,27 @@ rules for the default response and status component, pins the compatibility
 input binding digest across all six exercised finding families, proves report
 determinism, and rejects tampered, foreign, oversized-budget, and malformed
 inputs through the stable diagnostic codes above.
+
+## Widened scalar profile (2026-08-24)
+
+Schema Scalar Widening v1 admits the full Copy-scalar surface — `i64`, `i32`,
+`u8`, `f32`, `f64`, `char`, `bool`, mixed signatures allowed — wherever the
+projection previously admitted only `i64`/`bool`. The envelope schema stays
+`semaprax.openapi.v1` and the compatibility report stays
+`semaprax.openapi-compat.v1`: no additive bump was required because both
+verifiers authenticate structure, exact bytes, and derivation rules rather
+than any closed type vocabulary, so pre-widening envelopes replay unchanged
+(all prior pinned KATs remain green untouched) while widened documents are
+equally valid v1 envelopes. Widened rendering follows the canonical rules
+exactly (integer/number/string objects with compiler-range descriptions,
+explicit `minimum`/`maximum` for the byte width, `minLength`/`maxLength` 1
+for char); the default-response trigger now covers every checked-integer
+position; compatibility type comparison is bound-aware so `i32` versus `u8`
+changes still classify as breaking.
+
+Remaining nonclaims: no strings, named/aggregate types, variants, resources,
+or generics in the widened profile; no Protobuf/gRPC, GraphQL, or SQL; no
+schema import parsing; no live conformance fixtures; no registry, server, or
+hosting; no target execution; read-only with no source changes. Widened-type
+evidence lives in `tests/schema_scalar_widen_v1.rs` over repository-relative
+fixtures.

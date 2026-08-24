@@ -232,6 +232,9 @@ fn project_web_builds_are_manifest_owned_and_byte_exact() {
     assert_eq!(manifest["schema"], "semaprax.web-project.v1");
     assert_eq!(manifest["project_schema"], "semaprax.project.v1");
     assert_eq!(manifest["project"], "calculator");
+    assert!(manifest["project_graph_digest"]
+        .as_str()
+        .is_some_and(|digest| digest.starts_with("sha256:") && digest.len() == 71));
     assert_eq!(
         manifest["scalar_abi"]["functions"]
             .as_array()

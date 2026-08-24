@@ -267,6 +267,28 @@ general/multi-file change, import-alias or identity rename, request-selected
 path/patch/evidence, managed Workspace, build, network, recovery, or
 exactly-once authority.
 
+Project Agent Workflow v1 additionally requires byte-preserved v2/v3 method
+sets and responses; mutually exclusive startup authority; exact
+Open/Derived/Prepared/Applying transitions; notification silence; both revision
+bindings; distinct derivation/Project-Impact/Project-Review digest domains;
+typed base/candidate reverse closures with no managed-Workspace schema; stale
+digest non-consumption; response overflow before state/effect; no build while a
+change is pending; unchanged A0 overlap/reload/`SPX-J110` uncertainty; and a
+Web-only inline build with no path/process/tool/environment authority. The
+carrier gate requires the exact seven-file order, cumulative exact/minus-one
+caps, lowercase decoding, every length/SHA, canonical payload digest,
+independent replay/tamper rejection, byte equality with ordinary Project Web
+preparation, materialization, and Node stable-ID execution. Run:
+
+```sh
+cargo test --locked -p semaprax --all-features \
+  --test project_agent_workflow_v1 -- --test-threads=1 --nocapture
+cargo test --locked -p semaprax --all-features --lib project -- --test-threads=1
+```
+
+Exact-head Ubuntu/macOS/Windows and minimum-Rust promotion remains mandatory;
+local success does not complete the v0.2 objective.
+
 Quality gates are executable evidence, not a checklist substitute for reasoning. Every pull request must pass the baseline and the gates for each changed semantic layer.
 
 ## Baseline

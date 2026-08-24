@@ -1449,6 +1449,26 @@ otherwise the session fail-stops with `SPX-J110`. This adds no multi-file or
 managed-Workspace publication authority. See [Project Rename Transaction
 v1](PROJECT-RENAME-TRANSACTION-V1.md).
 
+### Project Agent Workflow v1
+
+`--allow-project-workflow` selects additive Project Agent Transport v4 while
+leaving v2/v3 byte-preserved. Its `rename/derive` -> `change/preview` ->
+`impact`/`review` -> `change/apply` state machine reuses the exact retained
+Project meaning, complete candidate builder, and existing Project/A0 handoff.
+The new Impact and Review schemas are Project-specific and digest-domain
+separated from managed Workspace artifacts; both typed base and candidate
+reverse closures are bound to the exact preview.
+
+After exact candidate reload, `build {target:"web"}` may return the same fixed
+seven Project Web artifacts as one bounded hexadecimal
+`semaprax.project-web-build.v1` carrier. Independent replay checks inventory,
+order, bytes, SHA-256 values, cumulative cap, manifest binding, and canonical
+payload digest. That is transport integrity and Project binding, not compiler
+provenance or target execution. This method owns no output path, filesystem
+write, process, tool, environment, native, or Rust build authority. Apply and
+build are separate, and build is open-state-only, so uncertainty cannot trigger
+a later action. See [Project Agent Workflow v1](PROJECT-AGENT-WORKFLOW-V1.md).
+
 ## Semantic workspace graph, analysis, and evidence-gated changes
 
 `src/semantic_workspace.rs` additively initializes a Semantic Workspace v1 in

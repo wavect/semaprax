@@ -567,6 +567,22 @@ impl WorkspaceAnalysis {
         Ok(json)
     }
 
+    /// Compare the exact typed structural facts that a Project display rename
+    /// is not permitted to change. Revision/digest/output accounting and
+    /// declaration display names are deliberately absent from this index.
+    pub(crate) fn project_display_rename_equivalent(&self, candidate: &Self) -> bool {
+        self.modules == candidate.modules
+            && self.declarations == candidate.declarations
+            && self.capabilities == candidate.capabilities
+            && self.callables == candidate.callables
+            && self.prelude == candidate.prelude
+            && self.permits == candidate.permits
+            && self.typed_edges == candidate.typed_edges
+            && self.families == candidate.families
+            && self.forward == candidate.forward
+            && self.reverse == candidate.reverse
+    }
+
     pub(crate) fn render_project_impact(
         &self,
         subject: ProjectAnalysisSubject<'_>,

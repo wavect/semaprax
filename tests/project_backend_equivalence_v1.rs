@@ -94,6 +94,7 @@ fn replay_project_manifest(
     directory: &Path,
     project_revision: &str,
     workspace_revision: &str,
+    project_graph_digest: &str,
 ) -> Result<(), String> {
     let files = package_files(directory);
     let inventory = files.keys().map(String::as_str).collect::<Vec<_>>();
@@ -133,9 +134,10 @@ fn replay_project_manifest(
     .collect::<Vec<_>>()
     .join(",");
     let expected = format!(
-        "{{\"schema\":\"semaprax.web-project.v1\",\"project_schema\":\"semaprax.project.v1\",\"project\":\"calculator\",\"project_revision\":{},\"workspace_revision\":{},\"entry_module\":\"calculator.app\",\"capabilities\":[],\"artifacts\":[{}],\"scalar_abi\":{{\"schema\":\"semaprax.wasm-scalar.v1\",\"functions\":[{}]}}}}\n",
+        "{{\"schema\":\"semaprax.web-project.v1\",\"project_schema\":\"semaprax.project.v1\",\"project\":\"calculator\",\"project_revision\":{},\"workspace_revision\":{},\"project_graph_digest\":{},\"entry_module\":\"calculator.app\",\"capabilities\":[],\"artifacts\":[{}],\"scalar_abi\":{{\"schema\":\"semaprax.wasm-scalar.v1\",\"functions\":[{}]}}}}\n",
         quote_json(project_revision),
         quote_json(workspace_revision),
+        quote_json(project_graph_digest),
         artifact_rows,
         expected_project_functions(),
     );
@@ -253,6 +255,12 @@ fn project_web_package_is_deterministic_exact_and_node_executable() {
         assert_eq!(manifest["project"], "calculator");
         assert_eq!(manifest["project_revision"], snapshot.project_revision());
         assert_eq!(manifest["workspace_revision"], snapshot.workspace_revision());
+        let semantic_graph: serde_json::Value =
+            serde_json::from_str(snapshot.semantic_graph()).unwrap();
+        assert_eq!(
+            manifest["project_graph_digest"],
+            semantic_graph["graph_digest"]
+        );
         assert_eq!(manifest["entry_module"], "calculator.app");
         for artifact in manifest["artifacts"].as_array().unwrap() {
             let path = artifact["path"].as_str().unwrap();
@@ -268,6 +276,7 @@ fn project_web_package_is_deterministic_exact_and_node_executable() {
             &first,
             snapshot.project_revision(),
             snapshot.workspace_revision(),
+            semantic_graph["graph_digest"].as_str().unwrap(),
         )
         .unwrap();
 
@@ -317,6 +326,7 @@ fn project_web_package_is_deterministic_exact_and_node_executable() {
                 &first,
                 snapshot.project_revision(),
                 snapshot.workspace_revision(),
+                semantic_graph["graph_digest"].as_str().unwrap(),
             )
             .is_err());
         }
@@ -330,6 +340,7 @@ fn project_web_package_is_deterministic_exact_and_node_executable() {
             &first,
             snapshot.project_revision(),
             snapshot.workspace_revision(),
+            semantic_graph["graph_digest"].as_str().unwrap(),
         )
         .is_err());
         std::fs::write(&wasm_path, original_wasm).unwrap();
@@ -337,6 +348,7 @@ fn project_web_package_is_deterministic_exact_and_node_executable() {
             &first,
             snapshot.project_revision(),
             snapshot.workspace_revision(),
+            semantic_graph["graph_digest"].as_str().unwrap(),
         )
         .unwrap();
 

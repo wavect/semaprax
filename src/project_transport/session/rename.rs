@@ -82,14 +82,15 @@ impl Session {
             .snapshot
             .as_mut()
             .expect("an open rename session retains its authenticated snapshot")
-            .with_authenticated_request(|snapshot| snapshot.prepare_rename(&target_id, &from, &to));
+            .with_authenticated_request(|snapshot| {
+                let prepared = snapshot.prepare_rename(&target_id, &from, &to)?;
+                let rendered = format!("{{\"preview\":{}}}", prepared.preview());
+                Ok((prepared, rendered))
+            });
         match result {
-            Ok(prepared) => {
-                let response = codec::bounded_success_response(
-                    id,
-                    &format!("{{\"preview\":{}}}", prepared.preview()),
-                    self.limits.response_bytes(),
-                );
+            Ok((prepared, rendered)) => {
+                let response =
+                    codec::bounded_success_response(id, &rendered, self.limits.response_bytes());
                 if codec::is_overflow_response(&response) {
                     return response;
                 }
@@ -111,17 +112,51 @@ impl Session {
         id: &RequestId,
         params: Option<Map<String, Value>>,
     ) -> Vec<u8> {
-        self.rename_apply_with_runtime(id, params, &mut ProductionRuntime)
+        self.apply_with_runtime(id, params, "rename/apply", &mut ProductionRuntime)
     }
 
+    pub(super) fn change_apply(
+        &mut self,
+        id: &RequestId,
+        params: Option<Map<String, Value>>,
+    ) -> Vec<u8> {
+        self.apply_with_runtime(id, params, "change/apply", &mut ProductionRuntime)
+    }
+
+    #[cfg(test)]
     fn rename_apply_with_runtime(
         &mut self,
         id: &RequestId,
         params: Option<Map<String, Value>>,
         runtime: &mut impl RenameRuntime,
     ) -> Vec<u8> {
-        if self.profile != ServerProfile::ProjectRenameV1 {
-            return self.error(id, METHOD_NOT_FOUND, "method not found: rename/apply");
+        self.apply_with_runtime(id, params, "rename/apply", runtime)
+    }
+
+    #[cfg(test)]
+    fn change_apply_with_runtime(
+        &mut self,
+        id: &RequestId,
+        params: Option<Map<String, Value>>,
+        runtime: &mut impl RenameRuntime,
+    ) -> Vec<u8> {
+        self.apply_with_runtime(id, params, "change/apply", runtime)
+    }
+
+    fn apply_with_runtime(
+        &mut self,
+        id: &RequestId,
+        params: Option<Map<String, Value>>,
+        method: &str,
+        runtime: &mut impl RenameRuntime,
+    ) -> Vec<u8> {
+        let allowed = match method {
+            "rename/apply" => matches!(self.profile, ServerProfile::ProjectRenameV1),
+            "change/apply" => self.profile == ServerProfile::ProjectWorkflowV1,
+            _ => false,
+        };
+        if !allowed {
+            return self.error(id, METHOD_NOT_FOUND, &format!("method not found: {method}"));
         }
         if self.state != SessionState::Prepared {
             return self.lifecycle_error(id);
@@ -134,7 +169,12 @@ impl Session {
         if let Err(message) = take_exact_revisions(snapshot, &mut params) {
             return self.error(id, codec::INVALID_PARAMS, &message);
         }
-        let preview_digest = match take_string(&mut params, "preview_digest") {
+        let digest_parameter = if method == "change/apply" {
+            "change_preview_digest"
+        } else {
+            "preview_digest"
+        };
+        let submitted_digest = match take_string(&mut params, digest_parameter) {
             Ok(value) => value,
             Err(error) => return self.finish(id, Err(error)),
         };
@@ -145,22 +185,28 @@ impl Session {
             .pending_rename
             .as_ref()
             .expect("prepared state retains one rename plan");
-        if preview_digest != prepared.preview_digest() {
+        let expected_digest = if method == "change/apply" {
+            prepared.change_preview_digest()
+        } else {
+            prepared.preview_digest()
+        };
+        if submitted_digest != expected_digest {
             return self.error(
                 id,
                 codec::INVALID_PARAMS,
-                "preview_digest does not match the retained Project rename plan",
+                &format!("{digest_parameter} does not match the retained Project change plan"),
             );
         }
 
         // Both possible post-effect responses are rendered and bounded before
         // acquiring commit authority. No write can occur if success cannot be
         // represented under the negotiated response limit.
-        let success = codec::bounded_success_response(
-            id,
-            &render_rename_receipt(prepared),
-            self.limits.response_bytes(),
-        );
+        let receipt = if method == "change/apply" {
+            render_change_receipt(prepared)
+        } else {
+            render_rename_receipt(prepared)
+        };
+        let success = codec::bounded_success_response(id, &receipt, self.limits.response_bytes());
         if codec::is_overflow_response(&success) {
             return success;
         }
@@ -260,6 +306,22 @@ fn render_rename_receipt(prepared: &PreparedProjectRename) -> String {
     )
 }
 
+fn render_change_receipt(prepared: &PreparedProjectRename) -> String {
+    format!(
+        "{{\"applied\":true,\"change_preview_digest\":{},\"rename_preview_digest\":{},\"impact_digest\":{},\"review_digest\":{},\"base_project_revision\":{},\"candidate_project_revision\":{},\"base_workspace_revision\":{},\"candidate_workspace_revision\":{},\"candidate_source_revision\":{},\"candidate_project_graph_digest\":{}}}",
+        quote_json(prepared.change_preview_digest()),
+        quote_json(prepared.preview_digest()),
+        quote_json(prepared.impact_digest()),
+        quote_json(prepared.review_digest()),
+        quote_json(prepared.base_project_revision()),
+        quote_json(prepared.candidate_project_revision()),
+        quote_json(prepared.base_workspace_revision()),
+        quote_json(prepared.candidate_workspace_revision()),
+        quote_json(prepared.candidate_source().source_revision()),
+        quote_json(prepared.candidate_project_graph_digest()),
+    )
+}
+
 fn snapshot_matches_candidate(
     snapshot: &ProjectSnapshot,
     prepared: &PreparedProjectRename,
@@ -327,7 +389,7 @@ mod tests {
             self.0.join(relative)
         }
 
-        fn session(&self) -> (Session, String, String) {
+        fn session_with_profile(&self, profile: ServerProfile) -> (Session, String, String) {
             let snapshot = crate::project::load_snapshot(&self.manifest()).unwrap();
             let project = snapshot.project_revision().to_owned();
             let workspace = snapshot.workspace_revision().to_owned();
@@ -336,7 +398,7 @@ mod tests {
                     snapshot: Some(snapshot),
                     state: SessionState::Open,
                     limits: crate::project_transport::framing::StdioLimits::default(),
-                    profile: ServerProfile::ProjectRenameV1,
+                    profile,
                     manifest_path: self.manifest(),
                     pending_rename: None,
                     terminal_diagnostics: None,
@@ -344,6 +406,10 @@ mod tests {
                 project,
                 workspace,
             )
+        }
+
+        fn session(&self) -> (Session, String, String) {
+            self.session_with_profile(ServerProfile::ProjectRenameV1)
         }
     }
 
@@ -375,6 +441,25 @@ mod tests {
                 &id,
                 &render_rename_receipt(&prepared),
                 success_required - 1
+            )
+        ));
+
+        let change_success =
+            codec::bounded_success_response(&id, &render_change_receipt(&prepared), usize::MAX);
+        let change_success_required = change_success.len() + 1;
+        assert_eq!(
+            codec::bounded_success_response(
+                &id,
+                &render_change_receipt(&prepared),
+                change_success_required
+            ),
+            change_success
+        );
+        assert!(codec::is_overflow_response(
+            &codec::bounded_success_response(
+                &id,
+                &render_change_receipt(&prepared),
+                change_success_required - 1
             )
         ));
 
@@ -431,6 +516,52 @@ mod tests {
             ("project_revision", project),
             ("workspace_revision", workspace),
             ("preview_digest", digest),
+        ])
+    }
+
+    fn prepare_workflow_session(fixture: &Fixture) -> (Session, String, String, String) {
+        let (mut session, project, workspace) =
+            fixture.session_with_profile(ServerProfile::ProjectWorkflowV1);
+        let response = session.rename_derive(
+            &RequestId::Number(11),
+            Some(params([
+                ("project_revision", project.clone()),
+                ("workspace_revision", workspace.clone()),
+                ("target_id", "calculator.add".to_owned()),
+                ("from", "add".to_owned()),
+                ("to", "sum".to_owned()),
+            ])),
+        );
+        let response: Value = serde_json::from_slice(&response).unwrap();
+        let derivation = response["result"]["derivation"]["artifact_digest"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        let response = session.change_preview(
+            &RequestId::Number(12),
+            Some(params([
+                ("project_revision", project.clone()),
+                ("workspace_revision", workspace.clone()),
+                ("derivation_digest", derivation),
+            ])),
+        );
+        let response: Value = serde_json::from_slice(&response).unwrap();
+        let digest = response["result"]["change"]["artifact_digest"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        (session, project, workspace, digest)
+    }
+
+    fn change_apply_params(
+        project: String,
+        workspace: String,
+        digest: String,
+    ) -> Map<String, Value> {
+        params([
+            ("project_revision", project),
+            ("workspace_revision", workspace),
+            ("change_preview_digest", digest),
         ])
     }
 
@@ -518,6 +649,34 @@ mod tests {
         assert!(std::fs::read_to_string(fixture.source("src/core.spx"))
             .unwrap()
             .contains("fn sum("));
+    }
+
+    #[test]
+    fn workflow_reload_uncertainty_is_terminal_and_blocks_every_later_build() {
+        let fixture = Fixture::new();
+        let (mut session, project, workspace, digest) = prepare_workflow_session(&fixture);
+        let response = session.change_apply_with_runtime(
+            &RequestId::Number(13),
+            Some(change_apply_params(project, workspace, digest)),
+            &mut ReloadRejectRuntime,
+        );
+        let response: Value = serde_json::from_slice(&response).unwrap();
+        assert_eq!(response["error"]["code"], APPLICATION_ERROR);
+        assert!(response["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("SPX-J110"));
+        assert_eq!(session.state, SessionState::Uncertain);
+        assert!(session.snapshot.is_none());
+
+        let build = session.build(&RequestId::Number(14), None);
+        let build: Value = serde_json::from_slice(&build).unwrap();
+        assert_eq!(build["error"]["code"], APPLICATION_ERROR);
+        assert!(build["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("project session is uncertain"));
+        assert!(build.get("result").is_none());
     }
 
     #[cfg(unix)]

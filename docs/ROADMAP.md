@@ -95,6 +95,16 @@ this adds no root CLI, registry, dependency, general Project SDK, import,
 capability, aggregate, or resource claim. Completion-row statuses and current
 totals do not change.
 
+[Project Agent Workflow v1](PROJECT-AGENT-WORKFLOW-V1.md) closes the remaining
+local calculator-orchestration gap for the admitted rename slice. Opt-in
+Transport v4 derives the stable-ID display rename, binds complete
+Project-specific typed Impact and fixed Review to its candidate, applies via
+the existing A0/reload path, and returns the refreshed seven-artifact Web build
+as a pathless independently replayed carrier. The daemon gains no output,
+filesystem, process, native, Rust, tool, or environment authority. General
+change/build, hosted promotion, and persistent indexing remain open, so totals
+remain unchanged.
+
 ## 0.1 — Executable semantic seed
 
 Status: implemented in this repository.
@@ -326,6 +336,11 @@ gates below are not.
   methods, incremental refresh, persistence across processes, recovery, and
   network service remain open; this locally evidenced tranche does not change
   completion totals or claim hosted promotion.
+  Additive [Project Agent Workflow v1](PROJECT-AGENT-WORKFLOW-V1.md) provides
+  an explicit v4 profile over that same bounded rename: separate derivation,
+  candidate-bound Project Impact/Review, A0 apply, and a refreshed pathless
+  Web-only inline build. General patches, multi-file edits, native/Rust daemon
+  builds, persistence, recovery, and hosted promotion remain open.
 - Typed hygienic generation: the bounded read-only
   [Typed Hygienic Generation v1](HYGIENIC-GEN-V1.md) tranche now synthesizes
   default constructors and scalar field accessors from admitted non-generic

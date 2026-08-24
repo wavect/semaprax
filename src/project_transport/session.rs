@@ -41,13 +41,33 @@ const PROJECT_RENAME_METHODS: [&str; 12] = [
     "workspace/snapshot",
     "workspace/status",
 ];
+const PROJECT_WORKFLOW_METHODS: [&str; 16] = [
+    "build",
+    "change/apply",
+    "change/preview",
+    "check",
+    "context",
+    "graph",
+    "impact",
+    "ping",
+    "protocol",
+    "rename/derive",
+    "review",
+    "shutdown",
+    "test",
+    "workspace/open",
+    "workspace/snapshot",
+    "workspace/status",
+];
 
 mod rename;
+mod workflow;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum SessionState {
     Configured,
     Open,
+    Derived,
     Prepared,
     Applying,
     Invalidated,
@@ -60,6 +80,7 @@ impl SessionState {
         match self {
             Self::Configured => "configured",
             Self::Open => "open",
+            Self::Derived => "derived",
             Self::Prepared => "prepared",
             Self::Applying => "applying",
             Self::Invalidated => "invalidated",
@@ -210,6 +231,12 @@ impl Session {
             "test" => self.test(id, params),
             "rename/preview" => self.rename_preview(id, params),
             "rename/apply" => self.rename_apply(id, params),
+            "rename/derive" => self.rename_derive(id, params),
+            "change/preview" => self.change_preview(id, params),
+            "change/apply" => self.change_apply(id, params),
+            "impact" => self.change_impact(id, params),
+            "review" => self.change_review(id, params),
+            "build" => self.build(id, params),
             unknown => self.error(
                 id,
                 METHOD_NOT_FOUND,
@@ -374,6 +401,11 @@ impl Session {
                 super::PROJECT_RENAME_TRANSPORT_SCHEMA,
                 PROJECT_RENAME_METHODS.as_slice(),
                 "[\"no_network_socket_tls_or_peer_authentication\",\"no_request_selected_root_path_patch_evidence_or_temp_authority\",\"single_file_explicit_exported_function_display_rename_only\",\"no_general_multi_file_change_import_alias_or_managed_workspace_authority\",\"no_exactly_once_delivery_deduplication_or_output_delivery_guarantee\",\"no_persistent_disk_cache_or_incremental_refresh\",\"no_concurrent_batch_or_out_of_order_processing\"]",
+            ),
+            ServerProfile::ProjectWorkflowV1 => (
+                super::PROJECT_WORKFLOW_TRANSPORT_SCHEMA,
+                PROJECT_WORKFLOW_METHODS.as_slice(),
+                "[\"no_network_socket_tls_or_peer_authentication\",\"no_request_selected_root_path_source_patch_evidence_output_tool_or_environment_authority\",\"single_file_explicit_exported_function_display_rename_only\",\"project_bound_structural_impact_and_fixed_review_not_general_change_analysis\",\"web_only_inline_build_no_filesystem_process_or_target_execution\",\"no_general_multi_file_change_import_alias_or_managed_workspace_authority\",\"no_exactly_once_delivery_deduplication_or_output_delivery_guarantee\",\"no_persistent_disk_cache_or_incremental_refresh\",\"no_concurrent_batch_or_out_of_order_processing\"]",
             ),
         };
         Ok(format!(

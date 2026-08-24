@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Added locally evidenced Project Agent Workflow v1. The explicit
+  `semapraxd --stdio --allow-project-workflow` v4 profile preserves v2/v3 and
+  adds server-derived rename intent, candidate-bound Project Impact and
+  fixed-section Review, A0 apply, exact refreshed state, and a pathless Web-only
+  inline build carrier with independent seven-artifact replay. Requests gain no
+  path, source/patch, output, tool, process, environment, native, or Rust build
+  authority. The real daemon gate materializes the verified carrier and runs
+  the stable-ID Node calculator after the rename. General/multi-file change,
+  hosted promotion, recovery, and exactly-once delivery remain open; totals
+  remain 56 Partial/0 Missing.
+
 - Added locally evidenced Project Native Rust SDK v1. The unpublished builder
   accepts one root-authenticated Project Manifest v1 subject, consumes its
   already linked and validated entry HIR without flattening or reparsing, and

@@ -90,6 +90,11 @@ impl ProjectSemanticState {
         self.rename_functions.get(stable_id)
     }
 
+    pub(super) fn display_rename_equivalent(&self, candidate: &Self) -> bool {
+        self.analysis
+            .project_display_rename_equivalent(&candidate.analysis)
+    }
+
     pub(super) fn context(
         &self,
         project_name: &str,

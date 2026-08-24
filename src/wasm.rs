@@ -1300,6 +1300,7 @@ pub(crate) struct PreparedProjectWeb {
 
 /// The closed schema for one pathless, deterministic Project Web build.
 pub const PROJECT_WEB_BUILD_SCHEMA: &str = "semaprax.project-web-build.v1";
+const PROJECT_WEB_BUILD_DIGEST_DOMAIN: &[u8] = b"semaprax.project-web-build.payload.v1\0";
 
 /// Hard ceiling for an inline Project Web build envelope. Callers may select
 /// a smaller limit, but cannot widen this process-wide admission boundary.
@@ -1315,6 +1316,15 @@ const PROJECT_WEB_ARTIFACT_PATHS: [&str; 7] = [
     "package.json",
     "index.html",
 ];
+
+#[derive(Clone, Copy)]
+struct ProjectWebIdentity<'a> {
+    project_name: &'a str,
+    project_revision: &'a str,
+    workspace_revision: &'a str,
+    project_graph_digest: &'a str,
+    entry_module: &'a str,
+}
 
 /// One self-contained Web package returned without filesystem or process
 /// authority. The envelope is canonical JSON and every artifact is encoded as
@@ -1408,6 +1418,7 @@ impl PreparedProjectWeb {
         project_name: &str,
         project_revision: &str,
         workspace_revision: &str,
+        project_graph_digest: &str,
         entry_module: &str,
         max_bytes: usize,
     ) -> Result<ProjectWebBuild, Diagnostic> {
@@ -1421,10 +1432,13 @@ impl PreparedProjectWeb {
             ("index.html", scalar_browser_html().as_bytes()),
         ];
         build_project_web_carrier(
-            project_name,
-            project_revision,
-            workspace_revision,
-            entry_module,
+            ProjectWebIdentity {
+                project_name,
+                project_revision,
+                workspace_revision,
+                project_graph_digest,
+                entry_module,
+            },
             max_bytes,
             &artifacts,
         )
@@ -1436,10 +1450,7 @@ fn project_web_build_error(message: impl Into<String>) -> Diagnostic {
 }
 
 fn build_project_web_carrier(
-    project_name: &str,
-    project_revision: &str,
-    workspace_revision: &str,
-    entry_module: &str,
+    identity: ProjectWebIdentity<'_>,
     max_bytes: usize,
     artifacts: &[(&str, &[u8])],
 ) -> Result<ProjectWebBuild, Diagnostic> {
@@ -1471,19 +1482,8 @@ fn build_project_web_carrier(
         }
     }
 
-    let payload = render_project_web_build_payload(
-        project_name,
-        project_revision,
-        workspace_revision,
-        entry_module,
-        max_bytes,
-        artifact_bytes,
-        artifacts,
-    )?;
-    let payload_digest = format!(
-        "sha256:{:x}",
-        crate::digest_hex::LowerHex(Sha256::digest(payload.as_bytes()))
-    );
+    let payload = render_project_web_build_payload(identity, max_bytes, artifact_bytes, artifacts)?;
+    let payload_digest = project_web_payload_digest(payload.as_bytes());
     let mut envelope = payload;
     debug_assert!(envelope.ends_with('}'));
     envelope.pop();
@@ -1509,21 +1509,19 @@ fn build_project_web_carrier(
 }
 
 fn render_project_web_build_payload(
-    project_name: &str,
-    project_revision: &str,
-    workspace_revision: &str,
-    entry_module: &str,
+    identity: ProjectWebIdentity<'_>,
     max_bytes: usize,
     artifact_bytes: usize,
     artifacts: &[(&str, &[u8])],
 ) -> Result<String, Diagnostic> {
     let mut payload = format!(
-        "{{\"schema\":{},\"project_schema\":\"semaprax.project.v1\",\"project\":{},\"project_revision\":{},\"workspace_revision\":{},\"entry_module\":{},\"encoding\":\"hex-lower\",\"limits\":{{\"max_bytes\":{max_bytes}}},\"artifact_count\":7,\"artifact_bytes\":{artifact_bytes},\"artifacts\":[",
+        "{{\"schema\":{},\"project_schema\":\"semaprax.project.v1\",\"project\":{},\"project_revision\":{},\"workspace_revision\":{},\"project_graph_digest\":{},\"entry_module\":{},\"encoding\":\"hex-lower\",\"limits\":{{\"max_bytes\":{max_bytes}}},\"artifact_count\":7,\"artifact_bytes\":{artifact_bytes},\"artifacts\":[",
         quote_json(PROJECT_WEB_BUILD_SCHEMA),
-        quote_json(project_name),
-        quote_json(project_revision),
-        quote_json(workspace_revision),
-        quote_json(entry_module),
+        quote_json(identity.project_name),
+        quote_json(identity.project_revision),
+        quote_json(identity.workspace_revision),
+        quote_json(identity.project_graph_digest),
+        quote_json(identity.entry_module),
     );
     if payload.len() > max_bytes {
         return Err(project_web_build_error(format!(
@@ -1558,7 +1556,7 @@ fn render_project_web_build_payload(
             )));
         }
     }
-    payload.push_str("],\"nonclaims\":[\"no_filesystem_authority\",\"no_process_authority\",\"no_publication_or_cache\"]}");
+    payload.push_str("],\"nonclaims\":[\"no_filesystem_authority\",\"no_process_authority\",\"no_publication_or_cache\",\"transport_integrity_not_compiler_provenance\"]}");
     if payload.len() > max_bytes {
         return Err(project_web_build_error(format!(
             "Project Web build envelope bytes exceed max_bytes {max_bytes}"
@@ -1581,12 +1579,13 @@ fn verify_project_web_build(build: &ProjectWebBuild) -> Result<(), Diagnostic> {
     let object = value.as_object().ok_or_else(|| {
         project_web_build_error("Project Web build envelope must be one JSON object")
     })?;
-    const KEYS: [&str; 13] = [
+    const KEYS: [&str; 14] = [
         "schema",
         "project_schema",
         "project",
         "project_revision",
         "workspace_revision",
+        "project_graph_digest",
         "entry_module",
         "encoding",
         "limits",
@@ -1721,6 +1720,7 @@ fn verify_project_web_build(build: &ProjectWebBuild) -> Result<(), Diagnostic> {
         string("project")?,
         string("project_revision")?,
         string("workspace_revision")?,
+        string("project_graph_digest")?,
         string("entry_module")?,
     )?;
     let nonclaims = object
@@ -1731,6 +1731,7 @@ fn verify_project_web_build(build: &ProjectWebBuild) -> Result<(), Diagnostic> {
         "no_filesystem_authority",
         "no_process_authority",
         "no_publication_or_cache",
+        "transport_integrity_not_compiler_provenance",
     ];
     if nonclaims.len() != expected_nonclaims.len()
         || nonclaims
@@ -1748,18 +1749,18 @@ fn verify_project_web_build(build: &ProjectWebBuild) -> Result<(), Diagnostic> {
         .zip(decoded.iter().map(Vec::as_slice))
         .collect::<Vec<_>>();
     let payload = render_project_web_build_payload(
-        string("project")?,
-        string("project_revision")?,
-        string("workspace_revision")?,
-        string("entry_module")?,
+        ProjectWebIdentity {
+            project_name: string("project")?,
+            project_revision: string("project_revision")?,
+            workspace_revision: string("workspace_revision")?,
+            project_graph_digest: string("project_graph_digest")?,
+            entry_module: string("entry_module")?,
+        },
         build.max_bytes,
         build.artifact_bytes,
         &artifact_refs,
     )?;
-    let replayed_digest = format!(
-        "sha256:{:x}",
-        crate::digest_hex::LowerHex(Sha256::digest(payload.as_bytes()))
-    );
+    let replayed_digest = project_web_payload_digest(payload.as_bytes());
     if string("payload_digest")? != replayed_digest || build.payload_digest != replayed_digest {
         return Err(project_web_build_error(
             "Project Web build payload digest disagrees with exact replay",
@@ -1781,11 +1782,23 @@ fn verify_project_web_build(build: &ProjectWebBuild) -> Result<(), Diagnostic> {
     Ok(())
 }
 
+fn project_web_payload_digest(payload: &[u8]) -> String {
+    let mut digest = Sha256::new();
+    digest.update(PROJECT_WEB_BUILD_DIGEST_DOMAIN);
+    digest.update((payload.len() as u64).to_le_bytes());
+    digest.update(payload);
+    format!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(digest.finalize())
+    )
+}
+
 fn verify_embedded_project_web_manifest(
     artifacts: &[Vec<u8>],
     project: &str,
     project_revision: &str,
     workspace_revision: &str,
+    project_graph_digest: &str,
     entry_module: &str,
 ) -> Result<(), Diagnostic> {
     let manifest_bytes = artifacts
@@ -1804,12 +1817,13 @@ fn verify_embedded_project_web_manifest(
     let object = manifest.as_object().ok_or_else(|| {
         project_web_build_error("Project Web build embedded manifest must be one JSON object")
     })?;
-    const MANIFEST_KEYS: [&str; 9] = [
+    const MANIFEST_KEYS: [&str; 10] = [
         "schema",
         "project_schema",
         "project",
         "project_revision",
         "workspace_revision",
+        "project_graph_digest",
         "entry_module",
         "capabilities",
         "artifacts",
@@ -1828,6 +1842,7 @@ fn verify_embedded_project_web_manifest(
         || string("project") != Some(project)
         || string("project_revision") != Some(project_revision)
         || string("workspace_revision") != Some(workspace_revision)
+        || string("project_graph_digest") != Some(project_graph_digest)
         || string("entry_module") != Some(entry_module)
         || object
             .get("capabilities")
@@ -1955,6 +1970,64 @@ fn verify_embedded_project_web_manifest(
             ));
         }
     }
+    let canonical_functions = functions
+        .iter()
+        .map(|function| {
+            let function = function
+                .as_object()
+                .expect("scalar ABI function object was admitted above");
+            let stable_id = function["stable_id"]
+                .as_str()
+                .expect("scalar stable ID was admitted above");
+            let wasm_export = function["wasm_export"]
+                .as_str()
+                .expect("scalar export symbol was admitted above");
+            let parameters = function["parameters"]
+                .as_array()
+                .expect("scalar parameters were admitted above")
+                .iter()
+                .map(|ty| quote_json(ty.as_str().expect("scalar type was admitted above")))
+                .collect::<Vec<_>>()
+                .join(",");
+            let result = function["result"]
+                .as_str()
+                .expect("scalar result was admitted above");
+            format!(
+                "{{\"stable_id\":{},\"wasm_export\":{},\"parameters\":[{}],\"result\":{}}}",
+                quote_json(stable_id),
+                quote_json(wasm_export),
+                parameters,
+                quote_json(result),
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    let canonical_artifacts = MANIFEST_ARTIFACTS
+        .iter()
+        .map(|(path, artifact_index)| {
+            format!(
+                "{{\"path\":{},\"sha256\":\"{:x}\"}}",
+                quote_json(path),
+                crate::digest_hex::LowerHex(Sha256::digest(&artifacts[*artifact_index])),
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    let canonical_manifest = format!(
+        "{{\"schema\":\"semaprax.web-project.v1\",\"project_schema\":\"semaprax.project.v1\",\"project\":{},\"project_revision\":{},\"workspace_revision\":{},\"project_graph_digest\":{},\"entry_module\":{},\"capabilities\":[],\"artifacts\":[{}],\"scalar_abi\":{{\"schema\":\"semaprax.wasm-scalar.v1\",\"functions\":[{}]}}}}\n",
+        quote_json(project),
+        quote_json(project_revision),
+        quote_json(workspace_revision),
+        quote_json(project_graph_digest),
+        quote_json(entry_module),
+        canonical_artifacts,
+        canonical_functions,
+    );
+    if manifest_source != canonical_manifest {
+        return Err(project_web_build_error(
+            "Project Web build embedded manifest is not canonical exact replay",
+        ));
+    }
     Ok(())
 }
 
@@ -1983,81 +2056,12 @@ fn decode_lower_hex(value: &str) -> Result<Vec<u8>, Diagnostic> {
     Ok(bytes)
 }
 
-#[cfg(test)]
-mod project_web_build_tests {
-    use super::*;
-
-    fn embedded_manifest(project: &str, artifacts: &[Vec<u8>]) -> String {
-        let digest = |index: usize| {
-            format!(
-                "{:x}",
-                crate::digest_hex::LowerHex(Sha256::digest(&artifacts[index]))
-            )
-        };
-        format!(
-            "{{\"schema\":\"semaprax.web-project.v1\",\"project_schema\":\"semaprax.project.v1\",\"project\":{project:?},\"project_revision\":\"sha256:project\",\"workspace_revision\":\"sha256:workspace\",\"entry_module\":\"calculator.app\",\"capabilities\":[],\"artifacts\":[{{\"path\":\"app.wasm\",\"sha256\":\"{}\"}},{{\"path\":\"index.html\",\"sha256\":\"{}\"}},{{\"path\":\"package.json\",\"sha256\":\"{}\"}},{{\"path\":\"semaprax.bindings.d.ts\",\"sha256\":\"{}\"}},{{\"path\":\"semaprax.bindings.js\",\"sha256\":\"{}\"}},{{\"path\":\"semaprax.js\",\"sha256\":\"{}\"}}],\"scalar_abi\":{{\"schema\":\"semaprax.wasm-scalar.v1\",\"functions\":[{{\"stable_id\":\"calculator.add\",\"wasm_export\":{},\"parameters\":[\"i64\",\"i64\"],\"result\":\"i64\"}}]}}}}\n",
-            digest(0),
-            digest(6),
-            digest(5),
-            digest(3),
-            digest(2),
-            digest(1),
-            quote_json(&scalar_exports::raw_symbol("calculator.add")),
-        )
-    }
-
-    #[test]
-    fn independently_replayed_inner_manifest_rejects_self_resigned_identity_forgery() {
-        let mut bytes = vec![
-            b"wasm".to_vec(),
-            b"runtime".to_vec(),
-            b"bindings".to_vec(),
-            b"declarations".to_vec(),
-            Vec::new(),
-            b"package".to_vec(),
-            b"index".to_vec(),
-        ];
-        bytes[4] = embedded_manifest("calculator", &bytes).into_bytes();
-        let refs = PROJECT_WEB_ARTIFACT_PATHS
-            .iter()
-            .copied()
-            .zip(bytes.iter().map(Vec::as_slice))
-            .collect::<Vec<_>>();
-        build_project_web_carrier(
-            "calculator",
-            "sha256:project",
-            "sha256:workspace",
-            "calculator.app",
-            64 * 1024,
-            &refs,
-        )
-        .unwrap();
-
-        bytes[4] = embedded_manifest("calculat0r", &bytes).into_bytes();
-        let forged_refs = PROJECT_WEB_ARTIFACT_PATHS
-            .iter()
-            .copied()
-            .zip(bytes.iter().map(Vec::as_slice))
-            .collect::<Vec<_>>();
-        let error = build_project_web_carrier(
-            "calculator",
-            "sha256:project",
-            "sha256:workspace",
-            "calculator.app",
-            64 * 1024,
-            &forged_refs,
-        )
-        .unwrap_err();
-        assert_eq!(error.code, "SPX-W117");
-        assert!(error.message.contains("embedded manifest disagrees"));
-    }
-}
-
 pub(crate) fn prepare_project_web_with_scalar_exports(
     program: &ResolvedProgram,
     project_name: &str,
     project_revision: &str,
     workspace_revision: &str,
+    project_graph_digest: &str,
     entry_module: &str,
     export_ids: &[String],
 ) -> Result<PreparedProjectWeb, Diagnostic> {
@@ -2080,10 +2084,13 @@ pub(crate) fn prepare_project_web_with_scalar_exports(
         ("semaprax.js", runtime.as_bytes()),
     ];
     let manifest = scalar_project_manifest(
-        project_name,
-        project_revision,
-        workspace_revision,
-        entry_module,
+        ProjectWebIdentity {
+            project_name,
+            project_revision,
+            workspace_revision,
+            project_graph_digest,
+            entry_module,
+        },
         &plans,
         &wasm_sha256,
         &manifest_artifacts,
@@ -2583,10 +2590,7 @@ fn scalar_manifest(
 }
 
 fn scalar_project_manifest(
-    project_name: &str,
-    project_revision: &str,
-    workspace_revision: &str,
-    entry_module: &str,
+    identity: ProjectWebIdentity<'_>,
     plans: &[scalar_exports::ScalarExportPlan],
     wasm_sha256: &str,
     artifacts: &[(&str, &[u8])],
@@ -2607,11 +2611,12 @@ fn scalar_project_manifest(
         )
     }));
     format!(
-        "{{\"schema\":\"semaprax.web-project.v1\",\"project_schema\":\"semaprax.project.v1\",\"project\":{},\"project_revision\":{},\"workspace_revision\":{},\"entry_module\":{},\"capabilities\":[],\"artifacts\":[{}],\"scalar_abi\":{{\"schema\":\"semaprax.wasm-scalar.v1\",\"functions\":[{}]}}}}\n",
-        quote_json(project_name),
-        quote_json(project_revision),
-        quote_json(workspace_revision),
-        quote_json(entry_module),
+        "{{\"schema\":\"semaprax.web-project.v1\",\"project_schema\":\"semaprax.project.v1\",\"project\":{},\"project_revision\":{},\"workspace_revision\":{},\"project_graph_digest\":{},\"entry_module\":{},\"capabilities\":[],\"artifacts\":[{}],\"scalar_abi\":{{\"schema\":\"semaprax.wasm-scalar.v1\",\"functions\":[{}]}}}}\n",
+        quote_json(identity.project_name),
+        quote_json(identity.project_revision),
+        quote_json(identity.workspace_revision),
+        quote_json(identity.project_graph_digest),
+        quote_json(identity.entry_module),
         artifact_rows.join(","),
         functions,
     )
@@ -4482,4 +4487,103 @@ fn browser_html() -> &'static str {
   </body>
 </html>
 "##
+}
+
+#[cfg(test)]
+mod project_web_build_tests {
+    use super::*;
+
+    fn embedded_manifest(project: &str, artifacts: &[Vec<u8>]) -> String {
+        let digest = |index: usize| {
+            format!(
+                "{:x}",
+                crate::digest_hex::LowerHex(Sha256::digest(&artifacts[index]))
+            )
+        };
+        format!(
+            "{{\"schema\":\"semaprax.web-project.v1\",\"project_schema\":\"semaprax.project.v1\",\"project\":{project:?},\"project_revision\":\"sha256:project\",\"workspace_revision\":\"sha256:workspace\",\"project_graph_digest\":\"sha256:graph\",\"entry_module\":\"calculator.app\",\"capabilities\":[],\"artifacts\":[{{\"path\":\"app.wasm\",\"sha256\":\"{}\"}},{{\"path\":\"index.html\",\"sha256\":\"{}\"}},{{\"path\":\"package.json\",\"sha256\":\"{}\"}},{{\"path\":\"semaprax.bindings.d.ts\",\"sha256\":\"{}\"}},{{\"path\":\"semaprax.bindings.js\",\"sha256\":\"{}\"}},{{\"path\":\"semaprax.js\",\"sha256\":\"{}\"}}],\"scalar_abi\":{{\"schema\":\"semaprax.wasm-scalar.v1\",\"functions\":[{{\"stable_id\":\"calculator.add\",\"wasm_export\":{},\"parameters\":[\"i64\",\"i64\"],\"result\":\"i64\"}}]}}}}\n",
+            digest(0),
+            digest(6),
+            digest(5),
+            digest(3),
+            digest(2),
+            digest(1),
+            quote_json(&scalar_exports::raw_symbol("calculator.add")),
+        )
+    }
+
+    #[test]
+    fn independently_replayed_inner_manifest_rejects_self_resigned_identity_forgery() {
+        let mut bytes = vec![
+            b"wasm".to_vec(),
+            b"runtime".to_vec(),
+            b"bindings".to_vec(),
+            b"declarations".to_vec(),
+            Vec::new(),
+            b"package".to_vec(),
+            b"index".to_vec(),
+        ];
+        bytes[4] = embedded_manifest("calculator", &bytes).into_bytes();
+        let refs = PROJECT_WEB_ARTIFACT_PATHS
+            .iter()
+            .copied()
+            .zip(bytes.iter().map(Vec::as_slice))
+            .collect::<Vec<_>>();
+        build_project_web_carrier(
+            ProjectWebIdentity {
+                project_name: "calculator",
+                project_revision: "sha256:project",
+                workspace_revision: "sha256:workspace",
+                project_graph_digest: "sha256:graph",
+                entry_module: "calculator.app",
+            },
+            64 * 1024,
+            &refs,
+        )
+        .unwrap();
+
+        bytes[4] = embedded_manifest("calculat0r", &bytes).into_bytes();
+        let forged_refs = PROJECT_WEB_ARTIFACT_PATHS
+            .iter()
+            .copied()
+            .zip(bytes.iter().map(Vec::as_slice))
+            .collect::<Vec<_>>();
+        let error = build_project_web_carrier(
+            ProjectWebIdentity {
+                project_name: "calculator",
+                project_revision: "sha256:project",
+                workspace_revision: "sha256:workspace",
+                project_graph_digest: "sha256:graph",
+                entry_module: "calculator.app",
+            },
+            64 * 1024,
+            &forged_refs,
+        )
+        .unwrap_err();
+        assert_eq!(error.code, "SPX-W117");
+        assert!(error.message.contains("embedded manifest disagrees"));
+
+        bytes[4] = embedded_manifest("calculator", &bytes)
+            .replacen('{', "{ ", 1)
+            .into_bytes();
+        let noncanonical_refs = PROJECT_WEB_ARTIFACT_PATHS
+            .iter()
+            .copied()
+            .zip(bytes.iter().map(Vec::as_slice))
+            .collect::<Vec<_>>();
+        let error = build_project_web_carrier(
+            ProjectWebIdentity {
+                project_name: "calculator",
+                project_revision: "sha256:project",
+                workspace_revision: "sha256:workspace",
+                project_graph_digest: "sha256:graph",
+                entry_module: "calculator.app",
+            },
+            64 * 1024,
+            &noncanonical_refs,
+        )
+        .unwrap_err();
+        assert_eq!(error.code, "SPX-W117");
+        assert!(error.message.contains("not canonical exact replay"));
+    }
 }

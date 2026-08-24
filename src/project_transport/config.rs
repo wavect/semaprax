@@ -16,6 +16,7 @@ pub(crate) struct ServerConfig {
 pub(crate) enum ServerProfile {
     ReadOnlyV2,
     ProjectRenameV1,
+    ProjectWorkflowV1,
 }
 
 impl ServerConfig {
@@ -27,6 +28,7 @@ impl ServerConfig {
         let mut max_request_bytes = None;
         let mut max_response_bytes = None;
         let mut allow_project_rename = false;
+        let mut allow_project_workflow = false;
 
         while let Some(argument) = arguments.next() {
             let Some(option) = argument.to_str() else {
@@ -59,6 +61,12 @@ impl ServerConfig {
                 "--allow-project-rename" => {
                     return Err("--allow-project-rename may not be repeated".to_owned());
                 }
+                "--allow-project-workflow" if !allow_project_workflow => {
+                    allow_project_workflow = true;
+                }
+                "--allow-project-workflow" => {
+                    return Err("--allow-project-workflow may not be repeated".to_owned());
+                }
                 unknown => return Err(format!("unknown semapraxd option `{unknown}`")),
             }
         }
@@ -70,10 +78,18 @@ impl ServerConfig {
             max_request_bytes.unwrap_or(defaults.request_bytes()),
             max_response_bytes.unwrap_or(defaults.response_bytes()),
         )?;
+        if allow_project_rename && allow_project_workflow {
+            return Err(
+                "--allow-project-rename and --allow-project-workflow are mutually exclusive"
+                    .to_owned(),
+            );
+        }
         Ok(Self {
             manifest_path: manifest_path.unwrap_or_else(|| PathBuf::from(DEFAULT_MANIFEST)),
             limits,
-            profile: if allow_project_rename {
+            profile: if allow_project_workflow {
+                ServerProfile::ProjectWorkflowV1
+            } else if allow_project_rename {
                 ServerProfile::ProjectRenameV1
             } else {
                 ServerProfile::ReadOnlyV2
@@ -153,6 +169,23 @@ mod tests {
             "--stdio",
             "--allow-project-rename",
             "--allow-project-rename"
+        ])
+        .is_err());
+
+        let workflow = parse(&["semapraxd", "--stdio", "--allow-project-workflow"]).unwrap();
+        assert_eq!(workflow.profile(), ServerProfile::ProjectWorkflowV1);
+        assert!(parse(&[
+            "semapraxd",
+            "--stdio",
+            "--allow-project-workflow",
+            "--allow-project-workflow"
+        ])
+        .is_err());
+        assert!(parse(&[
+            "semapraxd",
+            "--stdio",
+            "--allow-project-rename",
+            "--allow-project-workflow"
         ])
         .is_err());
     }

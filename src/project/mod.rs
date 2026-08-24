@@ -240,6 +240,7 @@ impl ProjectSnapshot {
             self.manifest.name(),
             &self.project_revision,
             &self.workspace_revision,
+            self.semantic.graph_digest(),
             self.manifest.entry(),
             self.manifest.web_exports(),
         )
@@ -261,6 +262,7 @@ impl ProjectSnapshot {
             self.manifest.name(),
             &self.project_revision,
             &self.workspace_revision,
+            self.semantic.graph_digest(),
             self.manifest.entry(),
             self.manifest.web_exports(),
         )
@@ -269,6 +271,7 @@ impl ProjectSnapshot {
                 self.manifest.name(),
                 &self.project_revision,
                 &self.workspace_revision,
+                self.semantic.graph_digest(),
                 self.manifest.entry(),
                 max_bytes,
             )

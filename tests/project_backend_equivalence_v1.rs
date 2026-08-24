@@ -195,6 +195,16 @@ fn linked_project_runs_entry_and_test_closures_at_native_o0_o2() {
     std::fs::create_dir(&root).unwrap();
     project::with_authenticated_project(&fixture_root().join("semaprax.toml"), |snapshot| {
         snapshot.check()?;
+        let entry = snapshot.execute_entry(&project::ProjectExecutionOptions::default())?;
+        assert_eq!(
+            entry.outcome(),
+            &project::ProjectExecutionOutcome::Returned(42)
+        );
+        let tests = snapshot.execute_test(&project::ProjectExecutionOptions::default())?;
+        assert_eq!(
+            tests.outcome(),
+            &project::ProjectExecutionOutcome::Returned(0)
+        );
         let c = codegen::emit_hir_c(snapshot.entry_program()).map_err(|error| vec![error])?;
         let o0 = root.join("calculator-o0");
         let o2 = root.join("calculator-o2");

@@ -12,6 +12,8 @@ use semaprax::{
     workspace_patch_evidence,
 };
 
+mod cli;
+
 fn main() -> ExitCode {
     match run(std::env::args().skip(1).collect()) {
         Ok(()) => ExitCode::SUCCESS,
@@ -26,7 +28,9 @@ fn run(args: Vec<String>) -> Result<(), u8> {
     };
     match command {
         "check" => {
-            if let Some((manifest_path, json)) = parse_project_check_options(&args[1..])? {
+            if let Some(options) = cli::project::parse_check_options(&args[1..])? {
+                let manifest_path = options.manifest_path;
+                let json = options.json;
                 let (name, revision) =
                     project::with_authenticated_project(&manifest_path, |snapshot| {
                         snapshot.check()?;
@@ -133,10 +137,10 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             Ok(())
         }
         "build" => {
-            let options = parse_build_options(&args[1..])?;
+            let options = cli::build::parse(&args[1..])?;
             match &options.input {
-                BuildInput::Source(input) => build_source(&options, input)?,
-                BuildInput::Project(manifest_path) => {
+                cli::build::BuildInput::Source(input) => build_source(&options, input)?,
+                cli::build::BuildInput::Project(manifest_path) => {
                     let output = project::with_authenticated_project(manifest_path, |snapshot| {
                         snapshot.check()?;
                         let mut output = options.output.clone().unwrap_or_else(|| {
@@ -169,25 +173,20 @@ fn run(args: Vec<String>) -> Result<(), u8> {
             Ok(())
         }
         "run" => {
-            let path = required_path(&args, 1)?;
-            let output = std::env::temp_dir().join(format!("semaprax-run-{}", std::process::id()));
-            // The temporary executable is removed on every exit path below,
-            // including spawn failure.
-            let outcome = (|| -> Result<(), u8> {
-                let program = checked(&path)?;
-                codegen::build(&program, &output).map_err(|error| report(&[error], false))?;
-                let status = Command::new(&output).status().map_err(|error| {
-                    eprintln!("cannot run {}: {error}", output.display());
-                    1
-                })?;
-                if status.success() {
-                    Ok(())
-                } else {
-                    Err(child_result_code(&status))
+            let options = cli::execution::parse_run(&args[1..])?;
+            match &options.input {
+                cli::execution::ExecutionInput::Source(path) => run_legacy_source(path),
+                cli::execution::ExecutionInput::Project(manifest_path) => {
+                    project_execution_held("run", manifest_path, &options)
                 }
-            })();
-            let _ = std::fs::remove_file(&output);
-            outcome
+            }
+        }
+        "test" => {
+            let options = cli::execution::parse_test(&args[1..])?;
+            let cli::execution::ExecutionInput::Project(manifest_path) = &options.input else {
+                unreachable!("project test parser rejects source inputs")
+            };
+            project_execution_held("test", manifest_path, &options)
         }
         "fmt" => {
             let path = required_path(&args, 1)?;
@@ -1915,154 +1914,7 @@ fn required_path(args: &[String], index: usize) -> Result<PathBuf, u8> {
     })
 }
 
-struct BuildOptions {
-    input: BuildInput,
-    output: Option<PathBuf>,
-    target: String,
-    function: Option<String>,
-    exports: Vec<String>,
-}
-
-#[derive(Debug, Eq, PartialEq)]
-enum BuildInput {
-    Source(PathBuf),
-    Project(PathBuf),
-}
-
-fn parse_build_options(args: &[String]) -> Result<BuildOptions, u8> {
-    let mut input = None::<PathBuf>;
-    let mut output = None::<PathBuf>;
-    let mut manifest_path = None::<PathBuf>;
-    let mut target = None::<String>;
-    let mut function = None::<String>;
-    let mut exports = Vec::<String>::new();
-    let mut index = 0;
-    while index < args.len() {
-        let argument = &args[index];
-        if let Some(value) = argument.strip_prefix("--export=") {
-            if value.is_empty() {
-                eprintln!("build option `--export` requires a value");
-                return Err(2);
-            }
-            exports.push(value.to_owned());
-            index += 1;
-            continue;
-        }
-        if matches!(
-            argument.as_str(),
-            "--target" | "--function" | "--export" | "--manifest-path" | "-o" | "--output"
-        ) {
-            let value = args
-                .get(index + 1)
-                .filter(|value| {
-                    argument == "--export"
-                        && !matches!(
-                            value.as_str(),
-                            "--target"
-                                | "--function"
-                                | "--export"
-                                | "--manifest-path"
-                                | "-o"
-                                | "--output"
-                        )
-                        || !value.starts_with('-')
-                })
-                .ok_or_else(|| {
-                    eprintln!("build option `{argument}` requires a value");
-                    2
-                })?;
-            match argument.as_str() {
-                "--target" if target.is_none() => target = Some(value.clone()),
-                "--function" if function.is_none() => function = Some(value.clone()),
-                "--export" => exports.push(value.clone()),
-                "--manifest-path" if manifest_path.is_none() => {
-                    manifest_path = Some(PathBuf::from(value))
-                }
-                "-o" | "--output" if output.is_none() => output = Some(PathBuf::from(value)),
-                _ => {
-                    eprintln!("build option `{argument}` may not be repeated");
-                    return Err(2);
-                }
-            }
-            index += 2;
-            continue;
-        }
-        if argument.starts_with('-') {
-            eprintln!("unknown build option `{argument}`");
-            return Err(2);
-        }
-        if input.replace(PathBuf::from(argument)).is_some() {
-            eprintln!("build requires exactly one input file");
-            return Err(2);
-        }
-        index += 1;
-    }
-    if input.is_some() && manifest_path.is_some() {
-        eprintln!("build cannot combine an input file with --manifest-path");
-        return Err(2);
-    }
-    let input = match (input, manifest_path) {
-        (Some(path), None) if is_project_manifest(&path) => BuildInput::Project(path),
-        (Some(path), None) => BuildInput::Source(path),
-        (None, Some(path)) => BuildInput::Project(path),
-        (None, None) => BuildInput::Project(PathBuf::from("semaprax.toml")),
-        (Some(_), Some(_)) => unreachable!("ambiguity rejected above"),
-    };
-    let target = target.unwrap_or_else(|| {
-        if matches!(&input, BuildInput::Project(_)) {
-            "web".to_owned()
-        } else {
-            "native".to_owned()
-        }
-    });
-    if !matches!(
-        target.as_str(),
-        "native" | "native-callable" | "web" | "wasm"
-    ) {
-        eprintln!("unsupported target `{target}`; available: native, native-callable, web");
-        return Err(2);
-    }
-    if target == "native-callable" {
-        if function.is_none() {
-            eprintln!("native-callable target requires --function <stable-id>");
-            return Err(2);
-        }
-    } else if function.is_some() {
-        eprintln!("--function is only valid with --target native-callable");
-        return Err(2);
-    }
-    if !exports.is_empty() && !matches!(target.as_str(), "web" | "wasm") {
-        eprintln!("--export is only valid with --target web");
-        return Err(2);
-    }
-    if matches!(&input, BuildInput::Project(_)) {
-        if !matches!(target.as_str(), "web" | "wasm" | "native") {
-            eprintln!(
-                "Project v1 publishes only explicit web and native targets; native-callable publication remains held"
-            );
-            return Err(2);
-        }
-        if function.is_some() || !exports.is_empty() {
-            eprintln!(
-                "Project v1 takes its entry and web exports only from the authenticated manifest"
-            );
-            return Err(2);
-        }
-    }
-    let output = match &input {
-        BuildInput::Source(path) => Some(output.unwrap_or_else(|| path.with_extension("out"))),
-        BuildInput::Project(_) => output,
-    };
-    Ok(BuildOptions {
-        input,
-        output,
-        target,
-        function,
-        exports,
-    })
-}
-
-fn build_source(options: &BuildOptions, input: &Path) -> Result<(), u8> {
+fn build_source(options: &cli::build::BuildOptions, input: &Path) -> Result<(), u8> {
     let program = checked(input)?;
     let output = options
         .output
@@ -2100,65 +1952,91 @@ fn build_source(options: &BuildOptions, input: &Path) -> Result<(), u8> {
     Ok(())
 }
 
-fn parse_project_check_options(args: &[String]) -> Result<Option<(PathBuf, bool)>, u8> {
-    let mut positional = None::<PathBuf>;
-    let mut manifest = None::<PathBuf>;
-    let mut json = false;
-    let mut index = 0;
-    while index < args.len() {
-        match args[index].as_str() {
-            "--json" if !json => {
-                json = true;
-                index += 1;
-            }
-            "--json" => {
-                eprintln!("check option `--json` may not be repeated");
-                return Err(2);
-            }
-            "--manifest-path" if manifest.is_none() => {
-                let value = args
-                    .get(index + 1)
-                    .filter(|value| !value.starts_with('-'))
-                    .ok_or_else(|| {
-                        eprintln!("check option `--manifest-path` requires a value");
-                        2
-                    })?;
-                manifest = Some(PathBuf::from(value));
-                index += 2;
-            }
-            "--manifest-path" => {
-                eprintln!("check option `--manifest-path` may not be repeated");
-                return Err(2);
-            }
-            option if option.starts_with('-') => {
-                eprintln!("unknown check option `{option}`");
-                return Err(2);
-            }
-            path if positional.is_none() => {
-                positional = Some(PathBuf::from(path));
-                index += 1;
-            }
-            _ => {
-                eprintln!("check accepts at most one input selector");
-                return Err(2);
-            }
+fn run_legacy_source(path: &Path) -> Result<(), u8> {
+    let output = std::env::temp_dir().join(format!("semaprax-run-{}", std::process::id()));
+    // The temporary executable is removed on every exit path below, including
+    // spawn failure. Project execution never enters this legacy process route.
+    let outcome = (|| -> Result<(), u8> {
+        let program = checked(path)?;
+        codegen::build(&program, &output).map_err(|error| report(&[error], false))?;
+        let status = Command::new(&output).status().map_err(|error| {
+            eprintln!("cannot run {}: {error}", output.display());
+            1
+        })?;
+        if status.success() {
+            Ok(())
+        } else {
+            Err(child_result_code(&status))
         }
-    }
-    if positional.is_some() && manifest.is_some() {
-        eprintln!("check cannot combine an input file with --manifest-path");
-        return Err(2);
-    }
-    match (positional, manifest) {
-        (None, None) => Ok(Some((PathBuf::from("semaprax.toml"), json))),
-        (None, Some(path)) => Ok(Some((path, json))),
-        (Some(path), None) if is_project_manifest(&path) => Ok(Some((path, json))),
-        (Some(_), None) => Ok(None),
-        (Some(_), Some(_)) => unreachable!("ambiguity rejected above"),
-    }
+    })();
+    let _ = std::fs::remove_file(&output);
+    outcome
 }
 
-fn is_project_manifest(path: &Path) -> bool {
-    path.file_name().and_then(|name| name.to_str()) == Some("semaprax.toml")
+fn project_execution_held(
+    command: &str,
+    manifest_path: &Path,
+    options: &cli::execution::ExecutionOptions,
+) -> Result<(), u8> {
+    let defaults = project::ProjectExecutionOptions::default();
+    let execution_options = project::ProjectExecutionOptions::new(
+        options.max_bytes.unwrap_or(defaults.max_bytes),
+        options.max_steps.unwrap_or(defaults.max_steps),
+    )
+    .map_err(|error| report(&[error], options.json))?;
+    let execution = project::with_authenticated_project(manifest_path, |snapshot| match command {
+        "run" => snapshot.execute_entry(&execution_options),
+        "test" => snapshot.execute_test(&execution_options),
+        _ => unreachable!("validated project execution command"),
+    })
+    .map_err(|errors| report(&errors, options.json))?;
+
+    if options.json {
+        println!("{}", execution.envelope());
+    }
+
+    match (command, execution.outcome()) {
+        ("run", project::ProjectExecutionOutcome::Returned(value)) => {
+            if !options.json {
+                println!("{value}");
+            }
+            Ok(())
+        }
+        ("test", project::ProjectExecutionOutcome::Returned(0)) => {
+            if !options.json {
+                println!("project tests passed");
+            }
+            Ok(())
+        }
+        ("test", project::ProjectExecutionOutcome::Returned(value)) => {
+            if !options.json {
+                eprintln!("project tests failed with result {value}");
+            }
+            Err(1)
+        }
+        (_, project::ProjectExecutionOutcome::LanguageFailure(status)) => {
+            if !options.json {
+                eprintln!(
+                    "project execution failed with language status {}",
+                    status.to_json()
+                );
+            }
+            Err(1)
+        }
+        (_, project::ProjectExecutionOutcome::FuelExhausted) => {
+            if !options.json {
+                eprintln!("project execution exhausted its step budget");
+            }
+            Err(1)
+        }
+        (_, project::ProjectExecutionOutcome::CallDepthExceeded) => {
+            if !options.json {
+                eprintln!("project execution exceeded its call-depth bound");
+            }
+            Err(1)
+        }
+        _ => unreachable!("validated project execution command"),
+    }
 }
 
 fn report(errors: &[Diagnostic], json: bool) -> u8 {
@@ -2188,6 +2066,8 @@ fn print_help() {
             semaprax quality-plan <quick|changed|full> [exact-changed-path ...]\n\
            semaprax build [<file>|semaprax.toml|--manifest-path path] [--target native|native-callable|web] [--function stable-id] [--export stable-id ...] [-o path]\n\
            semaprax run <file>\n\
+           semaprax run [semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]\n\
+           semaprax test [semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]\n\
            semaprax fmt <file> [--check]\n\
            semaprax patch <file> <patch.spatch>\n\
            semaprax workspace-init <root> <path-set.json>\n\
@@ -2244,139 +2124,4 @@ fn print_help() {
            semaprax repair <file> <repair-id> --persistent-id <persistent-id>\n\
            semaprax version"
     );
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn strings(values: &[&str]) -> Vec<String> {
-        values.iter().map(|value| (*value).to_owned()).collect()
-    }
-
-    #[test]
-    fn build_options_preserve_repeated_scalar_exports_in_caller_order() {
-        let options = parse_build_options(&strings(&[
-            "calculator.spx",
-            "--target",
-            "web",
-            "--export",
-            "calculator.subtract",
-            "--export",
-            "calculator.add",
-            "-o",
-            "site",
-        ]))
-        .unwrap();
-        assert_eq!(
-            options.input,
-            BuildInput::Source(PathBuf::from("calculator.spx"))
-        );
-        assert_eq!(options.output, Some(PathBuf::from("site")));
-        assert_eq!(
-            options.exports,
-            strings(&["calculator.subtract", "calculator.add"])
-        );
-
-        let hyphenated = parse_build_options(&strings(&[
-            "calculator.spx",
-            "--target",
-            "web",
-            "--export",
-            "-x",
-            "--export=--target",
-        ]))
-        .unwrap();
-        assert_eq!(hyphenated.exports, strings(&["-x", "--target"]));
-    }
-
-    #[test]
-    fn build_options_reject_unknown_repeated_and_cross_target_flags() {
-        assert!(parse_build_options(&strings(&["app.spx", "--unknown", "x"])).is_err());
-        assert!(parse_build_options(&strings(&[
-            "app.spx", "--target", "web", "--target", "wasm"
-        ]))
-        .is_err());
-        assert!(parse_build_options(&strings(&[
-            "app.spx", "--target", "native", "--export", "app.main"
-        ]))
-        .is_err());
-    }
-
-    #[test]
-    fn project_options_are_explicit_and_do_not_confuse_legacy_sources() {
-        let implicit = parse_build_options(&[]).unwrap();
-        assert_eq!(
-            implicit.input,
-            BuildInput::Project(PathBuf::from("semaprax.toml"))
-        );
-        assert_eq!(implicit.target, "web");
-        assert_eq!(implicit.output, None);
-
-        let explicit = parse_build_options(&strings(&[
-            "--manifest-path",
-            "fixtures/semaprax.toml",
-            "--target",
-            "web",
-            "-o",
-            "site",
-        ]))
-        .unwrap();
-        assert_eq!(
-            explicit.input,
-            BuildInput::Project(PathBuf::from("fixtures/semaprax.toml"))
-        );
-        assert_eq!(explicit.output, Some(PathBuf::from("site")));
-        assert!(
-            parse_build_options(&strings(&["app.spx", "--manifest-path", "semaprax.toml"]))
-                .is_err()
-        );
-        assert!(parse_build_options(&strings(&[
-            "semaprax.toml",
-            "--target",
-            "web",
-            "--export",
-            "app.main"
-        ]))
-        .is_err());
-
-        assert_eq!(
-            parse_project_check_options(&[]).unwrap(),
-            Some((PathBuf::from("semaprax.toml"), false))
-        );
-        assert_eq!(
-            parse_project_check_options(&strings(&[
-                "--manifest-path",
-                "fixtures/semaprax.toml",
-                "--json"
-            ]))
-            .unwrap(),
-            Some((PathBuf::from("fixtures/semaprax.toml"), true))
-        );
-        assert_eq!(
-            parse_project_check_options(&strings(&[
-                "--json",
-                "--manifest-path",
-                "fixtures/semaprax.toml"
-            ]))
-            .unwrap(),
-            Some((PathBuf::from("fixtures/semaprax.toml"), true))
-        );
-        assert_eq!(
-            parse_project_check_options(&strings(&["--json"])).unwrap(),
-            Some((PathBuf::from("semaprax.toml"), true))
-        );
-        assert_eq!(
-            parse_project_check_options(&strings(&["legacy.spx", "--json"])).unwrap(),
-            None
-        );
-        assert!(parse_project_check_options(&strings(&[
-            "legacy.spx",
-            "--manifest-path",
-            "semaprax.toml"
-        ]))
-        .is_err());
-        assert!(parse_project_check_options(&strings(&["--json", "--json"])).is_err());
-        assert!(parse_project_check_options(&strings(&["legacy.spx", "--unknown"])).is_err());
-    }
 }

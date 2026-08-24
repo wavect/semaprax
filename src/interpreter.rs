@@ -415,6 +415,132 @@ pub struct Interpretation {
     pub returned: bool,
 }
 
+/// Deterministic facts from evaluating one already-validated resolved entry.
+///
+/// This is the reusable, artifact-free execution seam for authenticated
+/// project snapshots. It carries no source, filesystem, process, or backend
+/// authority: the caller owns validation and supplies the exact resolved
+/// program plus its entry identity.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResolvedEvaluation {
+    pub outcome: ResolvedEvaluationOutcome,
+    pub steps_used: usize,
+    pub max_steps: usize,
+}
+
+/// Closed outcomes for the zero-argument `i64` resolved-entry profile.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ResolvedEvaluationOutcome {
+    ReturnedI64(i64),
+    LanguageFailure(NormalizedStatus),
+    FuelExhausted,
+    CallDepthExceeded,
+    /// An impossible state was observed after the caller's HIR validation.
+    GuardError(String),
+}
+
+/// Evaluate one exact zero-argument `i64` entry from already-validated HIR.
+///
+/// The selected identity must equal `program.entrypoint`; this API never
+/// redirects execution to another function in the closure. The admitted
+/// closure is checked again against the deterministic interpreter surface,
+/// but the HIR itself is not rebuilt, parsed, or re-resolved. Evaluation runs
+/// on the same fixed-size stack as [`interpret`] and performs no I/O.
+pub(crate) fn evaluate_resolved_zero_arg_i64(
+    program: &hir::ResolvedProgram,
+    entry_id: &str,
+    max_steps: usize,
+) -> Result<ResolvedEvaluation, Vec<Diagnostic>> {
+    if !(1..=MAX_STEPS_LIMIT).contains(&max_steps) {
+        return Err(vec![option_error(format!(
+            "resolved evaluation max_steps must be between 1 and {MAX_STEPS_LIMIT}"
+        ))]);
+    }
+    if program.entrypoint.as_str() != entry_id {
+        return Err(vec![selection_error(
+            REASON_UNSUPPORTED_CALLEE,
+            format!(
+                "selection `{entry_id}` is not the resolved entry point `{}`",
+                program.entrypoint
+            ),
+        )]);
+    }
+    let entry = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == entry_id)
+        .ok_or_else(|| {
+            vec![selection_error(
+                REASON_UNSUPPORTED_CALLEE,
+                format!("resolved entry `{entry_id}` is absent from the function index"),
+            )]
+        })?;
+    let explicit_entry = program
+        .declarations
+        .declaration(&entry.id)
+        .is_some_and(|declaration| declaration.identity_origin == hir::IdentityOrigin::Explicit);
+    if !explicit_entry {
+        return Err(vec![selection_error(
+            REASON_AUTOMATIC_IDENTITY,
+            format!("resolved entry `{entry_id}` does not have an explicit stable identity"),
+        )]);
+    }
+    if !entry.params.is_empty() || entry.return_type != ResolvedType::I64 {
+        return Err(vec![selection_error(
+            REASON_UNSUPPORTED_RESULT_TYPE,
+            format!("resolved entry `{entry_id}` must have type `fn main() -> i64`"),
+        )]);
+    }
+    if !resolved_signature_is_admitted(entry) {
+        return Err(vec![selection_error(
+            REASON_UNSUPPORTED_CALLEE,
+            format!("resolved entry `{entry_id}` is outside the interpreter profile"),
+        )]);
+    }
+
+    let admitted = admitted_resolved_functions(program);
+    scan_closure(entry_id, &admitted)?;
+
+    std::thread::scope(|scope| {
+        let worker = std::thread::Builder::new()
+            .name("semaprax-resolved-evaluate".to_owned())
+            .stack_size(EVALUATION_STACK_BYTES)
+            .spawn_scoped(scope, || {
+                let (outcome, steps_used) =
+                    evaluate_resolved_entry(entry, &[], &admitted, max_steps);
+                let outcome = match outcome {
+                    Ok(Value::Int(value)) => ResolvedEvaluationOutcome::ReturnedI64(value),
+                    Ok(_) => ResolvedEvaluationOutcome::GuardError(
+                        "zero-argument i64 entry returned a non-i64 value".to_owned(),
+                    ),
+                    Err(Flow::Failure(status)) => {
+                        ResolvedEvaluationOutcome::LanguageFailure(status)
+                    }
+                    Err(Flow::Exhausted) => ResolvedEvaluationOutcome::FuelExhausted,
+                    Err(Flow::DepthExceeded) => ResolvedEvaluationOutcome::CallDepthExceeded,
+                    Err(Flow::Guard(detail)) => {
+                        ResolvedEvaluationOutcome::GuardError(detail.to_owned())
+                    }
+                };
+                ResolvedEvaluation {
+                    outcome,
+                    steps_used,
+                    max_steps,
+                }
+            })
+            .map_err(|error| {
+                vec![guard_error(&format!(
+                    "resolved evaluation thread failed to start: {error}"
+                ))]
+            })?;
+        worker.join().map_err(|_| {
+            vec![guard_error(
+                "resolved evaluation thread panicked after HIR validation",
+            )]
+        })
+    })
+}
+
 /// Interpret one selected function of one verified source file.
 ///
 /// Read-only: source bytes must remain unchanged between the snapshot and the
@@ -506,12 +632,9 @@ fn interpret_on_current_thread(
 
     scan_closure(entry.id.as_str(), &admitted)?;
 
-    let mut evaluator = Evaluator {
-        admitted: &admitted,
-        steps: 0,
-        budget: options.max_steps,
-    };
-    let outcome = match evaluator.evaluate_entry(entry, &parsed_arguments) {
+    let (evaluated, steps_used) =
+        evaluate_resolved_entry(entry, &parsed_arguments, &admitted, options.max_steps);
+    let outcome = match evaluated {
         Ok(value) => returned_outcome(&value),
         Err(flow) => match flow {
             Flow::Failure(status) => failed_outcome(&status.to_json()),
@@ -536,7 +659,6 @@ fn interpret_on_current_thread(
             )
         })
         .collect::<Vec<_>>();
-    let steps_used = evaluator.steps;
     let exhausted = outcome.kind == OUTCOME_FUEL_EXHAUSTED;
 
     let (envelope, overflowed) = with_limit(options.max_bytes, || {
@@ -783,6 +905,43 @@ fn scan_closure(
     Ok(())
 }
 
+fn admitted_resolved_functions(
+    program: &hir::ResolvedProgram,
+) -> BTreeMap<&str, &ResolvedFunction> {
+    program
+        .functions
+        .iter()
+        .filter(|function| resolved_signature_is_admitted(function))
+        .map(|function| (function.id.as_str(), function))
+        .collect()
+}
+
+fn resolved_signature_is_admitted(function: &ResolvedFunction) -> bool {
+    function.effects.is_empty()
+        && function
+            .params
+            .iter()
+            .all(|parameter| parameter.ownership == hir::OwnershipMode::Value)
+        && function
+            .params
+            .iter()
+            .all(|parameter| is_admitted_resolved_scalar(&parameter.ty))
+        && is_admitted_resolved_scalar(&function.return_type)
+}
+
+fn is_admitted_resolved_scalar(ty: &ResolvedType) -> bool {
+    matches!(
+        ty,
+        ResolvedType::I64
+            | ResolvedType::I32
+            | ResolvedType::U8
+            | ResolvedType::F32
+            | ResolvedType::F64
+            | ResolvedType::Char
+            | ResolvedType::Bool
+    )
+}
+
 /// Refutable Match v1: exact equality between the staged scrutinee value and
 /// a literal pattern of the same type.
 fn pattern_value_matches(staged: &Value, value: crate::hir::PatternValue) -> bool {
@@ -941,6 +1100,21 @@ struct Evaluator<'a> {
     admitted: &'a BTreeMap<&'a str, &'a ResolvedFunction>,
     steps: usize,
     budget: usize,
+}
+
+fn evaluate_resolved_entry<'a>(
+    entry: &'a ResolvedFunction,
+    arguments: &[(String, ArgumentValue)],
+    admitted: &'a BTreeMap<&'a str, &'a ResolvedFunction>,
+    budget: usize,
+) -> (Result<Value, Flow>, usize) {
+    let mut evaluator = Evaluator {
+        admitted,
+        steps: 0,
+        budget,
+    };
+    let outcome = evaluator.evaluate_entry(entry, arguments);
+    (outcome, evaluator.steps)
 }
 
 impl Evaluator<'_> {
@@ -2059,6 +2233,105 @@ fn status_case_from_code(code: u32) -> Option<StatusCase> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn resolved(source: &str) -> hir::ResolvedProgram {
+        let path = Path::new("resolved-evaluation.spx");
+        let program = parse(source, path).unwrap();
+        let diagnostics = verify::verify(&program);
+        assert!(
+            !diagnostics.iter().any(|item| item.severity.is_error()),
+            "source must verify before the resolved evaluator is called: {diagnostics:?}"
+        );
+        hir::resolve(&program).unwrap()
+    }
+
+    #[test]
+    fn resolved_zero_arg_evaluation_returns_deterministic_i64_and_fuel_facts() {
+        let program = resolved(
+            "module test.resolved_return;\n\n@id(\"math.add\")\nfn add(left: i64, right: i64) -> i64 { left + right }\n\n@id(\"app.main\")\nfn main() -> i64 { add(19, 23) }\n",
+        );
+        let first = evaluate_resolved_zero_arg_i64(&program, "app.main", 1_000).unwrap();
+        let second = evaluate_resolved_zero_arg_i64(&program, "app.main", 1_000).unwrap();
+        assert_eq!(first, second);
+        assert_eq!(first.outcome, ResolvedEvaluationOutcome::ReturnedI64(42));
+        assert!(first.steps_used > 0);
+        assert_eq!(first.max_steps, 1_000);
+    }
+
+    #[test]
+    fn resolved_zero_arg_evaluation_keeps_language_and_capacity_failures_distinct() {
+        let failure = resolved(
+            "module test.resolved_failure;\n\n@id(\"app.main\")\nfn main() -> i64 { 1 / 0 }\n",
+        );
+        let failure = evaluate_resolved_zero_arg_i64(&failure, "app.main", 100).unwrap();
+        match failure.outcome {
+            ResolvedEvaluationOutcome::LanguageFailure(status) => {
+                assert_eq!(status, normalize_arithmetic(StatusCase::DivisionByZero));
+            }
+            other => panic!("expected language failure, found {other:?}"),
+        }
+
+        let fuel =
+            resolved("module test.resolved_fuel;\n\n@id(\"app.main\")\nfn main() -> i64 { 42 }\n");
+        let fuel = evaluate_resolved_zero_arg_i64(&fuel, "app.main", 1).unwrap();
+        assert_eq!(fuel.outcome, ResolvedEvaluationOutcome::FuelExhausted);
+        assert_eq!(fuel.steps_used, 1);
+
+        let depth = resolved(
+            "module test.resolved_depth;\n\n@id(\"test.recurse\")\nfn recurse() -> i64 { recurse() }\n\n@id(\"app.main\")\nfn main() -> i64 { recurse() }\n",
+        );
+        let depth = evaluate_resolved_zero_arg_i64(&depth, "app.main", MAX_STEPS_LIMIT).unwrap();
+        assert_eq!(depth.outcome, ResolvedEvaluationOutcome::CallDepthExceeded);
+        assert!(depth.steps_used < depth.max_steps);
+    }
+
+    #[test]
+    fn resolved_zero_arg_evaluation_rejects_redirection_signature_and_budget_drift() {
+        let program = resolved(
+            "module test.resolved_reject;\n\n@id(\"test.other\")\nfn other() -> i64 { 0 }\n\n@id(\"app.main\")\nfn main() -> i64 { other() }\n",
+        );
+        assert_eq!(
+            evaluate_resolved_zero_arg_i64(&program, "test.other", 100).unwrap_err()[0].code,
+            "SPX-F102"
+        );
+        assert_eq!(
+            evaluate_resolved_zero_arg_i64(&program, "app.main", 0).unwrap_err()[0].code,
+            "SPX-F101"
+        );
+
+        let mut wrong_signature = resolved(
+            "module test.resolved_signature;\n\n@id(\"app.main\")\nfn main() -> i64 { 0 }\n",
+        );
+        wrong_signature
+            .functions
+            .iter_mut()
+            .find(|function| function.id.as_str() == "app.main")
+            .unwrap()
+            .return_type = ResolvedType::Bool;
+        assert_eq!(
+            evaluate_resolved_zero_arg_i64(&wrong_signature, "app.main", 100).unwrap_err()[0].code,
+            "SPX-F102"
+        );
+    }
+
+    #[test]
+    fn resolved_zero_arg_evaluation_reports_impossible_post_validation_state_as_guard() {
+        let mut program =
+            resolved("module test.resolved_guard;\n\n@id(\"app.main\")\nfn main() -> i64 { 42 }\n");
+        let entry = program
+            .functions
+            .iter_mut()
+            .find(|function| function.id.as_str() == "app.main")
+            .unwrap();
+        entry.body.kind = ResolvedExprKind::Bool(true);
+        let outcome = evaluate_resolved_zero_arg_i64(&program, "app.main", 100).unwrap();
+        assert_eq!(
+            outcome.outcome,
+            ResolvedEvaluationOutcome::GuardError(
+                "zero-argument i64 entry returned a non-i64 value".to_owned()
+            )
+        );
+    }
 
     #[test]
     fn options_reject_out_of_bounds_values() {

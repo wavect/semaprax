@@ -189,13 +189,20 @@ local gates are:
 ```sh
 cargo test --locked -p semaprax --all-features --lib project::tests::
 cargo test --locked -p semaprax --all-features --test project_cli_v1 -- --test-threads=1
+cargo test --locked -p semaprax --all-features --test project_developer_loop_v1 -- --test-threads=1
 cargo test --locked -p semaprax --all-features --test project_native_publication_v1 -- --test-threads=1
 cargo test --locked -p semaprax --test project_manifest_v1
 cargo test --locked -p semaprax --test project_backend_equivalence_v1 -- --test-threads=1
 ```
 
-Project CLI publication is Web (default) or explicit native; public project
-`run` and a public project test command remain held. The dedicated hosted
+Project CLI publication is Web (default) or explicit native. Project `run`
+and `test` must additionally prove exact authenticated closure selection,
+deterministic revision/stable-ID/fuel/outcome envelopes, zero/nonzero test
+status, distinct language/fuel/depth failures, bounded output, no source or
+project-state writes, and preservation of legacy single-file `run`. They are
+in-process interpreter operations and do not establish target execution.
+Require strict independent envelope verification, a frozen whole-envelope KAT,
+and exact output-size/size-minus-one boundaries. The dedicated hosted
 `project-v1` job remains manifest/CLI-protocol-level; native publication
 evidence runs in the workspace verify matrix that resolves Clang on every host.
 Exact-head hosted promotion is pending. A post-publication final-input drift is

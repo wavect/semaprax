@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- Added Public Project Developer Loop v1: `semaprax run` and `semaprax test`
+  now evaluate the exact authenticated Project v1 entry or manifest-declared
+  test closure in process, with bounded fuel/output, deterministic
+  revision/stable-ID/outcome evidence, no discovery, and no artifact or child
+  process. The implementation also splits project and CLI responsibilities
+  into smaller modules without changing their authority boundaries. This is
+  local evidence inside existing Partial rows; totals remain 56 Partial/0
+  Missing and no hosted promotion is claimed.
+
 - Added batch-3 additive tranches:
   - String operations breadth v2 — reserved intrinsics `string_starts_with`,
     `string_contains`, `string_len_chars`, `string_from_char` following the

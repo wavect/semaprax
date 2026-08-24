@@ -69,8 +69,11 @@ evidence and Web lowering. Web emits
 admits explicit create-new `--target native` publication of the same linked
 entry closure as one executable through the unchanged shared Clang C11 lane,
 with pre/post-publication held-input rechecks, existing-destination rejection,
-and `SPX-J103` post-publication drift uncertainty. Project `run`, a public
-project test command, hostile-window no-clobber publication, and cross-build
+and `SPX-J103` post-publication drift uncertainty. The additive Public Project
+Developer Loop v1 executes the exact authenticated entry and sole manifest
+test closures in process with bounded fuel and deterministic digest-bound
+outcomes; it creates no artifact or process and makes no target-execution or
+test-discovery claim. Hostile-window no-clobber publication and cross-build
 executable byte determinism remain held. Focused manifest, closure,
 native/Web/Node, rename, and native-publication evidence is locally green; the
 prior manifest/closure/native/Web/Node/rename matrix is exact-head hosted green

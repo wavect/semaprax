@@ -1348,7 +1348,7 @@ v1, current totals are 39 Partial/17 Missing.
 
 ## Project Manifest v1
 
-`src/project.rs` is a separate invocation-local build-input authority for a
+`src/project/` is a separate invocation-local input authority for a
 fixed `semaprax.toml` project. It authenticates the manifest, every explicitly
 listed canonical source, and their held directory/file identities; sends the
 exact bytes through the existing Semantic Workspace Phase-A preflight once in
@@ -1373,8 +1373,15 @@ Publication v1, as one explicit create-new native executable compiled by the
 unchanged shared Clang C11 lane from exactly the same linked entry HIR. Native
 publication rechecks every held input before and after the boundary, rejects an
 existing destination with `SPX-I307`, and never clobbers a caller file. That
-package binds project and Phase-A revisions in `semaprax.web-project.v1`; no
-project run or project test command is admitted. A final post-publication input
+package binds project and Phase-A revisions in `semaprax.web-project.v1`.
+Public project `run` and `test` evaluate the retained authenticated entry or
+sole manifest test closure in process through the target-neutral scalar
+interpreter. The deterministic `semaprax.project-execution.v1` envelope binds
+both revisions, the exact closure role/module/stable ID, fuel, outcome, and
+nonclaims. This route creates no artifact, process, cache, or target-execution
+claim and performs no source reparse or relink. Its public verifier checks the
+closed schema, bounds, compiler-owned status table, canonical reconstruction,
+and digest without granting execution authority. A final post-publication input
 drift is `SPX-J103`: the complete retained output remains for caller
 reconciliation and is never deleted automatically.
 See [Project Manifest v1](PROJECT-MANIFEST-V1.md).

@@ -1,6 +1,7 @@
 # Project Manifest v1
 
-Project Manifest v1 is a bounded, invocation-local way to build one explicit
+Project Manifest v1 is a bounded, invocation-local way to check, execute, test,
+or build one explicit
 multi-file pure-scalar program. It reuses the existing Semantic Workspace
 Phase-A resolver in memory, then links the selected entry and test provider
 closures into validated HIR. It creates no `.semaprax-workspace`, generation,
@@ -85,8 +86,22 @@ manifest. Project builds publish two explicit targets:
 - `--target native` publishes one linked entry-closure executable compiled by
   the same held Clang C11 pipeline as the single-file native lane.
 
-Public project `run` and a public project test command remain held. The entry
-and web exports come exclusively from the authenticated manifest, so
+`run` and `test` execute in process from the already authenticated linked HIR.
+They do not emit C or Wasm, create a temporary executable, spawn a process,
+reparse sources, relink declarations, or create project state. `run` evaluates
+the exact entry-module `main` and prints its `i64` result. `test` evaluates only
+the manifest-declared test-module `main`; zero passes and any nonzero result
+fails. There is no filesystem test discovery. Both commands distinguish a
+language failure, fuel exhaustion, and call-depth exhaustion, and `--json`
+emits a deterministic `semaprax.project-execution.v1` envelope binding the
+project and Workspace revisions, closure role and module, stable entry ID,
+fuel accounting, outcome, nonclaims, and a domain-separated payload digest.
+The public `project::verify_execution_envelope` route independently enforces
+the closed schema, semantic bounds, status/outcome vocabulary, exact canonical
+reconstruction, and digest before accepting report bytes; verification grants
+no execution or other authority.
+
+The entry and web exports come exclusively from the authenticated manifest, so
 `--function` and `--export` are rejected for this route, as is the
 `native-callable` target.
 
@@ -99,9 +114,9 @@ trusted and is not a hostile-window publication contract.
 The linked entry HIR also feeds internal native C lowering/equivalence evidence.
 The Web package has the separate `semaprax.web-project.v1` manifest binding
 project revision, Workspace Phase-A revision, entry module, selected exports,
-and exact artifact digests. The test closure is retained for project
-verification evidence; it is not a general test framework, public test runner,
-or `semaprax run` target.
+and exact artifact digests. The test closure is retained for the bounded
+project runner and backend equivalence evidence; it is not a general test
+framework or discovery system.
 
 Web publication inherits the scalar package's documented fresh-output,
 caller-exclusive parent/new-tree contract.
@@ -117,6 +132,7 @@ output with the current inputs and must never delete it automatically.
 | `SPX-J101` | A bounded Project v1 input limit was exceeded. |
 | `SPX-J102` | Authentication or pre-publication held-input drift rejection. |
 | `SPX-J103` | Post-publication held-input drift; reconcile the retained complete package, never delete it automatically. |
+| `SPX-F106` | Project execution report verification rejected noncanonical, confused, out-of-bounds, or digest-invalid bytes. |
 
 ## Evidence and nonclaims
 
@@ -134,6 +150,7 @@ focused commands are:
 ```sh
 cargo test --locked -p semaprax --all-features --lib project::tests::
 cargo test --locked -p semaprax --all-features --test project_cli_v1 -- --test-threads=1
+cargo test --locked -p semaprax --all-features --test project_developer_loop_v1 -- --test-threads=1
 cargo test --locked -p semaprax --all-features --test project_native_publication_v1 -- --test-threads=1
 cargo test --locked -p semaprax --test project_manifest_v1
 cargo test --locked -p semaprax --test project_backend_equivalence_v1 -- --test-threads=1
@@ -151,5 +168,7 @@ claim general packages/dependencies, registry or network access, capabilities,
 aggregate or resource composition, generics, interface/native imports or
 `use type` edges, effects, general multi-file compilation, native output
 confinement or hostile-window no-clobber publication, cross-build executable
-byte determinism, test discovery, component output, public project run/test
-commands, repository analysis, provenance, approval, or production readiness.
+byte determinism, test discovery, component output, target execution through
+the in-process runner, repository analysis, provenance, approval, or
+production readiness. The developer-loop evidence is local only until an
+exact-head hosted matrix includes it; no hosted promotion is claimed here.

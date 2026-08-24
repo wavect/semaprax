@@ -1076,6 +1076,13 @@ impl WorkspaceGraphBuild {
                     )]);
                 }
                 if module.module == entry_module && function.name == "main" {
+                    if !function.params.is_empty() || function.return_type != hir::ResolvedType::I64
+                    {
+                        return Err(vec![graph_error(
+                            "SPX-G172",
+                            "workspace scalar entry module `main` must have the exact signature fn main() -> i64",
+                        )]);
+                    }
                     entrypoints.push((function.id.clone(), fact.origin));
                 }
                 functions.push(hir::LinkedScalarFunction {
@@ -7175,6 +7182,47 @@ fn main() -> i64 { left_value() + right_value() }
             2
         );
         hir::validate(&linked).unwrap();
+    }
+
+    #[test]
+    fn scalar_linker_rejects_entry_and_test_main_signature_drift_before_linking() {
+        let sources = || {
+            [
+                ("app/main.spx", "app.main", "app.main"),
+                ("test/main.spx", "test.main", "test.main"),
+            ]
+            .into_iter()
+            .map(|(path, module, id)| {
+                canonical_source(
+                    path,
+                    &format!("module {module};\n\n@id(\"{id}\")\nfn main() -> i64 {{ 0 }}\n"),
+                )
+            })
+            .collect::<Vec<_>>()
+        };
+
+        for module_name in ["app.main", "test.main"] {
+            let mut build = build_owned(sources()).unwrap();
+            build
+                .hir
+                .modules
+                .iter_mut()
+                .find(|module| module.module == module_name)
+                .unwrap()
+                .functions
+                .iter_mut()
+                .find(|function| function.name == "main")
+                .unwrap()
+                .return_type = hir::ResolvedType::Bool;
+            let error = build
+                .into_linked_scalar_programs("app.main", "test.main")
+                .unwrap_err();
+            assert_eq!(error[0].code, "SPX-G172");
+            assert_eq!(
+                error[0].message,
+                "workspace scalar entry module `main` must have the exact signature fn main() -> i64"
+            );
+        }
     }
 
     #[test]

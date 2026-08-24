@@ -20,6 +20,11 @@ state without parsing, resolving, linking, or reading another source.
 This is `semaprax.agent-transport.v2`, separate from the byte-frozen
 single-file `semaprax.agent-transport.v1` served by `semaprax serve`.
 
+The optional `--allow-project-rename` profile is a separate additive protocol,
+`semaprax.agent-transport.v3`. Default v2 remains read-only and does not report
+or route its methods. See [Project Rename Transaction
+v1](PROJECT-RENAME-TRANSACTION-V1.md).
+
 ## Framing and lifecycle
 
 The wire is one JSON-RPC 2.0 object per LF-delimited UTF-8 frame. The raw frame
@@ -83,4 +88,7 @@ review authority; Web or native build publication; target execution or test
 discovery; persistent disk cache, incremental refresh, or repository index;
 batch, concurrent, or out-of-order execution; request deduplication,
 exactly-once effects, durability, recovery, provenance, signature, approval,
-or reusable authorization. `build` and mutation methods remain open work.
+or reusable authorization. `build` and mutation methods remain open work in
+v2. The separately opt-in v3 profile admits only the single exported-function
+display rename documented in [Project Rename Transaction
+v1](PROJECT-RENAME-TRANSACTION-V1.md); it does not widen v2.

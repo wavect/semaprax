@@ -6,8 +6,10 @@
 //! no managed workspace and grants no publication authority.
 
 mod authority;
+mod build;
 mod execution;
 mod manifest;
+mod rename;
 mod semantic;
 #[cfg(test)]
 mod tests;
@@ -15,10 +17,8 @@ mod tests;
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
-use sha2::{Digest, Sha256};
-
 use crate::diagnostic::Diagnostic;
-use crate::semantic_workspace::{self, SemanticWorkspaceSource};
+use crate::semantic_workspace::SemanticWorkspaceSource;
 
 use authority::{authentication, DeclaredPathSelection, HeldDirectory, HeldFile};
 #[cfg(all(test, windows))]
@@ -32,6 +32,7 @@ pub use manifest::{
     ProjectManifest, MAX_MANIFEST_BYTES, MAX_MODULE_BYTES, MAX_NAME_BYTES, MAX_PATH_BYTES,
     MAX_SOURCES, MAX_STABLE_ID_BYTES, MAX_TOTAL_SOURCE_BYTES, MAX_WEB_EXPORTS, PROJECT_SCHEMA,
 };
+pub(crate) use rename::{PreparedProjectRename, ProjectRenameDerivation};
 pub use semantic::{PROJECT_SEMANTIC_CONTEXT_SCHEMA, PROJECT_SEMANTIC_GRAPH_SCHEMA};
 
 const MANIFEST_FILE: &str = "semaprax.toml";
@@ -90,6 +91,13 @@ pub struct ProjectSnapshot {
 }
 
 impl ProjectSnapshot {
+    /// Consume one retained session snapshot after a final complete held-input
+    /// recheck. Dropping the returned value releases every retained handle.
+    pub(crate) fn finish_session(mut self) -> Result<(), Vec<Diagnostic>> {
+        self.recheck()
+            .map_err(|drift| self.publication_uncertainty(drift))
+    }
+
     pub fn root(&self) -> &Path {
         &self.root
     }
@@ -144,6 +152,17 @@ impl ProjectSnapshot {
             target,
             options,
         )
+    }
+
+    /// Prepare one read-only stable-ID display rename over the complete
+    /// authenticated Project without granting commit authority.
+    pub(crate) fn prepare_rename(
+        &self,
+        target_id: &str,
+        from: &str,
+        to: &str,
+    ) -> Result<PreparedProjectRename, Vec<Diagnostic>> {
+        rename::prepare(self, target_id, from, to)
     }
 
     /// Reauthenticate immediately before and after one complete read-only
@@ -325,7 +344,7 @@ pub fn with_authenticated_project<T>(
     }
 }
 
-fn load_snapshot(manifest_path: &Path) -> Result<ProjectSnapshot, Vec<Diagnostic>> {
+pub(crate) fn load_snapshot(manifest_path: &Path) -> Result<ProjectSnapshot, Vec<Diagnostic>> {
     let manifest_selection = DeclaredPathSelection::open(manifest_path, "manifest")?;
     let manifest_path = manifest_selection.canonical_path.clone();
     if manifest_path.file_name().and_then(|name| name.to_str()) != Some(MANIFEST_FILE) {
@@ -409,61 +428,17 @@ fn load_snapshot(manifest_path: &Path) -> Result<ProjectSnapshot, Vec<Diagnostic
         declared_inputs.push(selection);
     }
 
-    let path_set = semantic_workspace::render_path_set(manifest.sources())?;
-    let preflight = semantic_workspace::preflight_owned(&path_set, workspace_sources)?;
-    let (files, workspace_manifest, workspace_revision, graph) = preflight.into_snapshot_parts();
-    let canonical_manifest = manifest.to_canonical_toml();
-    let project_revision = project_revision(&canonical_manifest, &workspace_revision);
-    let graph_source_facts = files
-        .iter()
-        .map(|file| crate::workspace_graph::ProjectGraphSourceFact {
-            path: file.path().to_owned(),
-            source_graph_schema: file.source_graph_schema().to_owned(),
-            source_revision: file.source_revision().to_owned(),
-            source_digest: file.source_digest().to_owned(),
-        })
-        .collect();
-    let semantic_parts = graph.into_project_semantic_parts(
-        &workspace_revision,
-        graph_source_facts,
-        canonical_manifest.len(),
-        manifest.entry(),
-        manifest.test_module(),
-    )?;
-    let entry_program = semantic_parts.entry_program;
-    let test_program = semantic_parts.test_program;
-    let semantic = semantic::ProjectSemanticState::new(
-        semantic_parts.projection,
-        manifest.name(),
-        &project_revision,
-        manifest.test_module(),
-    )?;
-    crate::wasm::emit_resolved_module_with_scalar_exports(&entry_program, manifest.web_exports())
-        .map_err(|error| vec![error])?;
-    let sources = files
-        .into_iter()
-        .map(|file| {
-            let (path, source_graph_schema, source_revision, source_digest, source) =
-                file.into_parts();
-            ProjectSource {
-                path,
-                source_graph_schema,
-                source_revision,
-                source_digest,
-                source,
-            }
-        })
-        .collect();
+    let built = build::build_owned(&manifest, workspace_sources)?;
     let mut snapshot = ProjectSnapshot {
         root,
         manifest,
-        sources,
-        workspace_manifest,
-        workspace_revision,
-        project_revision,
-        entry_program,
-        test_program,
-        semantic,
+        sources: built.sources,
+        workspace_manifest: built.workspace_manifest,
+        workspace_revision: built.workspace_revision,
+        project_revision: built.project_revision,
+        entry_program: built.entry_program,
+        test_program: built.test_program,
+        semantic: built.semantic,
         declared_inputs,
         held_manifest,
         held_sources,
@@ -473,19 +448,6 @@ fn load_snapshot(manifest_path: &Path) -> Result<ProjectSnapshot, Vec<Diagnostic
     };
     snapshot.recheck()?;
     Ok(snapshot)
-}
-
-fn project_revision(manifest: &str, workspace_revision: &str) -> String {
-    let mut digest = Sha256::new();
-    digest.update(b"semaprax.project-revision.v1\0");
-    digest.update((manifest.len() as u64).to_le_bytes());
-    digest.update(manifest.as_bytes());
-    digest.update((workspace_revision.len() as u64).to_le_bytes());
-    digest.update(workspace_revision.as_bytes());
-    format!(
-        "sha256:{:x}",
-        crate::digest_hex::LowerHex(digest.finalize())
-    )
 }
 
 const WEB_PUBLICATION_SUBJECT: &str = "digest-bound Web package";

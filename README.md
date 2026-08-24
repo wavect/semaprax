@@ -152,8 +152,9 @@ same parser, resolver, verifier, and HIR validation path.
 **Current release line:** v0.2 · **Maturity:** pre-alpha research
 
 The [completion matrix](docs/COMPLETION-MATRIX.md) is the source of truth for
-project claims. At the current evidence milestone it records **39 Partial** and
-**17 Missing** full-goal requirements. A feature is not called implemented
+project claims. At the current evidence milestone it records **56 Partial** and
+**0 Missing** full-goal requirements; the overall product remains Partial
+because none of those bounded slices proves the complete gate. A feature is not called implemented
 unless its stated gate has executable evidence; a successful narrow prototype
 does not satisfy a broader product gate.
 
@@ -224,7 +225,7 @@ Start with [Agent Context v1](docs/AGENT-CONTEXT-V1.md),
 | `semaprax check [semaprax.toml]` / `semaprax build [semaprax.toml] [--target web]` | Check or publish the bounded Project Manifest v1 Web package; `--manifest-path` selects another manifest. |
 | `semaprax graph <file>` | Emit the revisioned semantic graph. |
 | `semaprax context <file> <stable-id> [options]` | Emit a deterministic, bounded semantic context. |
-| `semapraxd --stdio [--manifest-path semaprax.toml]` | Serve one authenticated Project v1 snapshot through Project Agent Transport v2. |
+| `semapraxd --stdio [--manifest-path semaprax.toml] [--allow-project-rename]` | Serve one authenticated Project v1 snapshot through read-only Transport v2, or explicitly opt into the bounded v3 exported-function display rename. |
 | `semaprax impact <file> <patch.spatch> [options]` | Preview supported source consumers and reverse-call impact without writing. |
 | `semaprax review <file> <patch.spatch>` | Emit the bounded semantic review report. |
 | `semaprax patch <file> <patch.spatch>` | Apply a supported atomic semantic transaction. |
@@ -262,7 +263,11 @@ examples/calculator-project/semaprax.toml` retains that authenticated project's
 linked HIR, complete Project graph, and typed context index. Requests bind the
 revisions returned by `workspace/open`; input drift invalidates the session
 before retained meaning can escape. See [Project Agent Transport
-v2](docs/PROJECT-AGENT-TRANSPORT-V2.md).
+v2](docs/PROJECT-AGENT-TRANSPORT-V2.md). Adding `--allow-project-rename`
+selects additive Transport v3 and its sole server-derived
+`rename/preview`/`rename/apply` transaction for one explicitly identified Web
+export. It is not a general or multi-file edit API; see [Project Rename
+Transaction v1](docs/PROJECT-RENAME-TRANSACTION-V1.md).
 
 ## Roadmap
 

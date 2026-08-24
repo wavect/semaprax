@@ -22,7 +22,7 @@ is held; it does not establish power-loss durability.
 The exact `dfc04278c6ba9a7dd247d4cc4add3af91f55b936` matrix is hosted green in
 [run 31570834457](https://github.com/wavect/semaprax/actions/runs/31570834457);
 all 12 jobs passed, including the Operations process-termination gate on
-Ubuntu, macOS, and Windows. Current totals remain 39 Partial/17 Missing.
+Ubuntu, macOS, and Windows. Current totals are 56 Partial/0 Missing.
 
 Bounded Native Agent Runtime v1 additionally requires
 `cargo test --locked -p semaprax --lib agent_runtime::tests` with deterministic
@@ -38,7 +38,7 @@ and an explicit Ubuntu/macOS/Windows public integration gate. See [Bounded Nativ
 Agent Runtime v1](AGENT-RUNTIME-V1.md). Public Agent Runtime v1 is hosted GREEN at 8cf29aff8d1be3ccf74c36bc8c837f0c666ca067 (run 31591039261, 12/12 jobs, private and public deterministic fake-host gates on Ubuntu, macOS, and Windows).
 Private Economic Agent v1 additionally configures `cargo test --locked -p semaprax --lib economic_agent::tests -- --nocapture` and `cargo test --locked -p semaprax --lib economic_agent::tests::economic_process_kill_markers_never_repeat_sign_or_broadcast -- --exact --nocapture` on Ubuntu, macOS, and Windows. Private Economic Agent v1 A+B is exact-head hosted green at fe75c38d898b71e3ed5c57411fb46d0dbd4fc34b in run 31611748969, including both Economic gates on Ubuntu, macOS, and Windows. Public Economic Agent v1 C is exact-head hosted green at 03f1f2736de23d03b298f265f93409de89a6be95 in run 31616168124 (12/12 jobs), including the private, process-termination, and public Economic gates on Ubuntu, macOS, and Windows.
 Public C additionally runs `cargo test --locked -p semaprax --test economic_agent_v1 -- --nocapture` on Ubuntu, macOS, and Windows.
-Current totals remain 39 Partial/17 Missing.
+Current totals are 56 Partial/0 Missing.
 
 Private Native Rust Interoperability v1 A+B additionally requires four named
 gates on Ubuntu, macOS, and Windows:
@@ -219,6 +219,31 @@ notification silence, exact request/response boundaries, one retained Phase-A
 graph/index, revision-bound semantic requests, zero-write snapshot/check/graph/
 context/test operation, and absorbing held-input drift before response write.
 No build, mutation, network, or disk-persistence claim follows.
+
+Project Rename Transaction v1 additionally requires v2/v3 method isolation;
+exact revision-bound preview of one explicit-ID `web_exports` function; one
+complete candidate Project build; preview-digest binding; an owned-byte A0
+handoff sealed behind the planner-produced opaque complete-candidate plan with
+Project/A0 authentication overlap; unchanged A0 staging, two final checks, and
+rename behavior; exact success and uncertainty response size/minus-one
+preflight before write; lock contention; target and foreign-source identity
+drift across the handoff; exact-base reload after commit rejection; correlated
+terminal `SPX-J110` after post-commit reload rejection; refreshed graph/context/
+test; stable-ID/source rename evidence; unchanged ordinary Web Wasm/JS/
+TypeScript artifacts and Node consumer; and stale, notification,
+digest-mismatch, response-cap, and inventory no-write cases. Run:
+
+```sh
+cargo test --locked -p semaprax --all-features \
+  --test project_agent_transport_rename_v1 -- --test-threads=1
+cargo test --locked -p semaprax --all-features --lib \
+  project_transport::session::rename::tests -- --test-threads=1
+```
+
+This gate is local until an exact-head hosted matrix passes. It grants no
+general/multi-file change, import-alias or identity rename, request-selected
+path/patch/evidence, managed Workspace, build, network, recovery, or
+exactly-once authority.
 
 Quality gates are executable evidence, not a checklist substitute for reasoning. Every pull request must pass the baseline and the gates for each changed semantic layer.
 

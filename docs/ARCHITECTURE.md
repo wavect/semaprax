@@ -1404,6 +1404,29 @@ manifest test closure. Build, impact/review, rename/change/apply, network
 service, and disk persistence are absent. See [Project Agent Transport
 v2](PROJECT-AGENT-TRANSPORT-V2.md).
 
+### Project Rename Transaction v1
+
+`--allow-project-rename` selects additive Project Agent Transport v3 without
+widening default v2. Its closed router adds only `rename/preview` and
+`rename/apply` for the display name of one explicit-ID monomorphic function
+already selected by the bound manifest's `web_exports`. The server derives the
+source path and canonical Patch-v1 bytes from retained Project meaning; no
+request-selected path, source, patch, evidence, or output authority enters the
+session.
+
+Preview performs pure patch preflight and one complete candidate Project build,
+then retains one digest-bound plan only after the response fits. Apply renders
+both possible post-effect responses before acquiring authority. While Project
+handles remain live it acquires the unchanged single-file A0 lock and source
+snapshot, checks A0 base/candidate/canonical bytes against the retained plan,
+then transfers exclusive ownership to one consuming A0 commit. The ordinary
+create-new staging and two final source/stage checks remain the sole mutation
+core. After commit, a full manifest reload must exactly match candidate source,
+Project/Workspace revisions, and Project graph before success is reported;
+otherwise the session fail-stops with `SPX-J110`. This adds no multi-file or
+managed-Workspace publication authority. See [Project Rename Transaction
+v1](PROJECT-RENAME-TRANSACTION-V1.md).
+
 ## Semantic workspace graph, analysis, and evidence-gated changes
 
 `src/semantic_workspace.rs` additively initializes a Semantic Workspace v1 in

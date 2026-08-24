@@ -3,10 +3,12 @@ use std::io::{self, BufRead, Write};
 use serde_json::{Map, Value};
 
 use super::codec::{self, RequestId, RequestKind, RpcRequest};
-use super::config::ServerConfig;
+use super::config::{ServerConfig, ServerProfile};
 use super::framing::{Frame, FrameReader, FrameWriter, WriteDisposition};
 use crate::diagnostic::{quote_json, Diagnostic};
-use crate::project::{ProjectExecutionOptions, ProjectSnapshot, PROJECT_SCHEMA};
+use crate::project::{
+    PreparedProjectRename, ProjectExecutionOptions, ProjectSnapshot, PROJECT_SCHEMA,
+};
 use crate::workspace_analysis::{
     WorkspaceAnalysisDirection, WorkspaceAnalysisTargetKind, WorkspaceContextOptions,
 };
@@ -25,12 +27,31 @@ const METHODS: [&str; 10] = [
     "workspace/snapshot",
     "workspace/status",
 ];
+const PROJECT_RENAME_METHODS: [&str; 12] = [
+    "check",
+    "context",
+    "graph",
+    "ping",
+    "protocol",
+    "rename/apply",
+    "rename/preview",
+    "shutdown",
+    "test",
+    "workspace/open",
+    "workspace/snapshot",
+    "workspace/status",
+];
+
+mod rename;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum SessionState {
     Configured,
     Open,
+    Prepared,
+    Applying,
     Invalidated,
+    Uncertain,
     Shutdown,
 }
 
@@ -39,7 +60,10 @@ impl SessionState {
         match self {
             Self::Configured => "configured",
             Self::Open => "open",
+            Self::Prepared => "prepared",
+            Self::Applying => "applying",
             Self::Invalidated => "invalidated",
+            Self::Uncertain => "uncertain",
             Self::Shutdown => "shutdown",
         }
     }
@@ -54,15 +78,20 @@ pub(super) fn serve<R: BufRead, W: Write>(
     let manifest_path = config.manifest_path().to_path_buf();
     let mut input = FrameReader::new(input, limits);
     let mut output = FrameWriter::new(output, limits);
-    crate::project::with_authenticated_project(&manifest_path, |snapshot| {
-        let mut session = Session {
-            snapshot,
-            state: SessionState::Configured,
-            limits,
-            manifest_display: manifest_path.display().to_string(),
-        };
+    let snapshot = crate::project::load_snapshot(&manifest_path)
+        .map_err(|diagnostics| io::Error::other(diagnostic_message(&diagnostics)))?;
+    let mut session = Session {
+        snapshot: Some(snapshot),
+        state: SessionState::Configured,
+        limits,
+        profile: config.profile(),
+        manifest_path,
+        pending_rename: None,
+        terminal_diagnostics: None,
+    };
+    let session_result = (|| {
         loop {
-            let response = match input.read_frame().map_err(transport_io)? {
+            let response = match input.read_frame()? {
                 Frame::Eof => break,
                 Frame::OversizedTerminal => Some(codec::bounded_error_response(
                     None,
@@ -75,30 +104,46 @@ pub(super) fn serve<R: BufRead, W: Write>(
             };
             if let Some(response) = response {
                 let terminal_overflow = codec::is_overflow_response(&response);
-                let disposition = output.write_response(&response).map_err(transport_io)?;
+                let disposition = output.write_response(&response)?;
                 if terminal_overflow || disposition == WriteDisposition::OverflowErrorWritten {
                     break;
                 }
             }
-            if session.state == SessionState::Shutdown {
+            if matches!(
+                session.state,
+                SessionState::Shutdown | SessionState::Uncertain
+            ) || session.terminal_diagnostics.is_some()
+            {
                 break;
             }
             // An oversized frame makes the reader terminal after its single
             // bounded error. The next loop observes EOF without allocating.
         }
         Ok(())
-    })
-    .map_err(|diagnostics| io::Error::other(diagnostic_message(&diagnostics)))
+    })();
+    let authority_result = session.finish_authority();
+    match (session_result, authority_result) {
+        (Err(error), Ok(())) => Err(error),
+        (Err(error), Err(diagnostics)) => Err(io::Error::other(format!(
+            "{error}; final Project authority check failed: {}",
+            diagnostic_message(&diagnostics)
+        ))),
+        (Ok(()), Ok(())) => Ok(()),
+        (Ok(()), Err(diagnostics)) => Err(io::Error::other(diagnostic_message(&diagnostics))),
+    }
 }
 
-struct Session<'a> {
-    snapshot: &'a mut ProjectSnapshot,
+struct Session {
+    snapshot: Option<ProjectSnapshot>,
     state: SessionState,
     limits: super::framing::StdioLimits,
-    manifest_display: String,
+    profile: ServerProfile,
+    manifest_path: std::path::PathBuf,
+    pending_rename: Option<PreparedProjectRename>,
+    terminal_diagnostics: Option<Vec<Diagnostic>>,
 }
 
-impl Session<'_> {
+impl Session {
     fn handle_frame(&mut self, frame: &[u8]) -> Option<Vec<u8>> {
         let request = match codec::decode_request(frame) {
             Ok(request) => request,
@@ -163,6 +208,8 @@ impl Session<'_> {
             }),
             "context" => self.context(id, params),
             "test" => self.test(id, params),
+            "rename/preview" => self.rename_preview(id, params),
+            "rename/apply" => self.rename_apply(id, params),
             unknown => self.error(
                 id,
                 METHOD_NOT_FOUND,
@@ -198,11 +245,17 @@ impl Session<'_> {
             return self.lifecycle_error(id);
         }
         let mut params = params.unwrap_or_default();
-        if let Err(message) = take_exact_revisions(self.snapshot, &mut params) {
+        let snapshot = self
+            .snapshot
+            .as_ref()
+            .expect("an open session retains its authenticated snapshot");
+        if let Err(message) = take_exact_revisions(snapshot, &mut params) {
             return self.error(id, codec::INVALID_PARAMS, &message);
         }
         let result = self
             .snapshot
+            .as_mut()
+            .expect("an open session retains its authenticated snapshot")
             .with_authenticated_request(|snapshot| operation(snapshot, params));
         if result
             .as_ref()
@@ -269,14 +322,16 @@ impl Session<'_> {
     }
 
     fn open(&mut self) -> Result<String, Vec<Diagnostic>> {
-        if self.state == SessionState::Invalidated {
-            return Err(lifecycle_diagnostic("project session is invalidated"));
-        }
-        if self.state == SessionState::Shutdown {
-            return Err(lifecycle_diagnostic("project session is shut down"));
+        if !matches!(self.state, SessionState::Configured | SessionState::Open) {
+            return Err(lifecycle_diagnostic(&format!(
+                "project session is {}",
+                self.state.text()
+            )));
         }
         let result = self
             .snapshot
+            .as_mut()
+            .expect("configured and open sessions retain their snapshot")
             .with_authenticated_request(|snapshot| Ok(render_open(snapshot)));
         if result
             .as_ref()
@@ -290,12 +345,16 @@ impl Session<'_> {
     }
 
     fn status(&self) -> Result<String, Vec<Diagnostic>> {
+        let snapshot = self
+            .snapshot
+            .as_ref()
+            .expect("configured and open sessions retain their snapshot");
         let (project, workspace) = if self.state == SessionState::Configured {
             ("null".to_owned(), "null".to_owned())
         } else {
             (
-                quote_json(self.snapshot.project_revision()),
-                quote_json(self.snapshot.workspace_revision()),
+                quote_json(snapshot.project_revision()),
+                quote_json(snapshot.workspace_revision()),
             )
         };
         Ok(format!(
@@ -305,17 +364,39 @@ impl Session<'_> {
     }
 
     fn protocol(&self) -> Result<String, Vec<Diagnostic>> {
+        let (schema, methods, nonclaims) = match self.profile {
+            ServerProfile::ReadOnlyV2 => (
+                super::TRANSPORT_SCHEMA,
+                METHODS.as_slice(),
+                "[\"no_network_socket_tls_or_peer_authentication\",\"no_request_selected_root_or_arbitrary_filesystem_read\",\"no_native_build_process_tool_or_temp_authority\",\"no_source_write_patch_rename_or_change_authority\",\"no_persistent_disk_cache_or_incremental_refresh\",\"no_concurrent_batch_or_out_of_order_processing\"]",
+            ),
+            ServerProfile::ProjectRenameV1 => (
+                super::PROJECT_RENAME_TRANSPORT_SCHEMA,
+                PROJECT_RENAME_METHODS.as_slice(),
+                "[\"no_network_socket_tls_or_peer_authentication\",\"no_request_selected_root_path_patch_evidence_or_temp_authority\",\"single_file_explicit_exported_function_display_rename_only\",\"no_general_multi_file_change_import_alias_or_managed_workspace_authority\",\"no_exactly_once_delivery_deduplication_or_output_delivery_guarantee\",\"no_persistent_disk_cache_or_incremental_refresh\",\"no_concurrent_batch_or_out_of_order_processing\"]",
+            ),
+        };
         Ok(format!(
-            "{{\"protocol\":{},\"version\":{},\"state\":{},\"methods\":[{}],\"limits\":{{\"max_request_bytes\":{},\"max_response_bytes\":{}}},\"bound_manifest\":{{\"path\":{},\"project_schema\":{}}},\"nonclaims\":[\"no_network_socket_tls_or_peer_authentication\",\"no_request_selected_root_or_arbitrary_filesystem_read\",\"no_native_build_process_tool_or_temp_authority\",\"no_source_write_patch_rename_or_change_authority\",\"no_persistent_disk_cache_or_incremental_refresh\",\"no_concurrent_batch_or_out_of_order_processing\"]}}",
-            quote_json(super::TRANSPORT_SCHEMA),
+            "{{\"protocol\":{},\"version\":{},\"state\":{},\"methods\":[{}],\"limits\":{{\"max_request_bytes\":{},\"max_response_bytes\":{}}},\"bound_manifest\":{{\"path\":{},\"project_schema\":{}}},\"nonclaims\":{nonclaims}}}",
+            quote_json(schema),
             quote_json(env!("CARGO_PKG_VERSION")),
             quote_json(self.state.text()),
-            METHODS.iter().map(|method| quote_json(method)).collect::<Vec<_>>().join(","),
+            methods.iter().map(|method| quote_json(method)).collect::<Vec<_>>().join(","),
             self.limits.request_bytes(),
             self.limits.response_bytes(),
-            quote_json(&self.manifest_display),
+            quote_json(&self.manifest_path.display().to_string()),
             quote_json(PROJECT_SCHEMA),
         ))
+    }
+
+    fn finish_authority(mut self) -> Result<(), Vec<Diagnostic>> {
+        if let Some(diagnostics) = self.terminal_diagnostics.take() {
+            return Err(diagnostics);
+        }
+        match self.snapshot.take() {
+            Some(snapshot) => snapshot.finish_session(),
+            None => Ok(()),
+        }
     }
 
     fn finish(&self, id: &RequestId, result: Result<String, Vec<Diagnostic>>) -> Vec<u8> {
@@ -478,11 +559,4 @@ fn diagnostic_message(diagnostics: &[Diagnostic]) -> String {
         .map(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))
         .collect::<Vec<_>>()
         .join("; ")
-}
-
-fn transport_io(error: io::Error) -> Vec<Diagnostic> {
-    vec![Diagnostic::io(
-        "SPX-J106",
-        format!("project transport I/O failed: {error}"),
-    )]
 }

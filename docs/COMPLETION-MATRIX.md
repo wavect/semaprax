@@ -304,7 +304,8 @@ Status values:
 ## Milestone dashboard
 
 This compact view is the release-truth summary; the detailed rows below remain
-the completion contract.
+the completion contract. Current totals are **56 Partial / 0 Missing**; every
+row remains Partial because its full evidence boundary is still open.
 
 [OpenAPI Schema Generation v1](OPENAPI-V1.md) adds only the read-only
 `semaprax openapi` projection of admitted monomorphic scalar signatures into a
@@ -315,7 +316,7 @@ pinned payload/digest knowledge-AT evidence in
 claim, imports no schemas, runs no live conformance fixtures, hosts no
 registry or server, executes no target, and remains scalar-only. The OpenAPI,
 Protobuf/gRPC, GraphQL, and SQL row therefore moves from Missing to Partial.
-Current totals are 40 Partial/16 Missing.
+At that milestone, totals were 40 Partial/16 Missing.
 
 [Public Wasm Scalar Exports v1](WASM-SCALAR-EXPORTS-V1.md) exposes only
 explicitly selected stable-ID monomorphic `i64`/`bool` functions from a
@@ -328,7 +329,7 @@ TypeScript 5.8.3 consumer compilation and one Chromium loopback interaction are
 hosted green at `d883ace579bfd86f723cdc6819224fde51f0677d` in [run 32523952912,
 job 96901973072](https://github.com/wavect/semaprax/actions/runs/32523952912/job/96901973072). The JavaScript and TypeScript row
 therefore becomes Partial, while Web, WebAssembly, Functions, and the milestone
-dashboard remain Partial. Current totals are 39 Partial/17 Missing.
+dashboard remained Partial. At that milestone, totals were 39 Partial/17 Missing.
 
 Semantic Workspace Operations v1 deepens the existing Partial human/agent
 projection and atomic-agent-change rows without changing their status. It
@@ -348,6 +349,7 @@ provenance, or automatic identity selection. Exact replay inside apply mints
 
 | Milestone | Status | Evidence boundary |
 | --- | --- | --- |
+| Persistent Project agent developer loop | Partial | Project Agent Transport v2 retains one authenticated multi-file Project graph/context/test session. Additive opt-in v3 locally proves one preview-digest-bound display rename of one explicit-ID scalar Web export through a server-derived one-operation patch, complete candidate Project validation, overlapping Project/A0 authority, exact post-commit reload, refreshed graph/context/test state, and unchanged stable-ID Web/Node consumption. General or multi-file change, imported-alias and identity operations, managed-Workspace publication, hosted promotion, recovery, and exactly-once delivery remain open. |
 | Human and agent semantic projections | Partial | Canonical `.spx`, validated stable-ID HIR, hardened atomic single-file renames, and the program-wide Graph v10/v11/v12/v13/v14 lattice are executable. Additive Agent Context v2 preserves exact v1 default behavior and bytes while adding deterministic forward/reverse/both call traversal, global per-depth stable-ID order, minimum-depth direction provenance, and separate traversal/reference frontiers; local v2 and legacy-v1 gates are 8/8 and 8/8, and the full hosted matrix is green in [run 31397881268, Ubuntu job 93485198327](https://github.com/wavect/semaprax/actions/runs/31397881268/job/93485198327). V2 remains call-graph-only and does not itself claim general reverse semantic edges or impact analysis. Separate Semantic Impact v1 previews one Patch v1/v2 file read-only with exact source-consumer provenance and bounded reverse-call impact for exact generic-call instance changes; its canonical report KAT is `94bbe5dcfe02f4b80b12ba5c8faf0889ddf11a96598072e539490c71a09518e9`, and the exact `1b3731a` matrix is hosted green in [run 31408654657 attempt 2](https://github.com/wavect/semaprax/actions/runs/31408654657/attempts/2), including [Ubuntu job 93530141404](https://github.com/wavect/semaprax/actions/runs/31408654657/job/93530141404), while repository-wide/non-call impact remains open. Bounded Semantic Patch v2 adds persistent record/case-member and variant-case renames plus exact direct-scalar generic-call argument replacement under one pre-state transaction and a selective post-HIR semantic-delta gate; its exact `f95d243` full matrix is hosted green in [run 31401200449 attempt 2](https://github.com/wavect/semaprax/actions/runs/31401200449/attempts/2), including [Ubuntu job 93505622044](https://github.com/wavect/semaprax/actions/runs/31401200449/job/93505622044). It remains single-file with trusted patch provenance and no general repair/impact claim. Semantic patch A0 uses a canonical regular source, a cooperating create-new sibling lock, bounded create-new staging, exact source/stage byte and identity rechecks, and identity-aware cleanup; its full matrix is hosted green in [run 31396483313, including Windows job 93481068538](https://github.com/wavect/semaprax/actions/runs/31396483313/job/93481068538). Unix device/inode identity is exact; Windows compares held same-file handles by volume plus the available 64-bit file index and does not claim ReFS 128-bit or hostile non-unique-index uniqueness. Any authenticated generic function declaration selects v14 above explicit record-pattern v13, generic-record v12, Option-propagation v11, and legacy/Result v10. V14 binds exact function templates, concrete instances, and call instances; unused templates select v14 without fabricating an executable instance. Recursive record/member/binding identity, immutable record update, generic Copy record/variant construction, exact structured concrete arguments, authenticated ordinary prelude types, and typed propagation meaning remain included. Predictable sibling collision/stale-lock DoS, crash-left locks, the final trusted-directory path window, power-loss durability, and multi-file typed repair/impact remain open |
 | Ownership and cleanup meaning | Partial | Move/partial-place checks plus independently rebuilt and replayed CleanupPlan v2 plans, and feature-minimal v3 plans for bounded Option propagation, are executable, including exact body/Result-residual/Option-None Copy-result staging and shared postcondition/publication joins; general lifetimes, aliases, concurrency, FFI, and public physical cleanup remain open |
 | Aggregate records v1 bounded execution | Partial | Construction/projection/update, stable IDs, checked Native64/Wasm32 layouts, frozen one-byte/alignment-one empty records, and cleanup are executable; nested public scalar records and exact-instance generic Copy records with ordered direct `i64`/`bool` arguments run through native C11 O0/O2 and Node/Wasm, with the generic-record gate hosted green in [run 31365363898, Ubuntu job 93383304995](https://github.com/wavect/semaprax/actions/runs/31365363898/job/93383304995). Bounded irrefutable Copy-record matches now destructure exact nested/generic instances with scalar or whole-record bindings, ignored fields, one evaluation, scalar arms, program-wide Graph v13, unchanged straight-line CleanupPlan v2/v3, Native O0/O2, and 4,096-entry Node/Wasm; the Ubuntu gate is hosted green in [run 31373317800, job 93406925130](https://github.com/wavect/semaprax/actions/runs/31373317800/job/93406925130), and independent security review is green. One private shared-plan resource harness separately proves an exact cross-backend cleanup trace and zero liveness. Stable public aggregate ABIs, public resource-record execution, nested/resource/non-Copy generic breadth, refutable or ownership-aware matching, and general aggregate execution remain open |
@@ -363,9 +365,19 @@ manifest at startup, retains entry/test HIR plus one complete Project-specific
 graph and typed context index from the same Phase-A build, and serves closed
 revision-bound snapshot/check/graph/context/test requests. Pre/post request
 held-input reauthentication is absorbing, strict raw framing and response caps
-are executable, and Transport v1 remains byte-preserved. Build/change/network/
-disk-persistence methods, cross-process revision indexing, and exact-head
-hosted promotion remain open. Totals remain 56 Partial/0 Missing.
+are executable, and Transport v1 remains byte-preserved. Additive opt-in
+[Project Rename Transaction v1](PROJECT-RENAME-TRANSACTION-V1.md) reports
+Transport v3 and locally proves one preview-digest-bound display rename of one
+explicit-ID scalar function selected by `web_exports`: one complete candidate
+Project validation, overlapping Project/A0 authentication, unchanged
+single-file A0 commit, response preflight, exact reload, refreshed
+graph/context/test, and unchanged stable-ID Web/Node consumption. Default v2
+remains read-only. General/multi-file change, import-alias or identity rename,
+client path/patch/evidence, build/network/disk-persistence authority,
+cross-process revision indexing, recovery/exactly-once delivery, and exact-head
+hosted promotion remain open. Local evidence is six black-box transport tests,
+four injected session-boundary tests, and sealed planner/A0 units. Totals remain
+56 Partial/0 Missing.
 
 Project Manifest v1 is a locally evidenced bounded build-input slice, not a
 status transition. It authenticates one canonical explicit 2–16-source

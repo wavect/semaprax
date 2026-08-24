@@ -53,6 +53,8 @@
 # Targets and backends
 
 - [Project manifest](PROJECT-MANIFEST-V1.md)
+- [Project agent transport](PROJECT-AGENT-TRANSPORT-V2.md)
+- [Project rename transaction](PROJECT-RENAME-TRANSACTION-V1.md)
 - [Wasm scalar exports](WASM-SCALAR-EXPORTS-V1.md)
 - [Wasm owned ABI](WASM-OWNED-ABI-V1.md)
 - [WIT component boundary](WIT-COMPONENT-BOUNDARY-V1.md)

@@ -9,10 +9,9 @@ durable memory, language/backend integration, approval, target
 execution, wallets, payments, signing, and economic authority remain held. See
 [the private runtime contract](AGENT-RUNTIME-V1.md).
 Public Agent Runtime v1 is hosted GREEN at 8cf29aff8d1be3ccf74c36bc8c837f0c666ca067 (run 31591039261, 12/12 jobs, private and public deterministic fake-host gates on Ubuntu, macOS, and Windows). Private Economic Agent v1 A+B is exact-head hosted green at fe75c38d898b71e3ed5c57411fb46d0dbd4fc34b in run 31611748969, including both Economic gates on Ubuntu, macOS, and Windows. Public Economic Agent v1 C is exact-head hosted green at 03f1f2736de23d03b298f265f93409de89a6be95 in run 31616168124 (12/12 jobs), including the private, process-termination, and public Economic gates on Ubuntu, macOS, and Windows.
-The current dashboard is 40 Partial/16 Missing after the locally evidenced
-Typed Hygienic Generation v1 tranche moved that row from Missing to
-Partial (the earlier bounded public JavaScript/TypeScript scalar-export slice
-had moved its row from Missing to Partial).
+The current dashboard is 56 Partial/0 Missing. Every row still has an explicit
+remaining-evidence boundary, so the full product objective remains Partial;
+the historical status transitions below retain their milestone-local counts.
 
 ## Immediate product slice — scalar SDK and calculator
 
@@ -305,8 +304,15 @@ gates below are not.
   now supplies `semapraxd --stdio` over one authenticated multi-file Project
   v1 input. It retains one Phase-A graph, linked HIR, and typed context index
   across sequential requests, requires exact revision bindings, and fail-stops
-  on held-input drift. Build/change methods, incremental refresh, persistence
-  across processes, and network service remain open.
+  on held-input drift. Additive [Project Rename Transaction
+  v1](PROJECT-RENAME-TRANSACTION-V1.md) now provides an explicit opt-in v3
+  profile for one server-derived display rename of one explicit-ID scalar Web
+  export. It validates a complete candidate Project, transfers authority to the
+  unchanged single-file A0 core with overlapping authentication, and reloads
+  exact candidate state before success. General or multi-file change, build
+  methods, incremental refresh, persistence across processes, recovery, and
+  network service remain open; this locally evidenced tranche does not change
+  completion totals or claim hosted promotion.
 - Typed hygienic generation: the bounded read-only
   [Typed Hygienic Generation v1](HYGIENIC-GEN-V1.md) tranche now synthesizes
   default constructors and scalar field accessors from admitted non-generic

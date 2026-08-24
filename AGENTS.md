@@ -36,6 +36,9 @@ route, also read `docs/SEMANTIC-WORKSPACE-V1.md`,
 For bounded stable-ID multi-file rename/alias derivation into an existing
 Change-v1 replacements proposal, also read
 `docs/SEMANTIC-WORKSPACE-OPERATIONS-V1.md`.
+For the opt-in Project daemon's single exported-function display rename and
+its overlapping Project/A0 authority handoff, also read
+`docs/PROJECT-RENAME-TRANSACTION-V1.md`.
 For native owned-call recovery, physical failure, settlement, or quiescence,
 also read `docs/RFC-0004-NATIVE-CALL-SETTLEMENT.md`; its hidden Rust model is
 proof scaffolding, not a wired native-runtime claim.
@@ -83,7 +86,9 @@ proof scaffolding, not a wired native-runtime claim.
 - `src/project_transport/`, `src/bin/semapraxd.rs`: strict bounded Project
   Agent Transport v2 over one host-bound Project v1 manifest; retained
   Phase-A graph/HIR/context index, revision-bound read-only requests, and
-  absorbing held-input drift; no build/change/network/disk-cache authority.
+  absorbing held-input drift. Explicit opt-in Transport v3 adds one
+  server-derived, single-file exported-function display rename through the
+  existing A0 authority; no general change/build/network/disk-cache authority.
 - `src/agent_runtime.rs`, `src/agent_runtime/`: bounded injected-host Agent
   profile, runtime-owned streaming sinks, cancellation, Trace, and Evidence;
   no built-in transport, write tool, durable memory, or economic authority.

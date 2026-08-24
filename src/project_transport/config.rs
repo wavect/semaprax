@@ -9,6 +9,13 @@ const DEFAULT_MANIFEST: &str = "semaprax.toml";
 pub(crate) struct ServerConfig {
     manifest_path: PathBuf,
     limits: StdioLimits,
+    profile: ServerProfile,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum ServerProfile {
+    ReadOnlyV2,
+    ProjectRenameV1,
 }
 
 impl ServerConfig {
@@ -19,6 +26,7 @@ impl ServerConfig {
         let mut manifest_path = None;
         let mut max_request_bytes = None;
         let mut max_response_bytes = None;
+        let mut allow_project_rename = false;
 
         while let Some(argument) = arguments.next() {
             let Some(option) = argument.to_str() else {
@@ -45,6 +53,12 @@ impl ServerConfig {
                 "--max-response-bytes" => {
                     return Err("--max-response-bytes may not be repeated".to_owned());
                 }
+                "--allow-project-rename" if !allow_project_rename => {
+                    allow_project_rename = true;
+                }
+                "--allow-project-rename" => {
+                    return Err("--allow-project-rename may not be repeated".to_owned());
+                }
                 unknown => return Err(format!("unknown semapraxd option `{unknown}`")),
             }
         }
@@ -59,6 +73,11 @@ impl ServerConfig {
         Ok(Self {
             manifest_path: manifest_path.unwrap_or_else(|| PathBuf::from(DEFAULT_MANIFEST)),
             limits,
+            profile: if allow_project_rename {
+                ServerProfile::ProjectRenameV1
+            } else {
+                ServerProfile::ReadOnlyV2
+            },
         })
     }
 
@@ -68,6 +87,10 @@ impl ServerConfig {
 
     pub(crate) const fn limits(&self) -> StdioLimits {
         self.limits
+    }
+
+    pub(crate) const fn profile(&self) -> ServerProfile {
+        self.profile
     }
 }
 
@@ -107,7 +130,7 @@ fn required_number(
 
 #[cfg(test)]
 mod tests {
-    use super::{ServerConfig, DEFAULT_MANIFEST};
+    use super::{ServerConfig, ServerProfile, DEFAULT_MANIFEST};
     use std::ffi::OsString;
 
     fn parse(arguments: &[&str]) -> Result<ServerConfig, String> {
@@ -118,6 +141,20 @@ mod tests {
     fn stdio_defaults_bind_one_fixed_manifest() {
         let config = parse(&["semapraxd", "--stdio"]).unwrap();
         assert_eq!(config.manifest_path().to_str(), Some(DEFAULT_MANIFEST));
+        assert_eq!(config.profile(), ServerProfile::ReadOnlyV2);
+    }
+
+    #[test]
+    fn mutation_authority_is_explicit_and_nonrepeating() {
+        let config = parse(&["semapraxd", "--stdio", "--allow-project-rename"]).unwrap();
+        assert_eq!(config.profile(), ServerProfile::ProjectRenameV1);
+        assert!(parse(&[
+            "semapraxd",
+            "--stdio",
+            "--allow-project-rename",
+            "--allow-project-rename"
+        ])
+        .is_err());
     }
 
     #[test]

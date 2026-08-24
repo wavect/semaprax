@@ -913,6 +913,34 @@ pub(crate) struct A0PreparedCommit<'a> {
     preflight: &'a PatchPreflight,
 }
 
+/// One complete, invocation-owned A0 handoff for a server-derived patch.
+///
+/// Unlike [`A0PreparedCommit`], this authority owns the lock, authenticated
+/// source snapshot, and semantic preflight so it may outlive the Project
+/// request snapshot that produced the patch bytes. It is deliberately neither
+/// `Clone` nor reusable: committing consumes the authority.
+pub(crate) struct A0OwnedPreparedCommit {
+    guard: A0CommitGuard,
+    snapshot: SourceSnapshot,
+    max_source_bytes: Option<usize>,
+    preflight: PatchPreflight,
+}
+
+#[cfg(test)]
+impl A0OwnedPreparedCommit {
+    pub(crate) fn base_revision(&self) -> &str {
+        self.preflight.base_revision()
+    }
+
+    pub(crate) fn candidate_revision(&self) -> &str {
+        self.preflight.candidate_revision()
+    }
+
+    pub(crate) fn canonical_candidate(&self) -> &str {
+        self.preflight.canonical_candidate()
+    }
+}
+
 pub(crate) fn prepare_a0_commit<'a>(
     authenticated: &'a A0AuthenticatedSource<'a>,
     preflight: &'a PatchPreflight,
@@ -927,6 +955,110 @@ pub(crate) fn prepare_a0_commit<'a>(
         authenticated,
         preflight,
     })
+}
+
+/// Acquire and retain A0 authority for one owned, server-derived patch buffer.
+///
+/// No proposal path is opened or created. The source lock and authenticated
+/// source identity are acquired before this function returns, and the patch is
+/// parsed and preflighted against that exact retained source snapshot.
+#[cfg(test)]
+pub(crate) fn prepare_owned_a0_patch_bytes(
+    source_path: &Path,
+    patch_bytes: Vec<u8>,
+) -> Result<A0OwnedPreparedCommit, Vec<Diagnostic>> {
+    let guard = acquire_a0_commit_guard(source_path)?;
+    let patch_source = String::from_utf8(patch_bytes).map_err(|error| {
+        vec![Diagnostic::io(
+            "SPX-I202",
+            format!("semantic patch bytes are not UTF-8: {error}"),
+        )]
+    })?;
+    let parsed_patch = parse_patch(&patch_source)?;
+    let bounded_v3 = parsed_patch.schema == PatchSchema::V3;
+    let authenticated = if bounded_v3 {
+        authenticate_a0_source(&guard, Some((crate::repair::MAX_SOURCE_BYTES, "SPX-R101")))?
+    } else {
+        authenticate_a0_source(&guard, None)?
+    };
+    let preflight = preflight_parsed_owned(
+        authenticated.source().to_owned(),
+        patch_source,
+        source_path.to_path_buf(),
+        parsed_patch,
+        None,
+        None,
+        CandidateValidation::Standalone,
+    )?;
+    if preflight.source() != authenticated.snapshot.source() {
+        return Err(vec![Diagnostic::io(
+            "SPX-G133",
+            "semantic patch preflight source is not bound to the authenticated A0 snapshot",
+        )]);
+    }
+    let A0AuthenticatedSource {
+        snapshot,
+        max_source_bytes,
+        ..
+    } = authenticated;
+    Ok(A0OwnedPreparedCommit {
+        guard,
+        snapshot,
+        max_source_bytes,
+        preflight,
+    })
+}
+
+/// Acquire A0 for one opaque, completely validated Project rename plan.
+///
+/// A manifest-owned module is not a standalone executable and therefore must
+/// not be rejected for lacking `main` or for having Project-resolved imports.
+/// The private-field plan type is the seal: callers cannot select raw paths or
+/// bytes for this deferred profile. This acquisition independently replays the
+/// exact Patch-v1 operation against A0's retained source and matches all source
+/// facts before returning effect authority.
+pub(crate) fn acquire_prepared_project_rename(
+    prepared: &crate::project::PreparedProjectRename,
+) -> Result<A0OwnedPreparedCommit, Vec<Diagnostic>> {
+    let guard = acquire_a0_commit_guard(prepared.target_path())?;
+    let patch_source = prepared.patch_bytes().to_owned();
+    let authenticated = authenticate_a0_source(&guard, None)?;
+    let preflight = preflight_project_rename_parts(
+        authenticated.source().to_owned(),
+        patch_source,
+        prepared.target_path().to_path_buf(),
+    )?;
+    if preflight.source() != authenticated.snapshot.source() {
+        return Err(vec![Diagnostic::io(
+            "SPX-G133",
+            "Project rename preflight source is not bound to the authenticated A0 snapshot",
+        )]);
+    }
+    if preflight.base_revision() != prepared.base_source().source_revision()
+        || preflight.candidate_revision() != prepared.candidate_source().source_revision()
+        || preflight.canonical_candidate() != prepared.candidate_source().source()
+    {
+        return Err(vec![Diagnostic::io(
+            "SPX-J109",
+            "retained Project rename plan disagrees with the A0 handoff",
+        )]);
+    }
+    let A0AuthenticatedSource {
+        snapshot,
+        max_source_bytes,
+        ..
+    } = authenticated;
+    Ok(A0OwnedPreparedCommit {
+        guard,
+        snapshot,
+        max_source_bytes,
+        preflight,
+    })
+}
+
+/// Consume one owned A0 handoff through the unchanged staging and commit core.
+pub(crate) fn commit_owned_a0(prepared: A0OwnedPreparedCommit) -> Result<String, Vec<Diagnostic>> {
+    commit_owned_a0_with_hook(prepared, |_, _, _| Ok(()))
 }
 
 pub fn apply(source_path: &Path, patch_path: &Path) -> Result<String, Vec<Diagnostic>> {
@@ -945,7 +1077,52 @@ pub(crate) fn preflight_impact_owned(
             "Semantic Impact v1 accepts only Semantic Patch v1/v2",
         )]);
     }
-    preflight_parsed_owned(source, patch_source, diagnostic_path, patch, None, None)
+    preflight_parsed_owned(
+        source,
+        patch_source,
+        diagnostic_path,
+        patch,
+        None,
+        None,
+        CandidateValidation::Standalone,
+    )
+}
+
+pub(crate) fn preflight_project_rename_owned(
+    derivation: &crate::project::ProjectRenameDerivation,
+) -> Result<PatchPreflight, Vec<Diagnostic>> {
+    preflight_project_rename_parts(
+        derivation.source().to_owned(),
+        derivation.patch_bytes().to_owned(),
+        derivation.diagnostic_path().to_path_buf(),
+    )
+}
+
+fn preflight_project_rename_parts(
+    source: String,
+    patch_source: String,
+    diagnostic_path: PathBuf,
+) -> Result<PatchPreflight, Vec<Diagnostic>> {
+    let patch = parse_patch(&patch_source)?;
+    if patch.schema != PatchSchema::V1
+        || patch.operations.len() != 1
+        || patch.renames.len() != 1
+        || patch.no_new_effects
+    {
+        return Err(vec![Diagnostic::io(
+            "SPX-J109",
+            "Project rename handoff requires exactly one Patch-v1 function rename",
+        )]);
+    }
+    preflight_parsed_owned(
+        source,
+        patch_source,
+        diagnostic_path,
+        patch,
+        None,
+        None,
+        CandidateValidation::ProjectModule,
+    )
 }
 
 pub(crate) fn preflight_review_owned(
@@ -961,7 +1138,15 @@ pub(crate) fn preflight_review_owned(
             format!("semantic review patch exceeds {max_operations} operations"),
         )]);
     }
-    preflight_parsed_owned(source, patch_source, diagnostic_path, patch, None, None)
+    preflight_parsed_owned(
+        source,
+        patch_source,
+        diagnostic_path,
+        patch,
+        None,
+        None,
+        CandidateValidation::Standalone,
+    )
 }
 
 pub(crate) fn preflight_target_owned(
@@ -985,6 +1170,7 @@ pub(crate) fn preflight_target_owned(
         patch,
         Some(max_candidate_bytes),
         None,
+        CandidateValidation::Standalone,
     )
 }
 
@@ -1104,6 +1290,7 @@ fn preflight_workspace_owned_with_formatter_limit(
                     callables: limits.remaining_callables,
                     call_sites: limits.remaining_call_sites,
                 }),
+                CandidateValidation::Standalone,
             )
         });
     if formatter_overflowed {
@@ -1256,6 +1443,12 @@ fn canonical_patch(patch: &SemanticPatch) -> String {
     output
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum CandidateValidation {
+    Standalone,
+    ProjectModule,
+}
+
 fn preflight_parsed_owned(
     source: String,
     patch_source: String,
@@ -1263,6 +1456,7 @@ fn preflight_parsed_owned(
     patch: SemanticPatch,
     max_candidate_bytes: Option<usize>,
     workspace_ast_limits: Option<WorkspaceAstLimits>,
+    candidate_validation: CandidateValidation,
 ) -> Result<PatchPreflight, Vec<Diagnostic>> {
     let before = parse(&source, &diagnostic_path).map_err(|error| vec![error])?;
     if let Some(limits) = workspace_ast_limits {
@@ -1756,9 +1950,11 @@ fn preflight_parsed_owned(
     };
 
     let candidate = parse(&changed, &diagnostic_path).map_err(|error| vec![error])?;
-    let diagnostics = verify::verify(&candidate);
-    if diagnostics.iter().any(|item| item.severity.is_error()) {
-        return Err(diagnostics);
+    if candidate_validation == CandidateValidation::Standalone {
+        let diagnostics = verify::verify(&candidate);
+        if diagnostics.iter().any(|item| item.severity.is_error()) {
+            return Err(diagnostics);
+        }
     }
     if patch.no_new_effects && !effect_set(&candidate).is_subset(&before_effects) {
         return Err(vec![Diagnostic::io(
@@ -1826,6 +2022,7 @@ fn apply_with_commit_hook(
         parsed_patch,
         None,
         None,
+        CandidateValidation::Standalone,
     )?;
     let prepared = prepare_a0_commit(&authenticated, &preflight)?;
     commit_prepared_a0(prepared, hook)
@@ -1833,11 +2030,38 @@ fn apply_with_commit_hook(
 
 pub(crate) fn commit_prepared_a0(
     prepared: A0PreparedCommit<'_>,
-    mut hook: impl FnMut(CommitPhase, &Path, &Path) -> std::io::Result<()>,
+    hook: impl FnMut(CommitPhase, &Path, &Path) -> std::io::Result<()>,
 ) -> Result<String, Vec<Diagnostic>> {
     let authenticated = prepared.authenticated;
-    let guard = authenticated.guard;
-    let preflight = prepared.preflight;
+    commit_a0_parts(
+        authenticated.guard,
+        &authenticated.snapshot,
+        authenticated.max_source_bytes,
+        prepared.preflight,
+        hook,
+    )
+}
+
+fn commit_owned_a0_with_hook(
+    prepared: A0OwnedPreparedCommit,
+    hook: impl FnMut(CommitPhase, &Path, &Path) -> std::io::Result<()>,
+) -> Result<String, Vec<Diagnostic>> {
+    let A0OwnedPreparedCommit {
+        guard,
+        snapshot,
+        max_source_bytes,
+        preflight,
+    } = prepared;
+    commit_a0_parts(&guard, &snapshot, max_source_bytes, &preflight, hook)
+}
+
+fn commit_a0_parts(
+    guard: &A0CommitGuard,
+    snapshot: &SourceSnapshot,
+    max_source_bytes: Option<usize>,
+    preflight: &PatchPreflight,
+    mut hook: impl FnMut(CommitPhase, &Path, &Path) -> std::io::Result<()>,
+) -> Result<String, Vec<Diagnostic>> {
     let canonical_source_path = guard.canonical_source_path();
     let canonical_bytes = preflight.canonical_candidate().as_bytes();
     let mut staging = create_staging_file(canonical_source_path)?;
@@ -1855,7 +2079,7 @@ pub(crate) fn commit_prepared_a0(
                 format!("cannot flush semantic patch staging file: {error}"),
             )]
         })?;
-        file.set_permissions(authenticated.snapshot.permissions.clone())
+        file.set_permissions(snapshot.permissions.clone())
             .map_err(|error| {
                 vec![Diagnostic::io(
                     "SPX-I203",
@@ -1884,9 +2108,9 @@ pub(crate) fn commit_prepared_a0(
     validate_commit_source_unchanged(
         canonical_source_path,
         &guard.diagnostic_path,
-        &authenticated.snapshot,
+        snapshot,
         preflight.base_revision(),
-        authenticated.max_source_bytes,
+        max_source_bytes,
     )?;
     staging.validate_contents(canonical_bytes)?;
     hook(
@@ -1903,9 +2127,9 @@ pub(crate) fn commit_prepared_a0(
     validate_commit_source_unchanged(
         canonical_source_path,
         &guard.diagnostic_path,
-        &authenticated.snapshot,
+        snapshot,
         preflight.base_revision(),
-        authenticated.max_source_bytes,
+        max_source_bytes,
     )?;
     staging.validate_contents(canonical_bytes)?;
     std::fs::rename(&staging.path, canonical_source_path).map_err(|error| {
@@ -3168,6 +3392,22 @@ fn main() -> i64
         (source_path, patch_path)
     }
 
+    fn owned_byte_fixture(label: &str) -> (PathBuf, Vec<u8>) {
+        let sequence = NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed);
+        let directory = std::env::temp_dir().join(format!(
+            "semaprax-patch-owned-bytes-{}-{label}-{sequence}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&directory).unwrap();
+        let source_path = directory.join("module.spx");
+        let revision = graph::revision(&parse(SOURCE, &source_path).unwrap());
+        std::fs::write(&source_path, SOURCE).unwrap();
+        (
+            source_path,
+            format!("base {revision}\nrename helper.answer to computed\n").into_bytes(),
+        )
+    }
+
     fn assert_owned_artifacts_removed(source_path: &Path) {
         let canonical = std::fs::canonicalize(source_path).unwrap();
         assert!(!sibling_path(&canonical, ".semaprax-patch.lock")
@@ -3398,6 +3638,117 @@ fn main() -> i64
         drop(authenticated);
         drop(guard);
         assert_owned_artifacts_removed(&source_path);
+    }
+
+    #[test]
+    fn general_patch_preflight_remains_standalone_strict_for_project_modules() {
+        let no_main = "module patch.library;\n@id(\"library.value\")\nfn value() -> i64 { 1 }\n";
+        let sequence = NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed);
+        let directory = std::env::temp_dir().join(format!(
+            "semaprax-patch-standalone-strict-{}-{sequence}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&directory).unwrap();
+        let path = directory.join("library.spx");
+        std::fs::write(&path, no_main).unwrap();
+        let revision = graph::revision(&parse(no_main, &path).unwrap());
+        let patch = format!("base {revision}\nrename library.value to renamed\n");
+        let Err(diagnostics) = prepare_owned_a0_patch_bytes(&path, patch.into_bytes()) else {
+            panic!("no-main Project module acquired general A0 authority")
+        };
+        assert!(diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.code == "SPX-T105"));
+        assert_owned_artifacts_removed(&path);
+
+        let imported = "module patch.library;\nuse function @id(\"provider.value\") from provider.module as provider_value;\n@id(\"library.value\")\nfn value() -> i64 { provider_value() }\n";
+        let path = directory.join("imported-library.spx");
+        std::fs::write(&path, imported).unwrap();
+        let revision = graph::revision(&parse(imported, &path).unwrap());
+        let patch = format!("base {revision}\nrename library.value to renamed\n");
+        let Err(diagnostics) = prepare_owned_a0_patch_bytes(&path, patch.into_bytes()) else {
+            panic!("imported Project module acquired general A0 authority")
+        };
+        assert!(diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.code == "SPX-G172"));
+        assert_owned_artifacts_removed(&path);
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn owned_patch_bytes_match_public_a0_apply_and_expose_exact_handoff_facts() {
+        let (public_source, public_patch) = fixture("owned-byte-parity-public");
+        let public_revision = apply(&public_source, &public_patch).unwrap();
+        let public_candidate = std::fs::read_to_string(&public_source).unwrap();
+
+        let (owned_source, patch_bytes) = owned_byte_fixture("parity-owned");
+        let base_revision = graph::revision(&parse(SOURCE, &owned_source).unwrap());
+        let prepared = prepare_owned_a0_patch_bytes(&owned_source, patch_bytes).unwrap();
+        assert_eq!(prepared.base_revision(), base_revision);
+        assert_eq!(prepared.candidate_revision(), public_revision);
+        assert_eq!(prepared.canonical_candidate(), public_candidate);
+        let owned_revision = commit_owned_a0(prepared).unwrap();
+
+        assert_eq!(owned_revision, public_revision);
+        assert_eq!(
+            std::fs::read_to_string(&owned_source).unwrap(),
+            public_candidate
+        );
+        assert_owned_artifacts_removed(&public_source);
+        assert_owned_artifacts_removed(&owned_source);
+        std::fs::remove_dir_all(public_source.parent().unwrap()).unwrap();
+        std::fs::remove_dir_all(owned_source.parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn owned_patch_handoff_rejects_stale_source_before_rename() {
+        let (source_path, patch_bytes) = owned_byte_fixture("stale");
+        let prepared = prepare_owned_a0_patch_bytes(&source_path, patch_bytes).unwrap();
+        std::fs::write(&source_path, CONCURRENT_SOURCE).unwrap();
+
+        let error = commit_owned_a0(prepared).unwrap_err();
+        assert_eq!(error[0].code, "SPX-I207");
+        assert_eq!(
+            std::fs::read_to_string(&source_path).unwrap(),
+            CONCURRENT_SOURCE
+        );
+        assert_owned_artifacts_removed(&source_path);
+        std::fs::remove_dir_all(source_path.parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn owned_patch_handoff_is_consumed_once_and_never_materializes_a_proposal() {
+        let (source_path, patch_bytes) = owned_byte_fixture("one-use-no-proposal");
+        let prepared = prepare_owned_a0_patch_bytes(&source_path, patch_bytes).unwrap();
+        let canonical_source = std::fs::canonicalize(&source_path).unwrap();
+        let names = std::fs::read_dir(source_path.parent().unwrap())
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+            .collect::<BTreeSet<_>>();
+        assert_eq!(
+            names,
+            BTreeSet::from([
+                "module.spx".to_owned(),
+                ".module.spx.semaprax-patch.lock".to_owned(),
+            ])
+        );
+        assert!(names.iter().all(|name| !name.ends_with(".spatch")));
+
+        // The function type freezes the one-use API: the authority is passed
+        // by value, not by shared or mutable reference.
+        let consume_once: fn(A0OwnedPreparedCommit) -> Result<String, Vec<Diagnostic>> =
+            commit_owned_a0;
+        consume_once(prepared).unwrap();
+
+        assert!(!sibling_path(&canonical_source, ".semaprax-patch.lock")
+            .unwrap()
+            .exists());
+        assert!(std::fs::read_dir(source_path.parent().unwrap())
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+            .all(|name| name == "module.spx"));
+        std::fs::remove_dir_all(source_path.parent().unwrap()).unwrap();
     }
 
     #[test]

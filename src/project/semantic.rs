@@ -4,6 +4,8 @@
 //! the linked entry/test closures. Their wire schemas deliberately describe
 //! declared Project inputs, not a managed Semantic Workspace generation.
 
+use std::collections::BTreeMap;
+
 use crate::diagnostic::Diagnostic;
 use crate::workspace_analysis::{
     ProjectAnalysisSubject, WorkspaceAnalysis, WorkspaceAnalysisTargetKind, WorkspaceContextOptions,
@@ -17,6 +19,14 @@ pub(super) struct ProjectSemanticState {
     graph_json: String,
     graph_digest: String,
     analysis: WorkspaceAnalysis,
+    rename_functions: BTreeMap<String, ProjectRenameFunction>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(super) struct ProjectRenameFunction {
+    pub(super) path: String,
+    pub(super) name: String,
+    pub(super) origin: crate::hir::IdentityOrigin,
 }
 
 impl ProjectSemanticState {
@@ -26,6 +36,27 @@ impl ProjectSemanticState {
         project_revision: &str,
         test_module: &str,
     ) -> Result<Self, Vec<Diagnostic>> {
+        let function_origins = projection
+            .declarations()
+            .iter()
+            .filter(|declaration| declaration.kind() == crate::hir::DeclarationKind::Function)
+            .map(|declaration| (declaration.id().to_owned(), declaration.origin()))
+            .collect::<BTreeMap<_, _>>();
+        let mut rename_functions = BTreeMap::new();
+        for module in projection.modules() {
+            for function in module.functions() {
+                if let Some(origin) = function_origins.get(function.id.as_str()) {
+                    rename_functions.insert(
+                        function.id.as_str().to_owned(),
+                        ProjectRenameFunction {
+                            path: module.path().to_owned(),
+                            name: function.name.clone(),
+                            origin: *origin,
+                        },
+                    );
+                }
+            }
+        }
         let graph = workspace_graph::render_project_semantic_graph(
             &projection,
             project_name,
@@ -39,11 +70,20 @@ impl ProjectSemanticState {
             graph_json,
             graph_digest,
             analysis,
+            rename_functions,
         })
     }
 
     pub(super) fn graph(&self) -> &str {
         &self.graph_json
+    }
+
+    pub(super) fn graph_digest(&self) -> &str {
+        &self.graph_digest
+    }
+
+    pub(super) fn rename_function(&self, stable_id: &str) -> Option<&ProjectRenameFunction> {
+        self.rename_functions.get(stable_id)
     }
 
     pub(super) fn context(

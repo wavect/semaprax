@@ -13,6 +13,18 @@
   audit into executable evidence for the "Unique ownership and move safety"
   row. Status stays Partial; totals remain 56 Partial/0 Missing.
 
+- Added locally evidenced, opt-in Project Rename Transaction v1. Running
+  `semapraxd --stdio --allow-project-rename` reports Project Agent Transport v3
+  and admits one preview-digest-bound display rename of one explicit-ID scalar
+  function selected by Project `web_exports`. Preview validates one complete
+  candidate Project; apply overlaps held Project authentication with the
+  unchanged single-file A0 lock/snapshot authority, preflights success before
+  writing, consumes A0 once, reloads exact candidate state, and fail-stops with
+  `SPX-J110` on post-boundary uncertainty. Default v2 remains byte-preserved
+  and read-only. General/multi-file change, client patch/path authority,
+  exactly-once delivery, and hosted promotion are not claimed; totals remain
+  56 Partial/0 Missing.
+
 - Added the locally evidenced Project Agent Transport v2 and `semapraxd
   --stdio`: one host-bound Project v1 session retains the single Phase-A graph,
   linked entry/test HIR, and typed context index; serves revision-bound
